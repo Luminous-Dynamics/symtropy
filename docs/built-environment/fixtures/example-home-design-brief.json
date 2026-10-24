@@ -1,0 +1,307 @@
+{
+  "schema_version": "0.1.0",
+  "brief_id": "example-only/home-brief-001",
+  "revision": 1,
+  "created_at": "2026-10-14T19:00:00Z",
+  "locale": "en-ZA",
+  "unit_system": "SI",
+  "project": {
+    "project_kind": "new_build",
+    "label": "Synthetic example: flexible low-rise home",
+    "target_budget": {
+      "currency": "ZAR",
+      "minimum_total": 900000,
+      "maximum_total": 1400000,
+      "includes": [
+        "site_work",
+        "design_fees",
+        "engineering_fees",
+        "permits_and_approvals",
+        "construction",
+        "fixtures_and_fittings",
+        "contingency"
+      ],
+      "notes": "Illustrative values only; not a cost estimate, quote, or claim about local construction prices."
+    },
+    "target_completion_date": null
+  },
+  "site_context": {
+    "readiness": "rough_context_only",
+    "site_reference": null,
+    "jurisdiction": {
+      "country_code": "ZA",
+      "region": "Gauteng",
+      "municipality": null,
+      "resolution_status": "provisional"
+    },
+    "known_context_notes": [
+      "Synthetic example only. No parcel, survey, planning status, local climate file, or site investigation has been selected."
+    ],
+    "site_evidence_refs": []
+  },
+  "household": {
+    "anticipated_occupants": 3,
+    "usage_patterns": [
+      "remote_work",
+      "children",
+      "regular_guests",
+      "future_household_change"
+    ],
+    "accessibility_goals": [
+      "step_free_route",
+      "generous_clear_widths",
+      "future_adaptability"
+    ],
+    "functional_needs_notes": [
+      "Provide a quiet work area that can be closed off from the main living zone.",
+      "Prefer daily-use spaces on one level where feasible."
+    ]
+  },
+  "spaces": [
+    {
+      "space_id": "living",
+      "space_type": "combined_living_dining",
+      "quantity": 1,
+      "priority": "must_have",
+      "target_area_m2": 28,
+      "adjacency_preferences": [
+        {
+          "other_space_id": "kitchen",
+          "relationship": "connected"
+        },
+        {
+          "other_space_id": "courtyard",
+          "relationship": "visual_connection_to"
+        }
+      ],
+      "notes": "Area is a resident exploration target only.",
+      "dimension_constraints": [
+        {
+          "constraint_id": "living-x-min-resident",
+          "axis": "x_extent",
+          "bound": "minimum",
+          "value_m": 5,
+          "origin": "resident_preference",
+          "enforcement": "advisory",
+          "source_reference": null,
+          "source_edition": null,
+          "source_location": null,
+          "notes": "Synthetic exploration target; not a legal or accessibility minimum."
+        },
+        {
+          "constraint_id": "living-y-min-resident",
+          "axis": "y_extent",
+          "bound": "minimum",
+          "value_m": 3.5,
+          "origin": "resident_preference",
+          "enforcement": "advisory",
+          "source_reference": null,
+          "source_edition": null,
+          "source_location": null,
+          "notes": "Synthetic exploration target; local-plan axis convention only."
+        }
+      ]
+    },
+    {
+      "space_id": "kitchen",
+      "space_type": "kitchen",
+      "quantity": 1,
+      "priority": "must_have",
+      "target_area_m2": 10,
+      "adjacency_preferences": [
+        {
+          "other_space_id": "living",
+          "relationship": "connected"
+        },
+        {
+          "other_space_id": "garden",
+          "relationship": "outdoor_access_from"
+        }
+      ],
+      "notes": null
+    },
+    {
+      "space_id": "bedrooms",
+      "space_type": "bedroom",
+      "quantity": 2,
+      "priority": "must_have",
+      "target_area_m2": 11,
+      "adjacency_preferences": [],
+      "notes": "Per-room target for exploration, not a prescribed minimum."
+    },
+    {
+      "space_id": "flex",
+      "space_type": "flexible_room",
+      "quantity": 1,
+      "priority": "must_have",
+      "target_area_m2": 9,
+      "adjacency_preferences": [
+        {
+          "other_space_id": "living",
+          "relationship": "quiet_from"
+        }
+      ],
+      "notes": "Quiet office first; guest use is a secondary mode."
+    },
+    {
+      "space_id": "bathroom",
+      "space_type": "accessible_bathroom",
+      "quantity": 1,
+      "priority": "must_have",
+      "target_area_m2": 5,
+      "adjacency_preferences": [],
+      "notes": "Evaluate functional accessibility with a qualified reviewer; this brief does not demonstrate compliance."
+    },
+    {
+      "space_id": "laundry",
+      "space_type": "laundry",
+      "quantity": 1,
+      "priority": "preferred",
+      "target_area_m2": 4,
+      "adjacency_preferences": [],
+      "notes": null
+    },
+    {
+      "space_id": "storage",
+      "space_type": "storage",
+      "quantity": 1,
+      "priority": "preferred",
+      "target_area_m2": 3,
+      "adjacency_preferences": [],
+      "notes": null
+    },
+    {
+      "space_id": "courtyard",
+      "space_type": "courtyard",
+      "quantity": 1,
+      "priority": "preferred",
+      "target_area_m2": 18,
+      "adjacency_preferences": [
+        {
+          "other_space_id": "living",
+          "relationship": "visual_connection_to"
+        }
+      ],
+      "notes": "Explore shade, privacy, drainage, and water demand before settling the design."
+    },
+    {
+      "space_id": "garden",
+      "space_type": "garden",
+      "quantity": 1,
+      "priority": "optional",
+      "target_area_m2": 20,
+      "adjacency_preferences": [],
+      "notes": "May be reduced if site, water, budget, or local constraints require it."
+    }
+  ],
+  "priorities": [
+    {
+      "axis": "capital_cost",
+      "importance": 5,
+      "direction": "minimize",
+      "target_or_context": "Respect the stated total budget range, while keeping unknowns visible."
+    },
+    {
+      "axis": "thermal_comfort",
+      "importance": 5,
+      "direction": "maximize",
+      "target_or_context": "Compare passive-first options using an applicable climate/site profile."
+    },
+    {
+      "axis": "adaptability",
+      "importance": 4,
+      "direction": "maximize",
+      "target_or_context": "Allow the flexible room and access routes to serve changing needs."
+    },
+    {
+      "axis": "daylight",
+      "importance": 4,
+      "direction": "balance",
+      "target_or_context": "Daylight is desirable, but manage overheating, glare, and privacy."
+    },
+    {
+      "axis": "low_maintenance",
+      "importance": 4,
+      "direction": "maximize",
+      "target_or_context": "Prefer repairable, available materials and details."
+    },
+    {
+      "axis": "water_use",
+      "importance": 3,
+      "direction": "minimize",
+      "target_or_context": "Compare water demand and any proposed rainwater system separately."
+    },
+    {
+      "axis": "connection_to_outdoors",
+      "importance": 3,
+      "direction": "maximize",
+      "target_or_context": "Prioritize useful shaded outdoor space over decorative size."
+    }
+  ],
+  "requirements": [
+    {
+      "requirement_id": "resident-quiet-work-area",
+      "statement": "Provide a quiet work area that can be closed off from the main living zone.",
+      "requirement_class": "resident_non_negotiable",
+      "topic": "space_and_use",
+      "origin": "resident",
+      "verification_state": "resident_confirmed",
+      "source_reference": null,
+      "rationale": "Work and rest need a reliable acoustic and visual boundary.",
+      "verification_evidence_refs": []
+    },
+    {
+      "requirement_id": "resident-step-free-entry",
+      "statement": "Explore a step-free route from the principal entrance to the main daily living area.",
+      "requirement_class": "resident_non_negotiable",
+      "topic": "accessibility",
+      "origin": "resident",
+      "verification_state": "resident_confirmed",
+      "source_reference": null,
+      "rationale": "This is a requested functional goal; it is not a finding of code compliance.",
+      "verification_evidence_refs": []
+    },
+    {
+      "requirement_id": "compare-solar-ready-options",
+      "statement": "Compare roof options that could accommodate a future solar installation without claiming generation yield before site and system inputs exist.",
+      "requirement_class": "exploration_goal",
+      "topic": "energy",
+      "origin": "resident",
+      "verification_state": "resident_confirmed",
+      "source_reference": null,
+      "rationale": "Keep future upgradeability separate from a modeled or measured energy result.",
+      "verification_evidence_refs": []
+    }
+  ],
+  "design_preferences": {
+    "style_tags": [
+      "warm-minimal",
+      "courtyard-oriented",
+      "natural-light",
+      "repairable-details"
+    ],
+    "material_preferences": [
+      "locally available where verified",
+      "repairable",
+      "low-maintenance",
+      "lower-embodied-impact where evidence supports the comparison"
+    ],
+    "notes": "Visual inspiration is welcome, but the selected model must remain editable and exchangeable."
+  },
+  "privacy": {
+    "sharing_intent": "project_team",
+    "location_precision": "municipality",
+    "personal_data_included": false,
+    "notes": "No names, exact address, coordinates, diagnoses, or title-deed information are contained in this synthetic brief."
+  },
+  "conflict_policy": {
+    "on_conflict": "preserve_and_report",
+    "require_explicit_resident_approval_for_relaxation": true,
+    "cannot_override_safety_or_law": true
+  },
+  "limitations": [
+    "Synthetic schema fixture only; not a real client's brief.",
+    "Budget and room areas are illustrative placeholders, not researched market prices, legal minimums, or engineering requirements.",
+    "No architectural, structural, energy, fire, accessibility, planning, or construction evaluation has been performed."
+  ]
+}

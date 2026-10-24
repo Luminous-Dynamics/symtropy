@@ -80,5 +80,27 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
+    - name: Run Tests (Housing Evidence Verifier)
+      run: cargo test -p symtropy-housing-evidence
+
+    - name: Smoke Test Housing Evidence Manifest (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        cargo run -q -p symtropy-housing-evidence -- docs/built-environment/fixtures/example-not-evidence.json > /tmp/housing-evidence-report.json
+        python3 -c 'import json; r=json.load(open("/tmp/housing-evidence-report.json")); assert r["schema_valid"] is True, r; assert r["effective_status"] == "NOT_EVALUATED", r; assert r["declared_status"] == "NOT_EVALUATED", r'
+
+    - name: Smoke Test Home Layout Candidate (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        cargo run -q -p symtropy-housing-evidence -- --validate-layout docs/built-environment/fixtures/example-home-layout-candidate.json --brief docs/built-environment/fixtures/example-home-design-brief.json > /tmp/home-layout-report.json
+        python3 -c 'import json; r=json.load(open("/tmp/home-layout-report.json")); assert r["contract_status"] == "LAYOUT_CANDIDATE_CONTRACT_VALID", r; assert r["reference_valid"] is True, r; assert r["geometry_valid"] is True, r'
+
+    - name: Smoke Test Jurisdiction Evidence Registry (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        cargo run -q -p symtropy-housing-evidence -- --validate-jurisdiction-registry docs/built-environment/fixtures/example-jurisdiction-evidence-registry.json > /tmp/jurisdiction-registry-report.json
+        python3 -c 'import json; r=json.load(open("/tmp/jurisdiction-registry-report.json")); assert r["registry_contract_status"] == "REGISTRY_VALID", r; assert r["ready_for_rule_evaluation_count"] == 0, r; assert any(x["readiness_reasons"] for x in r["records"]), r'
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+

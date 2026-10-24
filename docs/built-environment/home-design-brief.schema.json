@@ -1,0 +1,886 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:schemas:home-design-brief:0.1.0",
+  "title": "Home Design Brief V1",
+  "description": "Resident-owned preferences and project intent. This is not a building model, code determination, solver result, or construction authorization.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "brief_id",
+    "revision",
+    "created_at",
+    "locale",
+    "unit_system",
+    "project",
+    "site_context",
+    "household",
+    "spaces",
+    "priorities",
+    "requirements",
+    "design_preferences",
+    "privacy",
+    "conflict_policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "brief_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "locale": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 35,
+      "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+    },
+    "unit_system": {
+      "const": "SI"
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_kind",
+        "label",
+        "target_budget"
+      ],
+      "properties": {
+        "project_kind": {
+          "enum": [
+            "new_build",
+            "renovation",
+            "extension",
+            "accessory_dwelling"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "target_budget": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "currency",
+            "minimum_total",
+            "maximum_total",
+            "includes"
+          ],
+          "properties": {
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "minimum_total": {
+              "type": "number",
+              "minimum": 0
+            },
+            "maximum_total": {
+              "type": "number",
+              "minimum": 0
+            },
+            "includes": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "site_work",
+                  "design_fees",
+                  "engineering_fees",
+                  "permits_and_approvals",
+                  "construction",
+                  "fixtures_and_fittings",
+                  "land",
+                  "contingency",
+                  "other"
+                ]
+              }
+            },
+            "notes": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 1000
+            }
+          }
+        },
+        "target_completion_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        }
+      }
+    },
+    "site_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "readiness",
+        "jurisdiction"
+      ],
+      "properties": {
+        "readiness": {
+          "enum": [
+            "unknown",
+            "rough_context_only",
+            "parcel_identified",
+            "survey_available"
+          ]
+        },
+        "site_reference": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 200,
+          "description": "Opaque local reference only; do not place precise coordinates, street addresses, or title-deed details in this shareable brief."
+        },
+        "jurisdiction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "country_code",
+            "resolution_status"
+          ],
+          "properties": {
+            "country_code": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$"
+            },
+            "region": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 160
+            },
+            "municipality": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 160
+            },
+            "resolution_status": {
+              "enum": [
+                "unresolved",
+                "provisional",
+                "confirmed"
+              ]
+            }
+          }
+        },
+        "known_context_notes": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "site_evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      }
+    },
+    "household": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anticipated_occupants",
+        "usage_patterns",
+        "accessibility_goals"
+      ],
+      "properties": {
+        "anticipated_occupants": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 40
+        },
+        "usage_patterns": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "remote_work",
+              "home_business",
+              "children",
+              "multigenerational_living",
+              "regular_guests",
+              "caregiving",
+              "pets",
+              "shift_work",
+              "home_cooking",
+              "maker_or_hobby_space",
+              "frequent_outdoor_use",
+              "future_household_change",
+              "other"
+            ]
+          }
+        },
+        "accessibility_goals": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "step_free_route",
+              "generous_clear_widths",
+              "turning_space",
+              "low_reach_controls",
+              "visual_contrast",
+              "acoustic_support",
+              "adaptable_bathroom",
+              "single_level_daily_living",
+              "future_adaptability",
+              "other"
+            ]
+          }
+        },
+        "functional_needs_notes": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Describe functional design needs, not diagnoses or named occupants."
+          }
+        }
+      }
+    },
+    "spaces": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "space_id",
+          "space_type",
+          "quantity",
+          "priority"
+        ],
+        "properties": {
+          "space_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "space_type": {
+            "enum": [
+              "bedroom",
+              "guest_room",
+              "bathroom",
+              "accessible_bathroom",
+              "kitchen",
+              "living_room",
+              "dining_room",
+              "combined_living_dining",
+              "home_office",
+              "flexible_room",
+              "laundry",
+              "storage",
+              "workshop",
+              "garage",
+              "garden",
+              "courtyard",
+              "porch_or_veranda",
+              "utility_room",
+              "other"
+            ]
+          },
+          "custom_label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 120
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "priority": {
+            "enum": [
+              "must_have",
+              "preferred",
+              "optional"
+            ]
+          },
+          "target_area_m2": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "maximum": 1000,
+            "description": "Resident target for exploration, not a code minimum or validated dimension."
+          },
+          "adjacency_preferences": {
+            "type": "array",
+            "maxItems": 40,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "other_space_id",
+                "relationship"
+              ],
+              "properties": {
+                "other_space_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "relationship": {
+                  "enum": [
+                    "near",
+                    "connected",
+                    "separate",
+                    "quiet_from",
+                    "visual_connection_to",
+                    "outdoor_access_from"
+                  ]
+                }
+              }
+            }
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 1000
+          },
+          "dimension_constraints": {
+            "type": "array",
+            "maxItems": 20,
+            "description": "Optional provenance-bearing local-plan X/Y extent constraints. These are project inputs, not automatically applicable law or proof of usable room dimensions.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "constraint_id",
+                "axis",
+                "bound",
+                "value_m",
+                "origin",
+                "enforcement",
+                "source_reference",
+                "source_edition",
+                "source_location"
+              ],
+              "properties": {
+                "constraint_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+                },
+                "axis": {
+                  "enum": [
+                    "x_extent",
+                    "y_extent"
+                  ],
+                  "description": "Extent in the candidate's local plan coordinate frame; not a named architectural width/depth."
+                },
+                "bound": {
+                  "enum": [
+                    "minimum",
+                    "maximum"
+                  ]
+                },
+                "value_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 100,
+                  "description": "Declared target bound, not a code minimum unless separately established by qualified review."
+                },
+                "origin": {
+                  "enum": [
+                    "resident_preference",
+                    "resident_non_negotiable",
+                    "professional_reference",
+                    "authority_reference"
+                  ]
+                },
+                "enforcement": {
+                  "enum": [
+                    "advisory",
+                    "must_satisfy"
+                  ],
+                  "description": "Explicit project policy; origin alone never implies enforcement."
+                },
+                "source_reference": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Opaque source locator; not fetched or authenticated by this validator."
+                },
+                "source_edition": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "description": "Version, edition, or effective date where applicable."
+                },
+                "source_location": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "maxLength": 240,
+                  "description": "Clause, page, section, drawing, or other precise location where applicable."
+                },
+                "notes": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 1000
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "origin": {
+                        "enum": [
+                          "professional_reference",
+                          "authority_reference"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "origin"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "source_edition": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "source_location": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "priorities": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "axis",
+          "importance",
+          "direction"
+        ],
+        "properties": {
+          "axis": {
+            "enum": [
+              "capital_cost",
+              "operating_cost",
+              "thermal_comfort",
+              "daylight",
+              "acoustic_privacy",
+              "visual_privacy",
+              "accessibility",
+              "resilience",
+              "adaptability",
+              "low_maintenance",
+              "repairability",
+              "embodied_impact",
+              "water_use",
+              "energy_use",
+              "local_materials",
+              "natural_materials",
+              "connection_to_outdoors",
+              "garden_space",
+              "construction_speed",
+              "security",
+              "aesthetic_expression",
+              "future_expansion",
+              "other"
+            ]
+          },
+          "importance": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Ordinal importance selected by the resident; not a probability, objective truth score, or permission to relax safety constraints."
+          },
+          "direction": {
+            "enum": [
+              "minimize",
+              "maximize",
+              "balance",
+              "meet_target"
+            ]
+          },
+          "target_or_context": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          }
+        }
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requirement_id",
+          "statement",
+          "requirement_class",
+          "topic",
+          "origin",
+          "verification_state",
+          "source_reference",
+          "verification_evidence_refs"
+        ],
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "requirement_class": {
+            "enum": [
+              "resident_non_negotiable",
+              "resident_preference",
+              "exploration_goal",
+              "external_requirement_reference"
+            ]
+          },
+          "topic": {
+            "enum": [
+              "space_and_use",
+              "cost",
+              "appearance",
+              "accessibility",
+              "privacy",
+              "comfort",
+              "structure",
+              "fire_and_life_safety",
+              "energy",
+              "water",
+              "environment",
+              "site",
+              "materials",
+              "construction",
+              "maintenance",
+              "legal_or_regulatory",
+              "other"
+            ]
+          },
+          "origin": {
+            "enum": [
+              "resident",
+              "qualified_professional",
+              "authority_reference",
+              "system_suggestion"
+            ]
+          },
+          "verification_state": {
+            "enum": [
+              "unverified",
+              "resident_confirmed",
+              "professionally_reviewed",
+              "authority_confirmed",
+              "rejected",
+              "not_applicable"
+            ]
+          },
+          "source_reference": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "source_id",
+              "uri",
+              "rights_status"
+            ],
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "uri": {
+                "type": "string",
+                "format": "uri"
+              },
+              "title": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 300
+              },
+              "edition_or_effective_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 160
+              },
+              "clause_or_section": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 200
+              },
+              "rights_status": {
+                "enum": [
+                  "public",
+                  "licensed",
+                  "metadata_only",
+                  "permission_required",
+                  "unknown"
+                ]
+              },
+              "source_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "rationale": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 1500
+          },
+          "verification_evidence_refs": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 40,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "description": "References to separate review or decision records; opaque identifiers do not themselves prove review or approval."
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "origin": {
+                  "const": "authority_reference"
+                }
+              },
+              "required": [
+                "origin"
+              ]
+            },
+            "then": {
+              "properties": {
+                "source_reference": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "verification_state": {
+                  "enum": [
+                    "professionally_reviewed",
+                    "authority_confirmed"
+                  ]
+                }
+              },
+              "required": [
+                "verification_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "verification_evidence_refs": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "design_preferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "style_tags",
+        "material_preferences",
+        "notes"
+      ],
+      "properties": {
+        "style_tags": {
+          "type": "array",
+          "maxItems": 30,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        },
+        "material_preferences": {
+          "type": "array",
+          "maxItems": 30,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2000
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sharing_intent",
+        "location_precision"
+      ],
+      "properties": {
+        "sharing_intent": {
+          "enum": [
+            "private_only",
+            "project_team",
+            "explicit_research_opt_in"
+          ]
+        },
+        "location_precision": {
+          "enum": [
+            "none",
+            "municipality",
+            "approximate_site",
+            "exact_site_in_separate_consent_record"
+          ]
+        },
+        "personal_data_included": {
+          "const": false
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 500
+        }
+      }
+    },
+    "conflict_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "on_conflict",
+        "require_explicit_resident_approval_for_relaxation",
+        "cannot_override_safety_or_law"
+      ],
+      "properties": {
+        "on_conflict": {
+          "const": "preserve_and_report"
+        },
+        "require_explicit_resident_approval_for_relaxation": {
+          "const": true
+        },
+        "cannot_override_safety_or_law": {
+          "const": true
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    }
+  }
+}
