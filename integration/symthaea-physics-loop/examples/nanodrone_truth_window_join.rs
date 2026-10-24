@@ -208,7 +208,7 @@ fn motor_sequence_time_key(input_step: usize) -> String {
     format!("input_time_t{input_step}")
 }
 
-fn input_state_value(row: &HashMap<String, f64>, field: &str, mode: OrientationMode) -> f64 {
+fn input_state_value(row: &HashMap<String, f64>, field: &str) -> f64 {
     match field {
         "rx" | "ry" | "rz" => {
             let rotation = quaternion_to_rotvec([row["qx"], row["qy"], row["qz"], row["qw"]]);
@@ -218,8 +218,6 @@ fn input_state_value(row: &HashMap<String, f64>, field: &str, mode: OrientationM
                 _ => rotation[2],
             }
         }
-        "qx" | "qy" | "qz" | "qw" => row[field],
-        _ if mode == OrientationMode::Quaternion => row[field],
         _ => row[field],
     }
 }
@@ -567,7 +565,7 @@ fn join_files_internal(
             let initial_state = &raw.rows[window_index];
             out.push_field(&format!("{:.17}", initial_state["t"]));
             for field in fields_for_mode(mode) {
-                out.push_field(&format!("{:.17}", input_state_value(initial_state, field, mode)));
+                out.push_field(&format!("{:.17}", input_state_value(initial_state, field)));
             }
             for input_step in 0..HORIZON {
                 out.push_field(&format!("{:.17}", raw.rows[window_index + input_step]["t"]));
