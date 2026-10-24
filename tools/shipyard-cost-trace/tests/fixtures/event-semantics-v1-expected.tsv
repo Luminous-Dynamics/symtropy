@@ -1,0 +1,5 @@
+case_id	quantity	semantics	evidence_record_ids	source_stream_ids
+delta-sum	26	AdditiveDeltas	delta-a;delta-b	crew-a;crew-b
+corrected-deltas	24	AdditiveDeltas	correct-1;delta-1;delta-2;delta-3;reverse-1	crew-clock-1
+snapshot-asof-early	12	LatestCumulativeSnapshot	snapshot-1	snapshot-crew
+snapshot-asof-late	14	LatestCumulativeSnapshot	snapshot-1;snapshot-2	snapshot-crew
