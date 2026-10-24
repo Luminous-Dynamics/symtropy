@@ -143,6 +143,7 @@ jobs:
             .audit_kind == "relationship_graph_split_isolation" and
             .schema_version == 1 and
             .graph_sha256 == $digest and
+            (.canonical_graph_sha256 | test("^[0-9a-f]{64}$")) and
             .nodes_checked == 6 and
             .edges_checked == 3 and
             .assignments_checked == 3 and
