@@ -564,6 +564,15 @@ mod tests {
     }
 
     #[test]
+    fn probability_free_frontier_preserves_time_integrated_service_deficit() {
+        let report = aggregate(&fixture()).expect("synthetic fixture should aggregate");
+        let candidate = report.policy_results.iter()
+            .find(|policy| policy.policy_id == "candidate_full_service").unwrap();
+        assert!((candidate.worst_case_weighted_unserved_service_fraction_hours - 4.7).abs() < 1e-12);
+        assert!((candidate.unweighted_mean_weighted_unserved_service_fraction_hours - (7.4 / 3.0)).abs() < 1e-12);
+    }
+
+    #[test]
     fn reports_longest_contiguous_service_failure_across_stress_scenarios() {
         let mut input = fixture();
         let scenario_id = input.scenarios[0].scenario_id.clone();
