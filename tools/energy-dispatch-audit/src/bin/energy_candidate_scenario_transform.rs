@@ -397,6 +397,62 @@ mod tests {
     }
 
     #[test]
+    fn outage_early_preserves_candidate_grid_cap_and_moves_the_outage() {
+        let profile: Value = serde_json::from_str(PROFILE).unwrap();
+        let source: Value = serde_json::from_str(CANDIDATE).unwrap();
+        let cap = numeric_claim(&source, "grid", "interval_import_energy_cap_kwh")
+            .unwrap().unwrap();
+        let (child, applicability, mutations) =
+            apply_transform(source, "outage_early", &profile).unwrap();
+        assert_eq!(applicability, "applicable");
+        assert!(mutations.len() >= 4);
+        assert_eq!(child["scenarios"][0]["intervals"][0]["grid_outage"], true);
+        assert_eq!(child["scenarios"][0]["intervals"][1]["grid_outage"], false);
+        assert_eq!(resource_amount(&child, 0, "grid"), Some(0.0));
+        assert_eq!(resource_amount(&child, 1, "grid"), Some(cap));
+    }
+
+    fn resource_amount(candidate: &Value, interval_index: usize, component_id: &str) -> Option<f64> {
+        candidate["scenarios"][0]["intervals"][interval_index]["resource_available_kwh"]
+            .as_array()?.iter()
+            .find(|item| item["component_id"].as_str() == Some(component_id))?
+            ["available_kwh"].as_f64()
+    }
+
+    #[test]
+    fn demand_surge_doubles_requested_service_without_changing_generation_claims() {
+        let profile: Value = serde_json::from_str(PROFILE).unwrap();
+        let source: Value = serde_json::from_str(CANDIDATE).unwrap();
+        let source_battery = source["components"].as_array().unwrap().iter()
+            .find(|item| item["component_id"] == "battery").unwrap().clone();
+        let (child, applicability, _) =
+            apply_transform(source, "essential_demand_2x", &profile).unwrap();
+        assert_eq!(applicability, "applicable");
+        assert_eq!(
+            child["components"].as_array().unwrap().iter()
+                .find(|item| item["component_id"] == "battery").unwrap(),
+            &source_battery
+        );
+        let old = child["scenarios"][0]["intervals"][1]["service_requested"][0]["requested_quantity"]
+            .as_f64().unwrap();
+        assert_eq!(old, 4.0);
+    }
+
+    #[test]
+    fn battery_reserve_changes_only_the_claim_and_scenario_metadata() {
+        let profile: Value = serde_json::from_str(PROFILE).unwrap();
+        let source: Value = serde_json::from_str(CANDIDATE).unwrap();
+        let (child, applicability, mutations) =
+            apply_transform(source, "terminal_reserve_1", &profile).unwrap();
+        assert_eq!(applicability, "applicable");
+        assert_eq!(
+            numeric_claim(&child, "battery", "terminal_reserve_kwh").unwrap(),
+            Some(1.0)
+        );
+        assert!(mutations.iter().any(|item| item.json_pointer.ends_with("/terminal_reserve_kwh/value")));
+    }
+
+    #[test]
     fn no_battery_terminal_reserve_is_explicitly_not_applicable() {
         let profile: Value = serde_json::from_str(PROFILE).unwrap();
         let mut source: Value = serde_json::from_str(CANDIDATE).unwrap();
