@@ -1060,15 +1060,21 @@ mod tests {
     }
 
     #[test]
-    fn unknown_future_truth_is_not_used_to_construct_a_policy_outage() {
+    fn hidden_truth_is_absent_from_the_policy_visible_projection() {
         let episodes = generate_corpus(&config(16)).expect("corpus");
-        for episode in episodes.iter().filter(|item| item.family == ScenarioFamily::HiddenSurprise) {
+        for episode in episodes
+            .iter()
+            .filter(|item| item.family == ScenarioFamily::HiddenSurprise)
+        {
+            assert_eq!(episode.policy_input.visible_outages.len(), 0);
+            assert_eq!(episode.evaluator_outages.len(), 1);
+            let hidden_id = &episode.evaluator_outages[0].event_id;
             assert!(episode
                 .policy_input
                 .visible_outages
                 .iter()
-                .all(|visible| episode.evaluator_outages.iter().any(|truth| truth.event_id != visible.event_id)
-                    || episode.evaluator_outages.is_empty()));
+                .all(|visible| &visible.event_id != hidden_id));
+            assert!(episode.disturbance_tape_json.contains("\"visibility\":\"evaluator_only\""));
         }
     }
 }
