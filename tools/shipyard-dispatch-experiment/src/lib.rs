@@ -741,9 +741,14 @@ mod ledger_tests {
             replicate_id: "seed-0001".to_owned(),
             initial_state_sha256: "a".repeat(64),
             disturbance_tape_sha256: "b".repeat(64),
+            method_config_sha256: "c".repeat(64),
             budget_profile_id: "no-search-deterministic-v0".to_owned(),
+            wall_time_limit_ms: 1000,
+            decision_compute_budget_units: 100,
+            budget_contract: "synthetic illustrative profile; runtime limits are not enforced by this adapter".to_owned(),
             policy_revision: "policy-revision-sha".to_owned(),
             evaluator_revision: "evaluator-revision-sha".to_owned(),
+            synthetic_example: true,
         }
     }
 
@@ -775,18 +780,20 @@ mod ledger_tests {
         let results = evaluate_four_rules(&input(), &[], &[]).expect("input aligns");
         let rows = serialize_result_ledger(&context(), &results).expect("valid identity");
         assert_eq!(rows.lines().count(), 4);
-        assert!(rows.contains("\"terminal_status\":\"feasible\""));
-        assert!(rows.contains("\"feasibility_scope\":\"abstract-unary-resource-time-v0\""));
+        assert!(rows.contains("\"status\":\"incomplete\""));
+        assert!(rows.contains("\"ledger_contract_version\":\"shipyard-result-ledger-v0\""));
+        assert!(rows.contains("\"causality\":\"not_evaluated\""));
+        assert!(rows.contains("\"method_config_sha256\":"));
         assert!(rows.contains("\"total_tardiness_ticks\":0"));
         assert!(rows.contains("\"occupied_resource_ticks\":2"));
         assert!(!rows.contains("winner_score"));
         let keys = rows
             .lines()
             .map(|line| {
-                let marker = "\"policy_id\":\"";
+                let marker = "\"method_id\":\"";
                 let start = line.find(marker).expect("policy ID") + marker.len();
                 let end = line[start..].find('"').expect("quote") + start;
-                line[start..end].to_owned()
+                line[start..end].split("::").next().expect("policy prefix").to_owned()
             })
             .collect::<Vec<_>>();
         assert_eq!(
