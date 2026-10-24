@@ -1,4 +1,4 @@
-use polar_resilience_score::{active_service_ids, score, service_contracts_match, PolicyScore, ScoreInput};
+use polar_resilience_score::{active_service_ids, score, service_contracts_match, PolicyScore, ScoreInput, ServiceContract};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -53,7 +53,41 @@ struct EnsemblePolicyScore {
     earliest_observed_time_to_first_system_floor_breach_hours: Option<f64>,
     expected_fuel_intensity: Option<f64>,
     fuel_unit: Option<String>,
+    service_results: Vec<ServiceEnsembleScore>,
     scenario_outcomes: Vec<ScenarioPolicyOutcome>,
+}
+
+#[derive(Debug, Serialize)]
+struct ServiceEnsembleScore {
+    service_id: String,
+    rate_unit: String,
+    integrated_unit: String,
+    expected_service_fraction: Option<f64>,
+    expected_service_shortfall: Option<f64>,
+    cvar_service_shortfall: Option<f64>,
+    worst_case_service_shortfall: Option<f64>,
+    floor_breach_probability: f64,
+    expected_floor_breach_service_hours: f64,
+    expected_floor_breach_episode_count: f64,
+    worst_case_longest_consecutive_floor_breach_hours: f64,
+    earliest_observed_time_to_first_floor_breach_hours: Option<f64>,
+    scenario_outcomes: Vec<ScenarioServiceOutcome>,
+}
+
+#[derive(Debug, Serialize)]
+struct ScenarioServiceOutcome {
+    scenario_id: String,
+    probability: f64,
+    scenario_duration_hours: f64,
+    service_fraction: Option<f64>,
+    service_shortfall: Option<f64>,
+    floor_breach: bool,
+    demanded_unit_hours: f64,
+    delivered_unit_hours: f64,
+    floor_breach_service_hours: f64,
+    floor_breach_episode_count: usize,
+    longest_consecutive_floor_breach_hours: f64,
+    time_to_first_floor_breach_hours: Option<f64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -119,6 +153,125 @@ fn cvar_upper_tail(observations: &[(f64, f64)], confidence: f64) -> Result<f64, 
     Ok((tail_loss / tail_mass).clamp(0.0, maximum_loss))
 }
 
+
+/// Summarize service-specific loss distributions independently of the weighted system score.
+/// Active-service consistency is checked by the caller across all scenarios, so a service's
+/// shortfall/CVaR is either defined in every scenario or absent in every scenario.
+fn aggregate_service_results(
+    service_contracts: &[ServiceContract],
+    policy_id: &str,
+    scored_scenarios: &[(String, f64, f64, Vec<PolicyScore>)],
+    cvar_confidence: f64,
+) -> Result<Vec<ServiceEnsembleScore>, String> {
+    let mut results = Vec::with_capacity(service_contracts.len());
+
+    for contract in service_contracts {
+        let mut outcomes = Vec::with_capacity(scored_scenarios.len());
+        for (scenario_id, probability, scenario_duration_hours, policy_scores) in scored_scenarios {
+            let policy = policy_scores.iter().find(|score| score.policy_id == policy_id)
+                .ok_or_else(|| format!("policy {policy_id} missing from scenario {scenario_id}"))?;
+            let service = policy.services.iter().find(|service| service.service_id == contract.id)
+                .ok_or_else(|| format!("service {} missing for policy {policy_id} in scenario {scenario_id}", contract.id))?;
+            if service.rate_unit != contract.rate_unit || service.integrated_unit != contract.integrated_unit {
+                return Err(format!("service {} changes declared units for policy {policy_id}", contract.id));
+            }
+
+            outcomes.push(ScenarioServiceOutcome {
+                scenario_id: scenario_id.clone(),
+                probability: *probability,
+                scenario_duration_hours: *scenario_duration_hours,
+                service_fraction: service.service_fraction,
+                service_shortfall: service.service_fraction.map(|fraction| (1.0 - fraction).clamp(0.0, 1.0)),
+                floor_breach: service.floor_breach_episode_count > 0,
+                demanded_unit_hours: service.demanded_unit_hours,
+                delivered_unit_hours: service.delivered_unit_hours,
+                floor_breach_service_hours: service.floor_breach_service_hours,
+                floor_breach_episode_count: service.floor_breach_episode_count,
+                longest_consecutive_floor_breach_hours: service.longest_consecutive_floor_breach_hours,
+                time_to_first_floor_breach_hours: service.time_to_first_floor_breach_hours,
+            });
+        }
+
+        let active = outcomes.iter().all(|outcome| outcome.service_fraction.is_some());
+        if !active && outcomes.iter().any(|outcome| outcome.service_fraction.is_some()) {
+            return Err(format!("service {} changes activity across scenarios", contract.id));
+        }
+        let expected_service_fraction = if active {
+            Some(outcomes.iter().map(|outcome| outcome.probability * outcome.service_fraction.unwrap()).sum::<f64>())
+        } else {
+            None
+        };
+        let expected_shortfall = if active {
+            Some(outcomes.iter().map(|outcome| outcome.probability * outcome.service_shortfall.unwrap()).sum::<f64>())
+        } else {
+            None
+        };
+        let cvar_shortfall = if active {
+            let tail_observations = outcomes.iter()
+                .map(|outcome| (outcome.probability, outcome.service_shortfall.unwrap()))
+                .collect::<Vec<_>>();
+            Some(cvar_upper_tail(&tail_observations, cvar_confidence)?)
+        } else {
+            None
+        };
+        let worst_case_shortfall = if active {
+            outcomes.iter().filter_map(|outcome| outcome.service_shortfall).reduce(f64::max)
+        } else {
+            None
+        };
+        let floor_breach_probability = outcomes.iter()
+            .filter(|outcome| outcome.floor_breach)
+            .map(|outcome| outcome.probability)
+            .sum::<f64>();
+        let expected_floor_breach_service_hours = outcomes.iter()
+            .map(|outcome| outcome.probability * outcome.floor_breach_service_hours)
+            .sum::<f64>();
+        let expected_floor_breach_episode_count = outcomes.iter()
+            .map(|outcome| outcome.probability * outcome.floor_breach_episode_count as f64)
+            .sum::<f64>();
+        let worst_case_longest_consecutive_floor_breach_hours = outcomes.iter()
+            .map(|outcome| outcome.longest_consecutive_floor_breach_hours)
+            .fold(0.0_f64, f64::max);
+        let earliest_observed_time_to_first_floor_breach_hours = outcomes.iter()
+            .filter_map(|outcome| outcome.time_to_first_floor_breach_hours)
+            .reduce(f64::min);
+
+        for value in [
+            floor_breach_probability,
+            expected_floor_breach_service_hours,
+            expected_floor_breach_episode_count,
+            worst_case_longest_consecutive_floor_breach_hours,
+            expected_service_fraction.unwrap_or(0.0),
+            expected_shortfall.unwrap_or(0.0),
+            cvar_shortfall.unwrap_or(0.0),
+            worst_case_shortfall.unwrap_or(0.0),
+            earliest_observed_time_to_first_floor_breach_hours.unwrap_or(0.0),
+        ] {
+            if !value.is_finite() {
+                return Err(format!("service {} for policy {policy_id} produced non-finite ensemble metrics", contract.id));
+            }
+        }
+
+        results.push(ServiceEnsembleScore {
+            service_id: contract.id.clone(),
+            rate_unit: contract.rate_unit.clone(),
+            integrated_unit: contract.integrated_unit.clone(),
+            expected_service_fraction,
+            expected_service_shortfall: expected_shortfall,
+            cvar_service_shortfall: cvar_shortfall,
+            worst_case_service_shortfall: worst_case_shortfall,
+            floor_breach_probability,
+            expected_floor_breach_service_hours,
+            expected_floor_breach_episode_count,
+            worst_case_longest_consecutive_floor_breach_hours,
+            earliest_observed_time_to_first_floor_breach_hours,
+            scenario_outcomes: outcomes,
+        });
+    }
+
+    Ok(results)
+}
+
 fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
     if input.schema_version != "0.1.0"
         || input.artifact_kind != "polar-resilience-ensemble-input"
@@ -182,6 +335,9 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
     }
 
     let policy_map = expected_policies.unwrap_or_default();
+    let service_contracts = baseline
+        .map(|input| input.episode.service_contracts.as_slice())
+        .ok_or_else(|| "at least one scenario is required".to_string())?;
     let mut results = Vec::with_capacity(policy_map.len());
 
     for (policy_id, (method_family, fuel_unit)) in policy_map {
@@ -238,6 +394,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             }
         }
 
+        let service_results = aggregate_service_results(service_contracts, &policy_id, &scored_scenarios, input.cvar_confidence)?;
         let scenario_outcomes = observations.iter().map(|o| ScenarioPolicyOutcome {
             scenario_id: o.scenario_id.clone(),
             probability: o.probability,
@@ -266,6 +423,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             earliest_observed_time_to_first_system_floor_breach_hours,
             fuel_unit: if expected_fuel_intensity.is_some() { Some(fuel_unit) } else { None },
             expected_fuel_intensity,
+            service_results,
             scenario_outcomes,
         });
     }
