@@ -17,8 +17,8 @@ verify_bundle() {
 
     # These checks establish integrity relative to the included manifests. The
     # receipt checksum must itself be compared with a trusted copy for authenticity.
-    sha256sum -c SHA256SUMS
-    sha256sum -c run-receipt.sha256
+    sha256sum -c SHA256SUMS || { printf 'SHA256SUMS verification failed\n' >&2; exit 1; }
+    sha256sum -c run-receipt.sha256 || { printf 'run-receipt.sha256 verification failed\n' >&2; exit 1; }
 
     jq -e '
       .receipt_schema_version == "0.2.0" and
