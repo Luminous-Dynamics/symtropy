@@ -1,0 +1,257 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/living-world/ANIMAL_MODEL_DECISION_RISK_REPORT_V1.schema.json",
+  "title": "Animal Model Decision Risk Report V1",
+  "description": "Shape contract for a risk summary over declared model outcomes. Passing this schema means the report is structurally readable, not that model predictions or weights are scientifically valid.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "cvar_alpha",
+    "input_sha256",
+    "scenario",
+    "model_ids",
+    "model_weights",
+    "model_count",
+    "scores",
+    "weight_sensitivity",
+    "action_preference",
+    "practical_loss_difference_margin"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ANIMAL-MODEL-DECISION-RISK-REPORT-V1"
+    },
+    "status": {
+      "const": "computed_risk_summary_not_model_validation"
+    },
+    "cvar_alpha": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 1
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "scenario": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "model_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "scores": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "expected_loss",
+          "worst_case_loss",
+          "cvar_loss",
+          "per_model_regret",
+          "max_regret",
+          "admissible_across_all_models"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_loss": {
+            "type": "number",
+            "minimum": 0
+          },
+          "worst_case_loss": {
+            "type": "number",
+            "minimum": 0
+          },
+          "cvar_loss": {
+            "type": "number",
+            "minimum": 0
+          },
+          "per_model_regret": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "max_regret": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "admissible_across_all_models": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "model_weights": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model_id",
+          "weight"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "weight": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    },
+    "weight_sensitivity": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "minimum_expected_loss",
+          "maximum_expected_loss",
+          "minimizing_weights",
+          "maximizing_weights"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minimum_expected_loss": {
+            "type": "number",
+            "minimum": 0
+          },
+          "maximum_expected_loss": {
+            "type": "number",
+            "minimum": 0
+          },
+          "minimizing_weights": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "maximizing_weights": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "action_preference": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "first_action",
+          "second_action",
+          "minimum_loss_difference",
+          "maximum_loss_difference",
+          "stability",
+          "minimizing_weights",
+          "maximizing_weights",
+          "first_admissible_across_all_models",
+          "second_admissible_across_all_models"
+        ],
+        "properties": {
+          "first_action": {
+            "type": "string",
+            "minLength": 1
+          },
+          "second_action": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minimum_loss_difference": {
+            "type": "number"
+          },
+          "maximum_loss_difference": {
+            "type": "number"
+          },
+          "stability": {
+            "enum": [
+              "first_strictly_better",
+              "first_noninferior_within_margin",
+              "second_strictly_better",
+              "second_noninferior_within_margin",
+              "equivalent",
+              "ranking_can_flip"
+            ]
+          },
+          "minimizing_weights": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "maximizing_weights": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "first_admissible_across_all_models": {
+            "type": "boolean"
+          },
+          "second_admissible_across_all_models": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "practical_loss_difference_margin": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "$comment": "JSON Schema does not prove model_ids match every per_model_regret key, model_count matches model_ids.length, action coverage is complete, or risk metrics are mathematically correct. Semantic checks and the Rust scorer remain required. weight_sensitivity entries are optional in meaning (empty when no intervals are declared) and otherwise report extrema over the supplied bounded simplex; JSON Schema does not prove weights sum to one or validate optimality. action_preference reports paired difference extrema under one shared feasible weight vector; a ranking_can_flip result is stronger evidence of preference reversibility than overlap between independent action-loss envelopes. Empty when no intervals are supplied. Paired action-preference records include witness weight vectors for the minimum and maximum loss difference; validators should check each witness lies within the declared input intervals and sums to one. Pairwise preference is not an action recommendation: the explicit per-action unanimous-admissibility flags must be respected independently of loss ranking. practical_loss_difference_margin records the preregistered threshold used for qualitative action-preference classification and must be a finite non-negative value in the loss units declared by the decision objective. Qualitative stability uses practical_loss_difference_margin: strict preference means the full loss-difference range clears the margin; equivalent means the full range remains within plus/minus the margin; noninferiority means no plausible weighting is worse by more than the margin. These are decision thresholds, not statistical confidence statements."
+}

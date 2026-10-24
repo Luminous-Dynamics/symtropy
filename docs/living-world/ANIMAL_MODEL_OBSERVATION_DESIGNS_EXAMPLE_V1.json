@@ -1,0 +1,48 @@
+{
+  "schema_version": "ANIMAL-MODEL-OBSERVATION-DESIGNS-V1",
+  "status": "synthetic_model_discriminating_observation_designs_not_empirical",
+  "scenario": "two_ecological_structures_require_different_actions",
+  "note": "Synthetic arithmetic fixture only. Likelihoods, losses, and cost units are stipulated values, not calibrated ecology or a field observation plan.",
+  "models": [
+    {
+      "model_id": "structure_a",
+      "weight": 0.5,
+      "action_losses": {
+        "act_a": 0,
+        "act_b": 10
+      },
+      "admissible_actions": [
+        "act_a",
+        "act_b"
+      ]
+    },
+    {
+      "model_id": "structure_b",
+      "weight": 0.5,
+      "action_losses": {
+        "act_a": 10,
+        "act_b": 0
+      },
+      "admissible_actions": [
+        "act_a",
+        "act_b"
+      ]
+    }
+  ],
+  "designs": [
+    {
+      "observation_id": "plume_sample",
+      "loss_equivalent_cost": 1,
+      "outcome_likelihoods": {
+        "cue_a": {
+          "structure_a": 0.9,
+          "structure_b": 0.1
+        },
+        "cue_b": {
+          "structure_a": 0.1,
+          "structure_b": 0.9
+        }
+      }
+    }
+  ]
+}

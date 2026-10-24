@@ -9049,6 +9049,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-animal-model-uncertainty"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "symtropy-firstlight"
 version = "0.1.0"
 dependencies = [

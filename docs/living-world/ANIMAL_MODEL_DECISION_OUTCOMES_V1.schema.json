@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_V1.schema.json",
+  "title": "Animal Model Decision Outcomes V1",
+  "description": "Shape constraints for declared per-model action losses. Unknown properties are rejected; weight sums, matching action sets, model ID uniqueness, and loss semantics are validated by the Rust decision kernel.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "cvar_alpha",
+    "scenario",
+    "models",
+    "practical_loss_difference_margin"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ANIMAL-MODEL-DECISION-OUTCOMES-V1"
+    },
+    "status": {
+      "enum": [
+        "synthetic_fixture_not_ecological_validation",
+        "declared_model_outcomes_not_validated"
+      ]
+    },
+    "cvar_alpha": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 1
+    },
+    "scenario": {
+      "type": "string",
+      "minLength": 1
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model_id",
+          "weight",
+          "action_losses",
+          "admissible_actions"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "weight": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "action_losses": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "admissible_actions": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "model_weight_intervals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model_id",
+          "lower",
+          "upper"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lower": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "upper": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "practical_loss_difference_margin": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "$comment": "Schema does not check sums of model weights, equal action sets across models, valid admissible-action references, finite model values in all language bindings, or scientific adequacy. The Rust decision kernel enforces the applicable numeric/action-set invariants. If model_weight_intervals is supplied, it must name exactly the declared model set, contain each nominal model weight, and admit a simplex with total weight one; the Rust semantic kernel checks these conditions and returns worst/best expected-loss witnesses. practical_loss_difference_margin is preregistered in the same loss units as the decision objective; strict preference and practical equivalence use this margin, so near-zero numerical differences are not automatically treated as decisive."
+}
