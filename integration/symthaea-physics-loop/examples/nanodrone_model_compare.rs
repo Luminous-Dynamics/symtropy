@@ -39,6 +39,7 @@ struct RunReceipt {
     row_count: usize,
     orientation: String,
     truth_digest: String,
+    conditioning_digest: String,
     complete_metric: Value,
 }
 
@@ -95,6 +96,11 @@ fn parse_run(value: &Value, index: usize) -> Result<RunReceipt, io::Error> {
         &format!("{prefix}.ground_truth_window_sha256"),
     )?.to_owned();
     check_digest(&truth_digest, &format!("{prefix}.ground_truth_window_sha256"))?;
+    let conditioning_digest = field_str(
+        &value["conditioning_window_sha256"],
+        &format!("{prefix}.conditioning_window_sha256"),
+    )?.to_owned();
+    check_digest(&conditioning_digest, &format!("{prefix}.conditioning_window_sha256"))?;
     let complete_metric = value["complete_window_metric"].clone();
     if !complete_metric.is_object() {
         return Err(invalid_input(format!(
@@ -142,6 +148,7 @@ fn parse_run(value: &Value, index: usize) -> Result<RunReceipt, io::Error> {
         row_count,
         orientation,
         truth_digest,
+        conditioning_digest,
         complete_metric,
     })
 }
@@ -258,6 +265,11 @@ fn compare_receipts(reference: &LoadedReceipt, candidate: &LoadedReceipt) -> Res
                 "{run_id} ground-truth-window digest mismatch; refusing to compare models on non-identical targets"
             )));
         }
+        if left.conditioning_digest != right.conditioning_digest {
+            return Err(invalid_input(format!(
+                "{run_id} conditioning-window digest mismatch; refusing to compare models under non-identical state/input conditions"
+            )));
+        }
     }
 
     let mut per_horizon = Vec::with_capacity(HORIZON);
@@ -328,6 +340,7 @@ fn compare_receipts(reference: &LoadedReceipt, candidate: &LoadedReceipt) -> Res
             "run_id": run_id,
             "row_count": run.row_count,
             "ground_truth_window_sha256": run.truth_digest,
+            "conditioning_window_sha256": run.conditioning_digest,
             "orientation_representation": run.orientation
         })
     }).collect::<Vec<_>>();
@@ -355,7 +368,7 @@ fn compare_receipts(reference: &LoadedReceipt, candidate: &LoadedReceipt) -> Res
             "horizons": HORIZON,
             "sample_period_s": EXPECTED_DT_S,
             "orientation_representation": reference.orientation,
-            "pairing_rule": "refuse comparison unless per-run canonical ground_truth_window_sha256, row count, and orientation representation match exactly",
+            "pairing_rule": "refuse comparison unless per-run canonical ground_truth_window_sha256 and conditioning_window_sha256, row count, and orientation representation match exactly",
             "aggregation": "score each run and horizon independently, then macro-average the three per-run values with equal run weights",
             "reported_metric_channels": "keep position, velocity, orientation, and angular rate separate; no unit-mixed aggregate score",
             "uncertainty": "not estimated; three fixed held-out runs are reported as paired strata, not sufficient independent trials for a strong significance claim"
@@ -438,6 +451,7 @@ mod tests {
             row_count: 60,
             orientation: "so3_log_rotation_vector".to_owned(),
             truth_digest: truth_digest.to_owned(),
+            conditioning_digest: "d".repeat(64),
             complete_metric: json!({ "per_horizon": horizons }),
         }
     }
@@ -474,6 +488,15 @@ mod tests {
         let candidate = fake_receipt(1.5, &"c".repeat(64));
         let error = compare_receipts(&reference, &candidate).unwrap_err();
         assert!(error.to_string().contains("ground-truth-window digest mismatch"));
+    }
+
+    #[test]
+    fn mismatched_conditioning_digest_fails_closed() {
+        let reference = fake_receipt(2.0, &"b".repeat(64));
+        let mut candidate = fake_receipt(1.5, &"b".repeat(64));
+        candidate.runs.get_mut("run2").unwrap().conditioning_digest = "e".repeat(64);
+        let error = compare_receipts(&reference, &candidate).unwrap_err();
+        assert!(error.to_string().contains("conditioning-window digest mismatch"));
     }
 
     #[test]
