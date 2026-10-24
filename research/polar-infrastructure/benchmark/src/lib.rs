@@ -76,6 +76,8 @@ pub struct ServiceScore {
     pub floor_breach_service_hours: f64,
     pub floor_breach_episode_count: usize,
     pub longest_consecutive_floor_breach_hours: f64,
+    /// Elapsed hours from episode start to the first service-floor breach; None means no breach in this trace.
+    pub time_to_first_floor_breach_hours: Option<f64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -96,6 +98,8 @@ pub struct PolicyScore {
     pub system_floor_breach_episode_count: usize,
     /// Duration of the longest contiguous window with any active service-floor breach.
     pub longest_consecutive_system_floor_breach_hours: f64,
+    /// Elapsed hours from episode start to the first system-level service-floor breach; None means no breach in this trace.
+    pub time_to_first_system_floor_breach_hours: Option<f64>,
     pub gate_pass: bool,
     /// Fuel units divided by weighted delivered service-fraction-hours; comparable only under a shared fuel unit and service contract.
     pub fuel_units_per_weighted_delivered_service_fraction_hour: Option<f64>,
@@ -184,6 +188,39 @@ fn system_floor_breach_stats(episode: &Episode, policy: &PolicyRun) -> (usize, f
     }
 
     (episode_count, longest_steps as f64 * episode.time_step_hours)
+}
+
+
+/// Elapsed time from the beginning of an episode to the first breach for one service.
+/// None means the service never breaches its floor in the observed trace; this is
+/// right-censored at the trace horizon, not proof of indefinite survivability.
+fn time_to_first_service_floor_breach_hours(
+    episode: &Episode,
+    policy: &PolicyRun,
+    service: &ServiceContract,
+) -> Option<f64> {
+    episode.steps.iter().zip(&policy.steps).enumerate().find_map(
+        |(step_index, (demand_step, delivery_step))| {
+            let demand = demand_step.demand[&service.id];
+            let delivered = delivery_step.delivered[&service.id].min(demand);
+            (demand > 0.0 && delivered / demand < service.minimum_service_fraction)
+                .then_some(step_index as f64 * episode.time_step_hours)
+        },
+    )
+}
+
+/// Elapsed time to the first timestep where any demanded service breaches its floor.
+fn time_to_first_system_floor_breach_hours(episode: &Episode, policy: &PolicyRun) -> Option<f64> {
+    episode.steps.iter().zip(&policy.steps).enumerate().find_map(
+        |(step_index, (demand_step, delivery_step))| {
+            let any_breach = episode.service_contracts.iter().any(|service| {
+                let demand = demand_step.demand[&service.id];
+                let delivered = delivery_step.delivered[&service.id].min(demand);
+                demand > 0.0 && delivered / demand < service.minimum_service_fraction
+            });
+            any_breach.then_some(step_index as f64 * episode.time_step_hours)
+        },
+    )
 }
 
 /// Services with positive integrated demand in an episode. Cross-scenario
@@ -387,6 +424,11 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
             });
             let (floor_breach_episode_count, longest_consecutive_floor_breach_hours) =
                 service_floor_breach_stats(episode, policy, service);
+            let time_to_first_floor_breach_hours =
+                time_to_first_service_floor_breach_hours(episode, policy, service);
+            if time_to_first_floor_breach_hours.is_some_and(|hours| !hours.is_finite()) {
+                return Err(format!("policy {} service {} has a non-finite time-to-breach metric", policy.policy_id, service.id));
+            }
             service_results.push(ServiceScore {
                 service_id: service.id.clone(),
                 rate_unit: service.rate_unit.clone(),
@@ -397,11 +439,14 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
                 floor_breach_service_hours,
                 floor_breach_episode_count,
                 longest_consecutive_floor_breach_hours,
+                time_to_first_floor_breach_hours,
             });
         }
         weighted_service_fraction /= total_active_weight;
         let (system_floor_breach_episode_count, longest_consecutive_system_floor_breach_hours) =
             system_floor_breach_stats(episode, policy);
+        let time_to_first_system_floor_breach_hours =
+            time_to_first_system_floor_breach_hours(episode, policy);
 
         for value in [
             weighted_service_fraction,
@@ -409,6 +454,7 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
             weighted_unserved_fraction_hours,
             floor_breach_hours,
             longest_consecutive_system_floor_breach_hours,
+            time_to_first_system_floor_breach_hours.unwrap_or(0.0),
         ] {
             if !value.is_finite() {
                 return Err(format!("policy {} produced non-finite metrics", policy.policy_id));
@@ -425,6 +471,7 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
             floor_breach_service_hours: floor_breach_hours,
             system_floor_breach_episode_count,
             longest_consecutive_system_floor_breach_hours,
+            time_to_first_system_floor_breach_hours,
             gate_pass: floor_breach_hours == 0.0,
             fuel_units_per_weighted_delivered_service_fraction_hour: if weighted_delivered_fraction_hours > 0.0 {
                 Some(policy.fuel_units / weighted_delivered_fraction_hours)
