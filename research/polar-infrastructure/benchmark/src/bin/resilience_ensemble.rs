@@ -49,6 +49,8 @@ struct EnsemblePolicyScore {
     expected_system_floor_breach_episode_count: f64,
     expected_longest_consecutive_system_floor_breach_hours: f64,
     worst_case_longest_consecutive_system_floor_breach_hours: f64,
+    /// Earliest observed breach onset across scenarios; None means no scenario breached within its trace.
+    earliest_observed_time_to_first_system_floor_breach_hours: Option<f64>,
     expected_fuel_intensity: Option<f64>,
     fuel_unit: Option<String>,
     scenario_outcomes: Vec<ScenarioPolicyOutcome>,
@@ -64,6 +66,7 @@ struct ScenarioPolicyOutcome {
     floor_breach_service_hours: f64,
     system_floor_breach_episode_count: usize,
     longest_consecutive_system_floor_breach_hours: f64,
+    time_to_first_system_floor_breach_hours: Option<f64>,
 }
 
 #[derive(Debug)]
@@ -76,6 +79,7 @@ struct Observation {
     floor_breach_service_hours: f64,
     system_floor_breach_episode_count: usize,
     longest_consecutive_system_floor_breach_hours: f64,
+    time_to_first_system_floor_breach_hours: Option<f64>,
     fuel_unit: String,
     fuel_intensity: Option<f64>,
 }
@@ -193,6 +197,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
                 floor_breach_service_hours: p.floor_breach_service_hours,
                 system_floor_breach_episode_count: p.system_floor_breach_episode_count,
                 longest_consecutive_system_floor_breach_hours: p.longest_consecutive_system_floor_breach_hours,
+                time_to_first_system_floor_breach_hours: p.time_to_first_system_floor_breach_hours,
                 fuel_unit: p.fuel_unit.clone(),
                 fuel_intensity: p.fuel_units_per_weighted_delivered_service_fraction_hour,
             });
@@ -213,6 +218,8 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             .map(|o| o.probability * o.longest_consecutive_system_floor_breach_hours).sum();
         let worst_case_longest_consecutive_system_floor_breach_hours: f64 = observations.iter()
             .map(|o| o.longest_consecutive_system_floor_breach_hours).fold(0.0_f64, f64::max);
+        let earliest_observed_time_to_first_system_floor_breach_hours = observations.iter()
+            .filter_map(|o| o.time_to_first_system_floor_breach_hours).reduce(f64::min);
         let cvar_observations: Vec<(f64, f64)> = observations.iter()
             .map(|o| (o.probability, o.shortfall)).collect();
         let cvar_service_shortfall = cvar_upper_tail(&cvar_observations, input.cvar_confidence)?;
@@ -222,7 +229,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             None
         };
 
-        for value in [expected_shortfall, expected_service_fraction, worst_case_shortfall, gate_failure_probability, expected_floor_breach_service_hours, expected_system_floor_breach_episode_count, expected_longest_consecutive_system_floor_breach_hours, worst_case_longest_consecutive_system_floor_breach_hours, cvar_service_shortfall] {
+        for value in [expected_shortfall, expected_service_fraction, worst_case_shortfall, gate_failure_probability, expected_floor_breach_service_hours, expected_system_floor_breach_episode_count, expected_longest_consecutive_system_floor_breach_hours, worst_case_longest_consecutive_system_floor_breach_hours, earliest_observed_time_to_first_system_floor_breach_hours.unwrap_or(0.0), cvar_service_shortfall] {
             if !value.is_finite() {
                 return Err(format!("policy {policy_id} produced non-finite ensemble metrics"));
             }
@@ -237,6 +244,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             floor_breach_service_hours: o.floor_breach_service_hours,
             system_floor_breach_episode_count: o.system_floor_breach_episode_count,
             longest_consecutive_system_floor_breach_hours: o.longest_consecutive_system_floor_breach_hours,
+            time_to_first_system_floor_breach_hours: o.time_to_first_system_floor_breach_hours,
         }).collect();
 
         results.push(EnsemblePolicyScore {
@@ -251,6 +259,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             expected_system_floor_breach_episode_count,
             expected_longest_consecutive_system_floor_breach_hours,
             worst_case_longest_consecutive_system_floor_breach_hours,
+            earliest_observed_time_to_first_system_floor_breach_hours,
             fuel_unit: if expected_fuel_intensity.is_some() { Some(fuel_unit) } else { None },
             expected_fuel_intensity,
             scenario_outcomes,
@@ -311,9 +320,11 @@ mod tests {
         assert!(result.worst_case_longest_consecutive_system_floor_breach_hours >= 2.0);
         assert!(result.expected_longest_consecutive_system_floor_breach_hours > 0.0);
         assert!(result.expected_system_floor_breach_episode_count > 0.0);
+        assert_eq!(result.earliest_observed_time_to_first_system_floor_breach_hours, Some(0.0));
         let first = result.scenario_outcomes.iter()
             .find(|outcome| outcome.scenario_id == scenario_id).unwrap();
         assert!(first.system_floor_breach_episode_count > 0);
+        assert_eq!(first.time_to_first_system_floor_breach_hours, Some(0.0));
         assert!(first.longest_consecutive_system_floor_breach_hours >= 2.0);
     }
 
