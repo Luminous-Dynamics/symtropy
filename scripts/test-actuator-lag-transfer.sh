@@ -29,15 +29,18 @@ for profile in "0.000:direct" "0.010:10ms" "0.020:20ms" "0.050:50ms"; do
   comparison_path="$output_dir/comparison-${tag}.json"
 
   skip_tests=0
+  reuse_dataset=0
   if [ "$first_run" -eq 0 ]; then
-    # The first invocation runs the Rust unit tests; later invocations reuse Cargo's
-    # compilation cache and only rebuild/run the benchmark binaries as needed.
+    # The first invocation runs unit tests and collects the training dataset. Later
+    # profiles reuse those exact bytes and Cargo's compilation cache.
     skip_tests=1
+    reuse_dataset=1
   fi
 
   STFR_RUN_BENCHMARK=1 \
   STFR_RESIDUAL_ONLY=1 \
   STFR_SKIP_UNIT_TESTS="$skip_tests" \
+  STFR_REUSE_DATASET="$reuse_dataset" \
   STFR_DATASET_ACTUATOR_LAG_TAU_S="$train_tau_s" \
   STFR_EVAL_ACTUATOR_LAG_TAU_S="$eval_tau_s" \
   STFR_DATASET_OUTPUT_PATH="$dataset_path" \
