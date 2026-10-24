@@ -127,6 +127,8 @@ jobs:
             .properties.schema_version.const == 1 and
             .properties.allowed_splits.const == ["train", "validation", "test"] and
             .properties.edges.items.properties.state.enum == ["verified", "candidate", "contradicted", "unknown"] and
+            .properties.nodes.items.properties.split_required.type == "boolean" and
+            (.properties.nodes.items.required | index("split_required")) != null and
             .additionalProperties == false
           ' "$schema" > /dev/null
           echo "Relationship graph schema and relationship-state contract: PASS"
@@ -146,6 +148,7 @@ jobs:
           grep -q 'UNRESOLVED' "$protocol"
           grep -q 'raw and canonical graph hashes' "$protocol"
           grep -q 'glass-relationship-graph-v0.1.schema.json' "$protocol"
+          grep -q 'split_required' "$protocol"
           echo "Relationship-aware evidence contract and anti-leakage requirements: PASS"
 
       - name: Audit relationship graph known-answer controls
