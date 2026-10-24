@@ -740,6 +740,13 @@ mod tests {
     }
 
     #[test]
+    fn rejects_non_finite_observation_horizon() {
+        let mut input = fixture();
+        input.episode.time_step_hours = f64::MAX;
+        assert!(score(&input).unwrap_err().contains("episode duration must be finite"));
+    }
+
+    #[test]
     fn rejects_invalid_fraction_and_zero_total_demand() {
         let mut invalid_floor = fixture();
         invalid_floor.episode.service_contracts[0].minimum_service_fraction = 1.1;
