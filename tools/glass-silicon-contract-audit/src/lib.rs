@@ -3082,3 +3082,105 @@ mod grouped_split_manifest_tests {
         assert!(report.findings.iter().any(|finding| finding == "SPLIT_EMPTY:validation has no assigned records"));
     }
 }
+
+
+#[cfg(test)]
+mod false_feasible_bound_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn summary() -> Value {
+        serde_json::from_str(include_str!("../fixtures/false-feasible-bound.synthetic.json"))
+            .expect("synthetic false-feasible-bound fixture must be valid JSON")
+    }
+
+    #[test]
+    fn six_hundred_independent_negatives_with_zero_false_feasible_meet_five_percent_gate() {
+        let report = audit_false_feasible_bound(&summary());
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.independent_negative_units, Some(600));
+        assert_eq!(report.false_feasible_count, Some(0));
+        assert_eq!(report.observed_false_feasible_rate, Some(0.0));
+        let bound = report.hoeffding_upper_bound.expect("valid summary should produce a bound");
+        assert!(bound <= 0.05);
+        assert!(bound > 0.0499);
+        assert!(report.target_met);
+    }
+
+    #[test]
+    fn five_hundred_ninety_nine_zero_error_negatives_are_still_unresolved() {
+        let mut value = summary();
+        value["independent_negative_units"] = json!(599);
+        let report = audit_false_feasible_bound(&value);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert!(report.hoeffding_upper_bound.unwrap() > 0.05);
+        assert!(!report.target_met);
+        assert!(report.findings.is_empty());
+    }
+
+    #[test]
+    fn one_false_feasible_error_prevents_the_five_percent_bound_from_passing() {
+        let mut value = summary();
+        value["false_feasible_count"] = json!(1);
+        let report = audit_false_feasible_bound(&value);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert!(report.observed_false_feasible_rate.unwrap() > 0.0);
+        assert!(report.hoeffding_upper_bound.unwrap() > 0.05);
+        assert!(!report.target_met);
+    }
+
+    #[test]
+    fn false_feasible_count_cannot_exceed_independent_negative_units() {
+        let mut value = summary();
+        value["false_feasible_count"] = json!(601);
+        let report = audit_false_feasible_bound(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("FALSE_FEASIBLE_COUNT:false_feasible_count cannot exceed")
+        }));
+    }
+
+    #[test]
+    fn zero_independent_negative_units_fail_closed() {
+        let mut value = summary();
+        value["independent_negative_units"] = json!(0);
+        let report = audit_false_feasible_bound(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("FALSE_FEASIBLE_SAMPLE_SIZE:")
+        }));
+    }
+
+    #[test]
+    fn missing_independence_evidence_reference_fails_closed() {
+        let mut value = summary();
+        value["independence_evidence_ref"] = Value::Null;
+        let report = audit_false_feasible_bound(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("FALSE_FEASIBLE_INDEPENDENCE_EVIDENCE:")
+        }));
+    }
+
+    #[test]
+    fn false_pre_registration_cannot_support_acceptance() {
+        let mut value = summary();
+        value["protocol_pre_registered"] = json!(false);
+        let report = audit_false_feasible_bound(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("FALSE_FEASIBLE_PROTOCOL_NOT_PREREGISTERED:")
+        }));
+    }
+
+    #[test]
+    fn confidence_level_of_one_is_invalid() {
+        let mut value = summary();
+        value["confidence_level"] = json!(1.0);
+        let report = audit_false_feasible_bound(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("FALSE_FEASIBLE_CONFIDENCE:")
+        }));
+    }
+}
