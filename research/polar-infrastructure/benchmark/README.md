@@ -19,7 +19,7 @@ cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Carg
 cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin polar-resilience-score -- research/polar-infrastructure/benchmark/fixtures/toy-episode.json
 ```
 
-The CLI emits a JSON report (`schema_version` 0.2.0). Input fixtures remain schema 0.1.0; report and input versions are intentionally independent so output contract changes are explicit. Invalid input fails closed: unknown service identifiers, incomplete step series, duplicate policy/service identifiers, negative/non-finite measurements, absent demands, and unsupported evidence claims are errors.
+The CLI emits a JSON report (`schema_version` 0.2.0). Input fixtures remain schema 0.1.0; report and input versions are intentionally independent so output contract changes are explicit. Reports include `episode_duration_hours` (or per-scenario `scenario_duration_hours`) so a `null` time-to-first-breach value can be interpreted as no observed breach within a known trace horizon. Invalid input fails closed: unknown service identifiers, incomplete step series, duplicate policy/service identifiers, negative/non-finite measurements, absent demands, and unsupported evidence claims are errors.
 
 ## Metrics
 
