@@ -6,8 +6,10 @@ on:
       - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
       - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
+      - "docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
+      - "docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json"
       - "tools/glass-silicon-contract-audit/**"
       - ".github/workflows/glass-silicon-contract-audit.yml"
   push:
@@ -44,6 +46,36 @@ jobs:
 
       - name: Test verifier and mutation controls
         run: cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
+
+      - name: Audit evaluation receipt schema and fail-closed fixtures
+        shell: bash
+        run: |
+          schema="docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json"
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.evaluation_class.enum == ["UNSEALED_RETROSPECTIVE", "SEALED_CONFIRMATORY"] and .properties.dataset.properties.test_set_commitment.properties.scheme.const == "sha256-salted-v1"' "$schema" > /dev/null
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-eval-receipt tools/glass-silicon-contract-audit/fixtures/evaluation-receipt-unsealed.synthetic.json > evaluation-receipt-unsealed.json
+          grep -q '"status": "PASS"' evaluation-receipt-unsealed.json
+          jq -e '.verified_evaluation_class == "UNSEALED_RETROSPECTIVE" and .metrics_checked == 1' evaluation-receipt-unsealed.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-eval-receipt tools/glass-silicon-contract-audit/fixtures/evaluation-receipt-claimed-sealed.synthetic.json > evaluation-receipt-sealed.json
+          sealed_status=$?
+          set -e
+          test "$sealed_status" -eq 3
+          grep -q '"status": "UNRESOLVED"' evaluation-receipt-sealed.json
+          grep -q 'SEALED_CLAIM_NOT_VERIFIED:' evaluation-receipt-sealed.json
+          grep -q '"verified_evaluation_class": "UNSEALED_RETROSPECTIVE"' evaluation-receipt-sealed.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-eval-receipt tools/glass-silicon-contract-audit/fixtures/evaluation-receipt-budget-overrun.synthetic.json > evaluation-receipt-overrun.json
+          overrun_status=$?
+          set -e
+          test "$overrun_status" -eq 2
+          grep -q '"status": "FAIL"' evaluation-receipt-overrun.json
+          grep -q 'RESOURCE_OVERRUN:' evaluation-receipt-overrun.json
 
       - name: Audit frozen benchmark contract
         run: >
