@@ -49,6 +49,16 @@ struct PolicyVerdict {
 }
 
 #[derive(Clone, Debug, Serialize)]
+struct NegativeControlResult {
+    control_id: String,
+    scope: String,
+    status: String,
+    mutation_variants: usize,
+    detected_variants: usize,
+    note: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
 struct GateReport {
     schema_version: &'static str,
     benchmark_id: &'static str,
@@ -59,6 +69,10 @@ struct GateReport {
     policy_count: usize,
     policy_verdicts: Vec<PolicyVerdict>,
     declared_negative_control_count: usize,
+    gate_owned_negative_control_count: usize,
+    gate_owned_negative_controls_detected: usize,
+    external_negative_control_ids: Vec<String>,
+    negative_control_results: Vec<NegativeControlResult>,
     negative_controls_executed: bool,
     physical_feasibility_audit: &'static str,
     measurement_scope: &'static str,
@@ -366,7 +380,7 @@ fn evaluate_policy(
     })
 }
 
-fn check_fixture(fixture: &Value, source_digest: String) -> Result<GateReport, Box<dyn Error>> {
+fn check_fixture_core(fixture: &Value, source_digest: String) -> Result<GateReport, Box<dyn Error>> {
     if required_str(fixture, "schema_version")? != FIXTURE_SCHEMA {
         return Err(invalid("unsupported non-anticipativity fixture schema"));
     }
@@ -442,11 +456,232 @@ fn check_fixture(fixture: &Value, source_digest: String) -> Result<GateReport, B
         policy_count: policy_verdicts.len(),
         policy_verdicts,
         declared_negative_control_count,
+        gate_owned_negative_control_count: 0,
+        gate_owned_negative_controls_detected: 0,
+        external_negative_control_ids: Vec::new(),
+        negative_control_results: Vec::new(),
         negative_controls_executed: false,
         physical_feasibility_audit: "NOT_RUN_BY_THIS_BINARY; accepted causal traces require the independent dispatch audit",
         measurement_scope: "Frozen synthetic information-consistency fixture. The binary verifies that its known-answer causal traces pass and its explicitly non-causal wait-and-see reference is detected; it does not evaluate energy dispatch or physical feasibility.",
         claim_ceiling: "Synthetic finite counterexample only. No site resilience, calibrated forecast skill, safety certification, or industry outperformance claim.",
     })
+}
+
+
+const GATE_OWNED_NEGATIVE_CONTROLS: [&str; 7] = [
+    "change_one_t0_action_in_wait_and_see_trace_to_test_conflict_detection",
+    "assign_identical_observable_prefixes_different_information_set_ids",
+    "assign_different_observable_prefixes_same_information_set_id",
+    "insert_forecast_with_availability_time_after_action_time",
+    "omit_or_duplicate_a_time_step",
+    "change_architecture_digest_between_scenarios",
+    "tamper_with_trace_bytes_without_updating_receipt",
+];
+const EXTERNAL_NEGATIVE_CONTROL: &str =
+    "causal_but_physically_infeasible_trace_must_fail_dispatch_audit";
+
+fn position_by_string_field(
+    items: &[Value],
+    field: &str,
+    expected: &str,
+) -> Result<usize, Box<dyn Error>> {
+    items.iter().position(|item| item.get(field).and_then(Value::as_str) == Some(expected))
+        .ok_or_else(|| invalid(format!("missing {field}={expected}")))
+}
+
+fn find_policy_position(fixture: &Value, policy_id: &str) -> Result<usize, Box<dyn Error>> {
+    let policies = fixture["known_answer_traces"].as_array()
+        .ok_or_else(|| invalid("known_answer_traces must be an array"))?;
+    position_by_string_field(policies, "policy_id", policy_id)
+}
+
+fn find_trace_position(policy: &Value, scenario_id: &str) -> Result<usize, Box<dyn Error>> {
+    let traces = policy["traces"].as_array()
+        .ok_or_else(|| invalid("policy traces must be an array"))?;
+    position_by_string_field(traces, "scenario_id", scenario_id)
+}
+
+fn find_prefix_position(fixture: &Value, prefix_id: &str) -> Result<usize, Box<dyn Error>> {
+    let prefixes = fixture["observable_prefixes"].as_array()
+        .ok_or_else(|| invalid("observable_prefixes must be an array"))?;
+    position_by_string_field(prefixes, "prefix_id", prefix_id)
+}
+
+fn mutation_is_rejected(mutated: &Value) -> bool {
+    serde_json::to_vec(mutated)
+        .map(|bytes| check_fixture_core(mutated, sha256_hex(&bytes)).is_err())
+        .unwrap_or(true)
+}
+
+fn receipt_matches(bytes: &[u8], expected_sha256: &str) -> bool {
+    sha256_hex(bytes) == expected_sha256
+}
+
+fn run_negative_control_suite(
+    fixture: &Value,
+) -> Result<(Vec<NegativeControlResult>, Vec<String>), Box<dyn Error>> {
+    let declared = fixture["required_negative_controls"].as_array()
+        .ok_or_else(|| invalid("required_negative_controls must be an array"))?;
+    let declared_ids = declared.iter()
+        .map(|item| item.as_str().map(str::to_owned)
+            .ok_or_else(|| invalid("negative-control identifiers must be strings")))
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    let expected_ids = GATE_OWNED_NEGATIVE_CONTROLS.iter()
+        .map(|id| (*id).to_owned())
+        .chain(std::iter::once(EXTERNAL_NEGATIVE_CONTROL.to_owned()))
+        .collect::<BTreeSet<_>>();
+    if declared_ids != expected_ids || declared.len() != expected_ids.len() {
+        return Err(invalid("fixture negative-control registry differs from the exact v0.1 registered set"));
+    }
+
+    let mut results = Vec::new();
+
+    // Mutant 1: make the wait-and-see reference appear causal by forcing its two
+    // indistinguishable t=0 histories to use one action. Its frozen expected
+    // verdict must now disagree, so the golden gate must reject the mutation.
+    let mut mutant = fixture.clone();
+    let p = find_policy_position(&mutant, "wait_and_see_oracle_noncausal_reference")?;
+    let first_action = mutant["known_answer_traces"][p]["traces"][0]["steps"][0]["action"].clone();
+    let second_action = mutant["known_answer_traces"][p]["traces"][1]["steps"][0]["action"].clone();
+    mutant["known_answer_traces"][p]["traces"][0]["steps"][0]["action"] = second_action;
+    let detected = mutation_is_rejected(&mutant);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[0].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: usize::from(detected),
+        note: format!("wait-and-see initial action was changed from {first_action} to {second_action}"),
+    });
+
+    // Mutant 2: alias the same observable history under a different information set.
+    let mut mutant = fixture.clone();
+    let common_idx = find_prefix_position(&mutant, "common-before-reveal")?;
+    let mut alias = mutant["observable_prefixes"][common_idx].clone();
+    alias["prefix_id"] = Value::String("negative-control-duplicate-common-prefix".to_owned());
+    alias["expected_information_set"] = Value::String("forged-split-information-set".to_owned());
+    mutant["observable_prefixes"].as_array_mut()
+        .ok_or_else(|| invalid("observable_prefixes must be an array"))?
+        .push(alias);
+    let detected = mutation_is_rejected(&mutant);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[1].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: usize::from(detected),
+        note: "same policy-visible history assigned two information-set IDs".to_owned(),
+    });
+
+    // Mutant 3: merge distinct histories into the same information set.
+    let mut mutant = fixture.clone();
+    let early_idx = find_prefix_position(&mutant, "early-outage-revealed-soc1")?;
+    mutant["observable_prefixes"][early_idx]["expected_information_set"] = Value::String("shared-t0".to_owned());
+    let detected = mutation_is_rejected(&mutant);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[2].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: usize::from(detected),
+        note: "different observable histories merged into one information set".to_owned(),
+    });
+
+    // Mutant 4: make a future forecast appear available before the action.
+    let mut mutant = fixture.clone();
+    let common_idx = find_prefix_position(&mutant, "common-before-reveal")?;
+    mutant["observable_prefixes"][common_idx]["available_forecast"]["future_grid_state"]["available_at_time_index"] = Value::from(1);
+    mutant["observable_prefixes"][common_idx]["observable_history"][0]["available_forecast"]["future_grid_state"]["available_at_time_index"] = Value::from(1);
+    let detected = mutation_is_rejected(&mutant);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[3].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: usize::from(detected),
+        note: "forecast availability moved past the t=0 action boundary".to_owned(),
+    });
+
+    // Mutant 5 exercises both omitted and duplicate time steps.
+    let mut variants_detected = 0_usize;
+    let mut omitted = fixture.clone();
+    let hold_p = find_policy_position(&omitted, "causal_policy_hold_for_critical")?;
+    let normal_t = find_trace_position(&omitted["known_answer_traces"][hold_p], "no_outage")?;
+    omitted["known_answer_traces"][hold_p]["traces"][normal_t]["steps"].as_array_mut()
+        .ok_or_else(|| invalid("steps must be an array"))?.pop();
+    variants_detected += usize::from(mutation_is_rejected(&omitted));
+
+    let mut duplicated = fixture.clone();
+    let hold_p = find_policy_position(&duplicated, "causal_policy_hold_for_critical")?;
+    let normal_t = find_trace_position(&duplicated["known_answer_traces"][hold_p], "no_outage")?;
+    let repeated = duplicated["known_answer_traces"][hold_p]["traces"][normal_t]["steps"][0].clone();
+    duplicated["known_answer_traces"][hold_p]["traces"][normal_t]["steps"].as_array_mut()
+        .ok_or_else(|| invalid("steps must be an array"))?.push(repeated);
+    variants_detected += usize::from(mutation_is_rejected(&duplicated));
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[4].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if variants_detected == 2 { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 2,
+        detected_variants: variants_detected,
+        note: "both omitted and duplicated time-step variants were run".to_owned(),
+    });
+
+    // Mutant 6: bind one scenario trace to a different architecture digest.
+    let mut mutant = fixture.clone();
+    let hold_p = find_policy_position(&mutant, "causal_policy_hold_for_critical")?;
+    mutant["known_answer_traces"][hold_p]["traces"][0]["architecture_sha256"] = Value::String("0".repeat(64));
+    let detected = mutation_is_rejected(&mutant);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[5].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: usize::from(detected),
+        note: "one scenario trace architecture digest was corrupted".to_owned(),
+    });
+
+    // Mutant 7: verify a receipt bound to original bytes rejects modified bytes.
+    let original_bytes = serde_json::to_vec(fixture)?;
+    let expected_receipt = sha256_hex(&original_bytes);
+    let mut tampered_bytes = original_bytes.clone();
+    tampered_bytes.push(b' ');
+    let detected = receipt_matches(&original_bytes, &expected_receipt)
+        && !receipt_matches(&tampered_bytes, &expected_receipt);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[6].to_owned(),
+        scope: "sha256_receipt_primitive".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: usize::from(detected),
+        note: "stale receipt was rejected after the exact input bytes changed".to_owned(),
+    });
+
+    // The physical-feasibility control deliberately remains out of scope here.
+    // This binary has no dispatcher model; the E2E workflow's independent audit
+    // remains the required owner of that control.
+    let external = vec![EXTERNAL_NEGATIVE_CONTROL.to_owned()];
+    Ok((results, external))
+}
+
+fn check_fixture(fixture: &Value, source_digest: String) -> Result<GateReport, Box<dyn Error>> {
+    let mut report = check_fixture_core(fixture, source_digest)?;
+    let (results, external_ids) = run_negative_control_suite(fixture)?;
+    let detected = results.iter()
+        .filter(|result| result.status == "detected")
+        .count();
+    let expected_gate_controls = GATE_OWNED_NEGATIVE_CONTROLS.len();
+    if results.len() != expected_gate_controls || detected != expected_gate_controls {
+        let missed = results.iter().filter(|result| result.status != "detected")
+            .map(|result| result.control_id.clone()).collect::<Vec<_>>();
+        return Err(invalid(format!("negative-control suite did not detect every gate-owned mutation: {missed:?}")));
+    }
+    report.gate_owned_negative_control_count = expected_gate_controls;
+    report.gate_owned_negative_controls_detected = detected;
+    report.external_negative_control_ids = external_ids;
+    report.negative_control_results = results;
+    report.negative_controls_executed = true;
+    Ok(report)
 }
 
 fn run_report(input: &Path, output: &Path) -> Result<GateReport, Box<dyn Error>> {
@@ -460,7 +695,9 @@ fn run_report(input: &Path, output: &Path) -> Result<GateReport, Box<dyn Error>>
         report.policy_count, report.scenario_count, report.observable_prefix_count);
     println!("source_fixture_sha256={}", report.source_fixture_sha256);
     println!("declared_negative_control_count={}", report.declared_negative_control_count);
-    println!("negative_controls_executed=false");
+    println!("gate_negative_controls={}/{}", report.gate_owned_negative_controls_detected, report.gate_owned_negative_control_count);
+    println!("negative_controls_executed={}", report.negative_controls_executed);
+    println!("external_negative_controls_delegated={}", report.external_negative_control_ids.len());
     println!("physical_feasibility_audit=NOT_RUN_BY_THIS_BINARY");
     println!("report_sha256={}", sha256_hex(&output_bytes));
     Ok(report)
@@ -500,13 +737,28 @@ mod tests {
     }
 
     #[test]
+    fn runtime_mutation_suite_executes_every_gate_owned_control() {
+        let f = fixture();
+        let (results, external) = run_negative_control_suite(&f).unwrap();
+        assert_eq!(results.len(), 7);
+        assert!(results.iter().all(|result| result.status == "detected"));
+        assert_eq!(results.iter().map(|result| result.mutation_variants).sum::<usize>(), 8);
+        assert_eq!(external, vec![EXTERNAL_NEGATIVE_CONTROL.to_owned()]);
+    }
+
+    #[test]
     fn golden_fixture_passes_and_detects_wait_and_see_reference() {
         let report = report_for(&fixture()).unwrap();
         assert_eq!(report.status, "pass");
         assert_eq!(report.scenario_count, 2);
         assert_eq!(report.policy_count, 3);
         assert_eq!(report.declared_negative_control_count, 8);
-        assert!(!report.negative_controls_executed);
+        assert_eq!(report.gate_owned_negative_control_count, 7);
+        assert_eq!(report.gate_owned_negative_controls_detected, 7);
+        assert_eq!(report.negative_control_results.len(), 7);
+        assert_eq!(report.external_negative_control_ids, vec![EXTERNAL_NEGATIVE_CONTROL.to_owned()]);
+        assert!(report.negative_controls_executed);
+        assert!(report.negative_control_results.iter().all(|result| result.status == "detected"));
         let oracle = report.policy_verdicts.iter()
             .find(|policy| policy.policy_id == "wait_and_see_oracle_noncausal_reference").unwrap();
         assert_eq!(oracle.actual_gate, "reject_as_deployable_policy");
