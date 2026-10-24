@@ -80,7 +80,7 @@ Keep these as *declared synthetic perturbations* until replaced with actual dist
 - **Outdoor environments:** spill/uplight, nearby reflective surfaces, dark-sky constraints and wildlife-sensitive contexts.
 - **Resilience:** mains loss, DC/solar/battery supply constraints, low-state-of-charge fallback and restart after outage.
 
-Partition by *scenario family*, not random rows, to prevent closely related variants from appearing in both tuning and held-out splits. Keep a frozen public development matrix and a separately controlled final evaluation matrix. Report both nominal and stress performance.
+Partition by *scenario family*, not random rows, to prevent closely related variants from appearing in both tuning and held-out splits. Keep a frozen public development matrix and a separately controlled final evaluation matrix. Report both nominal and stress performance. An initial 27-case typed registry is now implemented in tools/lighting-benchmark/src/stress_matrix.rs and emitted by the lighting-stress-matrix binary. It covers synthetic fixture translations/heights, reflectance, power input, held-out asymmetric reflectance/occlusion/coupled geometry, control sensor bias/dropout/latency/stale state, and battery/outage interventions. It validates unique IDs, parameter ranges and family-level split isolation within each tier. These are software benchmark interventions only; they are not calibrated site distributions and are not yet executed against an optical/control solver.
 
 For the South African application track, add Southern Hemisphere seasonal/weather cases only with pinned local weather files and explicit site/climate scope. Do not use a Johannesburg or South African label as a substitute for actual local data.
 
