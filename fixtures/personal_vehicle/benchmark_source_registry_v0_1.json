@@ -1,0 +1,372 @@
+{
+  "schema_version": "vehicle-benchmark-source-registry/0.1",
+  "registry_id": "symtropy-personal-family-vehicle-source-registry-v0.1",
+  "created_date": "2026-10-17",
+  "status": "source inventory only; rights/reuse and applicability require review",
+  "policy": {
+    "no_vendoring_without_rights_review": true,
+    "no_source_claim_upgrades": true,
+    "evidence_levels": [
+      "source_discovery",
+      "test_procedure_or_standard",
+      "published_observation",
+      "independent_measurement",
+      "calibrated_model_validation",
+      "physical_qualification",
+      "regulatory_receipt"
+    ],
+    "rules": [
+      "A published test procedure is not a measured validation dataset.",
+      "A vehicle specification is not evidence of field consumption or reliability.",
+      "A legal/administrative guidance page identifies a route to investigate; it is not a complete legal opinion or a vehicle approval.",
+      "Paid standards are referenced by metadata and link only; do not reproduce normative text.",
+      "No source is considered licensed for redistribution or commercial use until rights are recorded."
+    ]
+  },
+  "sources": [
+    {
+      "id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+      "title": "Dynamometer Drive Schedules",
+      "organization": "U.S. Environmental Protection Agency",
+      "url": "https://www.epa.gov/vehicle-and-fuel-emissions-testing/dynamometer-drive-schedules",
+      "accessed_on": "2026-10-17",
+      "role": "standardized_input_schedule",
+      "evidence_class": "test_procedure_or_standard",
+      "status": "source verified; dataset reuse/redistribution review pending",
+      "usable_for": [
+        "repeatable nominal city/highway/aggressive/air-conditioning cycle inputs",
+        "input formatting and cycle-replay regression once source bytes are separately captured and hashed"
+      ],
+      "not_usable_for": [
+        "measured energy consumption of our candidate vehicle",
+        "South African duty-cycle representativeness without local comparison",
+        "braking, tire/contact, durability, crashworthiness or roadworthiness validation"
+      ],
+      "named_schedules": [
+        "UDDS",
+        "FTP",
+        "HWFET",
+        "NYCC",
+        "US06",
+        "SC03"
+      ],
+      "rights_and_provenance": [
+        "Do not vendor files into the repo until exact file URLs, bytes, hashes, terms and redistribution rights are recorded.",
+        "Preserve source publication/access date and any cycle/unit/format transformations."
+      ]
+    },
+    {
+      "id": "SRC_NHTSA_ADS_SCENARIO_FRAMEWORK",
+      "title": "Published Reports and Documents — Automated Vehicles Safety",
+      "organization": "U.S. National Highway Traffic Safety Administration",
+      "url": "https://www.nhtsa.gov/automated-vehicles-safety/published-reports-and-documents",
+      "accessed_on": "2026-10-17",
+      "role": "autonomy_scenario_method",
+      "evidence_class": "test_method",
+      "status": "method reference; no candidate-specific proof",
+      "usable_for": [
+        "later decomposition of autonomous-driving test space",
+        "ODD, tactical competency and staged model/simulation/track/open-road evaluation planning"
+      ],
+      "not_usable_for": [
+        "proof of our vehicle's autonomy",
+        "zero-risk claims from finite simulation cases",
+        "physical vehicle dynamics validation"
+      ],
+      "rights_and_provenance": [
+        "Review terms for each individual document/data artifact before use."
+      ]
+    },
+    {
+      "id": "SRC_SAE_J1555_201910",
+      "title": "J1555_201910 Recommended Practice for Optimizing Automobile Damageability and Repairability",
+      "organization": "SAE International",
+      "url": "https://saemobilus.sae.org/standards/j1555_201910-recommended-practice-optimizing-automobile-damageability-repairability",
+      "accessed_on": "2026-10-17",
+      "role": "repairability_method",
+      "evidence_class": "standard",
+      "status": "metadata/scope verified; normative access and current applicability must be confirmed",
+      "scope_note": "Collision/comprehensive-loss repair scope; focuses design attention on components that dominate average repair costs and links damageability, repairability, serviceability and diagnostics.",
+      "usable_for": [
+        "designing a collision-repair cost study",
+        "prioritizing components by observed repair cost contribution"
+      ],
+      "not_usable_for": [
+        "a complete routine-maintenance standard",
+        "proof that our design complies with the standard",
+        "proof of reduced costs without comparable physical/claims data"
+      ],
+      "rights_and_provenance": [
+        "Standard is commercial content; link and summarize scope only until licensed access is established."
+      ]
+    },
+    {
+      "id": "SRC_ISO_21448_2022",
+      "title": "ISO 21448:2022 — Road vehicles — Safety of the intended functionality",
+      "organization": "International Organization for Standardization",
+      "url": "https://www.iso.org/standard/77490.html",
+      "accessed_on": "2026-10-17",
+      "role": "sotif_safety_reference",
+      "evidence_class": "safety_standard",
+      "status": "official scope verified; conformance not assessed",
+      "scope_note": "SOTIF addresses unreasonable risk caused by functional insufficiencies, including insufficiencies in intended-function specification or performance of E/E elements.",
+      "usable_for": [
+        "future autonomy/perception/ODD hazard and verification planning"
+      ],
+      "not_usable_for": [
+        "a claim of SOTIF compliance from referencing the standard",
+        "substitute for functional safety, regulatory approval or physical validation"
+      ],
+      "rights_and_provenance": [
+        "Normative standard is commercial content; do not copy its text into public repository."
+      ]
+    },
+    {
+      "id": "SRC_ISO_26262_PART_3_2018",
+      "title": "ISO 26262-3:2018 — Concept phase",
+      "organization": "International Organization for Standardization",
+      "url": "https://www.iso.org/standard/68385.html",
+      "accessed_on": "2026-10-17",
+      "role": "functional_safety_reference",
+      "evidence_class": "safety_standard",
+      "status": "Published ISO 26262-3:2018 scope checked on 2026-10-17; ISO page also lists a draft revision under development. Confirm current edition and applicability at each qualification gate.",
+      "scope_note": "Concept-phase work includes item definition, hazard analysis and risk assessment, and functional safety concept.",
+      "usable_for": [
+        "early hazard-analysis and safety-lifecycle planning for safety-related E/E systems"
+      ],
+      "not_usable_for": [
+        "proof that a software test suite satisfies ISO 26262",
+        "nominal functionality or crashworthiness evidence by itself"
+      ],
+      "rights_and_provenance": [
+        "ISO normative text is commercial content; do not copy the standard into the repository.",
+        "The official ISO page currently lists ISO/DIS 26262-3 as a draft revision under development alongside the 2018 published edition; verify the effective edition at the actual qualification decision.",
+        "This source entry is scoped to concept-phase hazard/risk and functional-safety planning; it does not imply conformity, vehicle approval, or nominal performance evidence."
+      ]
+    },
+    {
+      "id": "SRC_SA_MIB_REGISTRATION",
+      "title": "Register as vehicle manufacturer, importer or builder",
+      "organization": "South African Government",
+      "url": "https://www.gov.za/services/services-organisations/driving-and-transport/register-vehicle-manufacturer-importer-or",
+      "accessed_on": "2026-10-17",
+      "role": "market_entry_route",
+      "evidence_class": "regulatory_route",
+      "status": "official guidance page checked; specific project advice/complete approval route not assessed",
+      "usable_for": [
+        "identify manufacturer/importer/builder registration questions for a South African commercial build programme"
+      ],
+      "not_usable_for": [
+        "complete type-approval or NRCS certification requirements",
+        "authorization to produce or operate a candidate road vehicle"
+      ],
+      "rights_and_provenance": [
+        "Reconfirm with the responsible provincial department and relevant regulators before committing a design or budget."
+      ]
+    },
+    {
+      "id": "SRC_SA_NRCs_LETTER_OF_AUTHORITY",
+      "title": "Letter of authority for imported or rebuilt motor vehicle",
+      "organization": "South African Government",
+      "url": "https://www.gov.za/services/register-motor-vehicle/letter-authority-respect-motor-vehicle",
+      "accessed_on": "2026-10-17",
+      "role": "market_approval_route",
+      "evidence_class": "regulatory_route",
+      "status": "official guidance page checked; specific vehicle route not adjudicated",
+      "usable_for": [
+        "flag the NRCS letter-of-authority question for imported, built, rebuilt or modified vehicles"
+      ],
+      "not_usable_for": [
+        "claim that the planned design is approved",
+        "replace direct confirmation of applicable National Road Traffic Act/NCRS requirements"
+      ],
+      "rights_and_provenance": [
+        "Get regulator/qualified homologation advice before any public-road testing or sale."
+      ]
+    },
+    {
+      "id": "SRC_SA_ROADWORTHINESS",
+      "title": "Roadworthy certificate",
+      "organization": "South African Government",
+      "url": "https://www.gov.za/services/services-residents/driving/roadworthiness/roadworthy-certificate",
+      "accessed_on": "2026-10-17",
+      "role": "operational_roadworthiness_route",
+      "evidence_class": "regulatory_route",
+      "status": "official general guidance page checked",
+      "usable_for": [
+        "distinguish testing-station roadworthiness from design validation and manufacturing approval"
+      ],
+      "not_usable_for": [
+        "certify crashworthiness, type approval, autonomous safety, or an unbuilt design"
+      ],
+      "rights_and_provenance": [
+        "Confirm requirements for the exact vehicle class/use and current law with competent authority."
+      ]
+    },
+    {
+      "id": "SRC_UN_R155",
+      "title": "UN Regulation No. 155 — Cyber security and cyber security management system",
+      "organization": "United Nations Economic Commission for Europe",
+      "url": "https://unece.org/transport/documents/2021/03/standards/un-regulation-no-155-cyber-security-and-cyber-security",
+      "accessed_on": "2026-10-17",
+      "role": "connected_vehicle_cybersecurity_reference",
+      "evidence_class": "safety_regulation",
+      "status": "official source located; target-market applicability and current amendment series must be reviewed",
+      "usable_for": [
+        "threat-modeling connected/automated vehicle development and service support"
+      ],
+      "not_usable_for": [
+        "assume automatically applies in South Africa or to every vehicle class",
+        "claim cybersecurity management system compliance"
+      ],
+      "rights_and_provenance": [
+        "Applicability depends on jurisdiction, vehicle category, type-approval route and implementation date."
+      ]
+    },
+    {
+      "id": "SRC_UN_R156",
+      "title": "UN Regulation No. 156 — Software update and software update management system",
+      "organization": "United Nations Economic Commission for Europe",
+      "url": "https://unece.org/transport/documents/2021/03/standards/un-regulation-no-156-software-update-and-software-update",
+      "accessed_on": "2026-10-17",
+      "role": "software_update_reference",
+      "evidence_class": "safety_regulation",
+      "status": "official source located; target-market applicability and current amendment series must be reviewed",
+      "usable_for": [
+        "plan auditable software/configuration identity and safe-update lifecycle for future connected features"
+      ],
+      "not_usable_for": [
+        "assume applicability to the initial non-connected vehicle concept",
+        "claim software-update compliance from config hashes alone"
+      ],
+      "rights_and_provenance": [
+        "Determine applicability with the relevant authority and qualified homologation support."
+      ]
+    },
+    {
+      "id": "SRC_TOYOTA_SA_MODEL_RANGE",
+      "title": "Toyota South Africa model range and advertised starting prices",
+      "organization": "Toyota South Africa",
+      "url": "https://www.toyota.co.za/vehicles",
+      "accessed_on": "2026-10-17",
+      "role": "market_baseline_screening",
+      "evidence_class": "manufacturer_model_range",
+      "status": "manufacturer model-range page listed starting prices on access date; exact variant and dealer quote pending",
+      "usable_for": [
+        "initial South African new-vehicle baseline shortlist",
+        "dated screening comparison of advertised starting prices for Vitz, Starlet, Starlet Cross and Rumion"
+      ],
+      "not_usable_for": [
+        "out-the-door price or financed cost",
+        "real-world fuel economy, maintenance cost, repair lead time or lifetime ownership cost",
+        "complete trim-level specification or safety comparison without exact variant documents"
+      ],
+      "rights_and_provenance": [
+        "Prices are a volatile webpage snapshot and must be reconfirmed using dated written dealer quotes.",
+        "Do not redistribute manufacturer images, brochures or restricted material without rights review."
+      ]
+    },
+    {
+      "id": "SRC_SUZUKI_SWIFT_OFFICIAL_PRICES",
+      "title": "Suzuki Swift South Africa model/pricing page",
+      "organization": "Suzuki Auto South Africa",
+      "url": "https://www.suzukiauto.co.za/cars/swift",
+      "accessed_on": "2026-10-17",
+      "role": "market_baseline_screening",
+      "evidence_class": "manufacturer_model_range",
+      "status": "official page displayed variant starting prices on access date; dealer quote and costs excluded",
+      "usable_for": [
+        "entry/trim price screening of Suzuki Swift GL, GL+, CVT and GLX variants",
+        "manufacturer-declared fuel-consumption claim and warranty/service-plan offer screening"
+      ],
+      "not_usable_for": [
+        "real-world fuel consumption or fuel cost prediction without route/driver/condition evidence",
+        "out-the-door price, parts availability, repair duration or 10-year TCO"
+      ],
+      "rights_and_provenance": [
+        "Record exact variant, page capture, timestamp, currency and quote expiry before using price in a decision.",
+        "Reconfirm price and warranty/service-plan conditions with a dated dealer quote."
+      ]
+    },
+    {
+      "id": "SRC_SUZUKI_SWIFT_OFFICIAL_SPECS",
+      "title": "Suzuki Swift South Africa official specifications",
+      "organization": "Suzuki Auto South Africa",
+      "url": "https://www.suzukiauto.co.za/specs/swift",
+      "accessed_on": "2026-10-17",
+      "role": "market_baseline_specification",
+      "evidence_class": "manufacturer_specification",
+      "status": "official model specification page inspected; exact chosen variant and current brochure version must be recorded",
+      "usable_for": [
+        "initial dimensions, kerb-mass range, powertrain, nominal ground-clearance, boot-volume and listed safety-feature screening"
+      ],
+      "not_usable_for": [
+        "independent safety-rating comparison",
+        "actual payload margin, measured energy consumption, serviceability, field reliability or measured repair time"
+      ],
+      "rights_and_provenance": [
+        "Manufacturer-stated data; bind each value to exact trim/version and retain citation rather than copying protected imagery or brochure content."
+      ]
+    },
+    {
+      "id": "SRC_SA_DTIC_SKD_POLICY_2026_10",
+      "title": "Minister Tau announces end of Semi-Knock-Down operations in South Africa's automotive sector",
+      "organization": "South African Department of Trade, Industry and Competition",
+      "url": "https://www.thedtic.gov.za/minister-tau-announces-end-of-semi-knock-down-operations-in-sas-automotive-sector/",
+      "accessed_on": "2026-10-17",
+      "role": "manufacturing_policy_risk",
+      "evidence_class": "official_policy_announcement",
+      "status": "announcement published 2026-10-15; implementation instruments, dates and project-specific applicability still require confirmation",
+      "usable_for": [
+        "flag SKD policy exposure during South African manufacturing strategy screening",
+        "motivate local-value-add and supplier-qualification alternatives in design-space analysis",
+        "identify questions for direct DTIC/ITAC/SARS review before committing investment"
+      ],
+      "not_usable_for": [
+        "legal advice on a specific applicant or facility",
+        "assertion that all SKD activity has already ceased or determination of a transition date",
+        "assumption that any particular CKD plan qualifies for APDP2 incentives"
+      ],
+      "rights_and_provenance": [
+        "Government announcement is a primary policy statement, not a substitute for applicable legislation, Gazette text or individual written authority.",
+        "Reconfirm the current APDP2/ITAC/SARS rules and implementation schedule before any investment or pricing decision."
+      ]
+    },
+    {
+      "id": "SRC_SA_SARS_APDP2",
+      "title": "Automotive Production and Development Programme (APDP2)",
+      "organization": "South African Revenue Service",
+      "url": "https://www.sars.gov.za/customs-and-excise/registration-licensing-and-accreditation/automotive-production-and-development-programme-apdp/",
+      "accessed_on": "2026-10-17",
+      "role": "manufacturing_incentive_and_compliance_reference",
+      "evidence_class": "official_programme_guidance",
+      "status": "official APDP2 reference located; current regulations, notices and project eligibility require verification",
+      "usable_for": [
+        "identify customs/licensing/programme registration issues for a proposed South African vehicle manufacturing route",
+        "structure a compliance question list for a qualified tax/customs/homologation adviser"
+      ],
+      "not_usable_for": [
+        "calculate project-specific incentive amounts without full eligibility facts",
+        "infer type approval, vehicle roadworthiness or manufacturer authorization",
+        "assume a proposed local-content or assembly plan is eligible without written confirmation"
+      ],
+      "rights_and_provenance": [
+        "Bind every financial assumption to the current law, applicable rebate item and an appropriately dated official source.",
+        "Verify current details with SARS/ITAC and qualified advisers before investment."
+      ]
+    }
+  ],
+  "next_evidence_gates": [
+    "Capture any external schedule file only after its direct URI, terms, bytes and SHA-256 are recorded.",
+    "Keep cycle repeatability tests separate from real-vehicle energy-model validation.",
+    "Select at least three candidate vehicles available in the actual launch market and collect variant-specific specifications and dated parts/repair quotes.",
+    "Secure independently measured braking/energy/handling reference data before enforcing numerical model-accuracy thresholds.",
+    "Define South African route, road-surface, climate, payload and charging/fueling profiles with local evidence rather than assuming U.S. cycles represent the target fleet.",
+    "Create a qualified market-approval checklist before any construction, sale or public-road operation."
+  ],
+  "claim_ceiling": [
+    "This registry is a discovery and planning artifact, not a dataset license register that has passed legal review.",
+    "It contains no measured vehicle data and no simulation result.",
+    "Citing a standard or regulator page is not conformance, type approval, roadworthiness, or engineering approval."
+  ]
+}

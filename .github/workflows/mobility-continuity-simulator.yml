@@ -1,0 +1,72 @@
+name: Mobility Continuity Synthetic Simulator
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "fixtures/personal_vehicle/mobility_continuity_scenarios_v0_1.json"
+      - "fixtures/personal_vehicle/mobility_continuity_model_config_v0_1.json"
+      - "schemas/transport/mobility_continuity_scenario_v0_1.schema.json"
+      - "schemas/transport/mobility_continuity_model_config_v0_1.schema.json"
+      - "docs/tech/MOBILITY_CONTINUITY_BENCHMARK_PROTOCOL_V0_1.md"
+      - "tools/mobility-continuity-simulator/**"
+      - ".github/workflows/mobility-continuity-simulator.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "fixtures/personal_vehicle/mobility_continuity_scenarios_v0_1.json"
+      - "fixtures/personal_vehicle/mobility_continuity_model_config_v0_1.json"
+      - "schemas/transport/mobility_continuity_scenario_v0_1.schema.json"
+      - "schemas/transport/mobility_continuity_model_config_v0_1.schema.json"
+      - "docs/tech/MOBILITY_CONTINUITY_BENCHMARK_PROTOCOL_V0_1.md"
+      - "tools/mobility-continuity-simulator/**"
+      - ".github/workflows/mobility-continuity-simulator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobility-continuity-simulator-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Run simulator unit and mutation tests
+        run: cargo test --manifest-path tools/mobility-continuity-simulator/Cargo.toml --all-targets
+      - name: Run all 24 deterministic synthetic scenarios
+        shell: bash
+        run: |
+          cargo run --manifest-path tools/mobility-continuity-simulator/Cargo.toml -- \
+            --scenario-schema schemas/transport/mobility_continuity_scenario_v0_1.schema.json \
+            --corpus fixtures/personal_vehicle/mobility_continuity_scenarios_v0_1.json \
+            --model-schema schemas/transport/mobility_continuity_model_config_v0_1.schema.json \
+            --model-config fixtures/personal_vehicle/mobility_continuity_model_config_v0_1.json \
+            > "$RUNNER_TEMP/mobility-continuity-report.json"
+          jq -e '
+            .scenario_count == 24
+            and .evidence_class == "synthetic_simulated_output"
+            and (.results | length == 24)
+            and all(.results[];
+              .evidence_class == "synthetic_simulated_output"
+              and .cost_per_fulfilled_essential_trip_r == null
+              and .whole_life_cost_per_fulfilled_trip_r == null
+              and .fallback_accessibility_fraction == null
+              and .uncertainty_interval_coverage == null
+            )
+          ' "$RUNNER_TEMP/mobility-continuity-report.json"
+          sha256sum "$RUNNER_TEMP/mobility-continuity-report.json"
+      - name: Upload reproducible synthetic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobility-continuity-synthetic-report-${{ github.sha }}
+          path: ${{ runner.temp }}/mobility-continuity-report.json
+          if-no-files-found: error
+          retention-days: 30

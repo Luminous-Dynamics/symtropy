@@ -1,0 +1,60 @@
+name: Personal Vehicle Corpus Audit
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "fixtures/personal_vehicle/**"
+      - "schemas/transport/**"
+      - "tools/personal-vehicle-corpus-audit/**"
+      - "tools/repair-task-graph-audit/**"
+      - "tools/vehicle-localization-scenario-audit/**"
+      - ".github/workflows/personal-vehicle-corpus-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "fixtures/personal_vehicle/**"
+      - "schemas/transport/**"
+      - "tools/personal-vehicle-corpus-audit/**"
+      - "tools/repair-task-graph-audit/**"
+      - "tools/vehicle-localization-scenario-audit/**"
+      - ".github/workflows/personal-vehicle-corpus-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: personal-vehicle-corpus-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check verifier formatting
+        run: cargo fmt --manifest-path tools/personal-vehicle-corpus-audit/Cargo.toml -- --check
+      - name: Run independent contract validator and mutation tests
+        run: cargo test --manifest-path tools/personal-vehicle-corpus-audit/Cargo.toml --all-targets
+      - name: Audit checked-in corpus with report digest
+        run: cargo run --manifest-path tools/personal-vehicle-corpus-audit/Cargo.toml -- --corpus fixtures/personal_vehicle/scenario_corpus_v0_1.json
+
+      - name: Check repairability graph verifier formatting
+        run: cargo fmt --manifest-path tools/repair-task-graph-audit/Cargo.toml -- --check
+      - name: Validate repairability graph schema and semantic mutation tests
+        run: cargo test --manifest-path tools/repair-task-graph-audit/Cargo.toml --all-targets
+      - name: Audit frozen repairability graph fixtures
+        run: cargo run --manifest-path tools/repair-task-graph-audit/Cargo.toml
+
+      - name: Check localization scenario verifier formatting
+        run: cargo fmt --manifest-path tools/vehicle-localization-scenario-audit/Cargo.toml -- --check
+      - name: Validate South African localization route matrix
+        run: cargo test --manifest-path tools/vehicle-localization-scenario-audit/Cargo.toml --all-targets
+      - name: Audit localization matrix and unresolved cost gates
+        run: cargo run --manifest-path tools/vehicle-localization-scenario-audit/Cargo.toml

@@ -1,0 +1,1092 @@
+{
+  "corpus_version": "mobility-engineering-evidence-envelope-fixtures/0.1",
+  "status": "synthetic-contract-fixtures-not-qualification",
+  "schema_ref": "../../schemas/transport/engineering_evidence_envelope_v0_1.schema.json",
+  "fixtures": [
+    {
+      "id": "EV01_VALID_DESIGN_HYPOTHESIS",
+      "expectation": "accept",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_a123456789abcdef",
+        "artifact_kind": "design_candidate",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "symthaea",
+          "repository_url": "https://github.com/Luminous-Dynamics/symthaea",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "design-trade-study",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "hypothesis",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "A candidate proposal for later analysis; not a qualified design.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "Design candidate may assert only hypothesis-level evidence."
+    },
+    {
+      "id": "EV02_VALID_SIMULATION",
+      "expectation": "accept",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_0123456789abcdef",
+        "artifact_kind": "simulation_run",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "simulation",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Synthetic scenario executed by the named model only; no physical behavior claim.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "Simulation output remains explicitly simulation-class evidence."
+    },
+    {
+      "id": "EV03_VALID_BENCH_MEASUREMENT",
+      "expectation": "accept",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_b123456789abcdef",
+        "artifact_kind": "physical_measurement",
+        "subject": {
+          "subject_kind": "physical_observation",
+          "subject_ref": "subj_b123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "bench_measurement",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Bench measurement under the stated laboratory fixture only.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "partial",
+          "method": "measurement_repeatability",
+          "description": "Repeatability characterized for a small sample; external validity unknown."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "Bench evidence is distinct from instrumented whole-vehicle evidence."
+    },
+    {
+      "id": "EV04_VALID_INDEPENDENT_REVIEW",
+      "expectation": "accept",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_c123456789abcdef",
+        "artifact_kind": "independent_review",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "third_party",
+          "repository_url": "https://review.example.org",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "review-report",
+          "tool_version": "2026.10",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "independent_review",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Independent reviewer assessed the named document within the stated review scope.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "Review receipt records scope; it does not silently claim regulatory approval."
+    },
+    {
+      "id": "EV05_VALID_REGULATORY_RECEIPT",
+      "expectation": "accept",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_d123456789abcdef",
+        "artifact_kind": "regulatory_receipt",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "third_party",
+          "repository_url": "https://regulator.example.org",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "approval-record",
+          "tool_version": "v1",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "regulatory_receipt",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "A scoped external receipt is referenced; the applicable authority and status require direct verification.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "Regulatory evidence must be separately typed and scope-bound."
+    },
+    {
+      "id": "EV06_SIMULATION_PROMOTED_TO_PHYSICAL",
+      "expectation": "reject_semantics",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_0123456789abcdef",
+        "artifact_kind": "simulation_run",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "instrumented_vehicle_test",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Synthetic scenario executed by the named model only; no physical behavior claim.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "Schema shape alone cannot make simulation a physical vehicle test."
+    },
+    {
+      "id": "EV07_REVIEW_PROMOTED_TO_REGULATORY",
+      "expectation": "reject_semantics",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_0123456789abcdef",
+        "artifact_kind": "independent_review",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "regulatory_receipt",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Synthetic scenario executed by the named model only; no physical behavior claim.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "An independent review does not equal regulatory approval."
+    },
+    {
+      "id": "EV08_MISSING_LIMITATIONS",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_0123456789abcdef",
+        "artifact_kind": "simulation_run",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "simulation",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Synthetic scenario executed by the named model only; no physical behavior claim.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "Evidence without explicit limitations is rejected."
+    },
+    {
+      "id": "EV09_MISSING_SOURCE",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_0123456789abcdef",
+        "artifact_kind": "simulation_run",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "simulation",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Synthetic scenario executed by the named model only; no physical behavior claim.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "Every record must identify source/evidence provenance and reuse status."
+    },
+    {
+      "id": "EV10_INVALID_OUTPUT_DIGEST",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_0123456789abcdef",
+        "artifact_kind": "simulation_run",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "simulation",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "not-a-digest",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Synthetic scenario executed by the named model only; no physical behavior claim.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "Output digest format is mandatory."
+    },
+    {
+      "id": "EV11_UNSCHEMATIZED_SENSITIVE_FIELD",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_0123456789abcdef",
+        "artifact_kind": "simulation_run",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "simulation",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Synthetic scenario executed by the named model only; no physical behavior claim.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ],
+        "raw_vin": "SYNTHETICVIN0000001"
+      },
+      "reason": "Strict envelope shape rejects extra identity/location fields; separate privacy review is still required."
+    },
+    {
+      "id": "EV12_VEHICLE_CONFIG_WITHOUT_DIGEST",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_0123456789abcdef",
+        "artifact_kind": "simulation_run",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "simulation",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Synthetic scenario executed by the named model only; no physical behavior claim.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "A vehicle-configuration subject must bind an exact configuration digest."
+    },
+    {
+      "id": "EV13_UNKNOWN_EVIDENCE_CLASS",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_0123456789abcdef",
+        "artifact_kind": "simulation_run",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "certified_safe",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Synthetic scenario executed by the named model only; no physical behavior claim.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "No free-form evidence class is accepted."
+    },
+    {
+      "id": "EV14_WRONG_REVISION_SHAPE",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_0123456789abcdef",
+        "artifact_kind": "simulation_run",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "x",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "simulation",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Synthetic scenario executed by the named model only; no physical behavior claim.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "pending_review",
+            "notes": "Schedule may inform repeatable input design; not physical validation data."
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "Producer revision must be explicitly versioned."
+    },
+    {
+      "id": "EV15_UNKNOWN_SOURCE_RIGHTS",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "mobility-engineering-evidence-envelope/0.1",
+        "artifact_id": "art_0123456789abcdef",
+        "artifact_kind": "simulation_run",
+        "subject": {
+          "subject_kind": "vehicle_configuration",
+          "subject_ref": "subj_0123456789abcdef",
+          "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "producer": {
+          "origin": "symtropy",
+          "repository_url": "https://github.com/Luminous-Dynamics/symtropy",
+          "revision": "abacdc0bbbd37ee0ba46dcce9fb02252df0ee7cb",
+          "tool_name": "personal-vehicle-corpus-audit",
+          "tool_version": "0.1.0",
+          "environment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "created_at": "2026-10-17T08:30:00Z",
+        "run_status": "completed",
+        "evidence_class": "simulation",
+        "input_refs": [
+          {
+            "artifact_id": "art_1123456789abcdef",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "output": {
+          "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "media_type": "application/json"
+        },
+        "scope": {
+          "claim": "Synthetic scenario executed by the named model only; no physical behavior claim.",
+          "population": "Synthetic family-road-vehicle profile v0.1",
+          "conditions": [
+            {
+              "name": "road_friction",
+              "value": 0.8,
+              "unit": "dimensionless"
+            },
+            {
+              "name": "payload",
+              "value": 150,
+              "unit": "kg"
+            }
+          ]
+        },
+        "uncertainty": {
+          "status": "uncharacterized",
+          "method": "none",
+          "description": "Synthetic model parameters have not been calibrated against held-out physical measurements."
+        },
+        "source_refs": [
+          {
+            "source_id": "SRC_EPA_DYNAMOMETER_SCHEDULES",
+            "rights_status": "free_for_all"
+          }
+        ],
+        "privacy_class": "public",
+        "limitations": [
+          "Synthetic model run only.",
+          "No braking, crashworthiness, durability, roadworthiness, legal approval or autonomy conclusion."
+        ],
+        "claim_ceiling": [
+          "Evidence class is simulation; cannot establish physical test performance or regulatory approval."
+        ]
+      },
+      "reason": "Rights status cannot be silently assumed."
+    }
+  ],
+  "claim_ceiling": [
+    "Fixtures test schema shape and evidence-class compatibility only.",
+    "No fixture establishes truth, physical performance, roadworthiness, crashworthiness, legal ownership or regulatory approval."
+  ]
+}

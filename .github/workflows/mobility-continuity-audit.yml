@@ -1,0 +1,42 @@
+name: Mobility Continuity Benchmark Audit
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/mobility_continuity_scenario_v0_1.schema.json"
+      - "fixtures/personal_vehicle/mobility_continuity_scenarios_v0_1.json"
+      - "docs/tech/MOBILITY_CONTINUITY_BENCHMARK_PROTOCOL_V0_1.md"
+      - "tools/mobility-continuity-audit/**"
+      - ".github/workflows/mobility-continuity-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/mobility_continuity_scenario_v0_1.schema.json"
+      - "fixtures/personal_vehicle/mobility_continuity_scenarios_v0_1.json"
+      - "docs/tech/MOBILITY_CONTINUITY_BENCHMARK_PROTOCOL_V0_1.md"
+      - "tools/mobility-continuity-audit/**"
+      - ".github/workflows/mobility-continuity-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobility-continuity-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Run schema, semantic, and mutation tests
+        run: cargo test --manifest-path tools/mobility-continuity-audit/Cargo.toml --all-targets
+      - name: Audit frozen synthetic matrix and emit digests
+        run: cargo run --manifest-path tools/mobility-continuity-audit/Cargo.toml -- --schema schemas/transport/mobility_continuity_scenario_v0_1.schema.json --corpus fixtures/personal_vehicle/mobility_continuity_scenarios_v0_1.json

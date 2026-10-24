@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:mobility:continuity:model-config:0.1",
+  "title": "Synthetic Household Mobility Continuity Model Configuration v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "model_id",
+    "evidence_class",
+    "horizon_days",
+    "failure_event_days",
+    "hands_on_repair_hours_per_event",
+    "weekly_essential_mobility_budget_r",
+    "primary_energy_cost_per_essential_trip_r",
+    "fallback_cost_per_essential_trip_r",
+    "inventory_delay_credit_rule",
+    "cost_output_ceiling",
+    "model_limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "mobility-continuity-model-config/0.1"
+    },
+    "model_id": {
+      "const": "deterministic-household-continuity-proxy/0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_model_assumption"
+    },
+    "horizon_days": {
+      "const": 364
+    },
+    "failure_event_days": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 363
+      }
+    },
+    "hands_on_repair_hours_per_event": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 168
+    },
+    "weekly_essential_mobility_budget_r": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "primary_energy_cost_per_essential_trip_r": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "fallback_cost_per_essential_trip_r": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "inventory_delay_credit_rule": {
+      "const": "min(stock_coverage_days, repair_delay_days) * (1 - critical_part_fill_fraction)"
+    },
+    "cost_output_ceiling": {
+      "const": "variable primary energy plus fallback-trip spend only; whole-life ownership and lifecycle cost remain unknown"
+    },
+    "model_limitations": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

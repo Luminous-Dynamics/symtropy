@@ -1,0 +1,181 @@
+{
+  "schema_version": "south-africa-personal-family-vehicle-baseline-shortlist/0.1",
+  "status": "screening shortlist only; not an endorsed design or purchase recommendation",
+  "created_date": "2026-10-17",
+  "market": "South Africa",
+  "currency": "ZAR",
+  "scope": "Select matched real vehicles for baseline cost, packaging, parts/serviceability and whole-life mobility comparisons before committing to a clean-sheet design.",
+  "price_policy": {
+    "meaning": "advertised starting price seen on official manufacturer range page; not quote, OTR price, finance amount or ownership cost",
+    "must_reverify_before_use": true,
+    "excludes": [
+      "licensing/registration if excluded by quotation",
+      "delivery/on-road charges",
+      "optional extras",
+      "insurance",
+      "finance interest",
+      "service-contract conditions beyond the published offer",
+      "fuel/energy",
+      "repair parts and labor",
+      "downtime",
+      "resale"
+    ],
+    "note": "Prices may change without notice. Get written dated quotes for the exact model year, variant, warranty/service-plan terms and dealer."
+  },
+  "candidates": [
+    {
+      "id": "BASELINE_TOYOTA_VITZ_ENTRY_HATCH",
+      "manufacturer": "Toyota South Africa",
+      "model": "Vitz",
+      "role": "entry-price boundary / small-hatch packaging comparator",
+      "advertised_from_price_zar": 182400,
+      "price_source_id": "SRC_TOYOTA_SA_MODEL_RANGE",
+      "source_url": "https://www.toyota.co.za/vehicles",
+      "specification_status": "exact grade/spec sheet not yet captured in this dataset",
+      "compare_dimensions": [
+        "purchase price",
+        "usable family seating/cargo",
+        "service and parts prices",
+        "repair task times",
+        "local parts lead time",
+        "measured fuel consumption"
+      ],
+      "key_unknowns": [
+        "exact grade/year and passive/active safety equipment",
+        "boot/seat geometry and child-seat fit",
+        "dated dealer quote and parts basket",
+        "measured fuel consumption under local duty cycle"
+      ]
+    },
+    {
+      "id": "BASELINE_SUZUKI_SWIFT_GL_MT",
+      "manufacturer": "Suzuki Auto South Africa",
+      "model": "Swift",
+      "variant": "1.2 GL MT entry variant; reconfirm exact MY/grade",
+      "role": "small-hatch efficiency and serviceability comparator",
+      "advertised_from_price_zar": 228900,
+      "price_source_id": "SRC_SUZUKI_SWIFT_OFFICIAL_PRICES",
+      "specification_source_id": "SRC_SUZUKI_SWIFT_OFFICIAL_SPECS",
+      "published_spec_screen": {
+        "overall_length_mm": 3860,
+        "overall_width_mm": 1735,
+        "overall_height_mm": 1520,
+        "ground_clearance_mm": 145,
+        "boot_volume_litres": 265,
+        "kerb_mass_min_max_kg": [
+          908,
+          945
+        ],
+        "power_kw": 60,
+        "torque_nm": 112,
+        "advertised_fuel_consumption_l_per_100km_from": 4.4,
+        "safety_features_listed": [
+          "ABS with EBD",
+          "brake assist",
+          "ESP",
+          "six airbags",
+          "ISOFIX"
+        ]
+      },
+      "specification_source_url": "https://www.suzukiauto.co.za/specs/swift",
+      "compare_dimensions": [
+        "low mass vs family payload margin",
+        "fuel use vs real local duty cycle",
+        "basic service/repair labour",
+        "parts availability and lead time",
+        "child-seat fit",
+        "repair task graph"
+      ],
+      "key_unknowns": [
+        "real-world fuel use distribution",
+        "exact homologated payload and axle limits for chosen grade",
+        "independent crash/safety rating applicability",
+        "dated parts and labor basket",
+        "physical workshop timings"
+      ],
+      "published_fuel_use_is_not_measured_validation": true,
+      "source_url": "https://www.suzukiauto.co.za/cars/swift"
+    },
+    {
+      "id": "BASELINE_TOYOTA_STARLET_ENTRY_HATCH",
+      "manufacturer": "Toyota South Africa",
+      "model": "Starlet",
+      "role": "mainstream hatchback comparator above entry boundary",
+      "advertised_from_price_zar": 273700,
+      "price_source_id": "SRC_TOYOTA_SA_MODEL_RANGE",
+      "source_url": "https://www.toyota.co.za/vehicles",
+      "specification_status": "exact grade/spec sheet not yet captured in this dataset",
+      "compare_dimensions": [
+        "family utility",
+        "purchase and parts costs",
+        "repair access",
+        "maintenance and downtime"
+      ],
+      "key_unknowns": [
+        "exact grade/year and powertrain",
+        "dated dealer quote",
+        "parts basket/lead time",
+        "measured task timings and local fuel use"
+      ]
+    },
+    {
+      "id": "BASELINE_TOYOTA_STARLET_CROSS_ENTRY",
+      "manufacturer": "Toyota South Africa",
+      "model": "Starlet Cross",
+      "role": "raised-hatch/rougher-road utility comparator; do not assume off-road capability",
+      "advertised_from_price_zar": 311000,
+      "price_source_id": "SRC_TOYOTA_SA_MODEL_RANGE",
+      "source_url": "https://www.toyota.co.za/vehicles",
+      "specification_status": "exact grade/spec sheet not yet captured in this dataset",
+      "compare_dimensions": [
+        "clearance and underbody exposure",
+        "wheel/tire replacement cost",
+        "ride and component durability",
+        "repair parts access"
+      ],
+      "key_unknowns": [
+        "actual clearance by variant/load",
+        "underbody protection and repair costs",
+        "dated quote and service parts basket",
+        "measured rough-road durability"
+      ]
+    },
+    {
+      "id": "BASELINE_TOYOTA_RUMION_ENTRY_MPV",
+      "manufacturer": "Toyota South Africa",
+      "model": "Rumion",
+      "role": "family packaging / higher-capacity passenger comparator",
+      "advertised_from_price_zar": 314100,
+      "price_source_id": "SRC_TOYOTA_SA_MODEL_RANGE",
+      "source_url": "https://www.toyota.co.za/vehicles",
+      "specification_status": "exact grade/spec sheet not yet captured in this dataset",
+      "compare_dimensions": [
+        "family seating and cargo utility",
+        "full-load braking/handling/energy use",
+        "maintenance access and downtime",
+        "per-seat lifetime cost"
+      ],
+      "key_unknowns": [
+        "exact seat configuration and safe payload margin by variant",
+        "third-row/child-seat practical fit",
+        "maintenance/parts basket",
+        "measured full-load duty-cycle energy and braking reference"
+      ]
+    }
+  ],
+  "benchmark_selection_rules": [
+    "Treat these as comparative market baselines, not automatically as donor platforms or engineering targets.",
+    "Acquire three written quotes per candidate/grade where practical and preserve date/expiry/condition.",
+    "Verify the exact variant and applicable safety/homologation evidence before comparing utility.",
+    "Use the same declared annual distance, passenger/payload distribution, trip mix, terrain, climate, energy-price date and ownership horizon across candidates.",
+    "Measure routine maintenance tasks and parts lead times; do not infer serviceability from purchase price or warranty duration.",
+    "Add used-vehicle comparators only after condition, odometer, service history, inspection, ownership costs and parts-risk are documented.",
+    "A low advertised starting price is not equivalent to lowest 10-year cost or adequate family utility.",
+    "For a South African manufacturing scenario, screen meaningful local value-add and SKD/APDP2 policy exposure using official policy sources; treat this as a risk scenario, not legal eligibility advice."
+  ],
+  "claim_ceiling": [
+    "Prices are online advertised-from snapshots retrieved 2026-10-17, not verified dealer quotations.",
+    "Only the Swift entry has an initial specification screen here; exact variant data for every candidate still needs capture.",
+    "No cost-of-ownership, reliability, safety superiority or repairability result has been established."
+  ]
+}

@@ -1,0 +1,2816 @@
+{
+  "corpus_version": "repair-task-graph-fixtures/0.1",
+  "status": "synthetic-contract-fixtures-not-repair-instructions",
+  "schema_ref": "../../schemas/transport/repair_task_graph_v0_1.schema.json",
+  "fixtures": [
+    {
+      "id": "RTG01_VALID_ESTIMATED_GRAPH",
+      "expectation": "accept",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "Hypothesis graph with safe isolation, ordered work, a declared post-check, and explicit synthetic estimates."
+    },
+    {
+      "id": "RTG02_VALID_OBSERVED_SHAPE",
+      "expectation": "accept",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_1123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "observed_workshop_trial",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "observed",
+              "measurement": {
+                "sample_count": 9,
+                "technician_count": 3,
+                "protocol_ref": "timing-protocol-v0-1",
+                "observation_source_ref": "obs_workshop_trial_synthetic_001",
+                "summary_statistic": "median",
+                "observed_at": "2026-10-17T08:00:00Z",
+                "context": "Synthetic fixture only; not observed real-world data."
+              }
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "observed",
+              "measurement": {
+                "sample_count": 9,
+                "technician_count": 3,
+                "protocol_ref": "timing-protocol-v0-1",
+                "observation_source_ref": "obs_workshop_trial_synthetic_001",
+                "summary_statistic": "median",
+                "observed_at": "2026-10-17T08:00:00Z",
+                "context": "Synthetic fixture only; not observed real-world data."
+              }
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "observed",
+              "measurement": {
+                "sample_count": 9,
+                "technician_count": 3,
+                "protocol_ref": "timing-protocol-v0-1",
+                "observation_source_ref": "obs_workshop_trial_synthetic_001",
+                "summary_statistic": "median",
+                "observed_at": "2026-10-17T08:00:00Z",
+                "context": "Synthetic fixture only; not observed real-world data."
+              }
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "observed",
+              "measurement": {
+                "sample_count": 9,
+                "technician_count": 3,
+                "protocol_ref": "timing-protocol-v0-1",
+                "observation_source_ref": "obs_workshop_trial_synthetic_001",
+                "summary_statistic": "median",
+                "observed_at": "2026-10-17T08:00:00Z",
+                "context": "Synthetic fixture only; not observed real-world data."
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "Observed-shaped data includes repeats, technician count, protocol and source; its numbers are synthetic fixture values, not actual measurements."
+    },
+    {
+      "id": "RTG03_CYCLIC_GRAPH",
+      "expectation": "reject_semantics",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_verify001",
+            "to_node": "task_isolate01",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "A dependency cycle must fail graph validation."
+    },
+    {
+      "id": "RTG04_DUPLICATE_NODE_ID",
+      "expectation": "reject_semantics",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_isolate01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "Node IDs must be unique."
+    },
+    {
+      "id": "RTG05_DANGLING_EDGE",
+      "expectation": "reject_semantics",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_missing99",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "Every edge endpoint must resolve to a declared node."
+    },
+    {
+      "id": "RTG06_MISSING_POSTCHECK_NODE",
+      "expectation": "reject_semantics",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_missing99",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "The named post-repair verification node must exist in the graph."
+    },
+    {
+      "id": "RTG07_MISSING_SAFETY_ISOLATION",
+      "expectation": "reject_semantics",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "Tasks marked as requiring isolation must be downstream of a declared safe-isolation step."
+    },
+    {
+      "id": "RTG08_NEGATIVE_DURATION",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": -1,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "invalid negative duration"
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "Negative duration must be rejected."
+    },
+    {
+      "id": "RTG09_INVALID_TIME_UNIT",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "wrench",
+              "basis": "estimated",
+              "estimate_note": "invalid unit"
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "Duration units must be declared and convertible."
+    },
+    {
+      "id": "RTG10_SINGLE_SAMPLE_PROMOTED_TO_OBSERVED",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "observed",
+              "measurement": {
+                "sample_count": 1,
+                "technician_count": 1,
+                "protocol_ref": "timing-protocol-v0-1",
+                "observation_source_ref": "obs_00000001",
+                "summary_statistic": "median",
+                "observed_at": "2026-10-17T08:00:00Z"
+              }
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "A measured duration must record repeated observations and provenance."
+    },
+    {
+      "id": "RTG11_UNBOUND_COMPONENT_REVISION",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "A service task must bind to an exact component revision."
+    },
+    {
+      "id": "RTG12_UNDECLARED_PROCEDURE_RIGHTS",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "free_to_copy",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "Procedure reuse rights cannot be invented."
+    },
+    {
+      "id": "RTG13_OBSERVED_GRAPH_WITH_ESTIMATED_TIMES",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "observed_workshop_trial",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "An observed workshop trial graph cannot carry estimated-duration nodes."
+    },
+    {
+      "id": "RTG14_MISSING_SAFETY_PRECONDITION",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "Every task must enumerate at least one safety precondition."
+    },
+    {
+      "id": "RTG15_MISSING_CLAIM_CEILING",
+      "expectation": "reject_schema",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": []
+      },
+      "reason": "The evidence/qualification ceiling must remain explicit."
+    },
+    {
+      "id": "RTG16_DUPLICATE_EDGE",
+      "expectation": "reject_semantics",
+      "input": {
+        "schema_version": "repair-task-graph/0.1",
+        "graph_id": "rtg_0123456789ab",
+        "graph_kind": "scheduled_maintenance",
+        "vehicle_ref": "subj_0123456789abcdef",
+        "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "procedure": {
+          "procedure_ref": "procedure-oil-service-001",
+          "revision": "1.0",
+          "source_ref": "src_procedure_synthetic_001",
+          "rights_status": "reviewed",
+          "notes": "Synthetic demonstration procedure; not instructions for a real vehicle."
+        },
+        "evidence_class": "procedure_hypothesis",
+        "task_nodes": [
+          {
+            "node_id": "task_isolate01",
+            "step_kind": "safe_isolation",
+            "description": "Establish the declared safe work state.",
+            "component_ref": "part_vehicle_core",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_vehicle_secured",
+                "description": "Vehicle secured against unintended movement.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_access001",
+            "step_kind": "access",
+            "description": "Gain access to the declared service point.",
+            "component_ref": "part_service_panel",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_isolation_verified",
+                "description": "Required safe state is confirmed before access.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 3,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_service01",
+            "step_kind": "repair_replace",
+            "description": "Perform a defined service action on a replaceable item.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": true,
+            "required_tools": [
+              {
+                "tool_ref": "common_tool_set",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_parts_correct",
+                "description": "Correct compatible part revision is verified.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 8,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          },
+          {
+            "node_id": "task_verify001",
+            "step_kind": "post_repair_verification",
+            "description": "Perform the documented post-work check and record its result.",
+            "component_ref": "part_service_item",
+            "component_revision": "A",
+            "requires_isolation": false,
+            "required_tools": [
+              {
+                "tool_ref": "inspection_light",
+                "tool_class": "common_hand_tool",
+                "availability": "widely_available"
+              }
+            ],
+            "safety_preconditions": [
+              {
+                "precondition_id": "safe_check_protocol",
+                "description": "Correct post-repair check is available.",
+                "criticality": "hard_stop",
+                "must_hold_before_task": true
+              }
+            ],
+            "duration": {
+              "value": 2,
+              "unit": "min",
+              "basis": "estimated",
+              "estimate_note": "Synthetic planning estimate only."
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_access001",
+            "to_node": "task_service01",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_service01",
+            "to_node": "task_verify001",
+            "relation": "must_precede"
+          },
+          {
+            "from_node": "task_isolate01",
+            "to_node": "task_access001",
+            "relation": "must_precede"
+          }
+        ],
+        "post_repair_verification_task_id": "task_verify001",
+        "lifecycle_cost_inputs": {
+          "parts_cost": {
+            "amount": 12,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "labor_rate": {
+            "amount_per_hour": 180,
+            "currency": "ZAR",
+            "as_of": "2026-10-17"
+          },
+          "parts_lead_time_hours": 24,
+          "downtime_cost_basis": "Synthetic example only; not a market quote."
+        },
+        "claim_ceiling": [
+          "All durations, costs and component identities in this fixture are synthetic.",
+          "A schema-valid graph is not a safe repair instruction or a measured repairability result.",
+          "No physical vehicle performance, legal compliance, or roadworthiness is established."
+        ]
+      },
+      "reason": "Duplicate dependency edges must not be counted twice."
+    }
+  ],
+  "claim_ceiling": [
+    "Fixtures validate data shape and graph invariants only.",
+    "Times and costs in all fixtures, including observed-shaped fixtures, are synthetic and not actual workshop measurements.",
+    "No fixture supplies an approved or safe procedure for a real vehicle."
+  ]
+}

@@ -1,0 +1,409 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:mobility:engineering-evidence-envelope:0.1",
+  "title": "Mobility Engineering Evidence Envelope v0.1",
+  "description": "Common cross-project reference envelope. It records the scope of an artifact; it does not establish the truth of its claims, validate signatures, or qualify physical safety.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "artifact_kind",
+    "subject",
+    "producer",
+    "created_at",
+    "run_status",
+    "evidence_class",
+    "input_refs",
+    "output",
+    "scope",
+    "uncertainty",
+    "source_refs",
+    "privacy_class",
+    "limitations",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "mobility-engineering-evidence-envelope/0.1"
+    },
+    "artifact_id": {
+      "type": "string",
+      "pattern": "^art_[A-Za-z0-9_-]{16,96}$"
+    },
+    "artifact_kind": {
+      "enum": [
+        "design_candidate",
+        "simulation_run",
+        "calibration_dataset",
+        "physical_measurement",
+        "independent_review",
+        "regulatory_receipt",
+        "maintenance_event",
+        "source_record"
+      ]
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject_kind",
+        "subject_ref"
+      ],
+      "properties": {
+        "subject_kind": {
+          "enum": [
+            "vehicle_family",
+            "vehicle_configuration",
+            "component_revision",
+            "scenario_corpus",
+            "physical_observation",
+            "service_event",
+            "source_record"
+          ]
+        },
+        "subject_ref": {
+          "type": "string",
+          "pattern": "^subj_[A-Za-z0-9_-]{16,96}$"
+        },
+        "configuration_digest": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "model_digest": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "subject_kind": {
+                "const": "vehicle_configuration"
+              }
+            },
+            "required": [
+              "subject_kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "configuration_digest"
+            ]
+          }
+        }
+      ]
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "repository_url",
+        "revision",
+        "tool_name",
+        "tool_version"
+      ],
+      "properties": {
+        "origin": {
+          "enum": [
+            "symthaea",
+            "symtropy",
+            "mycelix",
+            "third_party"
+          ]
+        },
+        "repository_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 128
+        },
+        "tool_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "tool_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "environment_digest": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "run_status": {
+      "enum": [
+        "completed",
+        "partial",
+        "failed",
+        "not_run"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "hypothesis",
+        "simulation",
+        "bench_measurement",
+        "instrumented_vehicle_test",
+        "independent_review",
+        "regulatory_receipt",
+        "maintenance_assertion",
+        "external_source"
+      ]
+    },
+    "input_refs": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_id",
+          "digest"
+        ],
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "pattern": "^art_[A-Za-z0-9_-]{16,96}$"
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "digest",
+        "media_type"
+      ],
+      "properties": {
+        "digest": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "artifact_uri": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim",
+        "population",
+        "conditions"
+      ],
+      "properties": {
+        "claim": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "population": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "conditions": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "value"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "value": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "unit": {
+                "type": "string",
+                "maxLength": 64
+              }
+            }
+          }
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "method",
+        "description"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "characterized",
+            "partial",
+            "uncharacterized",
+            "not_applicable"
+          ]
+        },
+        "method": {
+          "enum": [
+            "measurement_repeatability",
+            "statistical",
+            "model_discrepancy",
+            "ensemble",
+            "combined",
+            "expert_judgment",
+            "none",
+            "not_applicable"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "interval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "upper",
+            "unit"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        }
+      }
+    },
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "rights_status"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 256
+          },
+          "source_digest": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9]{64}$"
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "rights_status": {
+            "enum": [
+              "reviewed",
+              "attribution_required",
+              "no_redistribution",
+              "pending_review",
+              "unknown"
+            ]
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        }
+      }
+    },
+    "privacy_class": {
+      "enum": [
+        "public",
+        "pseudonymous",
+        "restricted"
+      ]
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+      }
+    },
+    "claim_ceiling": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+      }
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "supersedes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^art_[A-Za-z0-9_-]{16,96}$"
+      }
+    }
+  }
+}
