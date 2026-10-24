@@ -112,11 +112,12 @@ jq -e --slurpfile case "$CASE" '
           and near($s.y_m; ($t.origin_xyz_m[1] + ((($i / $nx) | floor) * $spacing)))
           and near($s.z_m; $t.origin_xyz_m[2])
           and ($s.illuminance_lx >= 0)
-          and (($s | has("interval")) | not or
-            (near($s.interval.lower_lx; $s.interval.lower_lx)
-             and near($s.interval.upper_lx; $s.interval.upper_lx)
-             and $s.interval.lower_lx >= 0
-             and $s.interval.lower_lx <= $s.interval.upper_lx))
+          and (if ($s | has("interval")) then
+            ($s.interval.lower_lx | type) == "number"
+            and ($s.interval.upper_lx | type) == "number"
+            and $s.interval.lower_lx >= 0
+            and $s.interval.lower_lx <= $s.interval.upper_lx
+          else true end)
       )
       and ($mean > 0)
       and near($r.illumination_summary.average_lx; $mean)
