@@ -5,7 +5,7 @@
 //! independently enumerated frontier. Every requested pair must be represented.
 
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeSet,
     env,
     error::Error,
     fs,
@@ -42,11 +42,13 @@ fn elapsed_ns(dir: &Path, stem: &str) -> Result<u64, Box<dyn Error>> {
     value.trim().parse::<u64>().map_err(|_| invalid(format!("invalid elapsed_ns for {stem}")))
 }
 fn claim<'a>(candidate: &'a Value, component_id: &str, parameter_id: &str) -> Option<&'a Value> {
-    candidate["components"].as_array()?.iter()
-        .find(|item| item["component_id"].as_str() == Some(component_id))?
-        ["parameter_claims"].as_array()?.iter()
-        .find(|item| item["parameter_id"].as_str() == Some(parameter_id))
-        .map(|item| &item["value"])
+    let components = candidate["components"].as_array()?;
+    let component = components.iter()
+        .find(|item| item["component_id"].as_str() == Some(component_id))?;
+    let claims = component["parameter_claims"].as_array()?;
+    let parameter = claims.iter()
+        .find(|item| item["parameter_id"].as_str() == Some(parameter_id))?;
+    parameter.get("value")
 }
 fn resource<'a>(candidate: &'a Value, interval_index: usize, component_id: &str) -> Option<&'a Value> {
     candidate["scenarios"][0]["intervals"][interval_index]["resource_available_kwh"]
@@ -92,11 +94,13 @@ fn verify_scenario_semantics(
     receipt: &Value,
     scenario_id: &str,
     parent_bytes: &[u8],
+    child_bytes: &[u8],
 ) -> Result<(), Box<dyn Error>> {
     let applicability = req_str(receipt, "applicability")?;
     match scenario_id {
         "nominal" => {
-            if sha256_hex(parent_bytes) != sha256_hex(&serde_json::to_vec(child)?)
+            if sha256_hex(parent_bytes) != sha256_hex(child_bytes)
+                || parent != child
                 || !receipt["mutations"].as_array().is_some_and(|items| items.is_empty())
                 || applicability != "applicable_baseline"
             {
@@ -261,7 +265,7 @@ fn evaluate_row(
         return Err(invalid(format!("candidate transform identity/digest mismatch: {candidate_id}/{scenario_id}")));
     }
     verify_receipt_reconstruction(&parent, &child, &receipt)?;
-    verify_scenario_semantics(&parent, &child, &receipt, scenario_id, &parent_bytes)?;
+    verify_scenario_semantics(&parent, &child, &receipt, scenario_id, &parent_bytes, &child_bytes)?;
 
     let expected_case_id = format!("candidate:{candidate_id}");
     if req_str(&compilation, "candidate_id")? != candidate_id
