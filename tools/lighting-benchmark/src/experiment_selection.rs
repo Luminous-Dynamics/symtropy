@@ -39,8 +39,8 @@ pub enum SelectionError {
 /// Select the experiment with greatest strictly positive net expected value.
 ///
 /// All candidates are validated before any choice is returned. A malformed
-/// option aborts selection instead of being silently skipped. Unsafe or over-
-  budget candidates remain ineligible. Ties resolve deterministically by
+/// option aborts selection instead of being silently skipped. Unsafe or
+/// over-budget candidates remain ineligible. Ties resolve deterministically by
 /// smaller budget cost, then lexicographically smaller candidate ID.
 ///
 /// The expected-value model, units, calibration and evidence are not validated
