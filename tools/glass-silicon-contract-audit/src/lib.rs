@@ -322,10 +322,18 @@ pub fn audit_grouped_split_manifest(manifest: &Value) -> GroupedSplitAuditReport
         findings.push("SPLIT_CLAIM_CEILING:claim ceiling must be non-empty".to_string());
     }
 
-    let required_fields = manifest.get("required_group_fields")
-        .and_then(Value::as_array)
-        .map(|items| items.iter().filter_map(Value::as_str).map(ToOwned::to_owned).collect::<Vec<_>>());
-    let mut group_fields = required_fields.unwrap_or_default();
+    let required_fields = manifest.get("required_group_fields").and_then(Value::as_array);
+    let mut group_fields = Vec::new();
+    if let Some(items) = required_fields {
+        for (index, item) in items.iter().enumerate() {
+            match item.as_str() {
+                Some(field) => group_fields.push(field.to_string()),
+                None => findings.push(format!("SPLIT_GROUP_FIELDS:index {index} is not a string")),
+            }
+        }
+    } else {
+        findings.push("SPLIT_GROUP_FIELDS:required_group_fields must be an array of strings".to_string());
+    }
     let mut unique_fields = BTreeSet::new();
     if group_fields.is_empty()
         || group_fields.iter().any(|field| !is_stable_group_field(field) || !unique_fields.insert(field.clone()))
