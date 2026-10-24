@@ -1,4 +1,4 @@
-use glass_silicon_contract_audit::{audit_adaptive_decision_campaign, audit_corpus, audit_decision_value_pool, audit_feasibility_corpus, audit_mass_balance, hash_artifact_files};
+use glass_silicon_contract_audit::{audit_adaptive_decision_campaign, audit_corpus, audit_decision_value_pool, audit_feasibility_corpus, audit_grouped_split_manifest, audit_mass_balance, hash_artifact_files};
 use serde_json::Value;
 use std::env;
 use std::fs;
@@ -12,7 +12,7 @@ fn read_json(path: &str) -> Result<Value, String> {
 
 fn usage() {
     eprintln!(
-        "Usage:\n  glass-silicon-contract-audit audit-corpus <schema.json> <corpus.json>\n  glass-silicon-contract-audit audit-feasibility <corpus.json>\n  glass-silicon-contract-audit audit-decision-value <pool.json>\n  glass-silicon-contract-audit audit-adaptive-campaign <pool.json>\n  glass-silicon-contract-audit check-mass <ledger.json>\n  glass-silicon-contract-audit hash-artifacts <corpus.json> <artifact-id> <directory>"
+        "Usage:\n  glass-silicon-contract-audit audit-corpus <schema.json> <corpus.json>\n  glass-silicon-contract-audit audit-feasibility <corpus.json>\n  glass-silicon-contract-audit audit-grouped-split <manifest.json>\n  glass-silicon-contract-audit audit-decision-value <pool.json>\n  glass-silicon-contract-audit audit-adaptive-campaign <pool.json>\n  glass-silicon-contract-audit check-mass <ledger.json>\n  glass-silicon-contract-audit hash-artifacts <corpus.json> <artifact-id> <directory>"
     );
 }
 
@@ -87,6 +87,28 @@ fn main() -> ExitCode {
                 }
             };
             let report = hash_artifact_files(&corpus, &args[3], Path::new(&args[4]));
+            let code = report.exit_code() as u8;
+            println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
+            ExitCode::from(code)
+        }
+        Some("audit-grouped-split") if args.len() == 3 => {
+            let manifest = match read_json(&args[2]) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "audit_kind": "synthetic_grouped_split_manifest",
+                        "benchmark_id": null,
+                        "records_checked": 0,
+                        "grouping_fields": [],
+                        "split_counts": {},
+                        "findings": [format!("INPUT_JSON:{error}")],
+                        "claim_ceiling": "Input parsing only; no leakage-free training pipeline or model performance is validated."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let report = audit_grouped_split_manifest(&manifest);
             let code = report.exit_code() as u8;
             println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
             ExitCode::from(code)
