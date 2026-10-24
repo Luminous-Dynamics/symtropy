@@ -174,7 +174,7 @@ The companion Rust CLI now exposes `audit-decision-value <pool.json>` in `tools/
 
 The fixture's known-answer target is pre-measurement regret 5, informative in-budget measurement `measure-regime`, post-measurement regret 0, and gross regret reduction 5 in expressly synthetic units. The uninformative measurement has zero regret reduction and is dominated; an informative but over-budget measurement is excluded. Six unit tests cover the known answer, missing cost, producer leakage declaration, frozen feasibility-control bypass, uninformative observation and incomplete observation census. The focused workflow now runs the CLI and asserts the known-answer fields.
 
-**Verification update (2026-10-24):** the 54-test implementation, including the feasibility-gated adaptive campaign, passed its focused workflow at `784d02cc0be13519e467da455b3236cad779643a` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40041754485)). The branch now adds an executable grouped-split leakage auditor and nine tests, including acceptance of a declared non-synthetic evidence class while preserving the claim ceiling. The current branch defines **63 tests**; its latest exact-head focused and general-CI runs must pass before qualification. The synthetic fixtures are contract/control checks, not selector-performance results. The `producer_access` fields are declarations and do not prove runtime process isolation. No physical value-of-information or manufacturing performance has been measured.
+**Verification update (2026-10-24):** the 54-test implementation, including the feasibility-gated adaptive campaign, passed its focused workflow at `784d02cc0be13519e467da455b3236cad779643a` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40041754485)). The branch now adds an executable grouped-split leakage auditor with nine tests and a statistical false-feasible bound evaluator with eight tests. The current branch defines **71 tests**; its latest exact-head focused and general-CI runs must pass before qualification. The 600-negative known-answer uses a one-sided Hoeffding bound, and a 599-negative control remains UNRESOLVED. The synthetic fixtures are contract/control checks, not selector-performance results. The `producer_access` fields are declarations and do not prove runtime process isolation. No physical value-of-information or manufacturing performance has been measured.
 
 
 ## 12. Adaptive multi-step campaign oracle
@@ -296,6 +296,12 @@ A fixed `primary → secondary` sequence also reaches regret 0 in this synthetic
 
 
 
+
+### False-feasible risk is an acceptance gate, not just a point estimate
+
+For a binary feasibility classifier, report the count of independently adjudicated true-negative units that were falsely declared feasible and a predeclared upper confidence bound—not only the observed point estimate. The new `audit-false-feasible-bound` command calculates the one-sided Hoeffding bound `min(1, p_hat + sqrt(ln(1/(1-C))/(2n)))`, where (C) is the declared confidence level and (n) is the count of independent negative groups. The evidence references, independence unit, frozen test set, and preregistration are mandatory caller declarations; the CLI does not independently verify them.
+
+At a 5% target and one-sided 95% confidence, 600 independent negatives with zero false-feasible outcomes produce an upper bound just below 5%; 599 zero-error negatives remain UNRESOLVED, and one false-feasible error at (n=600) also fails to meet the bound. Hoeffding is deliberately conservative. Do not substitute correlated rows for independent family/campaign groups, and do not interpret this synthetic arithmetic as a model-performance claim.
 
 ### Executable split-integrity preflight
 
