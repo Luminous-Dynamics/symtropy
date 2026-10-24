@@ -158,9 +158,16 @@ fn verify_scenario_semantics(
                     .ok_or_else(|| invalid("child service request list missing"))?;
                 if before.len() != after.len() { return Err(invalid("demand-surge service list length mismatch")); }
                 for (old, new) in before.iter().zip(after) {
-                    let amount = req_u64(old, "requested_quantity")?;
-                    if req_u64(new, "requested_quantity")? != amount.checked_mul(2).ok_or_else(|| invalid("demand surge overflow"))? {
-                        return Err(invalid("essential demand surge is not exactly 2x the parent load"));
+                    let amount = old["requested_quantity"].as_f64()
+                        .ok_or_else(|| invalid("parent requested service quantity missing or non-numeric"))?;
+                    let doubled = new["requested_quantity"].as_f64()
+                        .ok_or_else(|| invalid("child requested service quantity missing or non-numeric"))?;
+                    if !amount.is_finite()
+                        || amount < 0.0
+                        || amount.fract() != 0.0
+                        || doubled != amount * 2.0
+                    {
+                        return Err(invalid("essential demand surge is not exactly 2x an integral parent load"));
                     }
                     quantity_count += 1;
                 }
