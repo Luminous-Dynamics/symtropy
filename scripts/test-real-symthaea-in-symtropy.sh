@@ -181,6 +181,9 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.source_receipt.scenario_matrix_sha256 | test("^[0-9a-f]{64}$"))
     and (.source_receipt.training_dataset_sha256 | test("^[0-9a-f]{64}$"))
     and .training.sample_count > 0
+    and .training.dataset_parse_seconds >= 0
+    and .training.model_fit_seconds >= 0
+    and .training.training_pipeline_seconds >= .training.model_fit_seconds
     and .training.training_seconds >= 0
     and .training.hidden_force_labels_used_as_features == false
     and .calibration.split == "validation"
@@ -281,6 +284,9 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .representation.parameter_count == 355
     and .representation.temporal_state == false
     and .training.sample_count > 0
+    and .training.dataset_parse_seconds >= 0
+    and .training.model_fit_seconds >= 0
+    and .training.training_pipeline_seconds >= .training.model_fit_seconds
     and .training.hidden_force_labels_used_as_features == false
     and .training.final_training_rmse_m_s2 >= 0
     and .evaluation.split == "test"
@@ -289,6 +295,9 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .evaluation.metrics.invalid_samples == 0
     and .evaluation.metrics.compact_mlp_residual_rmse_m_s2 >= 0
     and .evaluation.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and .evaluation.metrics.inference_p50_us != null
+    and .evaluation.metrics.inference_p95_us != null
+    and .evaluation.metrics.inference_p99_us != null
     and (.evaluation.family_metrics | length) == 3
     and all(.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
     and (.evaluation.episode_details | length) == .evaluation.episodes_requested
@@ -313,6 +322,9 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .representation.parameter_count == 1571
     and .representation.temporal_representation == "explicit four-step causal delay embedding; no recurrent hidden state"
     and .training.sample_count > 0
+    and .training.data_preparation_and_history_feature_generation_seconds >= 0
+    and .training.model_fit_seconds >= 0
+    and .training.training_pipeline_seconds >= .training.model_fit_seconds
     and .training.hidden_force_labels_used_as_features == false
     and .training.final_training_rmse_m_s2 >= 0
     and .evaluation.split == "test"
@@ -321,6 +333,9 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .evaluation.metrics.invalid_samples == 0
     and .evaluation.metrics.history_window_mlp_residual_rmse_m_s2 >= 0
     and .evaluation.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and .evaluation.metrics.inference_p50_us != null
+    and .evaluation.metrics.inference_p95_us != null
+    and .evaluation.metrics.inference_p99_us != null
     and (.evaluation.family_metrics | length) == 3
     and all(.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
     and (.evaluation.episode_details | length) == .evaluation.episodes_requested
