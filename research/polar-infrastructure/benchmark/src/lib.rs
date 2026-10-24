@@ -61,6 +61,8 @@ pub struct BenchmarkReport {
     pub report_kind: &'static str,
     pub evidence_class: &'static str,
     pub episode_id: String,
+    /// Total observed trace duration; time-to-first-breach None values are censored at this horizon.
+    pub episode_duration_hours: f64,
     pub result_scope: &'static str,
     pub results: Vec<PolicyScore>,
 }
@@ -269,6 +271,10 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
     }
     if episode.service_contracts.is_empty() || episode.steps.is_empty() {
         return Err("episode requires at least one service contract and time step".to_string());
+    }
+    let episode_duration_hours = episode.steps.len() as f64 * episode.time_step_hours;
+    if !episode_duration_hours.is_finite() {
+        return Err("episode duration must be finite".to_string());
     }
 
     let mut service_ids = BTreeSet::new();
@@ -487,6 +493,7 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
         report_kind: "polar-resilience-score-report",
         evidence_class: "synthetic_only",
         episode_id: episode.id.clone(),
+        episode_duration_hours,
         result_scope: "metric_calculation_only_not_physical_validation",
         results,
     })
@@ -505,6 +512,7 @@ mod tests {
     fn scores_synthetic_fixture_without_lifting_claim_ceiling() {
         let report = score(&fixture()).expect("fixture should score");
         assert_eq!(report.schema_version, "0.2.0");
+        assert_eq!(report.episode_duration_hours, 4.0);
         assert_eq!(report.evidence_class, "synthetic_only");
         assert_eq!(report.result_scope, "metric_calculation_only_not_physical_validation");
         assert_eq!(report.results.len(), 4);
