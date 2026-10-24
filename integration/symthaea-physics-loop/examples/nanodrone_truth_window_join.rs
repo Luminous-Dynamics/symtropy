@@ -816,7 +816,8 @@ mod tests {
                 "0".into(), "0".into(), "0".into(),
                 "0".into(), "0".into(), "0".into(), "1".into(),
                 "0".into(), "0".into(), "0".into(),
-                "100".into(), "100".into(), "100".into(), "100".into(),
+                format!("{}", 100 + i), format!("{}", 200 + i),
+                format!("{}", 300 + i), format!("{}", 400 + i),
             ]).unwrap();
         }
         writer.flush().unwrap();
@@ -893,12 +894,22 @@ mod tests {
         let mut joined = ReaderBuilder::new().has_headers(true).from_path(&output_path).unwrap();
         let headers = joined.headers().unwrap().clone();
         let index_m1 = headers.iter().position(|header| header == "m1_rads").unwrap();
+        let index_m1_t0 = headers.iter().position(|header| header == "m1_rads_input_t0").unwrap();
+        let index_m1_t49 = headers.iter().position(|header| header == "m1_rads_input_t49").unwrap();
+        let index_x0_x = headers.iter().position(|header| header == "x0_x").unwrap();
+        let index_x0_t = headers.iter().position(|header| header == "x0_t").unwrap();
         let index_x_h1 = headers.iter().position(|header| header == "x_true_h1").unwrap();
         let index_x_h50 = headers.iter().position(|header| header == "x_true_h50").unwrap();
         let rows = joined.records().collect::<Result<Vec<_>, _>>().unwrap();
         assert_eq!(rows.len(), 50);
         assert_eq!(rows[0].get(index_m1).unwrap().parse::<f64>().unwrap(), 100.0);
-        assert_eq!(rows[49].get(index_m1).unwrap().parse::<f64>().unwrap(), 100.0);
+        assert_eq!(rows[49].get(index_m1).unwrap().parse::<f64>().unwrap(), 149.0);
+        assert_eq!(rows[0].get(index_m1_t0).unwrap().parse::<f64>().unwrap(), 100.0);
+        assert_eq!(rows[0].get(index_m1_t49).unwrap().parse::<f64>().unwrap(), 149.0);
+        assert_eq!(rows[0].get(index_x0_x).unwrap().parse::<f64>().unwrap(), 0.0);
+        assert_eq!(rows[49].get(index_x0_x).unwrap().parse::<f64>().unwrap(), 49.0);
+        assert_eq!(rows[0].get(index_x0_t).unwrap().parse::<f64>().unwrap(), 0.0);
+        assert_eq!(rows[49].get(index_x0_t).unwrap().parse::<f64>().unwrap(), 0.49);
         assert_eq!(rows[0].get(index_x_h1).unwrap().parse::<f64>().unwrap(), 1.0);
         assert_eq!(rows[0].get(index_x_h50).unwrap().parse::<f64>().unwrap(), 50.0);
         assert_eq!(rows[49].get(index_x_h50).unwrap().parse::<f64>().unwrap(), 99.0);
