@@ -24,7 +24,7 @@ printf 'environment=contract-test\n' > "$TMP/environment.txt"
 printf '{"ambient_bounces":1,"sampling":"fixed"}\n' > "$TMP/settings.json"
 printf 'mock native solver stdout\n' > "$TMP/raw-output.txt"
 : > "$TMP/stderr.txt"
-EXECUTABLE=$(command -v true)
+EXECUTABLE=$(command -v jq)
 [[ -x "$EXECUTABLE" ]] || fail "test executable unavailable"
 
 # x advances fastest, then y; values are all 500 lx so the expected summary is exact.
