@@ -975,7 +975,7 @@ fn benchmark_scenario_panel_context(
     if required_str(&manifest, "schema_version")? != "energy-scenario-panel-v0.1"
         || required_str(&report, "schema_version")? != "energy-scenario-panel-report-v0.1"
         || required_str(&manifest, "panel_id")? != required_str(&report, "panel_id")?
-        || required_str(&report, "manifest_sha256")? != manifest_digest
+        || required_str(&report, "manifest_sha256")? != manifest_digest.as_str()
         || manifest_ids != expected_sorted
         || report_ids != expected_sorted
         || manifest_cases.len() != 5
@@ -992,7 +992,7 @@ fn benchmark_scenario_panel_context(
     }
 
     for item in report_cases {
-        if required_str(item, "panel_manifest_sha256")? != manifest_digest
+        if required_str(item, "panel_manifest_sha256")? != manifest_digest.as_str()
             || required_u64(item, "feasible_complete_schedules")? == 0
             || required_u64(item, "pareto_frontier_count")? == 0
         {
