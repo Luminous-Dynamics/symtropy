@@ -244,7 +244,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
     }
 
     Ok(RobustSetReport {
-        schema_version: "0.1.0",
+        schema_version: "0.2.0",
         report_kind: "polar-resilience-robust-set-report",
         evidence_class: "synthetic_only",
         scenario_count: input.scenarios.len(),
@@ -289,6 +289,7 @@ mod tests {
     #[test]
     fn evaluates_enumerated_scenarios_without_probabilities() {
         let report = aggregate(&fixture()).expect("fixture should aggregate");
+        assert_eq!(report.schema_version, "0.2.0");
         assert_eq!(report.evidence_class, "synthetic_only");
         assert_eq!(report.result_scope, "unweighted_enumerated_stress_set_not_probability_estimate");
         assert_eq!(report.scenario_count, 3);
