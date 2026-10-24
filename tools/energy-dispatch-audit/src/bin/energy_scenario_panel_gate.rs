@@ -106,6 +106,7 @@ fn validate_results(item:&Value,dir:&Path,manifest_digest:&str)->Result<Value,Bo
     let mut frontier=solver.clone(); frontier.sort_by_key(object_order);
     Ok(json!({
         "case_id":id,"label":req_str(item,"label")?,"scenario_family":req_str(item,"scenario_family")?,
+        "panel_manifest_sha256":manifest_digest,
         "request_sha256":req_hash,"known_answer_sha256":ans_hash,"dispatch_report_sha256":dispatch_hash,
         "independent_audit_sha256":audit_hash,"qualification_log_sha256":log_hash,
         "feasible_complete_schedules":req_u64(&answer,"feasible_complete_schedules")?,
@@ -150,8 +151,10 @@ mod tests{
  }
  #[test] fn undeclared_scenario_mutation_is_rejected(){
    let mut m:Value=serde_json::from_str(PANEL).expect("panel parses");
-   let c=m["cases"].as_array_mut().unwrap();let item=c.iter_mut().find(|x|x["case_id"]=="synthetic-three-interval-pv-loss").unwrap();
+   let cases=m["cases"].as_array_mut().unwrap();
+   let item=cases.iter_mut().find(|x|x["case_id"]=="synthetic-three-interval-pv-loss").unwrap();
    item["request"]["intervals"][1]["grid_import_limit_quanta"]=json!(0);
-   assert!(verify_transforms(&m,c).is_err());
+   let frozen_cases=cases.clone();
+   assert!(verify_transforms(&m,&frozen_cases).is_err());
  }
 }
