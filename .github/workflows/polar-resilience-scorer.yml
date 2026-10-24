@@ -104,55 +104,64 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p artifacts/polar-resilience
+          artifact_dir="artifacts/polar-resilience"
+          mkdir -p "$artifact_dir/inputs" "$artifact_dir/reports"
           tested_commit="$(git rev-parse HEAD)"
-          cp /tmp/polar-score-report.json artifacts/polar-resilience/score-report.json
-          cp /tmp/polar-ensemble-report.json artifacts/polar-resilience/ensemble-report.json
-          cp /tmp/polar-robust-set-report.json artifacts/polar-resilience/robust-set-report.json
-          printf '%s\n' "$tested_commit" > artifacts/polar-resilience/TESTED_COMMIT
-          sha256sum \
-            research/polar-infrastructure/benchmark/Cargo.toml \
-            research/polar-infrastructure/benchmark/Cargo.lock \
-            research/polar-infrastructure/benchmark/fixtures/toy-episode.json \
-            research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json \
-            research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json \
-            artifacts/polar-resilience/score-report.json \
-            artifacts/polar-resilience/ensemble-report.json \
-            artifacts/polar-resilience/robust-set-report.json \
-            > artifacts/polar-resilience/SHA256SUMS
-          jq -n \
-            --arg tested_commit "$tested_commit" \
-            --arg tested_repository "${{ github.event.pull_request.head.repo.full_name || github.repository }}" \
-            --arg workflow_run_id "$GITHUB_RUN_ID" \
-            --arg workflow_attempt "$GITHUB_RUN_ATTEMPT" \
-            --arg event "$GITHUB_EVENT_NAME" \
-            '{
-              receipt_schema_version: "0.1.0",
-              evidence_class: "synthetic_only",
-              receipt_status: "checks_completed",
-              tested_commit: $tested_commit,
-              tested_repository: $tested_repository,
-              workflow_run_id: $workflow_run_id,
-              workflow_attempt: $workflow_attempt,
-              workflow_event: $event,
-              input_schema_version: "0.1.0",
-              report_schema_version: "0.2.0",
-              input_paths: [
-                "research/polar-infrastructure/benchmark/fixtures/toy-episode.json",
-                "research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json",
-                "research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json",
-                "research/polar-infrastructure/benchmark/Cargo.toml",
-                "research/polar-infrastructure/benchmark/Cargo.lock"
-              ],
-              report_paths: [
-                "score-report.json",
-                "ensemble-report.json",
-                "robust-set-report.json"
-              ],
-              checksums_file: "SHA256SUMS",
-              caveat: "Synthetic scorer contract evidence only; not physical validation or controller certification."
-            }' > artifacts/polar-resilience/run-receipt.json
-          sha256sum artifacts/polar-resilience/run-receipt.json > artifacts/polar-resilience/run-receipt.sha256
+          cp research/polar-infrastructure/benchmark/Cargo.toml "$artifact_dir/inputs/Cargo.toml"
+          cp research/polar-infrastructure/benchmark/Cargo.lock "$artifact_dir/inputs/Cargo.lock"
+          cp research/polar-infrastructure/benchmark/fixtures/toy-episode.json "$artifact_dir/inputs/toy-episode.json"
+          cp research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json "$artifact_dir/inputs/toy-ensemble.json"
+          cp research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json "$artifact_dir/inputs/toy-robust-set.json"
+          cp /tmp/polar-score-report.json "$artifact_dir/reports/score-report.json"
+          cp /tmp/polar-ensemble-report.json "$artifact_dir/reports/ensemble-report.json"
+          cp /tmp/polar-robust-set-report.json "$artifact_dir/reports/robust-set-report.json"
+          printf '%s\n' "$tested_commit" > "$artifact_dir/TESTED_COMMIT"
+          (
+            cd "$artifact_dir"
+            sha256sum \
+              inputs/Cargo.toml \
+              inputs/Cargo.lock \
+              inputs/toy-episode.json \
+              inputs/toy-ensemble.json \
+              inputs/toy-robust-set.json \
+              reports/score-report.json \
+              reports/ensemble-report.json \
+              reports/robust-set-report.json \
+              > SHA256SUMS
+            jq -n \
+              --arg tested_commit "$tested_commit" \
+              --arg tested_repository "${{ github.event.pull_request.head.repo.full_name || github.repository }}" \
+              --arg workflow_run_id "$GITHUB_RUN_ID" \
+              --arg workflow_attempt "$GITHUB_RUN_ATTEMPT" \
+              --arg event "$GITHUB_EVENT_NAME" \
+              '{
+                receipt_schema_version: "0.1.0",
+                evidence_class: "synthetic_only",
+                receipt_status: "checks_completed",
+                tested_commit: $tested_commit,
+                tested_repository: $tested_repository,
+                workflow_run_id: $workflow_run_id,
+                workflow_attempt: $workflow_attempt,
+                workflow_event: $event,
+                input_schema_version: "0.1.0",
+                report_schema_version: "0.2.0",
+                input_paths: [
+                  "inputs/Cargo.toml",
+                  "inputs/Cargo.lock",
+                  "inputs/toy-episode.json",
+                  "inputs/toy-ensemble.json",
+                  "inputs/toy-robust-set.json"
+                ],
+                report_paths: [
+                  "reports/score-report.json",
+                  "reports/ensemble-report.json",
+                  "reports/robust-set-report.json"
+                ],
+                checksums_file: "SHA256SUMS",
+                caveat: "Synthetic scorer contract evidence only; not physical validation or controller certification."
+              }' > run-receipt.json
+            sha256sum run-receipt.json > run-receipt.sha256
+          )
           printf 'tested_commit=%s\n' "$tested_commit"
 
       - name: Upload digest-pinned synthetic run receipt
