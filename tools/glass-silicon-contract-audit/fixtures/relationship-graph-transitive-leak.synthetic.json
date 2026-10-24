@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "relationship-graph-transitive-leak-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic transitive-leakage control only; no real data pipeline is evaluated.",
+  "relation_profile": "provenance_identity_v0",
+  "leakage_edge_types": ["derived_from", "replicate_of", "same_record"],
+  "allowed_splits": ["train", "validation", "test"],
+  "nodes": [
+    {"node_id": "sample-train", "node_kind": "sample"},
+    {"node_id": "derived-table", "node_kind": "derived_feature"},
+    {"node_id": "sample-test", "node_kind": "sample"},
+    {"node_id": "sample-validation", "node_kind": "sample"}
+  ],
+  "edges": [
+    {"source_id": "sample-train", "target_id": "derived-table", "edge_type": "derived_from", "state": "verified", "evidence_refs": ["fixture:train-source"]},
+    {"source_id": "sample-test", "target_id": "derived-table", "edge_type": "derived_from", "state": "verified", "evidence_refs": ["fixture:test-source"]}
+  ],
+  "assignments": [
+    {"node_id": "sample-train", "split": "train"},
+    {"node_id": "sample-validation", "split": "validation"},
+    {"node_id": "sample-test", "split": "test"}
+  ]
+}
