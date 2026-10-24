@@ -4372,6 +4372,7 @@ pub struct AcquisitionPolicyComparisonReport {
     pub audit_kind: String,
     pub benchmark_id: Option<String>,
     pub evidence_class: Option<String>,
+    pub input_sha256: Option<String>,
     pub random_seed_count: usize,
     pub available_measurements: usize,
     pub budget_eligible_measurements: usize,
@@ -4426,6 +4427,7 @@ fn acquisition_policy_invalid(
         audit_kind: "synthetic_acquisition_policy_comparison".to_string(),
         benchmark_id: object_string(pool, "benchmark_id").map(ToOwned::to_owned),
         evidence_class: object_string(pool, "evidence_class").map(ToOwned::to_owned),
+        input_sha256: None,
         random_seed_count,
         available_measurements,
         budget_eligible_measurements,
@@ -4535,6 +4537,11 @@ pub fn audit_acquisition_policy_comparison(pool: &Value) -> AcquisitionPolicyCom
         errors.push("EVIDENCE_CLASS:policy comparison must be explicitly synthetic".to_string());
     }
 
+    if pool.get("acquisition_policy_comparison")
+        .and_then(|value| value.get("protocol_version"))
+        .and_then(Value::as_u64) != Some(1) {
+        errors.push("POLICY_PROTOCOL_VERSION:acquisition_policy_comparison.protocol_version must be integer 1".to_string());
+    }
     let seed_values = pool.get("acquisition_policy_comparison")
         .and_then(|value| value.get("random_seeds"))
         .and_then(Value::as_array);
@@ -4774,8 +4781,8 @@ mod acquisition_policy_comparison_tests {
     #[test]
     fn repeated_random_seed_fails_closed() {
         let mut value = fixture();
-        value["acquisition_policy_comparison"]["random_seeds"][1] =
-            value["acquisition_policy_comparison"]["random_seeds"][0].clone();
+        let first_seed = value["acquisition_policy_comparison"]["random_seeds"][0].clone();
+        value["acquisition_policy_comparison"]["random_seeds"][1] = first_seed;
         let report = audit_acquisition_policy_comparison(&value);
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|finding| finding.starts_with("RANDOM_SEEDS:seed values must be unique")));
