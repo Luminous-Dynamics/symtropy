@@ -547,6 +547,40 @@ mod tests {
     }
 
     #[test]
+    fn envelope_dominance_respects_every_axis_and_terminal_soc_direction() {
+        let better = AxisBest {
+            essential_unserved_quanta: 0,
+            flexible_unserved_quanta: 0,
+            operating_cost_units: 3,
+            grid_carbon_grams: 4,
+            curtailed_pv_quanta: 2,
+            terminal_soc_quanta: 8,
+        };
+        let worse = AxisBest {
+            essential_unserved_quanta: 1,
+            flexible_unserved_quanta: 2,
+            operating_cost_units: 5,
+            grid_carbon_grams: 6,
+            curtailed_pv_quanta: 3,
+            terminal_soc_quanta: 5,
+        };
+        assert!(dominates(&better, &worse));
+        assert!(!dominates(&worse, &better));
+        assert!(!dominates(&better, &better));
+
+        let traded_off = AxisBest {
+            essential_unserved_quanta: 0,
+            flexible_unserved_quanta: 0,
+            operating_cost_units: 9,
+            grid_carbon_grams: 10,
+            curtailed_pv_quanta: 1,
+            terminal_soc_quanta: 9,
+        };
+        assert!(!dominates(&better, &traded_off));
+        assert!(!dominates(&traded_off, &better));
+    }
+
+    #[test]
     fn empty_frontier_is_unknown_not_a_zero_objective_pass() {
         assert!(axis_best(&[]).is_err());
     }
