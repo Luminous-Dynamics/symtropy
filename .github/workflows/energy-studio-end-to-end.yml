@@ -97,6 +97,21 @@ jobs:
           cp "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.lock" "$work/symtropy-energy-audit.Cargo.lock"
           sha256sum "$work/symthaea.Cargo.lock" "$work/sol-atlas.Cargo.lock" "$work/symtropy-energy-audit.Cargo.lock"
 
+      - name: Qualify causal-policy versus wait-and-see information consistency
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/nonanticipativity-context"
+          mkdir -p "$context"
+          source_fixture="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-nonanticipativity-counterexample-v0.1.json"
+          cp "$source_fixture" "$context/counterexample.json"
+          gate="$work/targets/symtropy/debug/energy_nonanticipativity_gate"
+          "$gate" "$context/counterexample.json" "$context/report.json" > "$context/qualification.log"
+          cat "$context/qualification.log"
+          sha256sum "$context/counterexample.json" "$context/report.json" > "$context/receipts.sha256"
+          cat "$context/receipts.sha256"
+
       - name: Verify published South African tariff arithmetic against hand-calculated answers
         shell: bash
         run: |
@@ -582,6 +597,9 @@ jobs:
             ${{ runner.temp }}/energy-studio/candidate-scenario-matrix-context/**/*
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-candidate-scenario-panel-v0.1.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-scenario-panel-v0.1.json
+            ${{ runner.temp }}/energy-studio/nonanticipativity-context/*
+            ${{ github.workspace }}/tools/energy-dispatch-audit/NONANTICIPATIVE_POLICY_BENCHMARK_V0_1.md
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-nonanticipativity-counterexample-v0.1.json
             ${{ runner.temp }}/energy-studio/sa-tariff-context/*
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/sa-facility-benchmark-source-registry-v0.1.json
             ${{ runner.temp }}/energy-studio/*.Cargo.lock
