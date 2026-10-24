@@ -715,6 +715,81 @@ mod tests {
         fs::remove_dir_all(&root).unwrap();
     }
 
+    fn write_pooled_predictions(path: &Path, window_counts: &[usize]) {
+        let mut headers = vec![
+            "t".to_owned(), "x".into(), "y".into(), "z".into(),
+            "vx".into(), "vy".into(), "vz".into(), "wx".into(), "wy".into(), "wz".into(),
+            "qx".into(), "qy".into(), "qz".into(), "qw".into(),
+        ];
+        let fields = [
+            "x", "y", "z", "vx", "vy", "vz", "wx", "wy", "wz", "qx", "qy", "qz", "qw",
+        ];
+        for h in 1..=HORIZON {
+            headers.extend(fields.iter().map(|field| prediction_key(field, h)));
+        }
+        let mut writer = csv::Writer::from_path(path).unwrap();
+        writer.write_record(&headers).unwrap();
+        for &run_rows in window_counts {
+            for i in 0..run_rows {
+                let mut row = vec![
+                    format!("{:.8}", i as f64 * EXPECTED_DT_S),
+                    format!("{}", i + 1), "0".into(), "0".into(),
+                    "0".into(), "0".into(), "0".into(), "0".into(), "0".into(), "0".into(),
+                    "0".into(), "0".into(), "0".into(), "1".into(),
+                ];
+                for _ in 1..=HORIZON {
+                    for field in fields {
+                        row.push(if field == "qw" { "1".into() } else { "0".into() });
+                    }
+                }
+                writer.write_record(&row).unwrap();
+            }
+        }
+        writer.flush().unwrap();
+    }
+
+    #[test]
+    fn splits_existing_pooled_benchmark_export_by_each_raw_n_minus_horizon() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("symtropy-nanodrone-pooled-{nonce}"));
+        let raw_dir = root.join("data").join("test");
+        let output_dir = root.join("joined");
+        fs::create_dir_all(&raw_dir).unwrap();
+        fs::create_dir_all(&output_dir).unwrap();
+
+        let raw_paths = vec![
+            raw_dir.join("melon_20251017_run1.csv"),
+            raw_dir.join("melon_20251017_run2.csv"),
+            raw_dir.join("melon_20251017_run3.csv"),
+        ];
+        let raw_lengths = [100usize, 102, 105];
+        let window_counts = raw_lengths.iter().map(|length| length - HORIZON).collect::<Vec<_>>();
+        for (path, rows) in raw_paths.iter().zip(raw_lengths) {
+            write_raw(path, rows);
+        }
+        let pooled_path = root.join("melon_multistep.csv");
+        write_pooled_predictions(&pooled_path, &window_counts);
+
+        let receipt = join_pooled_predictions(&pooled_path, &raw_paths, &output_dir, true).unwrap();
+        assert_eq!(receipt["source_prediction_rows"], 157);
+        assert_eq!(receipt["joined_run_receipts"].as_array().unwrap().len(), 3);
+
+        for (run_index, expected_rows) in window_counts.iter().enumerate() {
+            let output_path = output_dir.join(format!("melon_20251017_run{}.csv", run_index + 1));
+            let mut joined = ReaderBuilder::new().has_headers(true).from_path(&output_path).unwrap();
+            let headers = joined.headers().unwrap().clone();
+            let x_h50 = headers.iter().position(|header| header == "x_true_h50").unwrap();
+            let rows = joined.records().collect::<Result<Vec<_>, _>>().unwrap();
+            assert_eq!(rows.len(), *expected_rows);
+            assert_eq!(rows[0].get(x_h50).unwrap().parse::<f64>().unwrap(), 50.0);
+        }
+
+        fs::remove_dir_all(&root).unwrap();
+    }
+
     #[test]
     fn refuses_prediction_rows_that_do_not_match_raw_one_step_truth() {
         let nonce = std::time::SystemTime::now()
