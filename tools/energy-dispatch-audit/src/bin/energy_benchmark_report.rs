@@ -1075,7 +1075,7 @@ fn benchmark_candidate_scenario_matrix_context(
         || required_str(&profile, "schema_version")?
             != "energy-candidate-scenario-panel-v0.1"
         || required_str(&report, "schema_version")?
-            != "energy-candidate-scenario-matrix-report-v0.1"
+            != "energy-candidate-scenario-matrix-report-v0.2"
         || required_str(&profile, "panel_id")? != required_str(&report, "matrix_id")?
         || required_str(&report, "scenario_profile_sha256")? != profile_digest.as_str()
         || required_str(&report, "design_space_manifest_sha256")?
@@ -1114,6 +1114,21 @@ fn benchmark_candidate_scenario_matrix_context(
     for row in rows {
         let candidate_id = required_str(row, "candidate_id")?;
         let scenario_id = required_str(row, "scenario_id")?;
+        let mut solver_frontier: Vec<DispatchObjective> =
+            serde_json::from_value(row["solver_frontier_objectives"].clone())?;
+        let mut independent_frontier: Vec<DispatchObjective> =
+            serde_json::from_value(row["independent_reference_frontier_objectives"].clone())?;
+        solver_frontier.sort();
+        independent_frontier.sort();
+        if solver_frontier != independent_frontier
+            || solver_frontier.len() as u64 != required_u64(row, "solver_frontier_count")?
+            || independent_frontier.len() as u64 != required_u64(row, "independent_reference_frontier_count")?
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("candidate-scenario objective vectors are missing or disagree: {candidate_id}/{scenario_id}"),
+            ).into());
+        }
         if required_str(row, "status")? != "pass"
             || required_str(row, "mapping_config_file_sha256")? != config_file_digest.as_str()
             || required_str(row, "mapping_config_typed_sha256")? != config_typed_digest.as_str()
