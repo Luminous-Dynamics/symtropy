@@ -61,11 +61,13 @@ jobs:
 
       - name: Generate paired smoke corpus and verify receipt
         shell: bash
+        env:
+          SHIPYARD_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           rm -rf /tmp/shipyard-paired-benchmark-smoke
           cargo run --locked --offline --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml -- \
             --episodes 16 --seed 20261024 --out /tmp/shipyard-paired-benchmark-smoke \
-            --policy-revision "$GITHUB_SHA" --evaluator-revision "$GITHUB_SHA"
+            --policy-revision "$SHIPYARD_SOURCE_REVISION" --evaluator-revision "$SHIPYARD_SOURCE_REVISION"
           test "$(wc -l < /tmp/shipyard-paired-benchmark-smoke/results.jsonl)" -eq 64
           jq -e '.corpus_contract_version == "shipyard-paired-benchmark-corpus-v0" and .episode_count == 16 and (.episodes | length) == 16' /tmp/shipyard-paired-benchmark-smoke/benchmark-manifest.json
           jq -e '.receipt_contract_version == "shipyard-benchmark-run-receipt-v0" and .artifact_count == 160 and .budget_contract == "not_enforced; runtime comparisons prohibited"' /tmp/shipyard-paired-benchmark-smoke/run-receipt.json
