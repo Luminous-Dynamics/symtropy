@@ -915,12 +915,15 @@ mod tests {
         let index_m1_t0 = headers.iter().position(|header| header == "m1_rads_input_t0").unwrap();
         let index_m1_t49 = headers.iter().position(|header| header == "m1_rads_input_t49").unwrap();
         let index_x0_x = headers.iter().position(|header| header == "x0_x").unwrap();
+        let index_t = headers.iter().position(|header| header == "t").unwrap();
         let index_x0_t = headers.iter().position(|header| header == "x0_t").unwrap();
         let index_input_t49 = headers.iter().position(|header| header == "input_time_t49").unwrap();
         let index_x_h1 = headers.iter().position(|header| header == "x_true_h1").unwrap();
         let index_x_h50 = headers.iter().position(|header| header == "x_true_h50").unwrap();
         let rows = joined.records().collect::<Result<Vec<_>, _>>().unwrap();
         assert_eq!(rows.len(), 50);
+        assert_eq!(rows[0].get(index_t).unwrap().parse::<f64>().unwrap(), 0.0);
+        assert_eq!(rows[49].get(index_t).unwrap().parse::<f64>().unwrap(), 0.49);
         assert_eq!(rows[0].get(index_m1).unwrap().parse::<f64>().unwrap(), 100.0);
         assert_eq!(rows[49].get(index_m1).unwrap().parse::<f64>().unwrap(), 149.0);
         assert_eq!(rows[0].get(index_m1_t0).unwrap().parse::<f64>().unwrap(), 100.0);
@@ -951,10 +954,11 @@ mod tests {
         }
         let mut writer = csv::Writer::from_path(path).unwrap();
         writer.write_record(&headers).unwrap();
+        let mut global_index = 0usize;
         for &run_rows in window_counts {
             for i in 0..run_rows {
                 let mut row = vec![
-                    format!("{:.8}", i as f64 * EXPECTED_DT_S),
+                    format!("{:.8}", global_index as f64 * EXPECTED_DT_S),
                     format!("{}", i + 1), "0".into(), "0".into(),
                     "0".into(), "0".into(), "0".into(), "0".into(), "0".into(), "0".into(),
                     "0".into(), "0".into(), "0".into(), "1".into(),
@@ -965,6 +969,7 @@ mod tests {
                     }
                 }
                 writer.write_record(&row).unwrap();
+                global_index += 1;
             }
         }
         writer.flush().unwrap();
@@ -1002,9 +1007,11 @@ mod tests {
             let output_path = output_dir.join(format!("melon_20251017_run{}.csv", run_index + 1));
             let mut joined = ReaderBuilder::new().has_headers(true).from_path(&output_path).unwrap();
             let headers = joined.headers().unwrap().clone();
+            let time_index = headers.iter().position(|header| header == "t").unwrap();
             let x_h50 = headers.iter().position(|header| header == "x_true_h50").unwrap();
             let rows = joined.records().collect::<Result<Vec<_>, _>>().unwrap();
             assert_eq!(rows.len(), *expected_rows);
+            assert_eq!(rows[0].get(time_index).unwrap().parse::<f64>().unwrap(), 0.0);
             assert_eq!(rows[0].get(x_h50).unwrap().parse::<f64>().unwrap(), 50.0);
         }
 
