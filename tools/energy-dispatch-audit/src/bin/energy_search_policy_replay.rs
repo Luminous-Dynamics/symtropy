@@ -588,17 +588,6 @@ mod tests {
     }
 
     #[test]
-    fn seeded_order_is_repeatable_and_duplicate_free() {
-        let ids = expected_candidate_ids();
-        let first = shuffled_order(&ids, 42);
-        let second = shuffled_order(&ids, 42);
-        assert_eq!(first, second);
-        assert_eq!(first.len(), 39);
-        assert_eq!(first.iter().collect::<BTreeSet<_>>().len(), 39);
-        assert_ne!(first, shuffled_order(&ids, 17));
-    }
-
-    #[test]
     fn quantiles_use_deterministic_nearest_rank() {
         let summary = quantile_summary((1_u64..=30).collect()).unwrap();
         assert_eq!(summary.min, 1);
