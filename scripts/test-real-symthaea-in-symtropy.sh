@@ -64,6 +64,11 @@ fi
 if [ "${STFR_CHECK_ACTUATOR_SUMMARY:-0}" = "1" ]; then
   cargo check --manifest-path "$integration_manifest" --example actuator_lag_transfer_summary
 fi
+
+if [ "${STFR_CHECK_NANODRONE_ADAPTER:-0}" = "1" ]; then
+  cargo test --manifest-path "$integration_manifest" --example nanodrone_dataset_validate
+  cargo check --manifest-path "$integration_manifest" --example nanodrone_dataset_validate
+fi
 if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
   out="${STFB_OUTPUT_PATH:-$SYMTROPY_PATH/symthaea-symtropy-flight-transfer.json}"
   cargo run --manifest-path "$integration_manifest" --example paired_flight_transfer > "$out"
