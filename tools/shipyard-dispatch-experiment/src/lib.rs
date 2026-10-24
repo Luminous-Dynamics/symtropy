@@ -422,29 +422,19 @@ fn has_any_audit_code(result: &EvaluatedRule, codes: &[&str]) -> bool {
 }
 
 fn resource_gate_status(result: &EvaluatedRule) -> &'static str {
-    if has_any_audit_code(
-        result,
-        &[
-            "UNKNOWN_COMPLETED_RESOURCE",
-            "COMPLETED_RESOURCE_KIND_MISMATCH",
-            "UNKNOWN_EXPECTED_FROZEN_RESOURCE",
-            "UNKNOWN_ASSIGNED_RESOURCE",
-            "RESOURCE_KIND_MISMATCH",
-            "UNARY_RESOURCE_OVERLAP",
-            "UNKNOWN_EVALUATOR_OUTAGE_RESOURCE",
-            "INVALID_EVALUATOR_OUTAGE_INTERVAL",
-            "ASSIGNMENT_OVERLAPS_EFFECTIVE_OUTAGE",
-            "INVALID_ASSIGNMENT_INTERVAL",
-            "DURATION_MISMATCH",
-            "STARTS_BEFORE_RELEASE",
-            "NEW_ASSIGNMENT_BEFORE_DECISION",
-            "ASSIGNMENT_AFTER_HORIZON",
-            "FROZEN_COMMITMENT_CHANGED",
-            "FROZEN_COMMITMENT_DROPPED",
-            "UNDECLARED_FROZEN_ASSIGNMENT",
-            "MANDATORY_OPERATION_OMITTED",
-        ],
-    ) {
+    const PRECEDENCE_CODES: &[&str] = &[
+        "UNKNOWN_PREDECESSOR",
+        "SELF_PRECEDENCE",
+        "DUPLICATE_PREDECESSOR",
+        "PRECEDENCE_VIOLATION",
+        "PREDECESSOR_MISSING_FROM_REALIZED_STATE",
+    ];
+    if result
+        .audit
+        .diagnostics
+        .iter()
+        .any(|diagnostic| !PRECEDENCE_CODES.contains(&diagnostic.code.as_str()))
+    {
         "failed"
     } else {
         "passed"
