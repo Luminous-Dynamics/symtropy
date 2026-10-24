@@ -18,11 +18,13 @@ struct BoundaryInput {
     cases: Vec<BoundaryCase>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct SeverityAxis {
     id: String,
     unit: String,
+    /// True means larger values represent more severe disturbances; false means smaller values do.
+    higher_is_more_severe: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
@@ -53,6 +55,7 @@ struct BoundaryReport {
     report_kind: &'static str,
     evidence_class: &'static str,
     search_partition_id: String,
+    axes: Vec<SeverityAxis>,
     case_count: usize,
     pass_count: usize,
     gate_breach_case_count: usize,
@@ -84,18 +87,26 @@ fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
-fn dominates(a: &BoundaryCase, b: &BoundaryCase, axis_ids: &[String]) -> bool {
+fn dominates(a: &BoundaryCase, b: &BoundaryCase, axes: &[SeverityAxis]) -> bool {
     // Only compare cases explicitly placed in the same comparison group. The
     // input validator guarantees that a group has one hazard family and initial state.
     if a.comparison_group_id != b.comparison_group_id {
         return false;
     }
-    let no_more_severe = axis_ids
-        .iter()
-        .all(|axis| a.severity[axis] <= b.severity[axis]);
-    let strictly_less_severe = axis_ids
-        .iter()
-        .any(|axis| a.severity[axis] < b.severity[axis]);
+    let no_more_severe = axes.iter().all(|axis| {
+        if axis.higher_is_more_severe {
+            a.severity[&axis.id] <= b.severity[&axis.id]
+        } else {
+            a.severity[&axis.id] >= b.severity[&axis.id]
+        }
+    });
+    let strictly_less_severe = axes.iter().any(|axis| {
+        if axis.higher_is_more_severe {
+            a.severity[&axis.id] < b.severity[&axis.id]
+        } else {
+            a.severity[&axis.id] > b.severity[&axis.id]
+        }
+    });
     no_more_severe && strictly_less_severe
 }
 
@@ -117,7 +128,6 @@ fn aggregate(input: &BoundaryInput) -> Result<BoundaryReport, String> {
         return Err("at least one severity axis, gate ID, and case are required".to_string());
     }
 
-    let mut axis_ids = Vec::with_capacity(input.axes.len());
     let mut axis_set = BTreeSet::new();
     for axis in &input.axes {
         if !nonempty(&axis.id) || !nonempty(&axis.unit) {
@@ -126,7 +136,6 @@ fn aggregate(input: &BoundaryInput) -> Result<BoundaryReport, String> {
         if !axis_set.insert(axis.id.clone()) {
             return Err(format!("duplicate severity axis ID {}", axis.id));
         }
-        axis_ids.push(axis.id.clone());
     }
 
     let mut gate_set = BTreeSet::new();
@@ -238,7 +247,7 @@ fn aggregate(input: &BoundaryInput) -> Result<BoundaryReport, String> {
                     other.case_id != candidate.case_id
                         && other.outcome == Outcome::GateBreach
                         && other.failed_gate_ids.contains(&gate_id)
-                        && dominates(other, candidate, &axis_ids)
+                        && dominates(other, candidate, &input.axes)
                 })
             })
             .collect();
@@ -283,6 +292,11 @@ fn aggregate(input: &BoundaryInput) -> Result<BoundaryReport, String> {
         report_kind: "polar-resilience-boundary-search-report",
         evidence_class: "synthetic_only",
         search_partition_id: input.search_partition_id.clone(),
+        axes: input.axes.iter().map(|axis| SeverityAxis {
+            id: axis.id.clone(),
+            unit: axis.unit.clone(),
+            higher_is_more_severe: axis.higher_is_more_severe,
+        }).collect(),
         case_count: input.cases.len(),
         pass_count,
         gate_breach_case_count,
@@ -404,4 +418,27 @@ mod tests {
         input.evidence_class = "domain_validated".to_string();
         assert!(aggregate(&input).unwrap_err().contains("synthetic_only"));
     }
+
+    #[test]
+    fn supports_axes_where_smaller_values_are_more_severe() {
+        let axis = SeverityAxis {
+            id: "temperature_margin".to_string(),
+            unit: "normalized_margin".to_string(),
+            higher_is_more_severe: false,
+        };
+        let make_case = |case_id: &str, value: f64| BoundaryCase {
+            case_id: case_id.to_string(),
+            comparison_group_id: "same-envelope".to_string(),
+            hazard_family: "cold-start".to_string(),
+            initial_state_id: "same-reserve".to_string(),
+            replicate_id: "replicate-1".to_string(),
+            severity: BTreeMap::from([("temperature_margin".to_string(), value)]),
+            outcome: Outcome::GateBreach,
+            failed_gate_ids: vec!["heat_floor".to_string()],
+        };
+        let milder = make_case("milder", 8.0);
+        let harsher = make_case("harsher", 2.0);
+        assert!(dominates(&milder, &harsher, &[axis]));
+    }
+
 }
