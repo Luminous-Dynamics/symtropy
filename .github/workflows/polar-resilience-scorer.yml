@@ -26,7 +26,12 @@ jobs:
       - name: Check out exact PR head (or exact pushed commit)
         uses: actions/checkout@v4
         with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert checked-out revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Run unit and negative-control tests
@@ -117,6 +122,7 @@ jobs:
             > artifacts/polar-resilience/SHA256SUMS
           jq -n \
             --arg tested_commit "$tested_commit" \
+            --arg tested_repository "${{ github.event.pull_request.head.repo.full_name || github.repository }}" \
             --arg workflow_run_id "$GITHUB_RUN_ID" \
             --arg workflow_attempt "$GITHUB_RUN_ATTEMPT" \
             --arg event "$GITHUB_EVENT_NAME" \
@@ -125,6 +131,7 @@ jobs:
               evidence_class: "synthetic_only",
               receipt_status: "checks_completed",
               tested_commit: $tested_commit,
+              tested_repository: $tested_repository,
               workflow_run_id: $workflow_run_id,
               workflow_attempt: $workflow_attempt,
               workflow_event: $event,
@@ -145,6 +152,7 @@ jobs:
               checksums_file: "SHA256SUMS",
               caveat: "Synthetic scorer contract evidence only; not physical validation or controller certification."
             }' > artifacts/polar-resilience/run-receipt.json
+          sha256sum artifacts/polar-resilience/run-receipt.json > artifacts/polar-resilience/run-receipt.sha256
           printf 'tested_commit=%s\n' "$tested_commit"
 
       - name: Upload digest-pinned synthetic run receipt
