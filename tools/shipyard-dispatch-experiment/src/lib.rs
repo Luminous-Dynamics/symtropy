@@ -811,7 +811,7 @@ pub fn serialize_result_ledger(
     Ok(build_result_ledger_bundle(context, results)?.ledger_jsonl)
 }
 
-fn sha256_hex(input: &[u8]) -> String {
+pub fn sha256_hex(input: &[u8]) -> String {
     use std::fmt::Write as _;
 
     const K: [u32; 64] = [
