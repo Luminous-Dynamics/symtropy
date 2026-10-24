@@ -89,10 +89,11 @@ fn read_episodes(root: &Value, label: &str, steps_per_episode: usize) -> Vec<Epi
     }).collect()
 }
 
-fn ensure_receipts_match(ridge: &Value, hdc: &Value, mlp: &Value) {
+fn ensure_receipts_match(ridge: &Value, hdc: &Value, mlp: &Value, history: &Value) {
     assert_eq!(ridge["benchmark_id"].as_str(), Some("symtropy-causal-transition-residual-ridge-conformal-v0.1"));
     assert_eq!(hdc["benchmark_id"].as_str(), Some("symtropy-hdc-ltc-residual-reservoir-heldout-v0.1"));
     assert_eq!(mlp["benchmark_id"].as_str(), Some("symtropy-compact-mlp-residual-heldout-v0.1"));
+    assert_eq!(history["benchmark_id"].as_str(), Some("symtropy-explicit-history-mlp-residual-heldout-v0.1"));
 
     for field in [
         "symtropy_git_sha",
@@ -104,25 +105,32 @@ fn ensure_receipts_match(ridge: &Value, hdc: &Value, mlp: &Value) {
         let r = required_string(&ridge["source_receipt"][field], &format!("ridge.source_receipt.{field}"));
         let h = required_string(&hdc["source_receipt"][field], &format!("hdc.source_receipt.{field}"));
         let m = required_string(&mlp["source_receipt"][field], &format!("mlp.source_receipt.{field}"));
+        let w = required_string(&history["source_receipt"][field], &format!("history.source_receipt.{field}"));
         assert_eq!(r, h, "model arms do not share source receipt field {field}");
         assert_eq!(r, m, "model arms do not share source receipt field {field}");
+        assert_eq!(r, w, "model arms do not share source receipt field {field}");
     }
 
     let ridge_eval = &ridge["evaluation"];
     let hdc_eval = &hdc["evaluation"];
     let mlp_eval = &mlp["evaluation"];
+    let history_eval = &history["evaluation"];
     assert_eq!(required_string(&ridge_eval["split"], "ridge split"), "test");
     assert_eq!(required_string(&hdc_eval["split"], "hdc split"), "test");
     assert_eq!(required_string(&mlp_eval["split"], "mlp split"), "test");
+    assert_eq!(required_string(&history_eval["split"], "history split"), "test");
     for field in ["episodes_requested", "steps_per_episode"] {
         let expected = required_usize(&ridge_eval[field], &format!("ridge.evaluation.{field}"));
         assert_eq!(required_usize(&hdc_eval[field], &format!("hdc.evaluation.{field}")), expected, "test horizon mismatch");
         assert_eq!(required_usize(&mlp_eval[field], &format!("mlp.evaluation.{field}")), expected, "test horizon mismatch");
+        assert_eq!(required_usize(&history_eval[field], &format!("history.evaluation.{field}")), expected, "test horizon mismatch");
     }
     assert_eq!(ridge_eval["scenario_ids"], hdc_eval["test_scenario_ids"], "HDC test scenario catalogue mismatch");
     assert_eq!(ridge_eval["scenario_ids"], mlp_eval["test_scenario_ids"], "MLP test scenario catalogue mismatch");
+    assert_eq!(ridge_eval["scenario_ids"], history_eval["test_scenario_ids"], "history test scenario catalogue mismatch");
     assert_eq!(ridge_eval["nominal_model"], hdc_eval["nominal_model"], "HDC nominal-model parameters mismatch");
     assert_eq!(ridge_eval["nominal_model"], mlp_eval["nominal_model"], "MLP nominal-model parameters mismatch");
+    assert_eq!(ridge_eval["nominal_model"], history_eval["nominal_model"], "history nominal-model parameters mismatch");
 }
 
 fn grouped_indices(episodes: &[EpisodeScore]) -> BTreeMap<&str, Vec<usize>> {
@@ -246,25 +254,32 @@ fn main() {
     let ridge_root = read_json_env("STFR_RIDGE_OUTPUT_PATH");
     let hdc_root = read_json_env("STFR_HDC_OUTPUT_PATH");
     let mlp_root = read_json_env("STFR_MLP_OUTPUT_PATH");
-    ensure_receipts_match(&ridge_root, &hdc_root, &mlp_root);
+    let history_root = read_json_env("STFR_HISTORY_MLP_OUTPUT_PATH");
+    ensure_receipts_match(&ridge_root, &hdc_root, &mlp_root, &history_root);
 
     let episodes_requested = required_usize(&ridge_root["evaluation"]["episodes_requested"], "ridge episodes");
     let steps_per_episode = required_usize(&ridge_root["evaluation"]["steps_per_episode"], "ridge steps");
-    assert_eq!(episodes_requested, required_usize(&hdc_root["evaluation"]["episodes_requested"], "hdc episodes"));
-    assert_eq!(episodes_requested, required_usize(&mlp_root["evaluation"]["episodes_requested"], "mlp episodes"));
+    for (label, root) in [("hdc", &hdc_root), ("mlp", &mlp_root), ("history", &history_root)] {
+        assert_eq!(episodes_requested, required_usize(&root["evaluation"]["episodes_requested"], &format!("{label} episodes")));
+    }
 
     let ridge = read_episodes(&ridge_root, "ridge", steps_per_episode);
     let hdc = read_episodes(&hdc_root, "hdc", steps_per_episode);
     let mlp = read_episodes(&mlp_root, "mlp", steps_per_episode);
-    assert_eq!(ridge.len(), episodes_requested);
-    assert_eq!(hdc.len(), episodes_requested);
-    assert_eq!(mlp.len(), episodes_requested);
+    let history = read_episodes(&history_root, "history", steps_per_episode);
+    for (label, rows) in [("ridge", &ridge), ("hdc", &hdc), ("mlp", &mlp), ("history", &history)] {
+        assert_eq!(rows.len(), episodes_requested, "{label} episode count mismatch");
+    }
 
     for index in 0..episodes_requested {
-        for other in [&hdc[index], &mlp[index]] {
-            assert_eq!(ridge[index].seed_hex, other.seed_hex, "seed mismatch at episode {index}");
-            assert_eq!(ridge[index].scenario_id, other.scenario_id, "scenario mismatch at episode {index}");
-            assert_eq!(ridge[index].scenario_family, other.scenario_family, "family mismatch at episode {index}");
+        for (label, other) in [
+            ("hdc", &hdc[index]),
+            ("mlp", &mlp[index]),
+            ("history", &history[index]),
+        ] {
+            assert_eq!(ridge[index].seed_hex, other.seed_hex, "seed mismatch in {label} episode {index}");
+            assert_eq!(ridge[index].scenario_id, other.scenario_id, "scenario mismatch in {label} episode {index}");
+            assert_eq!(ridge[index].scenario_family, other.scenario_family, "family mismatch in {label} episode {index}");
         }
     }
 
