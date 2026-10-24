@@ -223,6 +223,7 @@ struct CandidateScenarioMatrixBenchmark {
     all_passed: bool,
     robustness_report_sha256: String,
     robustness_qualification_log_sha256: String,
+    robustness_source_receipts_sha256: String,
     robustness_source_matrix_sha256: String,
     robustness_candidate_count: usize,
     robustness_scenario_count: usize,
@@ -1169,6 +1170,7 @@ fn benchmark_candidate_scenario_matrix_context(
     let receipt_bytes = fs::read(dir.join("matrix-sha256sums.txt"))?;
     let (robustness_bytes, robustness) = read_json(&dir.join("robustness-report.json"))?;
     let robustness_log_bytes = fs::read(dir.join("robustness-qualification.log"))?;
+    let robustness_receipt_bytes = fs::read(dir.join("robustness-sha256sums.txt"))?;
     let mapping_config: MappingConfigForLedger = serde_json::from_slice(mapping_config_bytes)?;
     let typed_config_bytes = serde_json::to_vec(&mapping_config)?;
 
@@ -1178,6 +1180,7 @@ fn benchmark_candidate_scenario_matrix_context(
     let receipt_digest = sha256_hex(&receipt_bytes);
     let robustness_digest = sha256_hex(&robustness_bytes);
     let robustness_log_digest = sha256_hex(&robustness_log_bytes);
+    let robustness_receipt_digest = sha256_hex(&robustness_receipt_bytes);
     let config_file_digest = sha256_hex(mapping_config_bytes);
     let config_typed_digest = sha256_hex(&typed_config_bytes);
     let design_manifest_digest = sha256_hex(design_manifest_bytes);
@@ -1407,11 +1410,14 @@ fn benchmark_candidate_scenario_matrix_context(
     }
 
     let robustness_log = String::from_utf8(robustness_log_bytes)?;
+    let robustness_receipts = String::from_utf8(robustness_receipt_bytes)?;
     if !robustness_log.contains("PASS: derived robustness report for 39 candidates × 5 scenarios")
         || !robustness_log.contains(&format!("source_matrix_sha256={report_digest}"))
         || !robustness_log.contains(&format!("report_sha256={robustness_digest}"))
+        || !robustness_receipts.contains(&report_digest)
+        || !robustness_receipts.contains(&robustness_digest)
     {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness qualification log does not bind the matrix and derived report").into());
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness qualification log/receipts do not bind the matrix and derived report").into());
     }
 
     let log = String::from_utf8(log_bytes)?;
@@ -1444,6 +1450,7 @@ fn benchmark_candidate_scenario_matrix_context(
         all_passed: report["all_passed"].as_bool().unwrap_or(false),
         robustness_report_sha256: robustness_digest,
         robustness_qualification_log_sha256: robustness_log_digest,
+        robustness_source_receipts_sha256: robustness_receipt_digest,
         robustness_source_matrix_sha256: required_str(&robustness, "source_matrix_sha256")?.to_owned(),
         robustness_candidate_count: required_u64(&robustness, "candidate_count")? as usize,
         robustness_scenario_count: required_u64(&robustness, "scenario_count")? as usize,
