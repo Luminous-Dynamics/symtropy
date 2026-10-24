@@ -242,3 +242,12 @@ The input must be the timestamp-validated joined output containing all 50 truth/
 - If spectra differ across runs, do not average away the shift. Preserve the run-level plots/receipts and expand independent flight coverage.
 
 These are decision rules to guide experimentation, not claims about the dataset's measured spectrum; the public Git LFS payload has not yet been scored in this environment.
+
+
+## Cross-benchmark evidence: why horizon-aware hybrids are worth testing
+
+The [NanoBench paper (2026)](https://arxiv.org/abs/2603.09908) reports 172 flights and 641,915 synchronized 100 Hz samples on the **brushed Crazyflie 2.1**, compared with the Nano-Drone system-identification benchmark's four trajectories on the **brushless Crazyflie 2.1 variant**. These are complementary, not interchangeable test sets.
+
+NanoBench's Table V illustrates why a single aggregate score can be misleading: its physics baseline has 0.3 mm position MAE at h=1 but 636 mm at h=50; its residual MLP has 228 mm position MAE at h=50; the physics-plus-residual hybrid has the best cumulative position error (4.41 m vs 5.68 m for the residual MLP); meanwhile, its LSTM angular-rate MAE at h=50 is 5.15 rad/s compared with 0.45 rad/s for the naive baseline. These figures belong only to NanoBench's reported split and metric implementation; do not compare them numerically with Nano-Drone's scores.
+
+The implication is methodological: report every channel and horizon, retain the per-horizon winning baseline as a **retrospective diagnostic envelope only**, then test a causal hybrid gate that is driven by observed state, motor history and uncertainty. A model must not use future ground truth or switch arms using test-set labels. The residual-spectrum tool in PR #2782 is the first diagnostic for deciding whether slow rotational/actuator state is a plausible missing component; the horizon-conditioned hybrid experiment is tracked in [issue #2783](https://github.com/Luminous-Dynamics/symtropy/issues/2783).
