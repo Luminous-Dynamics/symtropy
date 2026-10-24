@@ -1,0 +1,1501 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:human-motion-benchmark-report:2",
+  "title": "Symtropy Human Motion Benchmark Report v2",
+  "description": "Schema for report JSON emitted by human-motion-bench. Evidence scope is derived from declared metadata and does not independently authenticate rights or consent. Root orientation is null for v0.1 trace comparisons; yaw metrics are null when heading is undefined.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "validity",
+    "evidence_scope",
+    "alignment",
+    "provenance",
+    "root_trajectory_error",
+    "root_orientation_error",
+    "joint_trajectory_error",
+    "left_stance_foot_drift",
+    "right_stance_foot_drift",
+    "left_foot_contact_agreement",
+    "right_foot_contact_agreement",
+    "left_foot_contact_events",
+    "right_foot_contact_events",
+    "prediction_root_mean_squared_jerk_m2_s6",
+    "elapsed_metric_computation_ms",
+    "caveats"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "validity": {
+      "enum": [
+        "synthetic_fixture_only",
+        "provenance_complete_root_only",
+        "provenance_complete_comparison"
+      ]
+    },
+    "evidence_scope": {
+      "enum": [
+        "synthetic_software_validation_only",
+        "declared_held_out_human_reference",
+        "source_provenance_present_reference_not_held_out_human_verified"
+      ]
+    },
+    "alignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "overlap_start_sec",
+        "overlap_end_sec",
+        "overlap_duration_sec",
+        "grid_step_sec",
+        "reference_median_sample_interval_sec",
+        "reference_max_sample_interval_sec",
+        "prediction_median_sample_interval_sec",
+        "prediction_max_sample_interval_sec",
+        "samples",
+        "invalid_samples"
+      ],
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "overlap_start_sec": {
+          "type": "number"
+        },
+        "overlap_end_sec": {
+          "type": "number"
+        },
+        "overlap_duration_sec": {
+          "type": "number"
+        },
+        "grid_step_sec": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reference_median_sample_interval_sec": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reference_max_sample_interval_sec": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "prediction_median_sample_interval_sec": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "prediction_max_sample_interval_sec": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "samples": {
+          "type": "integer",
+          "minimum": 4
+        },
+        "invalid_samples": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "prediction",
+        "configuration_hashes_match",
+        "asset_hashes_match"
+      ],
+      "properties": {
+        "reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "trace_id",
+            "trace_schema_version",
+            "run",
+            "skeleton_signature_sha256",
+            "retarget_map_sha256"
+          ],
+          "properties": {
+            "trace_id": {
+              "type": "string"
+            },
+            "trace_schema_version": {
+              "type": "integer",
+              "enum": [
+                1,
+                2
+              ]
+            },
+            "run": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source_kind",
+                "git_commit",
+                "configuration_sha256",
+                "model_sha256",
+                "asset_id",
+                "asset_sha256",
+                "asset_license",
+                "dataset_id",
+                "dataset_version",
+                "split",
+                "actor_pseudonym",
+                "recording_id",
+                "seed"
+              ],
+              "properties": {
+                "source_kind": {
+                  "enum": [
+                    "synthetic_test_fixture",
+                    "licensed_asset",
+                    "original_consent_capture",
+                    "external_model"
+                  ]
+                },
+                "git_commit": {
+                  "type": "string"
+                },
+                "configuration_sha256": {
+                  "type": "string",
+                  "pattern": "^[A-Fa-f0-9]{64}$"
+                },
+                "model_sha256": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "asset_id": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "asset_sha256": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[A-Fa-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "asset_license": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dataset_id": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dataset_version": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "split": {
+                  "oneOf": [
+                    {
+                      "enum": [
+                        "train",
+                        "validation",
+                        "test",
+                        "synthetic"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "actor_pseudonym": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "recording_id": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "seed": {
+                  "oneOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "skeleton_signature_sha256": {
+              "type": "string",
+              "pattern": "^[A-Fa-f0-9]{64}$"
+            },
+            "retarget_map_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Fa-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "prediction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "trace_id",
+            "trace_schema_version",
+            "run",
+            "skeleton_signature_sha256",
+            "retarget_map_sha256"
+          ],
+          "properties": {
+            "trace_id": {
+              "type": "string"
+            },
+            "trace_schema_version": {
+              "type": "integer",
+              "enum": [
+                1,
+                2
+              ]
+            },
+            "run": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source_kind",
+                "git_commit",
+                "configuration_sha256",
+                "model_sha256",
+                "asset_id",
+                "asset_sha256",
+                "asset_license",
+                "dataset_id",
+                "dataset_version",
+                "split",
+                "actor_pseudonym",
+                "recording_id",
+                "seed"
+              ],
+              "properties": {
+                "source_kind": {
+                  "enum": [
+                    "synthetic_test_fixture",
+                    "licensed_asset",
+                    "original_consent_capture",
+                    "external_model"
+                  ]
+                },
+                "git_commit": {
+                  "type": "string"
+                },
+                "configuration_sha256": {
+                  "type": "string",
+                  "pattern": "^[A-Fa-f0-9]{64}$"
+                },
+                "model_sha256": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "asset_id": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "asset_sha256": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[A-Fa-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "asset_license": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dataset_id": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dataset_version": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "split": {
+                  "oneOf": [
+                    {
+                      "enum": [
+                        "train",
+                        "validation",
+                        "test",
+                        "synthetic"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "actor_pseudonym": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "recording_id": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "seed": {
+                  "oneOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "skeleton_signature_sha256": {
+              "type": "string",
+              "pattern": "^[A-Fa-f0-9]{64}$"
+            },
+            "retarget_map_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Fa-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "configuration_hashes_match": {
+          "type": "boolean"
+        },
+        "asset_hashes_match": {
+          "type": "boolean"
+        }
+      }
+    },
+    "root_trajectory_error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "samples",
+        "mean_displacement_error_m",
+        "final_displacement_error_m",
+        "max_displacement_error_m"
+      ],
+      "properties": {
+        "samples": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mean_displacement_error_m": {
+          "type": "number"
+        },
+        "final_displacement_error_m": {
+          "type": "number"
+        },
+        "max_displacement_error_m": {
+          "type": "number"
+        }
+      }
+    },
+    "root_orientation_error": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "samples",
+            "mean_angular_error_rad",
+            "mean_angular_error_deg",
+            "final_angular_error_rad",
+            "final_angular_error_deg",
+            "p95_angular_error_rad",
+            "p95_angular_error_deg",
+            "max_angular_error_rad",
+            "max_angular_error_deg",
+            "yaw_samples_scored",
+            "yaw_samples_undefined",
+            "mean_signed_yaw_error_rad",
+            "mean_signed_yaw_error_deg",
+            "mean_absolute_yaw_error_rad",
+            "mean_absolute_yaw_error_deg",
+            "final_signed_yaw_error_rad",
+            "final_signed_yaw_error_deg",
+            "final_absolute_yaw_error_rad",
+            "final_absolute_yaw_error_deg",
+            "p95_absolute_yaw_error_rad",
+            "p95_absolute_yaw_error_deg",
+            "max_absolute_yaw_error_rad",
+            "max_absolute_yaw_error_deg"
+          ],
+          "properties": {
+            "samples": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mean_angular_error_rad": {
+              "type": "number"
+            },
+            "mean_angular_error_deg": {
+              "type": "number"
+            },
+            "final_angular_error_rad": {
+              "type": "number"
+            },
+            "final_angular_error_deg": {
+              "type": "number"
+            },
+            "p95_angular_error_rad": {
+              "type": "number"
+            },
+            "p95_angular_error_deg": {
+              "type": "number"
+            },
+            "max_angular_error_rad": {
+              "type": "number"
+            },
+            "max_angular_error_deg": {
+              "type": "number"
+            },
+            "yaw_samples_scored": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "yaw_samples_undefined": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mean_signed_yaw_error_rad": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mean_signed_yaw_error_deg": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mean_absolute_yaw_error_rad": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mean_absolute_yaw_error_deg": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "final_signed_yaw_error_rad": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "final_signed_yaw_error_deg": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "final_absolute_yaw_error_rad": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "final_absolute_yaw_error_deg": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "p95_absolute_yaw_error_rad": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "p95_absolute_yaw_error_deg": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max_absolute_yaw_error_rad": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max_absolute_yaw_error_deg": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "joint_trajectory_error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "joints_scored",
+        "macro_mean_ade_m",
+        "max_joint_fde_m",
+        "max_joint_error_m",
+        "per_joint"
+      ],
+      "properties": {
+        "joints_scored": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "macro_mean_ade_m": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_joint_fde_m": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_joint_error_m": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "per_joint": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "joint_name",
+              "samples",
+              "mean_displacement_error_m",
+              "final_displacement_error_m",
+              "max_displacement_error_m"
+            ],
+            "properties": {
+              "joint_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "samples": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "mean_displacement_error_m": {
+                "type": "number"
+              },
+              "final_displacement_error_m": {
+                "type": "number"
+              },
+              "max_displacement_error_m": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "left_stance_foot_drift": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "samples_in_contact",
+        "rms_drift_m",
+        "max_drift_m"
+      ],
+      "properties": {
+        "samples_in_contact": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rms_drift_m": {
+          "type": "number"
+        },
+        "max_drift_m": {
+          "type": "number"
+        }
+      }
+    },
+    "right_stance_foot_drift": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "samples_in_contact",
+        "rms_drift_m",
+        "max_drift_m"
+      ],
+      "properties": {
+        "samples_in_contact": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rms_drift_m": {
+          "type": "number"
+        },
+        "max_drift_m": {
+          "type": "number"
+        }
+      }
+    },
+    "left_foot_contact_agreement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "samples",
+        "true_positive",
+        "true_negative",
+        "false_positive",
+        "false_negative",
+        "accuracy",
+        "precision",
+        "recall",
+        "f1"
+      ],
+      "properties": {
+        "samples": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "true_positive": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "true_negative": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_positive": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_negative": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accuracy": {
+          "type": "number"
+        },
+        "precision": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recall": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "f1": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "right_foot_contact_agreement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "samples",
+        "true_positive",
+        "true_negative",
+        "false_positive",
+        "false_negative",
+        "accuracy",
+        "precision",
+        "recall",
+        "f1"
+      ],
+      "properties": {
+        "samples": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "true_positive": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "true_negative": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_positive": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_negative": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accuracy": {
+          "type": "number"
+        },
+        "precision": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recall": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "f1": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "left_foot_contact_events": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "touchdown",
+        "liftoff"
+      ],
+      "properties": {
+        "touchdown": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event_type",
+            "matching_method",
+            "tolerance_sec",
+            "reference_events",
+            "prediction_events",
+            "matched_events",
+            "missed_reference_events",
+            "unmatched_prediction_events",
+            "precision",
+            "recall",
+            "f1",
+            "mean_signed_timing_error_sec",
+            "median_absolute_timing_error_sec",
+            "p95_absolute_timing_error_sec",
+            "max_absolute_timing_error_sec"
+          ],
+          "properties": {
+            "event_type": {
+              "enum": [
+                "touchdown",
+                "liftoff"
+              ]
+            },
+            "matching_method": {
+              "const": "chronological_first_eligible"
+            },
+            "tolerance_sec": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "reference_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "prediction_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "matched_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missed_reference_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unmatched_prediction_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "precision": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recall": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "f1": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mean_signed_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "median_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "p95_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "liftoff": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event_type",
+            "matching_method",
+            "tolerance_sec",
+            "reference_events",
+            "prediction_events",
+            "matched_events",
+            "missed_reference_events",
+            "unmatched_prediction_events",
+            "precision",
+            "recall",
+            "f1",
+            "mean_signed_timing_error_sec",
+            "median_absolute_timing_error_sec",
+            "p95_absolute_timing_error_sec",
+            "max_absolute_timing_error_sec"
+          ],
+          "properties": {
+            "event_type": {
+              "enum": [
+                "touchdown",
+                "liftoff"
+              ]
+            },
+            "matching_method": {
+              "const": "chronological_first_eligible"
+            },
+            "tolerance_sec": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "reference_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "prediction_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "matched_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missed_reference_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unmatched_prediction_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "precision": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recall": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "f1": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mean_signed_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "median_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "p95_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "right_foot_contact_events": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "touchdown",
+        "liftoff"
+      ],
+      "properties": {
+        "touchdown": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event_type",
+            "matching_method",
+            "tolerance_sec",
+            "reference_events",
+            "prediction_events",
+            "matched_events",
+            "missed_reference_events",
+            "unmatched_prediction_events",
+            "precision",
+            "recall",
+            "f1",
+            "mean_signed_timing_error_sec",
+            "median_absolute_timing_error_sec",
+            "p95_absolute_timing_error_sec",
+            "max_absolute_timing_error_sec"
+          ],
+          "properties": {
+            "event_type": {
+              "enum": [
+                "touchdown",
+                "liftoff"
+              ]
+            },
+            "matching_method": {
+              "const": "chronological_first_eligible"
+            },
+            "tolerance_sec": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "reference_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "prediction_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "matched_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missed_reference_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unmatched_prediction_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "precision": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recall": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "f1": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mean_signed_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "median_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "p95_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "liftoff": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event_type",
+            "matching_method",
+            "tolerance_sec",
+            "reference_events",
+            "prediction_events",
+            "matched_events",
+            "missed_reference_events",
+            "unmatched_prediction_events",
+            "precision",
+            "recall",
+            "f1",
+            "mean_signed_timing_error_sec",
+            "median_absolute_timing_error_sec",
+            "p95_absolute_timing_error_sec",
+            "max_absolute_timing_error_sec"
+          ],
+          "properties": {
+            "event_type": {
+              "enum": [
+                "touchdown",
+                "liftoff"
+              ]
+            },
+            "matching_method": {
+              "const": "chronological_first_eligible"
+            },
+            "tolerance_sec": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "reference_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "prediction_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "matched_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missed_reference_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unmatched_prediction_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "precision": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recall": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "f1": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mean_signed_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "median_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "p95_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max_absolute_timing_error_sec": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "prediction_root_mean_squared_jerk_m2_s6": {
+      "type": "number"
+    },
+    "elapsed_metric_computation_ms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "caveats": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

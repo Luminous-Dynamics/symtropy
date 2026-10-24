@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:motion-skill-contract:1",
+  "title": "Symtropy Motion Skill Contract v1",
+  "description": "Renderer-independent declarative skill contract. Physics/reachability evidence and runtime outcome validation remain authoritative semantic checks in the implementation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "skill_id",
+    "intent_id",
+    "issued_at_sec",
+    "preconditions",
+    "constraints",
+    "postconditions"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "skill_id": { "type": "string", "minLength": 1 },
+    "intent_id": { "type": "string", "minLength": 1 },
+    "issued_at_sec": { "type": "number", "minimum": 0 },
+    "valid_until_sec": { "type": "number", "exclusiveMinimum": 0 },
+    "preconditions": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "capability_id"],
+            "properties": {
+              "kind": { "const": "capability_available" },
+              "capability_id": { "type": "string", "minLength": 1 }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "target_ref"],
+            "properties": {
+              "kind": { "const": "target_reachable" },
+              "target_ref": { "type": "string", "minLength": 1 }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind"],
+            "properties": {
+              "kind": { "const": "support_available" }
+            }
+          }
+        ]
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/constraint" }
+    },
+    "postconditions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["postcondition_id", "kind", "tolerance"],
+        "properties": {
+          "postcondition_id": { "type": "string", "minLength": 1 },
+          "kind": {
+            "enum": [
+              "at_target",
+              "contact_established",
+              "stable_support",
+              "root_velocity_below_threshold",
+              "object_transferred",
+              "custom"
+            ]
+          },
+          "target_ref": { "type": "string", "minLength": 1 },
+          "tolerance": { "type": "number", "minimum": 0 }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "required": ["valid_until_sec"] },
+      "then": {
+        "properties": {
+          "valid_until_sec": { "type": "number", "exclusiveMinimum": 0 }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "position": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "type": "number" }
+    },
+    "orientation_xyzw": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "type": "number" },
+      "description": "Semantic validator also enforces a finite near-unit quaternion."
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "constraint_id",
+        "kind",
+        "hardness",
+        "priority",
+        "tolerance",
+        "target"
+      ],
+      "properties": {
+        "constraint_id": { "type": "string", "minLength": 1 },
+        "kind": {
+          "enum": [
+            "collision_free",
+            "joint_limits",
+            "support_stable",
+            "root_position",
+            "root_orientation",
+            "end_effector_position",
+            "end_effector_orientation",
+            "contact_state",
+            "desired_speed",
+            "style",
+            "gaze"
+          ]
+        },
+        "hardness": { "enum": ["hard", "soft"] },
+        "priority": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "tolerance": { "type": "number", "minimum": 0 },
+        "target": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "value"],
+              "properties": {
+                "kind": { "const": "position_world_m" },
+                "value": { "$ref": "#/$defs/position" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "value"],
+              "properties": {
+                "kind": { "const": "orientation_world_xyzw" },
+                "value": { "$ref": "#/$defs/orientation_xyzw" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "value"],
+              "properties": {
+                "kind": { "const": "scalar" },
+                "value": { "type": "number", "minimum": 0 }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "value"],
+              "properties": {
+                "kind": { "const": "boolean" },
+                "value": { "type": "boolean" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "value"],
+              "properties": {
+                "kind": { "const": "label" },
+                "value": { "type": "string", "minLength": 1 }
+              }
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "kind": { "enum": ["collision_free", "joint_limits", "support_stable"] } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "hardness": { "const": "hard" },
+              "target": {
+                "properties": {
+                  "kind": { "const": "boolean" },
+                  "value": { "const": true }
+                },
+                "required": ["kind", "value"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "enum": ["style", "gaze"] } },
+            "required": ["kind"]
+          },
+          "then": { "properties": { "hardness": { "const": "soft" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "enum": ["root_position", "end_effector_position"] } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": { "target": { "properties": { "kind": { "const": "position_world_m" } } } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "enum": ["root_orientation", "end_effector_orientation"] } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": { "target": { "properties": { "kind": { "const": "orientation_world_xyzw" } } } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "desired_speed" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": { "target": { "properties": { "kind": { "const": "scalar" } } } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "enum": ["collision_free", "joint_limits", "support_stable", "contact_state"] } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": { "target": { "properties": { "kind": { "const": "boolean" } } } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "enum": ["style", "gaze"] } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": { "target": { "properties": { "kind": { "const": "label" } } } }
+          }
+        }
+      ]
+    }
+  }
+}

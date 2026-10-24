@@ -8922,6 +8922,7 @@ dependencies = [
  "rapier3d",
  "rhai",
  "serde",
+ "serde_json",
  "symthaea-bevy-brain",
  "symthaea-consciousness-equation",
  "symthaea-muse",
@@ -8930,6 +8931,7 @@ dependencies = [
  "symtropy-consciousness-physics",
  "symtropy-devconsole",
  "symtropy-math",
+ "symtropy-motion-contract",
  "symtropy-physics",
  "symtropy-rapier3d-bridge",
  "symtropy-render-bridge",
@@ -9235,6 +9237,15 @@ dependencies = [
  "serde_json",
  "symtropy-math",
  "symtropy-physics",
+]
+
+
+[[package]]
+name = "symtropy-motion-contract"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
