@@ -6,6 +6,8 @@
 **Scope:** offline evidence/benchmark tooling only. No furnace control, actuator authority, dataset ingestion, or rights certification.
 **Machine-readable contract:** [glass-relationship-graph-v0.1.schema.json](./glass-relationship-graph-v0.1.schema.json). The Rust auditor adds cross-record and cross-split invariants that JSON Schema alone cannot establish.
 
+**Implementation boundary:** the current Rust command validates supplied node/edge declarations, checks split reachability, and emits raw/canonical graph digests. It does not yet discover links automatically, verify source truth or rights, or validate the full accepted-output dependency chain. Those are explicit follow-on milestones below; protocol requirements must not be mistaken for implemented behavior.
+
 ## 1. Why a relationship layer is necessary
 
 A manifest can be valid while the evidence it describes is wrong, incomplete, dependent, or leaked across evaluation partitions. Today’s grouped-split audit checks declared composition-family and synthesis-campaign keys. Those are useful controls, but relationships may be transitive or hidden behind aliases and derived artifacts:
@@ -72,7 +74,7 @@ The initial implementation should be deterministic and offline-capable:
 
 1. Validate node/edge schema, referenced IDs, cardinality, status enums, and relation-profile definitions.
 2. Canonicalize records using explicitly versioned rules and deterministic ordering; retain the raw-input digest separately from the normalized graph digest.
-3. Propose only conservative exact-identifier/hash links in the first slice; mark heuristic similarity as `candidate`.
+3. In the current v0.1 executable slice, do not auto-propose links: audit the supplied edge set only. A future link-proposal generator should start with conservative exact-identifier/hash links and mark heuristic similarity as `candidate`.
 4. Permit adjudicated synthetic fixtures now; defer empirical linking until relevant data rights and source artifacts are admitted.
 5. Emit a receipt that distinguishes declared, proposed, and independently adjudicated relationships.
 
@@ -108,7 +110,7 @@ Never optimize the leakage metric by rejecting all rows, nor call missing relati
 
 ## 5. Downstream dependency testing
 
-The graph also supplies integration tests for the **meaning** of an industrial claim. An accepted-output claim should be traceable to the material/lot and composition, process/run, measurements and calibration status, joint product qualification, mass/energy ledger, and applicable acceptance decision. MG-Si and glass use separate product/task profiles and units.
+The graph should also supply integration tests for the **meaning** of an industrial claim. **This downstream contract is specified here but is not yet implemented by the v0.1 Rust command.** An accepted-output claim should be traceable to the material/lot and composition, process/run, measurements and calibration status, joint product qualification, mass/energy ledger, and applicable acceptance decision. MG-Si and glass use separate product/task profiles and units.
 
 A successful local prediction must not count as a successful candidate if a required downstream dependency fails or remains unresolved. A syntactically valid edge or schema-valid receipt is insufficient when its referenced evidence is missing, stale, out of domain, contradictory, or not admitted.
 
