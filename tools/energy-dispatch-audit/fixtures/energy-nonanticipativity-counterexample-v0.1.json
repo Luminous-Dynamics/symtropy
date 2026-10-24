@@ -44,7 +44,28 @@
           "available_at_time_index": 0
         }
       },
-      "expected_information_set": "shared-t0"
+      "expected_information_set": "shared-t0",
+      "observable_history": [
+        {
+          "time_index": 0,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 1,
+            "essential_demand_quanta": 0
+          },
+          "available_forecast": {
+            "future_grid_state": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            },
+            "future_essential_demand": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            }
+          }
+        }
+      ]
     },
     {
       "prefix_id": "early-outage-revealed-soc0",
@@ -56,7 +77,39 @@
         "essential_demand_quanta": 1,
         "outage_observed": true
       },
-      "expected_information_set": "early-outage-revealed-soc0-t1"
+      "expected_information_set": "early-outage-revealed-soc0-t1",
+      "observable_history": [
+        {
+          "time_index": 0,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 1,
+            "essential_demand_quanta": 0
+          },
+          "available_forecast": {
+            "future_grid_state": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            },
+            "future_essential_demand": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            }
+          },
+          "committed_action": "discharge_to_flexible"
+        },
+        {
+          "time_index": 1,
+          "observable_state": {
+            "battery_soc_quanta": 0,
+            "grid_available": false,
+            "flexible_demand_quanta": 0,
+            "essential_demand_quanta": 1,
+            "outage_observed": true
+          }
+        }
+      ]
     },
     {
       "prefix_id": "early-outage-revealed-soc1",
@@ -68,7 +121,39 @@
         "essential_demand_quanta": 1,
         "outage_observed": true
       },
-      "expected_information_set": "early-outage-revealed-soc1-t1"
+      "expected_information_set": "early-outage-revealed-soc1-t1",
+      "observable_history": [
+        {
+          "time_index": 0,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 1,
+            "essential_demand_quanta": 0
+          },
+          "available_forecast": {
+            "future_grid_state": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            },
+            "future_essential_demand": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            }
+          },
+          "committed_action": "hold_for_critical"
+        },
+        {
+          "time_index": 1,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 0,
+            "essential_demand_quanta": 1,
+            "outage_observed": true
+          }
+        }
+      ]
     },
     {
       "prefix_id": "no-outage-revealed-soc0",
@@ -80,7 +165,39 @@
         "essential_demand_quanta": 0,
         "outage_observed": false
       },
-      "expected_information_set": "no-outage-revealed-soc0-t1"
+      "expected_information_set": "no-outage-revealed-soc0-t1",
+      "observable_history": [
+        {
+          "time_index": 0,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 1,
+            "essential_demand_quanta": 0
+          },
+          "available_forecast": {
+            "future_grid_state": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            },
+            "future_essential_demand": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            }
+          },
+          "committed_action": "discharge_to_flexible"
+        },
+        {
+          "time_index": 1,
+          "observable_state": {
+            "battery_soc_quanta": 0,
+            "grid_available": true,
+            "flexible_demand_quanta": 0,
+            "essential_demand_quanta": 0,
+            "outage_observed": false
+          }
+        }
+      ]
     },
     {
       "prefix_id": "no-outage-revealed-soc1",
@@ -92,7 +209,39 @@
         "essential_demand_quanta": 0,
         "outage_observed": false
       },
-      "expected_information_set": "no-outage-revealed-soc1-t1"
+      "expected_information_set": "no-outage-revealed-soc1-t1",
+      "observable_history": [
+        {
+          "time_index": 0,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 1,
+            "essential_demand_quanta": 0
+          },
+          "available_forecast": {
+            "future_grid_state": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            },
+            "future_essential_demand": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            }
+          },
+          "committed_action": "hold_for_critical"
+        },
+        {
+          "time_index": 1,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": true,
+            "flexible_demand_quanta": 0,
+            "essential_demand_quanta": 0,
+            "outage_observed": false
+          }
+        }
+      ]
     }
   ],
   "scenarios": [
