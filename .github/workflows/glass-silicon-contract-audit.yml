@@ -72,6 +72,9 @@ jobs:
           grep -q 'group key occurring in more than one split' "$protocol"
           grep -q 'outcome labels and predictor features are forbidden' "$protocol"
           grep -q 'SHA-256 fingerprint of the raw manifest bytes' "$protocol"
+          grep -q 'audit-false-feasible-bound <summary.json>' "$protocol"
+          grep -q 'Hoeffding upper confidence bound' "$protocol"
+          grep -q '600 independent negative units' "$protocol"
           echo "Feasibility-gate protocol structural controls: PASS"
 
       - name: Audit grouped-split leakage manifest
@@ -100,6 +103,40 @@ jobs:
             (.grouping_fields | sort) == ["composition_family_id", "synthesis_campaign_id"] and
             (.findings | length) == 0
           ' grouped-split-report.json
+
+      - name: Audit false-feasible upper confidence bound
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-false-feasible-bound
+          tools/glass-silicon-contract-audit/fixtures/false-feasible-bound.synthetic.json
+
+      - name: Assert 600-negative false-feasible threshold
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-false-feasible-bound tools/glass-silicon-contract-audit/fixtures/false-feasible-bound.synthetic.json > false-feasible-bound-report.json
+          grep -q '"status": "PASS"' false-feasible-bound-report.json
+          jq -e '
+            .independent_negative_units == 600 and
+            .false_feasible_count == 0 and
+            .confidence_level == 0.95 and
+            .target_upper_bound == 0.05 and
+            .target_met == true and
+            .hoeffding_upper_bound <= 0.05 and
+            .hoeffding_upper_bound > 0.0499
+          ' false-feasible-bound-report.json
+
+      - name: Abstain when negative sample is underpowered
+        shell: bash
+        run: |
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-false-feasible-bound tools/glass-silicon-contract-audit/fixtures/false-feasible-bound-underpowered.synthetic.json > false-feasible-underpowered.json
+          status=$?
+          set -e
+          test "$status" -eq 3
+          grep -q '"status": "UNRESOLVED"' false-feasible-underpowered.json
+          jq -e '.independent_negative_units == 599 and .target_met == false and .hoeffding_upper_bound > 0.05' false-feasible-underpowered.json
 
       - name: Audit synthetic staged-feasibility corpus
         run: >
