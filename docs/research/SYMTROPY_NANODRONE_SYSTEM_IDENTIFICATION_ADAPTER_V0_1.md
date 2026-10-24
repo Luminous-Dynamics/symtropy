@@ -81,23 +81,27 @@ The receipt deliberately does not claim an official leaderboard submission or a 
 
 ## Implemented third gate: attach complete future-state windows
 
-The integration package now includes `examples/nanodrone_truth_window_join.rs`. This closes the gap between per-run model prediction CSVs and complete-window scoring: it attaches the actual raw trajectory state at row `i+h` to prediction window row `i` for each horizon `h=1..50`.
+The integration package now includes `examples/nanodrone_truth_window_join.rs`. It attaches the actual raw trajectory state at row `i+h` to prediction window row `i` for every horizon `h=1..50`. It supports both independent per-run prediction files and the **pooled CSV emitted by the current upstream test script**.
 
-The command accepts one raw test run, its matching per-run prediction CSV and an output path. Run all three Melon files separately:
+Because the upstream `test_lstm.py` currently concatenates Melon runs 1–3 and writes `melon_multistep.csv`, the pooled mode partitions its rows by each raw trajectory's exact `N-50` window count, then joins and validates each run separately:
 
 ```bash
 cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
   --example nanodrone_truth_window_join -- \
+  "$NANODRONE_PATH/out/predictions/lstm_random_square_chirp_model_multistep/melon_multistep.csv" \
   "$NANODRONE_PATH/data/test/melon_20251017_run1.csv" \
-  results/predictions/melon_20251017_run1.csv \
-  results/windowed/melon_20251017_run1.csv --state-units-si
+  "$NANODRONE_PATH/data/test/melon_20251017_run2.csv" \
+  "$NANODRONE_PATH/data/test/melon_20251017_run3.csv" \
+  results/windowed --pooled --state-units-si
 ```
 
-Repeat for `run2` and `run3` with matching raw and prediction inputs and unique outputs, then pass the three joined outputs to `nanodrone_metric_receipt`. The required `--state-units-si` flag explicitly asserts that prediction state values have been denormalized into physical units; the receipt records this assertion but a CSV alone cannot prove how it was produced.
+The output directory contains one joined CSV for each Melon run. Pass those files to `nanodrone_metric_receipt` in run1/run2/run3 order. For already separated prediction tables, the CLI also supports one raw run + one matching prediction CSV + one output path.
 
-Before writing, the joiner checks that the files identify the same exact run, the prediction row count equals `N-50`, timestamps are finite and ordered, the raw states/quaternions are valid, and each prediction row's one-step truth agrees with raw row `i+1` within declared tolerances. This last check catches off-by-one alignment, unit-normalization mistakes and accidentally paired files before the join can yield a metric. It writes an atomic output with source-file hashes, output hash, orientation convention, row counts and explicit `{state}_true_h{h}` columns. It never joins across runs.
+Before writing each output, the joiner checks exact run identity, raw schema and quaternion norms, finite values, timestamp increments, each prediction horizon, and the upstream `N-50` row-count rule. It then verifies that the prediction CSV's one-step truth agrees with raw row `i+1` for position, velocity and angular rate, and compares the orientation under a sign-invariant SO(3) tolerance. Those checks catch off-by-one alignment, normalized-value mistakes and incorrect row slices before they can produce a score.
 
-The joiner's deterministic synthetic tests cover the first and last horizon targets and reject a deliberate one-step row mismatch. These are regression tests, not evidence yet that the actual published CSVs pass the declared timestamp and quaternion tolerances. The result remains a dataset-alignment receipt, not model-performance or safety evidence.
+The joiner appends complete `{state}_true_h{h}` columns, writes each output atomically, and emits a batch receipt with source hashes, per-run row offsets, counts, orientation convention and output hashes. The required `--state-units-si` flag explicitly asserts that prediction state values have been denormalized into physical units; the receipt records this assertion but cannot prove the scaler history from CSV contents alone.
+
+Synthetic tests cover exact h=1/h=50 target attachment, deliberate one-step mismatch rejection, and pooled splitting when the three raw runs have unequal lengths. These are regression tests, not evidence yet that the published CSVs pass the declared timestamp, quaternion and alignment tolerances. The result is an alignment receipt, not model-performance or safety evidence.
 
 ## Model arms
 
