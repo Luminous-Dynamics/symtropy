@@ -46,7 +46,7 @@ For a stochastic scenario model, use calibrated uncertainty and a preregistered 
 
 Symthaea should choose the next expensive simulation or physical measurement based on the expected value of information, not just which untested design has the highest optimistic predicted score.
 
-A practical acquisition policy can combine:
+A first deterministic selector primitive now lives in tools/lighting-benchmark/src/experiment_selection.rs. It accepts externally estimated expected decision-loss reduction, cost in a declared common value unit, resource budget cost, and an external safety-clearance flag. It validates all option rows before selecting, fails closed on malformed estimates or duplicate IDs, deterministically breaks ties, and refuses options that are unsafe, over budget or have non-positive net expected value. It does **not** estimate value of information or validate the calibration/provenance of supplied estimates. That remains a research-model and evidence-contract responsibility. A practical acquisition policy can combine:
 1. **Boundary value:** prioritize candidates where improved evidence could change a hard-gate decision.
 2. **Pareto value:** prioritize candidates plausibly improving a currently uncovered section of the feasible Pareto frontier.
 3. **Uncertainty reduction:** measure the variable or scene with the largest expected reduction in decision-relevant uncertainty.
