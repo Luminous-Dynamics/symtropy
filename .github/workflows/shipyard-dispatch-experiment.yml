@@ -68,11 +68,11 @@ jobs:
             --policy-revision "$GITHUB_SHA" --evaluator-revision "$GITHUB_SHA"
           test "$(wc -l < /tmp/shipyard-paired-benchmark/results.jsonl)" -eq 64
           jq -e '.corpus_contract_version == "shipyard-paired-benchmark-corpus-v0" and .episode_count == 16 and (.episodes | length) == 16' /tmp/shipyard-paired-benchmark/benchmark-manifest.json
-          jq -e '.receipt_contract_version == "shipyard-benchmark-run-receipt-v0" and .artifact_count == 224 and .budget_contract == "not_enforced; runtime comparisons prohibited"' /tmp/shipyard-paired-benchmark/run-receipt.json
+          jq -e '.receipt_contract_version == "shipyard-benchmark-run-receipt-v0" and .artifact_count == 164 and .budget_contract == "not_enforced; runtime comparisons prohibited"' /tmp/shipyard-paired-benchmark/run-receipt.json
           jq -s -e 'length == 64 and all(.[]; .ledger_contract_version == "shipyard-result-ledger-v0" and .synthetic_example == true and (.status == "incomplete" or .status == "invalid_input" or .status == "invalid_candidate"))' /tmp/shipyard-paired-benchmark/results.jsonl
           jq -s -e 'group_by(.episode_id) | all(.[]; length == 4 and ([.[].input_digests.method_config_sha256] | unique | length) == 4)' /tmp/shipyard-paired-benchmark/results.jsonl
           jq -e '(.comparisons | length) > 0 and ([.episode_coverage[].partition] | unique | sort) == ["development","held_out"]' /tmp/shipyard-paired-benchmark/paired-comparison-summary.json
-          test "$(find /tmp/shipyard-paired-benchmark -type f -name 'method-config-*.json' | wc -l)" -eq 64
+          test "$(find /tmp/shipyard-paired-benchmark -type f -name 'method-config-*.json' | wc -l)" -eq 4
           test "$(find /tmp/shipyard-paired-benchmark -type f -name 'candidate-schedule-*.json' | wc -l)" -eq 64
           test "$(find /tmp/shipyard-paired-benchmark -type f -name 'independent-audit-*.json' | wc -l)" -eq 64
           test "$(find /tmp/shipyard-paired-benchmark -type f -name 'initial-state-*.json' | wc -l)" -eq 16
