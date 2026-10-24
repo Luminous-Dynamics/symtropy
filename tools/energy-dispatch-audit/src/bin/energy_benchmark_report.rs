@@ -1243,6 +1243,9 @@ fn benchmark_candidate_scenario_matrix_context(
             io::ErrorKind::InvalidData,
             format!("candidate-scenario objective vectors failed ledger validation for {candidate_id}/{scenario_id}: {error}"),
         ))?;
+        let mut solver_frontier: Vec<DispatchObjective> =
+            serde_json::from_value(row["solver_frontier_objectives"].clone())?;
+        solver_frontier.sort();
         if required_str(row, "status")? != "pass"
             || required_str(row, "mapping_config_file_sha256")? != config_file_digest.as_str()
             || required_str(row, "mapping_config_typed_sha256")? != config_typed_digest.as_str()
