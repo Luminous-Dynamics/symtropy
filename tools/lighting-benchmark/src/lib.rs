@@ -717,7 +717,7 @@ mod tests {
             candidate_id: "synthetic-robust-candidate".to_owned(),
             energy_upper_bound_wh: 8.0,
             observed_hours: 1.0,
-            compliant_task_hours: 1.0,
+            compliant_task_hours_lower_bound: 1.0,
             peak_wall_power_upper_bound_w: 10.0,
             illuminance_bounds_lx: vec![
                 IlluminanceInterval { lower_lx: 510.0, upper_lx: 550.0 };
