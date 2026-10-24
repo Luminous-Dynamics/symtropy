@@ -950,8 +950,8 @@ mod ledger_tests {
         assert!(rows.contains("\"ledger_contract_version\":\"shipyard-result-ledger-v0\""));
         assert!(rows.contains("\"causality\":\"not_evaluated\""));
         assert!(rows.contains("\"method_config_sha256\":"));
-        assert!(rows.contains("\"total_tardiness_ticks\":0"));
-        assert!(rows.contains("\"occupied_resource_ticks\":2"));
+        assert!(rows.contains("\"metric_id\":\"total_tardiness\",\"value\":0"));
+        assert!(rows.contains("\"metric_id\":\"occupied_resource_ticks\",\"value\":2"));
         assert!(!rows.contains("winner_score"));
         let keys = rows
             .lines()
