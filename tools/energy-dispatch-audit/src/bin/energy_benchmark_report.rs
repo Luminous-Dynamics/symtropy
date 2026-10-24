@@ -194,6 +194,19 @@ struct SouthAfricanTariffBenchmark {
 }
 
 #[derive(Debug, Serialize)]
+struct ScenarioPanelBenchmark {
+    panel_id: String,
+    manifest_sha256: String,
+    scenario_panel_report_sha256: String,
+    qualification_log_sha256: String,
+    source_receipts_sha256: String,
+    case_count: usize,
+    passing_case_count: usize,
+    all_passed: bool,
+    cases: Vec<Value>,
+}
+
+#[derive(Debug, Serialize)]
 struct SourceHeads {
     symthaea: String,
     symtropy_contract: String,
@@ -243,6 +256,7 @@ struct EnergyStudioBenchmarkReport {
     objective_context: ObjectiveContextBenchmark,
     multi_interval_context: MultiIntervalBenchmark,
     south_african_tariff_context: SouthAfricanTariffBenchmark,
+    scenario_panel: ScenarioPanelBenchmark,
     candidates: Vec<CandidateBenchmark>,
 }
 
@@ -919,6 +933,103 @@ fn benchmark_south_african_tariff_context(
     })
 }
 
+fn benchmark_scenario_panel_context(
+    root: &Path,
+) -> Result<ScenarioPanelBenchmark, Box<dyn Error>> {
+    let dir = root.join("scenario-panel-context");
+    let (manifest_bytes, manifest) = read_json(&dir.join("panel-manifest.json"))?;
+    let (report_bytes, report) = read_json(&dir.join("scenario-panel-report.json"))?;
+    let log_bytes = fs::read(dir.join("panel-qualification.log"))?;
+    let receipt_bytes = fs::read(dir.join("panel-sha256sums.txt"))?;
+
+    let manifest_digest = sha256_hex(&manifest_bytes);
+    let report_digest = sha256_hex(&report_bytes);
+    let log_digest = sha256_hex(&log_bytes);
+    let receipt_digest = sha256_hex(&receipt_bytes);
+    let expected_ids = [
+        "synthetic-three-interval-storage-tradeoff",
+        "synthetic-three-interval-pv-loss",
+        "synthetic-three-interval-outage-late",
+        "synthetic-three-interval-demand-surge",
+        "synthetic-three-interval-reserve",
+    ];
+    let manifest_cases = manifest["cases"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "scenario panel manifest has no cases")
+    })?;
+    let report_cases = report["cases"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "scenario panel report has no cases")
+    })?;
+    let mut manifest_ids = manifest_cases
+        .iter()
+        .map(|item| required_str(item, "case_id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut report_ids = report_cases
+        .iter()
+        .map(|item| required_str(item, "case_id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    manifest_ids.sort();
+    report_ids.sort();
+    let mut expected_sorted = expected_ids.iter().map(|value| (*value).to_owned()).collect::<Vec<_>>();
+    expected_sorted.sort();
+
+    if required_str(&manifest, "schema_version")? != "energy-scenario-panel-v0.1"
+        || required_str(&report, "schema_version")? != "energy-scenario-panel-report-v0.1"
+        || required_str(&manifest, "panel_id")? != required_str(&report, "panel_id")?
+        || required_str(&report, "manifest_sha256")? != manifest_digest
+        || manifest_ids != expected_sorted
+        || report_ids != expected_sorted
+        || manifest_cases.len() != 5
+        || report_cases.len() != 5
+        || required_u64(&manifest, "case_count")? != 5
+        || required_u64(&report, "case_count")? != 5
+        || required_u64(&report, "passing_case_count")? != 5
+        || report["all_passed"].as_bool() != Some(true)
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "scenario panel manifest/report identity, coverage, or all-pass gate mismatch",
+        ).into());
+    }
+
+    for item in report_cases {
+        if required_str(item, "panel_manifest_sha256")? != manifest_digest
+            || required_u64(item, "feasible_complete_schedules")? == 0
+            || required_u64(item, "pareto_frontier_count")? == 0
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("scenario panel row is unbound, infeasible, or missing a frontier: {}", required_str(item, "case_id")?),
+            ).into());
+        }
+    }
+
+    let log = String::from_utf8(log_bytes)?;
+    let receipts = String::from_utf8(receipt_bytes)?;
+    if !log.contains("PASS: scenario panel verified 5 actual Sol-Atlas dispatch/audit cases")
+        || !log.contains(&format!("manifest_sha256={manifest_digest}"))
+        || !log.contains(&format!("panel_report_sha256={report_digest}"))
+        || !receipts.contains(&manifest_digest)
+        || !receipts.contains(&report_digest)
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "scenario panel qualification log or hash receipts do not bind the passing report",
+        ).into());
+    }
+
+    Ok(ScenarioPanelBenchmark {
+        panel_id: required_str(&report, "panel_id")?.to_owned(),
+        manifest_sha256: manifest_digest,
+        scenario_panel_report_sha256: report_digest,
+        qualification_log_sha256: log_digest,
+        source_receipts_sha256: receipt_digest,
+        case_count: report_cases.len(),
+        passing_case_count: required_u64(&report, "passing_case_count")? as usize,
+        all_passed: report["all_passed"].as_bool().unwrap_or(false),
+        cases: report_cases.clone(),
+    })
+}
+
 fn run() -> Result<(), Box<dyn Error>> {
     let args = env::args().collect::<Vec<_>>();
     if args.len() != 3 {
@@ -994,9 +1105,10 @@ fn run() -> Result<(), Box<dyn Error>> {
     let objective_context = benchmark_objective_context(&root)?;
     let multi_interval_context = benchmark_multi_interval_context(&root)?;
     let south_african_tariff_context = benchmark_south_african_tariff_context(&root)?;
+    let scenario_panel = benchmark_scenario_panel_context(&root)?;
     let report = EnergyStudioBenchmarkReport {
-        schema_version: "energy-studio-benchmark-report-v0.3",
-        benchmark_id: "energy-studio-source-bounded-multi-context-benchmark-v0.3".to_owned(),
+        schema_version: "energy-studio-benchmark-report-v0.4",
+        benchmark_id: "energy-studio-source-bounded-scenario-benchmark-v0.4".to_owned(),
         created_by_workflow_run: env::var("GITHUB_RUN_ID").unwrap_or_else(|_| "local".to_owned()),
         git_ref: env::var("GITHUB_SHA").unwrap_or_else(|_| "unknown".to_owned()),
         source_heads: SourceHeads {
@@ -1039,6 +1151,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         objective_context,
         multi_interval_context,
         south_african_tariff_context,
+        scenario_panel,
         candidates,
     };
     let output_bytes = serde_json::to_vec_pretty(&report)?;
