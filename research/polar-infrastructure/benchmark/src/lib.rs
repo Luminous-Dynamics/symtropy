@@ -436,7 +436,7 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
     }
 
     Ok(BenchmarkReport {
-        schema_version: "0.1.0",
+        schema_version: "0.2.0",
         report_kind: "polar-resilience-score-report",
         evidence_class: "synthetic_only",
         episode_id: episode.id.clone(),
@@ -457,6 +457,7 @@ mod tests {
     #[test]
     fn scores_synthetic_fixture_without_lifting_claim_ceiling() {
         let report = score(&fixture()).expect("fixture should score");
+        assert_eq!(report.schema_version, "0.2.0");
         assert_eq!(report.evidence_class, "synthetic_only");
         assert_eq!(report.result_scope, "metric_calculation_only_not_physical_validation");
         assert_eq!(report.results.len(), 4);
