@@ -561,7 +561,7 @@ jobs:
           context="$work/candidate-scenario-matrix-context"
           replay="$work/targets/symtropy/debug/energy_search_policy_replay"
           "$replay" "$work" "$context/search-policy-replay-report.json" > "$context/search-policy-replay-qualification.log"
-          sha256sum "$work/energy-benchmark-report.json" "$context/matrix-report.json" "$context/robustness-report.json" "$context/search-policy-replay-report.json" > "$context/search-policy-replay-sha256sums.txt"
+          sha256sum "$work/energy-design-space-manifest.json" "$work/energy-benchmark-report.json" "$context/matrix-report.json" "$context/robustness-report.json" "$context/search-policy-replay-report.json" > "$context/search-policy-replay-sha256sums.txt"
           cat "$context/search-policy-replay-qualification.log"
           cat "$context/search-policy-replay-sha256sums.txt"
 
