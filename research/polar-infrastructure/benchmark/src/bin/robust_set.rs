@@ -764,10 +764,10 @@ mod tests {
 
         // All other objectives stay equal. A better worst case must not hide
         // a worse unweighted stress-suite mean.
-        strong_worst_case.worst_case_service_shortfall = 0.1;
-        strong_worst_case.unweighted_mean_shortfall_across_stress_suite = 0.4;
-        strong_mean.worst_case_service_shortfall = 0.2;
-        strong_mean.unweighted_mean_shortfall_across_stress_suite = 0.3;
+        strong_worst_case.worst_case_service_shortfall = 0.4;
+        strong_worst_case.unweighted_mean_shortfall_across_stress_suite = 0.3;
+        strong_mean.worst_case_service_shortfall = 0.5;
+        strong_mean.unweighted_mean_shortfall_across_stress_suite = 0.2;
 
         assert!(!dominates(&strong_worst_case, &strong_mean));
         assert!(!dominates(&strong_mean, &strong_worst_case));
@@ -776,12 +776,12 @@ mod tests {
         let mut service_better_mean = template.clone();
         let water_a = service_better_worst.service_results.iter_mut()
             .find(|service| service.service_id == "water").unwrap();
-        water_a.worst_case_service_shortfall = Some(0.1);
-        water_a.unweighted_mean_service_shortfall_across_stress_suite = Some(0.4);
+        water_a.worst_case_service_shortfall = Some(0.4);
+        water_a.unweighted_mean_service_shortfall_across_stress_suite = Some(0.3);
         let water_b = service_better_mean.service_results.iter_mut()
             .find(|service| service.service_id == "water").unwrap();
-        water_b.worst_case_service_shortfall = Some(0.2);
-        water_b.unweighted_mean_service_shortfall_across_stress_suite = Some(0.3);
+        water_b.worst_case_service_shortfall = Some(0.5);
+        water_b.unweighted_mean_service_shortfall_across_stress_suite = Some(0.2);
 
         assert!(!dominates(&service_better_worst, &service_better_mean));
         assert!(!dominates(&service_better_mean, &service_better_worst));
