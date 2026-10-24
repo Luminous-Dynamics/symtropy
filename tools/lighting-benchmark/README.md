@@ -35,8 +35,10 @@ Examples cover a missing executable, a timed-out partial grid, malformed output,
 Run the contract checks with:
 
     bash tools/lighting-benchmark/tests/failure-receipt-contract.sh
+    python3 -m pip install "jsonschema==4.26.0"
+    python3 tools/lighting-benchmark/tests/validate_failure_receipts.py
 
-This test performs JSON-syntax and targeted fail-closed invariants, not a full general-purpose JSON Schema validation. The complete-grid v0.2 receipt auditor remains separate; this failure contract does not change solver output into optical evidence. Real runs must preserve actual bytes/digests and provenance, and a pinned adapter still needs independent parser tests.
+The Python validator is test-only: it checks the draft 2020-12 schema, validates each fixture, mutates receipts to ensure forged-compliant states are rejected, and checks cross-field invariants such as sample-count equality and digest inequality. CI installs the JSON Schema validator at a pinned version; no Python is added to the production evaluator. The complete-grid v0.2 receipt auditor remains separate; this failure contract does not change solver output into optical evidence. Real runs must preserve actual bytes/digests and provenance, and a pinned adapter still needs independent parser tests.
 
 ## Run
 
