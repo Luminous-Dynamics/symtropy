@@ -406,6 +406,7 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
             weighted_delivered_fraction_hours,
             weighted_unserved_fraction_hours,
             floor_breach_hours,
+            system_floor_breach_stats(episode, policy).1,
         ] {
             if !value.is_finite() {
                 return Err(format!("policy {} produced non-finite metrics", policy.policy_id));
