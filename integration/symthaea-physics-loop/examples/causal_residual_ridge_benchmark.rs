@@ -17,6 +17,7 @@ use symthaea_multirotor::{
     pid_baseline, FlightState, PdGains, PidState, PhysicsSimulator, QuadrotorCommand,
 };
 use symtropy_real_symthaea_physics_loop::{
+    plant_config::PlantConfiguration,
     episode_conformal::split_conformal_radius,
     linear_residual_ridge::{LinearResidualRidge, ResidualTrainingSample},
     scenario_matrix::{scenarios_for_split, FlightScenario, ScenarioSplit},
@@ -171,6 +172,14 @@ fn parse_training_samples(path: &str) -> Vec<ResidualTrainingSample> {
         panic!("cannot read training dataset at {path}: {error}");
     });
     let root: Value = serde_json::from_slice(&bytes).expect("training dataset must be JSON");
+    let declared_training_plant =
+        PlantConfiguration::from_env("STFR_DATASET_ACTUATOR_LAG_TAU_S")
+            .expect("training plant configuration must be valid");
+    assert_eq!(
+        root["plant_configuration"],
+        declared_training_plant.to_json(),
+        "training dataset plant configuration mismatch"
+    );
     assert_eq!(
         root["benchmark_id"].as_str(),
         Some("symtropy-causal-transition-residual-dataset-v0.1"),
@@ -251,8 +260,11 @@ fn evaluate_episode(
     steps: usize,
     nominal: NominalLinearDynamics,
     gains: &PdGains,
+    plant_configuration: PlantConfiguration,
 ) -> EpisodeEvaluation {
-    let mut simulator = SymtropyFlightSimulator::new();
+    let mut simulator = plant_configuration
+        .create_simulator()
+        .expect("evaluation plant configuration must be valid");
     simulator.reset_with_perturbation(scenario.setpoint.position[2], 0.06, seed);
     let mut pid_state = PidState::default();
     let mut error_squared_sum = 0.0;
@@ -449,6 +461,12 @@ fn main() {
     let input_path = std::env::var("STFR_DATASET_INPUT_PATH")
         .expect("STFR_DATASET_INPUT_PATH must point to a verified training-split JSON artifact");
     let dataset_parse_started = Instant::now();
+    let training_plant_configuration =
+        PlantConfiguration::from_env("STFR_DATASET_ACTUATOR_LAG_TAU_S")
+            .expect("training plant configuration must be valid");
+    let evaluation_plant_configuration =
+        PlantConfiguration::from_env("STFR_EVAL_ACTUATOR_LAG_TAU_S")
+            .expect("evaluation plant configuration must be valid");
     let train_samples = parse_training_samples(&input_path);
     let dataset_parse_seconds = dataset_parse_started.elapsed().as_secs_f64();
     let ridge_lambda = std::env::var("STFR_RIDGE_LAMBDA")
@@ -482,7 +500,8 @@ fn main() {
             let scenario = &validation_scenarios[index % validation_scenarios.len()];
             evaluate_episode(&model, scenario, seed, steps_per_episode, nominal, &gains)
         })
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>(,
+            evaluation_plant_configuration);
     let calibration_scores = validation_rows
         .iter()
         .filter_map(EpisodeEvaluation::calibration_score)
@@ -495,7 +514,8 @@ fn main() {
             let scenario = &test_scenarios[index % test_scenarios.len()];
             evaluate_episode(&model, scenario, seed, steps_per_episode, nominal, &gains)
         })
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>(,
+            evaluation_plant_configuration);
 
     let (validation_summary, validation_episode_details) =
         summarize_split(&validation_rows, None);
@@ -511,6 +531,7 @@ fn main() {
             "training_dataset_sha256": std::env::var("STFR_TRAIN_DATASET_SHA256").unwrap_or_else(|_| "unset".to_owned())
         },
         "training": {
+            "plant_configuration": training_plant_configuration.to_json(),
             "sample_count": train_samples.len(),
             "dataset_parse_seconds": dataset_parse_seconds,
             "model_fit_seconds": model_fit_seconds,
@@ -533,6 +554,7 @@ fn main() {
             "validation_summary": validation_summary,
             "episode_details": validation_episode_details
         },
+        "evaluation_plant_configuration": evaluation_plant_configuration.to_json(),
         "evaluation": {
             "split": "test",
             "episodes_requested": test_episodes,
