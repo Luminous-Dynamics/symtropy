@@ -861,9 +861,7 @@ pub fn validate_bytes(
     }
 
     let input_events = field(root_object, "events", "root")?.as_array("root.events")?;
-    if input_events.is_empty() {
-        return Err("root.events must contain at least one event".to_owned());
-    }
+    // An empty tape is a valid nominal episode with no declared disturbances.
     let mut ids = BTreeSet::new();
     let mut events = Vec::with_capacity(input_events.len());
     for (index, value) in input_events.iter().enumerate() {
@@ -1335,6 +1333,23 @@ mod tests {
         assert!(validate_bytes(observed_mismatch.as_bytes(), None, 5)
             .expect_err("reported time must match observed time")
             .contains("reported_at_tick must equal observed_tick"));
+    }
+
+
+    #[test]
+    fn empty_tape_is_a_valid_nominal_episode() {
+        let empty = r#"{
+            "contract_version": "shipyard-disturbance-tape-v0",
+            "episode_id": "synthetic-no-disturbances",
+            "tick_duration_ms": 1000,
+            "events": []
+        }"#;
+        let report = validate_bytes(empty.as_bytes(), Some(&sha256_hex(empty.as_bytes())), 0)
+            .expect("empty tape is valid");
+        assert_eq!(report.episode_id, "synthetic-no-disturbances");
+        assert_eq!(report.event_count, 0);
+        assert!(report.policy_view_json.contains("\"observations\":[]"));
+        assert!(report.evaluator_stream_json.contains("\"events\":[]"));
     }
 
 }
