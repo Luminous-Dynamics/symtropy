@@ -1,0 +1,16 @@
+[package]
+name = "pcb-route-benchmark"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "Apache-2.0"
+description = "Fail-closed validator and paired comparison tool for engine-grounded PCB routing benchmarks"
+
+[workspace]
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+sha1 = "=0.10.6"
+csv = "=1.4.0"
