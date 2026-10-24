@@ -134,7 +134,7 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ] && [ "${STFR_RESIDUAL_ONLY:-0}" != "1" ]
   ' "$out"
 fi
 
-if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ] && [ "${STFR_RESIDUAL_ONLY:-0}" != "1" ]; then
+if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
   out="${STFR_DATASET_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-causal-transition-residual-dataset.json}"
   cargo run --manifest-path "$integration_manifest" --example causal_transition_dataset > "$out"
   jq -e '
