@@ -122,6 +122,18 @@ struct Observation {
     fuel_intensity: Option<f64>,
 }
 
+/// Compare an observed-time-to-first-breach objective where larger is better.
+/// None means no breach was observed during the common, declared stress-test horizon,
+/// so it beats any observed breach but is never reported as infinite duration.
+fn maximize_observed_breach_onset(a: Option<f64>, b: Option<f64>, eps: f64) -> (bool, bool) {
+    match (a, b) {
+        (None, None) => (true, false),
+        (None, Some(_)) => (true, true),
+        (Some(_), None) => (false, false),
+        (Some(a), Some(b)) => (a + eps >= b, a > b + eps),
+    }
+}
+
 fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
     // A Pareto comparison needs a measured fuel objective for both options.
     // Missing is neither zero nor infinity, and cannot establish dominance.
@@ -153,6 +165,10 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
     // A system-wide average must not erase a per-service regression. For each
     // active service, compare breach-scenario count, worst shortfall, breach
     // service-hours, maximum breach-window count, and longest contiguous breach.
+    let eps = 1e-12;
+    let mut service_time_no_worse = true;
+    let mut service_time_strictly_better = false;
+
     if a.service_results.len() != b.service_results.len() {
         return false;
     }
@@ -173,6 +189,13 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
         ) else {
             return false;
         };
+        let (time_no_worse, time_strictly_better) = maximize_observed_breach_onset(
+            a_service.earliest_observed_time_to_first_floor_breach_hours,
+            b_service.earliest_observed_time_to_first_floor_breach_hours,
+            eps,
+        );
+        service_time_no_worse &= time_no_worse;
+        service_time_strictly_better |= time_strictly_better;
         av.extend([
             a_service.service_floor_breach_scenario_count as f64,
             a_shortfall,
@@ -189,10 +212,17 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
         ]);
     }
 
-    let eps = 1e-12;
     let no_worse = (0..av.len()).all(|i| av[i] <= bv[i] + eps);
     let strictly_better = (0..av.len()).any(|i| av[i] + eps < bv[i]);
-    no_worse && strictly_better
+    let (system_time_no_worse, system_time_strictly_better) = maximize_observed_breach_onset(
+        a.earliest_observed_time_to_first_system_floor_breach_hours,
+        b.earliest_observed_time_to_first_system_floor_breach_hours,
+        eps,
+    );
+    no_worse
+        && service_time_no_worse
+        && system_time_no_worse
+        && (strictly_better || service_time_strictly_better || system_time_strictly_better)
 }
 
 
@@ -714,6 +744,28 @@ mod tests {
 
         assert!(!dominates(&higher_water_loss, &lower_water_loss));
         assert!(dominates(&lower_water_loss, &higher_water_loss));
+    }
+
+    #[test]
+    fn pareto_frontier_prefers_later_breach_onset_and_no_observed_breach() {
+        let report = aggregate(&fixture()).expect("fixture should aggregate");
+        let template = report.policy_results.iter()
+            .find(|policy| policy.policy_id == "candidate_full_service").unwrap();
+        let mut later = template.clone();
+        let mut earlier = template.clone();
+        later.earliest_observed_time_to_first_system_floor_breach_hours = Some(2.0);
+        earlier.earliest_observed_time_to_first_system_floor_breach_hours = Some(0.0);
+        for service in &mut later.service_results {
+            service.earliest_observed_time_to_first_floor_breach_hours = Some(2.0);
+        }
+        for service in &mut earlier.service_results {
+            service.earliest_observed_time_to_first_floor_breach_hours = Some(0.0);
+        }
+
+        assert!(dominates(&later, &earlier));
+        assert!(!dominates(&earlier, &later));
+        assert_eq!(maximize_observed_breach_onset(None, Some(0.0), 1e-12), (true, true));
+        assert_eq!(maximize_observed_breach_onset(Some(0.0), None, 1e-12), (false, false));
     }
 
     #[test]
