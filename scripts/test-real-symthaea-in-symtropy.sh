@@ -228,7 +228,12 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .representation.trainable_weights == "readout only; no end-to-end HDC-LTC BPTT"
     and .representation.readout_feature_dimension == 262
     and .training.sample_count > 0
+    and .training.dataset_parse_seconds >= 0
+    and .training.reservoir_initialization_seconds >= 0
+    and .training.feature_generation_seconds >= 0
     and .training.readout_fit_seconds >= 0
+    and .training.training_pipeline_seconds >= .training.readout_fit_seconds
+    and .training.trainable_readout_parameter_count == 786
     and .training.hidden_force_labels_used_as_features == false
     and .evaluation.split == "test"
     and .evaluation.sample_count == (.evaluation.episodes_requested * .evaluation.steps_per_episode)
@@ -243,7 +248,12 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .stateless_state_ablation.state_policy == "reset LTC network immediately before each transition; preserve HDC encoder derivative history within episode"
     and .stateless_state_ablation.training.same_transition_targets_as_persistent_arm == true
     and .stateless_state_ablation.training.sample_count == .training.sample_count
+    and .stateless_state_ablation.training.dataset_parse_seconds >= 0
+    and .stateless_state_ablation.training.reservoir_initialization_seconds >= 0
+    and .stateless_state_ablation.training.feature_generation_seconds >= 0
     and .stateless_state_ablation.training.readout_fit_seconds >= 0
+    and .stateless_state_ablation.training.training_pipeline_seconds >= .stateless_state_ablation.training.readout_fit_seconds
+    and .stateless_state_ablation.training.trainable_readout_parameter_count == 786
     and .stateless_state_ablation.training.hidden_force_labels_used_as_features == false
     and .stateless_state_ablation.evaluation.split == "test"
     and .stateless_state_ablation.evaluation.sample_count == (.stateless_state_ablation.evaluation.episodes_requested * .stateless_state_ablation.evaluation.steps_per_episode)
