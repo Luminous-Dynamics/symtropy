@@ -65,7 +65,7 @@ struct RobustServiceScore {
     integrated_unit: String,
     active_in_all_scenarios: bool,
     service_floor_breach_scenario_count: usize,
-    passed_all_declared_service_floors: bool,
+    passed_all_declared_service_floors: Option<bool>,
     worst_case_service_shortfall: Option<f64>,
     unweighted_mean_service_shortfall_across_stress_suite: Option<f64>,
     worst_floor_breach_service_hours: f64,
@@ -273,7 +273,7 @@ fn aggregate_service_results(
             integrated_unit: contract.integrated_unit.clone(),
             active_in_all_scenarios: active,
             service_floor_breach_scenario_count: breach_scenario_count,
-            passed_all_declared_service_floors: breach_scenario_count == 0,
+            passed_all_declared_service_floors: active.then_some(breach_scenario_count == 0),
             worst_case_service_shortfall: worst_case_shortfall,
             unweighted_mean_service_shortfall_across_stress_suite: mean_shortfall,
             worst_floor_breach_service_hours,
@@ -525,7 +525,7 @@ mod tests {
         assert_eq!(candidate.service_results.len(), 3);
         assert!(water.active_in_all_scenarios);
         assert!(water.service_floor_breach_scenario_count > 0);
-        assert!(!water.passed_all_declared_service_floors);
+        assert_eq!(water.passed_all_declared_service_floors, Some(false));
         assert!(water.worst_case_service_shortfall.unwrap() > candidate.worst_case_service_shortfall);
         assert_eq!(water.scenario_outcomes.len(), 3);
         assert!(water.scenario_outcomes.iter().any(|outcome| {
@@ -558,7 +558,7 @@ mod tests {
         assert!(communications.worst_case_service_shortfall.is_none());
         assert!(communications.unweighted_mean_service_shortfall_across_stress_suite.is_none());
         assert_eq!(communications.service_floor_breach_scenario_count, 0);
-        assert!(communications.passed_all_declared_service_floors);
+        assert_eq!(communications.passed_all_declared_service_floors, None);
         assert_eq!(communications.scenario_outcomes.len(), 3);
         assert!(communications.scenario_outcomes.iter().all(|outcome| outcome.service_fraction.is_none()));
     }
