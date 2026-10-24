@@ -60,7 +60,7 @@ Useful initial edge types include `derived_from`, `replicate_of`, `same_material
 
 ### 2.2.1 Frozen profile registry
 
-v0.1 registers exactly one profile: `provenance_identity_v0`, whose leakage edge types are `derived_from`, `replicate_of`, and `same_record`. The JSON Schema pins this profile and edge set; the Rust auditor also checks the registration at runtime so bypassing the schema cannot weaken the profile. A caller must not remove an edge type from a registered profile while retaining the same profile name. An unknown profile returns `UNRESOLVED` until its relation semantics and known-answer controls are reviewed and registered in a later contract version.
+v0.1 registers exactly one profile: `provenance_identity_v0`, whose leakage edge types are `derived_from`, `replicate_of`, and `same_record`. The JSON Schema pins this profile and edge set; the Rust auditor also checks the registration at runtime so bypassing the schema cannot weaken the profile. A caller must not remove an edge type from a registered profile while retaining the same profile name. An unregistered relation profile returns `UNRESOLVED` until its relation semantics and known-answer controls are reviewed and registered in a later contract version.
 
 ### 2.3 Relation profiles are task-specific
 
