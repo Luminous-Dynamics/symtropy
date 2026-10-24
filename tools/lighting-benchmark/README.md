@@ -6,7 +6,7 @@ This isolated, dependency-free Rust crate implements a conservative reference ev
 
 - Validates numeric inputs and duplicate/missing gate evidence.
 - Accepts raw grid samples and derives average, minimum, maximum and minimum/average uniformity itself; it does not trust candidate-supplied illuminance aggregates.
-- Supports a separate robust-evaluation path that uses pointwise illuminance intervals, lower-bound service metrics, conservative uniformity and upper-bound energy/power. The interval semantics must be recorded; this is not an automatic guarantee of simultaneous statistical coverage.
+- Supports a separate robust-evaluation path that uses pointwise illuminance intervals, lower-bound service metrics, conservative uniformity and upper-bound energy/power. The interval semantics must be recorded; this is not an automatic guarantee of simultaneous statistical coverage. The robust evaluator also requires an explicit interval basis and source ID; measurement-uncertainty and calibrated-prediction intervals require a non-empty coverage statement.
 - Rejects empty, incomplete, negative, non-finite, inverted-interval or overflowed grids before ranking.
 - Enforces case-defined illuminance, uniformity and electrical-power limits.
 - Keeps pass, fail, unknown, unsupported, not-evaluated, timeout and invalid-output states distinct.
@@ -14,7 +14,7 @@ This isolated, dependency-free Rust crate implements a conservative reference ev
 - Emits energy per compliant task-hour only for a compliant, positive-duration observation.
 - Provides a small Pareto-dominance helper for already normalized minimization vectors.
 - Includes a deterministic experiment selector that ranks externally supplied expected decision-loss reduction against cost, while rejecting malformed estimates and excluding unsafe or over-budget options. It does not infer or calibrate value-of-information estimates itself.
-- Includes a deterministic synthetic-only evaluator CLI, a 27-case synthetic stress matrix spanning task-plane optics, adaptive control and off-grid resilience, family-level development/held-out isolation checks, and a 28-test suite covering the evaluator, robust interval logic, selector and stress-corpus contract.
+- Includes a deterministic synthetic-only evaluator CLI, a 27-case synthetic stress matrix spanning task-plane optics, adaptive control and off-grid resilience, family-level development/held-out isolation checks, and a 30-test suite covering the evaluator, robust interval logic and evidence provenance, selector, and stress-corpus contract.
 
 ## Run
 
