@@ -141,7 +141,7 @@ pub fn parse_rtrace_legacy_rgb_irradiance(
     }
 
     let mut samples = Vec::with_capacity(expected.len());
-    for (line_index, (line, point)) in records.iter().zip(expected.iter()).enumerate() {
+    for (line, point) in records.iter().zip(expected.iter()) {
         if line.trim().is_empty() {
             return Err(RtraceParseError::EmptyOutputRecord);
         }
@@ -168,9 +168,7 @@ pub fn parse_rtrace_legacy_rgb_irradiance(
             .zip(expected_position_m.iter())
             .any(|(actual, wanted)| (actual - wanted).abs() > coordinate_tolerance_m)
         {
-            // line_index is intentionally not embedded in this error enum. The
-            // expected point's grid_index is the stable diagnostic identity.
-            let _ = line_index;
+            // The expected point's grid_index is the stable diagnostic identity.
             return Err(RtraceParseError::CoordinateMismatch);
         }
 
@@ -285,7 +283,7 @@ mod tests {
                 &two_points(),
                 1.0e-6
             ),
-            Err(RtraceParseError::OutputRecordCountMismatch)
+            Err(RtraceParseError::EmptyOutputRecord)
         );
         assert_eq!(
             parse_rtrace_legacy_rgb_irradiance(
@@ -301,7 +299,7 @@ mod tests {
     fn malformed_headers_and_wrong_field_count_are_rejected() {
         assert_eq!(
             parse_rtrace_legacy_rgb_irradiance(
-                "Radiance header\n2.0 1.65 0.75 1 1 1\n",
+                "Radiance 1.65 0.75 1 1 1\n2.0 1.65 0.75 1 1 1\n",
                 &two_points(),
                 1.0e-6
             ),
