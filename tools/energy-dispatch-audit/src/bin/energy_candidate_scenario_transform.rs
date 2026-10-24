@@ -231,9 +231,17 @@ fn apply_transform(
                     .as_array()
                     .ok_or_else(|| invalid("candidate interval service_requested list missing"))?;
                 for (service_index, service) in services.iter().enumerate() {
-                    let amount = service["requested_quantity"].as_u64().ok_or_else(|| {
-                        invalid("requested essential service quantity must be a non-negative integer")
+                    let amount_f64 = service["requested_quantity"].as_f64().ok_or_else(|| {
+                        invalid("requested essential service quantity must be numeric")
                     })?;
+                    if !amount_f64.is_finite()
+                        || amount_f64 < 0.0
+                        || amount_f64.fract() != 0.0
+                        || amount_f64 > (u64::MAX / 2) as f64
+                    {
+                        return Err(invalid("requested essential service quantity must be an integral non-negative value in range"));
+                    }
+                    let amount = amount_f64 as u64;
                     let doubled = amount.checked_mul(2).ok_or_else(|| {
                         invalid("doubled service request overflows integer range")
                     })?;
