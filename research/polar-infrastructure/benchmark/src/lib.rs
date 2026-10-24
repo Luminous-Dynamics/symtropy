@@ -400,21 +400,21 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
             });
         }
         weighted_service_fraction /= total_active_weight;
+        let (system_floor_breach_episode_count, longest_consecutive_system_floor_breach_hours) =
+            system_floor_breach_stats(episode, policy);
 
         for value in [
             weighted_service_fraction,
             weighted_delivered_fraction_hours,
             weighted_unserved_fraction_hours,
             floor_breach_hours,
-            system_floor_breach_stats(episode, policy).1,
+            longest_consecutive_system_floor_breach_hours,
         ] {
             if !value.is_finite() {
                 return Err(format!("policy {} produced non-finite metrics", policy.policy_id));
             }
         }
 
-        let (system_floor_breach_episode_count, longest_consecutive_system_floor_breach_hours) =
-            system_floor_breach_stats(episode, policy);
         results.push(PolicyScore {
             policy_id: policy.policy_id.clone(),
             method_family: policy.method_family.clone(),
