@@ -134,7 +134,7 @@
       "url": "https://doi.org/10.1111/jace.70980",
       "published_or_reviewed": "2026",
       "use": "Negative-region benchmark for glass formation, with non-glass-forming instances, composition-only and physical-descriptor predictors, and independent held-out systems.",
-      "limitation": "Reported accuracy is specific to the paper's dataset and splits, is not a manufacturing/process benchmark, and must not substitute for PR-AUC, false-feasible risk, calibration or family-held-out evaluation. A 2026-10-24 source-tree audit pinned main at efc35b5a8598b77a4a4beba7ba6fd821fa15421a; the repository has README/data/example/out/src directories but GitHub metadata reports license:null and no root LICENSE. The composition/property workbooks have Git blob IDs and public size metadata, but these are not locally computed SHA-256 digests and do not prove permitted reuse. Keep benchmark admission blocked until rights and exact file bytes are reviewed."
+      "limitation": "GitHub repository metadata reports no recognized license and the root listing has no LICENSE file. Dataset/model reuse terms remain unresolved; benchmark admission is blocked pending explicit permission, exact artifact version and SHA-256."
     },
     {
       "reference_id": "glass-gfr-xgboost-2026",
@@ -142,7 +142,7 @@
       "url": "https://doi.org/10.1111/jace.70616",
       "published_or_reviewed": "2026",
       "use": "Composition-only XGBoost/SHAP glass-forming-region classification baseline; the paper reports F1-score above 0.89 and validation across oxide, oxyfluoride and metallic-glass systems.",
-      "limitation": "Task and split definitions are paper-specific; do not transfer its F1 to process feasibility or compare it directly with GFRI-ML accuracy. A 2026-10-24 source-tree audit pinned main at 82ba2b8e06efaf583721f6e2cc2bf895d4234cb8 and found only .gitattributes plus three prediction-probability workbooks, with no README, LICENSE, or training source files; GitHub repository metadata reports license:null. A reproduction of model training cannot be made from that repository alone. Additional data are reported available on request; clarify terms and obtain missing source artifacts before ingestion."
+      "limitation": "GitHub repository metadata reports no recognized license; the root listing contains only .gitattributes and three prediction workbooks, with no README/LICENSE or complete training-source package. Reuse and reproduction remain blocked pending author clarification and artifact rights/hash review."
     }
   ],
   "cases": [
