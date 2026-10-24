@@ -5,6 +5,7 @@
 //! cannot contradict the grid submitted for evaluation.
 
 pub mod experiment_selection;
+pub mod radiance;
 pub mod stress_matrix;
 
 use std::collections::BTreeMap;

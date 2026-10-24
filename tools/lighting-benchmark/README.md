@@ -14,7 +14,7 @@ This isolated, dependency-free Rust crate implements a conservative reference ev
 - Emits energy per compliant task-hour only for a compliant, positive-duration observation.
 - Provides a small Pareto-dominance helper for already normalized minimization vectors.
 - Includes a deterministic experiment selector that ranks externally supplied expected decision-loss reduction against cost, while rejecting malformed estimates and excluding unsafe or over-budget options. It does not infer or calibrate value-of-information estimates itself.
-- Includes a deterministic synthetic-only evaluator CLI, a 30-case synthetic stress matrix spanning task-plane optics, adaptive control and off-grid resilience, family-level development/held-out isolation checks, and a 30-test suite covering the evaluator, robust interval logic and evidence provenance, selector, and stress-corpus contract.
+- Includes a deterministic synthetic-only evaluator CLI, a 30-case synthetic stress matrix spanning task-plane optics, adaptive control and off-grid resilience, family-level development/held-out isolation checks, and 38 authored Rust unit tests (30 evaluator/robust-interval/selector/stress-corpus tests plus eight strict Radiance parser tests). These test definitions have not all been executed in the current authoring environment.
 
 ## Receipt audit
 
@@ -39,6 +39,14 @@ Run the contract checks with:
     python3 tools/lighting-benchmark/tests/validate_failure_receipts.py
 
 The Python validator is test-only: it checks the draft 2020-12 schema, validates each fixture, mutates receipts to ensure forged-compliant states are rejected, and checks cross-field invariants such as sample-count equality and digest inequality. CI installs the JSON Schema validator at a pinned version; no Python is added to the production evaluator. The complete-grid v0.2 receipt auditor remains separate; this failure contract does not change solver output into optical evidence. Real runs must preserve actual bytes/digests and provenance, and a pinned adapter still needs independent parser tests.
+
+## Radiance `rtrace` parsing profile
+
+The pure Rust module `tools/lighting-benchmark/src/radiance.rs` generates deterministic six-value ray-input rows for `rtrace -I` and strictly parses the explicit legacy-RGB `rtrace -h -I -opv -cs 3` output profile. It requires exactly six finite numeric fields per record (reported xyz + RGB irradiance), exact record count, sequential frozen-grid identity, and coordinates within the stated tolerance. It preserves both expected and reported coordinates and rejects partial, reordered, malformed, non-finite, negative-channel or overflowed outputs as a whole.
+
+The conversion has a stable ID, `radiance_rgb_legacy_47_4_120_11_6_v1`, and applies `lux = 47.4*R + 120.0*G + 11.6*B`. This is a named legacy RGB convention, not a spectral conversion or physical accuracy claim. The official source/version and format decisions are documented in `docs/research/RADIANCE_RTRACE_PROFILE_V0_1.md`.
+
+This is currently a pure parser/input contract with authored tests, **not** a subprocess adapter: it does not download/build Radiance, compile a scene, invoke `rtrace`, enforce a timeout, or establish optical accuracy. The official release archive digest is still unresolved and must be measured from actual bytes before a toolchain can be called pinned.
 
 ## Run
 
