@@ -247,8 +247,10 @@ struct MatrixRow {
     dispatch_case_id: String,
     solver_feasible_complete_schedules: u64,
     solver_frontier_count: usize,
+    solver_frontier_objectives: Vec<DispatchObjective>,
     independent_reference_feasible_complete_schedules: u64,
     independent_reference_frontier_count: usize,
+    independent_reference_frontier_objectives: Vec<DispatchObjective>,
     independent_audit_status: String,
     reference_frontier_status: String,
     objective_claim_status: String,
@@ -400,8 +402,10 @@ fn evaluate_row(
         dispatch_case_id: expected_case_id,
         solver_feasible_complete_schedules: req_u64(&dispatch["assessment"], "feasible_complete_schedules")?,
         solver_frontier_count: solver_frontier.len(),
+        solver_frontier_objectives: solver_frontier.clone(),
         independent_reference_feasible_complete_schedules: req_u64(&audit, "reference_feasible_complete_schedules")?,
         independent_reference_frontier_count: independent_frontier.len(),
+        independent_reference_frontier_objectives: independent_frontier.clone(),
         independent_audit_status: req_str(&audit, "status")?.to_owned(),
         reference_frontier_status: req_str(&audit, "reference_frontier_status")?.to_owned(),
         objective_claim_status: req_str(&audit, "objective_claim_status")?.to_owned(),
@@ -557,7 +561,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 
     let all_passed = failed_or_unknown_rows == 0 && passing_rows == expected_rows;
     let report = serde_json::json!({
-        "schema_version": "energy-candidate-scenario-matrix-report-v0.1",
+        "schema_version": "energy-candidate-scenario-matrix-report-v0.2",
         "matrix_id": req_str(&profile, "panel_id")?,
         "scenario_profile_sha256": profile_digest,
         "design_space_manifest_sha256": sha256_hex(&design_manifest_bytes),
