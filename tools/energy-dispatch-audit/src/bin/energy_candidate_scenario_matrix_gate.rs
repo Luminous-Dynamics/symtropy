@@ -204,6 +204,7 @@ struct MatrixRow {
     parent_candidate_sha256: String,
     transformed_candidate_sha256: String,
     transform_receipt_sha256: String,
+    row_status_sha256: String,
     candidate_schema_sha256: String,
     schema_validation_log_sha256: String,
     compilation_sha256: String,
@@ -237,6 +238,13 @@ fn evaluate_row(
 ) -> Result<MatrixRow, Box<dyn Error>> {
     let source_dir = candidate_root.join(candidate_id);
     let scenario_dir = matrix_root.join(candidate_id).join(scenario_id);
+    let (row_status_bytes, row_status) = read_json(&scenario_dir.join("row-status.json"))?;
+    if req_str(&row_status, "status")? != "pass"
+        || req_str(&row_status, "candidate_id")? != candidate_id
+        || req_str(&row_status, "scenario_id")? != scenario_id
+    {
+        return Err(invalid(format!("row status is not passing or has a different identity: {candidate_id}/{scenario_id}")));
+    }
     let (parent_bytes, parent) = read_json(&source_dir.join("candidate.json"))?;
     let (child_bytes, child) = read_json(&scenario_dir.join("candidate.json"))?;
     let (_, receipt) = read_json(&scenario_dir.join("transform-receipt.json"))?;
@@ -331,6 +339,7 @@ fn evaluate_row(
         parent_candidate_sha256: parent_digest,
         transformed_candidate_sha256: child_digest,
         transform_receipt_sha256: receipt_digest,
+        row_status_sha256: sha256_hex(&row_status_bytes),
         candidate_schema_sha256: sha256_hex(&schema_bytes),
         schema_validation_log_sha256: schema_log_digest,
         compilation_sha256: compilation_digest,
@@ -422,28 +431,81 @@ fn run() -> Result<(), Box<dyn Error>> {
     }
 
     let profile_digest = sha256_hex(&profile_bytes);
-    let mut rows = Vec::with_capacity(candidate_ids.len() * scenario_ids.len());
+    let expected_rows = 39 * 5;
+    let mut report_rows = Vec::<Value>::with_capacity(expected_rows);
     let mut pairs = BTreeSet::new();
+    let mut passing_rows = 0_usize;
+    let mut failed_or_unknown_rows = 0_usize;
+
     for candidate_id in &candidate_ids {
         for scenario_id in &scenario_ids {
             if !pairs.insert((candidate_id.clone(), scenario_id.clone())) {
                 return Err(invalid("duplicate candidate/scenario pair"));
             }
-            rows.push(evaluate_row(
-                candidate_id,
-                scenario_id,
-                &candidate_root,
-                &matrix_root,
-                &profile_digest,
-            )?);
+            let row_dir = matrix_root.join(candidate_id).join(scenario_id);
+            match read_json(&row_dir.join("row-status.json")) {
+                Ok((status_bytes, status)) => {
+                    let claimed_status = status.get("status").and_then(Value::as_str).unwrap_or("unknown");
+                    if claimed_status != "pass" {
+                        failed_or_unknown_rows += 1;
+                        report_rows.push(serde_json::json!({
+                            "candidate_id": candidate_id,
+                            "scenario_id": scenario_id,
+                            "status": claimed_status,
+                            "failed_phase": status.get("failed_phase").cloned().unwrap_or(Value::Null),
+                            "error": status.get("error").cloned().unwrap_or(Value::Null),
+                            "row_status_sha256": sha256_hex(&status_bytes)
+                        }));
+                        continue;
+                    }
+                    match evaluate_row(
+                        candidate_id,
+                        scenario_id,
+                        &candidate_root,
+                        &matrix_root,
+                        &profile_digest,
+                    ) {
+                        Ok(row) => {
+                            passing_rows += 1;
+                            report_rows.push(serde_json::to_value(row)?);
+                        }
+                        Err(error) => {
+                            failed_or_unknown_rows += 1;
+                            report_rows.push(serde_json::json!({
+                                "candidate_id": candidate_id,
+                                "scenario_id": scenario_id,
+                                "status": "failed",
+                                "failed_phase": "matrix_verification",
+                                "error": error.to_string(),
+                                "row_status_sha256": sha256_hex(&status_bytes)
+                            }));
+                        }
+                    }
+                }
+                Err(error) => {
+                    failed_or_unknown_rows += 1;
+                    report_rows.push(serde_json::json!({
+                        "candidate_id": candidate_id,
+                        "scenario_id": scenario_id,
+                        "status": "unknown",
+                        "failed_phase": "row_status_missing",
+                        "error": error.to_string(),
+                        "row_status_sha256": Value::Null
+                    }));
+                }
+            }
         }
     }
-    let expected_rows = 39 * 5;
-    if rows.len() != expected_rows || pairs.len() != expected_rows {
-        return Err(invalid(format!("candidate/scenario coverage mismatch: {} of {expected_rows}", rows.len())));
-    }
-    rows.sort_by(|a, b| a.candidate_id.cmp(&b.candidate_id).then(a.scenario_id.cmp(&b.scenario_id)));
 
+    if report_rows.len() != expected_rows || pairs.len() != expected_rows {
+        return Err(invalid(format!("candidate/scenario coverage mismatch: {} of {expected_rows}", report_rows.len())));
+    }
+    report_rows.sort_by(|a, b| {
+        a["candidate_id"].as_str().cmp(&b["candidate_id"].as_str())
+            .then(a["scenario_id"].as_str().cmp(&b["scenario_id"].as_str()))
+    });
+
+    let all_passed = failed_or_unknown_rows == 0 && passing_rows == expected_rows;
     let report = serde_json::json!({
         "schema_version": "energy-candidate-scenario-matrix-report-v0.1",
         "matrix_id": req_str(&profile, "panel_id")?,
@@ -452,16 +514,21 @@ fn run() -> Result<(), Box<dyn Error>> {
         "expected_candidate_count": candidate_ids.len(),
         "scenario_count": scenario_ids.len(),
         "expected_row_count": expected_rows,
-        "observed_row_count": rows.len(),
-        "passing_row_count": rows.len(),
-        "failed_or_unknown_row_count": 0,
-        "all_passed": true,
+        "observed_row_count": report_rows.len(),
+        "passing_row_count": passing_rows,
+        "failed_or_unknown_row_count": failed_or_unknown_rows,
+        "all_passed": all_passed,
         "claim_ceiling": "Synthetic two-interval candidate robustness matrix only; not calibrated site resilience or economic ranking.",
-        "rows": rows
+        "rows": report_rows
     });
     let report_bytes = serde_json::to_vec_pretty(&report)?;
     fs::write(&args[4], &report_bytes)?;
-    println!("PASS: candidate-scenario matrix verified {} of {} rows", expected_rows, expected_rows);
+    if !all_passed {
+        eprintln!("FAIL: candidate-scenario matrix accounted for {} rows; {} passed, {} failed/unknown",
+            expected_rows, passing_rows, failed_or_unknown_rows);
+        return Err(invalid("one or more matrix rows failed or are unknown; see written report for every pair"));
+    }
+    println!("PASS: candidate-scenario matrix verified {} of {} rows", passing_rows, expected_rows);
     println!("scenario_profile_sha256={profile_digest}");
     println!("report_sha256={}", sha256_hex(&report_bytes));
     Ok(())
