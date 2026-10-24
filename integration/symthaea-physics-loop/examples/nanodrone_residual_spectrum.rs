@@ -105,7 +105,7 @@ fn require_conditioning_schema(headers: &HashMap<String, usize>) -> Result<(), i
             return Err(invalid_input(format!("missing initial-state field '{name}'")));
         }
     }
-    for step in 0..FFT_LEN.min(50) {
+    for step in 0..50 {
         let name = input_time_key(step);
         if !headers.contains_key(&name) {
             return Err(invalid_input(format!("missing motor-input timestamp '{name}'")));
@@ -356,7 +356,7 @@ fn estimate_psd(series: &[f64]) -> Result<Spectrum, io::Error> {
     Ok(Spectrum { frequency_hz, psd: psd_sum, segment_count })
 }
 
-fn summarize_psd(spectrum: &Spectrum) -> Value {
+fn summarize_psd(spectrum: &Spectrum, residual_unit: &str) -> Value {
     let delta_f = SAMPLE_HZ / FFT_LEN as f64;
     let mut low = 0.0;
     let mut mid = 0.0;
@@ -383,7 +383,8 @@ fn summarize_psd(spectrum: &Spectrum) -> Value {
     }
 
     json!({
-        "units": "squared_state_error_per_hz",
+        "residual_unit": residual_unit,
+        "power_spectral_density_unit": format!("({residual_unit})^2/Hz"),
         "welch_segment_count": spectrum.segment_count,
         "welch_window_samples": FFT_LEN,
         "welch_overlap_samples": FFT_OVERLAP,
@@ -401,7 +402,7 @@ fn summarize_psd(spectrum: &Spectrum) -> Value {
     })
 }
 
-fn group_spectrum(run: &JoinedRun, fields: &[&str], horizon: usize, is_orientation: bool) -> Result<Value, Box<dyn Error>> {
+fn group_spectrum(run: &JoinedRun, fields: &[&str], horizon: usize, is_orientation: bool, residual_unit: &str) -> Result<Value, Box<dyn Error>> {
     let mut axis_summaries = Map::new();
     let mut combined_psd: Option<Spectrum> = None;
     let series_count = run.rows.len();
@@ -431,7 +432,7 @@ fn group_spectrum(run: &JoinedRun, fields: &[&str], horizon: usize, is_orientati
             residuals.push(residual);
         }
         let spectrum = estimate_psd(&residuals)?;
-        axis_summaries.insert((*field).to_owned(), summarize_psd(&spectrum));
+        axis_summaries.insert((*field).to_owned(), summarize_psd(&spectrum, residual_unit));
         if let Some(accumulator) = &mut combined_psd {
             for (left, right) in accumulator.psd.iter_mut().zip(&spectrum.psd) {
                 *left += *right;
@@ -449,7 +450,7 @@ fn group_spectrum(run: &JoinedRun, fields: &[&str], horizon: usize, is_orientati
     Ok(json!({
         "coordinate_space": if is_orientation { "shortest_relative_SO3_log_error" } else { "state_component_prediction_minus_truth" },
         "axis_spectra": Value::Object(axis_summaries),
-        "combined_axis_mean_spectrum": summarize_psd(&combined)
+        "combined_axis_mean_spectrum": summarize_psd(&combined, residual_unit)
     }))
 }
 
@@ -460,10 +461,10 @@ fn analyse_run(run: &JoinedRun) -> Result<Value, Box<dyn Error>> {
             "horizon_steps": horizon,
             "horizon_seconds": horizon as f64 * EXPECTED_DT_S,
             "channels": {
-                "position": group_spectrum(run, &POSITION_FIELDS, horizon, false)?,
-                "linear_velocity": group_spectrum(run, &VELOCITY_FIELDS, horizon, false)?,
-                "orientation": group_spectrum(run, &ROTVEC_FIELDS, horizon, true)?,
-                "body_angular_rate": group_spectrum(run, &ANGULAR_RATE_FIELDS, horizon, false)?
+                "position": group_spectrum(run, &POSITION_FIELDS, horizon, false, "m")?,
+                "linear_velocity": group_spectrum(run, &VELOCITY_FIELDS, horizon, false, "m/s")?,
+                "orientation": group_spectrum(run, &ROTVEC_FIELDS, horizon, true, "rad")?,
+                "body_angular_rate": group_spectrum(run, &ANGULAR_RATE_FIELDS, horizon, false, "rad/s")?
             }
         }));
     }
@@ -549,8 +550,8 @@ mod tests {
             .collect::<Vec<_>>();
         let slow_psd = estimate_psd(&slow).unwrap();
         let fast_psd = estimate_psd(&fast).unwrap();
-        let slow_report = summarize_psd(&slow_psd);
-        let fast_report = summarize_psd(&fast_psd);
+        let slow_report = summarize_psd(&slow_psd, "m");
+        let fast_report = summarize_psd(&fast_psd, "m");
         assert!(slow_report["low_frequency_power_fraction"].as_f64().unwrap() > 0.95);
         assert!(fast_report["high_frequency_power_fraction"].as_f64().unwrap() > 0.95);
         assert!(slow_report["peak_residual_frequency_hz"].as_f64().unwrap() < LOW_BAND_HZ);
