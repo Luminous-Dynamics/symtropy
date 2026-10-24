@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/lighting-run-receipt.schema.json",
+  "title": "Lighting simulation or measurement run receipt v0.1",
+  "description": "Evidence-carrying output contract for future pinned optical simulation and physical measurement adapters. Schema validity alone is not evidence of optical accuracy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "run_id",
+    "evidence_tier",
+    "run_status",
+    "inputs",
+    "toolchain",
+    "execution",
+    "illuminance_samples",
+    "illumination_summary",
+    "power_observation",
+    "interval_evidence",
+    "gate_results",
+    "evaluator"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "case_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "evidence_tier": {
+      "enum": [
+        "synthetic_contract",
+        "simulation_only",
+        "calibrated_simulation",
+        "physical_prototype",
+        "independently_tested_product"
+      ]
+    },
+    "run_status": {
+      "enum": [
+        "compliant",
+        "non_compliant",
+        "unknown",
+        "unsupported",
+        "not_evaluated",
+        "timeout",
+        "invalid_output",
+        "invalid_input"
+      ]
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_sha256",
+        "design_sha256",
+        "scene_sha256",
+        "property_data_sha256",
+        "adapter_config_sha256"
+      ],
+      "properties": {
+        "case_sha256": { "$ref": "#/$defs/sha256" },
+        "design_sha256": { "$ref": "#/$defs/sha256" },
+        "scene_sha256": { "$ref": "#/$defs/sha256" },
+        "property_data_sha256": { "$ref": "#/$defs/sha256" },
+        "adapter_config_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine_name",
+        "engine_version",
+        "engine_source_revision",
+        "executable_sha256",
+        "environment_sha256",
+        "command_argv",
+        "settings_sha256"
+      ],
+      "properties": {
+        "engine_name": { "type": "string", "minLength": 1 },
+        "engine_version": { "type": "string", "minLength": 1 },
+        "engine_source_revision": { "type": "string", "minLength": 1 },
+        "executable_sha256": { "$ref": "#/$defs/sha256" },
+        "environment_sha256": { "$ref": "#/$defs/sha256" },
+        "command_argv": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "settings_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exit_code",
+        "timed_out",
+        "duration_ms",
+        "raw_output_sha256",
+        "stderr_sha256"
+      ],
+      "properties": {
+        "exit_code": { "type": "integer" },
+        "timed_out": { "type": "boolean" },
+        "duration_ms": { "type": "number", "minimum": 0 },
+        "raw_output_sha256": { "$ref": "#/$defs/sha256" },
+        "stderr_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "illuminance_samples": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/illuminanceSample" }
+    },
+    "illumination_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "average_lx",
+        "minimum_lx",
+        "maximum_lx",
+        "minimum_to_average_uniformity",
+        "derivation"
+      ],
+      "properties": {
+        "average_lx": { "type": "number", "minimum": 0 },
+        "minimum_lx": { "type": "number", "minimum": 0 },
+        "maximum_lx": { "type": "number", "minimum": 0 },
+        "minimum_to_average_uniformity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "derivation": { "const": "independent_evaluator_from_raw_grid" }
+      }
+    },
+    "power_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_boundary",
+        "wall_power_upper_bound_w",
+        "energy_upper_bound_wh",
+        "observed_hours",
+        "compliant_task_hours_lower_bound"
+      ],
+      "properties": {
+        "measurement_boundary": { "type": "string", "minLength": 1 },
+        "wall_power_upper_bound_w": { "type": "number", "minimum": 0 },
+        "energy_upper_bound_wh": { "type": "number", "minimum": 0 },
+        "observed_hours": { "type": "number", "exclusiveMinimum": 0 },
+        "compliant_task_hours_lower_bound": { "type": "number", "minimum": 0 }
+      }
+    },
+    "interval_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basis", "source_id"],
+      "properties": {
+        "basis": {
+          "enum": [
+            "point_estimate_only",
+            "declared_engineering_bound",
+            "expanded_measurement_uncertainty",
+            "calibrated_prediction_interval",
+            "unknown"
+          ]
+        },
+        "source_id": { "type": "string", "minLength": 1 },
+        "coverage_statement": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "basis": {
+                "enum": ["expanded_measurement_uncertainty", "calibrated_prediction_interval"]
+              }
+            },
+            "required": ["basis"]
+          },
+          "then": { "required": ["coverage_statement"] }
+        }
+      ]
+    },
+    "gate_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "status", "evidence_id"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "unknown",
+              "unsupported",
+              "not_evaluated",
+              "timeout",
+              "invalid_output"
+            ]
+          },
+          "evidence_id": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "evaluator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "source_revision", "receipt_format_version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "source_revision": { "type": "string", "minLength": 1 },
+        "receipt_format_version": { "const": "0.1.0" }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instrument_id", "calibration_record_id", "method", "raw_measurement_sha256"],
+      "properties": {
+        "instrument_id": { "type": "string", "minLength": 1 },
+        "calibration_record_id": { "type": "string", "minLength": 1 },
+        "method": { "type": "string", "minLength": 1 },
+        "raw_measurement_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "run_status": { "const": "compliant" } },
+        "required": ["run_status"]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "exit_code": { "const": 0 },
+              "timed_out": { "const": false }
+            },
+            "required": ["exit_code", "timed_out"]
+          },
+          "gate_results": {
+            "items": {
+              "properties": { "status": { "const": "pass" } },
+              "required": ["status"]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "interval_evidence": {
+            "properties": { "basis": { "const": "unknown" } },
+            "required": ["basis"]
+          }
+        },
+        "required": ["interval_evidence"]
+      },
+      "then": {
+        "not": {
+          "properties": { "run_status": { "const": "compliant" } },
+          "required": ["run_status"]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "run_status": { "const": "timeout" } },
+        "required": ["run_status"]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "properties": { "timed_out": { "const": true } },
+            "required": ["timed_out"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_tier": {
+            "enum": [
+              "calibrated_simulation",
+              "physical_prototype",
+              "independently_tested_product"
+            ]
+          }
+        },
+        "required": ["evidence_tier"]
+      },
+      "then": { "required": ["measurement"] }
+    },
+    {
+      "if": {
+        "properties": { "evidence_tier": { "const": "calibrated_simulation" } },
+        "required": ["evidence_tier"]
+      },
+      "then": {
+        "properties": {
+          "interval_evidence": {
+            "properties": { "basis": { "const": "calibrated_prediction_interval" } },
+            "required": ["basis"]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "illuminanceSample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["grid_index", "x_m", "y_m", "z_m", "illuminance_lx"],
+      "properties": {
+        "grid_index": { "type": "integer", "minimum": 0 },
+        "x_m": { "type": "number" },
+        "y_m": { "type": "number" },
+        "z_m": { "type": "number" },
+        "illuminance_lx": { "type": "number", "minimum": 0 },
+        "interval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["lower_lx", "upper_lx"],
+          "properties": {
+            "lower_lx": { "type": "number", "minimum": 0 },
+            "upper_lx": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}
