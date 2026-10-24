@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "\${SYMTROPY_PATH:?SYMTROPY_PATH must point at the Symtropy checkout}"
-: "\${SYMTHAEA_PATH:?SYMTHAEA_PATH must point at the pinned Symthaea checkout}"
+: "${SYMTROPY_PATH:?SYMTROPY_PATH must point at the Symtropy checkout}"
+: "${SYMTHAEA_PATH:?SYMTHAEA_PATH must point at the pinned Symthaea checkout}"
 test -f "$SYMTROPY_PATH/scripts/test-real-symthaea-in-symtropy.sh"
 
 # Internal controlled stress experiment only. The dataset is collected with a 20 ms
 # first-order command lag, then tested at direct actuation and 10/20/50 ms. Those are
 # declared simulator parameters—not calibrated motor constants or real-flight claims.
-train_tau_s="\${STFR_ACTUATOR_TRAIN_TAU_S:-0.020}"
-output_dir="\${STFR_ACTUATOR_SWEEP_OUTPUT_DIR:-$SYMTROPY_PATH/actuator-lag-transfer-results}"
+train_tau_s="${STFR_ACTUATOR_TRAIN_TAU_S:-0.020}"
+output_dir="${STFR_ACTUATOR_SWEEP_OUTPUT_DIR:-$SYMTROPY_PATH/actuator-lag-transfer-results}"
 mkdir -p "$output_dir"
 
 comparison_files=()
@@ -18,14 +18,14 @@ first_run=1
 
 for profile in "0.000:direct" "0.010:10ms" "0.020:20ms" "0.050:50ms"; do
   IFS=: read -r eval_tau_s tag <<< "$profile"
-  echo "=== Actuator lag transfer: train=\${train_tau_s}s eval=\${eval_tau_s}s ($tag) ==="
+  echo "=== Actuator lag transfer: train=${train_tau_s}s eval=${eval_tau_s}s ($tag) ==="
 
-  dataset_path="$output_dir/training-dataset-train-\${train_tau_s}s.json"
-  ridge_path="$output_dir/ridge-\${tag}.json"
-  hdc_path="$output_dir/hdc-ltc-\${tag}.json"
-  mlp_path="$output_dir/current-mlp-\${tag}.json"
-  history_path="$output_dir/history-mlp-\${tag}.json"
-  comparison_path="$output_dir/comparison-\${tag}.json"
+  dataset_path="$output_dir/training-dataset-train-${train_tau_s}s.json"
+  ridge_path="$output_dir/ridge-${tag}.json"
+  hdc_path="$output_dir/hdc-ltc-${tag}.json"
+  mlp_path="$output_dir/current-mlp-${tag}.json"
+  history_path="$output_dir/history-mlp-${tag}.json"
+  comparison_path="$output_dir/comparison-${tag}.json"
 
   skip_tests=0
   if [ "$first_run" -eq 0 ]; then
@@ -94,26 +94,40 @@ for profile in "0.000:direct" "0.010:10ms" "0.020:20ms" "0.050:50ms"; do
   first_run=0
 done
 
-summary_path="\${STFR_ACTUATOR_SWEEP_SUMMARY_PATH:-$output_dir/actuator-lag-transfer-sweep.json}"
+summary_path="${STFR_ACTUATOR_SWEEP_SUMMARY_PATH:-$output_dir/actuator-lag-transfer-sweep.json}"
 jq -s --argjson training_tau "$train_tau_s" '
   . as $runs
+  | ($runs
+      | map(select((.plant_configuration.evaluation.actuator_lag_time_constant_s // 0) == 0.020))
+      | .[0]) as $matched
   | {
       benchmark_id: "symtropy-actuator-lag-transfer-sweep-v0.1",
       claim_ceiling: "internal_simulator_actuator_lag_generalization_prediction_only_not_real_flight_or_control_evidence",
       training_actuator_lag_time_constant_s: $training_tau,
-      evaluation_profiles: ($runs | map({
-        actuator_lag_time_constant_s: .plant_configuration.evaluation.actuator_lag_time_constant_s,
-        training_dataset_sha256: .source_receipt.training_dataset_sha256,
-        model_summary: .model_summary,
-        state_memory_ablation: .state_memory_ablation,
-        paired_comparisons: .paired_comparisons
-      })),
+      matched_reference_eval_tau_s: 0.020,
+      evaluation_profiles: ($runs | map(
+        . as $run
+        | {
+            actuator_lag_time_constant_s: .plant_configuration.evaluation.actuator_lag_time_constant_s,
+            training_dataset_sha256: .source_receipt.training_dataset_sha256,
+            model_summary: .model_summary,
+            state_memory_ablation: .state_memory_ablation,
+            paired_comparisons: .paired_comparisons,
+            relative_rmse_degradation_vs_20ms: {
+              raw_state_ridge: (($run.model_summary.raw_state_ridge_mean_episode_rmse_m_s2 - $matched.model_summary.raw_state_ridge_mean_episode_rmse_m_s2) / ([($matched.model_summary.raw_state_ridge_mean_episode_rmse_m_s2 | fabs), 1.0e-9] | max)),
+              compact_mlp: (($run.model_summary.compact_mlp_mean_episode_rmse_m_s2 - $matched.model_summary.compact_mlp_mean_episode_rmse_m_s2) / ([($matched.model_summary.compact_mlp_mean_episode_rmse_m_s2 | fabs), 1.0e-9] | max)),
+              explicit_history_mlp: (($run.model_summary.explicit_history_mlp_mean_episode_rmse_m_s2 - $matched.model_summary.explicit_history_mlp_mean_episode_rmse_m_s2) / ([($matched.model_summary.explicit_history_mlp_mean_episode_rmse_m_s2 | fabs), 1.0e-9] | max)),
+              persistent_hdc_ltc: (($run.model_summary.hdc_ltc_reservoir_mean_episode_rmse_m_s2 - $matched.model_summary.hdc_ltc_reservoir_mean_episode_rmse_m_s2) / ([($matched.model_summary.hdc_ltc_reservoir_mean_episode_rmse_m_s2 | fabs), 1.0e-9] | max)),
+              ltc_reset_each_step_hdc: (($run.model_summary.hdc_ltc_reset_each_step_mean_episode_rmse_m_s2 - $matched.model_summary.hdc_ltc_reset_each_step_mean_episode_rmse_m_s2) / ([($matched.model_summary.hdc_ltc_reset_each_step_mean_episode_rmse_m_s2 | fabs), 1.0e-9] | max))
+            }
+          }
+      )),
       all_training_dataset_digests_match:
         ([$runs[].source_receipt.training_dataset_sha256] | unique | length) == 1,
       interpretation:
-        "Compare which representation degrades least as held-out actuator response changes. This controlled command-lag stress test does not calibrate the simulator against a real aircraft."
+        "Compare which representation degrades least as held-out actuator response changes. Fractional deltas are relative to the 20 ms evaluation profile and are not evidence of real-flight dynamics or control performance."
     }
-' "\${comparison_files[@]}" > "$summary_path"
+' "${comparison_files[@]}" > "$summary_path"
 
 jq -e '
   .benchmark_id == "symtropy-actuator-lag-transfer-sweep-v0.1"
