@@ -1,0 +1,22 @@
+[package]
+name = "shipyard-dispatch-benchmark"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Deterministic synthetic corpus and paired evaluation harness for shipyard dispatch baselines"
+
+[dependencies]
+shipyard-observed-dispatch = { path = "../shipyard-observed-dispatch" }
+shipyard-dispatch-audit = { path = "../shipyard-dispatch-audit" }
+shipyard-dispatch-experiment = { path = "../shipyard-dispatch-experiment" }
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "shipyard-dispatch-benchmark"
+path = "src/main.rs"
+
+[workspace]
