@@ -181,6 +181,12 @@ fn check_quaternion_norm(q: [f64; 4], label: &str) -> Result<(), io::Error> {
 
 fn validate_conditioning_timestamps(row: &HashMap<String, f64>, label: &str) -> Result<(), io::Error> {
     let x0_time = row["x0_t"];
+    let prediction_time = row["t"];
+    if (prediction_time - x0_time).abs() > 1.0e-9 {
+        return Err(invalid_input(format!(
+            "{label}: prediction-row t={prediction_time} does not match source x0_t={x0_time}"
+        )));
+    }
     let first_input_time = row[&motor_sequence_time_key(0)];
     if (x0_time - first_input_time).abs() > 1.0e-9 {
         return Err(invalid_input(format!(
@@ -774,6 +780,7 @@ mod tests {
     #[test]
     fn conditioning_timestamps_reject_gaps_and_x0_mismatch() {
         let mut row = HashMap::new();
+        row.insert("t".to_owned(), 0.0);
         row.insert("x0_t".to_owned(), 0.0);
         for step in 0..HORIZON {
             row.insert(
@@ -883,10 +890,10 @@ mod tests {
                 for _ in 1..=HORIZON {
                     row.extend(fields.iter().map(|_| "0".to_owned()));
                 }
-                row.push("0".to_owned());
+                row.push(format!("{:.8}", row_index as f64 * EXPECTED_DT_S));
                 row.extend(fields.iter().map(|_| "0".to_owned()));
                 for input_step in 0..HORIZON {
-                    row.push(format!("{:.8}", input_step as f64 * EXPECTED_DT_S));
+                    row.push(format!("{:.8}", (row_index + input_step) as f64 * EXPECTED_DT_S));
                 }
                 for (field_index, _) in MOTOR_INPUT_FIELDS.iter().enumerate() {
                     for input_step in 0..HORIZON {
