@@ -472,7 +472,7 @@ pub struct RobustCandidateObservation {
     pub candidate_id: String,
     pub energy_upper_bound_wh: f64,
     pub observed_hours: f64,
-    pub compliant_task_hours: f64,
+    pub compliant_task_hours_lower_bound: f64,
     pub peak_wall_power_upper_bound_w: f64,
     pub illuminance_bounds_lx: Vec<IlluminanceInterval>,
     pub gates: Vec<GateResult>,
@@ -515,8 +515,8 @@ pub fn evaluate_robust(
     if !finite_nonnegative(candidate.energy_upper_bound_wh)
         || !candidate.observed_hours.is_finite()
         || candidate.observed_hours <= 0.0
-        || !finite_nonnegative(candidate.compliant_task_hours)
-        || candidate.compliant_task_hours > candidate.observed_hours + 1.0e-9
+        || !finite_nonnegative(candidate.compliant_task_hours_lower_bound)
+        || candidate.compliant_task_hours_lower_bound > candidate.observed_hours + 1.0e-9
         || !finite_nonnegative(candidate.peak_wall_power_upper_bound_w)
         || candidate.energy_upper_bound_wh
             > candidate.peak_wall_power_upper_bound_w * candidate.observed_hours + 1.0e-6
@@ -579,14 +579,14 @@ pub fn evaluate_robust(
     } else {
         gate_status
     };
-    let status = if status == EvaluationStatus::Compliant && candidate.compliant_task_hours <= 0.0 {
-        reasons.push("zero_compliant_task_hours".to_owned());
+    let status = if status == EvaluationStatus::Compliant && candidate.compliant_task_hours_lower_bound <= 0.0 {
+        reasons.push("zero_compliant_task_hours_lower_bound".to_owned());
         EvaluationStatus::NotEvaluated
     } else {
         status
     };
     let energy_metric = if status == EvaluationStatus::Compliant {
-        Some(candidate.energy_upper_bound_wh / candidate.compliant_task_hours)
+        Some(candidate.energy_upper_bound_wh / candidate.compliant_task_hours_lower_bound)
     } else {
         None
     };
