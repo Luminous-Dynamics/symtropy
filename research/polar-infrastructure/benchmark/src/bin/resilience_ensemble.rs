@@ -543,8 +543,8 @@ mod tests {
         assert!(result.worst_case_longest_consecutive_system_floor_breach_hours >= 2.0);
         assert!(result.expected_longest_consecutive_system_floor_breach_hours > 0.0);
         assert!(result.expected_system_floor_breach_episode_count > 0.0);
-        assert!(result.expected_weighted_unserved_service_fraction_hours > 0.0);
-        assert!(result.expected_weighted_unserved_service_fraction_hours <= result.worst_case_weighted_unserved_service_fraction_hours);
+        assert!((result.expected_weighted_unserved_service_fraction_hours - 0.47).abs() < 1e-12);
+        assert!((result.worst_case_weighted_unserved_service_fraction_hours - 4.7).abs() < 1e-12);
         assert_eq!(result.earliest_observed_time_to_first_system_floor_breach_hours, Some(0.0));
         let first = result.scenario_outcomes.iter()
             .find(|outcome| outcome.scenario_id == scenario_id).unwrap();
