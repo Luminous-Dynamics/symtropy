@@ -9,6 +9,7 @@ test -f "$SYMTROPY_PATH/scripts/test-real-symthaea-in-symtropy.sh"
 # first-order command lag, then tested at direct actuation and 10/20/50 ms. Those are
 # declared simulator parameters—not calibrated motor constants or real-flight claims.
 train_tau_s="${STFR_ACTUATOR_TRAIN_TAU_S:-0.020}"
+jq -e --null-input --argjson train_tau "$train_tau_s" '$train_tau > 0' > /dev/null
 output_dir="${STFR_ACTUATOR_SWEEP_OUTPUT_DIR:-$SYMTROPY_PATH/actuator-lag-transfer-results}"
 mkdir -p "$output_dir"
 
@@ -134,7 +135,14 @@ jq -e '
   and .claim_ceiling == "internal_simulator_actuator_lag_generalization_prediction_only_not_real_flight_or_control_evidence"
   and .all_training_dataset_digests_match == true
   and (.evaluation_profiles | length) == 4
-  and ([.evaluation_profiles[].actuator_lag_time_constant_s] | length) == 4
+  and ([.evaluation_profiles[].actuator_lag_time_constant_s // 0] == [0, 0.01, 0.02, 0.05])
+  and all(.evaluation_profiles[];
+    .relative_rmse_degradation_vs_20ms.raw_state_ridge != null
+    and .relative_rmse_degradation_vs_20ms.compact_mlp != null
+    and .relative_rmse_degradation_vs_20ms.explicit_history_mlp != null
+    and .relative_rmse_degradation_vs_20ms.persistent_hdc_ltc != null
+    and .relative_rmse_degradation_vs_20ms.ltc_reset_each_step_hdc != null
+  )
 ' "$summary_path" > /dev/null
 
 echo "Actuator lag transfer sweep receipt: $summary_path"
