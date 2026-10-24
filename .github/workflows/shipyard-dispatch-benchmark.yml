@@ -70,11 +70,32 @@ jobs:
             --policy-revision "$SHIPYARD_SOURCE_REVISION" --evaluator-revision "$SHIPYARD_SOURCE_REVISION"
           test "$(wc -l < /tmp/shipyard-paired-benchmark-smoke/results.jsonl)" -eq 64
           jq -e '.corpus_contract_version == "shipyard-paired-benchmark-corpus-v0" and .episode_count == 16 and (.episodes | length) == 16' /tmp/shipyard-paired-benchmark-smoke/benchmark-manifest.json
-          jq -e '.receipt_contract_version == "shipyard-benchmark-run-receipt-v0" and .artifact_count == 160 and .budget_contract == "not_enforced; runtime comparisons prohibited"' /tmp/shipyard-paired-benchmark-smoke/run-receipt.json
+          jq -e '.receipt_contract_version == "shipyard-benchmark-run-receipt-v0" and .artifact_count == 164 and .budget_contract == "not_enforced; runtime comparisons prohibited"' /tmp/shipyard-paired-benchmark-smoke/run-receipt.json
+          test "$(jq -r '.manifest_sha256' /tmp/shipyard-paired-benchmark-smoke/run-receipt.json)" = "$(sha256sum /tmp/shipyard-paired-benchmark-smoke/benchmark-manifest.json | cut -d ' ' -f 1)"
+          test "$(jq -r '.ledger_sha256' /tmp/shipyard-paired-benchmark-smoke/run-receipt.json)" = "$(sha256sum /tmp/shipyard-paired-benchmark-smoke/results.jsonl | cut -d ' ' -f 1)"
+          test "$(jq -r '.paired_summary_sha256' /tmp/shipyard-paired-benchmark-smoke/run-receipt.json)" = "$(sha256sum /tmp/shipyard-paired-benchmark-smoke/paired-comparison-summary.json | cut -d ' ' -f 1)"
+          jq -e --arg revision "$SHIPYARD_SOURCE_REVISION" '.policy_revision == $revision and .evaluator_revision == $revision' /tmp/shipyard-paired-benchmark-smoke/benchmark-manifest.json
           jq -s -e 'length == 64 and all(.[]; .ledger_contract_version == "shipyard-result-ledger-v0" and .synthetic_example == true and (.status == "incomplete" or .status == "invalid_input" or .status == "invalid_candidate"))' /tmp/shipyard-paired-benchmark-smoke/results.jsonl
           sha256sum /tmp/shipyard-paired-benchmark-smoke/benchmark-manifest.json /tmp/shipyard-paired-benchmark-smoke/results.jsonl /tmp/shipyard-paired-benchmark-smoke/paired-comparison-summary.json /tmp/shipyard-paired-benchmark-smoke/run-receipt.json
+          test "$(find /tmp/shipyard-paired-benchmark-smoke -type f -name 'method-config-*.json' | wc -l)" -eq 4
           test "$(find /tmp/shipyard-paired-benchmark-smoke -type f -name 'candidate-schedule-*.json' | wc -l)" -eq 64
           test "$(find /tmp/shipyard-paired-benchmark-smoke -type f -name 'independent-audit-*.json' | wc -l)" -eq 64
+          test "$(find /tmp/shipyard-paired-benchmark-smoke -type f -name 'initial-state-*.json' | wc -l)" -eq 16
+          test "$(find /tmp/shipyard-paired-benchmark-smoke -type f -name 'disturbance-tape-*.json' | wc -l)" -eq 16
+          while IFS=
+
+      - name: Retain deterministic smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shipyard-paired-benchmark-smoke-${{ github.sha }}
+          path: /tmp/shipyard-paired-benchmark-smoke/**
+          if-no-files-found: ignore
+          retention-days: 14\t' read -r episode_id state_digest tape_digest; do
+            test "$(sha256sum "/tmp/shipyard-paired-benchmark-smoke/initial-state-$state_digest.json" | cut -d ' ' -f 1)" = "$state_digest"
+            test "$(sha256sum "/tmp/shipyard-paired-benchmark-smoke/disturbance-tape-$tape_digest.json" | cut -d ' ' -f 1)" = "$tape_digest"
+            jq -e --arg episode "$episode_id" --arg state "$state_digest" --arg tape "$tape_digest" 'any(.episodes[]; .episode_id == $episode and .initial_state_sha256 == $state and .disturbance_tape_sha256 == $tape)' /tmp/shipyard-paired-benchmark-smoke/benchmark-manifest.json
+          done < <(jq -r '[.episode_id, .input_digests.initial_state_sha256, .input_digests.disturbance_tape_sha256] | @tsv' /tmp/shipyard-paired-benchmark-smoke/results.jsonl)
 
       - name: Retain deterministic smoke evidence
         if: always()
