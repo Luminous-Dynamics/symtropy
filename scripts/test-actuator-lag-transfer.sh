@@ -92,11 +92,38 @@ for profile in "0.000:direct" "0.010:10ms" "0.020:20ms" "0.050:50ms"; do
   ' "$comparison_path" > /dev/null
 
   comparison_files+=("$comparison_path")
+  case "$tag" in
+    direct) comparison_direct="$comparison_path" ;;
+    10ms) comparison_10ms="$comparison_path" ;;
+    20ms) comparison_20ms="$comparison_path" ;;
+    50ms) comparison_50ms="$comparison_path" ;;
+    *) echo "unknown actuator profile: $tag" >&2; exit 1 ;;
+  esac
   first_run=0
 done
 
 summary_path="${STFR_ACTUATOR_SWEEP_SUMMARY_PATH:-$output_dir/actuator-lag-transfer-sweep.json}"
-jq -s --argjson training_tau "$train_tau_s" '
+STFR_ACTUATOR_DIRECT_COMPARISON_PATH="$comparison_direct" \
+STFR_ACTUATOR_10MS_COMPARISON_PATH="$comparison_10ms" \
+STFR_ACTUATOR_20MS_COMPARISON_PATH="$comparison_20ms" \
+STFR_ACTUATOR_50MS_COMPARISON_PATH="$comparison_50ms" \
+  cargo run --manifest-path "$SYMTROPY_PATH/integration/symthaea-physics-loop/Cargo.toml" \
+    --example actuator_lag_transfer_summary > "$summary_path"
+
+jq -e '
+  .benchmark_id == "symtropy-actuator-lag-transfer-sweep-v0.1"
+  and .claim_ceiling == "internal_simulator_actuator_lag_generalization_prediction_only_not_real_flight_or_control_evidence"
+  and .design.all_training_dataset_digests_match == true
+  and (.evaluation_profiles | length) == 4
+  and ([.evaluation_profiles[].actuator_lag_time_constant_s // 0] == [0, 0.01, 0.02, 0.05])
+  and (.resilience_contrasts | length) == 3
+  and all(.evaluation_profiles[];
+    (.paired_rmse_delta_vs_20ms | length) == 5
+    and (.relative_rmse_degradation_vs_20ms | length) == 5
+    and all(.paired_rmse_delta_vs_20ms[]; (.stratified_episode_bootstrap_95_ci_m_s2 | length) == 2)
+  )
+' "$summary_path" > /dev/null
+
   . as $runs
   | ($runs
       | map(select((.plant_configuration.evaluation.actuator_lag_time_constant_s // 0) == 0.020))
@@ -129,20 +156,5 @@ jq -s --argjson training_tau "$train_tau_s" '
         "Compare which representation degrades least as held-out actuator response changes. Fractional deltas are relative to the 20 ms evaluation profile and are not evidence of real-flight dynamics or control performance."
     }
 ' "${comparison_files[@]}" > "$summary_path"
-
-jq -e '
-  .benchmark_id == "symtropy-actuator-lag-transfer-sweep-v0.1"
-  and .claim_ceiling == "internal_simulator_actuator_lag_generalization_prediction_only_not_real_flight_or_control_evidence"
-  and .all_training_dataset_digests_match == true
-  and (.evaluation_profiles | length) == 4
-  and ([.evaluation_profiles[].actuator_lag_time_constant_s // 0] == [0, 0.01, 0.02, 0.05])
-  and all(.evaluation_profiles[];
-    .relative_rmse_degradation_vs_20ms.raw_state_ridge != null
-    and .relative_rmse_degradation_vs_20ms.compact_mlp != null
-    and .relative_rmse_degradation_vs_20ms.explicit_history_mlp != null
-    and .relative_rmse_degradation_vs_20ms.persistent_hdc_ltc != null
-    and .relative_rmse_degradation_vs_20ms.ltc_reset_each_step_hdc != null
-  )
-' "$summary_path" > /dev/null
 
 echo "Actuator lag transfer sweep receipt: $summary_path"
