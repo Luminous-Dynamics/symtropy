@@ -1,5 +1,6 @@
 use glass_silicon_contract_audit::{audit_adaptive_decision_campaign, audit_corpus, audit_decision_value_pool, audit_feasibility_corpus, audit_grouped_split_manifest, audit_mass_balance, hash_artifact_files};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
 use std::path::Path;
@@ -92,7 +93,26 @@ fn main() -> ExitCode {
             ExitCode::from(code)
         }
         Some("audit-grouped-split") if args.len() == 3 => {
-            let manifest = match read_json(&args[2]) {
+            // Read once so the reported SHA-256 fingerprints exactly the bytes parsed.
+            let raw = match fs::read(&args[2]) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "audit_kind": "grouped_split_manifest",
+                        "benchmark_id": null,
+                        "evidence_class": null,
+                        "manifest_sha256": null,
+                        "records_checked": 0,
+                        "grouping_fields": [],
+                        "split_counts": {},
+                        "findings": [format!("INPUT_BYTES:{error}")],
+                        "claim_ceiling": "Input parsing only; no leakage-free training pipeline or model performance is validated."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let manifest: Value = match serde_json::from_slice(&raw) {
                 Ok(value) => value,
                 Err(error) => {
                     println!("{}", serde_json::json!({
@@ -100,6 +120,7 @@ fn main() -> ExitCode {
                         "audit_kind": "grouped_split_manifest",
                         "benchmark_id": null,
                         "evidence_class": null,
+                        "manifest_sha256": null,
                         "records_checked": 0,
                         "grouping_fields": [],
                         "split_counts": {},
@@ -109,7 +130,9 @@ fn main() -> ExitCode {
                     return ExitCode::from(2);
                 }
             };
-            let report = audit_grouped_split_manifest(&manifest);
+            let manifest_sha256 = format!("{:x}", Sha256::digest(&raw));
+            let mut report = audit_grouped_split_manifest(&manifest);
+            report.manifest_sha256 = Some(manifest_sha256);
             let code = report.exit_code() as u8;
             println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
             ExitCode::from(code)
