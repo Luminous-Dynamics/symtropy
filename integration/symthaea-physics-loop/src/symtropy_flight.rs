@@ -24,6 +24,10 @@ pub struct SymtropyFlightSimulator {
     external_force_n: [f64; 3],
     ground_contacts: u64,
     invalid_inputs: u64,
+    /// Optional first-order actuator response time constant; None means direct actuation.
+    actuator_lag_time_constant_s: Option<f64>,
+    /// Filtered actuator outputs [thrust, roll, pitch, yaw], in physical command units.
+    actuator_state: [f64; 4],
 }
 
 impl SymtropyFlightSimulator {
@@ -39,6 +43,8 @@ impl SymtropyFlightSimulator {
         let mut simulator = Self {
             world, body, state: FlightState::hover(0.1), elapsed_s: 0.0,
             external_force_n: [0.0; 3], ground_contacts: 0, invalid_inputs: 0,
+            actuator_lag_time_constant_s: None,
+            actuator_state: [QuadrotorCommand::HOVER_THRUST as f64, 0.0, 0.0, 0.0],
         };
         simulator.refresh_state();
         simulator
@@ -47,6 +53,33 @@ impl SymtropyFlightSimulator {
     pub fn ground_contact_count(&self) -> u64 { self.ground_contacts }
     pub fn invalid_input_count(&self) -> u64 { self.invalid_inputs }
     pub fn elapsed_s(&self) -> f64 { self.elapsed_s }
+
+    /// Enable a first-order actuator response model. `Some(tau)` applies the exact
+    /// exponential discrete-time filter alpha = 1 - exp(-dt/tau) to thrust and all
+    /// command moments. `None` preserves the historical direct-actuation behavior.
+    ///
+    /// This is a controlled stress-model parameter, not a calibrated Crazyflie motor
+    /// model. Use the published actuator-speed benchmark adapter for real-flight claims.
+    pub fn set_actuator_lag_time_constant_s(
+        &mut self,
+        tau_s: Option<f64>,
+    ) -> Result<(), &'static str> {
+        if tau_s.is_some_and(|tau| !tau.is_finite() || tau <= 0.0) {
+            return Err("actuator lag time constant must be finite and strictly positive");
+        }
+        self.actuator_lag_time_constant_s = tau_s;
+        self.actuator_state = [
+            QuadrotorCommand::HOVER_THRUST as f64,
+            0.0,
+            0.0,
+            0.0,
+        ];
+        Ok(())
+    }
+
+    pub fn actuator_lag_time_constant_s(&self) -> Option<f64> {
+        self.actuator_lag_time_constant_s
+    }
 
     pub fn reset_to_state(&mut self, state: &FlightState) {
         let mut clean = state.clone();
@@ -68,6 +101,12 @@ impl SymtropyFlightSimulator {
         self.elapsed_s = 0.0;
         self.external_force_n = [0.0; 3];
         self.ground_contacts = 0;
+        self.actuator_state = [
+            QuadrotorCommand::HOVER_THRUST as f64,
+            0.0,
+            0.0,
+            0.0,
+        ];
         self.refresh_state();
     }
 
@@ -117,7 +156,24 @@ impl PhysicsSimulator for SymtropyFlightSimulator {
             self.external_force_n = [0.0; 3];
             return;
         }
-        let command = cmd.clamped();
+        let requested = cmd.clamped();
+        let command = if let Some(tau_s) = self.actuator_lag_time_constant_s {
+            let alpha = 1.0 - (-dt / tau_s).exp();
+            let requested_values = requested.to_ctrl();
+            for index in 0..4 {
+                self.actuator_state[index] +=
+                    alpha * (requested_values[index] - self.actuator_state[index]);
+            }
+            QuadrotorCommand {
+                thrust: self.actuator_state[0] as f32,
+                roll_moment: self.actuator_state[1] as f32,
+                pitch_moment: self.actuator_state[2] as f32,
+                yaw_moment: self.actuator_state[3] as f32,
+            }
+            .clamped()
+        } else {
+            requested
+        };
         let external_force = self.external_force_n;
         self.external_force_n = [0.0; 3];
         if !external_force.iter().all(|value| value.is_finite()) {
@@ -256,6 +312,38 @@ mod tests {
         sim.step(&QuadrotorCommand::hover(),0.01); assert!(sim.state().position[0]>=first);
         assert_eq!(sim.invalid_input_count(),0);
     }
+    #[test]
+    fn actuator_lag_is_opt_in_and_changes_first_step_response() {
+        let mut direct = SymtropyFlightSimulator::new();
+        let mut lagged = SymtropyFlightSimulator::new();
+        direct.reset(0.1);
+        lagged.reset(0.1);
+        lagged
+            .set_actuator_lag_time_constant_s(Some(0.020))
+            .expect("positive finite lag is valid");
+        let command = QuadrotorCommand::zero();
+        direct.step(&command, 1.0 / 500.0);
+        lagged.step(&command, 1.0 / 500.0);
+        assert!(direct.state().linear_velocity[2] < lagged.state().linear_velocity[2]);
+        assert_eq!(direct.actuator_lag_time_constant_s(), None);
+        assert_eq!(lagged.actuator_lag_time_constant_s(), Some(0.020));
+    }
+
+    #[test]
+    fn actuator_lag_rejects_invalid_constants_and_reset_reinitializes_filter() {
+        let mut sim = SymtropyFlightSimulator::new();
+        assert!(sim.set_actuator_lag_time_constant_s(Some(0.0)).is_err());
+        assert!(sim.set_actuator_lag_time_constant_s(Some(f64::NAN)).is_err());
+        assert!(sim.set_actuator_lag_time_constant_s(Some(-0.01)).is_err());
+        sim.set_actuator_lag_time_constant_s(Some(0.020)).expect("valid lag");
+        sim.step(&QuadrotorCommand::zero(), 1.0 / 500.0);
+        sim.reset(0.1);
+        assert_eq!(sim.actuator_lag_time_constant_s(), Some(0.020));
+        let before = sim.state().clone();
+        sim.step(&QuadrotorCommand::zero(), 1.0 / 500.0);
+        assert!(sim.state().linear_velocity[2] > before.linear_velocity[2] - 0.02);
+    }
+
     #[test]
     fn non_finite_command_is_rejected_before_mutating_physics() {
         let mut sim = SymtropyFlightSimulator::new();
