@@ -25,6 +25,8 @@ This extends—not replaces—the frozen two-interval fixtures, independent orac
 
 Do not claim L3 or higher from L0/L1 success.
 
+**Current L3 precursor implemented:** `energy_search_policy_replay` replays the already-qualified 39-candidate matrix in proposal orders at fixed unique-proposal budgets (1, 3, 6, 12, 24, 39). It compares the reference templates plus Symthaea manifest order, lexical order, a transparent battery/PV structural heuristic, and five seeded random orders. The full-domain envelope frontier is the exact finite-domain reference; outputs include frontier-vector recall and coordinate-wise gaps, with no weights or invented probabilities. Because every candidate was already evaluated to qualify the matrix, this is a cached-outcome discovery-order analysis—not a measurement of live policy runtime, true adaptive search, or industry superiority. It is an initial reproducible budget-quality curve, not the completed L3 claim.
+
 ## Scenario registry v0.1
 
 The first panel should be **deterministic and non-probabilistic**. Each row is a named transform over a pinned parent candidate and a pinned baseline input bundle. Store parent digest, transformed child digest, mutation path(s), before/after values, units, model version and claim ceiling. Refuse unlisted mutations.
