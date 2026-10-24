@@ -788,6 +788,32 @@ mod tests {
     }
 
     #[test]
+    fn reports_no_breach_as_censored_at_each_stress_trace_horizon() {
+        let mut input = fixture();
+        for scenario in &mut input.scenarios {
+            let demands: Vec<_> = scenario.score_input.episode.steps.iter()
+                .map(|step| step.demand.clone())
+                .collect();
+            let candidate = scenario.score_input.policy_runs.iter_mut()
+                .find(|policy| policy.policy_id == "candidate_full_service").unwrap();
+            for (delivery, demand) in candidate.steps.iter_mut().zip(demands) {
+                delivery.delivered = demand;
+            }
+        }
+
+        let report = aggregate(&input).expect("fully served stress set should aggregate");
+        let candidate = report.policy_results.iter()
+            .find(|policy| policy.policy_id == "candidate_full_service").unwrap();
+        assert!(candidate.passed_all_declared_service_floors);
+        assert_eq!(candidate.earliest_observed_time_to_first_system_floor_breach_hours, None);
+        assert!(candidate.scenario_outcomes.iter()
+            .all(|outcome| outcome.time_to_first_system_floor_breach_hours.is_none()));
+        assert!(candidate.service_results.iter()
+            .all(|service| !service.active_in_all_scenarios
+                || service.earliest_observed_time_to_first_floor_breach_hours.is_none()));
+    }
+
+    #[test]
     fn pareto_frontier_prefers_later_breach_onset_and_no_observed_breach() {
         let report = aggregate(&fixture()).expect("fixture should aggregate");
         let template = report.policy_results.iter()
