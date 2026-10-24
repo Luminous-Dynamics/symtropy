@@ -144,6 +144,28 @@ fn ensure_receipts_match(ridge: &Value, hdc: &Value, mlp: &Value, history: &Valu
     assert_eq!(ridge_eval["nominal_model"], mlp_eval["nominal_model"], "MLP nominal-model parameters mismatch");
     assert_eq!(ridge_eval["nominal_model"], history_eval["nominal_model"], "history nominal-model parameters mismatch");
     assert_eq!(ridge_eval["nominal_model"], stateless_eval["nominal_model"], "LTC-reset-each-step HDC nominal-model parameters mismatch");
+
+    for (label, arm) in [("hdc", hdc), ("mlp", mlp), ("history", history)] {
+        assert_eq!(
+            ridge["training"]["plant_configuration"],
+            arm["training"]["plant_configuration"],
+            "training plant configuration mismatch for {label}"
+        );
+        assert_eq!(
+            ridge["evaluation_plant_configuration"],
+            arm["evaluation_plant_configuration"],
+            "evaluation plant configuration mismatch for {label}"
+        );
+    }
+    assert_eq!(
+        ridge["training"]["plant_configuration"]["claim_ceiling"].as_str(),
+        Some("internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model")
+    );
+    assert_eq!(
+        ridge["evaluation_plant_configuration"],
+        hdc["evaluation_plant_configuration"],
+        "HDC evaluation plant configuration mismatch"
+    );
 }
 
 fn grouped_indices(episodes: &[EpisodeScore]) -> BTreeMap<&str, Vec<usize>> {
@@ -316,6 +338,10 @@ fn main() {
     println!("{}", json!({
         "comparison_id": "symtropy-residual-model-paired-comparison-v0.1",
         "claim_ceiling": "paired_episode_level_one_step_prediction_comparison_conditional_on_smoke_scenario_families",
+        "plant_configuration": {
+            "training": ridge_root["training"]["plant_configuration"].clone(),
+            "evaluation": ridge_root["evaluation_plant_configuration"].clone()
+        },
         "source_receipt": {
             "symtropy_git_sha": shared_receipt["symtropy_git_sha"],
             "symthaea_git_sha": shared_receipt["symthaea_git_sha"],

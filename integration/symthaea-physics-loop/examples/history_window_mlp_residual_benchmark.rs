@@ -14,6 +14,7 @@ use symthaea_multirotor::{
     pid_baseline, FlightState, PdGains, PidState, PhysicsSimulator, QuadrotorCommand,
 };
 use symtropy_real_symthaea_physics_loop::{
+    plant_config::PlantConfiguration,
     history_window_mlp::{
         history_features, HistoryTrainingSample, HistoryWindowMlpResidual, HISTORY_DEPTH,
         HISTORY_INPUT_DIM, HISTORY_LAGS,
@@ -138,6 +139,14 @@ fn training_samples(path: &str) -> Vec<HistoryTrainingSample> {
     let bytes = fs::read(path)
         .unwrap_or_else(|error| panic!("cannot read training dataset at {path}: {error}"));
     let root: Value = serde_json::from_slice(&bytes).expect("training dataset must be JSON");
+    let declared_training_plant =
+        PlantConfiguration::from_env("STFR_DATASET_ACTUATOR_LAG_TAU_S")
+            .expect("training plant configuration must be valid");
+    assert_eq!(
+        root["plant_configuration"],
+        declared_training_plant.to_json(),
+        "training dataset plant configuration mismatch"
+    );
     assert_eq!(
         root["benchmark_id"].as_str(),
         Some("symtropy-causal-transition-residual-dataset-v0.1"),
@@ -237,8 +246,11 @@ fn evaluate_episode(
     steps: usize,
     nominal: NominalLinearDynamics,
     gains: &PdGains,
+    plant_configuration: PlantConfiguration,
 ) -> ErrorAccumulator {
-    let mut simulator = SymtropyFlightSimulator::new();
+    let mut simulator = plant_configuration
+        .create_simulator()
+        .expect("evaluation plant configuration must be valid");
     simulator.reset_with_perturbation(scenario.setpoint.position[2], 0.06, seed);
     let mut pid_state = PidState::default();
     let mut previous_features: Vec<[f64; 18]> = Vec::with_capacity(HISTORY_LAGS);
@@ -295,6 +307,12 @@ fn evaluate_episode(
 fn main() {
     let input_path = std::env::var("STFR_DATASET_INPUT_PATH")
         .expect("STFR_DATASET_INPUT_PATH must identify the training-split dataset");
+    let training_plant_configuration =
+        PlantConfiguration::from_env("STFR_DATASET_ACTUATOR_LAG_TAU_S")
+            .expect("training plant configuration must be valid");
+    let evaluation_plant_configuration =
+        PlantConfiguration::from_env("STFR_EVAL_ACTUATOR_LAG_TAU_S")
+            .expect("evaluation plant configuration must be valid");
     let data_preparation_started = Instant::now();
     let samples = training_samples(&input_path);
     let data_preparation_seconds = data_preparation_started.elapsed().as_secs_f64();
@@ -323,6 +341,7 @@ fn main() {
         let scenario = &scenarios[episode % scenarios.len()];
         let metrics = evaluate_episode(
             &model, scenario, seed, steps_per_episode, nominal, &gains,
+            evaluation_plant_configuration,
         );
         overall.merge(&metrics);
         by_family
@@ -381,6 +400,7 @@ fn main() {
             "temporal_representation": "explicit four-step causal delay embedding; no recurrent hidden state"
         },
         "training": {
+            "plant_configuration": training_plant_configuration.to_json(),
             "split": "train",
             "sample_count": model.training_sample_count(),
             "data_preparation_and_history_feature_generation_seconds": data_preparation_seconds,
@@ -390,6 +410,7 @@ fn main() {
             "final_training_rmse_m_s2": model.final_training_rmse_m_s2(),
             "hidden_force_labels_used_as_features": false
         },
+        "evaluation_plant_configuration": evaluation_plant_configuration.to_json(),
         "evaluation": {
             "split": "test",
             "episodes_requested": episodes,

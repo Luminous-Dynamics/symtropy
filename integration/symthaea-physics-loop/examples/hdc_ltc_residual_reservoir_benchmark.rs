@@ -15,6 +15,7 @@ use symthaea_multirotor::{
     pid_baseline, FlightState, PdGains, PidState, PhysicsSimulator, QuadrotorCommand,
 };
 use symtropy_real_symthaea_physics_loop::{
+    plant_config::PlantConfiguration,
     hdc_ltc_residual_reservoir::{
         HdcLtcResidualReservoir, ReservoirRidgeReadout, ReservoirTrainingSample,
     },
@@ -150,6 +151,14 @@ fn training_samples(path: &str) -> HdcTrainingData {
     let bytes = fs::read(path)
         .unwrap_or_else(|error| panic!("cannot read training dataset at {path}: {error}"));
     let root: Value = serde_json::from_slice(&bytes).expect("training dataset must be JSON");
+    let declared_training_plant =
+        PlantConfiguration::from_env("STFR_DATASET_ACTUATOR_LAG_TAU_S")
+            .expect("training plant configuration must be valid");
+    assert_eq!(
+        root["plant_configuration"],
+        declared_training_plant.to_json(),
+        "training dataset plant configuration mismatch"
+    );
     assert_eq!(
         root["benchmark_id"].as_str(),
         Some("symtropy-causal-transition-residual-dataset-v0.1"),
@@ -270,9 +279,12 @@ fn evaluate_episode(
     steps: usize,
     nominal: NominalLinearDynamics,
     gains: &PdGains,
+    plant_configuration: PlantConfiguration,
     reset_ltc_state_each_step: bool,
 ) -> ErrorAccumulator {
-    let mut simulator = SymtropyFlightSimulator::new();
+    let mut simulator = plant_configuration
+        .create_simulator()
+        .expect("evaluation plant configuration must be valid");
     simulator.reset_with_perturbation(scenario.setpoint.position[2], 0.06, seed);
     let mut pid_state = PidState::default();
     let mut reservoir = HdcLtcResidualReservoir::new(GENESIS_PHRASE);
@@ -324,6 +336,12 @@ fn evaluate_episode(
 fn main() {
     let input_path = std::env::var("STFR_DATASET_INPUT_PATH")
         .expect("STFR_DATASET_INPUT_PATH must point to a training-split JSON artifact");
+    let training_plant_configuration =
+        PlantConfiguration::from_env("STFR_DATASET_ACTUATOR_LAG_TAU_S")
+            .expect("training plant configuration must be valid");
+    let evaluation_plant_configuration =
+        PlantConfiguration::from_env("STFR_EVAL_ACTUATOR_LAG_TAU_S")
+            .expect("evaluation plant configuration must be valid");
     let training_data = training_samples(&input_path);
     let train_samples = training_data.persistent_samples;
     let reset_each_step_train_samples = training_data.reset_each_step_samples;
@@ -369,6 +387,7 @@ fn main() {
             steps_per_episode,
             nominal,
             &gains,
+            evaluation_plant_configuration,
             false,
         );
         let stateless_metrics = evaluate_episode(
@@ -378,6 +397,7 @@ fn main() {
             steps_per_episode,
             nominal,
             &gains,
+            evaluation_plant_configuration,
             true,
         );
         overall.merge(&metrics);
@@ -450,6 +470,7 @@ fn main() {
             "trainable_weights": "readout only; no end-to-end HDC-LTC BPTT"
         },
         "training": {
+            "plant_configuration": training_plant_configuration.to_json(),
             "split": "train",
             "sample_count": train_samples.len(),
             "dataset_parse_seconds": training_data.dataset_parse_seconds,
@@ -464,6 +485,7 @@ fn main() {
             "ridge_lambda": readout.ridge_lambda(),
             "hidden_force_labels_used_as_features": false
         },
+        "evaluation_plant_configuration": evaluation_plant_configuration.to_json(),
         "evaluation": {
             "split": "test",
             "episodes_requested": episodes,
