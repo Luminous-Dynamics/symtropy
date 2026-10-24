@@ -1,0 +1,884 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/lighting-failure-receipt.schema.json",
+  "title": "Lighting failed or incomplete run receipt v0.1",
+  "description": "Receipt contract for lighting runs that failed before producing a complete, auditable observation grid. These records are evidence of an attempted run and its failure, never scoreable candidate results.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_kind",
+    "case_id",
+    "run_id",
+    "evidence_tier",
+    "run_status",
+    "failure_class",
+    "failure_code",
+    "failure_detail",
+    "inputs",
+    "toolchain",
+    "process",
+    "integrity_findings",
+    "artifacts",
+    "observation",
+    "summary",
+    "power_observation",
+    "gate_results",
+    "scoring",
+    "evaluator"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "receipt_kind": {
+      "const": "failure"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_tier": {
+      "enum": [
+        "synthetic_contract",
+        "simulation_only",
+        "calibrated_simulation",
+        "physical_prototype",
+        "independently_tested_product"
+      ]
+    },
+    "run_status": {
+      "enum": [
+        "non_compliant",
+        "unknown",
+        "unsupported",
+        "not_evaluated",
+        "timeout",
+        "invalid_output",
+        "invalid_input"
+      ]
+    },
+    "failure_class": {
+      "enum": [
+        "preflight_failure",
+        "process_failure",
+        "output_failure",
+        "evidence_failure",
+        "incomplete_observation",
+        "physical_gate_failure"
+      ]
+    },
+    "failure_code": {
+      "enum": [
+        "missing_executable",
+        "unsupported_solver_version",
+        "nonzero_exit",
+        "timeout",
+        "truncated_output",
+        "malformed_output",
+        "wrong_sample_count",
+        "duplicate_or_out_of_order_grid_index",
+        "coordinate_mismatch",
+        "invalid_numeric_sample",
+        "inverted_interval",
+        "artifact_digest_mismatch",
+        "missing_required_evidence",
+        "unknown_required_gate",
+        "measurement_failure",
+        "other"
+      ]
+    },
+    "failure_detail": {
+      "type": "string",
+      "minLength": 1
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case",
+        "design",
+        "scene",
+        "property_data",
+        "adapter_config"
+      ],
+      "properties": {
+        "case": {
+          "$ref": "#/$defs/artifactReference"
+        },
+        "design": {
+          "$ref": "#/$defs/artifactReference"
+        },
+        "scene": {
+          "$ref": "#/$defs/artifactReference"
+        },
+        "property_data": {
+          "$ref": "#/$defs/artifactReference"
+        },
+        "adapter_config": {
+          "$ref": "#/$defs/artifactReference"
+        }
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine_name",
+        "engine_version",
+        "source_revision",
+        "executable",
+        "environment",
+        "settings",
+        "command_argv"
+      ],
+      "properties": {
+        "engine_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executable": {
+          "$ref": "#/$defs/artifactReference"
+        },
+        "environment": {
+          "$ref": "#/$defs/artifactReference"
+        },
+        "settings": {
+          "$ref": "#/$defs/artifactReference"
+        },
+        "command_argv": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invocation_attempted",
+        "executable_availability",
+        "exit_code",
+        "timed_out",
+        "duration_ms"
+      ],
+      "properties": {
+        "invocation_attempted": {
+          "type": "boolean"
+        },
+        "executable_availability": {
+          "enum": [
+            "available",
+            "missing",
+            "unknown"
+          ]
+        },
+        "exit_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "timed_out": {
+          "type": "boolean"
+        },
+        "duration_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stdout",
+        "stderr",
+        "normalized_samples"
+      ],
+      "properties": {
+        "stdout": {
+          "$ref": "#/$defs/artifactReference"
+        },
+        "stderr": {
+          "$ref": "#/$defs/artifactReference"
+        },
+        "normalized_samples": {
+          "$ref": "#/$defs/artifactReference"
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_sample_count",
+        "observed_sample_count",
+        "completeness",
+        "samples",
+        "parser_diagnostics"
+      ],
+      "properties": {
+        "expected_sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "observed_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completeness": {
+          "enum": [
+            "none",
+            "partial",
+            "complete"
+          ]
+        },
+        "samples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sample"
+          }
+        },
+        "parser_diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "null"
+    },
+    "power_observation": {
+      "type": "null"
+    },
+    "gate_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "status",
+          "evidence_id"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "unknown",
+              "unsupported",
+              "not_evaluated",
+              "timeout",
+              "invalid_output"
+            ]
+          },
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eligible",
+        "service_energy_metric_wh_per_compliant_task_hour",
+        "non_rankable_reason"
+      ],
+      "properties": {
+        "eligible": {
+          "const": false
+        },
+        "service_energy_metric_wh_per_compliant_task_hour": {
+          "type": "null"
+        },
+        "non_rankable_reason": {
+          "enum": [
+            "process_failed",
+            "incomplete_grid",
+            "invalid_output",
+            "invalid_input",
+            "unsupported_toolchain",
+            "missing_evidence",
+            "integrity_failure",
+            "gate_failed",
+            "unknown_gate",
+            "other"
+          ]
+        }
+      }
+    },
+    "evaluator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "source_revision",
+        "receipt_format_version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_format_version": {
+          "const": "0.1.0"
+        }
+      }
+    },
+    "integrity_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_id",
+          "claimed_sha256",
+          "observed_sha256",
+          "finding"
+        ],
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "claimed_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "observed_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "finding": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "failure_code": {
+            "const": "missing_executable"
+          }
+        },
+        "required": [
+          "failure_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "run_status": {
+            "const": "unsupported"
+          },
+          "failure_class": {
+            "const": "preflight_failure"
+          },
+          "process": {
+            "properties": {
+              "invocation_attempted": {
+                "const": false
+              },
+              "executable_availability": {
+                "const": "missing"
+              },
+              "exit_code": {
+                "type": "null"
+              },
+              "timed_out": {
+                "const": false
+              },
+              "duration_ms": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "invocation_attempted",
+              "executable_availability",
+              "exit_code",
+              "timed_out",
+              "duration_ms"
+            ]
+          },
+          "observation": {
+            "properties": {
+              "observed_sample_count": {
+                "const": 0
+              },
+              "completeness": {
+                "const": "none"
+              },
+              "samples": {
+                "maxItems": 0
+              }
+            },
+            "required": [
+              "observed_sample_count",
+              "completeness",
+              "samples"
+            ]
+          }
+        },
+        "required": [
+          "run_status",
+          "failure_class",
+          "process",
+          "observation"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "failure_code": {
+            "const": "timeout"
+          }
+        },
+        "required": [
+          "failure_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "run_status": {
+            "const": "timeout"
+          },
+          "failure_class": {
+            "const": "process_failure"
+          },
+          "process": {
+            "properties": {
+              "invocation_attempted": {
+                "const": true
+              },
+              "timed_out": {
+                "const": true
+              }
+            },
+            "required": [
+              "invocation_attempted",
+              "timed_out"
+            ]
+          }
+        },
+        "required": [
+          "run_status",
+          "failure_class",
+          "process"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "failure_code": {
+            "const": "truncated_output"
+          }
+        },
+        "required": [
+          "failure_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "run_status": {
+            "const": "invalid_output"
+          },
+          "failure_class": {
+            "const": "incomplete_observation"
+          },
+          "observation": {
+            "properties": {
+              "completeness": {
+                "const": "partial"
+              }
+            },
+            "required": [
+              "completeness"
+            ]
+          }
+        },
+        "required": [
+          "run_status",
+          "failure_class",
+          "observation"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "failure_code": {
+            "const": "malformed_output"
+          }
+        },
+        "required": [
+          "failure_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "run_status": {
+            "const": "invalid_output"
+          }
+        },
+        "required": [
+          "run_status"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "failure_code": {
+            "const": "artifact_digest_mismatch"
+          }
+        },
+        "required": [
+          "failure_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "run_status": {
+            "const": "invalid_output"
+          },
+          "failure_class": {
+            "const": "evidence_failure"
+          },
+          "scoring": {
+            "properties": {
+              "non_rankable_reason": {
+                "const": "integrity_failure"
+              }
+            },
+            "required": [
+              "non_rankable_reason"
+            ]
+          }
+        },
+        "required": [
+          "run_status",
+          "failure_class",
+          "scoring"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "observation": {
+            "properties": {
+              "completeness": {
+                "const": "complete"
+              }
+            },
+            "required": [
+              "completeness"
+            ]
+          }
+        },
+        "required": [
+          "observation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "observation": {
+            "properties": {
+              "observed_sample_count": {
+                "minimum": 1
+              },
+              "samples": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "observed_sample_count",
+              "samples"
+            ]
+          }
+        },
+        "required": [
+          "observation"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "observation": {
+            "properties": {
+              "completeness": {
+                "const": "none"
+              }
+            },
+            "required": [
+              "completeness"
+            ]
+          }
+        },
+        "required": [
+          "observation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "observation": {
+            "properties": {
+              "observed_sample_count": {
+                "const": 0
+              },
+              "samples": {
+                "maxItems": 0
+              }
+            },
+            "required": [
+              "observed_sample_count",
+              "samples"
+            ]
+          }
+        },
+        "required": [
+          "observation"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "failure_code": {
+            "const": "artifact_digest_mismatch"
+          }
+        },
+        "required": [
+          "failure_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "integrity_findings": {
+            "minItems": 1
+          },
+          "scoring": {
+            "properties": {
+              "non_rankable_reason": {
+                "const": "integrity_failure"
+              }
+            },
+            "required": [
+              "non_rankable_reason"
+            ]
+          }
+        },
+        "required": [
+          "integrity_findings",
+          "scoring"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "failure_code": {
+            "const": "unknown_required_gate"
+          }
+        },
+        "required": [
+          "failure_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "run_status": {
+            "const": "unknown"
+          },
+          "failure_class": {
+            "const": "evidence_failure"
+          },
+          "scoring": {
+            "properties": {
+              "non_rankable_reason": {
+                "const": "unknown_gate"
+              }
+            },
+            "required": [
+              "non_rankable_reason"
+            ]
+          },
+          "gate_results": {
+            "contains": {
+              "properties": {
+                "status": {
+                  "const": "unknown"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "run_status",
+          "failure_class",
+          "scoring",
+          "gate_results"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "artifactReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "availability",
+        "sha256",
+        "reason"
+      ],
+      "properties": {
+        "availability": {
+          "enum": [
+            "available",
+            "unavailable"
+          ]
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "availability": {
+                "const": "available"
+              }
+            },
+            "required": [
+              "availability"
+            ]
+          },
+          "then": {
+            "properties": {
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "reason": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "availability": {
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "availability"
+            ]
+          },
+          "then": {
+            "properties": {
+              "sha256": {
+                "type": "null"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "grid_index",
+        "x_m",
+        "y_m",
+        "z_m",
+        "illuminance_lx"
+      ],
+      "properties": {
+        "grid_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "x_m": {
+          "type": "number"
+        },
+        "y_m": {
+          "type": "number"
+        },
+        "z_m": {
+          "type": "number"
+        },
+        "illuminance_lx": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

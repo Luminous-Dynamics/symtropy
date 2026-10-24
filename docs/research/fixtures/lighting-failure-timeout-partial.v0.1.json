@@ -1,0 +1,138 @@
+{
+  "schema_version": "0.1.0",
+  "receipt_kind": "failure",
+  "case_id": "TASKLIGHT-FIXED-ROOM-001",
+  "run_id": "synthetic-failure-fixture-timeout-partial-v0-1",
+  "evidence_tier": "synthetic_contract",
+  "run_status": "timeout",
+  "failure_class": "process_failure",
+  "failure_code": "timeout",
+  "failure_detail": "Synthetic contract example only. The process timed out after emitting three ordered samples from a 104-point grid.",
+  "inputs": {
+    "case": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle case bytes; not a recorded solver run."
+    },
+    "design": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle design bytes."
+    },
+    "scene": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle generated scene bytes."
+    },
+    "property_data": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle property-data bytes."
+    },
+    "adapter_config": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle adapter configuration bytes."
+    }
+  },
+  "toolchain": {
+    "engine_name": "Radiance (intended backend; synthetic example)",
+    "engine_version": "not-verified",
+    "source_revision": "not-verified",
+    "executable": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "No actual executable is bundled with the example."
+    },
+    "environment": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "No runtime environment is bundled with the example."
+    },
+    "settings": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "No solver settings are bundled with the example."
+    },
+    "command_argv": [
+      "rtrace",
+      "-I",
+      "scene.oct"
+    ]
+  },
+  "process": {
+    "invocation_attempted": true,
+    "executable_availability": "available",
+    "exit_code": null,
+    "timed_out": true,
+    "duration_ms": 5000
+  },
+  "artifacts": {
+    "stdout": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example omits native stdout bytes; partial sample values below are illustrative only."
+    },
+    "stderr": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example omits native stderr bytes."
+    },
+    "normalized_samples": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example embeds partial sample values in the receipt but does not bundle a normalized sample file."
+    }
+  },
+  "observation": {
+    "expected_sample_count": 104,
+    "observed_sample_count": 3,
+    "completeness": "partial",
+    "samples": [
+      {
+        "grid_index": 0,
+        "x_m": 1.9,
+        "y_m": 1.65,
+        "z_m": 0.75,
+        "illuminance_lx": 400
+      },
+      {
+        "grid_index": 1,
+        "x_m": 2,
+        "y_m": 1.65,
+        "z_m": 0.75,
+        "illuminance_lx": 420
+      },
+      {
+        "grid_index": 2,
+        "x_m": 2.1,
+        "y_m": 1.65,
+        "z_m": 0.75,
+        "illuminance_lx": 390
+      }
+    ],
+    "parser_diagnostics": [
+      "Synthetic values only; raw output is not bundled. A partial grid cannot be summarized or scored."
+    ]
+  },
+  "summary": null,
+  "power_observation": null,
+  "integrity_findings": [],
+  "gate_results": [
+    {
+      "name": "solver_completion",
+      "status": "timeout",
+      "evidence_id": "synthetic-fixture-only"
+    }
+  ],
+  "scoring": {
+    "eligible": false,
+    "service_energy_metric_wh_per_compliant_task_hour": null,
+    "non_rankable_reason": "process_failed"
+  },
+  "evaluator": {
+    "name": "lighting-failure-receipt-fixture",
+    "source_revision": "synthetic-fixture-only",
+    "receipt_format_version": "0.1.0"
+  }
+}

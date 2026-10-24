@@ -1,0 +1,123 @@
+{
+  "schema_version": "0.1.0",
+  "receipt_kind": "failure",
+  "case_id": "TASKLIGHT-FIXED-ROOM-001",
+  "run_id": "synthetic-failure-fixture-digest-mismatch-v0-1",
+  "evidence_tier": "synthetic_contract",
+  "run_status": "invalid_output",
+  "failure_class": "evidence_failure",
+  "failure_code": "artifact_digest_mismatch",
+  "failure_detail": "Synthetic negative control only. Digest sentinels intentionally differ; this does not represent an actual file or solver run.",
+  "inputs": {
+    "case": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle case bytes."
+    },
+    "design": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle design bytes."
+    },
+    "scene": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle scene bytes."
+    },
+    "property_data": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle property-data bytes."
+    },
+    "adapter_config": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle adapter configuration bytes."
+    }
+  },
+  "toolchain": {
+    "engine_name": "Optical solver (intended; not verified)",
+    "engine_version": "not-verified",
+    "source_revision": "not-verified",
+    "executable": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example omits executable bytes."
+    },
+    "environment": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example omits environment bytes."
+    },
+    "settings": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example omits settings bytes."
+    },
+    "command_argv": [
+      "solver",
+      "--fixture",
+      "TASKLIGHT-FIXED-ROOM-001"
+    ]
+  },
+  "process": {
+    "invocation_attempted": true,
+    "executable_availability": "unknown",
+    "exit_code": 0,
+    "timed_out": false,
+    "duration_ms": 12
+  },
+  "artifacts": {
+    "stdout": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example omits stdout bytes."
+    },
+    "stderr": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example omits stderr bytes."
+    },
+    "normalized_samples": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Integrity check failed before normalized samples were accepted."
+    }
+  },
+  "observation": {
+    "expected_sample_count": 104,
+    "observed_sample_count": 0,
+    "completeness": "none",
+    "samples": [],
+    "parser_diagnostics": [
+      "No samples admitted after the artifact integrity check failed."
+    ]
+  },
+  "summary": null,
+  "power_observation": null,
+  "integrity_findings": [
+    {
+      "artifact_id": "inputs.scene",
+      "claimed_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "observed_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "finding": "Synthetic test sentinels intentionally differ; replace with actual recomputed digests in a real receipt."
+    }
+  ],
+  "gate_results": [
+    {
+      "name": "artifact_integrity",
+      "status": "invalid_output",
+      "evidence_id": "synthetic-fixture-only"
+    }
+  ],
+  "scoring": {
+    "eligible": false,
+    "service_energy_metric_wh_per_compliant_task_hour": null,
+    "non_rankable_reason": "integrity_failure"
+  },
+  "evaluator": {
+    "name": "lighting-failure-receipt-fixture",
+    "source_revision": "synthetic-fixture-only",
+    "receipt_format_version": "0.1.0"
+  }
+}

@@ -8,6 +8,8 @@ on:
       - "docs/research/LIGHTING_ROBUST_SEARCH_AND_MEASUREMENT_V0_1.md"
       - "docs/research/lighting-benchmark-case.schema.json"
       - "docs/research/lighting-run-receipt.schema.json"
+      - "docs/research/lighting-failure-receipt.schema.json"
+      - "docs/research/fixtures/lighting-failure-*.v0.1.json"
       - "docs/research/fixtures/task-light-room-v0.1.json"
       - ".github/workflows/lighting-benchmark.yml"
   push:
@@ -17,6 +19,8 @@ on:
       - "docs/research/LIGHTING_ROBUST_SEARCH_AND_MEASUREMENT_V0_1.md"
       - "docs/research/lighting-benchmark-case.schema.json"
       - "docs/research/lighting-run-receipt.schema.json"
+      - "docs/research/lighting-failure-receipt.schema.json"
+      - "docs/research/fixtures/lighting-failure-*.v0.1.json"
       - "docs/research/fixtures/task-light-room-v0.1.json"
       - ".github/workflows/lighting-benchmark.yml"
 
@@ -35,6 +39,7 @@ jobs:
         run: |
           python3 -m json.tool docs/research/lighting-benchmark-case.schema.json > /dev/null
           python3 -m json.tool docs/research/lighting-run-receipt.schema.json > /dev/null
+          python3 -m json.tool docs/research/lighting-failure-receipt.schema.json > /dev/null
           python3 -m json.tool docs/research/fixtures/task-light-room-v0.1.json > /dev/null
       - name: Check formatting
         run: cargo fmt --manifest-path tools/lighting-benchmark/Cargo.toml -- --check
@@ -42,6 +47,12 @@ jobs:
         run: cargo test --manifest-path tools/lighting-benchmark/Cargo.toml --locked
       - name: Audit lighting receipt and negative controls
         run: bash tools/lighting-benchmark/tests/receipt-audit-smoke.sh
+      - name: Check failure receipt examples and score gating
+        run: bash tools/lighting-benchmark/tests/failure-receipt-contract.sh
+      - name: Install pinned JSON Schema test dependency
+        run: python3 -m pip install --disable-pip-version-check "jsonschema==4.26.0"
+      - name: Validate failure receipt JSON Schemas and negative controls
+        run: python3 tools/lighting-benchmark/tests/validate_failure_receipts.py
       - name: Run synthetic demonstration
         run: cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-benchmark-demo
       - name: Emit and count stress corpus

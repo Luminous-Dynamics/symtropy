@@ -1,0 +1,116 @@
+{
+  "schema_version": "0.1.0",
+  "receipt_kind": "failure",
+  "case_id": "TASKLIGHT-FIXED-ROOM-001",
+  "run_id": "synthetic-failure-fixture-missing-executable-v0-1",
+  "evidence_tier": "synthetic_contract",
+  "run_status": "unsupported",
+  "failure_class": "preflight_failure",
+  "failure_code": "missing_executable",
+  "failure_detail": "Synthetic contract example only. The intended solver is absent, so invocation never starts and no observation grid exists.",
+  "inputs": {
+    "case": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle case bytes; this is not a recorded solver run."
+    },
+    "design": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle design bytes."
+    },
+    "scene": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle generated scene bytes."
+    },
+    "property_data": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle property-data bytes."
+    },
+    "adapter_config": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle adapter configuration bytes."
+    }
+  },
+  "toolchain": {
+    "engine_name": "Radiance (intended backend; not invoked)",
+    "engine_version": "not-invoked",
+    "source_revision": "unavailable-before-preflight",
+    "executable": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic missing-executable negative control; not a statement about the host."
+    },
+    "environment": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example does not capture a runtime environment."
+    },
+    "settings": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example does not bundle solver settings."
+    },
+    "command_argv": [
+      "rtrace",
+      "-I",
+      "scene.oct"
+    ]
+  },
+  "process": {
+    "invocation_attempted": false,
+    "executable_availability": "missing",
+    "exit_code": null,
+    "timed_out": false,
+    "duration_ms": null
+  },
+  "artifacts": {
+    "stdout": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "No process was launched; stdout does not exist."
+    },
+    "stderr": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "No process was launched; stderr does not exist."
+    },
+    "normalized_samples": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "No process was launched; no sample artifact exists."
+    }
+  },
+  "observation": {
+    "expected_sample_count": 104,
+    "observed_sample_count": 0,
+    "completeness": "none",
+    "samples": [],
+    "parser_diagnostics": [
+      "solver executable unavailable before launch"
+    ]
+  },
+  "summary": null,
+  "power_observation": null,
+  "integrity_findings": [],
+  "gate_results": [
+    {
+      "name": "solver_available",
+      "status": "unsupported",
+      "evidence_id": "synthetic-fixture-only"
+    }
+  ],
+  "scoring": {
+    "eligible": false,
+    "service_energy_metric_wh_per_compliant_task_hour": null,
+    "non_rankable_reason": "unsupported_toolchain"
+  },
+  "evaluator": {
+    "name": "lighting-failure-receipt-fixture",
+    "source_revision": "synthetic-fixture-only",
+    "receipt_format_version": "0.1.0"
+  }
+}

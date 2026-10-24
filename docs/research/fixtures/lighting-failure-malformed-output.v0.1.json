@@ -1,0 +1,116 @@
+{
+  "schema_version": "0.1.0",
+  "receipt_kind": "failure",
+  "case_id": "TASKLIGHT-FIXED-ROOM-001",
+  "run_id": "synthetic-failure-fixture-malformed-output-v0-1",
+  "evidence_tier": "synthetic_contract",
+  "run_status": "invalid_output",
+  "failure_class": "output_failure",
+  "failure_code": "malformed_output",
+  "failure_detail": "Synthetic contract example only. The output parser encountered an invalid numeric token and withheld the sample grid.",
+  "inputs": {
+    "case": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle case bytes."
+    },
+    "design": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle design bytes."
+    },
+    "scene": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle generated scene bytes."
+    },
+    "property_data": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle property-data bytes."
+    },
+    "adapter_config": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle adapter configuration bytes."
+    }
+  },
+  "toolchain": {
+    "engine_name": "Pinned optical solver (intended; not verified)",
+    "engine_version": "not-verified",
+    "source_revision": "not-verified",
+    "executable": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example omits executable bytes."
+    },
+    "environment": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example omits environment bytes."
+    },
+    "settings": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Synthetic example omits settings bytes."
+    },
+    "command_argv": [
+      "solver",
+      "--fixture",
+      "TASKLIGHT-FIXED-ROOM-001"
+    ]
+  },
+  "process": {
+    "invocation_attempted": true,
+    "executable_availability": "unknown",
+    "exit_code": 0,
+    "timed_out": false,
+    "duration_ms": 14
+  },
+  "artifacts": {
+    "stdout": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Raw bytes containing the malformed token are not bundled with this illustrative example."
+    },
+    "stderr": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Stderr bytes are not bundled with this illustrative example."
+    },
+    "normalized_samples": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Parser refused to emit normalized samples after encountering malformed output."
+    }
+  },
+  "observation": {
+    "expected_sample_count": 104,
+    "observed_sample_count": 0,
+    "completeness": "none",
+    "samples": [],
+    "parser_diagnostics": [
+      "Synthetic negative control: raw output contained an invalid non-finite numeric token; do not convert it to zero or drop it silently."
+    ]
+  },
+  "summary": null,
+  "power_observation": null,
+  "integrity_findings": [],
+  "gate_results": [
+    {
+      "name": "native_output_parse",
+      "status": "invalid_output",
+      "evidence_id": "synthetic-fixture-only"
+    }
+  ],
+  "scoring": {
+    "eligible": false,
+    "service_energy_metric_wh_per_compliant_task_hour": null,
+    "non_rankable_reason": "invalid_output"
+  },
+  "evaluator": {
+    "name": "lighting-failure-receipt-fixture",
+    "source_revision": "synthetic-fixture-only",
+    "receipt_format_version": "0.1.0"
+  }
+}
