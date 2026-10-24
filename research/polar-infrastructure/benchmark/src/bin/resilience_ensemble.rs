@@ -442,7 +442,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
     }
 
     Ok(EnsembleReport {
-        schema_version: "0.3.0",
+        schema_version: "0.4.0",
         report_kind: "polar-resilience-ensemble-report",
         evidence_class: "synthetic_only",
         cvar_confidence: input.cvar_confidence,
@@ -556,7 +556,7 @@ mod tests {
     #[test]
     fn aggregate_reports_expected_and_tail_risk_without_raising_evidence_tier() {
         let report = aggregate(&fixture()).expect("fixture should aggregate");
-        assert_eq!(report.schema_version, "0.3.0");
+        assert_eq!(report.schema_version, "0.4.0");
         assert_eq!(report.evidence_class, "synthetic_only");
         assert_eq!(report.result_scope, "weighted_synthetic_scenario_aggregation_not_physical_validation");
         assert_eq!(report.scenario_count, 2);
