@@ -82,6 +82,29 @@ fn required_u64(value: &Value, key: &str) -> Result<u64, Box<dyn Error>> {
         .ok_or_else(|| invalid(format!("missing unsigned field {key}")))
 }
 
+fn validate_forecast_availability(
+    forecasts: &Value,
+    decision_time_index: u64,
+) -> Result<(), Box<dyn Error>> {
+    if forecasts.is_null() {
+        return Ok(());
+    }
+    let forecasts = forecasts.as_object()
+        .ok_or_else(|| invalid("available_forecast must be an object"))?;
+    for (forecast_name, forecast) in forecasts {
+        let available_at = required_u64(forecast, "available_at_time_index")?;
+        if available_at > decision_time_index {
+            return Err(invalid(format!(
+                "forecast {forecast_name} was not available at decision time {decision_time_index}"
+            )));
+        }
+        if forecast.get("value").is_none() {
+            return Err(invalid(format!("forecast {forecast_name} has no value")));
+        }
+    }
+    Ok(())
+}
+
 fn canonical_prefix_signature(prefix: &Value) -> Result<String, Box<dyn Error>> {
     let time_index = required_u64(prefix, "time_index")?;
     let observable_state = prefix.get("observable_state")
@@ -89,29 +112,32 @@ fn canonical_prefix_signature(prefix: &Value) -> Result<String, Box<dyn Error>> 
     if !observable_state.is_object() {
         return Err(invalid("observable_state must be an object"));
     }
-    // Only policy-visible context participates. A prefix ID and information-set
-    // label are deliberately excluded so neither can vouch for itself.
     let available_forecast = prefix.get("available_forecast").cloned().unwrap_or(Value::Null);
-    if !available_forecast.is_null() {
-        let forecasts = available_forecast.as_object()
-            .ok_or_else(|| invalid("available_forecast must be an object"))?;
-        for (forecast_name, forecast) in forecasts {
-            let available_at = required_u64(forecast, "available_at_time_index")?;
-            if available_at > time_index {
-                return Err(invalid(format!(
-                    "forecast {forecast_name} was not available at decision time {time_index}"
-                )));
-            }
-            if forecast.get("value").is_none() {
-                return Err(invalid(format!("forecast {forecast_name} has no value")));
-            }
-        }
+    validate_forecast_availability(&available_forecast, time_index)?;
+
+    let history = prefix.get("observable_history").and_then(Value::as_array)
+        .ok_or_else(|| invalid("observable_history must be an array"))?;
+    if history.len() != (time_index as usize).saturating_add(1) {
+        return Err(invalid("observable_history is incomplete for its time index"));
     }
-    let canonical = json!({
-        "time_index": time_index,
-        "observable_state": observable_state,
-        "available_forecast": available_forecast
-    });
+    for (expected_time, entry) in history.iter().enumerate() {
+        let entry_time = required_u64(entry, "time_index")?;
+        if entry_time != expected_time as u64 || entry_time > time_index {
+            return Err(invalid("observable_history has a missing, duplicate, or future time index"));
+        }
+        let forecasts = entry.get("available_forecast").cloned().unwrap_or(Value::Null);
+        validate_forecast_availability(&forecasts, entry_time)?;
+    }
+    let last = history.last().ok_or_else(|| invalid("observable_history is empty"))?;
+    if last.get("observable_state") != Some(observable_state)
+        || last.get("available_forecast").cloned().unwrap_or(Value::Null) != available_forecast
+    {
+        return Err(invalid("current observable state/forecast does not match the end of observable_history"));
+    }
+
+    // Hash the full policy-visible history, including committed earlier actions,
+    // rather than only the current state. Prefix labels are deliberately excluded.
+    let canonical = json!({ "observable_history": history });
     let bytes = serde_json::to_vec(&canonical)?;
     Ok(sha256_hex(&bytes))
 }
@@ -570,9 +596,10 @@ mod tests {
     #[test]
     fn future_forecast_is_rejected_at_the_decision_boundary() {
         let mut f = fixture();
-        f["observable_prefixes"].as_array_mut().unwrap().iter_mut()
-            .find(|p| p["prefix_id"].as_str() == Some("common-before-reveal")).unwrap()
-            ["available_forecast"]["future_grid_state"]["available_at_time_index"] = Value::from(1);
+        let common = f["observable_prefixes"].as_array_mut().unwrap().iter_mut()
+            .find(|p| p["prefix_id"].as_str() == Some("common-before-reveal")).unwrap();
+        common["available_forecast"]["future_grid_state"]["available_at_time_index"] = Value::from(1);
+        common["observable_history"][0]["available_forecast"]["future_grid_state"]["available_at_time_index"] = Value::from(1);
         assert!(report_for(&f).is_err());
     }
 
