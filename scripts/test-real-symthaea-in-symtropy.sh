@@ -74,6 +74,11 @@ if [ "${STFR_CHECK_NANODRONE_METRICS:-0}" = "1" ]; then
   cargo test --manifest-path "$integration_manifest" --example nanodrone_metric_receipt
   cargo check --manifest-path "$integration_manifest" --example nanodrone_metric_receipt
 fi
+
+if [ "${STFR_CHECK_NANODRONE_TRUTH_JOIN:-0}" = "1" ]; then
+  cargo test --manifest-path "$integration_manifest" --example nanodrone_truth_window_join
+  cargo check --manifest-path "$integration_manifest" --example nanodrone_truth_window_join
+fi
 if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
   out="${STFB_OUTPUT_PATH:-$SYMTROPY_PATH/symthaea-symtropy-flight-transfer.json}"
   cargo run --manifest-path "$integration_manifest" --example paired_flight_transfer > "$out"
