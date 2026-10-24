@@ -133,6 +133,89 @@ pub fn summarize_illuminance_grid(
     })
 }
 
+/// A defensible pointwise interval for illuminance, in lux. The interval's
+/// meaning (hard bound, expanded measurement uncertainty, or calibrated
+/// prediction interval) must be recorded by the run manifest.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct IlluminanceInterval {
+    pub lower_lx: f64,
+    pub upper_lx: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RobustGridSummary {
+    pub lower_average_lx: f64,
+    pub upper_average_lx: f64,
+    pub minimum_lower_lx: f64,
+    pub maximum_upper_lx: f64,
+    /// Conservative lower bound: min(pointwise lower) / mean(pointwise upper).
+    pub conservative_minimum_to_average_uniformity: f64,
+}
+
+/// Derive conservative summaries from pointwise intervals. This bounds the
+/// whole sampled grid only under the declared interval semantics; it does not
+/// establish simultaneous coverage or interpolate between grid points.
+pub fn summarize_illuminance_bounds(
+    intervals: &[IlluminanceInterval],
+    expected_points: usize,
+) -> Result<RobustGridSummary, GridError> {
+    if expected_points == 0 {
+        return Err(GridError::ZeroExpectedPoints);
+    }
+    if intervals.is_empty() {
+        return Err(GridError::EmptyGrid);
+    }
+    if intervals.len() != expected_points {
+        return Err(GridError::PointCountMismatch);
+    }
+    if intervals.iter().any(|interval| {
+        !interval.lower_lx.is_finite()
+            || !interval.upper_lx.is_finite()
+            || interval.lower_lx < 0.0
+            || interval.upper_lx < interval.lower_lx
+    }) {
+        return Err(GridError::InvalidSample);
+    }
+
+    let mut lower_sum = 0.0_f64;
+    let mut upper_sum = 0.0_f64;
+    let mut minimum_lower = f64::INFINITY;
+    let mut maximum_upper = f64::NEG_INFINITY;
+    for interval in intervals {
+        lower_sum += interval.lower_lx;
+        upper_sum += interval.upper_lx;
+        minimum_lower = minimum_lower.min(interval.lower_lx);
+        maximum_upper = maximum_upper.max(interval.upper_lx);
+    }
+    let lower_average = lower_sum / intervals.len() as f64;
+    let upper_average = upper_sum / intervals.len() as f64;
+    if !lower_sum.is_finite()
+        || !upper_sum.is_finite()
+        || !lower_average.is_finite()
+        || !upper_average.is_finite()
+        || !minimum_lower.is_finite()
+        || !maximum_upper.is_finite()
+    {
+        return Err(GridError::NonFiniteAggregate);
+    }
+    let conservative_uniformity = if upper_average > 0.0 {
+        minimum_lower / upper_average
+    } else {
+        0.0
+    };
+    if !conservative_uniformity.is_finite() {
+        return Err(GridError::NonFiniteAggregate);
+    }
+
+    Ok(RobustGridSummary {
+        lower_average_lx: lower_average,
+        upper_average_lx: upper_average,
+        minimum_lower_lx: minimum_lower,
+        maximum_upper_lx: maximum_upper,
+        conservative_minimum_to_average_uniformity: conservative_uniformity,
+    })
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EvaluationStatus {
     Compliant,
@@ -368,6 +451,145 @@ pub fn evaluate(candidate: &CandidateObservation, limits: &CaseLimits) -> Evalua
     }
 }
 
+/// Candidate values for a conservative interval-based evaluation.
+///
+/// Energy and peak power are upper bounds. Required quality gates still need
+/// their own evidence; this evaluator never infers color, glare, flicker,
+/// thermal, or product-safety compliance from illuminance intervals.
+#[derive(Clone, Debug)]
+pub struct RobustCandidateObservation {
+    pub candidate_id: String,
+    pub energy_upper_bound_wh: f64,
+    pub observed_hours: f64,
+    pub compliant_task_hours: f64,
+    pub peak_wall_power_upper_bound_w: f64,
+    pub illuminance_bounds_lx: Vec<IlluminanceInterval>,
+    pub gates: Vec<GateResult>,
+}
+
+#[derive(Clone, Debug)]
+pub struct RobustEvaluation {
+    pub candidate_id: String,
+    pub status: EvaluationStatus,
+    pub average_wall_power_upper_bound_w: Option<f64>,
+    pub illuminance: Option<RobustGridSummary>,
+    pub energy_upper_bound_wh_per_compliant_task_hour: Option<f64>,
+    pub reason_codes: Vec<String>,
+}
+
+/// Evaluate conservative bounds rather than a nominal point estimate.
+///
+/// A candidate is robustly feasible for this case only if lower-bound
+/// illuminance and uniformity satisfy the frozen requirements, upper-bound
+/// power stays within limits, and every required independent gate passes.
+pub fn evaluate_robust(
+    candidate: &RobustCandidateObservation,
+    limits: &CaseLimits,
+) -> RobustEvaluation {
+    let invalid = |reason: &str| RobustEvaluation {
+        candidate_id: candidate.candidate_id.clone(),
+        status: EvaluationStatus::InvalidInput,
+        average_wall_power_upper_bound_w: None,
+        illuminance: None,
+        energy_upper_bound_wh_per_compliant_task_hour: None,
+        reason_codes: vec![reason.to_owned()],
+    };
+
+    if candidate.candidate_id.trim().is_empty() {
+        return invalid("empty_candidate_id");
+    }
+    if !valid_limits(limits) {
+        return invalid("invalid_case_limits");
+    }
+    if !finite_nonnegative(candidate.energy_upper_bound_wh)
+        || !candidate.observed_hours.is_finite()
+        || candidate.observed_hours <= 0.0
+        || !finite_nonnegative(candidate.compliant_task_hours)
+        || candidate.compliant_task_hours > candidate.observed_hours + 1.0e-9
+        || !finite_nonnegative(candidate.peak_wall_power_upper_bound_w)
+        || candidate.energy_upper_bound_wh
+            > candidate.peak_wall_power_upper_bound_w * candidate.observed_hours + 1.0e-6
+    {
+        return invalid("invalid_numeric_observation");
+    }
+
+    let illuminance = match summarize_illuminance_bounds(
+        &candidate.illuminance_bounds_lx,
+        limits.expected_illuminance_points,
+    ) {
+        Ok(summary) => summary,
+        Err(error) => return invalid(error.as_str()),
+    };
+    let average_power_upper = candidate.energy_upper_bound_wh / candidate.observed_hours;
+    let mut reasons = Vec::new();
+    let mut numeric_failure = false;
+
+    if illuminance.lower_average_lx < limits.average_illuminance_min_lx {
+        numeric_failure = true;
+        reasons.push("lower_bound_average_illuminance_below_target".to_owned());
+    }
+    if illuminance.minimum_lower_lx < limits.minimum_illuminance_min_lx {
+        numeric_failure = true;
+        reasons.push("lower_bound_minimum_illuminance_below_target".to_owned());
+    }
+    if illuminance.conservative_minimum_to_average_uniformity
+        < limits.minimum_to_average_uniformity_min
+    {
+        numeric_failure = true;
+        reasons.push("conservative_uniformity_below_target".to_owned());
+    }
+    if candidate.peak_wall_power_upper_bound_w > limits.maximum_peak_power_w {
+        numeric_failure = true;
+        reasons.push("upper_bound_peak_power_exceeds_limit".to_owned());
+    }
+    if average_power_upper > limits.maximum_average_power_w {
+        numeric_failure = true;
+        reasons.push("upper_bound_average_power_exceeds_limit".to_owned());
+    }
+
+    let gate_status = status_from_required_gates(
+        &limits.required_gate_names,
+        &candidate.gates,
+        &mut reasons,
+    );
+    if gate_status == EvaluationStatus::InvalidInput {
+        return RobustEvaluation {
+            candidate_id: candidate.candidate_id.clone(),
+            status: gate_status,
+            average_wall_power_upper_bound_w: Some(average_power_upper),
+            illuminance: Some(illuminance),
+            energy_upper_bound_wh_per_compliant_task_hour: None,
+            reason_codes: reasons,
+        };
+    }
+
+    let status = if numeric_failure || gate_status == EvaluationStatus::NonCompliant {
+        EvaluationStatus::NonCompliant
+    } else {
+        gate_status
+    };
+    let status = if status == EvaluationStatus::Compliant && candidate.compliant_task_hours <= 0.0 {
+        reasons.push("zero_compliant_task_hours".to_owned());
+        EvaluationStatus::NotEvaluated
+    } else {
+        status
+    };
+    let energy_metric = if status == EvaluationStatus::Compliant {
+        Some(candidate.energy_upper_bound_wh / candidate.compliant_task_hours)
+    } else {
+        None
+    };
+
+    RobustEvaluation {
+        candidate_id: candidate.candidate_id.clone(),
+        status,
+        average_wall_power_upper_bound_w: Some(average_power_upper),
+        illuminance: Some(illuminance),
+        energy_upper_bound_wh_per_compliant_task_hour: energy_metric,
+        reason_codes: reasons,
+    }
+}
+
 /// True only when vector a Pareto-dominates vector b for equal-length, finite
 /// minimization vectors. Missing objectives must be handled before this call.
 pub fn dominates_minimization(a: &[f64], b: &[f64]) -> bool {
@@ -423,6 +645,95 @@ mod tests {
                 })
                 .collect(),
         }
+    }
+
+    fn passing_robust_candidate() -> RobustCandidateObservation {
+        RobustCandidateObservation {
+            candidate_id: "synthetic-robust-candidate".to_owned(),
+            energy_upper_bound_wh: 8.0,
+            observed_hours: 1.0,
+            compliant_task_hours: 1.0,
+            peak_wall_power_upper_bound_w: 10.0,
+            illuminance_bounds_lx: vec![
+                IlluminanceInterval { lower_lx: 510.0, upper_lx: 550.0 };
+                104
+            ],
+            gates: limits()
+                .required_gate_names
+                .iter()
+                .map(|name| GateResult {
+                    name: name.clone(),
+                    status: GateStatus::Pass,
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn interval_summary_uses_conservative_bounds() {
+        let summary = summarize_illuminance_bounds(
+            &[
+                IlluminanceInterval { lower_lx: 8.0, upper_lx: 12.0 },
+                IlluminanceInterval { lower_lx: 18.0, upper_lx: 22.0 },
+            ],
+            2,
+        )
+        .unwrap();
+        assert_eq!(summary.lower_average_lx, 13.0);
+        assert_eq!(summary.upper_average_lx, 17.0);
+        assert_eq!(summary.minimum_lower_lx, 8.0);
+        assert_eq!(summary.maximum_upper_lx, 22.0);
+        assert!((summary.conservative_minimum_to_average_uniformity - (8.0 / 17.0)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn inverted_or_non_finite_interval_is_rejected() {
+        assert_eq!(
+            summarize_illuminance_bounds(
+                &[IlluminanceInterval { lower_lx: 20.0, upper_lx: 10.0 }],
+                1
+            ),
+            Err(GridError::InvalidSample)
+        );
+        assert_eq!(
+            summarize_illuminance_bounds(
+                &[IlluminanceInterval { lower_lx: 0.0, upper_lx: f64::INFINITY }],
+                1
+            ),
+            Err(GridError::InvalidSample)
+        );
+    }
+
+    #[test]
+    fn robust_evaluation_passes_only_on_conservative_bounds() {
+        let result = evaluate_robust(&passing_robust_candidate(), &limits());
+        assert_eq!(result.status, EvaluationStatus::Compliant);
+        assert_eq!(
+            result.energy_upper_bound_wh_per_compliant_task_hour,
+            Some(8.0)
+        );
+    }
+
+    #[test]
+    fn robust_evaluation_rejects_design_that_only_passes_at_midpoint() {
+        let mut candidate = passing_robust_candidate();
+        candidate.illuminance_bounds_lx[0] =
+            IlluminanceInterval { lower_lx: 280.0, upper_lx: 800.0 };
+        let result = evaluate_robust(&candidate, &limits());
+        assert_eq!(result.status, EvaluationStatus::NonCompliant);
+        assert_eq!(result.energy_upper_bound_wh_per_compliant_task_hour, None);
+        assert!(result.reason_codes.contains(
+            &"lower_bound_minimum_illuminance_below_target".to_owned()
+        ));
+    }
+
+    #[test]
+    fn robust_evaluation_keeps_missing_gate_unknown() {
+        let mut candidate = passing_robust_candidate();
+        candidate.gates.retain(|gate| gate.name != "flicker");
+        let result = evaluate_robust(&candidate, &limits());
+        assert_eq!(result.status, EvaluationStatus::Unknown);
+        assert_eq!(result.energy_upper_bound_wh_per_compliant_task_hour, None);
     }
 
     #[test]
