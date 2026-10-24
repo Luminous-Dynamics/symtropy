@@ -132,6 +132,23 @@ fn prediction_key(field: &str, horizon: usize) -> String {
     format!("{field}_pred_h{horizon}")
 }
 
+fn input_state_key(field: &str) -> String {
+    format!("x0_{field}")
+}
+
+fn motor_sequence_key(field: &str, input_step: usize) -> String {
+    format!("{field}_input_t{input_step}")
+}
+
+fn conditioning_column_names(mode: OrientationMode) -> Vec<String> {
+    let mut columns = vec!["x0_t".to_owned()];
+    columns.extend(state_fields(mode).iter().map(|field| input_state_key(field)));
+    columns.extend(MOTOR_INPUT_FIELDS.iter().flat_map(|field|
+        (0..HORIZON).map(move |step| motor_sequence_key(field, step))
+    ));
+    columns
+}
+
 fn required_numeric_columns(mode: OrientationMode, complete_targets: bool) -> HashSet<String> {
     let mut columns = HashSet::new();
     columns.insert("t".to_owned());
@@ -430,15 +447,30 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
         .count();
     if motor_input_count != 0 && motor_input_count != MOTOR_INPUT_FIELDS.len() {
         return Err(invalid_input(format!(
-            "{filename}: partial conditioning schema ({motor_input_count}/{} motor input columns); provide all four or none",
+            "{filename}: partial base motor-input schema ({motor_input_count}/{} columns); provide all four or none",
             MOTOR_INPUT_FIELDS.len()
         )).into());
     }
-    let has_complete_conditioning_signals = motor_input_count == MOTOR_INPUT_FIELDS.len();
+    let has_base_motor_inputs = motor_input_count == MOTOR_INPUT_FIELDS.len();
+
+    let conditioning_columns = conditioning_column_names(orientation_mode);
+    let conditioning_count = conditioning_columns.iter()
+        .filter(|column| header_indices.contains_key(column.as_str()))
+        .count();
+    if conditioning_count != 0 && conditioning_count != conditioning_columns.len() {
+        return Err(invalid_input(format!(
+            "{filename}: partial full-conditioning schema ({conditioning_count}/{} x0/input-sequence columns); provide all or none",
+            conditioning_columns.len()
+        )).into());
+    }
+    let has_complete_conditioning_signals = conditioning_count == conditioning_columns.len();
 
     let mut required = required_numeric_columns(orientation_mode, has_complete_window_truth);
-    if has_complete_conditioning_signals {
+    if has_base_motor_inputs {
         required.extend(MOTOR_INPUT_FIELDS.iter().map(|field| (*field).to_owned()));
+    }
+    if has_complete_conditioning_signals {
+        required.extend(conditioning_columns.iter().cloned());
     }
     // In quaternion mode, also require the selected true quaternion and predictions.
     // In rotation-vector mode the metric conversion is mathematical and needs only rotvecs.
@@ -536,18 +568,21 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
     };
 
     let conditioning_window_sha256 = if has_complete_conditioning_signals {
-        // Bind the current base state/time and the exact four motor inputs used by
-        // this prediction window; targets alone cannot prove like-for-like conditions.
+        // Match QuadDataset exactly: each horizon prediction is conditioned on x0
+        // at raw row i and the entire u_seq of 50 four-motor samples i..i+49.
+        // The old one-step motor columns alone are not enough to certify pairing.
         let mut hasher = Sha256::new();
-        hasher.update(b"symtropy-nanodrone-conditioning-windows-v1\0");
+        hasher.update(b"symtropy-nanodrone-conditioning-windows-v2\0");
         hasher.update((rows.len() as u64).to_le_bytes());
         for row in &rows {
-            hasher.update(row["t"].to_bits().to_le_bytes());
+            hasher.update(row["x0_t"].to_bits().to_le_bytes());
             for field in state_fields(orientation_mode) {
-                hasher.update(row[field].to_bits().to_le_bytes());
+                hasher.update(row[&input_state_key(field)].to_bits().to_le_bytes());
             }
-            for field in MOTOR_INPUT_FIELDS {
-                hasher.update(row[field].to_bits().to_le_bytes());
+            for input_step in 0..HORIZON {
+                for field in MOTOR_INPUT_FIELDS {
+                    hasher.update(row[&motor_sequence_key(field, input_step)].to_bits().to_le_bytes());
+                }
             }
         }
         Some(format!("{:x}", hasher.finalize()))
@@ -663,7 +698,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "evaluated_horizons": HORIZON,
             "sample_period_s": EXPECTED_DT_S,
             "ground_truth_pairing": "SHA-256 over each row timestamp and all h=1..50 target state values in fixed state-field/horizon order, hashing parsed IEEE-754 f64 bits in little-endian order; exact match required for cross-model pairing",
-            "conditioning_pairing": "when four motor input columns are present, SHA-256 over each row timestamp, current base-state channels, and m1_rads..m4_rads in fixed order; the comparator requires matching conditioning and target digests",
+            "conditioning_pairing": "SHA-256 over raw input state x0 and the complete four-channel 50-step motor-input sequence u_seq for every prediction window; a few scalar motor columns cannot certify identical conditioning",
             "metric_definitions": {
                 "position": "mean Euclidean norm of 3D position error, metres",
                 "linear_velocity": "mean Euclidean norm of 3D world-frame velocity error, metres/second",
