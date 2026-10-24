@@ -187,3 +187,16 @@ Before using any real held-out result for a state-of-the-art or industrial super
 
 The repository can implement receipt formats and deterministic checks without hosting secret data. Custody, access control and isolated execution are external operational controls and must not be implied by synthetic tests. This distinction is required for fair comparison with industry twins: otherwise one system may have tuned on its test campaigns while another is evaluated blind.
 
+
+
+## 16. Executable evaluation receipt contract — unsealed by default
+
+The first receipt implementation is deliberately narrower than a full secure evaluator. Schema: [`GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json`](./GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json). CLI: `audit-eval-receipt <receipt.json>`. It checks structural requirements, lowercase SHA-256 syntax, a salted test-set commitment field, group/split metadata, preregistration/freeze/submission/evaluation chronology, metric sample counts, and that declared calls and budget consumption do not exceed registered caps.
+
+Synthetic controls:
+
+- `evaluation-receipt-unsealed.synthetic.json`: structurally valid unsealed synthetic receipt; expected structural status PASS.
+- `evaluation-receipt-claimed-sealed.synthetic.json`: includes attestation-reference strings but claims `SEALED_CONFIRMATORY`; expected UNRESOLVED and verified class `UNSEALED_RETROSPECTIVE`.
+- `evaluation-receipt-budget-overrun.synthetic.json`: exceeds registered budget; expected FAIL.
+
+The auditor intentionally does **not** treat a reference string or self-declared flag as proof of an external signature, custody, or isolation. The claimed-sealed fixture remains unresolved even when the reference fields are filled. The schema/CLI therefore provide an initial receipt contract, not yet the independent custody mechanism requested in [GLASS-SEALED-EVAL-001 #2766](https://github.com/Luminous-Dynamics/symtropy/issues/2766). That issue owns trusted-key/attestation verification, isolated execution and hidden-label access controls. The public repo holds synthetic fixtures only; never commit actual concealed test labels or secrets.
