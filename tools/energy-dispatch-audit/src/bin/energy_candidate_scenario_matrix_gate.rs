@@ -162,6 +162,16 @@ fn verify_scenario_semantics(
             if parent_intervals.len() != child_intervals.len() || applicability != "applicable" {
                 return Err(invalid("demand-surge interval count/applicability mismatch"));
             }
+            let essential_ids = parent["services"].as_array()
+                .ok_or_else(|| invalid("parent service catalog missing"))?
+                .iter()
+                .filter(|service| service["essential"].as_bool() == Some(true))
+                .map(|service| service["service_id"].as_str().map(str::to_owned)
+                    .ok_or_else(|| invalid("essential service ID missing")))
+                .collect::<Result<Vec<_>, _>>()?;
+            if essential_ids.is_empty() {
+                return Err(invalid("demand surge has no explicitly essential service"));
+            }
             let mut quantity_count = 0_usize;
             for (before_interval, after_interval) in parent_intervals.iter().zip(child_intervals) {
                 let before = before_interval["service_requested"].as_array()
@@ -170,18 +180,26 @@ fn verify_scenario_semantics(
                     .ok_or_else(|| invalid("child service request list missing"))?;
                 if before.len() != after.len() { return Err(invalid("demand-surge service list length mismatch")); }
                 for (old, new) in before.iter().zip(after) {
+                    let service_id = old["service_id"].as_str()
+                        .ok_or_else(|| invalid("parent requested service ID missing"))?;
+                    if new["service_id"].as_str() != Some(service_id) {
+                        return Err(invalid("demand-surge transform changed service identity"));
+                    }
                     let amount = old["requested_quantity"].as_f64()
                         .ok_or_else(|| invalid("parent requested service quantity missing or non-numeric"))?;
-                    let doubled = new["requested_quantity"].as_f64()
+                    let observed = new["requested_quantity"].as_f64()
                         .ok_or_else(|| invalid("child requested service quantity missing or non-numeric"))?;
-                    if !amount.is_finite()
-                        || amount < 0.0
-                        || amount.fract() != 0.0
-                        || doubled != amount * 2.0
-                    {
-                        return Err(invalid("essential demand surge is not exactly 2x an integral parent load"));
+                    if !amount.is_finite() || amount < 0.0 || amount.fract() != 0.0 {
+                        return Err(invalid("parent requested service quantity must be an integral non-negative value"));
                     }
-                    quantity_count += 1;
+                    if essential_ids.iter().any(|id| id == service_id) {
+                        if observed != amount * 2.0 {
+                            return Err(invalid("essential demand surge is not exactly 2x the parent load"));
+                        }
+                        quantity_count += 1;
+                    } else if observed != amount {
+                        return Err(invalid("demand-surge transform altered a non-essential service"));
+                    }
                 }
             }
             if quantity_count == 0 { return Err(invalid("demand-surge case has no declared service quantities")); }
