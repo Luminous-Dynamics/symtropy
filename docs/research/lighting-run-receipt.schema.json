@@ -226,6 +226,60 @@
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "run_status": { "const": "compliant" } },
+        "required": ["run_status"]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "exit_code": { "const": 0 },
+              "timed_out": { "const": false }
+            },
+            "required": ["exit_code", "timed_out"]
+          },
+          "gate_results": {
+            "items": {
+              "properties": { "status": { "const": "pass" } },
+              "required": ["status"]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_tier": {
+            "enum": [
+              "calibrated_simulation",
+              "physical_prototype",
+              "independently_tested_product"
+            ]
+          }
+        },
+        "required": ["evidence_tier"]
+      },
+      "then": { "required": ["measurement"] }
+    },
+    {
+      "if": {
+        "properties": { "evidence_tier": { "const": "calibrated_simulation" } },
+        "required": ["evidence_tier"]
+      },
+      "then": {
+        "properties": {
+          "interval_evidence": {
+            "properties": { "basis": { "const": "calibrated_prediction_interval" } },
+            "required": ["basis"]
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "sha256": {
       "type": "string",
