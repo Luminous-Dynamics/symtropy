@@ -340,3 +340,16 @@ On identical starting data, candidate pools, label access, and total budgets, co
 Split by relationship graph, family, campaign/source study, and time/site where those splits match distinct deployment claims. Fit preprocessing, calibration, and thresholds without test-set information. Count assay setup, measurement failures, retries, wall-clock delay, compute, and human review. Report OOD performance gain per cost, cost to first independently qualified feasible candidate, false-feasible risk, abstention, and uncertainty/calibration metrics separately.
 
 **Do not claim policy improvement from calibration alone.** The preregistered primary endpoint must demonstrate improvement over random sampling under the same total budget and compare against the strongest compatible DOE/novelty/cost-aware baseline. If uncertainty does not improve acquisition, report that result and prefer the simpler policy when decision value is equivalent. A synthetic replay can validate evaluator arithmetic; only admitted, rights-cleared empirical or prospective data can support empirical superiority claims.
+
+
+### Executable synthetic policy-comparison slice (v0.1)
+
+The first comparator harness is now present in the standalone Rust tool:
+
+`cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-acquisition-policies tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json`
+
+Input contract: [glass-acquisition-policy-comparison-v0.1.schema.json](./glass-acquisition-policy-comparison-v0.1.schema.json). The fixture gives every candidate four explicit, non-negative *synthetic selection proxies*: uncalibrated uncertainty, calibrated uncertainty, feature-space novelty, and estimated VOI. Sixteen predeclared seeds produce a reproducible random-selection reference. Every policy is filtered through the exact same cost and duration caps; the evaluator then uses hidden scenario-to-observation mappings only to score post-selection regret.
+
+The hand-built known answer intentionally demonstrates a failure mode: the calibrated-uncertainty proxy selects `measure-noise`, whose observations do not distinguish scenarios and reduce worst-case regret by **0 synthetic units**. Novelty and cost-aware estimated VOI select `measure-regime`, which reduces worst-case regret by **5 synthetic utility units** in this finite fixture. The high-scored `measure-expensive` option is excluded by the shared budget cap. This is a deliberately constructed arithmetic control—not measured policy performance, not a trained calibrated model, and not evidence that novelty or VOI will outperform uncertainty on a real dataset.
+
+The command emits a raw-input SHA-256 and per-policy results including selected measurement, seed (for random), cost, duration, observation-group count, post-measurement regret, regret reduction, and unresolved status. Its purpose is to make policy comparisons reproducible and expose score-versus-value failures; it does not sandbox arbitrary selector code against a malicious producer. Empirical comparisons still require frozen OOD splits, rights-cleared data, and the policy-specific evaluation protocol above.
