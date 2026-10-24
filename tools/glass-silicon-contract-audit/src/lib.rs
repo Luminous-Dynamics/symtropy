@@ -3641,3 +3641,551 @@ mod false_feasible_bound_tests {
         }));
     }
 }
+
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct RelationshipGraphAuditReport {
+    pub status: String,
+    pub audit_kind: String,
+    pub schema_version: Option<u64>,
+    pub benchmark_id: Option<String>,
+    pub evidence_class: Option<String>,
+    pub relation_profile: Option<String>,
+    pub graph_sha256: Option<String>,
+    pub nodes_checked: usize,
+    pub edges_checked: usize,
+    pub assignments_checked: usize,
+    pub split_counts: BTreeMap<String, usize>,
+    pub witness_paths: Vec<Vec<String>>,
+    pub findings: Vec<String>,
+    pub claim_ceiling: String,
+}
+
+impl RelationshipGraphAuditReport {
+    pub fn exit_code(&self) -> i32 {
+        match self.status.as_str() {
+            "PASS" => 0,
+            "FAIL" => 2,
+            _ => 3,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct RelationshipGraphEdge {
+    source_id: String,
+    target_id: String,
+    edge_type: String,
+    state: String,
+}
+
+const RELATIONSHIP_SPLITS: [&str; 3] = ["train", "validation", "test"];
+const RELATIONSHIP_STATES: [&str; 4] = ["verified", "candidate", "contradicted", "unknown"];
+
+fn relationship_exact_keys(value: &Value, keys: &[&str]) -> bool {
+    let Some(object) = value.as_object() else {
+        return false;
+    };
+    object.keys().all(|key| keys.contains(&key.as_str()))
+        && keys.iter().all(|key| object.contains_key(*key))
+}
+
+fn relationship_stable_id(value: &str) -> bool {
+    !value.is_empty()
+        && value.chars().all(|ch| {
+            ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-' || ch == '_'
+        })
+}
+
+fn relationship_path(
+    adjacency: &BTreeMap<String, Vec<String>>,
+    start: &str,
+    goal: &str,
+) -> Option<Vec<String>> {
+    if start == goal {
+        return Some(vec![start.to_string()]);
+    }
+    let mut queue = std::collections::VecDeque::new();
+    let mut previous: BTreeMap<String, Option<String>> = BTreeMap::new();
+    previous.insert(start.to_string(), None);
+    queue.push_back(start.to_string());
+
+    while let Some(node) = queue.pop_front() {
+        let mut neighbors = adjacency.get(&node).cloned().unwrap_or_default();
+        neighbors.sort();
+        neighbors.dedup();
+        for neighbor in neighbors {
+            if previous.contains_key(&neighbor) {
+                continue;
+            }
+            previous.insert(neighbor.clone(), Some(node.clone()));
+            if neighbor == goal {
+                let mut path = vec![goal.to_string()];
+                let mut cursor = goal.to_string();
+                while let Some(Some(parent)) = previous.get(&cursor) {
+                    path.push(parent.clone());
+                    cursor = parent.clone();
+                }
+                path.reverse();
+                return Some(path);
+            }
+            queue.push_back(neighbor);
+        }
+    }
+    None
+}
+
+fn relationship_components(
+    node_ids: &BTreeSet<String>,
+    adjacency: &BTreeMap<String, Vec<String>>,
+) -> Vec<Vec<String>> {
+    let mut visited = BTreeSet::new();
+    let mut components = Vec::new();
+    for start in node_ids {
+        if !visited.insert(start.clone()) {
+            continue;
+        }
+        let mut component = Vec::new();
+        let mut queue = std::collections::VecDeque::new();
+        queue.push_back(start.clone());
+        while let Some(node) = queue.pop_front() {
+            component.push(node.clone());
+            let mut neighbors = adjacency.get(&node).cloned().unwrap_or_default();
+            neighbors.sort();
+            neighbors.dedup();
+            for neighbor in neighbors {
+                if visited.insert(neighbor.clone()) {
+                    queue.push_back(neighbor);
+                }
+            }
+        }
+        component.sort();
+        components.push(component);
+    }
+    components
+}
+
+fn relationship_add_edge(
+    adjacency: &mut BTreeMap<String, Vec<String>>,
+    source_id: &str,
+    target_id: &str,
+) {
+    adjacency.entry(source_id.to_string()).or_default().push(target_id.to_string());
+    adjacency.entry(target_id.to_string()).or_default().push(source_id.to_string());
+}
+
+/// Audits a typed evidence graph and checks split isolation under an explicitly selected
+/// leakage-edge profile. Verified links create hard leakage constraints; candidate/unknown
+/// links that could connect different splits produce UNRESOLVED rather than being treated
+/// as absent. This audits supplied declarations only; it cannot establish real-world truth,
+/// data rights, or the scientific validity of the referenced evidence.
+pub fn audit_relationship_graph(graph: &Value) -> RelationshipGraphAuditReport {
+    let mut findings = Vec::new();
+    let mut witness_paths: Vec<Vec<String>> = Vec::new();
+    let mut hard_failure = false;
+    let mut unresolved = false;
+    let benchmark_id = graph.get("benchmark_id").and_then(Value::as_str).map(ToOwned::to_owned);
+    let evidence_class = graph.get("evidence_class").and_then(Value::as_str).map(ToOwned::to_owned);
+    let relation_profile = graph.get("relation_profile").and_then(Value::as_str).map(ToOwned::to_owned);
+    let schema_version = graph.get("schema_version").and_then(Value::as_u64);
+    let claim_ceiling = graph.get("claim_ceiling").and_then(Value::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("Relationship declaration and split-isolation control only; no source truth, legal rights, model quality, or physical effect is certified.")
+        .to_string();
+
+    let root_keys = [
+        "schema_version", "benchmark_id", "evidence_class", "claim_ceiling",
+        "relation_profile", "leakage_edge_types", "allowed_splits", "nodes", "edges", "assignments",
+    ];
+    if !relationship_exact_keys(graph, &root_keys) {
+        findings.push("RELATION_ROOT_KEYS:missing or unknown top-level fields".to_string());
+        hard_failure = true;
+    }
+    if schema_version != Some(1) {
+        findings.push("RELATION_SCHEMA_VERSION:schema_version must be integer 1".to_string());
+        hard_failure = true;
+    }
+    if benchmark_id.as_deref().map_or(true, |value| !relationship_stable_id(value)) {
+        findings.push("RELATION_BENCHMARK_ID:missing or invalid benchmark_id".to_string());
+        hard_failure = true;
+    }
+    if evidence_class.as_deref().map_or(true, |value| value.trim().is_empty()) {
+        findings.push("RELATION_EVIDENCE_CLASS:evidence_class must be a non-empty declared string".to_string());
+        hard_failure = true;
+    }
+    if relation_profile.as_deref().map_or(true, |value| !relationship_stable_id(value)) {
+        findings.push("RELATION_PROFILE:missing or invalid relation_profile".to_string());
+        hard_failure = true;
+    }
+    if graph.get("claim_ceiling").and_then(Value::as_str).map_or(true, |value| value.trim().is_empty()) {
+        findings.push("RELATION_CLAIM_CEILING:claim ceiling must be non-empty".to_string());
+        hard_failure = true;
+    }
+    if graph.get("allowed_splits").and_then(Value::as_array)
+        .map(|items| items.iter().filter_map(Value::as_str).collect::<Vec<_>>())
+        .as_deref() != Some(RELATIONSHIP_SPLITS.as_slice())
+    {
+        findings.push("RELATION_ALLOWED_SPLITS:split names must be exactly train, validation, test in that order".to_string());
+        hard_failure = true;
+    }
+
+    let leakage_types_value = graph.get("leakage_edge_types").and_then(Value::as_array);
+    let mut leakage_types = BTreeSet::new();
+    if let Some(items) = leakage_types_value {
+        for (index, item) in items.iter().enumerate() {
+            match item.as_str() {
+                Some(value) if relationship_stable_id(value) => {
+                    if !leakage_types.insert(value.to_string()) {
+                        findings.push(format!("RELATION_EDGE_PROFILE:duplicate leakage edge type at index {index}"));
+                        hard_failure = true;
+                    }
+                }
+                _ => {
+                    findings.push(format!("RELATION_EDGE_PROFILE:invalid leakage edge type at index {index}"));
+                    hard_failure = true;
+                }
+            }
+        }
+    } else {
+        findings.push("RELATION_EDGE_PROFILE:leakage_edge_types must be an array of strings".to_string());
+        hard_failure = true;
+    }
+    if leakage_types.is_empty() {
+        findings.push("RELATION_EDGE_PROFILE:at least one leakage edge type is required".to_string());
+        hard_failure = true;
+    }
+
+    let nodes_value = graph.get("nodes").and_then(Value::as_array);
+    let nodes_checked = nodes_value.map_or(0, Vec::len);
+    let mut node_ids = BTreeSet::new();
+    if nodes_value.map_or(true, Vec::is_empty) {
+        findings.push("RELATION_NODES:at least one node is required".to_string());
+        hard_failure = true;
+    }
+    if nodes_checked > 10000 {
+        findings.push("RELATION_NODE_LIMIT:maximum supported nodes is 10000".to_string());
+        hard_failure = true;
+    }
+    if let Some(nodes) = nodes_value {
+        for (index, node) in nodes.iter().enumerate() {
+            if !relationship_exact_keys(node, &["node_id", "node_kind"]) {
+                findings.push(format!("RELATION_NODE_KEYS:index {index} has missing or unknown fields"));
+                hard_failure = true;
+                continue;
+            }
+            let node_id = node.get("node_id").and_then(Value::as_str).unwrap_or("");
+            let node_kind = node.get("node_kind").and_then(Value::as_str).unwrap_or("");
+            if !relationship_stable_id(node_id) || !node_ids.insert(node_id.to_string()) {
+                findings.push(format!("RELATION_NODE_ID:index {index} has invalid or duplicate node_id"));
+                hard_failure = true;
+            }
+            if !relationship_stable_id(node_kind) {
+                findings.push(format!("RELATION_NODE_KIND:{node_id} has an invalid node_kind"));
+                hard_failure = true;
+            }
+        }
+    }
+
+    let edges_value = graph.get("edges").and_then(Value::as_array);
+    let edges_checked = edges_value.map_or(0, Vec::len);
+    if edges_value.map_or(true, Vec::is_empty) {
+        findings.push("RELATION_EDGES:empty relationship graph cannot substantiate split isolation".to_string());
+        unresolved = true;
+    }
+    if edges_checked > 50000 {
+        findings.push("RELATION_EDGE_LIMIT:maximum supported edges is 50000".to_string());
+        hard_failure = true;
+    }
+    let mut edges: Vec<RelationshipGraphEdge> = Vec::new();
+    if let Some(items) = edges_value {
+        for (index, edge) in items.iter().enumerate() {
+            if !relationship_exact_keys(edge, &["source_id", "target_id", "edge_type", "state", "evidence_refs"]) {
+                findings.push(format!("RELATION_EDGE_KEYS:index {index} has missing or unknown fields"));
+                hard_failure = true;
+                continue;
+            }
+            let source_id = edge.get("source_id").and_then(Value::as_str).unwrap_or("").to_string();
+            let target_id = edge.get("target_id").and_then(Value::as_str).unwrap_or("").to_string();
+            let edge_type = edge.get("edge_type").and_then(Value::as_str).unwrap_or("").to_string();
+            let state = edge.get("state").and_then(Value::as_str).unwrap_or("").to_string();
+            if !node_ids.contains(&source_id) || !node_ids.contains(&target_id) {
+                findings.push(format!("RELATION_EDGE_REFERENCE:index {index} references a missing node"));
+                hard_failure = true;
+                continue;
+            }
+            if source_id == target_id || !relationship_stable_id(&edge_type) {
+                findings.push(format!("RELATION_EDGE_IDENTITY:index {index} has a self-loop or invalid edge_type"));
+                hard_failure = true;
+                continue;
+            }
+            if !RELATIONSHIP_STATES.contains(&state.as_str()) {
+                findings.push(format!("RELATION_EDGE_STATE:index {index} has invalid state"));
+                hard_failure = true;
+                continue;
+            }
+            let evidence_refs = edge.get("evidence_refs").and_then(Value::as_array);
+            if evidence_refs.is_none() || evidence_refs.unwrap().iter().any(|item| item.as_str().map_or(true, |value| value.trim().is_empty())) {
+                findings.push(format!("RELATION_EDGE_EVIDENCE:index {index} evidence_refs must be an array of non-empty strings"));
+                hard_failure = true;
+                continue;
+            }
+            if state == "verified" && evidence_refs.unwrap().is_empty() {
+                findings.push(format!("RELATION_EDGE_EVIDENCE:index {index} verified relationship requires at least one evidence reference"));
+                hard_failure = true;
+                continue;
+            }
+            if state == "contradicted" && leakage_types.contains(&edge_type) {
+                findings.push(format!("RELATION_CONTRADICTED:{}->{} ({edge_type}) requires adjudication", source_id, target_id));
+                unresolved = true;
+            }
+            edges.push(RelationshipGraphEdge { source_id, target_id, edge_type, state });
+        }
+    }
+
+    let assignments_value = graph.get("assignments").and_then(Value::as_array);
+    let assignments_checked = assignments_value.map_or(0, Vec::len);
+    let mut assignments: BTreeMap<String, String> = BTreeMap::new();
+    let mut split_counts = RELATIONSHIP_SPLITS.iter()
+        .map(|split| (split.to_string(), 0usize))
+        .collect::<BTreeMap<_, _>>();
+    if assignments_value.map_or(true, Vec::is_empty) {
+        findings.push("RELATION_ASSIGNMENTS:at least one split assignment is required".to_string());
+        hard_failure = true;
+    }
+    if let Some(items) = assignments_value {
+        for (index, assignment) in items.iter().enumerate() {
+            if !relationship_exact_keys(assignment, &["node_id", "split"]) {
+                findings.push(format!("RELATION_ASSIGNMENT_KEYS:index {index} has missing or unknown fields"));
+                hard_failure = true;
+                continue;
+            }
+            let node_id = assignment.get("node_id").and_then(Value::as_str).unwrap_or("");
+            let split = assignment.get("split").and_then(Value::as_str).unwrap_or("");
+            if !node_ids.contains(node_id) {
+                findings.push(format!("RELATION_ASSIGNMENT_NODE:{node_id} does not reference a known node"));
+                hard_failure = true;
+                continue;
+            }
+            if !RELATIONSHIP_SPLITS.contains(&split) {
+                findings.push(format!("RELATION_ASSIGNMENT_SPLIT:{node_id} has invalid split"));
+                hard_failure = true;
+                continue;
+            }
+            if assignments.insert(node_id.to_string(), split.to_string()).is_some() {
+                findings.push(format!("RELATION_ASSIGNMENT_DUPLICATE:{node_id} is assigned more than once"));
+                hard_failure = true;
+                continue;
+            }
+            *split_counts.entry(split.to_string()).or_default() += 1;
+        }
+    }
+    for split in RELATIONSHIP_SPLITS {
+        if split_counts.get(split).copied().unwrap_or(0) == 0 {
+            findings.push(format!("RELATION_SPLIT_EMPTY:{split} has no assigned node"));
+            hard_failure = true;
+        }
+    }
+
+    let mut verified_adjacency: BTreeMap<String, Vec<String>> =
+        node_ids.iter().map(|id| (id.clone(), Vec::new())).collect();
+    let mut potential_adjacency = verified_adjacency.clone();
+    for edge in &edges {
+        if !leakage_types.contains(&edge.edge_type) {
+            continue;
+        }
+        match edge.state.as_str() {
+            "verified" => {
+                relationship_add_edge(&mut verified_adjacency, &edge.source_id, &edge.target_id);
+                relationship_add_edge(&mut potential_adjacency, &edge.source_id, &edge.target_id);
+            }
+            "candidate" | "unknown" => {
+                relationship_add_edge(&mut potential_adjacency, &edge.source_id, &edge.target_id);
+            }
+            "contradicted" => {}
+            _ => {}
+        }
+    }
+    for neighbors in verified_adjacency.values_mut() {
+        neighbors.sort();
+        neighbors.dedup();
+    }
+    for neighbors in potential_adjacency.values_mut() {
+        neighbors.sort();
+        neighbors.dedup();
+    }
+
+    let verified_components = relationship_components(&node_ids, &verified_adjacency);
+    for component in &verified_components {
+        let mut by_split: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        for node_id in component {
+            if let Some(split) = assignments.get(node_id) {
+                by_split.entry(split.clone()).or_default().push(node_id.clone());
+            }
+        }
+        if by_split.len() > 1 {
+            let split_names = by_split.keys().cloned().collect::<Vec<_>>();
+            for left_index in 0..split_names.len() {
+                for right_index in (left_index + 1)..split_names.len() {
+                    let left_split = &split_names[left_index];
+                    let right_split = &split_names[right_index];
+                    let left_node = &by_split[left_split][0];
+                    let right_node = &by_split[right_split][0];
+                    if let Some(path) = relationship_path(&verified_adjacency, left_node, right_node) {
+                        findings.push(format!(
+                            "RELATION_LEAKAGE:{}({left_split})<->{}({right_split}) via {}",
+                            left_node, right_node, path.join(" -> ")
+                        ));
+                        if witness_paths.len() < 100 {
+                            witness_paths.push(path);
+                        }
+                        hard_failure = true;
+                    }
+                }
+            }
+        }
+    }
+
+    let potential_components = relationship_components(&node_ids, &potential_adjacency);
+    for component in &potential_components {
+        let mut by_split: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        for node_id in component {
+            if let Some(split) = assignments.get(node_id) {
+                by_split.entry(split.clone()).or_default().push(node_id.clone());
+            }
+        }
+        if by_split.len() < 2 {
+            continue;
+        }
+        let split_names = by_split.keys().cloned().collect::<Vec<_>>();
+        for left_index in 0..split_names.len() {
+            for right_index in (left_index + 1)..split_names.len() {
+                let left_split = &split_names[left_index];
+                let right_split = &split_names[right_index];
+                let left_node = &by_split[left_split][0];
+                let right_node = &by_split[right_split][0];
+                if relationship_path(&verified_adjacency, left_node, right_node).is_none() {
+                    if let Some(path) = relationship_path(&potential_adjacency, left_node, right_node) {
+                        findings.push(format!(
+                            "RELATION_UNCERTAIN_CROSS_SPLIT:{}({left_split})<->{}({right_split}) via {}",
+                            left_node, right_node, path.join(" -> ")
+                        ));
+                        if witness_paths.len() < 100 {
+                            witness_paths.push(path);
+                        }
+                        unresolved = true;
+                    }
+                }
+            }
+        }
+    }
+
+    findings.sort();
+    findings.dedup();
+    let status = if hard_failure {
+        "FAIL"
+    } else if unresolved {
+        "UNRESOLVED"
+    } else {
+        "PASS"
+    };
+    RelationshipGraphAuditReport {
+        status: status.to_string(),
+        audit_kind: "relationship_graph_split_isolation".to_string(),
+        schema_version,
+        benchmark_id,
+        evidence_class,
+        relation_profile,
+        graph_sha256: None,
+        nodes_checked,
+        edges_checked,
+        assignments_checked,
+        split_counts,
+        witness_paths,
+        findings,
+        claim_ceiling,
+    }
+}
+
+#[cfg(test)]
+mod relationship_graph_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn valid_graph() -> Value {
+        serde_json::from_str(include_str!("../fixtures/relationship-graph-valid.synthetic.json"))
+            .expect("valid relationship graph fixture must parse")
+    }
+
+    fn transitive_leak_graph() -> Value {
+        serde_json::from_str(include_str!("../fixtures/relationship-graph-transitive-leak.synthetic.json"))
+            .expect("transitive leakage fixture must parse")
+    }
+
+    fn uncertain_graph() -> Value {
+        serde_json::from_str(include_str!("../fixtures/relationship-graph-uncertain-link.synthetic.json"))
+            .expect("uncertain relationship fixture must parse")
+    }
+
+    #[test]
+    fn valid_graph_passes_without_reject_all() {
+        let report = audit_relationship_graph(&valid_graph());
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.nodes_checked, 6);
+        assert_eq!(report.edges_checked, 3);
+        assert_eq!(report.assignments_checked, 3);
+    }
+
+    #[test]
+    fn transitive_provenance_path_is_detected_despite_disjoint_assignments() {
+        let report = audit_relationship_graph(&transitive_leak_graph());
+        assert_eq!(report.status, "FAIL", "{:?}", report.findings);
+        assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_LEAKAGE:")));
+        assert!(report.witness_paths.iter().any(|path| path == &vec![
+            "sample-test".to_string(), "derived-table".to_string(), "sample-train".to_string()
+        ]));
+    }
+
+    #[test]
+    fn candidate_or_unknown_cross_split_link_is_unresolved_not_silently_absent() {
+        let report = audit_relationship_graph(&uncertain_graph());
+        assert_eq!(report.status, "UNRESOLVED", "{:?}", report.findings);
+        assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_UNCERTAIN_CROSS_SPLIT:")));
+    }
+
+    #[test]
+    fn missing_edge_evidence_fails_closed_for_verified_links() {
+        let mut graph = valid_graph();
+        graph["edges"][0]["evidence_refs"] = json!([]);
+        let report = audit_relationship_graph(&graph);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_EDGE_EVIDENCE:")));
+    }
+
+    #[test]
+    fn missing_node_reference_fails_closed() {
+        let mut graph = valid_graph();
+        graph["edges"][0]["target_id"] = json!("unrecorded-node");
+        let report = audit_relationship_graph(&graph);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_EDGE_REFERENCE:")));
+    }
+
+    #[test]
+    fn empty_graph_is_not_mistaken_for_zero_leakage() {
+        let mut graph = valid_graph();
+        graph["edges"] = json!([]);
+        let report = audit_relationship_graph(&graph);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_EDGES:")));
+    }
+
+    #[test]
+    fn unknown_relationship_state_is_not_accepted_as_verified() {
+        let mut graph = valid_graph();
+        graph["edges"][0]["state"] = json!("unknown");
+        graph["edges"][0]["evidence_refs"] = json!([]);
+        let report = audit_relationship_graph(&graph);
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert!(report.witness_paths.is_empty());
+    }
+}
