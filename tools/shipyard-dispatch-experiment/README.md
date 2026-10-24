@@ -9,9 +9,15 @@ separate.
 - Evaluator receives source-owned completed-operation intervals and evaluator
   outage truth separately.
 - Each dispatch rule receives the identical policy input.
-- Every rule's full output—including partial plans and rejected schedules—is
-  retained together with independent diagnostics and separately recomputed
-  makespan, tardiness and occupied ticks. No weighted "winner score" is emitted.
+- Every rule's output, including partial plans and rejected schedules, is retained
+  in content-addressed candidate-schedule and independent-audit sidecar artifacts.
+- A result-ledger v0 JSONL row points to the exact sidecar SHA-256 digests and
+  stores separate metrics for makespan, tardiness, and occupied resource ticks.
+  No weighted "winner score" is emitted.
+- An abstract audit pass is recorded as `incomplete`, not `feasible`, because
+  geometry, causal replay, and receipt-integrity gates are not run by this adapter.
+  The synthetic example declares an illustrative budget profile but does not
+  enforce its time or compute-unit limits; the outer benchmark runner must do that.
 
 ## Run
 
@@ -21,6 +27,12 @@ separate.
 The included workload and outages are synthetic. This is a plumbing and
 counterexample harness, not a yard-calibrated benchmark or a result against
 industrial state of the art.
+
+The example prints JSONL records to stdout and writes content-addressed
+candidate/audit sidecars to `SHIPYARD_EVIDENCE_DIR` (or a process-specific
+temporary directory). The ledger references their exact SHA-256 values. An outer
+runner should preserve the JSONL plus those sidecars and bind both to an exact
+source revision and the immutable episode/tape digests.
 
 ## Interpretation
 
