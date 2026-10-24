@@ -65,16 +65,31 @@ jobs:
           mkdir -p "$SHIPYARD_EVIDENCE_DIR"
           cargo run --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --example compare_synthetic_rules > /tmp/shipyard-result-ledger.jsonl
           test "$(wc -l < /tmp/shipyard-result-ledger.jsonl)" -eq 4
-          jq -s -e 'length == 4 and all(.[]; .ledger_contract_version == "shipyard-result-ledger-v0" and .record_kind == "raw_run_record" and .synthetic_example == true and .status == "incomplete" and .hard_gates.geometry == "not_evaluated" and .hard_gates.causality == "not_evaluated" and (.artifact_digests.candidate_schedule_sha256 | length) == 64 and (.artifact_digests.independent_audit_sha256 | length) == 64 and ((keys | sort) == ["artifact_digests","benchmark_release","budget_profile","episode_id","evaluator_revision","hard_gates","input_digests","ledger_contract_version","method_id","metrics","record_id","record_kind","replicate_id","status","status_reason","supersedes_record_id","synthetic_example"]))' /tmp/shipyard-result-ledger.jsonl
+          jq -s -e 'length == 4 and all(.[]; .ledger_contract_version == "shipyard-result-ledger-v0" and .record_kind == "raw_run_record" and .synthetic_example == true and .status == "incomplete" and .hard_gates.geometry == "not_evaluated" and .hard_gates.causality == "not_evaluated" and (.artifact_digests.method_config_sha256 | length) == 64 and (.artifact_digests.candidate_schedule_sha256 | length) == 64 and (.artifact_digests.independent_audit_sha256 | length) == 64 and ((keys | sort) == ["artifact_digests","benchmark_release","budget_profile","episode_id","evaluator_revision","hard_gates","input_digests","ledger_contract_version","method_id","metrics","record_id","record_kind","replicate_id","status","status_reason","supersedes_record_id","synthetic_example"]))' /tmp/shipyard-result-ledger.jsonl
           jq -s -e '([.[].method_id | split("::")[0]] | sort) == ["critical_ratio","earliest_due_date","fixed_order","least_slack"] and ([.[].input_digests.method_config_sha256] | unique | length) == 4' /tmp/shipyard-result-ledger.jsonl
           test "$(jq -r '.[0].input_digests.initial_state_sha256' /tmp/shipyard-result-ledger.jsonl)" = "$(sha256sum tools/shipyard-dispatch-experiment/fixtures/synthetic-state-v0.json | cut -d ' ' -f 1)"
           test "$(jq -r '.[0].input_digests.disturbance_tape_sha256' /tmp/shipyard-result-ledger.jsonl)" = "$(sha256sum tools/shipyard-dispatch-experiment/fixtures/synthetic-disturbance-tape-v0.json | cut -d ' ' -f 1)"
           test "$(jq -r '.[0].evaluator_revision' /tmp/shipyard-result-ledger.jsonl)" = "$SHIPYARD_SOURCE_REVISION"
-          test "$(find "$SHIPYARD_EVIDENCE_DIR" -type f -name '*.json' | wc -l)" -eq 8
-          while IFS=$'\t' read -r candidate_digest audit_digest; do
+          test "$(find "$SHIPYARD_EVIDENCE_DIR" -type f -name '*.json' | wc -l)" -eq 12
+          while IFS=
+
+      - name: Retain content-addressed synthetic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shipyard-dispatch-evidence-${{ github.sha }}
+          path: /tmp/shipyard-dispatch-evidence/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Lint all targets with warnings denied
+        run: cargo clippy --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --all-targets -- -D warnings
+\t' read -r config_digest candidate_digest audit_digest; do
+            test "$(sha256sum "$SHIPYARD_EVIDENCE_DIR/method-config-$config_digest.json" | cut -d ' ' -f 1)" = "$config_digest"
             test "$(sha256sum "$SHIPYARD_EVIDENCE_DIR/candidate-schedule-$candidate_digest.json" | cut -d ' ' -f 1)" = "$candidate_digest"
             test "$(sha256sum "$SHIPYARD_EVIDENCE_DIR/independent-audit-$audit_digest.json" | cut -d ' ' -f 1)" = "$audit_digest"
-          done < <(jq -r '[.artifact_digests.candidate_schedule_sha256, .artifact_digests.independent_audit_sha256] | @tsv' /tmp/shipyard-result-ledger.jsonl)
+            test "$(jq -r '.base_config_sha256' "$SHIPYARD_EVIDENCE_DIR/method-config-$config_digest.json")" = "$(sha256sum tools/shipyard-dispatch-experiment/fixtures/synthetic-method-config-v0.json | cut -d ' ' -f 1)"
+          done < <(jq -r '[.artifact_digests.method_config_sha256, .artifact_digests.candidate_schedule_sha256, .artifact_digests.independent_audit_sha256] | @tsv' /tmp/shipyard-result-ledger.jsonl)
 
       - name: Retain content-addressed synthetic evidence
         if: always()
