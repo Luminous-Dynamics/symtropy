@@ -1,0 +1,869 @@
+{
+  "schema_version": "energy-scenario-panel-v0.1",
+  "panel_id": "energy-multiscenario-resilience-panel-v0.1",
+  "status": "frozen_synthetic_correctness_panel_not_site_calibrated",
+  "base_case_id": "synthetic-three-interval-storage-tradeoff",
+  "case_count": 5,
+  "cases": [
+    {
+      "case_id": "synthetic-three-interval-storage-tradeoff",
+      "label": "nominal",
+      "scenario_family": "baseline",
+      "parent_case_id": null,
+      "mutations": [],
+      "request": {
+        "schema_version": "energy-dispatch-v0.1",
+        "case_id": "synthetic-three-interval-storage-tradeoff",
+        "synthetic": true,
+        "evidence_class": "analyst_assumption",
+        "evidence_ref": null,
+        "evidence_as_of": null,
+        "energy_quantum_kwh": 1,
+        "max_candidate_expansions": 100000,
+        "battery": {
+          "capacity_quanta": 1,
+          "initial_soc_quanta": 0,
+          "charge_input_limit_quanta": 1,
+          "discharge_withdrawal_limit_quanta": 1,
+          "charge_efficiency_numerator": 1,
+          "charge_efficiency_denominator": 1,
+          "discharge_efficiency_numerator": 1,
+          "discharge_efficiency_denominator": 1,
+          "terminal_reserve_quanta": 0
+        },
+        "intervals": [
+          {
+            "interval_id": "pv-surplus",
+            "start_unix_seconds": 1800000000,
+            "duration_seconds": 3600,
+            "grid_outage": false,
+            "pv_available_quanta": 1,
+            "grid_import_limit_quanta": 0,
+            "essential_demand_quanta": 0,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          },
+          {
+            "interval_id": "critical-outage",
+            "start_unix_seconds": 1800003600,
+            "duration_seconds": 3600,
+            "grid_outage": true,
+            "pv_available_quanta": 0,
+            "grid_import_limit_quanta": 1,
+            "essential_demand_quanta": 1,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          },
+          {
+            "interval_id": "recovery-load",
+            "start_unix_seconds": 1800007200,
+            "duration_seconds": 3600,
+            "grid_outage": false,
+            "pv_available_quanta": 0,
+            "grid_import_limit_quanta": 1,
+            "essential_demand_quanta": 1,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          }
+        ]
+      },
+      "known_answer": {
+        "schema_version": "energy-dispatch-known-answer-v0.1",
+        "case_id": "synthetic-three-interval-storage-tradeoff",
+        "scope": "Synthetic finite integer-quantized dispatch case only. Cost/carbon coefficients are test constants, not a tariff or marginal-emissions factors.",
+        "feasible_complete_schedules": 9,
+        "distinct_objective_count": 7,
+        "feasible_schedule_objectives": [
+          {
+            "essential_unserved_quanta": 0,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 1,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 1,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 1,
+            "terminal_soc_quanta": 1
+          }
+        ],
+        "pareto_frontier": [
+          {
+            "essential_unserved_quanta": 0,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          }
+        ],
+        "enumerator_action_expansions": 58
+      }
+    },
+    {
+      "case_id": "synthetic-three-interval-pv-loss",
+      "label": "pv_total_loss",
+      "scenario_family": "renewable_availability",
+      "parent_case_id": "synthetic-three-interval-storage-tradeoff",
+      "mutations": [
+        {
+          "path": "/case_id",
+          "before": "synthetic-three-interval-storage-tradeoff",
+          "after": "synthetic-three-interval-pv-loss"
+        },
+        {
+          "path": "/intervals/0/pv_available_quanta",
+          "before": 1,
+          "after": 0
+        }
+      ],
+      "request": {
+        "schema_version": "energy-dispatch-v0.1",
+        "case_id": "synthetic-three-interval-pv-loss",
+        "synthetic": true,
+        "evidence_class": "analyst_assumption",
+        "evidence_ref": null,
+        "evidence_as_of": null,
+        "energy_quantum_kwh": 1,
+        "max_candidate_expansions": 100000,
+        "battery": {
+          "capacity_quanta": 1,
+          "initial_soc_quanta": 0,
+          "charge_input_limit_quanta": 1,
+          "discharge_withdrawal_limit_quanta": 1,
+          "charge_efficiency_numerator": 1,
+          "charge_efficiency_denominator": 1,
+          "discharge_efficiency_numerator": 1,
+          "discharge_efficiency_denominator": 1,
+          "terminal_reserve_quanta": 0
+        },
+        "intervals": [
+          {
+            "interval_id": "pv-surplus",
+            "start_unix_seconds": 1800000000,
+            "duration_seconds": 3600,
+            "grid_outage": false,
+            "pv_available_quanta": 0,
+            "grid_import_limit_quanta": 0,
+            "essential_demand_quanta": 0,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          },
+          {
+            "interval_id": "critical-outage",
+            "start_unix_seconds": 1800003600,
+            "duration_seconds": 3600,
+            "grid_outage": true,
+            "pv_available_quanta": 0,
+            "grid_import_limit_quanta": 1,
+            "essential_demand_quanta": 1,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          },
+          {
+            "interval_id": "recovery-load",
+            "start_unix_seconds": 1800007200,
+            "duration_seconds": 3600,
+            "grid_outage": false,
+            "pv_available_quanta": 0,
+            "grid_import_limit_quanta": 1,
+            "essential_demand_quanta": 1,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          }
+        ]
+      },
+      "known_answer": {
+        "schema_version": "energy-dispatch-known-answer-v0.1",
+        "case_id": "synthetic-three-interval-pv-loss",
+        "scope": "Synthetic finite integer-quantized dispatch case only. Cost/carbon coefficients are test constants, not a tariff or marginal-emissions factors.",
+        "feasible_complete_schedules": 3,
+        "distinct_objective_count": 3,
+        "feasible_schedule_objectives": [
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          }
+        ],
+        "pareto_frontier": [
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          }
+        ],
+        "enumerator_action_expansions": 22
+      }
+    },
+    {
+      "case_id": "synthetic-three-interval-outage-late",
+      "label": "outage_late",
+      "scenario_family": "outage_timing",
+      "parent_case_id": "synthetic-three-interval-storage-tradeoff",
+      "mutations": [
+        {
+          "path": "/case_id",
+          "before": "synthetic-three-interval-storage-tradeoff",
+          "after": "synthetic-three-interval-outage-late"
+        },
+        {
+          "path": "/intervals/1/grid_outage",
+          "before": true,
+          "after": false
+        },
+        {
+          "path": "/intervals/2/grid_outage",
+          "before": false,
+          "after": true
+        }
+      ],
+      "request": {
+        "schema_version": "energy-dispatch-v0.1",
+        "case_id": "synthetic-three-interval-outage-late",
+        "synthetic": true,
+        "evidence_class": "analyst_assumption",
+        "evidence_ref": null,
+        "evidence_as_of": null,
+        "energy_quantum_kwh": 1,
+        "max_candidate_expansions": 100000,
+        "battery": {
+          "capacity_quanta": 1,
+          "initial_soc_quanta": 0,
+          "charge_input_limit_quanta": 1,
+          "discharge_withdrawal_limit_quanta": 1,
+          "charge_efficiency_numerator": 1,
+          "charge_efficiency_denominator": 1,
+          "discharge_efficiency_numerator": 1,
+          "discharge_efficiency_denominator": 1,
+          "terminal_reserve_quanta": 0
+        },
+        "intervals": [
+          {
+            "interval_id": "pv-surplus",
+            "start_unix_seconds": 1800000000,
+            "duration_seconds": 3600,
+            "grid_outage": false,
+            "pv_available_quanta": 1,
+            "grid_import_limit_quanta": 0,
+            "essential_demand_quanta": 0,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          },
+          {
+            "interval_id": "critical-outage",
+            "start_unix_seconds": 1800003600,
+            "duration_seconds": 3600,
+            "grid_outage": false,
+            "pv_available_quanta": 0,
+            "grid_import_limit_quanta": 1,
+            "essential_demand_quanta": 1,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          },
+          {
+            "interval_id": "recovery-load",
+            "start_unix_seconds": 1800007200,
+            "duration_seconds": 3600,
+            "grid_outage": true,
+            "pv_available_quanta": 0,
+            "grid_import_limit_quanta": 1,
+            "essential_demand_quanta": 1,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          }
+        ]
+      },
+      "known_answer": {
+        "schema_version": "energy-dispatch-known-answer-v0.1",
+        "case_id": "synthetic-three-interval-outage-late",
+        "scope": "Synthetic finite integer-quantized dispatch case only. Cost/carbon coefficients are test constants, not a tariff or marginal-emissions factors.",
+        "feasible_complete_schedules": 9,
+        "distinct_objective_count": 7,
+        "feasible_schedule_objectives": [
+          {
+            "essential_unserved_quanta": 0,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 1,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 1,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 1,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 1,
+            "terminal_soc_quanta": 1
+          }
+        ],
+        "pareto_frontier": [
+          {
+            "essential_unserved_quanta": 0,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          }
+        ],
+        "enumerator_action_expansions": 74
+      }
+    },
+    {
+      "case_id": "synthetic-three-interval-demand-surge",
+      "label": "critical_demand_2x",
+      "scenario_family": "essential_demand",
+      "parent_case_id": "synthetic-three-interval-storage-tradeoff",
+      "mutations": [
+        {
+          "path": "/case_id",
+          "before": "synthetic-three-interval-storage-tradeoff",
+          "after": "synthetic-three-interval-demand-surge"
+        },
+        {
+          "path": "/intervals/1/essential_demand_quanta",
+          "before": 1,
+          "after": 2
+        },
+        {
+          "path": "/intervals/2/essential_demand_quanta",
+          "before": 1,
+          "after": 2
+        }
+      ],
+      "request": {
+        "schema_version": "energy-dispatch-v0.1",
+        "case_id": "synthetic-three-interval-demand-surge",
+        "synthetic": true,
+        "evidence_class": "analyst_assumption",
+        "evidence_ref": null,
+        "evidence_as_of": null,
+        "energy_quantum_kwh": 1,
+        "max_candidate_expansions": 100000,
+        "battery": {
+          "capacity_quanta": 1,
+          "initial_soc_quanta": 0,
+          "charge_input_limit_quanta": 1,
+          "discharge_withdrawal_limit_quanta": 1,
+          "charge_efficiency_numerator": 1,
+          "charge_efficiency_denominator": 1,
+          "discharge_efficiency_numerator": 1,
+          "discharge_efficiency_denominator": 1,
+          "terminal_reserve_quanta": 0
+        },
+        "intervals": [
+          {
+            "interval_id": "pv-surplus",
+            "start_unix_seconds": 1800000000,
+            "duration_seconds": 3600,
+            "grid_outage": false,
+            "pv_available_quanta": 1,
+            "grid_import_limit_quanta": 0,
+            "essential_demand_quanta": 0,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          },
+          {
+            "interval_id": "critical-outage",
+            "start_unix_seconds": 1800003600,
+            "duration_seconds": 3600,
+            "grid_outage": true,
+            "pv_available_quanta": 0,
+            "grid_import_limit_quanta": 1,
+            "essential_demand_quanta": 2,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          },
+          {
+            "interval_id": "recovery-load",
+            "start_unix_seconds": 1800007200,
+            "duration_seconds": 3600,
+            "grid_outage": false,
+            "pv_available_quanta": 0,
+            "grid_import_limit_quanta": 1,
+            "essential_demand_quanta": 2,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          }
+        ]
+      },
+      "known_answer": {
+        "schema_version": "energy-dispatch-known-answer-v0.1",
+        "case_id": "synthetic-three-interval-demand-surge",
+        "scope": "Synthetic finite integer-quantized dispatch case only. Cost/carbon coefficients are test constants, not a tariff or marginal-emissions factors.",
+        "feasible_complete_schedules": 10,
+        "distinct_objective_count": 7,
+        "feasible_schedule_objectives": [
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 3,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 3,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 3,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 3,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 3,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 1,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 4,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 4,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 1,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 4,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 1,
+            "terminal_soc_quanta": 1
+          }
+        ],
+        "pareto_frontier": [
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 3,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 0
+          },
+          {
+            "essential_unserved_quanta": 3,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 4,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          }
+        ],
+        "enumerator_action_expansions": 74
+      }
+    },
+    {
+      "case_id": "synthetic-three-interval-reserve",
+      "label": "terminal_reserve_1",
+      "scenario_family": "reserve_policy",
+      "parent_case_id": "synthetic-three-interval-storage-tradeoff",
+      "mutations": [
+        {
+          "path": "/case_id",
+          "before": "synthetic-three-interval-storage-tradeoff",
+          "after": "synthetic-three-interval-reserve"
+        },
+        {
+          "path": "/battery/terminal_reserve_quanta",
+          "before": 0,
+          "after": 1
+        }
+      ],
+      "request": {
+        "schema_version": "energy-dispatch-v0.1",
+        "case_id": "synthetic-three-interval-reserve",
+        "synthetic": true,
+        "evidence_class": "analyst_assumption",
+        "evidence_ref": null,
+        "evidence_as_of": null,
+        "energy_quantum_kwh": 1,
+        "max_candidate_expansions": 100000,
+        "battery": {
+          "capacity_quanta": 1,
+          "initial_soc_quanta": 0,
+          "charge_input_limit_quanta": 1,
+          "discharge_withdrawal_limit_quanta": 1,
+          "charge_efficiency_numerator": 1,
+          "charge_efficiency_denominator": 1,
+          "discharge_efficiency_numerator": 1,
+          "discharge_efficiency_denominator": 1,
+          "terminal_reserve_quanta": 1
+        },
+        "intervals": [
+          {
+            "interval_id": "pv-surplus",
+            "start_unix_seconds": 1800000000,
+            "duration_seconds": 3600,
+            "grid_outage": false,
+            "pv_available_quanta": 1,
+            "grid_import_limit_quanta": 0,
+            "essential_demand_quanta": 0,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          },
+          {
+            "interval_id": "critical-outage",
+            "start_unix_seconds": 1800003600,
+            "duration_seconds": 3600,
+            "grid_outage": true,
+            "pv_available_quanta": 0,
+            "grid_import_limit_quanta": 1,
+            "essential_demand_quanta": 1,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          },
+          {
+            "interval_id": "recovery-load",
+            "start_unix_seconds": 1800007200,
+            "duration_seconds": 3600,
+            "grid_outage": false,
+            "pv_available_quanta": 0,
+            "grid_import_limit_quanta": 1,
+            "essential_demand_quanta": 1,
+            "flexible_demand_quanta": 0,
+            "grid_cost_units_per_quantum": 5,
+            "grid_carbon_grams_per_quantum": 100
+          }
+        ]
+      },
+      "known_answer": {
+        "schema_version": "energy-dispatch-known-answer-v0.1",
+        "case_id": "synthetic-three-interval-reserve",
+        "scope": "Synthetic finite integer-quantized dispatch case only. Cost/carbon coefficients are test constants, not a tariff or marginal-emissions factors.",
+        "feasible_complete_schedules": 4,
+        "distinct_objective_count": 3,
+        "feasible_schedule_objectives": [
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 1,
+            "terminal_soc_quanta": 1
+          }
+        ],
+        "pareto_frontier": [
+          {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 5,
+            "grid_carbon_grams": 100,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          },
+          {
+            "essential_unserved_quanta": 2,
+            "flexible_unserved_quanta": 0,
+            "operating_cost_units": 0,
+            "grid_carbon_grams": 0,
+            "curtailed_pv_quanta": 0,
+            "terminal_soc_quanta": 1
+          }
+        ],
+        "enumerator_action_expansions": 58
+      }
+    }
+  ]
+}

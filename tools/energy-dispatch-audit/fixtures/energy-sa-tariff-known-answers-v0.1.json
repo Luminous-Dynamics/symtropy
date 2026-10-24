@@ -1,0 +1,91 @@
+{
+  "schema_version": "energy-sa-tariff-known-answers-v0.1",
+  "schedule_id": "city-power-business-conventional-2026-27-candidate",
+  "answer_basis": "Hand-calculated exact progressive block arithmetic in microZAR using published seasonal energy rates, plus the one <=100 kVA fixed-amount pair shown in the municipal schedule and cross-checked in a specialist publication. The source disagreements in the second fixed-charge label and Augos capacity bands are explicitly unresolved. Expected subtotals exclude the 6 c/kWh surcharge/DSM label conflict, 2% surcharge, VAT and account-specific charges.",
+  "cases": [
+    {
+      "case_id": "low-season-2600kwh-le-100kva",
+      "season": "low_season",
+      "monthly_energy_kwh": 2600,
+      "capacity_band": "le_100_kva",
+      "expected_block_use": [
+        {
+          "block_index": 0,
+          "used_kwh": 500,
+          "rate_microzar_per_kwh": 3805200,
+          "charge_microzar": 1902600000
+        },
+        {
+          "block_index": 1,
+          "used_kwh": 500,
+          "rate_microzar_per_kwh": 4176700,
+          "charge_microzar": 2088350000
+        },
+        {
+          "block_index": 2,
+          "used_kwh": 1000,
+          "rate_microzar_per_kwh": 4379900,
+          "charge_microzar": 4379900000
+        },
+        {
+          "block_index": 3,
+          "used_kwh": 600,
+          "rate_microzar_per_kwh": 4539600,
+          "charge_microzar": 2723760000
+        },
+        {
+          "block_index": 4,
+          "used_kwh": 0,
+          "rate_microzar_per_kwh": 4686900,
+          "charge_microzar": 0
+        }
+      ],
+      "expected_energy_charge_microzar": 11094610000,
+      "expected_service_charge_microzar": 890450000,
+      "expected_subtotal_excluding_unapplied_and_tax_microzar": 12838780000,
+      "expected_secondary_fixed_component_microzar": 853720000
+    },
+    {
+      "case_id": "high-season-1200kwh-le-100kva",
+      "season": "high_season",
+      "monthly_energy_kwh": 1200,
+      "capacity_band": "le_100_kva",
+      "expected_block_use": [
+        {
+          "block_index": 0,
+          "used_kwh": 500,
+          "rate_microzar_per_kwh": 3983700,
+          "charge_microzar": 1991850000
+        },
+        {
+          "block_index": 1,
+          "used_kwh": 500,
+          "rate_microzar_per_kwh": 4337000,
+          "charge_microzar": 2168500000
+        },
+        {
+          "block_index": 2,
+          "used_kwh": 200,
+          "rate_microzar_per_kwh": 4530600,
+          "charge_microzar": 906120000
+        },
+        {
+          "block_index": 3,
+          "used_kwh": 0,
+          "rate_microzar_per_kwh": 4687100,
+          "charge_microzar": 0
+        },
+        {
+          "block_index": 4,
+          "used_kwh": 0,
+          "rate_microzar_per_kwh": 4822800,
+          "charge_microzar": 0
+        }
+      ],
+      "expected_energy_charge_microzar": 5066470000,
+      "expected_service_charge_microzar": 890450000,
+      "expected_subtotal_excluding_unapplied_and_tax_microzar": 6810640000,
+      "expected_secondary_fixed_component_microzar": 853720000
+    }
+  ]
+}

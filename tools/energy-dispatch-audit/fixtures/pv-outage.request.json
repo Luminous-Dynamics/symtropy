@@ -1,0 +1,47 @@
+{
+  "schema_version": "energy-dispatch-v0.1",
+  "case_id": "synthetic-pv-charge-outage",
+  "synthetic": true,
+  "evidence_class": "analyst_assumption",
+  "evidence_ref": null,
+  "evidence_as_of": null,
+  "energy_quantum_kwh": 1.0,
+  "max_candidate_expansions": 100000,
+  "battery": {
+    "capacity_quanta": 2,
+    "initial_soc_quanta": 0,
+    "charge_input_limit_quanta": 2,
+    "discharge_withdrawal_limit_quanta": 2,
+    "charge_efficiency_numerator": 1,
+    "charge_efficiency_denominator": 1,
+    "discharge_efficiency_numerator": 1,
+    "discharge_efficiency_denominator": 1,
+    "terminal_reserve_quanta": 0
+  },
+  "intervals": [
+    {
+      "interval_id": "pv-surplus",
+      "start_unix_seconds": 1800000000,
+      "duration_seconds": 3600,
+      "grid_outage": false,
+      "pv_available_quanta": 2,
+      "grid_import_limit_quanta": 2,
+      "essential_demand_quanta": 0,
+      "flexible_demand_quanta": 0,
+      "grid_cost_units_per_quantum": 1,
+      "grid_carbon_grams_per_quantum": 1
+    },
+    {
+      "interval_id": "grid-outage",
+      "start_unix_seconds": 1800003600,
+      "duration_seconds": 3600,
+      "grid_outage": true,
+      "pv_available_quanta": 0,
+      "grid_import_limit_quanta": 2,
+      "essential_demand_quanta": 2,
+      "flexible_demand_quanta": 0,
+      "grid_cost_units_per_quantum": 1,
+      "grid_carbon_grams_per_quantum": 1
+    }
+  ]
+}

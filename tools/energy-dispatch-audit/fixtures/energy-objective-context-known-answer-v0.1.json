@@ -1,0 +1,82 @@
+{
+  "schema_version": "energy-objective-context-known-answer-v0.1",
+  "context_id": "synthetic-pv-derate-nonzero-economics",
+  "candidate_id": "synthetic-pv-limited-battery-grid",
+  "base_candidate_id": "synthetic-pv-battery-grid",
+  "transformation_id": "pv-availability-50pct-one-interval",
+  "cost_basis": {
+    "grid_cost_units_per_quantum": 5,
+    "unit": "synthetic_integer_cost_units",
+    "meaning": "Explicit synthetic scenario constant only; not a tariff."
+  },
+  "carbon_basis": {
+    "grid_carbon_grams_per_quantum": 100,
+    "unit": "grams_per_declared_grid_quantum",
+    "meaning": "Explicit synthetic scenario constant only; not an emissions factor for any jurisdiction."
+  },
+  "input_context": {
+    "pv_available_energy_kwh_first_interval": 1,
+    "base_pv_available_energy_kwh_first_interval": 2,
+    "grid_import_limit_quanta_first_interval": 2,
+    "essential_demand_quanta_outage_interval": 2,
+    "battery_capacity_quanta": 2,
+    "battery_charge_input_limit_quanta": 2,
+    "battery_discharge_withdrawal_limit_quanta": 2,
+    "charge_efficiency": [
+      1,
+      1
+    ],
+    "discharge_efficiency": [
+      1,
+      1
+    ],
+    "initial_soc_quanta": 0,
+    "terminal_reserve_quanta": 0,
+    "energy_quantum_kwh": 1
+  },
+  "feasible_complete_schedules": 11,
+  "pareto_frontier": [
+    {
+      "essential_unserved_quanta": 0,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 5,
+      "grid_carbon_grams": 100,
+      "curtailed_pv_quanta": 0,
+      "terminal_soc_quanta": 0
+    },
+    {
+      "essential_unserved_quanta": 1,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 0,
+      "grid_carbon_grams": 0,
+      "curtailed_pv_quanta": 0,
+      "terminal_soc_quanta": 0
+    },
+    {
+      "essential_unserved_quanta": 1,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 5,
+      "grid_carbon_grams": 100,
+      "curtailed_pv_quanta": 0,
+      "terminal_soc_quanta": 1
+    },
+    {
+      "essential_unserved_quanta": 2,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 0,
+      "grid_carbon_grams": 0,
+      "curtailed_pv_quanta": 0,
+      "terminal_soc_quanta": 1
+    },
+    {
+      "essential_unserved_quanta": 2,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 5,
+      "grid_carbon_grams": 100,
+      "curtailed_pv_quanta": 0,
+      "terminal_soc_quanta": 2
+    }
+  ],
+  "derivation": "Complete finite enumeration: for first-interval charge c in {0,1,2}, the imported-grid choices g satisfy max(0,c-1) <= g <= min(c,2); each (c,g) has second-interval withdrawal/service choices w in {0,...,c}. This yields 1+4+6=11 feasible complete schedules. With cost=5*g, carbon=100*g, curtailment=1-(c-g), terminal SOC=c-w and essential unserved=2-w, the five listed nondominated objective vectors are the complete frontier in objective sort order.",
+  "claim_ceiling": "Synthetic finite quantized objective context only; no tariff, actual grid emissions, real-site optimality, AC network, lifecycle cost, dynamics, safety or field performance claim."
+}
