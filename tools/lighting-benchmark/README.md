@@ -5,6 +5,8 @@ This isolated, dependency-free Rust crate implements a conservative reference ev
 ## What it does
 
 - Validates numeric inputs and duplicate/missing gate evidence.
+- Accepts raw grid samples and derives average, minimum, maximum and minimum/average uniformity itself; it does not trust candidate-supplied illuminance aggregates.
+- Rejects empty, incomplete, negative, non-finite or overflowed grids before ranking.
 - Enforces case-defined illuminance, uniformity and electrical-power limits.
 - Keeps pass, fail, unknown, unsupported, not-evaluated, timeout and invalid-output states distinct.
 - Makes candidates rankable only when all numeric constraints and every required evidence gate pass.
