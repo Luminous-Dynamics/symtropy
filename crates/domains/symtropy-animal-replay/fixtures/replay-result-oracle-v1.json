@@ -1,0 +1,862 @@
+{
+  "schema_version": "ANIMAL-REPLAY-RESULT-ORACLE-V1",
+  "note": "All cases use synthetic profiles, placeholders, and synthetic manifest records. This is an evaluator/receipt contract oracle, not empirical animal data or biological validation.",
+  "cases": [
+    {
+      "id": "valid_synthetic_receipt",
+      "mutation": "none",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": [],
+      "expected_threshold_outcome": "meets_threshold",
+      "expected_baseline_comparison_outcomes": [
+        "outperforms_by_margin"
+      ]
+    },
+    {
+      "id": "empty_task_id",
+      "mutation": "empty_task_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_task_id"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "empty_task_version",
+      "mutation": "empty_task_version",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_task_version"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "empty_claim_ceiling",
+      "mutation": "empty_claim_ceiling",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_claim_ceiling"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "task_claim_not_requested",
+      "mutation": "task_claim_not_requested",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "task_claim_not_requested"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "task_generalization_mismatch",
+      "mutation": "task_generalization_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "task_generalization_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "target_taxon_unbound",
+      "mutation": "target_taxon_unbound",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "target_taxon_not_bound"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "synthetic_inputs_cannot_claim_empirical",
+      "mutation": "empirical_synthetic_inputs",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "synthetic_evidence_for_empirical"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "profile_without_capability_claims_is_indeterminate",
+      "mutation": "profile_without_capability_claims",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "profile_validation_indeterminate"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "synthetic_profile_cannot_bind_real_taxon",
+      "mutation": "profile_taxon_for_synthetic",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "profile_validation_rejected"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "unknown_permission_is_not_a_grant",
+      "mutation": "manifest_unknown_permission",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "manifest_validation_indeterminate"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "restricted_permission_is_rejected",
+      "mutation": "manifest_restricted_permission",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "manifest_validation_rejected"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "malformed_code_head",
+      "mutation": "malformed_code_head",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_code_head"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "malformed_config_digest",
+      "mutation": "malformed_config_digest",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_config_digest"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "dirty_tree_requires_digest",
+      "mutation": "dirty_tree_missing_digest",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_working_tree_digest"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "deterministic_run_requires_seed",
+      "mutation": "deterministic_seed_missing",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_deterministic_seed"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "empty_run_id",
+      "mutation": "empty_run_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_run_identity"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "comparison_group_must_match",
+      "mutation": "run_comparison_group_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "comparison_group_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "primary_metric_required",
+      "mutation": "missing_primary_metric",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_primary_metric",
+        "baseline_comparison_stratum_mismatch"
+      ],
+      "expected_threshold_outcome": "incomplete",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "duplicate_metric_ids_rejected",
+      "mutation": "duplicate_metric_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_metric_id"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "metric_stratum_key_required",
+      "mutation": "empty_metric_stratum",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_metric_stratum",
+        "invalid_overall_stratum_id",
+        "baseline_stratum_mismatch",
+        "missing_baseline_comparison",
+        "baseline_comparison_stratum_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "overall_metric_uses_canonical_all_key",
+      "mutation": "invalid_overall_stratum_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_overall_stratum_id",
+        "baseline_stratum_mismatch",
+        "missing_baseline_comparison",
+        "baseline_comparison_stratum_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "taxon_stratum_must_be_taxonomy_bound",
+      "mutation": "taxon_stratum_unbound",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "taxon_stratum_unbound",
+        "missing_baseline_comparison"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "same_metric_can_be_reported_per_taxon",
+      "mutation": "same_metric_across_taxa",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": [],
+      "expected_threshold_outcome": "meets_threshold",
+      "expected_baseline_comparison_outcomes": [
+        "outperforms_by_margin",
+        "outperforms_by_margin"
+      ]
+    },
+    {
+      "id": "nonfinite_metric_rejected",
+      "mutation": "nonfinite_metric_value",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_metric_observation"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "missing_metric_is_not_zero",
+      "mutation": "metric_missing_state",
+      "expected_disposition": "incomplete",
+      "expected_reason_codes": [
+        "incomplete_metric_observation",
+        "missing_paired_samples"
+      ],
+      "expected_threshold_outcome": "incomplete",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "invalid_confidence_interval_rejected",
+      "mutation": "invalid_interval_bounds",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_confidence_interval"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "nonfinite_threshold_rejected",
+      "mutation": "nonfinite_threshold",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_threshold"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "threshold_metric_must_match_primary",
+      "mutation": "threshold_metric_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "threshold_metric_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "baseline_required_for_comparison",
+      "mutation": "no_baseline",
+      "expected_disposition": "incomplete",
+      "expected_reason_codes": [
+        "no_baseline"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": []
+    },
+    {
+      "id": "duplicate_baseline_ids_rejected",
+      "mutation": "duplicate_baseline_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_baseline_id"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "baseline_metric_id_must_match",
+      "mutation": "baseline_metric_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "baseline_metric_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "baseline_must_match_primary_stratum",
+      "mutation": "baseline_stratum_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "baseline_stratum_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "baseline_units_must_match",
+      "mutation": "baseline_unit_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "baseline_unit_mismatch",
+        "baseline_comparison_unit_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "missing_baseline_score_is_incomplete",
+      "mutation": "baseline_missing_metric",
+      "expected_disposition": "incomplete",
+      "expected_reason_codes": [
+        "baseline_metric_not_reported",
+        "missing_paired_samples"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "below_threshold_is_not_a_pass",
+      "mutation": "below_threshold",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": [],
+      "expected_threshold_outcome": "below_threshold",
+      "expected_baseline_comparison_outcomes": [
+        "outperforms_by_margin"
+      ]
+    },
+    {
+      "id": "threshold_overlapping_interval_is_uncertain",
+      "mutation": "threshold_interval_overlaps",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": [],
+      "expected_threshold_outcome": "uncertain",
+      "expected_baseline_comparison_outcomes": [
+        "outperforms_by_margin"
+      ]
+    },
+    {
+      "id": "no_threshold_means_not_assessed",
+      "mutation": "no_threshold",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": [],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "outperforms_by_margin"
+      ]
+    },
+    {
+      "id": "target_taxon_must_have_test_records",
+      "mutation": "target_taxon_absent_from_test",
+      "expected_disposition": "incomplete",
+      "expected_reason_codes": [
+        "target_taxon_absent_from_test"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "unseen_taxon_cannot_leak_into_training",
+      "mutation": "unseen_taxon_split_leak",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "manifest_validation_rejected"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "baseline_compute_budget_required",
+      "mutation": "empty_baseline_compute_budget",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_baseline_metadata"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "platform_identity_required",
+      "mutation": "empty_platform",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_run_identity"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "evaluator_identity_required",
+      "mutation": "empty_evaluator_version",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_run_identity"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "missing_paired_comparison",
+      "mutation": "missing_paired_comparison",
+      "expected_disposition": "incomplete",
+      "expected_reason_codes": [
+        "missing_baseline_comparison"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": []
+    },
+    {
+      "id": "duplicate_paired_comparison",
+      "mutation": "duplicate_paired_comparison",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_baseline_comparison"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed",
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "unknown_baseline_comparison",
+      "mutation": "unknown_baseline_comparison",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_baseline_comparison",
+        "unknown_baseline_for_comparison"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "paired_comparison_group_mismatch",
+      "mutation": "comparison_group_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "comparison_group_mismatch_for_baseline"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "empty_pairing_unit_rejected",
+      "mutation": "empty_pairing_unit",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_comparison_metadata"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "zero_paired_units_incomplete",
+      "mutation": "zero_paired_samples",
+      "expected_disposition": "incomplete",
+      "expected_reason_codes": [
+        "missing_paired_samples"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "missing_paired_difference_incomplete",
+      "mutation": "missing_paired_difference",
+      "expected_disposition": "incomplete",
+      "expected_reason_codes": [
+        "missing_paired_difference"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "missing_paired_interval_incomplete",
+      "mutation": "missing_paired_interval",
+      "expected_disposition": "incomplete",
+      "expected_reason_codes": [
+        "missing_paired_interval"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "invalid_paired_interval_rejected",
+      "mutation": "invalid_paired_interval",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_paired_interval"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "invalid_comparison_margin_rejected",
+      "mutation": "invalid_effect_margins",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_effect_margins"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "paired_effect_interval_uncertain",
+      "mutation": "uncertain_paired_effect",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": [],
+      "expected_threshold_outcome": "below_threshold",
+      "expected_baseline_comparison_outcomes": [
+        "uncertain"
+      ]
+    },
+    {
+      "id": "paired_effect_noninferior",
+      "mutation": "noninferior_paired_effect",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": [],
+      "expected_threshold_outcome": "below_threshold",
+      "expected_baseline_comparison_outcomes": [
+        "non_inferior"
+      ]
+    },
+    {
+      "id": "paired_effect_regresses",
+      "mutation": "regression_paired_effect",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": [],
+      "expected_threshold_outcome": "below_threshold",
+      "expected_baseline_comparison_outcomes": [
+        "regresses_beyond_margin"
+      ]
+    },
+    {
+      "id": "lower_is_better_comparison_sign_is_normalized",
+      "mutation": "lower_is_better_outperforms",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": [],
+      "expected_threshold_outcome": "below_threshold",
+      "expected_baseline_comparison_outcomes": [
+        "outperforms_by_margin"
+      ]
+    },
+    {
+      "id": "paired_difference_must_match_means",
+      "mutation": "paired_difference_does_not_match_scores",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "paired_difference_does_not_match_scores"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "paired_sample_count_cannot_exceed_available",
+      "mutation": "paired_samples_exceed_available",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_paired_samples"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "paired_comparison_requires_metric_stratum",
+      "mutation": "comparison_stratum_missing",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_baseline_comparison",
+        "baseline_comparison_stratum_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "empty_uncertainty_method_rejected",
+      "mutation": "empty_uncertainty_method",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_uncertainty_method"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "metric_interval_must_match_preregistered_protocol",
+      "mutation": "metric_confidence_protocol_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "uncertainty_protocol_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "paired_interval_confidence_must_match_protocol",
+      "mutation": "paired_confidence_protocol_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "uncertainty_protocol_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "paired_interval_method_must_match_protocol",
+      "mutation": "paired_interval_method_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "uncertainty_protocol_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "reported_metric_requires_uncertainty_interval",
+      "mutation": "missing_metric_interval",
+      "expected_disposition": "incomplete",
+      "expected_reason_codes": [
+        "incomplete_metric_observation"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "baseline_must_pin_exact_code_head",
+      "mutation": "baseline_invalid_code_head",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_baseline_code_head"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "baseline_must_pin_config_digest",
+      "mutation": "baseline_invalid_config_digest",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_baseline_config_digest"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "matched_budget_rejects_training_scope_mismatch",
+      "mutation": "baseline_training_scope_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "baseline_training_scope_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "matched_budget_rejects_compute_budget_mismatch",
+      "mutation": "baseline_compute_budget_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "baseline_compute_budget_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "declared_tradeoff_is_explicitly_allowed",
+      "mutation": "declared_budget_tradeoff_allows_scope_mismatch",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": [],
+      "expected_threshold_outcome": "meets_threshold",
+      "expected_baseline_comparison_outcomes": [
+        "outperforms_by_margin"
+      ]
+    },
+    {
+      "id": "paired_unit_membership_digest_required",
+      "mutation": "missing_paired_unit_manifest_digest",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_paired_unit_manifest_digest"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "paired_unit_membership_digest_must_be_sha256",
+      "mutation": "malformed_paired_unit_manifest_digest",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "malformed_paired_unit_manifest_digest"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    }
+  ]
+}
