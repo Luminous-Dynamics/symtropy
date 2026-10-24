@@ -214,7 +214,8 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
   hdc_out="${STFR_HDC_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-hdc-ltc-residual-reservoir-heldout.json}"
   cargo run --manifest-path "$integration_manifest" --example hdc_ltc_residual_reservoir_benchmark > "$hdc_out"
   jq -e '
-    .benchmark_id == "symtropy-hdc-ltc-residual-reservoir-heldout-v0.1"
+    (.stateless_state_ablation.evaluation.steps_per_episode) as $stateless_steps
+    | .benchmark_id == "symtropy-hdc-ltc-residual-reservoir-heldout-v0.1"
     and .claim_ceiling == "frozen_hdc_ltc_reservoir_readout_one_step_prediction_only"
     and (.source_receipt.symtropy_git_sha | test("^[0-9a-f]{40}$"))
     and .source_receipt.symthaea_git_sha == "bf787f4d655bd85f084cf75990232f19f7d809a1"
@@ -253,7 +254,7 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.stateless_state_ablation.evaluation.family_metrics | length) == 3
     and all(.stateless_state_ablation.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
     and (.stateless_state_ablation.evaluation.episode_details | length) == .stateless_state_ablation.evaluation.episodes_requested
-    and all(.stateless_state_ablation.evaluation.episode_details[]; .sample_count == .stateless_state_ablation.evaluation.steps_per_episode and .invalid_samples == 0)
+    and all(.stateless_state_ablation.evaluation.episode_details[]; .sample_count == $stateless_steps and .invalid_samples == 0)
   ' "$hdc_out"
 
   mlp_out="${STFR_MLP_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-compact-mlp-residual-heldout.json}"
