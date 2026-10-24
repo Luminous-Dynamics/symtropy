@@ -823,7 +823,7 @@ pub fn build_corpus_bundle(config: &CorpusConfig) -> Result<CorpusBundle, String
     let manifest_json = manifest_json(config, &episodes);
     let manifest_sha256 = sha256_hex(manifest_json.as_bytes());
     let mut evaluations = Vec::with_capacity(episodes.len());
-    let mut artifacts = Vec::<CorpusArtifact>::with_capacity(episodes.len() * 10);
+    let mut artifacts = Vec::<CorpusArtifact>::with_capacity(episodes.len() * 14);
     let base_method_config_sha256 = sha256_hex(BASE_CONFIG.as_bytes());
     let budget_contract =
         "no wall-clock or compute-unit enforcement in this runner; do not use for runtime claims";
@@ -1053,7 +1053,7 @@ mod tests {
         assert!(!bundle.paired_summary_json.contains("winner_score"));
         assert!(bundle.run_receipt_json.contains(&bundle.manifest_sha256));
         assert!(bundle.run_receipt_json.contains(&bundle.ledger_sha256));
-        assert_eq!(bundle.artifacts.len(), 16 * 10);
+        assert_eq!(bundle.artifacts.len(), 16 * 14);
         for artifact in &bundle.artifacts {
             assert_eq!(sha256_hex(artifact.contents.as_bytes()), artifact.sha256);
         }
