@@ -498,10 +498,17 @@ fn main() {
         .map(|index| {
             let seed = 0x5359_4341_4C00_0000_u64.wrapping_add(index as u64 + 1);
             let scenario = &validation_scenarios[index % validation_scenarios.len()];
-            evaluate_episode(&model, scenario, seed, steps_per_episode, nominal, &gains)
+            evaluate_episode(
+                &model,
+                scenario,
+                seed,
+                steps_per_episode,
+                nominal,
+                &gains,
+                evaluation_plant_configuration,
+            )
         })
-        .collect::<Vec<_>>(,
-            evaluation_plant_configuration);
+        .collect::<Vec<_>>();
     let calibration_scores = validation_rows
         .iter()
         .filter_map(EpisodeEvaluation::calibration_score)
@@ -512,10 +519,17 @@ fn main() {
         .map(|index| {
             let seed = 0x5359_5445_5354_0000_u64.wrapping_add(index as u64 + 1);
             let scenario = &test_scenarios[index % test_scenarios.len()];
-            evaluate_episode(&model, scenario, seed, steps_per_episode, nominal, &gains)
+            evaluate_episode(
+                &model,
+                scenario,
+                seed,
+                steps_per_episode,
+                nominal,
+                &gains,
+                evaluation_plant_configuration,
+            )
         })
-        .collect::<Vec<_>>(,
-            evaluation_plant_configuration);
+        .collect::<Vec<_>>();
 
     let (validation_summary, validation_episode_details) =
         summarize_split(&validation_rows, None);
