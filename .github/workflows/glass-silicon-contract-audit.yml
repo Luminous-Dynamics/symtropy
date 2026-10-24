@@ -1,0 +1,565 @@
+name: GLASS-SILICON Contract Audit
+
+on:
+  pull_request:
+    paths:
+      - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
+      - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
+      - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
+      - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
+      - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-relationship-graph-v0.1.schema.json"
+      - "docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json"
+      - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
+      - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
+      - "docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json"
+      - "tools/glass-silicon-contract-audit/**"
+      - ".github/workflows/glass-silicon-contract-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
+      - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
+      - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
+      - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
+      - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-relationship-graph-v0.1.schema.json"
+      - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
+      - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
+      - "tools/glass-silicon-contract-audit/**"
+      - ".github/workflows/glass-silicon-contract-audit.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: glass-silicon-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-audit:
+    name: Contract and mass-ledger audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Test verifier and mutation controls
+        run: cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
+
+      - name: Audit evaluation receipt schema and fail-closed fixtures
+        shell: bash
+        run: |
+          schema="docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json"
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.evaluation_class.enum == ["UNSEALED_RETROSPECTIVE", "SEALED_CONFIRMATORY"] and .properties.dataset.properties.test_set_commitment.properties.scheme.const == "sha256-salted-v1"' "$schema" > /dev/null
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-eval-receipt tools/glass-silicon-contract-audit/fixtures/evaluation-receipt-unsealed.synthetic.json > evaluation-receipt-unsealed.json
+          grep -q '"status": "PASS"' evaluation-receipt-unsealed.json
+          jq -e '.verified_evaluation_class == "UNSEALED_RETROSPECTIVE" and .metrics_checked == 1' evaluation-receipt-unsealed.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-eval-receipt tools/glass-silicon-contract-audit/fixtures/evaluation-receipt-claimed-sealed.synthetic.json > evaluation-receipt-sealed.json
+          sealed_status=$?
+          set -e
+          test "$sealed_status" -eq 3
+          grep -q '"status": "UNRESOLVED"' evaluation-receipt-sealed.json
+          grep -q 'SEALED_CLAIM_NOT_VERIFIED:' evaluation-receipt-sealed.json
+          grep -q '"verified_evaluation_class": "UNSEALED_RETROSPECTIVE"' evaluation-receipt-sealed.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-eval-receipt tools/glass-silicon-contract-audit/fixtures/evaluation-receipt-budget-overrun.synthetic.json > evaluation-receipt-overrun.json
+          overrun_status=$?
+          set -e
+          test "$overrun_status" -eq 2
+          grep -q '"status": "FAIL"' evaluation-receipt-overrun.json
+          grep -q 'RESOURCE_OVERRUN:' evaluation-receipt-overrun.json
+
+      - name: Audit frozen benchmark contract
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-corpus
+          docs/tech/glass-silicon-process-benchmark-v0.1.schema.json
+          docs/tech/glass-silicon-process-benchmark-v0.1.json
+
+      - name: Audit feasibility-first protocol contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          protocol="docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
+          test -s "$protocol"
+          grep -q 'model the no-go region' "$protocol"
+          grep -q 'non-glass-forming' "$protocol"
+          grep -q 'GFRI-ML' "$protocol"
+          grep -q 'unattempted, unknown or censored' "$protocol"
+          grep -q 'false-feasible' "$protocol"
+          grep -q 'system/family-held-out' "$protocol"
+          grep -q 'UNRESOLVED' "$protocol"
+          grep -q 'DOI 10.1111/jace.70616' "$protocol"
+          grep -q 'DOI 10.1111/jace.70980' "$protocol"
+          grep -q 'DOI 10.1016/j.jnoncrysol.2026.123990' "$protocol"
+          grep -q 'audit-grouped-split <manifest.json>' "$protocol"
+          grep -q 'group key occurring in more than one split' "$protocol"
+          grep -q 'outcome labels and predictor features are forbidden' "$protocol"
+          grep -q 'SHA-256 fingerprint of the raw manifest bytes' "$protocol"
+          grep -q 'audit-false-feasible-bound <summary.json>' "$protocol"
+          grep -q 'Hoeffding upper confidence bound' "$protocol"
+          grep -q '600 independent negative groups' "$protocol"
+          grep -q 'Held-out evaluation integrity: declarations are not isolation' "$protocol"
+          grep -q 'GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json' "$protocol"
+          grep -q 'audit-eval-receipt <receipt.json>' "$protocol"
+          grep -q 'SEALED_CONFIRMATORY' "$protocol"
+          echo "Feasibility-gate and held-out evaluation trust-boundary controls: PASS"
+
+      - name: Audit OOD acquisition-value protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          protocol="docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
+          test -s "$protocol"
+          grep -q 'issue #2778' "$protocol"
+          grep -q '10.1038/s41524-026-02368-4' "$protocol"
+          grep -q '10.1038/s41467-023-42992-y' "$protocol"
+          grep -qi 'random selection' "$protocol"
+          grep -qi 'calibrated uncertainty' "$protocol"
+          grep -qi 'out-of-distribution' "$protocol"
+          grep -q 'same total budget' "$protocol"
+          grep -q 'audit-acquisition-policies' "$protocol"
+          grep -q 'glass-acquisition-policy-comparison-v0.1.schema.json' "$protocol"
+          grep -q 'calibration alone' "$protocol"
+          echo "OOD acquisition-value protocol and matched-budget baselines: PASS"
+
+      - name: Audit acquisition policy comparison schema and known answer
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.benchmark_id.const == "glass-silicon-decision-value-synthetic-v0.1" and
+            .properties.acquisition_policy_comparison.properties.protocol_version.const == 1 and
+            .properties.acquisition_policy_comparison.properties.random_seeds.minItems >= 10 and
+            .properties.acquisition_policy_comparison.properties.random_seeds.uniqueItems == true and
+            .properties.measurements.items.properties.selection_features.required == ["uncalibrated_uncertainty", "calibrated_uncertainty", "novelty", "estimated_voi"]
+          ' "$schema" > /dev/null
+
+          fixture="tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-acquisition-policies "$fixture" > acquisition-policy-comparison-report.json
+          digest="$(sha256sum "$fixture" | awk '{print $1}')"
+          jq -e --arg digest "$digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_acquisition_policy_comparison" and
+            .input_sha256 == $digest and
+            .random_seed_count == 16 and
+            .available_measurements == 3 and
+            .budget_eligible_measurements == 2 and
+            .pre_measurement_worst_case_regret == 5.0 and
+            (.policies | length) == 5 and
+            ([.policies[] | select(.policy == "random")][0].runs | length) == 16 and
+            ([.policies[] | select(.policy == "calibrated_uncertainty")][0].runs[0].selected_measurement_id == "measure-noise") and
+            ([.policies[] | select(.policy == "calibrated_uncertainty")][0].runs[0].gross_worst_case_regret_reduction == 0.0) and
+            ([.policies[] | select(.policy == "novelty")][0].runs[0].selected_measurement_id == "measure-regime") and
+            ([.policies[] | select(.policy == "novelty")][0].runs[0].gross_worst_case_regret_reduction == 5.0) and
+            ([.policies[] | select(.policy == "cost_aware_voi")][0].runs[0].selected_measurement_id == "measure-regime") and
+            ([.policies[] | .runs[] | select(.selected_measurement_id == "measure-expensive")] | length) == 0
+          ' acquisition-policy-comparison-report.json
+          echo "Matched-budget acquisition policy known answer: PASS"
+
+      - name: Audit acquisition policy comparison schema and known answer
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.benchmark_id.const == "glass-silicon-decision-value-synthetic-v0.1" and
+            .properties.acquisition_policy_comparison.properties.protocol_version.const == 1 and
+            .properties.acquisition_policy_comparison.properties.random_seeds.minItems >= 10 and
+            .properties.acquisition_policy_comparison.properties.random_seeds.uniqueItems == true and
+            .properties.measurements.items.properties.selection_features.required == ["uncalibrated_uncertainty", "calibrated_uncertainty", "novelty", "estimated_voi"]
+          ' "$schema" > /dev/null
+
+          fixture="tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-acquisition-policies "$fixture" > acquisition-policy-comparison-report.json
+          digest="$(sha256sum "$fixture" | awk '{print $1}')"
+          jq -e --arg digest "$digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_acquisition_policy_comparison" and
+            .input_sha256 == $digest and
+            .random_seed_count == 16 and
+            .available_measurements == 3 and
+            .budget_eligible_measurements == 2 and
+            .pre_measurement_worst_case_regret == 5.0 and
+            (.policies | length) == 5 and
+            ([.policies[] | select(.policy == "random")][0].runs | length) == 16 and
+            ([.policies[] | select(.policy == "calibrated_uncertainty")][0].runs[0].selected_measurement_id == "measure-noise") and
+            ([.policies[] | select(.policy == "calibrated_uncertainty")][0].runs[0].gross_worst_case_regret_reduction == 0.0) and
+            ([.policies[] | select(.policy == "novelty")][0].runs[0].selected_measurement_id == "measure-regime") and
+            ([.policies[] | select(.policy == "novelty")][0].runs[0].gross_worst_case_regret_reduction == 5.0) and
+            ([.policies[] | select(.policy == "cost_aware_voi")][0].runs[0].selected_measurement_id == "measure-regime") and
+            ([.policies[] | .runs[] | select(.selected_measurement_id == "measure-expensive")] | length) == 0
+          ' acquisition-policy-comparison-report.json
+          echo "Matched-budget acquisition policy known answer: PASS"
+
+      - name: Audit relationship graph JSON schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/tech/glass-relationship-graph-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.allowed_splits.const == ["train", "validation", "test"] and
+            .properties.edges.items.properties.state.enum == ["verified", "candidate", "contradicted", "unknown"] and
+            .properties.nodes.items.properties.split_required.type == "boolean" and
+            (.properties.nodes.items.required | index("split_required")) != null and
+            .properties.relation_profile.const == "provenance_identity_v0" and
+            .properties.leakage_edge_types.const == ["derived_from", "replicate_of", "same_record"] and
+            .additionalProperties == false
+          ' "$schema" > /dev/null
+          echo "Relationship graph schema and relationship-state contract: PASS"
+
+      - name: Audit relationship-aware evidence protocol contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          protocol="docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
+          test -s "$protocol"
+          grep -q 'one evidence graph, multiple relation profiles' "$protocol"
+          grep -q 'Unknown is not false' "$protocol"
+          grep -q 'connected components' "$protocol"
+          grep -q 'transitive-leak' "$protocol"
+          grep -q 'not-reject-all' "$protocol"
+          grep -qi 'downstream dependency testing' "$protocol"
+          grep -q 'UNRESOLVED' "$protocol"
+          grep -q 'raw and canonical graph hashes' "$protocol"
+          grep -q 'glass-relationship-graph-v0.1.schema.json' "$protocol"
+          grep -q 'split_required' "$protocol"
+          grep -q 'unregistered relation profile' "$protocol"
+          echo "Relationship-aware evidence contract and anti-leakage requirements: PASS"
+
+      - name: Audit relationship graph known-answer controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="tools/glass-silicon-contract-audit/fixtures/relationship-graph-valid.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-relationship-graph "$manifest" > relationship-graph-valid-report.json
+          digest="$(sha256sum "$manifest" | awk '{print $1}')"
+          jq -e --arg digest "$digest" '
+            .status == "PASS" and
+            .audit_kind == "relationship_graph_split_isolation" and
+            .schema_version == 1 and
+            .graph_sha256 == $digest and
+            (.canonical_graph_sha256 | test("^[0-9a-f]{64}$")) and
+            .nodes_checked == 6 and
+            .edges_checked == 3 and
+            .assignments_checked == 3 and
+            .split_counts.train == 1 and
+            .split_counts.validation == 1 and
+            .split_counts.test == 1 and
+            (.witness_paths | length) == 0
+          ' relationship-graph-valid-report.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-relationship-graph \
+            tools/glass-silicon-contract-audit/fixtures/relationship-graph-transitive-leak.synthetic.json > relationship-graph-leak-report.json
+          leak_status=$?
+          set -e
+          test "$leak_status" -eq 2
+          jq -e '
+            .status == "FAIL" and
+            (.findings | any(startswith("RELATION_LEAKAGE:"))) and
+            (.witness_paths | length) > 0
+          ' relationship-graph-leak-report.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-relationship-graph \
+            tools/glass-silicon-contract-audit/fixtures/relationship-graph-uncertain-link.synthetic.json > relationship-graph-uncertain-report.json
+          uncertain_status=$?
+          set -e
+          test "$uncertain_status" -eq 3
+          jq -e '
+            .status == "UNRESOLVED" and
+            (.findings | any(startswith("RELATION_UNCERTAIN_CROSS_SPLIT:")))
+          ' relationship-graph-uncertain-report.json
+
+      - name: Audit grouped-split leakage manifest
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-grouped-split
+          tools/glass-silicon-contract-audit/fixtures/grouped-split-manifest.synthetic.json
+
+      - name: Assert grouped-split known answer
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-grouped-split tools/glass-silicon-contract-audit/fixtures/grouped-split-manifest.synthetic.json > grouped-split-report.json
+          grep -q '"status": "PASS"' grouped-split-report.json
+          fixture="tools/glass-silicon-contract-audit/fixtures/grouped-split-manifest.synthetic.json"
+          expected_sha256="$(sha256sum "$fixture" | awk '{print $1}')"
+          jq -e --arg digest "$expected_sha256" '
+            .status == "PASS" and
+            .evidence_class == "synthetic" and
+            .manifest_sha256 == $digest and
+            (.manifest_sha256 | test("^[0-9a-f]{64}$")) and
+            .records_checked == 7 and
+            .split_counts.train == 3 and
+            .split_counts.validation == 2 and
+            .split_counts.test == 2 and
+            (.grouping_fields | sort) == ["composition_family_id", "synthesis_campaign_id"] and
+            (.findings | length) == 0
+          ' grouped-split-report.json
+
+      - name: Audit false-feasible upper confidence bound
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-false-feasible-bound
+          tools/glass-silicon-contract-audit/fixtures/false-feasible-bound.synthetic.json
+
+      - name: Assert 600-negative false-feasible threshold
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-false-feasible-bound tools/glass-silicon-contract-audit/fixtures/false-feasible-bound.synthetic.json > false-feasible-bound-report.json
+          grep -q '"status": "PASS"' false-feasible-bound-report.json
+          jq -e '
+            .independent_negative_units == 600 and
+            .false_feasible_count == 0 and
+            .confidence_level == 0.95 and
+            .target_upper_bound == 0.05 and
+            .target_met == true and
+            .hoeffding_upper_bound <= 0.05 and
+            .hoeffding_upper_bound > 0.0499
+          ' false-feasible-bound-report.json
+
+      - name: Abstain when negative sample is underpowered
+        shell: bash
+        run: |
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-false-feasible-bound tools/glass-silicon-contract-audit/fixtures/false-feasible-bound-underpowered.synthetic.json > false-feasible-underpowered.json
+          status=$?
+          set -e
+          test "$status" -eq 3
+          grep -q '"status": "UNRESOLVED"' false-feasible-underpowered.json
+          jq -e '.independent_negative_units == 599 and .target_met == false and .hoeffding_upper_bound > 0.05' false-feasible-underpowered.json
+
+      - name: Audit synthetic staged-feasibility corpus
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-feasibility
+          tools/glass-silicon-contract-audit/fixtures/glass-feasibility-gate.synthetic.json
+
+      - name: Assert staged-feasibility known answers
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-feasibility tools/glass-silicon-contract-audit/fixtures/glass-feasibility-gate.synthetic.json > feasibility-report.json
+          grep -q '"status": "PASS"' feasibility-report.json
+          jq -e '
+            ([.candidates[] | select(.candidate_id == "control-feasible")][0].derived_disposition == "FEASIBLE") and
+            ([.candidates[] | select(.candidate_id == "control-non-forming")][0].derived_disposition == "INFEASIBLE") and
+            ([.candidates[] | select(.candidate_id == "control-joint-property-failure")][0].derived_disposition == "INFEASIBLE") and
+            ([.candidates[] | select(.candidate_id == "control-unknown-measurement")][0].derived_disposition == "UNRESOLVED") and
+            ([.candidates[] | select(.candidate_id == "control-out-of-domain")][0].derived_disposition == "UNRESOLVED") and
+            ([.candidates[] | select(.candidate_id == "control-stale-process-evidence")][0].derived_disposition == "UNRESOLVED") and
+            ([.candidates[] | select(.candidate_id == "control-non-forming")][0].blocking_gates == ["glass_formation"])
+          ' feasibility-report.json
+
+      - name: Compare feasibility-gated one-step and adaptive policies
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-feasibility-gated.synthetic.json"
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-decision-value "$fixture" > feasibility-gated-myopic.json
+          grep -q '"status": "PASS"' feasibility-gated-myopic.json
+          jq -e '
+            .pre_measurement_worst_case_regret == 10.0 and
+            .oracle_measurement_id == "a-screen-formation" and
+            .oracle_worst_case_regret_after == 10.0 and
+            .oracle_gross_regret_reduction == 0.0
+          ' feasibility-gated-myopic.json
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign "$fixture" > feasibility-gated-adaptive.json
+          grep -q '"status": "PASS"' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_worst_case_regret": 0.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_gross_regret_reduction": 10.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_max_path_cost_units": 4.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_max_path_duration_seconds": 12.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_max_measurements_on_path": 2' feasibility-gated-adaptive.json
+          jq -e '
+            .policy_tree.measurement_id == "a-screen-formation" and
+            .policy_tree.observation_branches["non-forming"].node_type == "STOP" and
+            .policy_tree.observation_branches["non-forming"].action_id == "reject" and
+            .policy_tree.observation_branches["forming"].node_type == "MEASURE" and
+            .policy_tree.observation_branches["forming"].measurement_id == "b-characterize-route" and
+            .policy_tree.observation_branches["forming"].observation_branches["route-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["forming"].observation_branches["route-b"].action_id == "route-b"
+          ' feasibility-gated-adaptive.json
+
+      - name: Audit synthetic decision-value pool and exact one-step oracle
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-decision-value
+          tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json
+
+      - name: Assert synthetic decision-value known answer
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-decision-value tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json > decision-value-report.json
+          grep -q '"status": "PASS"' decision-value-report.json
+          grep -q '"oracle_measurement_id": "measure-regime"' decision-value-report.json
+          grep -q '"pre_measurement_worst_case_regret": 5.0' decision-value-report.json
+          grep -q '"oracle_worst_case_regret_after": 0.0' decision-value-report.json
+          grep -q '"oracle_gross_regret_reduction": 5.0' decision-value-report.json
+          grep -q '"measurement_id": "measure-expensive"' decision-value-report.json
+          grep -q '"within_budget": false' decision-value-report.json
+
+      - name: Audit adaptive synthetic campaign oracle
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-adaptive-campaign
+          tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool.synthetic.json
+
+      - name: Assert adaptive campaign known answer
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool.synthetic.json > adaptive-campaign-report.json
+          grep -q '"status": "PASS"' adaptive-campaign-report.json
+          grep -q '"pre_measurement_worst_case_regret": 6.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_worst_case_regret": 0.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_gross_regret_reduction": 6.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_max_path_cost_units": 2.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_max_path_duration_seconds": 20.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_max_measurements_on_path": 2' adaptive-campaign-report.json
+          grep -q '"measurement_id": "measure-alpha"' adaptive-campaign-report.json
+          grep -q '"measurement_id": "measure-beta"' adaptive-campaign-report.json
+
+      - name: Audit adaptive drift and failed-measurement stress fixture
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-adaptive-campaign
+          tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json
+
+      - name: Assert recovery from drift and invalid primary observations
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json > adaptive-drift-report.json
+          grep -q '"status": "PASS"' adaptive-drift-report.json
+          grep -q '"pre_measurement_worst_case_regret": 6.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_worst_case_regret": 0.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_gross_regret_reduction": 6.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_path_cost_units": 4.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_path_duration_seconds": 20.0' adaptive-drift-report.json
+          grep -q '"measurement_id": "measure-primary"' adaptive-drift-report.json
+          grep -q '"measurement_id": "measure-secondary"' adaptive-drift-report.json
+          grep -q '"observation_branches": {' adaptive-drift-report.json
+
+      - name: Compare myopic and adaptive policies under drift and failed observations
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-decision-value tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json > drift-myopic-report.json
+          grep -q '"status": "PASS"' drift-myopic-report.json
+          grep -q '"pre_measurement_worst_case_regret": 6.0' drift-myopic-report.json
+          grep -q '"oracle_worst_case_regret_after": 6.0' drift-myopic-report.json
+          grep -q '"oracle_gross_regret_reduction": 0.0' drift-myopic-report.json
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json > adaptive-drift-report.json
+          grep -q '"status": "PASS"' adaptive-drift-report.json
+          grep -q '"pre_measurement_worst_case_regret": 6.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_worst_case_regret": 0.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_gross_regret_reduction": 6.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_path_cost_units": 4.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_path_duration_seconds": 20.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_measurements_on_path": 2' adaptive-drift-report.json
+          grep -q '"measurement_id": "measure-primary"' adaptive-drift-report.json
+          grep -q '"measurement_id": "measure-secondary"' adaptive-drift-report.json
+          grep -q '"action_id": "route-a"' adaptive-drift-report.json
+          grep -q '"observation_branches": {' adaptive-drift-report.json
+          jq -e '
+            .policy_tree.measurement_id == "measure-primary" and
+            .policy_tree.observation_branches["signal-a"].node_type == "STOP" and
+            .policy_tree.observation_branches["signal-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["signal-b"].node_type == "MEASURE" and
+            .policy_tree.observation_branches["signal-b"].measurement_id == "measure-secondary" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["signal-a"].node_type == "STOP" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["signal-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["no-signal"].node_type == "STOP" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["no-signal"].action_id == "route-b" and
+            .policy_tree.observation_branches["invalid"].node_type == "MEASURE" and
+            .policy_tree.observation_branches["invalid"].measurement_id == "measure-secondary" and
+            .policy_tree.observation_branches["invalid"].observation_branches["signal-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["invalid"].observation_branches["signal-b"].action_id == "route-b"
+          ' adaptive-drift-report.json
+
+      - name: Abstain when no robust action exists and budget blocks resolution
+        shell: bash
+        run: |
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-budget-blocked.synthetic.json > adaptive-blocked-report.json
+          status=$?
+          set -e
+          test "$status" -eq 3
+          grep -q '"status": "UNRESOLVED"' adaptive-blocked-report.json
+          grep -q 'NO_FEASIBLE_ADAPTIVE_POLICY:' adaptive-blocked-report.json
+
+      - name: Accept balanced synthetic ledger
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          check-mass
+          tools/glass-silicon-contract-audit/fixtures/mass-balanced.synthetic.json
+
+      - name: Reject unbalanced synthetic ledger
+        shell: bash
+        run: |
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            check-mass tools/glass-silicon-contract-audit/fixtures/mass-unbalanced.synthetic.json > unbalanced-report.json
+          status=$?
+          set -e
+          test "$status" -eq 2
+          grep -q '"status": "FAIL"' unbalanced-report.json
+
+      - name: Abstain on incomplete synthetic ledger
+        shell: bash
+        run: |
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            check-mass tools/glass-silicon-contract-audit/fixtures/mass-census-incomplete.synthetic.json > incomplete-report.json
+          status=$?
+          set -e
+          test "$status" -eq 3
+          grep -q '"status": "UNRESOLVED"' incomplete-report.json
+
+      - name: Hash synthetic artifact and preserve admission block
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            hash-artifacts \
+            tools/glass-silicon-contract-audit/fixtures/hash-receipt-corpus.synthetic.json \
+            local-hash-selftest-v1 \
+            tools/glass-silicon-contract-audit/fixtures > hash-receipt.json
+          grep -q '"status": "HASHED_PENDING_ADMISSION"' hash-receipt.json
+          grep -q '"md5_matches": true' hash-receipt.json
+          grep -q '"observed_sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"' hash-receipt.json
+          grep -q '"rights_status": "unresolved"' hash-receipt.json
+          grep -q '"manifest_admission_status": "blocked"' hash-receipt.json
