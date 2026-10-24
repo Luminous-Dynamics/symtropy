@@ -40,13 +40,12 @@ struct ErrorAccumulator {
 }
 
 impl ErrorAccumulator {
-    fn metrics(&self) -> Value {
+    fn metrics(&self, rmse_key: &str) -> Value {
         let denominator = (self.samples * 3).max(1) as f64;
         let rmse = (self.error_squared_sum / denominator).sqrt();
         let zero_rmse = (self.zero_squared_sum / denominator).sqrt();
-        json!({
+        let mut metrics = json!({
             "sample_count": self.samples,
-            "hdc_ltc_reservoir_residual_rmse_m_s2": rmse,
             "zero_residual_physics_only_rmse_m_s2": zero_rmse,
             "relative_rmse_improvement_vs_zero": if zero_rmse > 0.0 {
                 Some(1.0 - rmse / zero_rmse)
@@ -58,7 +57,9 @@ impl ErrorAccumulator {
             "inference_p95_us": percentile(&self.inference_us, 0.95),
             "inference_p99_us": percentile(&self.inference_us, 0.99),
             "invalid_samples": self.invalid_samples
-        })
+        });
+        metrics[rmse_key] = json!(rmse);
+        metrics
     }
 
     fn rmse(&self) -> f64 {
@@ -385,11 +386,11 @@ fn main() {
 
     let family_metrics = by_family
         .into_iter()
-        .map(|(family, metrics)| (family, metrics.metrics()))
+        .map(|(family, metrics)| (family, metrics.metrics("hdc_ltc_reservoir_residual_rmse_m_s2")))
         .collect::<serde_json::Map<_, _>>();
     let stateless_family_metrics = stateless_by_family
         .into_iter()
-        .map(|(family, metrics)| (family, metrics.metrics()))
+        .map(|(family, metrics)| (family, metrics.metrics("stateless_hdc_ltc_residual_rmse_m_s2")))
         .collect::<serde_json::Map<_, _>>();
 
     println!("{}", json!({
@@ -429,7 +430,7 @@ fn main() {
             "steps_per_episode": steps_per_episode,
             "sample_count": overall.samples,
             "invalid_samples": overall.invalid_samples,
-            "metrics": overall.metrics(),
+            "metrics": overall.metrics("hdc_ltc_reservoir_residual_rmse_m_s2"),
             "family_metrics": family_metrics,
             "episode_details": episode_details,
             "test_scenario_ids": scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
@@ -465,7 +466,7 @@ fn main() {
                 "steps_per_episode": steps_per_episode,
                 "sample_count": stateless_overall.samples,
                 "invalid_samples": stateless_overall.invalid_samples,
-                "metrics": stateless_overall.metrics(),
+                "metrics": stateless_overall.metrics("stateless_hdc_ltc_residual_rmse_m_s2"),
                 "family_metrics": stateless_family_metrics,
                 "episode_details": stateless_episode_details,
                 "test_scenario_ids": scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
