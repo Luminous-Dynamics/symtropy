@@ -19,23 +19,48 @@ fn split_name(split: lighting_benchmark::stress_matrix::Split) -> &'static str {
 
 fn perturbation_record(value: Perturbation) -> String {
     match value {
-        Perturbation::FixtureTranslationMm { dx, dy } => format!("fixture_translation_mm;dx={dx};dy={dy}"),
-        Perturbation::FixtureHeightScale { scale } => format!("fixture_height_scale;scale={scale}"),
-        Perturbation::UniformReflectanceDelta { delta } => format!("uniform_reflectance_delta;delta={delta}"),
-        Perturbation::PowerInputScale { scale } => format!("power_input_scale;scale={scale}"),
-        Perturbation::WallReflectanceAsymmetry { north_delta, south_delta } => {
-            format!("wall_reflectance_asymmetry;north={north_delta};south={south_delta}")
+        Perturbation::FixtureTranslationMm { dx, dy } => {
+            format!("fixture_translation_mm;dx={dx};dy={dy}")
         }
-        Perturbation::OccluderPreset { preset } => format!("occluder_preset;preset={preset}"),
-        Perturbation::CoupledGeometryReflectance { dx_mm, height_scale, reflectance_delta } => {
-            format!("coupled_geometry_reflectance;dx_mm={dx_mm};height_scale={height_scale};reflectance_delta={reflectance_delta}")
+        Perturbation::FixtureHeightScale { scale } => {
+            format!("fixture_height_scale;scale={scale}")
         }
-        Perturbation::AmbientSensorBias { bias_fraction } => format!("ambient_sensor_bias;bias_fraction={bias_fraction}"),
-        Perturbation::AmbientSensorDropout { dropout_fraction } => format!("ambient_sensor_dropout;dropout_fraction={dropout_fraction}"),
-        Perturbation::ControlLatencySeconds { latency_s } => format!("control_latency_seconds;latency_s={latency_s}"),
-        Perturbation::StaleSensorAgeSeconds { age_s } => format!("stale_sensor_age_seconds;age_s={age_s}"),
-        Perturbation::BatteryStateOfCharge { fraction } => format!("battery_state_of_charge;fraction={fraction}"),
-        Perturbation::GridOutageDurationSeconds { duration_s } => format!("grid_outage_duration_seconds;duration_s={duration_s}"),
+        Perturbation::UniformReflectanceDelta { delta } => {
+            format!("uniform_reflectance_delta;delta={delta}")
+        }
+        Perturbation::PowerInputScale { scale } => {
+            format!("power_input_scale;scale={scale}")
+        }
+        Perturbation::WallReflectanceAsymmetry {
+            north_delta,
+            south_delta,
+        } => format!("wall_asymmetry;north={north_delta};south={south_delta}"),
+        Perturbation::OccluderPreset { preset } => {
+            format!("occluder_preset;preset={preset}")
+        }
+        Perturbation::CoupledGeometryReflectance {
+            dx_mm,
+            height_scale,
+            reflectance_delta,
+        } => format!("coupled;dx_mm={dx_mm};height={height_scale};reflectance={reflectance_delta}"),
+        Perturbation::AmbientSensorBias { bias_fraction } => {
+            format!("ambient_sensor_bias;bias={bias_fraction}")
+        }
+        Perturbation::AmbientSensorDropout { dropout_fraction } => {
+            format!("ambient_sensor_dropout;dropout={dropout_fraction}")
+        }
+        Perturbation::ControlLatencySeconds { latency_s } => {
+            format!("control_latency_seconds;latency={latency_s}")
+        }
+        Perturbation::StaleSensorAgeSeconds { age_s } => {
+            format!("stale_sensor_age_seconds;age={age_s}")
+        }
+        Perturbation::BatteryStateOfCharge { fraction } => {
+            format!("battery_soc;fraction={fraction}")
+        }
+        Perturbation::GridOutageDurationSeconds { duration_s } => {
+            format!("grid_outage_duration;duration={duration_s}")
+        }
     }
 }
 
