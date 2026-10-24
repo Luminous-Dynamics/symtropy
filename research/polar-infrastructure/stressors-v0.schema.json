@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/polar-infrastructure/stressors-v0.schema.json",
+  "title": "Polar infrastructure stressor catalog v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_kind",
+    "status",
+    "evidence_claim_ceiling",
+    "created_date",
+    "summary",
+    "contexts",
+    "reference_basis",
+    "benchmark_rules",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "artifact_kind": {
+      "const": "polar-infrastructure-stressor-catalog"
+    },
+    "status": {
+      "const": "proposed"
+    },
+    "evidence_claim_ceiling": {
+      "const": "synthetic_only"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 20
+    },
+    "contexts": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "arctic_land_community",
+              "antarctic_station",
+              "mobile_ice_platform"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10
+          }
+        }
+      }
+    },
+    "reference_basis": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "url",
+          "scope"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "benchmark_rules": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string",
+        "minLength": 10
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    }
+  },
+  "$defs": {
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "domain",
+        "applicable_contexts",
+        "trigger",
+        "required_inputs",
+        "outputs",
+        "hard_gates",
+        "assumptions",
+        "test_status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^POLAR-[0-9]{3}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 5
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "applicable_contexts": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "arctic_land_community",
+              "antarctic_station",
+              "mobile_ice_platform"
+            ]
+          }
+        },
+        "trigger": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "summary",
+            "failure_conditions",
+            "parameters_required"
+          ],
+          "properties": {
+            "summary": {
+              "type": "string",
+              "minLength": 10
+            },
+            "failure_conditions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 5
+              }
+            },
+            "parameters_required": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 3
+              }
+            }
+          }
+        },
+        "required_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 2
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 2
+          }
+        },
+        "hard_gates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 2
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 2
+          }
+        },
+        "test_status": {
+          "const": "not_run"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+name: Polar Infrastructure Stressors
+on:
+  pull_request:
+    paths:
+      - "research/polar-infrastructure/**"
+      - "scripts/check-polar-infrastructure-stressors.sh"
+      - ".github/workflows/polar-infrastructure-stressors.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "research/polar-infrastructure/**"
+      - "scripts/check-polar-infrastructure-stressors.sh"
+      - ".github/workflows/polar-infrastructure-stressors.yml"
+permissions:
+  contents: read
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact PR head (or exact pushed commit)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert checked-out revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Syntax-check smoke validator
+        run: bash -n scripts/check-polar-infrastructure-stressors.sh
+      - name: Validate catalog and negative controls
+        run: bash scripts/check-polar-infrastructure-stressors.sh --self-test
