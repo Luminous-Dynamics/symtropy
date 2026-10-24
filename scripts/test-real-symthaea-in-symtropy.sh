@@ -227,6 +227,7 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .representation.trainable_weights == "readout only; no end-to-end HDC-LTC BPTT"
     and .representation.readout_feature_dimension == 262
     and .training.sample_count > 0
+    and .training.readout_fit_seconds >= 0
     and .training.hidden_force_labels_used_as_features == false
     and .evaluation.split == "test"
     and .evaluation.sample_count == (.evaluation.episodes_requested * .evaluation.steps_per_episode)
