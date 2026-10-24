@@ -122,6 +122,10 @@ jq -e '
     and (.relative_rmse_degradation_vs_20ms | length) == 5
     and all(.paired_rmse_delta_vs_20ms[]; (.stratified_episode_bootstrap_95_ci_m_s2 | length) == 2)
   )
+  and all(.resilience_contrasts[];
+    (.persistent_hdc_minus_explicit_history_transfer_delta.stratified_episode_bootstrap_95_ci_m_s2 | length) == 2
+    and (.persistent_hdc_minus_ltc_reset_each_step_transfer_delta.stratified_episode_bootstrap_95_ci_m_s2 | length) == 2
+  )
 ' "$summary_path" > /dev/null
 
 echo "Actuator lag transfer sweep receipt: $summary_path"
