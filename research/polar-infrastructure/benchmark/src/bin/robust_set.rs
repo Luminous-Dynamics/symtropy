@@ -30,6 +30,8 @@ struct RobustSetReport {
     evidence_class: &'static str,
     scenario_count: usize,
     result_scope: &'static str,
+    /// Complete only when every policy has fuel-intensity data for every scenario.
+    pareto_comparison_status: &'static str,
     policy_results: Vec<RobustPolicyScore>,
 }
 
@@ -44,7 +46,8 @@ struct RobustPolicyScore {
     unweighted_mean_shortfall_across_stress_suite: f64,
     worst_floor_breach_service_hours: f64,
     maximum_fuel_intensity_across_scenarios: Option<f64>,
-    pareto_nondominated: bool,
+    /// None means the frontier is incomplete because some fuel-intensity data is missing.
+    pareto_nondominated: Option<bool>,
     scenario_outcomes: Vec<ScenarioOutcome>,
 }
 
@@ -71,10 +74,14 @@ struct Observation {
 }
 
 fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
-    // No scalar blend: compare four disclosed outcomes. Missing fuel data is treated
-    // conservatively as infinite for Pareto comparison, while remaining None in the report.
-    let af = a.maximum_fuel_intensity_across_scenarios.unwrap_or(f64::INFINITY);
-    let bf = b.maximum_fuel_intensity_across_scenarios.unwrap_or(f64::INFINITY);
+    // A Pareto comparison needs a measured fuel objective for both options.
+    // Missing is neither zero nor infinity, and cannot establish dominance.
+    let (Some(af), Some(bf)) = (
+        a.maximum_fuel_intensity_across_scenarios,
+        b.maximum_fuel_intensity_across_scenarios,
+    ) else {
+        return false;
+    };
     let av = [
         a.service_floor_breach_scenario_count as f64,
         a.worst_case_service_shortfall,
@@ -200,16 +207,20 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
             unweighted_mean_shortfall_across_stress_suite: unweighted_mean_shortfall,
             worst_floor_breach_service_hours: worst_floor_breach_hours,
             maximum_fuel_intensity_across_scenarios: maximum_fuel_intensity,
-            pareto_nondominated: false,
+            pareto_nondominated: None,
             scenario_outcomes,
         });
     }
 
-    for i in 0..results.len() {
-        let nondominated = !(0..results.len())
-            .filter(|&j| j != i)
-            .any(|j| dominates(&results[j], &results[i]));
-        results[i].pareto_nondominated = nondominated;
+    let pareto_comparison_complete = results.iter()
+        .all(|policy| policy.maximum_fuel_intensity_across_scenarios.is_some());
+    if pareto_comparison_complete {
+        for i in 0..results.len() {
+            let nondominated = !(0..results.len())
+                .filter(|&j| j != i)
+                .any(|j| dominates(&results[j], &results[i]));
+            results[i].pareto_nondominated = Some(nondominated);
+        }
     }
 
     Ok(RobustSetReport {
@@ -218,6 +229,11 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
         evidence_class: "synthetic_only",
         scenario_count: input.scenarios.len(),
         result_scope: "unweighted_enumerated_stress_set_not_probability_estimate",
+        pareto_comparison_status: if pareto_comparison_complete {
+            "complete"
+        } else {
+            "incomplete_missing_fuel_data"
+        },
         policy_results: results,
     })
 }
@@ -346,8 +362,32 @@ mod tests {
     #[test]
     fn no_policy_is_claimed_to_dominate_on_one_combined_scalar() {
         let report = aggregate(&fixture()).expect("fixture should aggregate");
-        assert!(report.policy_results.iter().any(|p| p.pareto_nondominated));
+        assert_eq!(report.pareto_comparison_status, "complete");
+        assert!(report.policy_results.iter().any(|p| p.pareto_nondominated == Some(true)));
         // Eligibility is a separate boolean; Pareto status is not safety approval.
-        assert!(report.policy_results.iter().any(|p| p.pareto_nondominated && !p.passed_all_declared_service_floors));
+        assert!(report.policy_results.iter().any(|p| p.pareto_nondominated == Some(true) && !p.passed_all_declared_service_floors));
+    }
+
+    #[test]
+    fn missing_fuel_intensity_makes_the_whole_frontier_incomplete() {
+        let mut input = fixture();
+        for scenario in &mut input.scenarios {
+            let policy = scenario.score_input.policy_runs.iter_mut()
+                .find(|p| p.policy_id == "defective_low_fuel_control")
+                .unwrap();
+            for step in &mut policy.steps {
+                for delivered in step.delivered.values_mut() {
+                    *delivered = 0.0;
+                }
+            }
+        }
+
+        let report = aggregate(&input).expect("zero delivery is valid but cannot establish fuel intensity");
+        let defective = report.policy_results.iter()
+            .find(|p| p.policy_id == "defective_low_fuel_control")
+            .unwrap();
+        assert!(defective.maximum_fuel_intensity_across_scenarios.is_none());
+        assert_eq!(report.pareto_comparison_status, "incomplete_missing_fuel_data");
+        assert!(report.policy_results.iter().all(|p| p.pareto_nondominated.is_none()));
     }
 }
