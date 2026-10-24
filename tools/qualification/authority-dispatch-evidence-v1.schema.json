@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://symtropy.org/schemas/authority-dispatch-evidence-v1.json",
+  "title": "QUAL-001B Authority Dispatch Evidence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "dispatch_schema_id",
+    "dispatch_sha256",
+    "release_sha256",
+    "contract_commit_sha",
+    "contract_path",
+    "contract_sha256"
+  ],
+  "properties": {
+    "schema_id": {"const": "luminous.authority-dispatch-evidence.v1"},
+    "schema_version": {"const": 1},
+    "dispatch_schema_id": {"const": "luminous.authority-dispatch.v1"},
+    "dispatch_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "release_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "contract_commit_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "contract_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?!/)(?!\\\\)(?!~)(?!.*\\\\)(?!.*(^|/)\\.\\.?(/|$))[^\\x00]+$"
+    },
+    "contract_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}
