@@ -40,13 +40,12 @@ struct ErrorAccumulator {
 }
 
 impl ErrorAccumulator {
-    fn metrics(&self) -> Value {
+    fn metrics(&self, rmse_key: &str) -> Value {
         let denominator = (self.samples * 3).max(1) as f64;
         let rmse = (self.error_squared_sum / denominator).sqrt();
         let zero_rmse = (self.zero_squared_sum / denominator).sqrt();
-        json!({
+        let mut metrics = json!({
             "sample_count": self.samples,
-            "hdc_ltc_reservoir_residual_rmse_m_s2": rmse,
             "zero_residual_physics_only_rmse_m_s2": zero_rmse,
             "relative_rmse_improvement_vs_zero": if zero_rmse > 0.0 {
                 Some(1.0 - rmse / zero_rmse)
@@ -58,7 +57,9 @@ impl ErrorAccumulator {
             "inference_p95_us": percentile(&self.inference_us, 0.95),
             "inference_p99_us": percentile(&self.inference_us, 0.99),
             "invalid_samples": self.invalid_samples
-        })
+        });
+        metrics[rmse_key] = json!(rmse);
+        metrics
     }
 
     fn rmse(&self) -> f64 {
@@ -134,7 +135,18 @@ fn parse_action(value: &Value) -> QuadrotorCommand {
     QuadrotorCommand::from_raw(raw.map(|component| component as f32)).clamped()
 }
 
-fn training_samples(path: &str) -> Vec<ReservoirTrainingSample> {
+struct HdcTrainingData {
+    persistent_samples: Vec<ReservoirTrainingSample>,
+    reset_each_step_samples: Vec<ReservoirTrainingSample>,
+    dataset_parse_seconds: f64,
+    persistent_reservoir_init_seconds: f64,
+    reset_each_step_reservoir_init_seconds: f64,
+    persistent_feature_generation_seconds: f64,
+    reset_each_step_feature_generation_seconds: f64,
+}
+
+fn training_samples(path: &str) -> HdcTrainingData {
+    let dataset_parse_started = Instant::now();
     let bytes = fs::read(path)
         .unwrap_or_else(|error| panic!("cannot read training dataset at {path}: {error}"));
     let root: Value = serde_json::from_slice(&bytes).expect("training dataset must be JSON");
@@ -162,8 +174,21 @@ fn training_samples(path: &str) -> Vec<ReservoirTrainingSample> {
     let rows = root["samples"]
         .as_array()
         .expect("dataset samples must be an array");
+    let dataset_parse_seconds = dataset_parse_started.elapsed().as_secs_f64();
+
+    // Two matched arms share the same encoder seed and input chronology:
+    // persistent LTC state versus LTC state reset every step. Encoder derivative history
+    // is preserved in both arms and reset only at episode boundaries.
+    let persistent_init_started = Instant::now();
     let mut reservoir = HdcLtcResidualReservoir::new(GENESIS_PHRASE);
+    let persistent_reservoir_init_seconds = persistent_init_started.elapsed().as_secs_f64();
+    let reset_init_started = Instant::now();
+    let mut reset_each_step_reservoir = HdcLtcResidualReservoir::new(GENESIS_PHRASE);
+    let reset_each_step_reservoir_init_seconds = reset_init_started.elapsed().as_secs_f64();
+    let mut persistent_feature_generation_seconds = 0.0;
+    let mut reset_each_step_feature_generation_seconds = 0.0;
     let mut samples = Vec::with_capacity(rows.len());
+    let mut reset_each_step_samples = Vec::with_capacity(rows.len());
     let mut current_episode = None;
     let mut previous_transition = None;
 
@@ -186,6 +211,7 @@ fn training_samples(path: &str) -> Vec<ReservoirTrainingSample> {
             }
             assert_eq!(transition, 0, "each episode must begin at transition zero");
             reservoir.reset_episode();
+            reset_each_step_reservoir.reset_episode();
             current_episode = Some(episode);
             previous_transition = None;
         } else if let Some(previous) = previous_transition {
@@ -200,17 +226,41 @@ fn training_samples(path: &str) -> Vec<ReservoirTrainingSample> {
             &row["target"]["residual_acceleration_world_m_s2"],
             "residual_acceleration_world_m_s2",
         );
+        let persistent_feature_started = Instant::now();
         let features = reservoir
             .features(&state, &action, dt_s)
-            .unwrap_or_else(|| panic!("invalid HDC-LTC features for training row {row_index}"));
+            .unwrap_or_else(|| panic!("invalid persistent HDC-LTC features at training row {row_index}"));
+        persistent_feature_generation_seconds += persistent_feature_started.elapsed().as_secs_f64();
+
+        // Clear only the LTC recurrent state; keep this encoder's derivative history
+        // aligned with the persistent arm's observed state sequence.
+        let reset_feature_started = Instant::now();
+        reset_each_step_reservoir.reset_reservoir_state();
+        let stateless_features = reset_each_step_reservoir
+            .features(&state, &action, dt_s)
+            .unwrap_or_else(|| panic!("invalid LTC-reset-each-step HDC features at training row {row_index}"));
+        reset_each_step_feature_generation_seconds += reset_feature_started.elapsed().as_secs_f64();
         assert!(target.iter().all(|value| value.is_finite()));
         samples.push(ReservoirTrainingSample {
             features,
             target_residual_acceleration_world_m_s2: target,
         });
+        reset_each_step_samples.push(ReservoirTrainingSample {
+            features: stateless_features,
+            target_residual_acceleration_world_m_s2: target,
+        });
     }
     assert!(!samples.is_empty(), "refusing to fit on empty data");
-    samples
+    assert_eq!(samples.len(), reset_each_step_samples.len());
+    HdcTrainingData {
+        persistent_samples: samples,
+        reset_each_step_samples,
+        dataset_parse_seconds,
+        persistent_reservoir_init_seconds,
+        reset_each_step_reservoir_init_seconds,
+        persistent_feature_generation_seconds,
+        reset_each_step_feature_generation_seconds,
+    }
 }
 
 fn evaluate_episode(
@@ -220,6 +270,7 @@ fn evaluate_episode(
     steps: usize,
     nominal: NominalLinearDynamics,
     gains: &PdGains,
+    reset_ltc_state_each_step: bool,
 ) -> ErrorAccumulator {
     let mut simulator = SymtropyFlightSimulator::new();
     simulator.reset_with_perturbation(scenario.setpoint.position[2], 0.06, seed);
@@ -234,6 +285,9 @@ fn evaluate_episode(
             .clamped();
 
         let started = Instant::now();
+        if reset_ltc_state_each_step {
+            reservoir.reset_reservoir_state();
+        }
         let features = reservoir.features(&before, &action, DT_S);
         let prediction = features.as_ref().and_then(|values| readout.predict(values));
         let elapsed_us = started.elapsed().as_secs_f64() * 1.0e6;
@@ -270,13 +324,23 @@ fn evaluate_episode(
 fn main() {
     let input_path = std::env::var("STFR_DATASET_INPUT_PATH")
         .expect("STFR_DATASET_INPUT_PATH must point to a training-split JSON artifact");
-    let train_samples = training_samples(&input_path);
+    let training_data = training_samples(&input_path);
+    let train_samples = training_data.persistent_samples;
+    let reset_each_step_train_samples = training_data.reset_each_step_samples;
     let ridge_lambda = std::env::var("STFR_HDC_RIDGE_LAMBDA")
         .ok()
         .and_then(|value| value.parse::<f64>().ok())
         .unwrap_or(1.0e-2);
+    let readout_fit_started = Instant::now();
     let readout = ReservoirRidgeReadout::fit(&train_samples, ridge_lambda)
-        .expect("HDC-LTC ridge readout fit must be valid");
+        .expect("persistent HDC-LTC ridge readout fit must be valid");
+    let readout_fit_seconds = readout_fit_started.elapsed().as_secs_f64();
+
+    let stateless_readout_fit_started = Instant::now();
+    let stateless_readout =
+        ReservoirRidgeReadout::fit(&reset_each_step_train_samples, ridge_lambda)
+            .expect("LTC-LTC-reset-each-step HDC ridge readout fit must be valid");
+    let stateless_readout_fit_seconds = stateless_readout_fit_started.elapsed().as_secs_f64();
 
     let episodes = env_usize("STFR_HDC_EVAL_EPISODES", 18);
     let steps_per_episode = env_usize("STFR_HDC_EVAL_STEPS", 64);
@@ -290,7 +354,10 @@ fn main() {
     let gains = PdGains::default();
     let mut overall = ErrorAccumulator::default();
     let mut by_family: BTreeMap<String, ErrorAccumulator> = BTreeMap::new();
+    let mut stateless_overall = ErrorAccumulator::default();
+    let mut stateless_by_family: BTreeMap<String, ErrorAccumulator> = BTreeMap::new();
     let mut episode_details = Vec::with_capacity(episodes);
+    let mut stateless_episode_details = Vec::with_capacity(episodes);
 
     for episode in 0..episodes {
         let seed = 0x5359_5445_5354_0000_u64.wrapping_add(episode as u64 + 1);
@@ -302,12 +369,27 @@ fn main() {
             steps_per_episode,
             nominal,
             &gains,
+            false,
+        );
+        let stateless_metrics = evaluate_episode(
+            &stateless_readout,
+            scenario,
+            seed,
+            steps_per_episode,
+            nominal,
+            &gains,
+            true,
         );
         overall.merge(&metrics);
         by_family
             .entry(scenario.family.to_owned())
             .or_default()
             .merge(&metrics);
+        stateless_overall.merge(&stateless_metrics);
+        stateless_by_family
+            .entry(scenario.family.to_owned())
+            .or_default()
+            .merge(&stateless_metrics);
         episode_details.push(json!({
             "episode_index": episode,
             "episode_seed_hex": format!("{seed:016x}"),
@@ -320,11 +402,27 @@ fn main() {
             "invalid_samples": metrics.invalid_samples,
             "inference_p95_us": percentile(&metrics.inference_us, 0.95)
         }));
+        stateless_episode_details.push(json!({
+            "episode_index": episode,
+            "episode_seed_hex": format!("{seed:016x}"),
+            "scenario_id": scenario.id,
+            "scenario_family": scenario.family,
+            "sample_count": stateless_metrics.samples,
+            "rmse_m_s2": stateless_metrics.rmse(),
+            "zero_residual_rmse_m_s2": stateless_metrics.zero_rmse(),
+            "max_vector_prediction_error_m_s2": stateless_metrics.max_vector_error_m_s2,
+            "invalid_samples": stateless_metrics.invalid_samples,
+            "inference_p95_us": percentile(&stateless_metrics.inference_us, 0.95)
+        }));
     }
 
     let family_metrics = by_family
         .into_iter()
-        .map(|(family, metrics)| (family, metrics.metrics()))
+        .map(|(family, metrics)| (family, metrics.metrics("hdc_ltc_reservoir_residual_rmse_m_s2")))
+        .collect::<serde_json::Map<_, _>>();
+    let stateless_family_metrics = stateless_by_family
+        .into_iter()
+        .map(|(family, metrics)| (family, metrics.metrics("hdc_ltc_reset_each_step_residual_rmse_m_s2")))
         .collect::<serde_json::Map<_, _>>();
 
     println!("{}", json!({
@@ -354,6 +452,15 @@ fn main() {
         "training": {
             "split": "train",
             "sample_count": train_samples.len(),
+            "dataset_parse_seconds": training_data.dataset_parse_seconds,
+            "reservoir_initialization_seconds": training_data.persistent_reservoir_init_seconds,
+            "feature_generation_seconds": training_data.persistent_feature_generation_seconds,
+            "readout_fit_seconds": readout_fit_seconds,
+            "training_pipeline_seconds": training_data.dataset_parse_seconds
+                + training_data.persistent_reservoir_init_seconds
+                + training_data.persistent_feature_generation_seconds
+                + readout_fit_seconds,
+            "trainable_readout_parameter_count": 262 * 3,
             "ridge_lambda": readout.ridge_lambda(),
             "hidden_force_labels_used_as_features": false
         },
@@ -363,7 +470,7 @@ fn main() {
             "steps_per_episode": steps_per_episode,
             "sample_count": overall.samples,
             "invalid_samples": overall.invalid_samples,
-            "metrics": overall.metrics(),
+            "metrics": overall.metrics("hdc_ltc_reservoir_residual_rmse_m_s2"),
             "family_metrics": family_metrics,
             "episode_details": episode_details,
             "test_scenario_ids": scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
@@ -380,6 +487,48 @@ fn main() {
                 "mass_kg": nominal.mass_kg,
                 "gravity_m_s2": nominal.gravity_m_s2,
                 "linear_drag_n_s_per_m": nominal.linear_drag_n_s_per_m
+            }
+        },
+        "ltc_reset_each_step_ablation": {
+            "claim_ceiling": "HDC_encoder_with_encoder_derivative_history_but_no_persistent_LTC_recurrent_state_one_step_prediction_only",
+            "state_policy": "reset LTC network immediately before each transition; preserve HDC encoder derivative history within episode",
+            "training": {
+                "split": "train",
+                "sample_count": reset_each_step_train_samples.len(),
+                "dataset_parse_seconds": training_data.dataset_parse_seconds,
+                "reservoir_initialization_seconds": training_data.reset_each_step_reservoir_init_seconds,
+                "feature_generation_seconds": training_data.reset_each_step_feature_generation_seconds,
+                "readout_fit_seconds": stateless_readout_fit_seconds,
+                "training_pipeline_seconds": training_data.dataset_parse_seconds
+                    + training_data.reset_each_step_reservoir_init_seconds
+                    + training_data.reset_each_step_feature_generation_seconds
+                    + stateless_readout_fit_seconds,
+                "trainable_readout_parameter_count": 262 * 3,
+                "ridge_lambda": stateless_readout.ridge_lambda(),
+                "hidden_force_labels_used_as_features": false,
+                "same_transition_targets_as_persistent_arm": true
+            },
+            "evaluation": {
+                "split": "test",
+                "episodes_requested": episodes,
+                "steps_per_episode": steps_per_episode,
+                "sample_count": stateless_overall.samples,
+                "invalid_samples": stateless_overall.invalid_samples,
+                "metrics": stateless_overall.metrics("hdc_ltc_reset_each_step_residual_rmse_m_s2"),
+                "family_metrics": stateless_family_metrics,
+                "episode_details": stateless_episode_details,
+                "test_scenario_ids": scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
+                "test_episode_seed_hexes": (0..episodes)
+                    .map(|episode| format!("{:016x}", 0x5359_5445_5354_0000_u64.wrapping_add(episode as u64 + 1)))
+                    .collect::<Vec<_>>(),
+                "test_episode_scenario_ids": (0..episodes)
+                    .map(|episode| scenarios[episode % scenarios.len()].id)
+                    .collect::<Vec<_>>(),
+                "nominal_model": {
+                    "mass_kg": nominal.mass_kg,
+                    "gravity_m_s2": nominal.gravity_m_s2,
+                    "linear_drag_n_s_per_m": LINEAR_DRAG_N_S_PER_M
+                }
             }
         },
         "comparison_contract": "Use same dataset SHA, test scenario IDs, seed sequence, episode count, step count, nominal dynamics and action policy as the raw-state ridge benchmark. Prediction and latency only; not closed-loop control evidence."

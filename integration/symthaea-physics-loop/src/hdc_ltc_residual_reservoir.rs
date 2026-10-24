@@ -72,6 +72,13 @@ impl HdcLtcResidualReservoir {
         self.network.reset();
     }
 
+    /// Reset only the LTC recurrent state while preserving the HDC encoder's derivative
+    /// history. Use this for the recurrent-memory ablation: it removes accumulated LTC
+    /// state without changing how the encoder represents transitions within an episode.
+    pub fn reset_reservoir_state(&mut self) {
+        self.network.reset();
+    }
+
     /// Encode causal state/action/time into a fixed-size readout feature vector.
     ///
     /// Call exactly once per transition, in chronological order within each episode.

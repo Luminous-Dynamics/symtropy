@@ -181,6 +181,10 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.source_receipt.scenario_matrix_sha256 | test("^[0-9a-f]{64}$"))
     and (.source_receipt.training_dataset_sha256 | test("^[0-9a-f]{64}$"))
     and .training.sample_count > 0
+    and .training.dataset_parse_seconds >= 0
+    and .training.model_fit_seconds >= 0
+    and .training.training_pipeline_seconds >= .training.model_fit_seconds
+    and .training.training_seconds >= 0
     and .training.hidden_force_labels_used_as_features == false
     and .calibration.split == "validation"
     and .calibration.alpha == 0.1
@@ -194,11 +198,14 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .evaluation.summary.invalid_episode_count == 0
     and .evaluation.summary.metrics.ridge_residual_rmse_m_s2 >= 0
     and .evaluation.summary.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and .evaluation.summary.metrics.inference_p50_us != null
+    and .evaluation.summary.metrics.inference_p95_us != null
+    and .evaluation.summary.metrics.inference_p99_us != null
     and .evaluation.summary.conformal_coverage.radius_euclidean_m_s2 != null
     and .evaluation.summary.conformal_coverage.episode_coverage >= 0
     and .evaluation.summary.conformal_coverage.episode_coverage <= 1
     and (.evaluation.summary.family_metrics | length) == 3
-    and all(.evaluation.summary.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .episode_coverage != null)
+    and all(.evaluation.summary.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .episode_coverage != null and .inference_p95_us != null)
   ' "$ridge_out"
 fi
 
@@ -210,7 +217,8 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
   hdc_out="${STFR_HDC_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-hdc-ltc-residual-reservoir-heldout.json}"
   cargo run --manifest-path "$integration_manifest" --example hdc_ltc_residual_reservoir_benchmark > "$hdc_out"
   jq -e '
-    .benchmark_id == "symtropy-hdc-ltc-residual-reservoir-heldout-v0.1"
+    (.ltc_reset_each_step_ablation.evaluation.steps_per_episode) as $reset_each_step_steps
+    | .benchmark_id == "symtropy-hdc-ltc-residual-reservoir-heldout-v0.1"
     and .claim_ceiling == "frozen_hdc_ltc_reservoir_readout_one_step_prediction_only"
     and (.source_receipt.symtropy_git_sha | test("^[0-9a-f]{40}$"))
     and .source_receipt.symthaea_git_sha == "bf787f4d655bd85f084cf75990232f19f7d809a1"
@@ -223,6 +231,12 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .representation.trainable_weights == "readout only; no end-to-end HDC-LTC BPTT"
     and .representation.readout_feature_dimension == 262
     and .training.sample_count > 0
+    and .training.dataset_parse_seconds >= 0
+    and .training.reservoir_initialization_seconds >= 0
+    and .training.feature_generation_seconds >= 0
+    and .training.readout_fit_seconds >= 0
+    and .training.training_pipeline_seconds >= .training.readout_fit_seconds
+    and .training.trainable_readout_parameter_count == 786
     and .training.hidden_force_labels_used_as_features == false
     and .evaluation.split == "test"
     and .evaluation.sample_count == (.evaluation.episodes_requested * .evaluation.steps_per_episode)
@@ -230,8 +244,30 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .evaluation.metrics.invalid_samples == 0
     and .evaluation.metrics.hdc_ltc_reservoir_residual_rmse_m_s2 >= 0
     and .evaluation.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and .evaluation.metrics.inference_p95_us != null
     and (.evaluation.family_metrics | length) == 3
     and all(.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
+    and .ltc_reset_each_step_ablation.claim_ceiling == "HDC_encoder_with_encoder_derivative_history_but_no_persistent_LTC_recurrent_state_one_step_prediction_only"
+    and .ltc_reset_each_step_ablation.state_policy == "reset LTC network immediately before each transition; preserve HDC encoder derivative history within episode"
+    and .ltc_reset_each_step_ablation.training.same_transition_targets_as_persistent_arm == true
+    and .ltc_reset_each_step_ablation.training.sample_count == .training.sample_count
+    and .ltc_reset_each_step_ablation.training.dataset_parse_seconds >= 0
+    and .ltc_reset_each_step_ablation.training.reservoir_initialization_seconds >= 0
+    and .ltc_reset_each_step_ablation.training.feature_generation_seconds >= 0
+    and .ltc_reset_each_step_ablation.training.readout_fit_seconds >= 0
+    and .ltc_reset_each_step_ablation.training.training_pipeline_seconds >= .ltc_reset_each_step_ablation.training.readout_fit_seconds
+    and .ltc_reset_each_step_ablation.training.trainable_readout_parameter_count == 786
+    and .ltc_reset_each_step_ablation.training.hidden_force_labels_used_as_features == false
+    and .ltc_reset_each_step_ablation.evaluation.split == "test"
+    and .ltc_reset_each_step_ablation.evaluation.sample_count == (.ltc_reset_each_step_ablation.evaluation.episodes_requested * .ltc_reset_each_step_ablation.evaluation.steps_per_episode)
+    and .ltc_reset_each_step_ablation.evaluation.invalid_samples == 0
+    and .ltc_reset_each_step_ablation.evaluation.metrics.invalid_samples == 0
+    and .ltc_reset_each_step_ablation.evaluation.metrics.hdc_ltc_reset_each_step_residual_rmse_m_s2 >= 0
+    and .ltc_reset_each_step_ablation.evaluation.metrics.inference_p95_us != null
+    and (.ltc_reset_each_step_ablation.evaluation.family_metrics | length) == 3
+    and all(.ltc_reset_each_step_ablation.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
+    and (.ltc_reset_each_step_ablation.evaluation.episode_details | length) == .ltc_reset_each_step_ablation.evaluation.episodes_requested
+    and all(.ltc_reset_each_step_ablation.evaluation.episode_details[]; .sample_count == $reset_each_step_steps and .invalid_samples == 0)
   ' "$hdc_out"
 
   mlp_out="${STFR_MLP_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-compact-mlp-residual-heldout.json}"
@@ -248,6 +284,9 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .representation.parameter_count == 355
     and .representation.temporal_state == false
     and .training.sample_count > 0
+    and .training.dataset_parse_seconds >= 0
+    and .training.model_fit_seconds >= 0
+    and .training.training_pipeline_seconds >= .training.model_fit_seconds
     and .training.hidden_force_labels_used_as_features == false
     and .training.final_training_rmse_m_s2 >= 0
     and .evaluation.split == "test"
@@ -256,39 +295,90 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .evaluation.metrics.invalid_samples == 0
     and .evaluation.metrics.compact_mlp_residual_rmse_m_s2 >= 0
     and .evaluation.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and .evaluation.metrics.inference_p50_us != null
+    and .evaluation.metrics.inference_p95_us != null
+    and .evaluation.metrics.inference_p99_us != null
     and (.evaluation.family_metrics | length) == 3
     and all(.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
     and (.evaluation.episode_details | length) == .evaluation.episodes_requested
     and all(.evaluation.episode_details[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
   ' "$mlp_out"
 
+  history_out="${STFR_HISTORY_MLP_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-explicit-history-mlp-residual-heldout.json}"
+  cargo run --manifest-path "$integration_manifest" --example history_window_mlp_residual_benchmark > "$history_out"
+  jq -e '
+    .benchmark_id == "symtropy-explicit-history-mlp-residual-heldout-v0.1"
+    and .claim_ceiling == "explicit_history_mlp_one_step_heldout_prediction_only_no_control_or_safety_claim"
+    and (.source_receipt.symtropy_git_sha | test("^[0-9a-f]{40}$"))
+    and .source_receipt.symthaea_git_sha == "bf787f4d655bd85f084cf75990232f19f7d809a1"
+    and (.source_receipt.scenario_matrix_sha256 | test("^[0-9a-f]{64}$"))
+    and (.source_receipt.training_dataset_sha256 | test("^[0-9a-f]{64}$"))
+    and .representation.input_features_per_transition == 18
+    and .representation.history_depth_including_current == 5
+    and .representation.historical_lags == 4
+    and .representation.input_feature_dimension == 94
+    and .representation.historical_lag_mask_count == 4
+    and .representation.hidden_units == 16
+    and .representation.parameter_count == 1571
+    and .representation.temporal_representation == "explicit four-step causal delay embedding; no recurrent hidden state"
+    and .training.sample_count > 0
+    and .training.data_preparation_and_history_feature_generation_seconds >= 0
+    and .training.model_fit_seconds >= 0
+    and .training.training_pipeline_seconds >= .training.model_fit_seconds
+    and .training.hidden_force_labels_used_as_features == false
+    and .training.final_training_rmse_m_s2 >= 0
+    and .evaluation.split == "test"
+    and .evaluation.sample_count == (.evaluation.episodes_requested * .evaluation.steps_per_episode)
+    and .evaluation.invalid_samples == 0
+    and .evaluation.metrics.invalid_samples == 0
+    and .evaluation.metrics.history_window_mlp_residual_rmse_m_s2 >= 0
+    and .evaluation.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and .evaluation.metrics.inference_p50_us != null
+    and .evaluation.metrics.inference_p95_us != null
+    and .evaluation.metrics.inference_p99_us != null
+    and (.evaluation.family_metrics | length) == 3
+    and all(.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
+    and (.evaluation.episode_details | length) == .evaluation.episodes_requested
+    and all(.evaluation.episode_details[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
+  ' "$history_out"
+
   test -s "$ridge_out"
   test -s "$hdc_out"
-  jq -n --slurpfile ridge "$ridge_out" --slurpfile hdc "$hdc_out" --slurpfile mlp "$mlp_out" '
+  jq -n --slurpfile ridge "$ridge_out" --slurpfile hdc "$hdc_out" --slurpfile mlp "$mlp_out" --slurpfile history "$history_out" '
     ($ridge[0]) as $r
     | ($hdc[0]) as $h
     | ($mlp[0]) as $m
+    | ($history[0]) as $w
     | ($r.source_receipt.training_dataset_sha256 == $h.source_receipt.training_dataset_sha256)
     and ($r.source_receipt.training_dataset_sha256 == $m.source_receipt.training_dataset_sha256)
+    and ($r.source_receipt.training_dataset_sha256 == $w.source_receipt.training_dataset_sha256)
     and ($r.source_receipt.symthaea_git_sha == $h.source_receipt.symthaea_git_sha)
     and ($r.source_receipt.symthaea_git_sha == $m.source_receipt.symthaea_git_sha)
+    and ($r.source_receipt.symthaea_git_sha == $w.source_receipt.symthaea_git_sha)
     and ($r.source_receipt.scenario_matrix_sha256 == $h.source_receipt.scenario_matrix_sha256)
     and ($r.source_receipt.scenario_matrix_sha256 == $m.source_receipt.scenario_matrix_sha256)
+    and ($r.source_receipt.scenario_matrix_sha256 == $w.source_receipt.scenario_matrix_sha256)
     and ($r.evaluation.episodes_requested == $h.evaluation.episodes_requested)
     and ($r.evaluation.episodes_requested == $m.evaluation.episodes_requested)
+    and ($r.evaluation.episodes_requested == $w.evaluation.episodes_requested)
     and ($r.evaluation.steps_per_episode == $h.evaluation.steps_per_episode)
     and ($r.evaluation.steps_per_episode == $m.evaluation.steps_per_episode)
+    and ($r.evaluation.steps_per_episode == $w.evaluation.steps_per_episode)
     and ($r.evaluation.scenario_ids == $h.evaluation.test_scenario_ids)
     and ($r.evaluation.scenario_ids == $m.evaluation.test_scenario_ids)
+    and ($r.evaluation.scenario_ids == $w.evaluation.test_scenario_ids)
     and ([$r.evaluation.episode_details[].episode_seed_hex] == $h.evaluation.test_episode_seed_hexes)
     and ([$r.evaluation.episode_details[].episode_seed_hex] == $m.evaluation.test_episode_seed_hexes)
+    and ([$r.evaluation.episode_details[].episode_seed_hex] == $w.evaluation.test_episode_seed_hexes)
     and ([$r.evaluation.episode_details[].scenario_id] == $h.evaluation.test_episode_scenario_ids)
     and ([$r.evaluation.episode_details[].scenario_id] == [$m.evaluation.episode_details[].scenario_id])
+    and ([$r.evaluation.episode_details[].scenario_id] == [$w.evaluation.episode_details[].scenario_id])
   '
 
   export STFR_RIDGE_OUTPUT_PATH="$ridge_out"
   export STFR_HDC_OUTPUT_PATH="$hdc_out"
   export STFR_MLP_OUTPUT_PATH="$mlp_out"
+  export STFR_HISTORY_MLP_OUTPUT_PATH="$history_out"
   comparison_out="${STFR_COMPARISON_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-residual-model-paired-comparison.json}"
   cargo run --manifest-path "$integration_manifest" --example paired_residual_model_comparison > "$comparison_out"
   jq -e '
@@ -302,10 +392,14 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.model_summary.raw_state_ridge_mean_episode_rmse_m_s2 >= 0)
     and (.model_summary.compact_mlp_mean_episode_rmse_m_s2 >= 0)
     and (.model_summary.hdc_ltc_reservoir_mean_episode_rmse_m_s2 >= 0)
-    and (.paired_comparisons | length) == 3
+    and (.model_summary.explicit_history_mlp_mean_episode_rmse_m_s2 >= 0)
+    and (.model_summary.hdc_ltc_reset_each_step_mean_episode_rmse_m_s2 >= 0)
+    and (.state_memory_ablation.persistent_hdc_mean_episode_rmse_m_s2 >= 0)
+    and (.state_memory_ablation.reset_each_step_hdc_mean_episode_rmse_m_s2 >= 0)
+    and (.paired_comparisons | length) == 10
     and all(.paired_comparisons[]; (.stratified_episode_bootstrap_95_ci_m_s2 | length) == 2)
     and (.family_summary | length) == 3
     and (.per_episode | length) == .design.episodes
-    and all(.per_episode[]; .raw_state_ridge_rmse_m_s2 >= 0 and .compact_mlp_rmse_m_s2 >= 0 and .hdc_ltc_reservoir_rmse_m_s2 >= 0)
+    and all(.per_episode[]; .raw_state_ridge_rmse_m_s2 >= 0 and .compact_mlp_rmse_m_s2 >= 0 and .explicit_history_mlp_rmse_m_s2 >= 0 and .hdc_ltc_reservoir_rmse_m_s2 >= 0 and .hdc_ltc_reset_each_step_rmse_m_s2 >= 0)
   ' "$comparison_out"
 fi
