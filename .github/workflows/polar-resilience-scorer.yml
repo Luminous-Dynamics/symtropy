@@ -34,6 +34,8 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
+      - name: Self-test independent run-receipt verifier
+        run: bash scripts/verify-polar-resilience-receipt.sh --self-test
       - name: Run unit and negative-control tests
         run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
       - name: Exercise JSON CLI on synthetic fixture
@@ -122,6 +124,7 @@ jobs:
           cp research/polar-infrastructure/benchmark/src/bin/resilience_ensemble.rs "$artifact_dir/inputs/source/bin/resilience_ensemble.rs"
           cp research/polar-infrastructure/benchmark/src/bin/robust_set.rs "$artifact_dir/inputs/source/bin/robust_set.rs"
           cp .github/workflows/polar-resilience-scorer.yml "$artifact_dir/inputs/polar-resilience-scorer.yml"
+          cp scripts/verify-polar-resilience-receipt.sh "$artifact_dir/verify-polar-resilience-receipt.sh"
           cp research/polar-infrastructure/benchmark/fixtures/toy-episode.json "$artifact_dir/inputs/toy-episode.json"
           cp research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json "$artifact_dir/inputs/toy-ensemble.json"
           cp research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json "$artifact_dir/inputs/toy-robust-set.json"
@@ -140,6 +143,7 @@ jobs:
               inputs/source/bin/resilience_ensemble.rs \
               inputs/source/bin/robust_set.rs \
               inputs/polar-resilience-scorer.yml \
+              verify-polar-resilience-receipt.sh \
               inputs/toy-episode.json \
               inputs/toy-ensemble.json \
               inputs/toy-robust-set.json \
@@ -168,6 +172,7 @@ jobs:
                 workflow_attempt: $workflow_attempt,
                 workflow_event: $event,
                 tested_commit_path: "TESTED_COMMIT",
+                verifier_path: "verify-polar-resilience-receipt.sh",
                 input_schema_versions: { score: "0.1.0", ensemble: "0.1.0", robust_set: "0.1.0" },
                 report_schema_versions: { score: "0.2.0", ensemble: "0.4.0", robust_set: "0.4.0" },
                 runner: { os: $runner_os, arch: $runner_arch, rustc: $rustc_version, cargo: $cargo_version },
@@ -196,6 +201,7 @@ jobs:
             sha256sum -c SHA256SUMS
             sha256sum -c run-receipt.sha256
           )
+          bash "$artifact_dir/verify-polar-resilience-receipt.sh" "$artifact_dir"
           printf 'tested_commit=%s\n' "$tested_commit"
 
       - name: Upload digest-pinned synthetic run receipt
