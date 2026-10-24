@@ -18,6 +18,8 @@ symtropy-robotics-bridge = { path = "../../crates/bridges/symtropy-robotics-brid
 nalgebra = "0.34"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+csv = "1.3"
+sha2 = "0.10"
 
 # This integration package is deliberately excluded from Symtropy's standalone
 # workspace because it resolves real Symthaea sources from a sibling checkout.

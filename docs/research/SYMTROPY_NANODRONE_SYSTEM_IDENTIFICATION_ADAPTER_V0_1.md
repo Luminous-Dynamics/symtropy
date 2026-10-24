@@ -30,6 +30,25 @@ Before training, validate monotonic timestamps, missing/duplicate rows, finite v
 
 The upstream reference test script contains interactive model selection. A reproducible Symtropy comparison must replace that interaction with pinned model/config IDs and emit a machine-readable receipt; do not copy an interactive run as if it were a reproducible evaluation.
 
+## Implemented first gate: Rust CSV integrity validator
+
+The integration package now includes `examples/nanodrone_dataset_validate.rs`. It is intentionally a data-ingress gate, not a predictor. It accepts one official-format CSV at a time, takes the trajectory-level split and run ID as explicit arguments, and emits a JSON receipt with the raw-file SHA-256.
+
+Run it from the Symtropy checkout after cloning the public benchmark separately and setting its path:
+
+```bash
+export NANODRONE_PATH=/path/to/nanodrone-sysid-benchmark
+cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
+  --example nanodrone_dataset_validate -- \
+  "$NANODRONE_PATH/data/test/melon_20251017_run1.csv" test melon run1
+```
+
+For training files, pass `train` and one of `square`, `random`, or `chirp` with `run1`–`run3`; pass `validation` with those same trajectories and `run4`; for held-out evaluation, pass `test melon` with `run1`–`run3`. The validator rejects a split/trajectory/run mismatch, a file outside the expected `data/train` or `data/test` directory, a filename whose first trajectory token or final run token does not match exactly, missing or duplicate required headers, malformed/non-finite required values, non-monotonic or out-of-tolerance sample periods, quaternions whose norms fall outside the declared acceptance range, and negative motor angular velocities. Header order is resolved by name and covered by a reversed-header regression test.
+
+The official split is enforced at both trajectory and run level: Square/Random/Chirp run1–run3 are training, run4 is validation, and Melon run1–run3 is the held-out test set. This matches the upstream training protocol's `train_runs=[1,2,3]`, `valid_runs=[4]` and its Melon test runs 1–3. The validator preserves the source-file digest and does not normalize or rewrite data. It pins the public input order (`m1_rads` through `m4_rads`), raw `qx,qy,qz,qw` quaternion convention, body-frame angular velocity, and 12D SO(3)-log model-state convention in its receipt. Do not concatenate trajectories before validation: the unit of integrity and the bootstrap unit is an independent trajectory/run, not a sliding window.
+
+This gate proves only the integrity properties it checks. It does **not** establish parity with the upstream loader, reproduce the official multi-step metrics, prove model quality, or certify safety. The next gate remains parity against a pinned upstream baseline with frozen normalizers and exact horizon alignment. CI runs the validator's unit tests and compile check without needing to download the dataset; a real dataset receipt still requires the public CSV files.
+
 ## Model arms
 
 Compare on identical rows, scalers, motor input sequences, horizons, and hardware budgets:
