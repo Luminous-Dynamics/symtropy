@@ -238,7 +238,7 @@ fn training_samples(path: &str) -> HdcTrainingData {
         reset_each_step_reservoir.reset_reservoir_state();
         let stateless_features = reset_each_step_reservoir
             .features(&state, &action, dt_s)
-            .unwrap_or_else(|| panic!("invalid reset-each-step HDC features at training row {row_index}"));
+            .unwrap_or_else(|| panic!("invalid LTC-reset-each-step HDC features at training row {row_index}"));
         reset_each_step_feature_generation_seconds += reset_feature_started.elapsed().as_secs_f64();
         assert!(target.iter().all(|value| value.is_finite()));
         samples.push(ReservoirTrainingSample {
@@ -339,7 +339,7 @@ fn main() {
     let stateless_readout_fit_started = Instant::now();
     let stateless_readout =
         ReservoirRidgeReadout::fit(&reset_each_step_train_samples, ridge_lambda)
-            .expect("reset-each-step HDC ridge readout fit must be valid");
+            .expect("LTC-LTC-reset-each-step HDC ridge readout fit must be valid");
     let stateless_readout_fit_seconds = stateless_readout_fit_started.elapsed().as_secs_f64();
 
     let episodes = env_usize("STFR_HDC_EVAL_EPISODES", 18);
@@ -422,7 +422,7 @@ fn main() {
         .collect::<serde_json::Map<_, _>>();
     let stateless_family_metrics = stateless_by_family
         .into_iter()
-        .map(|(family, metrics)| (family, metrics.metrics("stateless_hdc_ltc_residual_rmse_m_s2")))
+        .map(|(family, metrics)| (family, metrics.metrics("hdc_ltc_reset_each_step_residual_rmse_m_s2")))
         .collect::<serde_json::Map<_, _>>();
 
     println!("{}", json!({
@@ -489,7 +489,7 @@ fn main() {
                 "linear_drag_n_s_per_m": nominal.linear_drag_n_s_per_m
             }
         },
-        "stateless_state_ablation": {
+        "ltc_reset_each_step_ablation": {
             "claim_ceiling": "HDC_encoder_with_encoder_derivative_history_but_no_persistent_LTC_recurrent_state_one_step_prediction_only",
             "state_policy": "reset LTC network immediately before each transition; preserve HDC encoder derivative history within episode",
             "training": {
@@ -514,7 +514,7 @@ fn main() {
                 "steps_per_episode": steps_per_episode,
                 "sample_count": stateless_overall.samples,
                 "invalid_samples": stateless_overall.invalid_samples,
-                "metrics": stateless_overall.metrics("stateless_hdc_ltc_residual_rmse_m_s2"),
+                "metrics": stateless_overall.metrics("hdc_ltc_reset_each_step_residual_rmse_m_s2"),
                 "family_metrics": stateless_family_metrics,
                 "episode_details": stateless_episode_details,
                 "test_scenario_ids": scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
