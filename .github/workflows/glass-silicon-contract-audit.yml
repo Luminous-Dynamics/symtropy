@@ -6,6 +6,7 @@ on:
       - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
       - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
+      - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
@@ -18,6 +19,7 @@ on:
       - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
       - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
+      - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/**"
@@ -112,6 +114,22 @@ jobs:
           grep -q 'audit-eval-receipt <receipt.json>' "$protocol"
           grep -q 'SEALED_CONFIRMATORY' "$protocol"
           echo "Feasibility-gate and held-out evaluation trust-boundary controls: PASS"
+
+      - name: Audit relationship-aware evidence protocol contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          protocol="docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
+          test -s "$protocol"
+          grep -q 'one evidence graph, multiple relation profiles' "$protocol"
+          grep -q 'Unknown is not false' "$protocol"
+          grep -q 'connected components' "$protocol"
+          grep -q 'transitive-leak' "$protocol"
+          grep -q 'not-reject-all' "$protocol"
+          grep -q 'downstream dependency testing' "$protocol"
+          grep -q 'UNRESOLVED' "$protocol"
+          grep -q 'raw and canonical graph hashes' "$protocol"
+          echo "Relationship-aware evidence contract and anti-leakage requirements: PASS"
 
       - name: Audit grouped-split leakage manifest
         run: >
