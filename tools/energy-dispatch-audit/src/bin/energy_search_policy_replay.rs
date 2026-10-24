@@ -98,6 +98,25 @@ struct PolicyRun {
 }
 
 #[derive(Clone, Debug, Serialize)]
+struct QuantileSummaryU64 {
+    min: u64,
+    p10: u64,
+    p50: u64,
+    p90: u64,
+    max: u64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct RandomSeedBudgetSummary {
+    unique_proposal_budget: usize,
+    random_seed_count: usize,
+    oracle_frontier_recall_numerator: QuantileSummaryU64,
+    worst_case_essential_unserved_quanta: QuantileSummaryU64,
+    essential_unserved_axis_gap: QuantileSummaryU64,
+    operating_cost_axis_gap: QuantileSummaryU64,
+}
+
+#[derive(Clone, Debug, Serialize)]
 struct SearchPolicyReplayReport {
     schema_version: &'static str,
     status: &'static str,
@@ -110,6 +129,7 @@ struct SearchPolicyReplayReport {
     scenario_count: usize,
     proposal_budget_tiers: Vec<usize>,
     full_domain_oracle_frontier_vector_count: usize,
+    random_seed_budget_summary: Vec<RandomSeedBudgetSummary>,
     policy_runs: Vec<PolicyRun>,
     measurement_scope: &'static str,
     claim_ceiling: &'static str,
@@ -228,6 +248,53 @@ fn curve_for_order(
     Ok(curve)
 }
 
+fn quantile_summary(mut values: Vec<u64>) -> Result<QuantileSummaryU64, Box<dyn Error>> {
+    if values.is_empty() {
+        return Err(invalid("cannot summarize an empty random-seed result set"));
+    }
+    values.sort_unstable();
+    let nearest_rank = |percent: usize| -> u64 {
+        let rank = (percent * values.len() + 99) / 100;
+        values[rank.saturating_sub(1).min(values.len() - 1)]
+    };
+    Ok(QuantileSummaryU64 {
+        min: values[0],
+        p10: nearest_rank(10),
+        p50: nearest_rank(50),
+        p90: nearest_rank(90),
+        max: *values.last().unwrap(),
+    })
+}
+
+fn random_seed_summaries(policy_runs: &[PolicyRun]) -> Result<Vec<RandomSeedBudgetSummary>, Box<dyn Error>> {
+    let random_runs = policy_runs.iter()
+        .filter(|run| run.policy_id.starts_with("seeded_random_without_replacement_seed_"))
+        .collect::<Vec<_>>();
+    if random_runs.len() != 30 {
+        return Err(invalid(format!("expected 30 preregistered random seeds, observed {}", random_runs.len())));
+    }
+    let mut summaries = Vec::with_capacity(BUDGETS.len());
+    for budget in BUDGETS {
+        let points = random_runs.iter()
+            .map(|run| run.budget_curve.iter().find(|point| point.unique_proposal_budget == budget)
+                .ok_or_else(|| invalid(format!("random policy {} missing budget {budget}", run.policy_id))))
+            .collect::<Result<Vec<_>, _>>()?;
+        summaries.push(RandomSeedBudgetSummary {
+            unique_proposal_budget: budget,
+            random_seed_count: points.len(),
+            oracle_frontier_recall_numerator: quantile_summary(points.iter()
+                .map(|point| point.oracle_frontier_recall_numerator as u64).collect())?,
+            worst_case_essential_unserved_quanta: quantile_summary(points.iter()
+                .map(|point| point.best_discovered_worst_case_essential_unserved_quanta).collect())?,
+            essential_unserved_axis_gap: quantile_summary(points.iter()
+                .map(|point| point.axis_best_gap.essential_unserved_quanta_gap).collect())?,
+            operating_cost_axis_gap: quantile_summary(points.iter()
+                .map(|point| point.axis_best_gap.operating_cost_units_gap).collect())?,
+        });
+    }
+    Ok(summaries)
+}
+
 fn shuffled_order(items: &[String], seed: u64) -> Vec<String> {
     let mut values = items.to_vec();
     let mut state = if seed == 0 { 0x9E37_79B9_7F4A_7C15 } else { seed };
@@ -331,7 +398,7 @@ fn run_report(root: &std::path::Path, output: &std::path::Path) -> Result<Search
             .ok_or_else(|| invalid("non-string scenario ID"))).collect::<Result<Vec<_>, _>>()?;
     let expected_scenarios = ["nominal", "pv_total_loss", "outage_early", "essential_demand_2x", "terminal_reserve_1"]
         .iter().map(|value| (*value).to_owned()).collect::<BTreeSet<_>>();
-    if scenario_ids.iter().collect::<BTreeSet<_>>() != expected_scenarios
+    if scenario_ids.iter().cloned().collect::<BTreeSet<_>>() != expected_scenarios
         || scenario_ids.len() != 5
     {
         return Err(invalid("robustness report scenario registry differs from the pinned five-scenario panel"));
@@ -399,7 +466,7 @@ fn run_report(root: &std::path::Path, output: &std::path::Path) -> Result<Search
         ("lexicographic_candidate_id".to_owned(), None, lexical_order),
         ("battery_then_pv_structural_heuristic".to_owned(), None, battery_first),
     ];
-    for seed in [1_u64, 7, 17, 42, 101] {
+    for seed in 1_u64..=30 {
         arms.push((format!("seeded_random_without_replacement_seed_{seed}"), Some(seed), shuffled_order(&expected_ids, seed)));
     }
 
@@ -416,6 +483,7 @@ fn run_report(root: &std::path::Path, output: &std::path::Path) -> Result<Search
         });
     }
 
+    let random_seed_budget_summary = random_seed_summaries(&policy_runs)?;
     let report = SearchPolicyReplayReport {
         schema_version: "energy-search-policy-replay-report-v0.1",
         status: "pass",
@@ -428,13 +496,15 @@ fn run_report(root: &std::path::Path, output: &std::path::Path) -> Result<Search
         scenario_count: 5,
         proposal_budget_tiers: BUDGETS.to_vec(),
         full_domain_oracle_frontier_vector_count: oracle_frontier.len(),
+        random_seed_budget_summary,
         policy_runs,
         measurement_scope: "Cached-outcome discovery-quality replay only. Unique-proposal count is the budget; all scenario dispatch outcomes are read from the already-qualified matrix. This report does not measure online search runtime, dispatch runtime, or policy computation time.",
         claim_ceiling: "Synthetic 39-candidate, five-scenario finite domain only. Envelope-frontier recall and axis-wise gaps operate on coordinate-wise worst-case-of-per-scenario-best envelopes, which are not necessarily jointly attainable dispatch schedules. No probability-weighted expectations, real-site recommendation, or industry-outperformance claim.",
     };
     let output_bytes = serde_json::to_vec_pretty(&report)?;
     fs::write(output, &output_bytes)?;
-    println!("PASS: replayed {} policy orderings over six unique-proposal budgets", report.policy_runs.len());
+    println!("PASS: replayed {} policy orderings over six unique-proposal budgets and summarized {} random seeds",
+        report.policy_runs.len(), 30);
     println!("source_ledger_sha256={}", report.source_ledger_sha256);
     println!("source_robustness_report_sha256={}", report.source_robustness_report_sha256);
     println!("report_sha256={}", sha256_hex(&output_bytes));
