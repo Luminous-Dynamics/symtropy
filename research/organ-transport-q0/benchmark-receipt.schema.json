@@ -1,0 +1,358 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/organ-transport-q0/benchmark-receipt.schema.json",
+  "title": "Organ Engineering Benchmark Receipt V0",
+  "description": "Evidence-bearing benchmark result format. A receipt records the scope of what was measured; it does not by itself authenticate the measurement or promote synthetic evidence to biological evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "context_of_use",
+    "evidence_tier",
+    "status",
+    "subject",
+    "software",
+    "inputs",
+    "model",
+    "metrics",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "context_of_use": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "purpose",
+        "scope"
+      ],
+      "properties": {
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tissue_or_device_profile": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "evidence_tier": {
+      "enum": [
+        "analytic_reference",
+        "synthetic_simulation",
+        "physical_bench",
+        "tissue_specific",
+        "translational"
+      ]
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED",
+        "NOT_RUN"
+      ]
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "analytic_fixture",
+            "synthetic_case",
+            "physical_bench",
+            "tissue_model",
+            "translational_system"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "batch_or_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "software": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code_commit",
+        "implementation_id",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "code_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40,64}$"
+        },
+        "implementation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "toolchain": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "solver": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_sha256",
+        "units",
+        "boundary_conditions"
+      ],
+      "properties": {
+        "fixture_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "units": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "boundary_conditions": {
+          "type": "object"
+        },
+        "initial_conditions": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "generator_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "generator_seed": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "version",
+        "assumptions",
+        "applicability_domain"
+      ],
+      "properties": {
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "applicability_domain": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "unsupported_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "value",
+          "unit"
+        ],
+        "properties": {
+          "metric_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reference_value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "absolute_error": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "relative_error": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "uncertainty": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "uncertainty_method": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "reference_method",
+        "calibration_holdout_separation"
+      ],
+      "properties": {
+        "reference_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_holdout_separation": {
+          "enum": [
+            "not_applicable",
+            "separated",
+            "not_separated",
+            "unknown"
+          ]
+        },
+        "replicates": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "exclusions_and_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "independent_reviewer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "evidence_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "uri",
+          "role"
+        ],
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "content_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

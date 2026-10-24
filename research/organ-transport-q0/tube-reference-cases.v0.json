@@ -1,0 +1,130 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "ORGAN-TRANSPORT-Q0-TUBE",
+  "status": "REFERENCE_FIXTURE_SPECIFICATION",
+  "purpose": "Analytic and metamorphic fixtures for the dependency-free rigid circular tube reference function.",
+  "units": {
+    "length": "m",
+    "radius": "m",
+    "dynamic_viscosity": "Pa*s",
+    "pressure_drop": "Pa",
+    "resistance": "Pa*s/m^3",
+    "volume_flow": "m^3/s"
+  },
+  "model": {
+    "id": "hagen-poiseuille-rigid-circular-tube-v0",
+    "equations": [
+      "R = 8 * mu * L / (pi * r^4)",
+      "Q = delta_P / R"
+    ],
+    "assumptions": [
+      "steady flow",
+      "laminar flow",
+      "Newtonian fluid",
+      "rigid circular tube",
+      "constant tube radius",
+      "SI units"
+    ],
+    "unsupported_claims": [
+      "biological vessel validity",
+      "cell viability",
+      "endothelial barrier function",
+      "oxygen delivery",
+      "organ function",
+      "transplant safety"
+    ]
+  },
+  "cases": [
+    {
+      "id": "q0-tube-baseline",
+      "kind": "analytic_reference",
+      "inputs": {
+        "length_m": 0.1,
+        "radius_m": 0.001,
+        "dynamic_viscosity_pa_s": 0.001,
+        "pressure_drop_pa": 1000
+      },
+      "expected": {
+        "status": "valid",
+        "hydraulic_resistance_pa_s_per_m3": 254647908.94703254,
+        "volume_flow_m3_per_s": 0.000003926990816987241
+      },
+      "tolerance": {
+        "relative": 1e-12,
+        "absolute": 1e-18
+      }
+    },
+    {
+      "id": "q0-tube-reverse-pressure",
+      "kind": "metamorphic",
+      "transformation": "negate pressure drop while preserving all other inputs",
+      "inputs": {
+        "length_m": 0.1,
+        "radius_m": 0.001,
+        "dynamic_viscosity_pa_s": 0.001,
+        "pressure_drop_pa": -1000
+      },
+      "expected": {
+        "status": "valid",
+        "hydraulic_resistance_pa_s_per_m3": 254647908.94703254,
+        "volume_flow_m3_per_s": -0.000003926990816987241
+      },
+      "tolerance": {
+        "relative": 1e-12,
+        "absolute": 1e-18
+      }
+    },
+    {
+      "id": "q0-tube-zero-pressure",
+      "kind": "boundary",
+      "inputs": {
+        "length_m": 0.1,
+        "radius_m": 0.001,
+        "dynamic_viscosity_pa_s": 0.001,
+        "pressure_drop_pa": 0
+      },
+      "expected": {
+        "status": "valid",
+        "hydraulic_resistance_pa_s_per_m3": 254647908.94703254,
+        "volume_flow_m3_per_s": 0
+      },
+      "tolerance": {
+        "relative": 1e-12,
+        "absolute": 1e-18
+      }
+    },
+    {
+      "id": "q0-tube-nonpositive-radius",
+      "kind": "negative_control",
+      "inputs": {
+        "length_m": 0.1,
+        "radius_m": 0,
+        "dynamic_viscosity_pa_s": 0.001,
+        "pressure_drop_pa": 1000
+      },
+      "expected": {
+        "status": "reject",
+        "error": "NonPositiveInput(radius_m)"
+      }
+    },
+    {
+      "id": "q0-tube-nonfinite-pressure",
+      "kind": "negative_control",
+      "inputs": {
+        "length_m": 0.1,
+        "radius_m": 0.001,
+        "dynamic_viscosity_pa_s": 0.001,
+        "pressure_drop_pa": "Infinity"
+      },
+      "expected": {
+        "status": "reject",
+        "error": "NonFiniteInput(pressure_drop_pa)"
+      }
+    }
+  ],
+  "provenance": {
+    "reference_equation": "Hagen-Poiseuille law under explicitly declared assumptions",
+    "fixture_status": "Expected values are pinned specifications. Execution status is established only by an exact-source verifier or CI receipt.",
+    "next_step": "Run the executable Rust corpus verifier and record its receipt against the exact source and input digests."
+  }
+}

@@ -1,0 +1,76 @@
+name: Organ Transport Q0
+
+on:
+  push:
+    branches:
+      - main
+      - research/organ-engineering-perfusion-benchmarks-v0
+    paths:
+      - "research/organ-transport-q0/**"
+      - ".github/workflows/organ-transport-q0.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/organ-transport-q0/**"
+      - ".github/workflows/organ-transport-q0.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: organ-transport-q0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  q0-reference:
+    name: Analytic tube and network corpus
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+
+      - name: Execute Q0 verifier and emit exact-head receipt
+        env:
+          Q0_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          bash research/organ-transport-q0/verify-q0.sh \
+            "${RUNNER_TEMP}/organ-transport-q0-receipt.json" \
+            "$Q0_SOURCE_COMMIT"
+
+      - name: Validate receipt shape, digests, and exact source SHA
+        env:
+          Q0_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          jq -e --arg sha "$Q0_SOURCE_COMMIT" '
+            .schema_version == "0.1.0" and
+            .benchmark_id == "ORGAN-TRANSPORT-Q0" and
+            .status == "PASS" and
+            .software.code_commit == $sha and
+            (.software.configuration_sha256 | test("^[0-9a-f]{64}$")) and
+            (.inputs.fixture_sha256 | test("^[0-9a-f]{64}$")) and
+            (.evidence_sources | (type == "array" and length == 2 and
+              all(.[]; (.content_sha256 | test("^[0-9a-f]{64}$")) and (.uri | contains($sha))))) and
+            (.metrics | (type == "array" and length >= 4 and
+              all(.[]; (.metric_id | (type == "string" and length > 0)) and
+                        (.value | type == "number") and
+                        (.unit | (type == "string" and length > 0))))) and
+            (.claim_ceiling | (type == "array" and length >= 1))
+          ' "${RUNNER_TEMP}/organ-transport-q0-receipt.json"
+
+      - name: Upload exact-head Q0 receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: organ-transport-q0-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/organ-transport-q0-receipt.json
+          if-no-files-found: warn
+          retention-days: 30
