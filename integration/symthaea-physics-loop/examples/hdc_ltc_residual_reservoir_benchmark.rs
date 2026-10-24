@@ -135,9 +135,18 @@ fn parse_action(value: &Value) -> QuadrotorCommand {
     QuadrotorCommand::from_raw(raw.map(|component| component as f32)).clamped()
 }
 
-fn training_samples(
-    path: &str,
-) -> (Vec<ReservoirTrainingSample>, Vec<ReservoirTrainingSample>) {
+struct HdcTrainingData {
+    persistent_samples: Vec<ReservoirTrainingSample>,
+    reset_each_step_samples: Vec<ReservoirTrainingSample>,
+    dataset_parse_seconds: f64,
+    persistent_reservoir_init_seconds: f64,
+    reset_each_step_reservoir_init_seconds: f64,
+    persistent_feature_generation_seconds: f64,
+    reset_each_step_feature_generation_seconds: f64,
+}
+
+fn training_samples(path: &str) -> HdcTrainingData {
+    let dataset_parse_started = Instant::now();
     let bytes = fs::read(path)
         .unwrap_or_else(|error| panic!("cannot read training dataset at {path}: {error}"));
     let root: Value = serde_json::from_slice(&bytes).expect("training dataset must be JSON");
@@ -165,11 +174,19 @@ fn training_samples(
     let rows = root["samples"]
         .as_array()
         .expect("dataset samples must be an array");
+    let dataset_parse_seconds = dataset_parse_started.elapsed().as_secs_f64();
+
     // Two matched arms share the same encoder seed and input chronology:
     // persistent LTC state versus LTC state reset every step. Encoder derivative history
     // is preserved in both arms and reset only at episode boundaries.
+    let persistent_init_started = Instant::now();
     let mut reservoir = HdcLtcResidualReservoir::new(GENESIS_PHRASE);
+    let persistent_reservoir_init_seconds = persistent_init_started.elapsed().as_secs_f64();
+    let reset_init_started = Instant::now();
     let mut reset_each_step_reservoir = HdcLtcResidualReservoir::new(GENESIS_PHRASE);
+    let reset_each_step_reservoir_init_seconds = reset_init_started.elapsed().as_secs_f64();
+    let mut persistent_feature_generation_seconds = 0.0;
+    let mut reset_each_step_feature_generation_seconds = 0.0;
     let mut samples = Vec::with_capacity(rows.len());
     let mut reset_each_step_samples = Vec::with_capacity(rows.len());
     let mut current_episode = None;
@@ -209,15 +226,20 @@ fn training_samples(
             &row["target"]["residual_acceleration_world_m_s2"],
             "residual_acceleration_world_m_s2",
         );
+        let persistent_feature_started = Instant::now();
         let features = reservoir
             .features(&state, &action, dt_s)
             .unwrap_or_else(|| panic!("invalid persistent HDC-LTC features at training row {row_index}"));
+        persistent_feature_generation_seconds += persistent_feature_started.elapsed().as_secs_f64();
+
         // Clear only the LTC recurrent state; keep this encoder's derivative history
         // aligned with the persistent arm's observed state sequence.
+        let reset_feature_started = Instant::now();
         reset_each_step_reservoir.reset_reservoir_state();
         let stateless_features = reset_each_step_reservoir
             .features(&state, &action, dt_s)
             .unwrap_or_else(|| panic!("invalid reset-each-step HDC features at training row {row_index}"));
+        reset_each_step_feature_generation_seconds += reset_feature_started.elapsed().as_secs_f64();
         assert!(target.iter().all(|value| value.is_finite()));
         samples.push(ReservoirTrainingSample {
             features,
@@ -230,7 +252,15 @@ fn training_samples(
     }
     assert!(!samples.is_empty(), "refusing to fit on empty data");
     assert_eq!(samples.len(), reset_each_step_samples.len());
-    (samples, reset_each_step_samples)
+    HdcTrainingData {
+        persistent_samples: samples,
+        reset_each_step_samples,
+        dataset_parse_seconds,
+        persistent_reservoir_init_seconds,
+        reset_each_step_reservoir_init_seconds,
+        persistent_feature_generation_seconds,
+        reset_each_step_feature_generation_seconds,
+    }
 }
 
 fn evaluate_episode(
@@ -294,7 +324,9 @@ fn evaluate_episode(
 fn main() {
     let input_path = std::env::var("STFR_DATASET_INPUT_PATH")
         .expect("STFR_DATASET_INPUT_PATH must point to a training-split JSON artifact");
-    let (train_samples, reset_each_step_train_samples) = training_samples(&input_path);
+    let training_data = training_samples(&input_path);
+    let train_samples = training_data.persistent_samples;
+    let reset_each_step_train_samples = training_data.reset_each_step_samples;
     let ridge_lambda = std::env::var("STFR_HDC_RIDGE_LAMBDA")
         .ok()
         .and_then(|value| value.parse::<f64>().ok())
