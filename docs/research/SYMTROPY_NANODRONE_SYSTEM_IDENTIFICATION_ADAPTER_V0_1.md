@@ -49,6 +49,36 @@ The official split is enforced at both trajectory and run level: Square/Random/C
 
 This gate proves only the integrity properties it checks. It does **not** establish parity with the upstream loader, reproduce the official multi-step metrics, prove model quality, or certify safety. The next gate remains parity against a pinned upstream baseline with frozen normalizers and exact horizon alignment. CI runs the validator's unit tests and compile check without needing to download the dataset; a real dataset receipt still requires the public CSV files.
 
+## Implemented second gate: run-isolated multi-horizon metric receipt
+
+The integration package now includes `examples/nanodrone_metric_receipt.rs`. It consumes three **separate per-run prediction CSVs**, requires exactly one each for Melon run1, run2, and run3, and reports horizon 1–50 position/velocity/rotation/angular-rate metrics and the cumulative simulation-error sums. It fails closed on missing/non-finite required predictions, duplicate headers, invalid timing, invalid quaternion norms, and mismatched run/orientation schemas.
+
+Example, for per-run result CSVs that expose the truth columns and each model's `*_pred_h1` through `*_pred_h50` columns:
+
+```bash
+cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
+  --example nanodrone_metric_receipt -- \
+  results/melon_20251017_run1.csv \
+  results/melon_20251017_run2.csv \
+  results/melon_20251017_run3.csv
+```
+
+The CLI supports the upstream table's 12D SO(3)-log representation (`rx,ry,rz`) or a complete XYZW quaternion representation, and implements the public metric helper's vector-norm errors and quaternion relative-rotation formula. It also reports a separate sign-invariant SO(3) distance: the public helper's raw `2*atan2(||v||,w)` formula does not canonicalize quaternion sign, so antipodal representations of the same rotation can produce a nonzero (in the identity-versus-negative-identity case, `2π`) reference-formula error. Both metrics are preserved rather than silently changing the published score. It emits per-run scores, a macro-mean over the three independent runs, and sample counts at every horizon. It never shifts truth across run boundaries. If all per-horizon truth columns `{state}_true_h{h}` are provided, it additionally reports an all-available-window score; it will not infer those targets from the one-step truth column.
+
+### Evaluation alignment audit
+
+Source review of the benchmark's [test script](https://github.com/idsia-robotics/nanodrone-sysid-benchmark/blob/main/test/test_lstm.py), [dataset loader](https://github.com/idsia-robotics/nanodrone-sysid-benchmark/blob/main/dataset/dataset.py), and [official metric helper](https://github.com/MaartenSchoukens/nonlinear_benchmarks/blob/master/nonlinear_benchmarks/nanodrone_error_metrics.py) surfaced an alignment hazard to account for in reproduction:
+
+- The loader constructs each window with the full target sequence `x_{t+1:t+H}`, but the reference test script stores only `trues[:, 0, :]` in the CSV.
+- The metric helper then applies a `shift(-h+1)` to that one-step-ahead truth series for each horizon. That matches the intended horizon value for its retained rows, but omits `h-1` otherwise available prediction windows at horizon `h`.
+- The test script builds a `ConcatDataset` from Melon runs 1–3 before creating the output table. A global shift on the concatenated table can therefore cross a run boundary for the last `h-1` rows before each run boundary, because the output table does not retain run IDs.
+
+The public orientation helper also computes `2*atan2(norm(vector), scalar)` on the relative quaternion without sign canonicalization. Since `q` and `-q` encode the same orientation, this formula can penalize sign-equivalent representations; the metric receipt reports a sign-invariant SO(3) diagnostic alongside the exact source formula.
+
+This is an implementation-level audit finding, not a claim that published scores are invalid. For **leaderboard parity**, preserve a separately labeled source-compatible score and disclose its exact row semantics. For a scientifically cleaner primary metric, score each run independently and export per-horizon ground-truth targets so every available window can be evaluated. Do not quietly replace the reference number with the corrected metric; report both, with the alignment and sample counts attached.
+
+The receipt deliberately does not claim an official leaderboard submission or a numerical improvement. It provides the run isolation, metric implementation and explicit sample accounting needed before that comparison can be trusted.
+
 ## Model arms
 
 Compare on identical rows, scalers, motor input sequences, horizons, and hardware budgets:
