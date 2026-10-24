@@ -771,6 +771,20 @@ mod tests {
 
         assert!(!dominates(&strong_worst_case, &strong_mean));
         assert!(!dominates(&strong_mean, &strong_worst_case));
+
+        let mut service_better_worst = template.clone();
+        let mut service_better_mean = template.clone();
+        let water_a = service_better_worst.service_results.iter_mut()
+            .find(|service| service.service_id == "water").unwrap();
+        water_a.worst_case_service_shortfall = Some(0.1);
+        water_a.unweighted_mean_service_shortfall_across_stress_suite = Some(0.4);
+        let water_b = service_better_mean.service_results.iter_mut()
+            .find(|service| service.service_id == "water").unwrap();
+        water_b.worst_case_service_shortfall = Some(0.2);
+        water_b.unweighted_mean_service_shortfall_across_stress_suite = Some(0.3);
+
+        assert!(!dominates(&service_better_worst, &service_better_mean));
+        assert!(!dominates(&service_better_mean, &service_better_worst));
     }
 
     #[test]
