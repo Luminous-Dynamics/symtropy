@@ -256,12 +256,6 @@ fn apply_transform(
             if capacity.fract() != 0.0 || capacity > u16::MAX as f64 {
                 return Err(invalid("battery capacity cannot be represented in integer dispatch quanta"));
             }
-            set_pointer(
-                &mut candidate,
-                "/components",
-                candidate["components"].clone(),
-                &mut mutations,
-            )?;
             let components = candidate["components"].as_array().ok_or_else(|| invalid("component list missing"))?;
             let battery_index = components
                 .iter()
@@ -317,6 +311,12 @@ fn run() -> Result<(), Box<dyn Error>> {
     let profile: Value = serde_json::from_slice(profile_bytes)?;
     if profile["schema_version"].as_str() != Some("energy-candidate-scenario-panel-v0.1") {
         return Err(invalid("embedded candidate scenario profile schema mismatch"));
+    }
+    if !profile["required_scenarios"]
+        .as_array()
+        .is_some_and(|rows| rows.iter().any(|row| row["scenario_id"].as_str() == Some(scenario_id)))
+    {
+        return Err(invalid("scenario ID missing from pinned candidate scenario profile"));
     }
 
     // A nominal row retains the exact input bytes, avoiding a reserialization-only mutation.
@@ -407,8 +407,15 @@ mod tests {
         let (child, applicability, mutations) =
             apply_transform(source.clone(), "terminal_reserve_1", &profile).unwrap();
         assert_eq!(applicability, "not_applicable_no_battery_component");
-        assert!(mutations.is_empty());
-        assert_eq!(child, source);
+        assert_eq!(mutations.len(), 2, "only scenario identity/description are changed");
+        assert_ne!(child, source);
+        assert_eq!(
+            child["components"]
+                .as_array().unwrap()
+                .iter()
+                .any(|item| item["component_id"] == "battery"),
+            false
+        );
     }
 
     #[test]
