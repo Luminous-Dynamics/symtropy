@@ -162,3 +162,33 @@ Relevant references:
 - IDSIA public dataset and model/evaluation scripts: https://github.com/idsia-robotics/nanodrone-sysid-benchmark
 - Published benchmark: https://doi.org/10.1016/j.conengprac.2026.106871
 - Official PX4 HITL/SITL distinction: https://docs.px4.io/main/en/simulation/hitl.html
+
+
+## Paired model-comparison receipt v0.1
+
+The metric receipt now computes `ground_truth_window_sha256` per run when complete `*_true_h1` through `*_true_h50` columns are present. The digest domain-separates this format and hashes (1) the row count, (2) each row timestamp, and (3) every target field for horizons 1–50 in fixed field/horizon order, using parsed IEEE-754 `f64` bits in little-endian order. This deliberately hashes numeric values rather than CSV text spellings, so `1` and `1.0` pair identically while a changed timestamp or target invalidates the pairing. Orientation representation is part of the pairing contract: quaternion receipts and rotation-vector receipts are not silently mixed.
+
+The new Rust example `nanodrone_model_compare` consumes two metric JSON receipts (reference baseline first, candidate second) and a **new** output path:
+
+```bash
+cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
+  --example nanodrone_model_compare -- \
+  results/lstm-metric-receipt.json \
+  results/symthaea-metric-receipt.json \
+  results/lstm-vs-symthaea-comparison.json
+```
+
+It refuses to compare receipts unless both use the same benchmark version, 100 Hz sample period, held-out Melon runs 1–3, 50 horizons, orientation representation, row count, and exact per-run ground-truth-window digest. It requires complete per-horizon target windows; the legacy shifted-truth metric alone is not accepted. The comparison emits all 50 horizons, selected h=1/5/10/20/50 summaries, per-run paired deltas, and separate channels for position, linear velocity, sign-invariant SO(3) orientation, the source-compatible orientation formula, and body angular rate. It does not invent a unit-mixed aggregate score. A negative `relative_error_change_pct` means the candidate has lower error.
+
+**Statistical ceiling:** three Melon runs are three fixed held-out trajectories, not hundreds or thousands of independent trials. Per-timestep windows overlap and must not be treated as independent samples for a confidence interval. This comparison receipt does not claim significance, broad generalization, controller quality, or flight safety. To make a strong SOTA claim, expand evaluation to independently collected trajectories / flight sessions and pre-register the analysis before looking at candidate results.
+
+## Proposed comparison gates (targets, not current results)
+
+- **Parity gate:** first reproduce each official baseline using the same raw trajectory split, state representation, normalizer fit scope, full-window alignment, units, and source metric. Preserve an explicitly labelled source-compatible score alongside the sign-invariant orientation diagnostic.
+- **Accuracy gate:** pre-register per-channel results at all 50 horizons, with headline reporting at 1, 5, 10, 20 and 50 steps. A candidate target is at least 10% lower macro error than the strongest reproduced baseline in at least three of the four core physical channels (position, velocity, orientation, angular rate), while avoiding a regression above 5% in any predeclared headline channel/horizon or on any held-out run. These are proposed thresholds, not measured performance.
+- **Evidence gate:** after enough independent flights exist, report paired effect sizes and uncertainty clustered at the flight/trajectory level; never bootstrap individual overlapping windows as if they were independent. With only the three released Melon runs, report paired run deltas without calling a win statistically significant.
+- **Systems gate:** separately report inference p50/p95/p99, peak memory, model size, and deadline-miss rate on a declared target device. An accuracy gain is not a practical win if it misses the control deadline or exceeds the memory envelope.
+- **Transfer gate:** evaluate unseen trajectories, actuator lag, battery-voltage variation, payload changes, and sensor/noise shifts only after the held-out benchmark protocol is frozen. Report each shift as a separate condition and include worst-condition results; do not average away safety-relevant failures.
+- **Safety gate:** prediction error is not closed-loop safety evidence. Before physical use, evaluate constraint violations, tracking error, recovery time, loss-of-control events, and predeclared tail-risk limits in simulation and hardware-in-the-loop; physical testing requires separate risk controls.
+
+Baseline families to reproduce include the benchmark's physics-based, neural, hybrid physics-plus-residual, and LSTM models. For Symthaea, compare persistent HDC/LTC against current-state and explicit-history learned models, plus a reset-each-step ablation. The persistent-state claim only survives if its gains persist on held-out data under matched parameter/runtime budgets.
