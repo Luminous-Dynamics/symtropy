@@ -37,6 +37,7 @@ jobs:
             research/polar-infrastructure/benchmark/fixtures/toy-episode.json > /tmp/polar-score-report.json
           jq -e '
             .report_kind == "polar-resilience-score-report" and
+            .schema_version == "0.2.0" and
             .evidence_class == "synthetic_only" and
             .result_scope == "metric_calculation_only_not_physical_validation" and
             (.results | length == 4) and
@@ -53,6 +54,7 @@ jobs:
             research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json > /tmp/polar-ensemble-report.json
           jq -e '
             .report_kind == "polar-resilience-ensemble-report" and
+            .schema_version == "0.2.0" and
             .evidence_class == "synthetic_only" and
             .result_scope == "weighted_synthetic_scenario_aggregation_not_physical_validation" and
             .scenario_count == 2 and
@@ -74,6 +76,7 @@ jobs:
             research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json > /tmp/polar-robust-set-report.json
           jq -e '
             .report_kind == "polar-resilience-robust-set-report" and
+            .schema_version == "0.2.0" and
             .evidence_class == "synthetic_only" and
             .result_scope == "unweighted_enumerated_stress_set_not_probability_estimate" and
             .pareto_comparison_status == "complete" and
