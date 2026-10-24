@@ -4,6 +4,8 @@
 //! Grid summaries are derived from raw samples so candidate-reported aggregates
 //! cannot contradict the grid submitted for evaluation.
 
+pub mod experiment_selection;
+
 use std::collections::BTreeMap;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
