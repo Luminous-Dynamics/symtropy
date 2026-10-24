@@ -1,6 +1,6 @@
 use shipyard_observed_dispatch::{
-    build_dispatch_plan, Commitment, DispatchInput, DispatchRule, Operation, Resource, Tick,
-    VisibleOutage,
+    Commitment, DispatchInput, DispatchRule, Operation, Resource, Tick, VisibleOutage,
+    build_dispatch_plan,
 };
 
 fn operation(
@@ -18,7 +18,10 @@ fn operation(
         due_tick,
         duration_ticks,
         resource_kind: resource_kind.to_owned(),
-        predecessor_ids: predecessor_ids.iter().map(|item| (*item).to_owned()).collect(),
+        predecessor_ids: predecessor_ids
+            .iter()
+            .map(|item| (*item).to_owned())
+            .collect(),
     }
 }
 

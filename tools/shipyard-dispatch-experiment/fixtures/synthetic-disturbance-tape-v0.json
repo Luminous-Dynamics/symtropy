@@ -1,0 +1,15 @@
+{
+  "schema_version": "shipyard-synthetic-disturbance-tape-v0",
+  "events": [
+    {
+      "event_id": "synthetic-known-maintenance",
+      "event_type": "resource_outage",
+      "resource_id": "weld-bay-1",
+      "effective_from_tick": 2,
+      "effective_until_tick": 5,
+      "observed_at_tick": 0,
+      "delivery_tick": 0,
+      "visibility": "policy_visible"
+    }
+  ]
+}

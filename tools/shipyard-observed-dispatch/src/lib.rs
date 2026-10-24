@@ -307,7 +307,10 @@ fn validate_input(input: &DispatchInput) -> Result<ValidatedInput, Vec<DispatchD
             errors.push(diagnostic(
                 "UNKNOWN_COMMITMENT_RESOURCE",
                 Some(&item.operation_id),
-                format!("resource {} is not in the resource inventory", item.resource_id),
+                format!(
+                    "resource {} is not in the resource inventory",
+                    item.resource_id
+                ),
             ));
             continue;
         };
@@ -483,7 +486,12 @@ fn validate_input(input: &DispatchInput) -> Result<ValidatedInput, Vec<DispatchD
     for (index, left) in commitment_values.iter().enumerate() {
         for right in commitment_values.iter().skip(index + 1) {
             if left.resource_id == right.resource_id
-                && overlaps(left.start_tick, left.end_tick, right.start_tick, right.end_tick)
+                && overlaps(
+                    left.start_tick,
+                    left.end_tick,
+                    right.start_tick,
+                    right.end_tick,
+                )
             {
                 frozen_conflicts.push(diagnostic(
                     "FROZEN_COMMITMENTS_OVERLAP",
@@ -531,8 +539,10 @@ fn validate_input(input: &DispatchInput) -> Result<ValidatedInput, Vec<DispatchD
 fn has_precedence_cycle(operations: &BTreeMap<String, Operation>) -> bool {
     let mut indegree: BTreeMap<String, usize> =
         operations.keys().map(|id| (id.clone(), 0usize)).collect();
-    let mut children: BTreeMap<String, Vec<String>> =
-        operations.keys().map(|id| (id.clone(), Vec::new())).collect();
+    let mut children: BTreeMap<String, Vec<String>> = operations
+        .keys()
+        .map(|id| (id.clone(), Vec::new()))
+        .collect();
 
     for operation in operations.values() {
         for predecessor in &operation.predecessor_ids {
@@ -577,8 +587,7 @@ fn compare_nonnegative_fractions(
     right_numerator: u128,
     right_denominator: u64,
 ) -> Ordering {
-    (left_numerator * right_denominator as u128)
-        .cmp(&(right_numerator * left_denominator as u128))
+    (left_numerator * right_denominator as u128).cmp(&(right_numerator * left_denominator as u128))
 }
 
 fn compare_signed_fractions(
@@ -619,7 +628,11 @@ fn earliest_start(
         let end = planned_ends
             .get(predecessor)
             .or_else(|| completed.get(predecessor))
-            .or_else(|| commitments.get(predecessor).map(|assignment| &assignment.end_tick))?;
+            .or_else(|| {
+                commitments
+                    .get(predecessor)
+                    .map(|assignment| &assignment.end_tick)
+            })?;
         start = start.max(*end);
     }
     Some(start)
@@ -643,12 +656,10 @@ fn priority_cmp(
             right.duration_ticks,
         ),
         DispatchRule::LeastSlack => {
-            let left_slack = left.due_tick as i128
-                - left_earliest as i128
-                - left.duration_ticks as i128;
-            let right_slack = right.due_tick as i128
-                - right_earliest as i128
-                - right.duration_ticks as i128;
+            let left_slack =
+                left.due_tick as i128 - left_earliest as i128 - left.duration_ticks as i128;
+            let right_slack =
+                right.due_tick as i128 - right_earliest as i128 - right.duration_ticks as i128;
             left_slack.cmp(&right_slack)
         }
     };
@@ -817,8 +828,7 @@ pub fn build_dispatch_plan(input: &DispatchInput, rule: DispatchRule) -> Dispatc
             ) {
                 let candidate = (start, resource.id.clone(), end);
                 let replace = best.as_ref().is_none_or(|current| {
-                    candidate.0 < current.0
-                        || (candidate.0 == current.0 && candidate.1 < current.1)
+                    candidate.0 < current.0 || (candidate.0 == current.0 && candidate.1 < current.1)
                 });
                 if replace {
                     best = Some(candidate);
@@ -980,7 +990,10 @@ mod tests {
             ],
             resources,
         );
-        assert_eq!(plan, build_dispatch_plan(&reversed, DispatchRule::EarliestDueDate));
+        assert_eq!(
+            plan,
+            build_dispatch_plan(&reversed, DispatchRule::EarliestDueDate)
+        );
     }
 
     #[test]
@@ -989,7 +1002,9 @@ mod tests {
             vec![operation("long-weld", 0, 15, 4, "welder", &[])],
             vec![resource("weld-1", "welder")],
         );
-        scenario.visible_outages.push(outage("out-1", "weld-1", 2, 5, 0));
+        scenario
+            .visible_outages
+            .push(outage("out-1", "weld-1", 2, 5, 0));
         let plan = build_dispatch_plan(&scenario, DispatchRule::EarliestDueDate);
         assert_eq!(plan.status, PlanStatus::Complete);
         assert_eq!(assignment(&plan, "long-weld").start_tick, 5);
@@ -1002,14 +1017,17 @@ mod tests {
             vec![operation("weld", 0, 10, 1, "welder", &[])],
             vec![resource("weld-1", "welder")],
         );
-        scenario.visible_outages.push(outage("future-event", "weld-1", 5, 8, 3));
+        scenario
+            .visible_outages
+            .push(outage("future-event", "weld-1", 5, 8, 3));
         scenario.decision_tick = 2;
         let plan = build_dispatch_plan(&scenario, DispatchRule::EarliestDueDate);
         assert_eq!(plan.status, PlanStatus::InvalidInput);
-        assert!(plan
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "FUTURE_OBSERVATION_IN_POLICY_INPUT"));
+        assert!(
+            plan.diagnostics
+                .iter()
+                .any(|item| item.code == "FUTURE_OBSERVATION_IN_POLICY_INPUT")
+        );
     }
 
     #[test]
@@ -1080,7 +1098,10 @@ mod tests {
         let slack = build_dispatch_plan(&scenario, DispatchRule::LeastSlack);
         assert_eq!(assignment(&critical, "longer-later").start_tick, 0);
         assert_eq!(assignment(&slack, "short-urgent").start_tick, 0);
-        assert_eq!(critical, build_dispatch_plan(&scenario, DispatchRule::CriticalRatio));
+        assert_eq!(
+            critical,
+            build_dispatch_plan(&scenario, DispatchRule::CriticalRatio)
+        );
     }
 
     #[test]
@@ -1092,7 +1113,11 @@ mod tests {
         let plan = build_dispatch_plan(&no_resource, DispatchRule::EarliestDueDate);
         assert_eq!(plan.status, PlanStatus::Partial);
         assert_eq!(plan.unscheduled_operation_ids, vec!["needs-crane"]);
-        assert!(plan.diagnostics.iter().any(|item| item.code == "NO_COMPATIBLE_RESOURCE"));
+        assert!(
+            plan.diagnostics
+                .iter()
+                .any(|item| item.code == "NO_COMPATIBLE_RESOURCE")
+        );
 
         let mut too_short = input(
             vec![operation("long", 0, 10, 4, "welder", &[])],
@@ -1101,8 +1126,17 @@ mod tests {
         too_short.horizon_end_tick = 3;
         let plan = build_dispatch_plan(&too_short, DispatchRule::EarliestDueDate);
         assert_eq!(plan.status, PlanStatus::Partial);
-        assert!(plan.diagnostics.iter().any(|item| item.code == "NO_SLOT_WITHIN_HORIZON"));
-        assert!(!plan.diagnostics.iter().any(|item| item.code == "INFEASIBLE_PROVEN"));
+        assert!(
+            plan.diagnostics
+                .iter()
+                .any(|item| item.code == "NO_SLOT_WITHIN_HORIZON")
+        );
+        assert!(
+            !plan
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "INFEASIBLE_PROVEN")
+        );
     }
 
     #[test]
@@ -1116,7 +1150,11 @@ mod tests {
         );
         let plan = build_dispatch_plan(&scenario, DispatchRule::EarliestDueDate);
         assert_eq!(plan.status, PlanStatus::InvalidInput);
-        assert!(plan.diagnostics.iter().any(|item| item.code == "PRECEDENCE_CYCLE"));
+        assert!(
+            plan.diagnostics
+                .iter()
+                .any(|item| item.code == "PRECEDENCE_CYCLE")
+        );
     }
 
     #[test]
@@ -1146,9 +1184,25 @@ mod tests {
         ];
         let plan = build_dispatch_plan(&scenario, DispatchRule::EarliestDueDate);
         assert_eq!(plan.status, PlanStatus::FrozenConflict);
-        assert_eq!((assignment(&plan, "a").start_tick, assignment(&plan, "a").end_tick), (0, 4));
-        assert_eq!((assignment(&plan, "b").start_tick, assignment(&plan, "b").end_tick), (2, 6));
-        assert!(plan.diagnostics.iter().any(|item| item.code == "FROZEN_COMMITMENTS_OVERLAP"));
+        assert_eq!(
+            (
+                assignment(&plan, "a").start_tick,
+                assignment(&plan, "a").end_tick
+            ),
+            (0, 4)
+        );
+        assert_eq!(
+            (
+                assignment(&plan, "b").start_tick,
+                assignment(&plan, "b").end_tick
+            ),
+            (2, 6)
+        );
+        assert!(
+            plan.diagnostics
+                .iter()
+                .any(|item| item.code == "FROZEN_COMMITMENTS_OVERLAP")
+        );
     }
 
     #[test]
@@ -1167,7 +1221,9 @@ mod tests {
             start_tick: 0,
             end_tick: 5,
         });
-        scenario.visible_outages.push(outage("out", "weld-1", 2, 8, 3));
+        scenario
+            .visible_outages
+            .push(outage("out", "weld-1", 2, 8, 3));
         let plan = build_dispatch_plan(&scenario, DispatchRule::EarliestDueDate);
         assert_eq!(plan.status, PlanStatus::FrozenConflict);
         assert!(assignment(&plan, "in-flight").frozen);

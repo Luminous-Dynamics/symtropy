@@ -1,0 +1,21 @@
+[package]
+name = "shipyard-dispatch-experiment"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Matched-input evaluation adapter for shipyard dispatch baselines and an independent evaluator"
+
+[dependencies]
+shipyard-observed-dispatch = { path = "../shipyard-observed-dispatch" }
+shipyard-dispatch-audit = { path = "../shipyard-dispatch-audit" }
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "compare_synthetic_rules"
+path = "examples/compare_synthetic_rules.rs"
+
+[workspace]
