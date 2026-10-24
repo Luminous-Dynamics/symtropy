@@ -4,6 +4,7 @@
 **Parent:** [Glass–Silicon process benchmark #2715](https://github.com/Luminous-Dynamics/symtropy/issues/2715) and draft [PR #2716](https://github.com/Luminous-Dynamics/symtropy/pull/2716).  
 **Work item:** [#2769](https://github.com/Luminous-Dynamics/symtropy/issues/2769).  
 **Scope:** offline evidence/benchmark tooling only. No furnace control, actuator authority, dataset ingestion, or rights certification.
+**Machine-readable contract:** [glass-relationship-graph-v0.1.schema.json](./glass-relationship-graph-v0.1.schema.json). The Rust auditor adds cross-record and cross-split invariants that JSON Schema alone cannot establish.
 
 ## 1. Why a relationship layer is necessary
 
