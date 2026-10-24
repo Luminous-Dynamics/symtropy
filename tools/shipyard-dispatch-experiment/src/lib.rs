@@ -325,7 +325,8 @@ pub struct ExperimentLedgerContext {
     pub replicate_id: String,
     pub initial_state_sha256: String,
     pub disturbance_tape_sha256: String,
-    pub method_config_sha256: String,
+    /// Digest of the shared, source-defined baseline configuration.
+    pub base_method_config_sha256: String,
     pub budget_profile_id: String,
     pub wall_time_limit_ms: u64,
     pub decision_compute_budget_units: u64,
@@ -617,6 +618,7 @@ fn method_config_artifact(context: &ExperimentLedgerContext, result: &EvaluatedR
 fn encode_result(
     context: &ExperimentLedgerContext,
     result: &EvaluatedRule,
+    method_config_digest: &str,
     candidate_digest: &str,
     audit_digest: &str,
 ) -> String {
@@ -713,7 +715,7 @@ fn encode_result(
         json_quote(status_reason(result)),
         json_quote(&context.initial_state_sha256.to_ascii_lowercase()),
         json_quote(&context.disturbance_tape_sha256.to_ascii_lowercase()),
-        json_quote(&context.method_config_sha256.to_ascii_lowercase()),
+        json_quote(method_config_digest),
         json_quote(&context.evaluator_revision),
         context.wall_time_limit_ms,
         context.decision_compute_budget_units,
@@ -750,7 +752,10 @@ pub fn build_result_ledger_bundle(
     }
     require_digest("initial_state_sha256", &context.initial_state_sha256)?;
     require_digest("disturbance_tape_sha256", &context.disturbance_tape_sha256)?;
-    require_digest("method_config_sha256", &context.method_config_sha256)?;
+    require_digest(
+        "base_method_config_sha256",
+        &context.base_method_config_sha256,
+    )?;
 
     if results.len() != 4 {
         return Err(format!(
@@ -1064,7 +1069,7 @@ mod ledger_tests {
         let results = evaluate_four_rules(&input(), &[], &[]).expect("input aligns");
         let bundle = build_result_ledger_bundle(&context(), &results).expect("bundle");
         assert_eq!(bundle.ledger_jsonl.lines().count(), 4);
-        assert_eq!(bundle.artifacts.len(), 8);
+        assert_eq!(bundle.artifacts.len(), 12);
         for line in bundle.ledger_jsonl.lines() {
             let candidate = json_string_field(
                 &line.replace("\\\"", "\""),
