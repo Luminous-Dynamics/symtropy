@@ -374,6 +374,7 @@ jobs:
           dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
           auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
           gate="$work/targets/symtropy/debug/energy_multi_interval_known_answer_gate"
+          known="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/three-interval-stress-known-answer-v0.1.json"
           timed() {
             local timing_path="$1"
             shift
@@ -386,10 +387,53 @@ jobs:
 
           timed "$context/dispatch.elapsed_ns" "$dispatch" "$context/request.json" > "$context/dispatch-report.json"
           timed "$context/audit.elapsed_ns" "$auditor" "$context/request.json" "$context/dispatch-report.json" > "$context/independent-audit.json"
-          timed "$context/known-answer-gate.elapsed_ns" "$gate" "$context/request.json" "$context/dispatch-report.json" "$context/independent-audit.json" \
+          timed "$context/known-answer-gate.elapsed_ns" "$gate" "$context/request.json" "$context/dispatch-report.json" "$context/independent-audit.json" "$known" \
             > "$context/qualification.log"
           cat "$context/qualification.log"
           sha256sum "$context"/*.json
+
+      - name: Run multi-scenario resilience panel through actual dispatch and independent audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/scenario-panel-context"
+          source_panel="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-scenario-panel-v0.1.json"
+          mkdir -p "$context"
+          cp "$source_panel" "$context/panel-manifest.json"
+          manifest="$context/panel-manifest.json"
+          dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
+          auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
+          case_gate="$work/targets/symtropy/debug/energy_multi_interval_known_answer_gate"
+          panel_gate="$work/targets/symtropy/debug/energy_scenario_panel_gate"
+
+          # The frozen manifest is the source of truth; requests and answers
+          # are materialized from it, not recalculated in shell arithmetic.
+          for case_id in $(jq -r '.cases[].case_id' "$manifest"); do
+            case_dir="$context/$case_id"
+            mkdir -p "$case_dir"
+            jq -c --arg id "$case_id" '.cases[] | select(.case_id == $id) | .request' "$manifest" > "$case_dir/request.json"
+            jq -c --arg id "$case_id" '.cases[] | select(.case_id == $id) | .known_answer' "$manifest" > "$case_dir/known-answer.json"
+            timed() {
+              local timing_path="$1"
+              shift
+              local started finished
+              started="$(date +%s%N)"
+              "$@"
+              finished="$(date +%s%N)"
+              printf '%s\n' "$((finished - started))" > "$timing_path"
+            }
+            timed "$case_dir/dispatch.elapsed_ns" "$dispatch" "$case_dir/request.json" > "$case_dir/dispatch-report.json"
+            timed "$case_dir/audit.elapsed_ns" "$auditor" "$case_dir/request.json" "$case_dir/dispatch-report.json" > "$case_dir/independent-audit.json"
+            timed "$case_dir/known-answer-gate.elapsed_ns" "$case_gate" "$case_dir/request.json" "$case_dir/dispatch-report.json" "$case_dir/independent-audit.json" "$case_dir/known-answer.json" > "$case_dir/qualification.log"
+            cat "$case_dir/qualification.log"
+            sha256sum "$case_dir"/*.json > "$case_dir/sha256sums.txt"
+          done
+
+          "$panel_gate" "$manifest" "$context" "$context/scenario-panel-report.json" > "$context/panel-qualification.log"
+          cat "$context/panel-qualification.log"
+          sha256sum "$manifest" "$context/scenario-panel-report.json" > "$context/panel-sha256sums.txt"
+          cat "$context/panel-sha256sums.txt"
 
       - name: Build digest-bound benchmark ledger
         shell: bash
@@ -413,6 +457,8 @@ jobs:
             ${{ runner.temp }}/energy-studio/energy-benchmark-report.json
             ${{ runner.temp }}/energy-studio/objective-context/*
             ${{ runner.temp }}/energy-studio/multi-interval-context/*
+            ${{ runner.temp }}/energy-studio/scenario-panel-context/**/*
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-scenario-panel-v0.1.json
             ${{ runner.temp }}/energy-studio/sa-tariff-context/*
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/sa-facility-benchmark-source-registry-v0.1.json
             ${{ runner.temp }}/energy-studio/*.Cargo.lock
