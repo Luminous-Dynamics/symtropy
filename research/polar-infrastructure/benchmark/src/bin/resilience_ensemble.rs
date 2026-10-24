@@ -42,6 +42,9 @@ struct EnsemblePolicyScore {
     method_family: String,
     expected_weighted_service_fraction: f64,
     expected_service_shortfall: f64,
+    /// Probability-weighted criticality-weighted normalized service deficit integrated over time.
+    expected_weighted_unserved_service_fraction_hours: f64,
+    worst_case_weighted_unserved_service_fraction_hours: f64,
     cvar_service_shortfall: f64,
     worst_case_service_shortfall: f64,
     gate_failure_probability: f64,
@@ -97,6 +100,7 @@ struct ScenarioPolicyOutcome {
     scenario_duration_hours: f64,
     weighted_service_fraction: f64,
     service_shortfall: f64,
+    weighted_unserved_service_fraction_hours: f64,
     gate_pass: bool,
     floor_breach_service_hours: f64,
     system_floor_breach_episode_count: usize,
@@ -111,6 +115,7 @@ struct Observation {
     scenario_duration_hours: f64,
     weighted_service_fraction: f64,
     shortfall: f64,
+    weighted_unserved_service_fraction_hours: f64,
     gate_pass: bool,
     floor_breach_service_hours: f64,
     system_floor_breach_episode_count: usize,
@@ -352,6 +357,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
                 scenario_duration_hours: *scenario_duration_hours,
                 weighted_service_fraction: p.weighted_service_fraction,
                 shortfall,
+                weighted_unserved_service_fraction_hours: p.weighted_unserved_service_fraction_hours,
                 gate_pass: p.gate_pass,
                 floor_breach_service_hours: p.floor_breach_service_hours,
                 system_floor_breach_episode_count: p.system_floor_breach_episode_count,
@@ -365,6 +371,10 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
         let expected_shortfall: f64 = observations.iter()
             .map(|o| o.probability * o.shortfall).sum();
         let expected_service_fraction = 1.0 - expected_shortfall;
+        let expected_weighted_unserved_service_fraction_hours: f64 = observations.iter()
+            .map(|o| o.probability * o.weighted_unserved_service_fraction_hours).sum();
+        let worst_case_weighted_unserved_service_fraction_hours = observations.iter()
+            .map(|o| o.weighted_unserved_service_fraction_hours).fold(0.0_f64, f64::max);
         let worst_case_shortfall = observations.iter()
             .map(|o| o.shortfall).fold(0.0_f64, f64::max);
         let gate_failure_probability: f64 = observations.iter()
@@ -388,7 +398,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             None
         };
 
-        for value in [expected_shortfall, expected_service_fraction, worst_case_shortfall, gate_failure_probability, expected_floor_breach_service_hours, expected_system_floor_breach_episode_count, expected_longest_consecutive_system_floor_breach_hours, worst_case_longest_consecutive_system_floor_breach_hours, earliest_observed_time_to_first_system_floor_breach_hours.unwrap_or(0.0), cvar_service_shortfall] {
+        for value in [expected_shortfall, expected_service_fraction, worst_case_shortfall, gate_failure_probability, expected_floor_breach_service_hours, expected_system_floor_breach_episode_count, expected_longest_consecutive_system_floor_breach_hours, worst_case_longest_consecutive_system_floor_breach_hours, earliest_observed_time_to_first_system_floor_breach_hours.unwrap_or(0.0), expected_weighted_unserved_service_fraction_hours, worst_case_weighted_unserved_service_fraction_hours, cvar_service_shortfall] {
             if !value.is_finite() {
                 return Err(format!("policy {policy_id} produced non-finite ensemble metrics"));
             }
@@ -401,6 +411,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             scenario_duration_hours: o.scenario_duration_hours,
             weighted_service_fraction: o.weighted_service_fraction,
             service_shortfall: o.shortfall,
+            weighted_unserved_service_fraction_hours: o.weighted_unserved_service_fraction_hours,
             gate_pass: o.gate_pass,
             floor_breach_service_hours: o.floor_breach_service_hours,
             system_floor_breach_episode_count: o.system_floor_breach_episode_count,
@@ -413,6 +424,8 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             method_family,
             expected_weighted_service_fraction: expected_service_fraction,
             expected_service_shortfall: expected_shortfall,
+            expected_weighted_unserved_service_fraction_hours,
+            worst_case_weighted_unserved_service_fraction_hours,
             cvar_service_shortfall,
             worst_case_service_shortfall: worst_case_shortfall,
             gate_failure_probability,
@@ -530,6 +543,8 @@ mod tests {
         assert!(result.worst_case_longest_consecutive_system_floor_breach_hours >= 2.0);
         assert!(result.expected_longest_consecutive_system_floor_breach_hours > 0.0);
         assert!(result.expected_system_floor_breach_episode_count > 0.0);
+        assert!(result.expected_weighted_unserved_service_fraction_hours > 0.0);
+        assert!(result.expected_weighted_unserved_service_fraction_hours <= result.worst_case_weighted_unserved_service_fraction_hours);
         assert_eq!(result.earliest_observed_time_to_first_system_floor_breach_hours, Some(0.0));
         let first = result.scenario_outcomes.iter()
             .find(|outcome| outcome.scenario_id == scenario_id).unwrap();
