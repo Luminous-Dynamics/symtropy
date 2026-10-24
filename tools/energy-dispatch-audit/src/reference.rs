@@ -314,6 +314,85 @@ mod tests {
     }
 
     #[test]
+    fn every_frozen_scenario_panel_case_matches_independent_reference() {
+        const PANEL: &str =
+            include_str!("../fixtures/energy-scenario-panel-v0.1.json");
+        let panel: serde_json::Value =
+            serde_json::from_str(PANEL).expect("scenario panel fixture parses");
+
+        assert_eq!(
+            panel["schema_version"].as_str(),
+            Some("energy-scenario-panel-v0.1")
+        );
+        let cases = panel["cases"]
+            .as_array()
+            .expect("scenario panel contains cases");
+        assert_eq!(
+            panel["case_count"].as_u64(),
+            Some(cases.len() as u64)
+        );
+        assert_eq!(cases.len(), 5);
+
+        for scenario in cases {
+            let case_id = scenario["case_id"]
+                .as_str()
+                .expect("scenario case ID exists");
+            let request: DispatchRequest =
+                serde_json::from_value(scenario["request"].clone())
+                    .expect("scenario request is typed");
+            let answer = &scenario["known_answer"];
+
+            assert_eq!(request.case_id, case_id);
+            assert_eq!(answer["case_id"].as_str(), Some(case_id));
+            assert_eq!(request.intervals.len(), 3);
+
+            let actual = enumerate(&request, DEFAULT_REFERENCE_EXPANSION_LIMIT)
+                .unwrap_or_else(|error| panic!("scenario {case_id} reference failed: {error:?}"));
+            let expected_count = answer["feasible_complete_schedules"]
+                .as_u64()
+                .expect("known answer contains schedule count");
+            let expected_distinct = answer["distinct_objective_count"]
+                .as_u64()
+                .expect("known answer contains distinct-objective count");
+            let expected_objectives: Vec<DispatchObjective> =
+                serde_json::from_value(answer["feasible_schedule_objectives"].clone())
+                    .expect("complete feasible-schedule objective multiset is typed");
+            let mut unique = expected_objectives.clone();
+            unique.sort();
+            unique.dedup();
+            assert_eq!(expected_objectives.len() as u64, expected_count, "{case_id}");
+            assert_eq!(unique.len() as u64, expected_distinct, "{case_id}");
+
+            let mut derived_frontier = unique
+                .iter()
+                .filter(|candidate| {
+                    !unique.iter().any(|other| {
+                        other != *candidate && weakly_dominates(other, candidate)
+                    })
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+            let objective_order = |value: &DispatchObjective| (
+                value.essential_unserved_quanta,
+                value.flexible_unserved_quanta,
+                value.operating_cost_units,
+                value.grid_carbon_grams,
+                value.curtailed_pv_quanta,
+                Reverse(value.terminal_soc_quanta),
+            );
+            derived_frontier.sort_by_key(objective_order);
+            let mut expected_frontier: Vec<DispatchObjective> =
+                serde_json::from_value(answer["pareto_frontier"].clone())
+                    .expect("known answer frontier is typed");
+            expected_frontier.sort_by_key(objective_order);
+
+            assert_eq!(derived_frontier, expected_frontier, "{case_id}: frozen frontier derivation");
+            assert_eq!(actual.feasible_complete_schedules, expected_count, "{case_id}");
+            assert_eq!(actual.frontier, expected_frontier, "{case_id}: independent reference frontier");
+        }
+    }
+
+    #[test]
     fn generated_small_case_corpus_is_deterministic_and_frontiers_are_nondominated() {
         for seed in 0..128_u32 {
             let request = generated_request(seed);
