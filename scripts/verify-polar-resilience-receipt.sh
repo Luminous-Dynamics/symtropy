@@ -165,14 +165,14 @@ if [[ "${1:-}" == "--self-test" ]]; then
   cp -a "$tmp/valid" "$tmp/tampered-content"
   printf '\n' >> "$tmp/tampered-content/reports/score-report.json"
   if verify_bundle "$tmp/tampered-content" >/dev/null 2>&1; then
-    fail "tampered report unexpectedly passed"
+    fail "tampered report unexpectedly passed"; exit 1
   fi
 
   cp -a "$tmp/valid" "$tmp/omitted-path"
   grep -v 'reports/score-report.json' "$tmp/omitted-path/SHA256SUMS" > "$tmp/omitted-path/SHA256SUMS.new"
   mv "$tmp/omitted-path/SHA256SUMS.new" "$tmp/omitted-path/SHA256SUMS"
   if verify_bundle "$tmp/omitted-path" >/dev/null 2>&1; then
-    fail "manifest with omitted report unexpectedly passed"
+    fail "manifest with omitted report unexpectedly passed"; exit 1
   fi
 
   cp -a "$tmp/valid" "$tmp/escalated-claim"
@@ -189,7 +189,7 @@ if [[ "${1:-}" == "--self-test" ]]; then
       TESTED_COMMIT verify-polar-resilience-receipt.sh > SHA256SUMS
   )
   if verify_bundle "$tmp/escalated-claim" >/dev/null 2>&1; then
-    fail "evidence-class escalation unexpectedly passed"
+    fail "evidence-class escalation unexpectedly passed"; exit 1
   fi
 
   cp -a "$tmp/valid" "$tmp/inactive-service-false-pass"
@@ -209,7 +209,7 @@ if [[ "${1:-}" == "--self-test" ]]; then
       TESTED_COMMIT verify-polar-resilience-receipt.sh > SHA256SUMS
   )
   if verify_bundle "$tmp/inactive-service-false-pass" >/dev/null 2>&1; then
-    fail "inactive service incorrectly marked as passed unexpectedly passed"
+    fail "inactive service incorrectly marked as passed unexpectedly passed"; exit 1
   fi
 
   printf 'Receipt verifier self-test passed: valid bundle, tampering, omitted checksum, evidence escalation, inactive-service false pass.\n'
