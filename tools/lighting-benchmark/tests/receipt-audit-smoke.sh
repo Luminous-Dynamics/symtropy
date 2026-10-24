@@ -139,4 +139,9 @@ mv "$TMP/mutated.json" "$TMP/receipt.json"
 if run_audit >/dev/null 2>&1; then fail "sample/normalized-artifact mismatch was accepted"; fi
 pass "sample artifact mismatch rejected"
 
+jq --slurpfile samples "$TMP/normalized-samples.json" '.illuminance_samples = $samples[0] | .run_status = "all_good"' "$TMP/receipt.json" > "$TMP/mutated.json"
+mv "$TMP/mutated.json" "$TMP/receipt.json"
+if run_audit >/dev/null 2>&1; then fail "unknown run status was accepted"; fi
+pass "unknown run status rejected"
+
 printf 'receipt-audit smoke: all negative controls behaved as expected\n'
