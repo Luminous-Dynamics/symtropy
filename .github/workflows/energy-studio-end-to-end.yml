@@ -553,6 +553,18 @@ jobs:
           "$report" "$work" "$work/energy-benchmark-report.json"
           sha256sum "$work/energy-benchmark-report.json"
 
+      - name: Replay matched unique-candidate proposal budgets
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/candidate-scenario-matrix-context"
+          replay="$work/targets/symtropy/debug/energy_search_policy_replay"
+          "$replay" "$work" "$context/search-policy-replay-report.json" > "$context/search-policy-replay-qualification.log"
+          sha256sum "$work/energy-benchmark-report.json" "$context/matrix-report.json" "$context/robustness-report.json" "$context/search-policy-replay-report.json" > "$context/search-policy-replay-sha256sums.txt"
+          cat "$context/search-policy-replay-qualification.log"
+          cat "$context/search-policy-replay-sha256sums.txt"
+
       - name: Preserve exact generation, compilation, dispatch and audit evidence
         if: always()
         uses: actions/upload-artifact@v4
