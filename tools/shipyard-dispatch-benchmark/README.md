@@ -57,6 +57,14 @@ by this harness. A complete result-ledger terminal status remains incomplete
 until those declared independent gates and the runtime budget receipt are
 executed by a broader runner.
 
+## Published industrial baseline
+
+Before claiming improvement over industry-facing literature, follow
+[PUBLISHED-BASELINE-REPRODUCTION.md](PUBLISHED-BASELINE-REPRODUCTION.md).
+It pins the published 2026 irregular-block ABC/ALNS Case9_50_x reference values,
+the author's declared model assumptions, and the evidence gates required for a
+reproduction. This repository has not reproduced the paper's results yet.
+
 ## What would justify an SOTA claim
 
 1. Reconstruct a published problem with the original geometry, constraints,
