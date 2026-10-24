@@ -400,10 +400,14 @@ mod tests {
     fn no_battery_terminal_reserve_is_explicitly_not_applicable() {
         let profile: Value = serde_json::from_str(PROFILE).unwrap();
         let mut source: Value = serde_json::from_str(CANDIDATE).unwrap();
-        source["components"] = Value::Array(
-            source["components"].as_array().unwrap().iter()
-                .filter(|item| item["component_id"] != "battery").cloned().collect()
-        );
+        let without_battery = source["components"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|item| item["component_id"] != "battery")
+            .cloned()
+            .collect::<Vec<_>>();
+        source["components"] = Value::Array(without_battery);
         let (child, applicability, mutations) =
             apply_transform(source.clone(), "terminal_reserve_1", &profile).unwrap();
         assert_eq!(applicability, "not_applicable_no_battery_component");
