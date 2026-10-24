@@ -310,6 +310,103 @@ jobs:
             done
           done
 
+      - name: Evaluate every candidate under five candidate-level scenario transforms
+        shell: bash
+        run: |
+          set -uo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/candidate-scenario-matrix-context"
+          source_profile="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-candidate-scenario-panel-v0.1.json"
+          mkdir -p "$context"
+          cp "$source_profile" "$context/scenario-profile.json"
+          profile="$context/scenario-profile.json"
+          transformer="$work/targets/symtropy/debug/energy_candidate_scenario_transform"
+          matrix_gate="$work/targets/symtropy/debug/energy_candidate_scenario_matrix_gate"
+          validator="$work/targets/symtropy/debug/energy_candidate_schema_validate"
+          compiler="$work/targets/sol-atlas/debug/energy_design_dispatch_compile"
+          verifier="$work/targets/symtropy/debug/energy_compilation_receipt_verify"
+          dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
+          auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
+          schema="$work/energy-system-candidate-v0.1.schema.json"
+          config="$work/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
+
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished status
+            started="$(date +%s%N)"
+            if "$@"; then status=0; else status=$?; fi
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+            return "$status"
+          }
+
+          run_case() {
+            local candidate="$1"
+            local scenario="$2"
+            local dir="$context/$candidate/$scenario"
+            local failed_phase=""
+            local failure_detail=""
+            mkdir -p "$dir"
+
+            if ! timed "$dir/transform.elapsed_ns" "$transformer" "$work/$candidate/candidate.json" "$scenario" "$dir/candidate.json" "$dir/transform-receipt.json" > "$dir/transform.log" 2> "$dir/transform.stderr.log"; then
+              failed_phase="transform"
+              failure_detail="$(tail -n 20 "$dir/transform.stderr.log" 2>/dev/null || true)"
+            fi
+            if [[ -z "$failed_phase" ]] && ! timed "$dir/schema-validation.elapsed_ns" "$validator" "$schema" "$dir/candidate.json" > "$dir/schema-validation.log" 2> "$dir/schema-validation.stderr.log"; then
+              failed_phase="schema_validation"
+              failure_detail="$(tail -n 20 "$dir/schema-validation.stderr.log" 2>/dev/null || true)"
+            fi
+            if [[ -z "$failed_phase" ]] && ! timed "$dir/compile.elapsed_ns" "$compiler" "$dir/candidate.json" "$config" > "$dir/compilation.json" 2> "$dir/compile.stderr.log"; then
+              failed_phase="compile"
+              failure_detail="$(tail -n 20 "$dir/compile.stderr.log" 2>/dev/null || true)"
+            fi
+            if [[ -z "$failed_phase" ]] && ! timed "$dir/receipt-verification.elapsed_ns" "$verifier" "$dir/candidate.json" "$config" "$dir/compilation.json" "$dir/dispatch-request.json" > "$dir/receipt-verification.log" 2> "$dir/receipt-verification.stderr.log"; then
+              failed_phase="receipt_verification"
+              failure_detail="$(tail -n 20 "$dir/receipt-verification.stderr.log" 2>/dev/null || true)"
+            fi
+            if [[ -z "$failed_phase" ]] && ! timed "$dir/dispatch.elapsed_ns" "$dispatch" "$dir/dispatch-request.json" > "$dir/dispatch-report.json" 2> "$dir/dispatch.stderr.log"; then
+              failed_phase="dispatch"
+              failure_detail="$(tail -n 20 "$dir/dispatch.stderr.log" 2>/dev/null || true)"
+            fi
+            if [[ -z "$failed_phase" ]] && ! timed "$dir/audit.elapsed_ns" "$auditor" "$dir/dispatch-request.json" "$dir/dispatch-report.json" > "$dir/independent-audit.json" 2> "$dir/audit.stderr.log"; then
+              failed_phase="independent_audit"
+              failure_detail="$(tail -n 20 "$dir/audit.stderr.log" 2>/dev/null || true)"
+            fi
+
+            if [[ -z "$failed_phase" ]]; then
+              jq -n --arg candidate_id "$candidate" --arg scenario_id "$scenario" \
+                '{candidate_id:$candidate_id,scenario_id:$scenario_id,status:"pass",failed_phase:null,error:null}' > "$dir/row-status.json"
+            else
+              jq -n --arg candidate_id "$candidate" --arg scenario_id "$scenario" --arg failed_phase "$failed_phase" --arg error "$failure_detail" \
+                '{candidate_id:$candidate_id,scenario_id:$scenario_id,status:"failed",failed_phase:$failed_phase,error:$error}' > "$dir/row-status.json"
+              echo "FAILED $candidate / $scenario at $failed_phase" >&2
+            fi
+            find "$dir" -maxdepth 1 -type f ! -name 'sha256sums.txt' -print0 | sort -z | xargs -0 -r sha256sum > "$dir/sha256sums.txt"
+          }
+
+          mapfile -t scenario_ids < <(jq -r '.required_scenarios[].scenario_id' "$profile")
+          mapfile -t candidate_dirs < <(find "$work" -maxdepth 1 -mindepth 1 -type d -name 'synthetic-*' -printf '%f\n' | sort)
+          if [[ "${#candidate_dirs[@]}" -ne 39 || "${#scenario_ids[@]}" -ne 5 ]]; then
+            echo "Expected 39 candidates and 5 scenarios; found ${#candidate_dirs[@]} candidates and ${#scenario_ids[@]} scenarios" >&2
+            exit 2
+          fi
+
+          for candidate in "${candidate_dirs[@]}"; do
+            for scenario in "${scenario_ids[@]}"; do
+              run_case "$candidate" "$scenario"
+            done
+          done
+
+          # The gate always writes a 195-row coverage report. It exits nonzero if
+          # any row failed or is unknown; no failed row is silently dropped.
+          "$matrix_gate" "$work" "$context" "$profile" "$context/matrix-report.json" > "$context/matrix-qualification.log" || gate_status=$?
+          gate_status="${gate_status:-0}"
+          sha256sum "$profile" "$context/matrix-report.json" > "$context/matrix-sha256sums.txt"
+          cat "$context/matrix-qualification.log"
+          cat "$context/matrix-sha256sums.txt"
+          exit "$gate_status"
+
       - name: Exercise non-zero economics under a PV-availability stress case
         shell: bash
         run: |
@@ -458,6 +555,8 @@ jobs:
             ${{ runner.temp }}/energy-studio/objective-context/*
             ${{ runner.temp }}/energy-studio/multi-interval-context/*
             ${{ runner.temp }}/energy-studio/scenario-panel-context/**/*
+            ${{ runner.temp }}/energy-studio/candidate-scenario-matrix-context/**/*
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-candidate-scenario-panel-v0.1.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-scenario-panel-v0.1.json
             ${{ runner.temp }}/energy-studio/sa-tariff-context/*
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/sa-facility-benchmark-source-registry-v0.1.json
