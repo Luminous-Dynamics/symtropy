@@ -145,6 +145,8 @@ jobs:
             .properties.edges.items.properties.state.enum == ["verified", "candidate", "contradicted", "unknown"] and
             .properties.nodes.items.properties.split_required.type == "boolean" and
             (.properties.nodes.items.required | index("split_required")) != null and
+            .properties.relation_profile.const == "provenance_identity_v0" and
+            .properties.leakage_edge_types.const == ["derived_from", "replicate_of", "same_record"] and
             .additionalProperties == false
           ' "$schema" > /dev/null
           echo "Relationship graph schema and relationship-state contract: PASS"
@@ -165,6 +167,7 @@ jobs:
           grep -q 'raw and canonical graph hashes' "$protocol"
           grep -q 'glass-relationship-graph-v0.1.schema.json' "$protocol"
           grep -q 'split_required' "$protocol"
+          grep -q 'unregistered relation profile' "$protocol"
           echo "Relationship-aware evidence contract and anti-leakage requirements: PASS"
 
       - name: Audit relationship graph known-answer controls
