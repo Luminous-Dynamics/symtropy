@@ -24,7 +24,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out exact PR head (or exact pushed commit)
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -33,7 +33,7 @@ jobs:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Install stable Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
       - name: Run unit and negative-control tests
         run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
       - name: Exercise JSON CLI on synthetic fixture
@@ -161,11 +161,13 @@ jobs:
                 caveat: "Synthetic scorer contract evidence only; not physical validation or controller certification."
               }' > run-receipt.json
             sha256sum run-receipt.json > run-receipt.sha256
+            sha256sum -c SHA256SUMS
+            sha256sum -c run-receipt.sha256
           )
           printf 'tested_commit=%s\n' "$tested_commit"
 
       - name: Upload digest-pinned synthetic run receipt
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: polar-resilience-synthetic-receipt-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/polar-resilience/
