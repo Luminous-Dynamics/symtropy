@@ -2803,3 +2803,96 @@ mod feasibility_gated_campaign_tests {
         assert_eq!(forming.observation_branches["route-b"].action_id.as_deref(), Some("route-b"));
     }
 }
+
+
+#[cfg(test)]
+mod grouped_split_manifest_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn manifest() -> Value {
+        serde_json::from_str(include_str!("../fixtures/grouped-split-manifest.synthetic.json"))
+            .expect("synthetic grouped-split fixture must be valid JSON")
+    }
+
+    #[test]
+    fn valid_grouped_split_manifest_passes_and_counts_all_three_splits() {
+        let report = audit_grouped_split_manifest(&manifest());
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.records_checked, 7);
+        assert_eq!(report.split_counts["train"], 3);
+        assert_eq!(report.split_counts["validation"], 2);
+        assert_eq!(report.split_counts["test"], 2);
+        assert_eq!(report.grouping_fields, vec![
+            "composition_family_id".to_string(),
+            "synthesis_campaign_id".to_string()
+        ]);
+    }
+
+    #[test]
+    fn composition_family_cannot_cross_train_and_test() {
+        let mut value = manifest();
+        value["records"][5]["group_keys"]["composition_family_id"] = json!("family-a");
+        let report = audit_grouped_split_manifest(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("GROUP_LEAKAGE:composition_family_id=family-a crosses train and test")
+        }));
+    }
+
+    #[test]
+    fn synthesis_campaign_cannot_cross_train_and_validation() {
+        let mut value = manifest();
+        value["records"][3]["group_keys"]["synthesis_campaign_id"] = json!("campaign-1");
+        let report = audit_grouped_split_manifest(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("GROUP_LEAKAGE:synthesis_campaign_id=campaign-1 crosses train and validation")
+        }));
+    }
+
+    #[test]
+    fn duplicate_record_identity_fails_closed() {
+        let mut value = manifest();
+        value["records"][1]["record_id"] = json!("sample-a1");
+        let report = audit_grouped_split_manifest(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("SPLIT_RECORD_ID:index 1")
+        }));
+    }
+
+    #[test]
+    fn missing_group_key_fails_closed() {
+        let mut value = manifest();
+        value["records"][0]["group_keys"].as_object_mut().unwrap().remove("synthesis_campaign_id");
+        let report = audit_grouped_split_manifest(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("SPLIT_GROUP_CENSUS:sample-a1")
+        }));
+    }
+
+    #[test]
+    fn predictor_label_or_feature_in_split_manifest_is_rejected() {
+        let mut value = manifest();
+        value["records"][0]["label"] = json!("glass-forming");
+        let report = audit_grouped_split_manifest(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("SPLIT_RECORD_KEYS:index 0")
+        }));
+    }
+
+    #[test]
+    fn every_declared_split_must_have_records() {
+        let mut value = manifest();
+        value["records"] = json!([
+            {"record_id":"sample-a1","split":"train","group_keys":{"composition_family_id":"family-a","synthesis_campaign_id":"campaign-1"}},
+            {"record_id":"sample-b1","split":"test","group_keys":{"composition_family_id":"family-b","synthesis_campaign_id":"campaign-2"}}
+        ]);
+        let report = audit_grouped_split_manifest(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding == "SPLIT_EMPTY:validation has no assigned records"));
+    }
+}
