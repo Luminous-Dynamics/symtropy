@@ -16,6 +16,16 @@ This isolated, dependency-free Rust crate implements a conservative reference ev
 - Includes a deterministic experiment selector that ranks externally supplied expected decision-loss reduction against cost, while rejecting malformed estimates and excluding unsafe or over-budget options. It does not infer or calibrate value-of-information estimates itself.
 - Includes a deterministic synthetic-only evaluator CLI, a 30-case synthetic stress matrix spanning task-plane optics, adaptive control and off-grid resilience, family-level development/held-out isolation checks, and a 30-test suite covering the evaluator, robust interval logic and evidence provenance, selector, and stress-corpus contract.
 
+## Receipt audit
+
+The shell helper `tools/lighting-benchmark/verify-receipt.sh` checks a complete-grid receipt against the exact case, design, scene, property, adapter-config, executable, environment, settings, normalized-sample, stdout and stderr artifacts supplied to it. It verifies SHA-256 digests, exact equality between the normalized sample JSON and receipt samples, fixture grid order/coordinates, independently recomputed illuminance summaries, interval ordering and the case's service/power gates before accepting a compliant status.
+
+Run its synthetic positive case and negative controls with:
+
+    bash tools/lighting-benchmark/tests/receipt-audit-smoke.sh
+
+Important boundary: this is a receipt-consistency verifier, not an independent Radiance parser or photometric validation. It does not prove that the adapter correctly converts native solver output into the normalized lux grid; that parser must be pinned and independently tested in the Radiance adapter workstream. It also audits complete-grid receipts only; a malformed, partial, timed-out or absent-solver run remains unrankable and needs a separate failure-receipt contract. Passing this helper does not establish product compliance, optical accuracy, flicker safety or real-world energy savings.
+
 ## Run
 
 From the repository root:
