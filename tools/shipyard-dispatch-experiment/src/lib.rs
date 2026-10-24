@@ -467,7 +467,8 @@ fn terminal_status(result: &EvaluatedRule) -> &'static str {
             "incomplete"
         }
         (PlanStatus::Partial, _) => "incomplete",
-        (PlanStatus::InvalidInput | PlanStatus::FrozenConflict, _) => "invalid_input",
+        (PlanStatus::InvalidInput, _) => "invalid_input",
+        (PlanStatus::FrozenConflict, _) => "invalid_candidate",
         (_, shipyard_dispatch_audit::AuditStatus::Rejected) => "invalid_candidate",
     }
 }
