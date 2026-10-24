@@ -108,10 +108,16 @@ jobs:
         run: |
           set -euo pipefail
           artifact_dir="artifacts/polar-resilience"
-          mkdir -p "$artifact_dir/inputs" "$artifact_dir/reports"
+          mkdir -p "$artifact_dir/inputs/source/bin" "$artifact_dir/reports"
           tested_commit="$(git rev-parse HEAD)"
           cp research/polar-infrastructure/benchmark/Cargo.toml "$artifact_dir/inputs/Cargo.toml"
           cp research/polar-infrastructure/benchmark/Cargo.lock "$artifact_dir/inputs/Cargo.lock"
+          cp rust-toolchain.toml "$artifact_dir/inputs/rust-toolchain.toml"
+          cp research/polar-infrastructure/benchmark/src/lib.rs "$artifact_dir/inputs/source/lib.rs"
+          cp research/polar-infrastructure/benchmark/src/main.rs "$artifact_dir/inputs/source/main.rs"
+          cp research/polar-infrastructure/benchmark/src/bin/resilience_ensemble.rs "$artifact_dir/inputs/source/bin/resilience_ensemble.rs"
+          cp research/polar-infrastructure/benchmark/src/bin/robust_set.rs "$artifact_dir/inputs/source/bin/robust_set.rs"
+          cp .github/workflows/polar-resilience-scorer.yml "$artifact_dir/inputs/polar-resilience-scorer.yml"
           cp research/polar-infrastructure/benchmark/fixtures/toy-episode.json "$artifact_dir/inputs/toy-episode.json"
           cp research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json "$artifact_dir/inputs/toy-ensemble.json"
           cp research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json "$artifact_dir/inputs/toy-robust-set.json"
@@ -124,6 +130,12 @@ jobs:
             sha256sum \
               inputs/Cargo.toml \
               inputs/Cargo.lock \
+              inputs/rust-toolchain.toml \
+              inputs/source/lib.rs \
+              inputs/source/main.rs \
+              inputs/source/bin/resilience_ensemble.rs \
+              inputs/source/bin/robust_set.rs \
+              inputs/polar-resilience-scorer.yml \
               inputs/toy-episode.json \
               inputs/toy-ensemble.json \
               inputs/toy-robust-set.json \
@@ -137,8 +149,12 @@ jobs:
               --arg workflow_run_id "$GITHUB_RUN_ID" \
               --arg workflow_attempt "$GITHUB_RUN_ATTEMPT" \
               --arg event "$GITHUB_EVENT_NAME" \
+              --arg runner_os "$RUNNER_OS" \
+              --arg runner_arch "$RUNNER_ARCH" \
+              --arg rustc_version "$(rustc --version --verbose)" \
+              --arg cargo_version "$(cargo --version)" \
               '{
-                receipt_schema_version: "0.1.0",
+                receipt_schema_version: "0.2.0",
                 evidence_class: "synthetic_only",
                 receipt_status: "checks_completed",
                 tested_commit: $tested_commit,
@@ -148,9 +164,16 @@ jobs:
                 workflow_event: $event,
                 input_schema_version: "0.1.0",
                 report_schema_versions: { score: "0.2.0", ensemble: "0.3.0", robust_set: "0.3.0" },
+                runner: { os: $runner_os, arch: $runner_arch, rustc: $rustc_version, cargo: $cargo_version },
                 input_paths: [
                   "inputs/Cargo.toml",
                   "inputs/Cargo.lock",
+                  "inputs/rust-toolchain.toml",
+                  "inputs/source/lib.rs",
+                  "inputs/source/main.rs",
+                  "inputs/source/bin/resilience_ensemble.rs",
+                  "inputs/source/bin/robust_set.rs",
+                  "inputs/polar-resilience-scorer.yml",
                   "inputs/toy-episode.json",
                   "inputs/toy-ensemble.json",
                   "inputs/toy-robust-set.json"
