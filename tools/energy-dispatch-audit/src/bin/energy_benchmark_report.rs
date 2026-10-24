@@ -207,6 +207,24 @@ struct ScenarioPanelBenchmark {
 }
 
 #[derive(Debug, Serialize)]
+struct CandidateScenarioMatrixBenchmark {
+    matrix_id: String,
+    scenario_profile_sha256: String,
+    matrix_report_sha256: String,
+    qualification_log_sha256: String,
+    source_receipts_sha256: String,
+    mapping_config_file_sha256: String,
+    mapping_config_typed_sha256: String,
+    expected_candidate_count: usize,
+    scenario_count: usize,
+    expected_row_count: usize,
+    passing_row_count: usize,
+    failed_or_unknown_row_count: usize,
+    all_passed: bool,
+    rows: Vec<Value>,
+}
+
+#[derive(Debug, Serialize)]
 struct SourceHeads {
     symthaea: String,
     symtropy_contract: String,
@@ -257,6 +275,7 @@ struct EnergyStudioBenchmarkReport {
     multi_interval_context: MultiIntervalBenchmark,
     south_african_tariff_context: SouthAfricanTariffBenchmark,
     scenario_panel: ScenarioPanelBenchmark,
+    candidate_scenario_matrix: CandidateScenarioMatrixBenchmark,
     candidates: Vec<CandidateBenchmark>,
 }
 
@@ -1030,6 +1049,138 @@ fn benchmark_scenario_panel_context(
     })
 }
 
+fn benchmark_candidate_scenario_matrix_context(
+    root: &Path,
+    design_manifest_bytes: &[u8],
+    mapping_config_bytes: &[u8],
+) -> Result<CandidateScenarioMatrixBenchmark, Box<dyn Error>> {
+    let dir = root.join("candidate-scenario-matrix-context");
+    let (profile_bytes, profile) = read_json(&dir.join("scenario-profile.json"))?;
+    let (report_bytes, report) = read_json(&dir.join("matrix-report.json"))?;
+    let log_bytes = fs::read(dir.join("matrix-qualification.log"))?;
+    let receipt_bytes = fs::read(dir.join("matrix-sha256sums.txt"))?;
+    let mapping_config: MappingConfigForLedger = serde_json::from_slice(mapping_config_bytes)?;
+    let typed_config_bytes = serde_json::to_vec(&mapping_config)?;
+
+    let profile_digest = sha256_hex(&profile_bytes);
+    let report_digest = sha256_hex(&report_bytes);
+    let log_digest = sha256_hex(&log_bytes);
+    let receipt_digest = sha256_hex(&receipt_bytes);
+    let config_file_digest = sha256_hex(mapping_config_bytes);
+    let config_typed_digest = sha256_hex(&typed_config_bytes);
+    let design_manifest_digest = sha256_hex(design_manifest_bytes);
+
+    if profile_bytes.as_slice()
+            != include_bytes!("../../fixtures/energy-candidate-scenario-panel-v0.1.json")
+        || required_str(&profile, "schema_version")?
+            != "energy-candidate-scenario-panel-v0.1"
+        || required_str(&report, "schema_version")?
+            != "energy-candidate-scenario-matrix-report-v0.1"
+        || required_str(&profile, "panel_id")? != required_str(&report, "matrix_id")?
+        || required_str(&report, "scenario_profile_sha256")? != profile_digest.as_str()
+        || required_str(&report, "design_space_manifest_sha256")?
+            != design_manifest_digest.as_str()
+        || required_u64(&report, "expected_candidate_count")? != 39
+        || required_u64(&report, "scenario_count")? != 5
+        || required_u64(&report, "expected_row_count")? != 195
+        || required_u64(&report, "observed_row_count")? != 195
+        || required_u64(&report, "passing_row_count")? != 195
+        || required_u64(&report, "failed_or_unknown_row_count")? != 0
+        || report["all_passed"].as_bool() != Some(true)
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "candidate-scenario matrix profile/report identity, coverage, or all-pass gate mismatch",
+        ).into());
+    }
+
+    let rows = report["rows"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "candidate-scenario matrix rows missing")
+    })?;
+    if rows.len() != 195 {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "matrix report must contain exactly 195 row objects").into());
+    }
+
+    let mut expected_candidates = expected_candidate_ids();
+    expected_candidates.sort();
+    let scenario_ids = profile["required_scenarios"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "candidate-scenario profile rows missing")
+    })?.iter()
+        .map(|item| required_str(item, "scenario_id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut pairs = BTreeSet::new();
+    let mut observed_candidates = BTreeSet::new();
+    let mut observed_scenarios = BTreeSet::new();
+    for row in rows {
+        let candidate_id = required_str(row, "candidate_id")?;
+        let scenario_id = required_str(row, "scenario_id")?;
+        if required_str(row, "status")? != "pass"
+            || required_str(row, "mapping_config_file_sha256")? != config_file_digest.as_str()
+            || required_str(row, "mapping_config_typed_sha256")? != config_typed_digest.as_str()
+            || required_str(row, "independent_audit_status")? != "pass"
+            || required_str(row, "reference_frontier_status")? != "pass"
+            || required_str(row, "objective_claim_status")? != "verified_for_bounded_model_case"
+            || required_u64(row, "solver_feasible_complete_schedules")?
+                != required_u64(row, "independent_reference_feasible_complete_schedules")?
+            || required_u64(row, "solver_frontier_count")?
+                != required_u64(row, "independent_reference_frontier_count")?
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("candidate-scenario matrix row failed its ledger gate: {candidate_id}/{scenario_id}"),
+            ).into());
+        }
+        if !expected_candidates.iter().any(|expected| expected == candidate_id)
+            || !scenario_ids.iter().any(|expected| expected == scenario_id)
+            || !pairs.insert((candidate_id.to_owned(), scenario_id.to_owned()))
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("matrix contains an unexpected or duplicate candidate/scenario pair: {candidate_id}/{scenario_id}"),
+            ).into());
+        }
+        observed_candidates.insert(candidate_id.to_owned());
+        observed_scenarios.insert(scenario_id.to_owned());
+    }
+    if pairs.len() != 195
+        || observed_candidates.len() != 39
+        || observed_scenarios.len() != 5
+    {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "matrix candidate/scenario Cartesian coverage is incomplete").into());
+    }
+
+    let log = String::from_utf8(log_bytes)?;
+    let receipts = String::from_utf8(receipt_bytes)?;
+    if !log.contains("PASS: candidate-scenario matrix verified 195 of 195 rows")
+        || !log.contains(&format!("scenario_profile_sha256={profile_digest}"))
+        || !log.contains(&format!("report_sha256={report_digest}"))
+        || !receipts.contains(&profile_digest)
+        || !receipts.contains(&report_digest)
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "candidate-scenario matrix qualification log or source receipts do not bind the complete report",
+        ).into());
+    }
+
+    Ok(CandidateScenarioMatrixBenchmark {
+        matrix_id: required_str(&report, "matrix_id")?.to_owned(),
+        scenario_profile_sha256: profile_digest,
+        matrix_report_sha256: report_digest,
+        qualification_log_sha256: log_digest,
+        source_receipts_sha256: receipt_digest,
+        mapping_config_file_sha256: config_file_digest,
+        mapping_config_typed_sha256: config_typed_digest,
+        expected_candidate_count: required_u64(&report, "expected_candidate_count")? as usize,
+        scenario_count: required_u64(&report, "scenario_count")? as usize,
+        expected_row_count: required_u64(&report, "expected_row_count")? as usize,
+        passing_row_count: required_u64(&report, "passing_row_count")? as usize,
+        failed_or_unknown_row_count: required_u64(&report, "failed_or_unknown_row_count")? as usize,
+        all_passed: report["all_passed"].as_bool().unwrap_or(false),
+        rows: rows.clone(),
+    })
+}
+
 fn run() -> Result<(), Box<dyn Error>> {
     let args = env::args().collect::<Vec<_>>();
     if args.len() != 3 {
@@ -1106,9 +1257,11 @@ fn run() -> Result<(), Box<dyn Error>> {
     let multi_interval_context = benchmark_multi_interval_context(&root)?;
     let south_african_tariff_context = benchmark_south_african_tariff_context(&root)?;
     let scenario_panel = benchmark_scenario_panel_context(&root)?;
+    let candidate_scenario_matrix =
+        benchmark_candidate_scenario_matrix_context(&root, &manifest_bytes, &mapping_config_bytes)?;
     let report = EnergyStudioBenchmarkReport {
-        schema_version: "energy-studio-benchmark-report-v0.4",
-        benchmark_id: "energy-studio-source-bounded-scenario-benchmark-v0.4".to_owned(),
+        schema_version: "energy-studio-benchmark-report-v0.5",
+        benchmark_id: "energy-studio-candidate-scenario-matrix-benchmark-v0.5".to_owned(),
         created_by_workflow_run: env::var("GITHUB_RUN_ID").unwrap_or_else(|_| "local".to_owned()),
         git_ref: env::var("GITHUB_SHA").unwrap_or_else(|_| "unknown".to_owned()),
         source_heads: SourceHeads {
@@ -1152,6 +1305,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         multi_interval_context,
         south_african_tariff_context,
         scenario_panel,
+        candidate_scenario_matrix,
         candidates,
     };
     let output_bytes = serde_json::to_vec_pretty(&report)?;
