@@ -974,13 +974,8 @@ mod ledger_tests {
     #[test]
     fn ledger_preserves_rejections_and_every_candidate_assignment() {
         let mut scenario = input();
-        scenario.visible_outages.push(VisibleOutage {
-            event_id: "known-outage".to_owned(),
-            resource_id: "w-1".to_owned(),
-            effective_from_tick: 0,
-            effective_until_tick: 5,
-            observed_at_tick: 0,
-        });
+        // Evaluator truth is deliberately absent from the policy snapshot.
+        scenario.visible_outages.clear();
         let evaluator = vec![EvaluatorOutage {
             event_id: "known-outage".to_owned(),
             resource_id: "w-1".to_owned(),
