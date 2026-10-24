@@ -41,7 +41,7 @@ This profile estimates how prediction error shifts as the test actuator changes.
 
 For each evaluation time constant and model, preserve the existing episode-level one-step residual RMSE, scenario-family metrics, empirical CVaR90/worst-episode RMSE, invalid prediction count, and p50/p95/p99 inference latency. Compare every arm on matched test seeds within each profile.
 
-The new primary summary is transfer degradation relative to the matched 20 ms evaluation:
+The primary summary is transfer degradation relative to the matched 20 ms evaluation:
 
 \[
 D_m(\tau) =
@@ -49,7 +49,9 @@ D_m(\tau) =
 {\max(\operatorname{RMSE}_m(20\text{ ms}), \epsilon)}
 \]
 
-where \(m\) is a model arm and \(\epsilon\) is a fixed small denominator floor declared before confirmatory runs. The initial script preserves the raw paired model summaries for analysis; the current smoke result is too small to support confirmatory significance claims.
+where \(m\) is a model arm and \(\epsilon=10^{-9}\) is a fixed denominator floor. The Rust summary also preserves the per-episode **paired RMSE delta** at each profile relative to the 20 ms reference and calculates a deterministic 10,000-replicate bootstrap interval by resampling episodes with replacement *within each observed scenario family*. This avoids treating correlated frames as independent samples.
+
+Two direct transfer contrasts are reported for each off-reference profile: (1) persistent HDC/LTC degradation minus explicit-history MLP degradation; and (2) persistent HDC/LTC degradation minus the matched HDC encoder with LTC state reset at every step. Negative contrasts mean the persistent arm incurs less incremental error than its comparator. These intervals remain conditional on the smoke's small, observed family mix and are not confirmatory significance claims.
 
 ### Falsification / decision rule
 
