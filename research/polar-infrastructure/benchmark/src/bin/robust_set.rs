@@ -58,6 +58,7 @@ struct RobustPolicyScore {
 #[derive(Debug, Serialize)]
 struct ScenarioOutcome {
     scenario_id: String,
+    scenario_duration_hours: f64,
     weighted_service_fraction: f64,
     fuel_unit: String,
     service_shortfall: f64,
@@ -72,6 +73,7 @@ struct ScenarioOutcome {
 #[derive(Debug)]
 struct Observation {
     scenario_id: String,
+    scenario_duration_hours: f64,
     weighted_service_fraction: f64,
     fuel_unit: String,
     shortfall: f64,
@@ -164,7 +166,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
         } else {
             policy_families = Some(families);
         }
-        scored.push((scenario.scenario_id.clone(), report.results));
+        scored.push((scenario.scenario_id.clone(), report.episode_duration_hours, report.results));
     }
 
     let families = policy_families.unwrap_or_default();
@@ -172,11 +174,12 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
 
     for (policy_id, (method_family, fuel_unit)) in families {
         let mut observations = Vec::with_capacity(scored.len());
-        for (scenario_id, scores) in &scored {
+        for (scenario_id, scenario_duration_hours, scores) in &scored {
             let policy = scores.iter().find(|p| p.policy_id == policy_id)
                 .ok_or_else(|| format!("policy {policy_id} missing from scenario {scenario_id}"))?;
             observations.push(Observation {
                 scenario_id: scenario_id.clone(),
+                scenario_duration_hours: *scenario_duration_hours,
                 weighted_service_fraction: policy.weighted_service_fraction,
                 fuel_unit: policy.fuel_unit.clone(),
                 shortfall: (1.0 - policy.weighted_service_fraction).clamp(0.0, 1.0),
@@ -212,6 +215,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
 
         let scenario_outcomes = observations.iter().map(|o| ScenarioOutcome {
             scenario_id: o.scenario_id.clone(),
+            scenario_duration_hours: o.scenario_duration_hours,
             weighted_service_fraction: o.weighted_service_fraction,
             fuel_unit: o.fuel_unit.clone(),
             service_shortfall: o.shortfall,
