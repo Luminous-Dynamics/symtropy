@@ -138,7 +138,7 @@ fn load_joined_run(path: &Path) -> Result<JoinedRun, Box<dyn Error>> {
     require_conditioning_schema(&headers)?;
 
     for field in state_fields() {
-        for horizon in HORIZONS {
+        for horizon in 1..=50 {
             for name in [prediction_key(field, horizon), target_key(field, horizon)] {
                 if !headers.contains_key(&name) {
                     return Err(invalid_input(format!("missing required evaluation field '{name}'")).into());
