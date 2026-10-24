@@ -54,7 +54,9 @@ grep -q 'path = "../../../../symthaea/crates/core/symthaea-fep"' "$robot_manifes
 grep -q 'path = "../../../../symthaea/crates/core/symthaea-core"' "$robot_manifest"
 grep -q 'path = "../../../../symthaea/crates/domains/symthaea-consciousness-equation"' "$robot_manifest"
 
-cargo test --manifest-path "$integration_manifest" --lib --tests -- --nocapture
+if [ "${STFR_SKIP_UNIT_TESTS:-0}" != "1" ]; then
+  cargo test --manifest-path "$integration_manifest" --lib --tests -- --nocapture
+fi
 if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
   out="${STFB_OUTPUT_PATH:-$SYMTROPY_PATH/symthaea-symtropy-flight-transfer.json}"
   cargo run --manifest-path "$integration_manifest" --example paired_flight_transfer > "$out"
@@ -78,7 +80,7 @@ if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
   ' "$out"
 fi
 
-if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
+if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ] && [ "${STFR_RESIDUAL_ONLY:-0}" != "1" ]; then
   out="${STFR_OUTPUT_PATH:-$SYMTROPY_PATH/symthaea-symtropy-bounded-residual-matrix.json}"
   cargo run --manifest-path "$integration_manifest" --example bounded_residual_transfer > "$out"
   jq -e '
@@ -125,7 +127,7 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
   ' "$out"
 fi
 
-if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
+if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ] && [ "${STFR_RESIDUAL_ONLY:-0}" != "1" ]; then
   out="${STFR_DATASET_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-causal-transition-residual-dataset.json}"
   cargo run --manifest-path "$integration_manifest" --example causal_transition_dataset > "$out"
   jq -e '
@@ -135,6 +137,10 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .source_receipt.symthaea_git_sha == "bf787f4d655bd85f084cf75990232f19f7d809a1"
     and (.source_receipt.rustc_version | startswith("rustc "))
     and (.source_receipt.scenario_matrix_sha256 | test("^[0-9a-f]{64}$"))
+    and .plant_configuration.simulator == "SymtropyFlightSimulator_spherical_body_v0.1"
+    and .plant_configuration.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
+    and .plant_configuration == .collection.plant_configuration
+    and (.plant_configuration.actuator_lag_time_constant_s == null or .plant_configuration.actuator_lag_time_constant_s > 0)
     and .collection.invalid_target_count == 0
     and .collection.sample_count == (.samples | length)
     and .collection.sample_count == (.collection.episodes * .collection.steps_per_episode)
@@ -180,6 +186,10 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.source_receipt.rustc_version | startswith("rustc "))
     and (.source_receipt.scenario_matrix_sha256 | test("^[0-9a-f]{64}$"))
     and (.source_receipt.training_dataset_sha256 | test("^[0-9a-f]{64}$"))
+    and .training.plant_configuration.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
+    and .evaluation_plant_configuration.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
+    and .training.plant_configuration.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
+    and .evaluation_plant_configuration.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
     and .training.sample_count > 0
     and .training.dataset_parse_seconds >= 0
     and .training.model_fit_seconds >= 0
@@ -231,6 +241,8 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .representation.trainable_weights == "readout only; no end-to-end HDC-LTC BPTT"
     and .representation.readout_feature_dimension == 262
     and .training.sample_count > 0
+    and .training.plant_configuration.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
+    and .evaluation_plant_configuration.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
     and .training.dataset_parse_seconds >= 0
     and .training.reservoir_initialization_seconds >= 0
     and .training.feature_generation_seconds >= 0
@@ -321,6 +333,8 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .representation.hidden_units == 16
     and .representation.parameter_count == 1571
     and .representation.temporal_representation == "explicit four-step causal delay embedding; no recurrent hidden state"
+    and .training.plant_configuration.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
+    and .evaluation_plant_configuration.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
     and .training.sample_count > 0
     and .training.data_preparation_and_history_feature_generation_seconds >= 0
     and .training.model_fit_seconds >= 0
@@ -389,6 +403,8 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .design.bootstrap_replicates == 10000
     and .design.seed_hex_equality_required == true
     and .design.scenario_order_equality_required == true
+    and .plant_configuration.training.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
+    and .plant_configuration.evaluation.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
     and (.model_summary.raw_state_ridge_mean_episode_rmse_m_s2 >= 0)
     and (.model_summary.compact_mlp_mean_episode_rmse_m_s2 >= 0)
     and (.model_summary.hdc_ltc_reservoir_mean_episode_rmse_m_s2 >= 0)
