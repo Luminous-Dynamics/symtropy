@@ -147,6 +147,47 @@ pub struct IlluminanceInterval {
     pub upper_lx: f64,
 }
 
+
+/// Declares what the supplied pointwise interval means. These categories are
+/// not interchangeable; record the exact interpretation in the run receipt.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntervalBasis {
+    DeclaredEngineeringBound,
+    ExpandedMeasurementUncertainty,
+    CalibratedPredictionInterval,
+    Unknown,
+}
+
+/// Provenance required before conservative bounds can support a rankable result.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IntervalEvidence {
+    pub basis: IntervalBasis,
+    /// Stable evidence record ID, measurement record ID, or calibration artifact ID.
+    pub source_id: String,
+    /// E.g. coverage factor and coverage level, or the explicitly scoped bound claim.
+    pub coverage_statement: Option<String>,
+}
+
+fn interval_evidence_problem(evidence: &IntervalEvidence) -> Option<&'static str> {
+    if evidence.basis == IntervalBasis::Unknown {
+        return Some("interval_basis_unknown");
+    }
+    if evidence.source_id.trim().is_empty() {
+        return Some("interval_evidence_source_missing");
+    }
+    match evidence.basis {
+        IntervalBasis::DeclaredEngineeringBound => None,
+        IntervalBasis::ExpandedMeasurementUncertainty
+        | IntervalBasis::CalibratedPredictionInterval => {
+            match evidence.coverage_statement.as_deref() {
+                Some(statement) if !statement.trim().is_empty() => None,
+                _ => Some("interval_coverage_statement_missing"),
+            }
+        }
+        IntervalBasis::Unknown => Some("interval_basis_unknown"),
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RobustGridSummary {
     pub lower_average_lx: f64,
@@ -475,6 +516,7 @@ pub struct RobustCandidateObservation {
     pub compliant_task_hours_lower_bound: f64,
     pub peak_wall_power_upper_bound_w: f64,
     pub illuminance_bounds_lx: Vec<IlluminanceInterval>,
+    pub interval_evidence: IntervalEvidence,
     pub gates: Vec<GateResult>,
 }
 
@@ -532,6 +574,16 @@ pub fn evaluate_robust(
         Err(error) => return invalid(error.as_str()),
     };
     let average_power_upper = candidate.energy_upper_bound_wh / candidate.observed_hours;
+    if let Some(reason) = interval_evidence_problem(&candidate.interval_evidence) {
+        return RobustEvaluation {
+            candidate_id: candidate.candidate_id.clone(),
+            status: EvaluationStatus::Unknown,
+            average_wall_power_upper_bound_w: Some(average_power_upper),
+            illuminance: Some(illuminance),
+            energy_upper_bound_wh_per_compliant_task_hour: None,
+            reason_codes: vec![reason.to_owned()],
+        };
+    }
     let mut reasons = Vec::new();
     let mut numeric_failure = false;
 
@@ -669,6 +721,11 @@ mod tests {
                 IlluminanceInterval { lower_lx: 510.0, upper_lx: 550.0 };
                 104
             ],
+            interval_evidence: IntervalEvidence {
+                basis: IntervalBasis::DeclaredEngineeringBound,
+                source_id: "synthetic-fixture-bounds-v0.1".to_owned(),
+                coverage_statement: None,
+            },
             gates: limits()
                 .required_gate_names
                 .iter()
@@ -713,6 +770,34 @@ mod tests {
             ),
             Err(GridError::InvalidSample)
         );
+    }
+
+    #[test]
+    fn robust_evaluation_refuses_unknown_interval_basis() {
+        let mut candidate = passing_robust_candidate();
+        candidate.interval_evidence = IntervalEvidence {
+            basis: IntervalBasis::Unknown,
+            source_id: "untrusted-placeholder".to_owned(),
+            coverage_statement: None,
+        };
+        let result = evaluate_robust(&candidate, &limits());
+        assert_eq!(result.status, EvaluationStatus::Unknown);
+        assert_eq!(result.energy_upper_bound_wh_per_compliant_task_hour, None);
+        assert_eq!(result.reason_codes, vec!["interval_basis_unknown"]);
+    }
+
+    #[test]
+    fn statistical_interval_requires_a_coverage_statement() {
+        let mut candidate = passing_robust_candidate();
+        candidate.interval_evidence = IntervalEvidence {
+            basis: IntervalBasis::CalibratedPredictionInterval,
+            source_id: "synthetic-calibration-record".to_owned(),
+            coverage_statement: None,
+        };
+        let result = evaluate_robust(&candidate, &limits());
+        assert_eq!(result.status, EvaluationStatus::Unknown);
+        assert_eq!(result.energy_upper_bound_wh_per_compliant_task_hour, None);
+        assert_eq!(result.reason_codes, vec!["interval_coverage_statement_missing"]);
     }
 
     #[test]
