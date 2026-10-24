@@ -26,6 +26,18 @@ Run its synthetic positive case and negative controls with:
 
 Important boundary: this is a receipt-consistency verifier, not an independent Radiance parser or photometric validation. It does not prove that the adapter correctly converts native solver output into the normalized lux grid; that parser must be pinned and independently tested in the Radiance adapter workstream. It also audits complete-grid receipts only; a malformed, partial, timed-out or absent-solver run remains unrankable and needs a separate failure-receipt contract. Passing this helper does not establish product compliance, optical accuracy, flicker safety or real-world energy savings.
 
+## Failed and incomplete run receipts
+
+`docs/research/lighting-failure-receipt.schema.json` defines a distinct failure receipt. It records why an attempt did not produce a valid complete-grid result without inventing illuminance summaries, energy observations, hashes for absent bytes, or a rankable score. Its `scoring.eligible` field is always false, `summary` and `power_observation` are null, and the service-energy metric is null.
+
+Examples cover a missing executable, a timed-out partial grid, malformed output, a digest discrepancy and an unknown required gate. These are **synthetic contract fixtures**, not logs from actual solver runs. Unavailable artifacts explicitly carry a reason rather than a placeholder digest. The digest-mismatch example uses intentionally different synthetic sentinels and must not be interpreted as a real artifact finding.
+
+Run the contract checks with:
+
+    bash tools/lighting-benchmark/tests/failure-receipt-contract.sh
+
+This test performs JSON-syntax and targeted fail-closed invariants, not a full general-purpose JSON Schema validation. The complete-grid v0.2 receipt auditor remains separate; this failure contract does not change solver output into optical evidence. Real runs must preserve actual bytes/digests and provenance, and a pinned adapter still needs independent parser tests.
+
 ## Run
 
 From the repository root:
