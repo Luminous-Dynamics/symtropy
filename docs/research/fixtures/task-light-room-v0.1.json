@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "0.1.0",
+  "case_id": "TASKLIGHT-FIXED-ROOM-001",
+  "status": "synthetic-only",
+  "application": "fixed_task_light",
+  "purpose": "Deterministic no-daylight fixture for validating illumination mapping, service constraints, energy accounting, optimizer comparability, and negative-control behavior before building/daylight or physical-product studies.",
+  "claim_boundary": "This case contains synthetic room/task data only. It is not a product test, a regulatory compliance definition, or evidence of measured savings.",
+  "coordinate_system": {
+    "origin": "southwest floor corner",
+    "x_axis": "room length, east",
+    "y_axis": "room width, north",
+    "z_axis": "height above finished floor",
+    "units": "metres"
+  },
+  "room": {
+    "length_m": 5.0,
+    "width_m": 4.0,
+    "height_m": 2.7,
+    "surface_reflectance_fraction": {
+      "ceiling": 0.8,
+      "walls_uniform": 0.5,
+      "floor": 0.2
+    },
+    "daylight_enabled": false,
+    "ambient_luminaires": []
+  },
+  "task_surface": {
+    "name": "desk_task_plane",
+    "type": "horizontal_work_plane",
+    "origin_xyz_m": [1.9, 1.65, 0.75],
+    "length_x_m": 1.2,
+    "width_y_m": 0.7,
+    "diffuse_reflectance_fraction": 0.4,
+    "measurement_grid": {
+      "spacing_m": 0.1,
+      "include_edges": true,
+      "expected_points": 104
+    }
+  },
+  "candidate_domain": {
+    "fixture_type": "desk_task_light",
+    "maximum_wall_power_w": 15.0,
+    "emitter_height_above_task_plane_min_m": 0.35,
+    "emitter_height_above_task_plane_max_m": 0.65,
+    "maximum_fixture_envelope_m": {
+      "x": 0.5,
+      "y": 0.5,
+      "z": 0.65
+    },
+    "permitted_design_variables": [
+      "emitter_position",
+      "emitter_orientation",
+      "emitter_channel_mix",
+      "optical_distribution",
+      "diffuser_geometry",
+      "reflector_geometry",
+      "driver_operating_point",
+      "dimming_policy"
+    ],
+    "input_data_rule": "Every optical, spectral and electrical property used by a scored run must have a source identifier and content hash. Missing properties are unknown, not estimated silently."
+  },
+  "service_targets": {
+    "units": "lux",
+    "average_illuminance_min_lx": 500,
+    "minimum_grid_illuminance_min_lx": 300,
+    "minimum_to_average_uniformity_min": 0.6,
+    "target_semantics": "Proposed engineering targets for this synthetic fixture only. Select and cite maintained-illuminance, uniformity, glare and color requirements separately for each real application.",
+    "hard_gate_policy": "A candidate that fails or has unknown status for a required gate cannot be ranked as service-compliant."
+  },
+  "energy_boundary": {
+    "meter_location": "AC input to complete luminaire including driver and integrated control electronics",
+    "include_driver_loss": true,
+    "include_control_and_sensor_power": true,
+    "include_standby_power_when_in_scope": true,
+    "power_limit_w": 15.0
+  },
+  "required_outputs": [
+    "illuminance_grid_lx",
+    "average_illuminance_lx",
+    "minimum_illuminance_lx",
+    "maximum_illuminance_lx",
+    "minimum_to_average_uniformity",
+    "wall_input_power_w",
+    "energy_per_compliant_task_hour_wh",
+    "hard_gate_statuses",
+    "solver_call_count",
+    "runtime_ms",
+    "input_and_output_hashes"
+  ],
+  "negative_controls": [
+    "missing_photometric_input",
+    "non_finite_or_negative_power",
+    "illumination_grid_shape_mismatch",
+    "candidate_exceeds_power_limit",
+    "candidate_below_service_target",
+    "unknown_color_or_flicker_gate_when_required"
+  ],
+  "determinism": {
+    "base_seed": 1337,
+    "same_inputs_same_reference_metrics": true,
+    "solver_version_and_settings_must_be_recorded": true
+  }
+}
