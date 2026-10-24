@@ -1,0 +1,53 @@
+name: Solar-Thermal Kernel
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "research/solar-thermal-kernel/**"
+      - ".github/workflows/solar-thermal-kernel.yml"
+  push:
+    branches: [ "feat/solar-thermal-kernel-v0-1" ]
+    paths:
+      - "research/solar-thermal-kernel/**"
+      - ".github/workflows/solar-thermal-kernel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: solar-thermal-kernel-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Kernel verification (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Run unit and negative-control tests
+        run: cargo test --manifest-path research/solar-thermal-kernel/Cargo.toml --all-targets
+
+      - name: Emit deterministic synthetic report
+        run: cargo run --manifest-path research/solar-thermal-kernel/Cargo.toml --example solar_thermal_receipt
+
+      - name: Independently audit emitted report
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo run --manifest-path research/solar-thermal-kernel/Cargo.toml --example solar_thermal_receipt | cargo run --manifest-path research/solar-thermal-kernel/Cargo.toml --example solar_thermal_audit
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path research/solar-thermal-kernel/Cargo.toml --all-targets -- -D warnings
