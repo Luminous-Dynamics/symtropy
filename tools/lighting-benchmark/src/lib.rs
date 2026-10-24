@@ -61,6 +61,7 @@ pub enum GridError {
     EmptyGrid,
     PointCountMismatch,
     InvalidSample,
+    InvalidInterval,
     NonFiniteAggregate,
 }
 
@@ -71,6 +72,7 @@ impl GridError {
             Self::EmptyGrid => "grid_empty",
             Self::PointCountMismatch => "grid_point_count_mismatch",
             Self::InvalidSample => "grid_sample_negative_or_non_finite",
+            Self::InvalidInterval => "grid_interval_invalid_or_inverted",
             Self::NonFiniteAggregate => "grid_aggregate_non_finite",
         }
     }
@@ -172,9 +174,15 @@ pub fn summarize_illuminance_bounds(
         !interval.lower_lx.is_finite()
             || !interval.upper_lx.is_finite()
             || interval.lower_lx < 0.0
-            || interval.upper_lx < interval.lower_lx
+            || interval.upper_lx < 0.0
     }) {
         return Err(GridError::InvalidSample);
+    }
+    if intervals
+        .iter()
+        .any(|interval| interval.upper_lx < interval.lower_lx)
+    {
+        return Err(GridError::InvalidInterval);
     }
 
     let mut lower_sum = 0.0_f64;
