@@ -437,6 +437,157 @@ pub fn audit_grouped_split_manifest(manifest: &Value) -> GroupedSplitAuditReport
     }
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct FalseFeasibleBoundReport {
+    pub status: String,
+    pub audit_kind: String,
+    pub benchmark_id: Option<String>,
+    pub evidence_class: Option<String>,
+    pub independent_negative_units: Option<u64>,
+    pub false_feasible_count: Option<u64>,
+    pub observed_false_feasible_rate: Option<f64>,
+    pub confidence_level: Option<f64>,
+    pub target_upper_bound: Option<f64>,
+    pub hoeffding_upper_bound: Option<f64>,
+    pub target_met: bool,
+    pub findings: Vec<String>,
+    pub claim_ceiling: String,
+}
+
+impl FalseFeasibleBoundReport {
+    pub fn exit_code(&self) -> i32 {
+        match self.status.as_str() {
+            "PASS" => 0,
+            "FAIL" => 2,
+            _ => 3,
+        }
+    }
+}
+
+/// Calculate a one-sided Hoeffding upper confidence bound for the observed
+/// false-feasible rate over caller-declared independent negative units.
+/// This is deliberately conservative and distribution-free; it cannot verify
+/// whether the units are truly independent, representative, or correctly labeled.
+pub fn audit_false_feasible_bound(summary: &Value) -> FalseFeasibleBoundReport {
+    let benchmark_id = object_string(summary, "benchmark_id").map(ToOwned::to_owned);
+    let evidence_class = nonempty_string(summary, "evidence_class");
+    let claim_ceiling = object_string(summary, "claim_ceiling")
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("Arithmetic only; independent sampling, label quality and representativeness are caller-declared, not independently verified.")
+        .to_string();
+    let mut findings = Vec::new();
+
+    if !feasibility_exact_object_keys(
+        summary,
+        &[
+            "benchmark_id", "evidence_class", "claim_ceiling",
+            "independent_negative_units", "false_feasible_count",
+            "confidence_level", "target_upper_bound", "independence_unit",
+            "independence_evidence_ref", "negative_label_evidence_ref",
+            "protocol_pre_registered", "test_set_frozen"
+        ],
+        &[
+            "benchmark_id", "evidence_class", "claim_ceiling",
+            "independent_negative_units", "false_feasible_count",
+            "confidence_level", "target_upper_bound", "independence_unit",
+            "independence_evidence_ref", "negative_label_evidence_ref",
+            "protocol_pre_registered", "test_set_frozen"
+        ],
+    ) {
+        findings.push("FALSE_FEASIBLE_ROOT_KEYS:missing or unknown fields".to_string());
+    }
+    if benchmark_id.as_deref().map_or(true, |value| !is_stable_slug(value)) {
+        findings.push("FALSE_FEASIBLE_BENCHMARK_ID:missing or invalid benchmark_id".to_string());
+    }
+    if evidence_class.is_none() {
+        findings.push("FALSE_FEASIBLE_EVIDENCE_CLASS:evidence_class must be a non-empty declared string".to_string());
+    }
+    if object_string(summary, "claim_ceiling").map_or(true, |value| value.trim().is_empty()) {
+        findings.push("FALSE_FEASIBLE_CLAIM_CEILING:claim ceiling must be non-empty".to_string());
+    }
+
+    let n = summary.get("independent_negative_units").and_then(Value::as_u64);
+    let x = summary.get("false_feasible_count").and_then(Value::as_u64);
+    let confidence = summary.get("confidence_level").and_then(Value::as_f64);
+    let target = summary.get("target_upper_bound").and_then(Value::as_f64);
+
+    if n.map_or(true, |value| value == 0) {
+        findings.push("FALSE_FEASIBLE_SAMPLE_SIZE:independent_negative_units must be a positive integer".to_string());
+    }
+    if let (Some(n), Some(x)) = (n, x) {
+        if x > n {
+            findings.push("FALSE_FEASIBLE_COUNT:false_feasible_count cannot exceed the negative-unit count".to_string());
+        }
+    } else {
+        findings.push("FALSE_FEASIBLE_COUNT:count fields must be non-negative integers".to_string());
+    }
+    if confidence.map_or(true, |value| !(value > 0.5 && value < 1.0)) {
+        findings.push("FALSE_FEASIBLE_CONFIDENCE:confidence_level must be greater than 0.5 and less than 1.0".to_string());
+    }
+    if target.map_or(true, |value| !(value > 0.0 && value < 1.0)) {
+        findings.push("FALSE_FEASIBLE_TARGET:target_upper_bound must be greater than 0 and less than 1".to_string());
+    }
+    if nonempty_string(summary, "independence_unit").is_none() {
+        findings.push("FALSE_FEASIBLE_INDEPENDENCE_UNIT:declare the independent negative sampling unit".to_string());
+    }
+    if nonempty_string(summary, "independence_evidence_ref").is_none() {
+        findings.push("FALSE_FEASIBLE_INDEPENDENCE_EVIDENCE:provide a reference for grouping/independence evidence".to_string());
+    }
+    if nonempty_string(summary, "negative_label_evidence_ref").is_none() {
+        findings.push("FALSE_FEASIBLE_LABEL_EVIDENCE:provide a reference for independent negative-label adjudication".to_string());
+    }
+    if summary.get("protocol_pre_registered").and_then(Value::as_bool) != Some(true) {
+        findings.push("FALSE_FEASIBLE_PROTOCOL_NOT_PREREGISTERED:protocol_pre_registered must be true".to_string());
+    }
+    if summary.get("test_set_frozen").and_then(Value::as_bool) != Some(true) {
+        findings.push("FALSE_FEASIBLE_TEST_NOT_FROZEN:test_set_frozen must be true".to_string());
+    }
+
+    let observed_rate = match (n, x) {
+        (Some(n), Some(x)) if n > 0 && x <= n => Some(x as f64 / n as f64),
+        _ => None,
+    };
+    let upper_bound = match (n, x, confidence, observed_rate) {
+        (Some(n), Some(x), Some(confidence), Some(rate))
+            if n > 0 && x <= n && confidence > 0.5 && confidence < 1.0 =>
+        {
+            let alpha = 1.0 - confidence;
+            let radius = ((1.0 / alpha).ln() / (2.0 * n as f64)).sqrt();
+            Some((rate + radius).min(1.0))
+        }
+        _ => None,
+    };
+    let target_met = match (upper_bound, target) {
+        (Some(upper), Some(target)) => upper <= target,
+        _ => false,
+    };
+    findings.sort();
+    findings.dedup();
+
+    let status = if !findings.is_empty() {
+        "FAIL"
+    } else if target_met {
+        "PASS"
+    } else {
+        "UNRESOLVED"
+    };
+    FalseFeasibleBoundReport {
+        status: status.to_string(),
+        audit_kind: "false_feasible_rate_bound".to_string(),
+        benchmark_id,
+        evidence_class,
+        independent_negative_units: n,
+        false_feasible_count: x,
+        observed_false_feasible_rate: observed_rate,
+        confidence_level: confidence,
+        target_upper_bound: target,
+        hoeffding_upper_bound: upper_bound,
+        target_met,
+        findings,
+        claim_ceiling,
+    }
+}
+
 fn object_string<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.as_object()?.get(key)?.as_str()
 }
