@@ -148,3 +148,16 @@ A hash proves byte identity, not source truth, physical validity, or an independ
 6. **Calibrated evaluation, then HIL:** only after a defensible model/data basis and review.
 
 The first implementation should target contract correctness and counterexample replay—not a sophisticated optimizer. That builds an inspectable, falsifiable foundation before adaptive search adds complexity.
+
+### Current bounded prototype
+
+The initial Rust CLI, `src/bin/resilience_boundary.rs`, analyzes a supplied set of already-evaluated cases and reports observed Pareto-minimal failures per gate and comparison group. It does not generate cases or replay a controller. Its fixture is intentionally synthetic, includes incomparable failures, and includes invalid/not-evaluated cases to exercise incomplete-report handling.
+
+From the repository root, run:
+
+```sh
+cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
+cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_boundary -- research/polar-infrastructure/benchmark/fixtures/toy-boundary-search.json
+```
+
+The report preserves axis direction, keeps different initial-state groups separate, and labels its scope as observed enumerated cases only—not a safety certificate or probability estimate. A gate with no observed breach is listed explicitly; this is not proof the gate cannot fail elsewhere. Invalid or unevaluated cases make the frontier incomplete. The exact-head workflow checks this CLI and its negative controls before these mechanics can be treated as verified software behavior.
