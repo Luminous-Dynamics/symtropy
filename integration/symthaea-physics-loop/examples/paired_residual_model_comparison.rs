@@ -1,4 +1,4 @@
-//! Paired, episode-level comparison across instantaneous, explicit-history and HDC/LTC models.
+//! Paired, episode-level comparison across instantaneous, explicit-history and persistent/stateless HDC/LTC models.
 //!
 //! Episode RMSEs—not per-timestep residuals—are the resampling units. The bootstrap is
 //! stratified within observed scenario families, conditioning on this smoke suite's family
@@ -245,6 +245,7 @@ fn family_summaries(
     hdc: &[EpisodeScore],
     mlp: &[EpisodeScore],
     history: &[EpisodeScore],
+    stateless_hdc: &[EpisodeScore],
 ) -> Vec<Value> {
     let groups = grouped_indices(ridge);
     groups.into_iter().map(|(family, indices)| {
@@ -252,6 +253,7 @@ fn family_summaries(
         let h = mean(indices.iter().map(|index| hdc[*index].rmse_m_s2));
         let m = mean(indices.iter().map(|index| mlp[*index].rmse_m_s2));
         let w = mean(indices.iter().map(|index| history[*index].rmse_m_s2));
+        let s = mean(indices.iter().map(|index| stateless_hdc[*index].rmse_m_s2));
         json!({
             "scenario_family": family,
             "episode_count": indices.len(),
@@ -259,12 +261,15 @@ fn family_summaries(
             "hdc_ltc_reservoir_mean_episode_rmse_m_s2": h,
             "compact_mlp_mean_episode_rmse_m_s2": m,
             "explicit_history_mlp_mean_episode_rmse_m_s2": w,
+            "stateless_hdc_ltc_mean_episode_rmse_m_s2": s,
             "hdc_minus_ridge_m_s2": h-r,
             "mlp_minus_ridge_m_s2": m-r,
             "history_minus_ridge_m_s2": w-r,
+            "stateless_hdc_minus_ridge_m_s2": s-r,
             "hdc_minus_mlp_m_s2": h-m,
             "hdc_minus_history_m_s2": h-w,
-            "history_minus_mlp_m_s2": w-m
+            "history_minus_mlp_m_s2": w-m,
+            "persistent_hdc_minus_stateless_hdc_m_s2": h-s
         })
     }).collect()
 }
@@ -324,7 +329,7 @@ fn main() {
             "bootstrap_replicates": BOOTSTRAP_REPLICATES,
             "confidence_level": CONFIDENCE_LEVEL,
             "bootstrap_seed_hex": format!("{:016x}", BOOTSTRAP_SEED),
-            "pair_seed_scheme": "bootstrap_seed XOR pair identifiers 1 through 6",
+            "pair_seed_scheme": "bootstrap_seed XOR pair identifiers 1 through 10",
             "bootstrap_unit": "episode",
             "stratification": "resample episodes with replacement within each observed scenario family",
             "seed_hex_equality_required": true,
@@ -344,7 +349,17 @@ fn main() {
             "hdc_ltc_reservoir_worst_episode_rmse_m_s2": hdc.iter().map(|episode| episode.rmse_m_s2).max_by(f64::total_cmp).unwrap(),
             "explicit_history_mlp_mean_episode_rmse_m_s2": mean(history.iter().map(|episode| episode.rmse_m_s2)),
             "explicit_history_mlp_cvar90_episode_rmse_m_s2": cvar90(&history),
-            "explicit_history_mlp_worst_episode_rmse_m_s2": history.iter().map(|episode| episode.rmse_m_s2).max_by(f64::total_cmp).unwrap()
+            "explicit_history_mlp_worst_episode_rmse_m_s2": history.iter().map(|episode| episode.rmse_m_s2).max_by(f64::total_cmp).unwrap(),
+            "stateless_hdc_ltc_mean_episode_rmse_m_s2": mean(stateless_hdc.iter().map(|episode| episode.rmse_m_s2)),
+            "stateless_hdc_ltc_cvar90_episode_rmse_m_s2": cvar90(&stateless_hdc),
+            "stateless_hdc_ltc_worst_episode_rmse_m_s2": stateless_hdc.iter().map(|episode| episode.rmse_m_s2).max_by(f64::total_cmp).unwrap()
+        },
+        "state_memory_ablation": {
+            "policy": "reset LTC recurrent state before every step while preserving encoder derivative history",
+            "question": "Does persistent LTC recurrent state help beyond the encoder's temporal derivative features?",
+            "persistent_hdc_mean_episode_rmse_m_s2": mean(hdc.iter().map(|episode| episode.rmse_m_s2)),
+            "reset_each_step_hdc_mean_episode_rmse_m_s2": mean(stateless_hdc.iter().map(|episode| episode.rmse_m_s2)),
+            "persistent_minus_reset_each_step_m_s2": mean(hdc.iter().zip(stateless_hdc.iter()).map(|(persistent, stateless)| persistent.rmse_m_s2-stateless.rmse_m_s2))
         },
         "paired_comparisons": [
             paired_summary("hdc_ltc_reservoir", "raw_state_ridge", &hdc, &ridge, 0x01),
@@ -352,9 +367,13 @@ fn main() {
             paired_summary("hdc_ltc_reservoir", "compact_mlp", &hdc, &mlp, 0x03),
             paired_summary("explicit_history_mlp", "raw_state_ridge", &history, &ridge, 0x04),
             paired_summary("explicit_history_mlp", "compact_mlp", &history, &mlp, 0x05),
-            paired_summary("hdc_ltc_reservoir", "explicit_history_mlp", &hdc, &history, 0x06)
+            paired_summary("hdc_ltc_reservoir", "explicit_history_mlp", &hdc, &history, 0x06),
+            paired_summary("stateless_hdc_ltc", "raw_state_ridge", &stateless_hdc, &ridge, 0x07),
+            paired_summary("stateless_hdc_ltc", "compact_mlp", &stateless_hdc, &mlp, 0x08),
+            paired_summary("stateless_hdc_ltc", "explicit_history_mlp", &stateless_hdc, &history, 0x09),
+            paired_summary("hdc_ltc_reservoir", "stateless_hdc_ltc", &hdc, &stateless_hdc, 0x0a)
         ],
-        "family_summary": family_summaries(&ridge, &hdc, &mlp, &history),
+        "family_summary": family_summaries(&ridge, &hdc, &mlp, &history, &stateless_hdc),
         "per_episode": (0..episodes_requested).map(|index| json!({
             "episode_index": index,
             "episode_seed_hex": ridge[index].seed_hex,
@@ -363,7 +382,8 @@ fn main() {
             "raw_state_ridge_rmse_m_s2": ridge[index].rmse_m_s2,
             "compact_mlp_rmse_m_s2": mlp[index].rmse_m_s2,
             "explicit_history_mlp_rmse_m_s2": history[index].rmse_m_s2,
-            "hdc_ltc_reservoir_rmse_m_s2": hdc[index].rmse_m_s2
+            "hdc_ltc_reservoir_rmse_m_s2": hdc[index].rmse_m_s2,
+            "stateless_hdc_ltc_rmse_m_s2": stateless_hdc[index].rmse_m_s2
         })).collect::<Vec<_>>()
     }));
 }
