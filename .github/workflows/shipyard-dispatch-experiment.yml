@@ -59,6 +59,10 @@ jobs:
       - name: Lint full dependency graph with warnings denied
         run: cargo clippy --locked --offline --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml --all-targets -- -D warnings
 
+      - name: Validate published aggregate fixture is not mislabeled as reproduced
+        run: |
+          jq -e '.record_contract_version == "shipyard-published-baseline-anchor-v0" and .evidence_status == "published_aggregate_reference_only" and .reproduced_by_this_repository == false and .raw_per_run_outputs_available == false and .repetitions_per_case_reported == 15 and (.cases | length) == 6 and .cases[] | select(.case_id == "Case9_50_4") | .values.PA.Aur == 0.775 and .values.PA.Act_s == 308.0 and .values.PA.Vt_min == 2339' tools/shipyard-dispatch-benchmark/fixtures/published-case9-50-anchor-v0.json
+
       - name: Generate paired corpus and verify all evidence digests
         shell: bash
         run: |
