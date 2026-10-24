@@ -8,6 +8,7 @@ use serde_json::json;
 use symthaea_multirotor::{pid_baseline, PdGains, PidState, PhysicsSimulator};
 use symtropy_real_symthaea_physics_loop::{
     scenario_matrix::{scenarios_for_split, ScenarioSplit},
+    plant_config::PlantConfiguration,
     symtropy_flight::SymtropyFlightSimulator,
     transition_residual::{LinearTransitionResidual, NominalLinearDynamics},
 };
@@ -105,7 +106,11 @@ fn main() {
         linear_drag_n_s_per_m: LINEAR_DRAG_N_S_PER_M,
     };
     let gains = PdGains::default();
-    let mut simulator = SymtropyFlightSimulator::new();
+    let training_plant = PlantConfiguration::from_env("STFR_DATASET_ACTUATOR_LAG_TAU_S")
+        .expect("training plant configuration must be valid");
+    let mut simulator = training_plant
+        .create_simulator()
+        .expect("training plant simulator must be valid");
     let mut samples = Vec::with_capacity(episodes * steps_per_episode);
     let mut residual_norm_sum = 0.0_f64;
     let mut residual_norm_max = 0.0_f64;
@@ -194,6 +199,7 @@ fn main() {
         "benchmark_id": "symtropy-causal-transition-residual-dataset-v0.1",
         "data_schema_version": "causal-transition-residual-dataset-v0.1",
         "residual_target_algorithm_version": "observed-minus-nominal-world-acceleration-v0.1",
+        "plant_configuration": training_plant.to_json(),
         "claim_ceiling": "training_split_transition_dataset_and_target_plumbing_only",
         "source_receipt": {
             "symtropy_git_sha": std::env::var("STFR_SYMTROPY_SHA").unwrap_or_else(|_| "unset".to_owned()),
@@ -206,6 +212,7 @@ fn main() {
             "steps_per_episode": steps_per_episode,
             "sample_count": samples.len(),
             "simulator": "Symtropy PhysicsWorld simplified spherical-body backend",
+            "plant_configuration": training_plant.to_json(),
             "controller": "PdGains::default with pid_baseline; data-collection policy only",
             "dt_s": DT_S,
             "training_scenario_ids": scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
