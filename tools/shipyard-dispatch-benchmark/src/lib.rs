@@ -656,8 +656,12 @@ fn build_comparison_rows(evaluations: &[EpisodeEvaluation]) -> Vec<ComparisonRow
                     let reference = result_for(&entry.results, DispatchRule::EarliestDueDate);
                     let candidate_ok = abstract_feasible(candidate);
                     let reference_ok = abstract_feasible(reference);
-                    candidate_feasible += usize::from(candidate_ok);
-                    reference_feasible += usize::from(reference_ok);
+                    if candidate_ok {
+                        candidate_feasible += 1;
+                    }
+                    if reference_ok {
+                        reference_feasible += 1;
+                    }
                     match (candidate_ok, reference_ok) {
                         (true, true) => both_feasible += 1,
                         (true, false) => candidate_only += 1,
