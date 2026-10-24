@@ -174,7 +174,7 @@ The companion Rust CLI now exposes `audit-decision-value <pool.json>` in `tools/
 
 The fixture's known-answer target is pre-measurement regret 5, informative in-budget measurement `measure-regime`, post-measurement regret 0, and gross regret reduction 5 in expressly synthetic units. The uninformative measurement has zero regret reduction and is dominated; an informative but over-budget measurement is excluded. Six unit tests cover the known answer, missing cost, producer leakage declaration, frozen feasibility-control bypass, uninformative observation and incomplete observation census. The focused workflow now runs the CLI and asserts the known-answer fields.
 
-**Verification update (2026-10-24):** the prior 45-test suite passed at `f8caf69df8e2fd4c73785b5a6d6fa5358898a1e6` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40032724359)). After fixing the stale protocol-title grep and aligning the feasibility-gated fixture with the canonical benchmark ID, the focused workflow passed **all 54 Rust tests and all workflow steps** at `bad4cfae5adb926d87db6fb88f3b376591f9aca9` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40040804830)). Subsequent branch commits update explanatory validation-status documentation only; the latest exact-head rerun is the remaining qualification step. The synthetic fixtures are contract/control checks, not selector-performance results. The `producer_access` fields are declarations and do not prove runtime process isolation. No physical value-of-information or manufacturing performance has been measured.
+**Verification update (2026-10-24):** the 54-test implementation, including the feasibility-gated adaptive campaign, passed its focused workflow at `784d02cc0be13519e467da455b3236cad779643a` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40041754485)). The branch now adds an executable grouped-split leakage auditor and eight tests; current head `73c8a3302295e51ed7fec28bda7f8580642e4c58` has focused audit and general CI queued. The full **62-test** suite is not yet qualified at that head. The synthetic fixtures are contract/control checks, not selector-performance results. The `producer_access` fields are declarations and do not prove runtime process isolation. No physical value-of-information or manufacturing performance has been measured.
 
 
 ## 12. Adaptive multi-step campaign oracle
@@ -294,6 +294,12 @@ The next real-data lane should record measurement attempts, calibration dates, i
 
 A fixed `primary → secondary` sequence also reaches regret 0 in this synthetic pool, but pays the full cost 4 / duration 20 on every world whether the primary observation already resolves the route or not. The adaptive policy has the same worst-case cap and stops at cost 1 / duration 5 on `signal-a`; only the mixed `signal-b` and `invalid` branches incur the follow-up. This is a **branch-level resource result**, not an expected-cost saving: the synthetic scenario rows have no justified probability weights, so do not report a mean or projected plant savings from the six rows. The Rust regression test checks the early-stop leaf as well as terminal regret.
 
+
+
+
+### Executable split-integrity preflight
+
+The new `audit-grouped-split` CLI checks an assignment-only manifest before fitting a model. It verifies that each declared composition-family or experimental-campaign group is confined to one of train/validation/test, that every partition is present, and that stable record IDs and group keys are complete. It intentionally forbids outcome labels and predictor features in the assignment manifest itself. This is a preflight check—not proof that the separate model pipeline has no leakage through features, embeddings, preprocessing, tuning, or temporal proxies. The exact-head implementation defines eight grouped-split tests; the current 62-test suite awaits the current-head focused run.
 
 ## 15. Feasibility-gated adaptive campaign — screen before spending
 
