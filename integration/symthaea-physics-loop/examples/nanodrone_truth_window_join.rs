@@ -196,6 +196,30 @@ fn prediction_key(field: &str, horizon: usize) -> String {
     format!("{field}_pred_h{horizon}")
 }
 
+fn input_state_key(field: &str) -> String {
+    format!("x0_{field}")
+}
+
+fn motor_sequence_key(field: &str, input_step: usize) -> String {
+    format!("{field}_input_t{input_step}")
+}
+
+fn input_state_value(row: &HashMap<String, f64>, field: &str, mode: OrientationMode) -> f64 {
+    match field {
+        "rx" | "ry" | "rz" => {
+            let rotation = quaternion_to_rotvec([row["qx"], row["qy"], row["qz"], row["qw"]]);
+            match field {
+                "rx" => rotation[0],
+                "ry" => rotation[1],
+                _ => rotation[2],
+            }
+        }
+        "qx" | "qy" | "qz" | "qw" => row[field],
+        _ if mode == OrientationMode::Quaternion => row[field],
+        _ => row[field],
+    }
+}
+
 fn detect_prediction_mode(indices: &HashMap<String, usize>, label: &str) -> Result<OrientationMode, io::Error> {
     let has_quaternion = QUATERNION_FIELDS.iter().all(|field| {
         indices.contains_key(*field) && (1..=HORIZON).all(|h| indices.contains_key(&prediction_key(field, h)))
@@ -487,7 +511,27 @@ fn join_files_internal(
             output_headers.push_field(field);
         }
     }
-    let existing = output_headers.iter().map(str::to_owned).collect::<HashSet<_>>();
+
+    let mut conditioning_columns = vec!["x0_t".to_owned()];
+    conditioning_columns.extend(
+        fields_for_mode(mode).into_iter().map(input_state_key),
+    );
+    conditioning_columns.extend(
+        MOTOR_INPUT_FIELDS.iter().flat_map(|field|
+            (0..HORIZON).map(move |step| motor_sequence_key(field, step))
+        ),
+    );
+
+    let mut existing = output_headers.iter().map(str::to_owned).collect::<HashSet<_>>();
+    for column in &conditioning_columns {
+        if existing.contains(column) {
+            return Err(invalid_input(format!(
+                "prediction table already contains conditioning column '{column}'; refusing to overwrite or mix provenance"
+            )).into());
+        }
+        output_headers.push_field(column);
+        existing.insert(column.clone());
+    }
     for target in &target_columns {
         if existing.contains(target) {
             return Err(invalid_input(format!("prediction table already contains target column '{target}'")).into());
@@ -512,6 +556,21 @@ fn join_files_internal(
                     out.push_field(&format!("{:.17}", raw.rows[window_index][field]));
                 }
             }
+
+            // Match the real model contract: x0 is raw state i and u_seq contains
+            // the 50 motor rows i..i+49, while target h is raw state i+h.
+            let initial_state = &raw.rows[window_index];
+            out.push_field(&format!("{:.17}", initial_state["t"]));
+            for field in fields_for_mode(mode) {
+                out.push_field(&format!("{:.17}", input_state_value(initial_state, field, mode)));
+            }
+            for field in MOTOR_INPUT_FIELDS {
+                for input_step in 0..HORIZON {
+                    let value = raw.rows[window_index + input_step][field];
+                    out.push_field(&format!("{value:.17}"));
+                }
+            }
+
             for horizon in 1..=HORIZON {
                 // The upstream QuadDataset window i predicts x_(i+1) ... x_(i+H).
                 // Therefore horizon h maps to raw trajectory row i+h.
@@ -586,8 +645,12 @@ fn join_files_internal(
             "prediction_state_units": "caller_asserted_denormalized_SI_units",
             "orientation_representation": mode.label(),
             "motor_input_columns_present": true,
-            "motor_input_alignment": "m1_rads through m4_rads are checked against or attached from raw row i for prediction window i",
-            "raw_state_to_prediction_row_alignment": "prediction row i is window starting at raw row i; motor inputs come from raw row i; true state at horizon h is raw row i+h",
+            "conditioning_state_columns": fields_for_mode(mode).into_iter().map(input_state_key).collect::<Vec<_>>(),
+            "motor_input_sequence_columns": MOTOR_INPUT_FIELDS.iter()
+                .flat_map(|field| (0..HORIZON).map(move |step| motor_sequence_key(field, step)))
+                .collect::<Vec<_>>(),
+            "motor_input_alignment": "the complete four-channel motor input sequence is attached from raw rows i..i+49; pre-existing one-step motor columns, when supplied, are verified against raw row i",
+            "raw_state_to_prediction_row_alignment": "prediction row i is window starting at raw row i; x0 is raw state i; motor inputs are raw rows i..i+49; true state at horizon h is raw row i+h",
             "all_available_prediction_windows_scored_at_each_horizon": true,
             "target_columns_written": target_columns.len(),
             "column_name_mapping": "append {state}_true_h{horizon} columns; preserve all prediction columns and rows"
