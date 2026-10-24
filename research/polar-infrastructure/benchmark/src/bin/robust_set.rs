@@ -1,4 +1,4 @@
-use polar_resilience_score::{active_service_ids, score, service_contracts_match, PolicyScore, ScoreInput};
+use polar_resilience_score::{active_service_ids, score, service_contracts_match, PolicyScore, ScoreInput, ServiceContract};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -52,7 +52,40 @@ struct RobustPolicyScore {
     maximum_fuel_intensity_across_scenarios: Option<f64>,
     /// None means the frontier is incomplete because some fuel-intensity data is missing.
     pareto_nondominated: Option<bool>,
+    service_results: Vec<RobustServiceScore>,
     scenario_outcomes: Vec<ScenarioOutcome>,
+}
+
+#[derive(Debug, Serialize)]
+struct RobustServiceScore {
+    service_id: String,
+    rate_unit: String,
+    integrated_unit: String,
+    active_in_all_scenarios: bool,
+    service_floor_breach_scenario_count: usize,
+    passed_all_declared_service_floors: bool,
+    worst_case_service_shortfall: Option<f64>,
+    unweighted_mean_service_shortfall_across_stress_suite: Option<f64>,
+    worst_floor_breach_service_hours: f64,
+    maximum_floor_breach_episode_count_across_scenarios: usize,
+    worst_case_longest_consecutive_floor_breach_hours: f64,
+    earliest_observed_time_to_first_floor_breach_hours: Option<f64>,
+    scenario_outcomes: Vec<ScenarioServiceOutcome>,
+}
+
+#[derive(Debug, Serialize)]
+struct ScenarioServiceOutcome {
+    scenario_id: String,
+    scenario_duration_hours: f64,
+    service_fraction: Option<f64>,
+    service_shortfall: Option<f64>,
+    floor_breach: bool,
+    demanded_unit_hours: f64,
+    delivered_unit_hours: f64,
+    floor_breach_service_hours: f64,
+    floor_breach_episode_count: usize,
+    longest_consecutive_floor_breach_hours: f64,
+    time_to_first_floor_breach_hours: Option<f64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -116,6 +149,98 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
     no_worse && strictly_better
 }
 
+
+/// Summarize each declared service separately across a probability-free stress set.
+/// Inactive services remain explicit with null shortfall fields rather than being counted as zero.
+fn aggregate_service_results(
+    service_contracts: &[ServiceContract],
+    policy_id: &str,
+    scored_scenarios: &[(String, f64, Vec<PolicyScore>)],
+) -> Result<Vec<RobustServiceScore>, String> {
+    let mut results = Vec::with_capacity(service_contracts.len());
+
+    for contract in service_contracts {
+        let mut outcomes = Vec::with_capacity(scored_scenarios.len());
+        for (scenario_id, scenario_duration_hours, policy_scores) in scored_scenarios {
+            let policy = policy_scores.iter().find(|score| score.policy_id == policy_id)
+                .ok_or_else(|| format!("policy {policy_id} missing from scenario {scenario_id}"))?;
+            let service = policy.services.iter().find(|service| service.service_id == contract.id)
+                .ok_or_else(|| format!("service {} missing for policy {policy_id} in scenario {scenario_id}", contract.id))?;
+            if service.rate_unit != contract.rate_unit || service.integrated_unit != contract.integrated_unit {
+                return Err(format!("service {} changes declared units for policy {policy_id}", contract.id));
+            }
+
+            outcomes.push(ScenarioServiceOutcome {
+                scenario_id: scenario_id.clone(),
+                scenario_duration_hours: *scenario_duration_hours,
+                service_fraction: service.service_fraction,
+                service_shortfall: service.service_fraction.map(|fraction| (1.0 - fraction).clamp(0.0, 1.0)),
+                floor_breach: service.floor_breach_episode_count > 0,
+                demanded_unit_hours: service.demanded_unit_hours,
+                delivered_unit_hours: service.delivered_unit_hours,
+                floor_breach_service_hours: service.floor_breach_service_hours,
+                floor_breach_episode_count: service.floor_breach_episode_count,
+                longest_consecutive_floor_breach_hours: service.longest_consecutive_floor_breach_hours,
+                time_to_first_floor_breach_hours: service.time_to_first_floor_breach_hours,
+            });
+        }
+
+        let active = outcomes.iter().all(|outcome| outcome.service_fraction.is_some());
+        if !active && outcomes.iter().any(|outcome| outcome.service_fraction.is_some()) {
+            return Err(format!("service {} changes activity across scenarios", contract.id));
+        }
+        let breach_scenario_count = outcomes.iter().filter(|outcome| outcome.floor_breach).count();
+        let worst_case_shortfall = if active {
+            outcomes.iter().filter_map(|outcome| outcome.service_shortfall).reduce(f64::max)
+        } else {
+            None
+        };
+        let mean_shortfall = if active {
+            Some(outcomes.iter().filter_map(|outcome| outcome.service_shortfall).sum::<f64>() / outcomes.len() as f64)
+        } else {
+            None
+        };
+        let worst_floor_breach_service_hours = outcomes.iter()
+            .map(|outcome| outcome.floor_breach_service_hours).fold(0.0_f64, f64::max);
+        let maximum_floor_breach_episode_count_across_scenarios = outcomes.iter()
+            .map(|outcome| outcome.floor_breach_episode_count).max().unwrap_or(0);
+        let worst_case_longest_consecutive_floor_breach_hours = outcomes.iter()
+            .map(|outcome| outcome.longest_consecutive_floor_breach_hours).fold(0.0_f64, f64::max);
+        let earliest_observed_time_to_first_floor_breach_hours = outcomes.iter()
+            .filter_map(|outcome| outcome.time_to_first_floor_breach_hours).reduce(f64::min);
+
+        for value in [
+            worst_floor_breach_service_hours,
+            worst_case_longest_consecutive_floor_breach_hours,
+            worst_case_shortfall.unwrap_or(0.0),
+            mean_shortfall.unwrap_or(0.0),
+            earliest_observed_time_to_first_floor_breach_hours.unwrap_or(0.0),
+        ] {
+            if !value.is_finite() {
+                return Err(format!("service {} for policy {policy_id} produced non-finite robust-set metrics", contract.id));
+            }
+        }
+
+        results.push(RobustServiceScore {
+            service_id: contract.id.clone(),
+            rate_unit: contract.rate_unit.clone(),
+            integrated_unit: contract.integrated_unit.clone(),
+            active_in_all_scenarios: active,
+            service_floor_breach_scenario_count: breach_scenario_count,
+            passed_all_declared_service_floors: breach_scenario_count == 0,
+            worst_case_service_shortfall: worst_case_shortfall,
+            unweighted_mean_service_shortfall_across_stress_suite: mean_shortfall,
+            worst_floor_breach_service_hours,
+            maximum_floor_breach_episode_count_across_scenarios,
+            worst_case_longest_consecutive_floor_breach_hours,
+            earliest_observed_time_to_first_floor_breach_hours,
+            scenario_outcomes: outcomes,
+        });
+    }
+
+    Ok(results)
+}
+
 fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
     if input.schema_version != "0.1.0"
         || input.artifact_kind != "polar-resilience-robust-set-input"
@@ -170,6 +295,9 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
     }
 
     let families = policy_families.unwrap_or_default();
+    let service_contracts = baseline
+        .map(|input| input.episode.service_contracts.as_slice())
+        .ok_or_else(|| "at least one enumerated scenario is required".to_string())?;
     let mut results = Vec::with_capacity(families.len());
 
     for (policy_id, (method_family, fuel_unit)) in families {
@@ -213,6 +341,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
             }
         }
 
+        let service_results = aggregate_service_results(service_contracts, &policy_id, &scored)?;
         let scenario_outcomes = observations.iter().map(|o| ScenarioOutcome {
             scenario_id: o.scenario_id.clone(),
             scenario_duration_hours: o.scenario_duration_hours,
@@ -241,6 +370,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
             earliest_observed_time_to_first_system_floor_breach_hours,
             maximum_fuel_intensity_across_scenarios: maximum_fuel_intensity,
             pareto_nondominated: None,
+            service_results,
             scenario_outcomes,
         });
     }
