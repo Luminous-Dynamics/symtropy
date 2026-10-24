@@ -127,7 +127,7 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
     ) else {
         return false;
     };
-    let av = [
+    let mut av = vec![
         a.service_floor_breach_scenario_count as f64,
         a.worst_case_service_shortfall,
         a.worst_floor_breach_service_hours,
@@ -135,7 +135,7 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
         a.worst_case_longest_consecutive_system_floor_breach_hours,
         af,
     ];
-    let bv = [
+    let mut bv = vec![
         b.service_floor_breach_scenario_count as f64,
         b.worst_case_service_shortfall,
         b.worst_floor_breach_service_hours,
@@ -143,6 +143,46 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
         b.worst_case_longest_consecutive_system_floor_breach_hours,
         bf,
     ];
+
+    // A system-wide average must not erase a per-service regression. For each
+    // active service, compare breach-scenario count, worst shortfall, breach
+    // service-hours, maximum breach-window count, and longest contiguous breach.
+    if a.service_results.len() != b.service_results.len() {
+        return false;
+    }
+    for a_service in &a.service_results {
+        let Some(b_service) = b.service_results.iter()
+            .find(|service| service.service_id == a_service.service_id) else {
+            return false;
+        };
+        if a_service.active_in_all_scenarios != b_service.active_in_all_scenarios {
+            return false;
+        }
+        if !a_service.active_in_all_scenarios {
+            continue;
+        }
+        let (Some(a_shortfall), Some(b_shortfall)) = (
+            a_service.worst_case_service_shortfall,
+            b_service.worst_case_service_shortfall,
+        ) else {
+            return false;
+        };
+        av.extend([
+            a_service.service_floor_breach_scenario_count as f64,
+            a_shortfall,
+            a_service.worst_floor_breach_service_hours,
+            a_service.maximum_floor_breach_episode_count_across_scenarios as f64,
+            a_service.worst_case_longest_consecutive_floor_breach_hours,
+        ]);
+        bv.extend([
+            b_service.service_floor_breach_scenario_count as f64,
+            b_shortfall,
+            b_service.worst_floor_breach_service_hours,
+            b_service.maximum_floor_breach_episode_count_across_scenarios as f64,
+            b_service.worst_case_longest_consecutive_floor_breach_hours,
+        ]);
+    }
+
     let eps = 1e-12;
     let no_worse = (0..av.len()).all(|i| av[i] <= bv[i] + eps);
     let strictly_better = (0..av.len()).any(|i| av[i] + eps < bv[i]);
