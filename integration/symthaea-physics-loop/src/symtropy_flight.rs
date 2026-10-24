@@ -334,6 +334,23 @@ mod tests {
     }
 
     #[test]
+    fn overflowing_accumulated_force_does_not_mutate_actuator_filter_or_plant() {
+        let mut sim = SymtropyFlightSimulator::new();
+        sim.set_actuator_lag_time_constant_s(Some(0.020))
+            .expect("valid lag time constant");
+        sim.reset(0.1);
+        let before_state = sim.state().clone();
+        let before_filter = sim.actuator_state;
+        sim.apply_external_force([f64::MAX, 0.0, 0.0]);
+        sim.apply_external_force([f64::MAX, 0.0, 0.0]);
+        sim.step(&QuadrotorCommand::zero(), 1.0 / 500.0);
+        assert_eq!(sim.state().position, before_state.position);
+        assert_eq!(sim.state().linear_velocity, before_state.linear_velocity);
+        assert_eq!(sim.actuator_state, before_filter);
+        assert_eq!(sim.invalid_input_count(), 1);
+    }
+
+    #[test]
     fn actuator_lag_is_observed_as_residual_against_direct_actuation_nominal() {
         use crate::transition_residual::{LinearTransitionResidual, NominalLinearDynamics};
 
