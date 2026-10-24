@@ -14,17 +14,18 @@ This isolated, dependency-free Rust crate implements a conservative reference ev
 - Emits energy per compliant task-hour only for a compliant, positive-duration observation.
 - Provides a small Pareto-dominance helper for already normalized minimization vectors.
 - Includes a deterministic experiment selector that ranks externally supplied expected decision-loss reduction against cost, while rejecting malformed estimates and excluding unsafe or over-budget options. It does not infer or calibrate value-of-information estimates itself.
-- Includes a deterministic synthetic-only CLI demonstration and 23 unit tests across the evaluator and experiment-selector modules.
+- Includes a deterministic synthetic-only evaluator CLI, a 27-case synthetic stress matrix spanning task-plane optics, adaptive control and off-grid resilience, family-level development/held-out isolation checks, and a 28-test suite covering the evaluator, robust interval logic, selector and stress-corpus contract.
 
 ## Run
 
 From the repository root:
 
     cargo test --manifest-path tools/lighting-benchmark/Cargo.toml --locked
-    cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked
+    cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-benchmark-demo
+    cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-stress-matrix
 
 ## Evidence boundary
 
 The example data are hand-authored synthetic fixtures. Passing tests establish only the evaluator's local contract. They do not validate Radiance outputs, a physical fixture, spectra, glare, flicker, temperature, product safety, annual energy, or superiority over industry products.
 
-A future adapter must parse and validate the versioned case JSON, pin solver/tool identities, preserve raw results, and pass candidates through an independent evaluator. No missing or unsupported evidence may be imputed as a pass.
+The stress matrix is a fixed set of synthetic interventions, not a calibrated distribution or a claim about the frequency/severity of real faults. It deliberately keeps held-out scenario families separate from development families within each tier. A future adapter must parse and validate the versioned case JSON, pin solver/tool identities, preserve raw results, and pass candidates through an independent evaluator. No missing or unsupported evidence may be imputed as a pass.
