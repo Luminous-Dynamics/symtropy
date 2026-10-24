@@ -2893,6 +2893,17 @@ mod grouped_split_manifest_tests {
     }
 
     #[test]
+    fn non_string_grouping_field_is_rejected() {
+        let mut value = manifest();
+        value["required_group_fields"][1] = json!(7);
+        let report = audit_grouped_split_manifest(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("SPLIT_GROUP_FIELDS:index 1 is not a string")
+        }));
+    }
+
+    #[test]
     fn every_declared_split_must_have_records() {
         let mut value = manifest();
         value["records"] = json!([
