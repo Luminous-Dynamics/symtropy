@@ -142,6 +142,7 @@ jobs:
               reports/score-report.json \
               reports/ensemble-report.json \
               reports/robust-set-report.json \
+              TESTED_COMMIT \
               > SHA256SUMS
             jq -n \
               --arg tested_commit "$tested_commit" \
@@ -162,7 +163,8 @@ jobs:
                 workflow_run_id: $workflow_run_id,
                 workflow_attempt: $workflow_attempt,
                 workflow_event: $event,
-                input_schema_version: "0.1.0",
+                tested_commit_path: "TESTED_COMMIT",
+                input_schema_versions: { score: "0.1.0", ensemble: "0.1.0", robust_set: "0.1.0" },
                 report_schema_versions: { score: "0.2.0", ensemble: "0.3.0", robust_set: "0.3.0" },
                 runner: { os: $runner_os, arch: $runner_arch, rustc: $rustc_version, cargo: $cargo_version },
                 input_paths: [
