@@ -277,7 +277,7 @@ fn evaluate_policy(
             if prefix.time_index != time_index {
                 return Err(invalid(format!("prefix {prefix_id} time index disagrees with trace step")));
             }
-            if prefix.information_set_id != information_set_id {
+            if prefix.information_set_id.as_str() != information_set_id.as_str() {
                 return Err(invalid(format!("forged information-set ID {information_set_id} for observable prefix {prefix_id}")));
             }
 
@@ -300,7 +300,7 @@ fn evaluate_policy(
 
             let entry = info_by_prefix.entry(prefix.signature.clone())
                 .or_insert((time_index, information_set_id.clone()));
-            if entry.0 != time_index || entry.1 != information_set_id {
+            if entry.0 != time_index || entry.1.as_str() != information_set_id.as_str() {
                 return Err(invalid("equivalent observable prefixes disagree on time or information set"));
             }
             actions_by_prefix.entry(prefix.signature.clone())
@@ -310,12 +310,12 @@ fn evaluate_policy(
                 .insert(scenario_id.clone());
             total_steps += 1;
         }
-        if seen_times != *expected_time_indices {
+        if &seen_times != expected_time_indices {
             return Err(invalid(format!("policy {policy_id}/{scenario_id} does not cover each registered time exactly once")));
         }
     }
 
-    if seen_scenarios != *expected_scenario_ids {
+    if &seen_scenarios != expected_scenario_ids {
         return Err(invalid(format!("policy {policy_id} is missing registered scenarios")));
     }
 
@@ -383,7 +383,7 @@ fn check_fixture(fixture: &Value, source_digest: String) -> Result<GateReport, B
     }
     let expected_architecture_digest = required_str(model, "architecture_sha256")?;
     let computed_architecture_digest = sha256_hex(&serde_json::to_vec(architecture_manifest)?);
-    if expected_architecture_digest != computed_architecture_digest {
+    if expected_architecture_digest != computed_architecture_digest.as_str() {
         return Err(invalid("architecture manifest SHA-256 mismatch"));
     }
 
