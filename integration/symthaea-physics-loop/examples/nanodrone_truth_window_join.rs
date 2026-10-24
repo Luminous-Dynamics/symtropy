@@ -255,17 +255,23 @@ fn load_raw(path: &Path) -> Result<RawTrajectory, Box<dyn Error>> {
     Ok(RawTrajectory { rows, sha256: digest, filename })
 }
 
-fn join_files(
+fn join_files_internal(
     raw_path: &Path,
     prediction_path: &Path,
     output_path: &Path,
     asserted_si_units: bool,
+    prediction_row_offset: usize,
+    pooled_prediction: bool,
 ) -> Result<Value, Box<dyn Error>> {
     if !asserted_si_units {
         return Err(invalid_input("must explicitly acknowledge denormalized SI-unit inputs with --state-units-si").into());
     }
     let raw_run_id = run_id_from_path(raw_path, "raw trajectory")?;
-    let prediction_run_id = run_id_from_path(prediction_path, "prediction table")?;
+    let prediction_run_id = if pooled_prediction {
+        raw_run_id.clone()
+    } else {
+        run_id_from_path(prediction_path, "prediction table")?
+    };
     let output_run_id = run_id_from_path(output_path, "output table")?;
     if output_run_id != raw_run_id {
         return Err(invalid_input(format!(
@@ -322,10 +328,12 @@ fn join_files(
         let record = record_result?;
         let row_number = index + 2;
         let timestamp = row_value(&record, &prediction_indices, "t", row_number, "prediction table")?;
-        if let Some(previous) = previous_prediction_time {
-            check_dt(timestamp - previous, "prediction table", row_number)?;
+        if !pooled_prediction {
+            if let Some(previous) = previous_prediction_time {
+                check_dt(timestamp - previous, "prediction table", row_number)?;
+            }
+            previous_prediction_time = Some(timestamp);
         }
-        previous_prediction_time = Some(timestamp);
 
         for field in fields_for_mode(mode) {
             row_value(&record, &prediction_indices, field, row_number, "prediction table")?;
@@ -398,11 +406,21 @@ fn join_files(
         prediction_rows.push(record);
     }
     let expected_rows = raw.rows.len() - HORIZON;
-    if prediction_rows.len() != expected_rows {
+    let slice_end = prediction_row_offset.checked_add(expected_rows)
+        .ok_or_else(|| invalid_input("prediction row offset overflows usize"))?;
+    if (!pooled_prediction && (prediction_row_offset != 0 || prediction_rows.len() != expected_rows))
+        || (pooled_prediction && slice_end > prediction_rows.len())
+    {
         return Err(invalid_input(format!(
-            "row alignment failed: raw run has {} rows, expected {} prediction rows after the upstream N-H window rule, received {}",
-            raw.rows.len(), expected_rows, prediction_rows.len()
+            "row alignment failed: raw run has {} rows and needs {} prediction rows at offset {}, but the prediction table has {} rows",
+            raw.rows.len(), expected_rows, prediction_row_offset, prediction_rows.len()
         )).into());
+    }
+    let segment_rows = &prediction_rows[prediction_row_offset..slice_end];
+    for index in 1..segment_rows.len() {
+        let before = row_value(&segment_rows[index - 1], &prediction_indices, "t", index + prediction_row_offset + 1, "prediction table")?;
+        let after = row_value(&segment_rows[index], &prediction_indices, "t", index + prediction_row_offset + 2, "prediction table")?;
+        check_dt(after - before, "prediction table run slice", index + 2)?;
     }
 
     let target_columns = fields_for_mode(mode).into_iter()
@@ -427,7 +445,7 @@ fn join_files(
         let file = File::create(&output_tmp)?;
         let mut writer = WriterBuilder::new().has_headers(false).from_writer(file);
         writer.write_record(&output_headers)?;
-        for (window_index, prediction_record) in prediction_rows.iter().enumerate() {
+        for (window_index, prediction_record) in segment_rows.iter().enumerate() {
             let mut out = prediction_record.clone();
             for horizon in 1..=HORIZON {
                 // The upstream QuadDataset window i predicts x_(i+1) ... x_(i+H).
@@ -484,7 +502,9 @@ fn join_files(
         },
         "design": {
             "source_row_count": raw.rows.len(),
-            "prediction_window_count": prediction_rows.len(),
+            "prediction_window_count": segment_rows.len(),
+            "prediction_row_offset_in_source_table": prediction_row_offset,
+            "pooled_prediction_source": pooled_prediction,
             "horizon_steps": HORIZON,
             "sample_period_s": EXPECTED_DT_S,
             "prediction_state_units": "caller_asserted_denormalized_SI_units",
@@ -497,20 +517,108 @@ fn join_files(
     }))
 }
 
+fn join_files(
+    raw_path: &Path,
+    prediction_path: &Path,
+    output_path: &Path,
+    asserted_si_units: bool,
+) -> Result<Value, Box<dyn Error>> {
+    join_files_internal(raw_path, prediction_path, output_path, asserted_si_units, 0, false)
+}
+
+fn join_pooled_predictions(
+    prediction_path: &Path,
+    raw_paths: &[PathBuf],
+    output_dir: &Path,
+    asserted_si_units: bool,
+) -> Result<Value, Box<dyn Error>> {
+    if !asserted_si_units {
+        return Err(invalid_input("must explicitly acknowledge denormalized SI-unit inputs with --state-units-si").into());
+    }
+    if raw_paths.len() != 3 {
+        return Err(invalid_input("pooled mode requires exactly Melon run1, run2, and run3 raw trajectories").into());
+    }
+
+    let mut loaded = Vec::new();
+    for (index, raw_path) in raw_paths.iter().enumerate() {
+        let expected_run = format!("run{}", index + 1);
+        let observed_run = run_id_from_path(raw_path, "raw trajectory")?;
+        if observed_run != expected_run {
+            return Err(invalid_input(format!(
+                "pooled inputs must be ordered run1, run2, run3; expected {expected_run}, found {observed_run}"
+            )).into());
+        }
+        let raw = load_raw(raw_path)?;
+        loaded.push((raw_path.clone(), raw.filename.clone(), raw.rows.len() - HORIZON));
+    }
+    let expected_total = loaded.iter().map(|(_, _, rows)| *rows).sum::<usize>();
+
+    let pooled_bytes = fs::read(prediction_path)?;
+    let mut pooled_reader = ReaderBuilder::new().has_headers(true).flexible(false).from_reader(pooled_bytes.as_slice());
+    let headers = pooled_reader.headers()?.clone();
+    name_index(&headers, "pooled prediction table")?;
+    let mut pooled_row_count = 0usize;
+    for record in pooled_reader.records() {
+        let _ = record?;
+        pooled_row_count += 1;
+    }
+    if pooled_row_count != expected_total {
+        return Err(invalid_input(format!(
+            "pooled prediction row count mismatch: raw run windows sum to {expected_total}, pooled table has {pooled_row_count}"
+        )).into());
+    }
+
+    fs::create_dir_all(output_dir)?;
+    let mut receipts = Vec::new();
+    let mut row_offset = 0usize;
+    for (raw_path, raw_filename, row_count) in loaded {
+        let output_path = output_dir.join(raw_filename);
+        let receipt = join_files_internal(
+            &raw_path, prediction_path, &output_path, true, row_offset, true,
+        )?;
+        receipts.push(receipt);
+        row_offset += row_count;
+    }
+
+    Ok(json!({
+        "benchmark_id": "symtropy-nanodrone-pooled-run-split-v0.1",
+        "claim_ceiling": "pooled_prediction_row_partition_and_truth_attachment_only_no_model_or_safety_claim",
+        "source_prediction_file": prediction_path.file_name().and_then(|value| value.to_str()).unwrap_or_default(),
+        "source_prediction_sha256": sha256(&pooled_bytes),
+        "source_prediction_rows": pooled_row_count,
+        "run_order": ["run1", "run2", "run3"],
+        "split_policy": "split pooled rows sequentially using each raw run's exact N-50 window count; each slice is then independently row-alignment checked against raw row i+1",
+        "joined_run_receipts": receipts
+    }))
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
-    if args.len() != 4 || args[3] != "--state-units-si" {
+    let receipt = if args.len() == 4 && args[3] == "--state-units-si" {
+        join_files(
+            Path::new(&args[0]),
+            Path::new(&args[1]),
+            Path::new(&args[2]),
+            true,
+        )?
+    } else if args.len() == 7 && args[5] == "--pooled" && args[6] == "--state-units-si" {
+        let raw_paths = vec![
+            PathBuf::from(&args[1]),
+            PathBuf::from(&args[2]),
+            PathBuf::from(&args[3]),
+        ];
+        join_pooled_predictions(
+            Path::new(&args[0]),
+            &raw_paths,
+            Path::new(&args[4]),
+            true,
+        )?
+    } else {
         return Err(invalid_input(
-            "usage: nanodrone_truth_window_join <raw_melon_runN.csv> <predicted_melon_runN.csv> <output_melon_runN.csv> --state-units-si",
+            "usage (single run): nanodrone_truth_window_join <raw_melon_runN.csv> <predicted_melon_runN.csv> <output_melon_runN.csv> --state-units-si\nusage (pooled upstream test output): nanodrone_truth_window_join <melon_multistep.csv> <raw_melon_run1.csv> <raw_melon_run2.csv> <raw_melon_run3.csv> <output_dir> --pooled --state-units-si",
         )
         .into());
-    }
-    let receipt = join_files(
-        Path::new(&args[0]),
-        Path::new(&args[1]),
-        Path::new(&args[2]),
-        true,
-    )?;
+    };
     println!("{}", serde_json::to_string_pretty(&receipt)?);
     Ok(())
 }
