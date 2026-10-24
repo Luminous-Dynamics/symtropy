@@ -145,6 +145,19 @@ fn quaternion_to_rotvec(q: [f64; 4]) -> [f64; 3] {
     [q[0] * scale, q[1] * scale, q[2] * scale]
 }
 
+/// Reverse the public benchmark's SO(3)-log representation back to XYZW. In quaternion
+/// mode, future targets pass through the same q -> axis-angle -> q round trip as the
+/// upstream result table, rather than mixing raw measured quaternions with reconstructed
+/// model-table quaternions.
+fn rotvec_to_quaternion(r: [f64; 3]) -> [f64; 4] {
+    let angle = (r[0] * r[0] + r[1] * r[1] + r[2] * r[2]).sqrt();
+    if angle <= f64::EPSILON {
+        return [0.0, 0.0, 0.0, 1.0];
+    }
+    let scale = (angle * 0.5).sin() / angle;
+    [r[0] * scale, r[1] * scale, r[2] * scale, (angle * 0.5).cos()]
+}
+
 fn run_id_from_path(path: &Path, label: &str) -> Result<String, io::Error> {
     let filename = path.file_name().and_then(|name| name.to_str())
         .ok_or_else(|| invalid_input(format!("{label}: filename must be UTF-8")))?;
@@ -474,6 +487,17 @@ fn join_files_internal(
                                 "rx" => rotation[0],
                                 "ry" => rotation[1],
                                 _ => rotation[2],
+                            }
+                        }
+                        "qx" | "qy" | "qz" | "qw" => {
+                            let q = [truth["qx"], truth["qy"], truth["qz"], truth["qw"]];
+                            let rotation = quaternion_to_rotvec(q);
+                            let reconstructed = rotvec_to_quaternion(rotation);
+                            match field {
+                                "qx" => reconstructed[0],
+                                "qy" => reconstructed[1],
+                                "qz" => reconstructed[2],
+                                _ => reconstructed[3],
                             }
                         }
                         _ => truth[field],
