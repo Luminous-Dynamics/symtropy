@@ -125,10 +125,16 @@ fn parse_run(value: &Value, index: usize) -> Result<RunReceipt, io::Error> {
             )));
         }
         for channel in CHANNELS {
-            let _ = field_f64(
+            let metric_value = field_f64(
                 &entry["metrics"][channel.key],
                 &format!("{prefix}.horizon[{horizon}].metrics.{}", channel.key),
             )?;
+            if metric_value < 0.0 {
+                return Err(invalid_input(format!(
+                    "{prefix}.horizon[{horizon}].metrics.{} must be non-negative",
+                    channel.key
+                )));
+            }
         }
     }
     Ok(RunReceipt {
@@ -327,9 +333,9 @@ fn compare_receipts(reference: &LoadedReceipt, candidate: &LoadedReceipt) -> Res
     }).collect::<Vec<_>>();
 
     let summary_horizons = SUMMARY_HORIZONS.iter().map(|horizon| {
-        let value = &per_horizon[horizon - 1];
+        let value = &per_horizon[*horizon - 1];
         json!({
-            "horizon_steps": horizon,
+            "horizon_steps": *horizon,
             "horizon_seconds": *horizon as f64 * EXPECTED_DT_S,
             "metrics": value["metrics"]
         })
