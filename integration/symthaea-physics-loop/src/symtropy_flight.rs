@@ -156,6 +156,16 @@ impl PhysicsSimulator for SymtropyFlightSimulator {
             self.external_force_n = [0.0; 3];
             return;
         }
+        // Validate accumulated forces before mutating the actuator filter state. Even
+        // though each input force is finite, repeated addition can overflow; reject that
+        // step without allowing hidden plant-state mutation through the filter.
+        let external_force = self.external_force_n;
+        self.external_force_n = [0.0; 3];
+        if !external_force.iter().all(|value| value.is_finite()) {
+            self.invalid_inputs = self.invalid_inputs.saturating_add(1);
+            return;
+        }
+
         let requested = cmd.clamped();
         let command = if let Some(tau_s) = self.actuator_lag_time_constant_s {
             let alpha = 1.0 - (-dt / tau_s).exp();
@@ -174,12 +184,6 @@ impl PhysicsSimulator for SymtropyFlightSimulator {
         } else {
             requested
         };
-        let external_force = self.external_force_n;
-        self.external_force_n = [0.0; 3];
-        if !external_force.iter().all(|value| value.is_finite()) {
-            self.invalid_inputs = self.invalid_inputs.saturating_add(1);
-            return;
-        }
         if let Some(body) = self.world.body_mut(self.body) {
             let body_z = SVector::from([0.0, 0.0, 1.0]);
             let thrust_world = body.transform.rotation.rotate_vector(&body_z) * (command.thrust as f64);
