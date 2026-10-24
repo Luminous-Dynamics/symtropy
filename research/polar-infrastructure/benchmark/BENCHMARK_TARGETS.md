@@ -33,6 +33,7 @@ These are goals for a future preregistered experiment—not current results. Fre
 |---|---|---|
 | Scoring integrity | 100% of defined negative controls rejected; zero false-pass outcomes in the test set | Any known floor-breaching control reported as eligible fails the benchmark |
 | Critical-service performance | At least **10% lower relative unserved critical-service-hours** than the strongest feasible baseline on held-out episodes | Uncertainty must support improvement; publish absolute values and per-service regressions |
+| Outage persistence | Lower longest consecutive system-level service-floor breach duration than the strongest eligible baseline on held-out compound events, without increasing breach counts | Preserve timeline and event boundaries; equal total breach-hours must not hide longer continuous loss |
 | Critical-floor protection | No new candidate floor failure on an episode/service where the comparator passes, unless explicitly approved through prior safety review | New critical-floor breach blocks an unqualified “better” claim |
 | Tail performance with credible probabilities | Aim for **15% lower CVaR at 95% confidence** for preregistered shortfall loss than the strongest feasible baseline | Report event-level outcomes, uncertainty, probability provenance, and sensitivity |
 | Probability-free stress performance | Lower worst-case shortfall and no increase in floor-breach scenarios relative to the strongest baseline | Same frozen stress set; make no frequency or expected-value claim |
