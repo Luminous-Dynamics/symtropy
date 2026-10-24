@@ -26,6 +26,8 @@ cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
   tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-adaptive-campaign \
   tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool.synthetic.json
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-eval-receipt \
+  tools/glass-silicon-contract-audit/fixtures/evaluation-receipt-unsealed.synthetic.json
 
 # Same gate-aware fixture: compare myopic and adaptive decision policies
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-decision-value \
@@ -126,3 +128,10 @@ The command reports the SHA-256 fingerprint of the exact raw manifest bytes; CI 
 The `audit-false-feasible-bound` command calculates a one-sided Hoeffding upper confidence bound for the false-feasible rate: `min(1, observed_rate + sqrt(ln(1/(1-confidence))/(2*n)))`. The denominator is the caller-declared count of independent, independently adjudicated negative groups—not raw correlated rows. The manifest must cite the independent-unit definition and negative-label source, and must declare preregistration plus a frozen test set. Missing/invalid metadata fails closed; valid data whose upper bound exceeds target is `UNRESOLVED`.
 
 The synthetic known-answer uses 600 units, zero false-feasible errors, 95% one-sided confidence and a 5% upper-bound target. The upper bound is approximately 4.996%; the 599-unit negative fixture remains `UNRESOLVED`, and one error among 600 also misses the target. This is a conservative arithmetic gate only. A PASS assumes the caller's independence, label and representativeness claims are correct; it does not establish actual model reliability or industrial performance.
+
+
+## Evaluation receipt and sealed-claim boundary
+
+The v0.1 receipt contract is defined by `docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json`. `audit-eval-receipt` checks required fields, content-digest formats, timestamps/order, metric records and resource caps. Three synthetic fixtures cover a structurally valid unsealed receipt, a receipt that self-declares a sealed evaluation, and a resource-budget overrun.
+
+A PASS means **receipt structure and internal chronology only**. It does not prove data rights, label truth, independent custody, hidden-label secrecy, runtime isolation or physical performance. A receipt that claims `SEALED_CONFIRMATORY` is deliberately `UNRESOLVED` even when it supplies attestation-reference strings: this CLI does not validate external signatures or access-control evidence, and reports its verified evaluation class as `UNSEALED_RETROSPECTIVE`. This is the fail-closed behavior until a trusted external attestation verifier is composed into the benchmark. Real hidden test labels must not be added to this public repository.
