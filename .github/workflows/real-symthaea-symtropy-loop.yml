@@ -2,7 +2,7 @@ name: Real Symthaea x Symtropy Closed-Loop Smoke
 
 on:
   pull_request:
-    branches: ["main", "research/real-symthaea-physics-loop-v0-1", "research/symtropy-flight-transfer-benchmark-v0-1", "research/symtropy-bounded-cognitive-residual-v0-1", "research/symtropy-heldout-scenario-matrix-v0-1", "research/symtropy-tail-risk-evidence-receipt-v0-1", "research/symtropy-causal-transition-residual-v0-1", "research/symtropy-linear-residual-baseline-v0-1", "research/symtropy-episode-conformal-residual-v0-1", "research/symtropy-hdc-ltc-residual-reservoir-v0-1", "research/symtropy-compact-nonlinear-residual-v0-1", "research/symtropy-explicit-history-residual-v0-1", "research/symtropy-actuator-lag-transfer-v0-1", "research/nanodrone-metrics-parity-v0-1", "research/nanodrone-truth-window-join-v0-1", "research/nanodrone-paired-model-compare-v0-1"]
+    branches: ["main", "research/real-symthaea-physics-loop-v0-1", "research/symtropy-flight-transfer-benchmark-v0-1", "research/symtropy-bounded-cognitive-residual-v0-1", "research/symtropy-heldout-scenario-matrix-v0-1", "research/symtropy-tail-risk-evidence-receipt-v0-1", "research/symtropy-causal-transition-residual-v0-1", "research/symtropy-linear-residual-baseline-v0-1", "research/symtropy-episode-conformal-residual-v0-1", "research/symtropy-hdc-ltc-residual-reservoir-v0-1", "research/symtropy-compact-nonlinear-residual-v0-1", "research/symtropy-explicit-history-residual-v0-1", "research/symtropy-actuator-lag-transfer-v0-1", "research/nanodrone-metrics-parity-v0-1", "research/nanodrone-truth-window-join-v0-1", "research/nanodrone-paired-model-compare-v0-1", "research/nanodrone-residual-spectrum-v0-1"]
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "Cargo.toml"
@@ -77,6 +77,7 @@ jobs:
           STFR_CHECK_NANODRONE_METRICS: "1"
           STFR_CHECK_NANODRONE_TRUTH_JOIN: "1"
           STFR_CHECK_NANODRONE_MODEL_COMPARE: "1"
+          STFR_CHECK_NANODRONE_RESIDUAL_SPECTRUM: "1"
           STFR_OUTPUT_PATH: ${{ runner.temp }}/symthaea-symtropy-bounded-residual-matrix.json
           STFR_TRAIN_EPISODES: 1
           STFR_TRAIN_STEPS: 32
