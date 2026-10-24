@@ -33,17 +33,16 @@
       "minLength": 1
     },
     "relation_profile": {
-      "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+      "const": "provenance_identity_v0",
+      "description": "Only registered v0.1 relationship profile; new profiles require a reviewed schema/contract revision."
     },
     "leakage_edge_types": {
-      "type": "array",
-      "minItems": 1,
-      "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "pattern": "^[a-z0-9][a-z0-9_-]*$"
-      }
+      "const": [
+        "derived_from",
+        "replicate_of",
+        "same_record"
+      ],
+      "description": "Frozen leakage edge set for provenance_identity_v0; callers cannot weaken it per graph."
     },
     "allowed_splits": {
       "const": [
