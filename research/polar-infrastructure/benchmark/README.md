@@ -21,6 +21,24 @@ cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchma
 
 The core scorer emits report schema `0.2.0`; the service-specific ensemble and robust-set reports emit `0.4.0`. Input fixtures remain schema `0.1.0`; report and input versions are independently versioned so output contract changes are explicit. Reports include `episode_duration_hours` (or per-scenario `scenario_duration_hours`) so a `null` time-to-first-breach value can be interpreted as no observed breach within a known trace horizon. Invalid input fails closed: unknown service identifiers, incomplete step series, duplicate policy/service identifiers, negative/non-finite measurements, absent demands, and unsupported evidence claims are errors.
 
+## Verify synthetic run evidence
+
+The CI artifact includes the three JSON reports, fixture files, Cargo.toml/Cargo.lock, Rust toolchain declaration, relevant source files, exact tested commit, a SHA-256 manifest, a receipt, and the standalone verifier.
+
+After downloading and extracting the artifact, run:
+
+```sh
+bash verify-polar-resilience-receipt.sh .
+```
+
+The verifier checks the receipt contract, report schema/evidence ceilings, that the tested-commit file matches the receipt, that every required artifact path is covered by the checksum manifest, and that the report/receipt digests match. The built-in negative-control self-test is:
+
+```sh
+bash scripts/verify-polar-resilience-receipt.sh --self-test
+```
+
+The self-test verifies rejection of content tampering, manifest omission, and evidence-tier escalation. Hashes inside the same bundle provide internal consistency, not an independent signature: for provenance, cross-check the receipt's repository, tested commit, workflow run ID and attempt against the corresponding GitHub Actions run and artifact. The receipt remains `synthetic_only`; it proves neither site performance nor physical/controller validity.
+
 ## Metrics
 
 The scorer requires explicit `rate_unit` and `integrated_unit` fields for each service. For example, heat delivery may use kW as its rate unit and kWh as its integrated unit; water flow may use litres/hour and litres. Different physical quantities are never added together.
