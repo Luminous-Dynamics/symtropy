@@ -807,7 +807,6 @@ mod tests {
         let raw_dir = root.join("data").join("test");
         let output_dir = root.join("joined");
         fs::create_dir_all(&raw_dir).unwrap();
-        fs::create_dir_all(&output_dir).unwrap();
 
         let raw_paths = vec![
             raw_dir.join("melon_20251017_run1.csv"),
