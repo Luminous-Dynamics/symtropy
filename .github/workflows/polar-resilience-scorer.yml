@@ -43,7 +43,7 @@ jobs:
             (.results | length == 4) and
             ([.results[] | select(.policy_id == "defective_low_fuel_control") | .gate_pass] == [false]) and
             ([.results[] | select(.policy_id == "candidate_full_service") |
-              (.services | length == 3 and all(.[]; ((.rate_unit | length > 0) and (.integrated_unit | length > 0) and (.service_fraction == null or (.service_fraction >= 0 and .service_fraction <= 1)) and (.floor_breach_episode_count >= 0) and (.longest_consecutive_floor_breach_hours >= 0))))] | length == 1)
+              (.services | length == 3 and all(.[]; ((.rate_unit | length > 0) and (.integrated_unit | length > 0) and (.service_fraction == null or (.service_fraction >= 0 and .service_fraction <= 1)) and (.floor_breach_episode_count >= 0) and (.longest_consecutive_floor_breach_hours >= 0) and (.time_to_first_floor_breach_hours == null or .time_to_first_floor_breach_hours >= 0))))] | length == 1)
           ' /tmp/polar-score-report.json
 
       - name: Exercise weighted scenario-tail evaluator
@@ -65,7 +65,8 @@ jobs:
                (.expected_system_floor_breach_episode_count >= 0) and
                (.expected_longest_consecutive_system_floor_breach_hours >= 0) and
                (.worst_case_longest_consecutive_system_floor_breach_hours >= 0) and
-               ([.scenario_outcomes[] | select(.scenario_id == "toy-compound-failure" and .gate_pass == false and .longest_consecutive_system_floor_breach_hours >= 0)] | length == 1))] | length == 1)
+               (.earliest_observed_time_to_first_system_floor_breach_hours == null or .earliest_observed_time_to_first_system_floor_breach_hours >= 0) and
+               ([.scenario_outcomes[] | select(.scenario_id == "toy-compound-failure" and .gate_pass == false and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or .time_to_first_system_floor_breach_hours >= 0))] | length == 1))] | length == 1)
           ' /tmp/polar-ensemble-report.json
 
       - name: Exercise probability-free robust stress-set evaluator
@@ -87,5 +88,6 @@ jobs:
                .service_floor_breach_scenario_count > 0 and
                .maximum_system_floor_breach_episode_count_across_scenarios >= 0 and
                .worst_case_longest_consecutive_system_floor_breach_hours >= 0 and
-               (.scenario_outcomes | length == 3 and all(.[]; (.system_floor_breach_episode_count >= 0 and .longest_consecutive_system_floor_breach_hours >= 0))))] | length == 1)
+               (.earliest_observed_time_to_first_system_floor_breach_hours == null or .earliest_observed_time_to_first_system_floor_breach_hours >= 0) and
+               (.scenario_outcomes | length == 3 and all(.[]; (.system_floor_breach_episode_count >= 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or .time_to_first_system_floor_breach_hours >= 0)))))] | length == 1)
           ' /tmp/polar-robust-set-report.json
