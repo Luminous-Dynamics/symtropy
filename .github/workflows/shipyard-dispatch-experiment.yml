@@ -1,4 +1,4 @@
-name: Shipyard dispatch experiment adapter
+name: Shipyard dispatch and paired benchmark experiment
 
 on:
   push:
@@ -6,12 +6,14 @@ on:
       - "tools/shipyard-observed-dispatch/**"
       - "tools/shipyard-dispatch-audit/**"
       - "tools/shipyard-dispatch-experiment/**"
+      - "tools/shipyard-dispatch-benchmark/**"
       - ".github/workflows/shipyard-dispatch-experiment.yml"
   pull_request:
     paths:
       - "tools/shipyard-observed-dispatch/**"
       - "tools/shipyard-dispatch-audit/**"
       - "tools/shipyard-dispatch-experiment/**"
+      - "tools/shipyard-dispatch-benchmark/**"
       - ".github/workflows/shipyard-dispatch-experiment.yml"
   workflow_dispatch:
 
@@ -37,71 +39,88 @@ jobs:
           toolchain: "1.96.0"
           components: rustfmt, clippy
 
-      - name: Check formatting for all three crates
+      - name: Check Rust formatting
         run: |
           cargo fmt --manifest-path tools/shipyard-observed-dispatch/Cargo.toml -- --check
           cargo fmt --manifest-path tools/shipyard-dispatch-audit/Cargo.toml -- --check
           cargo fmt --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml -- --check
+          cargo fmt --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml -- --check
 
-      - name: Test observed-history policy crate offline
-        run: cargo test --locked --offline --manifest-path tools/shipyard-observed-dispatch/Cargo.toml
+      - name: Test policies, independent evaluator, ledger, and corpus
+        run: |
+          cargo test --locked --offline --manifest-path tools/shipyard-observed-dispatch/Cargo.toml
+          cargo test --locked --offline --manifest-path tools/shipyard-dispatch-audit/Cargo.toml
+          cargo test --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml
+          cargo test --locked --offline --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml
 
-      - name: Test independent evaluator crate offline
-        run: cargo test --locked --offline --manifest-path tools/shipyard-dispatch-audit/Cargo.toml
+      - name: Compile benchmark CLI
+        run: cargo check --locked --offline --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml
 
-      - name: Test policy-to-evaluator integration and result ledger offline
-        run: cargo test --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml
+      - name: Lint full dependency graph with warnings denied
+        run: cargo clippy --locked --offline --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml --all-targets -- -D warnings
 
-      - name: Compile synthetic comparison example
-        run: cargo check --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --examples
+      - name: Validate published aggregate fixture is not mislabeled as reproduced
+        run: |
+          jq -e '. as $root | ($root.record_contract_version == "shipyard-published-baseline-anchor-v0" and $root.evidence_status == "published_aggregate_reference_only" and $root.reproduced_by_this_repository == false and $root.raw_per_run_outputs_available == false and $root.repetitions_per_case_reported == 15 and ($root.cases | length) == 6) and any($root.cases[]; .case_id == "Case9_50_4" and .values.PA.Aur == 0.775 and .values.PA.Act_s == 308.0 and .values.PA.Vt_min == 2339)' tools/shipyard-dispatch-benchmark/fixtures/published-case9-50-anchor-v0.json
 
-      - name: Run four-rule example and verify JSONL result ledger
+      - name: Generate paired corpus and verify all evidence digests
         shell: bash
         env:
           SHIPYARD_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
-          SHIPYARD_EVIDENCE_DIR: /tmp/shipyard-dispatch-evidence
         run: |
-          rm -rf "$SHIPYARD_EVIDENCE_DIR"
-          mkdir -p "$SHIPYARD_EVIDENCE_DIR"
-          cargo run --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --example compare_synthetic_rules > /tmp/shipyard-result-ledger.jsonl
-          test "$(wc -l < /tmp/shipyard-result-ledger.jsonl)" -eq 4
-          jq -s -e 'length == 4 and all(.[]; .ledger_contract_version == "shipyard-result-ledger-v0" and .record_kind == "raw_run_record" and .synthetic_example == true and .status == "incomplete" and .hard_gates.geometry == "not_evaluated" and .hard_gates.causality == "not_evaluated" and (.artifact_digests.method_config_sha256 | length) == 64 and (.input_digests.method_config_sha256 == .artifact_digests.method_config_sha256) and (.artifact_digests.candidate_schedule_sha256 | length) == 64 and (.artifact_digests.independent_audit_sha256 | length) == 64 and ((keys | sort) == ["artifact_digests","benchmark_release","budget_profile","episode_id","evaluator_revision","hard_gates","input_digests","ledger_contract_version","method_id","metrics","record_id","record_kind","replicate_id","status","status_reason","supersedes_record_id","synthetic_example"]))' /tmp/shipyard-result-ledger.jsonl
-          jq -s -e '([.[].method_id | split("::")[0]] | sort) == ["critical_ratio","earliest_due_date","fixed_order","least_slack"] and ([.[].input_digests.method_config_sha256] | unique | length) == 4' /tmp/shipyard-result-ledger.jsonl
-          test "$(jq -r '.[0].input_digests.initial_state_sha256' /tmp/shipyard-result-ledger.jsonl)" = "$(sha256sum tools/shipyard-dispatch-experiment/fixtures/synthetic-state-v0.json | cut -d ' ' -f 1)"
-          test "$(jq -r '.[0].input_digests.disturbance_tape_sha256' /tmp/shipyard-result-ledger.jsonl)" = "$(sha256sum tools/shipyard-dispatch-experiment/fixtures/synthetic-disturbance-tape-v0.json | cut -d ' ' -f 1)"
-          test "$(jq -r '.[0].evaluator_revision' /tmp/shipyard-result-ledger.jsonl)" = "$SHIPYARD_SOURCE_REVISION"
-          test "$(find "$SHIPYARD_EVIDENCE_DIR" -type f -name '*.json' | wc -l)" -eq 12
+          rm -rf /tmp/shipyard-paired-benchmark
+          cargo run --locked --offline --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml -- \
+            --episodes 16 --seed 20261024 --out /tmp/shipyard-paired-benchmark \
+            --policy-revision "$SHIPYARD_SOURCE_REVISION" --evaluator-revision "$SHIPYARD_SOURCE_REVISION"
+          test "$(wc -l < /tmp/shipyard-paired-benchmark/results.jsonl)" -eq 64
+          jq -e '.corpus_contract_version == "shipyard-paired-benchmark-corpus-v0" and .episode_count == 16 and (.episodes | length) == 16' /tmp/shipyard-paired-benchmark/benchmark-manifest.json
+          jq -e '.receipt_contract_version == "shipyard-benchmark-run-receipt-v0" and .artifact_count == 164 and .budget_contract == "not_enforced; runtime comparisons prohibited"' /tmp/shipyard-paired-benchmark/run-receipt.json
+          test "$(jq -r '.manifest_sha256' /tmp/shipyard-paired-benchmark/run-receipt.json)" = "$(sha256sum /tmp/shipyard-paired-benchmark/benchmark-manifest.json | cut -d ' ' -f 1)"
+          test "$(jq -r '.ledger_sha256' /tmp/shipyard-paired-benchmark/run-receipt.json)" = "$(sha256sum /tmp/shipyard-paired-benchmark/results.jsonl | cut -d ' ' -f 1)"
+          test "$(jq -r '.paired_summary_sha256' /tmp/shipyard-paired-benchmark/run-receipt.json)" = "$(sha256sum /tmp/shipyard-paired-benchmark/paired-comparison-summary.json | cut -d ' ' -f 1)"
+          jq -e --arg revision "$SHIPYARD_SOURCE_REVISION" '.policy_revision == $revision and .evaluator_revision == $revision' /tmp/shipyard-paired-benchmark/benchmark-manifest.json
+          jq -s -e 'length == 64 and all(.[]; .ledger_contract_version == "shipyard-result-ledger-v0" and .synthetic_example == true and (.status == "incomplete" or .status == "invalid_input" or .status == "invalid_candidate"))' /tmp/shipyard-paired-benchmark/results.jsonl
+          jq -s -e 'group_by(.episode_id) | all(.[]; length == 4 and ([.[].input_digests.method_config_sha256] | unique | length) == 4)' /tmp/shipyard-paired-benchmark/results.jsonl
+          jq -e '(.comparisons | length) > 0 and ([.episode_coverage[].partition] | unique | sort) == ["development","held_out"]' /tmp/shipyard-paired-benchmark/paired-comparison-summary.json
+          test "$(find /tmp/shipyard-paired-benchmark -type f -name 'method-config-*.json' | wc -l)" -eq 4
+          test "$(find /tmp/shipyard-paired-benchmark -type f -name 'candidate-schedule-*.json' | wc -l)" -eq 64
+          test "$(find /tmp/shipyard-paired-benchmark -type f -name 'independent-audit-*.json' | wc -l)" -eq 64
+          test "$(find /tmp/shipyard-paired-benchmark -type f -name 'initial-state-*.json' | wc -l)" -eq 16
+          test "$(find /tmp/shipyard-paired-benchmark -type f -name 'disturbance-tape-*.json' | wc -l)" -eq 16
           while IFS=
+          while IFS=$'	' read -r method_digest candidate_digest audit_digest; do
+            test "$(sha256sum "/tmp/shipyard-paired-benchmark/method-config-$method_digest.json" | cut -d ' ' -f 1)" = "$method_digest"
+            test "$(jq -r '.base_config_sha256' "/tmp/shipyard-paired-benchmark/method-config-$method_digest.json")" = "$(sha256sum tools/shipyard-dispatch-experiment/fixtures/synthetic-method-config-v0.json | cut -d ' ' -f 1)"
+            test "$(sha256sum "/tmp/shipyard-paired-benchmark/candidate-schedule-$candidate_digest.json" | cut -d ' ' -f 1)" = "$candidate_digest"
+            test "$(sha256sum "/tmp/shipyard-paired-benchmark/independent-audit-$audit_digest.json" | cut -d ' ' -f 1)" = "$audit_digest"
+          done < <(jq -r '[.artifact_digests.method_config_sha256, .artifact_digests.candidate_schedule_sha256, .artifact_digests.independent_audit_sha256] | @tsv' /tmp/shipyard-paired-benchmark/results.jsonl)
+          sha256sum /tmp/shipyard-paired-benchmark/benchmark-manifest.json /tmp/shipyard-paired-benchmark/results.jsonl /tmp/shipyard-paired-benchmark/paired-comparison-summary.json /tmp/shipyard-paired-benchmark/run-receipt.json
 
-      - name: Retain content-addressed synthetic evidence
+      - name: Retain deterministic benchmark smoke evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: shipyard-dispatch-evidence-${{ github.sha }}
-          path: /tmp/shipyard-dispatch-evidence/**
+          name: shipyard-paired-benchmark-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/shipyard-paired-benchmark/**
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 14\t' read -r episode_id state_digest tape_digest; do
+            test "$(sha256sum "/tmp/shipyard-paired-benchmark/initial-state-$state_digest.json" | cut -d ' ' -f 1)" = "$state_digest"
+            test "$(sha256sum "/tmp/shipyard-paired-benchmark/disturbance-tape-$tape_digest.json" | cut -d ' ' -f 1)" = "$tape_digest"
+            jq -e --arg episode "$episode_id" --arg state "$state_digest" --arg tape "$tape_digest" 'any(.episodes[]; .episode_id == $episode and .initial_state_sha256 == $state and .disturbance_tape_sha256 == $tape)' /tmp/shipyard-paired-benchmark/benchmark-manifest.json
+          done < <(jq -r '[.episode_id, .input_digests.initial_state_sha256, .input_digests.disturbance_tape_sha256] | @tsv' /tmp/shipyard-paired-benchmark/results.jsonl)
+          while IFS=$'	' read -r method_digest candidate_digest audit_digest; do
+            test "$(sha256sum "/tmp/shipyard-paired-benchmark/method-config-$method_digest.json" | cut -d ' ' -f 1)" = "$method_digest"
+            test "$(jq -r '.base_config_sha256' "/tmp/shipyard-paired-benchmark/method-config-$method_digest.json")" = "$(sha256sum tools/shipyard-dispatch-experiment/fixtures/synthetic-method-config-v0.json | cut -d ' ' -f 1)"
+            test "$(sha256sum "/tmp/shipyard-paired-benchmark/candidate-schedule-$candidate_digest.json" | cut -d ' ' -f 1)" = "$candidate_digest"
+            test "$(sha256sum "/tmp/shipyard-paired-benchmark/independent-audit-$audit_digest.json" | cut -d ' ' -f 1)" = "$audit_digest"
+          done < <(jq -r '[.artifact_digests.method_config_sha256, .artifact_digests.candidate_schedule_sha256, .artifact_digests.independent_audit_sha256] | @tsv' /tmp/shipyard-paired-benchmark/results.jsonl)
+          sha256sum /tmp/shipyard-paired-benchmark/benchmark-manifest.json /tmp/shipyard-paired-benchmark/results.jsonl /tmp/shipyard-paired-benchmark/paired-comparison-summary.json /tmp/shipyard-paired-benchmark/run-receipt.json
 
-      - name: Lint all targets with warnings denied
-        run: cargo clippy --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --all-targets -- -D warnings
-\t' read -r config_digest candidate_digest audit_digest; do
-            test "$(sha256sum "$SHIPYARD_EVIDENCE_DIR/method-config-$config_digest.json" | cut -d ' ' -f 1)" = "$config_digest"
-            test "$(sha256sum "$SHIPYARD_EVIDENCE_DIR/candidate-schedule-$candidate_digest.json" | cut -d ' ' -f 1)" = "$candidate_digest"
-            test "$(sha256sum "$SHIPYARD_EVIDENCE_DIR/independent-audit-$audit_digest.json" | cut -d ' ' -f 1)" = "$audit_digest"
-            jq -e '.artifact_kind == "shipyard-method-config-v0"' "$SHIPYARD_EVIDENCE_DIR/method-config-$config_digest.json"
-            jq -e '.artifact_kind == "shipyard-candidate-schedule-v0"' "$SHIPYARD_EVIDENCE_DIR/candidate-schedule-$candidate_digest.json"
-            jq -e '.artifact_kind == "shipyard-independent-audit-v0"' "$SHIPYARD_EVIDENCE_DIR/independent-audit-$audit_digest.json"
-            test "$(jq -r '.base_config_sha256' "$SHIPYARD_EVIDENCE_DIR/method-config-$config_digest.json")" = "$(sha256sum tools/shipyard-dispatch-experiment/fixtures/synthetic-method-config-v0.json | cut -d ' ' -f 1)"
-          done < <(jq -r '[.artifact_digests.method_config_sha256, .artifact_digests.candidate_schedule_sha256, .artifact_digests.independent_audit_sha256] | @tsv' /tmp/shipyard-result-ledger.jsonl)
-
-      - name: Retain content-addressed synthetic evidence
+      - name: Retain deterministic benchmark smoke evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: shipyard-dispatch-evidence-${{ github.sha }}
-          path: /tmp/shipyard-dispatch-evidence/**
+          name: shipyard-paired-benchmark-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/shipyard-paired-benchmark/**
           if-no-files-found: ignore
           retention-days: 14
-
-      - name: Lint all targets with warnings denied
-        run: cargo clippy --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --all-targets -- -D warnings
