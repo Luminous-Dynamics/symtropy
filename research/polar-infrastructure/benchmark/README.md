@@ -73,7 +73,7 @@ Not every remote-infrastructure failure mode has defensible occurrence probabili
 - worst-case service shortfall and worst floor-breach duration;
 - the unweighted mean over the enumerated stress suite, explicitly **not** an expected-value or probability claim;
 - maximum fuel intensity across the included scenarios where defined;
-- worst contiguous system-level service-floor breach duration, exposing whether the same total breach time occurs as one persistent outage or fragmented episodes;
+- maximum system-level contiguous breach-window count and worst contiguous breach duration, exposing whether the same total breach time occurs as one persistent outage or fragmented episodes. The weighted ensemble also reports probability-weighted expected breach-window count and expected/worst longest duration;
 - Pareto non-dominance across breach-scenario count, worst shortfall, worst breach duration and maximum fuel intensity; gate eligibility remains a separate field. The report marks the entire frontier `incomplete_missing_fuel_data` and emits `null` Pareto flags if any option lacks comparable fuel-intensity data, rather than turning missing values into numeric infinities;
 - the full outcome for every scenario so that failures stay inspectable.
 
