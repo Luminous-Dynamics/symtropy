@@ -142,3 +142,15 @@ A metadata-only review of the linked source repositories found that the GFR base
 - [GFRprediction-XGBoost repository](https://github.com/jiyao-phys/GFRprediction-XGBoost): GitHub API metadata also reports `license=null`; the root listing contains `.gitattributes` and three prediction workbooks for metal, oxide and oxyfluoride systems, with no root README/LICENSE or complete training-source package in the listing.
 
 This review is not legal advice and does not conclude that use is prohibited; it means the benchmark does not have a documented reuse basis yet. Keep both sources at **reference-only / data-admission blocked** until the authors or repository metadata clarify permitted use, exact versions are frozen, every acquired artifact is hashed, and the expected preprocessing/splits can be reproduced. The benchmark must not download, ingest or redistribute these files merely because the repository is public. No GFR data/model files have been admitted or used in this benchmark.
+
+## 13. Statistical gate for false-feasible risk
+
+A point estimate of zero false-feasible predictions is not evidence that the true risk is negligible. The Rust command `audit-false-feasible-bound <summary.json>` calculates a one-sided Hoeffding upper confidence bound over a caller-declared set of independent, independently adjudicated negative units:
+
+`upper = min(1, observed_rate + sqrt(ln(1 / (1 - confidence)) / (2 * n)))`
+
+where `n` is the number of independent negative units and `observed_rate = false_feasible_count / n`. The declared target must be pre-registered, the test set frozen, and evidence references provided for the independence unit and negative labels. The tool rejects malformed counts, absent references, non-preregistered protocols, and unfrozen test sets; it returns `UNRESOLVED` when the upper bound exceeds the target.
+
+For a 5% target at one-sided 95% confidence, 600 independent negative units with zero false-feasible outcomes yield a Hoeffding upper bound of approximately 4.996%, just under the target; 599 zero-error units are still above 5%, and a single false-feasible error among 600 also misses the gate. The bound is intentionally conservative and uses the declared *independent group count*, not correlated raw rows. It is not a guarantee under arbitrary distribution shift: the independence/representativeness and label-adjudication references still need independent review.
+
+The current fixtures are synthetic arithmetic controls only. A `PASS` means the bound is met **if** the input counts, independent-unit definition, negative labels and frozen test protocol are valid; the command cannot verify those assertions or certify the model. Do not report an industrial false-feasible rate from these fixtures.
