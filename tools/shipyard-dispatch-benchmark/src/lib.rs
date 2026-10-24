@@ -18,7 +18,7 @@ use std::fmt::Write as _;
 
 const GENERATOR_VERSION: &str = "shipyard-paired-dispatch-corpus-v0";
 const RELEASE_ID: &str = "shipyard-paired-dispatch-synthetic-v0";
-const BASE_CONFIG: &str = "fixed-order|earliest-due-date|critical-ratio|least-slack|serial-schedule-generation-v0";
+const BASE_CONFIG_BYTES: &[u8] = include_bytes!("../../shipyard-dispatch-experiment/fixtures/synthetic-method-config-v0.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ScenarioFamily {
@@ -824,7 +824,7 @@ pub fn build_corpus_bundle(config: &CorpusConfig) -> Result<CorpusBundle, String
     let manifest_sha256 = sha256_hex(manifest_json.as_bytes());
     let mut evaluations = Vec::with_capacity(episodes.len());
     let mut artifacts = Vec::<CorpusArtifact>::with_capacity(episodes.len() * 14);
-    let base_method_config_sha256 = sha256_hex(BASE_CONFIG.as_bytes());
+    let base_method_config_sha256 = sha256_hex(BASE_CONFIG_BYTES);
     let budget_contract =
         "no wall-clock or compute-unit enforcement in this runner; do not use for runtime claims";
 
