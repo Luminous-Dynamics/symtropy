@@ -15,7 +15,14 @@
     "grid_available_at_t0": false,
     "flexible_demand_quanta_at_t0": 1,
     "essential_demand_quanta_at_t0": 0,
-    "scenario_reveals_at_t1": true
+    "scenario_reveals_at_t1": true,
+    "architecture_manifest": {
+      "topology": "battery-only",
+      "usable_capacity_quanta": 1,
+      "charge_allowed": false,
+      "discharge_limit_quanta_per_interval": 1
+    },
+    "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
   },
   "observable_prefixes": [
     {
@@ -28,8 +35,14 @@
         "essential_demand_quanta": 0
       },
       "available_forecast": {
-        "future_grid_state": "unknown",
-        "future_essential_demand": "unknown"
+        "future_grid_state": {
+          "value": "unknown",
+          "available_at_time_index": 0
+        },
+        "future_essential_demand": {
+          "value": "unknown",
+          "available_at_time_index": 0
+        }
       },
       "expected_information_set": "shared-t0"
     },
@@ -158,7 +171,8 @@
           "objective_vector": {
             "essential_unserved_quanta": 0,
             "flexible_unserved_quanta": 1
-          }
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
         },
         {
           "scenario_id": "no_outage",
@@ -179,7 +193,8 @@
           "objective_vector": {
             "essential_unserved_quanta": 0,
             "flexible_unserved_quanta": 0
-          }
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
         }
       ],
       "expected_violation": {
@@ -215,7 +230,8 @@
           "objective_vector": {
             "essential_unserved_quanta": 0,
             "flexible_unserved_quanta": 1
-          }
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
         },
         {
           "scenario_id": "no_outage",
@@ -236,7 +252,8 @@
           "objective_vector": {
             "essential_unserved_quanta": 0,
             "flexible_unserved_quanta": 1
-          }
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
         }
       ]
     },
@@ -264,7 +281,8 @@
           "objective_vector": {
             "essential_unserved_quanta": 1,
             "flexible_unserved_quanta": 0
-          }
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
         },
         {
           "scenario_id": "no_outage",
@@ -285,7 +303,8 @@
           "objective_vector": {
             "essential_unserved_quanta": 0,
             "flexible_unserved_quanta": 0
-          }
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
         }
       ]
     }
