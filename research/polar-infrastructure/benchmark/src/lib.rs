@@ -111,10 +111,10 @@ pub fn service_contracts_match(a: &ScoreInput, b: &ScoreInput) -> bool {
     {
         return false;
     }
-    let left: BTreeMap<&str, (&str, u64, u64)> = a.episode.service_contracts.iter()
+    let left: BTreeMap<&str, (&str, &str, u64, u64)> = a.episode.service_contracts.iter()
         .map(|s| (s.id.as_str(), (s.rate_unit.as_str(), s.integrated_unit.as_str(), s.criticality_weight.to_bits(), s.minimum_service_fraction.to_bits())))
         .collect();
-    let right: BTreeMap<&str, (&str, u64, u64)> = b.episode.service_contracts.iter()
+    let right: BTreeMap<&str, (&str, &str, u64, u64)> = b.episode.service_contracts.iter()
         .map(|s| (s.id.as_str(), (s.rate_unit.as_str(), s.integrated_unit.as_str(), s.criticality_weight.to_bits(), s.minimum_service_fraction.to_bits())))
         .collect();
     left == right
