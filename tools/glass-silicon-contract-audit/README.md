@@ -2,7 +2,7 @@
 
 A small Rust reference verifier (dependency versions pinned and lockfile included) for the GLASS-SILICON-001 benchmark.
 
-It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 61 Rust unit tests (31 original contract/material/hash tests, 6 one-step decision-value tests, 8 adaptive-campaign tests, 8 staged-feasibility-gate tests, 1 integrated feasibility-gated campaign test, and 7 grouped-split leakage tests); their count is not a statement that the current exact-head suite has executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
+It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 63 Rust unit tests (31 original contract/material/hash tests, 6 one-step decision-value tests, 8 adaptive-campaign tests, 8 staged-feasibility-gate tests, 1 integrated feasibility-gated campaign test, and 9 grouped-split leakage tests); their count is not a statement that the current exact-head suite has executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
 
 ## Commands
 
@@ -96,7 +96,7 @@ The standalone verifier is tested with the repository-pinned Rust toolchain (1.9
 
 
 
-The core implementation and feasibility-gated campaign passed all 54 Rust tests and the complete focused workflow at `c1d3a4fc7fc7f0210e1725d880980d2f8f00defb` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40040948421)). The branch now adds an executable grouped-split manifest auditor and seven mutation tests. The latest exact-head workflow must pass before the expanded 61-test suite is qualified; prior passing runs do not qualify later code. This tooling checks declared split assignments, not the full training pipeline or physical glass performance.
+The 54-test implementation and feasibility-gated campaign passed the complete focused workflow at `784d02cc0be13519e467da455b3236cad779643a` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40041754485)). The branch now adds an executable grouped-split manifest auditor and nine tests; the full 63-test suite remains unqualified until the latest exact-head workflow passes. Earlier passing runs do not qualify later code. This tooling checks declared split assignments, not the full training pipeline or physical glass performance.
 
 ## Staged feasibility gate
 
@@ -110,10 +110,10 @@ These controls test contract semantics only. They do not predict glass-forming a
 
 The fixture `adaptive-decision-pool-feasibility-gated.synthetic.json` tests a two-stage decision policy. A cheap formation screen costs 1 synthetic unit / 2 seconds; a downstream route characterization costs 3 units / 10 seconds. The one-step oracle has worst-case regret 10 before and after its best single measurement (gross regret reduction 0). The adaptive oracle screens first, stops with the safe `reject` action for the non-forming case, and pays for route characterization only on the forming branch. Its terminal worst-case regret is 0, with maximum path cost 4 units, duration 12 seconds and two measurements.
 
-There are no scenario probabilities. This is not an expected-cost estimate or a plant-savings claim; it demonstrates that the policy tree can gate expensive follow-up actions on earlier evidence. CI asserts both reports and the exact branch structure. The integrated regression was test 54; grouped-split auditing adds seven more tests. See the exact-head run before describing the current 61-test suite as qualified.
+There are no scenario probabilities. This is not an expected-cost estimate or a plant-savings claim; it demonstrates that the policy tree can gate expensive follow-up actions on earlier evidence. CI asserts both reports and the exact branch structure. The integrated feasibility-gated campaign is test 54; grouped-split auditing adds nine tests, including evidence-class preservation, for a current total of 63. See the exact-head run before describing the current 63-test suite as qualified.
 
 ## Grouped split leakage audit
 
-`audit-grouped-split` checks an assignment-only manifest whose records contain only a stable record ID, split name and declared grouping keys. The fixture uses composition-family and synthesis-campaign IDs and must keep every group inside exactly one of train/validation/test. It fails on group overlap across splits, duplicated IDs, missing group keys, an unknown split, a missing split partition, or a label/feature field added to the assignment manifest. Sharing a group inside one split is allowed.
+`audit-grouped-split` checks an assignment-only manifest whose records contain only a stable record ID, split name and declared grouping keys. The fixture uses composition-family and synthesis-campaign IDs and must keep every group inside exactly one of train/validation/test. It fails on group overlap across splits, duplicated IDs, missing group keys, unknown splits, missing partitions, non-string grouping-field declarations, or a label/feature field added to the assignment manifest. It preserves the declared evidence class but does not independently validate that class, data rights, or data admission. Sharing a group inside one split is allowed.
 
 This is a leakage-contract preflight, not proof that downstream feature engineering, embeddings, preprocessing, tuning or model selection are leakage-free. Choose grouping variables appropriate to each lane and inspect the full pipeline; record the frozen assignment-manifest digest in the external result packet.
