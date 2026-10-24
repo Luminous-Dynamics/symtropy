@@ -825,13 +825,17 @@ mod tests {
         assert_eq!(receipt["design"]["source_row_count"], 100);
         assert_eq!(receipt["design"]["prediction_window_count"], 50);
         assert_eq!(receipt["design"]["target_columns_written"], 13 * HORIZON);
+        assert_eq!(receipt["design"]["motor_input_columns_present"], true);
 
         let mut joined = ReaderBuilder::new().has_headers(true).from_path(&output_path).unwrap();
         let headers = joined.headers().unwrap().clone();
+        let index_m1 = headers.iter().position(|header| header == "m1_rads").unwrap();
         let index_x_h1 = headers.iter().position(|header| header == "x_true_h1").unwrap();
         let index_x_h50 = headers.iter().position(|header| header == "x_true_h50").unwrap();
         let rows = joined.records().collect::<Result<Vec<_>, _>>().unwrap();
         assert_eq!(rows.len(), 50);
+        assert_eq!(rows[0].get(index_m1).unwrap().parse::<f64>().unwrap(), 100.0);
+        assert_eq!(rows[49].get(index_m1).unwrap().parse::<f64>().unwrap(), 100.0);
         assert_eq!(rows[0].get(index_x_h1).unwrap().parse::<f64>().unwrap(), 1.0);
         assert_eq!(rows[0].get(index_x_h50).unwrap().parse::<f64>().unwrap(), 50.0);
         assert_eq!(rows[49].get(index_x_h50).unwrap().parse::<f64>().unwrap(), 99.0);
