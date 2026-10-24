@@ -20,6 +20,7 @@ pub enum Split {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Perturbation {
+    NominalBaseline,
     FixtureTranslationMm {
         dx: f64,
         dy: f64,
@@ -109,6 +110,27 @@ pub fn scenarios() -> Vec<StressScenario> {
     use Split::*;
 
     vec![
+        scenario(
+            "OPT-BASELINE",
+            TaskPlaneOptics,
+            "nominal_baseline",
+            Development,
+            NominalBaseline,
+        ),
+        scenario(
+            "CTL-BASELINE",
+            AdaptiveControl,
+            "nominal_baseline",
+            Development,
+            NominalBaseline,
+        ),
+        scenario(
+            "GRID-BASELINE",
+            OffGridResilience,
+            "nominal_baseline",
+            Development,
+            NominalBaseline,
+        ),
         scenario(
             "OPT-GEO-NEG-100",
             TaskPlaneOptics,
@@ -341,6 +363,7 @@ pub fn scenarios() -> Vec<StressScenario> {
 
 fn valid_perturbation(perturbation: Perturbation) -> Result<(), CorpusError> {
     let in_range = match perturbation {
+        Perturbation::NominalBaseline => true,
         Perturbation::FixtureTranslationMm { dx, dy } => {
             dx.is_finite() && dy.is_finite() && dx.abs() <= 250.0 && dy.abs() <= 250.0
         }
@@ -445,7 +468,7 @@ mod tests {
     #[test]
     fn declared_corpus_is_valid_and_has_held_out_families() {
         let cases = scenarios();
-        assert_eq!(cases.len(), 27);
+        assert_eq!(cases.len(), 30);
         assert_eq!(validate_corpus(&cases), Ok(()));
         assert!(cases.iter().any(|case| case.split == Split::HeldOut));
         assert!(cases
