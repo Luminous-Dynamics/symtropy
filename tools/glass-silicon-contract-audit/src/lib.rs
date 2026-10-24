@@ -269,6 +269,7 @@ pub struct GroupedSplitAuditReport {
     pub status: String,
     pub audit_kind: String,
     pub benchmark_id: Option<String>,
+    pub evidence_class: Option<String>,
     pub records_checked: usize,
     pub grouping_fields: Vec<String>,
     pub split_counts: BTreeMap<String, usize>,
@@ -301,6 +302,7 @@ fn is_stable_group_field(value: &str) -> bool {
 pub fn audit_grouped_split_manifest(manifest: &Value) -> GroupedSplitAuditReport {
     let mut findings = Vec::new();
     let benchmark_id = object_string(manifest, "benchmark_id").map(ToOwned::to_owned);
+    let evidence_class = nonempty_string(manifest, "evidence_class");
     let claim_ceiling = object_string(manifest, "claim_ceiling")
         .filter(|value| !value.trim().is_empty())
         .unwrap_or("Synthetic split-manifest control only; no model performance or leakage-free training pipeline is validated.")
@@ -315,8 +317,8 @@ pub fn audit_grouped_split_manifest(manifest: &Value) -> GroupedSplitAuditReport
     if benchmark_id.as_deref().map_or(true, |value| !is_stable_slug(value)) {
         findings.push("SPLIT_BENCHMARK_ID:missing or invalid benchmark_id".to_string());
     }
-    if object_string(manifest, "evidence_class") != Some("synthetic") {
-        findings.push("SPLIT_EVIDENCE_CLASS:contract fixture must be explicitly synthetic".to_string());
+    if evidence_class.is_none() {
+        findings.push("SPLIT_EVIDENCE_CLASS:evidence_class must be a non-empty declared string".to_string());
     }
     if object_string(manifest, "claim_ceiling").map_or(true, |value| value.trim().is_empty()) {
         findings.push("SPLIT_CLAIM_CEILING:claim ceiling must be non-empty".to_string());
@@ -422,8 +424,9 @@ pub fn audit_grouped_split_manifest(manifest: &Value) -> GroupedSplitAuditReport
     findings.dedup();
     GroupedSplitAuditReport {
         status: if findings.is_empty() { "PASS".to_string() } else { "FAIL".to_string() },
-        audit_kind: "synthetic_grouped_split_manifest".to_string(),
+        audit_kind: "grouped_split_manifest".to_string(),
         benchmark_id,
+        evidence_class,
         records_checked,
         grouping_fields: group_fields,
         split_counts,
