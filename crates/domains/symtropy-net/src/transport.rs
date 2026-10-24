@@ -2,27 +2,52 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Transport trait — the abstraction over how peers exchange data.
 //!
-//! Symtropy uses two channels per peer connection:
-//! - **Unreliable**: Physics state (positions, velocities). Dropped packets
-//!   are fine — next tick's data supersedes. Low latency critical.
-//! - **Reliable**: Authority changes, governance actions, chat.
-//!   Must arrive in order, no drops.
+//! Symtropy labels two application-level delivery classes:
+//! - **Unreliable**: Physics state (positions, velocities) may be superseded by a
+//!   newer tick. A backend may drop/reorder these only if it actually supports that.
+//! - **Reliable**: Authority changes, governance actions, chat need ordered delivery.
 //!
-//! Implementations:
-//! - `WebRtcTransport` (native, via webrtc-rs) — the production transport
-//! - `LoopbackTransport` (testing) — in-memory, zero-latency
-//! - Future: `web-sys` WebRTC for WASM browser builds
+//! These enum labels are not a capability guarantee. The experimental WebSocket
+//! relay carries both classes over the same ordered TCP/WebSocket connection and
+//! provides no remote application acknowledgement. Local queue acceptance is not
+//! proof of remote receipt; applications needing that evidence require an explicit
+//! acknowledgement protocol or a transport that provides one.
+//!
+//! Current implementations and qualification status:
+//! - `RelayTransport` (feature `ws-relay`; legacy alias `webrtc`) — experimental
+//!   WebSocket signaling/data relay; not a WebRTC data channel and not qualified
+//!   against a live signaling server.
+//! - `IrohTransport` — in-memory scaffold only; it does not open an Iroh/QUIC endpoint.
+//! - `LoopbackTransport` — in-memory test transport.
+//!
+//! No production-qualified network transport is currently provided by this crate.
 
 use crate::peer::PeerId;
 use serde::{Deserialize, Serialize};
 
-/// Channel reliability mode.
+/// Maximum encoded game packet accepted by the session and relay envelope.
+pub const MAX_PEER_MESSAGE_BYTES: usize = 1024 * 1024;
+
+/// Maximum number of body identifiers in one authority message.
+///
+/// Larger authority transitions must be chunked into explicit protocol messages
+/// instead of forcing receivers to allocate an unbounded collection from one packet.
+pub(crate) const MAX_AUTHORITY_BODY_IDS: usize = 4096;
+
+/// Maximum UTF-8 byte length for an authority-transfer reason.
+pub(crate) const MAX_AUTHORITY_REASON_BYTES: usize = 4 * 1024;
+
+/// Application-level delivery class. A concrete transport may not provide
+/// these semantics; consult its capability documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Channel {
-    /// Unreliable, unordered. For physics state (positions, velocities).
-    /// Dropped packets accepted — next tick supersedes.
+    /// State update that can be superseded by a newer tick.
+    ///
+    /// This is not itself a guarantee of datagram delivery or reordering.
     Unreliable,
-    /// Reliable, ordered. For authority changes, governance, chat.
+    /// Ordered state transition that the application expects not to lose.
+    ///
+    /// This enum alone is not a remote-delivery acknowledgement.
     Reliable,
 }
 
@@ -54,15 +79,28 @@ pub enum TransportEvent {
     Error(String),
 }
 
-/// The transport trait — how peers actually exchange bytes.
+/// The transport trait — the byte/message boundary between peers.
 ///
-/// Implementations handle signaling, ICE negotiation, and data channels.
-/// The game loop calls `poll()` each tick and `send()` when it has
-/// state to distribute.
+/// Concrete transports own connection setup, framing, peer membership, and their
+/// own reliability semantics. Some backends use a signaling relay; this trait
+/// does not imply ICE negotiation, direct peer-to-peer connectivity, or data-channel
+/// support. The game loop calls `poll()` each tick and `send()` to distribute state.
 pub trait Transport {
     /// Connect to the signaling server and join a room.
     /// This begins the peer discovery process.
     fn connect(&mut self, room_id: &str) -> Result<(), String>;
+
+    /// Connect using the transport's asynchronous path when one is required.
+    ///
+    /// Synchronous transports inherit this default implementation. Async
+    /// transports should override it and must not report signaling connectivity
+    /// until the remote handshake has actually been observed.
+    fn connect_async<'a>(
+        &'a mut self,
+        room_id: &'a str,
+    ) -> impl std::future::Future<Output = Result<(), String>> + 'a {
+        async move { self.connect(room_id) }
+    }
 
     /// Disconnect from all peers and the signaling server.
     fn disconnect(&mut self);
@@ -80,7 +118,9 @@ pub trait Transport {
     /// Number of currently connected peers.
     fn peer_count(&self) -> usize;
 
-    /// Whether we're connected to the signaling server.
+    /// Whether the transport reports its connection/control-plane state as established.
+    /// The exact point is transport-specific: relay transports remain false until
+    /// a server Welcome, while in-memory transports may report local connection setup.
     fn is_signaling_connected(&self) -> bool;
 
     /// Our own peer ID (assigned by signaling server or self-generated).
