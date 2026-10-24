@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "schema_version": "0.1.0",
   "case_id": "TASKLIGHT-FIXED-ROOM-001",
   "status": "synthetic-only",
