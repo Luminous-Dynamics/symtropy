@@ -8,7 +8,7 @@
 use shipyard_dispatch_audit::{AuditStatus, EvaluatorOutage};
 use shipyard_dispatch_experiment::{
     build_result_ledger_bundle, evaluate_four_rules, sha256_hex, EvaluatedRule,
-    ExperimentLedgerContext, LedgerArtifact,
+    ExperimentLedgerContext,
 };
 use shipyard_observed_dispatch::{
     Commitment, DispatchInput, DispatchRule, Operation, Resource, VisibleOutage,
