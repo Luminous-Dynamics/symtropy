@@ -62,7 +62,7 @@ jobs:
             research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json > /tmp/polar-ensemble-report.json
           jq -e '
             .report_kind == "polar-resilience-ensemble-report" and
-            .schema_version == "0.2.0" and
+            .schema_version == "0.3.0" and
             .evidence_class == "synthetic_only" and
             .result_scope == "weighted_synthetic_scenario_aggregation_not_physical_validation" and
             .scenario_count == 2 and
@@ -70,11 +70,13 @@ jobs:
               (.cvar_service_shortfall >= .expected_service_shortfall and
                .gate_failure_probability > 0 and
                (.scenario_outcomes | length == 2) and
+               (.service_results | length == 3) and
                (.expected_system_floor_breach_episode_count >= 0) and
                (.expected_longest_consecutive_system_floor_breach_hours >= 0) and
                (.worst_case_longest_consecutive_system_floor_breach_hours >= 0) and
                (.earliest_observed_time_to_first_system_floor_breach_hours == null or .earliest_observed_time_to_first_system_floor_breach_hours >= 0) and
-               ([.scenario_outcomes[] | select(.scenario_id == "toy-compound-failure" and .gate_pass == false and .scenario_duration_hours > 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or (.time_to_first_system_floor_breach_hours >= 0 and .time_to_first_system_floor_breach_hours <= .scenario_duration_hours)))] | length == 1))] | length == 1)
+               ([.scenario_outcomes[] | select(.scenario_id == "toy-compound-failure" and .gate_pass == false and .scenario_duration_hours > 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or (.time_to_first_system_floor_breach_hours >= 0 and .time_to_first_system_floor_breach_hours <= .scenario_duration_hours)))] | length == 1) and
+               ([.service_results[] | select(.service_id == "water" and .floor_breach_probability > 0 and .cvar_service_shortfall > .expected_service_shortfall and (.scenario_outcomes | length == 2))] | length == 1))] | length == 1)
           ' /tmp/polar-ensemble-report.json
 
       - name: Exercise probability-free robust stress-set evaluator
@@ -85,7 +87,7 @@ jobs:
             research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json > /tmp/polar-robust-set-report.json
           jq -e '
             .report_kind == "polar-resilience-robust-set-report" and
-            .schema_version == "0.2.0" and
+            .schema_version == "0.3.0" and
             .evidence_class == "synthetic_only" and
             .result_scope == "unweighted_enumerated_stress_set_not_probability_estimate" and
             .pareto_comparison_status == "complete" and
@@ -97,7 +99,8 @@ jobs:
                .maximum_system_floor_breach_episode_count_across_scenarios >= 0 and
                .worst_case_longest_consecutive_system_floor_breach_hours >= 0 and
                (.earliest_observed_time_to_first_system_floor_breach_hours == null or .earliest_observed_time_to_first_system_floor_breach_hours >= 0) and
-               (.scenario_outcomes | length == 3 and all(.[]; (.scenario_duration_hours > 0 and .system_floor_breach_episode_count >= 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or (.time_to_first_system_floor_breach_hours >= 0 and .time_to_first_system_floor_breach_hours <= .scenario_duration_hours))))))] | length == 1)
+               (.scenario_outcomes | length == 3 and all(.[]; (.scenario_duration_hours > 0 and .system_floor_breach_episode_count >= 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or (.time_to_first_system_floor_breach_hours >= 0 and .time_to_first_system_floor_breach_hours <= .scenario_duration_hours))))))] | length == 1) and
+            ([.policy_results[] | select(.policy_id == "candidate_full_service") | .service_results[] | select(.service_id == "water" and .active_in_all_scenarios and .service_floor_breach_scenario_count > 0 and .worst_case_service_shortfall > 0 and (.scenario_outcomes | length == 3))] | length == 1)
           ' /tmp/polar-robust-set-report.json
 
       - name: Package digest-pinned synthetic run evidence
@@ -144,7 +147,7 @@ jobs:
                 workflow_attempt: $workflow_attempt,
                 workflow_event: $event,
                 input_schema_version: "0.1.0",
-                report_schema_version: "0.2.0",
+                report_schema_versions: { score: "0.2.0", ensemble: "0.3.0", robust_set: "0.3.0" },
                 input_paths: [
                   "inputs/Cargo.toml",
                   "inputs/Cargo.lock",
