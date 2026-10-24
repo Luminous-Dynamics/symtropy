@@ -105,7 +105,7 @@ jq -e --slurpfile case "$CASE" '
       and $g.expected_points == $expected_points
       and ($r.illuminance_samples | length) == $expected_points
       and ($r.illuminance_samples | length) > 0
-      and all(range(0; $expected_points) as $i;
+      and all(range(0; $expected_points); . as $i |
         $r.illuminance_samples[$i] as $s
         | $s.grid_index == $i
           and near($s.x_m; ($t.origin_xyz_m[0] + (($i % $nx) * $spacing)))
