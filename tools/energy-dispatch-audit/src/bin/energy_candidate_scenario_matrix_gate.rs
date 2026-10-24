@@ -13,10 +13,22 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use symtropy_energy_dispatch_audit::DispatchObjective;
+use symtropy_energy_dispatch_audit::{DispatchObjective, DispatchRequest};
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct MappingConfigWire {
+    schema_version: String,
+    energy_quantum_kwh: f64,
+    max_candidate_expansions: u64,
+    grid_cost_units_per_quantum: u32,
+    grid_carbon_grams_per_quantum: u32,
+    factor_basis: String,
+    synthetic: bool,
+}
 
 fn sha256_hex(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
@@ -207,6 +219,8 @@ struct MatrixRow {
     row_status_sha256: String,
     candidate_schema_sha256: String,
     schema_validation_log_sha256: String,
+    mapping_config_file_sha256: String,
+    mapping_config_typed_sha256: String,
     compilation_sha256: String,
     receipt_verification_log_sha256: String,
     dispatch_request_sha256: String,
@@ -249,10 +263,18 @@ fn evaluate_row(
     let (child_bytes, child) = read_json(&scenario_dir.join("candidate.json"))?;
     let (_, receipt) = read_json(&scenario_dir.join("transform-receipt.json"))?;
     let (schema_bytes, _) = read_json(&candidate_root.join("energy-system-candidate-v0.1.schema.json"))?;
+    let mapping_config_bytes = fs::read(candidate_root.join("sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"))?;
+    let mapping_config: MappingConfigWire = serde_json::from_slice(&mapping_config_bytes)?;
+    let mapping_config_typed_bytes = serde_json::to_vec(&mapping_config)?;
     let schema_log = fs::read(scenario_dir.join("schema-validation.log"))?;
     let (compilation_bytes, compilation) = read_json(&scenario_dir.join("compilation.json"))?;
     let receipt_log = fs::read(scenario_dir.join("receipt-verification.log"))?;
     let (request_bytes, request) = read_json(&scenario_dir.join("dispatch-request.json"))?;
+    let typed_compilation_config: MappingConfigWire =
+        serde_json::from_value(compilation["mapping_config"].clone())?;
+    let typed_compilation_request: DispatchRequest =
+        serde_json::from_value(compilation["dispatch_request"].clone())?;
+    let request_wire: DispatchRequest = serde_json::from_slice(&request_bytes)?;
     let (dispatch_bytes, dispatch) = read_json(&scenario_dir.join("dispatch-report.json"))?;
     let (audit_bytes, audit) = read_json(&scenario_dir.join("independent-audit.json"))?;
 
@@ -261,9 +283,12 @@ fn evaluate_row(
     let receipt_bytes = fs::read(scenario_dir.join("transform-receipt.json"))?;
     let receipt_digest = sha256_hex(&receipt_bytes);
     let schema_log_digest = sha256_hex(&schema_log);
+    let mapping_config_file_digest = sha256_hex(&mapping_config_bytes);
+    let mapping_config_typed_digest = sha256_hex(&mapping_config_typed_bytes);
     let compilation_digest = sha256_hex(&compilation_bytes);
     let receipt_log_digest = sha256_hex(&receipt_log);
     let request_digest = sha256_hex(&request_bytes);
+    let typed_request_bytes = serde_json::to_vec(&request_wire)?;
     let dispatch_digest = sha256_hex(&dispatch_bytes);
     let audit_digest = sha256_hex(&audit_bytes);
 
@@ -284,6 +309,11 @@ fn evaluate_row(
 
     let expected_case_id = format!("candidate:{candidate_id}");
     if req_str(&compilation, "candidate_id")? != candidate_id
+        || req_str(&compilation, "candidate_sha256")? != child_digest.as_str()
+        || req_str(&compilation, "mapping_config_sha256")? != mapping_config_typed_digest.as_str()
+        || typed_compilation_config != mapping_config
+        || serde_json::to_vec(&typed_compilation_request)? != request_bytes
+        || typed_request_bytes != request_bytes
         || req_str(&request, "case_id")? != expected_case_id
         || req_str(&request, "schema_version")? != "energy-dispatch-v0.1"
         || request["synthetic"].as_bool() != Some(true)
@@ -342,6 +372,8 @@ fn evaluate_row(
         row_status_sha256: sha256_hex(&row_status_bytes),
         candidate_schema_sha256: sha256_hex(&schema_bytes),
         schema_validation_log_sha256: schema_log_digest,
+        mapping_config_file_sha256: mapping_config_file_digest,
+        mapping_config_typed_sha256: mapping_config_typed_digest,
         compilation_sha256: compilation_digest,
         receipt_verification_log_sha256: receipt_log_digest,
         dispatch_request_sha256: request_digest,
