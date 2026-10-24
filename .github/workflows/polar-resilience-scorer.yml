@@ -34,6 +34,8 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
+      - name: Syntax-check independent run-receipt verifier
+        run: bash -n scripts/verify-polar-resilience-receipt.sh
       - name: Self-test independent run-receipt verifier
         run: bash scripts/verify-polar-resilience-receipt.sh --self-test
       - name: Run unit and negative-control tests
