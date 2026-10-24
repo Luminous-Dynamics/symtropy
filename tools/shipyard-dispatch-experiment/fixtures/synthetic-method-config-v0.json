@@ -1,0 +1,15 @@
+{
+  "schema_version": "shipyard-synthetic-method-config-v0",
+  "candidate_rules": [
+    "fixed_order",
+    "earliest_due_date",
+    "critical_ratio",
+    "least_slack"
+  ],
+  "time_unit": "integer_tick",
+  "resource_model": "unary_capacity_by_kind",
+  "interval_semantics": "[start_tick,end_tick)",
+  "unplaceable_outcome": "incomplete_not_infeasible",
+  "weighted_winner_score": false,
+  "search_budget_enforced_by_adapter": false
+}
