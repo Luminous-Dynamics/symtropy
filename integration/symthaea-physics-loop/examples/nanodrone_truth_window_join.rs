@@ -582,16 +582,49 @@ fn join_pooled_predictions(
         )).into());
     }
 
-    fs::create_dir_all(output_dir)?;
-    let mut receipts = Vec::new();
-    let mut row_offset = 0usize;
-    for (raw_path, raw_filename, row_count) in loaded {
-        let output_path = output_dir.join(raw_filename);
-        let receipt = join_files_internal(
-            &raw_path, prediction_path, &output_path, true, row_offset, true,
-        )?;
-        receipts.push(receipt);
-        row_offset += row_count;
+    if output_dir.exists() {
+        return Err(invalid_input(format!(
+            "pooled output directory '{}' must not already exist; use a fresh path to avoid mixing old and new receipts",
+            output_dir.display()
+        )).into());
+    }
+    if let Some(parent) = output_dir.parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+    let output_leaf = output_dir.file_name().and_then(|name| name.to_str())
+        .ok_or_else(|| invalid_input("pooled output path must end with a UTF-8 directory name"))?;
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| invalid_input(format!("system clock before UNIX epoch: {error}")))?
+        .as_nanos();
+    let staging_dir = output_dir.with_file_name(format!(".{output_leaf}.nanodrone-stage-{nonce}"));
+    fs::create_dir(&staging_dir)?;
+
+    let staged_receipts: Result<Vec<Value>, Box<dyn Error>> = (|| {
+        let mut receipts = Vec::new();
+        let mut row_offset = 0usize;
+        for (raw_path, raw_filename, row_count) in loaded {
+            let output_path = staging_dir.join(raw_filename);
+            let receipt = join_files_internal(
+                &raw_path, prediction_path, &output_path, true, row_offset, true,
+            )?;
+            receipts.push(receipt);
+            row_offset += row_count;
+        }
+        Ok(receipts)
+    })();
+    let receipts = match staged_receipts {
+        Ok(receipts) => receipts,
+        Err(error) => {
+            let _ = fs::remove_dir_all(&staging_dir);
+            return Err(error);
+        }
+    };
+    if let Err(error) = fs::rename(&staging_dir, output_dir) {
+        let _ = fs::remove_dir_all(&staging_dir);
+        return Err(error.into());
     }
 
     Ok(json!({
@@ -600,8 +633,10 @@ fn join_pooled_predictions(
         "source_prediction_file": prediction_path.file_name().and_then(|value| value.to_str()).unwrap_or_default(),
         "source_prediction_sha256": sha256(&pooled_bytes),
         "source_prediction_rows": pooled_row_count,
+        "output_directory": output_dir,
         "run_order": ["run1", "run2", "run3"],
         "split_policy": "split pooled rows sequentially using each raw run's exact N-50 window count; each slice is then independently row-alignment checked against raw row i+1",
+        "batch_outputs_committed_atomically": true,
         "joined_run_receipts": receipts
     }))
 }
@@ -703,7 +738,7 @@ mod tests {
         let output_dir = root.join("joined");
         fs::create_dir_all(&raw_dir).unwrap();
         fs::create_dir_all(&prediction_dir).unwrap();
-        fs::create_dir_all(&output_dir).unwrap();
+        // The pooled writer commits a fresh output directory atomically.
 
         let raw_path = raw_dir.join("melon_20251017_run1.csv");
         let prediction_path = prediction_dir.join("melon_20251017_run1.csv");
