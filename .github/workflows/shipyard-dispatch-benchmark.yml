@@ -1,0 +1,84 @@
+name: Shipyard paired dispatch benchmark corpus
+
+on:
+  push:
+    paths:
+      - "tools/shipyard-observed-dispatch/**"
+      - "tools/shipyard-dispatch-audit/**"
+      - "tools/shipyard-dispatch-experiment/**"
+      - "tools/shipyard-dispatch-benchmark/**"
+      - ".github/workflows/shipyard-dispatch-benchmark.yml"
+  pull_request:
+    paths:
+      - "tools/shipyard-observed-dispatch/**"
+      - "tools/shipyard-dispatch-audit/**"
+      - "tools/shipyard-dispatch-experiment/**"
+      - "tools/shipyard-dispatch-benchmark/**"
+      - ".github/workflows/shipyard-dispatch-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-dispatch-benchmark-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  corpus:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact event revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Check Rust formatting
+        run: |
+          cargo fmt --manifest-path tools/shipyard-observed-dispatch/Cargo.toml -- --check
+          cargo fmt --manifest-path tools/shipyard-dispatch-audit/Cargo.toml -- --check
+          cargo fmt --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml -- --check
+          cargo fmt --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml -- --check
+
+      - name: Test observed-history policy, independent evaluator and corpus
+        run: |
+          cargo test --locked --offline --manifest-path tools/shipyard-observed-dispatch/Cargo.toml
+          cargo test --locked --offline --manifest-path tools/shipyard-dispatch-audit/Cargo.toml
+          cargo test --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml
+          cargo test --locked --offline --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml
+
+      - name: Compile benchmark binary
+        run: cargo check --locked --offline --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml
+
+      - name: Lint complete benchmark dependency graph
+        run: cargo clippy --locked --offline --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate paired smoke corpus and verify receipt
+        shell: bash
+        run: |
+          rm -rf /tmp/shipyard-paired-benchmark-smoke
+          cargo run --locked --offline --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml -- \
+            --episodes 16 --seed 20261024 --out /tmp/shipyard-paired-benchmark-smoke \
+            --policy-revision "$GITHUB_SHA" --evaluator-revision "$GITHUB_SHA"
+          test "$(wc -l < /tmp/shipyard-paired-benchmark-smoke/results.jsonl)" -eq 64
+          jq -e '.corpus_contract_version == "shipyard-paired-benchmark-corpus-v0" and .episode_count == 16 and (.episodes | length) == 16' /tmp/shipyard-paired-benchmark-smoke/benchmark-manifest.json
+          jq -e '.receipt_contract_version == "shipyard-benchmark-run-receipt-v0" and .artifact_count == 160 and .budget_contract == "not_enforced; runtime comparisons prohibited"' /tmp/shipyard-paired-benchmark-smoke/run-receipt.json
+          jq -s -e 'length == 64 and all(.[]; .ledger_contract_version == "shipyard-result-ledger-v0" and .synthetic_example == true and (.status == "incomplete" or .status == "invalid_input" or .status == "invalid_candidate"))' /tmp/shipyard-paired-benchmark-smoke/results.jsonl
+          sha256sum /tmp/shipyard-paired-benchmark-smoke/benchmark-manifest.json /tmp/shipyard-paired-benchmark-smoke/results.jsonl /tmp/shipyard-paired-benchmark-smoke/paired-comparison-summary.json /tmp/shipyard-paired-benchmark-smoke/run-receipt.json
+          test "$(find /tmp/shipyard-paired-benchmark-smoke -type f -name 'candidate-schedule-*.json' | wc -l)" -eq 64
+          test "$(find /tmp/shipyard-paired-benchmark-smoke -type f -name 'independent-audit-*.json' | wc -l)" -eq 64
+
+      - name: Retain deterministic smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shipyard-paired-benchmark-smoke-${{ github.sha }}
+          path: /tmp/shipyard-paired-benchmark-smoke/**
+          if-no-files-found: ignore
+          retention-days: 14
