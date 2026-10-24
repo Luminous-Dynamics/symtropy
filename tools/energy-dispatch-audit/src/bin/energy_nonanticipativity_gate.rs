@@ -24,6 +24,7 @@ struct PrefixMeta {
     time_index: u64,
     information_set_id: String,
     signature: String,
+    observable_history: Value,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -161,6 +162,8 @@ fn build_prefix_index(fixture: &Value) -> Result<BTreeMap<String, PrefixMeta>, B
         }
         let time_index = required_u64(prefix, "time_index")?;
         let signature = canonical_prefix_signature(prefix)?;
+        let observable_history = prefix.get("observable_history")
+            .cloned().ok_or_else(|| invalid("observable_history is missing"))?;
 
         if let Some(previous) = signature_to_information_set.get(&signature) {
             if previous != &information_set_id {
@@ -185,6 +188,7 @@ fn build_prefix_index(fixture: &Value) -> Result<BTreeMap<String, PrefixMeta>, B
             time_index,
             information_set_id,
             signature,
+            observable_history,
         }).is_some() {
             return Err(invalid(format!("duplicate observable prefix ID {id}")));
         }
@@ -275,6 +279,23 @@ fn evaluate_policy(
             }
             if prefix.information_set_id != information_set_id {
                 return Err(invalid(format!("forged information-set ID {information_set_id} for observable prefix {prefix_id}")));
+            }
+
+            let history = prefix.observable_history.as_array()
+                .ok_or_else(|| invalid("indexed observable_history is not an array"))?;
+            for historical_entry in history {
+                let historical_time = required_u64(historical_entry, "time_index")?;
+                if historical_time < time_index {
+                    let committed_action = required_str(historical_entry, "committed_action")?;
+                    let actual_step = steps.iter().find(|candidate| {
+                        candidate.get("time_index").and_then(Value::as_u64) == Some(historical_time)
+                    }).ok_or_else(|| invalid("observable history references an absent prior action"))?;
+                    if required_str(actual_step, "action")? != committed_action {
+                        return Err(invalid(format!(
+                            "observable history action at time {historical_time} disagrees with the policy trace"
+                        )));
+                    }
+                }
             }
 
             let entry = info_by_prefix.entry(prefix.signature.clone())
@@ -531,6 +552,17 @@ mod tests {
         let normal = policy["traces"].as_array_mut().unwrap().iter_mut()
             .find(|t| t["scenario_id"].as_str() == Some("no_outage")).unwrap();
         normal["steps"][0]["information_set_id"] = Value::String("forged-future-aware-set".to_owned());
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
+    fn historical_committed_action_must_match_the_actual_trace() {
+        let mut f = fixture();
+        let policy = policy_mut(&mut f, "causal_policy_hold_for_critical");
+        let normal = policy["traces"].as_array_mut().unwrap().iter_mut()
+            .find(|t| t["scenario_id"].as_str() == Some("no_outage")).unwrap();
+        normal["steps"][1]["observable_prefix_id"] = Value::String("no-outage-revealed-soc0".to_owned());
+        normal["steps"][1]["information_set_id"] = Value::String("no-outage-revealed-soc0-t1".to_owned());
         assert!(report_for(&f).is_err());
     }
 
