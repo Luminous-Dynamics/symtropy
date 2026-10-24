@@ -129,14 +129,15 @@ fn run()->Result<(),Box<dyn Error>>{
     verify_transforms(&manifest,cases)?;
     let panel_hash=sha256_hex(&manifest_bytes); let root=std::path::PathBuf::from(&args[2]);
     let mut rows=Vec::new(); for c in cases {let id=req_str(c,"case_id")?;rows.push(validate_results(c,&root.join(id),&panel_hash)?);}
+    let row_count = rows.len();
     let report=json!({
       "schema_version":"energy-scenario-panel-report-v0.1","panel_id":req_str(&manifest,"panel_id")?,
       "manifest_sha256":panel_hash,"base_case_id":req_str(&manifest,"base_case_id")?,
       "claim_ceiling":"Synthetic finite-model robustness panel only; not a calibrated site resilience or cost-savings result.",
-      "case_count":rows.len(),"passing_case_count":rows.len(),"all_passed":true,"cases":rows
+      "case_count":row_count,"passing_case_count":row_count,"all_passed":true,"cases":rows
     });
     let output=serde_json::to_vec_pretty(&report)?;fs::write(&args[3],&output)?;
-    println!("PASS: scenario panel verified {} actual Sol-Atlas dispatch/audit cases",rows.len());
+    println!("PASS: scenario panel verified {} actual Sol-Atlas dispatch/audit cases",row_count);
     println!("manifest_sha256={}",sha256_hex(&manifest_bytes));println!("panel_report_sha256={}",sha256_hex(&output));Ok(())
 }
 fn main(){if let Err(e)=run(){eprintln!("energy scenario panel gate failed: {e}");std::process::exit(2);}}
