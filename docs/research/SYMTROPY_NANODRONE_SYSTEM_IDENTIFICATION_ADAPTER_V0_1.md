@@ -79,6 +79,26 @@ This is an implementation-level audit finding, not a claim that published scores
 
 The receipt deliberately does not claim an official leaderboard submission or a numerical improvement. It provides the run isolation, metric implementation and explicit sample accounting needed before that comparison can be trusted.
 
+## Implemented third gate: attach complete future-state windows
+
+The integration package now includes `examples/nanodrone_truth_window_join.rs`. This closes the gap between per-run model prediction CSVs and complete-window scoring: it attaches the actual raw trajectory state at row `i+h` to prediction window row `i` for each horizon `h=1..50`.
+
+The command accepts one raw test run, its matching per-run prediction CSV and an output path. Run all three Melon files separately:
+
+```bash
+cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
+  --example nanodrone_truth_window_join -- \
+  "$NANODRONE_PATH/data/test/melon_20251017_run1.csv" \
+  results/predictions/melon_20251017_run1.csv \
+  results/windowed/melon_20251017_run1.csv --state-units-si
+```
+
+Repeat for `run2` and `run3` with matching raw and prediction inputs and unique outputs, then pass the three joined outputs to `nanodrone_metric_receipt`. The required `--state-units-si` flag explicitly asserts that prediction state values have been denormalized into physical units; the receipt records this assertion but a CSV alone cannot prove how it was produced.
+
+Before writing, the joiner checks that the files identify the same exact run, the prediction row count equals `N-50`, timestamps are finite and ordered, the raw states/quaternions are valid, and each prediction row's one-step truth agrees with raw row `i+1` within declared tolerances. This last check catches off-by-one alignment, unit-normalization mistakes and accidentally paired files before the join can yield a metric. It writes an atomic output with source-file hashes, output hash, orientation convention, row counts and explicit `{state}_true_h{h}` columns. It never joins across runs.
+
+The joiner's deterministic synthetic tests cover the first and last horizon targets and reject a deliberate one-step row mismatch. These are regression tests, not evidence yet that the actual published CSVs pass the declared timestamp and quaternion tolerances. The result remains a dataset-alignment receipt, not model-performance or safety evidence.
+
 ## Model arms
 
 Compare on identical rows, scalers, motor input sequences, horizons, and hardware budgets:
