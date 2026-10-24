@@ -623,15 +623,17 @@ fn encode_result(
 ) -> String {
     let method_id = format!("{}::{}", rule_id(result.rule), context.policy_revision);
     let identity_tuple = format!(
-        "[{},{},{},{},{},{},{},{},{},{}]",
+        "[{},{},{},{},{},{},{},{},{},{},{},{}]",
         json_quote(&context.benchmark_release_id),
         json_quote(&context.episode_id),
         json_quote(&context.replicate_id),
         json_quote(&context.initial_state_sha256.to_ascii_lowercase()),
         json_quote(&context.disturbance_tape_sha256.to_ascii_lowercase()),
+        json_quote(&context.base_method_config_sha256.to_ascii_lowercase()),
         json_quote(&context.budget_profile_id),
         context.wall_time_limit_ms,
         context.decision_compute_budget_units,
+        json_quote(&context.budget_contract),
         json_quote(&context.evaluator_revision),
         json_quote(&method_id)
     );
