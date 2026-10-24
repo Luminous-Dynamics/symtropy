@@ -235,8 +235,25 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .evaluation.metrics.invalid_samples == 0
     and .evaluation.metrics.hdc_ltc_reservoir_residual_rmse_m_s2 >= 0
     and .evaluation.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and .evaluation.metrics.inference_p95_us != null
     and (.evaluation.family_metrics | length) == 3
     and all(.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
+    and .stateless_state_ablation.claim_ceiling == "HDC_encoder_with_encoder_derivative_history_but_no_persistent_LTC_recurrent_state_one_step_prediction_only"
+    and .stateless_state_ablation.state_policy == "reset LTC network immediately before each transition; preserve HDC encoder derivative history within episode"
+    and .stateless_state_ablation.training.same_transition_targets_as_persistent_arm == true
+    and .stateless_state_ablation.training.sample_count == .training.sample_count
+    and .stateless_state_ablation.training.readout_fit_seconds >= 0
+    and .stateless_state_ablation.training.hidden_force_labels_used_as_features == false
+    and .stateless_state_ablation.evaluation.split == "test"
+    and .stateless_state_ablation.evaluation.sample_count == (.stateless_state_ablation.evaluation.episodes_requested * .stateless_state_ablation.evaluation.steps_per_episode)
+    and .stateless_state_ablation.evaluation.invalid_samples == 0
+    and .stateless_state_ablation.evaluation.metrics.invalid_samples == 0
+    and .stateless_state_ablation.evaluation.metrics.stateless_hdc_ltc_residual_rmse_m_s2 >= 0
+    and .stateless_state_ablation.evaluation.metrics.inference_p95_us != null
+    and (.stateless_state_ablation.evaluation.family_metrics | length) == 3
+    and all(.stateless_state_ablation.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
+    and (.stateless_state_ablation.evaluation.episode_details | length) == .stateless_state_ablation.evaluation.episodes_requested
+    and all(.stateless_state_ablation.evaluation.episode_details[]; .sample_count == .stateless_state_ablation.evaluation.steps_per_episode and .invalid_samples == 0)
   ' "$hdc_out"
 
   mlp_out="${STFR_MLP_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-compact-mlp-residual-heldout.json}"
@@ -350,10 +367,13 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.model_summary.compact_mlp_mean_episode_rmse_m_s2 >= 0)
     and (.model_summary.hdc_ltc_reservoir_mean_episode_rmse_m_s2 >= 0)
     and (.model_summary.explicit_history_mlp_mean_episode_rmse_m_s2 >= 0)
-    and (.paired_comparisons | length) == 6
+    and (.model_summary.stateless_hdc_ltc_mean_episode_rmse_m_s2 >= 0)
+    and (.state_memory_ablation.persistent_hdc_mean_episode_rmse_m_s2 >= 0)
+    and (.state_memory_ablation.reset_each_step_hdc_mean_episode_rmse_m_s2 >= 0)
+    and (.paired_comparisons | length) == 10
     and all(.paired_comparisons[]; (.stratified_episode_bootstrap_95_ci_m_s2 | length) == 2)
     and (.family_summary | length) == 3
     and (.per_episode | length) == .design.episodes
-    and all(.per_episode[]; .raw_state_ridge_rmse_m_s2 >= 0 and .compact_mlp_rmse_m_s2 >= 0 and .explicit_history_mlp_rmse_m_s2 >= 0 and .hdc_ltc_reservoir_rmse_m_s2 >= 0)
+    and all(.per_episode[]; .raw_state_ridge_rmse_m_s2 >= 0 and .compact_mlp_rmse_m_s2 >= 0 and .explicit_history_mlp_rmse_m_s2 >= 0 and .hdc_ltc_reservoir_rmse_m_s2 >= 0 and .stateless_hdc_ltc_rmse_m_s2 >= 0)
   ' "$comparison_out"
 fi
