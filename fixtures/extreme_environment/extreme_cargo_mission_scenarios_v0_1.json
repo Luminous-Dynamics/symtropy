@@ -1,0 +1,3276 @@
+{
+  "schema_version": "0.1",
+  "benchmark_id": "extreme-cargo-mission-contract-v0.1",
+  "provenance": {
+    "kind": "synthetic_only",
+    "external_real_world_data_included": false,
+    "notes": "All payload envelopes, platform capabilities, gate states and metric intervals are invented for contract testing; they are not specifications, clinical limits or deployment permission."
+  },
+  "claim_ceiling": "synthetic_payload_contract_audit_is_not_physical_or_clinical_qualification",
+  "environments": [
+    {
+      "environment_id": "amazon_basin",
+      "min_ambient_temp_c": 20,
+      "max_ambient_temp_c": 38
+    },
+    {
+      "environment_id": "congo_basin",
+      "min_ambient_temp_c": 18,
+      "max_ambient_temp_c": 35
+    },
+    {
+      "environment_id": "antarctica",
+      "min_ambient_temp_c": -48,
+      "max_ambient_temp_c": -18
+    },
+    {
+      "environment_id": "sahara",
+      "min_ambient_temp_c": 32,
+      "max_ambient_temp_c": 52
+    },
+    {
+      "environment_id": "afghanistan",
+      "min_ambient_temp_c": -12,
+      "max_ambient_temp_c": 38
+    }
+  ],
+  "payload_profiles": [
+    {
+      "payload_id": "bulk_medical_supplies",
+      "payload_class": "bulk_cargo",
+      "mass_kg": {
+        "min": 80,
+        "max": 160
+      },
+      "dimensions_mm": {
+        "length": 900,
+        "width": 700,
+        "height": 650
+      },
+      "center_of_mass_fraction": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.45
+      },
+      "temperature_range_c": null,
+      "max_shock_g": 8,
+      "max_tilt_deg": 35,
+      "max_vibration_rms_m_s2": 3,
+      "containment_required": false,
+      "securement_required": true,
+      "occupants": 0,
+      "occupant_class": "none",
+      "restraint_required": false,
+      "accessible_boarding_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "emergency_egress_required": false,
+      "privacy_sensitive": false
+    },
+    {
+      "payload_id": "cold_chain_medicine",
+      "payload_class": "cold_chain",
+      "mass_kg": {
+        "min": 20,
+        "max": 55
+      },
+      "dimensions_mm": {
+        "length": 700,
+        "width": 500,
+        "height": 550
+      },
+      "center_of_mass_fraction": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.45
+      },
+      "temperature_range_c": {
+        "min": 2,
+        "max": 8
+      },
+      "max_shock_g": 2,
+      "max_tilt_deg": 25,
+      "max_vibration_rms_m_s2": 1.5,
+      "containment_required": true,
+      "securement_required": true,
+      "occupants": 0,
+      "occupant_class": "none",
+      "restraint_required": false,
+      "accessible_boarding_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "emergency_egress_required": false,
+      "privacy_sensitive": true
+    },
+    {
+      "payload_id": "fragile_science_instrument",
+      "payload_class": "fragile_instrument",
+      "mass_kg": {
+        "min": 10,
+        "max": 32
+      },
+      "dimensions_mm": {
+        "length": 750,
+        "width": 600,
+        "height": 500
+      },
+      "center_of_mass_fraction": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "temperature_range_c": {
+        "min": 0,
+        "max": 35
+      },
+      "max_shock_g": 1,
+      "max_tilt_deg": 15,
+      "max_vibration_rms_m_s2": 0.7,
+      "containment_required": false,
+      "securement_required": true,
+      "occupants": 0,
+      "occupant_class": "none",
+      "restraint_required": false,
+      "accessible_boarding_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "emergency_egress_required": false,
+      "privacy_sensitive": false
+    },
+    {
+      "payload_id": "contained_water_samples",
+      "payload_class": "contained_liquid",
+      "mass_kg": {
+        "min": 6,
+        "max": 18
+      },
+      "dimensions_mm": {
+        "length": 450,
+        "width": 400,
+        "height": 500
+      },
+      "center_of_mass_fraction": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "temperature_range_c": {
+        "min": 2,
+        "max": 12
+      },
+      "max_shock_g": 1.5,
+      "max_tilt_deg": 12,
+      "max_vibration_rms_m_s2": 1,
+      "containment_required": true,
+      "securement_required": true,
+      "occupants": 0,
+      "occupant_class": "none",
+      "restraint_required": false,
+      "accessible_boarding_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "emergency_egress_required": false,
+      "privacy_sensitive": false
+    },
+    {
+      "payload_id": "seated_passengers",
+      "payload_class": "seated_passengers",
+      "mass_kg": {
+        "min": 220,
+        "max": 320
+      },
+      "dimensions_mm": {
+        "length": 1800,
+        "width": 1400,
+        "height": 1600
+      },
+      "center_of_mass_fraction": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "temperature_range_c": {
+        "min": 18,
+        "max": 30
+      },
+      "max_shock_g": 1.2,
+      "max_tilt_deg": 20,
+      "max_vibration_rms_m_s2": 0.8,
+      "containment_required": false,
+      "securement_required": true,
+      "occupants": 4,
+      "occupant_class": "seated",
+      "restraint_required": true,
+      "accessible_boarding_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "emergency_egress_required": true,
+      "privacy_sensitive": false
+    },
+    {
+      "payload_id": "wheelchair_passenger",
+      "payload_class": "wheelchair_user",
+      "mass_kg": {
+        "min": 100,
+        "max": 150
+      },
+      "dimensions_mm": {
+        "length": 1200,
+        "width": 900,
+        "height": 1450
+      },
+      "center_of_mass_fraction": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.45
+      },
+      "temperature_range_c": {
+        "min": 18,
+        "max": 30
+      },
+      "max_shock_g": 1,
+      "max_tilt_deg": 12,
+      "max_vibration_rms_m_s2": 0.6,
+      "containment_required": false,
+      "securement_required": true,
+      "occupants": 1,
+      "occupant_class": "wheelchair",
+      "restraint_required": true,
+      "accessible_boarding_required": true,
+      "wheelchair_securement_required": true,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "emergency_egress_required": true,
+      "privacy_sensitive": true
+    },
+    {
+      "payload_id": "stretcher_patient",
+      "payload_class": "stretcher_patient",
+      "mass_kg": {
+        "min": 90,
+        "max": 190
+      },
+      "dimensions_mm": {
+        "length": 2200,
+        "width": 850,
+        "height": 750
+      },
+      "center_of_mass_fraction": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.35
+      },
+      "temperature_range_c": {
+        "min": 18,
+        "max": 30
+      },
+      "max_shock_g": 0.8,
+      "max_tilt_deg": 10,
+      "max_vibration_rms_m_s2": 0.45,
+      "containment_required": false,
+      "securement_required": true,
+      "occupants": 1,
+      "occupant_class": "stretcher_patient",
+      "restraint_required": true,
+      "accessible_boarding_required": true,
+      "wheelchair_securement_required": false,
+      "patient_support_required": true,
+      "caregiver_access_required": true,
+      "emergency_egress_required": true,
+      "privacy_sensitive": true
+    },
+    {
+      "payload_id": "field_crew",
+      "payload_class": "field_crew",
+      "mass_kg": {
+        "min": 120,
+        "max": 220
+      },
+      "dimensions_mm": {
+        "length": 1900,
+        "width": 1400,
+        "height": 1600
+      },
+      "center_of_mass_fraction": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "temperature_range_c": {
+        "min": 18,
+        "max": 30
+      },
+      "max_shock_g": 1.2,
+      "max_tilt_deg": 18,
+      "max_vibration_rms_m_s2": 0.8,
+      "containment_required": false,
+      "securement_required": true,
+      "occupants": 2,
+      "occupant_class": "field_crew",
+      "restraint_required": true,
+      "accessible_boarding_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "emergency_egress_required": true,
+      "privacy_sensitive": false
+    }
+  ],
+  "platform_profiles": [
+    {
+      "platform_id": "riverlink_cargo_boat",
+      "mode": "watercraft",
+      "environment_ids": [
+        "amazon_basin",
+        "congo_basin"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "cold_chain",
+        "fragile_instrument",
+        "contained_liquid"
+      ],
+      "max_payload_kg": 700,
+      "bay_dimensions_mm": {
+        "length": 2800,
+        "width": 1900,
+        "height": 1600
+      },
+      "ambient_temp_min_c": 5,
+      "ambient_temp_max_c": 42,
+      "controlled_temp_min_c": 2,
+      "controlled_temp_max_c": 8,
+      "max_payload_shock_g": 1.6,
+      "max_payload_vibration_rms_m_s2": 0.7,
+      "has_securement": true,
+      "has_containment": true,
+      "has_occupant_restraints": false,
+      "has_accessible_boarding": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": false,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 20,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.1,
+          "max": 0.85
+        }
+      }
+    },
+    {
+      "platform_id": "riverlink_accessible_ferry",
+      "mode": "watercraft",
+      "environment_ids": [
+        "amazon_basin",
+        "congo_basin"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "cold_chain",
+        "seated_passengers",
+        "wheelchair_user",
+        "field_crew"
+      ],
+      "max_payload_kg": 900,
+      "bay_dimensions_mm": {
+        "length": 3200,
+        "width": 2200,
+        "height": 1900
+      },
+      "ambient_temp_min_c": 5,
+      "ambient_temp_max_c": 42,
+      "controlled_temp_min_c": 18,
+      "controlled_temp_max_c": 30,
+      "max_payload_shock_g": 1,
+      "max_payload_vibration_rms_m_s2": 0.55,
+      "has_securement": true,
+      "has_containment": true,
+      "has_occupant_restraints": true,
+      "has_accessible_boarding": true,
+      "has_wheelchair_securement": true,
+      "has_patient_support": false,
+      "has_caregiver_access": true,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 12,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.1,
+          "max": 0.85
+        }
+      }
+    },
+    {
+      "platform_id": "canopyedge_light_rover",
+      "mode": "wheeled_rover",
+      "environment_ids": [
+        "amazon_basin",
+        "congo_basin"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "cold_chain",
+        "fragile_instrument",
+        "contained_liquid"
+      ],
+      "max_payload_kg": 90,
+      "bay_dimensions_mm": {
+        "length": 1400,
+        "width": 1000,
+        "height": 900
+      },
+      "ambient_temp_min_c": 10,
+      "ambient_temp_max_c": 40,
+      "controlled_temp_min_c": 2,
+      "controlled_temp_max_c": 8,
+      "max_payload_shock_g": 0.9,
+      "max_payload_vibration_rms_m_s2": 0.55,
+      "has_securement": true,
+      "has_containment": true,
+      "has_occupant_restraints": false,
+      "has_accessible_boarding": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": false,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 10,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.1,
+          "max": 0.85
+        }
+      }
+    },
+    {
+      "platform_id": "congo_low_disturbance_rover",
+      "mode": "wheeled_rover",
+      "environment_ids": [
+        "congo_basin"
+      ],
+      "supported_payload_classes": [
+        "fragile_instrument",
+        "contained_liquid",
+        "bulk_cargo"
+      ],
+      "max_payload_kg": 75,
+      "bay_dimensions_mm": {
+        "length": 1300,
+        "width": 900,
+        "height": 800
+      },
+      "ambient_temp_min_c": 10,
+      "ambient_temp_max_c": 40,
+      "controlled_temp_min_c": 2,
+      "controlled_temp_max_c": 8,
+      "max_payload_shock_g": 0.65,
+      "max_payload_vibration_rms_m_s2": 0.4,
+      "has_securement": true,
+      "has_containment": true,
+      "has_occupant_restraints": false,
+      "has_accessible_boarding": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": false,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 10,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.1,
+          "max": 0.85
+        }
+      }
+    },
+    {
+      "platform_id": "polar_sled_train",
+      "mode": "sled",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument"
+      ],
+      "max_payload_kg": 900,
+      "bay_dimensions_mm": {
+        "length": 3000,
+        "width": 2200,
+        "height": 1800
+      },
+      "ambient_temp_min_c": -55,
+      "ambient_temp_max_c": 5,
+      "controlled_temp_min_c": null,
+      "controlled_temp_max_c": null,
+      "max_payload_shock_g": 1.4,
+      "max_payload_vibration_rms_m_s2": 0.9,
+      "has_securement": true,
+      "has_containment": true,
+      "has_occupant_restraints": false,
+      "has_accessible_boarding": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": false,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 12,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.1,
+          "max": 0.85
+        }
+      }
+    },
+    {
+      "platform_id": "polarcrawler_science_carrier",
+      "mode": "tracked_carrier",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "cold_chain",
+        "fragile_instrument",
+        "contained_liquid"
+      ],
+      "max_payload_kg": 650,
+      "bay_dimensions_mm": {
+        "length": 2600,
+        "width": 1800,
+        "height": 1500
+      },
+      "ambient_temp_min_c": -55,
+      "ambient_temp_max_c": 5,
+      "controlled_temp_min_c": 2,
+      "controlled_temp_max_c": 8,
+      "max_payload_shock_g": 0.8,
+      "max_payload_vibration_rms_m_s2": 0.5,
+      "has_securement": true,
+      "has_containment": true,
+      "has_occupant_restraints": false,
+      "has_accessible_boarding": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": false,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 12,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.1,
+          "max": 0.85
+        }
+      }
+    },
+    {
+      "platform_id": "polar_patient_carrier",
+      "mode": "tracked_carrier",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "supported_payload_classes": [
+        "field_crew",
+        "stretcher_patient",
+        "seated_passengers"
+      ],
+      "max_payload_kg": 500,
+      "bay_dimensions_mm": {
+        "length": 2500,
+        "width": 1700,
+        "height": 1800
+      },
+      "ambient_temp_min_c": -55,
+      "ambient_temp_max_c": 5,
+      "controlled_temp_min_c": 18,
+      "controlled_temp_max_c": 30,
+      "max_payload_shock_g": 0.5,
+      "max_payload_vibration_rms_m_s2": 0.35,
+      "has_securement": true,
+      "has_containment": false,
+      "has_occupant_restraints": true,
+      "has_accessible_boarding": true,
+      "has_wheelchair_securement": false,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 8,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.1,
+          "max": 0.85
+        }
+      }
+    },
+    {
+      "platform_id": "dunerunner_cargo_rover",
+      "mode": "wheeled_rover",
+      "environment_ids": [
+        "sahara"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument",
+        "contained_liquid"
+      ],
+      "max_payload_kg": 250,
+      "bay_dimensions_mm": {
+        "length": 1800,
+        "width": 1000,
+        "height": 900
+      },
+      "ambient_temp_min_c": 0,
+      "ambient_temp_max_c": 60,
+      "controlled_temp_min_c": 5,
+      "controlled_temp_max_c": 8,
+      "max_payload_shock_g": 0.9,
+      "max_payload_vibration_rms_m_s2": 0.6,
+      "has_securement": true,
+      "has_containment": true,
+      "has_occupant_restraints": false,
+      "has_accessible_boarding": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": false,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 14,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.1,
+          "max": 0.85
+        }
+      }
+    },
+    {
+      "platform_id": "dunerunner_crew_carrier",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "sahara"
+      ],
+      "supported_payload_classes": [
+        "seated_passengers",
+        "field_crew"
+      ],
+      "max_payload_kg": 600,
+      "bay_dimensions_mm": {
+        "length": 2200,
+        "width": 1800,
+        "height": 1900
+      },
+      "ambient_temp_min_c": 0,
+      "ambient_temp_max_c": 60,
+      "controlled_temp_min_c": 18,
+      "controlled_temp_max_c": 30,
+      "max_payload_shock_g": 1,
+      "max_payload_vibration_rms_m_s2": 0.65,
+      "has_securement": true,
+      "has_containment": false,
+      "has_occupant_restraints": true,
+      "has_accessible_boarding": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": true,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 16,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.1,
+          "max": 0.85
+        }
+      }
+    },
+    {
+      "platform_id": "aidrover_supply",
+      "mode": "wheeled_rover",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "cold_chain",
+        "fragile_instrument",
+        "contained_liquid"
+      ],
+      "max_payload_kg": 220,
+      "bay_dimensions_mm": {
+        "length": 1800,
+        "width": 1300,
+        "height": 1200
+      },
+      "ambient_temp_min_c": -15,
+      "ambient_temp_max_c": 45,
+      "controlled_temp_min_c": 2,
+      "controlled_temp_max_c": 8,
+      "max_payload_shock_g": 0.9,
+      "max_payload_vibration_rms_m_s2": 0.5,
+      "has_securement": true,
+      "has_containment": true,
+      "has_occupant_restraints": false,
+      "has_accessible_boarding": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": false,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 15,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.1,
+          "max": 0.85
+        }
+      }
+    },
+    {
+      "platform_id": "aidrover_patient_carrier",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "supported_payload_classes": [
+        "stretcher_patient",
+        "wheelchair_user",
+        "seated_passengers"
+      ],
+      "max_payload_kg": 500,
+      "bay_dimensions_mm": {
+        "length": 2500,
+        "width": 1800,
+        "height": 1900
+      },
+      "ambient_temp_min_c": -15,
+      "ambient_temp_max_c": 45,
+      "controlled_temp_min_c": 18,
+      "controlled_temp_max_c": 30,
+      "max_payload_shock_g": 0.55,
+      "max_payload_vibration_rms_m_s2": 0.38,
+      "has_securement": true,
+      "has_containment": false,
+      "has_occupant_restraints": true,
+      "has_accessible_boarding": true,
+      "has_wheelchair_securement": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 9,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.1,
+          "max": 0.85
+        }
+      }
+    }
+  ],
+  "mission_scenarios": [
+    {
+      "mission_id": "AMZ-COLDCHAIN-01",
+      "environment_id": "amazon_basin",
+      "mission_class": "medical_cold_chain_delivery",
+      "payload_ids": [
+        "cold_chain_medicine",
+        "bulk_medical_supplies"
+      ],
+      "required_gate_ids": [
+        "route_or_waterway_authorization",
+        "environmental_protection",
+        "recovery_plan",
+        "payload_securement",
+        "condition_control",
+        "privacy_and_data_minimization",
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
+      ],
+      "route_envelope": {
+        "min_ambient_temp_c": 20,
+        "max_ambient_temp_c": 38,
+        "required_route_tilt_deg": 15
+      },
+      "requires_human_transport": false,
+      "operating_notes": "Synthetic authorized-waterway delivery, including loading and cold-chain handover.",
+      "allowed_modes": [
+        "watercraft"
+      ]
+    },
+    {
+      "mission_id": "AMZ-ACCESSIBLE-PASSENGERS-01",
+      "environment_id": "amazon_basin",
+      "mission_class": "accessible_community_passenger_transport",
+      "payload_ids": [
+        "seated_passengers",
+        "wheelchair_passenger"
+      ],
+      "required_gate_ids": [
+        "route_or_waterway_authorization",
+        "environmental_protection",
+        "recovery_plan",
+        "payload_securement",
+        "occupant_restraints_and_egress",
+        "accessible_transfer",
+        "privacy_and_data_minimization",
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution",
+        "condition_control"
+      ],
+      "route_envelope": {
+        "min_ambient_temp_c": 20,
+        "max_ambient_temp_c": 38,
+        "required_route_tilt_deg": 10
+      },
+      "requires_human_transport": true,
+      "operating_notes": "Synthetic short waterway passage with seated and wheelchair passengers; board/transfer and egress included.",
+      "allowed_modes": [
+        "watercraft"
+      ]
+    },
+    {
+      "mission_id": "CONGO-SCIENCE-SAMPLES-01",
+      "environment_id": "congo_basin",
+      "mission_class": "low_disturbance_ecosystem_survey",
+      "payload_ids": [
+        "fragile_science_instrument",
+        "contained_water_samples"
+      ],
+      "required_gate_ids": [
+        "route_or_waterway_authorization",
+        "environmental_protection",
+        "recovery_plan",
+        "payload_securement",
+        "condition_control",
+        "privacy_and_data_minimization",
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
+      ],
+      "route_envelope": {
+        "min_ambient_temp_c": 18,
+        "max_ambient_temp_c": 35,
+        "required_route_tilt_deg": 8
+      },
+      "requires_human_transport": false,
+      "operating_notes": "Synthetic survey on an approved path with fragile instruments and contained samples.",
+      "allowed_modes": [
+        "wheeled_rover"
+      ]
+    },
+    {
+      "mission_id": "CONGO-FIELD-CREW-01",
+      "environment_id": "congo_basin",
+      "mission_class": "field_crew_transfer",
+      "payload_ids": [
+        "field_crew"
+      ],
+      "required_gate_ids": [
+        "route_or_waterway_authorization",
+        "environmental_protection",
+        "recovery_plan",
+        "payload_securement",
+        "occupant_restraints_and_egress",
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution",
+        "condition_control"
+      ],
+      "route_envelope": {
+        "min_ambient_temp_c": 18,
+        "max_ambient_temp_c": 35,
+        "required_route_tilt_deg": 12
+      },
+      "requires_human_transport": true,
+      "operating_notes": "Synthetic movement of a two-person field crew between authorized sites.",
+      "allowed_modes": [
+        "watercraft"
+      ]
+    },
+    {
+      "mission_id": "ANTARCTIC-SCIENCE-INSTRUMENT-01",
+      "environment_id": "antarctica",
+      "mission_class": "sensitive_science_equipment_resupply",
+      "payload_ids": [
+        "fragile_science_instrument",
+        "bulk_medical_supplies"
+      ],
+      "required_gate_ids": [
+        "route_or_waterway_authorization",
+        "environmental_protection",
+        "recovery_plan",
+        "payload_securement",
+        "condition_control",
+        "privacy_and_data_minimization",
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
+      ],
+      "route_envelope": {
+        "min_ambient_temp_c": -48,
+        "max_ambient_temp_c": -18,
+        "required_route_tilt_deg": 10
+      },
+      "requires_human_transport": false,
+      "operating_notes": "Synthetic station resupply; cold-soak route with an instrument requiring a controlled compartment.",
+      "allowed_modes": [
+        "sled",
+        "tracked_carrier"
+      ]
+    },
+    {
+      "mission_id": "ANTARCTIC-STRETCHER-01",
+      "environment_id": "antarctica",
+      "mission_class": "supervised_field_patient_transfer",
+      "payload_ids": [
+        "stretcher_patient"
+      ],
+      "required_gate_ids": [
+        "route_or_waterway_authorization",
+        "environmental_protection",
+        "recovery_plan",
+        "payload_securement",
+        "condition_control",
+        "occupant_restraints_and_egress",
+        "patient_care_access",
+        "privacy_and_data_minimization",
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution",
+        "accessible_transfer"
+      ],
+      "route_envelope": {
+        "min_ambient_temp_c": -48,
+        "max_ambient_temp_c": -18,
+        "required_route_tilt_deg": 6
+      },
+      "requires_human_transport": true,
+      "operating_notes": "Synthetic patient transfer envelope only; no clinical protocol or field clearance is implied.",
+      "allowed_modes": [
+        "tracked_carrier"
+      ]
+    },
+    {
+      "mission_id": "SAHARA-REMOTE-TOOLS-01",
+      "environment_id": "sahara",
+      "mission_class": "remote_maintenance_tool_delivery",
+      "payload_ids": [
+        "bulk_medical_supplies",
+        "fragile_science_instrument"
+      ],
+      "required_gate_ids": [
+        "route_or_waterway_authorization",
+        "environmental_protection",
+        "recovery_plan",
+        "payload_securement",
+        "condition_control",
+        "privacy_and_data_minimization",
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
+      ],
+      "route_envelope": {
+        "min_ambient_temp_c": 32,
+        "max_ambient_temp_c": 52,
+        "required_route_tilt_deg": 12
+      },
+      "requires_human_transport": false,
+      "operating_notes": "Synthetic hot-soak/dust mission on a surveyed route with tools and fragile inspection equipment.",
+      "allowed_modes": [
+        "wheeled_rover"
+      ]
+    },
+    {
+      "mission_id": "SAHARA-CREW-01",
+      "environment_id": "sahara",
+      "mission_class": "field_crew_transport",
+      "payload_ids": [
+        "field_crew"
+      ],
+      "required_gate_ids": [
+        "route_or_waterway_authorization",
+        "environmental_protection",
+        "recovery_plan",
+        "payload_securement",
+        "condition_control",
+        "occupant_restraints_and_egress",
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
+      ],
+      "route_envelope": {
+        "min_ambient_temp_c": 32,
+        "max_ambient_temp_c": 52,
+        "required_route_tilt_deg": 12
+      },
+      "requires_human_transport": true,
+      "operating_notes": "Synthetic two-person crew transport with hot-ambient and occupant comfort requirements.",
+      "allowed_modes": [
+        "ground_carrier"
+      ]
+    },
+    {
+      "mission_id": "AFGHANISTAN-MEDICAL-SUPPLY-01",
+      "environment_id": "afghanistan",
+      "mission_class": "civilian_medical_supply_delivery",
+      "payload_ids": [
+        "cold_chain_medicine",
+        "bulk_medical_supplies"
+      ],
+      "required_gate_ids": [
+        "route_or_waterway_authorization",
+        "environmental_protection",
+        "recovery_plan",
+        "payload_securement",
+        "condition_control",
+        "privacy_and_data_minimization",
+        "human_supervision_and_stop",
+        "explosive_hazard_route_evidence",
+        "payload_layout_and_load_distribution"
+      ],
+      "route_envelope": {
+        "min_ambient_temp_c": -12,
+        "max_ambient_temp_c": 38,
+        "required_route_tilt_deg": 12
+      },
+      "requires_human_transport": false,
+      "operating_notes": "Synthetic civilian route example; route hazard status intentionally unknown and must block operational readiness.",
+      "allowed_modes": [
+        "wheeled_rover"
+      ]
+    },
+    {
+      "mission_id": "AFGHANISTAN-STRETCHER-01",
+      "environment_id": "afghanistan",
+      "mission_class": "civilian_supervised_patient_transport",
+      "payload_ids": [
+        "stretcher_patient"
+      ],
+      "required_gate_ids": [
+        "route_or_waterway_authorization",
+        "environmental_protection",
+        "recovery_plan",
+        "payload_securement",
+        "condition_control",
+        "occupant_restraints_and_egress",
+        "patient_care_access",
+        "privacy_and_data_minimization",
+        "human_supervision_and_stop",
+        "explosive_hazard_route_evidence",
+        "payload_layout_and_load_distribution",
+        "accessible_transfer"
+      ],
+      "route_envelope": {
+        "min_ambient_temp_c": -12,
+        "max_ambient_temp_c": 38,
+        "required_route_tilt_deg": 8
+      },
+      "requires_human_transport": true,
+      "operating_notes": "Synthetic patient transport candidate, subject to authorized civilian route assessment; no route authorization is implied.",
+      "allowed_modes": [
+        "ground_carrier"
+      ]
+    }
+  ],
+  "gate_definitions": [
+    {
+      "gate_id": "route_or_waterway_authorization",
+      "meaning": "Mission route or waterway access is authorized for this operation.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "environmental_protection",
+      "meaning": "Site-specific disturbance, waste and contamination controls are approved.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "recovery_plan",
+      "meaning": "A feasible platform and payload recovery plan exists.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "payload_securement",
+      "meaning": "Payload is secured within the declared loading envelope.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "condition_control",
+      "meaning": "Required payload or occupant temperature/condition control is demonstrated.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "occupant_restraints_and_egress",
+      "meaning": "Human occupants have appropriate restraints and emergency egress.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "accessible_transfer",
+      "meaning": "Accessible boarding and wheelchair securement requirements are satisfied.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "patient_care_access",
+      "meaning": "Patient restraint/support and caregiver access are provided.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "privacy_and_data_minimization",
+      "meaning": "Personal and community-sensitive data controls are defined.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "human_supervision_and_stop",
+      "meaning": "A responsible human supervisor and safe-stop behavior are present.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "explosive_hazard_route_evidence",
+      "meaning": "Route has passed the authorized humanitarian hazard assessment process.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "payload_layout_and_load_distribution",
+      "meaning": "All payloads fit together in a declared loading plan with verified restraints and center-of-mass bounds.",
+      "hard_gate": true
+    }
+  ],
+  "metric_definitions": [
+    {
+      "metric_id": "mission_duration_hours",
+      "unit": "hours",
+      "direction": "minimize",
+      "meaning": "Synthetic interval for end-to-end mission duration."
+    },
+    {
+      "metric_id": "energy_per_mission_wh",
+      "unit": "Wh",
+      "direction": "minimize",
+      "meaning": "Synthetic interval for mission energy use."
+    },
+    {
+      "metric_id": "handoff_time_minutes",
+      "unit": "minutes",
+      "direction": "minimize",
+      "meaning": "Synthetic interval for load/transfer/handover time."
+    },
+    {
+      "metric_id": "payload_exposure_index",
+      "unit": "index_0_1",
+      "direction": "minimize",
+      "meaning": "Synthetic combined exposure proxy for this test fixture, not a measured damage or health risk."
+    },
+    {
+      "metric_id": "recovery_time_minutes",
+      "unit": "minutes",
+      "direction": "minimize",
+      "meaning": "Synthetic interval for restoring/retrieving the asset and payload."
+    }
+  ],
+  "assessments": [
+    {
+      "assessment_id": "amz-coldchain-01-riverlink_cargo_boat",
+      "mission_id": "AMZ-COLDCHAIN-01",
+      "platform_id": "riverlink_cargo_boat",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 2,
+          "upper": 5
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 900,
+          "upper": 1400
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 8,
+          "upper": 15
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.1,
+          "upper": 0.25
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 20,
+          "upper": 50
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "cold_chain_medicine",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 700,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "amz-coldchain-01-canopyedge_light_rover",
+      "mission_id": "AMZ-COLDCHAIN-01",
+      "platform_id": "canopyedge_light_rover",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 2.6,
+          "upper": 6.5
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 1170,
+          "upper": 1820
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 10.4,
+          "upper": 19.5
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.13,
+          "upper": 0.325
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 26,
+          "upper": 65
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "cold_chain_medicine",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 700,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "amz-accessible-passengers-01-riverlink_accessible_ferry",
+      "mission_id": "AMZ-ACCESSIBLE-PASSENGERS-01",
+      "platform_id": "riverlink_accessible_ferry",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "occupant_restraints_and_egress",
+          "status": "pass"
+        },
+        {
+          "gate_id": "accessible_transfer",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.3,
+          "upper": 0.8
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 180,
+          "upper": 350
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 12
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.1,
+          "upper": 0.2
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 10,
+          "upper": 25
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "seated_passengers",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "wheelchair_passenger",
+          "position_mm": {
+            "x": 1800,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "amz-accessible-passengers-01-riverlink_cargo_boat",
+      "mission_id": "AMZ-ACCESSIBLE-PASSENGERS-01",
+      "platform_id": "riverlink_cargo_boat",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "occupant_restraints_and_egress",
+          "status": "fail"
+        },
+        {
+          "gate_id": "accessible_transfer",
+          "status": "fail"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "fail"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.39,
+          "upper": 1.04
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 234,
+          "upper": 455
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 6.5,
+          "upper": 15.600000000000001
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.13,
+          "upper": 0.26
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 13,
+          "upper": 32.5
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "seated_passengers",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "wheelchair_passenger",
+          "position_mm": {
+            "x": 1800,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "amz-accessible-passengers-01-canopyedge_light_rover",
+      "mission_id": "AMZ-ACCESSIBLE-PASSENGERS-01",
+      "platform_id": "canopyedge_light_rover",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "occupant_restraints_and_egress",
+          "status": "fail"
+        },
+        {
+          "gate_id": "accessible_transfer",
+          "status": "fail"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "fail"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.48,
+          "upper": 1.2800000000000002
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 288,
+          "upper": 560
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 8,
+          "upper": 19.200000000000003
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.16000000000000003,
+          "upper": 0.32000000000000006
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 16,
+          "upper": 40
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "seated_passengers",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "wheelchair_passenger",
+          "position_mm": {
+            "x": 1800,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "congo-science-samples-01-congo_low_disturbance_rover",
+      "mission_id": "CONGO-SCIENCE-SAMPLES-01",
+      "platform_id": "congo_low_disturbance_rover",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 1,
+          "upper": 3
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 300,
+          "upper": 700
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 10
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.05,
+          "upper": 0.2
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 15,
+          "upper": 40
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "contained_water_samples",
+          "position_mm": {
+            "x": 750,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "congo-science-samples-01-canopyedge_light_rover",
+      "mission_id": "CONGO-SCIENCE-SAMPLES-01",
+      "platform_id": "canopyedge_light_rover",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 1.3,
+          "upper": 3.9000000000000004
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 390,
+          "upper": 910
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 6.5,
+          "upper": 13
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.065,
+          "upper": 0.26
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 19.5,
+          "upper": 52
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "contained_water_samples",
+          "position_mm": {
+            "x": 750,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "congo-field-crew-01-riverlink_accessible_ferry",
+      "mission_id": "CONGO-FIELD-CREW-01",
+      "platform_id": "riverlink_accessible_ferry",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "occupant_restraints_and_egress",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.2,
+          "upper": 1.2
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 150,
+          "upper": 300
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 3,
+          "upper": 8
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.1,
+          "upper": 0.25
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 10,
+          "upper": 30
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "field_crew",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "congo-field-crew-01-congo_low_disturbance_rover",
+      "mission_id": "CONGO-FIELD-CREW-01",
+      "platform_id": "congo_low_disturbance_rover",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "occupant_restraints_and_egress",
+          "status": "fail"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "fail"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.26,
+          "upper": 1.56
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 195,
+          "upper": 390
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 3.9000000000000004,
+          "upper": 10.4
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.13,
+          "upper": 0.325
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 13,
+          "upper": 39
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "field_crew",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "antarctic-science-instrument-01-polar_sled_train",
+      "mission_id": "ANTARCTIC-SCIENCE-INSTRUMENT-01",
+      "platform_id": "polar_sled_train",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "fail"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 1,
+          "upper": 4
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 1800,
+          "upper": 2600
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 8,
+          "upper": 18
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.1,
+          "upper": 0.25
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 20,
+          "upper": 60
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 750,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "antarctic-science-instrument-01-polarcrawler_science_carrier",
+      "mission_id": "ANTARCTIC-SCIENCE-INSTRUMENT-01",
+      "platform_id": "polarcrawler_science_carrier",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 1.3,
+          "upper": 5.2
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 2340,
+          "upper": 3380
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 10.4,
+          "upper": 23.400000000000002
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.13,
+          "upper": 0.325
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 26,
+          "upper": 78
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 750,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "antarctic-stretcher-01-polar_patient_carrier",
+      "mission_id": "ANTARCTIC-STRETCHER-01",
+      "platform_id": "polar_patient_carrier",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "occupant_restraints_and_egress",
+          "status": "pass"
+        },
+        {
+          "gate_id": "patient_care_access",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        },
+        {
+          "gate_id": "accessible_transfer",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.4,
+          "upper": 1.4
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 700,
+          "upper": 1200
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 12
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.1,
+          "upper": 0.25
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 15,
+          "upper": 40
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "stretcher_patient",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "antarctic-stretcher-01-polarcrawler_science_carrier",
+      "mission_id": "ANTARCTIC-STRETCHER-01",
+      "platform_id": "polarcrawler_science_carrier",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "fail"
+        },
+        {
+          "gate_id": "occupant_restraints_and_egress",
+          "status": "fail"
+        },
+        {
+          "gate_id": "patient_care_access",
+          "status": "fail"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        },
+        {
+          "gate_id": "accessible_transfer",
+          "status": "fail"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.52,
+          "upper": 1.8199999999999998
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 910,
+          "upper": 1560
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 6.5,
+          "upper": 15.600000000000001
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.13,
+          "upper": 0.325
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 19.5,
+          "upper": 52
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "stretcher_patient",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "sahara-remote-tools-01-dunerunner_cargo_rover",
+      "mission_id": "SAHARA-REMOTE-TOOLS-01",
+      "platform_id": "dunerunner_cargo_rover",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 1.5,
+          "upper": 4
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 600,
+          "upper": 1200
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 8,
+          "upper": 16
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.1,
+          "upper": 0.3
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 20,
+          "upper": 50
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 900,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "sahara-remote-tools-01-dunerunner_crew_carrier",
+      "mission_id": "SAHARA-REMOTE-TOOLS-01",
+      "platform_id": "dunerunner_crew_carrier",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 1.9500000000000002,
+          "upper": 5.2
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 780,
+          "upper": 1560
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 10.4,
+          "upper": 20.8
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.13,
+          "upper": 0.39
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 26,
+          "upper": 65
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 900,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "sahara-crew-01-dunerunner_crew_carrier",
+      "mission_id": "SAHARA-CREW-01",
+      "platform_id": "dunerunner_crew_carrier",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "occupant_restraints_and_egress",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.5,
+          "upper": 1.8
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 800,
+          "upper": 1700
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 15
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.1,
+          "upper": 0.3
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 20,
+          "upper": 45
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "field_crew",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "sahara-crew-01-dunerunner_cargo_rover",
+      "mission_id": "SAHARA-CREW-01",
+      "platform_id": "dunerunner_cargo_rover",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "fail"
+        },
+        {
+          "gate_id": "occupant_restraints_and_egress",
+          "status": "fail"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.65,
+          "upper": 2.3400000000000003
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 1040,
+          "upper": 2210
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 6.5,
+          "upper": 19.5
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.13,
+          "upper": 0.39
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 26,
+          "upper": 58.5
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "field_crew",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "afghanistan-medical-supply-01-aidrover_supply",
+      "mission_id": "AFGHANISTAN-MEDICAL-SUPPLY-01",
+      "platform_id": "aidrover_supply",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "explosive_hazard_route_evidence",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 2,
+          "upper": 6
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 700,
+          "upper": 1400
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 8,
+          "upper": 20
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.1,
+          "upper": 0.3
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 20,
+          "upper": 60
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "cold_chain_medicine",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 700,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "afghanistan-medical-supply-01-aidrover_patient_carrier",
+      "mission_id": "AFGHANISTAN-MEDICAL-SUPPLY-01",
+      "platform_id": "aidrover_patient_carrier",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "fail"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "explosive_hazard_route_evidence",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 2.6,
+          "upper": 7.800000000000001
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 910,
+          "upper": 1820
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 10.4,
+          "upper": 26
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.13,
+          "upper": 0.39
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 26,
+          "upper": 78
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "cold_chain_medicine",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 700,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "afghanistan-stretcher-01-aidrover_patient_carrier",
+      "mission_id": "AFGHANISTAN-STRETCHER-01",
+      "platform_id": "aidrover_patient_carrier",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "occupant_restraints_and_egress",
+          "status": "pass"
+        },
+        {
+          "gate_id": "patient_care_access",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "explosive_hazard_route_evidence",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        },
+        {
+          "gate_id": "accessible_transfer",
+          "status": "pass"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.6,
+          "upper": 2
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 900,
+          "upper": 1600
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 6,
+          "upper": 15
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.1,
+          "upper": 0.3
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 20,
+          "upper": 60
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "stretcher_patient",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    },
+    {
+      "assessment_id": "afghanistan-stretcher-01-aidrover_supply",
+      "mission_id": "AFGHANISTAN-STRETCHER-01",
+      "platform_id": "aidrover_supply",
+      "gate_results": [
+        {
+          "gate_id": "route_or_waterway_authorization",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "environmental_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_securement",
+          "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "fail"
+        },
+        {
+          "gate_id": "occupant_restraints_and_egress",
+          "status": "fail"
+        },
+        {
+          "gate_id": "patient_care_access",
+          "status": "fail"
+        },
+        {
+          "gate_id": "privacy_and_data_minimization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "explosive_hazard_route_evidence",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
+        },
+        {
+          "gate_id": "accessible_transfer",
+          "status": "fail"
+        }
+      ],
+      "metric_intervals": [
+        {
+          "metric_id": "mission_duration_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.78,
+          "upper": 2.6
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 1170,
+          "upper": 2080
+        },
+        {
+          "metric_id": "handoff_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 7.800000000000001,
+          "upper": 19.5
+        },
+        {
+          "metric_id": "payload_exposure_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.13,
+          "upper": 0.39
+        },
+        {
+          "metric_id": "recovery_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 26,
+          "upper": 78
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "stretcher_patient",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,843 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/extreme_cargo_mission_contract_v0_1.schema.json",
+  "title": "Extreme Cargo and Human Mission Contract v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "provenance",
+    "claim_ceiling",
+    "environments",
+    "payload_profiles",
+    "platform_profiles",
+    "mission_scenarios",
+    "gate_definitions",
+    "metric_definitions",
+    "assessments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark_id": {
+      "const": "extreme-cargo-mission-contract-v0.1"
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_payload_contract_audit_is_not_physical_or_clinical_qualification"
+    },
+    "environments": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "$ref": "#/$defs/environment"
+      }
+    },
+    "payload_profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/payload"
+      }
+    },
+    "platform_profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/platform"
+      }
+    },
+    "mission_scenarios": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "$ref": "#/$defs/mission"
+      }
+    },
+    "gate_definitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/gate"
+      }
+    },
+    "metric_definitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/metric"
+      }
+    },
+    "assessments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/assessment"
+      }
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "external_real_world_data_included",
+        "notes"
+      ],
+      "properties": {
+        "kind": {
+          "const": "synthetic_only"
+        },
+        "external_real_world_data_included": {
+          "const": false
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment_id",
+        "min_ambient_temp_c",
+        "max_ambient_temp_c"
+      ],
+      "properties": {
+        "environment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "min_ambient_temp_c": {
+          "type": "number"
+        },
+        "max_ambient_temp_c": {
+          "type": "number"
+        }
+      }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        }
+      }
+    },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "length",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "center_of_mass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "z": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payload_id",
+        "payload_class",
+        "mass_kg",
+        "dimensions_mm",
+        "center_of_mass_fraction",
+        "temperature_range_c",
+        "max_shock_g",
+        "max_tilt_deg",
+        "max_vibration_rms_m_s2",
+        "containment_required",
+        "securement_required",
+        "occupants",
+        "occupant_class",
+        "restraint_required",
+        "accessible_boarding_required",
+        "wheelchair_securement_required",
+        "patient_support_required",
+        "caregiver_access_required",
+        "emergency_egress_required",
+        "privacy_sensitive"
+      ],
+      "properties": {
+        "payload_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_class": {
+          "enum": [
+            "bulk_cargo",
+            "cold_chain",
+            "fragile_instrument",
+            "contained_liquid",
+            "seated_passengers",
+            "wheelchair_user",
+            "stretcher_patient",
+            "field_crew"
+          ]
+        },
+        "mass_kg": {
+          "$ref": "#/$defs/positive_mass_range"
+        },
+        "dimensions_mm": {
+          "$ref": "#/$defs/dimensions"
+        },
+        "center_of_mass_fraction": {
+          "$ref": "#/$defs/center_of_mass"
+        },
+        "temperature_range_c": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/range"
+            }
+          ]
+        },
+        "max_shock_g": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_tilt_deg": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 90
+        },
+        "max_vibration_rms_m_s2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "containment_required": {
+          "type": "boolean"
+        },
+        "securement_required": {
+          "type": "boolean"
+        },
+        "occupants": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "occupant_class": {
+          "enum": [
+            "none",
+            "seated",
+            "wheelchair",
+            "stretcher_patient",
+            "field_crew"
+          ]
+        },
+        "restraint_required": {
+          "type": "boolean"
+        },
+        "accessible_boarding_required": {
+          "type": "boolean"
+        },
+        "wheelchair_securement_required": {
+          "type": "boolean"
+        },
+        "patient_support_required": {
+          "type": "boolean"
+        },
+        "caregiver_access_required": {
+          "type": "boolean"
+        },
+        "emergency_egress_required": {
+          "type": "boolean"
+        },
+        "privacy_sensitive": {
+          "type": "boolean"
+        }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform_id",
+        "mode",
+        "environment_ids",
+        "supported_payload_classes",
+        "max_payload_kg",
+        "bay_dimensions_mm",
+        "ambient_temp_min_c",
+        "ambient_temp_max_c",
+        "controlled_temp_min_c",
+        "controlled_temp_max_c",
+        "max_payload_shock_g",
+        "maximum_safe_route_tilt_deg",
+        "max_payload_vibration_rms_m_s2",
+        "has_securement",
+        "has_containment",
+        "has_occupant_restraints",
+        "has_accessible_boarding",
+        "has_wheelchair_securement",
+        "has_patient_support",
+        "has_caregiver_access",
+        "has_emergency_egress",
+        "has_privacy_controls",
+        "has_recovery_plan",
+        "has_emergency_stop",
+        "center_of_mass_limits_fraction"
+      ],
+      "properties": {
+        "platform_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "enum": [
+            "watercraft",
+            "wheeled_rover",
+            "tracked_carrier",
+            "sled",
+            "ground_carrier",
+            "aerial"
+          ]
+        },
+        "environment_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "supported_payload_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "bulk_cargo",
+              "cold_chain",
+              "fragile_instrument",
+              "contained_liquid",
+              "seated_passengers",
+              "wheelchair_user",
+              "stretcher_patient",
+              "field_crew"
+            ]
+          }
+        },
+        "max_payload_kg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "bay_dimensions_mm": {
+          "$ref": "#/$defs/dimensions"
+        },
+        "ambient_temp_min_c": {
+          "type": "number"
+        },
+        "ambient_temp_max_c": {
+          "type": "number"
+        },
+        "controlled_temp_min_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "controlled_temp_max_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "max_payload_shock_g": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_payload_vibration_rms_m_s2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "has_securement": {
+          "type": "boolean"
+        },
+        "has_containment": {
+          "type": "boolean"
+        },
+        "has_occupant_restraints": {
+          "type": "boolean"
+        },
+        "has_accessible_boarding": {
+          "type": "boolean"
+        },
+        "has_wheelchair_securement": {
+          "type": "boolean"
+        },
+        "has_patient_support": {
+          "type": "boolean"
+        },
+        "has_caregiver_access": {
+          "type": "boolean"
+        },
+        "has_emergency_egress": {
+          "type": "boolean"
+        },
+        "has_privacy_controls": {
+          "type": "boolean"
+        },
+        "has_recovery_plan": {
+          "type": "boolean"
+        },
+        "has_emergency_stop": {
+          "type": "boolean"
+        },
+        "maximum_safe_route_tilt_deg": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 90
+        },
+        "center_of_mass_limits_fraction": {
+          "$ref": "#/$defs/center_of_mass_limits"
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "meaning",
+        "hard_gate"
+      ],
+      "properties": {
+        "gate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "meaning": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hard_gate": {
+          "const": true
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "unit",
+        "direction",
+        "meaning"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "direction": {
+          "enum": [
+            "minimize",
+            "maximize"
+          ]
+        },
+        "meaning": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mission_id",
+        "environment_id",
+        "mission_class",
+        "payload_ids",
+        "required_gate_ids",
+        "route_envelope",
+        "requires_human_transport",
+        "operating_notes",
+        "allowed_modes"
+      ],
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_gate_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "route_envelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min_ambient_temp_c",
+            "max_ambient_temp_c",
+            "required_route_tilt_deg"
+          ],
+          "properties": {
+            "min_ambient_temp_c": {
+              "type": "number"
+            },
+            "max_ambient_temp_c": {
+              "type": "number"
+            },
+            "required_route_tilt_deg": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 90
+            }
+          }
+        },
+        "requires_human_transport": {
+          "type": "boolean"
+        },
+        "operating_notes": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowed_modes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "watercraft",
+              "wheeled_rover",
+              "tracked_carrier",
+              "sled",
+              "ground_carrier",
+              "aerial"
+            ]
+          }
+        }
+      }
+    },
+    "gate_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "status"
+      ],
+      "properties": {
+        "gate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "metric_interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "unit",
+        "status",
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "synthetic_interval",
+            "unknown"
+          ]
+        },
+        "lower": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "upper": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "synthetic_interval"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "lower": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "lower": {
+                "type": "null"
+              },
+              "upper": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assessment_id",
+        "mission_id",
+        "platform_id",
+        "gate_results",
+        "metric_intervals",
+        "load_layout"
+      ],
+      "properties": {
+        "assessment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gate_results": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/gate_result"
+          }
+        },
+        "metric_intervals": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/metric_interval"
+          }
+        },
+        "load_layout": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/load_placement"
+          }
+        }
+      }
+    },
+    "center_of_mass_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "x": {
+          "$ref": "#/$defs/fraction_range"
+        },
+        "y": {
+          "$ref": "#/$defs/fraction_range"
+        },
+        "z": {
+          "$ref": "#/$defs/fraction_range"
+        }
+      }
+    },
+    "fraction_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "load_placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payload_id",
+        "position_mm"
+      ],
+      "properties": {
+        "payload_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "position_mm": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "properties": {
+            "x": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "y": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "z": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "positive_mass_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  }
+}
