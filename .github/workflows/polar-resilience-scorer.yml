@@ -71,6 +71,7 @@ jobs:
                .gate_failure_probability > 0 and
                (.scenario_outcomes | length == 2) and
                (.service_results | length == 3) and
+               (all(.service_results[]; (.floor_breach_probability >= 0 and .floor_breach_probability <= 1 and (.expected_service_fraction == null or (.expected_service_fraction >= 0 and .expected_service_fraction <= 1)) and (.expected_service_shortfall == null or (.expected_service_shortfall >= 0 and .expected_service_shortfall <= 1)) and (.cvar_service_shortfall == null or (.cvar_service_shortfall >= 0 and .cvar_service_shortfall <= 1))))) and
                (.expected_system_floor_breach_episode_count >= 0) and
                (.expected_longest_consecutive_system_floor_breach_hours >= 0) and
                (.worst_case_longest_consecutive_system_floor_breach_hours >= 0) and
@@ -99,7 +100,7 @@ jobs:
                .maximum_system_floor_breach_episode_count_across_scenarios >= 0 and
                .worst_case_longest_consecutive_system_floor_breach_hours >= 0 and
                (.earliest_observed_time_to_first_system_floor_breach_hours == null or .earliest_observed_time_to_first_system_floor_breach_hours >= 0) and
-               (.service_results | length == 3) and
+               (.service_results | length == 3 and all(.[]; (.service_floor_breach_scenario_count >= 0 and (if .active_in_all_scenarios then (.worst_case_service_shortfall >= 0 and .worst_case_service_shortfall <= 1 and .unweighted_mean_service_shortfall_across_stress_suite >= 0 and .unweighted_mean_service_shortfall_across_stress_suite <= 1) else (.worst_case_service_shortfall == null and .unweighted_mean_service_shortfall_across_stress_suite == null) end)))) and
                (.scenario_outcomes | length == 3 and all(.[]; (.scenario_duration_hours > 0 and .system_floor_breach_episode_count >= 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or (.time_to_first_system_floor_breach_hours >= 0 and .time_to_first_system_floor_breach_hours <= .scenario_duration_hours))))))] | length == 1) and
             ([.policy_results[] | select(.policy_id == "candidate_full_service") | .service_results[] | select(.service_id == "water" and .active_in_all_scenarios and .service_floor_breach_scenario_count > 0 and .worst_case_service_shortfall > 0 and (.scenario_outcomes | length == 3))] | length == 1)
           ' /tmp/polar-robust-set-report.json
