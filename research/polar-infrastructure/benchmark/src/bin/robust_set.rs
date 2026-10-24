@@ -329,6 +329,19 @@ mod tests {
     }
 
     #[test]
+    fn rejects_rate_and_integrated_unit_drift_between_scenarios() {
+        let mut rate_drift = fixture();
+        rate_drift.scenarios[1].score_input.episode.service_contracts[0].rate_unit =
+            "incompatible_rate_unit".to_string();
+        assert!(aggregate(&rate_drift).unwrap_err().contains("service contract semantics"));
+
+        let mut integrated_drift = fixture();
+        integrated_drift.scenarios[1].score_input.episode.service_contracts[0].integrated_unit =
+            "incompatible_integrated_unit".to_string();
+        assert!(aggregate(&integrated_drift).unwrap_err().contains("service contract semantics"));
+    }
+
+    #[test]
     fn rejects_active_service_set_drift() {
         let mut input = fixture();
         let scenario = &mut input.scenarios[1].score_input;
