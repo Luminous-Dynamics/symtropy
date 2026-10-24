@@ -10,9 +10,12 @@ separate.
   outage truth separately.
 - Each dispatch rule receives the identical policy input.
 - Every rule's output, including partial plans and rejected schedules, is retained
-  in content-addressed candidate-schedule and independent-audit sidecar artifacts.
-- A result-ledger v0 JSONL row points to the exact sidecar SHA-256 digests and
-  stores separate metrics for makespan, tardiness, and occupied resource ticks.
+  in content-addressed method-configuration, candidate-schedule, and independent-audit sidecars.
+- A result-ledger v0 JSONL row points to all three exact sidecar SHA-256 digests
+  and stores separate metrics for makespan, tardiness, and occupied resource ticks.
+- Input state and disturbance digests hash the exact fixture bytes; per-rule
+  method-configuration digests hash a sidecar that records the base config digest,
+  rule identity, revision, and declared policy input boundary.
   No weighted "winner score" is emitted.
 - An abstract audit pass is recorded as `incomplete`, not `feasible`, because
   geometry, causal replay, and receipt-integrity gates are not run by this adapter.
@@ -29,7 +32,7 @@ counterexample harness, not a yard-calibrated benchmark or a result against
 industrial state of the art.
 
 The example prints JSONL records to stdout and writes content-addressed
-candidate/audit sidecars to `SHIPYARD_EVIDENCE_DIR` (or a process-specific
+method-configuration/candidate/audit sidecars to `SHIPYARD_EVIDENCE_DIR` (or a process-specific
 temporary directory). The ledger references their exact SHA-256 values. An outer
 runner should preserve the JSONL plus those sidecars and bind both to an exact
 source revision and the immutable episode/tape digests.
