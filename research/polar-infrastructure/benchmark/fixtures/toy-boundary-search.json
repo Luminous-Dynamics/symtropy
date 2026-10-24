@@ -5,8 +5,8 @@
   "status": "synthetic_fixture",
   "search_partition_id": "toy-boundary-search-only-not-holdout",
   "axes": [
-    { "id": "renewable_deficit_hours", "unit": "h" },
-    { "id": "fuel_delay_hours", "unit": "h" }
+    { "id": "renewable_deficit_hours", "unit": "h", "higher_is_more_severe": true },
+    { "id": "fuel_delay_hours", "unit": "h", "higher_is_more_severe": true }
   ],
   "gate_ids": [
     "heat_floor",
