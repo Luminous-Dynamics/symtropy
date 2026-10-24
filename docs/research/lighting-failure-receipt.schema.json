@@ -718,6 +718,56 @@
           "scoring"
         ]
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "failure_code": {
+            "const": "unknown_required_gate"
+          }
+        },
+        "required": [
+          "failure_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "run_status": {
+            "const": "unknown"
+          },
+          "failure_class": {
+            "const": "evidence_failure"
+          },
+          "scoring": {
+            "properties": {
+              "non_rankable_reason": {
+                "const": "unknown_gate"
+              }
+            },
+            "required": [
+              "non_rankable_reason"
+            ]
+          },
+          "gate_results": {
+            "contains": {
+              "properties": {
+                "status": {
+                  "const": "unknown"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "run_status",
+          "failure_class",
+          "scoring",
+          "gate_results"
+        ]
+      }
     }
   ],
   "$defs": {
