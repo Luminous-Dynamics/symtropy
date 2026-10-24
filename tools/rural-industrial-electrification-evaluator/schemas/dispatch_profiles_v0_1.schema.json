@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/rural-industrial-electrification-evaluator/schemas/dispatch_profiles_v0_1.schema.json",
+  "title": "Time-Aware Industrial and Mobile Energy Dispatch v0.1",
+  "type": "object",
+  "required": ["schema_version", "scenarios"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "$defs": {
+    "nonnegative": { "type": "number", "minimum": 0 },
+    "fraction": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "storage": {
+      "type": "object",
+      "required": ["capacity_kwh", "initial_soc_kwh", "minimum_soc_kwh", "maximum_charge_power_kw", "maximum_discharge_power_kw", "charge_efficiency_fraction", "discharge_efficiency_fraction"],
+      "additionalProperties": false,
+      "properties": {
+        "capacity_kwh": { "type": "number", "exclusiveMinimum": 0 },
+        "initial_soc_kwh": { "$ref": "#/$defs/nonnegative" },
+        "minimum_soc_kwh": { "$ref": "#/$defs/nonnegative" },
+        "maximum_charge_power_kw": { "$ref": "#/$defs/nonnegative" },
+        "maximum_discharge_power_kw": { "$ref": "#/$defs/nonnegative" },
+        "charge_efficiency_fraction": { "$ref": "#/$defs/fraction" },
+        "discharge_efficiency_fraction": { "$ref": "#/$defs/fraction" }
+      }
+    },
+    "slot": {
+      "type": "object",
+      "required": ["slot_id", "duration_hours", "onsite_generation_available_kw", "grid_import_limit_kw", "critical_load_requested_kw", "flexible_load_requested_kw", "allow_storage_for_flexible_load", "allow_grid_charging", "grid_price_per_kwh", "grid_carbon_kg_per_kwh"],
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": { "type": "string", "minLength": 1 },
+        "duration_hours": { "type": "number", "exclusiveMinimum": 0 },
+        "onsite_generation_available_kw": { "$ref": "#/$defs/nonnegative" },
+        "grid_import_limit_kw": { "$ref": "#/$defs/nonnegative" },
+        "critical_load_requested_kw": { "$ref": "#/$defs/nonnegative" },
+        "flexible_load_requested_kw": { "$ref": "#/$defs/nonnegative" },
+        "allow_storage_for_flexible_load": { "type": "boolean" },
+        "allow_grid_charging": { "type": "boolean" },
+        "grid_price_per_kwh": { "type": ["number", "null"], "minimum": 0 },
+        "grid_carbon_kg_per_kwh": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "required": ["scenario_id", "label", "evidence_class", "storage", "slots"],
+      "additionalProperties": false,
+      "properties": {
+        "scenario_id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "evidence_class": { "enum": ["synthetic", "measured", "manufacturer", "literature", "estimate"] },
+        "storage": { "$ref": "#/$defs/storage" },
+        "slots": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/slot" } }
+      }
+    }
+  }
+}

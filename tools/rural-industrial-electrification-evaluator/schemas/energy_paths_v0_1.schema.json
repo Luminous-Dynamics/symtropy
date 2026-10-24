@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/rural-industrial-electrification-evaluator/schemas/energy_paths_v0_1.schema.json",
+  "title": "Industrial and Mobile Energy Delivery Path v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "scenarios"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/path"
+      }
+    }
+  },
+  "$defs": {
+    "positive": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "path": {
+      "type": "object",
+      "required": [
+        "scenario_id",
+        "label",
+        "evidence_class",
+        "carrier",
+        "source_available_kw",
+        "requested_load_kw",
+        "operation_hours",
+        "stages"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "measured",
+            "manufacturer",
+            "literature",
+            "estimate"
+          ]
+        },
+        "carrier": {
+          "enum": [
+            "electrical",
+            "thermal"
+          ]
+        },
+        "source_available_kw": {
+          "$ref": "#/$defs/positive"
+        },
+        "requested_load_kw": {
+          "$ref": "#/$defs/positive"
+        },
+        "operation_hours": {
+          "$ref": "#/$defs/positive"
+        },
+        "source_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "required_delivery_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "minimum_approach_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "stages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "stage_id",
+              "carrier",
+              "efficiency_fraction",
+              "max_output_kw"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "stage_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "carrier": {
+                "enum": [
+                  "electrical",
+                  "thermal"
+                ]
+              },
+              "efficiency_fraction": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1
+              },
+              "max_output_kw": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "temperature_drop_c": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

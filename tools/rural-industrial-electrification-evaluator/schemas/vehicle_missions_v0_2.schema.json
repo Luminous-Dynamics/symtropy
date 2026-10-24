@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/rural-industrial-electrification-evaluator/schemas/vehicle_missions_v0_2.schema.json",
+  "title": "Electric vehicle mission profiles v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile_set_id", "claim_ceiling", "scenarios"],
+  "properties": {
+    "schema_version": { "const": "0.2.0" },
+    "profile_set_id": { "const": "EV-MISSION-PHYSICS-001" },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "$defs": {
+    "nonnegative": { "type": "number", "minimum": 0 },
+    "positive": { "type": "number", "exclusiveMinimum": 0 },
+    "fraction": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario_id", "label", "design_id", "evidence_class", "evidence_reference", "evidence_note", "mission_functional_unit", "initial_usable_soc_fraction", "auxiliary_load_kw", "nontravel_duration_hours", "nontravel_auxiliary_load_kw", "declared_peak_battery_power_kw", "rotating_mass_factor", "segments"],
+      "properties": {
+        "scenario_id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "design_id": { "type": "string", "minLength": 1 },
+        "evidence_class": { "enum": ["synthetic", "measured", "manufacturer", "literature", "estimate", "unknown"] },
+        "evidence_reference": { "type": "string" },
+        "evidence_note": { "type": "string", "minLength": 1 },
+        "mission_functional_unit": { "type": "string", "minLength": 1 },
+        "initial_usable_soc_fraction": { "$ref": "#/$defs/fraction" },
+        "auxiliary_load_kw": { "$ref": "#/$defs/nonnegative" },
+        "nontravel_duration_hours": { "$ref": "#/$defs/nonnegative" },
+        "nontravel_auxiliary_load_kw": { "$ref": "#/$defs/nonnegative" },
+        "declared_peak_battery_power_kw": { "$ref": "#/$defs/positive" },
+        "rotating_mass_factor": { "type": "number", "minimum": 1 },
+        "segments": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/segment" }
+        }
+      }
+    },
+    "segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["segment_id", "distance_m", "duration_s", "initial_speed_mps", "final_speed_mps", "grade_fraction", "rolling_resistance_coefficient", "drag_area_m2", "air_density_kg_per_m3", "drivetrain_efficiency_fraction", "regenerative_efficiency_fraction", "max_regen_battery_power_kw", "work_energy_demand_kwh"],
+      "properties": {
+        "segment_id": { "type": "string", "minLength": 1 },
+        "distance_m": { "$ref": "#/$defs/nonnegative" },
+        "duration_s": { "$ref": "#/$defs/positive" },
+        "initial_speed_mps": { "$ref": "#/$defs/nonnegative" },
+        "final_speed_mps": { "$ref": "#/$defs/nonnegative" },
+        "grade_fraction": { "type": "number", "minimum": -0.5, "maximum": 0.5 },
+        "rolling_resistance_coefficient": { "type": "number", "minimum": 0, "maximum": 0.2 },
+        "drag_area_m2": { "$ref": "#/$defs/nonnegative" },
+        "air_density_kg_per_m3": { "$ref": "#/$defs/positive" },
+        "drivetrain_efficiency_fraction": { "$ref": "#/$defs/fraction" },
+        "regenerative_efficiency_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "max_regen_battery_power_kw": { "$ref": "#/$defs/nonnegative" },
+        "work_energy_demand_kwh": { "$ref": "#/$defs/nonnegative" }
+      }
+    }
+  }
+}

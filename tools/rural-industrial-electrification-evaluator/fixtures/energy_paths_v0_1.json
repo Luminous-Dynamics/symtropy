@@ -1,0 +1,271 @@
+{
+  "schema_version": "0.1.0",
+  "scenarios": [
+    {
+      "scenario_id": "industrial-electric-bus-to-process",
+      "label": "Industrial electrical bus to process distribution with explicit site capacity",
+      "evidence_class": "synthetic",
+      "carrier": "electrical",
+      "source_available_kw": 30000,
+      "requested_load_kw": 25000,
+      "operation_hours": 24,
+      "source_temperature_c": null,
+      "required_delivery_temperature_c": null,
+      "minimum_approach_temperature_c": null,
+      "stages": [
+        {
+          "stage_id": "transformer",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.99,
+          "max_output_kw": 29000,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "site_feeder",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.985,
+          "max_output_kw": 28000,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "power_conditioning",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.98,
+          "max_output_kw": 27000,
+          "temperature_drop_c": null
+        }
+      ]
+    },
+    {
+      "scenario_id": "industrial-intermediate-heat-loop",
+      "label": "Synthetic qualified intermediate heat interface to compatible process heat",
+      "evidence_class": "synthetic",
+      "carrier": "thermal",
+      "source_available_kw": 120000,
+      "requested_load_kw": 80000,
+      "operation_hours": 24,
+      "source_temperature_c": 520,
+      "required_delivery_temperature_c": 430,
+      "minimum_approach_temperature_c": 20,
+      "stages": [
+        {
+          "stage_id": "intermediate_heat_exchange",
+          "carrier": "thermal",
+          "efficiency_fraction": 0.96,
+          "max_output_kw": 115000,
+          "temperature_drop_c": 15
+        },
+        {
+          "stage_id": "insulated_distribution",
+          "carrier": "thermal",
+          "efficiency_fraction": 0.985,
+          "max_output_kw": 110000,
+          "temperature_drop_c": 10
+        },
+        {
+          "stage_id": "process_exchanger",
+          "carrier": "thermal",
+          "efficiency_fraction": 0.94,
+          "max_output_kw": 100000,
+          "temperature_drop_c": 25
+        }
+      ]
+    },
+    {
+      "scenario_id": "thermal-grade-incompatible",
+      "label": "Synthetic heat source below the declared delivery-temperature requirement",
+      "evidence_class": "synthetic",
+      "carrier": "thermal",
+      "source_available_kw": 40000,
+      "requested_load_kw": 30000,
+      "operation_hours": 8,
+      "source_temperature_c": 280,
+      "required_delivery_temperature_c": 320,
+      "minimum_approach_temperature_c": 15,
+      "stages": [
+        {
+          "stage_id": "heat_distribution",
+          "carrier": "thermal",
+          "efficiency_fraction": 0.95,
+          "max_output_kw": 35000,
+          "temperature_drop_c": 5
+        }
+      ]
+    },
+    {
+      "scenario_id": "mobile-conductive-fast-charge",
+      "label": "Synthetic conductive charging path to a mobile platform battery interface",
+      "evidence_class": "synthetic",
+      "carrier": "electrical",
+      "source_available_kw": 1200,
+      "requested_load_kw": 800,
+      "operation_hours": 1,
+      "source_temperature_c": null,
+      "required_delivery_temperature_c": null,
+      "minimum_approach_temperature_c": null,
+      "stages": [
+        {
+          "stage_id": "site_feeder",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.985,
+          "max_output_kw": 1100,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "charger_power_conversion",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.96,
+          "max_output_kw": 1000,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "connector_and_receiver",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.995,
+          "max_output_kw": 950,
+          "temperature_drop_c": null
+        }
+      ]
+    },
+    {
+      "scenario_id": "mobile-trolley-direct",
+      "label": "Synthetic trolley-assisted power path on a fixed high-demand route",
+      "evidence_class": "synthetic",
+      "carrier": "electrical",
+      "source_available_kw": 1500,
+      "requested_load_kw": 900,
+      "operation_hours": 8,
+      "source_temperature_c": null,
+      "required_delivery_temperature_c": null,
+      "minimum_approach_temperature_c": null,
+      "stages": [
+        {
+          "stage_id": "route_substation",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.985,
+          "max_output_kw": 1400,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "overhead_catenary",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.99,
+          "max_output_kw": 1300,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "pantograph_receiver",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.99,
+          "max_output_kw": 1200,
+          "temperature_drop_c": null
+        }
+      ]
+    },
+    {
+      "scenario_id": "mobile-wireless-static",
+      "label": "Synthetic static wireless receiver path; not a dynamic-route performance claim",
+      "evidence_class": "synthetic",
+      "carrier": "electrical",
+      "source_available_kw": 150,
+      "requested_load_kw": 90,
+      "operation_hours": 0.5,
+      "source_temperature_c": null,
+      "required_delivery_temperature_c": null,
+      "minimum_approach_temperature_c": null,
+      "stages": [
+        {
+          "stage_id": "site_feeder",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.985,
+          "max_output_kw": 140,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "high_frequency_converter",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.98,
+          "max_output_kw": 125,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "wireless_coupling",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.96,
+          "max_output_kw": 110,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "receiver_rectification",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.97,
+          "max_output_kw": 100,
+          "temperature_drop_c": null
+        }
+      ]
+    },
+    {
+      "scenario_id": "mobile-wireless-misaligned-underpowered",
+      "label": "Synthetic wireless receiver that cannot meet the declared load under misalignment derating",
+      "evidence_class": "synthetic",
+      "carrier": "electrical",
+      "source_available_kw": 200,
+      "requested_load_kw": 100,
+      "operation_hours": 1,
+      "source_temperature_c": null,
+      "required_delivery_temperature_c": null,
+      "minimum_approach_temperature_c": null,
+      "stages": [
+        {
+          "stage_id": "converter",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.98,
+          "max_output_kw": 170,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "wireless_coupling_misaligned",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.8,
+          "max_output_kw": 80,
+          "temperature_drop_c": null
+        }
+      ]
+    },
+    {
+      "scenario_id": "mobile-conductive-static-matched-90kw",
+      "label": "Synthetic conductive route matched to the 90 kW, 30-minute wireless receiver case",
+      "evidence_class": "synthetic",
+      "carrier": "electrical",
+      "source_available_kw": 150,
+      "requested_load_kw": 90,
+      "operation_hours": 0.5,
+      "source_temperature_c": null,
+      "required_delivery_temperature_c": null,
+      "minimum_approach_temperature_c": null,
+      "stages": [
+        {
+          "stage_id": "site_feeder",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.985,
+          "max_output_kw": 140,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "charger_power_conversion",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.96,
+          "max_output_kw": 125,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "connector_and_receiver",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.995,
+          "max_output_kw": 110,
+          "temperature_drop_c": null
+        }
+      ]
+    }
+  ]
+}
