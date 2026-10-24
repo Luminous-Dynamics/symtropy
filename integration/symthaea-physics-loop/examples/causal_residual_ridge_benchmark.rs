@@ -448,15 +448,19 @@ fn summarize_split(
 fn main() {
     let input_path = std::env::var("STFR_DATASET_INPUT_PATH")
         .expect("STFR_DATASET_INPUT_PATH must point to a verified training-split JSON artifact");
+    let dataset_parse_started = Instant::now();
     let train_samples = parse_training_samples(&input_path);
+    let dataset_parse_seconds = dataset_parse_started.elapsed().as_secs_f64();
     let ridge_lambda = std::env::var("STFR_RIDGE_LAMBDA")
         .ok()
         .and_then(|value| value.parse::<f64>().ok())
         .unwrap_or(1.0e-3);
-    let training_started = Instant::now();
+    let model_fit_started = Instant::now();
     let model =
         LinearResidualRidge::fit(&train_samples, ridge_lambda).expect("ridge fit must be valid");
-    let training_seconds = training_started.elapsed().as_secs_f64();
+    let model_fit_seconds = model_fit_started.elapsed().as_secs_f64();
+    let training_seconds = model_fit_seconds;
+    let training_pipeline_seconds = dataset_parse_seconds + model_fit_seconds;
 
     let calibration_episodes = env_usize("STFR_RIDGE_CALIBRATION_EPISODES", 18);
     let test_episodes = env_usize("STFR_RIDGE_EVAL_EPISODES", 18);
@@ -508,7 +512,10 @@ fn main() {
         },
         "training": {
             "sample_count": train_samples.len(),
+            "dataset_parse_seconds": dataset_parse_seconds,
+            "model_fit_seconds": model_fit_seconds,
             "training_seconds": training_seconds,
+            "training_pipeline_seconds": training_pipeline_seconds,
             "fit_method": "fixed_scale_ridge_normal_equations_partial_pivoting",
             "ridge_lambda": model.ridge_lambda(),
             "feature_boundary": "state_t, applied_action, dt_s only; residual target is label",
