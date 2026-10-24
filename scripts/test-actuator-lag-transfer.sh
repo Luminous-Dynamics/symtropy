@@ -58,7 +58,7 @@ for profile in "0.000:direct" "0.010:10ms" "0.020:20ms" "0.050:50ms"; do
 
   jq -e --argjson train_tau "$train_tau_s" '
     ((.plant_configuration.actuator_lag_time_constant_s // 0) == $train_tau)
-    and .plant_configuration.actuator_model == "first_order_exponential_command_filter"
+    and .plant_configuration.actuator_model == (if $train_tau == 0 then "direct_command_application" else "first_order_exponential_command_filter" end)
   ' "$dataset_path" > /dev/null
 
   observed_digest="$(jq -r '.source_receipt.training_dataset_sha256' "$comparison_path")"
@@ -72,6 +72,8 @@ for profile in "0.000:direct" "0.010:10ms" "0.020:20ms" "0.050:50ms"; do
   jq -e --arg tag "$tag" --argjson eval_tau "$eval_tau_s" --argjson train_tau "$train_tau_s" '
     .comparison_id == "symtropy-residual-model-paired-comparison-v0.1"
     and .plant_configuration.training.actuator_lag_time_constant_s == $train_tau
+    and ((.plant_configuration.evaluation.actuator_lag_time_constant_s // 0) == $eval_tau)
+    and ((.plant_configuration.training.actuator_lag_time_constant_s // 0) == $train_tau)
     and ((.plant_configuration.evaluation.actuator_lag_time_constant_s // 0) == $eval_tau)
     and .plant_configuration.training.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
     and .plant_configuration.evaluation.claim_ceiling == "internal_actuator_lag_stress_configuration_not_calibrated_real_flight_model"
