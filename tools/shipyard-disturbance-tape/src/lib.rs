@@ -986,8 +986,26 @@ fn atomic_write(path: &Path, contents: &[u8]) -> Result<(), String> {
     write_result
 }
 
-/// Validate the entire tape before replacing either output file. Each rename is
-/// atomic on the destination filesystem; the pair of files is not a single
+fn resolved_target(path: &Path) -> Result<std::path::PathBuf, String> {
+    if path.exists() {
+        return fs::canonicalize(path)
+            .map_err(|error| format!("cannot resolve output {}: {error}", path.display()));
+    }
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let canonical_parent = fs::canonicalize(parent)
+        .map_err(|error| format!("cannot resolve output directory {}: {error}", parent.display()))?;
+    let file_name = path
+        .file_name()
+        .ok_or_else(|| format!("output path {} has no file name", path.display()))?;
+    Ok(canonical_parent.join(file_name))
+}
+
+/// Validate the entire tape before replacing either output file. Paths are
+/// compared after resolving existing aliases and canonicalizing parent dirs.
+/// Each rename is atomic on its destination filesystem; the pair is not one
 /// multi-file transaction.
 pub fn validate_file(
     input_path: &Path,
@@ -996,18 +1014,23 @@ pub fn validate_file(
     policy_output_path: &Path,
     evaluator_output_path: &Path,
 ) -> Result<ValidationReport, String> {
-    if input_path == policy_output_path
-        || input_path == evaluator_output_path
-        || policy_output_path == evaluator_output_path
+    let canonical_input = fs::canonicalize(input_path)
+        .map_err(|error| format!("cannot resolve input {}: {error}", input_path.display()))?;
+    let canonical_policy = resolved_target(policy_output_path)?;
+    let canonical_evaluator = resolved_target(evaluator_output_path)?;
+    if canonical_input == canonical_policy
+        || canonical_input == canonical_evaluator
+        || canonical_policy == canonical_evaluator
     {
-        return Err("input and both output paths must be distinct".to_owned());
+        return Err("input and both output paths must be distinct after path resolution".to_owned());
     }
-    let bytes = fs::read(input_path)
-        .map_err(|error| format!("cannot read {}: {error}", input_path.display()))?;
+
+    let bytes = fs::read(&canonical_input)
+        .map_err(|error| format!("cannot read {}: {error}", canonical_input.display()))?;
     let report = validate_bytes(&bytes, Some(expected_sha256), as_of_tick)?;
-    atomic_write(policy_output_path, report.policy_view_json.as_bytes())?;
+    atomic_write(&canonical_policy, report.policy_view_json.as_bytes())?;
     atomic_write(
-        evaluator_output_path,
+        &canonical_evaluator,
         report.evaluator_stream_json.as_bytes(),
     )?;
     Ok(report)
@@ -1312,6 +1335,21 @@ mod tests {
         let collision = validate_file(&input_path, &digest, 5, &input_path, &evaluator_path)
             .expect_err("input must not be reused as an output path");
         assert!(collision.contains("paths must be distinct"));
+        assert_eq!(
+            fs::read_to_string(&input_path).expect("original input remains intact"),
+            FIXTURE
+        );
+
+        let aliased_input_path = directory.join(".").join("input.json");
+        let alias_collision = validate_file(
+            &input_path,
+            &digest,
+            5,
+            &aliased_input_path,
+            &evaluator_path,
+        )
+        .expect_err("path aliases must not bypass collision guard");
+        assert!(alias_collision.contains("paths must be distinct"));
         assert_eq!(
             fs::read_to_string(&input_path).expect("original input remains intact"),
             FIXTURE
