@@ -58,6 +58,10 @@ Useful initial edge types include `derived_from`, `replicate_of`, `same_material
 
 **Unknown is not false.** The absence of an edge proves only that the supplied graph does not contain that edge. A candidate relationship must not silently become a verified identity match; a contradicted link remains visible in the receipt.
 
+### 2.2.1 Frozen profile registry
+
+v0.1 registers exactly one profile: `provenance_identity_v0`, whose leakage edge types are `derived_from`, `replicate_of`, and `same_record`. The JSON Schema pins this profile and edge set; the Rust auditor also checks the registration at runtime so bypassing the schema cannot weaken the profile. A caller must not remove an edge type from a registered profile while retaining the same profile name. An unknown profile returns `UNRESOLVED` until its relation semantics and known-answer controls are reviewed and registered in a later contract version.
+
 ### 2.3 Relation profiles are task-specific
 
 Each benchmark protocol declares a versioned profile describing which confirmed relationship types create a leakage boundary for the task. For example:
