@@ -60,7 +60,7 @@ jobs:
         run: |
           cargo run --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --example compare_synthetic_rules > /tmp/shipyard-result-ledger.jsonl
           test "$(wc -l < /tmp/shipyard-result-ledger.jsonl)" -eq 4
-          jq -s -e 'length == 4 and all(.[]; .ledger_contract_version == "shipyard-result-ledger-v0" and .record_kind == "raw_run_record" and .synthetic_example == true and .status == "incomplete" and .adapter_detail.abstract_feasibility_scope == "unary_resource_time_v0")' /tmp/shipyard-result-ledger.jsonl
+          jq -s -e 'length == 4 and all(.[]; .ledger_contract_version == "shipyard-result-ledger-v0" and .record_kind == "raw_run_record" and .synthetic_example == true and .status == "incomplete" and .hard_gates.geometry == "not_evaluated" and .hard_gates.causality == "not_evaluated" and (.artifact_digests.candidate_schedule_sha256 | length) == 64 and (.artifact_digests.independent_audit_sha256 | length) == 64)' /tmp/shipyard-result-ledger.jsonl
           jq -s -e '[.[].method_id | split("::")[0]] | sort == ["critical_ratio","earliest_due_date","fixed_order","least_slack"]' /tmp/shipyard-result-ledger.jsonl
 
       - name: Lint all targets with warnings denied
