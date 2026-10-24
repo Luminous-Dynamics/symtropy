@@ -192,7 +192,27 @@ if [[ "${1:-}" == "--self-test" ]]; then
     fail "evidence-class escalation unexpectedly passed"
   fi
 
-  printf 'Receipt verifier self-test passed: valid bundle, tampering, omitted checksum, evidence escalation.\n'
+  cp -a "$tmp/valid" "$tmp/inactive-service-false-pass"
+  jq '(.policy_results[].service_results[] | select(.service_id == "communications") | .passed_all_declared_service_floors) = true' \
+    "$tmp/inactive-service-false-pass/reports/robust-set-report.json" > \
+    "$tmp/inactive-service-false-pass/reports/robust-set-report.json.new"
+  mv "$tmp/inactive-service-false-pass/reports/robust-set-report.json.new" \
+    "$tmp/inactive-service-false-pass/reports/robust-set-report.json"
+  (
+    cd "$tmp/inactive-service-false-pass"
+    sha256sum \
+      inputs/Cargo.toml inputs/Cargo.lock inputs/rust-toolchain.toml \
+      inputs/source/lib.rs inputs/source/main.rs inputs/source/bin/resilience_ensemble.rs \
+      inputs/source/bin/robust_set.rs inputs/polar-resilience-scorer.yml \
+      inputs/toy-episode.json inputs/toy-ensemble.json inputs/toy-robust-set.json \
+      reports/score-report.json reports/ensemble-report.json reports/robust-set-report.json \
+      TESTED_COMMIT verify-polar-resilience-receipt.sh > SHA256SUMS
+  )
+  if verify_bundle "$tmp/inactive-service-false-pass" >/dev/null 2>&1; then
+    fail "inactive service incorrectly marked as passed unexpectedly passed"
+  fi
+
+  printf 'Receipt verifier self-test passed: valid bundle, tampering, omitted checksum, evidence escalation, inactive-service false pass.\n'
   exit 0
 fi
 
