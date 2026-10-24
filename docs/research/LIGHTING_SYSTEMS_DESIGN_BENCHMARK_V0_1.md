@@ -147,6 +147,8 @@ A hypothesis may fail. Publish negative results, uncertainty and trade-offs. Do 
 
 ## Run identity and evidence contract
 
+A structural JSON Schema for this receipt is included at docs/research/lighting-run-receipt.schema.json. Schema validity only establishes the declared structure. The independent verifier must still recompute aggregates and digests, verify sample-to-coordinate order and interval ordering, and enforce cross-field evidence rules against the actual bytes.
+
 Every run should preserve:
 
 - Exact repository commit(s), clean/dirty state, and relevant source-tree hashes.
