@@ -99,6 +99,35 @@ jq -e --slurpfile case "$CASE" '
       $r.schema_version == "0.2.0"
       and $r.evaluator.receipt_format_version == "0.2.0"
       and $r.case_id == $c.case_id
+      and ($r.run_status == "compliant" or $r.run_status == "non_compliant"
+           or $r.run_status == "unknown" or $r.run_status == "unsupported"
+           or $r.run_status == "not_evaluated" or $r.run_status == "timeout"
+           or $r.run_status == "invalid_output" or $r.run_status == "invalid_input")
+      and ($r.evidence_tier == "synthetic_contract" or $r.evidence_tier == "simulation_only"
+           or $r.evidence_tier == "calibrated_simulation" or $r.evidence_tier == "physical_prototype"
+           or $r.evidence_tier == "independently_tested_product")
+      and ($r.interval_evidence.basis == "point_estimate_only"
+           or $r.interval_evidence.basis == "declared_engineering_bound"
+           or $r.interval_evidence.basis == "expanded_measurement_uncertainty"
+           or $r.interval_evidence.basis == "calibrated_prediction_interval"
+           or $r.interval_evidence.basis == "unknown")
+      and (($r.toolchain.engine_name | type) == "string" and ($r.toolchain.engine_name | length) > 0)
+      and (($r.toolchain.engine_version | type) == "string" and ($r.toolchain.engine_version | length) > 0)
+      and (($r.toolchain.engine_source_revision | type) == "string" and ($r.toolchain.engine_source_revision | length) > 0)
+      and (($r.toolchain.command_argv | type) == "array" and ($r.toolchain.command_argv | length) > 0)
+      and (($r.execution.exit_code | type) == "number" and ($r.execution.exit_code | floor) == $r.execution.exit_code)
+      and (($r.execution.timed_out | type) == "boolean")
+      and (($r.execution.duration_ms | type) == "number" and $r.execution.duration_ms >= 0)
+      and (($r.illumination_summary.average_lx | type) == "number")
+      and (($r.illumination_summary.minimum_lx | type) == "number")
+      and (($r.illumination_summary.maximum_lx | type) == "number")
+      and (($r.illumination_summary.minimum_to_average_uniformity | type) == "number")
+      and (($r.power_observation.wall_power_upper_bound_w | type) == "number" and $r.power_observation.wall_power_upper_bound_w >= 0)
+      and (($r.power_observation.energy_upper_bound_wh | type) == "number" and $r.power_observation.energy_upper_bound_wh >= 0)
+      and (($r.power_observation.observed_hours | type) == "number" and $r.power_observation.observed_hours > 0)
+      and (($r.power_observation.compliant_task_hours_lower_bound | type) == "number"
+           and $r.power_observation.compliant_task_hours_lower_bound >= 0
+           and $r.power_observation.compliant_task_hours_lower_bound <= $r.power_observation.observed_hours)
       and $spacing > 0
       and near(($t.length_x_m / $spacing); $x_intervals)
       and near(($t.width_y_m / $spacing); $y_intervals)
