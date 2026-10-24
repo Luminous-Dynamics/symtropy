@@ -1,0 +1,40 @@
+{
+  "schema_version": "shipyard-synthetic-state-v0",
+  "decision_tick": 0,
+  "horizon_end_tick": 20,
+  "operations": [
+    {
+      "id": "weld-long",
+      "order": 0,
+      "release_tick": 0,
+      "due_tick": 10,
+      "duration_ticks": 3,
+      "resource_kind": "welder",
+      "predecessor_ids": []
+    },
+    {
+      "id": "weld-urgent",
+      "order": 1,
+      "release_tick": 0,
+      "due_tick": 8,
+      "duration_ticks": 2,
+      "resource_kind": "welder",
+      "predecessor_ids": []
+    },
+    {
+      "id": "paint-after-weld",
+      "order": 2,
+      "release_tick": 0,
+      "due_tick": 14,
+      "duration_ticks": 2,
+      "resource_kind": "paint",
+      "predecessor_ids": ["weld-long"]
+    }
+  ],
+  "resources": [
+    {"id": "weld-bay-1", "kind": "welder"},
+    {"id": "paint-booth-1", "kind": "paint"}
+  ],
+  "completed": [],
+  "commitments": []
+}
