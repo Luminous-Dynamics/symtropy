@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -330,7 +330,7 @@ fn compare_receipts(reference: &LoadedReceipt, candidate: &LoadedReceipt) -> Res
         let value = &per_horizon[horizon - 1];
         json!({
             "horizon_steps": horizon,
-            "horizon_seconds": horizon * EXPECTED_DT_S,
+            "horizon_seconds": *horizon as f64 * EXPECTED_DT_S,
             "metrics": value["metrics"]
         })
     }).collect::<Vec<_>>();
@@ -459,7 +459,7 @@ mod tests {
                 .as_f64().unwrap(),
             -25.0
         );
-        assert_eq!(output["protocol"]["independent_run_count"], Value::Null);
+        assert!(output["protocol"]["uncertainty"].as_str().unwrap().contains("three fixed held-out runs"));
     }
 
     #[test]
