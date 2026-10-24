@@ -751,6 +751,17 @@ mod tests {
     }
 
     #[test]
+    fn quaternion_axis_angle_round_trip_preserves_rotation() {
+        let angle = 1.2_f64;
+        let rotation = [angle / 3.0, angle * 2.0 / 3.0, -angle / 3.0];
+        let norm = (rotation.iter().map(|value| value * value).sum::<f64>()).sqrt();
+        let scale = (norm * 0.5).sin() / norm;
+        let q = [rotation[0] * scale, rotation[1] * scale, rotation[2] * scale, (norm * 0.5).cos()];
+        let reconstructed = rotvec_to_quaternion(quaternion_to_rotvec(q));
+        assert!(quaternion_distance_sign_invariant(q, reconstructed) < 1.0e-12);
+    }
+
+    #[test]
     fn attaches_exact_horizon_truth_without_crossing_run_boundaries() {
         let nonce = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
