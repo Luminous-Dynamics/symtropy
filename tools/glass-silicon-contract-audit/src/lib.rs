@@ -3435,6 +3435,112 @@ pub fn audit_evaluation_receipt(receipt: &Value) -> EvaluationReceiptReport {
 }
 
 
+
+#[cfg(test)]
+mod evaluation_receipt_tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn valid_receipt() -> Value {
+        serde_json::from_str(include_str!("../fixtures/evaluation-receipt-unsealed.synthetic.json"))
+            .expect("synthetic receipt fixture must be valid JSON")
+    }
+
+    #[test]
+    fn valid_unsealed_receipt_passes_structural_contract_only() {
+        let report = audit_evaluation_receipt(&valid_receipt());
+        assert_eq!(report.status, "PASS");
+        assert_eq!(report.verified_evaluation_class, "UNSEALED_RETROSPECTIVE");
+        assert_eq!(report.metrics_checked, 1);
+        assert!(report.claim_ceiling.contains("External rights"));
+    }
+
+    #[test]
+    fn self_declared_sealed_claim_remains_unresolved_even_with_attestation_strings() {
+        let value: Value = serde_json::from_str(include_str!("../fixtures/evaluation-receipt-claimed-sealed.synthetic.json"))
+            .expect("sealed-claim fixture must be valid JSON");
+        let report = audit_evaluation_receipt(&value);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert_eq!(report.claimed_evaluation_class.as_deref(), Some("SEALED_CONFIRMATORY"));
+        assert_eq!(report.verified_evaluation_class, "UNSEALED_RETROSPECTIVE");
+        assert!(report.findings.iter().any(|f| f.starts_with("SEALED_CLAIM_NOT_VERIFIED:")));
+    }
+
+    #[test]
+    fn resource_overrun_fails_receipt_contract() {
+        let value: Value = serde_json::from_str(include_str!("../fixtures/evaluation-receipt-budget-overrun.synthetic.json"))
+            .expect("budget-overrun fixture must be valid JSON");
+        let report = audit_evaluation_receipt(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|f| f.starts_with("RESOURCE_OVERRUN:")));
+    }
+
+    #[test]
+    fn malformed_model_digest_fails_closed() {
+        let mut value = valid_receipt();
+        value["submission"]["model_sha256"] = json!("not-a-digest");
+        let report = audit_evaluation_receipt(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|f| f == "RECEIPT_FIELD:submission.model_sha256 is missing or invalid"));
+    }
+
+    #[test]
+    fn preregistration_after_submission_is_rejected() {
+        let mut value = valid_receipt();
+        value["protocol"]["pre_registered_at"] = json!("2026-10-24T08:35:00Z");
+        let report = audit_evaluation_receipt(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|f| f.starts_with("RECEIPT_CHRONOLOGY:")));
+    }
+
+    #[test]
+    fn unresolved_real_dataset_rights_cannot_pass_receipt() {
+        let mut value = valid_receipt();
+        value["evidence_class"] = json!("retrospective");
+        value["dataset"]["rights_status"] = json!("unresolved");
+        value["dataset"]["rights_evidence_ref"] = Value::Null;
+        let report = audit_evaluation_receipt(&value);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert!(report.findings.iter().any(|f| f.starts_with("RIGHTS_UNRESOLVED:")));
+    }
+
+    #[test]
+    fn malformed_test_commitment_digest_is_rejected() {
+        let mut value = valid_receipt();
+        value["dataset"]["test_set_commitment"]["digest"] = json!("abc");
+        let report = audit_evaluation_receipt(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|f| f.starts_with("TEST_SET_COMMITMENT:") || f.starts_with("TEST_SET_COMMITMENT_DIGEST:")));
+    }
+
+    #[test]
+    fn empty_metric_list_is_rejected() {
+        let mut value = valid_receipt();
+        value["results"]["metrics"] = json!([]);
+        let report = audit_evaluation_receipt(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|f| f == "RESULT_METRICS:at least one metric record is required"));
+    }
+
+    #[test]
+    fn calls_over_registered_limit_fail() {
+        let mut value = valid_receipt();
+        value["evaluation"]["calls_used"] = json!(101);
+        let report = audit_evaluation_receipt(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|f| f.starts_with("RESOURCE_OVERRUN:")));
+    }
+
+    #[test]
+    fn noncanonical_timestamp_fails_closed() {
+        let mut value = valid_receipt();
+        value["evaluation"]["started_at"] = json!("October 24, 2026");
+        let report = audit_evaluation_receipt(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|f| f.starts_with("RECEIPT_TIMESTAMP:")));
+    }
+}
+
 #[cfg(test)]
 mod false_feasible_bound_tests {
     use super::*;
