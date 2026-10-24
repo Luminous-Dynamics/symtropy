@@ -578,6 +578,17 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
         }
         if has_complete_conditioning_signals {
             validate_conditioning_timestamps(&row, &format!("{filename} row {}", row_index + 2))?;
+            for field in MOTOR_INPUT_FIELDS {
+                for input_step in 0..HORIZON {
+                    let motor = row[&motor_sequence_key(field, input_step)];
+                    if motor < 0.0 {
+                        return Err(invalid_input(format!(
+                            "{filename} row {}: motor input {field} at step {input_step} must be non-negative",
+                            row_index + 2
+                        )).into());
+                    }
+                }
+            }
         }
         rows.push(row);
     }
@@ -891,6 +902,33 @@ mod tests {
         assert!(run.has_complete_window_truth);
         assert!(run.ground_truth_window_sha256.is_some());
         assert!(run.conditioning_window_sha256.is_some());
+
+        // Change one motor sample while preserving targets and x0. The conditioning
+        // digest must change, otherwise model-input parity would not be attested.
+        let altered_path = directory.join("melon_20251017_run2.csv");
+        {
+            let bytes = fs::read(&path).unwrap();
+            let mut reader = ReaderBuilder::new().has_headers(true).from_reader(bytes.as_slice());
+            let headers = reader.headers().unwrap().clone();
+            let changed_column = headers.iter()
+                .position(|header| header == motor_sequence_key("m2_rads", 17))
+                .unwrap();
+            let records = reader.records().collect::<Result<Vec<_>, _>>().unwrap();
+            let mut writer = csv::Writer::from_path(&altered_path).unwrap();
+            writer.write_record(&headers).unwrap();
+            for (row_index, record) in records.iter().enumerate() {
+                let mut values = record.iter().map(str::to_owned).collect::<Vec<_>>();
+                if row_index == 0 {
+                    values[changed_column] = "999.0".to_owned();
+                }
+                writer.write_record(&values).unwrap();
+            }
+            writer.flush().unwrap();
+        }
+        let altered = load_run(&altered_path).unwrap();
+        assert_ne!(run.conditioning_window_sha256, altered.conditioning_window_sha256);
+        assert_eq!(run.ground_truth_window_sha256, altered.ground_truth_window_sha256);
+
         let shifted = score_run(&run, false);
         let complete = score_run(&run, true);
         assert_eq!(shifted["per_horizon"][0]["sample_count"], 50);
