@@ -266,6 +266,23 @@ fn join_files(
     }
     let raw_run_id = run_id_from_path(raw_path, "raw trajectory")?;
     let prediction_run_id = run_id_from_path(prediction_path, "prediction table")?;
+    let output_run_id = run_id_from_path(output_path, "output table")?;
+    if output_run_id != raw_run_id {
+        return Err(invalid_input(format!(
+            "output must retain the source trajectory/run identity: expected {raw_run_id}, got {output_run_id}"
+        )).into());
+    }
+    let raw_canonical = raw_path.canonicalize()?;
+    let prediction_canonical = prediction_path.canonicalize()?;
+    if raw_canonical == prediction_canonical {
+        return Err(invalid_input("raw trajectory and prediction inputs must be different files").into());
+    }
+    if output_path.exists() {
+        let output_canonical = output_path.canonicalize()?;
+        if output_canonical == raw_canonical || output_canonical == prediction_canonical {
+            return Err(invalid_input("output must not overwrite a raw trajectory or prediction input").into());
+        }
+    }
     if raw_run_id != prediction_run_id {
         return Err(invalid_input(format!(
             "run mismatch: raw data is {raw_run_id}, predictions are {prediction_run_id}"
@@ -402,7 +419,9 @@ fn join_files(
 
     let output_tmp = PathBuf::from(format!("{}.tmp", output_path.display()));
     if let Some(parent) = output_tmp.parent() {
-        fs::create_dir_all(parent)?;
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent)?;
+        }
     }
     let write_result: Result<String, Box<dyn Error>> = (|| {
         let file = File::create(&output_tmp)?;
