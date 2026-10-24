@@ -21,7 +21,7 @@ use symtropy_real_symthaea_physics_loop::{
     linear_residual_ridge::{LinearResidualRidge, ResidualTrainingSample},
     scenario_matrix::{scenarios_for_split, FlightScenario, ScenarioSplit},
     symtropy_flight::SymtropyFlightSimulator,
-    transition_residual::{NominalLinearDynamics, ResidualTargetError},
+    transition_residual::{LinearTransitionResidual, NominalLinearDynamics},
 };
 
 const MASS_KG: f64 = 0.027;
