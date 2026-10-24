@@ -1049,6 +1049,26 @@ fn benchmark_scenario_panel_context(
     })
 }
 
+fn validate_matrix_frontier_vectors(row: &Value) -> Result<(), Box<dyn Error>> {
+    let mut solver_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(row["solver_frontier_objectives"].clone())?;
+    let mut independent_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(row["independent_reference_frontier_objectives"].clone())?;
+    solver_frontier.sort();
+    independent_frontier.sort();
+    if solver_frontier != independent_frontier
+        || solver_frontier.len() as u64 != required_u64(row, "solver_frontier_count")?
+        || independent_frontier.len() as u64
+            != required_u64(row, "independent_reference_frontier_count")?
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "matrix row objective vectors are missing, disagree, or conflict with their counts",
+        ).into());
+    }
+    Ok(())
+}
+
 fn benchmark_candidate_scenario_matrix_context(
     root: &Path,
     design_manifest_bytes: &[u8],
@@ -1114,21 +1134,10 @@ fn benchmark_candidate_scenario_matrix_context(
     for row in rows {
         let candidate_id = required_str(row, "candidate_id")?;
         let scenario_id = required_str(row, "scenario_id")?;
-        let mut solver_frontier: Vec<DispatchObjective> =
-            serde_json::from_value(row["solver_frontier_objectives"].clone())?;
-        let mut independent_frontier: Vec<DispatchObjective> =
-            serde_json::from_value(row["independent_reference_frontier_objectives"].clone())?;
-        solver_frontier.sort();
-        independent_frontier.sort();
-        if solver_frontier != independent_frontier
-            || solver_frontier.len() as u64 != required_u64(row, "solver_frontier_count")?
-            || independent_frontier.len() as u64 != required_u64(row, "independent_reference_frontier_count")?
-        {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("candidate-scenario objective vectors are missing or disagree: {candidate_id}/{scenario_id}"),
-            ).into());
-        }
+        validate_matrix_frontier_vectors(row).map_err(|error| io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("candidate-scenario objective vectors failed ledger validation for {candidate_id}/{scenario_id}: {error}"),
+        ))?;
         if required_str(row, "status")? != "pass"
             || required_str(row, "mapping_config_file_sha256")? != config_file_digest.as_str()
             || required_str(row, "mapping_config_typed_sha256")? != config_typed_digest.as_str()
@@ -1340,5 +1349,48 @@ fn main() {
     if let Err(error) = run() {
         eprintln!("energy benchmark report failed: {error}");
         std::process::exit(2);
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn objective_vector_row() -> Value {
+        let objective = serde_json::json!({
+            "essential_unserved_quanta": 0,
+            "flexible_unserved_quanta": 1,
+            "operating_cost_units": 2,
+            "grid_carbon_grams": 3,
+            "curtailed_pv_quanta": 4,
+            "terminal_soc_quanta": 5
+        });
+        serde_json::json!({
+            "solver_frontier_count": 1,
+            "solver_frontier_objectives": [objective.clone()],
+            "independent_reference_frontier_count": 1,
+            "independent_reference_frontier_objectives": [objective]
+        })
+    }
+
+    #[test]
+    fn matrix_ledger_accepts_matching_complete_objective_vectors() {
+        let row = objective_vector_row();
+        assert!(validate_matrix_frontier_vectors(&row).is_ok());
+    }
+
+    #[test]
+    fn matrix_ledger_rejects_resealed_count_only_or_mismatched_frontier_data() {
+        let mut mismatched = objective_vector_row();
+        mismatched["independent_reference_frontier_objectives"][0]["operating_cost_units"] =
+            serde_json::json!(99);
+        assert!(validate_matrix_frontier_vectors(&mismatched).is_err());
+
+        let mut missing = objective_vector_row();
+        missing.as_object_mut().unwrap().remove("solver_frontier_objectives");
+        assert!(validate_matrix_frontier_vectors(&missing).is_err());
+
+        let mut count_mismatch = objective_vector_row();
+        count_mismatch["solver_frontier_count"] = serde_json::json!(2);
+        assert!(validate_matrix_frontier_vectors(&count_mismatch).is_err());
     }
 }
