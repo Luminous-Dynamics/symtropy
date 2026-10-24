@@ -253,6 +253,37 @@
     {
       "if": {
         "properties": {
+          "interval_evidence": {
+            "properties": { "basis": { "const": "unknown" } },
+            "required": ["basis"]
+          }
+        },
+        "required": ["interval_evidence"]
+      },
+      "then": {
+        "not": {
+          "properties": { "run_status": { "const": "compliant" } },
+          "required": ["run_status"]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "run_status": { "const": "timeout" } },
+        "required": ["run_status"]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "properties": { "timed_out": { "const": true } },
+            "required": ["timed_out"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
           "evidence_tier": {
             "enum": [
               "calibrated_simulation",
