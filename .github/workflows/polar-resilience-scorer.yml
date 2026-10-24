@@ -38,6 +38,7 @@ jobs:
           jq -e '
             .report_kind == "polar-resilience-score-report" and
             .schema_version == "0.2.0" and
+            .episode_duration_hours > 0 and
             .evidence_class == "synthetic_only" and
             .result_scope == "metric_calculation_only_not_physical_validation" and
             (.results | length == 4) and
@@ -66,7 +67,7 @@ jobs:
                (.expected_longest_consecutive_system_floor_breach_hours >= 0) and
                (.worst_case_longest_consecutive_system_floor_breach_hours >= 0) and
                (.earliest_observed_time_to_first_system_floor_breach_hours == null or .earliest_observed_time_to_first_system_floor_breach_hours >= 0) and
-               ([.scenario_outcomes[] | select(.scenario_id == "toy-compound-failure" and .gate_pass == false and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or .time_to_first_system_floor_breach_hours >= 0))] | length == 1))] | length == 1)
+               ([.scenario_outcomes[] | select(.scenario_id == "toy-compound-failure" and .gate_pass == false and .scenario_duration_hours > 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or (.time_to_first_system_floor_breach_hours >= 0 and .time_to_first_system_floor_breach_hours <= .scenario_duration_hours)))] | length == 1))] | length == 1)
           ' /tmp/polar-ensemble-report.json
 
       - name: Exercise probability-free robust stress-set evaluator
@@ -89,5 +90,5 @@ jobs:
                .maximum_system_floor_breach_episode_count_across_scenarios >= 0 and
                .worst_case_longest_consecutive_system_floor_breach_hours >= 0 and
                (.earliest_observed_time_to_first_system_floor_breach_hours == null or .earliest_observed_time_to_first_system_floor_breach_hours >= 0) and
-               (.scenario_outcomes | length == 3 and all(.[]; (.system_floor_breach_episode_count >= 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or .time_to_first_system_floor_breach_hours >= 0)))))] | length == 1)
+               (.scenario_outcomes | length == 3 and all(.[]; (.scenario_duration_hours > 0 and .system_floor_breach_episode_count >= 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or (.time_to_first_system_floor_breach_hours >= 0 and .time_to_first_system_floor_breach_hours <= .scenario_duration_hours))))))] | length == 1)
           ' /tmp/polar-robust-set-report.json
