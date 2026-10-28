@@ -874,7 +874,8 @@ jobs:
             (.environmentwise_metrics | length) == 72 and
             (.policy_frontier | length) == 18 and
             ([.environmentwise_metrics[] | select(.budget_units == 4 and .environment_id == "harmful")] | length) == 6 and
-            ([.policy_frontier[] | select(.environment_count != 4)] | length) == 0 and
+            ([.policy_frontier[] | select(.environment_count != 4 or (.gp_ei_comparable_environment_count + .gp_ei_unresolved_environment_count) != 4 or (.seeded_random_comparable_environment_count + .seeded_random_unresolved_environment_count) != 4)] | length) == 0 and
+            ([.environmentwise_metrics[] | select(.feasible_discovery_status == "NO_VERIFIED_FEASIBLE_CANDIDATE_FOUND" and (.gp_ei_comparison_status != "UNRESOLVED_NO_VERIFIED_UTILITY" or .delta_utility_vs_gp_ei != null))] | length) == 0 and
             (has("global_mean_utility") | not) and
             (has("pooled_utility_winner") | not)
           ' search-space-budget-frontier-scorecard.json
