@@ -7,7 +7,7 @@ Usage:
   bash normalize_nasa_power_daily.sh RAW_JSON PROFILE_ID LOCATION_LABEL LAT LON START_YYYYMMDD END_YYYYMMDD OUT_DIR SOURCE_URL [EVIDENCE_CLASS]
 
 Normalize a previously downloaded NASA POWER daily point JSON response into:
-  source-response.json          immutable-by-hash original response copy
+  source-response.json          byte-preserved response copy; SHA-256 recorded in manifest
   environment-trace.csv         canonicalized daily values; missing values remain empty
   acquisition-config.json       acquisition/transform configuration
   environment-trace-manifest.json  ingested_unvalidated manifest
@@ -203,8 +203,6 @@ jq -n \
   --arg end "$END" \
   --arg url "$SOURCE_URL" \
   --arg parameters "${PARAMETERS[*]}" \
-  --argjson expected "$EXPECTED_COUNT" \
-  --arg retrieved_at "$RETRIEVED_AT" \
   --arg api_sources "$API_SOURCES" \
   --arg data_title "$DATASET_TITLE" \
   --arg provider "$PROVIDER" \
@@ -294,8 +292,8 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
   .spatial_context.latitude_deg = $lat |
   .spatial_context.longitude_deg = $lon |
   .spatial_context.elevation_m = $elevation |
-  .spatial_context.spatial_support = "NASA POWER source-native grid point; not an in-situ station observation" |
-  .spatial_context.coordinate_reference = "WGS84 request coordinates; product grid/support details remain dataset-defined" |
+  .spatial_context.spatial_support = (if $evidence_class == "reanalysis" then "NASA POWER point-response geometry; product-native resolution must be documented, not treated as an in-situ station observation" else "Synthetic fixture coordinates only; not a measured site" end) |
+  .spatial_context.coordinate_reference = (if $evidence_class == "reanalysis" then "Coordinate returned in response geometry; requested coordinates and response coordinates are both preserved in acquisition configuration" else "Fixture coordinates; synthetic only" end) |
   .time_axis = {
     start_utc:$start_utc,
     end_utc:$end_utc,
