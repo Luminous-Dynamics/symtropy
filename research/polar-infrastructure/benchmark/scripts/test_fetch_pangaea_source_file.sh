@@ -58,8 +58,10 @@ export PATH="$MOCK_BIN:$PATH"
 
 DOI="10.1594/PANGAEA.983811"
 LICENSE="BSRN License 1.0 operator-checked test label"
+# Mock bytes are synthetic; do not describe them as station measurements.
+EVIDENCE_CLASS="not_evaluated"
 OUT="$TMP_DIR/valid"
-bash "$FETCHER" "$DOI" "$LICENSE" "$OUT" >/dev/null
+bash "$FETCHER" "$DOI" "$LICENSE" "$EVIDENCE_CLASS" "$OUT" >/dev/null
 
 RAW="$OUT/pangaea-source.tsv"
 MANIFEST="$OUT/source-download-manifest.json"
@@ -67,7 +69,8 @@ jq -e '
   .schema_version == "0.1.0" and
   .artifact_kind == "symtropy-pangaea-source-download" and
   .status == "source_downloaded_not_ingested" and
-  .evidence_class == "measured_field" and
+  .evidence_class == "not_evaluated" and
+  .evidence_class_basis == "operator_supplied_not_independently_validated" and
   .dataset_doi == "10.1594/PANGAEA.983811" and
   .http_status == 200 and
   .content_type == "text/tab-separated-values" and
@@ -77,33 +80,40 @@ jq -e '
 test "$(sha256sum "$RAW" | awk '{print $1}')" = "$(jq -r '.source_sha256' "$MANIFEST")"
 test "$(wc -c < "$RAW" | tr -d ' ')" = "$(jq -r '.source_byte_size' "$MANIFEST")"
 
+# An evidence class outside the trace-manifest vocabulary must be rejected.
+if bash "$FETCHER" "$DOI" "$LICENSE" "guess_from_host" "$TMP_DIR/bad-class" >/dev/null 2>&1; then
+  echo "ERROR: unsupported evidence class was unexpectedly accepted" >&2
+  exit 1
+fi
+test ! -e "$TMP_DIR/bad-class/source-download-manifest.json"
+
 # A malformed DOI must be rejected before invoking curl.
-if bash "$FETCHER" "not-a-doi" "$LICENSE" "$TMP_DIR/bad-doi" >/dev/null 2>&1; then
+if bash "$FETCHER" "not-a-doi" "$LICENSE" "$EVIDENCE_CLASS" "$TMP_DIR/bad-doi" >/dev/null 2>&1; then
   echo "ERROR: invalid DOI was unexpectedly accepted" >&2
   exit 1
 fi
 
 # HTML masquerading as a dataset must be rejected and not left as a source file.
-if MOCK_CURL_CONTENT_TYPE="text/html" MOCK_CURL_BODY_MODE="html" bash "$FETCHER" "$DOI" "$LICENSE" "$TMP_DIR/html" >/dev/null 2>&1; then
+if MOCK_CURL_CONTENT_TYPE="text/html" MOCK_CURL_BODY_MODE="html" bash "$FETCHER" "$DOI" "$LICENSE" "$EVIDENCE_CLASS" "$TMP_DIR/html" >/dev/null 2>&1; then
   echo "ERROR: HTML response was unexpectedly accepted" >&2
   exit 1
 fi
 test ! -e "$TMP_DIR/html/pangaea-source.tsv"
 
 # A tabular response with no timestamped data rows must be rejected.
-if MOCK_CURL_BODY_MODE="no_rows" bash "$FETCHER" "$DOI" "$LICENSE" "$TMP_DIR/no-rows" >/dev/null 2>&1; then
+if MOCK_CURL_BODY_MODE="no_rows" bash "$FETCHER" "$DOI" "$LICENSE" "$EVIDENCE_CLASS" "$TMP_DIR/no-rows" >/dev/null 2>&1; then
   echo "ERROR: response without timestamped data rows was unexpectedly accepted" >&2
   exit 1
 fi
 
 # HTTP failure must fail closed rather than create a source manifest.
-if MOCK_CURL_STATUS="404" bash "$FETCHER" "$DOI" "$LICENSE" "$TMP_DIR/http-failure" >/dev/null 2>&1; then
+if MOCK_CURL_STATUS="404" bash "$FETCHER" "$DOI" "$LICENSE" "$EVIDENCE_CLASS" "$TMP_DIR/http-failure" >/dev/null 2>&1; then
   echo "ERROR: HTTP failure was unexpectedly accepted" >&2
   exit 1
 fi
 
 # Do not overwrite previously acquired source bytes or manifests.
-if bash "$FETCHER" "$DOI" "$LICENSE" "$OUT" >/dev/null 2>&1; then
+if bash "$FETCHER" "$DOI" "$LICENSE" "$EVIDENCE_CLASS" "$OUT" >/dev/null 2>&1; then
   echo "ERROR: existing source artifacts were unexpectedly overwritten" >&2
   exit 1
 fi
