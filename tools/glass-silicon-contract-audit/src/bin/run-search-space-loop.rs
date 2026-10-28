@@ -1667,10 +1667,207 @@ fn close(left: Option<f64>, right: Option<f64>) -> bool {
     }
 }
 
+
+fn audit_budget_frontier(lanes: &[(&[u8], &[u8])], oracle_raw: &[u8]) -> Value {
+    let oracle_digest = sha256(oracle_raw);
+    let mut audit = json!({
+        "status": "PASS",
+        "audit_kind": "synthetic_paired_budget_frontier_scorecard",
+        "benchmark_id": BENCHMARK_ID,
+        "oracle_sha256": oracle_digest,
+        "budget_points": 0,
+        "lane_receipts": [],
+        "environmentwise_metrics": [],
+        "policy_frontier": [],
+        "findings": [],
+        "claim_ceiling": "Cross-budget synthetic harness scorecard only; not a material-performance or state-of-the-art claim. Environment-specific outcomes are preserved; no pooled utility winner is declared."
+    });
+    if lanes.len() != 3 {
+        fail(&mut audit, "FAIL", "BUDGET_LANE_COUNT_INVALID", "budget-frontier scorecard requires exactly three report/catalog pairs (3, 4, and 5 cost units)");
+        return audit;
+    }
+
+    let expected_budgets = [3.0, 4.0, 5.0];
+    let mut parsed_reports = Vec::<Value>::new();
+    let mut lane_receipts = Vec::<Value>::new();
+
+    for (index, (report_raw, catalog_raw)) in lanes.iter().enumerate() {
+        let report: Value = match serde_json::from_slice(report_raw) {
+            Ok(value) => value,
+            Err(error) => {
+                fail(&mut audit, "FAIL", "BUDGET_REPORT_JSON_INVALID", &format!("budget lane {} report is invalid JSON: {error}", index + 1));
+                continue;
+            }
+        };
+        let catalog: Value = match serde_json::from_slice(catalog_raw) {
+            Ok(value) => value,
+            Err(error) => {
+                fail(&mut audit, "FAIL", "BUDGET_CATALOG_JSON_INVALID", &format!("budget lane {} catalog is invalid JSON: {error}", index + 1));
+                continue;
+            }
+        };
+        let budget = catalog.get("budgets").and_then(|v| v.get("max_cost_units")).and_then(Value::as_f64);
+        if !close(budget, Some(expected_budgets[index])) {
+            fail(&mut audit, "FAIL", "BUDGET_POINT_MISMATCH", &format!("lane {} must use the preregistered {}-unit budget", index + 1, expected_budgets[index]));
+        }
+        if report.get("status").and_then(Value::as_str) != Some("PASS")
+            || report.get("audit_kind").and_then(Value::as_str) != Some("synthetic_live_policy_event_loop")
+            || report.get("input_sha256").and_then(Value::as_str) != Some(sha256(catalog_raw).as_str())
+            || report.get("oracle_sha256").and_then(Value::as_str) != Some(oracle_digest.as_str()) {
+            fail(&mut audit, "FAIL", "BUDGET_REPORT_BINDING_INVALID", &format!("lane {} report must PASS and bind to the exact catalog and shared oracle bytes", index + 1));
+        }
+
+        // Independently replay every input before using it in a cross-budget comparison.
+        let replay = audit_replay(report_raw, catalog_raw, oracle_raw);
+        if replay.get("status").and_then(Value::as_str) != Some("PASS") {
+            fail(&mut audit, "FAIL", "BUDGET_LANE_REPLAY_FAILED", &format!("lane {} did not independently replay as PASS", index + 1));
+        }
+        lane_receipts.push(json!({
+            "budget_units": budget,
+            "report_sha256": sha256(report_raw),
+            "catalog_sha256": sha256(catalog_raw),
+            "oracle_sha256": oracle_digest,
+            "replay_status": replay.get("status").cloned().unwrap_or(Value::Null),
+            "episodes_replayed": replay.get("episodes_checked").cloned().unwrap_or(Value::Null),
+            "events_replayed": replay.get("events_checked").cloned().unwrap_or(Value::Null),
+            "cost_units_recomputed": replay.get("cost_units_recomputed").cloned().unwrap_or(Value::Null)
+        }));
+        parsed_reports.push(report);
+    }
+
+    if audit.get("status").and_then(Value::as_str) != Some("PASS") || parsed_reports.len() != 3 {
+        audit["lane_receipts"] = json!(lane_receipts);
+        return audit;
+    }
+    audit["budget_points"] = json!(3);
+    audit["lane_receipts"] = json!(lane_receipts);
+
+    // Build matched comparisons within each environment and the same budget.
+    // Never collapse helpful, neutral, harmful and misleading-prior environments into
+    // a single pooled mean that could hide a policy regression.
+    let mut metrics = Vec::<Value>::new();
+    for (lane_index, report) in parsed_reports.iter().enumerate() {
+        let budget = expected_budgets[lane_index];
+        let episodes = report.get("episodes").and_then(Value::as_array).cloned().unwrap_or_default();
+        let random_summaries = report.get("auxiliary_control_summary").and_then(Value::as_array).cloned().unwrap_or_default();
+
+        for episode in &episodes {
+            let environment = episode.get("environment_id").and_then(Value::as_str).unwrap_or("");
+            let policy = episode.get("policy_class").and_then(Value::as_str).unwrap_or("");
+            let best_utility = episode.get("best_verified_feasible_utility").and_then(Value::as_f64);
+            let gp_ei_utility = episodes.iter()
+                .find(|candidate| candidate.get("environment_id").and_then(Value::as_str) == Some(environment)
+                    && candidate.get("policy_class").and_then(Value::as_str) == Some("gp_ei_fixed_space"))
+                .and_then(|candidate| candidate.get("best_verified_feasible_utility").and_then(Value::as_f64));
+            let fixed_utility = episodes.iter()
+                .find(|candidate| candidate.get("environment_id").and_then(Value::as_str) == Some(environment)
+                    && candidate.get("policy_class").and_then(Value::as_str) == Some("fixed_space"))
+                .and_then(|candidate| candidate.get("best_verified_feasible_utility").and_then(Value::as_f64));
+            let random_mean = random_summaries.iter()
+                .find(|summary| summary.get("environment_id").and_then(Value::as_str) == Some(environment))
+                .and_then(|summary| summary.get("mean_best_verified_feasible_utility").and_then(Value::as_f64));
+            let delta = |candidate: Option<f64>, baseline: Option<f64>| -> Option<f64> {
+                match (candidate, baseline) {
+                    (Some(left), Some(right)) if left.is_finite() && right.is_finite() => Some(left - right),
+                    _ => None
+                }
+            };
+            let cost = episode.get("cost_units_charged").and_then(Value::as_f64);
+            metrics.push(json!({
+                "budget_units": budget,
+                "environment_id": environment,
+                "policy_class": policy,
+                "best_verified_feasible_utility": best_utility,
+                "terminal_simple_regret": episode.get("terminal_simple_regret").cloned().unwrap_or(Value::Null),
+                "utility_per_charged_unit": match (best_utility, cost) {
+                    (Some(utility), Some(cost)) if cost > 0.0 => json!(utility / cost),
+                    _ => Value::Null
+                },
+                "first_feasible_cost_units": episode.get("first_feasible_cost_units").cloned().unwrap_or(Value::Null),
+                "false_feasible_predictions": episode.get("false_feasible_predictions").cloned().unwrap_or(Value::Null),
+                "expansions": episode.get("expansions").cloned().unwrap_or(Value::Null),
+                "evaluations": episode.get("evaluations").cloned().unwrap_or(Value::Null),
+                "cost_units_charged": cost,
+                "delta_utility_vs_gp_ei": delta(best_utility, gp_ei_utility),
+                "delta_utility_vs_fixed_space": delta(best_utility, fixed_utility),
+                "delta_utility_vs_seeded_random_mean": delta(best_utility, random_mean)
+            }));
+        }
+    }
+
+    let mut frontier = Vec::<Value>::new();
+    for budget in expected_budgets {
+        for policy in POLICY_CLASSES {
+            let rows = metrics.iter().filter(|row| {
+                close(row.get("budget_units").and_then(Value::as_f64), Some(budget))
+                    && row.get("policy_class").and_then(Value::as_str) == Some(policy)
+            }).collect::<Vec<_>>();
+            let gp_deltas = rows.iter().filter_map(|row| row.get("delta_utility_vs_gp_ei").and_then(Value::as_f64)).collect::<Vec<_>>();
+            let random_deltas = rows.iter().filter_map(|row| row.get("delta_utility_vs_seeded_random_mean").and_then(Value::as_f64)).collect::<Vec<_>>();
+            let count = |values: &[f64], relation: &str| -> usize {
+                values.iter().filter(|value| match relation {
+                    "better" => **value > 1e-9,
+                    "worse" => **value < -1e-9,
+                    _ => value.abs() <= 1e-9
+                }).count()
+            };
+            let minimum_gp_delta = gp_deltas.iter().copied().reduce(f64::min);
+            let minimum_random_delta = random_deltas.iter().copied().reduce(f64::min);
+            frontier.push(json!({
+                "budget_units": budget,
+                "policy_class": policy,
+                "environment_count": rows.len(),
+                "gp_ei_better_environments": count(&gp_deltas, "better"),
+                "gp_ei_tied_environments": count(&gp_deltas, "tie"),
+                "gp_ei_worse_environments": count(&gp_deltas, "worse"),
+                "worst_environment_delta_vs_gp_ei": minimum_gp_delta.map_or(Value::Null, |value| json!(value)),
+                "seeded_random_better_environments": count(&random_deltas, "better"),
+                "seeded_random_tied_environments": count(&random_deltas, "tie"),
+                "seeded_random_worse_environments": count(&random_deltas, "worse"),
+                "worst_environment_delta_vs_seeded_random_mean": minimum_random_delta.map_or(Value::Null, |value| json!(value)),
+                "claim_ceiling": "Environment-stratified synthetic comparison only; no cross-regime pooled winner is declared."
+            }));
+        }
+    }
+
+    if metrics.len() != 72 {
+        fail(&mut audit, "FAIL", "ENVIRONMENTWISE_METRIC_COVERAGE_INVALID", &format!("expected 72 rows (3 budgets × 4 environments × 6 policies), observed {}", metrics.len()));
+    }
+    if frontier.len() != 18 || frontier.iter().any(|row| row.get("environment_count").and_then(Value::as_u64) != Some(4)) {
+        fail(&mut audit, "FAIL", "POLICY_FRONTIER_COVERAGE_INVALID", "expected 18 summaries, each preserving all four environments");
+    }
+    audit["environmentwise_metrics"] = json!(metrics);
+    audit["policy_frontier"] = json!(frontier);
+    audit
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 && args[1] == "--policy-child" {
         return run_policy_child();
+    }
+    if args.len() == 9 && args[1] == "--frontier" {
+        let paths = [&args[2], &args[3], &args[4], &args[5], &args[6], &args[7], &args[8]];
+        let mut raw_files = Vec::<Vec<u8>>::new();
+        for path in paths {
+            match fs::read(path) {
+                Ok(bytes) => raw_files.push(bytes),
+                Err(error) => {
+                    eprintln!("cannot read {}: {error}", path);
+                    return ExitCode::from(2);
+                }
+            }
+        }
+        let lanes = [
+            (raw_files[0].as_slice(), raw_files[1].as_slice()),
+            (raw_files[2].as_slice(), raw_files[3].as_slice()),
+            (raw_files[4].as_slice(), raw_files[5].as_slice())
+        ];
+        let scorecard = audit_budget_frontier(&lanes, raw_files[6].as_slice());
+        let status = scorecard.get("status").and_then(Value::as_str).unwrap_or("FAIL");
+        let code = match status { "PASS" => 0, "UNRESOLVED" => 3, _ => 2 };
+        println!("{}", serde_json::to_string_pretty(&scorecard).expect("budget frontier scorecard serializes"));
+        return ExitCode::from(code);
     }
     if args.len() == 5 && args[1] == "--replay" {
         let report_raw = match fs::read(&args[2]) {
@@ -1692,7 +1889,7 @@ fn main() -> ExitCode {
         return ExitCode::from(code);
     }
     if args.len() != 3 {
-        eprintln!("Usage:\n  run-search-space-loop <public-policy-catalog.json> <sealed-outcome-oracle.json>\n  run-search-space-loop --replay <loop-report.json> <public-policy-catalog.json> <sealed-outcome-oracle.json>");
+        eprintln!("Usage:\n  run-search-space-loop <public-policy-catalog.json> <sealed-outcome-oracle.json>\n  run-search-space-loop --replay <loop-report.json> <public-policy-catalog.json> <sealed-outcome-oracle.json>\n  run-search-space-loop --frontier <report-3.json> <catalog-3.json> <report-4.json> <catalog-4.json> <report-5.json> <catalog-5.json> <sealed-oracle.json>");
         return ExitCode::from(64);
     }
     let public_raw = match fs::read(&args[1]) {
@@ -2074,6 +2271,64 @@ mod tests {
         assert_eq!(replay["status"], "PASS");
         assert_eq!(replay["episodes_checked"], 24);
         assert_eq!(replay["cost_units_recomputed"], 96.0);
+    }
+
+    #[test]
+    fn budget_frontier_scorecard_replays_lanes_and_preserves_each_environment() {
+        let report3 = serde_json::to_vec(&run_all(TIGHT_BUDGET_PUBLIC, ORACLE)).unwrap();
+        let report4 = serde_json::to_vec(&run_all(FOUR_UNIT_PUBLIC, ORACLE)).unwrap();
+        let report5 = serde_json::to_vec(&run_all(PUBLIC, ORACLE)).unwrap();
+        let lanes = [
+            (report3.as_slice(), TIGHT_BUDGET_PUBLIC),
+            (report4.as_slice(), FOUR_UNIT_PUBLIC),
+            (report5.as_slice(), PUBLIC)
+        ];
+        let scorecard = audit_budget_frontier(&lanes, ORACLE);
+        assert_eq!(scorecard["status"], "PASS");
+        assert_eq!(scorecard["budget_points"], 3);
+        assert_eq!(scorecard["lane_receipts"].as_array().unwrap().len(), 3);
+        assert_eq!(scorecard["environmentwise_metrics"].as_array().unwrap().len(), 72);
+        assert_eq!(scorecard["policy_frontier"].as_array().unwrap().len(), 18);
+        assert!(scorecard.get("global_mean_utility").is_none());
+        assert!(scorecard.get("pooled_utility_winner").is_none());
+
+        let rows = scorecard["environmentwise_metrics"].as_array().unwrap();
+        for budget in [3.0, 4.0, 5.0] {
+            for environment in ["helpful", "neutral", "harmful", "misleading_prior"] {
+                for policy in POLICY_CLASSES {
+                    assert_eq!(rows.iter().filter(|row| {
+                        close(row["budget_units"].as_f64(), Some(budget))
+                            && row["environment_id"] == environment
+                            && row["policy_class"] == policy
+                    }).count(), 1);
+                }
+            }
+        }
+        let helpful_four_unit = rows.iter().find(|row| {
+            row["budget_units"] == 4.0
+                && row["environment_id"] == "helpful"
+                && row["policy_class"] == "rule_based_expansion"
+        }).unwrap();
+        assert_eq!(helpful_four_unit["best_verified_feasible_utility"], 8.0);
+        assert_eq!(helpful_four_unit["delta_utility_vs_gp_ei"].as_f64().is_some(), true);
+    }
+
+    #[test]
+    fn budget_frontier_scorecard_rejects_a_forged_lane_metric() {
+        let report3 = serde_json::to_vec(&run_all(TIGHT_BUDGET_PUBLIC, ORACLE)).unwrap();
+        let mut report4_value = run_all(FOUR_UNIT_PUBLIC, ORACLE);
+        report4_value["episodes"][0]["terminal_simple_regret"] = json!(999.0);
+        let report4 = serde_json::to_vec(&report4_value).unwrap();
+        let report5 = serde_json::to_vec(&run_all(PUBLIC, ORACLE)).unwrap();
+        let lanes = [
+            (report3.as_slice(), TIGHT_BUDGET_PUBLIC),
+            (report4.as_slice(), FOUR_UNIT_PUBLIC),
+            (report5.as_slice(), PUBLIC)
+        ];
+        let scorecard = audit_budget_frontier(&lanes, ORACLE);
+        assert_eq!(scorecard["status"], "FAIL");
+        assert!(scorecard["findings"].as_array().unwrap().iter()
+            .any(|finding| finding["code"] == "BUDGET_LANE_REPLAY_FAILED"));
     }
 
     #[test]
