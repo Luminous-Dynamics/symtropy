@@ -38,6 +38,36 @@ Relevant source documentation:
 
 The official sources describe different but complementary capabilities. The proposed contribution is not to claim that Symtropy replaces each specialist tool immediately; it is to create a common, evidence-gated, scenario-paired evaluation harness around them where adapters and comparable models are available.
 
+## 2.1 New benchmark axis: hierarchy, autonomy and interdependence
+
+Recent industry guidance makes clear that resilience metrics need to be selected for the system level and operational context. IEEE PES published *Reliability and Resilience for New Grid Needs (TR148)* on 1 October 2026, addressing modern grids, inverter-based resources, extreme events and cyber/physical threats. A 2026 review also highlights critical function, time and decision-making hierarchy as useful dimensions for resilience measurement. These reinforce a benchmark gap: a system can appear resilient locally while a dependency or coordination failure causes service loss at a larger level.
+
+Source: https://resourcecenter.ieee-pes.org/publications/technical-reports/pes_tr_tr148_itslc_102026
+Review: https://doi.org/10.1016/j.epsr.2026.112736
+
+Every scenario should declare **which hierarchy levels are represented** rather than collapsing them into one microgrid score:
+- **Device/control:** inverter, battery, sensor, actuator or protective controller.
+- **Site/microgrid:** power, thermal, water, communications and load-serving systems.
+- **Community/multi-site:** inter-site resource sharing, logistics, shared spares and dependencies.
+- **Operator/coordination:** centralized coordination, local autonomy, communication and restoration authority.
+
+For each represented layer, declare its critical services, upstream dependencies, available actions, observation/forecast access, safety floors and time horizon. Record an explicit dependency-graph digest. Unmodeled layers must be marked not covered; no cross-layer guarantee is inferred from one layer's passing score.
+
+### A new falsifiable experiment: resilience under coordination partition
+
+On a validated, small multi-site test model, inject a communication partition or stale coordination feed while keeping the physical hazard sequence identical. Compare:
+1. the current/static policy;
+2. local autonomous fallback policy;
+3. centralized coordinated policy under healthy communications;
+4. the same centralized policy under communication delay/partition, if its behavior is defined;
+5. a candidate hybrid policy that uses local fallback and reconciles state on reconnection.
+
+Pair all arms by initial state, disturbance seed, service-contract digest and exogenous trace. Freeze what each arm knows at each time; do not leak future events to the fallback. Test both partition onset and recovery/re-synchronization.
+
+Required outcome slices: critical service served by hierarchy; outage duration per layer; unserved energy/water/heat as applicable; hard-constraint violations; cascading failure count; time to detect loss of coordination; safe fallback latency; time to restore a consistent shared state; resource-sharing regret; communication volume; compute and runtime. Report worst layer and worst hazard group, not just network-wide averages.
+
+**Research hypothesis, not a result:** local fallback plus explicit state reconciliation may reduce service loss under coordination outages relative to a centralized-only policy, while healthy-connectivity centralized optimization may retain advantages in shared-resource efficiency. The benchmark should quantify that Pareto trade-off rather than assume one architecture dominates.
+
 ## 3. Baseline ladder
 
 Every deployable policy comparison should include the strongest available non-oracle baseline, not only a weak heuristic.
@@ -134,5 +164,6 @@ A later level does not retroactively erase earlier caveats. Each report must sta
 4. Run simple sanity and alignment negative controls, then the calibration/validation/locked split already specified in the Gobabeb validation plan.
 5. Only after the environment input is admitted, use it in a domain model whose plant assumptions and hard constraints are independently tested.
 6. Run the baseline ladder under paired disturbances and report per-group tail risk, cost, hard-constraint outcomes and uncertainty.
+7. Add a separate hierarchical coordination-partition experiment only after the dependency graph, communication semantics, local fallback actions and reconnection behavior are specified and verified.
 
 At the current PR head, these are planned experiments. No real Gobabeb raw file, station-vs-POWER score, controller bake-off or SOTA advantage is claimed.
