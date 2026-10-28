@@ -2,7 +2,7 @@
 
 A small Rust reference verifier (dependency versions pinned and lockfile included) for the GLASS-SILICON-001 benchmark.
 
-It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. The current source defines 157 Rust tests: 133 in the main library suite, 12 in the adaptive search-space proposal auditor, and 12 in the matched-budget campaign evaluator. This is a source count, not a statement that the current exact-head suite has executed or passed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
+It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. The current source defines 169 Rust tests: 133 in the main library suite and 12 each in the adaptive-space proposal auditor, matched-budget campaign evaluator, and live observation-conditioned policy loop. This is a source count, not a statement that the current exact-head suite has executed or passed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
 
 ## Commands
 
@@ -36,6 +36,11 @@ cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-search-space-trial -- \
   tools/glass-silicon-contract-audit/fixtures/search-space-campaign-input.synthetic.json \
   tools/glass-silicon-contract-audit/fixtures/search-space-outcome-oracle.synthetic.json
+
+
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
+  tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog.synthetic.json \
+  tools/glass-silicon-contract-audit/fixtures/search-space-live-outcome-oracle.synthetic.json
 
 # Same gate-aware fixture: compare myopic and adaptive decision policies
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-decision-value \
@@ -78,6 +83,16 @@ The \`audit-search-space-trial\` binary scores public campaign traces against a 
 The 16-campaign synthetic panel deliberately includes four different regimes: helpful expansion, neutral expansion, harmful expansion, and a misleading prior. The fixed-space arm wins in some regimes, and adaptive expansion helps in another. Those values are designed known answers to test the evaluator; they are not experimental data and are not evidence that any policy wins on glass or silicon.
 
 The sealed-oracle interface does not alone prove process isolation: a policy implementation could still inspect a file it should not receive unless execution is sandboxed and the trace is independently replayed. That runtime boundary remains separate work tracked by GLASS-CLOSED-LOOP-001 (#2785).
+
+## Live observation-conditioned policy loop
+
+The \`run-search-space-loop\` binary runs five deterministic policy controls across four synthetic environments. It is distinct from scoring the pre-authored campaign trace: the policy chooses its next action from a constructed public view, the evaluator charges the action, then returns the selected outcome. The public view contains only visible candidates, declared proxy scores, budget remaining and previously revealed observations—not the evaluator's environment ID or unseen outcome map.
+
+The five policies are fixed-space, threshold-triggered random expansion, threshold-triggered rule-based expansion, threshold-triggered prior-guided expansion, and an always-expand prior-guided control. The prior-guided policy is a deterministic synthetic proxy, not an actual LLM call or SOTA optimizer. Conventional GP-EI/PI, DOE/random, cost-aware BO and incumbent production workflows remain the future empirical comparators.
+
+The live loop uses evaluator-owned tariffs and a common five-unit / 25-second cap; actions are charged before outcomes are revealed. Its receipt records a hash of each decision view, chosen action, cost/time and subsequent observation. Mutation tests require that changing a hidden outcome cannot change actions before its observation is returned. The evaluator and policies still share one process and can read the input files; this is not a hostile-code sandbox. Process/WASM isolation and external transcript replay are follow-on requirements tracked by issue #2785.
+
+See [GLASS-LIVE-POLICY-LOOP-001](../../docs/tech/GLASS_LIVE_POLICY_LOOP_PROTOCOL_V0_1.md) for the protocol and claim limits. All included outcomes, scores and policy heuristics are synthetic known answers; they do not establish material feasibility or a performance improvement.
 
 ## Claim ceiling
 
