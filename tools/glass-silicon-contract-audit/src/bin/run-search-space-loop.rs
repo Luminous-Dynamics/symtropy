@@ -865,6 +865,9 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
         || report.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID) {
         fail(&mut audit, "FAIL", "RUN_REPORT_KIND_INVALID", "input report is not a live policy event-loop report for this benchmark");
     }
+    if report.get("policy_count").and_then(Value::as_u64) != Some(POLICY_CLASSES.len() as u64) {
+        fail(&mut audit, "FAIL", "POLICY_COUNT_MISMATCH", "run report's policy count does not match the registered policy list");
+    }
     if report.get("input_sha256").and_then(Value::as_str) != Some(public_digest.as_str()) {
         fail(&mut audit, "FAIL", "PUBLIC_DIGEST_MISMATCH", "live-loop report does not bind to the exact public catalog bytes supplied to replay");
     }
@@ -1145,6 +1148,26 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
     if report.get("episodes_checked").and_then(Value::as_u64) != Some(episodes.len() as u64) {
         fail(&mut audit, "FAIL", "EPISODE_COUNT_MISMATCH", "reported episode count does not match episode array length");
     }
+    let expected_episode_count = oracle_envs.len() * POLICY_CLASSES.len();
+    if episodes.len() != expected_episode_count {
+        fail(&mut audit, "FAIL", "POLICY_ENVIRONMENT_COVERAGE_MISMATCH", &format!("expected {expected_episode_count} environment/policy pairs but replay received {}", episodes.len()));
+    }
+    let mut pairs = HashSet::new();
+    for episode in episodes {
+        let env = episode.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        let policy = episode.get("policy_class").and_then(Value::as_str).unwrap_or("");
+        if !pairs.insert((env.to_owned(), policy.to_owned())) {
+            fail(&mut audit, "FAIL", "POLICY_ENVIRONMENT_PAIR_DUPLICATE", &format!("duplicate episode for {env}/{policy}"));
+        }
+    }
+    for env in oracle_envs {
+        let env_id = env.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        for policy in POLICY_CLASSES {
+            if !pairs.contains(&(env_id.to_owned(), policy.to_owned())) {
+                fail(&mut audit, "FAIL", "POLICY_ENVIRONMENT_PAIR_MISSING", &format!("missing episode for {env_id}/{policy}"));
+            }
+        }
+    }
     audit["episodes_checked"] = json!(episodes_checked);
     audit["events_checked"] = json!(events_checked);
     audit["policy_actions_checked"] = json!(policy_actions_checked);
@@ -1231,7 +1254,7 @@ mod tests {
     fn live_loop_runs_all_policy_regime_pairs_with_budget_parity() {
         let report = run_all(PUBLIC, ORACLE);
         assert_eq!(report["status"], "PASS");
-        assert_eq!(report["episodes_checked"], 20);
+        assert_eq!(report["episodes_checked"], 24);
         assert_eq!(report["environment_count"], 4);
         for e in report["episodes"].as_array().unwrap() {
             assert_eq!(e["cost_units_charged"], 5.0, "{}", e["campaign_id"]);
@@ -1425,9 +1448,22 @@ mod tests {
         let report_raw = serde_json::to_vec(&report).unwrap();
         let replay = audit_replay(&report_raw, PUBLIC, ORACLE);
         assert_eq!(replay["status"], "PASS");
-        assert_eq!(replay["episodes_checked"], 20);
-        assert!(replay["events_checked"].as_u64().unwrap() >= 70);
-        assert_eq!(replay["cost_units_recomputed"], 100.0);
+        assert_eq!(replay["episodes_checked"], 24);
+        assert!(replay["events_checked"].as_u64().unwrap() >= 90);
+        assert_eq!(replay["cost_units_recomputed"], 120.0);
+    }
+
+    #[test]
+    fn independent_replay_rejects_a_missing_policy_environment_pair() {
+        let mut report = run_all(PUBLIC, ORACLE);
+        report["episodes"].as_array_mut().unwrap().retain(|e| {
+            !(e["environment_id"] == "harmful" && e["policy_class"] == "gp_ei_fixed_space")
+        });
+        report["episodes_checked"] = json!(report["episodes"].as_array().unwrap().len());
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "POLICY_ENVIRONMENT_PAIR_MISSING"));
     }
 
     #[test]
