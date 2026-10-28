@@ -45,6 +45,16 @@ const INPUT_KEYS: &[&str] = &[
     "waiting_resource_state",
     "alternate_capacity_state",
 ];
+/// Verbose display names declared in `model_scope.abstract_inputs_only` — these are the
+/// human-readable labels for the same inputs tracked by `INPUT_KEYS` in scenario cases.
+const MODEL_SCOPE_INPUT_NAMES: &[&str] = &[
+    "declared_water_level_envelope_state",
+    "energy_reserve_constraint_state",
+    "terminal_window_state",
+    "forecast_evidence_state",
+    "waiting_resource_availability_state",
+    "alternate_capacity_confirmation_state",
+];
 const PLAN_IDS: &[&str] = &[
     "continue_original_slot",
     "hold_and_reassess",
@@ -492,11 +502,11 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         "forecast arithmetic.forecast_lead_seconds",
     )?;
     if observed_issue_age != declared_issue_age || observed_lead != declared_lead {
-        return Err(format!(concat!(
-            "forecast temporal arithmetic mismatch: issue_age observed={observed_issue_age} ",
-            "declared={declared_issue_age}; lead observed={observed_lead} ",
-            "declared={declared_lead}"
-        )));
+        return Err(format!(
+            "forecast temporal arithmetic mismatch: issue_age observed={observed_issue_age} \
+             declared={declared_issue_age}; lead observed={observed_lead} \
+             declared={declared_lead}"
+        ));
     }
     let max_issue_age = super::integer(
         super::field(forecast, "max_issue_age_seconds", "forecast_input")?,
@@ -542,7 +552,7 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
     expect_text_array(
         super::field(scope, "abstract_inputs_only", "model_scope")?,
         "model_scope.abstract_inputs_only",
-        INPUT_KEYS,
+        MODEL_SCOPE_INPUT_NAMES,
     )?;
     expect_text_array(
         super::field(scope, "unsupported_if_requested", "model_scope")?,
@@ -1180,7 +1190,7 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
     let robustly_feasible_candidate_plans = PLAN_IDS
         .iter()
         .zip(per_plan_all_required_feasible)
-        .filter(|(_, is_feasible)| **is_feasible)
+        .filter(|(_, is_feasible)| *is_feasible)
         .map(|(plan_id, _)| (*plan_id).to_owned())
         .collect();
 
@@ -1529,20 +1539,25 @@ mod tests {
 
     #[test]
     fn invalidating_required_forecast_never_improves_original_plan() {
-        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        let fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
         let baseline = fixture["scenario_cases"][0]["abstract_inputs"].clone();
         let mut invalidated = baseline.clone();
         invalidated["forecast_evidence_state"] = Value::String("invalidated".to_owned());
         invalidated["water_level_envelope_state"] = Value::String("unknown".to_owned());
 
+        let baseline_bytes = serde_json::to_vec(&baseline).unwrap();
+        let invalidated_bytes = serde_json::to_vec(&invalidated).unwrap();
+        let baseline_jv = super::super::parse_strict(&baseline_bytes).unwrap();
+        let invalidated_jv = super::super::parse_strict(&invalidated_bytes).unwrap();
+
         let (baseline_status, _) = disposition(
             "continue_original_slot",
-            &validate_abstract_inputs(&baseline, "baseline").unwrap(),
+            &validate_abstract_inputs(&baseline_jv, "baseline").unwrap(),
         )
         .unwrap();
         let (invalidated_status, _) = disposition(
             "continue_original_slot",
-            &validate_abstract_inputs(&invalidated, "invalidated").unwrap(),
+            &validate_abstract_inputs(&invalidated_jv, "invalidated").unwrap(),
         )
         .unwrap();
         assert_eq!(baseline_status, "FEASIBLE_WITHIN_DECLARED_MODEL");

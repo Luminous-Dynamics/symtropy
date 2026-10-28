@@ -377,7 +377,8 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
     let feature_whitelist = field(policy, "feature_whitelist", "replay_policy")?;
     if !array(feature_whitelist, "replay_policy.feature_whitelist")?.is_empty() {
         return Err(
-            "feature whitelist must stay empty until field evidence is reviewed".to_owned(),
+            "replay_policy.feature_whitelist must stay empty until field evidence is reviewed"
+                .to_owned(),
         );
     }
     expect_false(
