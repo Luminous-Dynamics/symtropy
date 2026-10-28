@@ -128,8 +128,8 @@ jq -e '
 # generating an engineering input. These are conservative sanity checks, not a
 # climatological validation or calibration step.
 jq -e --argjson fill "$(jq -r '.header.fill_value' "$RAW_COPY")" '
-  def missing($fill): . == null or . == $fill;
-  def numeric_or_missing($fill): missing($fill) or type == "number";
+  def missing_value($value; $fill): $value == null or $value == $fill;
+  def numeric_or_missing($fill): . == null or . == $fill or type == "number";
   .properties.parameter as $p |
   ($p.T2M | keys | sort) as $dates |
   all($dates[] as $d;
@@ -140,14 +140,14 @@ jq -e --argjson fill "$(jq -r '.header.fill_value' "$RAW_COPY")" '
     ][];
       numeric_or_missing($fill)
     ) and
-    (missing($p.ALLSKY_SFC_SW_DWN[$d]; $fill) or $p.ALLSKY_SFC_SW_DWN[$d] >= 0) and
-    (missing($p.WS10M[$d]; $fill) or $p.WS10M[$d] >= 0) and
-    (missing($p.PRECTOTCORR[$d]; $fill) or $p.PRECTOTCORR[$d] >= 0) and
-    (missing($p.RH2M[$d]; $fill) or ($p.RH2M[$d] >= 0 and $p.RH2M[$d] <= 100)) and
-    (if (numeric_or_missing($fill) and ($p.T2M_MIN[$d] != $fill and $p.T2M_MIN[$d] != null) and ($p.T2M_MAX[$d] != $fill and $p.T2M_MAX[$d] != null))
+    (missing_value($p.ALLSKY_SFC_SW_DWN[$d]; $fill) or $p.ALLSKY_SFC_SW_DWN[$d] >= 0) and
+    (missing_value($p.WS10M[$d]; $fill) or $p.WS10M[$d] >= 0) and
+    (missing_value($p.PRECTOTCORR[$d]; $fill) or $p.PRECTOTCORR[$d] >= 0) and
+    (missing_value($p.RH2M[$d]; $fill) or ($p.RH2M[$d] >= 0 and $p.RH2M[$d] <= 100)) and
+    (if not missing_value($p.T2M_MIN[$d]; $fill) and not missing_value($p.T2M_MAX[$d]; $fill)
       then $p.T2M_MIN[$d] <= $p.T2M_MAX[$d]
       else true end) and
-    (if ($p.T2M[$d] != $fill and $p.T2M[$d] != null) and ($p.T2M_MIN[$d] != $fill and $p.T2M_MIN[$d] != null) and ($p.T2M_MAX[$d] != $fill and $p.T2M_MAX[$d] != null)
+    (if not missing_value($p.T2M[$d]; $fill) and not missing_value($p.T2M_MIN[$d]; $fill) and not missing_value($p.T2M_MAX[$d]; $fill)
       then ($p.T2M_MIN[$d] <= $p.T2M[$d] and $p.T2M[$d] <= $p.T2M_MAX[$d])
       else true end)
   )
