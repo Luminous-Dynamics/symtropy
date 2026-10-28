@@ -71,6 +71,7 @@ jobs:
             .properties.audit_kind.const == "synthetic_constrained_pareto_fidelity_event_loop" and
             .properties.campaigns.items.properties.events.items.properties.decision_view_sha256.pattern == "^[0-9a-f]{64}$" and
             .properties.campaigns.items.properties.cost_units_charged.maximum == 5.5 and
+            (.properties.campaigns.items.properties.events.items.allOf | length) == 2 and
             .additionalProperties == false
           ' "$report_schema" > /dev/null
 
