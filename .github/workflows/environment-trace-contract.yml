@@ -7,7 +7,9 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
       - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
       - "research/polar-infrastructure/benchmark/GOBABEB_BSRN_CROSS_VALIDATION_2026.md"
+      - "research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md"
       - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
+      - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
       - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
       - "research/polar-infrastructure/benchmark/fixtures/nasa-power-daily-response-synthetic-2026.json"
@@ -24,7 +26,9 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
       - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
       - "research/polar-infrastructure/benchmark/GOBABEB_BSRN_CROSS_VALIDATION_2026.md"
+      - "research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md"
       - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
+      - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
       - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
       - "research/polar-infrastructure/benchmark/fixtures/nasa-power-daily-response-synthetic-2026.json"
@@ -153,6 +157,43 @@ jobs:
             .result_policy.do_not_claim_station_accuracy_from_series_metadata == true and
             .result_policy.do_not_claim_controller_superiority_from_trace_validation == true
           ' "$plan"
+
+      - name: Validate resilience bake-off preregistration contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          contract="research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-resilience-benchmark-contract" and
+            .contract_id == "resilience-comparison-contract-v0" and
+            .status == "proposed_not_executed" and
+            .evidence_class == "test_design_only" and
+            .primary_endpoint.metric_id == "cvar95_critical_energy_not_served" and
+            .primary_endpoint.minimum_relative_improvement_target == 0.10 and
+            .primary_endpoint.status == "target_not_measured" and
+            .claim_policy.single_composite_score_allowed == false and
+            .claim_policy.oracle_counts_as_deployable_baseline == false and
+            .claim_policy.hash_counts_as_physical_validation == false and
+            .claim_policy.post_test_endpoint_or_holdout_changes_allowed == false and
+            (.admission_gates | length >= 7) and
+            all(.admission_gates[]; .required == true and .passed == false) and
+            ([.admission_gates[].gate_id] | length == (unique | length)) and
+            any(.baseline_ladder[]; .baseline_id == "deterministic_mpc" and .class == "deployable_baseline") and
+            any(.baseline_ladder[]; .baseline_id == "perfect_information_oracle" and .class == "diagnostic_only") and
+            ([.baseline_ladder[].baseline_id] | length == (unique | length)) and
+            ([.required_metric_ids[]] | length >= 10 and length == (unique | length)) and
+            .fairness_protocol.paired_disturbance_seeds == true and
+            .fairness_protocol.whole_episode_or_site_year_splits == true and
+            .fairness_protocol.locked_test_may_not_be_used_for_tuning == true and
+            .fairness_protocol.confidence_intervals_resample_temporal_blocks == true and
+            .superiority_criteria.minimum_relative_improvement == .primary_endpoint.minimum_relative_improvement_target and
+            .superiority_criteria.economic_or_resource_noninferiority_margin == null and
+            .superiority_criteria.economic_or_resource_margin_must_be_frozen_before_locked_test == true and
+            .result_policy.no_empirical_superiority_claim == true and
+            .result_policy.report_kind == "preregistration_contract_only_no_performance_results"
+          ' "$contract"
+          test -s research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md
 
       - name: Validate shell-script syntax without network access
         shell: bash
