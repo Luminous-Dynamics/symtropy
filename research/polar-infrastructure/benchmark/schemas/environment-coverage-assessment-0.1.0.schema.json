@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json",
+  "title": "Symtropy Environmental Coverage Assessment",
+  "description": "A declared expected/observed sample-count assessment for one source, variable and window. This contract does not establish source authenticity, data quality, or physical-model validity. Cross-field count invariants are also checked by the executable coverage gate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_kind",
+    "assessment_id",
+    "source_id",
+    "variable_id",
+    "window_id",
+    "expected_sample_count",
+    "observed_sample_count",
+    "minimum_coverage_fraction"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "artifact_kind": {
+      "const": "symtropy-environment-coverage-assessment"
+    },
+    "assessment_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9]+([._:-][a-z0-9]+)*$"
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "variable_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "window_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_sample_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "observed_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "minimum_coverage_fraction": {
+      "description": "Set before any locked-test inspection. null means the assessment is not admissible for metric scoring.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      ]
+    }
+  }
+}
