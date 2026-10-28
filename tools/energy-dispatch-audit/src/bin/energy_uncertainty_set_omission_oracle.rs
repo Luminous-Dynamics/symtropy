@@ -228,8 +228,15 @@ fn validate_panel(panel: &Panel) -> Result<(), String> {
     if panel.probability_note.is_empty() || panel.forecast_contract.is_null() {
         return Err("probability or forecast contract is missing".to_owned());
     }
-    if panel.model.actions != ["hold", "serve_essential", "serve_flexible"] {
+    let expected_actions = ["hold", "serve_essential", "serve_flexible"]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    if panel.model.actions != expected_actions {
         return Err("action catalog mismatch".to_owned());
+    }
+    if panel.benchmark_id != "set-valued-essential-reserve-policy-under-shift" {
+        return Err("unexpected source panel benchmark identity".to_owned());
     }
     if panel.model.capacity_quanta != 2
         || panel.model.initial_soc_quanta > panel.model.capacity_quanta
@@ -388,7 +395,7 @@ fn decide(
     }
     if interval.essential_demand > 0 {
         return (
-            if soc > 0 { "serve_essential" } else { "hold" }.to_owned(),
+            (if soc > 0 { "serve_essential" } else { "hold" }).to_owned(),
             prefix_miss,
             reserve,
         );
@@ -426,7 +433,7 @@ fn simulate(
         history.push(observable(interval));
         let (action, prefix_miss, reserve) =
             decide(interval, soc, time_index, &history, training, model);
-        prefix_misses += usize::from(prefix_miss);
+        prefix_misses += if prefix_miss { 1 } else { 0 };
         let soc_before = soc;
         let mut essential_served = 0u32;
         let mut flexible_served = 0u32;
@@ -557,8 +564,8 @@ fn evaluate_subset(
         let essential_delta = i64::from(row.essential_unserved) - i64::from(full.essential_unserved);
         let flexible_delta = i64::from(row.flexible_unserved) - i64::from(full.flexible_unserved);
         let first_action_changed = row.actions.first() != full.actions.first();
-        first_action_changes += usize::from(first_action_changed);
-        essential_degradation_count += usize::from(essential_delta > 0);
+        first_action_changes += if first_action_changed { 1 } else { 0 };
+        essential_degradation_count += if essential_delta > 0 { 1 } else { 0 };
         total_prefix_misses += row.prefix_misses;
         total_essential += row.essential_unserved;
         total_flexible += row.flexible_unserved;
