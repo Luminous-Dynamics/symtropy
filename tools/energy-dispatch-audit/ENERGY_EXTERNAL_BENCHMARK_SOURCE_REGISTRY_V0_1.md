@@ -21,9 +21,9 @@ The official release notes (released 9 September 2026) describe 32 datasets in t
 - https://www.citylearn.net/overview/dataset.html
 - https://github.com/citylearn-project/CityLearn
 
-**Useful role:** closed-loop controller comparisons on a pinned community/building control scenario.
+**Selected candidate:** `citylearn_challenge_2022_phase_all_plus_evs`, pinned to upstream commit `834575c1a0194c8ae9d648ae858376a94dfceb78`. Its schema blob is `5d58d31fd75e4845d73d319c69df34d64223f533`; the pinned schema declares 17 buildings and 8,760 hourly simulator steps from 2024-08-01. The 30 referenced CSV paths, per-file Git blob SHA-1s, byte sizes and row counts are inventoried in `tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json`.
 
-**Hard boundary:** do not assume the retired annual REC family is available from the v3.0.2 registry. First select and verify an actual dataset present in the exact release/tag, pin each data file and schema, review dataset-specific terms, and record whether its measurements are observed, synthetic, or simulator-generated. Simulator performance is not a field outcome; electrical connection/phase constraints do not automatically prove full AC feeder power-flow feasibility.
+**Hard boundary:** this is a pinned upstream Git source inventory, not a raw-content SHA-256 snapshot. The external CSV bytes have not been archived inside Symtropy, and dataset-specific data terms have not been independently cleared. The schema contains columns named `predicted_*`, but does not by itself prove forecast issue-time/publication-time availability; those fields remain disqualified as deployed causal forecasts until timing semantics are audited. Retired annual REC families remain excluded. Simulator performance is not a field outcome; electrical service constraints do not automatically prove full AC feeder power-flow feasibility.
 
 ### 3. Eskom Data Portal rolling dashboard
 
