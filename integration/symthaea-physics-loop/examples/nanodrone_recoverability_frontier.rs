@@ -899,6 +899,22 @@ mod tests {
     }
 
     #[test]
+    fn inconsistent_remaining_budget_across_checkpoints_is_rejected() {
+        let args = test_args();
+        let (mut checkpoints, branches, train) = fixture_inputs();
+        checkpoints.iter_mut().find(|c| c.flight_id == "flight-a" && c.checkpoint_time_s == 2.0).unwrap().remaining_budget_s = 1.0;
+        assert!(validate_fixture(&args, checkpoints, branches, train).unwrap_err().contains("fixed terminal deadline"));
+    }
+
+    #[test]
+    fn branch_elapsed_beyond_remaining_budget_is_rejected() {
+        let args = test_args();
+        let (checkpoints, mut branches, train) = fixture_inputs();
+        branches[0].branch_elapsed_s = 4.0;
+        assert!(validate_fixture(&args, checkpoints, branches, train).unwrap_err().contains("exceeds the registered remaining task budget"));
+    }
+
+    #[test]
     fn splitmix_resampling_is_deterministic() {
         let mut a = SplitMix64::new(77);
         let mut b = SplitMix64::new(77);
