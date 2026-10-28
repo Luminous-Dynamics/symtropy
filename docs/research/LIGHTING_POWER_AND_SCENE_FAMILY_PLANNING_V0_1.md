@@ -19,13 +19,13 @@ How many *new, independent* building/room/task scene families are required to de
 - Unique scene-family × seed rows, balanced seed schedules, legal status values and status/energy consistency.
 - Minimum pilot-family count, overall paired-energy coverage, per-family paired coverage, at least one paired result per family, and baseline/candidate feasibility-rate gates.
 - Family-level median of paired relative energy savings; sample-size calculation counts independent scene families, not seeds.
-- Declared one-sided alpha, target power, superiority margin, assumed true effect and maximum family count.
+- Declared family-wise one-sided alpha, number of preregistered comparisons, Bonferroni-adjusted per-comparison alpha, target power, superiority margin, assumed true effect and maximum family count.
 - Input CSV and source-code SHA-256 digests; deterministic JSON output; synthetic-tier claim suppression.
 - Unresolved outcomes for low pilot quality, effect at/below margin, zero/unavailable family variance or scenarios that exceed the configured maximum.
 
 ## Planning approximation and remaining work
 
-The utility uses a normal-effect plug-in-SD approximation with the Student-t critical value calculated from the Student-t CDF. It treats the pilot standard deviation as known and does not calculate exact noncentral-t power. This is an inexpensive planning screen, not a guarantee. Next statistical increments should add simulation-based operating-characteristic checks under heavy tails, skew, clustered missingness and explicit family-distribution shifts, plus a separate family-level feasibility design and multi-endpoint multiplicity policy.
+The utility uses a normal-effect plug-in-SD approximation with the Student-t critical value calculated from the Student-t CDF. It supports a predeclared comparison-family size and conservatively divides the one-sided family-wise alpha by that size using Bonferroni. It treats the pilot standard deviation as known and does not calculate exact noncentral-t power. This is an inexpensive planning screen, not a guarantee. Next statistical increments should add simulation-based operating-characteristic checks under heavy tails, skew, clustered missingness and explicit family-distribution shifts, plus a separate family-level feasibility design and multi-endpoint multiplicity policy.
 
 Do not interpret the pilot's observed energy savings as causal savings unless design assignment, solver configuration, equal compute/tuning budgets, data provenance and any required physical measurement process support that interpretation. A high-fidelity reference run or optimizer oracle is not an industry baseline by itself.
 
