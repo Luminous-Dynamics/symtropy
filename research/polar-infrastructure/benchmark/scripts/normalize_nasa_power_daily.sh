@@ -129,25 +129,23 @@ jq -e '
 # climatological validation or calibration step.
 jq -e --argjson fill "$(jq -r '.header.fill_value' "$RAW_COPY")" '
   def missing_value($value; $fill): $value == null or $value == $fill;
-  def numeric_or_missing($fill): . == null or . == $fill or type == "number";
+  def numeric_or_missing($fill): . == null or . == $fill or (type == "number");
   .properties.parameter as $p |
   ($p.T2M | keys | sort) as $dates |
-  all($dates[] as $d;
+  all($dates[]; . as $d |
     all([
       $p.T2M[$d], $p.T2M_MAX[$d], $p.T2M_MIN[$d],
       $p.ALLSKY_SFC_SW_DWN[$d], $p.WS10M[$d],
       $p.PRECTOTCORR[$d], $p.RH2M[$d]
-    ][];
-      numeric_or_missing($fill)
-    ) and
+    ][]; numeric_or_missing($fill)) and
     (missing_value($p.ALLSKY_SFC_SW_DWN[$d]; $fill) or $p.ALLSKY_SFC_SW_DWN[$d] >= 0) and
     (missing_value($p.WS10M[$d]; $fill) or $p.WS10M[$d] >= 0) and
     (missing_value($p.PRECTOTCORR[$d]; $fill) or $p.PRECTOTCORR[$d] >= 0) and
     (missing_value($p.RH2M[$d]; $fill) or ($p.RH2M[$d] >= 0 and $p.RH2M[$d] <= 100)) and
-    (if not missing_value($p.T2M_MIN[$d]; $fill) and not missing_value($p.T2M_MAX[$d]; $fill)
+    (if ((missing_value($p.T2M_MIN[$d]; $fill) | not) and (missing_value($p.T2M_MAX[$d]; $fill) | not))
       then $p.T2M_MIN[$d] <= $p.T2M_MAX[$d]
       else true end) and
-    (if not missing_value($p.T2M[$d]; $fill) and not missing_value($p.T2M_MIN[$d]; $fill) and not missing_value($p.T2M_MAX[$d]; $fill)
+    (if ((missing_value($p.T2M[$d]; $fill) | not) and (missing_value($p.T2M_MIN[$d]; $fill) | not) and (missing_value($p.T2M_MAX[$d]; $fill) | not))
       then ($p.T2M_MIN[$d] <= $p.T2M[$d] and $p.T2M[$d] <= $p.T2M_MAX[$d])
       else true end)
   )
