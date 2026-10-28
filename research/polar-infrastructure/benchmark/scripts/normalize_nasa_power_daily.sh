@@ -34,7 +34,13 @@ OUT_DIR=$8
 SOURCE_URL=$9
 EVIDENCE_CLASS=${10:-reanalysis}
 case "$EVIDENCE_CLASS" in
-  reanalysis) PROVIDER="NASA POWER" ;;
+  reanalysis)
+    PROVIDER="NASA POWER"
+    [[ "$SOURCE_URL" == https://power.larc.nasa.gov/api/temporal/daily/point\?* ]] || {
+      echo "reanalysis evidence requires the exact NASA POWER daily point endpoint URL" >&2
+      exit 2
+    }
+    ;;
   synthetic_stress) PROVIDER="synthetic test fixture" ;;
   *) echo "EVIDENCE_CLASS must be reanalysis or synthetic_stress" >&2; exit 2 ;;
 esac
@@ -216,7 +222,7 @@ jq -n \
     provider:$provider,
     dataset_title:$data_title,
     dataset_version:$dataset_version,
-    source_sources:$api_sources,
+    source_streams:$api_sources,
     profile_id:$profile,
     location_label:$location,
     request:{
