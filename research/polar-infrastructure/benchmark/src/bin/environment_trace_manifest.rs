@@ -218,18 +218,15 @@ fn utc_timestamp_shape(value: &str) -> bool {
     !fraction.is_empty() && fraction.iter().all(u8::is_ascii_digit)
 }
 
-fn utc_timestamp_order_key(value: &str) -> Option<(String, u32)> {
+fn utc_timestamp_order_key(value: &str) -> Option<(String, String)> {
     if !utc_timestamp_shape(value) {
         return None;
     }
     let bytes = value.as_bytes();
     let fraction = if bytes.len() == 20 {
-        0
+        String::new()
     } else {
-        let digits = &value[20..value.len() - 1];
-        let leading_nine: String = digits.chars().take(9).collect();
-        let padded = format!("{leading_nine}{:0<width$}", "", width = 9 - leading_nine.len());
-        padded.parse::<u32>().ok()?
+        value[20..value.len() - 1].trim_end_matches('0').to_string()
     };
     Some((value[..19].to_string(), fraction))
 }
