@@ -6,6 +6,7 @@ on:
     paths:
       - "docs/medical-robotics/**"
       - "tools/medical-robot-tool-gate/**"
+      - "tools/careframe-observation-audit/**"
       - ".github/workflows/medical-robot-tool-gate.yml"
   push:
     branches:
@@ -267,4 +268,45 @@ jobs:
             echo "Source-overwrite negative control preserved the morphology file."
             echo ""
             cat /tmp/careframe-urdf-receipt.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Format check for observation-contract auditor
+        run: cargo fmt --manifest-path tools/careframe-observation-audit/Cargo.toml -- --check
+
+      - name: Test observation-contract equivalence and counterfactuals
+        run: cargo test --locked --manifest-path tools/careframe-observation-audit/Cargo.toml
+
+      - name: Clippy observation-contract auditor with warnings denied
+        run: cargo clippy --locked --manifest-path tools/careframe-observation-audit/Cargo.toml --all-targets -- -D warnings
+
+      - name: Audit matched observation contracts
+        env:
+          CAREFRAME_TESTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          contract=docs/medical-robotics/careframe-observation-contract-v0.json
+          suite=docs/medical-robotics/careframe-observation-adapters-v0.1.json
+          cargo run --locked --quiet --manifest-path tools/careframe-observation-audit/Cargo.toml -- "$contract" "$suite" > /tmp/careframe-observation-audit-receipt.json
+          jq -e '
+            .disposition == "MATCHED_CONTRACTS" and
+            .adapter_count == 3 and
+            .matched_profiles == 1 and
+            .policy_field_count == 18 and
+            .oracle_field_count == 2 and
+            .oracle_only_fields_exposed_to_policy == false and
+            (.findings | length) == 0
+          ' /tmp/careframe-observation-audit-receipt.json
+          grep -q "\"tested_revision\": \"$CAREFRAME_TESTED_SHA\"" /tmp/careframe-observation-audit-receipt.json
+          grep -Eq '"contract_sha256": "[0-9a-f]{64}"' /tmp/careframe-observation-audit-receipt.json
+          grep -Eq '"adapter_suite_sha256": "[0-9a-f]{64}"' /tmp/careframe-observation-audit-receipt.json
+
+          {
+            echo ""
+            echo "Observation contract audit tested revision: $CAREFRAME_TESTED_SHA"
+            echo "Declared adapters: state-vector estimate, RGB-derived estimate, point-cloud-derived estimate."
+            echo "All three match 18 ordered semantic policy fields; 2 oracle fields are scoring-only."
+            echo "This audit verifies declarations, not live adapter accuracy or sim-to-real transfer."
+            echo ""
+            cat /tmp/careframe-observation-audit-receipt.json
           } >> "$GITHUB_STEP_SUMMARY"
