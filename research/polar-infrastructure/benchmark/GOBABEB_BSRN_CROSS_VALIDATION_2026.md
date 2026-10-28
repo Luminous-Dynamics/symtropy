@@ -45,10 +45,11 @@ Example for the publisher's June 2025 format-inspection record:
 bash research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh \
   10.1594/PANGAEA.983811 \
   "Baseline Surface Radiation Network License 1.0 (BSRN-1.0)" \
+  measured_field \
   ./artifacts/gobabeb-bsrn-2025-06
 ```
 
-Before running, verify that the named license applies to that exact monthly record. The June 2025 file is for source-format/adapter work and is **not** part of the planned 2020–2021 locked validation window. Network retrieval has not been demonstrated from this authoring environment; no downloaded source file is committed by this PR.
+Before running, verify that the named license applies to that exact monthly record. The June 2025 file is for source-format/adapter work and is **not** part of the planned 2020–2021 locked validation window. The required `EVIDENCE_CLASS` argument is chosen by the operator after reviewing the exact dataset metadata; the fetcher restricts it to the manifest enum but does not independently substantiate it. Use `measured_field` only after confirming that the source represents in-situ measurements. Mock tests use `not_evaluated` because their byte content is synthetic. Network retrieval has not been demonstrated from this authoring environment; no downloaded source file is committed by this PR.
 
 ## 3. Matched comparison contract
 
