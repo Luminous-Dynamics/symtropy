@@ -126,6 +126,39 @@ if [ "${STFR_CHECK_NANODRONE_RESIDUAL_SPECTRUM:-0}" = "1" ]; then
     and .horizons[1].candidate.penalized_rollout_count == 0
     and .horizons[1].candidate.failure_aware_position_rmse_m < .horizons[1].baseline.failure_aware_position_rmse_m
   ' "$smoke_output" >/dev/null
+
+  # Planner-exploitation audit. The fixture is synthetic and validates only metric plumbing.
+  cargo test --manifest-path "$integration_manifest" --example nanodrone_planner_exploitation
+  cargo check --manifest-path "$integration_manifest" --example nanodrone_planner_exploitation
+  planner_fixture="$SYMTROPY_PATH/integration/symthaea-physics-loop/fixtures/planner-exploitation"
+  planner_smoke_output="$backup_dir/planner-exploitation-smoke.json"
+  planner_dataset_sha="$(sha256sum "$planner_fixture/dataset_receipt.txt" | awk '{print $1}')"
+  planner_scenario_sha="$(sha256sum "$planner_fixture/shared_scenario_receipt.txt" | awk '{print $1}')"
+  planner_baseline_sha="$(sha256sum "$planner_fixture/baseline_model_receipt.txt" | awk '{print $1}')"
+  planner_candidate_sha="$(sha256sum "$planner_fixture/candidate_model_receipt.txt" | awk '{print $1}')"
+  cargo run --manifest-path "$integration_manifest" --example nanodrone_planner_exploitation -- \
+    --input "$planner_fixture/paired_plans.csv" \
+    --cases-manifest "$planner_fixture/evaluation_cases.csv" \
+    --train-flights "$planner_fixture/train_flights.txt" \
+    --dataset-receipt-sha256 "$planner_dataset_sha" \
+    --shared-scenario-receipt-sha256 "$planner_scenario_sha" \
+    --baseline-model-receipt-sha256 "$planner_baseline_sha" \
+    --candidate-model-receipt-sha256 "$planner_candidate_sha" \
+    --baseline-method synthetic-ungated --candidate-method synthetic-gated \
+    --baseline-source-commit "$STFR_SYMTROPY_SHA" --candidate-source-commit "$STFR_SYMTROPY_SHA" \
+    --model-seeds 101,102 --failure-cost-penalty 100.0 \
+    --evidence-class synthetic --bootstrap 50 --seed 23 --output "$planner_smoke_output"
+  jq -e '
+    .schema_version == "symtropy-planner-exploitation-v0.1"
+    and .evidence_class == "synthetic"
+    and .registered_flight_count == 2
+    and .registered_case_count == 4
+    and .registered_case_seed_count == 8
+    and .result.baseline.constraint_violation_rate > .result.candidate.constraint_violation_rate
+    and .result.candidate.mean_effective_actual_cost < .result.baseline.mean_effective_actual_cost
+    and .result.delta_mean_absolute_exploitation_gap_candidate_minus_baseline < 0
+    and .result.paired_crossed_bootstrap_delta_actual_cost.valid_replicates == 50
+  ' "$planner_smoke_output" >/dev/null
 fi
 
 if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
