@@ -2348,6 +2348,15 @@ mod tests {
         assert_eq!(helpful_four_unit["delta_utility_vs_gp_ei"].as_f64().is_some(), true);
         assert_eq!(helpful_four_unit["gp_ei_comparison_status"], "COMPARABLE");
 
+        let harmful_static = rows.iter().find(|row| {
+            row["budget_units"] == 4.0
+                && row["environment_id"] == "harmful"
+                && row["policy_class"] == "static_prior_expansion"
+        }).unwrap();
+        assert_eq!(harmful_static["feasible_discovery_status"], "NO_VERIFIED_FEASIBLE_CANDIDATE_FOUND");
+        assert_eq!(harmful_static["gp_ei_comparison_status"], "UNRESOLVED_NO_VERIFIED_UTILITY");
+        assert!(harmful_static["delta_utility_vs_gp_ei"].is_null());
+
         let frontier = scorecard["policy_frontier"].as_array().unwrap();
         let static_four_unit = frontier.iter().find(|row| {
             row["budget_units"] == 4.0 && row["policy_class"] == "static_prior_expansion"
