@@ -130,6 +130,43 @@ jobs:
           sha256sum "$source_fixture" "$context/multistage-causal-tree-report.json" > "$context/multistage-causal-tree-receipts.sha256"
           cat "$context/multistage-causal-tree-receipts.sha256"
 
+      - name: Qualify event-triggered re-optimization against exact known answers
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/reoptimization-value-context"
+          mkdir -p "$context"
+          source_panel="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-reoptimization-value-panel-v0.1.json"
+          experiment="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-reoptimization-value-experiment-v0.1.json"
+          cp "$source_panel" "$context/source-panel.json"
+          cp "$experiment" "$context/experiment.json"
+          oracle="$work/targets/symtropy/debug/energy_reoptimization_value_oracle"
+          "$oracle" "$context/report.json" > "$context/qualification.log"
+          cat "$context/qualification.log"
+          panel_sha="$(sha256sum "$source_panel" | cut -d' ' -f1)"
+          experiment_sha="$(sha256sum "$experiment" | cut -d' ' -f1)"
+          test "$(jq -r .source_panel_sha256 "$context/report.json")" = "$panel_sha"
+          test "$(jq -r .experiment_fixture_sha256 "$context/report.json")" = "$experiment_sha"
+          jq -e '
+            .status == "PASS_SYNTHETIC_REOPTIMIZATION_VALUE_ONLY" and
+            .scenario_count == 4 and .interval_count == 12 and
+            .policy_results.fixed_cadence.solver_calls_total == 12 and
+            .policy_results.fixed_cadence.essential_unserved_total == 0 and
+            .policy_results.fixed_cadence.flexible_unserved_total == 1 and
+            .policy_results.event_triggered.solver_calls_total == 5 and
+            .policy_results.event_triggered.essential_unserved_total == 0 and
+            .policy_results.event_triggered.flexible_unserved_total == 1 and
+            .policy_results.no_reoptimization.solver_calls_total == 4 and
+            .policy_results.no_reoptimization.essential_unserved_total == 1 and
+            .policy_results.too_high_threshold.solver_calls_total == 4 and
+            .policy_results.too_high_threshold.essential_unserved_total == 1 and
+            (.event_triggered_solve_reduction_percent - 58.333333333333336 | fabs) < 0.000001 and
+            .physical_dispatch_audit == "NOT_RUN_ABSTRACT_BATTERY_MODEL"
+          ' "$context/report.json" >/dev/null
+          sha256sum "$context/source-panel.json" "$context/experiment.json" "$context/report.json" > "$context/receipts.sha256"
+          cat "$context/receipts.sha256"
+
       - name: Verify published South African tariff arithmetic against hand-calculated answers
         shell: bash
         run: |
@@ -616,6 +653,11 @@ jobs:
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-candidate-scenario-panel-v0.1.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-scenario-panel-v0.1.json
             ${{ runner.temp }}/energy-studio/nonanticipativity-context/*
+            ${{ runner.temp }}/energy-studio/reoptimization-value-context/*
+            ${{ github.workspace }}/tools/energy-dispatch-audit/ENERGY_REOPTIMIZATION_VALUE_BENCHMARK_V0_1.md
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-reoptimization-value-panel-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-reoptimization-value-experiment-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/src/bin/energy_reoptimization_value_oracle.rs
             ${{ github.workspace }}/tools/energy-dispatch-audit/NONANTICIPATIVE_POLICY_BENCHMARK_V0_1.md
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-nonanticipativity-counterexample-v0.1.json
             ${{ runner.temp }}/energy-studio/sa-tariff-context/*
