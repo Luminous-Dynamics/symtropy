@@ -1,7 +1,7 @@
 # Polar resilience benchmark targets and industry-comparison protocol
 
 **Status: proposed research protocol. Targets below are hypotheses, not achieved results.**  
-**Current evidence ceiling: synthetic scorer correctness only.** This crate scores supplied traces; it does not simulate electrical/thermal dynamics, optimize dispatch, certify a controller, or validate an Arctic/Antarctic site.
+**Current evidence ceiling: synthetic scorer correctness plus source/manifest contract checks only.** No real Gobabeb source has been ingested or scored; this crate scores supplied traces but does not itself simulate electrical/thermal dynamics, optimize dispatch, certify a controller, or validate an Arctic/Antarctic site.
 
 ## New: preregistered resilience scorecard and industry comparison
 
