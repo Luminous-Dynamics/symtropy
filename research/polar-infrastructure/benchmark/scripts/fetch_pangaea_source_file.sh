@@ -4,31 +4,38 @@ set -euo pipefail
 usage() {
   cat >&2 <<'USAGE'
 Usage:
-  bash fetch_pangaea_source_file.sh DOI LICENSE_LABEL OUT_DIR
+  bash fetch_pangaea_source_file.sh DOI LICENSE_LABEL EVIDENCE_CLASS OUT_DIR
 
 Example:
   bash fetch_pangaea_source_file.sh \
     10.1594/PANGAEA.983811 \
     "Baseline Surface Radiation Network License 1.0 (BSRN-1.0)" \
+    measured_field \
     ./artifacts/gobabeb-bsrn-2025-06
 
 Fetches one PANGAEA dataset's tab-delimited text representation and records
 source provenance. It does not parse, normalize, or validate scientific values.
-Provide the license label only after checking that exact dataset's metadata.
+Provide both the license label and evidence class only after checking that exact
+dataset's metadata. Evidence class is operator-supplied, not inferred or verified.
 USAGE
   exit 64
 }
 
-[[ $# -eq 3 ]] || usage
+[[ $# -eq 4 ]] || usage
 DOI=$1
 LICENSE_LABEL=$2
-OUT_DIR=$3
+EVIDENCE_CLASS=$3
+OUT_DIR=$4
 
 [[ "$DOI" =~ ^10[.]1594/PANGAEA[.][0-9]+$ ]] || {
   echo "DOI must match 10.1594/PANGAEA.<number>" >&2
   exit 2
 }
 [[ -n "$LICENSE_LABEL" ]] || { echo "license label is required; do not infer it from the series DOI" >&2; exit 2; }
+case "$EVIDENCE_CLASS" in
+  measured_field|reanalysis|mission_observed|remote_observation|validated_simulation|uncalibrated_model|synthetic_stress|hypothesized|not_evaluated) ;;
+  *) echo "unsupported evidence class '$EVIDENCE_CLASS'; provide one of the declared manifest enum values" >&2; exit 2 ;;
+esac
 command -v curl >/dev/null || { echo "curl is required" >&2; exit 69; }
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 69; }
 command -v sha256sum >/dev/null || { echo "sha256sum is required" >&2; exit 69; }
@@ -94,6 +101,7 @@ jq -n \
   --arg content_type "$CONTENT_TYPE" \
   --arg http_status "$HTTP_STATUS" \
   --arg license_label "$LICENSE_LABEL" \
+  --arg evidence_class "$EVIDENCE_CLASS" \
   --arg fetched_at "$FETCHED_AT" \
   --arg raw_uri "$RAW_URI" \
   --arg raw_sha "$RAW_SHA" \
@@ -104,7 +112,8 @@ jq -n \
     schema_version:"0.1.0",
     artifact_kind:"symtropy-pangaea-source-download",
     status:"source_downloaded_not_ingested",
-    evidence_class:"measured_field",
+    evidence_class:$evidence_class,
+    evidence_class_basis:"operator_supplied_not_independently_validated",
     dataset_doi:$doi,
     citation_url:("https://doi.org/" + $doi),
     request_url:$request_url,
@@ -133,4 +142,5 @@ printf 'DOI: %s\n' "$DOI"
 printf 'Content-Type: %s\n' "$CONTENT_TYPE"
 printf 'Rows with timestamp-shaped first field: %s\n' "$DATA_ROW_COUNT"
 printf 'Source SHA-256: %s\n' "$RAW_SHA"
+printf 'Declared evidence class: %s (operator-supplied, not independently validated)\n' "$EVIDENCE_CLASS"
 printf 'Status: source_downloaded_not_ingested (no values normalized or validated)\n'
