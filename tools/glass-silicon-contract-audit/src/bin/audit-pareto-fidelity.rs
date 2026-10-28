@@ -1075,6 +1075,17 @@ mod tests {
     }
 
     #[test]
+    fn hypervolume_known_answer_respects_mixed_objective_directions() {
+        let reference = json!({"quality":0.0,"energy":10.0});
+        let points = vec![
+            json!({"quality":0.90,"energy":8.0}),
+            json!({"quality":0.82,"energy":5.0}),
+            json!({"quality":0.70,"energy":3.0})
+        ];
+        assert!(close(hypervolume(&points, &reference), 5.66));
+    }
+
+    #[test]
     fn screen_results_never_certify_hard_qualification() {
         let (public, oracle) = values();
         let report = run_env(&public, &oracle, "informative", "screen_only");
@@ -1187,6 +1198,17 @@ mod tests {
         let replay = audit_replay(&raw, PUBLIC, ORACLE);
         assert_eq!(replay["status"], "FAIL");
         assert!(replay["findings"].as_array().unwrap().iter().any(|finding| finding["code"] == "TRANSCRIPT_REPLAY_MISMATCH"));
+    }
+
+    #[test]
+    fn event_replay_rejects_a_legal_but_policy_inconsistent_action() {
+        let report = run_all(PUBLIC, ORACLE);
+        let mut forged = report.clone();
+        forged["campaigns"][0]["events"][0]["candidate_id"] = json!("glass-a");
+        let raw = serde_json::to_vec(&forged).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|finding| finding["code"] == "POLICY_ACTION_MISMATCH"));
     }
 
     #[test]
