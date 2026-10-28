@@ -1894,7 +1894,8 @@ mod tests {
                         let expected = if row == column { 1.0 } else { 0.0 };
                         assert!(
                             (dot - expected).abs() < 1.0e-9,
-                            "{link_id} rotation is not orthonormal in sample {sample}:                              ({row},{column})={dot}"
+                            "{link_id} rotation is not orthonormal in sample {sample}: \
+                             ({row},{column})={dot}"
                         );
                     }
                 }
