@@ -1,0 +1,314 @@
+{
+  "schema_version": "citylearn-dataset-source-manifest-v0.1",
+  "manifest_id": "citylearn_challenge_2022_phase_all_plus_evs-v3.0.2",
+  "source_repository": "https://github.com/citylearn-project/CityLearn",
+  "source_release_tag": "v3.0.2",
+  "source_commit_observed": "834575c1a0194c8ae9d648ae858376a94dfceb78",
+  "dataset_id": "citylearn_challenge_2022_phase_all_plus_evs",
+  "dataset_landing_url": "https://github.com/citylearn-project/CityLearn/tree/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs",
+  "data_license_status": "REVIEW_REQUIRED; repository MIT license identified but dataset-specific rights/attribution have not been independently cleared",
+  "snapshot_state": "reference_manifest_only; source bytes are not vendored into Symtropy",
+  "schema": {
+    "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/schema.json",
+    "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/schema.json",
+    "git_blob_sha1": "5d58d31fd75e4845d73d319c69df34d64223f533",
+    "raw_sha256": "6a0e70131018cfb45219930d2551227bf286e9ece6c25186e85e468715279c3a",
+    "byte_length": 27644,
+    "start_date": "2024-08-01",
+    "simulation_start_time_step": 0,
+    "simulation_end_time_step": 8759,
+    "seconds_per_time_step": 3600,
+    "building_count": 17,
+    "random_seed": 2022,
+    "csv_referenced_file_count": 30
+  },
+  "files": [
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_1.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_1.csv",
+      "git_blob_sha1": "1dd3bf7d089eb20c35a3401662572c45066cc8e0",
+      "raw_sha256": "e275c5bfc913ebbd847834fa413cde670acb3337568980966635cfe9fcc1499f",
+      "byte_length": 349472,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_2.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_2.csv",
+      "git_blob_sha1": "651c01aeda3d54c8917ef983d837f57e30e58e8e",
+      "raw_sha256": "7a7cd5479c78b85388e0d19dfd3c5f6daf55a8794755f86dfa37049d11521623",
+      "byte_length": 349890,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_3.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_3.csv",
+      "git_blob_sha1": "d0ca2ee79cc6953fb67c9fd7b571264a3d17f691",
+      "raw_sha256": "331a1ad982a230d6b47889867c74908a7def6702ea9ad00c8221de81a04026e5",
+      "byte_length": 351294,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_4.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_4.csv",
+      "git_blob_sha1": "f145bff4b6d2f328075c7d8f4b72463370498e75",
+      "raw_sha256": "dd16099aada48d9425e09164d154a071cbc8ad1bd7e437a1065348c148fa8916",
+      "byte_length": 349143,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_5.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_5.csv",
+      "git_blob_sha1": "a704a7f19046151694bac5144892d92c9be6c666",
+      "raw_sha256": "f4322cc744ce6b85708643d1609f9aa4718fb7306c1c90689decc46bf108b659",
+      "byte_length": 351597,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_6.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_6.csv",
+      "git_blob_sha1": "5a06d5490d32533c8d029ce68c6c3f54a74ff249",
+      "raw_sha256": "f870fb2f4725ee651194eaddc6310d53f862e2d8f3f5a7e158381004924858bd",
+      "byte_length": 352803,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_7.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_7.csv",
+      "git_blob_sha1": "68c7e78059c9c4ef0c6b4e794172f0a931ffd911",
+      "raw_sha256": "cba9db799999b18b8cee43905b5539257dc2d81c27f90b79d9d0d43055002faa",
+      "byte_length": 355959,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_8.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_8.csv",
+      "git_blob_sha1": "ea39cc66c4c59a9fca778feee07dd7114322edfa",
+      "raw_sha256": "7e1086b2dcecee18229789804f6e91d08ac128c118596eecef243edb1ef7e38e",
+      "byte_length": 350322,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_9.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_9.csv",
+      "git_blob_sha1": "774f349f89c678707ee51f8eb5cfa09274b21b55",
+      "raw_sha256": "1116b2f509b00c887186c43f3c83ecb3c2f2160e52006439972b1a0d9667d977",
+      "byte_length": 350743,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_10.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_10.csv",
+      "git_blob_sha1": "78129c2ad09c102391e16fb45ea995b258f54bcc",
+      "raw_sha256": "9460ede1ec0e205c0144c93f65868d108331dd0563d28536bf7b4b554f6c7160",
+      "byte_length": 350338,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_11.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_11.csv",
+      "git_blob_sha1": "3a4661a59a0e5e4e66cefc73e61f00e3b2fff3b1",
+      "raw_sha256": "69d5f630cdb819c09ae6bc5e6cf0c1ddafadb5686469f7ad735f30a641f2af7e",
+      "byte_length": 348375,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_12.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_12.csv",
+      "git_blob_sha1": "46ea0ab715d4d7f1e936524fd93fbc71b24bae3c",
+      "raw_sha256": "484932b1c19ad9ec8d37988b6573be59b32ebfb904e588d9865fd168dda2668e",
+      "byte_length": 370582,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_13.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_13.csv",
+      "git_blob_sha1": "1045fa80334b3ab5a43596273cb5553278ecd649",
+      "raw_sha256": "c21d16870d0206e51fbd7c01bcc016d4a9b6ece3a8826794fab65ff58826340c",
+      "byte_length": 348310,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_14.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_14.csv",
+      "git_blob_sha1": "b396e493cc344371c54c27a3a97454a9be6ac165",
+      "raw_sha256": "c7037b09b61b038cedddb3d2fec94bd118b87d1dadad952666379b4302b50a9a",
+      "byte_length": 353945,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_15.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_15.csv",
+      "git_blob_sha1": "b95d047cc7b1630aaf36458dacc8443308cc5600",
+      "raw_sha256": "630e267a3f9188483504a8991be7d6adf84d23b4aa8f6e853856f8918a500ece",
+      "byte_length": 350364,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_16.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_16.csv",
+      "git_blob_sha1": "081002a6806251cf5298c78498a15511a757fe73",
+      "raw_sha256": "967ac24e54658681a63171ce97a36c0c0ca15805124ddcbce6e749845432d6b7",
+      "byte_length": 347297,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_17.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/Building_17.csv",
+      "git_blob_sha1": "16fed6cdc0a5b4b1bcbae984eadf385a61820ae3",
+      "raw_sha256": "7345dab135a66240da2f347d15d8075f10da30dc1315bcda5bad6f3f3b5edce2",
+      "byte_length": 347469,
+      "data_row_count": 8760,
+      "column_count": 12
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/carbon_intensity.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/carbon_intensity.csv",
+      "git_blob_sha1": "af3def430b11aba6edaf57931d204e1a7d4b52aa",
+      "raw_sha256": "8fb96264cbd565546dfa3e199212df42e42ade40e3ea981292d5a423105bad81",
+      "byte_length": 95442,
+      "data_row_count": 8760,
+      "column_count": 1
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_1_1.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_1_1.csv",
+      "git_blob_sha1": "b56f2eca1569c27be79ae35866619a5c69d380fa",
+      "raw_sha256": "c9b9acf4f2af77d3bb90ae7738d6b970dab9e7140a82ab0a00ba3c71db57b2db",
+      "byte_length": 239397,
+      "data_row_count": 9527,
+      "column_count": 6
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_10_1.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_10_1.csv",
+      "git_blob_sha1": "513fdfe716d4650e60c2f0a2c280dacbcd20bddb",
+      "raw_sha256": "37886d238c5033d5679b0c7d1f0fc45c8fcedb4326e0d00eda86623c70389019",
+      "byte_length": 885146,
+      "data_row_count": 35807,
+      "column_count": 6
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_12_1.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_12_1.csv",
+      "git_blob_sha1": "ec191e0172b960c305c7adda8034b66f9275fb11",
+      "raw_sha256": "686b6a0bb2993bd9d53fa1750b998f8ba6bdb6d6b6f6ff68e0e11b2afaafdae2",
+      "byte_length": 917050,
+      "data_row_count": 35807,
+      "column_count": 6
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_15_1.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_15_1.csv",
+      "git_blob_sha1": "1fbed1ddcce8977f8236436da9dfb28cc5ea57c2",
+      "raw_sha256": "5c81529b6fcb573cb67c49067b50328cc67ca93b037337e84ee8a735d556efd1",
+      "byte_length": 890360,
+      "data_row_count": 35807,
+      "column_count": 6
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_15_2.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_15_2.csv",
+      "git_blob_sha1": "c7545596411a8d4d364047bf84f24afe25c40cb6",
+      "raw_sha256": "d87b4488515ba10b897164059de192d97163e7777df5ab296b0c3cbedca575ef",
+      "byte_length": 892672,
+      "data_row_count": 35807,
+      "column_count": 6
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_4_1.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_4_1.csv",
+      "git_blob_sha1": "527d188871ca5e6ae9715cc5b8ccefc9973c5c42",
+      "raw_sha256": "3ba4089ae360a416362401c8c5e0933982ac06c0e368c8b8519e6fc554dab6f5",
+      "byte_length": 248313,
+      "data_row_count": 9527,
+      "column_count": 6
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_5_1.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_5_1.csv",
+      "git_blob_sha1": "148ea780081896062d0ac0f4be1647e498e2a34c",
+      "raw_sha256": "9096677cc0e9bb8a391770f040850efd765d2c7460f482b7fa6383bee14b9b34",
+      "byte_length": 901418,
+      "data_row_count": 35807,
+      "column_count": 6
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_7_1.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/charger_7_1.csv",
+      "git_blob_sha1": "675df4a4f8c10da5609920803ff98418be4b7378",
+      "raw_sha256": "a1c0d3e8c58ab977878e84216d8a9b0176d69d2568423d4943677c7ea4b8cf74",
+      "byte_length": 914439,
+      "data_row_count": 35807,
+      "column_count": 6
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/deferrable_appliance_1_cycle_profiles.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/deferrable_appliance_1_cycle_profiles.csv",
+      "git_blob_sha1": "6efce284058e921c8796717f05ed6cea51579f2b",
+      "raw_sha256": "60a33ed973db54d52571c17ca48ec39c9b3b252a4b9f2249b684f0d2cdb01b01",
+      "byte_length": 21416,
+      "data_row_count": 315,
+      "column_count": 4
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/deferrable_appliance_1_flexibility_schedule.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/deferrable_appliance_1_flexibility_schedule.csv",
+      "git_blob_sha1": "dbbd6cd99f4670cec45e71eeb8d244736ea9ce24",
+      "raw_sha256": "6a2ba3d09f98b8d174a988b487736b292d13f7faf26d19fcf38caba33378e061",
+      "byte_length": 33906,
+      "data_row_count": 365,
+      "column_count": 7
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/pricing.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/pricing.csv",
+      "git_blob_sha1": "616825c9f6d7e9ff2a8581cfec30f3e8d2b46f1f",
+      "raw_sha256": "3fa67c8e2e13db1590d4395e41c93c9e3e517cc04152361704418f998af46c23",
+      "byte_length": 341630,
+      "data_row_count": 8760,
+      "column_count": 4
+    },
+    {
+      "path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/weather.csv",
+      "source_url": "https://github.com/citylearn-project/CityLearn/blob/v3.0.2/data/datasets/citylearn_challenge_2022_phase_all_plus_evs/weather.csv",
+      "git_blob_sha1": "ecd0ccb2c701bccf7e4564eb74aeeb45a00cc5f6",
+      "raw_sha256": "710e1d811d5d5eeb52b7f77634ac6fcd8140b2f32c75b31a13a017aa86b6a019",
+      "byte_length": 690512,
+      "data_row_count": 8760,
+      "column_count": 16
+    }
+  ],
+  "expected_file_count": 31,
+  "csv_file_count": 30,
+  "building_data_row_contract": {
+    "expected_rows": 8760,
+    "files": 17
+  },
+  "shared_time_series_row_contract": {
+    "expected_rows": 8760,
+    "files": [
+      "weather.csv",
+      "carbon_intensity.csv",
+      "pricing.csv"
+    ]
+  },
+  "ev_schedule_note": "EV charger data are event/trajectory records with 9,527 or 35,807 rows rather than one row per simulation timestep; retain the schema simulator timestep and full schedule rows.",
+  "non_time_series_note": "deferrable_appliance_1_cycle_profiles.csv has 315 catalog rows; deferrable_appliance_1_flexibility_schedule.csv has 365 schedule rows.",
+  "claim_ceiling": "Identifies exact release-tagged source files and metadata; not a data-rights clearance, imported snapshot, CityLearn execution, controller benchmark, physical dispatch qualification or field result."
+}
