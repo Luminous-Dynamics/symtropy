@@ -197,7 +197,80 @@
                     }
                   }
                 }
-              }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "fidelity": {
+                        "const": "screen"
+                      }
+                    },
+                    "required": [
+                      "fidelity"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_result": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "constraint_results"
+                            ],
+                            "properties": {
+                              "constraint_results": {
+                                "type": "null"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "fidelity": {
+                        "const": "confirmatory"
+                      }
+                    },
+                    "required": [
+                      "fidelity"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_result": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "constraint_results"
+                            ],
+                            "properties": {
+                              "constraint_results": {
+                                "type": "object",
+                                "required": [
+                                  "qualification"
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
             }
           },
           "findings": {
