@@ -5,6 +5,7 @@ on:
     paths:
       - "tools/energy-dispatch-audit/src/bin/energy_external_benchmark_source_registry_oracle.rs"
       - "tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-*.json"
+      - "tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json"
       - "tools/energy-dispatch-audit/ENERGY_EXTERNAL_BENCHMARK_SOURCE_REGISTRY_V0_1.md"
       - ".github/workflows/energy-external-benchmark-source-registry.yml"
   workflow_dispatch:
@@ -38,14 +39,21 @@ jobs:
           cargo run --locked --manifest-path tools/energy-dispatch-audit/Cargo.toml \
             --bin energy_external_benchmark_source_registry_oracle -- "$artifacts/report.json"
           jq -e '
-            .status == "PASS_SOURCE_DISCOVERY_CONTRACT_ONLY" and
+            .status == "PASS_SOURCE_DISCOVERY_AND_PINNED_DATASET_MANIFEST_ONLY" and
+            .citylearn_dataset_id == "citylearn_challenge_2022_phase_all_plus_evs" and
+            .citylearn_source_commit == "834575c1a0194c8ae9d648ae858376a94dfceb78" and
+            .citylearn_schema_git_blob_sha1 == "5d58d31fd75e4845d73d319c69df34d64223f533" and
+            .citylearn_source_file_count == 30 and .citylearn_simulation_time_steps == 8760 and
+            .citylearn_forecast_issue_times_verified == false and
+            .citylearn_dataset_terms_cleared == false and
             .source_count == 3 and .imported_external_bytes == 0 and
             .qualified_sources == 0 and
             .status_counts.reference_only_not_imported == 3 and
             .source_results[0].expected_rows == 43824 and
             .promotion_gate == "DOWNLOAD_AND_LICENSE_REVIEW_REQUIRED_BEFORE_INGESTION_OR_BENCHMARK_CLAIMS"
           ' "$artifacts/report.json" >/dev/null
-          sha256sum tools/energy-dispatch-audit/Cargo.lock "$registry" "$experiment" "$artifacts/report.json" > "$artifacts/receipts.sha256"
+          manifest="tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json"
+          sha256sum tools/energy-dispatch-audit/Cargo.lock "$registry" "$experiment" "$manifest" "$artifacts/report.json" > "$artifacts/receipts.sha256"
           cat "$artifacts/receipts.sha256"
 
       - name: Preserve registry, experiment, dependency resolution and report receipts
@@ -57,5 +65,6 @@ jobs:
             tools/energy-dispatch-audit/Cargo.lock
             tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-v0.1.json
             tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-experiment-v0.1.json
+            tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json
             energy-external-source-registry-artifacts/report.json
             energy-external-source-registry-artifacts/receipts.sha256
