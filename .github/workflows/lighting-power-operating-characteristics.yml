@@ -30,7 +30,7 @@ jobs:
       - name: Run planner and simulation tests
         run: |
           cd tools/lighting-study-plan
-          python3 -m unittest -v test_plan_independent_scene_families test_simulate_power_operating_characteristics
+          python3 -m unittest -v test_plan_independent_scene_families test_simulate_power_operating_characteristics test_compare_mean_inference_methods
       - name: Smoke-test synthetic operating-characteristic output
         run: |
           python3 tools/lighting-study-plan/simulate_power_operating_characteristics.py \
@@ -41,3 +41,11 @@ jobs:
           grep -q 'synthetic_simulation_diagnostics_no_empirical_claim' /tmp/lighting-operating-characteristics.json
           grep -q 'independent_scene_family' /tmp/lighting-operating-characteristics.json
           grep -q 'skewed_lognormal_left' /tmp/lighting-operating-characteristics.json
+      - name: Smoke-test mean-inference method stress suite
+        run: |
+          python3 tools/lighting-study-plan/compare_mean_inference_methods.py \
+            --replicates 200 --bootstrap-replicates 99 --seed 20261028 \
+            --output /tmp/lighting-mean-inference-methods.json
+          python3 -m json.tool /tmp/lighting-mean-inference-methods.json > /dev/null
+          grep -q 'synthetic_inference_method_diagnostics_no_empirical_claim' /tmp/lighting-mean-inference-methods.json
+          grep -q 'studentized_bootstrap_t' /tmp/lighting-mean-inference-methods.json
