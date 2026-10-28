@@ -140,6 +140,24 @@ fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
+fn valid_manifest_id(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .split(|character| matches!(character, '.' | '_' | '-'))
+            .all(|segment| {
+                !segment.is_empty()
+                    && segment
+                        .bytes()
+                        .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+            })
+}
+
+fn valid_variable_id(value: &str) -> bool {
+    let mut bytes = value.bytes();
+    matches!(bytes.next(), Some(byte) if byte.is_ascii_lowercase())
+        && bytes.all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
+}
+
 fn valid_sha256(value: &str) -> bool {
     value.len() == 64
         && value
@@ -280,6 +298,9 @@ fn validate(manifest: &Manifest) -> ValidationReport {
     }
 
     check_nonempty(&mut errors, &manifest.manifest_id, "manifest_id");
+    if !valid_manifest_id(&manifest.manifest_id) {
+        errors.push("manifest_id must be lowercase alphanumeric segments separated by one dot, underscore or hyphen".to_string());
+    }
     check_nonempty(&mut errors, &manifest.profile_id, "profile_id");
     check_nonempty(&mut errors, &manifest.spatial_context.location_label, "spatial_context.location_label");
     check_nonempty(&mut errors, &manifest.spatial_context.spatial_support, "spatial_context.spatial_support");
@@ -367,6 +388,9 @@ fn validate(manifest: &Manifest) -> ValidationReport {
     let mut variable_ids = BTreeSet::new();
     for variable in &manifest.variables {
         check_nonempty(&mut errors, &variable.variable_id, "variables[].variable_id");
+        if !valid_variable_id(&variable.variable_id) {
+            errors.push(format!("variable_id {} must start with a lowercase letter and contain only lowercase letters, digits or underscores", variable.variable_id));
+        }
         check_nonempty(&mut errors, &variable.physical_quantity, "variables[].physical_quantity");
         check_nonempty(&mut errors, &variable.canonical_unit, "variables[].canonical_unit");
         check_nonempty(&mut errors, &variable.transformation, "variables[].transformation");
@@ -626,6 +650,16 @@ mod tests {
         let removed = value["acquisition"].as_object_mut().expect("acquisition object").remove("source_url");
         assert!(removed.is_some());
         assert!(serde_json::from_value::<Manifest>(value).is_err());
+    }
+
+    #[test]
+    fn identifiers_follow_stable_manifest_patterns() {
+        assert!(valid_manifest_id("namib_coastal-desert.trace_v0"));
+        assert!(!valid_manifest_id("_starts_with_separator"));
+        assert!(!valid_manifest_id("has..empty_segment"));
+        assert!(valid_variable_id("global_horizontal_irradiance2"));
+        assert!(!valid_variable_id("2m_temperature"));
+        assert!(!valid_variable_id("BadVariable"));
     }
 
     #[test]
