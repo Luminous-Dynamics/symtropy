@@ -158,7 +158,8 @@ if [ "${STFR_CHECK_NANODRONE_RECOVERABILITY:-0}" = "1" ]; then
     and .registered_checkpoint_count == 6
     and .expected_branch_count == 96
     and (.checkpoint_estimates | length) == 24
-    and all(.checkpoint_estimates[]; .branch_replicates == 4 and .wilson_95_one_sided_lower >= 0 and .wilson_95_one_sided_lower <= 1)
+    and all(.checkpoint_estimates[]; .branch_replicates == 4 and .remaining_budget_s > 0 and .wilson_95_one_sided_lower >= 0 and .wilson_95_one_sided_lower <= 1)
+    and (.budget_contract | contains("same registered terminal deadline"))
     and ([.intervention_summaries[] | select(.intervention_id == "continue")][0].mean_paired_horizon_delta_vs_continue_s == 0)
     and ([.intervention_summaries[] | select(.intervention_id == "robust_fallback")][0].mean_paired_horizon_delta_vs_continue_s > 0)
     and ([.intervention_summaries[] | select(.intervention_id == "robust_fallback")][0].paired_crossed_bootstrap_delta_ci95_s.valid_replicates == 50)
