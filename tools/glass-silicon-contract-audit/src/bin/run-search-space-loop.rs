@@ -2286,6 +2286,7 @@ mod tests {
         ];
         let scorecard = audit_budget_frontier(&lanes, ORACLE);
         assert_eq!(scorecard["status"], "PASS");
+        assert_eq!(scorecard["schema_version"], 1);
         assert_eq!(scorecard["budget_points"], 3);
         assert_eq!(scorecard["lane_receipts"].as_array().unwrap().len(), 3);
         assert_eq!(scorecard["environmentwise_metrics"].as_array().unwrap().len(), 72);
