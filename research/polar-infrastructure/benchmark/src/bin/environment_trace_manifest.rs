@@ -49,6 +49,7 @@ struct Acquisition {
     dataset_name: RequiredNullable<String>,
     dataset_version: RequiredNullable<String>,
     source_url: RequiredNullable<String>,
+    source_artifact_uri: RequiredNullable<String>,
     attribution: RequiredNullable<String>,
     license_or_access_terms: RequiredNullable<String>,
     accessed_at_utc: RequiredNullable<String>,
@@ -370,6 +371,11 @@ fn validate(manifest: &Manifest) -> ValidationReport {
             errors.push("acquisition.source_url must be an HTTPS URL".to_string());
         }
     }
+    if let Some(uri) = manifest.acquisition.source_artifact_uri.0.as_deref() {
+        if !uri_with_scheme(uri) {
+            errors.push("acquisition.source_artifact_uri must be an absolute URI with a scheme".to_string());
+        }
+    }
     if let Some(uri) = manifest.trace_asset.uri.0.as_deref() {
         if !uri_with_scheme(uri) {
             errors.push("trace_asset.uri must be an absolute URI with a scheme".to_string());
@@ -455,6 +461,10 @@ fn validate(manifest: &Manifest) -> ValidationReport {
             match manifest.acquisition.source_url.0.as_deref() {
                 Some(url) if https_url(url) => {}
                 _ => errors.push("acquisition.source_url must be a non-empty HTTPS URL for a validated replay manifest".to_string()),
+            }
+            match manifest.acquisition.source_artifact_uri.0.as_deref() {
+                Some(uri) if uri_with_scheme(uri) => {}
+                _ => errors.push("acquisition.source_artifact_uri is required for a validated replay manifest".to_string()),
             }
             check_sha(&mut errors, manifest.acquisition.source_data_sha256.0.as_deref(), "acquisition.source_data_sha256");
             check_sha(&mut errors, manifest.trace_asset.sha256.0.as_deref(), "trace_asset.sha256");
