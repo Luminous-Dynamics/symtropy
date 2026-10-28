@@ -403,6 +403,8 @@ The output includes the raw transcript SHA-256, request/result counts, cumulativ
 
 Follow-on work: [GLASS-CAUSAL-TRIAL-001 #2787](https://github.com/Luminous-Dynamics/symtropy/issues/2787).
 
+Command syntax: `audit-causal-trial <trial.json>`.
+
 Command:
 
 `cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-causal-trial tools/glass-silicon-contract-audit/fixtures/causal-trial-paired-block.synthetic.json`
