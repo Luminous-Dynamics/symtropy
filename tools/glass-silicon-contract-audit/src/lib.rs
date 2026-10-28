@@ -5557,7 +5557,7 @@ mod acquisition_campaign_transcript_tests {
     #[test]
     fn no_result_or_decision_abstains_unresolved_instead_of_inventing_success() {
         let mut transcript = fixture();
-        transcript["events"].as_array_mut().unwrap().pop();
+        transcript["events"].as_array_mut().unwrap().truncate(1);
         let report = audit_acquisition_campaign_transcript(&transcript);
         assert_eq!(report.status, "UNRESOLVED");
         assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_INCOMPLETE_PENDING:")));
