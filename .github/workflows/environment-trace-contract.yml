@@ -16,6 +16,7 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh"
       - "research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh"
       - "research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh"
+      - "research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh"
       - ".github/workflows/environment-trace-contract.yml"
   push:
     paths:
@@ -32,6 +33,7 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh"
       - "research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh"
       - "research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh"
+      - "research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh"
       - ".github/workflows/environment-trace-contract.yml"
   workflow_dispatch:
 
@@ -157,10 +159,15 @@ jobs:
         run: |
           set -euo pipefail
           bash -n research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh
           bash -n research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh
           bash -n research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh
           bash -n research/polar-infrastructure/benchmark/scripts/verify_environment_trace_artifacts.sh
           bash -n research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh
+
+      - name: Test PANGAEA source downloader with mocked responses
+        shell: bash
+        run: bash research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
