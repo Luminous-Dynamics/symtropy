@@ -58,6 +58,8 @@ jobs:
             .title == "Symtropy Paired Resilience Comparison Input" and
             .additionalProperties == false and
             (.required | index("controllers") != null) and
+            (.required | index("gate_margin_contracts") != null) and
+            (.properties.gate_margin_contracts.type == "object") and
             (.required | index("cases") != null)
           ' "$schema"
           jq -e '
@@ -70,6 +72,8 @@ jobs:
             (.cases | length == 12) and
             ([.cases[].case_id] | length == (unique | length)) and
             ([.cases[].trajectory_id] | unique | length == 6) and
+            (($root.gate_margin_contracts | keys | sort) == ($root.gate_ids | sort)) and
+            all($root.gate_margin_contracts[]; .hard_gate == true and (.unit | type == "string" and length > 0) and (.signed_margin_definition | type == "string" and length > 0)) and
             all($root.cases[]; (.gate_results | keys) == (.signed_gate_margins | keys)) and
             all($root.cases[]; (.gate_results | keys | sort) == ($root.gate_ids | sort)) and
             all($root.cases[]; (.severity | keys | sort) == ([$root.axes[].id] | sort))
@@ -93,6 +97,7 @@ jobs:
             .case_count == 12 and
             .performance_claim == false and
             (.coverage | length == 4) and
+            (.gate_margin_contracts | length == 2) and
             (.paired_gate_comparisons | length == 2)
           ' /tmp/paired-comparison-report.json
           python3 research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py "$fixture" /tmp/paired-comparison-report.json
