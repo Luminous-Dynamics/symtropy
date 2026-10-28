@@ -849,6 +849,15 @@ jobs:
           # Pair the same four regimes across the 3/4/5-unit frontier only after each
           # report has passed independent transcript replay. Keep per-environment
           # comparisons separate so a helpful-prior win cannot hide a harmful-prior loss.
+          frontier_schema="docs/tech/glass-search-space-budget-frontier-scorecard-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.audit_kind.const == "synthetic_paired_budget_frontier_scorecard" and
+            .additionalProperties == false and
+            .properties.environmentwise_metrics.type == "array" and
+            .properties.policy_frontier.type == "array"
+          ' "$frontier_schema" > /dev/null
           cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
             --frontier \
             "search-space-live-tight-budget-report.json" "$tight_catalog" \
