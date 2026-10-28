@@ -397,6 +397,12 @@ fn affordable_expansion_methods(
     if expansion_used {
         return Vec::new();
     }
+    // An expansion is useful only if the same budget can also pay for at least
+    // one evaluation of a newly exposed candidate. Otherwise it is not an eligible
+    // action for this benchmark version (unless an explicit no-evaluation action is added).
+    let Some(evaluation) = tariffs.get("evaluate_candidate") else {
+        return Vec::new();
+    };
     [
         ("random", "expand_random"),
         ("rule_based", "expand_rule_based"),
@@ -406,8 +412,8 @@ fn affordable_expansion_methods(
     .filter_map(|(method, tariff_key)| {
         tariffs.get(tariff_key)
             .filter(|tariff| {
-                tariff.cost <= remaining_cost + 1e-9
-                    && tariff.seconds <= remaining_seconds + 1e-9
+                tariff.cost + evaluation.cost <= remaining_cost + 1e-9
+                    && tariff.seconds + evaluation.seconds <= remaining_seconds + 1e-9
             })
             .map(|_| method.to_owned())
     })
@@ -1991,11 +1997,10 @@ mod tests {
             assert_eq!(control["cost_units_charged"], 3.0);
         }
 
-        // A prior-guided expansion costs three units, so it is unavailable after
-        // the common one-unit screening action. The policy must continue safely
-        // within the budget rather than emit an action that the evaluator must reject.
+        // With only two units left after screening, no expansion can leave enough
+        // budget for both its own charge and a follow-up candidate evaluation. No
+        // registered policy may burn the remaining budget on an unmeasurable proposal.
         assert!(report["episodes"].as_array().unwrap().iter()
-            .filter(|episode| episode["policy_class"] == "prior_guided_expansion")
             .all(|episode| episode["expansions"] == 0));
 
         let report_raw = serde_json::to_vec(&report).unwrap();
