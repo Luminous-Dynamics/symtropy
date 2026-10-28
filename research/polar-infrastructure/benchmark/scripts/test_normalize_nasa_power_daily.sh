@@ -76,6 +76,15 @@ jq -e '
 ' <<<"$VERIFY_REPORT" >/dev/null
 jq -e '.request.requested_daily_sample_count == 3 and .request.start_inclusive == "20240101" and .request.end_inclusive == "20240103" and .request.timezone == "UTC"' "$CONFIG" >/dev/null
 
+# Negative control: modify one trace byte but keep the old digest. The verifier
+# must fail even after the supplied path is rebound to the tampered file URI.
+sed 's/293.15/293.16/' "$CSV" > "$TMP_DIR/tampered.csv"
+jq --arg uri "file://$TMP_DIR/tampered.csv" '.trace_asset.uri = $uri' "$MANIFEST" > "$TMP_DIR/tampered-manifest.json"
+if bash "$SCRIPT_DIR/verify_environment_trace_artifacts.sh" "$TMP_DIR/tampered-manifest.json" "$RAW" "$TMP_DIR/tampered.csv" "$CONFIG" >/dev/null 2>&1; then
+  echo "ERROR: tampered trace bytes were unexpectedly accepted" >&2
+  exit 1
+fi
+
 # Check the Rust manifest gate against the emitted test-only manifest when a
 # binary path is supplied by CI. The shell adapter tests stay independently
 # runnable on machines without Rust.
