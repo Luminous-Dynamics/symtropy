@@ -10,6 +10,8 @@
 //! session ID must not be reused after process restart. Durable anti-replay
 //! across restarts requires persistent, integrity-protected session state.
 
+use crate::assurance::{GateDecision, RuntimeAssuranceGate, RuntimeSafetyState};
+use crate::control::ControlRequest;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -104,6 +106,41 @@ impl RequestSequenceGuard {
     }
 }
 
+
+/// Ordered admission wrapper that consumes a session sequence before evaluating
+/// the generic runtime gate. Invalid semantic requests also consume their
+/// sequence so the same transport sequence cannot be replayed repeatedly.
+///
+/// This still does not bind admission atomically to platform-controller dispatch.
+/// The adapter must serialize this call and the subsequent dispatch under one
+/// authority boundary, and must never dispatch unless the Result is Ok and the
+/// returned GateDecision permits it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SequencedRuntimeAssurance {
+    pub gate: RuntimeAssuranceGate,
+    pub sequence_guard: RequestSequenceGuard,
+}
+
+impl SequencedRuntimeAssurance {
+    pub fn new(gate: RuntimeAssuranceGate, sequence_guard: RequestSequenceGuard) -> Self {
+        Self { gate, sequence_guard }
+    }
+
+    /// Sequence ordering is checked first, then generic admission is evaluated.
+    /// Any sequence error means the caller must not dispatch the request.
+    pub fn evaluate(
+        &mut self,
+        session_id: u64,
+        sequence: u64,
+        request: &ControlRequest,
+        now_s: f64,
+        state: &RuntimeSafetyState,
+    ) -> Result<GateDecision, SequenceGuardError> {
+        self.sequence_guard.check_and_record(session_id, sequence)?;
+        Ok(self.gate.evaluate(request, now_s, state))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -195,4 +232,95 @@ mod tests {
             Err(SequenceGuardError::InvalidCapacity)
         );
     }
+
+    fn sample_pose() -> crate::control::Pose3 {
+        crate::control::Pose3 {
+            frame_id: "map".into(),
+            position_m: [1.0, 0.0, 2.0],
+            orientation_xyzw: [0.0, 0.0, 0.0, 1.0],
+        }
+    }
+
+    fn sample_gate() -> RuntimeAssuranceGate {
+        use crate::assurance::{AxisAlignedWorkspace, EmbodimentEnvelope, IntentKind, RuntimeAssurancePolicy};
+        RuntimeAssuranceGate {
+            policy: RuntimeAssurancePolicy {
+                max_sensor_age_s: 0.1,
+                max_snapshot_age_s: 0.2,
+                minimum_battery_fraction: 0.1,
+                require_healthy_communication: true,
+            },
+            envelope: EmbodimentEnvelope {
+                supported_intents: vec![IntentKind::NavigateTo],
+                workspace: AxisAlignedWorkspace {
+                    frame_id: "map".into(),
+                    min_m: [-5.0, -5.0, 0.0],
+                    max_m: [5.0, 5.0, 10.0],
+                },
+                max_speed_mps: 2.0,
+            },
+        }
+    }
+
+    fn sample_request(expires_at_s: f64) -> ControlRequest {
+        use crate::control::EmbodiedIntent;
+        ControlRequest {
+            request_id: 91,
+            issued_at_s: 8.0,
+            expires_at_s,
+            belief_confidence: 0.9,
+            intent: EmbodiedIntent::NavigateTo {
+                target: sample_pose(),
+                max_speed_mps: Some(1.0),
+            },
+        }
+    }
+
+    fn sample_state() -> RuntimeSafetyState {
+        RuntimeSafetyState {
+            observed_at_s: 10.4,
+            sensor_age_s: 0.01,
+            actuator_ready: true,
+            emergency_stop_active: false,
+            communication_healthy: true,
+            battery_fraction: 0.8,
+        }
+    }
+
+    #[test]
+    fn sequenced_runtime_rejects_replay_before_gate_evaluation() {
+        let guard = RequestSequenceGuard::new(2).unwrap();
+        let mut runtime = SequencedRuntimeAssurance::new(sample_gate(), guard);
+        let request = sample_request(11.0);
+
+        let first = runtime.evaluate(7, 1, &request, 10.5, &sample_state()).unwrap();
+        assert!(first.permitted);
+        assert_eq!(
+            runtime.evaluate(7, 1, &request, 10.5, &sample_state()),
+            Err(SequenceGuardError::DuplicateOrOutOfOrder {
+                last_accepted: 1,
+                received: 1,
+            })
+        );
+        assert_eq!(runtime.sequence_guard.last_accepted(7), Some(1));
+    }
+
+    #[test]
+    fn invalid_request_still_consumes_its_sequence() {
+        let guard = RequestSequenceGuard::new(2).unwrap();
+        let mut runtime = SequencedRuntimeAssurance::new(sample_gate(), guard);
+        let expired = sample_request(9.0);
+
+        let decision = runtime.evaluate(7, 3, &expired, 10.5, &sample_state()).unwrap();
+        assert!(!decision.permitted);
+        assert_eq!(runtime.sequence_guard.last_accepted(7), Some(3));
+        assert_eq!(
+            runtime.evaluate(7, 3, &expired, 10.5, &sample_state()),
+            Err(SequenceGuardError::DuplicateOrOutOfOrder {
+                last_accepted: 3,
+                received: 3,
+            })
+        );
+    }
+
 }
