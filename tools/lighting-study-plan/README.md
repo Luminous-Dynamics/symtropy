@@ -21,7 +21,7 @@ python3 tools/lighting-study-plan/plan_independent_scene_families.py \\
   --evidence-tier synthetic_contract \\
   --assumed-true-effect-pct 18 \\
   --superiority-margin-pct 5 \\
-  --target-power 0.80 --alpha 0.05 \\
+  --target-power 0.80 --alpha 0.05 --comparison-family-size 3 \\
   --sd-multipliers 1,1.5,2 \\
   --output /tmp/lighting-study-plan.json
 python3 -m json.tool /tmp/lighting-study-plan.json >/dev/null
@@ -29,7 +29,7 @@ python3 -m json.tool /tmp/lighting-study-plan.json >/dev/null
 
 The unit-test command deliberately runs from the script directory: Python's unittest discovery may reject a directory with a hyphen in its name as an importable top-level package. The GitHub Actions workflow uses the same tested command.
 
-The assumed effect is a **predeclared design alternative**, not the most flattering pilot estimate. The sensitivity multipliers show what happens if family-level variability is 1×, 1.5×, or 2× the pilot standard deviation.
+The assumed effect is a **predeclared design alternative**, not the most flattering pilot estimate. `--alpha` is the one-sided family-wise error budget across all planned superiority comparisons; `--comparison-family-size` applies a Bonferroni adjustment to each comparison. The sensitivity multipliers show what happens if family-level variability is 1×, 1.5×, or 2× the pilot standard deviation.
 
 ## Input contract
 
