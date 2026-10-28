@@ -43,7 +43,7 @@ If an adapter cannot provide a required field, the benchmark should label the co
 ## Next validation stages
 
 1. Run Rust schema/contract tests and exact-head CI.
-2. Instrument the real Symtropy-to-Symthaea bridge at the policy boundary and record emitted field IDs/order/units and source provenance.
+2. Instrument the real Symtropy-to-Symthaea bridge at the policy boundary and record emitted field IDs/order/units and source provenance. A separate bridge PR has started this work by naming and validating the existing 13-value base-kinematics HDC projection and clearing invalid/stale observations: https://github.com/Luminous-Dynamics/symtropy/pull/2786. That projection remains incomplete for Careframe: the HDC path omits joints, tools, task context, scene estimates and proximity, and its angular-velocity values are bivector-plane components rather than the catalog's Cartesian xyz vector. The full adapter must explicitly convert and instrument those semantics before it can claim the matched profile.
 3. Add runtime contract probes for each enabled observation pathway and verify perception estimates against independent ground truth.
 4. Add matched held-out tasks and nuisance shifts; report field coverage alongside task success, interventions, safe aborts and recovery.
 5. Only after the bridge and simulator semantics are verified, use this protocol to compare model/policy variants. No performance or safety superiority claim is made by this document.
