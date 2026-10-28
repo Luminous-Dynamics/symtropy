@@ -1,0 +1,7 @@
+family_id,flight_id,rollout_start_id,regime,checkpoint_time_s
+family-a,flight-a,start-1,nominal,1.0
+family-a,flight-a,start-1,nominal,2.0
+family-a,flight-a,start-1,nominal,3.0
+family-b,flight-b,start-1,shifted,1.0
+family-b,flight-b,start-1,shifted,2.0
+family-b,flight-b,start-1,shifted,3.0
