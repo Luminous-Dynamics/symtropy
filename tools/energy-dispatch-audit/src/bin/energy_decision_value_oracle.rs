@@ -479,18 +479,32 @@ fn build_report(panel_bytes: &[u8], experiment_bytes: &[u8]) -> Result<Report, S
     let perfect = policies.get(PERFECT_INFO).unwrap();
     let known = &experiment.required_known_answers;
 
-    if !close(low_metrics.mae_unweighted_finite_panel, known.lower_mae_tail_blind_mae)
-        || !close(high_metrics.mae_unweighted_finite_panel, known.higher_mae_critical_reserve_mae)
-        || low_outcome.total_essential_unserved != known.lower_mae_total_essential_unserved
-        || high_outcome.total_essential_unserved != known.higher_mae_total_essential_unserved
+    let low_mae = low_metrics.mae_unweighted_finite_panel;
+    let high_mae = high_metrics.mae_unweighted_finite_panel;
+    let low_essential = low_outcome.total_essential_unserved;
+    let high_essential = high_outcome.total_essential_unserved;
+    if !close(low_mae, known.lower_mae_tail_blind_mae)
+        || !close(high_mae, known.higher_mae_critical_reserve_mae)
+        || low_essential != known.lower_mae_total_essential_unserved
+        || high_essential != known.higher_mae_total_essential_unserved
         || high_outcome.total_flexible_unserved != known.higher_mae_total_flexible_unserved
         || conservative.total_flexible_unserved != known.conservative_total_flexible_unserved
         || perfect.total_flexible_unserved != known.perfect_information_total_flexible_unserved
-        || low_metrics.mae_unweighted_finite_panel >= high_metrics.mae_unweighted_finite_panel
-        || low_outcome.total_essential_unserved <= high_outcome.total_essential_unserved
+        || low_mae >= high_mae
+        || low_essential <= high_essential
     {
         return Err("frozen forecast-error/decision-value rank-inversion known answer changed".to_owned());
     }
+
+    let rank_inversion = RankInversion {
+        lower_error_model: LOWER_MODEL.to_owned(),
+        lower_error_mae: low_mae,
+        higher_error_model: HIGHER_MODEL.to_owned(),
+        higher_error_mae: high_mae,
+        lower_error_model_total_essential_unserved: low_essential,
+        higher_error_model_total_essential_unserved: high_essential,
+        claim: "Finite synthetic counterexample: the lower-MAE model has worse critical-service outcomes; this is not a generalization or calibrated-performance claim.".to_owned(),
+    };
 
     Ok(Report {
         schema_version: REPORT_SCHEMA,
@@ -502,15 +516,7 @@ fn build_report(panel_bytes: &[u8], experiment_bytes: &[u8]) -> Result<Report, S
         probability_weighted_metrics: "NOT_COMPUTED_NO_SUPPORTED_PROBABILITIES",
         forecast_error_metrics: forecast_error,
         policy_outcomes: policies,
-        rank_inversion: RankInversion {
-            lower_error_model: LOWER_MODEL.to_owned(),
-            lower_error_mae: low_metrics.mae_unweighted_finite_panel,
-            higher_error_model: HIGHER_MODEL.to_owned(),
-            higher_error_mae: high_metrics.mae_unweighted_finite_panel,
-            lower_error_model_total_essential_unserved: low_outcome.total_essential_unserved,
-            higher_error_model_total_essential_unserved: high_outcome.total_essential_unserved,
-            claim: "Finite synthetic counterexample: the lower-MAE model has worse critical-service outcomes; this is not a generalization or calibrated-performance claim.".to_owned(),
-        },
+        rank_inversion,
         physical_dispatch_audit: "NOT_RUN; abstract one-quantum battery model",
         perfect_information_reference: "NON_DEPLOYABLE_UPPER_BOUND_ONLY",
         interpretation: "Four fixed synthetic scenarios; unweighted MAE describes this finite panel only and is not an expectation or a probability estimate. Critical and flexible service trade-offs remain separately visible.".to_owned(),
