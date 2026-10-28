@@ -757,6 +757,98 @@ mod tests {
         assert_eq!(ad.lower_95,bd.lower_95);
         assert!(a.upper_95.unwrap()<0.0);
     }
+    fn fixture_dir() -> PathBuf {
+        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+        let path = std::env::temp_dir().join(format!("symtropy-failure-aware-{stamp}"));
+        fs::create_dir_all(&path).unwrap();
+        path
+    }
+
+    fn write_rows(path: &Path, rows: &[RolloutRow]) {
+        let mut writer = csv::Writer::from_path(path).unwrap();
+        for row in rows { writer.serialize(row).unwrap(); }
+        writer.flush().unwrap();
+    }
+
+    fn complete_fixture_rows() -> Vec<RolloutRow> {
+        let mut rows = Vec::new();
+        for flight in ["f1", "f2"] {
+            for seed in [1_u64, 2_u64] {
+                for horizon in [0.5_f64, 1.0_f64] {
+                    rows.push(row(flight, "s1", "slow", seed, horizon, "ok", Some(0.2), "ok", Some(0.1)));
+                }
+            }
+        }
+        rows
+    }
+
+    fn complete_fixture_starts() -> Vec<StartRow> {
+        vec![
+            StartRow { flight_id: "f1".into(), rollout_start_id: "s1".into(), regime: "slow".into() },
+            StartRow { flight_id: "f2".into(), rollout_start_id: "s1".into(), regime: "slow".into() },
+        ]
+    }
+
+    #[test]
+    fn complete_flight_seed_horizon_grid_loads_and_hashes_exact_input() {
+        let dir = fixture_dir();
+        let input = dir.join("scores.csv");
+        write_rows(&input, &complete_fixture_rows());
+        let mut a = args();
+        a.input = input.clone();
+        let data = read_and_validate(&a, &BTreeSet::new(), &complete_fixture_starts()).unwrap();
+        assert_eq!(data.rows.len(), 8);
+        assert_eq!(data.flights.len(), 2);
+        assert_eq!(data.seeds.len(), 2);
+        assert_eq!(data.input_csv_sha256.len(), 64);
+        fs::remove_file(&input).unwrap();
+        fs::remove_dir(&dir).unwrap();
+    }
+
+    #[test]
+    fn missing_registered_rollout_fails_closed() {
+        let dir = fixture_dir();
+        let input = dir.join("scores.csv");
+        let mut rows = complete_fixture_rows();
+        rows.pop();
+        write_rows(&input, &rows);
+        let mut a = args();
+        a.input = input.clone();
+        assert!(read_and_validate(&a, &BTreeSet::new(), &complete_fixture_starts()).is_err());
+        fs::remove_file(&input).unwrap();
+        fs::remove_dir(&dir).unwrap();
+    }
+
+    #[test]
+    fn regime_mismatch_against_registered_start_is_rejected() {
+        let dir = fixture_dir();
+        let input = dir.join("scores.csv");
+        let mut rows = complete_fixture_rows();
+        rows[0].regime = "fast".into();
+        write_rows(&input, &rows);
+        let mut a = args();
+        a.input = input.clone();
+        assert!(read_and_validate(&a, &BTreeSet::new(), &complete_fixture_starts()).is_err());
+        fs::remove_file(&input).unwrap();
+        fs::remove_dir(&dir).unwrap();
+    }
+
+    #[test]
+    fn divergence_must_persist_at_later_horizons_in_real_input() {
+        let dir = fixture_dir();
+        let input = dir.join("scores.csv");
+        let mut rows = complete_fixture_rows();
+        let early = rows.iter_mut().find(|r| r.flight_id == "f1" && r.training_seed == 1 && r.horizon_s == 0.5).unwrap();
+        early.baseline_status = "non_finite".into();
+        early.baseline_position_error_m = None;
+        write_rows(&input, &rows);
+        let mut a = args();
+        a.input = input.clone();
+        assert!(read_and_validate(&a, &BTreeSet::new(), &complete_fixture_starts()).is_err());
+        fs::remove_file(&input).unwrap();
+        fs::remove_dir(&dir).unwrap();
+    }
+
     #[test]
     fn validation_rejects_duplicate_seed_or_horizon(){
         let mut a=args();
