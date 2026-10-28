@@ -197,6 +197,14 @@ struct Report {
     claim_ceiling: String,
     source_registry_sha256: String,
     experiment_fixture_sha256: String,
+    citylearn_manifest_sha256: String,
+    citylearn_dataset_id: String,
+    citylearn_source_commit: String,
+    citylearn_schema_git_blob_sha1: String,
+    citylearn_source_file_count: usize,
+    citylearn_simulation_time_steps: usize,
+    citylearn_forecast_issue_times_verified: bool,
+    citylearn_dataset_terms_cleared: bool,
     source_count: usize,
     status_counts: BTreeMap<String, usize>,
     source_results: Vec<SourceResult>,
@@ -282,11 +290,21 @@ fn validate_source(source: &Source) -> Result<(), String> {
     if source.source_id == "citylearn_official_v3_0_2" {
         let expected_removed = ["rec_2023_*", "EC_Ermesinde", "ALADI_*"];
         if source.registry_release.as_deref() != Some("v3.0.2")
-            || source.selected_dataset_id.is_some()
+            || source.selected_dataset_id.as_deref() != Some(CITYLEARN_DATASET_ID)
+            || source.pinned_source_commit.as_deref() != Some(CITYLEARN_SOURCE_COMMIT)
+            || source.selected_schema_path.as_deref()
+                != Some("data/datasets/citylearn_challenge_2022_phase_all_plus_evs/schema.json")
+            || source.selected_schema_git_blob_sha1.as_deref() != Some(CITYLEARN_SCHEMA_BLOB_SHA1)
+            || source.referenced_data_file_count != Some(30)
+            || source.simulator_step_count != Some(8760)
+            || source.dataset_source_manifest_path.as_deref()
+                != Some("tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json")
+            || source.status != "reference_only_not_imported"
             || expected_removed.iter().any(|name| !source.removed_dataset_families.iter().any(|v| v == name))
-            || !limitation_contains(source, "select an actual dataset present in the exact official tag")
+            || !limitation_contains(source, "selected dataset schema is verified at the immutable v3.0.2 source commit")
+            || !limitation_contains(source, "forecast issue/publication timestamp contract")
         {
-            return Err("CityLearn tag, removed dataset caveat, or dataset-pinning rule changed".to_owned());
+            return Err("CityLearn dataset identity, source pin, removed dataset caveat, or unqualified timing state changed".to_owned());
         }
     }
 
@@ -334,7 +352,147 @@ fn validate_registry(registry: &Registry) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_experiment(experiment: &Experiment, registry: &Registry, bytes: &[u8]) -> Result<(), String> {
+fn validate_citylearn_manifest(
+    manifest: &CityLearnManifest,
+    registry: &Registry,
+) -> Result<(), String> {
+    if manifest.schema_version != "citylearn-source-tree-manifest-v0.1"
+        || manifest.dataset_id != CITYLEARN_DATASET_ID
+        || manifest.source_repository != "https://github.com/citylearn-project/CityLearn"
+        || manifest.source_release_tag != "v3.0.2"
+        || manifest.source_commit != CITYLEARN_SOURCE_COMMIT
+        || !manifest.source_commit_is_pinned
+        || manifest.schema_path != "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/schema.json"
+        || manifest.schema_git_blob_sha1 != CITYLEARN_SCHEMA_BLOB_SHA1
+        || manifest.schema_size_bytes != 27644
+        || manifest.start_date != "2024-08-01"
+        || manifest.simulation_start_step != 0
+        || manifest.simulation_end_step != 8759
+        || manifest.time_steps != 8760
+        || manifest.seconds_per_time_step != 3600
+        || manifest.buildings != 17
+        || manifest.random_seed != 2022
+        || !manifest.dataset_license_status.contains("not_independently_cleared")
+        || manifest.forecast_issue_time_status != "not_verified_from_schema_and_column_names"
+        || manifest.external_raw_bytes_committed
+        || !manifest.source_inventory_status.contains("remote_git_commit_and_blob_ids_are_inventoried")
+        || manifest.referenced_csv_count != 30
+        || manifest.files.len() != 30
+    {
+        return Err("CityLearn manifest identity, time coverage, rights state or claim ceiling changed".to_owned());
+    }
+
+    const MANIFEST_CHECKS: [&str; 8] = [
+        "exact_source_commit_and_tag",
+        "schema_blob_sha1_matches_selected_release",
+        "all_schema_referenced_csv_files_are_listed",
+        "all_git_blob_ids_are_40_hex",
+        "nonempty_data_row_counts_and_file_sizes_are_recorded",
+        "forecast_issue_time_is_not_assumed_from_column_name",
+        "dataset_license_is_not_assumed_from_software_license",
+        "national_or_simulated_data_are_not_claimed_as_south_african_field_evidence",
+    ];
+    if manifest.required_checks.len() != MANIFEST_CHECKS.len()
+        || MANIFEST_CHECKS.iter().any(|required| {
+            !manifest.required_checks.iter().any(|value| value.as_str() == *required)
+        })
+    {
+        return Err("CityLearn manifest required-check registry changed".to_owned());
+    }
+
+    if manifest.forecast_feature_names.is_empty()
+        || !manifest.forecast_feature_names.iter().any(|name| name.contains("predicted"))
+    {
+        return Err("forecast features are not explicitly registered for timing review".to_owned());
+    }
+
+    let expected_names: BTreeSet<String> = (1..=17)
+        .map(|index| format!("Building_{index}.csv"))
+        .chain([
+            "weather.csv".to_owned(),
+            "carbon_intensity.csv".to_owned(),
+            "pricing.csv".to_owned(),
+            "charger_1_1.csv".to_owned(),
+            "charger_4_1.csv".to_owned(),
+            "charger_5_1.csv".to_owned(),
+            "charger_7_1.csv".to_owned(),
+            "charger_10_1.csv".to_owned(),
+            "charger_12_1.csv".to_owned(),
+            "charger_15_1.csv".to_owned(),
+            "charger_15_2.csv".to_owned(),
+            "deferrable_appliance_1_cycle_profiles.csv".to_owned(),
+            "deferrable_appliance_1_flexibility_schedule.csv".to_owned(),
+        ])
+        .collect();
+    let root = "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/";
+    let mut paths = BTreeSet::new();
+    let mut basenames = BTreeSet::new();
+    for file in &manifest.files {
+        if !file.path.starts_with(root)
+            || file.path.contains("..")
+            || !paths.insert(file.path.as_str())
+        {
+            return Err(format!("invalid or duplicate CityLearn file path {}", file.path));
+        }
+        let basename = file.path.strip_prefix(root).unwrap_or_default();
+        if basename.contains('/')
+            || !basenames.insert(basename)
+            || !valid_sha1(&file.git_blob_sha1)
+            || file.size_bytes == 0
+            || file.data_rows == 0
+        {
+            return Err(format!("invalid Git blob, size, row count or filename for {}", file.path));
+        }
+        let expected_url = format!(
+            "https://github.com/citylearn-project/CityLearn/blob/{}/{}",
+            CITYLEARN_SOURCE_COMMIT, file.path
+        );
+        if file.immutable_source_url != expected_url {
+            return Err(format!("non-immutable source URL for {}", file.path));
+        }
+        let expected_rows = match basename {
+            "weather.csv" | "carbon_intensity.csv" | "pricing.csv" => Some(8760),
+            "charger_1_1.csv" | "charger_4_1.csv" => Some(9527),
+            "charger_5_1.csv" | "charger_7_1.csv" | "charger_10_1.csv"
+            | "charger_12_1.csv" | "charger_15_1.csv" | "charger_15_2.csv" => Some(35807),
+            "deferrable_appliance_1_cycle_profiles.csv" => Some(315),
+            "deferrable_appliance_1_flexibility_schedule.csv" => Some(365),
+            name if name.starts_with("Building_") && name.ends_with(".csv") => Some(8760),
+            _ => None,
+        };
+        if expected_rows != Some(file.data_rows) {
+            return Err(format!("unexpected row count for {}", file.path));
+        }
+    }
+    if basenames != expected_names {
+        return Err("CityLearn manifest file inventory differs from the pinned schema references".to_owned());
+    }
+
+    let city = registry.sources.iter()
+        .find(|source| source.source_id == "citylearn_official_v3_0_2")
+        .ok_or_else(|| "CityLearn source entry missing from registry".to_owned())?;
+    if city.selected_dataset_id.as_deref() != Some(manifest.dataset_id.as_str())
+        || city.pinned_source_commit.as_deref() != Some(manifest.source_commit.as_str())
+        || city.selected_schema_path.as_deref() != Some(manifest.schema_path.as_str())
+        || city.selected_schema_git_blob_sha1.as_deref() != Some(manifest.schema_git_blob_sha1.as_str())
+        || city.referenced_data_file_count != Some(manifest.referenced_csv_count)
+        || city.simulator_step_count != Some(manifest.time_steps)
+        || city.dataset_source_manifest_path.as_deref()
+            != Some("tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json")
+        || city.raw_sha256.is_some()
+        || city.snapshot_url.is_some()
+        || city.status != "reference_only_not_imported"
+    {
+        return Err("CityLearn source registry and file manifest disagree or imply premature ingestion".to_owned());
+    }
+    Ok(())
+}
+
+fn valid_sha1(value: &str) -> bool {
+    value.len() == 40 && value.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+fn validate_experiment(experiment: &Experiment, registry: &Registry, bytes: &[u8], manifest: &CityLearnManifest, manifest_bytes: &[u8]) -> Result<(), String> {
     if experiment.schema_version != EXPERIMENT_SCHEMA || experiment.registry_id != registry.registry_id {
         return Err("unsupported source-registry experiment identity".to_owned());
     }
