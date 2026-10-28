@@ -103,6 +103,13 @@ Each profile is an independent scenario family. Some locations have strong measu
 
 For gas/ice giants, specify an atmospheric pressure/depth level and mission type (orbiter, descent probe, balloon/float concept). For icy moons, distinguish orbit, surface, plume and inferred subsurface ocean. For Mercury and the Moon, distinguish sunlit terrain from permanent shadow. For Mars, distinguish equatorial, highland, polar and dust-storm cases. These are physically different experiments, not optional labels.
 
+### 3.4 From catalog to executable test queue
+
+The [machine-readable environment catalog](fixtures/environment-domain-catalog-2026.json) defines **51 profiles**, each with a stable ID, model requirements, metrics, source links and an explicit implementation status. The [compound-test matrix](fixtures/environment-compound-test-matrix-2026.json) supplies **one coverage template per catalog profile plus 19 cross-profile compound-hazard templates** (70 templates total).
+
+These are test designs, not completed simulations. They deliberately contain no invented numerical environmental values. A scenario becomes executable only after its adapter pins source-backed values, units, time/coordinate frame, model revision, uncertainty and validated operating envelope. CI verifies that every profile has a template and all compound tests reference known profile IDs; it does not claim the physical experiment has run or that any habitat design is feasible.
+
+
 ## 4. Solar-system benchmark dimensions
 
 Each profile should declare which of these are measured, derived, modeled, synthetic, or not applicable:
