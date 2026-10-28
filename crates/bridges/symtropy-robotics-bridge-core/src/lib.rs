@@ -14,8 +14,8 @@ pub use agent::{RoboticAgent, spawn_robot_body};
 pub use haptic::{HapticAttestation, HapticOracle};
 pub use motor::{MotorPlanner, UniformGainPlanner};
 pub use observation::{
-    BaseKinematicObservationError, BaseKinematicObservationV0,
     BASE_KINEMATIC_OBSERVATION_DIM, BASE_KINEMATIC_OBSERVATION_FIELD_IDS,
+    BaseKinematicObservationError, BaseKinematicObservationV0,
 };
 pub use platform::PlatformType;
 pub use safety::JointSafetyAuthority;
