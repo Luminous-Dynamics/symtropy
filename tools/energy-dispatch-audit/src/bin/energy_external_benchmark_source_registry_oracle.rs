@@ -14,7 +14,7 @@ const EXPERIMENT_BYTES: &[u8] =
 const REGISTRY_SHA256: &str =
     "d53b6f0f247b8c277ad853566c4ab2f4621b92314022d43ad00b10043fc631a1";
 const EXPERIMENT_SHA256: &str =
-    "aa69fa42e817a118ad819d9fd2c956326f51a2e59711ebad9d303a3ff6f3bb7f";
+    "669308da2193ae7e78b240d66c998a3858270c06e27469aafacccc909287a6e9";
 const REGISTRY_SCHEMA: &str = "energy-external-benchmark-source-registry-v0.1";
 const EXPERIMENT_SCHEMA: &str = "energy-external-benchmark-source-registry-experiment-v0.1";
 const REGISTRY_ID: &str = "energy-external-benchmark-source-registry-2026-10-28";
