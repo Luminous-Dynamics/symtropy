@@ -129,25 +129,26 @@ if [ "${STFR_CHECK_NANODRONE_RESIDUAL_SPECTRUM:-0}" = "1" ]; then
 fi
 
 
-if [ "\${STFR_CHECK_NANODRONE_RECOVERABILITY:-0}" = "1" ]; then
+
+if [ "${STFR_CHECK_NANODRONE_RECOVERABILITY:-0}" = "1" ]; then
   cargo test --manifest-path "$integration_manifest" --example nanodrone_recoverability_frontier
   cargo check --manifest-path "$integration_manifest" --example nanodrone_recoverability_frontier
 
   # Synthetic-only checkpoint × intervention contract smoke; these rows are not flight results.
   fixture="$SYMTROPY_PATH/integration/symthaea-physics-loop/fixtures/nanodrone-recoverability"
-  out="\${STFR_RECOVERABILITY_OUTPUT_PATH:-$backup_dir/nanodrone-recoverability-frontier-smoke.json}"
+  out="${STFR_RECOVERABILITY_OUTPUT_PATH:-$backup_dir/nanodrone-recoverability-frontier-smoke.json}"
   dataset_receipt_sha256="$(sha256sum "$fixture/dataset_receipt.txt" | awk '{print $1}')"
   model_manifest_sha256="$(sha256sum "$fixture/model_manifest.txt" | awk '{print $1}')"
-  cargo run --manifest-path "$integration_manifest" --example nanodrone_recoverability_frontier -- \\
-    --input "$fixture/branches.csv" \\
-    --checkpoints "$fixture/checkpoints.csv" \\
-    --train-families "$fixture/train_families.txt" \\
-    --dataset-receipt-sha256 "$dataset_receipt_sha256" \\
-    --model-manifest-sha256 "$model_manifest_sha256" \\
-    --source-commit "$STFR_SYMTROPY_SHA" \\
-    --training-seeds 101,102 --branch-seeds 11,12,13,14 \\
-    --interventions continue,robust_fallback \\
-    --max-tracking-rmse-m 0.5 --recoverability-threshold 0.5 \\
+  cargo run --manifest-path "$integration_manifest" --example nanodrone_recoverability_frontier -- \
+    --input "$fixture/branches.csv" \
+    --checkpoints "$fixture/checkpoints.csv" \
+    --train-families "$fixture/train_families.txt" \
+    --dataset-receipt-sha256 "$dataset_receipt_sha256" \
+    --model-manifest-sha256 "$model_manifest_sha256" \
+    --source-commit "$STFR_SYMTROPY_SHA" \
+    --training-seeds 101,102 --branch-seeds 11,12,13,14 \
+    --interventions continue,robust_fallback \
+    --max-tracking-rmse-m 0.5 --recoverability-threshold 0.5 \
     --bootstrap 50 --seed 17 --evidence-class synthetic --output "$out"
   jq -e '
     .schema_version == "symtropy-nanodrone-recoverability-frontier-v0.1"
