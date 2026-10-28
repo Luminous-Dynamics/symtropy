@@ -279,6 +279,7 @@
     "nonempty_data_row_counts_and_file_sizes_are_recorded",
     "forecast_issue_time_is_not_assumed_from_column_name",
     "dataset_license_is_not_assumed_from_software_license",
-    "national_or_simulated_data_are_not_claimed_as_south_african_field_evidence"
+    "national_or_simulated_data_are_not_claimed_as_south_african_field_evidence",
+    "all_raw_file_sha256_digests_are_pinned_and_verified"
   ]
 }
