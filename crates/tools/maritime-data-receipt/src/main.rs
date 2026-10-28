@@ -30,7 +30,7 @@ const SCHEMA_ID: &str = "luminous.symtropy.maritime-data-receipt";
 const SCHEMA_VERSION: &str = "0.1.0";
 
 #[derive(Debug, Clone, PartialEq)]
-enum JsonValue {
+pub(crate) enum JsonValue {
     Null,
     Bool(bool),
     Number(Number),
@@ -718,10 +718,10 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
         "data_context.survey_or_observation_time_utc",
         false,
     )?;
-    if let (Some(start), Some(end)) = (coverage_start, coverage_end) {
-        if start > end {
-            return Err("data_context time coverage start must not be after end".to_owned());
-        }
+    if let (Some(start), Some(end)) = (coverage_start, coverage_end)
+        && start > end
+    {
+        return Err("data_context time coverage start must not be after end".to_owned());
     }
     if kind == "public_dataset" {
         match domain {

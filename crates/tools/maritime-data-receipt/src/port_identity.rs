@@ -8,7 +8,7 @@
 //! It does not authenticate source snapshots, resolve a real port/terminal, or
 //! grant operational authority. Valid output is always NOT ADMITTED.
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 const ROOT_KEYS: &[&str] = &[
@@ -57,6 +57,7 @@ const RECORD_KEYS: &[&str] = &[
     "evidence_refs",
 ];
 const VALID_STATUS: &str = "CROSSWALK_METADATA_VALID_NOT_ADMITTED";
+const VALID: &str = VALID_STATUS;
 
 fn exact_keys(value: &Value, expected: &[&str]) -> Result<(), &'static str> {
     let object = value.as_object().ok_or("INVALID_OBJECT")?;
@@ -231,10 +232,10 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
     {
         return Err("INVALID_TERMS_REVIEW_STATE");
     }
-    if let Some(timestamp) = retrieved_at {
-        if !utc_timestamp(timestamp) {
-            return Err("INVALID_UTC_TIMESTAMP");
-        }
+    if let Some(timestamp) = retrieved_at
+        && !utc_timestamp(timestamp)
+    {
+        return Err("INVALID_UTC_TIMESTAMP");
     }
 
     let registry = member(crosswalk, "locode_registry")?;
@@ -436,13 +437,12 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
 
     for record in records {
         let source_id = text(record, "source_entity_id")?;
-        if candidate_counts.get(source_id).copied().unwrap_or(0) > 1 {
-            if text(record, "mapping_state")? != "ambiguous"
+        if candidate_counts.get(source_id).copied().unwrap_or(0) > 1
+            && (text(record, "mapping_state")? != "ambiguous"
                 || nullable_text(record, "target_feature_id")?.is_some()
-                || text(record, "relationship")? != "none"
-            {
-                return Err("MULTIPLE_CANDIDATES_MUST_BE_AMBIGUOUS");
-            }
+                || text(record, "relationship")? != "none")
+        {
+            return Err("MULTIPLE_CANDIDATES_MUST_BE_AMBIGUOUS");
         }
     }
 
@@ -595,7 +595,9 @@ fn run_cli_inner(path: &str, snapshot_paths: Option<(&str, &str)>) -> Result<(),
     if bytes.len() > super::MAX_RECEIPT_BYTES {
         return Err("crosswalk exceeds the bounded file-size limit".to_owned());
     }
-    let value = super::parse_strict(&bytes)?;
+    let _strict = super::parse_strict(&bytes)?;
+    let value: Value =
+        serde_json::from_slice(&bytes).map_err(|e| format!("crosswalk JSON invalid: {e}"))?;
     let count = validate_crosswalk(&value).map_err(str::to_owned)?;
     let source = member(&value, "source_snapshot").map_err(str::to_owned)?;
     let registry = member(&value, "locode_registry").map_err(str::to_owned)?;
@@ -646,18 +648,22 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
     }
     let mut current = value;
     for part in &parts[..parts.len() - 1] {
-        current = if let Some(array) = current.as_array_mut() {
+        if current.is_array() {
             let index = part
                 .parse::<usize>()
                 .map_err(|_| "INVALID_CORPUS_MUTATION")?;
-            array.get_mut(index).ok_or("INVALID_CORPUS_MUTATION")?
+            current = current
+                .as_array_mut()
+                .unwrap()
+                .get_mut(index)
+                .ok_or("INVALID_CORPUS_MUTATION")?;
         } else {
-            current
+            current = current
                 .as_object_mut()
                 .ok_or("INVALID_CORPUS_MUTATION")?
                 .get_mut(*part)
-                .ok_or("INVALID_CORPUS_MUTATION")?
-        };
+                .ok_or("INVALID_CORPUS_MUTATION")?;
+        }
     }
     let leaf = parts[parts.len() - 1];
     if let Some(array) = current.as_array_mut() {
@@ -676,8 +682,7 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
         }
         return Ok(());
     }
-    let object: &mut Map<String, Value> =
-        current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?;
+    let object = current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?;
     match mutation["op"].as_str().ok_or("INVALID_CORPUS_MUTATION")? {
         "set" => {
             if !object.contains_key(leaf) {
@@ -712,7 +717,9 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
 
 #[cfg(test)]
 mod tests {
-    use super::{VALID, mutate_path, utc_timestamp, validate_crosswalk, verify_snapshot_digest};
+    use super::{
+        VALID, member, mutate_path, text, utc_timestamp, validate_crosswalk, verify_snapshot_digest,
+    };
     use serde_json::Value;
 
     #[test]
@@ -886,7 +893,7 @@ mod tests {
 
     #[test]
     fn report_builder_rejects_unbacked_snapshot_match_claim() {
-        use super::{build_crosswalk_report, member, text};
+        use super::build_crosswalk_report;
 
         let bytes = include_bytes!("../tests/fixtures/synthetic-port-crosswalk.json");
         let crosswalk: Value = serde_json::from_slice(bytes).expect("synthetic crosswalk fixture");

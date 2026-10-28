@@ -85,6 +85,7 @@ const COMPONENTS: &[&str] = &[
     "largest_deployed_ship_teu",
     "directly_connected_ports",
 ];
+#[cfg(test)]
 const VALID: &str = "PLSCI_METADATA_VALID_NOT_ADMITTED";
 
 fn exact_keys(value: &Value, expected: &[&str]) -> Result<(), &'static str> {
