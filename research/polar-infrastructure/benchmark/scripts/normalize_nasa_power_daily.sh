@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat >&2 <<'USAGE'
 Usage:
-  bash normalize_nasa_power_daily.sh RAW_JSON PROFILE_ID LOCATION_LABEL LAT LON START_YYYYMMDD END_YYYYMMDD OUT_DIR SOURCE_URL
+  bash normalize_nasa_power_daily.sh RAW_JSON PROFILE_ID LOCATION_LABEL LAT LON START_YYYYMMDD END_YYYYMMDD OUT_DIR SOURCE_URL [EVIDENCE_CLASS]
 
 Normalize a previously downloaded NASA POWER daily point JSON response into:
   source-response.json          immutable-by-hash original response copy
@@ -12,13 +12,16 @@ Normalize a previously downloaded NASA POWER daily point JSON response into:
   acquisition-config.json       acquisition/transform configuration
   environment-trace-manifest.json  ingested_unvalidated manifest
 
+EVIDENCE_CLASS defaults to reanalysis. Use synthetic_stress only for explicitly
+synthetic fixtures; synthetic values must never be labeled as NASA observations.
+
 This script performs metadata, date-coverage, units, and value-shape checks only.
 It does not validate reanalysis against station data or validate any physical model.
 USAGE
   exit 64
 }
 
-[[ $# -eq 9 ]] || usage
+[[ $# -eq 9 || $# -eq 10 ]] || usage
 
 RAW_JSON=$1
 PROFILE_ID=$2
@@ -29,6 +32,12 @@ START=$6
 END=$7
 OUT_DIR=$8
 SOURCE_URL=$9
+EVIDENCE_CLASS=${10:-reanalysis}
+case "$EVIDENCE_CLASS" in
+  reanalysis) PROVIDER="NASA POWER" ;;
+  synthetic_stress) PROVIDER="synthetic test fixture" ;;
+  *) echo "EVIDENCE_CLASS must be reanalysis or synthetic_stress" >&2; exit 2 ;;
+esac
 
 [[ -s "$RAW_JSON" ]] || { echo "raw NASA POWER response is missing or empty" >&2; exit 2; }
 [[ "$PROFILE_ID" =~ ^[a-z0-9]+([._-][a-z0-9]+)*$ ]] || { echo "invalid profile ID" >&2; exit 2; }
@@ -72,7 +81,10 @@ jq -e --arg start "$START" --arg end "$END" '
   (.header.end == $end) and
   (((.header.time_standard // .header["time-standard"] // "") | ascii_upcase) == "UTC") and
   (.header.fill_value | type == "number") and
+  (.geometry.type == "Point") and
   (.geometry.coordinates | type == "array" and length >= 2) and
+  (.geometry.coordinates[0] | type == "number" and . >= -180 and . <= 180) and
+  (.geometry.coordinates[1] | type == "number" and . >= -90 and . <= 90) and
   (.properties.parameter | type == "object") and
   (.parameters | type == "object") and
   (.messages | type == "array")
@@ -195,6 +207,7 @@ jq -n \
   --arg retrieved_at "$RETRIEVED_AT" \
   --arg api_sources "$API_SOURCES" \
   --arg data_title "$DATASET_TITLE" \
+  --arg provider "$PROVIDER" \
   --arg dataset_version "$DATASET_VERSION" \
   --arg data_lat "$DATA_LAT" \
   --arg data_lon "$DATA_LON" \
@@ -202,7 +215,7 @@ jq -n \
   --arg retrieved_at "$RETRIEVED_AT" \
   '{
     schema_version:"0.1.0",
-    provider:"NASA POWER",
+    provider:$provider,
     dataset_title:$data_title,
     dataset_version:$dataset_version,
     source_sources:$api_sources,
@@ -247,6 +260,8 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
    --arg retrieved_at "$RETRIEVED_AT" \
    --arg data_version "$DATASET_VERSION" \
    --arg data_title "$DATASET_TITLE" \
+   --arg provider "$PROVIDER" \
+   --arg evidence_class "$EVIDENCE_CLASS" \
    --arg api_sources "$API_SOURCES" \
    --arg raw_sha "$RAW_SHA" \
    --arg csv_sha "$CSV_SHA" \
@@ -264,14 +279,14 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
   .manifest_id = ("nasa_power_daily_" + $profile + "_" + .schema_version | gsub("[^a-zA-Z0-9._-]"; "_")) |
   .profile_id = $profile |
   .status = "ingested_unvalidated" |
-  .evidence_class = "reanalysis" |
+  .evidence_class = $evidence_class |
   .acquisition = {
-    provider:"NASA POWER",
+    provider:$provider,
     dataset_name:$data_title,
     dataset_version:$data_version,
     source_url:$source_url,
-    attribution:"NASA POWER; cite the API and product sources in derived research.",
-    license_or_access_terms:"Access/redistribution terms have not been independently reviewed; consult NASA POWER documentation before redistribution.",
+    attribution:(if $evidence_class == "reanalysis" then "NASA POWER; cite the API and product sources in derived research." else "Synthetic test fixture; not an observational dataset." end),
+    license_or_access_terms:(if $evidence_class == "reanalysis" then "Access/redistribution terms have not been independently reviewed; consult NASA POWER documentation before redistribution." else "Test-only synthetic fixture with no external data license claim." end),
     accessed_at_utc:$retrieved_at,
     source_data_sha256:$raw_sha
   } |
@@ -315,7 +330,7 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
     validation_status:"screened",
     missing_data_policy:"Preserve fill/missing values as empty CSV cells and report days complete across all required replay variables; optional-variable missingness remains visible in per-column blanks. Do not impute or treat missing values as zero.",
     known_biases_or_limits:[
-      "Evidence class is reanalysis, not a station observation.",
+      ("Evidence class is " + $evidence_class + "; this manifest does not itself validate the physical data source."),
       "Daily averages/extrema/accumulations do not resolve intra-day power ramps or controller dynamics.",
       "Fog liquid-water content, salt deposition, dust deposition, equipment response and local microclimate are not validated by this trace.",
       ("NASA POWER source streams: " + $api_sources),
@@ -336,6 +351,7 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
 printf 'Created source response: %s\n' "$RAW_COPY"
 printf 'Created normalized trace: %s\n' "$CSV_OUT"
 printf 'Created manifest: %s\n' "$MANIFEST_OUT"
+printf 'Evidence class: %s\n' "$EVIDENCE_CLASS"
 printf 'Evidence status: ingested_unvalidated (no station/model validation claimed)\n'
 printf 'Rows requested: %s; complete rows: %s; incomplete rows: %s\n' "$EXPECTED_COUNT" "$OBSERVED_COUNT" "$MISSING_COUNT"
 printf 'Raw SHA-256: %s\nNormalized CSV SHA-256: %s\n' "$RAW_SHA" "$CSV_SHA"
