@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "glass-selection-aware-qualification-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic Bonferroni-simultaneous binomial qualification mechanics only; no real-material, plant-yield, independence, or industrial-performance claim is validated.",
+  "target_success_probability": 0.95,
+  "familywise_confidence_level": 0.95,
+  "candidates": [
+    {
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "candidate_id": "lot-beta"
+    },
+    {
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "candidate_id": "lot-delta"
+    },
+    {
+      "candidate_id": "lot-epsilon"
+    }
+  ]
+}
