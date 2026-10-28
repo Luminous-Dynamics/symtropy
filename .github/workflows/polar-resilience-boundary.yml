@@ -71,6 +71,51 @@ jobs:
             ([.profiles[].scenario_id] | index("ss.venus_surface") != null) and
             ([.profiles[].scenario_id] | index("ss.neptune_atmospheric_level") != null)
           ' research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json
+      - name: Validate environment compound-test matrix coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n -e \
+            --slurpfile catalog research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json \
+            --slurpfile matrix research/polar-infrastructure/benchmark/fixtures/environment-compound-test-matrix-2026.json '
+            ($catalog[0].profiles | map(.scenario_id)) as $profile_ids |
+            ($matrix[0].coverage_templates | map(.profile_ids[0])) as $coverage_ids |
+            ($matrix[0].coverage_templates + $matrix[0].compound_templates) as $all_tests |
+            ($all_tests | map(.test_id)) as $test_ids |
+            $matrix[0].schema_version == "0.1.0" and
+            $matrix[0].artifact_kind == "symtropy-environment-compound-test-matrix" and
+            $matrix[0].status == "test_templates_not_executed" and
+            $matrix[0].evidence_class == "test_design_only" and
+            $matrix[0].numerical_parameters_embedded == false and
+            $matrix[0].catalog_profile_count == ($profile_ids | length) and
+            $matrix[0].coverage_template_count == ($profile_ids | length) and
+            ($coverage_ids | length) == ($profile_ids | length) and
+            ($coverage_ids | sort) == ($profile_ids | sort) and
+            ($coverage_ids | length) == ($coverage_ids | unique | length) and
+            ($test_ids | length) == ($test_ids | unique | length) and
+            $matrix[0].compound_template_count == ($matrix[0].compound_templates | length) and
+            $matrix[0].total_test_template_count == ($all_tests | length) and
+            all($matrix[0].coverage_templates[];
+              .status == "template_only" and
+              .evidence_class == "test_design_only" and
+              .numerical_parameters_embedded == false and
+              (.profile_ids | length == 1) and
+              (($profile_ids | index(.profile_ids[0])) != null) and
+              (.event_sequence | length >= 3) and
+              (.required_model_adapters | length > 0) and
+              (.required_metrics | length > 0)
+            ) and
+            all($matrix[0].compound_templates[];
+              .status == "template_only" and
+              .evidence_class == "test_design_only" and
+              .numerical_parameters_embedded == false and
+              (.profile_ids | length >= 2) and
+              (.event_sequence | length >= 3) and
+              (.required_cross_profile_model_domains | length > 0) and
+              all(.profile_ids[]; . as $id | ($profile_ids | index($id)) != null)
+            )
+          '
+
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
 
