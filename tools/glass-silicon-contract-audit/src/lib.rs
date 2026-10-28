@@ -4897,6 +4897,113 @@ pub fn audit_acquisition_policy_comparison_sealed(
 }
 
 #[cfg(test)]
+mod sealed_acquisition_policy_input_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn policy_input() -> Value {
+        serde_json::from_str(include_str!("../fixtures/acquisition-policy-input.synthetic.json"))
+            .expect("public policy catalog fixture must parse")
+    }
+
+    fn oracle() -> Value {
+        serde_json::from_str(include_str!("../fixtures/acquisition-outcome-oracle.synthetic.json"))
+            .expect("sealed outcome oracle fixture must parse")
+    }
+
+    fn selections(report: &AcquisitionPolicyComparisonReport) -> Vec<(String, Option<u64>, Option<String>)> {
+        let mut entries = report.policies.iter().flat_map(|policy| {
+            policy.runs.iter().map(|run| (policy.policy.clone(), run.seed, run.selected_measurement_id.clone()))
+        }).collect::<Vec<_>>();
+        entries.sort();
+        entries
+    }
+
+    #[test]
+    fn separated_catalog_and_oracle_reproduce_the_known_answer() {
+        let public = policy_input();
+        let oracle = oracle();
+        assert!(public.get("scenarios").is_none());
+        assert!(public.get("actions").is_none());
+        assert!(public.get("constraint_controls").is_none());
+        assert!(public["measurements"][0].get("observation_by_scenario").is_none());
+        let report = audit_acquisition_policy_comparison_sealed(&public, &oracle);
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.random_seed_count, 16);
+        assert_eq!(report.budget_eligible_measurements, 2);
+        assert_eq!(report.policies.len(), 5);
+        assert_eq!(
+            policy(&report, "calibrated_uncertainty").runs[0].selected_measurement_id.as_deref(),
+            Some("measure-noise")
+        );
+        assert_eq!(
+            policy(&report, "novelty").runs[0].gross_worst_case_regret_reduction,
+            Some(5.0)
+        );
+    }
+
+    #[test]
+    fn policy_input_rejects_injected_evaluator_fields() {
+        let mut public = policy_input();
+        public["scenarios"] = json!([{"id":"hidden-scenario"}]);
+        let report = audit_acquisition_policy_comparison_sealed(&public, &oracle());
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("PUBLIC_INPUT_KEYS:")));
+    }
+
+    #[test]
+    fn public_measurement_rejects_inline_hidden_observation_labels() {
+        let mut public = policy_input();
+        public["measurements"][0]["observation_by_scenario"] = json!({"s1":"warm"});
+        let report = audit_acquisition_policy_comparison_sealed(&public, &oracle());
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("PUBLIC_MEASUREMENT_KEYS:")));
+    }
+
+    #[test]
+    fn missing_or_extra_sealed_outcome_key_fails_closed() {
+        let public = policy_input();
+        let mut oracle = oracle();
+        oracle["measurement_outcomes"].as_object_mut().unwrap().remove("measure-noise");
+        let report = audit_acquisition_policy_comparison_sealed(&public, &oracle);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("SEALED_OUTCOME_CENSUS:")));
+    }
+
+    #[test]
+    fn changing_hidden_outcomes_cannot_change_policy_selection_before_observation() {
+        let public = policy_input();
+        let original_oracle = oracle();
+        let original = audit_acquisition_policy_comparison_sealed(&public, &original_oracle);
+        let mut changed_oracle = original_oracle;
+        changed_oracle["measurement_outcomes"]["measure-regime"]["observation_by_scenario"] =
+            json!({"s1":"same","s2":"same","s3":"same","s4":"same"});
+        let changed = audit_acquisition_policy_comparison_sealed(&public, &changed_oracle);
+        assert_eq!(original.status, "PASS", "{:?}", original.findings);
+        assert_eq!(changed.status, "PASS", "{:?}", changed.findings);
+        assert_eq!(selections(&original), selections(&changed));
+        assert_eq!(
+            policy(&original, "novelty").runs[0].gross_worst_case_regret_reduction,
+            Some(5.0)
+        );
+        assert_eq!(
+            policy(&changed, "novelty").runs[0].gross_worst_case_regret_reduction,
+            Some(0.0)
+        );
+    }
+
+    #[test]
+    fn oracle_benchmark_mismatch_fails_closed() {
+        let public = policy_input();
+        let mut oracle = oracle();
+        oracle["benchmark_id"] = json!("different-benchmark");
+        let report = audit_acquisition_policy_comparison_sealed(&public, &oracle);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("SEALED_ORACLE_BENCHMARK:")));
+    }
+}
+
+#[cfg(test)]
 mod acquisition_policy_comparison_tests {
     use super::*;
     use serde_json::json;
