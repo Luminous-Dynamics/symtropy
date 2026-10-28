@@ -1,0 +1,41 @@
+name: lighting-study-plan
+
+on:
+  pull_request:
+    paths:
+      - "tools/lighting-study-plan/**"
+      - "docs/research/LIGHTING_POWER_AND_SCENE_FAMILY_PLANNING_V0_1.md"
+      - ".github/workflows/lighting-study-plan.yml"
+  push:
+    paths:
+      - "tools/lighting-study-plan/**"
+      - "docs/research/LIGHTING_POWER_AND_SCENE_FAMILY_PLANNING_V0_1.md"
+      - ".github/workflows/lighting-study-plan.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  standard-library-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run unit tests
+        run: |
+          cd tools/lighting-study-plan
+          python3 -m unittest -v test_plan_independent_scene_families
+      - name: Validate synthetic CLI output
+        run: |
+          python3 tools/lighting-study-plan/plan_independent_scene_families.py \
+            tools/lighting-study-plan/fixtures/synthetic-pilot.csv \
+            --evidence-tier synthetic_contract \
+            --assumed-true-effect-pct 18 \
+            --superiority-margin-pct 5 \
+            --target-power 0.80 \
+            --output /tmp/lighting-study-plan.json
+          python3 -m json.tool /tmp/lighting-study-plan.json > /dev/null
+          grep -q 'synthetic_planning_demo_no_empirical_claim' /tmp/lighting-study-plan.json
+          grep -q '"sampling_unit": "independent_scene_family"' /tmp/lighting-study-plan.json
