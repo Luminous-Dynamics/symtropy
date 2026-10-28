@@ -504,8 +504,10 @@ fn join_files_internal(
         check_dt(after - before, "prediction table run slice", index + 2)?;
     }
 
-    let target_columns = fields_for_mode(mode).into_iter()
-        .flat_map(|field| (1..=HORIZON).map(move |horizon| target_key(field, horizon)))
+    // Match the row writer's horizon-major order: h1 fields, h2 fields, ...
+    // A field-major header list silently attached values to the wrong target names.
+    let target_columns = (1..=HORIZON)
+        .flat_map(|horizon| fields_for_mode(mode).into_iter().map(move |field| target_key(field, horizon)))
         .collect::<Vec<_>>();
     let mut output_headers = prediction_headers.clone();
     if !prediction_has_motor_inputs {
