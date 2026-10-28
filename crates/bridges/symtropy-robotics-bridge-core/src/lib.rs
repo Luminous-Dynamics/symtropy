@@ -10,6 +10,7 @@ pub mod haptic;
 pub mod motor;
 pub mod platform;
 pub mod safety;
+pub mod sequence_guard;
 
 pub use agent::{RoboticAgent, spawn_robot_body};
 pub use assurance::{
@@ -24,3 +25,4 @@ pub use haptic::{HapticAttestation, HapticOracle};
 pub use motor::{MotorPlanner, UniformGainPlanner};
 pub use platform::PlatformType;
 pub use safety::JointSafetyAuthority;
+pub use sequence_guard::{RequestSequenceGuard, SequenceGuardError, SequencedRuntimeAssurance};
