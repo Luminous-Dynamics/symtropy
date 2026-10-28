@@ -61,7 +61,7 @@ jq -e '
 # becoming zero. Daily totals cannot be read as instantaneous power values.
 grep -Fx '"date_utc","air_temperature_mean_K","air_temperature_max_K","air_temperature_min_K","global_horizontal_irradiance_kWh_m2_day","wind_speed_10m_m_s","precipitation_m_water_equivalent_day","relative_humidity_fraction"' "$CSV" >/dev/null
 grep -Fx '"20240101","293.15","303.15","283.15","6.5","3.2","0","0.6"' "$CSV" >/dev/null
-grep -Fx '"20240102","294.15","","284.15","5.0","4.0","0.0003","","' "$CSV" >/dev/null
+grep -Fx '"20240102","294.15","","284.15","5.0","4.0","0.0003",""' "$CSV" >/dev/null
 grep -Fx '"20240103","295.15","304.15","285.15","6.2","2.1","0","0.55"' "$CSV" >/dev/null
 ! grep -q -- '-999' "$CSV"
 
