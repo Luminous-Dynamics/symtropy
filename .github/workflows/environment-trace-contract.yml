@@ -56,6 +56,8 @@ jobs:
             (.required | index("time_axis") != null) and
             (.required | index("trace_asset") != null) and
             (.required | index("variables") != null) and
+            (.properties.variables.items.required | index("temporal_semantics") != null) and
+            (.properties.variables.items.properties.temporal_semantics.enum | index("interval_accumulation") != null) and
             (.required | index("quality") != null) and
             (.required | index("provenance") != null) and
             (.allOf | any(.[]; ."if".properties.status.const == "validated_for_replay" and ."then".properties.trace_asset.properties.sha256.pattern == "^[a-f0-9]{64}$"))
@@ -83,6 +85,14 @@ jobs:
             all(.variables[];
               (.variable_id | type == "string" and length > 0) and
               (.canonical_unit | type == "string" and length > 0) and
+              (.temporal_semantics == "instantaneous" or
+               .temporal_semantics == "interval_mean" or
+               .temporal_semantics == "interval_accumulation" or
+               .temporal_semantics == "interval_maximum" or
+               .temporal_semantics == "interval_minimum" or
+               .temporal_semantics == "sample_event" or
+               .temporal_semantics == "derived" or
+               .temporal_semantics == "unknown") and
               .source_variable == null and
               .evidence_class == "not_evaluated"
             ) and
