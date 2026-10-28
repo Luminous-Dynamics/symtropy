@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cargo test --locked --manifest-path tools/energy-dispatch-audit/Cargo.toml
+          cargo test --manifest-path tools/energy-dispatch-audit/Cargo.toml
 
       - name: Run frozen chronological known-answer oracle
         shell: bash
@@ -52,7 +52,7 @@ jobs:
             .ranked_deployable_models == ["observable_signal", "persistence", "static_no_reserve"] and
             .physical_dispatch_audit == "NOT_RUN_SYNTHETIC_EVENT_CLASSIFICATION_ABSTRACTION"
           ' "$context/report.json" >/dev/null
-          sha256sum "$panel" "$experiment" "$context/report.json" > "$context/receipts.sha256"
+          sha256sum tools/energy-dispatch-audit/Cargo.lock "$panel" "$experiment" "$context/report.json" > "$context/receipts.sha256"
           cat "$context/receipts.sha256"
 
       - name: Preserve fixture, report, and digest receipts
@@ -65,3 +65,4 @@ jobs:
             tools/energy-dispatch-audit/fixtures/energy-chronological-generalization-experiment-v0.1.json
             energy-chronological-generalization-artifacts/report.json
             energy-chronological-generalization-artifacts/receipts.sha256
+            tools/energy-dispatch-audit/Cargo.lock
