@@ -13,6 +13,8 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
       - "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/src/bin/long_horizon_contract.rs"
       - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
       - "research/polar-infrastructure/benchmark/fixtures/nasa-power-daily-response-synthetic-2026.json"
@@ -41,6 +43,8 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
       - "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/src/bin/long_horizon_contract.rs"
       - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
       - "research/polar-infrastructure/benchmark/fixtures/nasa-power-daily-response-synthetic-2026.json"
@@ -281,6 +285,27 @@ jobs:
             .result_policy.report_kind == "preregistration_contract_only_no_performance_results"
           ' "$contract"
           test -s research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md
+
+      - name: Test long-horizon resilience contract validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="research/polar-infrastructure/benchmark/Cargo.toml"
+          fixture="research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json"
+          cargo test --locked --manifest-path "$manifest" --bin long_horizon_contract
+          cargo run --locked --quiet --manifest-path "$manifest" --bin long_horizon_contract -- "$fixture" > /tmp/long-horizon-contract-report.json
+          jq -e '
+            .report_kind == "symtropy-long-horizon-resilience-contract-report" and
+            .schema_version == "0.1.0" and
+            .contract_id == "long_horizon_climate_adaptation_v0" and
+            .contract_valid == true and
+            .candidate_for_execution == false and
+            .evidence_level == "test_design_only" and
+            .scenario_family_count == 4 and
+            .nonstationary_scenario_count == 3 and
+            .admission_gates_closed == true and
+            .result_scope == "design_contract_validation_only_no_environment_or_controller_performance"
+          ' /tmp/long-horizon-contract-report.json
 
       - name: Validate shell-script syntax without network access
         shell: bash
