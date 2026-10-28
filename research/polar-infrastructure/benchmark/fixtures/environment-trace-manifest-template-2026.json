@@ -13,7 +13,8 @@
     "attribution": null,
     "license_or_access_terms": null,
     "accessed_at_utc": null,
-    "source_data_sha256": null
+    "source_data_sha256": null,
+    "source_artifact_uri": null
   },
   "spatial_context": {
     "location_label": "Namib coastal desert archetype; select a specific site or grid cell before replay",
