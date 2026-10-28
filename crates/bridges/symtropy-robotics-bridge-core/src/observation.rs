@@ -117,7 +117,9 @@ mod tests {
         assert_eq!(BASE_KINEMATIC_OBSERVATION_FIELD_IDS.len(), values.len());
         assert_eq!(
             values,
-            [1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 1.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
+            [
+                1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 1.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0
+            ]
         );
     }
 
@@ -161,8 +163,10 @@ mod tests {
             .iter()
             .collect::<std::collections::BTreeSet<_>>();
         assert_eq!(unique.len(), BASE_KINEMATIC_OBSERVATION_DIM);
-        assert!(BASE_KINEMATIC_OBSERVATION_FIELD_IDS
-            .iter()
-            .all(|field_id| !field_id.trim().is_empty()));
+        assert!(
+            BASE_KINEMATIC_OBSERVATION_FIELD_IDS
+                .iter()
+                .all(|field_id| !field_id.trim().is_empty())
+        );
     }
 }
