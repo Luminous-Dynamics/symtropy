@@ -5682,3 +5682,535 @@ mod acquisition_campaign_transcript_tests {
         assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_OBSERVATION_REF:")));
     }
 }
+
+
+// --- GLASS-CAUSAL-TRIAL-001: paired-block causal trial contract ---
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct CausalTrialReport {
+    pub status: String,
+    pub claim_status: String,
+    pub audit_kind: String,
+    pub benchmark_id: Option<String>,
+    pub protocol_id: Option<String>,
+    pub trial_sha256: Option<String>,
+    pub blocks_declared: usize,
+    pub complete_pairs: usize,
+    pub control_mean_energy_per_accepted_tonne_kwh: Option<f64>,
+    pub treatment_mean_energy_per_accepted_tonne_kwh: Option<f64>,
+    pub mean_saving_kwh_per_accepted_tonne: Option<f64>,
+    pub mean_relative_reduction: Option<f64>,
+    pub relative_reduction_ci95: Option<[f64; 2]>,
+    pub exact_two_sided_randomization_p: Option<f64>,
+    pub alpha: Option<f64>,
+    pub minimum_relative_reduction: Option<f64>,
+    pub control_then_treatment_blocks: usize,
+    pub treatment_then_control_blocks: usize,
+    pub findings: Vec<String>,
+    pub claim_ceiling: String,
+}
+
+impl CausalTrialReport {
+    pub fn exit_code(&self) -> i32 {
+        match self.status.as_str() {
+            "PASS" => 0,
+            "FAIL" => 2,
+            _ => 3,
+        }
+    }
+}
+
+fn causal_timestamp_utc(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() == 20
+        && bytes[4] == b'-'
+        && bytes[7] == b'-'
+        && bytes[10] == b'T'
+        && bytes[13] == b':'
+        && bytes[16] == b':'
+        && bytes[19] == b'Z'
+        && bytes.iter().enumerate().all(|(index, byte)| {
+            matches!(index, 4 | 7 | 10 | 13 | 16 | 19) || byte.is_ascii_digit()
+        })
+}
+
+fn causal_t_critical_95(df: usize) -> Option<f64> {
+    const VALUES: [f64; 19] = [
+        12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262,
+        2.228, 2.201, 2.179, 2.160, 2.145, 2.131, 2.120, 2.110, 2.101, 2.093,
+    ];
+    if (1..=VALUES.len()).contains(&df) {
+        Some(VALUES[df - 1])
+    } else {
+        None
+    }
+}
+
+fn causal_exact_sign_flip_p(differences: &[f64]) -> Option<f64> {
+    if differences.is_empty() || differences.len() > 20 || differences.iter().any(|v| !v.is_finite()) {
+        return None;
+    }
+    let n = differences.len();
+    let observed = differences.iter().sum::<f64>() / n as f64;
+    let threshold = observed.abs() - 1e-9;
+    let assignments = 1_u64 << n;
+    let mut extreme = 0_u64;
+    for mask in 0..assignments {
+        let sum = differences.iter().enumerate().fold(0.0, |acc, (index, difference)| {
+            if (mask & (1_u64 << index)) != 0 { acc + difference } else { acc - difference }
+        });
+        if (sum / n as f64).abs() >= threshold {
+            extreme += 1;
+        }
+    }
+    Some(extreme as f64 / assignments as f64)
+}
+
+fn causal_trial_invalid(
+    trial: &Value,
+    findings: Vec<String>,
+    status: &str,
+    blocks_declared: usize,
+    control_then_treatment_blocks: usize,
+    treatment_then_control_blocks: usize,
+) -> CausalTrialReport {
+    let mut findings = findings;
+    findings.sort();
+    findings.dedup();
+    CausalTrialReport {
+        status: status.to_string(),
+        claim_status: if status == "FAIL" { "NOT_SUPPORTED".to_string() } else { "UNRESOLVED".to_string() },
+        audit_kind: "paired_block_causal_trial".to_string(),
+        benchmark_id: object_string(trial, "benchmark_id").map(ToOwned::to_owned),
+        protocol_id: trial.get("preregistration").and_then(|v| object_string(v, "protocol_id")).map(ToOwned::to_owned),
+        trial_sha256: None,
+        blocks_declared,
+        complete_pairs: 0,
+        control_mean_energy_per_accepted_tonne_kwh: None,
+        treatment_mean_energy_per_accepted_tonne_kwh: None,
+        mean_saving_kwh_per_accepted_tonne: None,
+        mean_relative_reduction: None,
+        relative_reduction_ci95: None,
+        exact_two_sided_randomization_p: None,
+        alpha: trial.get("preregistration").and_then(|v| v.get("alpha")).and_then(Value::as_f64),
+        minimum_relative_reduction: trial.get("preregistration").and_then(|v| v.get("minimum_relative_reduction")).and_then(Value::as_f64),
+        control_then_treatment_blocks,
+        treatment_then_control_blocks,
+        findings,
+        claim_ceiling: "Synthetic preregistration, paired-block arithmetic, and declared randomization contract only; no external custody, measurement authenticity, or plant causal effect is certified.".to_string(),
+    }
+}
+
+/// Audits a synthetic preregistered paired-block randomized crossover trial.
+/// A successful audit requires every block to have valid metrology and quality PASS,
+/// a preregistration frozen before any outcome, balanced declared allocation order,
+/// an effect meeting the preregistered relative-reduction threshold, a paired t interval
+/// above that threshold, and an exact sign-flip test at the registered alpha. This is
+/// a reference contract, not an estimator of real plant impact without valid design,
+/// authentic outcomes and independent review.
+pub fn audit_paired_causal_trial(trial: &Value) -> CausalTrialReport {
+    let mut findings = Vec::new();
+    let mut hard_failure = false;
+    let mut unresolved = false;
+    let benchmark_id = object_string(trial, "benchmark_id").map(ToOwned::to_owned);
+    let prereg = trial.get("preregistration").unwrap_or(&Value::Null);
+    let protocol_id = object_string(prereg, "protocol_id").map(ToOwned::to_owned);
+    let preregistered_at = object_string(prereg, "preregistered_at");
+    let alpha = prereg.get("alpha").and_then(Value::as_f64);
+    let minimum_reduction = prereg.get("minimum_relative_reduction").and_then(Value::as_f64);
+    let blocks = trial.get("blocks").and_then(Value::as_array);
+    let blocks_declared = blocks.map_or(0, Vec::len);
+    let mut control_then_treatment_blocks = 0usize;
+    let mut treatment_then_control_blocks = 0usize;
+
+    let root_keys = ["schema_version", "benchmark_id", "evidence_class", "claim_ceiling", "preregistration", "blocks"];
+    if !relationship_exact_keys(trial, &root_keys) {
+        findings.push("CAUSAL_ROOT_KEYS:missing or unknown top-level fields".to_string());
+        hard_failure = true;
+    }
+    if trial.get("schema_version").and_then(Value::as_u64) != Some(1) {
+        findings.push("CAUSAL_SCHEMA_VERSION:schema_version must be integer 1".to_string());
+        hard_failure = true;
+    }
+    if benchmark_id.as_deref() != Some("glass-causal-trial-synthetic-v0-1") {
+        findings.push("CAUSAL_BENCHMARK_ID:expected glass-causal-trial-synthetic-v0-1".to_string());
+        hard_failure = true;
+    }
+    if object_string(trial, "evidence_class") != Some("synthetic") {
+        findings.push("CAUSAL_EVIDENCE_CLASS:trial must declare synthetic evidence".to_string());
+        hard_failure = true;
+    }
+    if trial.get("claim_ceiling").and_then(Value::as_str).map_or(true, |v| v.trim().is_empty()) {
+        findings.push("CAUSAL_CLAIM_CEILING:claim ceiling must be non-empty".to_string());
+        hard_failure = true;
+    }
+    let prereg_keys = [
+        "protocol_id", "preregistered_at", "analysis_plan_sha256", "assignment_schedule_sha256",
+        "endpoint", "direction", "minimum_relative_reduction", "alpha", "design",
+    ];
+    if !relationship_exact_keys(prereg, &prereg_keys) {
+        findings.push("CAUSAL_PREREG_KEYS:missing or unknown preregistration fields".to_string());
+        hard_failure = true;
+    }
+    if protocol_id.as_deref().map_or(true, |v| !is_stable_slug(v)) {
+        findings.push("CAUSAL_PROTOCOL_ID:missing or invalid protocol_id".to_string());
+        hard_failure = true;
+    }
+    if preregistered_at.map_or(true, |v| !causal_timestamp_utc(v)) {
+        findings.push("CAUSAL_PREREG_TIME:preregistered_at must be canonical UTC YYYY-MM-DDTHH:MM:SSZ".to_string());
+        hard_failure = true;
+    }
+    for field in ["analysis_plan_sha256", "assignment_schedule_sha256"] {
+        match prereg.get(field).and_then(Value::as_str) {
+            Some(value) if transcript_is_sha256(value) => {},
+            _ => {
+                findings.push(format!("CAUSAL_PREREG_DIGEST:{field} must be 64 lowercase hexadecimal characters"));
+                hard_failure = true;
+            }
+        }
+    }
+    if object_string(prereg, "endpoint") != Some("energy_per_accepted_tonne_kwh")
+        || object_string(prereg, "direction") != Some("lower_is_better") {
+        findings.push("CAUSAL_ENDPOINT:unsupported or mismatched endpoint/direction".to_string());
+        hard_failure = true;
+    }
+    if prereg.get("design").and_then(Value::as_str) != Some("balanced_paired_randomized_crossover") {
+        findings.push("CAUSAL_DESIGN:design must be balanced_paired_randomized_crossover".to_string());
+        hard_failure = true;
+    }
+    if alpha.map_or(true, |v| !v.is_finite() || v <= 0.0 || v >= 0.5) {
+        findings.push("CAUSAL_ALPHA:alpha must be finite and in (0, 0.5)".to_string());
+        hard_failure = true;
+    }
+    if minimum_reduction.map_or(true, |v| !v.is_finite() || v < 0.0 || v > 1.0) {
+        findings.push("CAUSAL_TARGET:minimum_relative_reduction must be finite and in [0, 1]".to_string());
+        hard_failure = true;
+    }
+    if blocks.map_or(true, |v| v.len() < 2 || v.len() > 20) {
+        findings.push("CAUSAL_BLOCK_COUNT:2 to 20 paired blocks required for exact sign-flip evaluation".to_string());
+        hard_failure = true;
+    }
+
+    let mut block_ids = BTreeSet::new();
+    let mut period_ids = BTreeSet::new();
+    let mut control_intensities = Vec::new();
+    let mut treatment_intensities = Vec::new();
+    let mut savings = Vec::new();
+    let mut relative_reductions = Vec::new();
+    let mut quality_failure = false;
+
+    if let Some(items) = blocks {
+        for (index, block) in items.iter().enumerate() {
+            if !relationship_exact_keys(block, &["block_id", "allocation_order", "control", "treatment"]) {
+                findings.push(format!("CAUSAL_BLOCK_KEYS:index {index} has missing or unknown fields"));
+                hard_failure = true;
+                continue;
+            }
+            let block_id = block.get("block_id").and_then(Value::as_str).unwrap_or("");
+            if !is_stable_slug(block_id) || !block_ids.insert(block_id.to_string()) {
+                findings.push(format!("CAUSAL_BLOCK_ID:index {index} has invalid or duplicate block_id"));
+                hard_failure = true;
+                continue;
+            }
+            let order = block.get("allocation_order").and_then(Value::as_str).unwrap_or("");
+            match order {
+                "CONTROL_THEN_TREATMENT" => control_then_treatment_blocks += 1,
+                "TREATMENT_THEN_CONTROL" => treatment_then_control_blocks += 1,
+                _ => {
+                    findings.push(format!("CAUSAL_ALLOCATION_ORDER:{block_id} has unsupported allocation_order"));
+                    hard_failure = true;
+                }
+            }
+            let control = block.get("control").unwrap_or(&Value::Null);
+            let treatment = block.get("treatment").unwrap_or(&Value::Null);
+            let mut period_values: Vec<(&str, &Value)> = vec![("control", control), ("treatment", treatment)];
+            for (arm, period) in period_values.drain(..) {
+                if !relationship_exact_keys(period, &[
+                    "period_id", "measured_at", "measurement_status", "energy_kwh",
+                    "accepted_tonnes", "quality_status", "evidence_ref",
+                ]) {
+                    findings.push(format!("CAUSAL_PERIOD_KEYS:{block_id}/{arm} has missing or unknown fields"));
+                    hard_failure = true;
+                    continue;
+                }
+                let period_id = period.get("period_id").and_then(Value::as_str).unwrap_or("");
+                if !is_stable_slug(period_id) || !period_ids.insert(period_id.to_string()) {
+                    findings.push(format!("CAUSAL_PERIOD_ID:{block_id}/{arm} has invalid or duplicate period_id"));
+                    hard_failure = true;
+                }
+                let measured_at = period.get("measured_at").and_then(Value::as_str).unwrap_or("");
+                if !causal_timestamp_utc(measured_at) {
+                    findings.push(format!("CAUSAL_MEASUREMENT_TIME:{block_id}/{arm} must use canonical UTC timestamp"));
+                    hard_failure = true;
+                }
+                if preregistered_at.map_or(true, |frozen| measured_at <= frozen) {
+                    findings.push(format!("CAUSAL_POST_OUTCOME_PREREG:{block_id}/{arm} outcome timestamp must be after preregistration"));
+                    hard_failure = true;
+                }
+                if period.get("evidence_ref").and_then(Value::as_str).map_or(true, |v| v.trim().is_empty()) {
+                    findings.push(format!("CAUSAL_EVIDENCE_REF:{block_id}/{arm} requires a measurement evidence reference"));
+                    unresolved = true;
+                }
+                let measurement_status = period.get("measurement_status").and_then(Value::as_str).unwrap_or("");
+                if measurement_status != "VALID" {
+                    if !["INVALID", "CENSORED", "FAILED", "STALE", "OUT_OF_DOMAIN", "CONTRADICTORY"].contains(&measurement_status) {
+                        findings.push(format!("CAUSAL_MEASUREMENT_STATUS:{block_id}/{arm} has unsupported measurement_status"));
+                        hard_failure = true;
+                    } else {
+                        unresolved = true;
+                    }
+                    if !period.get("energy_kwh").map_or(false, Value::is_null)
+                        || !period.get("accepted_tonnes").map_or(false, Value::is_null) {
+                        findings.push(format!("CAUSAL_INVALID_MEASUREMENT_PAYLOAD:{block_id}/{arm} non-valid measurement must not have numeric outcome values"));
+                        hard_failure = true;
+                    }
+                } else {
+                    let energy = period.get("energy_kwh").and_then(Value::as_f64);
+                    let accepted_tonnes = period.get("accepted_tonnes").and_then(Value::as_f64);
+                    if energy.map_or(true, |v| !v.is_finite() || v <= 0.0)
+                        || accepted_tonnes.map_or(true, |v| !v.is_finite() || v <= 0.0) {
+                        findings.push(format!("CAUSAL_ENDPOINT_DENOMINATOR:{block_id}/{arm} valid outcomes require finite positive energy and accepted tonnes"));
+                        hard_failure = true;
+                    }
+                }
+                match period.get("quality_status").and_then(Value::as_str) {
+                    Some("PASS") => {},
+                    Some("FAIL") => {
+                        findings.push(format!("CAUSAL_QUALITY_REGRESSION:{block_id}/{arm} hard quality constraint failed"));
+                        quality_failure = true;
+                        hard_failure = true;
+                    }
+                    Some("UNKNOWN") => {
+                        findings.push(format!("CAUSAL_QUALITY_UNKNOWN:{block_id}/{arm} quality gate is unresolved"));
+                        unresolved = true;
+                    }
+                    _ => {
+                        findings.push(format!("CAUSAL_QUALITY_STATUS:{block_id}/{arm} has unsupported quality_status"));
+                        hard_failure = true;
+                    }
+                }
+            }
+
+            let control_status = control.get("measurement_status").and_then(Value::as_str);
+            let treatment_status = treatment.get("measurement_status").and_then(Value::as_str);
+            if control_status == Some("VALID") && treatment_status == Some("VALID") {
+                let control_energy = control.get("energy_kwh").and_then(Value::as_f64);
+                let control_tonnes = control.get("accepted_tonnes").and_then(Value::as_f64);
+                let treatment_energy = treatment.get("energy_kwh").and_then(Value::as_f64);
+                let treatment_tonnes = treatment.get("accepted_tonnes").and_then(Value::as_f64);
+                if let (Some(ce), Some(ct), Some(te), Some(tt)) = (control_energy, control_tonnes, treatment_energy, treatment_tonnes) {
+                    if ce.is_finite() && ct.is_finite() && te.is_finite() && tt.is_finite() && ce > 0.0 && ct > 0.0 && te > 0.0 && tt > 0.0 {
+                        let control_intensity = ce / ct;
+                        let treatment_intensity = te / tt;
+                        let saving = control_intensity - treatment_intensity;
+                        control_intensities.push(control_intensity);
+                        treatment_intensities.push(treatment_intensity);
+                        savings.push(saving);
+                        relative_reductions.push(saving / control_intensity);
+                    }
+                }
+            }
+            if order == "CONTROL_THEN_TREATMENT" {
+                let ctime = control.get("measured_at").and_then(Value::as_str).unwrap_or("");
+                let ttime = treatment.get("measured_at").and_then(Value::as_str).unwrap_or("");
+                if ctime >= ttime {
+                    findings.push(format!("CAUSAL_ORDER_TIME_MISMATCH:{block_id} control must precede treatment for declared order"));
+                    hard_failure = true;
+                }
+            } else if order == "TREATMENT_THEN_CONTROL" {
+                let ctime = control.get("measured_at").and_then(Value::as_str).unwrap_or("");
+                let ttime = treatment.get("measured_at").and_then(Value::as_str).unwrap_or("");
+                if ttime >= ctime {
+                    findings.push(format!("CAUSAL_ORDER_TIME_MISMATCH:{block_id} treatment must precede control for declared order"));
+                    hard_failure = true;
+                }
+            }
+        }
+    }
+
+    let order_delta = control_then_treatment_blocks.abs_diff(treatment_then_control_blocks);
+    if control_then_treatment_blocks == 0 || treatment_then_control_blocks == 0 || order_delta > 1 {
+        findings.push("CAUSAL_ALLOCATION_BALANCE:paired crossover orders must both occur and counts may differ by at most one".to_string());
+        hard_failure = true;
+    }
+
+    let complete_pairs = savings.len();
+    let mut control_mean = None;
+    let mut treatment_mean = None;
+    let mut mean_saving = None;
+    let mut mean_relative = None;
+    let mut relative_ci = None;
+    let mut exact_p = None;
+
+    if complete_pairs >= 2 {
+        let n = complete_pairs as f64;
+        let cmean = control_intensities.iter().sum::<f64>() / n;
+        let tmean = treatment_intensities.iter().sum::<f64>() / n;
+        let saving_mean = savings.iter().sum::<f64>() / n;
+        let relative_mean = relative_reductions.iter().sum::<f64>() / n;
+        let variance = relative_reductions.iter().map(|v| (v - relative_mean).powi(2)).sum::<f64>() / (n - 1.0);
+        let standard_error = variance.sqrt() / n.sqrt();
+        if let Some(tcrit) = causal_t_critical_95(complete_pairs - 1) {
+            control_mean = Some(cmean);
+            treatment_mean = Some(tmean);
+            mean_saving = Some(saving_mean);
+            mean_relative = Some(relative_mean);
+            relative_ci = Some([relative_mean - tcrit * standard_error, relative_mean + tcrit * standard_error]);
+            exact_p = causal_exact_sign_flip_p(&savings);
+        } else {
+            findings.push("CAUSAL_INFERENCE_DF:cannot construct paired interval for this sample size".to_string());
+            unresolved = true;
+        }
+    } else {
+        findings.push("CAUSAL_UNDERPOWERED:at least two complete paired blocks are required for reference inference".to_string());
+        unresolved = true;
+    }
+
+    let claim_status = if quality_failure {
+        "NOT_SUPPORTED"
+    } else if hard_failure || unresolved || complete_pairs != blocks_declared {
+        "UNRESOLVED"
+    } else {
+        let threshold = minimum_reduction.unwrap_or(1.0);
+        let significance = alpha.unwrap_or(0.0);
+        let meets_effect = mean_relative.map_or(false, |value| value >= threshold);
+        let lower_bound_meets_effect = relative_ci.map_or(false, |ci| ci[0] >= threshold);
+        let statistically_significant = exact_p.map_or(false, |p| p <= significance);
+        if meets_effect && lower_bound_meets_effect && statistically_significant {
+            "SUPPORTED"
+        } else {
+            "NOT_SUPPORTED"
+        }
+    };
+    findings.sort();
+    findings.dedup();
+    let status = if hard_failure {
+        "FAIL"
+    } else if unresolved {
+        "UNRESOLVED"
+    } else {
+        "PASS"
+    };
+
+    CausalTrialReport {
+        status: status.to_string(),
+        claim_status: claim_status.to_string(),
+        audit_kind: "paired_block_causal_trial".to_string(),
+        benchmark_id,
+        protocol_id,
+        trial_sha256: None,
+        blocks_declared,
+        complete_pairs,
+        control_mean_energy_per_accepted_tonne_kwh: control_mean,
+        treatment_mean_energy_per_accepted_tonne_kwh: treatment_mean,
+        mean_saving_kwh_per_accepted_tonne: mean_saving,
+        mean_relative_reduction: mean_relative,
+        relative_reduction_ci95: relative_ci,
+        exact_two_sided_randomization_p: exact_p,
+        alpha,
+        minimum_relative_reduction: minimum_reduction,
+        control_then_treatment_blocks,
+        treatment_then_control_blocks,
+        findings,
+        claim_ceiling: "Synthetic paired-block arithmetic and preregistration contract only; no external custody, measurement authenticity, treatment-assignment custody, or real plant causal effect is certified.".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod paired_causal_trial_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn fixture() -> Value {
+        serde_json::from_str(include_str!("../fixtures/causal-trial-paired-block.synthetic.json"))
+            .expect("synthetic paired causal trial fixture must parse")
+    }
+
+    #[test]
+    fn preregistered_paired_trial_supports_the_synthetic_target_effect() {
+        let report = audit_paired_causal_trial(&fixture());
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.claim_status, "SUPPORTED");
+        assert_eq!(report.blocks_declared, 8);
+        assert_eq!(report.complete_pairs, 8);
+        assert!(report.mean_relative_reduction.unwrap() >= 0.05);
+        assert!(report.relative_reduction_ci95.unwrap()[0] >= 0.05);
+        assert!(report.exact_two_sided_randomization_p.unwrap() <= 0.05);
+        assert_eq!(report.control_then_treatment_blocks, 4);
+        assert_eq!(report.treatment_then_control_blocks, 4);
+    }
+
+    #[test]
+    fn null_effect_is_valid_trial_but_does_not_support_improvement_claim() {
+        let mut trial = fixture();
+        for block in trial["blocks"].as_array_mut().unwrap() {
+            block["treatment"]["energy_kwh"] =
+                block["control"]["energy_kwh"].clone();
+        }
+        let report = audit_paired_causal_trial(&trial);
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.claim_status, "NOT_SUPPORTED");
+        assert_eq!(report.mean_relative_reduction, Some(0.0));
+        assert_eq!(report.exact_two_sided_randomization_p, Some(1.0));
+    }
+
+    #[test]
+    fn energy_improvement_cannot_compensate_for_a_quality_failure() {
+        let mut trial = fixture();
+        trial["blocks"][0]["treatment"]["quality_status"] = json!("FAIL");
+        let report = audit_paired_causal_trial(&trial);
+        assert_eq!(report.status, "FAIL");
+        assert_eq!(report.claim_status, "NOT_SUPPORTED");
+        assert!(report.findings.iter().any(|v| v.starts_with("CAUSAL_QUALITY_REGRESSION:")));
+    }
+
+    #[test]
+    fn post_outcome_preregistration_fails() {
+        let mut trial = fixture();
+        trial["preregistration"]["preregistered_at"] = json!("2026-10-20T00:00:00Z");
+        let report = audit_paired_causal_trial(&trial);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("CAUSAL_POST_OUTCOME_PREREG:")));
+    }
+
+    #[test]
+    fn stale_or_censored_pair_is_unresolved_not_silently_dropped() {
+        let mut trial = fixture();
+        trial["blocks"][0]["treatment"]["measurement_status"] = json!("CENSORED");
+        trial["blocks"][0]["treatment"]["energy_kwh"] = Value::Null;
+        trial["blocks"][0]["treatment"]["accepted_tonnes"] = Value::Null;
+        let report = audit_paired_causal_trial(&trial);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert_eq!(report.claim_status, "UNRESOLVED");
+        assert_eq!(report.complete_pairs, 7);
+    }
+
+    #[test]
+    fn duplicated_block_or_period_identity_fails_closed() {
+        let mut trial = fixture();
+        trial["blocks"][1]["block_id"] = trial["blocks"][0]["block_id"].clone();
+        let report = audit_paired_causal_trial(&trial);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("CAUSAL_BLOCK_ID:")));
+    }
+
+    #[test]
+    fn invalid_denominator_fails_closed() {
+        let mut trial = fixture();
+        trial["blocks"][0]["treatment"]["accepted_tonnes"] = json!(0.0);
+        let report = audit_paired_causal_trial(&trial);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("CAUSAL_ENDPOINT_DENOMINATOR:")));
+    }
+
+    #[test]
+    fn unbalanced_or_mislabeled_crossover_order_fails_closed() {
+        let mut trial = fixture();
+        for block in trial["blocks"].as_array_mut().unwrap() {
+            block["allocation_order"] = json!("CONTROL_THEN_TREATMENT");
+        }
+        let report = audit_paired_causal_trial(&trial);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("CAUSAL_ALLOCATION_BALANCE:")));
+    }
+}
