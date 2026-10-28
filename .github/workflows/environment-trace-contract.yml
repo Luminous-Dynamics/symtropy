@@ -82,7 +82,7 @@ jobs:
             (.properties.time_axis.properties.timestamp_semantics.enum | index("calendar_day_label") != null) and
             (.required | index("quality") != null) and
             (.required | index("provenance") != null) and
-            (.allOf | any(.[]; ."if".properties.status.const == "validated_for_replay" and ."then".properties.trace_asset.properties.sha256.pattern == "^[a-f0-9]{64}$"))
+            (.allOf | any(.[]; ."if".properties.status.const == "validated_for_replay" and ."then".properties.trace_asset.properties.sha256.pattern == "^[a-f0-9]{64}$" and ."then".properties.provenance.properties.processing_code_revision.pattern == "^([a-f0-9]{40}|[a-f0-9]{64})$"))
           ' "$schema"
 
           jq -e '
