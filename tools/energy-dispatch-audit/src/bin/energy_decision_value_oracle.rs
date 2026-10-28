@@ -209,7 +209,11 @@ fn validate_panel(panel: &Panel) -> Result<(), String> {
     if panel.model.decision_rule.is_empty() || panel.forecast_target.is_empty() {
         return Err("decision rule and forecast target must be explicit".to_owned());
     }
-    if panel.observable_contexts != ["north", "east", "south"] {
+    let expected_contexts_ordered = ["north", "east", "south"]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    if panel.observable_contexts != expected_contexts_ordered {
         return Err("observable context registry changed".to_owned());
     }
     if panel.forecast_models.len() != 2
