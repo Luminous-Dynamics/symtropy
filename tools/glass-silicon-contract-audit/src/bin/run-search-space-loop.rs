@@ -439,6 +439,8 @@ fn run_one(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str) 
         "verified_feasible_discoveries": 0,
         "false_feasible_predictions": 0,
         "best_verified_feasible_utility": null,
+        "oracle_best_feasible_utility": null,
+        "terminal_simple_regret": null,
         "first_feasible_cost_units": null,
         "cost_units_charged": 0.0,
         "duration_seconds_charged": 0.0,
@@ -478,6 +480,14 @@ fn run_one(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str) 
         let utility = row.get("utility")?.as_f64()?;
         utility.is_finite().then_some((id, (feasible, utility)))
     }).collect();
+    let oracle_best_feasible_utility = outcomes.values()
+        .filter(|(feasible, _)| *feasible)
+        .map(|(_, utility)| *utility)
+        .reduce(f64::max);
+    report["oracle_best_feasible_utility"] = oracle_best_feasible_utility.map_or(Value::Null, |v| json!(v));
+    if oracle_best_feasible_utility.is_none() {
+        fail(&mut report, "UNRESOLVED", "NO_FEASIBLE_ORACLE_REFERENCE", "sealed environment has no feasible reference outcome, so simple regret is undefined");
+    }
     let tariffs = get_tariffs(oracle, &mut report);
     let max_cost = catalog.get("budgets").and_then(|v| v.get("max_cost_units")).and_then(Value::as_f64).unwrap_or(0.0);
     let max_seconds = catalog.get("budgets").and_then(|v| v.get("max_duration_seconds")).and_then(Value::as_f64).unwrap_or(0.0);
@@ -693,6 +703,11 @@ fn run_one(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str) 
     report["verified_feasible_discoveries"] = json!(feasible_hits);
     report["false_feasible_predictions"] = json!(false_feasible);
     report["best_verified_feasible_utility"] = best_utility.map_or(Value::Null, |v| json!(v));
+    let simple_regret = match (oracle_best_feasible_utility, best_utility) {
+        (Some(optimum), Some(incumbent)) => Some((optimum - incumbent).max(0.0)),
+        _ => None,
+    };
+    report["terminal_simple_regret"] = simple_regret.map_or(Value::Null, |v| json!(v));
     report["first_feasible_cost_units"] = first_feasible_cost.map_or(Value::Null, |v| json!(v));
     report["cost_units_charged"] = json!(cost_used);
     report["duration_seconds_charged"] = json!(seconds_used);
@@ -944,6 +959,13 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
             let utility = row.get("utility")?.as_f64()?;
             utility.is_finite().then_some((id, (feasible, utility)))
         }).collect();
+        let oracle_best_feasible_utility = outcome_by_id.values()
+            .filter(|(feasible, _)| *feasible)
+            .map(|(_, utility)| *utility)
+            .reduce(f64::max);
+        if !close(episode.get("oracle_best_feasible_utility").and_then(Value::as_f64), oracle_best_feasible_utility) {
+            fail(&mut audit, "FAIL", "ORACLE_BEST_UTILITY_MISMATCH", &format!("episode {campaign_id} oracle optimum does not match sealed feasible outcomes"));
+        }
         let mut visible: BTreeSet<String> = families.iter()
             .filter(|f| f.get("initially_visible").and_then(Value::as_bool) == Some(true))
             .filter_map(|f| f.get("id").and_then(Value::as_str).map(str::to_owned)).collect();
@@ -1136,6 +1158,13 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
         }
         if !close(episode.get("best_verified_feasible_utility").and_then(Value::as_f64), best_utility) {
             fail(&mut audit, "FAIL", "BEST_UTILITY_MISMATCH", &format!("episode {campaign_id} best verified feasible utility does not replay"));
+        }
+        let expected_simple_regret = match (oracle_best_feasible_utility, best_utility) {
+            (Some(optimum), Some(incumbent)) => Some((optimum - incumbent).max(0.0)),
+            _ => None,
+        };
+        if !close(episode.get("terminal_simple_regret").and_then(Value::as_f64), expected_simple_regret) {
+            fail(&mut audit, "FAIL", "SIMPLE_REGRET_MISMATCH", &format!("episode {campaign_id} terminal simple regret does not replay"));
         }
         if !close(episode.get("first_feasible_cost_units").and_then(Value::as_f64), first_feasible_cost) {
             fail(&mut audit, "FAIL", "FIRST_FEASIBLE_COST_MISMATCH", &format!("episode {campaign_id} first feasible cost does not replay"));
@@ -1464,6 +1493,34 @@ mod tests {
         let replay = audit_replay(&raw, PUBLIC, ORACLE);
         assert_eq!(replay["status"], "FAIL");
         assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "POLICY_ENVIRONMENT_PAIR_MISSING"));
+    }
+
+    #[test]
+    fn simple_regret_measures_missed_feasible_utility_without_entering_policy_state() {
+        let (public, oracle) = values();
+        let fixed = run_env(&public, &oracle, "helpful", "fixed_space");
+        let expanded = run_env(&public, &oracle, "helpful", "prior_guided_expansion");
+        assert_eq!(fixed["oracle_best_feasible_utility"], 10.0);
+        assert_eq!(fixed["best_verified_feasible_utility"], 4.0);
+        assert_eq!(fixed["terminal_simple_regret"], 6.0);
+        assert_eq!(expanded["terminal_simple_regret"], 0.0);
+        let initial: BTreeSet<String> = public["candidate_families"].as_array().unwrap().iter()
+            .filter(|c| c["initially_visible"] == true)
+            .filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
+        let view = build_public_view(&public, "fixed_space", &initial, &HashSet::new(), &[], &[], false, 5.0, 25.0);
+        let serialized = serde_json::to_string(&view).unwrap();
+        assert!(!serialized.contains("oracle_best_feasible_utility"));
+        assert!(!serialized.contains("terminal_simple_regret"));
+    }
+
+    #[test]
+    fn independent_replay_rejects_forged_simple_regret() {
+        let mut report = run_all(PUBLIC, ORACLE);
+        report["episodes"].as_array_mut().unwrap()[0]["terminal_simple_regret"] = json!(0.0);
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "SIMPLE_REGRET_MISMATCH"));
     }
 
     #[test]
