@@ -103,6 +103,8 @@ struct Experiment {
     registry_id: String,
     source_registry_path: String,
     source_registry_sha256: String,
+    citylearn_source_manifest_path: String,
+    citylearn_source_manifest_sha256: String,
     expected_coverage: ExpectedCoverage,
     known_answers: KnownAnswers,
     claim_ceiling: String,
