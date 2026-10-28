@@ -214,6 +214,9 @@ jobs:
             .properties.events.items.oneOf[0].properties.event_type.const == "measurement_requested" and
             .properties.events.items.oneOf[1].properties.event_type.const == "measurement_result" and
             .properties.events.items.oneOf[2].properties.event_type.const == "decision" and
+            (.required | index("measurement_cost_catalog")) != null and
+            .properties.measurement_cost_catalog.items.properties.cost_units.exclusiveMinimum == 0 and
+            .properties.measurement_cost_catalog.items.properties.duration_seconds.minimum == 0 and
             .additionalProperties == false
           ' "$schema" > /dev/null
 
