@@ -1272,6 +1272,24 @@ mod tests {
     }
 
     #[test]
+    fn event_replay_rejects_unknown_report_fields_and_nonempty_findings() {
+        let report = run_all(PUBLIC, ORACLE);
+        let mut forged = report.clone();
+        forged["unregistered_metric"] = json!(123.0);
+        let raw = serde_json::to_vec(&forged).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|finding| finding["code"] == "UNKNOWN_PROPERTY"));
+
+        let mut forged = report;
+        forged["findings"] = json!([{"code":"HIDDEN_FAILURE","detail":"suppressed"}]);
+        let raw = serde_json::to_vec(&forged).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|finding| finding["code"] == "REPORT_FINDINGS_NOT_EMPTY"));
+    }
+
+    #[test]
     fn exact_inputs_replay_to_identical_campaigns_and_metrics() {
         let report = run_all(PUBLIC, ORACLE);
         let raw = serde_json::to_vec(&report).unwrap();
