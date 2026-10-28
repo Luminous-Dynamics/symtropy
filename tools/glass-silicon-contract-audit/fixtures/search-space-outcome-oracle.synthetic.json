@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "glass-space-expansion-trial-synthetic-v0-1",
+  "evidence_class": "synthetic_evaluator_only",
+  "claim_ceiling": "Synthetic known-answer oracle only; it does not validate real material feasibility, properties, or process impact.",
+  "action_cost_catalog": [
+    {
+      "action_type": "evaluate_candidate",
+      "cost_units": 1,
+      "duration_seconds": 5
+    },
+    {
+      "action_type": "expand_random",
+      "cost_units": 2,
+      "duration_seconds": 4
+    },
+    {
+      "action_type": "expand_rule_based",
+      "cost_units": 2,
+      "duration_seconds": 4
+    },
+    {
+      "action_type": "expand_llm",
+      "cost_units": 3,
+      "duration_seconds": 8
+    }
+  ],
+  "environments": [
+    {
+      "environment_id": "helpful",
+      "regime": "helpful",
+      "outcomes": [
+        {
+          "candidate_family_id": "glass-a",
+          "feasible": true,
+          "utility": 4
+        },
+        {
+          "candidate_family_id": "silicon-a",
+          "feasible": false,
+          "utility": 0
+        },
+        {
+          "candidate_family_id": "glass-b",
+          "feasible": true,
+          "utility": 3
+        },
+        {
+          "candidate_family_id": "glass-c",
+          "feasible": true,
+          "utility": 2
+        },
+        {
+          "candidate_family_id": "silicon-b",
+          "feasible": false,
+          "utility": 0
+        },
+        {
+          "candidate_family_id": "random-family",
+          "feasible": true,
+          "utility": 6
+        },
+        {
+          "candidate_family_id": "rule-family",
+          "feasible": true,
+          "utility": 8
+        },
+        {
+          "candidate_family_id": "llm-family",
+          "feasible": true,
+          "utility": 10
+        }
+      ]
+    },
+    {
+      "environment_id": "neutral",
+      "regime": "neutral",
+      "outcomes": [
+        {
+          "candidate_family_id": "glass-a",
+          "feasible": true,
+          "utility": 6
+        },
+        {
+          "candidate_family_id": "silicon-a",
+          "feasible": false,
+          "utility": 0
+        },
+        {
+          "candidate_family_id": "glass-b",
+          "feasible": true,
+          "utility": 5
+        },
+        {
+          "candidate_family_id": "glass-c",
+          "feasible": true,
+          "utility": 4
+        },
+        {
+          "candidate_family_id": "silicon-b",
+          "feasible": false,
+          "utility": 0
+        },
+        {
+          "candidate_family_id": "random-family",
+          "feasible": true,
+          "utility": 5
+        },
+        {
+          "candidate_family_id": "rule-family",
+          "feasible": true,
+          "utility": 6
+        },
+        {
+          "candidate_family_id": "llm-family",
+          "feasible": true,
+          "utility": 6
+        }
+      ]
+    },
+    {
+      "environment_id": "harmful",
+      "regime": "harmful",
+      "outcomes": [
+        {
+          "candidate_family_id": "glass-a",
+          "feasible": true,
+          "utility": 8
+        },
+        {
+          "candidate_family_id": "silicon-a",
+          "feasible": false,
+          "utility": 0
+        },
+        {
+          "candidate_family_id": "glass-b",
+          "feasible": true,
+          "utility": 7
+        },
+        {
+          "candidate_family_id": "glass-c",
+          "feasible": true,
+          "utility": 6
+        },
+        {
+          "candidate_family_id": "silicon-b",
+          "feasible": false,
+          "utility": 0
+        },
+        {
+          "candidate_family_id": "random-family",
+          "feasible": false,
+          "utility": 0
+        },
+        {
+          "candidate_family_id": "rule-family",
+          "feasible": true,
+          "utility": 2
+        },
+        {
+          "candidate_family_id": "llm-family",
+          "feasible": false,
+          "utility": 0
+        }
+      ]
+    },
+    {
+      "environment_id": "misleading_prior",
+      "regime": "misleading_prior",
+      "outcomes": [
+        {
+          "candidate_family_id": "glass-a",
+          "feasible": true,
+          "utility": 7
+        },
+        {
+          "candidate_family_id": "silicon-a",
+          "feasible": false,
+          "utility": 0
+        },
+        {
+          "candidate_family_id": "glass-b",
+          "feasible": true,
+          "utility": 6
+        },
+        {
+          "candidate_family_id": "glass-c",
+          "feasible": true,
+          "utility": 5
+        },
+        {
+          "candidate_family_id": "silicon-b",
+          "feasible": false,
+          "utility": 0
+        },
+        {
+          "candidate_family_id": "random-family",
+          "feasible": true,
+          "utility": 6
+        },
+        {
+          "candidate_family_id": "rule-family",
+          "feasible": true,
+          "utility": 5
+        },
+        {
+          "candidate_family_id": "llm-family",
+          "feasible": false,
+          "utility": 0
+        }
+      ]
+    }
+  ]
+}
