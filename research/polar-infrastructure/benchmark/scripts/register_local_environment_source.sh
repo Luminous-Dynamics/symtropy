@@ -27,7 +27,7 @@ OUT_DIR=$7
   echo "source ID must be a stable 1-128 character identifier" >&2
   exit 2
 }
-[[ "$SOURCE_URL" =~ ^https?://[^[:space:]]+$ ]] || {
+[[ "$SOURCE_URL" =~ ^https?://[A-Za-z0-9.-]+([:/?#][^[:space:]]*)?$ ]] || {
   echo "source URL must be an HTTP(S) URL without whitespace" >&2
   exit 2
 }
