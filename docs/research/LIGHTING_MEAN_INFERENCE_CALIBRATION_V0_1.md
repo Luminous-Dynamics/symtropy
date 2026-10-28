@@ -29,7 +29,7 @@ A one-sided family-wise Monte Carlo error budget of 0.05 is Bonferroni-adjusted 
 Frozen gates:
 
 - The simultaneous upper confidence bound on null false-superiority probability must be at most 0.06 in every null scenario.
-- The simultaneous lower confidence bound on finite lower-interval coverage must be at least 0.94 in every scenario.
+- For the one-sided lower confidence bounds used by the superiority decision, the simultaneous Monte Carlo lower confidence bound on the finite-bound coverage probability P(L <= true mean) must be at least 0.94 in every scenario. This is one-sided lower-bound coverage, not two-sided interval coverage.
 - Unresolved lower bounds and nonfinite/failed analyses must each remain at or below 1% per method/scenario.
 - Report target power, but never use power to override error calibration or coverage failures.
 
@@ -37,13 +37,13 @@ A negative-infinite lower bound is an explicit unresolved result produced by con
 
 ## 4. Result summary
 
-| Procedure | Maximum simultaneous null false-superiority upper bound | Minimum simultaneous finite-interval coverage lower bound | Maximum unresolved-bound rate | Mean target power | Minimum target power | Gate |
+| Procedure | Maximum simultaneous null false-superiority upper bound | Minimum simultaneous one-sided lower-bound coverage lower bound | Maximum unresolved-bound rate | Mean target power | Minimum target power | Gate |
 |---|---:|---:|---:|---:|---:|---|
 | Student-t | 6.089% | 92.604% | 28.82% | 94.96% | 91.5% | **FAIL** |
 | Percentile bootstrap | 10.080% | 89.852% | 28.82% | 94.96% | 91.5% | **FAIL** |
 | Studentized bootstrap-t | 8.617% | 77.611% | 89.86% | 62.14% | 36.9% | **FAIL** |
 
-No method passed. Student-t was closest on false-superiority calibration but missed the predeclared 6% upper-bound criterion and the 94% coverage lower-bound criterion. Percentile bootstrap was anti-conservative in several null scenarios. Studentized bootstrap-t was less usable on discrete/rare-extreme samples because degenerate bootstrap resamples often forced an infinite upper t critical value, which gives an unresolved `-infinity` bound. The two-point distributions also create frequent zero-variance original samples at n=12. These are genuine limitations of the tested procedures/finite sample, not a reason to weaken the gate.
+No method passed. Student-t was closest on false-superiority calibration but missed the predeclared 6% upper-bound criterion and the 94% one-sided lower-bound coverage criterion. Percentile bootstrap was anti-conservative in several null scenarios. Studentized bootstrap-t was less usable on discrete/rare-extreme samples because degenerate bootstrap resamples often forced an infinite upper t critical value, which gives an unresolved `-infinity` bound. The two-point distributions also create frequent zero-variance original samples at n=12. These are genuine limitations of the tested procedures/finite sample, not a reason to weaken the gate.
 
 Representative cell results:
 
@@ -52,11 +52,11 @@ Representative cell results:
 - n=12 left-skew two-point: 27.7% of Student-t and percentile-bootstrap attempts yielded an unresolved `-infinity` bound; the studentized bootstrap-t unresolved rate was 89.68%. The zero rejection rate is not evidence of a good test without considering this non-conclusion rate.
 - n=24 normal null: all three had observed false-superiority near 5%, but simultaneous worst-case bounds and coverage gates over the full scenario family still failed.
 
-Monte Carlo rates here are simulation estimates. The report includes per-cell simultaneous Wilson bounds, all attempted denominators, finite-interval coverage, target power, nonfinite/failure counts, unresolved-bound counts, deterministic seed schedule and SHA-256 source receipts. No method winner is selected from the same grid used for the stress test.
+Monte Carlo rates here are simulation estimates. The report includes per-cell simultaneous Wilson bounds, all attempted denominators, finite one-sided lower-bound coverage, target power, nonfinite/failure counts, unresolved-bound counts, deterministic seed schedule and SHA-256 source receipts. No method winner is selected from the same grid used for the stress test.
 
 ## 5. Why this is a paradigm shift
 
-The evaluator treats evidence reliability as an optimization constraint rather than a reporting afterthought. A method cannot win on raw energy-saving estimate or statistical power alone; it must show calibrated false-superiority rates, coverage, and an acceptable rate of no-decision outcomes. A failed or unresolved inference is not transformed into a positive result, and a conservative method is not called best merely because it never rejects.
+The evaluator treats evidence reliability as an optimization constraint rather than a reporting afterthought. A method cannot win on raw energy-saving estimate or statistical power alone; it must show calibrated false-superiority rates, one-sided lower-bound coverage, and an acceptable rate of no-decision outcomes. A failed or unresolved inference is not transformed into a positive result, and a conservative method is not called best merely because it never rejects.
 
 This layer complements the preceding informative-missingness work rather than replacing it. Even a well-calibrated inference method under complete data would still need sensitivity to MCAR/MAR/MNAR selection, independent scene-family generalization, and separate photometric feasibility checks.
 
