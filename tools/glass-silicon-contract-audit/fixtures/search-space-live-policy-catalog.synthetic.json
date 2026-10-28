@@ -11,6 +11,7 @@
     "version": 1,
     "classes": [
       "fixed_space",
+      "gp_ei_fixed_space",
       "random_expansion",
       "rule_based_expansion",
       "prior_guided_expansion",
@@ -35,9 +36,14 @@
         "random_expansion": 0.6,
         "rule_based_expansion": 0.6,
         "prior_guided_expansion": 0.6,
-        "static_prior_expansion": 0.6
+        "static_prior_expansion": 0.6,
+        "gp_ei_fixed_space": 0
       },
-      "failure_fallback_score": 0.6
+      "failure_fallback_score": 0.6,
+      "features": [
+        0,
+        0
+      ]
     },
     {
       "id": "silicon-a",
@@ -50,9 +56,14 @@
         "random_expansion": 0.3,
         "rule_based_expansion": 0.3,
         "prior_guided_expansion": 0.3,
-        "static_prior_expansion": 0.2
+        "static_prior_expansion": 0.2,
+        "gp_ei_fixed_space": 0
       },
-      "failure_fallback_score": 0.3
+      "failure_fallback_score": 0.3,
+      "features": [
+        0,
+        1
+      ]
     },
     {
       "id": "glass-b",
@@ -65,9 +76,14 @@
         "random_expansion": 0.9,
         "rule_based_expansion": 0.9,
         "prior_guided_expansion": 0.9,
-        "static_prior_expansion": 0.9
+        "static_prior_expansion": 0.9,
+        "gp_ei_fixed_space": 0
       },
-      "failure_fallback_score": 0.9
+      "failure_fallback_score": 0.9,
+      "features": [
+        1,
+        0
+      ]
     },
     {
       "id": "glass-c",
@@ -80,9 +96,14 @@
         "random_expansion": 0.8,
         "rule_based_expansion": 0.8,
         "prior_guided_expansion": 0.8,
-        "static_prior_expansion": 0.8
+        "static_prior_expansion": 0.8,
+        "gp_ei_fixed_space": 0
       },
-      "failure_fallback_score": 1
+      "failure_fallback_score": 1,
+      "features": [
+        1,
+        1
+      ]
     },
     {
       "id": "silicon-b",
@@ -95,9 +116,14 @@
         "random_expansion": 0.2,
         "rule_based_expansion": 0.2,
         "prior_guided_expansion": 0.2,
-        "static_prior_expansion": 0.2
+        "static_prior_expansion": 0.2,
+        "gp_ei_fixed_space": 0
       },
-      "failure_fallback_score": 0.2
+      "failure_fallback_score": 0.2,
+      "features": [
+        0.5,
+        1
+      ]
     },
     {
       "id": "random-family",
@@ -110,9 +136,14 @@
         "random_expansion": 0.99,
         "rule_based_expansion": 0.2,
         "prior_guided_expansion": 0.2,
-        "static_prior_expansion": 0.1
+        "static_prior_expansion": 0.1,
+        "gp_ei_fixed_space": 0
       },
-      "failure_fallback_score": 0.99
+      "failure_fallback_score": 0.99,
+      "features": [
+        2,
+        0
+      ]
     },
     {
       "id": "rule-family",
@@ -125,9 +156,14 @@
         "random_expansion": 0.2,
         "rule_based_expansion": 0.99,
         "prior_guided_expansion": 0.2,
-        "static_prior_expansion": 0.1
+        "static_prior_expansion": 0.1,
+        "gp_ei_fixed_space": 0
       },
-      "failure_fallback_score": 0.2
+      "failure_fallback_score": 0.2,
+      "features": [
+        0,
+        2
+      ]
     },
     {
       "id": "llm-family",
@@ -140,9 +176,14 @@
         "random_expansion": 0.2,
         "rule_based_expansion": 0.2,
         "prior_guided_expansion": 0.99,
-        "static_prior_expansion": 0.99
+        "static_prior_expansion": 0.99,
+        "gp_ei_fixed_space": 0
       },
-      "failure_fallback_score": 0.2
+      "failure_fallback_score": 0.2,
+      "features": [
+        2,
+        2
+      ]
     }
   ],
   "expansion_options": [
