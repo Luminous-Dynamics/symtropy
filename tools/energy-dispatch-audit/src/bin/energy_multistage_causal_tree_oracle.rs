@@ -621,12 +621,12 @@ mod tests {
 
     #[test]
     fn missing_or_reordered_interval_fails_closed() {
-        let mut fixture = fixture();
-        fixture.scenarios[0].intervals.remove(1);
-        assert!(validate_fixture(&fixture).unwrap_err().contains("exactly three"));
-        let mut fixture = fixture();
-        fixture.scenarios[0].intervals.swap(0, 1);
-        assert!(validate_fixture(&fixture).unwrap_err().contains("reordered"));
+        let mut missing_fixture = fixture();
+        missing_fixture.scenarios[0].intervals.remove(1);
+        assert!(validate_fixture(&missing_fixture).unwrap_err().contains("exactly three"));
+        let mut reordered_fixture = fixture();
+        reordered_fixture.scenarios[0].intervals.swap(0, 1);
+        assert!(validate_fixture(&reordered_fixture).unwrap_err().contains("reordered"));
     }
 
     #[test]
