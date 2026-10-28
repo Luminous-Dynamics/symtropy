@@ -21,15 +21,15 @@ This evaluator does **not** claim to reproduce RESCUE's posterior criterion or r
 
 CSV columns:
 
-    family_id,flight_id,rollout_start_id,regime,checkpoint_time_s
+    family_id,flight_id,rollout_start_id,regime,checkpoint_time_s,remaining_budget_s
 
-Each row registers one exact checkpoint of a trunk trajectory. A family is the independent generalization cluster; multiple flights, rollout starts, checkpoints and seeds within a family are not independent families. Checkpoint times must be positive and finite. Every flight/start must register at least two checkpoints.
+Each row registers one exact checkpoint of a trunk trajectory. A family is the independent generalization cluster; multiple flights, rollout starts, checkpoints and seeds within a family are not independent families. Checkpoint time and remaining budget must be positive and finite. For each flight/start, checkpoint_time_s + remaining_budget_s must preserve one fixed terminal deadline across the registered checkpoints. Every flight/start must register at least two checkpoints.
 
 ### Counterfactual branch CSV
 
 CSV columns:
 
-    family_id,flight_id,rollout_start_id,regime,checkpoint_time_s,training_seed,intervention_id,branch_seed,state_snapshot_sha256,exogenous_tape_sha256,restore_verified,status,mission_completed,boundary_violation_count,tracking_rmse_m,energy_wh,deadline_misses
+    family_id,flight_id,rollout_start_id,regime,checkpoint_time_s,remaining_budget_s,branch_elapsed_s,training_seed,intervention_id,branch_seed,state_snapshot_sha256,exogenous_tape_sha256,restore_verified,status,mission_completed,boundary_violation_count,tracking_rmse_m,energy_wh,deadline_misses
 
 The intervention_id must contain continue and at least one response. Every registered checkpoint × training seed × intervention × branch seed combination must be present exactly once.
 
@@ -40,6 +40,7 @@ The evaluator fails closed on:
 - non-hex snapshot/tape identifiers;
 - any mismatch in the snapshot digest across branches forked from the same checkpoint/training-seed state;
 - any mismatch in the exogenous disturbance-tape digest across intervention arms for the same checkpoint/training-seed/branch-seed;
+- any mismatch between the branch's remaining budget and its checkpoint manifest, any checkpoint schedule that changes the terminal deadline, or any branch elapsed time that exceeds its remaining budget;
 - reuse of one tape digest as if it were multiple distinct branch seeds;
 - non-finite or negative supplied metrics, unsupported statuses, or an ok status missing tracking/energy values.
 
@@ -48,6 +49,7 @@ For real experiments, snapshot and disturbance identifiers must be SHA-256 of ca
 ## Success criterion
 
 A branch is recoverable only if all conditions hold:
+- elapsed time is finite, non-negative and within the registered remaining task budget;
 - status is ok;
 - mission completion is true;
 - no safety-boundary violation is recorded;
@@ -61,6 +63,8 @@ Failures remain in the branch denominator as unsuccessful outcomes. The threshol
 At each fixed checkpoint, training seed and intervention, estimate the branch-seed success fraction. The checkpoint qualifies only if its one-sided 95% Wilson lower confidence bound is at least the registered --recoverability-threshold.
 
 For every flight/start/training-seed/intervention unit, the recoverability horizon is the latest registered checkpoint that qualifies. A horizon of 0 means no registered checkpoint met the threshold; it is not a claim that the physical recovery time is literally zero.
+
+Every checkpoint carries an explicit remaining budget. For a fixed flight/start, the declared terminal deadline is invariant across checkpoint times; branches report their elapsed time from the restored checkpoint and may not exceed the remaining budget. This prevents a branch from qualifying solely because it was scored under a more generous stopping deadline.
 
 The report separates:
 - checkpoint-level success and lower bounds;
