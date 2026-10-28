@@ -5,6 +5,7 @@ edition = "2024"
 publish = false
 license = "AGPL-3.0-or-later"
 description = "Fail-closed contract and elemental mass-balance audit for glass/silicon process evidence"
+default-run = "glass-silicon-contract-audit"
 
 [dependencies]
 serde = { version = "=1.0.228", features = ["derive"] }
