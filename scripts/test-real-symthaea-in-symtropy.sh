@@ -128,6 +128,46 @@ if [ "${STFR_CHECK_NANODRONE_RESIDUAL_SPECTRUM:-0}" = "1" ]; then
   ' "$smoke_output" >/dev/null
 fi
 
+
+
+if [ "${STFR_CHECK_NANODRONE_RECOVERABILITY:-0}" = "1" ]; then
+  cargo test --manifest-path "$integration_manifest" --example nanodrone_recoverability_frontier
+  cargo check --manifest-path "$integration_manifest" --example nanodrone_recoverability_frontier
+
+  # Synthetic-only checkpoint × intervention contract smoke; these rows are not flight results.
+  fixture="$SYMTROPY_PATH/integration/symthaea-physics-loop/fixtures/nanodrone-recoverability"
+  out="${STFR_RECOVERABILITY_OUTPUT_PATH:-$backup_dir/nanodrone-recoverability-frontier-smoke.json}"
+  dataset_receipt_sha256="$(sha256sum "$fixture/dataset_receipt.txt" | awk '{print $1}')"
+  model_manifest_sha256="$(sha256sum "$fixture/model_manifest.txt" | awk '{print $1}')"
+  cargo run --manifest-path "$integration_manifest" --example nanodrone_recoverability_frontier -- \
+    --input "$fixture/branches.csv" \
+    --checkpoints "$fixture/checkpoints.csv" \
+    --train-families "$fixture/train_families.txt" \
+    --dataset-receipt-sha256 "$dataset_receipt_sha256" \
+    --model-manifest-sha256 "$model_manifest_sha256" \
+    --source-commit "$STFR_SYMTROPY_SHA" \
+    --training-seeds 101,102 --branch-seeds 11,12,13,14 \
+    --interventions continue,robust_fallback \
+    --max-tracking-rmse-m 0.5 --recoverability-threshold 0.5 \
+    --bootstrap 50 --seed 17 --evidence-class synthetic --output "$out"
+  jq -e '
+    .schema_version == "symtropy-nanodrone-recoverability-frontier-v0.1"
+    and .evidence_class == "synthetic"
+    and .registered_family_count == 2
+    and .registered_flight_count == 2
+    and .registered_checkpoint_count == 6
+    and .expected_branch_count == 96
+    and (.checkpoint_estimates | length) == 24
+    and all(.checkpoint_estimates[]; .branch_replicates == 4 and .remaining_budget_s > 0 and .wilson_95_one_sided_lower >= 0 and .wilson_95_one_sided_lower <= 1)
+    and (.budget_contract | contains("same registered terminal deadline"))
+    and ([.intervention_summaries[] | select(.intervention_id == "continue")][0].mean_paired_horizon_delta_vs_continue_s == 0)
+    and ([.intervention_summaries[] | select(.intervention_id == "robust_fallback")][0].mean_paired_horizon_delta_vs_continue_s > 0)
+    and ([.intervention_summaries[] | select(.intervention_id == "robust_fallback")][0].paired_crossed_bootstrap_delta_ci95_s.valid_replicates == 50)
+    and all(.unit_horizons[]; .latest_recoverable_checkpoint_s >= 0)
+    and (.claim_ceiling | contains("not full-policy benefit"))
+  ' "$out" >/dev/null
+fi
+
 if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
   out="${STFB_OUTPUT_PATH:-$SYMTROPY_PATH/symthaea-symtropy-flight-transfer.json}"
   cargo run --manifest-path "$integration_manifest" --example paired_flight_transfer > "$out"

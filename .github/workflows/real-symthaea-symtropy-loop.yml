@@ -78,6 +78,8 @@ jobs:
           STFR_CHECK_NANODRONE_TRUTH_JOIN: "1"
           STFR_CHECK_NANODRONE_MODEL_COMPARE: "1"
           STFR_CHECK_NANODRONE_RESIDUAL_SPECTRUM: "1"
+          STFR_CHECK_NANODRONE_RECOVERABILITY: "1"
+          STFR_RECOVERABILITY_OUTPUT_PATH: ${{ runner.temp }}/symtropy-nanodrone-recoverability-frontier-smoke.json
           STFR_CHECK_MODEL_EXPLOITATION_GAP: "1"
           STFR_OUTPUT_PATH: ${{ runner.temp }}/symthaea-symtropy-bounded-residual-matrix.json
           STFR_TRAIN_EPISODES: 1
@@ -116,4 +118,5 @@ jobs:
             ${{ runner.temp }}/symtropy-compact-mlp-residual-heldout.json
             ${{ runner.temp }}/symtropy-residual-model-paired-comparison.json
             ${{ runner.temp }}/symtropy-explicit-history-mlp-residual-heldout.json
+            ${{ runner.temp }}/symtropy-nanodrone-recoverability-frontier-smoke.json
           if-no-files-found: error
