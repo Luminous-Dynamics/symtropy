@@ -3,7 +3,9 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::env;
 use std::fs;
-use std::process::ExitCode;
+use std::io::{Read, Write};
+use std::path::Path;
+use std::process::{Command, ExitCode, Stdio};
 
 const BENCHMARK_ID: &str = "glass-space-expansion-live-loop-synthetic-v0-1";
 const POLICY_CLASSES: [&str; 6] = [
@@ -424,7 +426,10 @@ fn get_tariffs(oracle: &Value, report: &mut Value) -> HashMap<String, Tariff> {
     tariffs
 }
 
-fn run_one(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str) -> Value {
+fn run_one_with_executor<F>(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str, executor: &mut F) -> Value
+where
+    F: FnMut(&str, &Value, bool) -> Result<Action, String>,
+{
     let mut report = json!({
         "status": "PASS",
         "campaign_id": format!("{environment_id}-{policy}"),
@@ -545,7 +550,14 @@ fn run_one(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str) 
         let consideration_due = !expansion_decision_made
             && observations.len() == 1
             && method_for_policy(policy).is_some();
-        let action = choose_action(policy, &view, expansion_decision_made);
+        let action = match executor(policy, &view, expansion_decision_made) {
+            Ok(action) => action,
+            Err(error) => {
+                fail(&mut report, "FAIL", "POLICY_EXECUTOR_FAILED", &error);
+                terminal = "POLICY_EXECUTOR_FAILED".to_owned();
+                break;
+            }
+        };
         if consideration_due {
             expansion_decision_made = true;
         }
@@ -715,7 +727,17 @@ fn run_one(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str) 
     report
 }
 
-fn run_all(public_raw: &[u8], oracle_raw: &[u8]) -> Value {
+fn run_one(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str) -> Value {
+    let mut direct = |policy: &str, view: &Value, expansion_decision_made: bool| {
+        Ok(choose_action(policy, view, expansion_decision_made))
+    };
+    run_one_with_executor(catalog, oracle, environment_id, policy, &mut direct)
+}
+
+fn run_all_with_executor<F>(public_raw: &[u8], oracle_raw: &[u8], executor: &mut F) -> Value
+where
+    F: FnMut(&str, &Value, bool) -> Result<Action, String>,
+{
     let input_digest = sha256(public_raw);
     let oracle_digest = sha256(oracle_raw);
     let mut top = json!({
@@ -774,7 +796,7 @@ fn run_all(public_raw: &[u8], oracle_raw: &[u8]) -> Value {
             continue;
         };
         for policy in POLICY_CLASSES {
-            let mut episode = run_one(&public, &oracle, env_id, policy);
+            let mut episode = run_one_with_executor(&public, &oracle, env_id, policy, executor);
             if let Some(o) = episode.as_object_mut() {
                 o.insert("input_sha256".to_owned(), json!(input_digest));
                 o.insert("oracle_sha256".to_owned(), json!(oracle_digest));
@@ -1207,6 +1229,171 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
     audit
 }
 
+fn run_all(public_raw: &[u8], oracle_raw: &[u8]) -> Value {
+    let mut direct = |policy: &str, view: &Value, expansion_decision_made: bool| {
+        Ok(choose_action(policy, view, expansion_decision_made))
+    };
+    run_all_with_executor(public_raw, oracle_raw, &mut direct)
+}
+
+fn action_to_value(action: &Action) -> Value {
+    match action {
+        Action::Evaluate(candidate_id) => json!({
+            "action_type": "evaluate_candidate",
+            "candidate_family_id": candidate_id
+        }),
+        Action::Expand(method) => json!({
+            "action_type": "expand_space",
+            "expansion_method": method
+        }),
+        Action::Stop(reason) => json!({
+            "action_type": "stop",
+            "reason": reason
+        })
+    }
+}
+
+fn action_from_value(value: &Value) -> Result<Action, String> {
+    let Some(action_type) = value.get("action_type").and_then(Value::as_str) else {
+        return Err("policy response requires action_type".to_owned());
+    };
+    let allowed: &[&str] = match action_type {
+        "evaluate_candidate" => &["action_type", "candidate_family_id"],
+        "expand_space" => &["action_type", "expansion_method"],
+        "stop" => &["action_type", "reason"],
+        other => return Err(format!("unrecognized policy action_type {other}")),
+    };
+    let Some(object) = value.as_object() else {
+        return Err("policy response must be an object".to_owned());
+    };
+    if let Some(key) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
+        return Err(format!("policy response contains undeclared field {key}"));
+    }
+    match action_type {
+        "evaluate_candidate" => {
+            let id = value.get("candidate_family_id").and_then(Value::as_str)
+                .ok_or_else(|| "evaluate_candidate requires candidate_family_id".to_owned())?;
+            if !valid_slug(id) {
+                return Err("candidate_family_id must be a lowercase slug".to_owned());
+            }
+            Ok(Action::Evaluate(id.to_owned()))
+        }
+        "expand_space" => {
+            let method = value.get("expansion_method").and_then(Value::as_str)
+                .ok_or_else(|| "expand_space requires expansion_method".to_owned())?;
+            if !["random", "rule_based", "prior_guided"].contains(&method) {
+                return Err(format!("unsupported expansion_method {method}"));
+            }
+            Ok(Action::Expand(method.to_owned()))
+        }
+        "stop" => {
+            let reason = value.get("reason").and_then(Value::as_str)
+                .filter(|reason| !reason.trim().is_empty())
+                .ok_or_else(|| "stop requires a non-empty reason".to_owned())?;
+            Ok(Action::Stop(reason.to_owned()))
+        }
+        _ => unreachable!()
+    }
+}
+
+fn request_policy_subprocess(
+    executable: &Path,
+    policy: &str,
+    public_view: &Value,
+    expansion_decision_made: bool,
+) -> Result<Action, String> {
+    let request = json!({
+        "schema_version": 1,
+        "policy_class": policy,
+        "public_view": public_view,
+        "expansion_decision_made": expansion_decision_made
+    });
+    let request_bytes = serde_json::to_vec(&request)
+        .map_err(|e| format!("cannot serialize policy request: {e}"))?;
+    let mut child = Command::new(executable)
+        .arg("--policy-child")
+        .env_clear()
+        .current_dir(std::env::temp_dir())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("cannot start policy subprocess: {e}"))?;
+    {
+        let stdin = child.stdin.as_mut()
+            .ok_or_else(|| "policy subprocess stdin was not created".to_owned())?;
+        stdin.write_all(&request_bytes)
+            .map_err(|e| format!("cannot write policy request: {e}"))?;
+    }
+    let output = child.wait_with_output()
+        .map_err(|e| format!("cannot collect policy subprocess output: {e}"))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "policy subprocess exited with {}: {}",
+            output.status,
+            stderr.trim()
+        ));
+    }
+    let response: Value = serde_json::from_slice(&output.stdout)
+        .map_err(|e| format!("policy subprocess did not return one valid JSON action: {e}"))?;
+    action_from_value(&response)
+}
+
+fn run_all_subprocess(public_raw: &[u8], oracle_raw: &[u8], executable: &Path) -> Value {
+    let mut isolated_adapter = |policy: &str, view: &Value, expansion_decision_made: bool| {
+        request_policy_subprocess(executable, policy, view, expansion_decision_made)
+    };
+    run_all_with_executor(public_raw, oracle_raw, &mut isolated_adapter)
+}
+
+fn run_policy_child() -> ExitCode {
+    let mut raw = Vec::new();
+    if let Err(error) = std::io::stdin().read_to_end(&mut raw) {
+        eprintln!("cannot read policy request: {error}");
+        return ExitCode::from(2);
+    }
+    let request: Value = match serde_json::from_slice(&raw) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid policy request JSON: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let Some(object) = request.as_object() else {
+        eprintln!("policy request must be an object");
+        return ExitCode::from(2);
+    };
+    let allowed = ["schema_version", "policy_class", "public_view", "expansion_decision_made"];
+    if let Some(key) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
+        eprintln!("policy request contains undeclared field {key}");
+        return ExitCode::from(2);
+    }
+    if request.get("schema_version").and_then(Value::as_u64) != Some(1) {
+        eprintln!("policy request schema_version must equal 1");
+        return ExitCode::from(2);
+    }
+    let Some(policy) = request.get("policy_class").and_then(Value::as_str) else {
+        eprintln!("policy request needs policy_class");
+        return ExitCode::from(2);
+    };
+    if !allowed_policy(policy) {
+        eprintln!("policy request contains unregistered policy_class {policy}");
+        return ExitCode::from(2);
+    }
+    let Some(view) = request.get("public_view") else {
+        eprintln!("policy request needs public_view");
+        return ExitCode::from(2);
+    };
+    let Some(expansion_decision_made) = request.get("expansion_decision_made").and_then(Value::as_bool) else {
+        eprintln!("policy request needs boolean expansion_decision_made");
+        return ExitCode::from(2);
+    };
+    let action = choose_action(policy, view, expansion_decision_made);
+    println!("{}", serde_json::to_string(&action_to_value(&action)).expect("action serializes"));
+    ExitCode::SUCCESS
+}
+
 fn close(left: Option<f64>, right: Option<f64>) -> bool {
     match (left, right) {
         (Some(a), Some(b)) => a.is_finite() && b.is_finite() && (a - b).abs() <= 1e-9,
@@ -1217,6 +1404,9 @@ fn close(left: Option<f64>, right: Option<f64>) -> bool {
 
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
+    if args.len() == 2 && args[1] == "--policy-child" {
+        return run_policy_child();
+    }
     if args.len() == 5 && args[1] == "--replay" {
         let report_raw = match fs::read(&args[2]) {
             Ok(bytes) => bytes,
@@ -1248,7 +1438,14 @@ fn main() -> ExitCode {
         Ok(bytes) => bytes,
         Err(e) => { eprintln!("cannot read {}: {e}", args[2]); return ExitCode::from(2); }
     };
-    let report = run_all(&public_raw, &oracle_raw);
+    let executable = match env::current_exe() {
+        Ok(path) => path,
+        Err(error) => {
+            eprintln!("cannot resolve policy host executable: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let report = run_all_subprocess(&public_raw, &oracle_raw, &executable);
     let status = report.get("status").and_then(Value::as_str).unwrap_or("FAIL");
     let code = match status { "PASS" => 0, "UNRESOLVED" => 3, _ => 2 };
     println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
