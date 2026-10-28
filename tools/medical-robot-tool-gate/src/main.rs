@@ -1034,7 +1034,8 @@ fn axis_angle_rotation(axis: [f64; 3], angle: f64) -> [[f64; 3]; 3] {
 }
 
 /// Computes geometry-only forward kinematics for a previously validated tree.
-/// Input includes every movable joint ID: bounded revolute angles and continuous angles with a finite numerical magnitude limit.
+/// Input includes every movable joint ID: bounded revolute angles and continuous angles.
+/// Continuous angles also have a finite numerical magnitude limit.
 /// This function has no actuator, controller, velocity or physics side effects.
 fn compute_forward_kinematics(
     model: &Value,
