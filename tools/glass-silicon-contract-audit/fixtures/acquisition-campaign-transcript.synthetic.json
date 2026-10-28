@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "glass-acquisition-transcript-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Transcript structure and budget accounting only; no real policy isolation, outcome truth, or physical feasibility is certified.",
+  "policy_id": "novelty-proxy-v0",
+  "policy_input_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "policy_code_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "policy_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "max_cost_units": 4,
+  "max_duration_seconds": 100,
+  "events": [
+    {
+      "event_id": "event-1",
+      "sequence": 1,
+      "event_type": "measurement_requested",
+      "request_id": "request-1",
+      "measurement_id": "measure-regime",
+      "cost_units": 2,
+      "duration_seconds": 20
+    },
+    {
+      "event_id": "event-2",
+      "sequence": 2,
+      "event_type": "measurement_result",
+      "request_id": "request-1",
+      "measurement_id": "measure-regime",
+      "measurement_status": "VALID",
+      "observation_ref": "observation-digest-1"
+    },
+    {
+      "event_id": "event-3",
+      "sequence": 3,
+      "event_type": "decision",
+      "decision_status": "UNRESOLVED",
+      "decision_id": null,
+      "reason": "Synthetic transcript does not establish a physically qualified output."
+    }
+  ]
+}
