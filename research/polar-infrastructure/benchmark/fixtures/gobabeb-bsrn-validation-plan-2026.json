@@ -10,7 +10,7 @@
     "station_id": "GOB",
     "latitude_deg": -23.5614,
     "longitude_deg": 15.04198,
-    "elevation_m": 407.0,
+    "elevation_m": 407,
     "surface_description": "desert gravel; flat rural topography per publisher metadata"
   },
   "station_reference": {
@@ -133,5 +133,94 @@
     "do_not_claim_station_accuracy_from_series_metadata": true,
     "do_not_claim_controller_superiority_from_trace_validation": true,
     "station_data_and_reanalysis_remain_separate_evidence_classes": true
+  },
+  "event_annotations": [
+    {
+      "event_id": "gobabeb_2025_06_fog_stratus",
+      "source_doi": "10.1594/PANGAEA.983811",
+      "event_kind": "fog_stratus",
+      "dates_local_as_published": [
+        "2025-06-04",
+        "2025-06-25",
+        "2025-06-26"
+      ],
+      "source_basis": "publisher metadata comment",
+      "status": "metadata_only_not_scored",
+      "permitted_use_in_current_plan": "source-format/development evidence only; cannot be claimed as a locked test because the record has already been inspected",
+      "required_before_scoring": [
+        "acquire full source through allowed route",
+        "review full temporal metadata",
+        "define event label independently of controller outcomes",
+        "pin hourly/daily aggregation and matched coverage"
+      ]
+    }
+  ],
+  "source_use_restrictions": {
+    "license": "Baseline Surface Radiation Network License 1.0 (BSRN-1.0)",
+    "direct_commercial_sale_of_data_allowed": false,
+    "interpretation": "The published release rule forbids direct commercial sale of the data. This field does not assert that every use of derived values or every commercial product is either permitted or prohibited; consult the exact terms and obtain appropriate review or permission before commercial deployment or redistribution.",
+    "raw_data_committed_to_repository": false,
+    "dataset_specific_citation_required": true,
+    "license_review_recorded": false
+  },
+  "candidate_auxiliary_sources": [
+    {
+      "source_id": "sasscal_weathernet_gobabeb_met_8893",
+      "publisher": "SASSCAL WeatherNet",
+      "station_id": 8893,
+      "source_urls": [
+        "https://data.sasscal.org/weatherstat_daily_we.php?loggerid_crit=8893&yrmth_crit=2026-09",
+        "https://sasscalapps.dedicated.co.za/station_datasheet_we.php?loggerid_crit=8893"
+      ],
+      "variables_seen_in_publisher_page": [
+        "air_temperature_mean_min_max",
+        "precipitation_total",
+        "fog_total",
+        "wind_speed_direction",
+        "relative_humidity",
+        "soil_temperature"
+      ],
+      "temporal_coverage_note": "Indexed data sheet reports daily availability from 2014-10-04 through 2023-01-04; a September 2026 page shows extensive missing values.",
+      "license_status": "unknown_not_admitted",
+      "data_completeness_status": "unverified",
+      "evidence_class": "measured_field_candidate",
+      "admission_status": "candidate_not_admitted",
+      "limitation": "No global/downward short-wave radiation variable was verified on the inspected page; not a substitute for BSRN radiometry."
+    },
+    {
+      "source_id": "noaa_ncei_ghcnh_or_isd",
+      "publisher": "NOAA National Centers for Environmental Information",
+      "source_urls": [
+        "https://www.ncei.noaa.gov/products/land-based-station/integrated-surface-database",
+        "https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly"
+      ],
+      "variables_seen_in_product_description": [
+        "temperature",
+        "dew_point",
+        "wind",
+        "pressure",
+        "precipitation",
+        "visibility",
+        "weather"
+      ],
+      "exact_gobabeb_station_match": "unverified",
+      "period_overlap_status": "unverified",
+      "license_status": "review_exact_product_and_station_source_terms",
+      "evidence_class": "measured_field_candidate",
+      "admission_status": "candidate_not_admitted",
+      "limitation": "No compatible short-wave radiation field established; can only supplement the variables present in an actual admitted station record."
+    }
+  ],
+  "network_fallback": {
+    "dns_failures_observed_in_authoring_shell": [
+      "doi.pangaea.de",
+      "ftp.bsrn.awi.de"
+    ],
+    "publisher_html_preview_accessible_via_research_browser": true,
+    "publisher_html_preview_row_limit": 2000,
+    "preview_is_complete_source": false,
+    "offline_local_registration_helper": "research/polar-infrastructure/benchmark/scripts/register_local_pangaea_source.sh",
+    "local_registration_authenticates_source_origin": false,
+    "status": "fallback_implemented_not_used_for_real_source_yet"
   }
 }
