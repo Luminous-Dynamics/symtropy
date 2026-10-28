@@ -167,6 +167,13 @@ fn valid_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
+fn valid_git_revision(value: &str) -> bool {
+    matches!(value.len(), 40 | 64)
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
 fn uri_with_scheme(value: &str) -> bool {
     let Some((scheme, remainder)) = value.split_once("://") else {
         return false;
@@ -475,7 +482,10 @@ fn validate(manifest: &Manifest) -> ValidationReport {
             ] {
                 check_utc_time(&mut errors, value, field);
             }
-            check_nonempty(&mut errors, manifest.provenance.processing_code_revision.0.as_deref().unwrap_or(""), "provenance.processing_code_revision");
+            match manifest.provenance.processing_code_revision.0.as_deref() {
+                Some(revision) if valid_git_revision(revision) => {}
+                _ => errors.push("provenance.processing_code_revision must be an immutable 40- or 64-character lowercase hexadecimal git revision".to_string()),
+            }
             check_sha(
                 &mut errors,
                 manifest.provenance.transformation_config_sha256.0.as_deref(),
@@ -705,6 +715,14 @@ mod tests {
             utc_timestamp_order_key("2026-10-28T14:39:00.501Z")
                 > utc_timestamp_order_key("2026-10-28T14:39:00.500Z")
         );
+    }
+
+    #[test]
+    fn git_revision_validation_requires_immutable_hex_revision() {
+        assert!(valid_git_revision(&"a".repeat(40)));
+        assert!(valid_git_revision(&"b".repeat(64)));
+        assert!(!valid_git_revision("main"));
+        assert!(!valid_git_revision(&"G".repeat(40)));
     }
 
     #[test]
