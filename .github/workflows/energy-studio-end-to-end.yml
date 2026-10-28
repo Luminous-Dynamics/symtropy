@@ -17,7 +17,7 @@ env:
   SYMTROPY_CONTRACT_BRANCH: research/energy-system-studio-v0-1
   SYMTROPY_CONTRACT_PIN: dccef7d158fa8b5e29c2db50196aa9e86c506e0a
   SOL_ATLAS_BRANCH: research/energy-design-adapter-v0-1
-  SOL_ATLAS_PIN: 515e9bacaa0922e5da1e1cbde088c89cb5a9eaab
+  SOL_ATLAS_PIN: 90e1e9ff9efa493622c6ebc3c51d2c0ad0004719
 
 jobs:
   bridge:
