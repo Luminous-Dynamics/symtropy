@@ -151,7 +151,7 @@ The first implementation should target contract correctness and counterexample r
 
 ### Current bounded prototype
 
-The initial Rust CLI, `src/bin/resilience_boundary.rs`, analyzes a supplied set of already-evaluated cases and reports observed Pareto-minimal failures per gate and comparison group. It does not generate cases or replay a controller. Its fixture is intentionally synthetic, includes incomparable failures, and includes invalid/not-evaluated cases to exercise incomplete-report handling.
+The initial Rust CLI, `src/bin/resilience_boundary.rs`, analyzes a supplied set of already-evaluated cases and reports both Pareto-minimal observed failures and Pareto-maximal observed passing points for each gate and comparison group. It reports per-gate valid coverage, invalid/unevaluated counts, and explicit gate status, including groups with no observed breach. It also records **monotonicity-conflict witnesses**: a passing case that is componentwise more severe than a failing case under the declared axis directions. Such a witness warns against assuming a simple monotonic boundary; it is not automatically a defective test or controller. The analyzer does not generate cases or replay a controller. Its fixture is intentionally synthetic, includes incomparable failures, and includes invalid/not-evaluated cases to exercise incomplete-report handling.
 
 From the repository root, run:
 
@@ -160,4 +160,4 @@ cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Carg
 cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_boundary -- research/polar-infrastructure/benchmark/fixtures/toy-boundary-search.json
 ```
 
-The report preserves axis direction, keeps different initial-state groups separate, and labels its scope as observed enumerated cases only—not a safety certificate or probability estimate. A gate with no observed breach is listed explicitly; this is not proof the gate cannot fail elsewhere. Invalid or unevaluated cases make the frontier incomplete. The exact-head workflow checks this CLI and its negative controls before these mechanics can be treated as verified software behavior.
+The report preserves axis direction, keeps different initial-state groups separate, and labels its scope as observed enumerated cases only—not a safety certificate or probability estimate. A gate with no observed breach is listed explicitly; this is not proof the gate cannot fail elsewhere. Per-gate outputs show coverage and both observed sides of the boundary. Monotonicity-conflict witnesses expose cases where a more-severe passing vector exists alongside a less-severe failing vector, without assuming that physical systems are monotone. Invalid or unevaluated cases make the relevant frontier incomplete. The exact-head workflow checks this CLI and its negative controls before these mechanics can be treated as verified software behavior.
