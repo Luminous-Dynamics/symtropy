@@ -78,6 +78,26 @@ This currently audits *declared synthetic contracts only*. The next step is inst
 
 Reference: He, Wang & Xu, “Observation-contract auditing for valid modality comparison in robot manipulation benchmarks” (*Scientific Reports*, 20 October 2026): https://www.nature.com/articles/s41598-026-76821-1.
 
+## New benchmark evidence reviewed on 28 October 2026
+
+### HandsOn — cross-embodiment dexterous manipulation
+
+The 19 October 2026 preprint [HandsOn: A Large-Scale Simulation Benchmark for Generalizable Dexterous Manipulation](https://arxiv.org/abs/2610.26765) describes five arms, six hands, roughly 200 rigid/articulated/deformable assets, 18,000 demonstrations and 66 tasks. Its Transfer-16 split deliberately tests asset/relation transfer, skill composition and deformable manipulation without target-task training demonstrations. The reported best trained multi-task result is 29.1% Core-50 success; an un-finetuned prompted GPT-6 plus move_eef setup is reported at 5.2% Core-50 and 1.9% Transfer-16 over 660 trials. These are authors' results in that benchmark and not comparable directly with Careframe's logistics tasks.
+
+**Lesson:** score transfer separately from familiar-scene success. Careframe should hold out object assets, scene layouts, tool revisions, task compositions and environment dynamics, then preserve failure-stage labels such as failure to establish contact, maintain an achieved state, or finish a sequence. We should not infer that generic dexterity benchmark performance predicts medical-support task success.
+
+### MESA — compositional, semantic and spatial generalization
+
+The [MESA CoRL 2026 benchmark](https://www.pair.toronto.edu/MESA/) focuses on compositional, semantic and spatial generalization. This supports designing Careframe scenes where task descriptions, object identities, destination geometry, obstacles and order constraints are varied independently and in combinations.
+
+**Lesson:** use factorized holdouts. A test set containing only new random seeds is weak if object relations and language templates remain familiar. Include held-out combinations of previously seen factors and report each stratum.
+
+### NIST mobility and manipulation metrology
+
+[NIST's mobility program](https://www.nist.gov/programs-projects/mobility-performance-robotic-systems) develops metrics, methods, artifacts and datasets for localization, tracking, stability, adaptability, task efficiency and assurance in mobile robots and manipulators. NIST also maintains related [grasping, manipulation and contact-safety metrology work](https://www.nist.gov/programs-projects/grasping-manipulation-and-contact-safety-performance-robotic-systems).
+
+**Lesson:** adopt applicable ASTM/NIST reference methods where task and hardware scope match, use calibrated measurements rather than a robot's self-reported estimate as ground truth, and keep our custom scorecard additive rather than claiming it replaces metrology standards.
+
 ## Proposed Careframe benchmark architecture
 
 The benchmark is a vector of separate scorecards, not one opaque composite score:
