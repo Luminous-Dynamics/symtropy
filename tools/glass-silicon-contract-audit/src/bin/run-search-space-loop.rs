@@ -1837,6 +1837,8 @@ fn audit_budget_frontier(lanes: &[(&[u8], &[u8])], oracle_raw: &[u8]) -> Value {
                 .collect::<Vec<_>>();
             let minimum_gp_delta = gp_deltas.iter().copied().reduce(f64::min);
             let minimum_random_delta = random_deltas.iter().copied().reduce(f64::min);
+            let gp_all_comparable = gp_unresolved_environments.is_empty();
+            let random_all_comparable = random_unresolved_environments.is_empty();
             // Do not silently drop a regime where no verified feasible utility exists.
             // A worst-case delta is only reported when every environment is comparable.
             frontier.push(json!({
@@ -1849,14 +1851,14 @@ fn audit_budget_frontier(lanes: &[(&[u8], &[u8])], oracle_raw: &[u8]) -> Value {
                 "gp_ei_better_environments": count(&gp_deltas, "better"),
                 "gp_ei_tied_environments": count(&gp_deltas, "tie"),
                 "gp_ei_worse_environments": count(&gp_deltas, "worse"),
-                "worst_environment_delta_vs_gp_ei": if gp_unresolved_environments.is_empty() { minimum_gp_delta.map_or(Value::Null, |value| json!(value)) } else { Value::Null },
+                "worst_environment_delta_vs_gp_ei": if gp_all_comparable { minimum_gp_delta.map_or(Value::Null, |value| json!(value)) } else { Value::Null },
                 "seeded_random_comparable_environment_count": random_deltas.len(),
                 "seeded_random_unresolved_environment_count": random_unresolved_environments.len(),
                 "seeded_random_unresolved_environments": random_unresolved_environments,
                 "seeded_random_better_environments": count(&random_deltas, "better"),
                 "seeded_random_tied_environments": count(&random_deltas, "tie"),
                 "seeded_random_worse_environments": count(&random_deltas, "worse"),
-                "worst_environment_delta_vs_seeded_random_mean": if random_unresolved_environments.is_empty() { minimum_random_delta.map_or(Value::Null, |value| json!(value)) } else { Value::Null },
+                "worst_environment_delta_vs_seeded_random_mean": if random_all_comparable { minimum_random_delta.map_or(Value::Null, |value| json!(value)) } else { Value::Null },
                 "claim_ceiling": "Environment-stratified synthetic comparison only; unresolved utility comparisons are explicit and invalidate a worst-case delta."
             }));
         }
