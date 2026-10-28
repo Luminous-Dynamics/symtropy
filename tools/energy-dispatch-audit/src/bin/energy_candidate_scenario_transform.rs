@@ -509,8 +509,17 @@ mod tests {
         let claim_index = child["components"][battery_index]["parameter_claims"].as_array().unwrap()
             .iter().position(|claim| claim["parameter_id"] == "terminal_reserve_kwh").unwrap();
         let expected_pointer = format!("/components/{battery_index}/parameter_claims/{claim_index}/value");
-        assert_eq!(mutations.len(), 1);
-        assert_eq!(mutations[0].json_pointer, expected_pointer);
+        let mut expected_pointers = vec![
+            "/scenarios/0/scenario_id".to_owned(),
+            "/scenarios/0/description".to_owned(),
+            expected_pointer,
+        ];
+        expected_pointers.sort();
+        let mut actual_pointers = mutations.iter()
+            .map(|mutation| mutation.json_pointer.clone())
+            .collect::<Vec<_>>();
+        actual_pointers.sort();
+        assert_eq!(actual_pointers, expected_pointers);
     }
 
     #[test]
