@@ -1,0 +1,61 @@
+name: Energy External Source Registry Gate
+
+on:
+  pull_request:
+    paths:
+      - "tools/energy-dispatch-audit/src/bin/energy_external_benchmark_source_registry_oracle.rs"
+      - "tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-*.json"
+      - "tools/energy-dispatch-audit/ENERGY_EXTERNAL_BENCHMARK_SOURCE_REGISTRY_V0_1.md"
+      - ".github/workflows/energy-external-benchmark-source-registry.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-registry:
+    name: Validate provenance, rights and benchmark promotion states
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+
+      - name: Bootstrap exact direct dependency set and run adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path tools/energy-dispatch-audit/Cargo.toml
+
+      - name: Replay frozen source-registry known answers
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifacts="$GITHUB_WORKSPACE/energy-external-source-registry-artifacts"
+          mkdir -p "$artifacts"
+          registry="tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-v0.1.json"
+          experiment="tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-experiment-v0.1.json"
+          cargo run --locked --manifest-path tools/energy-dispatch-audit/Cargo.toml \
+            --bin energy_external_benchmark_source_registry_oracle -- "$artifacts/report.json"
+          jq -e '
+            .status == "PASS_SOURCE_DISCOVERY_CONTRACT_ONLY" and
+            .source_count == 3 and .imported_external_bytes == 0 and
+            .qualified_sources == 0 and
+            .status_counts.reference_only_not_imported == 3 and
+            .source_results[0].expected_rows == 43824 and
+            .promotion_gate == "DOWNLOAD_AND_LICENSE_REVIEW_REQUIRED_BEFORE_INGESTION_OR_BENCHMARK_CLAIMS"
+          ' "$artifacts/report.json" >/dev/null
+          sha256sum tools/energy-dispatch-audit/Cargo.lock "$registry" "$experiment" "$artifacts/report.json" > "$artifacts/receipts.sha256"
+          cat "$artifacts/receipts.sha256"
+
+      - name: Preserve registry, experiment, dependency resolution and report receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: energy-external-source-registry-v0.1
+          if-no-files-found: error
+          path: |
+            tools/energy-dispatch-audit/Cargo.lock
+            tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-v0.1.json
+            tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-experiment-v0.1.json
+            energy-external-source-registry-artifacts/report.json
+            energy-external-source-registry-artifacts/receipts.sha256
