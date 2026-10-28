@@ -6,8 +6,9 @@ use std::fs;
 use std::process::ExitCode;
 
 const BENCHMARK_ID: &str = "glass-space-expansion-live-loop-synthetic-v0-1";
-const POLICY_CLASSES: [&str; 5] = [
+const POLICY_CLASSES: [&str; 6] = [
     "fixed_space",
+    "gp_ei_fixed_space",
     "random_expansion",
     "rule_based_expansion",
     "prior_guided_expansion",
@@ -114,6 +115,181 @@ fn method_for_policy(policy: &str) -> Option<&'static str> {
     }
 }
 
+
+fn candidate_features(candidate: &Value) -> Option<[f64; 2]> {
+    let features = candidate.get("features")?.as_array()?;
+    if features.len() != 2 {
+        return None;
+    }
+    let x = features[0].as_f64()?;
+    let y = features[1].as_f64()?;
+    if !x.is_finite() || !y.is_finite() {
+        return None;
+    }
+    Some([x, y])
+}
+
+fn rbf_kernel(a: [f64; 2], b: [f64; 2], lengthscale: f64) -> f64 {
+    let dx = a[0] - b[0];
+    let dy = a[1] - b[1];
+    let distance_squared = dx * dx + dy * dy;
+    (-0.5 * distance_squared / (lengthscale * lengthscale)).exp()
+}
+
+fn normal_pdf(z: f64) -> f64 {
+    (-0.5 * z * z).exp() / (2.0 * std::f64::consts::PI).sqrt()
+}
+
+// Abramowitz-Stegun-style approximation. Adequate for deterministic ranking in this synthetic finite-pool baseline.
+fn normal_cdf(z: f64) -> f64 {
+    let x = z.abs();
+    let t = 1.0 / (1.0 + 0.231_641_9 * x);
+    let poly = t * (0.319_381_530
+        + t * (-0.356_563_782
+            + t * (1.781_477_937
+                + t * (-1.821_255_978 + t * 1.330_274_429))));
+    let tail = normal_pdf(x) * poly;
+    if z >= 0.0 { 1.0 - tail } else { tail }
+}
+
+fn cholesky_lower(matrix: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
+    let n = matrix.len();
+    if n == 0 || matrix.iter().any(|row| row.len() != n) {
+        return None;
+    }
+    let mut lower = vec![vec![0.0; n]; n];
+    for i in 0..n {
+        for j in 0..=i {
+            let mut residual = matrix[i][j];
+            for k in 0..j {
+                residual -= lower[i][k] * lower[j][k];
+            }
+            if i == j {
+                if !residual.is_finite() || residual <= 1e-12 {
+                    return None;
+                }
+                lower[i][j] = residual.sqrt();
+            } else {
+                if lower[j][j] <= 0.0 {
+                    return None;
+                }
+                lower[i][j] = residual / lower[j][j];
+            }
+        }
+    }
+    Some(lower)
+}
+
+fn solve_from_cholesky(lower: &[Vec<f64>], rhs: &[f64]) -> Option<Vec<f64>> {
+    let n = lower.len();
+    if n == 0 || rhs.len() != n {
+        return None;
+    }
+    let mut forward = vec![0.0; n];
+    for i in 0..n {
+        let mut value = rhs[i];
+        for j in 0..i {
+            value -= lower[i][j] * forward[j];
+        }
+        if lower[i][i] <= 0.0 {
+            return None;
+        }
+        forward[i] = value / lower[i][i];
+    }
+
+    let mut solution = vec![0.0; n];
+    for i in (0..n).rev() {
+        let mut value = forward[i];
+        for j in (i + 1)..n {
+            value -= lower[j][i] * solution[j];
+        }
+        solution[i] = value / lower[i][i];
+    }
+    solution.iter().all(|x| x.is_finite()).then_some(solution)
+}
+
+fn gp_ei_score_candidate(view: &Value, candidate_id: &str) -> Option<f64> {
+    let candidates = view.get("visible_candidates")?.as_array()?;
+    let train_observations = view.get("observations")?.as_array()?;
+    if train_observations.is_empty() {
+        return None;
+    }
+    let candidate_map: HashMap<&str, &Value> = candidates.iter()
+        .filter_map(|candidate| Some((candidate.get("id")?.as_str()?, candidate)))
+        .collect();
+
+    let mut train_x = Vec::<[f64; 2]>::new();
+    let mut train_y = Vec::<f64>::new();
+    for observation in train_observations {
+        let id = observation.get("candidate_family_id")?.as_str()?;
+        let candidate = candidate_map.get(id)?;
+        train_x.push(candidate_features(candidate)?);
+        let utility = observation.get("utility")?.as_f64()?;
+        if !utility.is_finite() {
+            return None;
+        }
+        // This baseline is explicitly normalized for the frozen synthetic utility range [0, 10].
+        train_y.push(utility / 10.0);
+    }
+    let target = *candidate_map.get(candidate_id)?;
+    let target_x = candidate_features(target)?;
+
+    // Frozen finite-pool GP-EI v0.1: unit RBF amplitude, lengthscale 0.85, observation-noise variance 0.05, xi 0.01.
+    const LENGTHSCALE: f64 = 0.85;
+    const NOISE_VARIANCE: f64 = 0.05;
+    const XI: f64 = 0.01;
+    let n = train_x.len();
+    let mut kernel = vec![vec![0.0; n]; n];
+    for i in 0..n {
+        for j in 0..n {
+            kernel[i][j] = rbf_kernel(train_x[i], train_x[j], LENGTHSCALE);
+        }
+        kernel[i][i] += NOISE_VARIANCE;
+    }
+    let lower = cholesky_lower(&kernel)?;
+    let alpha = solve_from_cholesky(&lower, &train_y)?;
+    let k_star: Vec<f64> = train_x.iter().map(|x| rbf_kernel(*x, target_x, LENGTHSCALE)).collect();
+    let mean: f64 = k_star.iter().zip(alpha.iter()).map(|(k, a)| k * a).sum();
+
+    // var(f*) = k(x*,x*) - || L^{-1}k* ||^2, with unit prior variance.
+    let mut forward = vec![0.0; n];
+    for i in 0..n {
+        let mut value = k_star[i];
+        for j in 0..i {
+            value -= lower[i][j] * forward[j];
+        }
+        forward[i] = value / lower[i][i];
+    }
+    let variance = (1.0 - forward.iter().map(|v| v * v).sum::<f64>()).max(0.0);
+    let sigma = variance.sqrt();
+    let best_y = train_y.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    if !mean.is_finite() || !sigma.is_finite() || !best_y.is_finite() {
+        return None;
+    }
+    let improvement = mean - best_y - XI;
+    if sigma <= 1e-12 {
+        return Some(improvement.max(0.0));
+    }
+    let z = improvement / sigma;
+    let ei = improvement * normal_cdf(z) + sigma * normal_pdf(z);
+    ei.is_finite().then_some(ei.max(0.0))
+}
+
+fn gp_ei_next_candidate(view: &Value) -> Option<String> {
+    let candidates = view.get("visible_candidates")?.as_array()?;
+    candidates.iter()
+        .filter(|candidate| candidate.get("evaluated").and_then(Value::as_bool) == Some(false))
+        .filter_map(|candidate| {
+            let id = candidate.get("id")?.as_str()?;
+            let score = gp_ei_score_candidate(view, id)?;
+            Some((id.to_owned(), score))
+        })
+        .max_by(|a, b| {
+            a.1.total_cmp(&b.1).then_with(|| b.0.cmp(&a.0))
+        })
+        .map(|(id, _)| id)
+}
+
 fn choose_action(policy: &str, view: &Value, expansion_decision_made: bool) -> Action {
     let expanded = view.get("expansion_used").and_then(Value::as_bool).unwrap_or(false);
     let observations = view.get("observations").and_then(Value::as_array).cloned().unwrap_or_default();
@@ -134,6 +310,14 @@ fn choose_action(policy: &str, view: &Value, expansion_decision_made: bool) -> A
             });
         return best.and_then(|c| c.get("id").and_then(Value::as_str).map(|s| Action::Evaluate(s.to_owned())))
             .unwrap_or_else(|| Action::Stop("NO_UNMEASURED_VISIBLE_CANDIDATES".to_owned()));
+    }
+
+    // Fixed-space Gaussian-process expected improvement: rank only still-visible candidates
+    // using the GP posterior computed from observations revealed by earlier actions.
+    if policy == "gp_ei_fixed_space" {
+        return gp_ei_next_candidate(view)
+            .map(Action::Evaluate)
+            .unwrap_or_else(|| Action::Stop("GP_EI_POSTERIOR_UNRESOLVED".to_owned()));
     }
 
     // Adaptive outer-loop policies decide whether to expand only after the first screening result.
@@ -189,6 +373,7 @@ fn build_public_view(
             json!({
                 "id": id,
                 "domain": c.get("domain").cloned().unwrap_or(Value::Null),
+                "features": c.get("features").cloned().unwrap_or(Value::Null),
                 "screen_priority": c.get("screen_priority").cloned().unwrap_or(Value::Null),
                 "predicted_feasible": c.get("predicted_feasible").cloned().unwrap_or(Value::Null),
                 "selector_score": c.get("selector_scores").and_then(|v| v.get(policy)).cloned().unwrap_or(Value::Null),
@@ -612,6 +797,7 @@ fn build_replay_view(
             json!({
                 "id": id,
                 "domain": c.get("domain").cloned().unwrap_or(Value::Null),
+                "features": c.get("features").cloned().unwrap_or(Value::Null),
                 "screen_priority": c.get("screen_priority").cloned().unwrap_or(Value::Null),
                 "predicted_feasible": c.get("predicted_feasible").cloned().unwrap_or(Value::Null),
                 "selector_score": c.get("selector_scores").and_then(|v| v.get(policy)).cloned().unwrap_or(Value::Null),
@@ -1051,6 +1237,47 @@ mod tests {
             assert_eq!(e["cost_units_charged"], 5.0, "{}", e["campaign_id"]);
             assert!(e["duration_seconds_charged"].as_f64().unwrap() <= 25.0, "{}", e["campaign_id"]);
         }
+    }
+
+    #[test]
+    fn gp_ei_fixed_space_uses_revealed_utilities_and_never_expands() {
+        let (public, oracle) = values();
+        for environment in ["helpful", "neutral", "harmful", "misleading_prior"] {
+            let report = run_env(&public, &oracle, environment, "gp_ei_fixed_space");
+            assert_eq!(report["status"], "PASS");
+            assert_eq!(report["expansions"], 0);
+            assert_eq!(report["evaluations"], 5);
+            assert_eq!(report["cost_units_charged"], 5.0);
+            assert_eq!(report["duration_seconds_charged"], 25.0);
+            assert!(report["events"].as_array().unwrap().iter().all(|event| event["action_type"] == "evaluate_candidate"));
+        }
+    }
+
+    #[test]
+    fn gp_ei_candidate_ranking_is_deterministic_and_only_returns_unmeasured_candidates() {
+        let (public, _oracle) = values();
+        let initial: BTreeSet<String> = public["candidate_families"].as_array().unwrap().iter()
+            .filter(|c| c["initially_visible"] == true)
+            .filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
+        let observations = vec![Observation { candidate_id: "glass-a".to_owned(), feasible: true, utility: 4.0 }];
+        let evaluated = HashSet::from(["glass-a".to_owned()]);
+        let view = build_public_view(&public, "gp_ei_fixed_space", &initial, &evaluated, &observations, &[], false, 4.0, 20.0);
+        let first = gp_ei_next_candidate(&view).unwrap();
+        let second = gp_ei_next_candidate(&view).unwrap();
+        assert_eq!(first, second);
+        assert_ne!(first, "glass-a");
+        assert!(initial.contains(&first));
+        assert!(gp_ei_score_candidate(&view, &first).unwrap().is_finite());
+    }
+
+    #[test]
+    fn gp_ei_cholesky_solver_rejects_non_positive_definite_matrix() {
+        let singular = vec![vec![1.0, 2.0], vec![2.0, 1.0]];
+        assert!(cholesky_lower(&singular).is_none());
+        let valid = vec![vec![1.1, 0.4], vec![0.4, 1.1]];
+        let lower = cholesky_lower(&valid).unwrap();
+        let solution = solve_from_cholesky(&lower, &[1.0, 0.0]).unwrap();
+        assert!(solution.iter().all(|x| x.is_finite()));
     }
 
     #[test]
