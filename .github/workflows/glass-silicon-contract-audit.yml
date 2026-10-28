@@ -9,6 +9,11 @@ on:
       - "docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
       - "docs/tech/glass-acquisition-campaign-transcript-v0.1.schema.json"
       - "docs/tech/glass-causal-trial-v0.1.schema.json"
+      - "docs/tech/GLASS_ADAPTIVE_SEARCH_SPACE_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-search-space-base-v0.1.schema.json"
+      - "docs/tech/glass-search-space-proposal-v0.1.schema.json"
+      - "docs/tech/glass-search-space-campaign-input-v0.1.schema.json"
+      - "docs/tech/glass-search-space-outcome-oracle-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
@@ -28,6 +33,11 @@ on:
       - "docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
       - "docs/tech/glass-acquisition-campaign-transcript-v0.1.schema.json"
       - "docs/tech/glass-causal-trial-v0.1.schema.json"
+      - "docs/tech/GLASS_ADAPTIVE_SEARCH_SPACE_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-search-space-base-v0.1.schema.json"
+      - "docs/tech/glass-search-space-proposal-v0.1.schema.json"
+      - "docs/tech/glass-search-space-campaign-input-v0.1.schema.json"
+      - "docs/tech/glass-search-space-outcome-oracle-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
@@ -674,3 +684,42 @@ jobs:
           test "$stale_status" -eq 3
           grep -q 'PARENT_SPACE_MISMATCH' search-space-proposal-stale-report.json
           echo "Adaptive search-space schema, parent binding, hard-constraint and stale-parent controls: PASS"
+
+
+      - name: Audit matched-budget adaptive search-space campaigns
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_schema="docs/tech/glass-search-space-base-v0.1.schema.json"
+          proposal_schema="docs/tech/glass-search-space-proposal-v0.1.schema.json"
+          public_schema="docs/tech/glass-search-space-campaign-input-v0.1.schema.json"
+          oracle_schema="docs/tech/glass-search-space-outcome-oracle-v0.1.schema.json"
+
+          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.hard_constraints.minItems == 1 and .properties.candidate_families.minItems == 1 and .additionalProperties == false' "$base_schema" > /dev/null
+          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.parent_space_sha256.pattern == "^[a-fA-F0-9]{64}$" and .properties.hard_constraint_changes.maxItems == 0 and .properties.generation_cost_units.exclusiveMinimum == 0 and .additionalProperties == false' "$proposal_schema" > /dev/null
+          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.evidence_class.const == "synthetic" and .properties.budgets.additionalProperties == false and .additionalProperties == false' "$public_schema" > /dev/null
+          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.evidence_class.const == "synthetic_evaluator_only" and .properties.action_cost_catalog.minItems == 4 and .additionalProperties == false' "$oracle_schema" > /dev/null
+
+          public="tools/glass-silicon-contract-audit/fixtures/search-space-campaign-input.synthetic.json"
+          oracle="tools/glass-silicon-contract-audit/fixtures/search-space-outcome-oracle.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-search-space-trial -- "$public" "$oracle" > search-space-campaign-report.json
+          public_digest="$(sha256sum "$public" | awk '{print $1}')"
+          oracle_digest="$(sha256sum "$oracle" | awk '{print $1}')"
+          jq -e --arg public_digest "$public_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_adaptive_search_space_campaign" and
+            .input_sha256 == $public_digest and
+            .oracle_sha256 == $oracle_digest and
+            .environment_count == 4 and
+            .campaigns_checked == 16 and
+            .action_cost_catalog_checked == 4 and
+            ([.campaign_results[] | select(.cost_units_charged != 5.0)] | length) == 0 and
+            ([.campaign_results[] | select(.duration_seconds_charged > 25.0)] | length) == 0 and
+            ([.campaign_results[] | select(.environment_id == "helpful" and .policy_class == "fixed_space")][0].best_verified_feasible_utility == 4.0) and
+            ([.campaign_results[] | select(.environment_id == "helpful" and .policy_class == "llm_expansion")][0].best_verified_feasible_utility == 10.0) and
+            ([.campaign_results[] | select(.environment_id == "neutral" and .policy_class == "llm_expansion")][0].best_verified_feasible_utility == 6.0) and
+            ([.campaign_results[] | select(.environment_id == "harmful" and .policy_class == "fixed_space")][0].best_verified_feasible_utility == 8.0) and
+            ([.campaign_results[] | select(.environment_id == "harmful" and .policy_class == "llm_expansion")][0].best_verified_feasible_utility == 6.0) and
+            ([.campaign_results[] | select(.environment_id == "misleading_prior" and .policy_class == "llm_expansion")][0].false_feasible_predictions == 1)
+          ' search-space-campaign-report.json
+          echo "Sealed adaptive-space campaign matrix, evaluator-owned budget accounting, and helpful/neutral/harmful/prior-bias known answers: PASS"
