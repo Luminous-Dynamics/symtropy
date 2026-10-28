@@ -351,6 +351,16 @@ fn validate_registry(registry: &Registry) -> Result<(), String> {
     if registry.sources.iter().map(|s| s.source_id.as_str()).collect::<Vec<_>>() != expected_ids {
         return Err("source registry order or expected identity set changed".to_owned());
     }
+    let expected_roles = [
+        "south_africa_system_level_forecast_and_regime_robustness",
+        "closed_loop_building_and_community_energy_control",
+        "ingestion_smoke_test_only",
+    ];
+    if registry.sources.iter().map(|source| source.benchmark_role.as_str()).collect::<Vec<_>>()
+        != expected_roles.to_vec()
+    {
+        return Err("source registry benchmark roles changed or data scope was relabelled".to_owned());
+    }
     Ok(())
 }
 
