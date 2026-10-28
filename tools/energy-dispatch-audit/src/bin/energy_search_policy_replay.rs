@@ -637,7 +637,7 @@ mod tests {
         assert_eq!(summaries.len(), 6);
         assert_eq!(summaries[0].random_seed_count, 30);
         assert_eq!(summaries[0].worst_case_essential_unserved_quanta.p50, 25);
-        assert_eq!(summaries[0].operating_cost_gap.p90, 54);
+        assert_eq!(summaries[0].operating_cost_axis_gap.p90, 54);
         assert!(random_seed_summaries(&runs[..29]).is_err());
     }
 
