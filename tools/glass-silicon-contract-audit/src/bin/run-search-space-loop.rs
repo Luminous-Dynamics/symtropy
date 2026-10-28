@@ -1320,7 +1320,8 @@ fn request_policy_subprocess(
         .spawn()
         .map_err(|e| format!("cannot start policy subprocess: {e}"))?;
     {
-        let stdin = child.stdin.as_mut()
+        // Take ownership of the pipe so it is closed before waiting; the child reads stdin to EOF.
+        let mut stdin = child.stdin.take()
             .ok_or_else(|| "policy subprocess stdin was not created".to_owned())?;
         stdin.write_all(&request_bytes)
             .map_err(|e| format!("cannot write policy request: {e}"))?;
