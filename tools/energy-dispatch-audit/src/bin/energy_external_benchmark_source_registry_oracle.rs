@@ -14,9 +14,9 @@ const EXPERIMENT_BYTES: &[u8] =
 const CITYLEARN_MANIFEST_BYTES: &[u8] =
     include_bytes!("../../fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json");
 const REGISTRY_SHA256: &str =
-    "6481f1d4e4c2cc814582960350c2323b86aea8a388b97c83f7c516785f44783a";
+    "69695a9f93c6c27592d1e09ee2af283ab1838f85cb5ad550b23d14158c9c892f";
 const EXPERIMENT_SHA256: &str =
-    "8c61231d68aef4badad3a61b362cb0348dc7177b329fa9f2bc8dc329c015416d";
+    "6e30d0c46fd301669173ff5bc21afd90e598ec109f87d3ac22008597b5ee52d3";
 const CITYLEARN_MANIFEST_SHA256: &str =
     "bd5086f66e47b400a1e37b4f6a6b5fffeabe02bf2c3a7a7c001c108813efe657";
 const REGISTRY_SCHEMA: &str = "energy-external-benchmark-source-registry-v0.1";
