@@ -1,0 +1,118 @@
+name: GLASS-QUALIFICATION-RISK Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/glass-silicon-contract-audit/**"
+      - "docs/tech/glass-qualification-risk-*.schema.json"
+      - "docs/tech/GLASS_QUALIFICATION_RISK_AUDIT_V0_1.md"
+      - ".github/workflows/glass-qualification-risk.yml"
+  push:
+    branches:
+      - "research/glass-pareto-fidelity-v0.1"
+    paths:
+      - "tools/glass-silicon-contract-audit/**"
+      - "docs/tech/glass-qualification-risk-*.schema.json"
+      - "docs/tech/GLASS_QUALIFICATION_RISK_AUDIT_V0_1.md"
+      - ".github/workflows/glass-qualification-risk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualification-risk:
+    name: Exact-binomial qualification gate and replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Validate frozen schemas and fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          task_schema="docs/tech/glass-qualification-risk-task-v0.1.schema.json"
+          oracle_schema="docs/tech/glass-qualification-risk-oracle-v0.1.schema.json"
+          report_schema="docs/tech/glass-qualification-risk-report-v0.1.schema.json"
+          task="tools/glass-silicon-contract-audit/fixtures/glass-qualification-risk-task.synthetic.json"
+          oracle="tools/glass-silicon-contract-audit/fixtures/glass-qualification-risk-oracle.synthetic.json"
+
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.benchmark_id.const == "glass-qualification-risk-synthetic-v0-1" and
+            .properties.target_success_probability.const == 0.95 and
+            .properties.confidence_level.const == 0.95 and
+            .additionalProperties == false
+          ' "$task_schema" > /dev/null
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.evidence_class.const == "synthetic_evaluator_only" and
+            .properties.outcomes.maxItems == 100 and
+            .additionalProperties == false
+          ' "$oracle_schema" > /dev/null
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.audit_kind.const == "synthetic_binomial_qualification_risk_gate" and
+            .properties.decisions.items.properties.disposition.enum == ["QUALIFIED","NOT_QUALIFIED","UNRESOLVED"] and
+            .additionalProperties == false
+          ' "$report_schema" > /dev/null
+          jq -e '
+            .schema_version == 1 and
+            .benchmark_id == "glass-qualification-risk-synthetic-v0-1" and
+            .target_success_probability == 0.95 and
+            .confidence_level == 0.95 and
+            ([.candidates[].candidate_id] == ["lot-alpha","lot-beta","lot-gamma","lot-delta","lot-epsilon"])
+          ' "$task" > /dev/null
+          jq -e '
+            .schema_version == 1 and
+            .evidence_class == "synthetic_evaluator_only" and
+            ([.outcomes[] | {n:(.trial_results|length), s:([.trial_results[] | select(.)] | length)}] ==
+             [{"n":72,"s":72},{"n":71,"s":71},{"n":100,"s":85},{"n":80,"s":76},{"n":0,"s":0}])
+          ' "$oracle" > /dev/null
+          echo "Frozen qualification task/oracle/report structure: PASS"
+
+      - name: Run exact-binomial qualification and mutation tests
+        run: cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-risk
+
+      - name: Execute audit and replay exact bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          task="tools/glass-silicon-contract-audit/fixtures/glass-qualification-risk-task.synthetic.json"
+          oracle="tools/glass-silicon-contract-audit/fixtures/glass-qualification-risk-oracle.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-risk -- "$task" "$oracle" > glass-qualification-risk-report.json
+          task_digest="$(sha256sum "$task" | awk '{print $1}')"
+          oracle_digest="$(sha256sum "$oracle" | awk '{print $1}')"
+          jq -e --arg task_digest "$task_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_binomial_qualification_risk_gate" and
+            .input_sha256 == $task_digest and
+            .oracle_sha256 == $oracle_digest and
+            .candidate_count == 5 and
+            .findings == [] and
+            ([.decisions[] | select(.candidate_id == "lot-alpha")][0].disposition == "QUALIFIED") and
+            ([.decisions[] | select(.candidate_id == "lot-beta")][0].disposition == "UNRESOLVED") and
+            ([.decisions[] | select(.candidate_id == "lot-gamma")][0].disposition == "NOT_QUALIFIED") and
+            ([.decisions[] | select(.candidate_id == "lot-delta")][0].disposition == "UNRESOLVED") and
+            ([.decisions[] | select(.candidate_id == "lot-epsilon")][0].disposition == "UNRESOLVED") and
+            ([.decisions[] | select(.candidate_id == "lot-alpha")][0].confidence_interval.lower >= 0.95) and
+            ([.decisions[] | select(.candidate_id == "lot-gamma")][0].confidence_interval.upper < 0.95) and
+            ([.decisions[] | select(.candidate_id == "lot-epsilon")][0].confidence_interval == {"lower":0,"upper":1})
+          ' glass-qualification-risk-report.json
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-risk -- \
+            --replay glass-qualification-risk-report.json "$task" "$oracle" > glass-qualification-risk-replay.json
+          jq -e --arg task_digest "$task_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_binomial_qualification_replay" and
+            .input_sha256 == $task_digest and
+            .oracle_sha256 == $oracle_digest and
+            .findings == []
+          ' glass-qualification-risk-replay.json
+          echo "Exact-binomial qualification report and deterministic receipt replay: PASS"
