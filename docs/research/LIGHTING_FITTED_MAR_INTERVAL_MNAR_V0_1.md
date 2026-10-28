@@ -26,7 +26,7 @@ The AIPW confidence limits use an asymptotic influence-function standard error. 
 On the source implementation mirrored into the local test package:
 
 - **7/7 unit tests passed**.
-- A completed frozen synthetic run covered **72 scenarios × 200 replications**, seed `20261028`. Results and exact source digest are recorded in `results/frozen-confirmation-200.json`.
+- A completed frozen synthetic run covered **72 scenarios × 200 replications**, seed `20261028`. A compact summary and source digest are committed in `results/lighting-fitted-mar-interval-mnar-summary.json`; the full per-scenario report and sensitivity curve are included in the downloadable research package.
 - A separate deterministic constructed example has **60 independent families, 38 observed and 22 missing**. Under delta=0, the AIPW point estimate is **5.784 percentage points** and its one-sided lower bound is **5.122**, apparently clearing a 5-point margin. The nearest negative grid tipping point is **−1 percentage point**. The true constructed outcome-dependent missingness mechanism deliberately violates MAR, so this is a warning case, not a real-world estimate.
 
 Worst null false-superiority rates across sample sizes/distributions in the 200-replication confirmation grid:
