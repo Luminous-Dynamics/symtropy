@@ -294,12 +294,13 @@ fn gp_ei_next_candidate(view: &Value) -> Option<String> {
 
 fn uniform_random_next_candidate(view: &Value) -> Option<String> {
     let candidates = view.get("visible_candidates")?.as_array()?;
+    let campaign_seed = view.get("campaign_seed").and_then(Value::as_u64).unwrap_or(0);
     let view_digest = sha256(&serde_json::to_vec(view).ok()?);
     candidates.iter()
         .filter(|candidate| candidate.get("evaluated").and_then(Value::as_bool) == Some(false))
         .filter_map(|candidate| {
             let id = candidate.get("id")?.as_str()?;
-            let rank = sha256(format!("uniform-random-v1|{view_digest}|{id}").as_bytes());
+            let rank = sha256(format!("uniform-random-v1|{campaign_seed}|{view_digest}|{id}").as_bytes());
             Some((rank, id.to_owned()))
         })
         .min_by(|a, b| a.0.cmp(&b.0))
@@ -414,6 +415,7 @@ fn build_public_view(
     })).collect::<Vec<_>>();
     json!({
         "policy_id": policy,
+        "campaign_seed": catalog.get("policy_contract").and_then(|v| v.get("random_seed")).and_then(Value::as_u64).unwrap_or(0),
         "visible_candidates": visible_candidates,
         "observations": obs,
         "expanded_candidate_ids": expanded_candidate_ids,
@@ -452,9 +454,16 @@ fn run_one_with_executor<F>(catalog: &Value, oracle: &Value, environment_id: &st
 where
     F: FnMut(&str, &Value, bool) -> Result<Action, String>,
 {
+    let campaign_seed = catalog.get("policy_contract").and_then(|v| v.get("random_seed")).and_then(Value::as_u64).unwrap_or(0);
+    let campaign_id = if policy == "uniform_random_fixed_space" {
+        format!("{environment_id}-{policy}-seed-{campaign_seed}")
+    } else {
+        format!("{environment_id}-{policy}")
+    };
     let mut report = json!({
         "status": "PASS",
-        "campaign_id": format!("{environment_id}-{policy}"),
+        "campaign_id": campaign_id,
+        "campaign_seed": campaign_seed,
         "environment_id": environment_id,
         "policy_class": policy,
         "policy_id": format!("synthetic-live-loop-{policy}-v1"),
@@ -806,6 +815,29 @@ where
         fail(&mut top, "FAIL", "BENCHMARK_ID_MISMATCH", "public catalog and sealed oracle must use the live-loop benchmark ID");
         return top;
     }
+    let Some(seed_values) = public.get("policy_contract").and_then(|v| v.get("random_seeds")).and_then(Value::as_array) else {
+        fail(&mut top, "FAIL", "RANDOM_SEEDS_REQUIRED", "policy_contract.random_seeds must be a predeclared array of integer seeds");
+        return top;
+    };
+    if seed_values.len() < 20 {
+        fail(&mut top, "FAIL", "RANDOM_SEED_PANEL_TOO_SMALL", "the uniform-random control requires at least 20 preregistered seeds");
+        return top;
+    }
+    let mut seed_set = BTreeSet::new();
+    let mut random_seeds = Vec::<u64>::new();
+    for seed_value in seed_values {
+        let Some(seed) = seed_value.as_u64() else {
+            fail(&mut top, "FAIL", "RANDOM_SEED_INVALID", "every random seed must be a non-negative integer");
+            continue;
+        };
+        if !seed_set.insert(seed) {
+            fail(&mut top, "FAIL", "RANDOM_SEED_DUPLICATE", &format!("random seed {seed} is duplicated"));
+        }
+        random_seeds.push(seed);
+    }
+    if random_seeds.len() != seed_values.len() {
+        return top;
+    }
     if public.get("claim_ceiling").and_then(Value::as_str).is_none()
         || oracle.get("claim_ceiling").and_then(Value::as_str).is_none() {
         fail(&mut top, "FAIL", "CLAIM_CEILING_MISSING", "both inputs must declare a claim ceiling");
@@ -837,17 +869,21 @@ where
     let mut auxiliary_controls = Vec::new();
     for env in environments {
         let Some(env_id) = env.get("environment_id").and_then(Value::as_str) else { continue };
-        let mut control = run_one_with_executor(&public, &oracle, env_id, "uniform_random_fixed_space", executor);
-        if let Some(object) = control.as_object_mut() {
-            object.insert("input_sha256".to_owned(), json!(input_digest));
-            object.insert("oracle_sha256".to_owned(), json!(oracle_digest));
+        for seed in &random_seeds {
+            let mut seeded_public = public.clone();
+            seeded_public["policy_contract"]["random_seed"] = json!(seed);
+            let mut control = run_one_with_executor(&seeded_public, &oracle, env_id, "uniform_random_fixed_space", executor);
+            if let Some(object) = control.as_object_mut() {
+                object.insert("input_sha256".to_owned(), json!(input_digest));
+                object.insert("oracle_sha256".to_owned(), json!(oracle_digest));
+            }
+            if control.get("status").and_then(Value::as_str) == Some("FAIL") {
+                fail(&mut top, "FAIL", "AUXILIARY_CONTROL_FAILED", &format!("uniform-random baseline failed in environment {env_id}, seed {seed}"));
+            } else if control.get("status").and_then(Value::as_str) == Some("UNRESOLVED") {
+                fail(&mut top, "UNRESOLVED", "AUXILIARY_CONTROL_UNRESOLVED", &format!("uniform-random baseline unresolved in environment {env_id}, seed {seed}"));
+            }
+            auxiliary_controls.push(control);
         }
-        if control.get("status").and_then(Value::as_str) == Some("FAIL") {
-            fail(&mut top, "FAIL", "AUXILIARY_CONTROL_FAILED", &format!("uniform-random baseline failed in environment {env_id}"));
-        } else if control.get("status").and_then(Value::as_str) == Some("UNRESOLVED") {
-            fail(&mut top, "UNRESOLVED", "AUXILIARY_CONTROL_UNRESOLVED", &format!("uniform-random baseline unresolved in environment {env_id}"));
-        }
-        auxiliary_controls.push(control);
     }
 
     top["environment_count"] = json!(environments.len());
@@ -888,6 +924,7 @@ fn build_replay_view(
         }).collect::<Vec<_>>();
     json!({
         "policy_id": policy,
+        "campaign_seed": catalog.get("policy_contract").and_then(|v| v.get("random_seed")).and_then(Value::as_u64).unwrap_or(0),
         "visible_candidates": visible_candidates,
         "observations": observations,
         "expanded_candidate_ids": expanded_candidate_ids,
@@ -985,36 +1022,57 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
         fail(&mut audit, "FAIL", "AUXILIARY_CONTROLS_REQUIRED", "run report has no auxiliary control results");
         return audit;
     };
-    if report.get("auxiliary_control_count").and_then(Value::as_u64) != Some(auxiliary_controls.len() as u64)
-        || auxiliary_controls.len() != oracle_envs.len() {
-        fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_COUNT_MISMATCH", "one uniform-random baseline result is required for each sealed environment");
+    let Some(seed_values) = catalog.get("policy_contract").and_then(|v| v.get("random_seeds")).and_then(Value::as_array) else {
+        fail(&mut audit, "FAIL", "RANDOM_SEEDS_REQUIRED", "public catalog lacks its preregistered random seed panel");
+        return audit;
+    };
+    let mut random_seeds = Vec::<u64>::new();
+    for value in seed_values {
+        if let Some(seed) = value.as_u64() {
+            random_seeds.push(seed);
+        } else {
+            fail(&mut audit, "FAIL", "RANDOM_SEED_INVALID", "public catalog contains a non-integer seed");
+        }
     }
-    let mut auxiliary_environment_ids = HashSet::new();
+    let expected_aux_count = oracle_envs.len() * random_seeds.len();
+    if report.get("auxiliary_control_count").and_then(Value::as_u64) != Some(auxiliary_controls.len() as u64)
+        || auxiliary_controls.len() != expected_aux_count {
+        fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_COUNT_MISMATCH", &format!("expected {expected_aux_count} uniform-random environment/seed controls"));
+    }
+    let mut auxiliary_keys = HashSet::<(String, u64)>::new();
     for (i, control) in auxiliary_controls.iter().enumerate() {
         let env_id = control.get("environment_id").and_then(Value::as_str).unwrap_or("");
-        if !auxiliary_environment_ids.insert(env_id.to_owned()) {
-            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_DUPLICATE", &format!("duplicate uniform-random control for environment {env_id}"));
+        let Some(seed) = control.get("campaign_seed").and_then(Value::as_u64) else {
+            fail(&mut audit, "FAIL", "AUXILIARY_SEED_MISSING", &format!("auxiliary control {i} lacks campaign_seed"));
+            continue;
+        };
+        if !auxiliary_keys.insert((env_id.to_owned(), seed)) {
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_DUPLICATE", &format!("duplicate uniform-random control for environment {env_id}, seed {seed}"));
         }
         if control.get("policy_class").and_then(Value::as_str) != Some("uniform_random_fixed_space") {
             fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_POLICY_INVALID", &format!("auxiliary control {i} is not the registered uniform-random baseline"));
         }
         if control.get("input_sha256").and_then(Value::as_str) != Some(public_digest.as_str())
             || control.get("oracle_sha256").and_then(Value::as_str) != Some(oracle_digest.as_str()) {
-            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_DIGEST_MISMATCH", &format!("uniform-random control {env_id} is not bound to the exact public/oracle inputs"));
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_DIGEST_MISMATCH", &format!("uniform-random control {env_id}, seed {seed} is not bound to the exact public/oracle inputs"));
         }
-        let mut expected = run_one(&catalog, &oracle, env_id, "uniform_random_fixed_space");
+        let mut seeded_catalog = catalog.clone();
+        seeded_catalog["policy_contract"]["random_seed"] = json!(seed);
+        let mut expected = run_one(&seeded_catalog, &oracle, env_id, "uniform_random_fixed_space");
         if let Some(object) = expected.as_object_mut() {
             object.insert("input_sha256".to_owned(), json!(public_digest));
             object.insert("oracle_sha256".to_owned(), json!(oracle_digest));
         }
         if &expected != control {
-            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_REPLAY_MISMATCH", &format!("uniform-random control {env_id} does not match replay from public state and sealed outcomes"));
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_REPLAY_MISMATCH", &format!("uniform-random control {env_id}, seed {seed} does not replay"));
         }
     }
     for env in oracle_envs {
         let env_id = env.get("environment_id").and_then(Value::as_str).unwrap_or("");
-        if !auxiliary_environment_ids.contains(env_id) {
-            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_ENVIRONMENT_MISSING", &format!("uniform-random control missing for {env_id}"));
+        for seed in &random_seeds {
+            if !auxiliary_keys.contains(&(env_id.to_owned(), *seed)) {
+                fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_ENVIRONMENT_SEED_MISSING", &format!("uniform-random control missing for {env_id}, seed {seed}"));
+            }
         }
     }
 
@@ -1581,7 +1639,8 @@ mod tests {
 
     #[test]
     fn uniform_random_action_is_invariant_to_unobserved_oracle_changes() {
-        let (public, oracle) = values();
+        let (mut public, oracle) = values();
+        public["policy_contract"]["random_seed"] = json!(17);
         let original = run_env(&public, &oracle, "helpful", "uniform_random_fixed_space");
         let original_events = original["events"].as_array().unwrap();
         let first_id = original_events[0]["candidate_family_id"].as_str().unwrap();
@@ -1611,13 +1670,19 @@ mod tests {
         assert_eq!(report["status"], "PASS");
         assert_eq!(report["policy_count"], 6);
         assert_eq!(report["episodes_checked"], 24);
-        assert_eq!(report["auxiliary_control_count"], 4);
+        assert_eq!(report["auxiliary_control_count"], 80);
         for control in report["auxiliary_controls"].as_array().unwrap() {
             assert_eq!(control["policy_class"], "uniform_random_fixed_space");
             assert_eq!(control["expansions"], 0);
             assert_eq!(control["evaluations"], 5);
             assert_eq!(control["cost_units_charged"], 5.0);
+            assert!(control["campaign_seed"].as_u64().is_some());
         }
+        let first_candidates = report["auxiliary_controls"].as_array().unwrap().iter()
+            .filter(|c| c["environment_id"] == "helpful")
+            .map(|c| c["events"][0]["candidate_family_id"].as_str().unwrap().to_owned())
+            .collect::<HashSet<_>>();
+        assert!(first_candidates.len() > 1, "seed sweep should explore more than one first candidate");
         let raw = serde_json::to_vec(&report).unwrap();
         let replay = audit_replay(&raw, PUBLIC, ORACLE);
         assert_eq!(replay["status"], "PASS");
