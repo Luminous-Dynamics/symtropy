@@ -153,6 +153,9 @@ jobs:
           grep -q 'audit-causal-trial <trial.json>' "$protocol"
           grep -q 'glass-causal-trial-v0.1.schema.json' "$protocol"
           grep -q 'randomization p-value' "$protocol"
+          grep -q 'GLASS-SPACE-EXPANSION-001 #2788' "$protocol"
+          grep -q 's43246-026-01304-9' "$protocol"
+          grep -q 'new candidate pool' "$protocol"
           echo "OOD acquisition-value protocol and matched-budget baselines: PASS"
 
       - name: Audit separated acquisition input/oracle schemas and known answer
