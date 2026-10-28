@@ -772,6 +772,7 @@ jobs:
             .oracle_sha256 == $oracle_digest and
             .episodes_checked == 20 and
             .events_checked >= 70 and
+            .policy_actions_checked == .events_checked and
             .cost_units_recomputed == 100.0
           ' "$replay_report"
           echo "Live observation-conditioned loop and independent transcript replay: PASS"
