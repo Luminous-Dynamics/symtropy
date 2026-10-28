@@ -8,6 +8,7 @@ on:
       - "docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
       - "docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
       - "docs/tech/glass-acquisition-campaign-transcript-v0.1.schema.json"
+      - "docs/tech/glass-causal-trial-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
@@ -26,6 +27,7 @@ on:
       - "docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
       - "docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
       - "docs/tech/glass-acquisition-campaign-transcript-v0.1.schema.json"
+      - "docs/tech/glass-causal-trial-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
@@ -147,6 +149,10 @@ jobs:
           grep -q 'glass-acquisition-campaign-transcript-v0.1.schema.json' "$protocol"
           grep -q 'request/result pairing' "$protocol"
           grep -q 'calibration alone' "$protocol"
+          grep -q 'GLASS-CAUSAL-TRIAL-001 #2787' "$protocol"
+          grep -q 'audit-causal-trial <trial.json>' "$protocol"
+          grep -q 'glass-causal-trial-v0.1.schema.json' "$protocol"
+          grep -q 'randomization p-value' "$protocol"
           echo "OOD acquisition-value protocol and matched-budget baselines: PASS"
 
       - name: Audit separated acquisition input/oracle schemas and known answer
@@ -235,6 +241,39 @@ jobs:
             .final_decision_status == "UNRESOLVED"
           ' acquisition-campaign-transcript-report.json
           echo "Acquisition campaign transcript ordering and charged-budget known answer: PASS"
+
+      - name: Audit paired causal trial schema and synthetic effect
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/tech/glass-causal-trial-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.benchmark_id.const == "glass-causal-trial-synthetic-v0-1" and
+            .properties.preregistration.properties.design.const == "balanced_paired_randomized_crossover" and
+            .properties.blocks.minItems >= 2 and
+            .properties.blocks.maxItems <= 20 and
+            .additionalProperties == false
+          ' "$schema" > /dev/null
+
+          fixture="tools/glass-silicon-contract-audit/fixtures/causal-trial-paired-block.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-causal-trial "$fixture" > causal-trial-report.json
+          digest="$(sha256sum "$fixture" | awk '{print $1}')"
+          jq -e --arg digest "$digest" '
+            .status == "PASS" and
+            .claim_status == "SUPPORTED" and
+            .audit_kind == "paired_block_causal_trial" and
+            .trial_sha256 == $digest and
+            .blocks_declared == 8 and
+            .complete_pairs == 8 and
+            .control_then_treatment_blocks == 4 and
+            .treatment_then_control_blocks == 4 and
+            .mean_relative_reduction >= 0.05 and
+            .relative_reduction_ci95[0] >= 0.05 and
+            .exact_two_sided_randomization_p <= 0.05
+          ' causal-trial-report.json
+          echo "Paired-block causal effect and randomized inference known answer: PASS"
 
       - name: Audit relationship graph JSON schema
         shell: bash
