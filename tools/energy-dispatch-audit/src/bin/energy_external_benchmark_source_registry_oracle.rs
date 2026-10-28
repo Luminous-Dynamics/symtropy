@@ -492,19 +492,38 @@ fn valid_sha1(value: &str) -> bool {
     value.len() == 40 && value.chars().all(|c| c.is_ascii_hexdigit())
 }
 
-fn validate_experiment(experiment: &Experiment, registry: &Registry, bytes: &[u8], manifest: &CityLearnManifest, manifest_bytes: &[u8]) -> Result<(), String> {
+fn validate_experiment(
+    experiment: &Experiment,
+    registry: &Registry,
+    registry_bytes: &[u8],
+    manifest: &CityLearnManifest,
+    manifest_bytes: &[u8],
+) -> Result<(), String> {
     if experiment.schema_version != EXPERIMENT_SCHEMA || experiment.registry_id != registry.registry_id {
         return Err("unsupported source-registry experiment identity".to_owned());
     }
     if experiment.source_registry_path
         != "tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-v0.1.json"
+        || experiment.citylearn_source_manifest_path
+            != "tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json"
     {
-        return Err("source-registry fixture path changed".to_owned());
+        return Err("source registry or CityLearn manifest path changed".to_owned());
     }
-    let actual = sha256_hex(bytes);
-    if actual != experiment.source_registry_sha256 {
-        return Err(format!("raw registry SHA-256 mismatch: expected {}, got {actual}", experiment.source_registry_sha256));
+    let actual_registry = sha256_hex(registry_bytes);
+    if actual_registry != experiment.source_registry_sha256 {
+        return Err(format!(
+            "raw registry SHA-256 mismatch: expected {}, got {actual_registry}",
+            experiment.source_registry_sha256
+        ));
     }
+    let actual_manifest = sha256_hex(manifest_bytes);
+    if actual_manifest != experiment.citylearn_source_manifest_sha256 {
+        return Err(format!(
+            "raw CityLearn manifest SHA-256 mismatch: expected {}, got {actual_manifest}",
+            experiment.citylearn_source_manifest_sha256
+        ));
+    }
+
     let status_count = |status: &str| registry.sources.iter().filter(|source| source.status == status).count();
     if experiment.expected_coverage.source_count != registry.sources.len()
         || experiment.expected_coverage.reference_only_not_imported_count != status_count("reference_only_not_imported")
@@ -512,21 +531,41 @@ fn validate_experiment(experiment: &Experiment, registry: &Registry, bytes: &[u8
         || experiment.expected_coverage.qualified_for_benchmark_count != status_count("qualified_for_benchmark")
         || !experiment.claim_ceiling.to_ascii_lowercase().contains("no external dataset")
         || experiment.required_checks.len() != required_checks().len()
-        || required_checks().iter().any(|required| !experiment.required_checks.iter().any(|value| value.as_str() == *required))
+        || required_checks().iter().any(|required| {
+            !experiment.required_checks.iter().any(|value| value.as_str() == *required)
+        })
     {
         return Err("registry status coverage, promotion claim or required check list changed".to_owned());
     }
 
-    let sa = registry.sources.iter().find(|s| s.source_id == "sa_power_supply_reliability_2018_2023").unwrap();
-    let city = registry.sources.iter().find(|s| s.source_id == "citylearn_official_v3_0_2").unwrap();
-    let eskom = registry.sources.iter().find(|s| s.source_id == "eskom_rolling_demand_dashboard").unwrap();
+    let sa = registry.sources.iter()
+        .find(|source| source.source_id == "sa_power_supply_reliability_2018_2023")
+        .ok_or_else(|| "South African source missing from registry".to_owned())?;
+    let city = registry.sources.iter()
+        .find(|source| source.source_id == "citylearn_official_v3_0_2")
+        .ok_or_else(|| "CityLearn source missing from registry".to_owned())?;
+    let eskom = registry.sources.iter()
+        .find(|source| source.source_id == "eskom_rolling_demand_dashboard")
+        .ok_or_else(|| "Eskom source missing from registry".to_owned())?;
+
     if experiment.known_answers.south_african_series_expected_hourly_rows != sa.expected_rows.unwrap_or(0)
         || experiment.known_answers.south_african_series_expected_cadence_seconds != sa.cadence_seconds.unwrap_or(0)
         || experiment.known_answers.citylearn_official_release != city.registry_release.as_deref().unwrap_or("")
         || experiment.known_answers.citylearn_public_dataset_count != 32
-        || experiment.known_answers.removed_citylearn_families.iter().any(|name| !city.removed_dataset_families.iter().any(|v| v == name))
+        || experiment.known_answers.removed_citylearn_families.iter().any(|name| {
+            !city.removed_dataset_families.iter().any(|value| value == name)
+        })
         || experiment.known_answers.eskom_rolling_feed_canonical_benchmark
         || experiment.known_answers.imported_external_bytes != 0
+        || experiment.known_answers.citylearn_selected_dataset_id != manifest.dataset_id
+        || experiment.known_answers.citylearn_source_commit != manifest.source_commit
+        || experiment.known_answers.citylearn_schema_blob_sha1 != manifest.schema_git_blob_sha1
+        || experiment.known_answers.citylearn_referenced_csv_count != manifest.referenced_csv_count
+        || experiment.known_answers.citylearn_simulation_time_steps != manifest.time_steps
+        || experiment.known_answers.citylearn_building_count != manifest.buildings
+        || experiment.known_answers.citylearn_schema_size_bytes != manifest.schema_size_bytes
+        || experiment.known_answers.citylearn_forecast_issue_times_verified
+        || experiment.known_answers.citylearn_dataset_terms_cleared
         || registry.sources.iter().any(|source| source.raw_sha256.is_some() || source.snapshot_url.is_some())
         || registry.sources.iter().any(|source| source.status != "reference_only_not_imported")
         || !limitation_contains(eskom, "rolling export is mutable")
@@ -543,12 +582,19 @@ fn run_fixture() -> Result<Report, String> {
     if sha256_hex(EXPERIMENT_BYTES) != EXPERIMENT_SHA256 {
         return Err("pinned raw experiment bytes changed".to_owned());
     }
+    if sha256_hex(CITYLEARN_MANIFEST_BYTES) != CITYLEARN_MANIFEST_SHA256 {
+        return Err("pinned raw CityLearn manifest bytes changed".to_owned());
+    }
     let registry: Registry = serde_json::from_slice(REGISTRY_BYTES)
         .map_err(|error| format!("registry parse failed: {error}"))?;
     let experiment: Experiment = serde_json::from_slice(EXPERIMENT_BYTES)
         .map_err(|error| format!("experiment parse failed: {error}"))?;
+    let manifest: CityLearnManifest = serde_json::from_slice(CITYLEARN_MANIFEST_BYTES)
+        .map_err(|error| format!("CityLearn manifest parse failed: {error}"))?;
+
     validate_registry(&registry)?;
-    validate_experiment(&experiment, &registry, REGISTRY_BYTES)?;
+    validate_citylearn_manifest(&manifest, &registry)?;
+    validate_experiment(&experiment, &registry, REGISTRY_BYTES, &manifest, CITYLEARN_MANIFEST_BYTES)?;
 
     let mut status_counts = BTreeMap::new();
     let source_results = registry.sources.iter().map(|source| {
@@ -567,16 +613,24 @@ fn run_fixture() -> Result<Report, String> {
     Ok(Report {
         schema_version: "energy-external-benchmark-source-registry-report-v0.1",
         registry_id: registry.registry_id,
-        status: "PASS_SOURCE_DISCOVERY_CONTRACT_ONLY",
+        status: "PASS_SOURCE_DISCOVERY_AND_PINNED_DATASET_MANIFEST_ONLY",
         claim_ceiling: registry.claim_ceiling,
         source_registry_sha256: sha256_hex(REGISTRY_BYTES),
         experiment_fixture_sha256: sha256_hex(EXPERIMENT_BYTES),
+        citylearn_manifest_sha256: sha256_hex(CITYLEARN_MANIFEST_BYTES),
+        citylearn_dataset_id: manifest.dataset_id,
+        citylearn_source_commit: manifest.source_commit,
+        citylearn_schema_git_blob_sha1: manifest.schema_git_blob_sha1,
+        citylearn_source_file_count: manifest.files.len(),
+        citylearn_simulation_time_steps: manifest.time_steps,
+        citylearn_forecast_issue_times_verified: experiment.known_answers.citylearn_forecast_issue_times_verified,
+        citylearn_dataset_terms_cleared: experiment.known_answers.citylearn_dataset_terms_cleared,
         source_count: registry.sources.len(),
         status_counts,
         source_results,
         imported_external_bytes: 0,
         qualified_sources: 0,
-        promotion_gate: "DOWNLOAD_AND_LICENSE_REVIEW_REQUIRED_BEFORE_INGESTION_OR_BENCHMARK_CLAIMS",
+        promotion_gate: "RAW_FILE_SNAPSHOT_AND_LICENSE_REVIEW_REQUIRED_BEFORE_DATASET_INGESTION_OR_BENCHMARK_CLAIMS",
     })
 }
 
@@ -621,6 +675,10 @@ mod tests {
         serde_json::from_slice(REGISTRY_BYTES).unwrap()
     }
 
+    fn manifest() -> CityLearnManifest {
+        serde_json::from_slice(CITYLEARN_MANIFEST_BYTES).unwrap()
+    }
+
     #[test]
     fn frozen_source_registry_known_answers() {
         let report = run_fixture().unwrap();
@@ -630,6 +688,14 @@ mod tests {
         assert_eq!(report.status_counts["reference_only_not_imported"], 3);
         assert_eq!(report.source_results[0].expected_rows, Some(43824));
         assert_eq!(report.source_results[1].status, "reference_only_not_imported");
+        assert_eq!(report.citylearn_dataset_id, CITYLEARN_DATASET_ID);
+        assert_eq!(report.citylearn_source_commit, CITYLEARN_SOURCE_COMMIT);
+        assert_eq!(report.citylearn_schema_git_blob_sha1, CITYLEARN_SCHEMA_BLOB_SHA1);
+        assert_eq!(report.citylearn_source_file_count, 30);
+        assert_eq!(report.citylearn_simulation_time_steps, 8760);
+        assert!(!report.citylearn_forecast_issue_times_verified);
+        assert!(!report.citylearn_dataset_terms_cleared);
+        assert_eq!(report.status, "PASS_SOURCE_DISCOVERY_AND_PINNED_DATASET_MANIFEST_ONLY");
     }
 
     #[test]
@@ -678,7 +744,45 @@ mod tests {
     fn rejects_registry_digest_tampering() {
         let r = registry();
         let e: Experiment = serde_json::from_slice(EXPERIMENT_BYTES).unwrap();
-        assert!(validate_experiment(&e, &r, b"{}").unwrap_err().contains("raw registry SHA-256 mismatch"));
+        let m = manifest();
+        assert!(validate_experiment(&e, &r, b"{}", &m, CITYLEARN_MANIFEST_BYTES)
+            .unwrap_err().contains("raw registry SHA-256 mismatch"));
+    }
+
+
+    #[test]
+    fn validates_all_thirty_citylearn_source_file_identities() {
+        let m = manifest();
+        let r = registry();
+        validate_citylearn_manifest(&m, &r).unwrap();
+        assert_eq!(m.files.len(), 30);
+        assert!(m.files.iter().all(|file| valid_sha1(&file.git_blob_sha1)));
+    }
+
+    #[test]
+    fn rejects_changed_citylearn_schema_blob_or_missing_file() {
+        let mut m = manifest();
+        m.schema_git_blob_sha1 = "0000000000000000000000000000000000000000".to_owned();
+        assert!(validate_citylearn_manifest(&m, &registry()).is_err());
+
+        let mut m = manifest();
+        m.files.pop();
+        m.referenced_csv_count -= 1;
+        assert!(validate_citylearn_manifest(&m, &registry()).is_err());
+    }
+
+    #[test]
+    fn rejects_causal_forecast_claim_without_issue_time_evidence() {
+        let mut m = manifest();
+        m.forecast_issue_time_status = "verified".to_owned();
+        assert!(validate_citylearn_manifest(&m, &registry()).is_err());
+    }
+
+    #[test]
+    fn rejects_a_manifest_with_a_mismatched_immutable_source_url() {
+        let mut m = manifest();
+        m.files[0].immutable_source_url = "https://example.com/Building_1.csv".to_owned();
+        assert!(validate_citylearn_manifest(&m, &registry()).is_err());
     }
 
     #[test]
