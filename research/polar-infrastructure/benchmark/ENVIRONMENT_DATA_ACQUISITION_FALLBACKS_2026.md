@@ -66,7 +66,7 @@ The helper now requires the declared DOI to appear in the opening metaheader. Th
 
 The publisher's June 2025 page identifies the **Baseline Surface Radiation Network License 1.0 (BSRN-1.0)** and asks users to quote the dataset citation. BSRN's official release guidelines say:
 - BSRN data are provided to external users for bona fide research at no cost and the station/dataset must be explicitly acknowledged with the corresponding dataset citation;
-- direct commercial use (selling the data) is forbidden;
+- direct commercial sale of the data is forbidden; this statement alone does not resolve every use of derived values or every commercial product, so review the exact terms for the intended activity;
 - WRMC data from the archive must not be passed to third parties without WRMC agreement, subject to the published-data exception; and
 - when BSRN data are included in a wider release under that exception, they must be identified as BSRN data and information on obtaining the original source must be supplied.
 
@@ -76,7 +76,7 @@ Sources:
 - PANGAEA text-export and content-negotiation guidance: https://wiki.pangaea.de/wiki/Data_Access_and_Reuse
 - PANGAEA text metaheader documentation: https://wiki.pangaea.de/wiki/Metaheader
 
-Do not assume that open source code licenses grant the right to redistribute measurement data or use them commercially. Keep the dataset-specific source artifact external to this repository unless the data-release terms and project use have been checked. Before a commercial deployment or redistribution, obtain the required permission or choose a data source whose license supports the intended use.
+Do not assume that an open source code license grants data redistribution rights or establishes that a particular commercial use is permitted. Keep the dataset-specific source artifact external to this repository unless the data-release terms and project use have been checked. Before a commercial deployment or redistribution, obtain the necessary rights review or permission, or choose a source whose license clearly supports the intended use.
 
 ## 5. Evidence ceiling
 
