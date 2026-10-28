@@ -52,7 +52,8 @@
         "version",
         "classes",
         "thresholds",
-        "note"
+        "note",
+        "random_seeds"
       ],
       "properties": {
         "version": {
@@ -91,6 +92,20 @@
         "note": {
           "type": "string",
           "minLength": 1
+        },
+        "random_seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "random_seeds": {
+          "type": "array",
+          "minItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": "Preregistered seeds used only for the auxiliary uniform-random fixed-space control."
         }
       }
     },
