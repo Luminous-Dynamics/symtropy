@@ -34,10 +34,10 @@ pub enum SequenceGuardError {
 
 /// In-memory monotonic sequence ledger.
 ///
-/// Call check_and_record after semantic/runtime admission and immediately
-/// before dispatch, under the same serialized adapter authority that commits
-/// the dispatch. A successful result must be committed before the request is
-/// handed to the controller. This type alone does not provide atomicity across
+/// Call check_and_record only after authenticating the source session and before
+/// dispatch. The composed evaluator checks sequence before semantic gate evaluation.
+/// A successful result must be serialized with the subsequent dispatch by the
+/// adapter authority. This type alone does not provide atomicity across
 /// threads/processes, durable persistence, transport authentication, or actuation
 /// safety. Do not evict sessions to make room: capacity exhaustion fails closed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
