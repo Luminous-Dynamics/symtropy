@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "glass-pareto-fidelity-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic constrained Pareto/fidelity decision mechanics only; no physical material or industrial performance claim is validated.",
+  "budgets": {
+    "max_cost_units": 5.5,
+    "max_duration_seconds": 9
+  },
+  "objectives": [
+    {
+      "id": "quality",
+      "direction": "maximize",
+      "unit": "normalized_quality"
+    },
+    {
+      "id": "energy",
+      "direction": "minimize",
+      "unit": "synthetic_energy_units"
+    }
+  ],
+  "hard_constraints": [
+    {
+      "id": "qualification",
+      "qualifying_fidelity": "confirmatory",
+      "rule": "must_pass"
+    }
+  ],
+  "reference_point": {
+    "quality": 0,
+    "energy": 10
+  },
+  "random_seed": 17,
+  "candidates": [
+    {
+      "id": "glass-d",
+      "screen_priority": 0.99,
+      "features": [
+        0.9,
+        0.1
+      ]
+    },
+    {
+      "id": "glass-a",
+      "screen_priority": 0.8,
+      "features": [
+        0.1,
+        0.9
+      ]
+    },
+    {
+      "id": "glass-b",
+      "screen_priority": 0.7,
+      "features": [
+        0.4,
+        0.6
+      ]
+    },
+    {
+      "id": "glass-c",
+      "screen_priority": 0.6,
+      "features": [
+        0.8,
+        0.2
+      ]
+    },
+    {
+      "id": "glass-e",
+      "screen_priority": 0.4,
+      "features": [
+        0.5,
+        0.5
+      ]
+    }
+  ]
+}
