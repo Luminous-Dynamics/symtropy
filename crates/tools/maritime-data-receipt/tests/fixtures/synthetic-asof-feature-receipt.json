@@ -1,0 +1,49 @@
+{
+  "schema_id": "luminous.symtropy.maritime.cyport-asof-feature-receipt",
+  "schema_version": "0.1.0",
+  "status": "EVIDENCE_RECEIPT_NOT_FEATURE_APPROVAL",
+  "evidence_scope": "SYNTHETIC_FIXTURE_ONLY",
+  "source_dataset": {
+    "dataset_id": "cyport_us_port_tropical_cyclone_resilience",
+    "revision": "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
+    "resource_path": "Tropical_cyclone_interaction/interaction_data.csv",
+    "git_blob_sha1": "21beb5b7673918143a0ab108b03acc3cccaeb330",
+    "byte_length": 643047,
+    "interaction_id": "SYNTHETIC-ROW-001",
+    "storm_sid": "SYNTHETIC-STORM-001",
+    "port_pid": "SYNTHETIC-PORT-001",
+    "target_start_date": "2022-09-25",
+    "target_date_precision": "DATE_ONLY",
+    "target_timezone_status": "UNVERIFIED"
+  },
+  "decision_cutoff_utc": "2022-09-23T12:30:00Z",
+  "storm_crosswalk_status": "SYNTHETIC_ONLY",
+  "features": [
+    {
+      "feature_name": "synthetic_forecast_wind",
+      "source_kind": "ARCHIVED_FORECAST",
+      "source_uri": "https://example.invalid/synthetic/advisory/20220923T1200Z",
+      "source_revision_or_product_id": "SYNTHETIC-NHC-ADVISORY-001",
+      "artifact_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-asof-forecast.txt",
+      "artifact_sha256": "bbeb00ea2cf63530eb22789c08d9666758726261e7d76d002b34acb919650fae",
+      "artifact_byte_length": 77,
+      "source_publication_time_utc": "2022-09-23T12:00:00Z",
+      "source_retrieval_time_utc": "2026-10-16T12:00:00Z",
+      "feature_available_at_utc": "2022-09-23T12:05:00Z",
+      "valid_start_utc": "2022-09-23T18:00:00Z",
+      "valid_end_utc": "2022-09-26T00:00:00Z",
+      "units": "knots",
+      "value": 42.0,
+      "missing_reason": null,
+      "derivation_id": "synthetic-no-op-v0",
+      "join_method": "SYNTHETIC_EXACT_STORM_PORT_JOIN",
+      "storm_crosswalk_evidence_id": "SYNTHETIC_ONLY",
+      "target_date_semantics_review_id": "NOT_REVIEWED"
+    }
+  ],
+  "claim_ceiling": [
+    "Synthetic fixture only; this is not a real NOAA forecast artifact.",
+    "Metadata and local artifact-byte integrity do not prove that the source row exists or that a historical operator actually saw the product.",
+    "No feature eligibility, lead-time, prediction, causal, physical-truth, or operational-authority claim is authorized."
+  ]
+}
