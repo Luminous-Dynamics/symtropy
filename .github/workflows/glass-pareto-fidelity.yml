@@ -6,6 +6,7 @@ on:
       - "tools/glass-silicon-contract-audit/**"
       - "docs/tech/glass-pareto-fidelity-task-v0.1.schema.json"
       - "docs/tech/glass-pareto-fidelity-oracle-v0.1.schema.json"
+      - "docs/tech/glass-pareto-fidelity-report-v0.1.schema.json"
       - "docs/tech/GLASS_PARETO_FIDELITY_BENCHMARK_V0_1.md"
       - ".github/workflows/glass-pareto-fidelity.yml"
   push:
@@ -15,6 +16,7 @@ on:
       - "tools/glass-silicon-contract-audit/**"
       - "docs/tech/glass-pareto-fidelity-task-v0.1.schema.json"
       - "docs/tech/glass-pareto-fidelity-oracle-v0.1.schema.json"
+      - "docs/tech/glass-pareto-fidelity-report-v0.1.schema.json"
       - "docs/tech/GLASS_PARETO_FIDELITY_BENCHMARK_V0_1.md"
       - ".github/workflows/glass-pareto-fidelity.yml"
 
