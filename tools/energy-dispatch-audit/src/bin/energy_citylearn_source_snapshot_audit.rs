@@ -10,7 +10,7 @@ use std::{env, fs, path::Path, process::Command};
 const MANIFEST_BYTES: &[u8] =
     include_bytes!("../../fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json");
 const MANIFEST_SHA256: &str =
-    "bd5086f66e47b400a1e37b4f6a6b5fffeabe02bf2c3a7a7c001c108813efe657";
+    "d35ad5e750032a4b24e797b856dc3984fb8401cb5943debc3660a49e63e7145d";
 const SOURCE_COMMIT: &str = "834575c1a0194c8ae9d648ae858376a94dfceb78";
 const DATASET_ID: &str = "citylearn_challenge_2022_phase_all_plus_evs";
 const DATASET_ROOT: &str = "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/";
@@ -21,6 +21,10 @@ fn sha256_hex(bytes: &[u8]) -> String {
 
 fn valid_sha1(value: &str) -> bool {
     value.len() == 40 && value.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64 && value.chars().all(|c| c.is_ascii_hexdigit())
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -53,6 +57,7 @@ struct ManifestFile {
     git_blob_sha1: String,
     size_bytes: usize,
     data_rows: usize,
+    raw_sha256: String,
     immutable_source_url: String,
 }
 
@@ -83,7 +88,7 @@ struct Report {
     schema_git_blob_identity_verified: bool,
     schema_csv_reference_count: usize,
     schema_csv_references_match_manifest: bool,
-    source_file_git_blob_identities_verified: bool
+    source_file_git_blob_identities_verified: bool,
     raw_sha256_receipts_generated: bool,
     dataset_terms_cleared: bool,
     forecast_issue_times_verified: bool,
@@ -156,6 +161,7 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
             || entry.path.contains("..")
             || !paths.insert(entry.path.as_str())
             || !valid_sha1(&entry.git_blob_sha1)
+            || !valid_sha256(&entry.raw_sha256)
             || entry.size_bytes == 0
             || entry.data_rows == 0
         {
@@ -293,6 +299,10 @@ fn verify_snapshot(root: &Path) -> Result<Report, String> {
         if data_rows != entry.data_rows {
             return Err(format!("row count mismatch for {}: expected {}, got {}", entry.path, entry.data_rows, data_rows));
         }
+        let actual_sha256 = sha256_hex(&bytes);
+        if actual_sha256 != entry.raw_sha256 {
+            return Err(format!("raw SHA-256 mismatch for {}: expected {}, got {}", entry.path, entry.raw_sha256, actual_sha256));
+        }
         total_bytes = total_bytes.checked_add(bytes.len())
             .ok_or_else(|| "source byte total overflow".to_owned())?;
         receipts.push(FileReceipt {
@@ -300,7 +310,7 @@ fn verify_snapshot(root: &Path) -> Result<Report, String> {
             git_blob_sha1: entry.git_blob_sha1.clone(),
             size_bytes: bytes.len(),
             data_rows,
-            sha256: sha256_hex(&bytes),
+            sha256: actual_sha256,
         });
     }
 
@@ -322,7 +332,7 @@ fn verify_snapshot(root: &Path) -> Result<Report, String> {
         schema_csv_reference_count: schema_csv_references.len(),
         schema_csv_references_match_manifest: schema_csv_references == manifest_csv_references,
         source_file_git_blob_identities_verified: receipts.len() == manifest.referenced_csv_count,
-        raw_sha256_receipts_generated: receipts.len() == 30 && receipts.iter().all(|receipt| valid_sha1(&receipt.git_blob_sha1) && receipt.sha256.len() == 64),
+        raw_sha256_receipts_generated: receipts.len() == 30 && receipts.iter().all(|receipt| valid_sha1(&receipt.git_blob_sha1) && valid_sha256(&receipt.sha256)),
         dataset_terms_cleared: false,
         forecast_issue_times_verified: false,
         source_bytes_committed_to_symtropy: false,
@@ -411,6 +421,13 @@ mod tests {
 
         let mut manifest: Manifest = serde_json::from_slice(MANIFEST_BYTES).unwrap();
         manifest.dataset_license_status = "rights_reviewed_and_cleared".to_owned();
+        assert!(validate_manifest(&manifest).is_err());
+    }
+
+    #[test]
+    fn rejects_manifest_with_mismatched_raw_sha256() {
+        let mut manifest: Manifest = serde_json::from_slice(MANIFEST_BYTES).unwrap();
+        manifest.files[0].raw_sha256 = "0".repeat(64);
         assert!(validate_manifest(&manifest).is_err());
     }
 }
