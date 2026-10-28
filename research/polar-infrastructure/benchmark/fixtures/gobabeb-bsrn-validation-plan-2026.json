@@ -179,14 +179,36 @@
         "wind_speed_direction",
         "relative_humidity",
         "soil_temperature",
-        "radiation_sensor_listed_in_station_datasheet"
+        "leaf_wetness_on_hourly_view"
       ],
-      "temporal_coverage_note": "Indexed data sheet reports daily availability from 2014-10-04 through 2023-01-04; a September 2026 page shows extensive missing values.",
+      "temporal_coverage_note": "Publisher station listing reports daily availability from 2014-10-04 through 2023-01-04. A publisher-rendered 2022-07-27 hourly table reports 24 data records and no missing hours; a Jan 2023 daily table shows data only for Jan 1–4, with Jan 5–31 missing. These are inspected page examples, not a full coverage audit.",
       "license_status": "unknown_not_admitted",
       "data_completeness_status": "unverified",
       "evidence_class": "measured_field_candidate",
       "admission_status": "candidate_not_admitted",
-      "limitation": "The station datasheet lists a Campbell NR-Lite radiation sensor; an accessible daily table does not establish the exact radiation output field, usable hourly coverage, calibration/QA, or data rights. Use as a candidate for local fog/meteorology and potentially radiation only after the actual export and terms are reviewed."
+      "limitation": "Candidate for measured-field fog/meteorology, subject to license, completeness and quality review. Do not use for radiation comparison: current publisher hourly pages say the solar sensor is not installed, and an older datasheet signal is contradictory. The visible pages provide examples but not a validated source artifact.",
+      "current_radiation_status": "publisher hourly pages explicitly state 'Solar: sensor not installed at this station'; an older station sheet may list a radiation sensor, so current/historical sensor provenance is conflicting and no irradiation field is admitted.",
+      "known_page_examples": [
+        {
+          "url": "https://www.sasscalweathernet.org/weatherstat_hourly_we.php?date_crit_daily=2022-07-27&loggerid_crit=8893",
+          "reported_hourly_records": 24,
+          "reported_missing_hours": "none",
+          "radiation_note": "sensor not installed at this station",
+          "status": "publisher_page_inspected_not_raw_file_ingested"
+        },
+        {
+          "url": "https://www.sasscalweathernet.org/weatherstat_daily_we.php?loggerid_crit=8893&yrmth_crit=2023-01",
+          "reported_valid_dates": [
+            "2023-01-01",
+            "2023-01-02",
+            "2023-01-03",
+            "2023-01-04"
+          ],
+          "dates_blank_through": "2023-01-31",
+          "radiation_note": "daily solar irradiance cannot be calculated because no hourly values are available",
+          "status": "publisher_page_inspected_not_raw_file_ingested"
+        }
+      ]
     },
     {
       "source_id": "noaa_ncei_ghcnh_or_isd",
