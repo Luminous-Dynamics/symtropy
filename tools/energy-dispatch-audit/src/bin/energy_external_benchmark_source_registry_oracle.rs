@@ -426,7 +426,7 @@ fn validate_citylearn_manifest(
         .collect();
     let root = "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/";
     let mut paths = BTreeSet::new();
-    let mut basenames = BTreeSet::new();
+    let mut basenames: BTreeSet<String> = BTreeSet::new();
     for file in &manifest.files {
         if !file.path.starts_with(root)
             || file.path.contains("..")
@@ -436,7 +436,7 @@ fn validate_citylearn_manifest(
         }
         let basename = file.path.strip_prefix(root).unwrap_or_default();
         if basename.contains('/')
-            || !basenames.insert(basename)
+            || !basenames.insert(basename.to_owned())
             || !valid_sha1(&file.git_blob_sha1)
             || file.size_bytes == 0
             || file.data_rows == 0
