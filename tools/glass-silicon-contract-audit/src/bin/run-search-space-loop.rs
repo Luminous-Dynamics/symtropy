@@ -1580,6 +1580,31 @@ mod tests {
 
 
     #[test]
+    fn uniform_random_action_is_invariant_to_unobserved_oracle_changes() {
+        let (public, oracle) = values();
+        let original = run_env(&public, &oracle, "helpful", "uniform_random_fixed_space");
+        let original_events = original["events"].as_array().unwrap();
+        let first_id = original_events[0]["candidate_family_id"].as_str().unwrap();
+        let next_id = original_events[1]["candidate_family_id"].as_str().unwrap();
+
+        let mut mutated_oracle = oracle.clone();
+        let env = mutated_oracle["environments"].as_array_mut().unwrap()
+            .iter_mut().find(|e| e["environment_id"] == "helpful").unwrap();
+        let outcome = env["outcomes"].as_array_mut().unwrap()
+            .iter_mut().find(|o| o["candidate_family_id"] == next_id).unwrap();
+        outcome["feasible"] = json!(!outcome["feasible"].as_bool().unwrap());
+        outcome["utility"] = json!(9.75);
+
+        let mutated = run_env(&public, &mutated_oracle, "helpful", "uniform_random_fixed_space");
+        let mutated_events = mutated["events"].as_array().unwrap();
+        assert_eq!(mutated_events[0]["candidate_family_id"], first_id);
+        assert_eq!(mutated_events[1]["candidate_family_id"], next_id);
+        assert_eq!(mutated_events[1]["decision_view_sha256"], original_events[1]["decision_view_sha256"]);
+        assert_ne!(mutated_events[1]["observed_outcome"], original_events[1]["observed_outcome"]);
+    }
+
+
+    #[test]
     fn auxiliary_uniform_random_baseline_is_included_and_independently_replayed() {
         let report = run_all(PUBLIC, ORACLE);
         assert_eq!(report["status"], "PASS");
