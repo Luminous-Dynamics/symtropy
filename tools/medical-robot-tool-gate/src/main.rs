@@ -1783,7 +1783,12 @@ mod tests {
             .any(|finding| finding == "URDF_COLLISION_SHAPE_UNSUPPORTED"));
 
         let mut unsafe_name = morphology();
-        unsafe_name["links"][0]["link_id"] = json!("base chassis");
+        unsafe_name["links"][12]["link_id"] = json!("left tool mount");
+        unsafe_name["joints"][11]["child_link"] = json!("left tool mount");
+        assert!(
+            validate_morphology(&unsafe_name).is_empty(),
+            "unsafe names are permitted by the graph contract so the URDF boundary can reject them"
+        );
         assert!(export_urdf(&unsafe_name)
             .expect_err("non-token link name blocks export")
             .iter()
