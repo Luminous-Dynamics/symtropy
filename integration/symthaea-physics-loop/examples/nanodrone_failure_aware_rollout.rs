@@ -339,6 +339,7 @@ struct ValidatedData {
     starts: Vec<StartRow>,
     flights: Vec<String>,
     seeds: Vec<u64>,
+    input_csv_sha256: String,
 }
 
 fn validate_complete_grid(
