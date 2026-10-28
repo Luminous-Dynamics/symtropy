@@ -735,6 +735,58 @@ fn main() {
 mod tests {
     use super::*;
 
+    fn test_args() -> Args {
+        Args {
+            input: PathBuf::new(), checkpoints: PathBuf::new(), train_families: PathBuf::new(),
+            dataset_receipt_sha256: "a".repeat(64), model_manifest_sha256: "b".repeat(64),
+            source_commit: "c".repeat(40), training_seeds: vec![101, 102], branch_seeds: vec![11, 12],
+            interventions: vec!["continue".into(), "robust_fallback".into()],
+            max_tracking_rmse_m: 0.5, recoverability_threshold: 0.5,
+            bootstrap_replicates: 50, bootstrap_seed: 17, evidence_class: "synthetic".into(),
+            output: None,
+        }
+    }
+
+    fn fixture_inputs() -> (Vec<CheckpointRow>, Vec<BranchRow>, BTreeSet<String>) {
+        let mut checkpoints = Vec::new();
+        let mut branches = Vec::new();
+        for (idx, (family, flight, regime)) in [
+            ("family-a", "flight-a", "nominal"),
+            ("family-b", "flight-b", "shifted"),
+        ].into_iter().enumerate() {
+            for checkpoint_time_s in [1.0, 2.0] {
+                checkpoints.push(CheckpointRow {
+                    family_id: family.into(), flight_id: flight.into(), rollout_start_id: "start-1".into(),
+                    regime: regime.into(), checkpoint_time_s,
+                });
+                for training_seed in [101, 102] {
+                    let snapshot = format!("{:064x}", 1000 + idx as u64 * 100 + checkpoint_time_s as u64 * 10 + training_seed);
+                    for intervention_id in ["continue", "robust_fallback"] {
+                        for branch_seed in [11, 12] {
+                            let tape = format!("{:064x}", 100_000 + idx as u64 * 1000 + checkpoint_time_s as u64 * 100 + training_seed + branch_seed);
+                            branches.push(BranchRow {
+                                family_id: family.into(), flight_id: flight.into(), rollout_start_id: "start-1".into(),
+                                regime: regime.into(), checkpoint_time_s, training_seed,
+                                intervention_id: intervention_id.into(), branch_seed,
+                                state_snapshot_sha256: snapshot.clone(), exogenous_tape_sha256: tape,
+                                restore_verified: true, status: "ok".into(), mission_completed: true,
+                                boundary_violation_count: 0, tracking_rmse_m: Some(0.2),
+                                energy_wh: Some(1.0), deadline_misses: 0,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        (checkpoints, branches, BTreeSet::from(["train-only-family".to_string()]))
+    }
+
+    fn validate_fixture(
+        args: &Args, checkpoints: Vec<CheckpointRow>, branches: Vec<BranchRow>, train: BTreeSet<String>,
+    ) -> Result<Validated, String> {
+        validate_inputs(args, checkpoints, branches, train, "d".repeat(64), "e".repeat(64), "f".repeat(64))
+    }
+
     #[test]
     fn wilson_lower_bound_rejects_tiny_sample_claims() {
         assert!(wilson_lower_one_sided(4, 4) > 0.5);
@@ -759,6 +811,50 @@ mod tests {
         failed.mission_completed = false;
         failed.tracking_rmse_m = None;
         assert!(!is_success(&failed, 0.5));
+    }
+
+    #[test]
+    fn complete_paired_branch_grid_is_accepted() {
+        let args = test_args();
+        let (checkpoints, branches, train) = fixture_inputs();
+        let validated = validate_fixture(&args, checkpoints, branches, train).unwrap();
+        assert_eq!(validated.branches.len(), 32);
+        assert_eq!(validated.families.len(), 2);
+        assert_eq!(validated.training_seeds.len(), 2);
+    }
+
+    #[test]
+    fn missing_branch_is_rejected() {
+        let args = test_args();
+        let (checkpoints, mut branches, train) = fixture_inputs();
+        branches.pop();
+        assert!(validate_fixture(&args, checkpoints, branches, train).unwrap_err().contains("incomplete branch grid"));
+    }
+
+    #[test]
+    fn intervention_with_different_snapshot_is_rejected() {
+        let args = test_args();
+        let (checkpoints, mut branches, train) = fixture_inputs();
+        let row = branches.iter_mut().find(|b| b.intervention_id == "robust_fallback" && b.training_seed == 101 && b.checkpoint_time_s == 1.0 && b.branch_seed == 11).unwrap();
+        row.state_snapshot_sha256 = "9".repeat(64);
+        assert!(validate_fixture(&args, checkpoints, branches, train).unwrap_err().contains("same pre-action state snapshot"));
+    }
+
+    #[test]
+    fn intervention_with_different_disturbance_tape_is_rejected() {
+        let args = test_args();
+        let (checkpoints, mut branches, train) = fixture_inputs();
+        let row = branches.iter_mut().find(|b| b.intervention_id == "robust_fallback" && b.training_seed == 101 && b.checkpoint_time_s == 1.0 && b.branch_seed == 11).unwrap();
+        row.exogenous_tape_sha256 = "9".repeat(64);
+        assert!(validate_fixture(&args, checkpoints, branches, train).unwrap_err().contains("same registered exogenous disturbance tape"));
+    }
+
+    #[test]
+    fn evaluation_family_in_training_manifest_is_rejected() {
+        let args = test_args();
+        let (checkpoints, branches, mut train) = fixture_inputs();
+        train.insert("family-a".into());
+        assert!(validate_fixture(&args, checkpoints, branches, train).unwrap_err().contains("also appears in training-family manifest"));
     }
 
     #[test]
