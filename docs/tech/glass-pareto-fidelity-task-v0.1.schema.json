@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/glass-pareto-fidelity-task-v0.1.schema.json",
+  "title": "Glass–Silicon constrained Pareto fidelity task v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "budgets",
+    "objectives",
+    "hard_constraints",
+    "reference_point",
+    "random_seed",
+    "candidates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "glass-pareto-fidelity-synthetic-v0-1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_cost_units",
+        "max_duration_seconds"
+      ],
+      "properties": {
+        "max_cost_units": {
+          "const": 5.5
+        },
+        "max_duration_seconds": {
+          "const": 9
+        }
+      }
+    },
+    "objectives": {
+      "const": [
+        {
+          "id": "quality",
+          "direction": "maximize",
+          "unit": "normalized_quality"
+        },
+        {
+          "id": "energy",
+          "direction": "minimize",
+          "unit": "synthetic_energy_units"
+        }
+      ]
+    },
+    "hard_constraints": {
+      "const": [
+        {
+          "id": "qualification",
+          "qualifying_fidelity": "confirmatory",
+          "rule": "must_pass"
+        }
+      ]
+    },
+    "reference_point": {
+      "const": {
+        "quality": 0,
+        "energy": 10
+      }
+    },
+    "random_seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "screen_priority",
+          "features"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "screen_priority": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "features": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  }
+}

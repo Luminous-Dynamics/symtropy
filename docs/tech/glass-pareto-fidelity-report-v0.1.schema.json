@@ -1,0 +1,408 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/glass-pareto-fidelity-report-v0.1.schema.json",
+  "title": "Glass–Silicon constrained Pareto fidelity campaign report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "audit_kind",
+    "benchmark_id",
+    "input_sha256",
+    "oracle_sha256",
+    "environment_count",
+    "policy_count",
+    "campaigns_checked",
+    "campaigns",
+    "findings",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNRESOLVED"
+      ]
+    },
+    "audit_kind": {
+      "const": "synthetic_constrained_pareto_fidelity_event_loop"
+    },
+    "benchmark_id": {
+      "const": "glass-pareto-fidelity-synthetic-v0-1"
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "oracle_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "environment_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3
+    },
+    "policy_count": {
+      "const": 4
+    },
+    "campaigns_checked": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 12
+    },
+    "campaigns": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "environment_id",
+          "policy_class",
+          "events",
+          "findings",
+          "evaluations",
+          "screen_evaluations",
+          "confirmatory_evaluations",
+          "accepted_feasible_candidates",
+          "confirmed_infeasible_candidates",
+          "observed_pareto_candidate_ids",
+          "true_pareto_candidate_ids",
+          "observed_hypervolume",
+          "oracle_hypervolume",
+          "hypervolume_regret",
+          "pareto_recall",
+          "cost_units_charged",
+          "duration_seconds_charged",
+          "claim_ceiling",
+          "terminal_disposition"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "UNRESOLVED"
+            ]
+          },
+          "environment_id": {
+            "enum": [
+              "informative",
+              "neutral",
+              "misleading_low_fidelity"
+            ]
+          },
+          "policy_class": {
+            "enum": [
+              "confirmatory_priority",
+              "screen_then_confirm",
+              "screen_only",
+              "random_confirmatory"
+            ]
+          },
+          "events": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_seq",
+                "candidate_id",
+                "fidelity",
+                "decision_view_sha256",
+                "cost_units_charged",
+                "duration_seconds_charged",
+                "observed_result"
+              ],
+              "properties": {
+                "event_seq": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 16
+                },
+                "candidate_id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$"
+                },
+                "fidelity": {
+                  "enum": [
+                    "screen",
+                    "confirmatory"
+                  ]
+                },
+                "decision_view_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "cost_units_charged": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "duration_seconds_charged": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "observed_result": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "additionalProperties": false,
+                  "required": [
+                    "objectives",
+                    "constraint_results"
+                  ],
+                  "properties": {
+                    "objectives": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "quality",
+                        "energy"
+                      ],
+                      "properties": {
+                        "quality": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "energy": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "constraint_results": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "qualification"
+                      ],
+                      "properties": {
+                        "qualification": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "fidelity": {
+                        "const": "screen"
+                      }
+                    },
+                    "required": [
+                      "fidelity"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_result": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "constraint_results"
+                            ],
+                            "properties": {
+                              "constraint_results": {
+                                "type": "null"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "fidelity": {
+                        "const": "confirmatory"
+                      }
+                    },
+                    "required": [
+                      "fidelity"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_result": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "constraint_results"
+                            ],
+                            "properties": {
+                              "constraint_results": {
+                                "type": "object",
+                                "required": [
+                                  "qualification"
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "code",
+                "detail"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "detail": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "evaluations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "screen_evaluations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "confirmatory_evaluations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "accepted_feasible_candidates": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "confirmed_infeasible_candidates": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "observed_pareto_candidate_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "true_pareto_candidate_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "observed_hypervolume": {
+            "type": "number",
+            "minimum": 0
+          },
+          "oracle_hypervolume": {
+            "type": "number",
+            "minimum": 0
+          },
+          "hypervolume_regret": {
+            "type": "number",
+            "minimum": 0
+          },
+          "pareto_recall": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "cost_units_charged": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5.5
+          },
+          "duration_seconds_charged": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 9
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 1
+          },
+          "terminal_disposition": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "detail"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
