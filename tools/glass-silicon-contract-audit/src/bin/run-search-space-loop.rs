@@ -1773,11 +1773,23 @@ fn audit_budget_frontier(lanes: &[(&[u8], &[u8])], oracle_raw: &[u8]) -> Value {
                     _ => None
                 }
             };
+            let gp_delta = delta(best_utility, gp_ei_utility);
+            let fixed_delta = delta(best_utility, fixed_utility);
+            let random_delta = delta(best_utility, random_mean);
+            let discovery_status = if best_utility.is_some() {
+                "VERIFIED_FEASIBLE_FOUND"
+            } else {
+                "NO_VERIFIED_FEASIBLE_CANDIDATE_FOUND"
+            };
+            let comparison_status = |value: Option<f64>| {
+                if value.is_some() { "COMPARABLE" } else { "UNRESOLVED_NO_VERIFIED_UTILITY" }
+            };
             let cost = episode.get("cost_units_charged").and_then(Value::as_f64);
             metrics.push(json!({
                 "budget_units": budget,
                 "environment_id": environment,
                 "policy_class": policy,
+                "feasible_discovery_status": discovery_status,
                 "best_verified_feasible_utility": best_utility,
                 "terminal_simple_regret": episode.get("terminal_simple_regret").cloned().unwrap_or(Value::Null),
                 "utility_per_charged_unit": match (best_utility, cost) {
@@ -1789,9 +1801,12 @@ fn audit_budget_frontier(lanes: &[(&[u8], &[u8])], oracle_raw: &[u8]) -> Value {
                 "expansions": episode.get("expansions").cloned().unwrap_or(Value::Null),
                 "evaluations": episode.get("evaluations").cloned().unwrap_or(Value::Null),
                 "cost_units_charged": cost,
-                "delta_utility_vs_gp_ei": delta(best_utility, gp_ei_utility),
-                "delta_utility_vs_fixed_space": delta(best_utility, fixed_utility),
-                "delta_utility_vs_seeded_random_mean": delta(best_utility, random_mean)
+                "delta_utility_vs_gp_ei": gp_delta,
+                "gp_ei_comparison_status": comparison_status(gp_delta),
+                "delta_utility_vs_fixed_space": fixed_delta,
+                "fixed_space_comparison_status": comparison_status(fixed_delta),
+                "delta_utility_vs_seeded_random_mean": random_delta,
+                "seeded_random_comparison_status": comparison_status(random_delta)
             }));
         }
     }
@@ -1812,21 +1827,37 @@ fn audit_budget_frontier(lanes: &[(&[u8], &[u8])], oracle_raw: &[u8]) -> Value {
                     _ => value.abs() <= 1e-9
                 }).count()
             };
+            let gp_unresolved_environments = rows.iter()
+                .filter(|row| row.get("delta_utility_vs_gp_ei").and_then(Value::as_f64).is_none())
+                .filter_map(|row| row.get("environment_id").and_then(Value::as_str).map(str::to_owned))
+                .collect::<Vec<_>>();
+            let random_unresolved_environments = rows.iter()
+                .filter(|row| row.get("delta_utility_vs_seeded_random_mean").and_then(Value::as_f64).is_none())
+                .filter_map(|row| row.get("environment_id").and_then(Value::as_str).map(str::to_owned))
+                .collect::<Vec<_>>();
             let minimum_gp_delta = gp_deltas.iter().copied().reduce(f64::min);
             let minimum_random_delta = random_deltas.iter().copied().reduce(f64::min);
+            // Do not silently drop a regime where no verified feasible utility exists.
+            // A worst-case delta is only reported when every environment is comparable.
             frontier.push(json!({
                 "budget_units": budget,
                 "policy_class": policy,
                 "environment_count": rows.len(),
+                "gp_ei_comparable_environment_count": gp_deltas.len(),
+                "gp_ei_unresolved_environment_count": gp_unresolved_environments.len(),
+                "gp_ei_unresolved_environments": gp_unresolved_environments,
                 "gp_ei_better_environments": count(&gp_deltas, "better"),
                 "gp_ei_tied_environments": count(&gp_deltas, "tie"),
                 "gp_ei_worse_environments": count(&gp_deltas, "worse"),
-                "worst_environment_delta_vs_gp_ei": minimum_gp_delta.map_or(Value::Null, |value| json!(value)),
+                "worst_environment_delta_vs_gp_ei": if gp_unresolved_environments.is_empty() { minimum_gp_delta.map_or(Value::Null, |value| json!(value)) } else { Value::Null },
+                "seeded_random_comparable_environment_count": random_deltas.len(),
+                "seeded_random_unresolved_environment_count": random_unresolved_environments.len(),
+                "seeded_random_unresolved_environments": random_unresolved_environments,
                 "seeded_random_better_environments": count(&random_deltas, "better"),
                 "seeded_random_tied_environments": count(&random_deltas, "tie"),
                 "seeded_random_worse_environments": count(&random_deltas, "worse"),
-                "worst_environment_delta_vs_seeded_random_mean": minimum_random_delta.map_or(Value::Null, |value| json!(value)),
-                "claim_ceiling": "Environment-stratified synthetic comparison only; no cross-regime pooled winner is declared."
+                "worst_environment_delta_vs_seeded_random_mean": if random_unresolved_environments.is_empty() { minimum_random_delta.map_or(Value::Null, |value| json!(value)) } else { Value::Null },
+                "claim_ceiling": "Environment-stratified synthetic comparison only; unresolved utility comparisons are explicit and invalidate a worst-case delta."
             }));
         }
     }
@@ -2313,6 +2344,19 @@ mod tests {
         }).unwrap();
         assert_eq!(helpful_four_unit["best_verified_feasible_utility"], 8.0);
         assert_eq!(helpful_four_unit["delta_utility_vs_gp_ei"].as_f64().is_some(), true);
+        assert_eq!(helpful_four_unit["gp_ei_comparison_status"], "COMPARABLE");
+
+        let frontier = scorecard["policy_frontier"].as_array().unwrap();
+        let static_four_unit = frontier.iter().find(|row| {
+            row["budget_units"] == 4.0 && row["policy_class"] == "static_prior_expansion"
+        }).unwrap();
+        assert!(static_four_unit["gp_ei_unresolved_environment_count"].as_u64().unwrap() > 0);
+        assert!(static_four_unit["worst_environment_delta_vs_gp_ei"].is_null());
+        assert_eq!(
+            static_four_unit["gp_ei_comparable_environment_count"].as_u64().unwrap()
+                + static_four_unit["gp_ei_unresolved_environment_count"].as_u64().unwrap(),
+            4
+        );
     }
 
     #[test]
