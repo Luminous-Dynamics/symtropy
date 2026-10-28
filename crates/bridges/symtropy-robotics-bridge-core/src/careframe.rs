@@ -105,8 +105,8 @@ struct MorphologyJoint {
     joint_type: String,
     origin_m: [f64; 3],
     axis_xyz: [f64; 3],
-    lower_limit_rad: f64,
-    upper_limit_rad: f64,
+    lower_limit_rad: Option<f64>,
+    upper_limit_rad: Option<f64>,
     max_effort_nm: f64,
     max_velocity_rad_s: f64,
     command_enabled: bool,
@@ -324,8 +324,8 @@ fn validate_morphology(model: &CareframeMorphology) -> Result<(), Vec<String>> {
         match joint.joint_type.as_str() {
             "fixed" => {
                 if joint.axis_xyz.iter().any(|axis| axis.abs() > 1.0e-8)
-                    || joint.lower_limit_rad != 0.0
-                    || joint.upper_limit_rad != 0.0
+                    || joint.lower_limit_rad != Some(0.0)
+                    || joint.upper_limit_rad != Some(0.0)
                     || joint.max_effort_nm != 0.0
                     || joint.max_velocity_rad_s != 0.0
                 {
@@ -337,13 +337,32 @@ fn validate_morphology(model: &CareframeMorphology) -> Result<(), Vec<String>> {
                 if !finite_vec3(&joint.axis_xyz) || (norm - 1.0).abs() > 1.0e-3 {
                     findings.insert("MORPHOLOGY_REVOLUTE_AXIS_INVALID".to_owned());
                 }
-                if !joint.lower_limit_rad.is_finite()
-                    || !joint.upper_limit_rad.is_finite()
-                    || !(-50.0..=50.0).contains(&joint.lower_limit_rad)
-                    || !(-50.0..=50.0).contains(&joint.upper_limit_rad)
-                    || joint.lower_limit_rad >= joint.upper_limit_rad
+                if joint.lower_limit_rad.is_none_or(|lower| {
+                    !lower.is_finite() || !(-50.0..=50.0).contains(&lower)
+                }) || joint.upper_limit_rad.is_none_or(|upper| {
+                    !upper.is_finite() || !(-50.0..=50.0).contains(&upper)
+                }) || joint
+                    .lower_limit_rad
+                    .zip(joint.upper_limit_rad)
+                    .is_none_or(|(lower, upper)| lower >= upper)
                 {
                     findings.insert("MORPHOLOGY_REVOLUTE_LIMITS_INVALID".to_owned());
+                }
+                if !joint.max_effort_nm.is_finite()
+                    || !(0.001..=1000.0).contains(&joint.max_effort_nm)
+                    || !joint.max_velocity_rad_s.is_finite()
+                    || !(0.001..=20.0).contains(&joint.max_velocity_rad_s)
+                {
+                    findings.insert("MORPHOLOGY_JOINT_ENVELOPE_INVALID".to_owned());
+                }
+            }
+            "continuous" => {
+                let norm = joint.axis_xyz.iter().map(|axis| axis * axis).sum::<f64>().sqrt();
+                if !finite_vec3(&joint.axis_xyz) || (norm - 1.0).abs() > 1.0e-3 {
+                    findings.insert("MORPHOLOGY_CONTINUOUS_AXIS_INVALID".to_owned());
+                }
+                if joint.lower_limit_rad.is_some() || joint.upper_limit_rad.is_some() {
+                    findings.insert("MORPHOLOGY_CONTINUOUS_JOINT_HAS_POSITION_LIMITS".to_owned());
                 }
                 if !joint.max_effort_nm.is_finite()
                     || !(0.001..=1000.0).contains(&joint.max_effort_nm)
