@@ -38,6 +38,10 @@ SOURCE_URL=$9
 
 START_ISO="${START:0:4}-${START:4:2}-${START:6:2}"
 END_ISO="${END:0:4}-${END:4:2}-${END:6:2}"
+# Requested end date is inclusive. The time axis stores the matching half-open
+# interval [start, midnight after end), so N daily rows span exactly N days.
+END_EXCLUSIVE_ISO=$(date -u -d "$END_ISO + 1 day" +%F 2>/dev/null || true)
+[[ -n "$END_EXCLUSIVE_ISO" ]] || { echo "could not compute exclusive end date" >&2; exit 2; }
 [[ "$(date -u -d "$START_ISO" +%Y%m%d 2>/dev/null || true)" == "$START" ]] || { echo "invalid start date" >&2; exit 2; }
 [[ "$(date -u -d "$END_ISO" +%Y%m%d 2>/dev/null || true)" == "$END" ]] || { echo "invalid end date" >&2; exit 2; }
 
@@ -156,7 +160,7 @@ OBSERVED_COUNT=$(jq --argjson fill "$FILL_VALUE" '
   .properties.parameter as $p |
   ($p.T2M | keys | sort) as $dates |
   [$dates[] as $d |
-    select(all([$p.T2M[$d],$p.T2M_MAX[$d],$p.T2M_MIN[$d],$p.ALLSKY_SFC_SW_DWN[$d],$p.WS10M[$d],$p.PRECTOTCORR[$d],$p.RH2M[$d]][];
+    select(all([$p.T2M[$d],$p.T2M_MAX[$d],$p.T2M_MIN[$d],$p.ALLSKY_SFC_SW_DWN[$d],$p.WS10M[$d],$p.PRECTOTCORR[$d]][];
       . != null and . != $fill
     ))
   ] | length
@@ -172,6 +176,8 @@ LON_NUM=$(jq -n --arg x "$LON" '$x|tonumber')
 ELEVATION=$(jq -r '.geometry.coordinates[2] // empty' "$RAW_COPY")
 DATASET_TITLE=$(jq -r '.header.title // "NASA POWER daily point data"' "$RAW_COPY")
 DATASET_VERSION=$(jq -r '.header.api.version // "not_reported_in_response"' "$RAW_COPY")
+DATA_LAT=$(jq -r '.geometry.coordinates[1]' "$RAW_COPY")
+DATA_LON=$(jq -r '.geometry.coordinates[0]' "$RAW_COPY")
 API_SOURCES=$(jq -r '.header.sources // [] | join(", ")' "$RAW_COPY")
 PROCESSING_REVISION=$(git rev-parse HEAD 2>/dev/null || true)
 [[ -n "$PROCESSING_REVISION" ]] || PROCESSING_REVISION="unavailable_outside_git_checkout"
@@ -188,15 +194,25 @@ jq -n \
   --argjson expected "$EXPECTED_COUNT" \
   --arg retrieved_at "$RETRIEVED_AT" \
   --arg api_sources "$API_SOURCES" \
+  --arg data_title "$DATASET_TITLE" \
+  --arg dataset_version "$DATASET_VERSION" \
+  --arg data_lat "$DATA_LAT" \
+  --arg data_lon "$DATA_LON" \
+  --argjson expected "$EXPECTED_COUNT" \
+  --arg retrieved_at "$RETRIEVED_AT" \
   '{
     schema_version:"0.1.0",
     provider:"NASA POWER",
-    dataset_title:"'"${DATASET_TITLE}"'",
-    dataset_version:"'"${DATASET_VERSION}"'",
+    dataset_title:$data_title,
+    dataset_version:$dataset_version,
     source_sources:$api_sources,
     profile_id:$profile,
     location_label:$location,
-    request:{latitude:($lat|tonumber),longitude:($lon|tonumber),start:$start,end:$end,timezone:"UTC",parameters:($parameters|split(" "))},
+    request:{
+      requested_latitude:($lat|tonumber),requested_longitude:($lon|tonumber),
+      response_geometry_latitude:($data_lat|tonumber),response_geometry_longitude:($data_lon|tonumber),
+      start_inclusive:$start,end_inclusive:$end,timezone:"UTC",parameters:($parameters|split(" "))
+    },
     source_url:$url,
     requested_daily_sample_count:$expected,
     retrieved_at_utc:$retrieved_at,
@@ -223,10 +239,10 @@ fi
 jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-template-2026.json" \
    --arg profile "$PROFILE_ID" \
    --arg location "$LOCATION_LABEL" \
-   --argjson lat "$LAT_NUM" \
-   --argjson lon "$LON_NUM" \
+   --argjson lat "$DATA_LAT" \
+   --argjson lon "$DATA_LON" \
    --arg start_utc "${START_ISO}T00:00:00Z" \
-   --arg end_utc "${END_ISO}T00:00:00Z" \
+   --arg end_utc "${END_EXCLUSIVE_ISO}T00:00:00Z" \
    --arg source_url "$SOURCE_URL" \
    --arg retrieved_at "$RETRIEVED_AT" \
    --arg data_version "$DATASET_VERSION" \
@@ -255,7 +271,7 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
     dataset_version:$data_version,
     source_url:$source_url,
     attribution:"NASA POWER; cite the API and product sources in derived research.",
-    license_or_access_terms:"Consult NASA POWER data documentation and terms before redistribution.",
+    license_or_access_terms:"Access/redistribution terms have not been independently reviewed; consult NASA POWER documentation before redistribution.",
     accessed_at_utc:$retrieved_at,
     source_data_sha256:$raw_sha
   } |
@@ -272,7 +288,7 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
     expected_sample_count:$expected,
     observed_sample_count:$observed,
     missing_sample_count:$missing,
-    timestamp_semantics:"sample_event",
+    timestamp_semantics:"calendar_day_label",
     timezone:"UTC",
     gap_policy:"preserve_and_report"
   } |
@@ -297,7 +313,7 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
   ] |
   .quality = {
     validation_status:"screened",
-    missing_data_policy:"Preserve fill/missing values as empty CSV cells and report complete-row count; do not impute or treat missing values as zero.",
+    missing_data_policy:"Preserve fill/missing values as empty CSV cells and report days complete across all required replay variables; optional-variable missingness remains visible in per-column blanks. Do not impute or treat missing values as zero.",
     known_biases_or_limits:[
       "Evidence class is reanalysis, not a station observation.",
       "Daily averages/extrema/accumulations do not resolve intra-day power ramps or controller dynamics.",
