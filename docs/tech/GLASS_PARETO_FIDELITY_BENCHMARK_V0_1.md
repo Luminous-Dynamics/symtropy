@@ -45,11 +45,11 @@ The oracle owns the fidelity tariff table and all outcomes. A screen costs 0.5 u
 ## Policies actually executed
 
 - `confirmatory_priority`: spends its budget on confirmatory candidates, chosen from public priority.
-- `screen_then_confirm`: screens three candidates, then confirms screened candidates by the revealed screening objectives.
+- `screen_then_confirm`: screens three candidates, then confirms candidates by their leave-one-out hypervolume contribution on the screened objective points. This preserves the two-objective trade-off instead of introducing an unregistered scalar quality/energy weight.
 - `screen_only`: uses screening alone and must never report a qualified candidate or a feasible Pareto front.
 - `random_confirmatory`: selects confirmatory candidates in a deterministic seed-derived order.
 
-These are executable policy controls, not state-of-the-art implementations. No arm calls an LLM or fits a Gaussian process. This initial stage tests whether a richer policy may be evaluated safely—not whether any policy wins on real materials.
+These are executable policy controls, not state-of-the-art implementations. The screening arm uses a deterministic 2D leave-one-out hypervolume contribution, not a trained posterior or qEHVI acquisition. No arm calls an LLM or fits a Gaussian process. This initial stage tests whether a richer policy may be evaluated safely—not whether any policy wins on real materials.
 
 ## Non-negotiable evaluator rules
 
