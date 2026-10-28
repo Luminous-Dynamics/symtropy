@@ -737,7 +737,7 @@ jobs:
           set -euo pipefail
           catalog_schema="docs/tech/glass-search-space-live-catalog-v0.1.schema.json"
           oracle_schema="docs/tech/glass-search-space-live-oracle-v0.1.schema.json"
-          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.candidate_families.minItems >= 1 and .additionalProperties == false' "$catalog_schema" > /dev/null
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.candidate_families.minItems >= 1 and (.properties.policy_contract.properties.classes.const | index("gp_ei_fixed_space")) != null and (.properties.candidate_families.items.required | index("features")) != null and .additionalProperties == false' "$catalog_schema" > /dev/null
           jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.evidence_class.const == "synthetic_evaluator_only" and .properties.action_cost_catalog.minItems >= 4 and .additionalProperties == false' "$oracle_schema" > /dev/null
 
           catalog="tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog.synthetic.json"
@@ -751,7 +751,7 @@ jobs:
             .input_sha256 == $catalog_digest and
             .oracle_sha256 == $oracle_digest and
             .environment_count == 4 and
-            .episodes_checked == 20 and
+            .episodes_checked == 24 and
             ([.episodes[] | select(.cost_units_charged != 5.0)] | length) == 0 and
             ([.episodes[] | select(.duration_seconds_charged > 25.0)] | length) == 0 and
             ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "fixed_space")][0].best_verified_feasible_utility == 4.0) and
@@ -760,7 +760,8 @@ jobs:
             ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "prior_guided_expansion")][0].best_verified_feasible_utility == 10.0) and
             ([.episodes[] | select(.environment_id == "harmful" and .policy_class == "prior_guided_expansion")][0].best_verified_feasible_utility == 8.0) and
             ([.episodes[] | select(.environment_id == "harmful" and .policy_class == "static_prior_expansion")][0].best_verified_feasible_utility == 6.0) and
-            ([.episodes[] | select(.environment_id == "misleading_prior" and .policy_class == "prior_guided_expansion")][0].false_feasible_predictions == 1)
+            ([.episodes[] | select(.environment_id == "misleading_prior" and .policy_class == "prior_guided_expansion")][0].false_feasible_predictions == 1) and
+            ([.episodes[] | select(.policy_class == "gp_ei_fixed_space" and (.expansions != 0 or .evaluations != 5 or .cost_units_charged != 5.0))] | length) == 0
           ' search-space-live-loop-report.json
           replay_report="search-space-live-loop-replay-report.json"
           cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
@@ -770,9 +771,9 @@ jobs:
             .audit_kind == "independent_live_policy_transcript_replay" and
             .input_sha256 == $catalog_digest and
             .oracle_sha256 == $oracle_digest and
-            .episodes_checked == 20 and
-            .events_checked >= 70 and
+            .episodes_checked == 24 and
+            .events_checked >= 90 and
             .policy_actions_checked == .events_checked and
-            .cost_units_recomputed == 100.0
+            .cost_units_recomputed == 120.0
           ' "$replay_report"
           echo "Live observation-conditioned loop and independent transcript replay: PASS"
