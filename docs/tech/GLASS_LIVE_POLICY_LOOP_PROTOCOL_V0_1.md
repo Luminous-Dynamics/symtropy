@@ -70,6 +70,9 @@ The four hidden synthetic regimes are helpful, neutral, harmful, and misleading 
 
 These outcomes validate the event loop only. They do not show that the prior heuristic, an actual LLM or an optimizer performs better on glass or silicon. Any result table from this fixture must be marked synthetic.
 
+The evaluator scorecard now also reports terminal simple regret: the sealed environment's best feasible utility minus the best feasible utility reached by the campaign. The oracle optimum and regret are kept out of the policy view. The independent replay recomputes both from the sealed outcome oracle and rejects a forged regret field. In the helpful synthetic known answer, fixed-space and GP-EI have regret 6, while prior-guided expansion reaches regret 0. This validates metric/replay behavior only; it is not empirical evidence that expansion is superior.
+
+
 ## Follow-on promotion gates
 
 1. **Runtime isolation:** launch a policy as a sandboxed subprocess/WASM module, send only the current public view, reject all undeclared fields, and replay every action/event against the sealed evaluator independently.
