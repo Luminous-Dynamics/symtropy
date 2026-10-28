@@ -235,6 +235,131 @@ jobs:
           assert all(joint.find("limit") is None for joint in joints if joint.attrib["type"] == "fixed")
           PY
 
+          # Cross-check Rust forward kinematics against an independent FK evaluator
+          # operating only on the exported URDF and a nonzero joint-state fixture.
+          state=docs/medical-robotics/careframe-nonzero-joint-state-v0.json
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --evaluate-kinematics "$model" "$state" > /tmp/careframe-fk-nonzero-receipt.json
+          grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-fk-nonzero-receipt.json
+          python3 - "$output" "$model" "$state" /tmp/careframe-fk-nonzero-receipt.json <<'PY'
+          import json
+          import math
+          import sys
+          import xml.etree.ElementTree as ET
+
+          urdf_path, model_path, state_path, receipt_path = sys.argv[1:]
+          urdf = ET.parse(urdf_path).getroot()
+          with open(model_path, encoding="utf-8") as stream:
+              model = json.load(stream)
+          with open(state_path, encoding="utf-8") as stream:
+              joint_state = json.load(stream)
+          with open(receipt_path, encoding="utf-8") as stream:
+              rust_receipt = json.load(stream)
+
+          assert rust_receipt["disposition"] == "KINEMATICS_ONLY"
+          assert rust_receipt["physical_actuation_authorized"] is False
+          assert rust_receipt["patient_contact_authorized"] is False
+          assert rust_receipt["clinical_use_authorized"] is False
+
+          def mul(a, b):
+              return [[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+
+          def matvec(r, v):
+              return [sum(r[i][j] * v[j] for j in range(3)) for i in range(3)]
+
+          def rx(angle):
+              c, s = math.cos(angle), math.sin(angle)
+              return [[1, 0, 0], [0, c, -s], [0, s, c]]
+
+          def ry(angle):
+              c, s = math.cos(angle), math.sin(angle)
+              return [[c, 0, s], [0, 1, 0], [-s, 0, c]]
+
+          def rz(angle):
+              c, s = math.cos(angle), math.sin(angle)
+              return [[c, -s, 0], [s, c, 0], [0, 0, 1]]
+
+          def from_rpy(rpy):
+              roll, pitch, yaw = rpy
+              return mul(mul(rz(yaw), ry(pitch)), rx(roll))
+
+          def axis_rotation(axis, angle):
+              norm = math.sqrt(sum(x * x for x in axis))
+              assert abs(norm - 1.0) < 1e-8, axis
+              x, y, z = axis
+              c, s, t = math.cos(angle), math.sin(angle), 1.0 - math.cos(angle)
+              return [
+                  [c + x*x*t, x*y*t - z*s, x*z*t + y*s],
+                  [y*x*t + z*s, c + y*y*t, y*z*t - x*s],
+                  [z*x*t - y*s, z*y*t + x*s, c + z*z*t],
+              ]
+
+          def floats(text, default):
+              return [float(x) for x in text.split()] if text else list(default)
+
+          links = {link.attrib["name"] for link in urdf.findall("link")}
+          joints = urdf.findall("joint")
+          revolute = {joint.attrib["name"] for joint in joints if joint.attrib["type"] == "revolute"}
+          assert len(links) == 16 and len(joints) == 15
+          assert set(joint_state) == revolute, (set(joint_state), revolute)
+          assert set(rust_receipt["link_poses"]) == links
+
+          root_link = model["root_link"]
+          identity = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+          poses = {root_link: (identity, [0.0, 0.0, 0.0])}
+          pending = list(joints)
+          while pending:
+              remaining = []
+              progress = False
+              for joint in pending:
+                  parent = joint.find("parent").attrib["link"]
+                  child = joint.find("child").attrib["link"]
+                  if parent not in poses:
+                      remaining.append(joint)
+                      continue
+                  origin = joint.find("origin")
+                  xyz = floats(origin.attrib.get("xyz") if origin is not None else None, [0, 0, 0])
+                  rpy = floats(origin.attrib.get("rpy") if origin is not None else None, [0, 0, 0])
+                  parent_rotation, parent_translation = poses[parent]
+                  world_offset = matvec(parent_rotation, xyz)
+                  translation = [parent_translation[i] + world_offset[i] for i in range(3)]
+                  rotation = mul(parent_rotation, from_rpy(rpy))
+                  if joint.attrib["type"] == "revolute":
+                      axis = floats(joint.find("axis").attrib.get("xyz"), [1, 0, 0])
+                      rotation = mul(rotation, axis_rotation(axis, joint_state[joint.attrib["name"]]))
+                  elif joint.attrib["type"] != "fixed":
+                      raise AssertionError(f"unsupported joint type {joint.attrib['type']}")
+                  poses[child] = (rotation, translation)
+                  progress = True
+              if not progress:
+                  raise AssertionError("URDF graph is disconnected or cyclic")
+              pending = remaining
+
+          max_position_error = 0.0
+          max_rotation_error = 0.0
+          for link_id, (rotation, translation) in poses.items():
+              reference = rust_receipt["link_poses"][link_id]
+              max_position_error = max(
+                  max_position_error,
+                  max(abs(a - b) for a, b in zip(translation, reference["translation_m"])),
+              )
+              actual_rotation = reference["rotation_matrix_row_major"]
+              max_rotation_error = max(
+                  max_rotation_error,
+                  max(abs(rotation[i][j] - actual_rotation[i][j]) for i in range(3) for j in range(3)),
+              )
+          assert max_position_error < 1e-9, max_position_error
+          assert max_rotation_error < 1e-9, max_rotation_error
+          print(json.dumps({
+              "independent_urdf_fk_crosscheck": "PASS",
+              "compared_link_count": len(poses),
+              "nonzero_joint_count": len(joint_state),
+              "max_position_error_m": max_position_error,
+              "max_rotation_matrix_error": max_rotation_error,
+              "engine_adapter_verified": False,
+              "physical_actuation_authorized": False,
+          }, sort_keys=True))
+          PY
+
           # Non-box geometry is not silently translated into a supposedly compatible URDF 1.0.
           jq '.links[0].collision.shape = "capsule"' "$model" > /tmp/careframe-unsupported-urdf-shape.json
           set +e
