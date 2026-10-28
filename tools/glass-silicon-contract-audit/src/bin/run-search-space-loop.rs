@@ -134,10 +134,11 @@ fn choose_action(policy: &str, view: &Value, expansion_decision_made: bool) -> A
     // Every arm begins with the same public screening candidate. The outcome is not known yet.
     if observations.is_empty() {
         let candidates = view.get("visible_candidates").and_then(Value::as_array).cloned().unwrap_or_default();
+        let rank_field = if expanded { "selector_score" } else { "screen_priority" };
         let best = candidates.into_iter().filter(|c| c.get("evaluated").and_then(Value::as_bool) == Some(false))
             .max_by(|a, b| {
-                a.get("screen_priority").and_then(Value::as_f64).unwrap_or(f64::NEG_INFINITY)
-                    .total_cmp(&b.get("screen_priority").and_then(Value::as_f64).unwrap_or(f64::NEG_INFINITY))
+                a.get(rank_field).and_then(Value::as_f64).unwrap_or(f64::NEG_INFINITY)
+                    .total_cmp(&b.get(rank_field).and_then(Value::as_f64).unwrap_or(f64::NEG_INFINITY))
             });
         return best.and_then(|c| c.get("id").and_then(Value::as_str).map(|s| Action::Evaluate(s.to_owned())))
             .unwrap_or_else(|| Action::Stop("NO_UNMEASURED_VISIBLE_CANDIDATES".to_owned()));
@@ -779,7 +780,7 @@ mod tests {
         let report = run_env(&public, &oracle, "helpful", "prior_guided_expansion");
         assert_eq!(report["status"], "UNRESOLVED");
         assert_eq!(report["terminal_disposition"], "UNRESOLVED_OUTCOME");
-        assert!(report["best_verified_feasible_utility"].is_null());
+        assert_eq!(report["best_verified_feasible_utility"], 4.0);
     }
 
     #[test]
