@@ -131,7 +131,7 @@ fn choose_action(policy: &str, view: &Value, expansion_decision_made: bool) -> A
         return Action::Expand("prior_guided".to_owned());
     }
 
-    // Every arm begins with the same public screening candidate. The outcome is not known yet.
+    // Observation-conditioned arms begin with the same public screening candidate; the static-expansion control intentionally expands first.
     if observations.is_empty() {
         let candidates = view.get("visible_candidates").and_then(Value::as_array).cloned().unwrap_or_default();
         let rank_field = if expanded { "selector_score" } else { "screen_priority" };
