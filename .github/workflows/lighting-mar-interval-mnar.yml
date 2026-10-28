@@ -1,0 +1,38 @@
+name: lighting fitted MAR and interval MNAR audit
+
+on:
+  pull_request:
+    paths:
+      - 'tools/lighting-study-plan/fitted_mar_interval_mnar.py'
+      - 'tools/lighting-study-plan/test_fitted_mar_interval_mnar.py'
+      - 'docs/research/LIGHTING_FITTED_MAR_INTERVAL_MNAR_V0_1.md'
+      - '.github/workflows/lighting-mar-interval-mnar.yml'
+  push:
+    branches:
+      - 'research/lighting-fitted-mar-interval-mnar-v0-1'
+    paths:
+      - 'tools/lighting-study-plan/fitted_mar_interval_mnar.py'
+      - 'tools/lighting-study-plan/test_fitted_mar_interval_mnar.py'
+      - 'docs/research/LIGHTING_FITTED_MAR_INTERVAL_MNAR_V0_1.md'
+      - '.github/workflows/lighting-mar-interval-mnar.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-statistical-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run source-level tests
+        working-directory: tools/lighting-study-plan
+        run: python -m unittest -v test_fitted_mar_interval_mnar.py
+      - name: Run held-out suite smoke check
+        working-directory: tools/lighting-study-plan
+        run: |
+          python fitted_mar_interval_mnar.py --replicates 100 --suite confirmation --sample-sizes 30 --seed 20261028 --output /tmp/lighting-mar-confirmation-smoke.json
+          python -m json.tool /tmp/lighting-mar-confirmation-smoke.json > /dev/null
