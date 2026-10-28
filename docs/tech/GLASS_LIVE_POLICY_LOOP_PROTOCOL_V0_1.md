@@ -120,6 +120,30 @@ The three-unit lane is intentionally strict: after the first screen, even the ch
 The four-unit known-answer gate requires 24 matched primary episodes, four charged units for each, GP-EI and uniform-random controls making four evaluations, expansion help/tie/harm outcomes remaining visible, no unmeasured expansion, and independent replay reporting 96 recomputed primary-policy cost units. Read together, the 3-, 4-, and 5-unit lanes form a small **budget frontier**: constrained selection, mixed feasible expansion decisions, and the prior full-budget smoke test. These synthetic points validate the harness only; they do not define a real experimental cost scale.
 
 
+
+## Replay-verified paired budget-frontier scorecard
+
+Once the separate 3-, 4-, and 5-unit live-loop reports have passed their individual replay checks, generate a cross-budget scorecard:
+
+```sh
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
+  --frontier \
+  search-space-live-tight-budget-report.json tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog-tight-budget.synthetic.json \
+  search-space-live-four-unit-report.json tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog-four-unit.synthetic.json \
+  search-space-live-loop-report.json tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog.synthetic.json \
+  tools/glass-silicon-contract-audit/fixtures/search-space-live-outcome-oracle.synthetic.json
+```
+
+The scorecard itself replays each report against its exact catalog and the same sealed outcome-oracle bytes before using any metric. It fails closed on invalid JSON, mismatched input/oracle digests, a lane that does not replay PASS, missing or incorrect budget points, and incomplete report coverage.
+
+It emits:
+- Three lane receipts binding the exact report, catalog and oracle bytes, including replayed episode/event counts and recomputed resource totals.
+- 72 environmentwise rows (3 budgets × 4 regimes × 6 primary policy arms), with verified utility, simple regret, first-feasible cost, false-feasible predictions, expansion/evaluation counts, utility per charged unit, and same-budget deltas versus fixed-space selector, GP-EI and the 20-seed uniform-random mean.
+- Eighteen budget/policy summaries, each preserving the four environment results and reporting how many environments are better/tied/worse versus GP-EI and random, plus worst-environment deltas.
+
+The scorecard intentionally emits **no global mean utility and no pooled winner**. A policy that wins in a helpful-prior regime but loses in a harmful or misleading-prior regime should be visible as such. It does not use a cross-budget comparison as if different budgets were randomized treatment arms, and it does not average per-step observations as independent replicates. These are descriptive, deterministic synthetic comparisons. Any inferential claim about policy superiority needs separate held-out tasks, matched policy/seed blocks, uncertainty intervals, and a preregistered estimand.
+
+
 ## Follow-on promotion gates
 
 1. **Runtime isolation:** launch a policy as a sandboxed subprocess/WASM module, send only the current public view, reject all undeclared fields, and replay every action/event against the sealed evaluator independently.
