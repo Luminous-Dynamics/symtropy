@@ -1344,7 +1344,9 @@ fn run_all_subprocess(public_raw: &[u8], oracle_raw: &[u8], executable: &Path) -
     let mut isolated_adapter = |policy: &str, view: &Value, expansion_decision_made: bool| {
         request_policy_subprocess(executable, policy, view, expansion_decision_made)
     };
-    run_all_with_executor(public_raw, oracle_raw, &mut isolated_adapter)
+    let mut report = run_all_with_executor(public_raw, oracle_raw, &mut isolated_adapter);
+    report["policy_execution_mode"] = json!("child_process_serialized_public_state_v1");
+    report
 }
 
 fn run_policy_child() -> ExitCode {
@@ -1475,6 +1477,26 @@ mod tests {
             }
         )).collect()
     }
+
+    #[test]
+    fn policy_response_rejects_unrecognized_fields() {
+        let response = json!({
+            "action_type": "evaluate_candidate",
+            "candidate_family_id": "glass-a",
+            "oracle_utility": 999.0
+        });
+        assert!(action_from_value(&response).is_err());
+    }
+
+    #[test]
+    fn policy_response_requires_registered_action_and_candidate_slug() {
+        assert!(action_from_value(&json!({"action_type":"delete_evaluator"})).is_err());
+        assert!(action_from_value(&json!({"action_type":"evaluate_candidate","candidate_family_id":"../oracle.json"})).is_err());
+        assert!(action_from_value(&json!({"action_type":"expand_space","expansion_method":"llm"})).is_err());
+        assert!(action_from_value(&json!({"action_type":"stop"})).is_err());
+        assert_eq!(action_from_value(&json!({"action_type":"evaluate_candidate","candidate_family_id":"glass-a"})).unwrap(), Action::Evaluate("glass-a".to_owned()));
+    }
+
 
     #[test]
     fn live_loop_runs_all_policy_regime_pairs_with_budget_parity() {
