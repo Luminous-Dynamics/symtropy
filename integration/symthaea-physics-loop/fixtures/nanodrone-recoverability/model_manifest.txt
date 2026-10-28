@@ -1,0 +1,1 @@
+synthetic-only baseline and fallback branch artifacts; no trained or physical model
