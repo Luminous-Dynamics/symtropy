@@ -845,7 +845,7 @@ mod tests {
                 } else {
                     let lower = joint.lower_limit_rad.expect("revolute lower limit");
                     let upper = joint.upper_limit_rad.expect("revolute upper limit");
-                    lower + fraction * (upper - lower)
+                    (lower + fraction * (upper - lower)).clamp(lower, upper)
                 };
                 state.insert(joint.joint_id.clone(), position);
             }
