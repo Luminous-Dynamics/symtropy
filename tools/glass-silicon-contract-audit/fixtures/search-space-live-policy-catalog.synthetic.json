@@ -22,7 +22,30 @@
       "rule_based_expansion": 6.5,
       "prior_guided_expansion": 7.5
     },
-    "note": "Synthetic policies use only public selector proxies and previously revealed observations. Thresholds are deliberately fixed for evaluator mechanics, not trained material policies."
+    "note": "Synthetic policies use only public selector proxies and previously revealed observations. Thresholds are deliberately fixed for evaluator mechanics, not trained material policies.",
+    "random_seed": 0,
+    "random_seeds": [
+      3,
+      5,
+      7,
+      11,
+      13,
+      17,
+      19,
+      23,
+      29,
+      31,
+      37,
+      41,
+      43,
+      47,
+      53,
+      59,
+      61,
+      67,
+      71,
+      73
+    ]
   },
   "candidate_families": [
     {
