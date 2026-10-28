@@ -389,6 +389,21 @@ mod tests {
     }
 
     #[test]
+    fn collects_unique_csv_references_from_nested_schema_fields() {
+        let value: serde_json::Value = serde_json::json!({
+            "building": {"file": "Building_1.csv"},
+            "weather": "weather.csv",
+            "nested": [{"file": "Building_1.csv"}, "notes.txt"]
+        });
+        let mut refs = BTreeSet::new();
+        collect_csv_references(&value, &mut refs);
+        assert_eq!(refs, BTreeSet::from([
+            "Building_1.csv".to_owned(),
+            "weather.csv".to_owned(),
+        ]));
+    }
+
+    #[test]
     fn rejects_mismatched_commit_or_claimed_dataset_qualification() {
         let mut manifest: Manifest = serde_json::from_slice(MANIFEST_BYTES).unwrap();
         manifest.source_commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned();
