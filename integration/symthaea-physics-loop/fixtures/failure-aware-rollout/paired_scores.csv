@@ -1,0 +1,9 @@
+flight_id,rollout_start_id,regime,training_seed,horizon_s,baseline_status,baseline_position_error_m,candidate_status,candidate_position_error_m
+flight-01,start-001,nominal,101,0.5,ok,0.8,ok,0.3
+flight-01,start-001,nominal,101,1.0,ok,1.2,ok,0.5
+flight-01,start-001,nominal,102,0.5,ok,0.9,ok,0.25
+flight-01,start-001,nominal,102,1.0,ok,1.4,ok,0.55
+flight-02,start-001,nominal,101,0.5,ok,0.7,ok,0.4
+flight-02,start-001,nominal,101,1.0,ok,1.0,ok,0.7
+flight-02,start-001,nominal,102,0.5,ok,0.9,ok,0.3
+flight-02,start-001,nominal,102,1.0,non_finite,,ok,0.6
