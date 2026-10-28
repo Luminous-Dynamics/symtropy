@@ -63,7 +63,8 @@
             "fixed_space",
             "random_expansion",
             "rule_based_expansion",
-            "prior_guided_expansion"
+            "prior_guided_expansion",
+            "static_prior_expansion"
           ]
         },
         "thresholds": {
@@ -133,7 +134,8 @@
               "fixed_space",
               "random_expansion",
               "rule_based_expansion",
-              "prior_guided_expansion"
+              "prior_guided_expansion",
+              "static_prior_expansion"
             ],
             "properties": {
               "fixed_space": {
@@ -146,6 +148,9 @@
                 "type": "number"
               },
               "prior_guided_expansion": {
+                "type": "number"
+              },
+              "static_prior_expansion": {
                 "type": "number"
               }
             }
