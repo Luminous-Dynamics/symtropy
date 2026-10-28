@@ -1,0 +1,206 @@
+{
+  "schema_version": "careframe-observation-contract-v0",
+  "contract_id": "CAREFRAME_MATCHED_SEMANTIC_OBSERVATION",
+  "revision": 1,
+  "purpose": "Require comparable semantic fields, ordering, units and provenance when comparing robot observation pathways. This audits declared contracts; it does not inspect image/model code or prove estimator accuracy.",
+  "field_catalog": [
+    {
+      "field_id": "robot.base_position_m",
+      "value_type": "vector3",
+      "unit": "m",
+      "source_family": "proprioception",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "robot.base_orientation_xyzw",
+      "value_type": "vector4",
+      "unit": "unitless",
+      "source_family": "proprioception",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "robot.base_linear_velocity_m_s",
+      "value_type": "vector3",
+      "unit": "m/s",
+      "source_family": "proprioception",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "robot.base_angular_velocity_rad_s",
+      "value_type": "vector3",
+      "unit": "rad/s",
+      "source_family": "proprioception",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "robot.joint_positions_rad",
+      "value_type": "number_map",
+      "unit": "rad",
+      "source_family": "proprioception",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "robot.joint_velocities_rad_s",
+      "value_type": "number_map",
+      "unit": "rad/s",
+      "source_family": "proprioception",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "tool.id",
+      "value_type": "string",
+      "unit": "unitless",
+      "source_family": "task_context",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "tool.revision",
+      "value_type": "integer",
+      "unit": "unitless",
+      "source_family": "task_context",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "task.target_id",
+      "value_type": "string",
+      "unit": "unitless",
+      "source_family": "task_context",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "task.phase",
+      "value_type": "enum_string",
+      "unit": "unitless",
+      "source_family": "task_context",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "safety.stop_requested",
+      "value_type": "boolean",
+      "unit": "unitless",
+      "source_family": "safety_supervisor",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "safety.authority_state",
+      "value_type": "enum_string",
+      "unit": "unitless",
+      "source_family": "safety_supervisor",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "scene.target_pose_m",
+      "value_type": "vector3",
+      "unit": "m",
+      "source_family": "perception_estimate",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "scene.object_pose_m",
+      "value_type": "vector3",
+      "unit": "m",
+      "source_family": "perception_estimate",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "scene.object_dimensions_m",
+      "value_type": "vector3",
+      "unit": "m",
+      "source_family": "perception_estimate",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "scene.obstacle_poses_m",
+      "value_type": "vector3_list",
+      "unit": "m",
+      "source_family": "perception_estimate",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "scene.perception_confidence",
+      "value_type": "scalar_0_1",
+      "unit": "unitless",
+      "source_family": "perception_estimate",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "scene.visibility_mask",
+      "value_type": "boolean_map",
+      "unit": "unitless",
+      "source_family": "perception_estimate",
+      "visibility": "policy",
+      "required": true
+    },
+    {
+      "field_id": "scene.object_mass_kg",
+      "value_type": "scalar",
+      "unit": "kg",
+      "source_family": "simulator_truth",
+      "visibility": "oracle_only",
+      "required": false
+    },
+    {
+      "field_id": "scene.surface_friction_coefficient",
+      "value_type": "scalar",
+      "unit": "unitless",
+      "source_family": "simulator_truth",
+      "visibility": "oracle_only",
+      "required": false
+    }
+  ],
+  "comparison_profiles": [
+    {
+      "profile_id": "matched_semantic_state_v0",
+      "adapter_ids": [
+        "state_vector_estimate",
+        "rgb_derived_estimate",
+        "point_cloud_derived_estimate"
+      ],
+      "required_policy_field_ids": [
+        "robot.base_position_m",
+        "robot.base_orientation_xyzw",
+        "robot.base_linear_velocity_m_s",
+        "robot.base_angular_velocity_rad_s",
+        "robot.joint_positions_rad",
+        "robot.joint_velocities_rad_s",
+        "tool.id",
+        "tool.revision",
+        "task.target_id",
+        "task.phase",
+        "safety.stop_requested",
+        "safety.authority_state",
+        "scene.target_pose_m",
+        "scene.object_pose_m",
+        "scene.object_dimensions_m",
+        "scene.obstacle_poses_m",
+        "scene.perception_confidence",
+        "scene.visibility_mask"
+      ],
+      "forbidden_policy_field_ids": [
+        "scene.object_mass_kg",
+        "scene.surface_friction_coefficient"
+      ],
+      "require_identical_field_order": true,
+      "require_identical_type_and_unit": true,
+      "require_sensor_or_estimator_provenance": true
+    }
+  ],
+  "claim_ceiling": "Declared observation contract consistency only. No claim about perception accuracy, robotics performance, safety, or sim-to-real transfer."
+}
