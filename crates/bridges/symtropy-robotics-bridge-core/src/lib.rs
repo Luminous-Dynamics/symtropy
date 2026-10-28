@@ -4,6 +4,7 @@
 //! Core types and traits for robotic agents in Symtropy.
 
 pub mod agent;
+pub mod assurance;
 pub mod control;
 pub mod haptic;
 pub mod motor;
@@ -11,6 +12,10 @@ pub mod platform;
 pub mod safety;
 
 pub use agent::{RoboticAgent, spawn_robot_body};
+pub use assurance::{
+    AxisAlignedWorkspace, EmbodimentEnvelope, GateDecision, IntentKind, RuntimeAssuranceGate,
+    RuntimeAssurancePolicy, RuntimeSafetyState, VetoReason,
+};
 pub use control::{
     ControlOutcome, ControlOutcomeError, ControlOutcomeStatus, ControlRequest, ControlRequestError,
     EmbodiedIntent, IntentValidationError, ManipulationOperation, Pose3,
