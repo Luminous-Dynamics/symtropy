@@ -1957,7 +1957,7 @@ mod tests {
                 } else {
                     let lower = num_at(joint, "lower_limit_rad").expect("lower limit");
                     let upper = num_at(joint, "upper_limit_rad").expect("upper limit");
-                    lower + fraction * (upper - lower)
+                    (lower + fraction * (upper - lower)).clamp(lower, upper)
                 };
                 state[joint_id] = json!(position);
             }
