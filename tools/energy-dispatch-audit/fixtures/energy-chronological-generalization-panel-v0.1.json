@@ -1,0 +1,237 @@
+{
+  "schema_version": "energy-chronological-generalization-panel-v0.1",
+  "benchmark_id": "energy-chronological-generalization-under-regime-shift-v0.1",
+  "claim_ceiling": "Synthetic protocol-conformance result only; no physical dispatch or industry-superiority claim.",
+  "split_contract": {
+    "train_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "validation_indices": [
+      6,
+      7,
+      8
+    ],
+    "test_indices": [
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "segments_must_be_contiguous": true,
+    "require_strictly_chronological_order": true,
+    "purge_gap_for_one_step_horizon": 0
+  },
+  "decision_threshold": 0.5,
+  "models": [
+    {
+      "model_id": "static_no_reserve",
+      "rule": "always_false",
+      "trained_through_index": 5,
+      "deployable": true
+    },
+    {
+      "model_id": "persistence",
+      "rule": "previous_observed_label",
+      "trained_through_index": 5,
+      "deployable": true
+    },
+    {
+      "model_id": "observable_signal",
+      "rule": "observable_signal_threshold",
+      "trained_through_index": 5,
+      "deployable": true
+    },
+    {
+      "model_id": "hindsight_oracle",
+      "rule": "target_label",
+      "trained_through_index": 14,
+      "deployable": false
+    }
+  ],
+  "samples": [
+    {
+      "sample_id": "t00",
+      "time_index": 0,
+      "segment": "train",
+      "regime": "normal",
+      "decision_time_index": -1,
+      "signal_value": 0,
+      "signal_available_at_index": -1,
+      "critical_event": 0,
+      "label_available_at_index": 0
+    },
+    {
+      "sample_id": "t01",
+      "time_index": 1,
+      "segment": "train",
+      "regime": "normal",
+      "decision_time_index": 0,
+      "signal_value": 0,
+      "signal_available_at_index": 0,
+      "critical_event": 0,
+      "label_available_at_index": 1
+    },
+    {
+      "sample_id": "t02",
+      "time_index": 2,
+      "segment": "train",
+      "regime": "normal",
+      "decision_time_index": 1,
+      "signal_value": 0,
+      "signal_available_at_index": 1,
+      "critical_event": 0,
+      "label_available_at_index": 2
+    },
+    {
+      "sample_id": "t03",
+      "time_index": 3,
+      "segment": "train",
+      "regime": "normal",
+      "decision_time_index": 2,
+      "signal_value": 0,
+      "signal_available_at_index": 2,
+      "critical_event": 0,
+      "label_available_at_index": 3
+    },
+    {
+      "sample_id": "t04",
+      "time_index": 4,
+      "segment": "train",
+      "regime": "normal",
+      "decision_time_index": 3,
+      "signal_value": 0,
+      "signal_available_at_index": 3,
+      "critical_event": 0,
+      "label_available_at_index": 4
+    },
+    {
+      "sample_id": "t05",
+      "time_index": 5,
+      "segment": "train",
+      "regime": "normal",
+      "decision_time_index": 4,
+      "signal_value": 0,
+      "signal_available_at_index": 4,
+      "critical_event": 0,
+      "label_available_at_index": 5
+    },
+    {
+      "sample_id": "t06",
+      "time_index": 6,
+      "segment": "validation",
+      "regime": "transition",
+      "decision_time_index": 5,
+      "signal_value": 0,
+      "signal_available_at_index": 5,
+      "critical_event": 0,
+      "label_available_at_index": 6
+    },
+    {
+      "sample_id": "t07",
+      "time_index": 7,
+      "segment": "validation",
+      "regime": "transition",
+      "decision_time_index": 6,
+      "signal_value": 1,
+      "signal_available_at_index": 6,
+      "critical_event": 1,
+      "label_available_at_index": 7
+    },
+    {
+      "sample_id": "t08",
+      "time_index": 8,
+      "segment": "validation",
+      "regime": "transition",
+      "decision_time_index": 7,
+      "signal_value": 0,
+      "signal_available_at_index": 7,
+      "critical_event": 0,
+      "label_available_at_index": 8
+    },
+    {
+      "sample_id": "t09",
+      "time_index": 9,
+      "segment": "test",
+      "regime": "stress",
+      "decision_time_index": 8,
+      "signal_value": 0,
+      "signal_available_at_index": 8,
+      "critical_event": 0,
+      "label_available_at_index": 9
+    },
+    {
+      "sample_id": "t10",
+      "time_index": 10,
+      "segment": "test",
+      "regime": "stress",
+      "decision_time_index": 9,
+      "signal_value": 1,
+      "signal_available_at_index": 9,
+      "critical_event": 1,
+      "label_available_at_index": 10
+    },
+    {
+      "sample_id": "t11",
+      "time_index": 11,
+      "segment": "test",
+      "regime": "stress",
+      "decision_time_index": 10,
+      "signal_value": 1,
+      "signal_available_at_index": 10,
+      "critical_event": 1,
+      "label_available_at_index": 11
+    },
+    {
+      "sample_id": "t12",
+      "time_index": 12,
+      "segment": "test",
+      "regime": "stress",
+      "decision_time_index": 11,
+      "signal_value": 1,
+      "signal_available_at_index": 11,
+      "critical_event": 0,
+      "label_available_at_index": 12
+    },
+    {
+      "sample_id": "t13",
+      "time_index": 13,
+      "segment": "test",
+      "regime": "stress",
+      "decision_time_index": 12,
+      "signal_value": 1,
+      "signal_available_at_index": 12,
+      "critical_event": 1,
+      "label_available_at_index": 13
+    },
+    {
+      "sample_id": "t14",
+      "time_index": 14,
+      "segment": "test",
+      "regime": "stress",
+      "decision_time_index": 13,
+      "signal_value": 1,
+      "signal_available_at_index": 13,
+      "critical_event": 1,
+      "label_available_at_index": 14
+    }
+  ],
+  "required_checks": [
+    "raw_panel_sha256_matches_experiment_contract",
+    "strict_time_order_and_unique_sample_ids",
+    "train_validation_test_are_exact_nonoverlapping_contiguous_blocks",
+    "features_are_available_at_or_before_decision_time",
+    "labels_are_not_features",
+    "deployable_models_do_not_train_past_train_cutoff",
+    "hindsight_oracle_is_reported_but_excluded_from_deployable_rank",
+    "test_metrics_use_held_out_test_rows_only",
+    "service_metrics_are_vector_valued_not_aggregated_into_one_scalar",
+    "deterministic_report_digest"
+  ]
+}
