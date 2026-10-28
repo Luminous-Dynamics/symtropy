@@ -1,0 +1,155 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "symtropy-long-horizon-resilience-contract",
+  "contract_id": "long_horizon_climate_adaptation_v0",
+  "status": "proposed_not_executed",
+  "evidence_class": "test_design_only",
+  "study_id": "long_horizon_climate_adaptation_v0",
+  "study_question": "Does maintaining state and adaptation decisions across evolving climate and compound hazards preserve critical services better than event-reset planning under paired trajectories and matched information?",
+  "evidence_boundary": {
+    "environmental_trace_admitted": false,
+    "physical_model_verified": false,
+    "controller_result_measured": false,
+    "probability_basis_verified": false,
+    "scenario_weights": null,
+    "rule": "Unweighted stress-set results must not be described as expected real-world risk. Empirical stress-set quantiles are descriptive of the declared test suite, not event probabilities."
+  },
+  "horizon": {
+    "start_year": 2026,
+    "end_year_exclusive": 2056,
+    "duration_years": 30,
+    "planning_resolution": "annual_adaptation_with_chronological_operational_substeps",
+    "carry_state_between_events": true,
+    "allow_state_reset_between_events": false,
+    "preserve_temporal_order": true,
+    "allow_silent_gap_imputation": false
+  },
+  "scenario_families": [
+    {
+      "scenario_id": "historical_replay_reference",
+      "scenario_kind": "historical_replay",
+      "climate_regime": "historical_or_baseline",
+      "nonstationary": false,
+      "environmental_parameters_included": false,
+      "source_admission_status": "not_admitted",
+      "scenario_weight": null
+    },
+    {
+      "scenario_id": "nonstationary_path_a",
+      "scenario_kind": "synthetic_stress_design",
+      "climate_regime": "nonstationary",
+      "nonstationary": true,
+      "environmental_parameters_included": false,
+      "source_admission_status": "not_admitted",
+      "scenario_weight": null
+    },
+    {
+      "scenario_id": "nonstationary_path_b",
+      "scenario_kind": "synthetic_stress_design",
+      "climate_regime": "nonstationary",
+      "nonstationary": true,
+      "environmental_parameters_included": false,
+      "source_admission_status": "not_admitted",
+      "scenario_weight": null
+    },
+    {
+      "scenario_id": "compound_scarcity_and_repair_delay",
+      "scenario_kind": "synthetic_compound_stress_design",
+      "climate_regime": "stateful_compound",
+      "nonstationary": true,
+      "environmental_parameters_included": false,
+      "source_admission_status": "not_admitted",
+      "scenario_weight": null
+    }
+  ],
+  "persistent_state_variables": [
+    "storage_state_of_charge_and_health",
+    "fuel_and_consumables_inventory",
+    "thermal_mass_and_cold_start_state",
+    "equipment_age_and_degradation",
+    "maintenance_and_repair_queue",
+    "spares_inventory_and_replenishment_delay",
+    "water_and_other_stored_critical_resources",
+    "cumulative_service_deficit_debt",
+    "controller_mode_and_recovery_state"
+  ],
+  "adaptation_decisions": [
+    {
+      "decision_id": "reserve_and_storage_policy",
+      "decision_frequency": "annual_or_declared_planning_interval",
+      "decision_costs_admitted": false
+    },
+    {
+      "decision_id": "maintenance_replacement_and_spares_policy",
+      "decision_frequency": "annual_or_event_triggered",
+      "decision_costs_admitted": false
+    },
+    {
+      "decision_id": "supply_and_repair_capacity_policy",
+      "decision_frequency": "annual_or_declared_planning_interval",
+      "decision_costs_admitted": false
+    }
+  ],
+  "comparison_design": {
+    "arms": [
+      {
+        "arm_id": "event_reset_baseline",
+        "state_carryover": false,
+        "role": "diagnostic_baseline_for_the_cost_of_ignoring_path_dependence"
+      },
+      {
+        "arm_id": "stateful_no_adaptation",
+        "state_carryover": true,
+        "adaptation_enabled": false,
+        "role": "isolates_the_effect_of_state_carryover"
+      },
+      {
+        "arm_id": "stateful_adaptive_candidate",
+        "state_carryover": true,
+        "adaptation_enabled": true,
+        "role": "candidate_long_horizon_policy"
+      }
+    ],
+    "paired_exogenous_trajectories": true,
+    "same_initial_state_per_pair": true,
+    "controller_visible_information_must_be_declared": true,
+    "matched_information_budget_or_explicit_ablation": true,
+    "compute_budget_must_be_recorded": true,
+    "locked_holdout_frozen_before_tuning": true,
+    "whole_site_year_or_episode_blocks": true,
+    "locked_holdout_used_for_tuning": false,
+    "reset_state_between_events": false
+  },
+  "required_metric_ids": [
+    "cumulative_critical_service_deficit_by_service",
+    "time_to_first_critical_service_floor_breach",
+    "total_critical_service_breach_hours",
+    "maximum_consecutive_service_deficit_duration",
+    "state_debt_after_each_event_and_after_recovery",
+    "equipment_degradation_and_unplanned_replacement_count_if_modelled",
+    "repair_queue_and_spares_stockout_duration",
+    "worst_case_by_declared_scenario_family",
+    "empirical_stress_set_p95_with_nonprobabilistic_label",
+    "adaptation_cost_only_if_cost_inputs_are_admitted",
+    "runtime_peak_memory_and_model_evaluation_count",
+    "locked_holdout_degradation"
+  ],
+  "admission_gates": {
+    "source_trace_and_usage_terms_admitted": false,
+    "climate_scenarios_have_declared_evidence_class": false,
+    "state_carryover_semantics_verified": false,
+    "plant_model_verified_for_declared_use": false,
+    "adaptation_cost_data_admitted_or_cost_metric_disabled": false,
+    "paired_information_and_compute_budget_reviewed": false,
+    "locked_holdout_frozen": false,
+    "negative_controls_passed": false
+  },
+  "decision_policy": {
+    "result_kind": "contract_validation_only_no_performance_results",
+    "single_scalar_score_allowed": false,
+    "probability_weighted_risk_allowed_without_verified_basis": false,
+    "event_reset_baseline_may_be_called_sota": false,
+    "failed_or_missing_service_windows_may_be_dropped": false,
+    "cross_site_or_future_climate_claim_requires_independent_holdout": true
+  }
+}
