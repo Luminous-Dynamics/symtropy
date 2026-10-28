@@ -811,4 +811,38 @@ jobs:
             .cost_units_recomputed == 72.0
           ' "$tight_replay_report"
           echo "Three-unit budget-pressure lane and independent transcript replay: PASS"
+
+          # Add a second budget point that permits selected expansions plus one follow-up evaluation.
+          four_unit_catalog="tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog-four-unit.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- "$four_unit_catalog" "$oracle" > search-space-live-four-unit-report.json
+          four_unit_digest="$(sha256sum "$four_unit_catalog" | awk '{print $1}')"
+          jq -e --arg four_unit_digest "$four_unit_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_live_policy_event_loop" and
+            .input_sha256 == $four_unit_digest and
+            .oracle_sha256 == $oracle_digest and
+            .environment_count == 4 and
+            .policy_count == 6 and
+            .episodes_checked == 24 and
+            ([.episodes[] | select(.cost_units_charged != 4.0)] | length) == 0 and
+            ([.episodes[] | select(.duration_seconds_charged > 25.0)] | length) == 0 and
+            ([.episodes[] | select(.policy_class == "gp_ei_fixed_space" and (.expansions != 0 or .evaluations != 4))] | length) == 0 and
+            ([.episodes[] | select(.policy_class == "prior_guided_expansion" and .expansions != 0)] | length) == 0 and
+            ([.auxiliary_controls[] | select(.expansions != 0 or .evaluations != 4 or .cost_units_charged != 4.0)] | length) == 0 and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "random_expansion")][0].best_verified_feasible_utility == 6.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "rule_based_expansion")][0].best_verified_feasible_utility == 8.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "static_prior_expansion")][0].best_verified_feasible_utility == 10.0)
+          ' search-space-live-four-unit-report.json
+          four_unit_replay="search-space-live-four-unit-replay-report.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
+            --replay search-space-live-four-unit-report.json "$four_unit_catalog" "$oracle" > "$four_unit_replay"
+          jq -e --arg four_unit_digest "$four_unit_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "independent_live_policy_transcript_replay" and
+            .input_sha256 == $four_unit_digest and
+            .oracle_sha256 == $oracle_digest and
+            .episodes_checked == 24 and
+            .cost_units_recomputed == 96.0
+          ' "$four_unit_replay"
+          echo "Four-unit expansion frontier and independent transcript replay: PASS"
           echo "Live observation-conditioned loop and independent transcript replay: PASS"
