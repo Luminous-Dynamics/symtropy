@@ -48,4 +48,10 @@ jobs:
             cat tools/careframe-observation-audit/Cargo.lock
             echo "===== CAREFRAME-OBSERVATION-AUDIT-LOCK-END ====="
           } >> "$GITHUB_STEP_SUMMARY"
+          echo "===== MEDICAL-ROBOT-TOOL-GATE-LOCK-BEGIN ====="
+          cat tools/medical-robot-tool-gate/Cargo.lock
+          echo "===== MEDICAL-ROBOT-TOOL-GATE-LOCK-END ====="
+          echo "===== CAREFRAME-OBSERVATION-AUDIT-LOCK-BEGIN ====="
+          cat tools/careframe-observation-audit/Cargo.lock
+          echo "===== CAREFRAME-OBSERVATION-AUDIT-LOCK-END ====="
           echo "Generated lockfiles; this diagnostic workflow did not commit or push them."
