@@ -44,7 +44,7 @@ jobs:
             research/polar-infrastructure/benchmark/fixtures/toy-boundary-search.json > /tmp/polar-boundary-report.json
           jq -e '
             .report_kind == "polar-resilience-boundary-search-report" and
-            .schema_version == "0.1.0" and
+            .schema_version == "0.2.0" and
             .evidence_class == "synthetic_only" and
             .result_scope == "observed_enumerated_cases_only_not_a_safety_certificate_or_probability_estimate" and
             .case_count == 9 and
@@ -53,10 +53,22 @@ jobs:
             .invalid_case_count == 1 and
             .not_evaluated_case_count == 1 and
             .frontier_completeness_status == "incomplete_invalid_or_not_evaluated_cases" and
+            (.frontiers | length == 8) and
             ([.frontiers[] | select(.gate_id == "heat_floor" and .comparison_group_id == "supply_cold_low_reserve") |
-              [.minimal_observed_failing_points[].case_id]] == [["heat_short_low_a", "heat_short_low_b"]]) and
+              ([.minimal_observed_failing_points[].case_id],
+               [.maximal_observed_passing_points[].case_id],
+               .observed_pass_count, .observed_breach_count,
+               .invalid_case_count, .not_evaluated_case_count,
+               .valid_coverage_fraction)] ==
+              [[ "heat_short_low_a", "heat_short_low_b" ], ["water_short_low"], 2, 4, 1, 1, 0.75]]) and
             ([.frontiers[] | select(.gate_id == "water_floor" and .comparison_group_id == "supply_cold_low_reserve") |
-              [.minimal_observed_failing_points[].case_id]] == [["water_short_low"]]) and
+              ([.minimal_observed_failing_points[].case_id],
+               ([.monotonicity_conflict_witnesses[] | select(.passing_case_id == "heat_short_low_b" and .failing_case_id == "water_short_low")] | length == 1))] ==
+              [[["water_short_low"], true]]) and
+            ([.frontiers[] | select(.gate_id == "sanitation_floor" and .comparison_group_id == "supply_cold_low_reserve") |
+              (.minimal_observed_failing_points | length == 0) and
+              .observed_pass_count == 6 and
+              .status == "incomplete_due_to_invalid_or_not_evaluated_cases"] == [true]) and
             ([.frontiers[] | select(.gate_id == "communications_floor" and .comparison_group_id == "telemetry_restart_high_reserve") |
               .initial_state_id] == ["reserve_high"]) and
             .gates_without_observed_breach == ["sanitation_floor"]
