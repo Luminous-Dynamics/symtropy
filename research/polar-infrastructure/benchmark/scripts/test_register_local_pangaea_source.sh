@@ -10,7 +10,7 @@ SOURCE="$TMP_DIR/synthetic-source.tab"
 cat > "$SOURCE" <<'TAB'
 /* DATA DESCRIPTION:
 Citation: synthetic test fixture only; not publisher observations
-DOI: not applicable to fixture values
+DOI: 10.1594/PANGAEA.983811 (test identity only; values remain synthetic)
 License: synthetic test-only data
 */
 Date/Time	Height [m]	SWD [W/m^2]	T2 [deg C]	RH [%]
