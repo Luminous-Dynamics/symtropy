@@ -21,6 +21,8 @@ struct FieldSpec {
     source_family: String,
     visibility: String,
     required: bool,
+    coordinate_frame: String,
+    temporal_semantics: String,
 }
 
 #[derive(Debug)]
@@ -92,6 +94,7 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
         "revision",
         "purpose",
         "field_catalog",
+        "observation_metadata_policy",
         "comparison_profiles",
         "claim_ceiling",
     ];
@@ -116,6 +119,41 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
         push_findings(&mut findings, "CONTRACT_CLAIM_CEILING_REQUIRED");
     }
 
+    const METADATA_FIELDS: &[&str] = &[
+        "clock_domain",
+        "timestamp_unit",
+        "temporal_alignment_policy",
+        "maximum_source_skew_ns",
+        "coordinate_frame_revision",
+        "calibration_revision",
+        "provenance_state",
+        "runtime_source_digest_status",
+    ];
+    let metadata_policy = contract
+        .get("observation_metadata_policy")
+        .unwrap_or(&Value::Null);
+    check_object(
+        metadata_policy,
+        METADATA_FIELDS,
+        METADATA_FIELDS,
+        &mut findings,
+        "OBSERVATION_METADATA_POLICY",
+    );
+    if str_at(metadata_policy, "clock_domain") != Some("simulation_episode_clock_v0")
+        || str_at(metadata_policy, "timestamp_unit") != Some("ns")
+        || str_at(metadata_policy, "temporal_alignment_policy") != Some("same_simulation_tick")
+        || metadata_policy.get("maximum_source_skew_ns").and_then(Value::as_u64) != Some(0)
+        || str_at(metadata_policy, "coordinate_frame_revision")
+            != Some("careframe-world-frames-v0")
+        || str_at(metadata_policy, "calibration_revision")
+            != Some("synthetic-calibration-fixture-v0")
+        || str_at(metadata_policy, "provenance_state") != Some("synthetic_fixture_only")
+        || str_at(metadata_policy, "runtime_source_digest_status")
+            != Some("not_available_for_synthetic_fixture")
+    {
+        push_findings(&mut findings, "OBSERVATION_METADATA_POLICY_UNSUPPORTED");
+    }
+
     let mut catalog = BTreeMap::<String, FieldSpec>::new();
     let Some(fields) = contract.get("field_catalog").and_then(Value::as_array) else {
         push_findings(&mut findings, "FIELD_CATALOG_REQUIRED");
@@ -130,6 +168,8 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
         "source_family",
         "visibility",
         "required",
+        "coordinate_frame",
+        "temporal_semantics",
     ];
     const VALUE_TYPES: &[&str] = &[
         "vector3",
@@ -150,6 +190,28 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
         "safety_supervisor",
         "perception_estimate",
         "simulator_truth",
+    ];
+    const COORDINATE_FRAMES: &[&str] = &[
+        "world_cartesian_xyz",
+        "world_orientation_quaternion_xyzw",
+        "world_cartesian_xyz_rad_s",
+        "joint_local_map",
+        "tool_catalog",
+        "task_semantic",
+        "safety_supervisor",
+        "object_local_dimensions_xyz",
+        "world_cartesian_xyz_list",
+        "not_applicable",
+        "object_local",
+        "contact_surface",
+    ];
+    const TEMPORAL_SEMANTICS: &[&str] = &[
+        "instantaneous_state",
+        "task_scoped_state",
+        "current_supervisor_state",
+        "estimated_scene_state",
+        "current_perception_result",
+        "episode_static_oracle",
     ];
 
     for field in fields {
@@ -184,6 +246,14 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
             push_findings(&mut findings, "FIELD_REQUIRED_FLAG_INVALID");
             continue;
         };
+        let Some(coordinate_frame) = str_at(field, "coordinate_frame") else {
+            push_findings(&mut findings, "FIELD_COORDINATE_FRAME_INVALID");
+            continue;
+        };
+        let Some(temporal_semantics) = str_at(field, "temporal_semantics") else {
+            push_findings(&mut findings, "FIELD_TEMPORAL_SEMANTICS_INVALID");
+            continue;
+        };
         if id.trim().is_empty() {
             push_findings(&mut findings, "FIELD_ID_INVALID");
         }
@@ -195,6 +265,12 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
         }
         if !SOURCE_FAMILIES.contains(&source_family) {
             push_findings(&mut findings, "FIELD_SOURCE_FAMILY_UNSUPPORTED");
+        }
+        if !COORDINATE_FRAMES.contains(&coordinate_frame) {
+            push_findings(&mut findings, "FIELD_COORDINATE_FRAME_UNSUPPORTED");
+        }
+        if !TEMPORAL_SEMANTICS.contains(&temporal_semantics) {
+            push_findings(&mut findings, "FIELD_TEMPORAL_SEMANTICS_UNSUPPORTED");
         }
         match visibility {
             "policy" => {
@@ -223,6 +299,8 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
             source_family: source_family.to_owned(),
             visibility: visibility.to_owned(),
             required,
+            coordinate_frame: coordinate_frame.to_owned(),
+            temporal_semantics: temporal_semantics.to_owned(),
         };
         if catalog.insert(id.to_owned(), spec).is_some() {
             push_findings(&mut findings, "FIELD_ID_DUPLICATE");
@@ -247,6 +325,7 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
         "require_identical_field_order",
         "require_identical_type_and_unit",
         "require_sensor_or_estimator_provenance",
+        "require_identical_frame_and_temporal_semantics",
     ];
     let Some(profiles) = contract
         .get("comparison_profiles")
@@ -311,6 +390,7 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
         if bool_at(profile, "require_identical_field_order") != Some(true)
             || bool_at(profile, "require_identical_type_and_unit") != Some(true)
             || bool_at(profile, "require_sensor_or_estimator_provenance") != Some(true)
+            || bool_at(profile, "require_identical_frame_and_temporal_semantics") != Some(true)
         {
             push_findings(&mut findings, "COMPARISON_PROFILE_GUARD_WEAKENED");
         }
@@ -343,13 +423,22 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
     const ADAPTER_FIELDS: &[&str] = &[
         "adapter_id",
         "modality",
+        "implementation_status",
+        "observation_metadata",
         "source_state",
         "raw_inputs",
         "field_order",
         "field_specs",
         "scoring_only_field_ids",
     ];
-    const SPEC_FIELDS: &[&str] = &["field_id", "value_type", "unit", "source_family"];
+    const SPEC_FIELDS: &[&str] = &[
+        "field_id",
+        "value_type",
+        "unit",
+        "source_family",
+        "coordinate_frame",
+        "temporal_semantics",
+    ];
     let Some(adapters) = suite.get("adapters").and_then(Value::as_array) else {
         push_findings(&mut findings, "ADAPTERS_REQUIRED");
         return finish_report(suite, policy_ids.len(), oracle_ids.len(), findings);
@@ -373,6 +462,22 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
         };
         if !seen_adapter_ids.insert(adapter_id.to_owned()) {
             push_findings(&mut findings, "ADAPTER_ID_DUPLICATE");
+        }
+        if str_at(adapter, "implementation_status") != Some("synthetic_fixture_only") {
+            push_findings(&mut findings, "LIVE_IMPLEMENTATION_EVIDENCE_REQUIRED");
+        }
+        let adapter_metadata = adapter
+            .get("observation_metadata")
+            .unwrap_or(&Value::Null);
+        check_object(
+            adapter_metadata,
+            METADATA_FIELDS,
+            METADATA_FIELDS,
+            &mut findings,
+            "ADAPTER_OBSERVATION_METADATA",
+        );
+        if adapter_metadata != metadata_policy {
+            push_findings(&mut findings, "OBSERVATION_METADATA_MISMATCH");
         }
 
         let modality = str_at(adapter, "modality").unwrap_or("");
@@ -471,6 +576,14 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
             }
             if str_at(spec, "source_family") != Some(expected.source_family.as_str()) {
                 push_findings(&mut findings, "ADAPTER_FIELD_SOURCE_MISMATCH");
+            }
+            if str_at(spec, "coordinate_frame") != Some(expected.coordinate_frame.as_str()) {
+                push_findings(&mut findings, "ADAPTER_FIELD_COORDINATE_FRAME_MISMATCH");
+            }
+            if str_at(spec, "temporal_semantics")
+                != Some(expected.temporal_semantics.as_str())
+            {
+                push_findings(&mut findings, "ADAPTER_FIELD_TEMPORAL_SEMANTICS_MISMATCH");
             }
         }
         if spec_order != expected_policy_order {
