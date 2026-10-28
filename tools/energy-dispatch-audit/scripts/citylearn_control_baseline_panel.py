@@ -13,10 +13,8 @@ import importlib
 import importlib.metadata
 import json
 import math
-import os
 import platform
 import resource
-import statistics
 import subprocess
 import sys
 import time
@@ -64,7 +62,12 @@ def normalize_json(value: Any) -> Any:
     """Normalize NumPy/Pandas scalar values without allowing NaN/Infinity."""
     if value is None or isinstance(value, (str, bool, int)):
         return value
-    if hasattr(value, "item"):
+    if hasattr(value, "tolist"):
+        try:
+            value = value.tolist()
+        except (ValueError, TypeError):
+            pass
+    elif hasattr(value, "item"):
         try:
             value = value.item()
         except (ValueError, TypeError):
