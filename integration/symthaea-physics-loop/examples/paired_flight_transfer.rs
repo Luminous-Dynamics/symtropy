@@ -8,9 +8,9 @@ use serde_json::json;
 use std::time::Instant;
 use symthaea_core::genesis::GenesisSeed;
 use symthaea_multirotor::{
-    pd_baseline, pid_baseline, ActiveInferenceFlightAgent, FlightConfig, FlightController,
-    FlightFepConfig, FlightSetpoint, FlightTrainer, PdGains, PidState, PhysicsSimulator,
-    QuadrotorHdcEncoder, SimplePhysicsSimulator,
+    fep_agent::FlightFepConfig, pd_baseline, pid_baseline, ActiveInferenceFlightAgent,
+    FlightConfig, FlightController, FlightSetpoint, FlightTrainer, PdGains, PidState,
+    PhysicsSimulator, QuadrotorHdcEncoder, SimplePhysicsSimulator,
 };
 use symtropy_real_symthaea_physics_loop::symtropy_flight::SymtropyFlightSimulator;
 
