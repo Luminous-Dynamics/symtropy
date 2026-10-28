@@ -344,7 +344,7 @@ fn wilson_lower_one_sided(successes: usize, trials: usize) -> f64 {
     ((center - radius) / denominator).clamp(0.0, 1.0)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Validated {
     checkpoints: Vec<CheckpointRow>,
     branches: Vec<BranchRow>,
