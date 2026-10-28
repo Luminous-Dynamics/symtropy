@@ -31,7 +31,13 @@
         "variables describe national system supply-demand conditions and reliability; not a building or site-meter trace",
         "publication licensing does not automatically clear the rights of underlying Eskom source data",
         "not sufficient alone to assert battery dispatch feasibility, feeder power flow, or site-level service outcomes"
-      ]
+      ],
+      "pinned_source_commit": null,
+      "selected_schema_path": null,
+      "selected_schema_git_blob_sha1": null,
+      "referenced_data_file_count": null,
+      "simulator_step_count": null,
+      "dataset_source_manifest_path": null
     },
     {
       "source_id": "citylearn_official_v3_0_2",
@@ -52,7 +58,7 @@
       "license_status": "software_license_does_not_clear_each_dataset; per_asset_terms_review_required",
       "snapshot_url": null,
       "raw_sha256": null,
-      "selected_dataset_id": null,
+      "selected_dataset_id": "citylearn_challenge_2022_phase_all_plus_evs",
       "removed_dataset_families": [
         "rec_2023_*",
         "EC_Ermesinde",
@@ -64,8 +70,16 @@
         "must select an actual dataset present in the exact official tag and pin every source file before scoring",
         "simulator results are not field outcomes",
         "verify the selected dataset license separately from CityLearn software license",
-        "electrical service constraint coverage depends on selected schema and does not automatically imply complete AC power-flow qualification"
-      ]
+        "electrical service constraint coverage depends on selected schema and does not automatically imply complete AC power-flow qualification",
+        "selected dataset schema is verified at the immutable v3.0.2 source commit and its 30 referenced CSV blob IDs are inventoried; full source-byte SHA-256 receipts and dataset-specific reuse clearance are still pending",
+        "weather and price columns named predicted_* have no verified forecast issue/publication timestamp contract in the schema; do not treat these as causal deployed forecasts until audited"
+      ],
+      "pinned_source_commit": "834575c1a0194c8ae9d648ae858376a94dfceb78",
+      "selected_schema_path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/schema.json",
+      "selected_schema_git_blob_sha1": "5d58d31fd75e4845d73d319c69df34d64223f533",
+      "referenced_data_file_count": 30,
+      "simulator_step_count": 8760,
+      "dataset_source_manifest_path": "tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json"
     },
     {
       "source_id": "eskom_rolling_demand_dashboard",
@@ -93,7 +107,13 @@
         "dashboard describes actual and forecast hourly demand for a recent rolling week",
         "rolling export is mutable and is not a canonical benchmark until exact raw bytes and retrieval time are preserved",
         "source values are utility-level data and must not be relabelled as local site demand"
-      ]
+      ],
+      "pinned_source_commit": null,
+      "selected_schema_path": null,
+      "selected_schema_git_blob_sha1": null,
+      "referenced_data_file_count": null,
+      "simulator_step_count": null,
+      "dataset_source_manifest_path": null
     }
   ],
   "required_checks": [
@@ -106,6 +126,9 @@
     "reported_windows_and_cadence_are_consistent",
     "mutable_rolling_sources_cannot_be_canonical_benchmarks_without_snapshot",
     "removed_citylearn_dataset_families_are_not_selected",
-    "registry_claim_ceiling_remains_discovery_only"
+    "registry_claim_ceiling_remains_discovery_only",
+    "selected_citylearn_dataset_is_present_in_pinned_release",
+    "citylearn_manifest_pins_all_schema_referenced_source_files",
+    "forecast_columns_are_not_assumed_causal_without_issue_times"
   ]
 }
