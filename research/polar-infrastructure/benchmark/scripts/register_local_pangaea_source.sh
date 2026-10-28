@@ -48,6 +48,10 @@ if ! grep -Fq '*/' "$SOURCE_FILE"; then
   echo "source metaheader terminator not found" >&2
   exit 3
 fi
+if ! head -n 200 "$SOURCE_FILE" | grep -Fq "$DOI"; then
+  echo "supplied DOI string not found in the source's opening metaheader; verify the file/DOI pair" >&2
+  exit 3
+fi
 DATA_ROW_COUNT=$(grep -Ec '^[[:space:]]*[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}' "$SOURCE_FILE" || true)
 [[ "$DATA_ROW_COUNT" =~ ^[0-9]+$ && "$DATA_ROW_COUNT" -gt 0 ]] || {
   echo "no timestamp-shaped data rows found; refusing to register as a tabular trace" >&2
