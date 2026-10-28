@@ -112,6 +112,24 @@ jobs:
           sha256sum "$context/counterexample.json" "$context/report.json" > "$context/receipts.sha256"
           cat "$context/receipts.sha256"
 
+      - name: Qualify multi-stage causal-policy tree against exact known answers
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/nonanticipativity-context"
+          mkdir -p "$context"
+          source_fixture="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-multistage-causal-tree-v0.1.json"
+          cp "$source_fixture" "$context/multistage-causal-tree-fixture.json"
+          oracle="$work/targets/symtropy/debug/energy_multistage_causal_tree_oracle"
+          "$oracle" "$context/multistage-causal-tree-report.json" > "$context/multistage-causal-tree-qualification.log"
+          cat "$context/multistage-causal-tree-qualification.log"
+          fixture_sha="$(sha256sum "$source_fixture" | cut -d' ' -f1)"
+          report_sha="$(jq -r .source_fixture_sha256 "$context/multistage-causal-tree-report.json")"
+          test "$fixture_sha" = "$report_sha"
+          sha256sum "$source_fixture" "$context/multistage-causal-tree-report.json" > "$context/multistage-causal-tree-receipts.sha256"
+          cat "$context/multistage-causal-tree-receipts.sha256"
+
       - name: Verify published South African tariff arithmetic against hand-calculated answers
         shell: bash
         run: |
