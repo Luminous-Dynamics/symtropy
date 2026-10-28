@@ -639,7 +639,7 @@ fn build_report(panel_bytes: &[u8], experiment_bytes: &[u8]) -> Result<Report, S
     if experiment.benchmark_id != "energy-uncertainty-set-omission-fragility-v0.1" {
         return Err("unexpected benchmark identity".to_owned());
     }
-    let full_training = panel.training_scenarios.iter().collect::<Vec<_>>();
+    let full_training = panel.training_scenarios.clone();
     let full_simulations = panel
         .held_out_stress_scenarios
         .iter()
