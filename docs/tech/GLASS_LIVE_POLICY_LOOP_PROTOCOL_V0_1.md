@@ -37,6 +37,15 @@ The runner executes five deterministic policy controls:
 
 These thresholds and selection scores are controlled test policy inputs. They are not trained or calibrated on glass data and they do not represent GP expected improvement, a real LLM, or an incumbent industrial optimizer. Keep the conventional fixed-space GP-EI, random/DOE, cost-aware BO and the incumbent workflow as mandatory real-policy comparators when their input semantics match. This synthetic runner tests the event loop and observation timing before those live adapters are built.
 
+### Strong literature baselines to add to the live adapter lane
+
+Do not stop at heuristic and conventional-BO comparisons. Include the 2026 LLM active-learning literature as reproducible, model-specific policy arms once code, licenses, prompts/configuration, and candidate mappings can be verified:
+
+- **LLM-AL** (npj Computational Materials, 20 May 2026) reports reducing experiments required to reach top-performing candidates by more than 70% across four diverse materials datasets versus the paper's evaluated baselines. That is a cross-task result, not evidence of a comparable win for glass; task, budget, scoring and policy costs must be aligned before a direct comparison. https://www.nature.com/articles/s41524-026-02136-4
+- **GOLLuM** (Nature Machine Intelligence, 2026) trains LLM representations using Bayesian optimization objectives and reports results across 23 organic-synthesis, materials-science, process-chemistry and molecular-design tasks, including claims of matching traditional BO with more than 40% fewer experiments on its benchmark suite. Treat it as a high-priority comparator, not a result we can transfer to glass without reproduction. https://doi.org/10.1038/s42256-026-01283-z
+
+For each, report exact model/checkpoint, training and retrieval data, prompt/configuration digest where applicable, candidate-enumeration/normalization costs, number of LLM calls and tokens, retries, human review, and invalid-proposal handling. If either method cannot use the exact same legal candidate pool or observation interface, mark it not comparable rather than quietly weakening the baseline.
+
 ## Budget and visibility rules
 
 All five arms share a cost cap of 5 synthetic resource units and a duration cap of 25 synthetic seconds. Evaluation costs 1 unit / 5 seconds. Random and rule-based expansion cost 2 units / 4 seconds; prior-guided expansion uses a synthetic 3-unit / 8-second generation tariff. Expansion charges are applied before the generated candidate becomes visible. Evaluation charges are applied before the outcome is revealed. The evaluator, not the policy event, supplies the tariffs.
