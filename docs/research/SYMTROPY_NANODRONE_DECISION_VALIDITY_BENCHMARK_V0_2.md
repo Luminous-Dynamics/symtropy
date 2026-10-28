@@ -34,6 +34,10 @@ For each nominal alert budget, fit a threshold using calibration scores only, fr
 
 The evaluator is for precomputed scores. It does not train a warning model, prove feature causality, quantify counterfactual controller benefit or attest flight safety.
 
+## Cross-method comparison
+
+The companion example nanodrone_decision_validity_compare takes baseline and candidate JSON reports and rejects comparisons unless dataset receipt, paired truth/conditioning receipt, calibration/test manifests, channel, unit, error threshold, horizon, event gap, alert-merge gap, evidence class and nominal alert budgets match. It reports candidate-minus-baseline deltas without making a unit-mixed composite score. When realized test alert rates differ by more than the declared tolerance, it explicitly labels that operating point as not matched-rate; frozen thresholds are never tuned using test labels. The deltas are descriptive only: the reports do not contain paired per-flight scores, so this comparator does not establish statistical significance or closed-loop controller benefit.
+
 ## Proposed targets, not achieved results
 
 - Held-out flight AUPRC should beat simple baselines; report warning quality at frozen thresholds and actual alert rates.
