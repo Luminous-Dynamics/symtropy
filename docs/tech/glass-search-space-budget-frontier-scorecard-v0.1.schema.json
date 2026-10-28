@@ -130,7 +130,11 @@
           "cost_units_charged",
           "delta_utility_vs_gp_ei",
           "delta_utility_vs_fixed_space",
-          "delta_utility_vs_seeded_random_mean"
+          "delta_utility_vs_seeded_random_mean",
+          "feasible_discovery_status",
+          "gp_ei_comparison_status",
+          "fixed_space_comparison_status",
+          "seeded_random_comparison_status"
         ],
         "properties": {
           "budget_units": {
@@ -230,6 +234,30 @@
               "number",
               "null"
             ]
+          },
+          "feasible_discovery_status": {
+            "enum": [
+              "VERIFIED_FEASIBLE_FOUND",
+              "NO_VERIFIED_FEASIBLE_CANDIDATE_FOUND"
+            ]
+          },
+          "gp_ei_comparison_status": {
+            "enum": [
+              "COMPARABLE",
+              "UNRESOLVED_NO_VERIFIED_UTILITY"
+            ]
+          },
+          "fixed_space_comparison_status": {
+            "enum": [
+              "COMPARABLE",
+              "UNRESOLVED_NO_VERIFIED_UTILITY"
+            ]
+          },
+          "seeded_random_comparison_status": {
+            "enum": [
+              "COMPARABLE",
+              "UNRESOLVED_NO_VERIFIED_UTILITY"
+            ]
           }
         }
       }
@@ -251,7 +279,13 @@
           "seeded_random_tied_environments",
           "seeded_random_worse_environments",
           "worst_environment_delta_vs_seeded_random_mean",
-          "claim_ceiling"
+          "claim_ceiling",
+          "gp_ei_comparable_environment_count",
+          "gp_ei_unresolved_environment_count",
+          "gp_ei_unresolved_environments",
+          "seeded_random_comparable_environment_count",
+          "seeded_random_unresolved_environment_count",
+          "seeded_random_unresolved_environments"
         ],
         "properties": {
           "budget_units": {
@@ -321,6 +355,50 @@
           "claim_ceiling": {
             "type": "string",
             "minLength": 1
+          },
+          "gp_ei_comparable_environment_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "gp_ei_unresolved_environment_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "gp_ei_unresolved_environments": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "helpful",
+                "neutral",
+                "harmful",
+                "misleading_prior"
+              ]
+            }
+          },
+          "seeded_random_comparable_environment_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "seeded_random_unresolved_environment_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "seeded_random_unresolved_environments": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "helpful",
+                "neutral",
+                "harmful",
+                "misleading_prior"
+              ]
+            }
           }
         }
       }
