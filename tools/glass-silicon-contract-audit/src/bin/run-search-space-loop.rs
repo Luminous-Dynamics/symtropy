@@ -1671,6 +1671,7 @@ fn close(left: Option<f64>, right: Option<f64>) -> bool {
 fn audit_budget_frontier(lanes: &[(&[u8], &[u8])], oracle_raw: &[u8]) -> Value {
     let oracle_digest = sha256(oracle_raw);
     let mut audit = json!({
+        "schema_version": 1,
         "status": "PASS",
         "audit_kind": "synthetic_paired_budget_frontier_scorecard",
         "benchmark_id": BENCHMARK_ID,
