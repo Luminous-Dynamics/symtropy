@@ -593,6 +593,364 @@ fn run_all(public_raw: &[u8], oracle_raw: &[u8]) -> Value {
     top
 }
 
+
+fn build_replay_view(
+    catalog: &Value,
+    policy: &str,
+    visible: &BTreeSet<String>,
+    evaluated: &HashSet<String>,
+    observations: &[Value],
+    expanded_candidate_ids: &[String],
+    expansion_used: bool,
+    remaining_cost: f64,
+    remaining_seconds: f64,
+) -> Value {
+    let visible_candidates = catalog.get("candidate_families").and_then(Value::as_array).into_iter().flatten()
+        .filter(|c| c.get("id").and_then(Value::as_str).is_some_and(|id| visible.contains(id)))
+        .map(|c| {
+            let id = c.get("id").and_then(Value::as_str).unwrap_or("");
+            json!({
+                "id": id,
+                "domain": c.get("domain").cloned().unwrap_or(Value::Null),
+                "screen_priority": c.get("screen_priority").cloned().unwrap_or(Value::Null),
+                "predicted_feasible": c.get("predicted_feasible").cloned().unwrap_or(Value::Null),
+                "selector_score": c.get("selector_scores").and_then(|v| v.get(policy)).cloned().unwrap_or(Value::Null),
+                "failure_fallback_score": c.get("failure_fallback_score").cloned().unwrap_or(Value::Null),
+                "is_expansion_candidate": c.get("initially_visible").and_then(Value::as_bool) == Some(false),
+                "evaluated": evaluated.contains(id)
+            })
+        }).collect::<Vec<_>>();
+    json!({
+        "policy_id": policy,
+        "visible_candidates": visible_candidates,
+        "observations": observations,
+        "expanded_candidate_ids": expanded_candidate_ids,
+        "expansion_used": expansion_used,
+        "available_expansion_methods": if expansion_used { Vec::<String>::new() } else { vec!["random".to_owned(), "rule_based".to_owned(), "prior_guided".to_owned()] },
+        "public_thresholds": catalog.get("policy_contract").and_then(|v| v.get("thresholds")).cloned().unwrap_or_else(|| json!({})),
+        "remaining_cost_units": remaining_cost,
+        "remaining_duration_seconds": remaining_seconds
+    })
+}
+
+fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Value {
+    let report_digest = sha256(report_raw);
+    let public_digest = sha256(public_raw);
+    let oracle_digest = sha256(oracle_raw);
+    let mut audit = json!({
+        "status": "PASS",
+        "audit_kind": "independent_live_policy_transcript_replay",
+        "benchmark_id": BENCHMARK_ID,
+        "report_sha256": report_digest,
+        "input_sha256": public_digest,
+        "oracle_sha256": oracle_digest,
+        "episodes_checked": 0,
+        "events_checked": 0,
+        "evaluations_replayed": 0,
+        "expansions_replayed": 0,
+        "cost_units_recomputed": 0.0,
+        "duration_seconds_recomputed": 0.0,
+        "findings": [],
+        "claim_ceiling": "Transcript integrity and declared synthetic outcome replay only; no process isolation, material truth, or industrial result is established."
+    });
+    let report: Value = match serde_json::from_slice(report_raw) {
+        Ok(v) => v,
+        Err(e) => {
+            fail(&mut audit, "FAIL", "REPORT_JSON_INVALID", &e.to_string());
+            return audit;
+        }
+    };
+    let catalog: Value = match serde_json::from_slice(public_raw) {
+        Ok(v) => v,
+        Err(e) => {
+            fail(&mut audit, "FAIL", "PUBLIC_JSON_INVALID", &e.to_string());
+            return audit;
+        }
+    };
+    let oracle: Value = match serde_json::from_slice(oracle_raw) {
+        Ok(v) => v,
+        Err(e) => {
+            fail(&mut audit, "FAIL", "ORACLE_JSON_INVALID", &e.to_string());
+            return audit;
+        }
+    };
+    only_keys(&report, &["status","audit_kind","benchmark_id","input_sha256","oracle_sha256","policy_count","environment_count","episodes_checked","episodes","findings","claim_ceiling"], "run_report", &mut audit);
+    if report.get("audit_kind").and_then(Value::as_str) != Some("synthetic_live_policy_event_loop")
+        || report.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID) {
+        fail(&mut audit, "FAIL", "RUN_REPORT_KIND_INVALID", "input report is not a live policy event-loop report for this benchmark");
+    }
+    if report.get("input_sha256").and_then(Value::as_str) != Some(public_digest.as_str()) {
+        fail(&mut audit, "FAIL", "PUBLIC_DIGEST_MISMATCH", "live-loop report does not bind to the exact public catalog bytes supplied to replay");
+    }
+    if report.get("oracle_sha256").and_then(Value::as_str) != Some(oracle_digest.as_str()) {
+        fail(&mut audit, "FAIL", "ORACLE_DIGEST_MISMATCH", "live-loop report does not bind to the exact sealed oracle bytes supplied to replay");
+    }
+    if catalog.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID)
+        || oracle.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID) {
+        fail(&mut audit, "FAIL", "BENCHMARK_ID_MISMATCH", "public catalog and oracle benchmark IDs do not match the replay contract");
+    }
+    let max_cost = catalog.get("budgets").and_then(|v| v.get("max_cost_units")).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    let max_seconds = catalog.get("budgets").and_then(|v| v.get("max_duration_seconds")).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    if !max_cost.is_finite() || max_cost <= 0.0 || !max_seconds.is_finite() || max_seconds <= 0.0 {
+        fail(&mut audit, "FAIL", "BUDGET_INVALID", "public budget caps are missing or invalid");
+        return audit;
+    }
+
+    let families = catalog.get("candidate_families").and_then(Value::as_array).cloned().unwrap_or_default();
+    let mut family_by_id: HashMap<String, Value> = HashMap::new();
+    for (i, family) in families.iter().enumerate() {
+        let Some(id) = family.get("id").and_then(Value::as_str) else {
+            fail(&mut audit, "FAIL", "FAMILY_ID_MISSING", &format!("catalog candidate {i} lacks an ID"));
+            continue;
+        };
+        if family_by_id.insert(id.to_owned(), family.clone()).is_some() {
+            fail(&mut audit, "FAIL", "FAMILY_ID_DUPLICATE", &format!("catalog candidate ID {id} is duplicated"));
+        }
+    }
+    let tariffs = get_tariffs(&oracle, &mut audit);
+    let Some(oracle_envs) = oracle.get("environments").and_then(Value::as_array) else {
+        fail(&mut audit, "FAIL", "ENVIRONMENTS_REQUIRED", "sealed oracle has no environment array");
+        return audit;
+    };
+    let Some(episodes) = report.get("episodes").and_then(Value::as_array) else {
+        fail(&mut audit, "FAIL", "EPISODES_REQUIRED", "run report has no episodes array");
+        return audit;
+    };
+
+    let mut episodes_checked = 0usize;
+    let mut events_checked = 0usize;
+    let mut evals_replayed = 0usize;
+    let mut expansions_replayed = 0usize;
+    let mut total_cost = 0.0f64;
+    let mut total_seconds = 0.0f64;
+    let mut episode_ids = HashSet::new();
+
+    for (episode_index, episode) in episodes.iter().enumerate() {
+        let env_id = episode.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        let policy = episode.get("policy_class").and_then(Value::as_str).unwrap_or("");
+        let campaign_id = episode.get("campaign_id").and_then(Value::as_str).unwrap_or("");
+        if !valid_slug(env_id) || !allowed_policy(policy) || campaign_id.is_empty() {
+            fail(&mut audit, "FAIL", "EPISODE_IDENTITY_INVALID", &format!("episode {episode_index} has invalid identity fields"));
+            continue;
+        }
+        if !episode_ids.insert(campaign_id.to_owned()) {
+            fail(&mut audit, "FAIL", "EPISODE_ID_DUPLICATE", &format!("duplicate campaign ID {campaign_id}"));
+        }
+        if episode.get("status").and_then(Value::as_str) == Some("FAIL") {
+            fail(&mut audit, "FAIL", "SOURCE_EPISODE_FAILED", &format!("episode {campaign_id} is already marked FAIL"));
+        }
+        if episode.get("input_sha256").and_then(Value::as_str) != Some(public_digest.as_str())
+            || episode.get("oracle_sha256").and_then(Value::as_str) != Some(oracle_digest.as_str()) {
+            fail(&mut audit, "FAIL", "EPISODE_DIGEST_MISMATCH", &format!("episode {campaign_id} does not bind to the supplied inputs"));
+        }
+        let Some(env) = oracle_envs.iter().find(|e| e.get("environment_id").and_then(Value::as_str) == Some(env_id)) else {
+            fail(&mut audit, "UNRESOLVED", "ENVIRONMENT_MISSING", &format!("sealed oracle has no environment {env_id}"));
+            continue;
+        };
+        let outcome_rows = env.get("outcomes").and_then(Value::as_array).cloned().unwrap_or_default();
+        let outcome_by_id: HashMap<String, (bool, f64)> = outcome_rows.iter().filter_map(|row| {
+            let id = row.get("candidate_family_id")?.as_str()?.to_owned();
+            let feasible = row.get("feasible")?.as_bool()?;
+            let utility = row.get("utility")?.as_f64()?;
+            utility.is_finite().then_some((id, (feasible, utility)))
+        }).collect();
+        let mut visible: BTreeSet<String> = families.iter()
+            .filter(|f| f.get("initially_visible").and_then(Value::as_bool) == Some(true))
+            .filter_map(|f| f.get("id").and_then(Value::as_str).map(str::to_owned)).collect();
+        let mut evaluated = HashSet::new();
+        let mut observations = Vec::<Value>::new();
+        let mut expanded_ids = Vec::<String>::new();
+        let mut expansion_used = false;
+        let mut cost_used = 0.0f64;
+        let mut seconds_used = 0.0f64;
+        let mut feasible_hits = 0usize;
+        let mut false_feasible = 0usize;
+        let mut best_utility: Option<f64> = None;
+        let mut first_feasible_cost: Option<f64> = None;
+        let Some(events) = episode.get("events").and_then(Value::as_array) else {
+            fail(&mut audit, "FAIL", "EVENTS_REQUIRED", &format!("episode {campaign_id} has no event array"));
+            continue;
+        };
+        if events.is_empty() {
+            fail(&mut audit, "FAIL", "EVENTS_EMPTY", &format!("episode {campaign_id} has no events"));
+        }
+
+        for (event_index, event) in events.iter().enumerate() {
+            let event_type = event.get("action_type").and_then(Value::as_str).unwrap_or("");
+            let allowed_keys: &[&str] = match event_type {
+                "evaluate_candidate" => &["event_seq","action_type","candidate_family_id","decision_view_sha256","cost_units_charged","duration_seconds_charged","predicted_feasible_before_observation","observed_outcome"],
+                "expand_space" => &["event_seq","action_type","expansion_method","candidate_family_id","proposal_sha256","decision_view_sha256","cost_units_charged","duration_seconds_charged","observed_outcome"],
+                _ => {
+                    fail(&mut audit, "FAIL", "EVENT_TYPE_INVALID", &format!("episode {campaign_id} has invalid action type {event_type}"));
+                    continue;
+                }
+            };
+            only_keys(event, allowed_keys, &format!("episode {campaign_id}.events[{event_index}]"), &mut audit);
+            if event.get("event_seq").and_then(Value::as_u64) != Some((event_index + 1) as u64) {
+                fail(&mut audit, "FAIL", "EVENT_SEQUENCE_INVALID", &format!("episode {campaign_id} event sequence is not consecutive"));
+            }
+            let Some(candidate_id) = event.get("candidate_family_id").and_then(Value::as_str) else {
+                fail(&mut audit, "FAIL", "EVENT_CANDIDATE_ID_MISSING", &format!("episode {campaign_id} event {event_index} lacks a candidate ID"));
+                continue;
+            };
+
+            let view = build_replay_view(
+                &catalog, policy, &visible, &evaluated, &observations, &expanded_ids,
+                expansion_used, (max_cost - cost_used).max(0.0), (max_seconds - seconds_used).max(0.0)
+            );
+            let expected_view_digest = sha256(&serde_json::to_vec(&view).unwrap_or_default());
+            if event.get("decision_view_sha256").and_then(Value::as_str) != Some(expected_view_digest.as_str()) {
+                fail(&mut audit, "FAIL", "DECISION_VIEW_DIGEST_MISMATCH", &format!("episode {campaign_id} event {event_index} view digest is not reproducible from the prior public state"));
+            }
+
+            let (tariff_key, method) = if event_type == "evaluate_candidate" {
+                ("evaluate_candidate", None)
+            } else {
+                let Some(m) = event.get("expansion_method").and_then(Value::as_str) else {
+                    fail(&mut audit, "FAIL", "EXPANSION_METHOD_REQUIRED", &format!("episode {campaign_id} expansion has no method"));
+                    continue;
+                };
+                let Some(key) = tariff_key_for_method(m) else {
+                    fail(&mut audit, "FAIL", "EXPANSION_METHOD_INVALID", &format!("episode {campaign_id} has unknown expansion method {m}"));
+                    continue;
+                };
+                (key, Some(m))
+            };
+            let Some(tariff) = tariffs.get(tariff_key) else {
+                fail(&mut audit, "FAIL", "TARIFF_MISSING", &format!("episode {campaign_id} missing tariff {tariff_key}"));
+                continue;
+            };
+            let declared_cost = event.get("cost_units_charged").and_then(Value::as_f64).unwrap_or(f64::NAN);
+            let declared_seconds = event.get("duration_seconds_charged").and_then(Value::as_f64).unwrap_or(f64::NAN);
+            if (declared_cost - tariff.cost).abs() > 1e-9 || (declared_seconds - tariff.seconds).abs() > 1e-9 {
+                fail(&mut audit, "FAIL", "ACTION_CHARGE_MISMATCH", &format!("episode {campaign_id} event {event_index} does not match evaluator-owned tariff"));
+            }
+            cost_used += tariff.cost;
+            seconds_used += tariff.seconds;
+            if cost_used > max_cost + 1e-9 || seconds_used > max_seconds + 1e-9 {
+                fail(&mut audit, "FAIL", "RESOURCE_BUDGET_OVERRUN", &format!("episode {campaign_id} exceeds the registered cost or duration cap"));
+            }
+            if event.get("observed_outcome").is_some_and(|v| !v.is_null()) && event_type == "expand_space" {
+                fail(&mut audit, "FAIL", "EXPANSION_REVEALED_OUTCOME", &format!("expansion event in {campaign_id} reveals a sealed outcome"));
+            }
+
+            if event_type == "expand_space" {
+                expansions_replayed += 1;
+                if expansion_used {
+                    fail(&mut audit, "FAIL", "MULTIPLE_EXPANSIONS", &format!("episode {campaign_id} has more than one expansion"));
+                }
+                if method_for_policy(policy) != method {
+                    fail(&mut audit, "FAIL", "EXPANSION_POLICY_MISMATCH", &format!("episode {campaign_id} policy {policy} did not declare method {method:?}"));
+                }
+                let Some(option) = catalog.get("expansion_options").and_then(Value::as_array).into_iter().flatten()
+                    .find(|o| o.get("method").and_then(Value::as_str) == method) else {
+                    fail(&mut audit, "UNRESOLVED", "EXPANSION_OPTION_MISSING", &format!("episode {campaign_id} has no registered method option"));
+                    continue;
+                };
+                if option.get("candidate_family_id").and_then(Value::as_str) != Some(candidate_id)
+                    || event.get("proposal_sha256").and_then(Value::as_str) != option.get("proposal_sha256").and_then(Value::as_str) {
+                    fail(&mut audit, "FAIL", "EXPANSION_RECEIPT_MISMATCH", &format!("episode {campaign_id} expansion ID/digest differs from the registered proposal"));
+                }
+                if visible.contains(candidate_id) || !family_by_id.contains_key(candidate_id) {
+                    fail(&mut audit, "FAIL", "EXPANSION_VISIBILITY_INVALID", &format!("episode {campaign_id} expands an already visible or unregistered family {candidate_id}"));
+                }
+                if !option.get("evidence_refs").and_then(Value::as_array).is_some_and(|a| !a.is_empty()) {
+                    fail(&mut audit, "UNRESOLVED", "EXPANSION_EVIDENCE_MISSING", &format!("episode {campaign_id} expansion option has no evidence references"));
+                }
+                visible.insert(candidate_id.to_owned());
+                expanded_ids.push(candidate_id.to_owned());
+                expansion_used = true;
+            } else {
+                evals_replayed += 1;
+                if !visible.contains(candidate_id) {
+                    fail(&mut audit, "FAIL", "CANDIDATE_NOT_VISIBLE", &format!("episode {campaign_id} evaluates {candidate_id} before it was revealed"));
+                }
+                if !evaluated.insert(candidate_id.to_owned()) {
+                    fail(&mut audit, "FAIL", "CANDIDATE_DUPLICATE_EVALUATION", &format!("episode {campaign_id} evaluates {candidate_id} more than once"));
+                }
+                let Some(family) = family_by_id.get(candidate_id) else {
+                    fail(&mut audit, "FAIL", "CANDIDATE_UNREGISTERED", &format!("episode {campaign_id} evaluates unknown family {candidate_id}"));
+                    continue;
+                };
+                if event.get("predicted_feasible_before_observation") != family.get("predicted_feasible").unwrap_or(&Value::Null) {
+                    fail(&mut audit, "FAIL", "PREDICTION_RECEIPT_MISMATCH", &format!("episode {campaign_id} predicted feasibility differs from public catalog"));
+                }
+                let Some((feasible, utility)) = outcome_by_id.get(candidate_id).copied() else {
+                    if event.get("observed_outcome").is_some_and(|v| !v.is_null()) {
+                        fail(&mut audit, "FAIL", "MISSING_OUTCOME_DISCLOSED", &format!("episode {campaign_id} exposes a result absent from sealed oracle"));
+                    } else {
+                        fail(&mut audit, "UNRESOLVED", "SEALED_OUTCOME_MISSING", &format!("episode {campaign_id} has no oracle outcome for {candidate_id}"));
+                    }
+                    continue;
+                };
+                let expected = json!({"feasible":feasible,"utility":utility});
+                if event.get("observed_outcome") != Some(&expected) {
+                    fail(&mut audit, "FAIL", "OBSERVATION_ORACLE_MISMATCH", &format!("episode {campaign_id} observed result differs from sealed oracle"));
+                }
+                if family.get("predicted_feasible").and_then(Value::as_bool) == Some(true) && !feasible {
+                    false_feasible += 1;
+                }
+                observations.push(json!({"candidate_family_id":candidate_id,"feasible":feasible,"utility":utility}));
+                if feasible {
+                    feasible_hits += 1;
+                    best_utility = Some(best_utility.map_or(utility, |v| v.max(utility)));
+                    if first_feasible_cost.is_none() {
+                        first_feasible_cost = Some(cost_used);
+                    }
+                }
+            }
+            events_checked += 1;
+        }
+
+        if !close(episode.get("cost_units_charged").and_then(Value::as_f64), Some(cost_used)) {
+            fail(&mut audit, "FAIL", "TOTAL_COST_MISMATCH", &format!("episode {campaign_id} total cost does not replay"));
+        }
+        if !close(episode.get("duration_seconds_charged").and_then(Value::as_f64), Some(seconds_used)) {
+            fail(&mut audit, "FAIL", "TOTAL_DURATION_MISMATCH", &format!("episode {campaign_id} total duration does not replay"));
+        }
+        if episode.get("evaluations").and_then(Value::as_u64) != Some(observations.len() as u64) {
+            fail(&mut audit, "FAIL", "EVALUATION_COUNT_MISMATCH", &format!("episode {campaign_id} evaluation count does not replay"));
+        }
+        if episode.get("expansions").and_then(Value::as_u64) != Some(expanded_ids.len() as u64) {
+            fail(&mut audit, "FAIL", "EXPANSION_COUNT_MISMATCH", &format!("episode {campaign_id} expansion count does not replay"));
+        }
+        if episode.get("verified_feasible_discoveries").and_then(Value::as_u64) != Some(feasible_hits as u64) {
+            fail(&mut audit, "FAIL", "FEASIBLE_HIT_COUNT_MISMATCH", &format!("episode {campaign_id} feasible-hit count does not replay"));
+        }
+        if episode.get("false_feasible_predictions").and_then(Value::as_u64) != Some(false_feasible as u64) {
+            fail(&mut audit, "FAIL", "FALSE_FEASIBLE_COUNT_MISMATCH", &format!("episode {campaign_id} false-feasible count does not replay"));
+        }
+        if !close(episode.get("best_verified_feasible_utility").and_then(Value::as_f64), best_utility) {
+            fail(&mut audit, "FAIL", "BEST_UTILITY_MISMATCH", &format!("episode {campaign_id} best verified feasible utility does not replay"));
+        }
+        if !close(episode.get("first_feasible_cost_units").and_then(Value::as_f64), first_feasible_cost) {
+            fail(&mut audit, "FAIL", "FIRST_FEASIBLE_COST_MISMATCH", &format!("episode {campaign_id} first feasible cost does not replay"));
+        }
+        total_cost += cost_used;
+        total_seconds += seconds_used;
+        episodes_checked += 1;
+    }
+
+    if report.get("episodes_checked").and_then(Value::as_u64) != Some(episodes.len() as u64) {
+        fail(&mut audit, "FAIL", "EPISODE_COUNT_MISMATCH", "reported episode count does not match episode array length");
+    }
+    audit["episodes_checked"] = json!(episodes_checked);
+    audit["events_checked"] = json!(events_checked);
+    audit["evaluations_replayed"] = json!(evals_replayed);
+    audit["expansions_replayed"] = json!(expansions_replayed);
+    audit["cost_units_recomputed"] = json!(total_cost);
+    audit["duration_seconds_recomputed"] = json!(total_seconds);
+    audit
+}
+
+fn close(left: Option<f64>, right: Option<f64>) -> bool {
+    match (left, right) {
+        (Some(a), Some(b)) => a.is_finite() && b.is_finite() && (a - b).abs() <= 1e-9,
+        (None, None) => true,
+        _ => false,
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
