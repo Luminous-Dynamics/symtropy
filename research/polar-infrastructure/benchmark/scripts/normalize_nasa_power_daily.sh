@@ -124,6 +124,38 @@ jq -e '
   exit 3
 }
 
+# Reject malformed/non-numeric values and basic physical contradictions before
+# generating an engineering input. These are conservative sanity checks, not a
+# climatological validation or calibration step.
+jq -e --argjson fill "$(jq -r '.header.fill_value' "$RAW_COPY")" '
+  def missing($fill): . == null or . == $fill;
+  def numeric_or_missing($fill): missing($fill) or type == "number";
+  .properties.parameter as $p |
+  ($p.T2M | keys | sort) as $dates |
+  all($dates[] as $d;
+    all([
+      $p.T2M[$d], $p.T2M_MAX[$d], $p.T2M_MIN[$d],
+      $p.ALLSKY_SFC_SW_DWN[$d], $p.WS10M[$d],
+      $p.PRECTOTCORR[$d], $p.RH2M[$d]
+    ][];
+      numeric_or_missing($fill)
+    ) and
+    (missing($p.ALLSKY_SFC_SW_DWN[$d]; $fill) or $p.ALLSKY_SFC_SW_DWN[$d] >= 0) and
+    (missing($p.WS10M[$d]; $fill) or $p.WS10M[$d] >= 0) and
+    (missing($p.PRECTOTCORR[$d]; $fill) or $p.PRECTOTCORR[$d] >= 0) and
+    (missing($p.RH2M[$d]; $fill) or ($p.RH2M[$d] >= 0 and $p.RH2M[$d] <= 100)) and
+    (if (numeric_or_missing($fill) and ($p.T2M_MIN[$d] != $fill and $p.T2M_MIN[$d] != null) and ($p.T2M_MAX[$d] != $fill and $p.T2M_MAX[$d] != null))
+      then $p.T2M_MIN[$d] <= $p.T2M_MAX[$d]
+      else true end) and
+    (if ($p.T2M[$d] != $fill and $p.T2M[$d] != null) and ($p.T2M_MIN[$d] != $fill and $p.T2M_MIN[$d] != null) and ($p.T2M_MAX[$d] != $fill and $p.T2M_MAX[$d] != null)
+      then ($p.T2M_MIN[$d] <= $p.T2M[$d] and $p.T2M[$d] <= $p.T2M_MAX[$d])
+      else true end)
+  )
+' "$RAW_COPY" >/dev/null || {
+  echo "response values violate numeric, non-negativity, humidity-range, or temperature-order sanity checks" >&2
+  exit 3
+}
+
 # Require all variables to use the exact same date keys and require every date
 # in the inclusive request range. Missing data is represented by the API fill
 # value, not by a missing date key; such values remain explicit blanks in CSV.
