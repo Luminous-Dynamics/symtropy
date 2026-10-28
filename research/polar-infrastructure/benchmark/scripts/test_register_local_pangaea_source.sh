@@ -57,6 +57,18 @@ if bash "$REGISTER" "$DOI" "$LICENSE" "not_evaluated" "$SOURCE" "$OUT" >/dev/nul
   exit 1
 fi
 
+cat > "$TMP_DIR/mismatched-doi.tab" <<'TAB'
+/* DATA DESCRIPTION:
+DOI: 10.1594/PANGAEA.999999
+*/
+Date/Time\tSWD
+2025-06-01T00:00\t1
+TAB
+if bash "$REGISTER" "$DOI" "$LICENSE" "not_evaluated" "$TMP_DIR/mismatched-doi.tab" "$TMP_DIR/mismatched-doi" >/dev/null 2>&1; then
+  echo "ERROR: DOI mismatch between argument and source metaheader was unexpectedly accepted" >&2
+  exit 1
+fi
+
 printf 'not a PANGAEA export\n2025-06-01T00:00\t2\t10\n' > "$TMP_DIR/no-metaheader.tab"
 if bash "$REGISTER" "$DOI" "$LICENSE" "not_evaluated" "$TMP_DIR/no-metaheader.tab" "$TMP_DIR/bad-format" >/dev/null 2>&1; then
   echo "ERROR: file without PANGAEA metaheader was unexpectedly accepted" >&2
