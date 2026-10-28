@@ -68,6 +68,16 @@ Recent research gives us a way to benchmark the *transfer method*, not just the 
 
 Careframe's future experiment should preregister whether simulation candidate rankings predict later **non-clinical guarded bench** outcomes. Report rank correlation, rank reversals, uncertainty and mismatch category, but never infer clinical validity from either simulator success or a high correlation computed on a small selected sample.
 
+## New prerequisite: observation-contract equivalence
+
+He, Wang and Xu's peer-reviewed *Scientific Reports* paper, published 20 October 2026, documents observation-contract mismatches in robot manipulation evaluations. Their audit reports silent loss of 31–53% of observable state on tested observation pathways in ManiSkill3, RLBench and a Diffusion Policy/robomimic integration. This is not a universal estimate for every benchmark, but it shows why input semantics must be validated before attributing performance differences to policies.
+
+Careframe now has a standalone [observation-contract audit](CAREFRAME_OBSERVATION_CONTRACT_AUDIT_V0.md): 18 ordered semantic fields are shared across synthetic state-estimate, RGB-derived and point-cloud-derived adapters; types, units, source-family and modality inputs are compared explicitly; two simulator-oracle values are scoring-only and must not leak into policy inputs. The validator fixture must reject dropped/reordered fields, unit/type drift, source mismatch and oracle leakage.
+
+This currently audits *declared synthetic contracts only*. The next step is instrumenting real Symtropy-to-Symthaea observations and comparing emitted fields against the contract at the policy boundary.
+
+Reference: He, Wang & Xu, “Observation-contract auditing for valid modality comparison in robot manipulation benchmarks” (*Scientific Reports*, 20 October 2026): https://www.nature.com/articles/s41598-026-76821-1.
+
 ## Proposed Careframe benchmark architecture
 
 The benchmark is a vector of separate scorecards, not one opaque composite score:
