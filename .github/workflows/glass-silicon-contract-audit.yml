@@ -7,6 +7,7 @@ on:
       - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
       - "docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
       - "docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
+      - "docs/tech/glass-acquisition-campaign-transcript-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
@@ -24,6 +25,7 @@ on:
       - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
       - "docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
       - "docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
+      - "docs/tech/glass-acquisition-campaign-transcript-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
@@ -141,6 +143,9 @@ jobs:
           grep -q 'glass-acquisition-outcome-oracle-v0.1.schema.json' "$protocol"
           grep -q 'GLASS-CLOSED-LOOP-001 #2785' "$protocol"
           grep -q 'proceedings.mlr.press/v306/malik26a.html' "$protocol"
+          grep -q 'audit-acquisition-transcript <transcript.json>' "$protocol"
+          grep -q 'glass-acquisition-campaign-transcript-v0.1.schema.json' "$protocol"
+          grep -q 'request/result pairing' "$protocol"
           grep -q 'calibration alone' "$protocol"
           echo "OOD acquisition-value protocol and matched-budget baselines: PASS"
 
@@ -195,6 +200,38 @@ jobs:
             ([.policies[] | .runs[] | select(.selected_measurement_id == "measure-expensive")] | length) == 0
           ' acquisition-policy-comparison-report.json
           echo "Separated policy-visible catalog and sealed oracle known answer: PASS"
+
+      - name: Audit acquisition campaign transcript schema and known answer
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/tech/glass-acquisition-campaign-transcript-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.events.maxItems == 10000 and
+            (.properties.events.items.oneOf | length) == 3 and
+            .properties.events.items.oneOf[0].properties.event_type.const == "measurement_requested" and
+            .properties.events.items.oneOf[1].properties.event_type.const == "measurement_result" and
+            .properties.events.items.oneOf[2].properties.event_type.const == "decision" and
+            .additionalProperties == false
+          ' "$schema" > /dev/null
+
+          fixture="tools/glass-silicon-contract-audit/fixtures/acquisition-campaign-transcript.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-acquisition-transcript "$fixture" > acquisition-campaign-transcript-report.json
+          digest="$(sha256sum "$fixture" | awk '{print $1}')"
+          jq -e --arg digest "$digest" '
+            .status == "PASS" and
+            .audit_kind == "acquisition_campaign_transcript" and
+            .transcript_sha256 == $digest and
+            .events_checked == 3 and
+            .measurement_requests == 1 and
+            .measurement_results == 1 and
+            .total_cost_units == 2.0 and
+            .total_duration_seconds == 20.0 and
+            .final_decision_status == "UNRESOLVED"
+          ' acquisition-campaign-transcript-report.json
+          echo "Acquisition campaign transcript ordering and charged-budget known answer: PASS"
 
       - name: Audit relationship graph JSON schema
         shell: bash
