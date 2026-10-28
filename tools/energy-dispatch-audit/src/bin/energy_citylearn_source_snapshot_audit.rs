@@ -81,7 +81,9 @@ struct Report {
     total_source_bytes_verified: usize,
     source_commit_verified: bool,
     schema_git_blob_identity_verified: bool,
-    source_file_git_blob_identities_verified: bool,
+    schema_csv_reference_count: usize,
+    schema_csv_references_match_manifest: bool,
+    source_file_git_blob_identities_verified: bool
     raw_sha256_receipts_generated: bool,
     dataset_terms_cleared: bool,
     forecast_issue_times_verified: bool,
@@ -170,6 +172,25 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
     Ok(())
 }
 
+fn collect_csv_references(value: &serde_json::Value, found: &mut BTreeSet<String>) {
+    match value {
+        serde_json::Value::Array(values) => {
+            for value in values {
+                collect_csv_references(value, found);
+            }
+        }
+        serde_json::Value::Object(values) => {
+            for value in values.values() {
+                collect_csv_references(value, found);
+            }
+        }
+        serde_json::Value::String(value) if value.to_ascii_lowercase().ends_with(".csv") => {
+            found.insert(value.clone());
+        }
+        _ => {}
+    }
+}
+
 fn git_text(root: &Path, args: &[String]) -> Result<String, String> {
     let output = Command::new("git")
         .arg("-C")
@@ -226,6 +247,17 @@ fn verify_snapshot(root: &Path) -> Result<Report, String> {
     }
     let schema_json: serde_json::Value = serde_json::from_slice(&schema_bytes)
         .map_err(|error| format!("source schema is not valid JSON: {error}"))?;
+    let mut schema_csv_references = BTreeSet::new();
+    collect_csv_references(&schema_json, &mut schema_csv_references);
+    let manifest_csv_references: BTreeSet<String> = manifest.files.iter()
+        .filter_map(|file| file.path.strip_prefix(DATASET_ROOT).map(str::to_owned))
+        .collect();
+    if schema_csv_references != manifest_csv_references {
+        return Err(format!(
+            "schema CSV reference inventory mismatch: schema={}, manifest={}",
+            schema_csv_references.len(), manifest_csv_references.len()
+        ));
+    }
     if schema_json.get("start_date").and_then(|v| v.as_str()) != Some(manifest.start_date.as_str())
         || schema_json.get("simulation_start_time_step").and_then(|v| v.as_u64()) != Some(manifest.simulation_start_step as u64)
         || schema_json.get("simulation_end_time_step").and_then(|v| v.as_u64()) != Some(manifest.simulation_end_step as u64)
@@ -287,6 +319,8 @@ fn verify_snapshot(root: &Path) -> Result<Report, String> {
         total_source_bytes_verified: total_bytes,
         source_commit_verified: actual_commit == SOURCE_COMMIT,
         schema_git_blob_identity_verified: schema_blob == manifest.schema_git_blob_sha1,
+        schema_csv_reference_count: schema_csv_references.len(),
+        schema_csv_references_match_manifest: schema_csv_references == manifest_csv_references,
         source_file_git_blob_identities_verified: receipts.len() == manifest.referenced_csv_count,
         raw_sha256_receipts_generated: receipts.len() == 30 && receipts.iter().all(|receipt| valid_sha1(&receipt.git_blob_sha1) && receipt.sha256.len() == 64),
         dataset_terms_cleared: false,
