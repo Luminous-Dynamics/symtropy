@@ -14,6 +14,7 @@ on:
       - "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
       - "research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/long-horizon-resilience-contract-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/src/bin/long_horizon_contract.rs"
       - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
@@ -44,6 +45,7 @@ on:
       - "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
       - "research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/long-horizon-resilience-contract-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/src/bin/long_horizon_contract.rs"
       - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
@@ -292,6 +294,28 @@ jobs:
           set -euo pipefail
           manifest="research/polar-infrastructure/benchmark/Cargo.toml"
           fixture="research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json"
+          schema="research/polar-infrastructure/benchmark/schemas/long-horizon-resilience-contract-0.1.0.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Long-Horizon Resilience Contract" and
+            .additionalProperties == false and
+            (.required | index("horizon") != null) and
+            (.properties.horizon.required | index("carry_state_between_events") != null) and
+            (.properties.scenario_families.items.properties.scenario_weight.type | index("null") != null) and
+            (.properties.comparison_design.properties.locked_holdout_used_for_tuning.type == "boolean")
+          ' "$schema"
+          jq -e '
+            .status == "proposed_not_executed" and
+            .evidence_class == "test_design_only" and
+            .evidence_boundary.probability_basis_verified == false and
+            .evidence_boundary.scenario_weights == null and
+            .horizon.carry_state_between_events == true and
+            .horizon.allow_state_reset_between_events == false and
+            .comparison_design.locked_holdout_used_for_tuning == false and
+            ([.scenario_families[] | select(.nonstationary == true)] | length >= 2) and
+            all(.scenario_families[]; .scenario_weight == null and .source_admission_status == "not_admitted") and
+            all(.admission_gates | to_entries[]; .value == false)
+          ' "$fixture"
           cargo test --locked --manifest-path "$manifest" --bin long_horizon_contract
           cargo run --locked --quiet --manifest-path "$manifest" --bin long_horizon_contract -- "$fixture" > /tmp/long-horizon-contract-report.json
           jq -e '
