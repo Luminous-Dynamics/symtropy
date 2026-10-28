@@ -99,3 +99,18 @@ python3 -m json.tool /tmp/lighting-mnar-sensitivity.json >/dev/null
 The standard 96-scenario local run had a 68.56% maximum complete-case null rejection rate and 26/48 null scenarios whose individual 95% Monte Carlo Wilson interval lay above alpha. The bounded lower bound had zero observed null rejections, but also zero observed power through 40 families with the deliberately wide [-15%, 25%] effect bounds. At 20 families in the clipped-normal-like MNAR scenario, complete-case rejection was 40.32% and the mean observed effect was 6.15% despite a true null location of 5%.
 
 This is a synthetic counterexample and a conservative-method trade-off, not a real lighting result. The Hoeffding bound is only useful when the outcome bounds are substantively justified; its low power is a result to report, not a reason to silently narrow the bounds. See [the informative-missingness protocol](../../docs/research/LIGHTING_INFORMATIVE_MISSINGNESS_V0_1.md).
+
+
+## MAR adjustment and MNAR tipping-point diagnostics
+
+The follow-on `mar_adjustment_and_mnar_tipping.py` keeps four lanes distinct: complete-case Student-t (failure-mode reference), difficulty-adjusted linear regression for a declared MAR model, oracle IPW for known MCAR/MAR response probabilities, and the bounded worst-case Hoeffding reference. The IPW lane is intentionally not run under MNAR because its response probability depends on the unobserved effect.
+
+```sh
+python3 -m unittest -v test_mar_adjustment_and_mnar_tipping
+python3 mar_adjustment_and_mnar_tipping.py \
+  --replicates 500 --seed 20261028 --sample-sizes 10,20,40 \
+  --output /tmp/lighting-mar-mnar-tipping.json
+python3 -m json.tool /tmp/lighting-mar-mnar-tipping.json >/dev/null
+```
+
+The script reports an MNAR tipping delta: the assumed missing-outcome mean minus the observed mean that makes the full-sample **point estimate** equal the frozen margin. It is not an inferential bound or significance test. The local 500-replicate demo still shows substantial rejection inflation in skew/MNAR cases; it does not select a winner. See [the protocol](../../docs/research/LIGHTING_MAR_ADJUSTMENT_AND_MNAR_TIPPING_V0_1.md).
