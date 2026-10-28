@@ -10,7 +10,9 @@
       "unit": "m",
       "source_family": "proprioception",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "world_cartesian_xyz",
+      "temporal_semantics": "instantaneous_state"
     },
     {
       "field_id": "robot.base_orientation_xyzw",
@@ -18,7 +20,9 @@
       "unit": "unitless",
       "source_family": "proprioception",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "world_orientation_quaternion_xyzw",
+      "temporal_semantics": "instantaneous_state"
     },
     {
       "field_id": "robot.base_linear_velocity_m_s",
@@ -26,7 +30,9 @@
       "unit": "m/s",
       "source_family": "proprioception",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "world_cartesian_xyz",
+      "temporal_semantics": "instantaneous_state"
     },
     {
       "field_id": "robot.base_angular_velocity_rad_s",
@@ -34,7 +40,9 @@
       "unit": "rad/s",
       "source_family": "proprioception",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "world_cartesian_xyz_rad_s",
+      "temporal_semantics": "instantaneous_state"
     },
     {
       "field_id": "robot.joint_positions_rad",
@@ -42,7 +50,9 @@
       "unit": "rad",
       "source_family": "proprioception",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "joint_local_map",
+      "temporal_semantics": "instantaneous_state"
     },
     {
       "field_id": "robot.joint_velocities_rad_s",
@@ -50,7 +60,9 @@
       "unit": "rad/s",
       "source_family": "proprioception",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "joint_local_map",
+      "temporal_semantics": "instantaneous_state"
     },
     {
       "field_id": "tool.id",
@@ -58,7 +70,9 @@
       "unit": "unitless",
       "source_family": "task_context",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "tool_catalog",
+      "temporal_semantics": "task_scoped_state"
     },
     {
       "field_id": "tool.revision",
@@ -66,7 +80,9 @@
       "unit": "unitless",
       "source_family": "task_context",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "tool_catalog",
+      "temporal_semantics": "task_scoped_state"
     },
     {
       "field_id": "task.target_id",
@@ -74,7 +90,9 @@
       "unit": "unitless",
       "source_family": "task_context",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "task_semantic",
+      "temporal_semantics": "task_scoped_state"
     },
     {
       "field_id": "task.phase",
@@ -82,7 +100,9 @@
       "unit": "unitless",
       "source_family": "task_context",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "task_semantic",
+      "temporal_semantics": "task_scoped_state"
     },
     {
       "field_id": "safety.stop_requested",
@@ -90,7 +110,9 @@
       "unit": "unitless",
       "source_family": "safety_supervisor",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "safety_supervisor",
+      "temporal_semantics": "current_supervisor_state"
     },
     {
       "field_id": "safety.authority_state",
@@ -98,7 +120,9 @@
       "unit": "unitless",
       "source_family": "safety_supervisor",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "safety_supervisor",
+      "temporal_semantics": "current_supervisor_state"
     },
     {
       "field_id": "scene.target_pose_m",
@@ -106,7 +130,9 @@
       "unit": "m",
       "source_family": "perception_estimate",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "world_cartesian_xyz",
+      "temporal_semantics": "estimated_scene_state"
     },
     {
       "field_id": "scene.object_pose_m",
@@ -114,7 +140,9 @@
       "unit": "m",
       "source_family": "perception_estimate",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "world_cartesian_xyz",
+      "temporal_semantics": "estimated_scene_state"
     },
     {
       "field_id": "scene.object_dimensions_m",
@@ -122,7 +150,9 @@
       "unit": "m",
       "source_family": "perception_estimate",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "object_local_dimensions_xyz",
+      "temporal_semantics": "estimated_scene_state"
     },
     {
       "field_id": "scene.obstacle_poses_m",
@@ -130,7 +160,9 @@
       "unit": "m",
       "source_family": "perception_estimate",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "world_cartesian_xyz_list",
+      "temporal_semantics": "estimated_scene_state"
     },
     {
       "field_id": "scene.perception_confidence",
@@ -138,7 +170,9 @@
       "unit": "unitless",
       "source_family": "perception_estimate",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "not_applicable",
+      "temporal_semantics": "current_perception_result"
     },
     {
       "field_id": "scene.visibility_mask",
@@ -146,7 +180,9 @@
       "unit": "unitless",
       "source_family": "perception_estimate",
       "visibility": "policy",
-      "required": true
+      "required": true,
+      "coordinate_frame": "not_applicable",
+      "temporal_semantics": "current_perception_result"
     },
     {
       "field_id": "scene.object_mass_kg",
@@ -154,7 +190,9 @@
       "unit": "kg",
       "source_family": "simulator_truth",
       "visibility": "oracle_only",
-      "required": false
+      "required": false,
+      "coordinate_frame": "object_local",
+      "temporal_semantics": "episode_static_oracle"
     },
     {
       "field_id": "scene.surface_friction_coefficient",
@@ -162,7 +200,9 @@
       "unit": "unitless",
       "source_family": "simulator_truth",
       "visibility": "oracle_only",
-      "required": false
+      "required": false,
+      "coordinate_frame": "contact_surface",
+      "temporal_semantics": "episode_static_oracle"
     }
   ],
   "comparison_profiles": [
@@ -199,8 +239,19 @@
       ],
       "require_identical_field_order": true,
       "require_identical_type_and_unit": true,
-      "require_sensor_or_estimator_provenance": true
+      "require_sensor_or_estimator_provenance": true,
+      "require_identical_frame_and_temporal_semantics": true
     }
   ],
-  "claim_ceiling": "Declared observation contract consistency only. No claim about perception accuracy, robotics performance, safety, or sim-to-real transfer."
+  "claim_ceiling": "Declared observation contract consistency only. No claim about perception accuracy, robotics performance, safety, or sim-to-real transfer.",
+  "observation_metadata_policy": {
+    "clock_domain": "simulation_episode_clock_v0",
+    "timestamp_unit": "ns",
+    "temporal_alignment_policy": "same_simulation_tick",
+    "maximum_source_skew_ns": 0,
+    "coordinate_frame_revision": "careframe-world-frames-v0",
+    "calibration_revision": "synthetic-calibration-fixture-v0",
+    "provenance_state": "synthetic_fixture_only",
+    "runtime_source_digest_status": "not_available_for_synthetic_fixture"
+  }
 }
