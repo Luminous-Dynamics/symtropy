@@ -66,7 +66,7 @@ jobs:
             ([.frontiers[] | select(.gate_id == "water_floor" and .comparison_group_id == "supply_cold_low_reserve") |
               ([.minimal_observed_failing_points[].case_id],
                ([.monotonicity_conflict_witnesses[] | select(.passing_case_id == "heat_short_low_b" and .failing_case_id == "water_short_low")] | length == 1))] ==
-              [[["water_short_low"], true]]) and
+              [["water_short_low"], true]) and
             ([.frontiers[] | select(.gate_id == "sanitation_floor" and .comparison_group_id == "supply_cold_low_reserve") |
               (.minimal_observed_failing_points | length == 0) and
               .observed_pass_count == 6 and
