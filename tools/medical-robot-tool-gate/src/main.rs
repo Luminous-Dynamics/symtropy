@@ -1753,14 +1753,26 @@ mod tests {
     #[test]
     fn morphology_rejects_invalid_axes_limits_geometry_and_link_masses() {
         let mut axis = morphology();
-        axis["joints"][0]["axis_xyz"] = json!([0.0, 0.0, 0.0]);
+        let torso_joint_index = axis["joints"]
+            .as_array()
+            .expect("joints")
+            .iter()
+            .position(|joint| str_at(joint, "joint_id") == Some("torso_yaw"))
+            .expect("bounded torso revolute joint exists");
+        axis["joints"][torso_joint_index]["axis_xyz"] = json!([0.0, 0.0, 0.0]);
         assert!(validate_morphology(&axis)
             .iter()
             .any(|finding| finding == "MORPHOLOGY_REVOLUTE_AXIS_INVALID"));
 
         let mut limits = morphology();
-        limits["joints"][0]["lower_limit_rad"] = json!(1.0);
-        limits["joints"][0]["upper_limit_rad"] = json!(1.0);
+        let torso_joint_index = limits["joints"]
+            .as_array()
+            .expect("joints")
+            .iter()
+            .position(|joint| str_at(joint, "joint_id") == Some("torso_yaw"))
+            .expect("bounded torso revolute joint exists");
+        limits["joints"][torso_joint_index]["lower_limit_rad"] = json!(1.0);
+        limits["joints"][torso_joint_index]["upper_limit_rad"] = json!(1.0);
         assert!(validate_morphology(&limits)
             .iter()
             .any(|finding| finding == "MORPHOLOGY_REVOLUTE_LIMITS_INVALID"));
