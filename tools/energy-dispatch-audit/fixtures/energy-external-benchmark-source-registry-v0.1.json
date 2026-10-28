@@ -1,0 +1,111 @@
+{
+  "schema_version": "energy-external-benchmark-source-registry-v0.1",
+  "registry_id": "energy-external-benchmark-source-registry-2026-10-28",
+  "claim_ceiling": "Source discovery only: no external data snapshot is imported, rights-cleared, or qualified for a Symtropy benchmark.",
+  "as_of_date": "2026-10-28",
+  "sources": [
+    {
+      "source_id": "sa_power_supply_reliability_2018_2023",
+      "title": "A South African Power Supply Reliability Dataset, Structured for Count Time Series and Machine Learning Applications",
+      "landing_page_url": "https://doi.org/10.3390/data11060149",
+      "publication_doi": "10.3390/data11060149",
+      "published_on": "2026-06-18",
+      "registry_release": null,
+      "benchmark_role": "south_africa_system_level_forecast_and_regime_robustness",
+      "status": "reference_only_not_imported",
+      "geography": "South Africa national power system",
+      "cadence_seconds": 3600,
+      "start_time": "2018-07-01T00:00:00",
+      "end_exclusive": "2023-07-01T00:00:00",
+      "expected_rows": 43824,
+      "reported_variable_count": 13,
+      "source_timezone_status": "not_verified_from_paper_landing_page",
+      "license_status": "publication_cc_by_4_0_underlying_eskom_data_terms_unverified",
+      "snapshot_url": null,
+      "raw_sha256": null,
+      "selected_dataset_id": null,
+      "removed_dataset_families": [],
+      "window_semantics": "fixed_historical_window_reported_by_paper",
+      "limitations": [
+        "paper reports 43,824 hourly observations from 2018-07-01 through 2023-06-30; exact downloadable byte artifact not yet independently located and hashed",
+        "variables describe national system supply-demand conditions and reliability; not a building or site-meter trace",
+        "publication licensing does not automatically clear the rights of underlying Eskom source data",
+        "not sufficient alone to assert battery dispatch feasibility, feeder power flow, or site-level service outcomes"
+      ]
+    },
+    {
+      "source_id": "citylearn_official_v3_0_2",
+      "title": "CityLearn official v3.0.2 public benchmark registry",
+      "landing_page_url": "https://www.citylearn.net/guides/releases.html",
+      "publication_doi": null,
+      "published_on": "2026-09-09",
+      "registry_release": "v3.0.2",
+      "benchmark_role": "closed_loop_building_and_community_energy_control",
+      "status": "reference_only_not_imported",
+      "geography": "varies by selected dataset; selected geography not yet pinned",
+      "cadence_seconds": null,
+      "start_time": null,
+      "end_exclusive": null,
+      "expected_rows": null,
+      "reported_variable_count": null,
+      "source_timezone_status": "must_be_verified_per_selected_dataset",
+      "license_status": "software_license_does_not_clear_each_dataset; per_asset_terms_review_required",
+      "snapshot_url": null,
+      "raw_sha256": null,
+      "selected_dataset_id": null,
+      "removed_dataset_families": [
+        "rec_2023_*",
+        "EC_Ermesinde",
+        "ALADI_*"
+      ],
+      "window_semantics": "dataset_dependent; select only after registry and file checksum audit",
+      "limitations": [
+        "official v3.0.2 release notes report 32 public datasets and removal of five rec_2023_* datasets, EC_Ermesinde and ALADI datasets",
+        "must select an actual dataset present in the exact official tag and pin every source file before scoring",
+        "simulator results are not field outcomes",
+        "verify the selected dataset license separately from CityLearn software license",
+        "electrical service constraint coverage depends on selected schema and does not automatically imply complete AC power-flow qualification"
+      ]
+    },
+    {
+      "source_id": "eskom_rolling_demand_dashboard",
+      "title": "Eskom Data Portal demand-side dashboard and system hourly actual/forecast demand",
+      "landing_page_url": "https://www.eskom.co.za/dataportal/demand-side/system-hourly-actual-and-forecasted-demand/",
+      "publication_doi": null,
+      "published_on": null,
+      "registry_release": null,
+      "benchmark_role": "ingestion_smoke_test_only",
+      "status": "reference_only_not_imported",
+      "geography": "South Africa national power system",
+      "cadence_seconds": 3600,
+      "start_time": null,
+      "end_exclusive": null,
+      "expected_rows": null,
+      "reported_variable_count": null,
+      "source_timezone_status": "not_verified_from_export",
+      "license_status": "raw_export_terms_and_redistribution_not_reviewed",
+      "snapshot_url": null,
+      "raw_sha256": null,
+      "selected_dataset_id": null,
+      "removed_dataset_families": [],
+      "window_semantics": "mutable_rolling_recent_week_for_actuals_and_forecasts",
+      "limitations": [
+        "dashboard describes actual and forecast hourly demand for a recent rolling week",
+        "rolling export is mutable and is not a canonical benchmark until exact raw bytes and retrieval time are preserved",
+        "source values are utility-level data and must not be relabelled as local site demand"
+      ]
+    }
+  ],
+  "required_checks": [
+    "source_ids_are_unique_and_nonempty",
+    "source_urls_are_canonical_http_or_https",
+    "source_status_and_snapshot_fields_are_consistent",
+    "qualified_sources_require_raw_sha256_and_snapshot_url",
+    "unresolved_data_rights_block_benchmark_qualification",
+    "national_system_data_cannot_claim_site_dispatch_validation",
+    "reported_windows_and_cadence_are_consistent",
+    "mutable_rolling_sources_cannot_be_canonical_benchmarks_without_snapshot",
+    "removed_citylearn_dataset_families_are_not_selected",
+    "registry_claim_ceiling_remains_discovery_only"
+  ]
+}
