@@ -71,7 +71,7 @@
     },
     "required_profile_fields": {
       "type": "array",
-      "minItems": 8,
+      "minItems": 13,
       "uniqueItems": true,
       "items": {
         "type": "string"
@@ -102,7 +102,9 @@
           "required_metrics",
           "evidence_basis",
           "confidence_or_data_limitations",
-          "source_urls"
+          "source_urls",
+          "implementation_status",
+          "status_rationale"
         ],
         "properties": {
           "scenario_id": {
@@ -174,6 +176,19 @@
               "format": "uri",
               "pattern": "^https://"
             }
+          },
+          "implementation_status": {
+            "type": "string",
+            "enum": [
+              "implemented",
+              "planned",
+              "not_applicable_with_rationale",
+              "blocked_by_missing_data_or_model"
+            ]
+          },
+          "status_rationale": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
