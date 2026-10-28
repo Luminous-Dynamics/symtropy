@@ -15,6 +15,7 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/verify_environment_trace_artifacts.sh"
       - "research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh"
       - "research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh"
       - ".github/workflows/environment-trace-contract.yml"
   push:
     paths:
@@ -30,6 +31,7 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/verify_environment_trace_artifacts.sh"
       - "research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh"
       - "research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh"
       - ".github/workflows/environment-trace-contract.yml"
   workflow_dispatch:
 
@@ -149,6 +151,16 @@ jobs:
             .result_policy.do_not_claim_station_accuracy_from_series_metadata == true and
             .result_policy.do_not_claim_controller_superiority_from_trace_validation == true
           ' "$plan"
+
+      - name: Validate shell-script syntax without network access
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/verify_environment_trace_artifacts.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
