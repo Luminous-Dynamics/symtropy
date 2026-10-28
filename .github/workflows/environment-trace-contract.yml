@@ -112,3 +112,17 @@ jobs:
             .result_scope == "manifest_shape_and_gate_metadata_only_not_data_hash_or_physical_validation" and
             any(.warnings[]; contains("contains no acquired trace"))
           ' /tmp/environment-trace-manifest-report.json
+
+          # Fail-closed negative control: the empty template must not become
+          # replay-eligible merely by changing its status string.
+          jq '.status = "validated_for_replay"' research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json > /tmp/incomplete-validated-trace.json
+          if cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin environment_trace_manifest -- /tmp/incomplete-validated-trace.json > /tmp/incomplete-trace-report.json; then
+            echo "ERROR: incomplete trace manifest was unexpectedly accepted"
+            exit 1
+          fi
+          jq -e '
+            .contract_valid == false and
+            .candidate_for_independent_verification == false and
+            any(.errors[]; contains("source_data_sha256")) and
+            any(.errors[]; contains("sample counts"))
+          ' /tmp/incomplete-trace-report.json
