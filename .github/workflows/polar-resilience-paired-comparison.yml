@@ -1,0 +1,103 @@
+name: Polar Resilience Paired Comparison
+
+on:
+  pull_request:
+    paths:
+      - "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md"
+      - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json"
+      - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_paired_comparison_verifier.py"
+      - ".github/workflows/polar-resilience-paired-comparison.yml"
+  push:
+    paths:
+      - "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md"
+      - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json"
+      - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_paired_comparison_verifier.py"
+      - ".github/workflows/polar-resilience-paired-comparison.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: polar-resilience-paired-comparison-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  paired-comparison:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out exact PR head (or exact pushed commit)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert checked-out revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
+
+      - name: Check schema and fixture invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json"
+          fixture="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Paired Resilience Comparison Input" and
+            .additionalProperties == false and
+            (.required | index("controllers") != null) and
+            (.required | index("cases") != null)
+          ' "$schema"
+          jq -e '
+            .schema_version == "0.3.0" and
+            .artifact_kind == "paired-resilience-comparison-input" and
+            .evidence_class == "synthetic_fixture" and
+            .status == "synthetic_only" and
+            (.controllers | length == 2) and
+            (.cases | length == 12) and
+            ([.cases[].case_id] | length == (unique | length)) and
+            ([.cases[].trajectory_id] | unique | length == 6) and
+            all(.cases[]; (.gate_results | keys) == (.signed_gate_margins | keys)) and
+            all(.cases[]; (.gate_results | keys | sort) == (.gate_ids | sort)) and
+            all(.cases[]; (.severity | keys | sort) == ([.axes[].id] | sort))
+          ' "$fixture"
+
+      - name: Test paired comparison contract in Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="research/polar-infrastructure/benchmark/Cargo.toml"
+          fixture="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json"
+          cargo test --locked --manifest-path "$manifest" --bin paired_comparison
+          cargo run --locked --quiet --manifest-path "$manifest" --bin paired_comparison -- "$fixture" > /tmp/paired-comparison-report.json
+          jq -e '
+            .report_kind == "paired-resilience-comparison-report" and
+            .schema_version == "0.3.0" and
+            .evidence_class == "synthetic_fixture" and
+            .status == "synthetic_only" and
+            .controller_count == 2 and
+            .trajectory_count == 6 and
+            .case_count == 12 and
+            .performance_claim == false and
+            (.coverage | length == 4) and
+            (.paired_gate_comparisons | length == 2)
+          ' /tmp/paired-comparison-report.json
+          python3 research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py "$fixture" /tmp/paired-comparison-report.json
+
+      - name: Run independent verifier mutation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover             -s research/polar-infrastructure/benchmark/scripts/tests             -p 'test_paired_comparison_verifier.py' -v
