@@ -157,7 +157,11 @@ if [ "${STFR_CHECK_NANODRONE_RESIDUAL_SPECTRUM:-0}" = "1" ]; then
     and .result.baseline.constraint_violation_rate > .result.candidate.constraint_violation_rate
     and .result.candidate.mean_effective_actual_cost < .result.baseline.mean_effective_actual_cost
     and .result.delta_mean_absolute_exploitation_gap_candidate_minus_baseline < 0
+    and .result.baseline_selection_amplification_signed_gap != null
+    and .result.candidate_selection_amplification_signed_gap != null
+    and .result.delta_selection_amplification_signed_gap_candidate_minus_baseline < 0
     and .result.paired_crossed_bootstrap_delta_actual_cost.valid_replicates == 50
+    and .result.paired_crossed_bootstrap_delta_selection_amplification_absolute_gap.valid_replicates == 50
   ' "$planner_smoke_output" >/dev/null
 fi
 
