@@ -1723,6 +1723,7 @@ mod tests {
 
     const PUBLIC: &[u8] = include_bytes!("../../fixtures/search-space-live-policy-catalog.synthetic.json");
     const TIGHT_BUDGET_PUBLIC: &[u8] = include_bytes!("../../fixtures/search-space-live-policy-catalog-tight-budget.synthetic.json");
+    const FOUR_UNIT_PUBLIC: &[u8] = include_bytes!("../../fixtures/search-space-live-policy-catalog-four-unit.synthetic.json");
     const ORACLE: &[u8] = include_bytes!("../../fixtures/search-space-live-outcome-oracle.synthetic.json");
 
     fn values() -> (Value, Value) {
@@ -2008,6 +2009,71 @@ mod tests {
         assert_eq!(replay["status"], "PASS");
         assert_eq!(replay["episodes_checked"], 24);
         assert_eq!(replay["cost_units_recomputed"], 72.0);
+    }
+
+    #[test]
+    fn four_unit_budget_frontier_compares_affordable_expansion_with_fixed_space() {
+        let report = run_all(FOUR_UNIT_PUBLIC, ORACLE);
+        assert_eq!(report["status"], "PASS");
+        assert_eq!(report["policy_count"], 6);
+        assert_eq!(report["episodes_checked"], 24);
+
+        for episode in report["episodes"].as_array().unwrap() {
+            assert_eq!(episode["cost_units_charged"], 4.0, "{}", episode["campaign_id"]);
+            assert!(episode["duration_seconds_charged"].as_f64().unwrap() <= 25.0);
+        }
+
+        for episode in report["episodes"].as_array().unwrap()
+            .iter().filter(|episode| episode["policy_class"] == "gp_ei_fixed_space")
+        {
+            assert_eq!(episode["expansions"], 0);
+            assert_eq!(episode["evaluations"], 4);
+        }
+        for control in report["auxiliary_controls"].as_array().unwrap() {
+            assert_eq!(control["expansions"], 0);
+            assert_eq!(control["evaluations"], 4);
+            assert_eq!(control["cost_units_charged"], 4.0);
+        }
+
+        let episodes = report["episodes"].as_array().unwrap();
+        let episode_for = |environment: &str, policy: &str| {
+            episodes.iter().find(|episode| {
+                episode["environment_id"] == environment && episode["policy_class"] == policy
+            }).unwrap()
+        };
+        assert_eq!(episode_for("helpful", "random_expansion")["expansions"], 1);
+        assert_eq!(episode_for("helpful", "random_expansion")["best_verified_feasible_utility"], 6.0);
+        assert_eq!(episode_for("helpful", "rule_based_expansion")["expansions"], 1);
+        assert_eq!(episode_for("helpful", "rule_based_expansion")["best_verified_feasible_utility"], 8.0);
+        assert_eq!(episode_for("helpful", "static_prior_expansion")["expansions"], 1);
+        assert_eq!(episode_for("helpful", "static_prior_expansion")["best_verified_feasible_utility"], 10.0);
+
+        // An expansion is accepted in a campaign only when the follow-up evaluation
+        // is budget-feasible; no expansion may consume the budget and remain untested.
+        for episode in episodes {
+            let events = episode["events"].as_array().unwrap();
+            for (index, event) in events.iter().enumerate()
+                .filter(|(_, event)| event["action_type"] == "expand_space")
+            {
+                let expanded_id = event["candidate_family_id"].as_str().unwrap();
+                assert!(events[index + 1..].iter().any(|later| {
+                    later["action_type"] == "evaluate_candidate"
+                        && later["candidate_family_id"] == expanded_id
+                }), "{}: expanded candidate {expanded_id} was never measured", episode["campaign_id"]);
+            }
+        }
+
+        // Once a screening action has been charged, a three-unit prior-guided
+        // expansion cannot leave one unit for the required follow-up evaluation.
+        assert!(episodes.iter()
+            .filter(|episode| episode["policy_class"] == "prior_guided_expansion")
+            .all(|episode| episode["expansions"] == 0));
+
+        let report_raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&report_raw, FOUR_UNIT_PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "PASS");
+        assert_eq!(replay["episodes_checked"], 24);
+        assert_eq!(replay["cost_units_recomputed"], 96.0);
     }
 
     #[test]
