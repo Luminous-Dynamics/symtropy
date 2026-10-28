@@ -59,6 +59,13 @@ fn required_nonempty_str(value: &Value, field: &str, path: &str, report: &mut Va
     }
 }
 
+fn valid_candidate_id(candidate_id: &str) -> bool {
+    let bytes = candidate_id.as_bytes();
+    !bytes.is_empty()
+        && bytes[0].is_ascii_lowercase()
+        && bytes.iter().all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
+}
+
 fn log_binomial_pmf(n: usize, k: usize, p: f64) -> f64 {
     if k > n || !(0.0..=1.0).contains(&p) {
         return f64::NEG_INFINITY;
@@ -210,6 +217,9 @@ fn validate_and_decide(public_raw: &[u8], oracle_raw: &[u8]) -> Value {
         let path = format!("public.candidates[{index}]");
         only_keys(candidate, &["candidate_id"], &path, &mut report);
         if let Some(candidate_id) = required_nonempty_str(candidate, "candidate_id", &path, &mut report) {
+            if !valid_candidate_id(&candidate_id) {
+                fail(&mut report, "CANDIDATE_ID_INVALID", &format!("{path}.candidate_id must match ^[a-z][a-z0-9-]*$"));
+            }
             if !candidate_ids.insert(candidate_id.clone()) {
                 fail(&mut report, "CANDIDATE_ID_DUPLICATE", &format!("duplicate candidate ID {candidate_id}"));
             }
@@ -449,6 +459,29 @@ mod tests {
         assert_eq!(get("lot-epsilon")["disposition"], "UNRESOLVED");
         assert_eq!(get("lot-epsilon")["confidence_interval"]["lower"], 0.0);
         assert_eq!(get("lot-epsilon")["confidence_interval"]["upper"], 1.0);
+    }
+
+    #[test]
+    fn strict_contract_rejects_unknown_fields_bad_ids_and_non_boolean_trials() {
+        let mut public: Value = serde_json::from_slice(PUBLIC).unwrap();
+        let oracle: Value = serde_json::from_slice(ORACLE).unwrap();
+        public["unregistered_debug_field"] = json!(true);
+        let report = validate_and_decide(&serde_json::to_vec(&public).unwrap(), &serde_json::to_vec(&oracle).unwrap());
+        assert_eq!(report["status"], "FAIL");
+        assert!(report["findings"].as_array().unwrap().iter().any(|item| item["code"] == "UNKNOWN_PROPERTY"));
+
+        let mut public: Value = serde_json::from_slice(PUBLIC).unwrap();
+        public["candidates"][0]["candidate_id"] = json!("Bad Candidate ID");
+        let report = validate_and_decide(&serde_json::to_vec(&public).unwrap(), ORACLE);
+        assert_eq!(report["status"], "FAIL");
+        assert!(report["findings"].as_array().unwrap().iter().any(|item| item["code"] == "CANDIDATE_ID_INVALID"));
+
+        let public: Value = serde_json::from_slice(PUBLIC).unwrap();
+        let mut oracle: Value = serde_json::from_slice(ORACLE).unwrap();
+        oracle["outcomes"][0]["trial_results"][0] = json!(1);
+        let report = validate_and_decide(&serde_json::to_vec(&public).unwrap(), &serde_json::to_vec(&oracle).unwrap());
+        assert_eq!(report["status"], "FAIL");
+        assert!(report["findings"].as_array().unwrap().iter().any(|item| item["code"] == "TRIAL_RESULT_INVALID"));
     }
 
     #[test]
