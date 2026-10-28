@@ -22,33 +22,10 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh"
       - "research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh"
       - "research/polar-infrastructure/benchmark/scripts/test_register_local_pangaea_source.sh"
-      - "research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md"
       - "research/polar-infrastructure/benchmark/scripts/register_local_pangaea_source.sh"
       - ".github/workflows/environment-trace-contract.yml"
   push:
     paths:
-      - "research/polar-infrastructure/benchmark/schemas/environment-trace-manifest-0.1.0.schema.json"
-      - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
-      - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
-      - "research/polar-infrastructure/benchmark/GOBABEB_BSRN_CROSS_VALIDATION_2026.md"
-      - "research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md"
-      - "research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md"
-      - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
-      - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
-      - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
-      - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
-      - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
-      - "research/polar-infrastructure/benchmark/fixtures/nasa-power-daily-response-synthetic-2026.json"
-      - "research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh"
-      - "research/polar-infrastructure/benchmark/scripts/verify_environment_trace_artifacts.sh"
-      - "research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh"
-      - "research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh"
-      - "research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh"
-      - "research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh"
-      - "research/polar-infrastructure/benchmark/scripts/test_register_local_pangaea_source.sh"
-      - "research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md"
-      - "research/polar-infrastructure/benchmark/scripts/register_local_pangaea_source.sh"
-      - ".github/workflows/environment-trace-contract.yml"
   workflow_dispatch:
 
 permissions:
@@ -194,6 +171,13 @@ jobs:
             any(.baseline_ladder[]; .baseline_id == "perfect_information_oracle" and .class == "diagnostic_only") and
             ([.baseline_ladder[].baseline_id] | length == (unique | length)) and
             ([.required_metric_ids[]] | length >= 10 and length == (unique | length)) and
+            any(.benchmark_design_axes[]; .axis_id == "decision_hierarchy" and .required == true) and
+            any(.required_metric_ids[]; . == "critical_service_delivery_by_hierarchy") and
+            any(.required_metric_ids[]; . == "shared_state_reconciliation_time") and
+            .paired_scenario_contract.dependency_graph_digest_required_for_multi_layer_cases == true and
+            .paired_scenario_contract.message_delay_loss_and_stale_data_model_must_be_declared == true and
+            .paired_scenario_contract.reconnection_and_shared_state_reconciliation_must_be_specified == true and
+            .paired_scenario_contract.hypothesis_status == "not_tested" and
             .fairness_protocol.paired_disturbance_seeds == true and
             .fairness_protocol.whole_episode_or_site_year_splits == true and
             .fairness_protocol.locked_test_may_not_be_used_for_tuning == true and
