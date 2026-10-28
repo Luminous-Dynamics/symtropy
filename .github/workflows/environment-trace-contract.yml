@@ -1,0 +1,94 @@
+name: Environment Trace Contract
+
+on:
+  pull_request:
+    paths:
+      - "research/polar-infrastructure/benchmark/schemas/environment-trace-manifest-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
+      - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
+      - ".github/workflows/environment-trace-contract.yml"
+  push:
+    paths:
+      - "research/polar-infrastructure/benchmark/schemas/environment-trace-manifest-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
+      - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
+      - ".github/workflows/environment-trace-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: environment-trace-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trace-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact PR head (or exact pushed commit)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert checked-out revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Check trace schema and template contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/environment-trace-manifest-0.1.0.schema.json"
+          template="research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Environmental Trace Manifest" and
+            .type == "object" and
+            .additionalProperties == false and
+            (.required | index("acquisition") != null) and
+            (.required | index("spatial_context") != null) and
+            (.required | index("time_axis") != null) and
+            (.required | index("trace_asset") != null) and
+            (.required | index("variables") != null) and
+            (.required | index("quality") != null) and
+            (.required | index("provenance") != null) and
+            (.allOf | any(.[]; .if.properties.status.const == "validated_for_replay" and .then.properties.trace_asset.properties.sha256.pattern == "^[a-f0-9]{64}$"))
+          ' "$schema"
+
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-environment-trace-manifest" and
+            .manifest_id == "namib_coastal_desert_trace_template_v0" and
+            .profile_id == "earth.coastal_desert_namib" and
+            .status == "template_only" and
+            .evidence_class == "not_evaluated" and
+            .acquisition.source_url == null and
+            .acquisition.source_data_sha256 == null and
+            .spatial_context.latitude_deg == null and
+            .spatial_context.longitude_deg == null and
+            .time_axis.start_utc == null and
+            .time_axis.end_utc == null and
+            .time_axis.observed_sample_count == null and
+            .trace_asset.uri == null and
+            .trace_asset.sha256 == null and
+            .quality.validation_status == "not_evaluated" and
+            (.variables | length >= 8) and
+            ([.variables[].variable_id] | length == (unique | length)) and
+            all(.variables[];
+              (.variable_id | type == "string" and length > 0) and
+              (.canonical_unit | type == "string" and length > 0) and
+              .source_variable == null and
+              .evidence_class == "not_evaluated"
+            ) and
+            (.quality.known_biases_or_limits | length >= 1) and
+            (.provenance.transformation_recipe | length > 0)
+          ' "$template"
+
+          # This workflow checks structural guardrails and the template's honest
+          # not-yet-ingested state; it deliberately does not claim full JSON Schema
+          # engine validation, data quality, physical-model validity, or replay success.
+          test -s research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md
