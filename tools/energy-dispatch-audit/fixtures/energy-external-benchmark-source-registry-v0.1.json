@@ -64,10 +64,10 @@
         "EC_Ermesinde",
         "ALADI_*"
       ],
-      "window_semantics": "dataset_dependent; select only after registry and file checksum audit",
+      "window_semantics": "fixed start date 2024-08-01; 8760 hourly simulator steps; exact source commit and Git blob SHA1 inventory pinned; no raw CSV SHA256 snapshot yet; forecast issue/publication time unverified",
       "limitations": [
         "official v3.0.2 release notes report 32 public datasets and removal of five rec_2023_* datasets, EC_Ermesinde and ALADI datasets",
-        "must select an actual dataset present in the exact official tag and pin every source file before scoring",
+        "selected dataset is pinned to the exact official tag and all 30 schema-referenced CSV Git blob IDs are inventoried; raw source bytes and raw SHA-256 receipts are still required before data ingestion and scoring",
         "simulator results are not field outcomes",
         "verify the selected dataset license separately from CityLearn software license",
         "electrical service constraint coverage depends on selected schema and does not automatically imply complete AC power-flow qualification",
