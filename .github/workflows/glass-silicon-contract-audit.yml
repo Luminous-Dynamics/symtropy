@@ -858,7 +858,9 @@ jobs:
             .properties.audit_kind.const == "synthetic_paired_budget_frontier_scorecard" and
             .additionalProperties == false and
             .properties.environmentwise_metrics.type == "array" and
-            .properties.policy_frontier.type == "array"
+            ((.properties.environmentwise_metrics.items.required | index("gp_ei_comparison_status")) != null) and
+            .properties.policy_frontier.type == "array" and
+            ((.properties.policy_frontier.items.required | index("gp_ei_unresolved_environment_count")) != null)
           ' "$frontier_schema" > /dev/null
           cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
             --frontier \
