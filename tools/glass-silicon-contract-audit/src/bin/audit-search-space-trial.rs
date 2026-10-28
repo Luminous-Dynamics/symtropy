@@ -62,7 +62,7 @@ fn is_sha256(value: Option<&str>) -> bool {
 
 fn number(value: &Value, field: &str, report: &mut Value, positive: bool) -> Option<f64> {
     match value.get(field).and_then(Value::as_f64) {
-        Some(n) if n.is_finite() && if positive { n > 0.0 } else { n >= 0.0 } => Some(n),
+        Some(n) if n.is_finite() && (if positive { n > 0.0 } else { n >= 0.0 }) => Some(n),
         _ => {
             let requirement = if positive { "finite and greater than zero" } else { "finite and non-negative" };
             fail(report, "FAIL", "NUMBER_INVALID", &format!("{field} must be {requirement}"));
