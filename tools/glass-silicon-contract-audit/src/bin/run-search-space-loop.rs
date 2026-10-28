@@ -8,8 +8,9 @@ use std::path::Path;
 use std::process::{Command, ExitCode, Stdio};
 
 const BENCHMARK_ID: &str = "glass-space-expansion-live-loop-synthetic-v0-1";
-const POLICY_CLASSES: [&str; 6] = [
+const POLICY_CLASSES: [&str; 7] = [
     "fixed_space",
+    "uniform_random_fixed_space",
     "gp_ei_fixed_space",
     "random_expansion",
     "rule_based_expansion",
@@ -292,6 +293,20 @@ fn gp_ei_next_candidate(view: &Value) -> Option<String> {
         .map(|(id, _)| id)
 }
 
+fn uniform_random_next_candidate(view: &Value) -> Option<String> {
+    let candidates = view.get("visible_candidates")?.as_array()?;
+    let view_digest = sha256(&serde_json::to_vec(view).ok()?);
+    candidates.iter()
+        .filter(|candidate| candidate.get("evaluated").and_then(Value::as_bool) == Some(false))
+        .filter_map(|candidate| {
+            let id = candidate.get("id")?.as_str()?;
+            let rank = sha256(format!("uniform-random-v1|{view_digest}|{id}").as_bytes());
+            Some((rank, id.to_owned()))
+        })
+        .min_by(|a, b| a.0.cmp(&b.0))
+        .map(|(_, id)| id)
+}
+
 fn choose_action(policy: &str, view: &Value, expansion_decision_made: bool) -> Action {
     let expanded = view.get("expansion_used").and_then(Value::as_bool).unwrap_or(false);
     let observations = view.get("observations").and_then(Value::as_array).cloned().unwrap_or_default();
@@ -299,6 +314,14 @@ fn choose_action(policy: &str, view: &Value, expansion_decision_made: bool) -> A
     // Static expansion is a deliberately non-adaptive control. It expands before observing any result.
     if policy == "static_prior_expansion" && !expanded {
         return Action::Expand("prior_guided".to_owned());
+    }
+
+    // Seeded hash-ranking is a reproducible uniform-random control over currently visible,
+    // unevaluated candidates. It never consults selector scores or sealed outcomes.
+    if policy == "uniform_random_fixed_space" {
+        return uniform_random_next_candidate(view)
+            .map(Action::Evaluate)
+            .unwrap_or_else(|| Action::Stop("NO_UNMEASURED_VISIBLE_CANDIDATES".to_owned()));
     }
 
     // Observation-conditioned arms begin with the same public screening candidate; the static-expansion control intentionally expands first.
@@ -747,6 +770,7 @@ where
         "input_sha256": input_digest,
         "oracle_sha256": oracle_digest,
         "policy_count": POLICY_CLASSES.len(),
+        "policy_execution_mode": "in_process_reference",
         "environment_count": 0,
         "episodes_checked": 0,
         "episodes": [],
@@ -897,7 +921,7 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
             return audit;
         }
     };
-    only_keys(&report, &["status","audit_kind","benchmark_id","input_sha256","oracle_sha256","policy_count","environment_count","episodes_checked","episodes","findings","claim_ceiling"], "run_report", &mut audit);
+    only_keys(&report, &["status","audit_kind","benchmark_id","input_sha256","oracle_sha256","policy_count","policy_execution_mode","environment_count","episodes_checked","episodes","findings","claim_ceiling"], "run_report", &mut audit);
     if report.get("audit_kind").and_then(Value::as_str) != Some("synthetic_live_policy_event_loop")
         || report.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID) {
         fail(&mut audit, "FAIL", "RUN_REPORT_KIND_INVALID", "input report is not a live policy event-loop report for this benchmark");
@@ -1500,10 +1524,42 @@ mod tests {
 
 
     #[test]
+    fn uniform_random_fixed_space_is_a_real_score_independent_baseline() {
+        let (public, oracle) = values();
+        for environment in ["helpful", "neutral", "harmful", "misleading_prior"] {
+            let report = run_env(&public, &oracle, environment, "uniform_random_fixed_space");
+            assert_eq!(report["status"], "PASS");
+            assert_eq!(report["expansions"], 0);
+            assert_eq!(report["evaluations"], 5);
+            assert_eq!(report["cost_units_charged"], 5.0);
+            let ids: Vec<String> = report["events"].as_array().unwrap().iter()
+                .map(|event| event["candidate_family_id"].as_str().unwrap().to_owned()).collect();
+            assert_eq!(ids.iter().collect::<HashSet<_>>().len(), ids.len());
+            assert!(ids.iter().all(|id| public["candidate_families"].as_array().unwrap().iter()
+                .any(|candidate| candidate["id"] == id && candidate["initially_visible"] == true)));
+        }
+    }
+
+    #[test]
+    fn uniform_random_order_is_deterministic_for_identical_public_state() {
+        let (public, _oracle) = values();
+        let visible: BTreeSet<String> = public["candidate_families"].as_array().unwrap().iter()
+            .filter(|c| c["initially_visible"] == true)
+            .filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
+        let view = build_public_view(&public, "uniform_random_fixed_space", &visible,
+            &HashSet::new(), &[], &[], false, 5.0, 25.0);
+        let first = uniform_random_next_candidate(&view).unwrap();
+        let second = uniform_random_next_candidate(&view).unwrap();
+        assert_eq!(first, second);
+        assert!(visible.contains(&first));
+    }
+
+
+    #[test]
     fn live_loop_runs_all_policy_regime_pairs_with_budget_parity() {
         let report = run_all(PUBLIC, ORACLE);
         assert_eq!(report["status"], "PASS");
-        assert_eq!(report["episodes_checked"], 24);
+        assert_eq!(report["episodes_checked"], 28);
         assert_eq!(report["environment_count"], 4);
         for e in report["episodes"].as_array().unwrap() {
             assert_eq!(e["cost_units_charged"], 5.0, "{}", e["campaign_id"]);
@@ -1697,7 +1753,7 @@ mod tests {
         let report_raw = serde_json::to_vec(&report).unwrap();
         let replay = audit_replay(&report_raw, PUBLIC, ORACLE);
         assert_eq!(replay["status"], "PASS");
-        assert_eq!(replay["episodes_checked"], 24);
+        assert_eq!(replay["episodes_checked"], 28);
         assert!(replay["events_checked"].as_u64().unwrap() >= 90);
         assert_eq!(replay["cost_units_recomputed"], 120.0);
     }
