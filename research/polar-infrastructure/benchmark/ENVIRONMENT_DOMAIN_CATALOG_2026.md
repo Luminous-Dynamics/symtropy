@@ -1,6 +1,6 @@
 # Earth Desert and Solar-System Environment Domain Catalog (2026)
 
-**Status:** research taxonomy and benchmark-scoping artifact. It is not a simulator, engineering design, resource assessment, habitat-feasibility result, or certification. The catalogue is intentionally broad but not exhaustive: each entry names a benchmark family that must be parameterized from a source-backed site/body model before quantitative use.
+**Status:** research taxonomy and benchmark-scoping artifact. It is not a simulator, engineering design, resource assessment, habitat-feasibility result, or certification. The catalogue is intentionally broad but not exhaustive: each entry names a benchmark family that must be parameterized from a source-backed site/body model before quantitative use. The current 51 entries are all marked `planned`: definitions exist, but no validated domain model or site/body-specific result is implied.
 
 **Core rule:** environmental names are not interchangeable operating envelopes. “Desert,” “Mars,” “lunar polar,” and “Europa” should not be represented by generic temperature/pressure labels alone. The initial state, physical process, deployment mode, timescale, and evidence class are part of the scenario.
 
@@ -12,7 +12,7 @@ A single climate or reliability score cannot represent all relevant failure mech
 - **Boundary conditions:** illumination spectrum and geometry, thermal/radiative environment, atmosphere/pressure/composition, gravity, dust/regolith/particles, chemistry/corrosion, available volatiles, communications, and time scale.
 - **Dynamic events:** chronology and duration, correlated disturbances, recovery windows, state carried across events, and forecast/telemetry uncertainty.
 - **Assets and mission:** device/material constraints, required services, allowable maintenance, resupply, autonomy, latency and power/thermal budget.
-- **Evidence basis:** measurement/mission data/model/reanalysis/synthetic stress, source and dataset version, parameter uncertainty, calibration/validation split, and domain-of-applicability.
+- **Evidence basis:** measurement/mission data/model/reanalysis/synthetic stress, source and dataset version, parameter uncertainty, calibration/validation split, and domain-of-applicability. Earth desert candidates can begin with site-specific station data and satellite/reanalysis sources such as [NASA POWER](https://power.larc.nasa.gov/docs/) and [ECMWF ERA5](https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis); neither source replaces local validation or captures every dust/salt/chemistry process. The Namib fog profile also links a 2025 study of observed fog variability ([DOI 10.1029/2024EF005725](https://doi.org/10.1029/2024EF005725)).
 - **Independent gates:** preserve service floors and domain-specific physical limits. Do not add unlike physical quantities into a single scalar; do not let a good energy-service average establish electrical stability, crew safety, or planetary-protection compliance.
 
 This structure lets one evidence system host diverse domains while avoiding a false claim that one model, score, or controller applies everywhere.
@@ -129,7 +129,7 @@ Use four layers:
 - **L2 — trajectory and service evaluation:** common event timeline, state carry-over, service floors, electrical/environmental hard constraints, per-gate margins, recovery and failure-frontier outputs.
 - **L3 — independent report verification:** recompute metric summaries from raw traces; check pairing, units, hashes, coverage, missing data, and negative controls; keep synthetic/model/HIL/field evidence labels.
 
-A simulation can only claim what its calibrated physics and validation support. A passing energy-system model does not validate radiation shielding, a planetary rover's contact mechanics, a crew medical limit, or planetary-protection compliance. Domain-specialist validation is mandatory for high-stakes claims.
+A simulation can only claim what its calibrated physics and validation support. A passing energy-system model does not validate radiation shielding, a planetary rover's contact mechanics, a crew medical limit, or planetary-protection compliance. Domain-specialist validation is mandatory for high-stakes claims. Every catalog entry has an explicit implementation status and rationale; the allowed states are implemented, planned, not applicable with rationale, or blocked by missing data/model. CI checks the structural contract and coverage sentinels, not physical correctness.
 
 ## 6. Desert-specific and solar-system benchmark targets
 
