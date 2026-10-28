@@ -1,6 +1,6 @@
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::io::{Read, Write};
@@ -765,6 +765,53 @@ fn run_one(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str) 
     run_one_with_executor(catalog, oracle, environment_id, policy, &mut direct)
 }
 
+fn mean(values: &[f64]) -> Option<f64> {
+    if values.is_empty() || values.iter().any(|v| !v.is_finite()) {
+        return None;
+    }
+    Some(values.iter().sum::<f64>() / values.len() as f64)
+}
+
+fn sample_standard_deviation(values: &[f64]) -> Option<f64> {
+    if values.len() < 2 || values.iter().any(|v| !v.is_finite()) {
+        return None;
+    }
+    let avg = mean(values)?;
+    let variance = values.iter().map(|v| (v - avg).powi(2)).sum::<f64>() / (values.len() - 1) as f64;
+    variance.is_finite().then_some(variance.sqrt())
+}
+
+fn summarize_auxiliary_controls(controls: &[Value]) -> Vec<Value> {
+    let mut groups = BTreeMap::<String, Vec<&Value>>::new();
+    for control in controls {
+        if let Some(environment_id) = control.get("environment_id").and_then(Value::as_str) {
+            groups.entry(environment_id.to_owned()).or_default().push(control);
+        }
+    }
+    groups.into_iter().map(|(environment_id, rows)| {
+        let regrets = rows.iter().filter_map(|row| row.get("terminal_simple_regret").and_then(Value::as_f64)).collect::<Vec<_>>();
+        let utilities = rows.iter().filter_map(|row| row.get("best_verified_feasible_utility").and_then(Value::as_f64)).collect::<Vec<_>>();
+        let first_feasible_costs = rows.iter().filter_map(|row| row.get("first_feasible_cost_units").and_then(Value::as_f64)).collect::<Vec<_>>();
+        let costs = rows.iter().filter_map(|row| row.get("cost_units_charged").and_then(Value::as_f64)).collect::<Vec<_>>();
+        let durations = rows.iter().filter_map(|row| row.get("duration_seconds_charged").and_then(Value::as_f64)).collect::<Vec<_>>();
+        let hits = rows.iter().filter_map(|row| row.get("verified_feasible_discoveries").and_then(Value::as_u64).map(|n| n as f64)).collect::<Vec<_>>();
+        let false_feasible = rows.iter().filter_map(|row| row.get("false_feasible_predictions").and_then(Value::as_u64).map(|n| n as f64)).collect::<Vec<_>>();
+        json!({
+            "environment_id": environment_id,
+            "seed_count": rows.len(),
+            "mean_best_verified_feasible_utility": mean(&utilities),
+            "mean_terminal_simple_regret": mean(&regrets),
+            "sample_sd_terminal_simple_regret": sample_standard_deviation(&regrets),
+            "mean_first_feasible_cost_units": mean(&first_feasible_costs),
+            "mean_verified_feasible_discoveries": mean(&hits),
+            "mean_false_feasible_predictions": mean(&false_feasible),
+            "mean_cost_units_charged": mean(&costs),
+            "mean_duration_seconds_charged": mean(&durations),
+            "claim_ceiling": "Synthetic uniform-random baseline seed-sweep summary only."
+        })
+    }).collect()
+}
+
 fn run_all_with_executor<F>(public_raw: &[u8], oracle_raw: &[u8], executor: &mut F) -> Value
 where
     F: FnMut(&str, &Value, bool) -> Result<Action, String>,
@@ -781,6 +828,7 @@ where
         "policy_execution_mode": "in_process_reference",
         "auxiliary_control_count": 0,
         "auxiliary_controls": [],
+        "auxiliary_control_summary": [],
         "environment_count": 0,
         "episodes_checked": 0,
         "episodes": [],
@@ -891,6 +939,7 @@ where
     top["episodes"] = json!(episodes);
     top["auxiliary_control_count"] = json!(auxiliary_controls.len());
     top["auxiliary_controls"] = json!(auxiliary_controls);
+    top["auxiliary_control_summary"] = json!(summarize_auxiliary_controls(&auxiliary_controls));
     top
 }
 
@@ -977,7 +1026,7 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
             return audit;
         }
     };
-    only_keys(&report, &["status","audit_kind","benchmark_id","input_sha256","oracle_sha256","policy_count","policy_execution_mode","auxiliary_control_count","auxiliary_controls","environment_count","episodes_checked","episodes","findings","claim_ceiling"], "run_report", &mut audit);
+    only_keys(&report, &["status","audit_kind","benchmark_id","input_sha256","oracle_sha256","policy_count","policy_execution_mode","auxiliary_control_count","auxiliary_controls","auxiliary_control_summary","environment_count","episodes_checked","episodes","findings","claim_ceiling"], "run_report", &mut audit);
     if report.get("audit_kind").and_then(Value::as_str) != Some("synthetic_live_policy_event_loop")
         || report.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID) {
         fail(&mut audit, "FAIL", "RUN_REPORT_KIND_INVALID", "input report is not a live policy event-loop report for this benchmark");
@@ -1074,6 +1123,10 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
                 fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_ENVIRONMENT_SEED_MISSING", &format!("uniform-random control missing for {env_id}, seed {seed}"));
             }
         }
+    }
+    let expected_auxiliary_summary = json!(summarize_auxiliary_controls(auxiliary_controls));
+    if report.get("auxiliary_control_summary") != Some(&expected_auxiliary_summary) {
+        fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_SUMMARY_MISMATCH", "aggregate seed-sweep metrics do not match the individual auxiliary control receipts");
     }
 
     let Some(episodes) = report.get("episodes").and_then(Value::as_array) else {
@@ -1663,6 +1716,23 @@ mod tests {
         assert_ne!(mutated_events[1]["observed_outcome"], original_events[1]["observed_outcome"]);
     }
 
+
+    #[test]
+    fn random_seed_summary_reports_variance_and_is_bound_to_individual_runs() {
+        let report = run_all(PUBLIC, ORACLE);
+        let summaries = report["auxiliary_control_summary"].as_array().unwrap();
+        assert_eq!(summaries.len(), 4);
+        for summary in summaries {
+            assert_eq!(summary["seed_count"], 20);
+            assert!(summary["mean_terminal_simple_regret"].as_f64().is_some());
+            assert!(summary["sample_sd_terminal_simple_regret"].as_f64().is_some());
+            assert!(summary["mean_first_feasible_cost_units"].as_f64().is_some());
+            assert!(summary["mean_cost_units_charged"].as_f64().unwrap() <= 5.0);
+        }
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "PASS");
+    }
 
     #[test]
     fn auxiliary_uniform_random_baseline_is_included_and_independently_replayed() {
