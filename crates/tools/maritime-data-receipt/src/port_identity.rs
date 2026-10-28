@@ -8,30 +8,56 @@
 //! It does not authenticate source snapshots, resolve a real port/terminal, or
 //! grant operational authority. Valid output is always NOT ADMITTED.
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 const ROOT_KEYS: &[&str] = &[
-    "schema_id", "schema_version", "crosswalk_id", "fixture_kind",
-    "source_snapshot", "locode_registry", "mapping_policy", "records",
+    "schema_id",
+    "schema_version",
+    "crosswalk_id",
+    "fixture_kind",
+    "source_snapshot",
+    "locode_registry",
+    "mapping_policy",
+    "records",
 ];
 const SOURCE_KEYS: &[&str] = &[
-    "source_system", "series_or_table_id", "source_revision", "artifact_sha256",
-    "retrieved_at_utc", "source_uri", "terms_review_status",
+    "source_system",
+    "series_or_table_id",
+    "source_revision",
+    "artifact_sha256",
+    "retrieved_at_utc",
+    "source_uri",
+    "terms_review_status",
 ];
 const REGISTRY_KEYS: &[&str] = &[
-    "release", "release_kind", "artifact_sha256", "terms_review_status",
+    "release",
+    "release_kind",
+    "artifact_sha256",
+    "terms_review_status",
 ];
 const POLICY_KEYS: &[&str] = &[
-    "policy_id", "version", "name_match_can_resolve",
-    "port_statistics_can_target_terminal", "unresolved_is_zero",
+    "policy_id",
+    "version",
+    "name_match_can_resolve",
+    "port_statistics_can_target_terminal",
+    "unresolved_is_zero",
 ];
 const RECORD_KEYS: &[&str] = &[
-    "source_entity_id", "source_level", "candidate_locode", "locode_function",
-    "locode_status", "target_feature_id", "target_level", "relationship",
-    "mapping_state", "match_method", "evidence_refs",
+    "source_entity_id",
+    "source_level",
+    "candidate_locode",
+    "locode_function",
+    "locode_status",
+    "target_feature_id",
+    "target_level",
+    "relationship",
+    "mapping_state",
+    "match_method",
+    "evidence_refs",
 ];
 const VALID_STATUS: &str = "CROSSWALK_METADATA_VALID_NOT_ADMITTED";
+const VALID: &str = VALID_STATUS;
 
 fn exact_keys(value: &Value, expected: &[&str]) -> Result<(), &'static str> {
     let object = value.as_object().ok_or("INVALID_OBJECT")?;
@@ -83,18 +109,16 @@ fn pinned_revision(value: &str) -> bool {
 fn numeric_version(value: &str) -> bool {
     let parts: Vec<&str> = value.split('.').collect();
     parts.len() == 3
-        && parts.iter().all(|part| {
-            !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit())
-        })
+        && parts
+            .iter()
+            .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
 }
 
 fn locode_release(value: &str) -> bool {
     let Some((year, cycle)) = value.split_once('-') else {
         return false;
     };
-    year.len() == 4
-        && year.bytes().all(|byte| byte.is_ascii_digit())
-        && ["1", "2"].contains(&cycle)
+    year.len() == 4 && year.bytes().all(|byte| byte.is_ascii_digit()) && ["1", "2"].contains(&cycle)
 }
 
 fn utc_timestamp(value: &str) -> bool {
@@ -117,10 +141,7 @@ fn utc_timestamp(value: &str) -> bool {
     let fractional_seconds_valid = match bytes.get(19) {
         Some(b'Z') => bytes.len() == 20,
         Some(b'.') => {
-            bytes.len() >= 22
-                && bytes[20..bytes.len() - 1]
-                    .iter()
-                    .all(u8::is_ascii_digit)
+            bytes.len() >= 22 && bytes[20..bytes.len() - 1].iter().all(u8::is_ascii_digit)
         }
         _ => false,
     };
@@ -156,9 +177,9 @@ fn valid_locode(value: &str) -> bool {
     let bytes = value.as_bytes();
     bytes.len() == 5
         && bytes[0..2].iter().all(u8::is_ascii_uppercase)
-        && bytes[2..5].iter().all(|byte| {
-            byte.is_ascii_uppercase() || (b'2'..=b'9').contains(byte)
-        })
+        && bytes[2..5]
+            .iter()
+            .all(|byte| byte.is_ascii_uppercase() || (b'2'..=b'9').contains(byte))
 }
 
 fn valid_function(value: &str) -> bool {
@@ -170,8 +191,7 @@ fn valid_function(value: &str) -> bool {
 
 fn valid_status(value: &str) -> bool {
     [
-        "AA", "AC", "AF", "AI", "AM", "AQ", "AS", "RL", "RN",
-        "RQ", "RR", "QQ", "UR", "XX",
+        "AA", "AC", "AF", "AI", "AM", "AQ", "AS", "RL", "RN", "RQ", "RR", "QQ", "UR", "XX",
     ]
     .contains(&value)
 }
@@ -212,10 +232,10 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
     {
         return Err("INVALID_TERMS_REVIEW_STATE");
     }
-    if let Some(timestamp) = retrieved_at {
-        if !utc_timestamp(timestamp) {
-            return Err("INVALID_UTC_TIMESTAMP");
-        }
+    if let Some(timestamp) = retrieved_at
+        && !utc_timestamp(timestamp)
+    {
+        return Err("INVALID_UTC_TIMESTAMP");
     }
 
     let registry = member(crosswalk, "locode_registry")?;
@@ -349,7 +369,10 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
             .ok_or("INVALID_FIELD_TYPE")?;
         let mut evidence_set = BTreeSet::new();
         for item in evidence {
-            let item = item.as_str().filter(|item| !item.trim().is_empty()).ok_or("INVALID_FIELD_TYPE")?;
+            let item = item
+                .as_str()
+                .filter(|item| !item.trim().is_empty())
+                .ok_or("INVALID_FIELD_TYPE")?;
             if !evidence_set.insert(item) {
                 return Err("DUPLICATE_EVIDENCE_REFERENCE");
             }
@@ -392,7 +415,11 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
                 if candidate.is_none() {
                     return Err("AMBIGUOUS_CANDIDATE_MISSING");
                 }
-                if target.is_some() || relationship != "none" || evidence.is_empty() || method == "none" {
+                if target.is_some()
+                    || relationship != "none"
+                    || evidence.is_empty()
+                    || method == "none"
+                {
                     return Err("AMBIGUOUS_MAPPING_INCOMPLETE");
                 }
             }
@@ -410,13 +437,12 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
 
     for record in records {
         let source_id = text(record, "source_entity_id")?;
-        if candidate_counts.get(source_id).copied().unwrap_or(0) > 1 {
-            if text(record, "mapping_state")? != "ambiguous"
+        if candidate_counts.get(source_id).copied().unwrap_or(0) > 1
+            && (text(record, "mapping_state")? != "ambiguous"
                 || nullable_text(record, "target_feature_id")?.is_some()
-                || text(record, "relationship")? != "none"
-            {
-                return Err("MULTIPLE_CANDIDATES_MUST_BE_AMBIGUOUS");
-            }
+                || text(record, "relationship")? != "none")
+        {
+            return Err("MULTIPLE_CANDIDATES_MUST_BE_AMBIGUOUS");
         }
     }
 
@@ -471,8 +497,7 @@ fn build_crosswalk_report(
 ) -> Result<CrosswalkReport, String> {
     let source_checked = source_snapshot_path_checked.is_some();
     let registry_checked = locode_registry_path_checked.is_some();
-    if source_checked != registry_checked
-        || snapshots_match != (source_checked && registry_checked)
+    if source_checked != registry_checked || snapshots_match != (source_checked && registry_checked)
     {
         return Err(
             "snapshot verification flag and checked-path evidence are inconsistent".to_owned(),
@@ -499,10 +524,14 @@ fn build_crosswalk_report(
 
     Ok(CrosswalkReport {
         status: VALID,
-        crosswalk_id: text(value, "crosswalk_id").map_err(str::to_owned)?.to_owned(),
+        crosswalk_id: text(value, "crosswalk_id")
+            .map_err(str::to_owned)?
+            .to_owned(),
         crosswalk_sha256: super::sha256_bytes(bytes),
         source_commit_binding: source_commit,
-        fixture_kind: text(value, "fixture_kind").map_err(str::to_owned)?.to_owned(),
+        fixture_kind: text(value, "fixture_kind")
+            .map_err(str::to_owned)?
+            .to_owned(),
         source_series_or_table_id: text(source, "series_or_table_id")
             .map_err(str::to_owned)?
             .to_owned(),
@@ -559,17 +588,16 @@ pub(crate) fn run_cli_with_snapshots(
     )
 }
 
-fn run_cli_inner(
-    path: &str,
-    snapshot_paths: Option<(&str, &str)>,
-) -> Result<(), String> {
+fn run_cli_inner(path: &str, snapshot_paths: Option<(&str, &str)>) -> Result<(), String> {
     use std::fs;
 
     let bytes = fs::read(path).map_err(|error| format!("cannot read crosswalk {path}: {error}"))?;
     if bytes.len() > super::MAX_RECEIPT_BYTES {
         return Err("crosswalk exceeds the bounded file-size limit".to_owned());
     }
-    let value = super::parse_strict(&bytes)?;
+    let _strict = super::parse_strict(&bytes)?;
+    let value: Value =
+        serde_json::from_slice(&bytes).map_err(|e| format!("crosswalk JSON invalid: {e}"))?;
     let count = validate_crosswalk(&value).map_err(str::to_owned)?;
     let source = member(&value, "source_snapshot").map_err(str::to_owned)?;
     let registry = member(&value, "locode_registry").map_err(str::to_owned)?;
@@ -606,7 +634,8 @@ fn run_cli_inner(
     )?;
     println!(
         "{}",
-        serde_json::to_string(&report).map_err(|error| format!("cannot serialize report: {error}"))?
+        serde_json::to_string(&report)
+            .map_err(|error| format!("cannot serialize report: {error}"))?
     );
     Ok(())
 }
@@ -619,37 +648,62 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
     }
     let mut current = value;
     for part in &parts[..parts.len() - 1] {
-        current = if let Some(array) = current.as_array_mut() {
-            let index = part.parse::<usize>().map_err(|_| "INVALID_CORPUS_MUTATION")?;
-            array.get_mut(index).ok_or("INVALID_CORPUS_MUTATION")?
+        if current.is_array() {
+            let index = part
+                .parse::<usize>()
+                .map_err(|_| "INVALID_CORPUS_MUTATION")?;
+            current = current
+                .as_array_mut()
+                .unwrap()
+                .get_mut(index)
+                .ok_or("INVALID_CORPUS_MUTATION")?;
         } else {
-            current
+            current = current
                 .as_object_mut()
                 .ok_or("INVALID_CORPUS_MUTATION")?
                 .get_mut(*part)
-                .ok_or("INVALID_CORPUS_MUTATION")?
-        };
+                .ok_or("INVALID_CORPUS_MUTATION")?;
+        }
     }
     let leaf = parts[parts.len() - 1];
     if let Some(array) = current.as_array_mut() {
-        let index = leaf.parse::<usize>().map_err(|_| "INVALID_CORPUS_MUTATION")?;
+        let index = leaf
+            .parse::<usize>()
+            .map_err(|_| "INVALID_CORPUS_MUTATION")?;
         let target = array.get_mut(index).ok_or("INVALID_CORPUS_MUTATION")?;
         match mutation["op"].as_str().ok_or("INVALID_CORPUS_MUTATION")? {
-            "set" => *target = mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?,
+            "set" => {
+                *target = mutation
+                    .get("value")
+                    .cloned()
+                    .ok_or("INVALID_CORPUS_MUTATION")?
+            }
             _ => return Err("INVALID_CORPUS_MUTATION"),
         }
         return Ok(());
     }
-    let object: &mut Map<String, Value> = current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?;
+    let object = current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?;
     match mutation["op"].as_str().ok_or("INVALID_CORPUS_MUTATION")? {
         "set" => {
             if !object.contains_key(leaf) {
                 return Err("INVALID_CORPUS_MUTATION");
             }
-            object.insert(leaf.to_owned(), mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?);
+            object.insert(
+                leaf.to_owned(),
+                mutation
+                    .get("value")
+                    .cloned()
+                    .ok_or("INVALID_CORPUS_MUTATION")?,
+            );
         }
         "insert" => {
-            object.insert(leaf.to_owned(), mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?);
+            object.insert(
+                leaf.to_owned(),
+                mutation
+                    .get("value")
+                    .cloned()
+                    .ok_or("INVALID_CORPUS_MUTATION")?,
+            );
         }
         "remove" => {
             if object.remove(leaf).is_none() {
@@ -663,16 +717,25 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
 
 #[cfg(test)]
 mod tests {
-    use super::{mutate_path, utc_timestamp, validate_crosswalk, verify_snapshot_digest, VALID};
+    use super::{
+        VALID, member, mutate_path, text, utc_timestamp, validate_crosswalk, verify_snapshot_digest,
+    };
     use serde_json::Value;
 
     #[test]
     fn frozen_port_identity_corpus_matches_expected_dispositions() {
-        let corpus: Value = serde_json::from_str(include_str!("../tests/fixtures/port-crosswalk-corpus-v0.1.json"))
-            .expect("frozen port crosswalk corpus must be valid JSON");
-        assert_eq!(corpus["corpus_id"], "luminous.symtropy.maritime-port-crosswalk-corpus");
+        let corpus: Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/port-crosswalk-corpus-v0.1.json"
+        ))
+        .expect("frozen port crosswalk corpus must be valid JSON");
+        assert_eq!(
+            corpus["corpus_id"],
+            "luminous.symtropy.maritime-port-crosswalk-corpus"
+        );
         assert_eq!(corpus["corpus_version"], "0.1.0");
-        let bases = corpus["base_crosswalks"].as_object().expect("base crosswalk map");
+        let bases = corpus["base_crosswalks"]
+            .as_object()
+            .expect("base crosswalk map");
         let cases = corpus["cases"].as_array().expect("crosswalk case array");
         assert_eq!(cases.len(), 25, "frozen port crosswalk count is a contract");
         for case in cases {
@@ -697,8 +760,10 @@ mod tests {
 
     #[test]
     fn schema_is_valid_json_and_has_same_contract_identity() {
-        let schema: Value = serde_json::from_str(include_str!("../../../../docs/tech/MARITIME_PORT_CROSSWALK_V0_1.schema.json"))
-            .expect("crosswalk schema must be valid JSON");
+        let schema: Value = serde_json::from_str(include_str!(
+            "../../../../docs/tech/MARITIME_PORT_CROSSWALK_V0_1.schema.json"
+        ))
+        .expect("crosswalk schema must be valid JSON");
         assert_eq!(
             schema["properties"]["schema_id"]["const"],
             "luminous.symtropy.maritime-port-crosswalk"
@@ -708,7 +773,10 @@ mod tests {
 
     #[test]
     fn synthetic_valid_mapping_is_still_not_admitted() {
-        let corpus: Value = serde_json::from_str(include_str!("../tests/fixtures/port-crosswalk-corpus-v0.1.json")).unwrap();
+        let corpus: Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/port-crosswalk-corpus-v0.1.json"
+        ))
+        .unwrap();
         let valid = &corpus["base_crosswalks"]["valid_resolved"];
         assert!(validate_crosswalk(valid).is_ok());
         assert_eq!(valid["fixture_kind"], "synthetic_fixture");
@@ -777,8 +845,7 @@ mod tests {
         use super::build_crosswalk_report;
 
         let bytes = include_bytes!("../tests/fixtures/synthetic-port-crosswalk.json");
-        let crosswalk: Value =
-            serde_json::from_slice(bytes).expect("synthetic crosswalk fixture");
+        let crosswalk: Value = serde_json::from_slice(bytes).expect("synthetic crosswalk fixture");
         let record_count = validate_crosswalk(&crosswalk).expect("metadata is valid");
         let source = member(&crosswalk, "source_snapshot").expect("source snapshot");
         let registry = member(&crosswalk, "locode_registry").expect("registry snapshot");
@@ -816,19 +883,20 @@ mod tests {
         assert!(!report.source_authenticity_established);
         assert!(!report.port_identity_established);
         assert!(!report.operational_authority);
-        assert!(report
-            .claim_ceiling
-            .iter()
-            .any(|claim| claim.contains("does not establish publisher authenticity")));
+        assert!(
+            report
+                .claim_ceiling
+                .iter()
+                .any(|claim| claim.contains("does not establish publisher authenticity"))
+        );
     }
 
     #[test]
     fn report_builder_rejects_unbacked_snapshot_match_claim() {
-        use super::{build_crosswalk_report, member, text};
+        use super::build_crosswalk_report;
 
         let bytes = include_bytes!("../tests/fixtures/synthetic-port-crosswalk.json");
-        let crosswalk: Value =
-            serde_json::from_slice(bytes).expect("synthetic crosswalk fixture");
+        let crosswalk: Value = serde_json::from_slice(bytes).expect("synthetic crosswalk fixture");
         let record_count = validate_crosswalk(&crosswalk).expect("metadata is valid");
 
         let result = build_crosswalk_report(
@@ -891,5 +959,4 @@ mod tests {
         let error = result.expect_err("a single-byte change must fail exact-byte verification");
         assert!(error.contains("source snapshot SHA-256 mismatch"));
     }
-
 }

@@ -10,32 +10,64 @@
 use serde_json::Value;
 
 const ROOT_KEYS: &[&str] = &[
-    "schema_id", "schema_version", "profile_id", "source_kind", "receipt_binding",
-    "product", "coverage", "temporal", "quality", "terms", "transform", "intended_use",
+    "schema_id",
+    "schema_version",
+    "profile_id",
+    "source_kind",
+    "receipt_binding",
+    "product",
+    "coverage",
+    "temporal",
+    "quality",
+    "terms",
+    "transform",
+    "intended_use",
 ];
 const PRODUCT_KEYS: &[&str] = &[
-    "code", "s100_edition", "specification_edition", "producer_code", "dataset_id",
-    "revision", "native_encoding",
+    "code",
+    "s100_edition",
+    "specification_edition",
+    "producer_code",
+    "dataset_id",
+    "revision",
+    "native_encoding",
 ];
 const COVERAGE_KEYS: &[&str] = &[
-    "coverage_id", "horizontal_crs", "vertical_reference", "measurement_units",
+    "coverage_id",
+    "horizontal_crs",
+    "vertical_reference",
+    "measurement_units",
 ];
 const TEMPORAL_KEYS: &[&str] = &[
-    "data_epoch_start_utc", "data_epoch_end_utc", "valid_from_utc", "valid_until_utc",
-    "assessment_time_utc", "freshness_policy_id",
+    "data_epoch_start_utc",
+    "data_epoch_end_utc",
+    "valid_from_utc",
+    "valid_until_utc",
+    "assessment_time_utc",
+    "freshness_policy_id",
 ];
 const QUALITY_KEYS: &[&str] = &[
-    "uncertainty_state", "uncertainty_ref", "quality_metadata_ref", "statement",
+    "uncertainty_state",
+    "uncertainty_ref",
+    "quality_metadata_ref",
+    "statement",
 ];
 const TERMS_KEYS: &[&str] = &["review_status", "terms_sha256", "reviewed_at_utc"];
 const TRANSFORM_KEYS: &[&str] = &[
-    "kind", "transform_receipt_id", "input_crs", "output_crs",
-    "input_vertical_reference", "output_vertical_reference",
+    "kind",
+    "transform_receipt_id",
+    "input_crs",
+    "output_crs",
+    "input_vertical_reference",
+    "output_vertical_reference",
 ];
 const USE_KEYS: &[&str] = &[
-    "navigation_authorized", "physical_truth_claim_authorized", "independent_review_required",
+    "navigation_authorized",
+    "physical_truth_claim_authorized",
+    "independent_review_required",
 ];
 const BINDING_KEYS: &[&str] = &["receipt_id", "receipt_sha256", "artifact_sha256"];
+#[cfg(test)]
 const VALID: &str = "METADATA_CONTRACT_VALID_NOT_ADMITTED";
 
 fn exact_keys(value: &Value, keys: &[&str]) -> Result<(), &'static str> {
@@ -50,11 +82,18 @@ fn exact_keys(value: &Value, keys: &[&str]) -> Result<(), &'static str> {
 }
 
 fn member<'a>(value: &'a Value, key: &str) -> Result<&'a Value, &'static str> {
-    value.as_object().ok_or("INVALID_OBJECT")?.get(key).ok_or("MISSING_REQUIRED_FIELD")
+    value
+        .as_object()
+        .ok_or("INVALID_OBJECT")?
+        .get(key)
+        .ok_or("MISSING_REQUIRED_FIELD")
 }
 
 fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str, &'static str> {
-    member(value, key)?.as_str().filter(|value| !value.trim().is_empty()).ok_or("MISSING_REQUIRED_FIELD")
+    member(value, key)?
+        .as_str()
+        .filter(|value| !value.trim().is_empty())
+        .ok_or("MISSING_REQUIRED_FIELD")
 }
 
 fn nullable_text<'a>(value: &'a Value, key: &str) -> Result<Option<&'a str>, &'static str> {
@@ -74,20 +113,27 @@ fn pinned_revision(value: &str) -> bool {
 fn numeric_edition(value: &str) -> bool {
     let parts: Vec<&str> = value.split('.').collect();
     parts.len() == 3
-        && parts.iter().all(|part| {
-            !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit())
-        })
+        && parts
+            .iter()
+            .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
 }
 
 fn sha256(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
 }
 
 fn valid_utc_timestamp(value: &str) -> bool {
     let bytes = value.as_bytes();
     if bytes.len() != 20
-        || bytes[4] != b'-' || bytes[7] != b'-' || bytes[10] != b'T'
-        || bytes[13] != b':' || bytes[16] != b':' || bytes[19] != b'Z'
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
     {
         return false;
     }
@@ -98,7 +144,12 @@ fn valid_utc_timestamp(value: &str) -> bool {
     }
     let number = |a: usize, b: usize| value[a..b].parse::<u32>().ok();
     let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) = (
-        number(0, 4), number(5, 7), number(8, 10), number(11, 13), number(14, 16), number(17, 19)
+        number(0, 4),
+        number(5, 7),
+        number(8, 10),
+        number(11, 13),
+        number(14, 16),
+        number(17, 19),
     ) else {
         return false;
     };
@@ -177,14 +228,20 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     let coverage = member(profile, "coverage")?;
     exact_keys(coverage, COVERAGE_KEYS)?;
     text(coverage, "coverage_id")?;
-    if !coverage.get("horizontal_crs").and_then(Value::as_str).is_some_and(|value| !value.trim().is_empty()) {
+    if coverage
+        .get("horizontal_crs")
+        .and_then(Value::as_str)
+        .is_none_or(|value| value.trim().is_empty())
+    {
         return Err("MISSING_CRS");
     }
     let vertical_reference = nullable_text(coverage, "vertical_reference")?;
     if ["S-102", "S-104"].contains(&code) && vertical_reference.is_none() {
         return Err("MISSING_VERTICAL_REFERENCE");
     }
-    let units = member(coverage, "measurement_units")?.as_array().ok_or("INVALID_FIELD_TYPE")?;
+    let units = member(coverage, "measurement_units")?
+        .as_array()
+        .ok_or("INVALID_FIELD_TYPE")?;
     if units.is_empty() {
         return Err("MISSING_UNITS");
     }
@@ -242,7 +299,9 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     {
         return Err("QUALITY_METADATA_UNKNOWN");
     }
-    if code == "S-102" && (uncertainty_state != "provided" || nullable_text(quality, "uncertainty_ref")?.is_none()) {
+    if code == "S-102"
+        && (uncertainty_state != "provided" || nullable_text(quality, "uncertainty_ref")?.is_none())
+    {
         return Err("MISSING_UNCERTAINTY_REFERENCE");
     }
     let _ = nullable_text(quality, "uncertainty_ref")?;
@@ -259,7 +318,8 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
         if !sha256(nullable_text(terms, "terms_sha256")?.ok_or("TERMS_NOT_REVIEWED")?) {
             return Err("TERMS_NOT_REVIEWED");
         }
-        let reviewed_at = optional_timestamp(terms, "reviewed_at_utc")?.ok_or("TERMS_NOT_REVIEWED")?;
+        let reviewed_at =
+            optional_timestamp(terms, "reviewed_at_utc")?.ok_or("TERMS_NOT_REVIEWED")?;
         let _ = reviewed_at;
     } else if review_status != "not_applicable_synthetic" {
         return Err("SYNTHETIC_TERMS_STATE_MISMATCH");
@@ -278,7 +338,9 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
             if input_crs != output_crs && (input_crs.is_some() || output_crs.is_some()) {
                 return Err("SILENT_TRANSFORM");
             }
-            if input_vertical != output_vertical && (input_vertical.is_some() || output_vertical.is_some()) {
+            if input_vertical != output_vertical
+                && (input_vertical.is_some() || output_vertical.is_some())
+            {
                 return Err("SILENT_TRANSFORM");
             }
             if receipt.is_some()
@@ -308,9 +370,15 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
 
     let intended_use = member(profile, "intended_use")?;
     exact_keys(intended_use, USE_KEYS)?;
-    let navigation_authorized = member(intended_use, "navigation_authorized")?.as_bool().ok_or("INVALID_FIELD_TYPE")?;
-    let physical_truth_authorized = member(intended_use, "physical_truth_claim_authorized")?.as_bool().ok_or("INVALID_FIELD_TYPE")?;
-    let independent_review_required = member(intended_use, "independent_review_required")?.as_bool().ok_or("INVALID_FIELD_TYPE")?;
+    let navigation_authorized = member(intended_use, "navigation_authorized")?
+        .as_bool()
+        .ok_or("INVALID_FIELD_TYPE")?;
+    let physical_truth_authorized = member(intended_use, "physical_truth_claim_authorized")?
+        .as_bool()
+        .ok_or("INVALID_FIELD_TYPE")?;
+    let independent_review_required = member(intended_use, "independent_review_required")?
+        .as_bool()
+        .ok_or("INVALID_FIELD_TYPE")?;
     if navigation_authorized || physical_truth_authorized || !independent_review_required {
         return Err("AUTHORITY_ESCALATION_ATTEMPT");
     }
@@ -349,7 +417,9 @@ fn verify_receipt_semantics(
     }
 
     let coverage = member(profile, "coverage")?;
-    if text(coverage, "horizontal_crs")? != facts.coordinate_reference_system.as_deref().unwrap_or("") {
+    if text(coverage, "horizontal_crs")?
+        != facts.coordinate_reference_system.as_deref().unwrap_or("")
+    {
         return Err("RECEIPT_SPATIAL_REFERENCE_MISMATCH");
     }
     if nullable_text(coverage, "vertical_reference")? != facts.vertical_datum.as_deref() {
@@ -454,15 +524,20 @@ pub(crate) fn run_cli(
         .unwrap_or_else(|| PathBuf::from(&facts.artifact.relative_path));
     let source_commit = std::env::var("MARITIME_SOURCE_COMMIT")
         .unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
-    let receipt_report = super::verify(&receipt_bytes, &artifact_path, receipt_path, &source_commit)?;
+    let receipt_report =
+        super::verify(&receipt_bytes, &artifact_path, receipt_path, &source_commit)?;
 
     let report = S100ProfileReport {
         status: "S100_PROFILE_AND_BOUND_BYTES_MATCH_NOT_ADMITTED",
-        profile_id: text(&profile, "profile_id").map_err(str::to_owned)?.to_owned(),
+        profile_id: text(&profile, "profile_id")
+            .map_err(str::to_owned)?
+            .to_owned(),
         product_code: text(member(&profile, "product").map_err(str::to_owned)?, "code")
             .map_err(str::to_owned)?
             .to_owned(),
-        source_kind: text(&profile, "source_kind").map_err(str::to_owned)?.to_owned(),
+        source_kind: text(&profile, "source_kind")
+            .map_err(str::to_owned)?
+            .to_owned(),
         receipt_id: receipt_report.receipt_id,
         receipt_sha256: receipt_report.receipt_sha256,
         artifact_sha256: receipt_report.artifact_sha256,
@@ -500,17 +575,30 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
             .get_mut(*part)
             .ok_or("INVALID_CORPUS_MUTATION")?;
     }
-    let object: &mut Map<String, Value> = current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?;
+    let object: &mut Map<String, Value> =
+        current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?;
     let leaf = parts[parts.len() - 1];
     match mutation["op"].as_str().ok_or("INVALID_CORPUS_MUTATION")? {
         "set" => {
             if !object.contains_key(leaf) {
                 return Err("INVALID_CORPUS_MUTATION");
             }
-            object.insert(leaf.to_owned(), mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?);
+            object.insert(
+                leaf.to_owned(),
+                mutation
+                    .get("value")
+                    .cloned()
+                    .ok_or("INVALID_CORPUS_MUTATION")?,
+            );
         }
         "insert" => {
-            object.insert(leaf.to_owned(), mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?);
+            object.insert(
+                leaf.to_owned(),
+                mutation
+                    .get("value")
+                    .cloned()
+                    .ok_or("INVALID_CORPUS_MUTATION")?,
+            );
         }
         "remove" => {
             if object.remove(leaf).is_none() {
@@ -524,55 +612,91 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
 
 #[cfg(test)]
 mod tests {
-    use super::{mutate_path, validate_profile, verify_receipt_semantics, VALID};
+    use super::{VALID, mutate_path, validate_profile, verify_receipt_semantics};
     use serde_json::Value;
 
     #[test]
     fn frozen_positive_and_adversarial_corpus_matches_expected_dispositions() {
-        let corpus: Value = serde_json::from_str(include_str!("../tests/fixtures/s100-profile-corpus-v0.1.json"))
-            .expect("frozen S-100 profile corpus must be valid JSON");
-        assert_eq!(corpus["corpus_id"], "luminous.symtropy.maritime-s100-profile-corpus");
+        let corpus: Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/s100-profile-corpus-v0.1.json"
+        ))
+        .expect("frozen S-100 profile corpus must be valid JSON");
+        assert_eq!(
+            corpus["corpus_id"],
+            "luminous.symtropy.maritime-s100-profile-corpus"
+        );
         assert_eq!(corpus["corpus_version"], "0.1.0");
-        let profiles = corpus["base_profiles"].as_object().expect("base profiles object");
+        let profiles = corpus["base_profiles"]
+            .as_object()
+            .expect("base profiles object");
         let cases = corpus["cases"].as_array().expect("case array");
-        assert_eq!(cases.len(), 23, "the frozen corpus count is part of the test contract");
+        assert_eq!(
+            cases.len(),
+            23,
+            "the frozen corpus count is part of the test contract"
+        );
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base_name = case["base"].as_str().expect("base profile");
-            let mut profile = profiles.get(base_name).expect("declared base profile").clone();
+            let mut profile = profiles
+                .get(base_name)
+                .expect("declared base profile")
+                .clone();
             for mutation in case["mutations"].as_array().expect("mutation list") {
-                mutate_path(&mut profile, mutation["path"].as_str().expect("mutation path"), mutation)
-                    .unwrap_or_else(|error| panic!("{id}: invalid frozen mutation: {error}"));
+                mutate_path(
+                    &mut profile,
+                    mutation["path"].as_str().expect("mutation path"),
+                    mutation,
+                )
+                .unwrap_or_else(|error| panic!("{id}: invalid frozen mutation: {error}"));
             }
             let actual = match validate_profile(&profile) {
                 Ok(()) => VALID,
                 Err(code) => code,
             };
-            assert_eq!(case["expected_code"].as_str(), Some(actual), "unexpected disposition for {id}");
+            assert_eq!(
+                case["expected_code"].as_str(),
+                Some(actual),
+                "unexpected disposition for {id}"
+            );
             if actual == VALID {
-                assert_eq!(profile["intended_use"]["navigation_authorized"], false, "{id}");
-                assert_eq!(profile["intended_use"]["physical_truth_claim_authorized"], false, "{id}");
+                assert_eq!(
+                    profile["intended_use"]["navigation_authorized"], false,
+                    "{id}"
+                );
+                assert_eq!(
+                    profile["intended_use"]["physical_truth_claim_authorized"], false,
+                    "{id}"
+                );
             }
         }
     }
 
     #[test]
     fn synthetic_s104_profile_matches_the_exact_receipt_semantics() {
-        let profile: Value = serde_json::from_str(include_str!("../tests/fixtures/synthetic-s104-profile.json"))
-            .expect("S-104 synthetic profile fixture");
+        let profile: Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/synthetic-s104-profile.json"
+        ))
+        .expect("S-104 synthetic profile fixture");
         let receipt_bytes = include_bytes!("../tests/fixtures/synthetic-water-level-receipt.json");
-        let receipt_root = super::super::parse_strict(receipt_bytes).expect("strict receipt parsing");
-        let facts = super::super::validate_receipt(&receipt_root).expect("receipt metadata validation");
+        let receipt_root =
+            super::super::parse_strict(receipt_bytes).expect("strict receipt parsing");
+        let facts =
+            super::super::validate_receipt(&receipt_root).expect("receipt metadata validation");
         assert_eq!(verify_receipt_semantics(&profile, &facts), Ok(()));
     }
 
     #[test]
     fn profile_cannot_relabel_water_level_receipt_as_currents() {
-        let mut profile: Value = serde_json::from_str(include_str!("../tests/fixtures/synthetic-s104-profile.json"))
-            .expect("S-104 synthetic profile fixture");
+        let mut profile: Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/synthetic-s104-profile.json"
+        ))
+        .expect("S-104 synthetic profile fixture");
         let receipt_bytes = include_bytes!("../tests/fixtures/synthetic-water-level-receipt.json");
-        let receipt_root = super::super::parse_strict(receipt_bytes).expect("strict receipt parsing");
-        let facts = super::super::validate_receipt(&receipt_root).expect("receipt metadata validation");
+        let receipt_root =
+            super::super::parse_strict(receipt_bytes).expect("strict receipt parsing");
+        let facts =
+            super::super::validate_receipt(&receipt_root).expect("receipt metadata validation");
         profile["product"]["code"] = Value::String("S-111".to_owned());
         assert_eq!(
             verify_receipt_semantics(&profile, &facts),
@@ -582,9 +706,14 @@ mod tests {
 
     #[test]
     fn schema_is_valid_json_and_uses_the_same_profile_identity() {
-        let schema: Value = serde_json::from_str(include_str!("../../../../docs/tech/MARITIME_S100_PROFILE_V0_1.schema.json"))
-            .expect("S-100 profile schema must be valid JSON");
-        assert_eq!(schema["properties"]["schema_id"]["const"], "luminous.symtropy.maritime-s100-profile");
+        let schema: Value = serde_json::from_str(include_str!(
+            "../../../../docs/tech/MARITIME_S100_PROFILE_V0_1.schema.json"
+        ))
+        .expect("S-100 profile schema must be valid JSON");
+        assert_eq!(
+            schema["properties"]["schema_id"]["const"],
+            "luminous.symtropy.maritime-s100-profile"
+        );
         assert_eq!(schema["properties"]["schema_version"]["const"], "0.1.0");
         assert_eq!(
             schema["properties"]["product"]["properties"]["s100_edition"]["pattern"],
@@ -598,9 +727,16 @@ mod tests {
 
     #[test]
     fn valid_profile_never_becomes_admitted() {
-        let corpus: Value = serde_json::from_str(include_str!("../tests/fixtures/s100-profile-corpus-v0.1.json")).unwrap();
+        let corpus: Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/s100-profile-corpus-v0.1.json"
+        ))
+        .unwrap();
         for name in ["s102", "s104", "s111"] {
-            assert_eq!(validate_profile(&corpus["base_profiles"][name]), Ok(()), "{name}");
+            assert_eq!(
+                validate_profile(&corpus["base_profiles"][name]),
+                Ok(()),
+                "{name}"
+            );
         }
     }
 }

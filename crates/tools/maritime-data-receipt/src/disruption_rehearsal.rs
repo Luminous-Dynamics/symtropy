@@ -45,6 +45,16 @@ const INPUT_KEYS: &[&str] = &[
     "waiting_resource_state",
     "alternate_capacity_state",
 ];
+/// Verbose display names declared in `model_scope.abstract_inputs_only` — these are the
+/// human-readable labels for the same inputs tracked by `INPUT_KEYS` in scenario cases.
+const MODEL_SCOPE_INPUT_NAMES: &[&str] = &[
+    "declared_water_level_envelope_state",
+    "energy_reserve_constraint_state",
+    "terminal_window_state",
+    "forecast_evidence_state",
+    "waiting_resource_availability_state",
+    "alternate_capacity_confirmation_state",
+];
 const PLAN_IDS: &[&str] = &[
     "continue_original_slot",
     "hold_and_reassess",
@@ -83,8 +93,14 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
         trigger_blocker: "terminal_window_open",
         required_evidence_kind: "authoritative_terminal_window_state",
         minimum_fields: &[
-            "terminal_identity", "window_state", "window_start_utc", "window_end_utc",
-            "issuer_identity", "source_revision", "captured_at_utc", "artifact_sha256",
+            "terminal_identity",
+            "window_state",
+            "window_start_utc",
+            "window_end_utc",
+            "issuer_identity",
+            "source_revision",
+            "captured_at_utc",
+            "artifact_sha256",
         ],
         resolution_scope: "Can resolve only the declared terminal-window evidence gap; it does not create a booking or authorize vessel movement.",
     },
@@ -94,8 +110,13 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
         trigger_blocker: "water_level_envelope_supported_and_satisfied",
         required_evidence_kind: "supported_water_level_envelope",
         minimum_fields: &[
-            "spatial_coverage", "time_coverage", "vertical_datum", "water_level_envelope",
-            "uncertainty_statement", "source_receipt_sha256", "supported_model_capability_id",
+            "spatial_coverage",
+            "time_coverage",
+            "vertical_datum",
+            "water_level_envelope",
+            "uncertainty_statement",
+            "source_receipt_sha256",
+            "supported_model_capability_id",
         ],
         resolution_scope: "Can establish whether an input envelope is available within a declared model path; it does not calculate or certify under-keel clearance.",
     },
@@ -105,8 +126,12 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
         trigger_blocker: "energy_reserve_minimum_satisfied",
         required_evidence_kind: "qualified_energy_reserve_assessment",
         minimum_fields: &[
-            "declared_load_profile", "usable_energy", "reserve_policy_id",
-            "temperature_and_age_derating", "shore_power_state", "model_capability_id",
+            "declared_load_profile",
+            "usable_energy",
+            "reserve_policy_id",
+            "temperature_and_age_derating",
+            "shore_power_state",
+            "model_capability_id",
             "validation_reference",
         ],
         resolution_scope: "Can support a bounded energy feasibility check only if the model path is admitted; no assumption may replace absent loads or derating.",
@@ -117,9 +142,18 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
         trigger_blocker: "forecast_temporal_applicability",
         required_evidence_kind: "byte_bound_forecast_timing_evidence",
         minimum_fields: &[
-            "receipt_sha256", "artifact_sha256", "product_id", "dataset_id", "dataset_revision",
-            "model_initialization_time_utc", "issued_at_utc", "valid_from_utc", "valid_until_utc",
-            "assessment_time_utc", "target_time_utc", "policy_id",
+            "receipt_sha256",
+            "artifact_sha256",
+            "product_id",
+            "dataset_id",
+            "dataset_revision",
+            "model_initialization_time_utc",
+            "issued_at_utc",
+            "valid_from_utc",
+            "valid_until_utc",
+            "assessment_time_utc",
+            "target_time_utc",
+            "policy_id",
         ],
         resolution_scope: "Can resolve temporal applicability for the pinned revision only; it does not validate forecast skill or authorize navigation.",
     },
@@ -129,8 +163,14 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
         trigger_blocker: "designated_waiting_resource_declared_available",
         required_evidence_kind: "waiting_resource_and_dependency_state",
         minimum_fields: &[
-            "resource_identity", "available_capacity", "valid_from_utc", "valid_until_utc",
-            "shared_dependency_ids", "independence_evidence", "issuer_identity", "source_revision",
+            "resource_identity",
+            "available_capacity",
+            "valid_from_utc",
+            "valid_until_utc",
+            "shared_dependency_ids",
+            "independence_evidence",
+            "issuer_identity",
+            "source_revision",
         ],
         resolution_scope: "Can resolve the declared waiting-resource state only; claimed redundancy is not presumed independent without evidence.",
     },
@@ -140,8 +180,13 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
         trigger_blocker: "alternate_capacity_confirmed",
         required_evidence_kind: "authoritative_alternate_terminal_capacity_response",
         minimum_fields: &[
-            "terminal_identity", "capacity_or_slot_state", "requested_window_utc",
-            "response_window_utc", "issuer_identity", "source_revision", "captured_at_utc",
+            "terminal_identity",
+            "capacity_or_slot_state",
+            "requested_window_utc",
+            "response_window_utc",
+            "issuer_identity",
+            "source_revision",
+            "captured_at_utc",
             "artifact_sha256",
         ],
         resolution_scope: "Can resolve capacity evidence for reassessment; it does not create a reservation, guarantee acceptance, or authorize execution.",
@@ -152,8 +197,12 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
         trigger_blocker: "declared energy behaviour while holding is outside the model scope",
         required_evidence_kind: "supported_holding_energy_model",
         minimum_fields: &[
-            "holding_duration_envelope", "auxiliary_load_profile", "usable_energy",
-            "reserve_policy_id", "temperature_and_age_derating", "model_capability_id",
+            "holding_duration_envelope",
+            "auxiliary_load_profile",
+            "usable_energy",
+            "reserve_policy_id",
+            "temperature_and_age_derating",
+            "model_capability_id",
             "validation_reference",
         ],
         resolution_scope: "Requires an explicitly supported energy model before comparing hold duration; until then the result remains unsupported.",
@@ -164,15 +213,22 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
         trigger_blocker: "alternate-terminal feasibility model not admitted",
         required_evidence_kind: "admitted_alternate_terminal_feasibility_model",
         minimum_fields: &[
-            "terminal_identity", "declared_constraint_set", "input_semantics_and_units",
-            "model_capability_id", "validation_reference", "model_revision", "source_data_receipts",
+            "terminal_identity",
+            "declared_constraint_set",
+            "input_semantics_and_units",
+            "model_capability_id",
+            "validation_reference",
+            "model_revision",
+            "source_data_receipts",
         ],
         resolution_scope: "Requires a separately admitted, validated model path; a capacity confirmation alone cannot establish alternative feasibility.",
     },
 ];
 
 fn evidence_requirement_for_blocker(blocker: &str) -> Option<&'static EvidenceRequirementSpec> {
-    EVIDENCE_REQUIREMENTS.iter().find(|requirement| requirement.trigger_blocker == blocker)
+    EVIDENCE_REQUIREMENTS
+        .iter()
+        .find(|requirement| requirement.trigger_blocker == blocker)
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -197,7 +253,11 @@ fn evidence_gap(case_id: &str, plan_id: &str, blocker: &str) -> Result<EvidenceG
         blocker_reason: blocker.to_owned(),
         requirement_id: requirement.requirement_id.to_owned(),
         required_evidence_kind: requirement.required_evidence_kind.to_owned(),
-        minimum_fields: requirement.minimum_fields.iter().map(|field| (*field).to_owned()).collect(),
+        minimum_fields: requirement
+            .minimum_fields
+            .iter()
+            .map(|field| (*field).to_owned())
+            .collect(),
         resolution_scope: requirement.resolution_scope.to_owned(),
     })
 }
@@ -235,11 +295,10 @@ struct AbstractInputs {
 }
 
 fn text_field(value: &super::JsonValue, key: &str, path: &str) -> Result<String, String> {
-    Ok(super::require_nonempty_text(
-        super::field(value, key, path)?,
-        &format!("{path}.{key}"),
-    )?
-    .to_owned())
+    Ok(
+        super::require_nonempty_text(super::field(value, key, path)?, &format!("{path}.{key}"))?
+            .to_owned(),
+    )
 }
 
 fn expect_text_array(
@@ -249,7 +308,11 @@ fn expect_text_array(
 ) -> Result<(), String> {
     let actual = super::array(value, path)?;
     if actual.len() != expected.len() {
-        return Err(format!("{path}: expected {} entries, found {}", expected.len(), actual.len()));
+        return Err(format!(
+            "{path}: expected {} entries, found {}",
+            expected.len(),
+            actual.len()
+        ));
     }
     for (index, (value, expected_text)) in actual.iter().zip(expected).enumerate() {
         super::expect_text(value, &format!("{path}[{index}]"), expected_text)?;
@@ -257,13 +320,13 @@ fn expect_text_array(
     Ok(())
 }
 
-
 fn canonical_utc_seconds(value: &str, path: &str) -> Result<i64, String> {
     if value.len() != 20 || !super::valid_utc_timestamp(value) {
         return Err(format!("{path}: expected canonical YYYY-MM-DDTHH:MM:SSZ"));
     }
     let parse = |start: usize, end: usize| -> Result<i64, String> {
-        value.get(start..end)
+        value
+            .get(start..end)
             .ok_or_else(|| format!("{path}: truncated timestamp"))?
             .parse::<i64>()
             .map_err(|_| format!("{path}: invalid timestamp digits"))
@@ -291,7 +354,12 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
     let assessment = super::field(root, "assessment", "rehearsal")?;
     super::exact_keys(
         assessment,
-        &["assessment_time_utc", "target_time_utc", "time_policy_id", "forecast_input"],
+        &[
+            "assessment_time_utc",
+            "target_time_utc",
+            "time_policy_id",
+            "forecast_input",
+        ],
         "rehearsal.assessment",
     )?;
     for key in ["assessment_time_utc", "target_time_utc"] {
@@ -302,8 +370,7 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
             ));
         }
     }
-    if text_field(assessment, "time_policy_id", "rehearsal.assessment")?
-        != "synthetic-policy-v0.1"
+    if text_field(assessment, "time_policy_id", "rehearsal.assessment")? != "synthetic-policy-v0.1"
     {
         return Err("rehearsal.assessment.time_policy_id is not the pinned v0.1 policy".to_owned());
     }
@@ -328,7 +395,10 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         "rehearsal.assessment.forecast_input",
     )?;
     for key in ["source_artifact_sha256", "receipt_sha256"] {
-        if !matches!(super::field(forecast, key, "forecast_input")?, super::JsonValue::Null) {
+        if !matches!(
+            super::field(forecast, key, "forecast_input")?,
+            super::JsonValue::Null
+        ) {
             return Err(format!(
                 "forecast_input.{key} must remain null until exact real bytes are bound"
             ));
@@ -433,11 +503,9 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
     )?;
     if observed_issue_age != declared_issue_age || observed_lead != declared_lead {
         return Err(format!(
-            concat!(
-                "forecast temporal arithmetic mismatch: issue_age observed={observed_issue_age} ",
-                "declared={declared_issue_age}; lead observed={observed_lead} ",
-                "declared={declared_lead}"
-            )
+            "forecast temporal arithmetic mismatch: issue_age observed={observed_issue_age} \
+             declared={declared_issue_age}; lead observed={observed_lead} \
+             declared={declared_lead}"
         ));
     }
     let max_issue_age = super::integer(
@@ -484,7 +552,7 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
     expect_text_array(
         super::field(scope, "abstract_inputs_only", "model_scope")?,
         "model_scope.abstract_inputs_only",
-        INPUT_KEYS,
+        MODEL_SCOPE_INPUT_NAMES,
     )?;
     expect_text_array(
         super::field(scope, "unsupported_if_requested", "model_scope")?,
@@ -496,7 +564,8 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
             "mooring loads",
             "shore-power electrical dynamics",
             "terminal capacity derived from real operations",
-    ])?;
+        ],
+    )?;
     if !super::bool_value(
         super::field(scope, "missing_or_unsupported_is_never_zero", "model_scope")?,
         "model_scope.missing_or_unsupported_is_never_zero",
@@ -604,10 +673,18 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         let keys: &[&str] = match status_key {
             "missing_state" => &["constraint_id", "kind", "unit", "source", "missing_state"],
             "unsupported_state" => &[
-                "constraint_id", "kind", "unit", "source", "unsupported_state",
+                "constraint_id",
+                "kind",
+                "unit",
+                "source",
+                "unsupported_state",
             ],
             "invalid_or_missing_state" => &[
-                "constraint_id", "kind", "unit", "source", "invalid_or_missing_state",
+                "constraint_id",
+                "kind",
+                "unit",
+                "source",
+                "invalid_or_missing_state",
             ],
             "default_state" => &["constraint_id", "kind", "unit", "source", "default_state"],
             _ => return Err(format!("{path}: unsupported constraint status field")),
@@ -637,7 +714,9 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         if id == "forecast_temporal_applicability" {
             super::expect_text(unit, &format!("{path}.unit"), "seconds")?;
         } else if !matches!(unit, super::JsonValue::Null) {
-            return Err(format!("{path}.unit must remain null for abstract state constraints"));
+            return Err(format!(
+                "{path}.unit must remain null for abstract state constraints"
+            ));
         }
         text_field(constraint, "source", &path)?;
     }
@@ -676,13 +755,14 @@ fn validate_abstract_inputs(
         .contains(&input.water.as_str())
         || !["adequate", "inadequate_for_declared_plan"].contains(&input.energy.as_str())
         || !["open", "closed"].contains(&input.terminal.as_str())
-        || !["temporally_applicable_not_admitted", "invalidated"]
-            .contains(&input.forecast.as_str())
+        || !["temporally_applicable_not_admitted", "invalidated"].contains(&input.forecast.as_str())
         || !["declared_available", "unknown_due_to_shared_dependency"]
             .contains(&input.waiting.as_str())
         || !["unconfirmed", "confirmed"].contains(&input.alternate_capacity.as_str())
     {
-        return Err(format!("{path}: unknown abstract input state; refusing to guess"));
+        return Err(format!(
+            "{path}: unknown abstract input state; refusing to guess"
+        ));
     }
     Ok(input)
 }
@@ -752,7 +832,9 @@ fn disposition(
 
 fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, String> {
     if bytes.len() > MAX_SCENARIO_BYTES {
-        return Err(format!("scenario fixture exceeds {MAX_SCENARIO_BYTES}-byte bound"));
+        return Err(format!(
+            "scenario fixture exceeds {MAX_SCENARIO_BYTES}-byte bound"
+        ));
     }
     let root = super::parse_strict(bytes)?;
     super::exact_keys(&root, ROOT_KEYS, "rehearsal")?;
@@ -822,10 +904,16 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
     }
     for (key, expected) in [
         ("rust_build_test_status", "not_yet_run_on_exact_branch_head"),
-        ("independent_oracle_status", "implemented_in_source_not_yet_run"),
+        (
+            "independent_oracle_status",
+            "implemented_in_source_not_yet_run",
+        ),
         ("canonical_replay_status", "test_implemented_not_yet_run"),
         ("real_source_capture_status", "still_open"),
-        ("expected_status", "contract_evaluable_no_physical_simulation"),
+        (
+            "expected_status",
+            "contract_evaluable_no_physical_simulation",
+        ),
     ] {
         super::expect_text(
             super::field(execution, key, "rehearsal.execution")?,
@@ -857,7 +945,13 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
                 "preparation_does_not_reserve_capacity",
             ]
         } else {
-            &["plan_id", "kind", "preconditions", "side_effects", "not_a_booking"]
+            &[
+                "plan_id",
+                "kind",
+                "preconditions",
+                "side_effects",
+                "not_a_booking",
+            ]
         };
         super::exact_keys(plan, expected_plan_keys, &path)?;
         let plan_id = text_field(plan, "plan_id", &path)?;
@@ -935,40 +1029,40 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
         let case_path = format!("rehearsal.scenario_cases[{case_index}]");
         let case_id = text_field(case, "case_id", &case_path)?;
         let expected_case_keys: &[&str] = match case_id.as_str() {
-            "baseline_declared_inputs" | "shore_power_unavailable" =>
-                &[
-                    "case_id",
-                    "required",
-                    "disturbances",
-                    "abstract_inputs",
-                    "expected_plan_dispositions",
-                    "expected_blockers",
-                ],
-            "adverse_water_level_envelope" =>
-                &[
-                    "case_id",
-                    "required",
-                    "disturbances",
-                    "abstract_inputs",
-                    "expected_plan_dispositions",
-                    "expected_blockers",
-                    "interpretation",
-                ],
-            "forecast_invalidated_before_decision" | "common_cause_terminal_and_power_disruption" =>
-                &[
-                    "case_id",
-                    "required",
-                    "disturbances",
-                    "abstract_inputs",
-                    "expected_plan_dispositions",
-                    "expected_blockers",
-                    "metamorphic_property",
-                ],
+            "baseline_declared_inputs" | "shore_power_unavailable" => &[
+                "case_id",
+                "required",
+                "disturbances",
+                "abstract_inputs",
+                "expected_plan_dispositions",
+                "expected_blockers",
+            ],
+            "adverse_water_level_envelope" => &[
+                "case_id",
+                "required",
+                "disturbances",
+                "abstract_inputs",
+                "expected_plan_dispositions",
+                "expected_blockers",
+                "interpretation",
+            ],
+            "forecast_invalidated_before_decision"
+            | "common_cause_terminal_and_power_disruption" => &[
+                "case_id",
+                "required",
+                "disturbances",
+                "abstract_inputs",
+                "expected_plan_dispositions",
+                "expected_blockers",
+                "metamorphic_property",
+            ],
             _ => return Err(format!("{case_path}.case_id: unknown case {case_id:?}")),
         };
         super::exact_keys(case, expected_case_keys, &case_path)?;
         if case_id != CASE_IDS[case_index] {
-            return Err(format!("{case_path}.case_id: unexpected case ID {case_id:?}"));
+            return Err(format!(
+                "{case_path}.case_id: unexpected case ID {case_id:?}"
+            ));
         }
         if !super::bool_value(
             super::field(case, "required", &case_path)?,
@@ -1023,8 +1117,13 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
             super::field(case, "expected_blockers", &case_path)?,
             &format!("{case_path}.expected_blockers"),
         )?;
-        if expected_blockers.keys().any(|key| !PLAN_IDS.contains(&key.as_str())) {
-            return Err(format!("{case_path}.expected_blockers contains an unknown plan ID"));
+        if expected_blockers
+            .keys()
+            .any(|key| !PLAN_IDS.contains(&key.as_str()))
+        {
+            return Err(format!(
+                "{case_path}.expected_blockers contains an unknown plan ID"
+            ));
         }
 
         for (plan_index, plan_id) in PLAN_IDS.iter().enumerate() {
@@ -1052,7 +1151,9 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
                     &format!("{case_path}.expected_blockers.{plan_id}"),
                 )?;
                 if declared.len() != blockers.len() {
-                    return Err(format!("{case_path}.expected_blockers.{plan_id} count mismatch"));
+                    return Err(format!(
+                        "{case_path}.expected_blockers.{plan_id} count mismatch"
+                    ));
                 }
                 for (blocker_index, (value, expected_blocker)) in
                     declared.iter().zip(&blockers).enumerate()
@@ -1089,7 +1190,7 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
     let robustly_feasible_candidate_plans = PLAN_IDS
         .iter()
         .zip(per_plan_all_required_feasible)
-        .filter(|(_, is_feasible)| **is_feasible)
+        .filter(|(_, is_feasible)| *is_feasible)
         .map(|(plan_id, _)| (*plan_id).to_owned())
         .collect();
 
@@ -1119,7 +1220,9 @@ pub(super) fn run_cli(scenario_path: &str) -> Result<(), String> {
     let metadata = fs::metadata(scenario_path)
         .map_err(|error| format!("cannot stat scenario fixture {scenario_path}: {error}"))?;
     if metadata.len() > MAX_SCENARIO_BYTES as u64 {
-        return Err(format!("scenario fixture exceeds {MAX_SCENARIO_BYTES}-byte bound"));
+        return Err(format!(
+            "scenario fixture exceeds {MAX_SCENARIO_BYTES}-byte bound"
+        ));
     }
     let bytes = fs::read(scenario_path)
         .map_err(|error| format!("cannot read scenario fixture {scenario_path}: {error}"))?;
@@ -1159,7 +1262,16 @@ mod tests {
         let month_lengths = [
             31_i64,
             if is_leap(year) { 29 } else { 28 },
-            31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+            31,
+            30,
+            31,
+            30,
+            31,
+            31,
+            30,
+            31,
+            30,
+            31,
         ];
         for length in month_lengths.iter().take(month.saturating_sub(1)) {
             days += *length;
@@ -1200,14 +1312,35 @@ mod tests {
 
     fn oracle_requirement(blocker: &str) -> (&'static str, &'static str) {
         match blocker {
-            "terminal_window_open" => ("terminal_window_constraint", "terminal_window_confirmation"),
-            "water_level_envelope_supported_and_satisfied" => ("water_level_envelope_constraint", "water_level_envelope_evidence"),
-            "energy_reserve_minimum_satisfied" => ("energy_reserve_constraint", "energy_reserve_assessment"),
-            "forecast_temporal_applicability" => ("forecast_temporal_applicability", "forecast_temporal_binding"),
-            "designated_waiting_resource_declared_available" => ("waiting_resource_availability", "waiting_resource_availability"),
-            "alternate_capacity_confirmed" => ("alternate_terminal_capacity", "alternate_terminal_capacity"),
-            "declared energy behaviour while holding is outside the model scope" => ("holding_energy_model_unsupported", "holding_energy_model_support"),
-            "alternate-terminal feasibility model not admitted" => ("alternate_terminal_model_unsupported", "alternate_terminal_model_support"),
+            "terminal_window_open" => {
+                ("terminal_window_constraint", "terminal_window_confirmation")
+            }
+            "water_level_envelope_supported_and_satisfied" => (
+                "water_level_envelope_constraint",
+                "water_level_envelope_evidence",
+            ),
+            "energy_reserve_minimum_satisfied" => {
+                ("energy_reserve_constraint", "energy_reserve_assessment")
+            }
+            "forecast_temporal_applicability" => (
+                "forecast_temporal_applicability",
+                "forecast_temporal_binding",
+            ),
+            "designated_waiting_resource_declared_available" => (
+                "waiting_resource_availability",
+                "waiting_resource_availability",
+            ),
+            "alternate_capacity_confirmed" => {
+                ("alternate_terminal_capacity", "alternate_terminal_capacity")
+            }
+            "declared energy behaviour while holding is outside the model scope" => (
+                "holding_energy_model_unsupported",
+                "holding_energy_model_support",
+            ),
+            "alternate-terminal feasibility model not admitted" => (
+                "alternate_terminal_model_unsupported",
+                "alternate_terminal_model_support",
+            ),
             _ => ("unknown", "unknown"),
         }
     }
@@ -1222,10 +1355,12 @@ mod tests {
         let alternate = input["alternate_capacity_state"].as_str().unwrap();
         match plan {
             "continue_original_slot" if terminal == "closed" => vec!["terminal_window_open"],
-            "continue_original_slot" if water == "outside_declared_limit" =>
-                vec!["water_level_envelope_supported_and_satisfied"],
-            "continue_original_slot" if energy == "inadequate_for_declared_plan" =>
-                vec!["energy_reserve_minimum_satisfied"],
+            "continue_original_slot" if water == "outside_declared_limit" => {
+                vec!["water_level_envelope_supported_and_satisfied"]
+            }
+            "continue_original_slot" if energy == "inadequate_for_declared_plan" => {
+                vec!["energy_reserve_minimum_satisfied"]
+            }
             "continue_original_slot" => {
                 let mut blockers = Vec::new();
                 if forecast != "temporally_applicable_not_admitted" {
@@ -1236,15 +1371,19 @@ mod tests {
                 }
                 blockers
             }
-            "hold_and_reassess" if waiting != "declared_available" =>
-                vec!["designated_waiting_resource_declared_available"],
-            "hold_and_reassess" if energy != "adequate" =>
-                vec!["declared energy behaviour while holding is outside the model scope"],
+            "hold_and_reassess" if waiting != "declared_available" => {
+                vec!["designated_waiting_resource_declared_available"]
+            }
+            "hold_and_reassess" if energy != "adequate" => {
+                vec!["declared energy behaviour while holding is outside the model scope"]
+            }
             "hold_and_reassess" => Vec::new(),
-            "prepare_alternate_terminal" if alternate != "confirmed" =>
-                vec!["alternate_capacity_confirmed"],
-            "prepare_alternate_terminal" =>
-                vec!["alternate-terminal feasibility model not admitted"],
+            "prepare_alternate_terminal" if alternate != "confirmed" => {
+                vec!["alternate_capacity_confirmed"]
+            }
+            "prepare_alternate_terminal" => {
+                vec!["alternate-terminal feasibility model not admitted"]
+            }
             _ => vec!["unknown plan"],
         }
     }
@@ -1253,7 +1392,9 @@ mod tests {
     fn frozen_fixture_matches_independent_oracle() {
         let fixture: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON parses");
         let report = evaluate_bytes(FIXTURE, "test-source-commit").expect("fixture validates");
-        let cases = fixture["scenario_cases"].as_array().expect("cases are array");
+        let cases = fixture["scenario_cases"]
+            .as_array()
+            .expect("cases are array");
         assert_eq!(report.scenario_case_count, 5);
         assert_eq!(report.candidate_plan_count, 3);
         assert_eq!(report.dispositions.len(), 15);
@@ -1271,12 +1412,18 @@ mod tests {
                     .iter()
                     .find(|d| d.case_id == case_id && d.plan_id == *plan)
                     .expect("production disposition exists");
-                assert_eq!(actual.status, expected, "runtime oracle: {case_id} / {plan}");
+                assert_eq!(
+                    actual.status, expected,
+                    "runtime oracle: {case_id} / {plan}"
+                );
 
                 let oracle_blockers = oracle_blockers(plan, case);
                 assert_eq!(
                     actual.blockers,
-                    oracle_blockers.iter().map(|value| (*value).to_owned()).collect::<Vec<_>>(),
+                    oracle_blockers
+                        .iter()
+                        .map(|value| (*value).to_owned())
+                        .collect::<Vec<_>>(),
                     "blocker oracle: {case_id} / {plan}"
                 );
                 let declared_blockers = case["expected_blockers"].get(plan);
@@ -1290,7 +1437,10 @@ mod tests {
                         .and_then(Value::as_array)
                         .expect("declared blocker array");
                     assert_eq!(
-                        declared.iter().map(|v| v.as_str().unwrap()).collect::<Vec<_>>(),
+                        declared
+                            .iter()
+                            .map(|v| v.as_str().unwrap())
+                            .collect::<Vec<_>>(),
                         oracle_blockers,
                         "frozen blocker expectations: {case_id} / {plan}"
                     );
@@ -1326,19 +1476,29 @@ mod tests {
         let actual_gaps: Vec<_> = report
             .evidence_gaps
             .iter()
-            .map(|gap| (
-                gap.case_id.as_str(),
-                gap.plan_id.as_str(),
-                gap.blocker_code.as_str(),
-                gap.blocker_reason.as_str(),
-                gap.requirement_id.as_str(),
-            ))
+            .map(|gap| {
+                (
+                    gap.case_id.as_str(),
+                    gap.plan_id.as_str(),
+                    gap.blocker_code.as_str(),
+                    gap.blocker_reason.as_str(),
+                    gap.requirement_id.as_str(),
+                )
+            })
             .collect();
         let expected_gaps = expected_gaps
             .into_iter()
-            .map(|(case_id, plan_id, blocker_reason, (blocker_code, requirement_id))| {
-                (case_id, plan_id, blocker_code, blocker_reason, requirement_id)
-            })
+            .map(
+                |(case_id, plan_id, blocker_reason, (blocker_code, requirement_id))| {
+                    (
+                        case_id,
+                        plan_id,
+                        blocker_code,
+                        blocker_reason,
+                        requirement_id,
+                    )
+                },
+            )
             .collect::<Vec<_>>();
         assert_eq!(actual_gaps, expected_gaps);
         for gap in &report.evidence_gaps {
@@ -1352,7 +1512,9 @@ mod tests {
     #[test]
     fn forecast_arithmetic_matches_independent_calendar_oracle() {
         let fixture: Value = serde_json::from_slice(FIXTURE).expect("fixture parses");
-        let assessment = fixture["assessment"]["assessment_time_utc"].as_str().unwrap();
+        let assessment = fixture["assessment"]["assessment_time_utc"]
+            .as_str()
+            .unwrap();
         let target = fixture["assessment"]["target_time_utc"].as_str().unwrap();
         let forecast = &fixture["assessment"]["forecast_input"];
         let issued = forecast["issued_at_utc"].as_str().unwrap();
@@ -1377,20 +1539,25 @@ mod tests {
 
     #[test]
     fn invalidating_required_forecast_never_improves_original_plan() {
-        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        let fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
         let baseline = fixture["scenario_cases"][0]["abstract_inputs"].clone();
         let mut invalidated = baseline.clone();
         invalidated["forecast_evidence_state"] = Value::String("invalidated".to_owned());
         invalidated["water_level_envelope_state"] = Value::String("unknown".to_owned());
 
+        let baseline_bytes = serde_json::to_vec(&baseline).unwrap();
+        let invalidated_bytes = serde_json::to_vec(&invalidated).unwrap();
+        let baseline_jv = super::super::parse_strict(&baseline_bytes).unwrap();
+        let invalidated_jv = super::super::parse_strict(&invalidated_bytes).unwrap();
+
         let (baseline_status, _) = disposition(
             "continue_original_slot",
-            &validate_abstract_inputs(&baseline, "baseline").unwrap(),
+            &validate_abstract_inputs(&baseline_jv, "baseline").unwrap(),
         )
         .unwrap();
         let (invalidated_status, _) = disposition(
             "continue_original_slot",
-            &validate_abstract_inputs(&invalidated, "invalidated").unwrap(),
+            &validate_abstract_inputs(&invalidated_jv, "invalidated").unwrap(),
         )
         .unwrap();
         assert_eq!(baseline_status, "FEASIBLE_WITHIN_DECLARED_MODEL");
@@ -1409,7 +1576,10 @@ mod tests {
         };
         let (status, blockers) = disposition("prepare_alternate_terminal", &inputs).unwrap();
         assert_eq!(status, "UNSUPPORTED");
-        assert_eq!(blockers, vec!["alternate-terminal feasibility model not admitted"]);
+        assert_eq!(
+            blockers,
+            vec!["alternate-terminal feasibility model not admitted"]
+        );
     }
 
     #[test]
@@ -1484,8 +1654,7 @@ mod tests {
     fn incorrect_forecast_arithmetic_is_rejected() {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
         fixture["assessment"]["forecast_input"]["expected_temporal_arithmetic_for_test_design_only"]
-            ["issue_age_seconds"] =
-            Value::Number(serde_json::Number::from(7201));
+            ["issue_age_seconds"] = Value::Number(serde_json::Number::from(7201));
         let changed = serde_json::to_vec(&fixture).unwrap();
         assert!(evaluate_bytes(&changed, "test").is_err());
     }

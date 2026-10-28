@@ -17,16 +17,30 @@ use super::JsonValue;
 
 const MAX_FIXTURE_BYTES: usize = 1_000_000;
 const ROOT_KEYS: &[&str] = &[
-    "schema_id", "schema_version", "fixture_kind", "claim_ceiling",
-    "model_admission", "authority", "time_axis", "metrics_policy",
-    "service_classes", "dependency_nodes", "dependency_edges", "scenario_cases",
-    "conditional_policies", "synthetic_reference_traces", "unquantified_cases",
+    "schema_id",
+    "schema_version",
+    "fixture_kind",
+    "claim_ceiling",
+    "model_admission",
+    "authority",
+    "time_axis",
+    "metrics_policy",
+    "service_classes",
+    "dependency_nodes",
+    "dependency_edges",
+    "scenario_cases",
+    "conditional_policies",
+    "synthetic_reference_traces",
+    "unquantified_cases",
     "fixture_warnings",
 ];
 const AUTHORITY_KEYS: &[&str] = &[
-    "navigation_authorized", "physical_truth_claim_authorized",
-    "berth_or_slot_authorized", "engineering_admission",
-    "physical_execution_authorized", "external_approval_claim_authorized",
+    "navigation_authorized",
+    "physical_truth_claim_authorized",
+    "berth_or_slot_authorized",
+    "engineering_admission",
+    "physical_execution_authorized",
+    "external_approval_claim_authorized",
 ];
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -135,7 +149,9 @@ fn validate_authority(root: &JsonValue) -> Result<(), String> {
             super::field(authority, key, "fixture.authority")?,
             &format!("fixture.authority.{key}"),
         )? {
-            return Err(format!("fixture.authority.{key}: authority escalation is forbidden"));
+            return Err(format!(
+                "fixture.authority.{key}: authority escalation is forbidden"
+            ));
         }
     }
     Ok(())
@@ -145,7 +161,13 @@ fn validate_time_axis(root: &JsonValue) -> Result<(u64, u64, usize), String> {
     let axis = super::field(root, "time_axis", "fixture")?;
     super::exact_keys(
         axis,
-        &["unit", "period_semantics", "duration_hours", "horizon_hours", "time_offsets"],
+        &[
+            "unit",
+            "period_semantics",
+            "duration_hours",
+            "horizon_hours",
+            "time_offsets",
+        ],
         "fixture.time_axis",
     )?;
     super::expect_text(
@@ -167,7 +189,9 @@ fn validate_time_axis(root: &JsonValue) -> Result<(u64, u64, usize), String> {
         "fixture.time_axis.horizon_hours",
     )?;
     if duration == 0 || horizon == 0 || horizon % duration != 0 {
-        return Err("time_axis: duration and horizon must be positive and evenly divisible".to_owned());
+        return Err(
+            "time_axis: duration and horizon must be positive and evenly divisible".to_owned(),
+        );
     }
     let offsets = super::array(
         super::field(axis, "time_offsets", "fixture.time_axis")?,
@@ -188,7 +212,9 @@ fn validate_time_axis(root: &JsonValue) -> Result<(u64, u64, usize), String> {
             .and_then(|n| n.checked_mul(duration))
             .ok_or_else(|| "time_axis: expected offset overflow".to_owned())?;
         if actual != expected {
-            return Err(format!("time_axis.time_offsets[{index}]: expected {expected}, got {actual}"));
+            return Err(format!(
+                "time_axis.time_offsets[{index}]: expected {expected}, got {actual}"
+            ));
         }
     }
     Ok((duration, horizon, expected_count))
@@ -201,7 +227,9 @@ struct ServiceClass {
     minimum_service_ratio: f64,
 }
 
-fn validate_service_classes(root: &JsonValue) -> Result<std::collections::BTreeMap<String, ServiceClass>, String> {
+fn validate_service_classes(
+    root: &JsonValue,
+) -> Result<std::collections::BTreeMap<String, ServiceClass>, String> {
     let values = super::array(
         super::field(root, "service_classes", "fixture")?,
         "fixture.service_classes",
@@ -214,12 +242,20 @@ fn validate_service_classes(root: &JsonValue) -> Result<std::collections::BTreeM
         let path = format!("fixture.service_classes[{index}]");
         super::exact_keys(
             item,
-            &["service_id", "unit", "planned_demand_rate", "minimum_service_ratio", "priority_label"],
+            &[
+                "service_id",
+                "unit",
+                "planned_demand_rate",
+                "minimum_service_ratio",
+                "priority_label",
+            ],
             &path,
         )?;
         let id = field_text(item, "service_id", &path)?.to_owned();
         if id.trim().is_empty() || classes.contains_key(&id) {
-            return Err(format!("{path}.service_id: empty or duplicate service identifier"));
+            return Err(format!(
+                "{path}.service_id: empty or duplicate service identifier"
+            ));
         }
         let unit = field_text(item, "unit", &path)?.to_owned();
         if unit.trim().is_empty() {
@@ -230,20 +266,31 @@ fn validate_service_classes(root: &JsonValue) -> Result<std::collections::BTreeM
             &format!("{path}.planned_demand_rate"),
         )?;
         if demand == 0 {
-            return Err(format!("{path}.planned_demand_rate: zero demand makes service ratio undefined"));
+            return Err(format!(
+                "{path}.planned_demand_rate: zero demand makes service ratio undefined"
+            ));
         }
         let floor = ratio_number(
             super::field(item, "minimum_service_ratio", &path)?,
             &format!("{path}.minimum_service_ratio"),
         )?;
         if !(floor > 0.0 && floor <= 1.0) {
-            return Err(format!("{path}.minimum_service_ratio: expected value in (0, 1]"));
+            return Err(format!(
+                "{path}.minimum_service_ratio: expected value in (0, 1]"
+            ));
         }
         nonempty(
             super::field(item, "priority_label", &path)?,
             &format!("{path}.priority_label"),
         )?;
-        classes.insert(id, ServiceClass { unit, demand_rate: demand, minimum_service_ratio: floor });
+        classes.insert(
+            id,
+            ServiceClass {
+                unit,
+                demand_rate: demand,
+                minimum_service_ratio: floor,
+            },
+        );
     }
     Ok(classes)
 }
@@ -253,8 +300,11 @@ fn validate_metrics_policy(root: &JsonValue) -> Result<(f64, usize), String> {
     super::exact_keys(
         policy,
         &[
-            "probability_weights_used", "aggregate_score_used", "service_ratio",
-            "integrated_service_loss", "recovery_rule",
+            "probability_weights_used",
+            "aggregate_score_used",
+            "service_ratio",
+            "integrated_service_loss",
+            "recovery_rule",
         ],
         "fixture.metrics_policy",
     )?;
@@ -262,7 +312,9 @@ fn validate_metrics_policy(root: &JsonValue) -> Result<(f64, usize), String> {
         super::field(policy, "probability_weights_used", "fixture.metrics_policy")?,
         "metrics_policy.probability_weights_used",
     )? {
-        return Err("metrics_policy: ungrounded probability weights are forbidden in v0.1".to_owned());
+        return Err(
+            "metrics_policy: ungrounded probability weights are forbidden in v0.1".to_owned(),
+        );
     }
     if super::bool_value(
         super::field(policy, "aggregate_score_used", "fixture.metrics_policy")?,
@@ -283,7 +335,12 @@ fn validate_metrics_policy(root: &JsonValue) -> Result<(f64, usize), String> {
     let recovery = super::field(policy, "recovery_rule", "fixture.metrics_policy")?;
     super::exact_keys(
         recovery,
-        &["minimum_service_ratio", "consecutive_intervals_required", "rule", "when_not_observed"],
+        &[
+            "minimum_service_ratio",
+            "consecutive_intervals_required",
+            "rule",
+            "when_not_observed",
+        ],
         "fixture.metrics_policy.recovery_rule",
     )?;
     let floor = ratio_number(
@@ -328,7 +385,10 @@ fn validate_dependency_contract(root: &JsonValue) -> Result<(usize, usize), Stri
         let path = format!("fixture.dependency_nodes[{index}]");
         super::exact_keys(node, &["node_id", "node_kind", "status_semantics"], &path)?;
         let id = field_text(node, "node_id", &path)?;
-        nonempty(super::field(node, "node_kind", &path)?, &format!("{path}.node_kind"))?;
+        nonempty(
+            super::field(node, "node_kind", &path)?,
+            &format!("{path}.node_kind"),
+        )?;
         super::expect_text(
             super::field(node, "status_semantics", &path)?,
             &format!("{path}.status_semantics"),
@@ -348,8 +408,13 @@ fn validate_dependency_contract(root: &JsonValue) -> Result<(usize, usize), Stri
         super::exact_keys(
             edge,
             &[
-                "edge_id", "from_node", "to_node", "relation",
-                "dependency_kind", "propagation_model", "evidence_status",
+                "edge_id",
+                "from_node",
+                "to_node",
+                "relation",
+                "dependency_kind",
+                "propagation_model",
+                "evidence_status",
             ],
             &path,
         )?;
@@ -382,7 +447,11 @@ fn validate_dependency_contract(root: &JsonValue) -> Result<(usize, usize), Stri
     Ok((nodes.len(), edges.len()))
 }
 
-fn validate_scenario_cases(root: &JsonValue, horizon: u64, node_ids: &BTreeSet<String>) -> Result<usize, String> {
+fn validate_scenario_cases(
+    root: &JsonValue,
+    horizon: u64,
+    node_ids: &BTreeSet<String>,
+) -> Result<usize, String> {
     let cases = super::array(
         super::field(root, "scenario_cases", "fixture")?,
         "fixture.scenario_cases",
@@ -395,18 +464,32 @@ fn validate_scenario_cases(root: &JsonValue, horizon: u64, node_ids: &BTreeSet<S
         let path = format!("fixture.scenario_cases[{index}]");
         super::exact_keys(
             case,
-            &["case_id", "required_case", "probability", "probability_status", "common_cause_group", "perturbations"],
+            &[
+                "case_id",
+                "required_case",
+                "probability",
+                "probability_status",
+                "common_cause_group",
+                "perturbations",
+            ],
             &path,
         )?;
         let id = field_text(case, "case_id", &path)?;
         if !ids.insert(id.to_owned()) {
             return Err(format!("{path}.case_id: duplicate scenario case"));
         }
-        if !super::bool_value(super::field(case, "required_case", &path)?, &format!("{path}.required_case"))? {
-            return Err(format!("{path}: v0.1 fixture cases must be required, not silently optional"));
+        if !super::bool_value(
+            super::field(case, "required_case", &path)?,
+            &format!("{path}.required_case"),
+        )? {
+            return Err(format!(
+                "{path}: v0.1 fixture cases must be required, not silently optional"
+            ));
         }
         if !matches!(super::field(case, "probability", &path)?, JsonValue::Null) {
-            return Err(format!("{path}.probability: no probability distribution is admitted"));
+            return Err(format!(
+                "{path}.probability: no probability distribution is admitted"
+            ));
         }
         super::expect_text(
             super::field(case, "probability_status", &path)?,
@@ -416,7 +499,11 @@ fn validate_scenario_cases(root: &JsonValue, horizon: u64, node_ids: &BTreeSet<S
         match super::field(case, "common_cause_group", &path)? {
             JsonValue::Null => {}
             JsonValue::String(group) if !group.trim().is_empty() => {}
-            _ => return Err(format!("{path}.common_cause_group: expected null or nonempty string")),
+            _ => {
+                return Err(format!(
+                    "{path}.common_cause_group: expected null or nonempty string"
+                ));
+            }
         }
         let perturbations = super::array(
             super::field(case, "perturbations", &path)?,
@@ -429,7 +516,13 @@ fn validate_scenario_cases(root: &JsonValue, horizon: u64, node_ids: &BTreeSet<S
             let ppath = format!("{path}.perturbations[{pindex}]");
             super::exact_keys(
                 p,
-                &["node_id", "start_hour_inclusive", "end_hour_exclusive", "declared_state", "state_basis"],
+                &[
+                    "node_id",
+                    "start_hour_inclusive",
+                    "end_hour_exclusive",
+                    "declared_state",
+                    "state_basis",
+                ],
                 &ppath,
             )?;
             let node = field_text(p, "node_id", &ppath)?;
@@ -488,7 +581,10 @@ fn validate_policy_contract(root: &JsonValue) -> Result<usize, String> {
             &format!("{path}.policy_kind"),
             "bounded_simulation_only",
         )?;
-        let rules = super::array(super::field(policy, "rules", &path)?, &format!("{path}.rules"))?;
+        let rules = super::array(
+            super::field(policy, "rules", &path)?,
+            &format!("{path}.rules"),
+        )?;
         if rules.is_empty() {
             return Err(format!("{path}.rules must not be empty"));
         }
@@ -497,41 +593,69 @@ fn validate_policy_contract(root: &JsonValue) -> Result<usize, String> {
             super::exact_keys(
                 rule,
                 &[
-                    "rule_id", "observation", "matches_any", "simulated_action",
-                    "next_rehearsal_state", "required_claims", "forbidden_effects",
+                    "rule_id",
+                    "observation",
+                    "matches_any",
+                    "simulated_action",
+                    "next_rehearsal_state",
+                    "required_claims",
+                    "forbidden_effects",
                 ],
                 &rpath,
             )?;
-            nonempty(super::field(rule, "rule_id", &rpath)?, &format!("{rpath}.rule_id"))?;
-            nonempty(super::field(rule, "observation", &rpath)?, &format!("{rpath}.observation"))?;
-            string_array(super::field(rule, "matches_any", &rpath)?, &format!("{rpath}.matches_any"))?;
+            nonempty(
+                super::field(rule, "rule_id", &rpath)?,
+                &format!("{rpath}.rule_id"),
+            )?;
+            nonempty(
+                super::field(rule, "observation", &rpath)?,
+                &format!("{rpath}.observation"),
+            )?;
+            string_array(
+                super::field(rule, "matches_any", &rpath)?,
+                &format!("{rpath}.matches_any"),
+            )?;
             let action = field_text(rule, "simulated_action", &rpath)?;
             if !allowed_actions.contains(&action) {
-                return Err(format!("{rpath}.simulated_action: action outside bounded policy vocabulary"));
+                return Err(format!(
+                    "{rpath}.simulated_action: action outside bounded policy vocabulary"
+                ));
             }
             nonempty(
                 super::field(rule, "next_rehearsal_state", &rpath)?,
                 &format!("{rpath}.next_rehearsal_state"),
             )?;
-            string_array(super::field(rule, "required_claims", &rpath)?, &format!("{rpath}.required_claims"))?;
+            string_array(
+                super::field(rule, "required_claims", &rpath)?,
+                &format!("{rpath}.required_claims"),
+            )?;
             let forbidden = super::array(
                 super::field(rule, "forbidden_effects", &rpath)?,
                 &format!("{rpath}.forbidden_effects"),
             )?;
             if forbidden.is_empty() {
-                return Err(format!("{rpath}.forbidden_effects must explicitly prohibit side effects"));
+                return Err(format!(
+                    "{rpath}.forbidden_effects must explicitly prohibit side effects"
+                ));
             }
             for (findex, effect) in forbidden.iter().enumerate() {
                 let effect = path_text(effect, &format!("{rpath}.forbidden_effects[{findex}]"))?;
                 if ![
-                    "create_reservation", "dispatch_vessel", "claim_navigation_authority",
+                    "create_reservation",
+                    "dispatch_vessel",
+                    "claim_navigation_authority",
                     "claim_capacity_confirmed",
-                ].contains(&effect)
+                ]
+                .contains(&effect)
                 {
-                    return Err(format!("{rpath}.forbidden_effects: unrecognized effect sentinel"));
+                    return Err(format!(
+                        "{rpath}.forbidden_effects: unrecognized effect sentinel"
+                    ));
                 }
             }
-            rule_count = rule_count.checked_add(1).ok_or_else(|| "policy rule count overflow".to_owned())?;
+            rule_count = rule_count
+                .checked_add(1)
+                .ok_or_else(|| "policy rule count overflow".to_owned())?;
         }
     }
     Ok(rule_count)
@@ -550,7 +674,10 @@ fn compute_metric(
     path: &str,
 ) -> Result<TrajectoryMetric, String> {
     if served_rates.len() != horizon_count {
-        return Err(format!("{path}.served_rate: expected {horizon_count} values, got {}", served_rates.len()));
+        return Err(format!(
+            "{path}.served_rate: expected {horizon_count} values, got {}",
+            served_rates.len()
+        ));
     }
 
     // Compute the first qualifying recovery point, with end-of-interval timing.
@@ -578,14 +705,19 @@ fn compute_metric(
     }
 
     // Integrate the entire trajectory independently of the early recovery stop.
-    let total_unmet = served_rates.iter().enumerate().try_fold(0u64, |sum, (index, raw_rate)| {
-        let rate = super::integer(raw_rate, &format!("{path}.served_rate[{index}]"))?;
-        let deficit = service.demand_rate.saturating_sub(rate);
-        let amount = deficit
-            .checked_mul(duration)
-            .ok_or_else(|| format!("{path}: service-loss multiplication overflow"))?;
-        sum.checked_add(amount).ok_or_else(|| format!("{path}: integrated unmet-service overflow".to_owned()))
-    })?;
+    let total_unmet =
+        served_rates
+            .iter()
+            .enumerate()
+            .try_fold(0u64, |sum, (index, raw_rate)| {
+                let rate = super::integer(raw_rate, &format!("{path}.served_rate[{index}]"))?;
+                let deficit = service.demand_rate.saturating_sub(rate);
+                let amount = deficit
+                    .checked_mul(duration)
+                    .ok_or_else(|| format!("{path}: service-loss multiplication overflow"))?;
+                sum.checked_add(amount)
+                    .ok_or_else(|| format!("{path}: integrated unmet-service overflow"))
+            })?;
     Ok(TrajectoryMetric {
         trace_id,
         case_id,
@@ -603,7 +735,9 @@ fn compute_metric(
 }
 fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienceReport, String> {
     if bytes.len() > MAX_FIXTURE_BYTES {
-        return Err(format!("adaptive resilience fixture exceeds {MAX_FIXTURE_BYTES}-byte bound"));
+        return Err(format!(
+            "adaptive resilience fixture exceeds {MAX_FIXTURE_BYTES}-byte bound"
+        ));
     }
     let root = super::parse_strict(bytes)?;
     super::exact_keys(&root, ROOT_KEYS, "adaptive_resilience")?;
@@ -624,7 +758,11 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
     )?;
     let mut node_ids = BTreeSet::new();
     for (index, node) in node_array.iter().enumerate() {
-        let id = field_text(node, "node_id", &format!("fixture.dependency_nodes[{index}]"))?;
+        let id = field_text(
+            node,
+            "node_id",
+            &format!("fixture.dependency_nodes[{index}]"),
+        )?;
         node_ids.insert(id.to_owned());
     }
     let (node_count, edge_count) = validate_dependency_contract(&root)?;
@@ -636,7 +774,9 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
     for (index, case) in declared_cases.iter().enumerate() {
         let id = field_text(case, "case_id", &format!("fixture.scenario_cases[{index}]"))?;
         if !case_ids.insert(id.to_owned()) {
-            return Err(format!("fixture.scenario_cases[{index}].case_id: duplicate scenario case"));
+            return Err(format!(
+                "fixture.scenario_cases[{index}].case_id: duplicate scenario case"
+            ));
         }
     }
     let case_count = validate_scenario_cases(&root, horizon, &node_ids)?;
@@ -655,7 +795,14 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
         let path = format!("fixture.synthetic_reference_traces[{index}]");
         super::exact_keys(
             trace,
-            &["trace_id", "case_id", "service_id", "trace_status", "served_rate", "expected_contract_metrics"],
+            &[
+                "trace_id",
+                "case_id",
+                "service_id",
+                "trace_status",
+                "served_rate",
+                "expected_contract_metrics",
+            ],
             &path,
         )?;
         let trace_id = field_text(trace, "trace_id", &path)?.to_owned();
@@ -675,21 +822,42 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
             &format!("{path}.trace_status"),
             "illustrative_not_simulator_output",
         )?;
-        let served = super::array(super::field(trace, "served_rate", &path)?, &format!("{path}.served_rate"))?;
-        let service = service_classes.get(&service_id).expect("validated service exists");
+        let served = super::array(
+            super::field(trace, "served_rate", &path)?,
+            &format!("{path}.served_rate"),
+        )?;
+        let service = service_classes
+            .get(&service_id)
+            .expect("validated service exists");
         let metric = compute_metric(
-            trace_id, case_id, service_id, served, service, duration, interval_count,
-            policy_floor, consecutive_required, &path,
+            trace_id,
+            case_id,
+            service_id,
+            served,
+            service,
+            duration,
+            interval_count,
+            policy_floor,
+            consecutive_required,
+            &path,
         )?;
 
         let expected = super::field(trace, "expected_contract_metrics", &path)?;
         super::exact_keys(
             expected,
-            &["integrated_service_loss_units", "recovery_time_hours", "recovery_status"],
+            &[
+                "integrated_service_loss_units",
+                "recovery_time_hours",
+                "recovery_status",
+            ],
             &format!("{path}.expected_contract_metrics"),
         )?;
         let expected_loss = super::integer(
-            super::field(expected, "integrated_service_loss_units", &format!("{path}.expected_contract_metrics"))?,
+            super::field(
+                expected,
+                "integrated_service_loss_units",
+                &format!("{path}.expected_contract_metrics"),
+            )?,
             &format!("{path}.expected_contract_metrics.integrated_service_loss_units"),
         )?;
         if expected_loss != metric.integrated_unmet_service_units {
@@ -698,9 +866,16 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
                 expected_loss, metric.integrated_unmet_service_units
             ));
         }
-        let expected_recovery = match super::field(expected, "recovery_time_hours", &format!("{path}.expected_contract_metrics"))? {
+        let expected_recovery = match super::field(
+            expected,
+            "recovery_time_hours",
+            &format!("{path}.expected_contract_metrics"),
+        )? {
             JsonValue::Null => None,
-            value => Some(super::integer(value, &format!("{path}.expected_contract_metrics.recovery_time_hours"))?),
+            value => Some(super::integer(
+                value,
+                &format!("{path}.expected_contract_metrics.recovery_time_hours"),
+            )?),
         };
         if expected_recovery != metric.recovery_time_hours {
             return Err(format!(
@@ -708,9 +883,15 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
                 expected_recovery, metric.recovery_time_hours
             ));
         }
-        let expected_status = field_text(expected, "recovery_status", &format!("{path}.expected_contract_metrics"))?;
+        let expected_status = field_text(
+            expected,
+            "recovery_status",
+            &format!("{path}.expected_contract_metrics"),
+        )?;
         if expected_status != metric.recovery_status {
-            return Err(format!("{path}: recovery status does not match the independently declared expectation"));
+            return Err(format!(
+                "{path}: recovery status does not match the independently declared expectation"
+            ));
         }
         metrics.push(metric);
     }
@@ -720,26 +901,50 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
         "fixture.unquantified_cases",
     )?;
     if unknown_cases.is_empty() {
-        return Err("unquantified_cases must preserve at least one unknown-state control".to_owned());
+        return Err(
+            "unquantified_cases must preserve at least one unknown-state control".to_owned(),
+        );
     }
     for (index, case) in unknown_cases.iter().enumerate() {
         let path = format!("fixture.unquantified_cases[{index}]");
-        super::exact_keys(case, &["case_id", "status", "reason_code", "quantitative_service_projection", "reason"], &path)?;
+        super::exact_keys(
+            case,
+            &[
+                "case_id",
+                "status",
+                "reason_code",
+                "quantitative_service_projection",
+                "reason",
+            ],
+            &path,
+        )?;
         let case_id = field_text(case, "case_id", &path)?;
         if !case_ids.contains(case_id) {
             return Err(format!("{path}.case_id: unknown scenario case"));
         }
         if metrics.iter().any(|metric| metric.case_id == case_id) {
-            return Err(format!("{path}: an unquantified case must not have a numeric trajectory"));
+            return Err(format!(
+                "{path}: an unquantified case must not have a numeric trajectory"
+            ));
         }
-        super::expect_text(super::field(case, "status", &path)?, &format!("{path}.status"), "INDETERMINATE")?;
+        super::expect_text(
+            super::field(case, "status", &path)?,
+            &format!("{path}.status"),
+            "INDETERMINATE",
+        )?;
         super::expect_text(
             super::field(case, "quantitative_service_projection", &path)?,
             &format!("{path}.quantitative_service_projection"),
             "NOT_PRODUCED",
         )?;
-        nonempty(super::field(case, "reason_code", &path)?, &format!("{path}.reason_code"))?;
-        nonempty(super::field(case, "reason", &path)?, &format!("{path}.reason"))?;
+        nonempty(
+            super::field(case, "reason_code", &path)?,
+            &format!("{path}.reason_code"),
+        )?;
+        nonempty(
+            super::field(case, "reason", &path)?,
+            &format!("{path}.reason"),
+        )?;
     }
     string_array(
         super::field(&root, "fixture_warnings", "fixture")?,
@@ -755,7 +960,10 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
         fixture_byte_length: bytes.len(),
         source_commit_binding: source_commit.to_owned(),
         metrics_checked: metrics.len(),
-        horizon_censored_traces: metrics.iter().filter(|metric| metric.recovery_time_hours.is_none()).count(),
+        horizon_censored_traces: metrics
+            .iter()
+            .filter(|metric| metric.recovery_time_hours.is_none())
+            .count(),
         trajectory_metrics: metrics,
         dependency_nodes_declared: node_count,
         dependency_edges_declared: edge_count,
@@ -764,24 +972,40 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
         quantitative_dependency_propagation_performed: false,
         physical_simulation_performed: false,
         engineering_admission: "NotAdmitted",
-        navigation_authorized: super::bool_value(super::field(authority, "navigation_authorized", "authority")?, "authority.navigation_authorized")?,
-        physical_truth_claim_authorized: super::bool_value(super::field(authority, "physical_truth_claim_authorized", "authority")?, "authority.physical_truth_claim_authorized")?,
-        berth_or_slot_authorized: super::bool_value(super::field(authority, "berth_or_slot_authorized", "authority")?, "authority.berth_or_slot_authorized")?,
-        physical_execution_authorized: super::bool_value(super::field(authority, "physical_execution_authorized", "authority")?, "authority.physical_execution_authorized")?,
+        navigation_authorized: super::bool_value(
+            super::field(authority, "navigation_authorized", "authority")?,
+            "authority.navigation_authorized",
+        )?,
+        physical_truth_claim_authorized: super::bool_value(
+            super::field(authority, "physical_truth_claim_authorized", "authority")?,
+            "authority.physical_truth_claim_authorized",
+        )?,
+        berth_or_slot_authorized: super::bool_value(
+            super::field(authority, "berth_or_slot_authorized", "authority")?,
+            "authority.berth_or_slot_authorized",
+        )?,
+        physical_execution_authorized: super::bool_value(
+            super::field(authority, "physical_execution_authorized", "authority")?,
+            "authority.physical_execution_authorized",
+        )?,
         claim_ceiling: "Synthetic service-trajectory arithmetic and contract-shape checks only; no physical simulation, propagation, operational approval or real-world performance claim.",
     })
 }
 
 pub(super) fn run_cli(fixture_path: &str) -> Result<(), String> {
-    let metadata = fs::metadata(fixture_path)
-        .map_err(|error| format!("cannot stat adaptive resilience fixture {fixture_path}: {error}"))?;
+    let metadata = fs::metadata(fixture_path).map_err(|error| {
+        format!("cannot stat adaptive resilience fixture {fixture_path}: {error}")
+    })?;
     if metadata.len() > MAX_FIXTURE_BYTES as u64 {
-        return Err(format!("adaptive resilience fixture exceeds {MAX_FIXTURE_BYTES}-byte bound"));
+        return Err(format!(
+            "adaptive resilience fixture exceeds {MAX_FIXTURE_BYTES}-byte bound"
+        ));
     }
-    let bytes = fs::read(fixture_path)
-        .map_err(|error| format!("cannot read adaptive resilience fixture {fixture_path}: {error}"))?;
-    let source_commit = env::var("MARITIME_SOURCE_COMMIT")
-        .unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
+    let bytes = fs::read(fixture_path).map_err(|error| {
+        format!("cannot read adaptive resilience fixture {fixture_path}: {error}")
+    })?;
+    let source_commit =
+        env::var("MARITIME_SOURCE_COMMIT").unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
     let report = evaluate_bytes(&bytes, &source_commit)?;
     let output = serde_json::to_string(&report)
         .map_err(|error| format!("cannot serialize adaptive resilience report: {error}"))?;
@@ -807,11 +1031,15 @@ mod tests {
         for trace in root["synthetic_reference_traces"].as_array().unwrap() {
             let id = trace["trace_id"].as_str().unwrap().to_owned();
             let service_id = trace["service_id"].as_str().unwrap();
-            let service = services.iter().find(|s| s["service_id"] == service_id).unwrap();
+            let service = services
+                .iter()
+                .find(|s| s["service_id"] == service_id)
+                .unwrap();
             let demand = service["planned_demand_rate"].as_u64().unwrap();
             let floor = service["minimum_service_ratio"].as_f64().unwrap();
             let needed = root["metrics_policy"]["recovery_rule"]["consecutive_intervals_required"]
-                .as_u64().unwrap() as usize;
+                .as_u64()
+                .unwrap() as usize;
             let rates = trace["served_rate"].as_array().unwrap();
             let mut loss = 0_u64;
             let mut breached = false;
@@ -834,7 +1062,8 @@ mod tests {
                 "RECOVERED_WITHIN_DECLARED_HORIZON"
             } else {
                 "NOT_OBSERVED_WITHIN_HORIZON"
-            }.to_owned();
+            }
+            .to_owned();
             result.push((id, loss, recovery, status));
         }
         result
@@ -846,7 +1075,10 @@ mod tests {
         let oracle = independent_oracle();
         assert_eq!(report.trajectory_metrics.len(), oracle.len());
         for metric in &report.trajectory_metrics {
-            let expected = oracle.iter().find(|item| item.0 == metric.trace_id).unwrap();
+            let expected = oracle
+                .iter()
+                .find(|item| item.0 == metric.trace_id)
+                .unwrap();
             assert_eq!(metric.integrated_unmet_service_units, expected.1);
             assert_eq!(metric.recovery_time_hours, expected.2);
             assert_eq!(metric.recovery_status, expected.3);
@@ -861,10 +1093,15 @@ mod tests {
     fn report_is_deterministic_and_bound_to_exact_bytes() {
         let first = evaluate_bytes(FIXTURE, "test-commit").unwrap();
         let second = evaluate_bytes(FIXTURE, "test-commit").unwrap();
-        assert_eq!(serde_json::to_vec(&first).unwrap(), serde_json::to_vec(&second).unwrap());
+        assert_eq!(
+            serde_json::to_vec(&first).unwrap(),
+            serde_json::to_vec(&second).unwrap()
+        );
         assert_eq!(first.fixture_sha256, super::super::sha256_bytes(FIXTURE));
         assert_ne!(
-            evaluate_bytes(FIXTURE, "another-commit").unwrap().source_commit_binding,
+            evaluate_bytes(FIXTURE, "another-commit")
+                .unwrap()
+                .source_commit_binding,
             first.source_commit_binding
         );
     }
@@ -889,7 +1126,11 @@ mod tests {
     #[test]
     fn authority_escalation_is_rejected() {
         let raw = String::from_utf8(FIXTURE.to_vec()).unwrap();
-        let changed = raw.replacen("\"navigation_authorized\": false", "\"navigation_authorized\": true", 1);
+        let changed = raw.replacen(
+            "\"navigation_authorized\": false",
+            "\"navigation_authorized\": true",
+            1,
+        );
         assert_ne!(changed, raw);
         assert!(evaluate_bytes(changed.as_bytes(), "test").is_err());
     }
@@ -897,7 +1138,11 @@ mod tests {
     #[test]
     fn expected_metric_drift_is_rejected() {
         let raw = String::from_utf8(FIXTURE.to_vec()).unwrap();
-        let changed = raw.replacen("\"integrated_service_loss_units\": 100", "\"integrated_service_loss_units\": 99", 1);
+        let changed = raw.replacen(
+            "\"integrated_service_loss_units\": 100",
+            "\"integrated_service_loss_units\": 99",
+            1,
+        );
         assert_ne!(changed, raw);
         assert!(evaluate_bytes(changed.as_bytes(), "test").is_err());
     }
@@ -905,11 +1150,19 @@ mod tests {
     #[test]
     fn zero_demand_and_unobserved_as_zero_are_rejected() {
         let raw = String::from_utf8(FIXTURE.to_vec()).unwrap();
-        let changed = raw.replacen("\"planned_demand_rate\": 100", "\"planned_demand_rate\": 0", 1);
+        let changed = raw.replacen(
+            "\"planned_demand_rate\": 100",
+            "\"planned_demand_rate\": 0",
+            1,
+        );
         assert_ne!(changed, raw);
         assert!(evaluate_bytes(changed.as_bytes(), "test").is_err());
 
-        let changed = raw.replacen("\"quantitative_service_projection\": \"NOT_PRODUCED\"", "\"quantitative_service_projection\": \"0\"", 1);
+        let changed = raw.replacen(
+            "\"quantitative_service_projection\": \"NOT_PRODUCED\"",
+            "\"quantitative_service_projection\": \"0\"",
+            1,
+        );
         assert_ne!(changed, raw);
         assert!(evaluate_bytes(changed.as_bytes(), "test").is_err());
     }
@@ -917,7 +1170,11 @@ mod tests {
     #[test]
     fn unsupported_propagation_cannot_be_declared_as_model_output() {
         let raw = String::from_utf8(FIXTURE.to_vec()).unwrap();
-        let changed = raw.replacen("\"propagation_model\": \"not_declared\"", "\"propagation_model\": \"invented_model\"", 1);
+        let changed = raw.replacen(
+            "\"propagation_model\": \"not_declared\"",
+            "\"propagation_model\": \"invented_model\"",
+            1,
+        );
         assert_ne!(changed, raw);
         assert!(evaluate_bytes(changed.as_bytes(), "test").is_err());
     }
@@ -925,7 +1182,11 @@ mod tests {
     #[test]
     fn probabilities_and_aggregate_scores_are_not_admitted() {
         let raw = String::from_utf8(FIXTURE.to_vec()).unwrap();
-        let changed = raw.replacen("\"probability_weights_used\": false", "\"probability_weights_used\": true", 1);
+        let changed = raw.replacen(
+            "\"probability_weights_used\": false",
+            "\"probability_weights_used\": true",
+            1,
+        );
         assert_ne!(changed, raw);
         assert!(evaluate_bytes(changed.as_bytes(), "test").is_err());
     }
@@ -935,14 +1196,18 @@ mod tests {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
         fixture["synthetic_reference_traces"][0]["served_rate"] =
             serde_json::json!([100, 70, 60, 80, 80, 95]);
-        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(115));
-        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["recovery_time_hours"] = Value::Number(serde_json::Number::from(5));
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["integrated_service_loss_units"] =
+            Value::Number(serde_json::Number::from(115));
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["recovery_time_hours"] =
+            Value::Number(serde_json::Number::from(5));
         let changed = serde_json::to_vec(&fixture).unwrap();
-        let report = evaluate_bytes(&changed, "test").expect("exact floor is a valid recovery boundary");
-        let metric = report.trajectory_metrics.iter()
-            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+        let report =
+            evaluate_bytes(&changed, "test").expect("exact floor is a valid recovery boundary");
+        let metric = report
+            .trajectory_metrics
+            .iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies")
+            .unwrap();
         assert_eq!(metric.integrated_unmet_service_units, 115);
         assert_eq!(metric.recovery_time_hours, Some(5));
     }
@@ -952,16 +1217,20 @@ mod tests {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
         fixture["synthetic_reference_traces"][0]["served_rate"] =
             serde_json::json!([100, 70, 60, 90, 70, 85]);
-        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(125));
-        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["recovery_time_hours"] = Value::Null;
-        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["recovery_status"] = Value::String("NOT_OBSERVED_WITHIN_HORIZON".to_owned());
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["integrated_service_loss_units"] =
+            Value::Number(serde_json::Number::from(125));
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["recovery_time_hours"] =
+            Value::Null;
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["recovery_status"] =
+            Value::String("NOT_OBSERVED_WITHIN_HORIZON".to_owned());
         let changed = serde_json::to_vec(&fixture).unwrap();
-        let report = evaluate_bytes(&changed, "test").expect("interrupted streak should remain unrecovered");
-        let metric = report.trajectory_metrics.iter()
-            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+        let report =
+            evaluate_bytes(&changed, "test").expect("interrupted streak should remain unrecovered");
+        let metric = report
+            .trajectory_metrics
+            .iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies")
+            .unwrap();
         assert_eq!(metric.integrated_unmet_service_units, 125);
         assert_eq!(metric.recovery_time_hours, None);
         assert_eq!(metric.recovery_status, "NOT_OBSERVED_WITHIN_HORIZON");
@@ -972,14 +1241,18 @@ mod tests {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
         fixture["synthetic_reference_traces"][0]["served_rate"] =
             serde_json::json!([100, 70, 60, 79, 80, 80]);
-        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(131));
-        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["recovery_time_hours"] = Value::Number(serde_json::Number::from(6));
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["integrated_service_loss_units"] =
+            Value::Number(serde_json::Number::from(131));
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["recovery_time_hours"] =
+            Value::Number(serde_json::Number::from(6));
         let changed = serde_json::to_vec(&fixture).unwrap();
-        let report = evaluate_bytes(&changed, "test").expect("one-under-floor should reset recovery streak");
-        let metric = report.trajectory_metrics.iter()
-            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+        let report =
+            evaluate_bytes(&changed, "test").expect("one-under-floor should reset recovery streak");
+        let metric = report
+            .trajectory_metrics
+            .iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies")
+            .unwrap();
         assert_eq!(metric.integrated_unmet_service_units, 131);
         assert_eq!(metric.recovery_time_hours, Some(6));
     }
@@ -987,9 +1260,14 @@ mod tests {
     #[test]
     fn trace_cannot_reference_an_undeclared_scenario() {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
-        fixture["synthetic_reference_traces"][0]["case_id"] = Value::String("undeclared_case".to_owned());
+        fixture["synthetic_reference_traces"][0]["case_id"] =
+            Value::String("undeclared_case".to_owned());
         let changed = serde_json::to_vec(&fixture).unwrap();
-        assert!(evaluate_bytes(&changed, "test").unwrap_err().contains("unknown scenario case"));
+        assert!(
+            evaluate_bytes(&changed, "test")
+                .unwrap_err()
+                .contains("unknown scenario case")
+        );
     }
 
     #[test]
@@ -997,7 +1275,11 @@ mod tests {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
         fixture["dependency_edges"][0]["to_node"] = Value::String("invented_terminal".to_owned());
         let changed = serde_json::to_vec(&fixture).unwrap();
-        assert!(evaluate_bytes(&changed, "test").unwrap_err().contains("unknown node"));
+        assert!(
+            evaluate_bytes(&changed, "test")
+                .unwrap_err()
+                .contains("unknown node")
+        );
     }
 
     #[test]
@@ -1006,7 +1288,11 @@ mod tests {
         fixture["scenario_cases"][0]["perturbations"][0]["end_hour_exclusive"] =
             Value::Number(serde_json::Number::from(7));
         let changed = serde_json::to_vec(&fixture).unwrap();
-        assert!(evaluate_bytes(&changed, "test").unwrap_err().contains("invalid perturbation interval"));
+        assert!(
+            evaluate_bytes(&changed, "test")
+                .unwrap_err()
+                .contains("invalid perturbation interval")
+        );
     }
 
     #[test]
@@ -1015,7 +1301,11 @@ mod tests {
         let first_id = fixture["synthetic_reference_traces"][0]["trace_id"].clone();
         fixture["synthetic_reference_traces"][1]["trace_id"] = first_id;
         let changed = serde_json::to_vec(&fixture).unwrap();
-        assert!(evaluate_bytes(&changed, "test").unwrap_err().contains("duplicate trace ID"));
+        assert!(
+            evaluate_bytes(&changed, "test")
+                .unwrap_err()
+                .contains("duplicate trace ID")
+        );
     }
 
     #[test]
@@ -1023,14 +1313,17 @@ mod tests {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
         fixture["synthetic_reference_traces"][0]["served_rate"] =
             serde_json::json!([100, 70, 60, 80, 80, 95]);
-        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(115));
-        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["recovery_time_hours"] = Value::Number(serde_json::Number::from(5));
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["integrated_service_loss_units"] =
+            Value::Number(serde_json::Number::from(115));
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["recovery_time_hours"] =
+            Value::Number(serde_json::Number::from(5));
         let changed = serde_json::to_vec(&fixture).unwrap();
         let report = evaluate_bytes(&changed, "test").expect("floor boundary must be inclusive");
-        let metric = report.trajectory_metrics.iter()
-            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+        let metric = report
+            .trajectory_metrics
+            .iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies")
+            .unwrap();
         assert_eq!(metric.recovery_time_hours, Some(5));
     }
 
@@ -1080,23 +1373,29 @@ mod tests {
             let mut fixture = baseline.clone();
             fixture["synthetic_reference_traces"][0]["served_rate"] =
                 serde_json::to_value(&rates).unwrap();
-            fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-                ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(expected_loss));
-            fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-                ["recovery_time_hours"] = expected_recovery
+            fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["integrated_service_loss_units"] =
+                Value::Number(serde_json::Number::from(expected_loss));
+            fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["recovery_time_hours"] =
+                expected_recovery
                     .map(serde_json::Number::from)
                     .map(Value::Number)
                     .unwrap_or(Value::Null);
-            fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-                ["recovery_status"] = Value::String(expected_status.to_owned());
+            fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["recovery_status"] =
+                Value::String(expected_status.to_owned());
 
             let bytes = serde_json::to_vec(&fixture).unwrap();
-            let report = evaluate_bytes(&bytes, "seeded-oracle-test")
-                .unwrap_or_else(|error| panic!("seed {seed} should satisfy its generated oracle: {error}"));
-            let actual = report.trajectory_metrics.iter()
+            let report = evaluate_bytes(&bytes, "seeded-oracle-test").unwrap_or_else(|error| {
+                panic!("seed {seed} should satisfy its generated oracle: {error}")
+            });
+            let actual = report
+                .trajectory_metrics
+                .iter()
                 .find(|metric| metric.trace_id == "power-loss-essential-supplies")
                 .expect("the first trace should be reported");
-            assert_eq!(actual.integrated_unmet_service_units, expected_loss, "seed {seed}");
+            assert_eq!(
+                actual.integrated_unmet_service_units, expected_loss,
+                "seed {seed}"
+            );
             assert_eq!(actual.recovery_time_hours, expected_recovery, "seed {seed}");
             assert_eq!(actual.recovery_status, expected_status, "seed {seed}");
         }
@@ -1107,7 +1406,11 @@ mod tests {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
         fixture["synthetic_reference_traces"][0]["served_rate"][3] = Value::Null;
         let changed = serde_json::to_vec(&fixture).unwrap();
-        assert!(evaluate_bytes(&changed, "test").unwrap_err().contains("expected integer"));
+        assert!(
+            evaluate_bytes(&changed, "test")
+                .unwrap_err()
+                .contains("expected integer")
+        );
     }
 
     #[test]
@@ -1119,7 +1422,9 @@ mod tests {
 
         let mut fractional: Value = serde_json::from_slice(FIXTURE).unwrap();
         fractional["synthetic_reference_traces"][0]["served_rate"][3] =
-            serde_json::Number::from_f64(79.5).map(Value::Number).unwrap();
+            serde_json::Number::from_f64(79.5)
+                .map(Value::Number)
+                .unwrap();
         assert!(evaluate_bytes(&serde_json::to_vec(&fractional).unwrap(), "test").is_err());
     }
 
@@ -1127,22 +1432,31 @@ mod tests {
     fn lower_service_rate_cannot_reduce_integrated_unmet_service() {
         let baseline: Value = serde_json::from_slice(FIXTURE).unwrap();
         let baseline_report = evaluate_bytes(FIXTURE, "baseline").unwrap();
-        let baseline_metric = baseline_report.trajectory_metrics.iter()
-            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+        let baseline_metric = baseline_report
+            .trajectory_metrics
+            .iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies")
+            .unwrap();
 
         let mut changed_fixture = baseline;
         changed_fixture["synthetic_reference_traces"][0]["served_rate"] =
             serde_json::json!([100, 70, 60, 84, 90, 95]);
-        changed_fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(101));
-        changed_fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["recovery_time_hours"] = Value::Number(serde_json::Number::from(5));
+        changed_fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["integrated_service_loss_units"] =
+            Value::Number(serde_json::Number::from(101));
+        changed_fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]["recovery_time_hours"] =
+            Value::Number(serde_json::Number::from(5));
         let changed = serde_json::to_vec(&changed_fixture).unwrap();
         let changed_report = evaluate_bytes(&changed, "changed").unwrap();
-        let changed_metric = changed_report.trajectory_metrics.iter()
-            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+        let changed_metric = changed_report
+            .trajectory_metrics
+            .iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies")
+            .unwrap();
 
-        assert!(changed_metric.integrated_unmet_service_units >= baseline_metric.integrated_unmet_service_units);
+        assert!(
+            changed_metric.integrated_unmet_service_units
+                >= baseline_metric.integrated_unmet_service_units
+        );
         assert_eq!(baseline_metric.integrated_unmet_service_units, 100);
         assert_eq!(changed_metric.integrated_unmet_service_units, 101);
     }
@@ -1150,7 +1464,11 @@ mod tests {
     #[test]
     fn a_required_unknown_case_cannot_gain_a_quantitative_projection() {
         let raw = String::from_utf8(FIXTURE.to_vec()).unwrap();
-        let changed = raw.replacen("\"status\": \"INDETERMINATE\"", "\"status\": \"FEASIBLE\"", 1);
+        let changed = raw.replacen(
+            "\"status\": \"INDETERMINATE\"",
+            "\"status\": \"FEASIBLE\"",
+            1,
+        );
         assert_ne!(changed, raw);
         assert!(evaluate_bytes(changed.as_bytes(), "test").is_err());
     }

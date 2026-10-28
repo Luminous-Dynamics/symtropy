@@ -1,0 +1,679 @@
+{
+  "schema_id": "luminous.symtropy.maritime.cyport-episode-split",
+  "schema_version": "0.1.0",
+  "status": "FROZEN_PRE_FIT_TEMPORAL_SPLIT_FROM_PINNED_SOURCE",
+  "source": {
+    "repository": "https://github.com/ChenchenMobility/Maritime-Data-CyPort",
+    "revision": "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
+    "path": "Tropical_cyclone_interaction/interaction_data.csv",
+    "git_blob_sha1": "21beb5b7673918143a0ab108b03acc3cccaeb330",
+    "byte_length": 643047,
+    "license_statement": "Repository README declares CC BY 4.0; preserve attribution and check component-level terms.",
+    "license_uri": "https://creativecommons.org/licenses/by/4.0/",
+    "citation": "Kuai, C., Li, Z., Zhang, Y., Wang, X. B., Lord, D., & Zhou, Y. (2026). U.S. port disruptions under tropical cyclones: Resilience analysis by harnessing multiple-source dataset. Transportation Research Part D: Transport and Environment, 157, 105420. https://doi.org/10.1016/j.trd.2026.105420"
+  },
+  "policy": {
+    "split_unit": "cyclone SID",
+    "date_basis": "earliest start_date among all interaction rows belonging to the SID",
+    "train": "earliest event start on or before 2020-12-31",
+    "calibration": "earliest event start during calendar year 2021",
+    "test": "earliest event start on or after 2022-01-01",
+    "leakage_rule": "Every port-interaction row associated with one SID belongs to exactly one split. No row-level or port-row randomization is permitted.",
+    "external_holdout_caveat": "The dataset is public. This temporal partition is reproducible, but it is not a secret blind test for models already trained on this public dataset or its derived labels. Do not claim a truly blind external validation without additional held-out data."
+  },
+  "split_summary": {
+    "train": {
+      "storms": 59,
+      "interaction_rows": 1471,
+      "first_event_start": "2015-05-06",
+      "last_event_start": "2020-11-13"
+    },
+    "calibration": {
+      "storms": 13,
+      "interaction_rows": 308,
+      "first_event_start": "2021-06-13",
+      "last_event_start": "2021-10-27"
+    },
+    "test": {
+      "storms": 18,
+      "interaction_rows": 148,
+      "first_event_start": "2022-06-04",
+      "last_event_start": "2023-10-22"
+    }
+  },
+  "total_unique_storms": 90,
+  "total_interaction_rows": 1927,
+  "outcomes_excluded_from_manifest": true,
+  "episodes": [
+    {
+      "sid": "2015126N27281",
+      "first_event_start": "2015-05-06",
+      "last_event_start": "2015-05-12",
+      "interaction_rows": 27,
+      "split": "train"
+    },
+    {
+      "sid": "2015167N27266",
+      "first_event_start": "2015-06-16",
+      "last_event_start": "2015-06-20",
+      "interaction_rows": 63,
+      "split": "train"
+    },
+    {
+      "sid": "2015193N35285",
+      "first_event_start": "2015-07-12",
+      "last_event_start": "2015-07-12",
+      "interaction_rows": 6,
+      "split": "train"
+    },
+    {
+      "sid": "2015192N11263",
+      "first_event_start": "2015-07-19",
+      "last_event_start": "2015-07-20",
+      "interaction_rows": 4,
+      "split": "train"
+    },
+    {
+      "sid": "2015313N22289",
+      "first_event_start": "2015-11-09",
+      "last_event_start": "2015-11-10",
+      "interaction_rows": 5,
+      "split": "train"
+    },
+    {
+      "sid": "2016148N27288",
+      "first_event_start": "2016-05-28",
+      "last_event_start": "2016-06-02",
+      "interaction_rows": 15,
+      "split": "train"
+    },
+    {
+      "sid": "2016158N22272",
+      "first_event_start": "2016-06-06",
+      "last_event_start": "2016-06-07",
+      "interaction_rows": 29,
+      "split": "train"
+    },
+    {
+      "sid": "2016242N24279",
+      "first_event_start": "2016-08-28",
+      "last_event_start": "2016-09-08",
+      "interaction_rows": 34,
+      "split": "train"
+    },
+    {
+      "sid": "2016240N31295",
+      "first_event_start": "2016-08-29",
+      "last_event_start": "2016-08-29",
+      "interaction_rows": 3,
+      "split": "train"
+    },
+    {
+      "sid": "2016257N27280",
+      "first_event_start": "2016-09-13",
+      "last_event_start": "2016-09-20",
+      "interaction_rows": 17,
+      "split": "train"
+    },
+    {
+      "sid": "2016262N16251",
+      "first_event_start": "2016-09-21",
+      "last_event_start": "2016-09-21",
+      "interaction_rows": 1,
+      "split": "train"
+    },
+    {
+      "sid": "2016273N13300",
+      "first_event_start": "2016-09-28",
+      "last_event_start": "2016-10-08",
+      "interaction_rows": 18,
+      "split": "train"
+    },
+    {
+      "sid": "2017171N24271",
+      "first_event_start": "2017-06-20",
+      "last_event_start": "2017-06-24",
+      "interaction_rows": 68,
+      "split": "train"
+    },
+    {
+      "sid": "2017212N28275",
+      "first_event_start": "2017-07-30",
+      "last_event_start": "2017-08-01",
+      "interaction_rows": 17,
+      "split": "train"
+    },
+    {
+      "sid": "2017224N22293",
+      "first_event_start": "2017-08-12",
+      "last_event_start": "2017-08-12",
+      "interaction_rows": 3,
+      "split": "train"
+    },
+    {
+      "sid": "2017228N14314",
+      "first_event_start": "2017-08-18",
+      "last_event_start": "2017-09-02",
+      "interaction_rows": 61,
+      "split": "train"
+    },
+    {
+      "sid": "2017242N17253",
+      "first_event_start": "2017-09-02",
+      "last_event_start": "2017-09-03",
+      "interaction_rows": 3,
+      "split": "train"
+    },
+    {
+      "sid": "2017242N16333",
+      "first_event_start": "2017-09-05",
+      "last_event_start": "2017-09-13",
+      "interaction_rows": 48,
+      "split": "train"
+    },
+    {
+      "sid": "2017249N22263",
+      "first_event_start": "2017-09-05",
+      "last_event_start": "2017-09-05",
+      "interaction_rows": 2,
+      "split": "train"
+    },
+    {
+      "sid": "2017247N09327",
+      "first_event_start": "2017-09-09",
+      "last_event_start": "2017-09-21",
+      "interaction_rows": 13,
+      "split": "train"
+    },
+    {
+      "sid": "2017260N12310",
+      "first_event_start": "2017-09-18",
+      "last_event_start": "2017-09-27",
+      "interaction_rows": 11,
+      "split": "train"
+    },
+    {
+      "sid": "2017277N11279",
+      "first_event_start": "2017-10-07",
+      "last_event_start": "2017-10-09",
+      "interaction_rows": 58,
+      "split": "train"
+    },
+    {
+      "sid": "2017301N18276",
+      "first_event_start": "2017-10-28",
+      "last_event_start": "2017-10-28",
+      "interaction_rows": 3,
+      "split": "train"
+    },
+    {
+      "sid": "2018146N19273",
+      "first_event_start": "2018-05-27",
+      "last_event_start": "2018-05-31",
+      "interaction_rows": 68,
+      "split": "train"
+    },
+    {
+      "sid": "2018186N31292",
+      "first_event_start": "2018-07-06",
+      "last_event_start": "2018-07-07",
+      "interaction_rows": 3,
+      "split": "train"
+    },
+    {
+      "sid": "2018186N10325",
+      "first_event_start": "2018-07-08",
+      "last_event_start": "2018-07-09",
+      "interaction_rows": 5,
+      "split": "train"
+    },
+    {
+      "sid": "2018246N22283",
+      "first_event_start": "2018-09-02",
+      "last_event_start": "2018-09-07",
+      "interaction_rows": 47,
+      "split": "train"
+    },
+    {
+      "sid": "2018242N13343",
+      "first_event_start": "2018-09-13",
+      "last_event_start": "2018-09-18",
+      "interaction_rows": 35,
+      "split": "train"
+    },
+    {
+      "sid": "2018268N14253",
+      "first_event_start": "2018-10-02",
+      "last_event_start": "2018-10-02",
+      "interaction_rows": 1,
+      "split": "train"
+    },
+    {
+      "sid": "2018280N18273",
+      "first_event_start": "2018-10-09",
+      "last_event_start": "2018-10-12",
+      "interaction_rows": 35,
+      "split": "train"
+    },
+    {
+      "sid": "2019192N29274",
+      "first_event_start": "2019-07-10",
+      "last_event_start": "2019-07-16",
+      "interaction_rows": 48,
+      "split": "train"
+    },
+    {
+      "sid": "2019204N25283",
+      "first_event_start": "2019-07-22",
+      "last_event_start": "2019-07-23",
+      "interaction_rows": 10,
+      "split": "train"
+    },
+    {
+      "sid": "2019236N10314",
+      "first_event_start": "2019-08-27",
+      "last_event_start": "2019-09-07",
+      "interaction_rows": 31,
+      "split": "train"
+    },
+    {
+      "sid": "2019239N32287",
+      "first_event_start": "2019-08-28",
+      "last_event_start": "2019-08-29",
+      "interaction_rows": 3,
+      "split": "train"
+    },
+    {
+      "sid": "2019246N24266",
+      "first_event_start": "2019-09-03",
+      "last_event_start": "2019-09-04",
+      "interaction_rows": 5,
+      "split": "train"
+    },
+    {
+      "sid": "2019256N23286",
+      "first_event_start": "2019-09-14",
+      "last_event_start": "2019-09-15",
+      "interaction_rows": 8,
+      "split": "train"
+    },
+    {
+      "sid": "2019261N28264",
+      "first_event_start": "2019-09-17",
+      "last_event_start": "2019-09-18",
+      "interaction_rows": 21,
+      "split": "train"
+    },
+    {
+      "sid": "2019260N13317",
+      "first_event_start": "2019-09-20",
+      "last_event_start": "2019-09-20",
+      "interaction_rows": 5,
+      "split": "train"
+    },
+    {
+      "sid": "2019265N12301",
+      "first_event_start": "2019-09-23",
+      "last_event_start": "2019-09-23",
+      "interaction_rows": 5,
+      "split": "train"
+    },
+    {
+      "sid": "2019282N35286",
+      "first_event_start": "2019-10-08",
+      "last_event_start": "2019-10-11",
+      "interaction_rows": 7,
+      "split": "train"
+    },
+    {
+      "sid": "2019291N22264",
+      "first_event_start": "2019-10-17",
+      "last_event_start": "2019-10-20",
+      "interaction_rows": 34,
+      "split": "train"
+    },
+    {
+      "sid": "2019299N25265",
+      "first_event_start": "2019-10-25",
+      "last_event_start": "2019-10-27",
+      "interaction_rows": 78,
+      "split": "train"
+    },
+    {
+      "sid": "2019323N19302",
+      "first_event_start": "2019-11-20",
+      "last_event_start": "2019-11-20",
+      "interaction_rows": 1,
+      "split": "train"
+    },
+    {
+      "sid": "2020138N28281",
+      "first_event_start": "2020-05-16",
+      "last_event_start": "2020-05-19",
+      "interaction_rows": 18,
+      "split": "train"
+    },
+    {
+      "sid": "2020148N32281",
+      "first_event_start": "2020-05-27",
+      "last_event_start": "2020-05-28",
+      "interaction_rows": 20,
+      "split": "train"
+    },
+    {
+      "sid": "2020154N19269",
+      "first_event_start": "2020-06-06",
+      "last_event_start": "2020-06-10",
+      "interaction_rows": 62,
+      "split": "train"
+    },
+    {
+      "sid": "2020188N28271",
+      "first_event_start": "2020-07-05",
+      "last_event_start": "2020-07-11",
+      "interaction_rows": 37,
+      "split": "train"
+    },
+    {
+      "sid": "2020205N26272",
+      "first_event_start": "2020-07-23",
+      "last_event_start": "2020-07-24",
+      "interaction_rows": 22,
+      "split": "train"
+    },
+    {
+      "sid": "2020211N13306",
+      "first_event_start": "2020-07-29",
+      "last_event_start": "2020-08-04",
+      "interaction_rows": 33,
+      "split": "train"
+    },
+    {
+      "sid": "2020228N37286",
+      "first_event_start": "2020-08-14",
+      "last_event_start": "2020-08-14",
+      "interaction_rows": 13,
+      "split": "train"
+    },
+    {
+      "sid": "2020224N11326",
+      "first_event_start": "2020-08-15",
+      "last_event_start": "2020-08-15",
+      "interaction_rows": 5,
+      "split": "train"
+    },
+    {
+      "sid": "2020233N14313",
+      "first_event_start": "2020-08-21",
+      "last_event_start": "2020-08-29",
+      "interaction_rows": 70,
+      "split": "train"
+    },
+    {
+      "sid": "2020234N14280",
+      "first_event_start": "2020-08-23",
+      "last_event_start": "2020-08-25",
+      "interaction_rows": 24,
+      "split": "train"
+    },
+    {
+      "sid": "2020244N30279",
+      "first_event_start": "2020-08-30",
+      "last_event_start": "2020-08-31",
+      "interaction_rows": 13,
+      "split": "train"
+    },
+    {
+      "sid": "2020256N25281",
+      "first_event_start": "2020-09-11",
+      "last_event_start": "2020-09-18",
+      "interaction_rows": 29,
+      "split": "train"
+    },
+    {
+      "sid": "2020261N21265",
+      "first_event_start": "2020-09-18",
+      "last_event_start": "2020-09-25",
+      "interaction_rows": 45,
+      "split": "train"
+    },
+    {
+      "sid": "2020279N16284",
+      "first_event_start": "2020-10-08",
+      "last_event_start": "2020-10-11",
+      "interaction_rows": 50,
+      "split": "train"
+    },
+    {
+      "sid": "2020299N18277",
+      "first_event_start": "2020-10-28",
+      "last_event_start": "2020-10-29",
+      "interaction_rows": 57,
+      "split": "train"
+    },
+    {
+      "sid": "2020306N15288",
+      "first_event_start": "2020-11-08",
+      "last_event_start": "2020-11-13",
+      "interaction_rows": 14,
+      "split": "train"
+    },
+    {
+      "sid": "2021165N32282",
+      "first_event_start": "2021-06-13",
+      "last_event_start": "2021-06-13",
+      "interaction_rows": 8,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021169N23268",
+      "first_event_start": "2021-06-18",
+      "last_event_start": "2021-06-22",
+      "interaction_rows": 50,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021179N30287",
+      "first_event_start": "2021-06-28",
+      "last_event_start": "2021-06-28",
+      "interaction_rows": 7,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021182N09317",
+      "first_event_start": "2021-07-02",
+      "last_event_start": "2021-07-09",
+      "interaction_rows": 35,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021222N14301",
+      "first_event_start": "2021-08-10",
+      "last_event_start": "2021-08-19",
+      "interaction_rows": 51,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021225N15313",
+      "first_event_start": "2021-08-14",
+      "last_event_start": "2021-08-15",
+      "interaction_rows": 5,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021227N36297",
+      "first_event_start": "2021-08-20",
+      "last_event_start": "2021-08-22",
+      "interaction_rows": 15,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021239N17281",
+      "first_event_start": "2021-08-28",
+      "last_event_start": "2021-09-02",
+      "interaction_rows": 66,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021252N28273",
+      "first_event_start": "2021-09-08",
+      "last_event_start": "2021-09-09",
+      "interaction_rows": 18,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021256N21265",
+      "first_event_start": "2021-09-12",
+      "last_event_start": "2021-09-17",
+      "interaction_rows": 29,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021259N30286",
+      "first_event_start": "2021-09-16",
+      "last_event_start": "2021-09-18",
+      "interaction_rows": 5,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021262N16307",
+      "first_event_start": "2021-09-20",
+      "last_event_start": "2021-09-20",
+      "interaction_rows": 5,
+      "split": "calibration"
+    },
+    {
+      "sid": "2021299N33284",
+      "first_event_start": "2021-10-25",
+      "last_event_start": "2021-10-27",
+      "interaction_rows": 14,
+      "split": "calibration"
+    },
+    {
+      "sid": "2022154N21273",
+      "first_event_start": "2022-06-04",
+      "last_event_start": "2022-06-04",
+      "interaction_rows": 8,
+      "split": "test"
+    },
+    {
+      "sid": "2022183N32280",
+      "first_event_start": "2022-07-01",
+      "last_event_start": "2022-07-02",
+      "interaction_rows": 9,
+      "split": "test"
+    },
+    {
+      "sid": "2022246N18301",
+      "first_event_start": "2022-09-03",
+      "last_event_start": "2022-09-03",
+      "interaction_rows": 5,
+      "split": "test"
+    },
+    {
+      "sid": "2022248N14259",
+      "first_event_start": "2022-09-09",
+      "last_event_start": "2022-09-09",
+      "interaction_rows": 4,
+      "split": "test"
+    },
+    {
+      "sid": "2022257N16312",
+      "first_event_start": "2022-09-16",
+      "last_event_start": "2022-09-17",
+      "interaction_rows": 5,
+      "split": "test"
+    },
+    {
+      "sid": "2022266N12294",
+      "first_event_start": "2022-09-27",
+      "last_event_start": "2022-09-30",
+      "interaction_rows": 13,
+      "split": "test"
+    },
+    {
+      "sid": "2022293N15259",
+      "first_event_start": "2022-10-23",
+      "last_event_start": "2022-10-23",
+      "interaction_rows": 2,
+      "split": "test"
+    },
+    {
+      "sid": "2022311N21293",
+      "first_event_start": "2022-11-06",
+      "last_event_start": "2022-11-11",
+      "interaction_rows": 24,
+      "split": "test"
+    },
+    {
+      "sid": "2023152N26274",
+      "first_event_start": "2023-05-31",
+      "last_event_start": "2023-06-04",
+      "interaction_rows": 12,
+      "split": "test"
+    },
+    {
+      "sid": "2023228N12259",
+      "first_event_start": "2023-08-20",
+      "last_event_start": "2023-08-20",
+      "interaction_rows": 4,
+      "split": "test"
+    },
+    {
+      "sid": "2023232N13300",
+      "first_event_start": "2023-08-20",
+      "last_event_start": "2023-08-20",
+      "interaction_rows": 5,
+      "split": "test"
+    },
+    {
+      "sid": "2023234N25271",
+      "first_event_start": "2023-08-21",
+      "last_event_start": "2023-08-22",
+      "interaction_rows": 15,
+      "split": "test"
+    },
+    {
+      "sid": "2023239N21274",
+      "first_event_start": "2023-08-29",
+      "last_event_start": "2023-08-31",
+      "interaction_rows": 13,
+      "split": "test"
+    },
+    {
+      "sid": "2023249N12320",
+      "first_event_start": "2023-09-16",
+      "last_event_start": "2023-09-16",
+      "interaction_rows": 3,
+      "split": "test"
+    },
+    {
+      "sid": "2023265N29284",
+      "first_event_start": "2023-09-21",
+      "last_event_start": "2023-09-24",
+      "interaction_rows": 14,
+      "split": "test"
+    },
+    {
+      "sid": "2023266N16323",
+      "first_event_start": "2023-10-02",
+      "last_event_start": "2023-10-02",
+      "interaction_rows": 5,
+      "split": "test"
+    },
+    {
+      "sid": "2023276N11254",
+      "first_event_start": "2023-10-11",
+      "last_event_start": "2023-10-11",
+      "interaction_rows": 2,
+      "split": "test"
+    },
+    {
+      "sid": "2023292N13309",
+      "first_event_start": "2023-10-21",
+      "last_event_start": "2023-10-22",
+      "interaction_rows": 5,
+      "split": "test"
+    }
+  ]
+}
