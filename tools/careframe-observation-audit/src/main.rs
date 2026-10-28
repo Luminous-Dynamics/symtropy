@@ -570,7 +570,10 @@ fn emit_receipt(
         "disposition": if failed { "BLOCKED" } else { "MATCHED_CONTRACTS" },
         "findings": report.findings,
         "oracle_only_fields_exposed_to_policy": false,
-        "claim_ceiling": "Observation contract consistency only; no perception accuracy, safety, or sim-to-real claim."
+        "claim_ceiling": concat!(
+            "Observation contract consistency only; no perception accuracy, safety, ",
+            "or sim-to-real claim."
+        )
     });
     println!(
         "{}",
@@ -605,7 +608,9 @@ fn main() {
             process::exit(2);
         }
     };
-    if contract_path == DEFAULT_CONTRACT && sha256_hex(&contract_bytes) != sha256_hex(CONTRACT_SOURCE) {
+    if contract_path == DEFAULT_CONTRACT
+        && sha256_hex(&contract_bytes) != sha256_hex(CONTRACT_SOURCE)
+    {
         eprintln!("runtime contract differs from the contract embedded in the auditor");
         process::exit(2);
     }
