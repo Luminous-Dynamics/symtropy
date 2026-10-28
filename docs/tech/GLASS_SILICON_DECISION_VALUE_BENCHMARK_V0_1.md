@@ -383,3 +383,15 @@ The sealed evaluator retains scenario-to-outcome mappings, reference utilities, 
 
 Compare random legal actions, DOE/space filling, ordinary GP expected improvement/PI where suitable, uncertainty, novelty/disagreement, cost-aware VOI, one-step and adaptive look-ahead, plus the incumbent workflow where available. Evaluate in-domain interpolation and out-of-distribution transfer as separate regimes, using relationship-graph, leave-family/source/campaign, and time/site holdouts where they match the intended deployment claim. Report cost/time to first independently qualified feasible candidate, cumulative best feasible utility versus budget, false-feasible risk, failures/retests, abstention, compute/latency, and OOD holdout performance separately. Require at least one environment where adaptive planning helps, one where random is competitive, and one where the more complex policy loses; this guards against benchmarks designed to make the proposed method win.
 
+
+
+### Executable campaign-transcript integrity contract (v0.1)
+
+Command:
+
+`cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-acquisition-transcript tools/glass-silicon-contract-audit/fixtures/acquisition-campaign-transcript.synthetic.json`
+
+Schema: [glass-acquisition-campaign-transcript-v0.1.schema.json](./glass-acquisition-campaign-transcript-v0.1.schema.json). The validator checks monotonically consecutive sequence numbers, unique event IDs, exactly paired measurement request/result events, measurement identity consistency, and resource charging at request time. It requires a terminal `FEASIBLE`, `INFEASIBLE`, or `UNRESOLVED` decision; an incomplete campaign or pending request is not promoted to success. Measurement cost and elapsed time are accumulated even when the returned status is `FAILED`, `CENSORED`, `STALE`, `INVALID`, `OUT_OF_DOMAIN`, or `CONTRADICTORY`. Valid results must reference an observation artifact; non-valid results must not disclose one.
+
+The output includes the raw transcript SHA-256, request/result counts, cumulative cost/time, final disposition, and findings. A `PASS` means the transcript structure and declared budget accounting are internally consistent only; it does **not** establish observation truth, policy process isolation, material feasibility, or plant impact. The next step in [GLASS-CLOSED-LOOP-001 #2785](https://github.com/Luminous-Dynamics/symtropy/issues/2785) is deterministic replay of the trace against a sealed evaluator and an isolated policy execution lane.
+
