@@ -772,6 +772,18 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
         }
     };
 
+    only_keys(
+        &report,
+        &["schema_version","status","audit_kind","benchmark_id","input_sha256","oracle_sha256","environment_count","policy_count","campaigns_checked","campaigns","findings","claim_ceiling"],
+        "report",
+        &mut replay
+    );
+    if !report.get("findings").and_then(Value::as_array).is_some_and(|findings| findings.is_empty()) {
+        fail(&mut replay, "FAIL", "REPORT_FINDINGS_NOT_EMPTY", "a PASS report must not carry unresolved or failure findings");
+    }
+    if report.get("claim_ceiling").and_then(Value::as_str).is_none() {
+        fail(&mut replay, "FAIL", "REPORT_CLAIM_CEILING_MISSING", "report must retain its claim ceiling");
+    }
     if report.get("input_sha256").and_then(Value::as_str) != Some(sha256(public_raw).as_str()) {
         fail(&mut replay, "FAIL", "INPUT_DIGEST_MISMATCH", "report does not bind to the exact public input bytes");
     }
