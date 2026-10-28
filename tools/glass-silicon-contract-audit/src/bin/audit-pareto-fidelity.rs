@@ -322,10 +322,21 @@ fn has_observation(observations: &[Value], candidate_id: &str, fidelity: &str) -
     })
 }
 
-fn screen_score(observation: &Value) -> f64 {
-    let quality = observation.get("objectives").and_then(|v| v.get("quality")).and_then(Value::as_f64).unwrap_or(f64::NEG_INFINITY);
-    let energy = observation.get("objectives").and_then(|v| v.get("energy")).and_then(Value::as_f64).unwrap_or(f64::INFINITY);
-    quality - 0.02 * energy
+fn screen_hypervolume_contribution(
+    observations: &[Value],
+    candidate_id: &str,
+    reference_point: &Value,
+) -> f64 {
+    let eligible = observations.iter().filter(|observation| {
+        observation.get("fidelity").and_then(Value::as_str) == Some("screen")
+            && !has_observation(observations, observation.get("candidate_id").and_then(Value::as_str).unwrap_or(""), "confirmatory")
+    }).collect::<Vec<_>>();
+    let all_points = eligible.iter().map(|observation| observation["objectives"].clone()).collect::<Vec<_>>();
+    let all_hypervolume = hypervolume(&all_points, reference_point);
+    let without = eligible.iter().filter(|observation| {
+        observation.get("candidate_id").and_then(Value::as_str) != Some(candidate_id)
+    }).map(|observation| observation["objectives"].clone()).collect::<Vec<_>>();
+    (all_hypervolume - hypervolume(&without, reference_point)).max(0.0)
 }
 
 fn deterministic_random_rank(seed: u64, candidate_id: &str) -> String {
@@ -373,12 +384,16 @@ fn choose_action(policy: &str, view: &Value) -> Action {
             let best_screened = observations.iter()
                 .filter(|item| item.get("fidelity").and_then(Value::as_str) == Some("screen"))
                 .filter(|item| !has_observation(&observations, item.get("candidate_id").and_then(Value::as_str).unwrap_or(""), "confirmatory"))
-                .max_by(|left, right| {
-                    screen_score(left).total_cmp(&screen_score(right))
-                        .then_with(|| right.get("candidate_id").and_then(Value::as_str).unwrap_or("").cmp(left.get("candidate_id").and_then(Value::as_str).unwrap_or("")))
+                .filter_map(|item| item.get("candidate_id").and_then(Value::as_str).map(str::to_owned))
+                .map(|candidate_id| {
+                    let contribution = screen_hypervolume_contribution(&observations, &candidate_id, &view["reference_point"]);
+                    (candidate_id, contribution)
+                })
+                .max_by(|(left_id, left_contribution), (right_id, right_contribution)| {
+                    left_contribution.total_cmp(right_contribution)
+                        .then_with(|| right_id.cmp(left_id))
                 });
-            best_screened.and_then(|observation| observation.get("candidate_id").and_then(Value::as_str))
-                .map(|candidate_id| Action::Evaluate { candidate_id: candidate_id.to_owned(), fidelity: "confirmatory".to_owned() })
+            best_screened.map(|(candidate_id, _)| Action::Evaluate { candidate_id, fidelity: "confirmatory".to_owned() })
                 .unwrap_or_else(|| Action::Stop("NO_SCREENED_CANDIDATE_REMAINS".to_owned()))
         }
         "screen_only" => {
@@ -1106,6 +1121,17 @@ mod tests {
         assert_eq!(screened["accepted_feasible_candidates"].as_array().unwrap().len(), 2);
         assert_eq!(screened["observed_pareto_candidate_ids"], json!(["glass-a","glass-b"]));
         assert!(screened["observed_hypervolume"].as_f64().unwrap() > direct["observed_hypervolume"].as_f64().unwrap());
+    }
+
+    #[test]
+    fn screen_then_confirm_uses_pareto_contribution_without_scalar_objective_weights() {
+        let (public, oracle) = values();
+        let informative = run_env(&public, &oracle, "informative", "screen_then_confirm");
+        let misleading = run_env(&public, &oracle, "misleading_low_fidelity", "screen_then_confirm");
+        assert_eq!(informative["events"][3]["candidate_id"], "glass-b");
+        assert_eq!(informative["events"][4]["candidate_id"], "glass-a");
+        assert_eq!(misleading["events"][3]["candidate_id"], "glass-d");
+        assert_eq!(misleading["events"][4]["candidate_id"], "glass-a");
     }
 
     #[test]
