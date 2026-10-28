@@ -106,6 +106,46 @@ if bash "$NORMALIZER" \
   exit 1
 fi
 
+# Negative control: negative precipitation is a malformed physical value, not a valid weather trace.
+jq '.properties.parameter.PRECTOTCORR["20240102"] = -0.1' "$FIXTURE" > "$TMP_DIR/negative-precip.json"
+if bash "$NORMALIZER" \
+  "$TMP_DIR/negative-precip.json" \
+  "earth.coastal_desert_namib" \
+  "Synthetic fixture" "-23.56" "15.04" \
+  "20240101" "20240103" "$TMP_DIR/negative-precip-out" \
+  "https://example.invalid/synthetic-fixture-not-a-data-source" \
+  "synthetic_stress" >/dev/null 2>&1; then
+  echo "ERROR: negative precipitation was unexpectedly accepted" >&2
+  exit 1
+fi
+
+# Negative control: relative humidity cannot exceed 100 percent.
+jq '.properties.parameter.RH2M["20240102"] = 101' "$FIXTURE" > "$TMP_DIR/humidity-over-100.json"
+if bash "$NORMALIZER" \
+  "$TMP_DIR/humidity-over-100.json" \
+  "earth.coastal_desert_namib" \
+  "Synthetic fixture" "-23.56" "15.04" \
+  "20240101" "20240103" "$TMP_DIR/humidity-out" \
+  "https://example.invalid/synthetic-fixture-not-a-data-source" \
+  "synthetic_stress" >/dev/null 2>&1; then
+  echo "ERROR: relative humidity above 100 percent was unexpectedly accepted" >&2
+  exit 1
+fi
+
+# Negative control: the daily mean must remain between the source daily minimum
+# and maximum when all three are present.
+jq '.properties.parameter.T2M["20240101"] = 35' "$FIXTURE" > "$TMP_DIR/inconsistent-temperature.json"
+if bash "$NORMALIZER" \
+  "$TMP_DIR/inconsistent-temperature.json" \
+  "earth.coastal_desert_namib" \
+  "Synthetic fixture" "-23.56" "15.04" \
+  "20240101" "20240103" "$TMP_DIR/temperature-out" \
+  "https://example.invalid/synthetic-fixture-not-a-data-source" \
+  "synthetic_stress" >/dev/null 2>&1; then
+  echo "ERROR: daily mean above daily maximum was unexpectedly accepted" >&2
+  exit 1
+fi
+
 # Negative control: local-solar-time response must not pass as UTC.
 jq '.header.time_standard = "LST"' "$FIXTURE" > "$TMP_DIR/lst-response.json"
 if bash "$NORMALIZER" \
