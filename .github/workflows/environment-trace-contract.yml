@@ -7,6 +7,10 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
       - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/nasa-power-daily-response-synthetic-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh"
       - ".github/workflows/environment-trace-contract.yml"
   push:
     paths:
@@ -14,6 +18,10 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
       - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/nasa-power-daily-response-synthetic-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh"
       - ".github/workflows/environment-trace-contract.yml"
   workflow_dispatch:
 
@@ -58,6 +66,7 @@ jobs:
             (.required | index("variables") != null) and
             (.properties.variables.items.required | index("temporal_semantics") != null) and
             (.properties.variables.items.properties.temporal_semantics.enum | index("interval_accumulation") != null) and
+            (.properties.time_axis.properties.timestamp_semantics.enum | index("calendar_day_label") != null) and
             (.required | index("quality") != null) and
             (.required | index("provenance") != null) and
             (.allOf | any(.[]; ."if".properties.status.const == "validated_for_replay" and ."then".properties.trace_asset.properties.sha256.pattern == "^[a-f0-9]{64}$"))
@@ -108,6 +117,14 @@ jobs:
 
       - name: Test fail-closed Rust manifest gate
         run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin environment_trace_manifest
+
+      - name: Build manifest gate and run synthetic trace normalizer contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin environment_trace_manifest
+          TRACE_MANIFEST_BIN=research/polar-infrastructure/benchmark/target/debug/environment_trace_manifest \
+            bash research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh
 
       - name: Validate template with the Rust manifest gate
         shell: bash
