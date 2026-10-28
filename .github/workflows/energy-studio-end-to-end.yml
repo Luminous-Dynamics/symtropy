@@ -130,6 +130,39 @@ jobs:
           sha256sum "$source_fixture" "$context/multistage-causal-tree-report.json" > "$context/multistage-causal-tree-receipts.sha256"
           cat "$context/multistage-causal-tree-receipts.sha256"
 
+      - name: Qualify forecast-error versus decision-value rank inversion
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/decision-value-context"
+          mkdir -p "$context"
+          source_panel="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-decision-value-panel-v0.1.json"
+          experiment="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-decision-value-experiment-v0.1.json"
+          cp "$source_panel" "$context/source-panel.json"
+          cp "$experiment" "$context/experiment.json"
+          oracle="$work/targets/symtropy/debug/energy_decision_value_oracle"
+          "$oracle" "$context/report.json" > "$context/qualification.log"
+          cat "$context/qualification.log"
+          panel_sha="$(sha256sum "$source_panel" | cut -d' ' -f1)"
+          experiment_sha="$(sha256sum "$experiment" | cut -d' ' -f1)"
+          test "$(jq -r .source_panel_sha256 "$context/report.json")" = "$panel_sha"
+          test "$(jq -r .experiment_fixture_sha256 "$context/report.json")" = "$experiment_sha"
+          jq -e '
+            .status == "PASS_SYNTHETIC_DECISION_VALUE_COUNTEREXAMPLE_ONLY" and
+            .forecast_error_metrics.lower_mae_tail_blind.mae_unweighted_finite_panel == 0.25 and
+            .forecast_error_metrics.higher_mae_critical_reserve.mae_unweighted_finite_panel == 0.5 and
+            .policy_outcomes.lower_mae_tail_blind.total_essential_unserved == 1 and
+            .policy_outcomes.higher_mae_critical_reserve.total_essential_unserved == 0 and
+            .policy_outcomes.higher_mae_critical_reserve.total_flexible_unserved == 2 and
+            .policy_outcomes.no_forecast_conservative.total_flexible_unserved == 4 and
+            .policy_outcomes.perfect_information_upper_bound.total_flexible_unserved == 1 and
+            .perfect_information_reference == "NON_DEPLOYABLE_UPPER_BOUND_ONLY" and
+            .physical_dispatch_audit == "NOT_RUN; abstract one-quantum battery model"
+          ' "$context/report.json" >/dev/null
+          sha256sum "$context/source-panel.json" "$context/experiment.json" "$context/report.json" > "$context/receipts.sha256"
+          cat "$context/receipts.sha256"
+
       - name: Verify published South African tariff arithmetic against hand-calculated answers
         shell: bash
         run: |
@@ -616,6 +649,11 @@ jobs:
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-candidate-scenario-panel-v0.1.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-scenario-panel-v0.1.json
             ${{ runner.temp }}/energy-studio/nonanticipativity-context/*
+            ${{ runner.temp }}/energy-studio/decision-value-context/*
+            ${{ github.workspace }}/tools/energy-dispatch-audit/ENERGY_DECISION_VALUE_BENCHMARK_V0_1.md
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-decision-value-panel-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-decision-value-experiment-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/src/bin/energy_decision_value_oracle.rs
             ${{ github.workspace }}/tools/energy-dispatch-audit/NONANTICIPATIVE_POLICY_BENCHMARK_V0_1.md
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-nonanticipativity-counterexample-v0.1.json
             ${{ runner.temp }}/energy-studio/sa-tariff-context/*
