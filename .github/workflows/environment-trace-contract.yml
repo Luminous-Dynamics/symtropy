@@ -7,6 +7,7 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
       - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
       - "research/polar-infrastructure/benchmark/GOBABEB_BSRN_CROSS_VALIDATION_2026.md"
+      - "research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md"
       - "research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md"
       - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
@@ -21,6 +22,7 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh"
       - "research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh"
       - "research/polar-infrastructure/benchmark/scripts/test_register_local_pangaea_source.sh"
+      - "research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md"
       - "research/polar-infrastructure/benchmark/scripts/register_local_pangaea_source.sh"
       - ".github/workflows/environment-trace-contract.yml"
   push:
@@ -29,6 +31,7 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
       - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
       - "research/polar-infrastructure/benchmark/GOBABEB_BSRN_CROSS_VALIDATION_2026.md"
+      - "research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md"
       - "research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md"
       - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
@@ -43,6 +46,7 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh"
       - "research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh"
       - "research/polar-infrastructure/benchmark/scripts/test_register_local_pangaea_source.sh"
+      - "research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md"
       - "research/polar-infrastructure/benchmark/scripts/register_local_pangaea_source.sh"
       - ".github/workflows/environment-trace-contract.yml"
   workflow_dispatch:
@@ -135,6 +139,7 @@ jobs:
 
           # This jq stage checks structural guardrails; it is not a JSON Schema engine.
           test -s research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md
+          test -s research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md
 
       - name: Validate Gobabeb station validation plan
         shell: bash
