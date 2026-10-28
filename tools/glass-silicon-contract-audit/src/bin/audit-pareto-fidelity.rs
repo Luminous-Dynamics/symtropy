@@ -966,10 +966,10 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
         {
             fail(&mut replay, "FAIL", "RESOURCE_TOTAL_MISMATCH", &format!("{path} total cost/duration do not replay"));
         }
-        if campaign.get("accepted_feasible_candidates") != Some(&json!(accepted.iter().map(|(id,_)| id.clone()).collect::<Vec<_>>()))
-            || campaign.get("confirmed_infeasible_candidates") != Some(&json!(infeasible))
-            || campaign.get("observed_pareto_candidate_ids") != Some(&json!(observed_front))
-            || campaign.get("true_pareto_candidate_ids") != Some(&json!(true_front))
+        if campaign.get("accepted_feasible_candidates").cloned().unwrap_or(Value::Null) != json!(accepted.iter().map(|(id,_)| id.clone()).collect::<Vec<_>>())
+            || campaign.get("confirmed_infeasible_candidates").cloned().unwrap_or(Value::Null) != json!(infeasible)
+            || campaign.get("observed_pareto_candidate_ids").cloned().unwrap_or(Value::Null) != json!(observed_front)
+            || campaign.get("true_pareto_candidate_ids").cloned().unwrap_or(Value::Null) != json!(true_front)
         {
             fail(&mut replay, "FAIL", "FEASIBILITY_OR_PARETO_MISMATCH", &format!("{path} accepted candidates or Pareto sets do not replay"));
         }
