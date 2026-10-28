@@ -82,3 +82,20 @@ python3 -m json.tool /tmp/mean-inference-stress.json >/dev/null
 The local prototype exposed skew sensitivity in all three procedures: at 10 independent families, null rejection in the left-skewed case was 15.0% for Student-t, 18.8% for percentile bootstrap, and 9.4% for studentized bootstrap-t in 500 repetitions. These are synthetic stress results, not an empirical finding about building outcomes. The bootstrap-t result is less anti-conservative in that example but still not qualified as a reliable method. The harness deliberately does not select a winner from its development grid. See [mean-inference method protocol](../../docs/research/LIGHTING_MEAN_INFERENCE_METHOD_STRESS_V0_1.md).
 
 A separate exact sign-test helper targets the median and is not included in the mean-estimand rankings. Any method-selection claim requires a separately frozen confirmation suite plus pilot-variance, missingness and family-shift sensitivity analyses.
+
+
+## Informative-missingness sensitivity audit
+
+The new MNAR stress layer compares a naive complete-case Student-t lower bound with a conservative bounded-outcome Hoeffding lower bound. It tests complete data, MCAR, MAR linked to an observed difficulty covariate, and MNAR where missingness depends directly on the latent effect.
+
+```sh
+python3 -m unittest -v test_mnar_sensitivity_audit
+python3 mnar_sensitivity_audit.py \
+  --replicates 2500 --seed 20261028 --sample-sizes 10,20,40 \
+  --output /tmp/lighting-mnar-sensitivity.json
+python3 -m json.tool /tmp/lighting-mnar-sensitivity.json >/dev/null
+```
+
+The standard 96-scenario local run had a 68.56% maximum complete-case null rejection rate and 26/48 null scenarios whose individual 95% Monte Carlo Wilson interval lay above alpha. The bounded lower bound had zero observed null rejections, but also zero observed power through 40 families with the deliberately wide [-15%, 25%] effect bounds. At 20 families in the clipped-normal-like MNAR scenario, complete-case rejection was 40.32% and the mean observed effect was 6.15% despite a true null location of 5%.
+
+This is a synthetic counterexample and a conservative-method trade-off, not a real lighting result. The Hoeffding bound is only useful when the outcome bounds are substantively justified; its low power is a result to report, not a reason to silently narrow the bounds. See [the informative-missingness protocol](../../docs/research/LIGHTING_INFORMATIVE_MISSINGNESS_V0_1.md).
