@@ -25,4 +25,4 @@ pub use haptic::{HapticAttestation, HapticOracle};
 pub use motor::{MotorPlanner, UniformGainPlanner};
 pub use platform::PlatformType;
 pub use safety::JointSafetyAuthority;
-pub use sequence_guard::{RequestSequenceGuard, SequenceGuardError};
+pub use sequence_guard::{RequestSequenceGuard, SequenceGuardError, SequencedRuntimeAssurance};
