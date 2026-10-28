@@ -1,0 +1,52 @@
+{
+  "schema_version": "energy-chronological-generalization-experiment-v0.1",
+  "benchmark_id": "energy-chronological-generalization-under-regime-shift-v0.1",
+  "source_panel_path": "tools/energy-dispatch-audit/fixtures/energy-chronological-generalization-panel-v0.1.json",
+  "source_panel_sha256": "a2251addea0fa3f1694780f964ebb8b427d29b3bfa2b7d80278af17a6ebefbed",
+  "expected_coverage": {
+    "sample_count": 15,
+    "train_count": 6,
+    "validation_count": 3,
+    "test_count": 6,
+    "model_count": 4
+  },
+  "known_answers": {
+    "test_rows": 6,
+    "static_no_reserve": {
+      "false_negatives": 4,
+      "false_positives": 0,
+      "essential_unserved": 4,
+      "flexible_unserved": 0
+    },
+    "persistence": {
+      "false_negatives": 2,
+      "false_positives": 1,
+      "essential_unserved": 2,
+      "flexible_unserved": 1
+    },
+    "observable_signal": {
+      "false_negatives": 0,
+      "false_positives": 1,
+      "essential_unserved": 0,
+      "flexible_unserved": 1
+    },
+    "hindsight_oracle": {
+      "false_negatives": 0,
+      "false_positives": 0,
+      "deployable": false
+    }
+  },
+  "claim_ceiling": "The frozen synthetic panel tests protocol validity only. It is not a measured energy-control result, field result, runtime result or SOTA comparison.",
+  "required_checks": [
+    "raw_panel_sha256_matches_experiment_contract",
+    "strict_time_order_and_unique_sample_ids",
+    "train_validation_test_are_exact_nonoverlapping_contiguous_blocks",
+    "features_are_available_at_or_before_decision_time",
+    "labels_are_not_features",
+    "deployable_models_do_not_train_past_train_cutoff",
+    "hindsight_oracle_is_reported_but_excluded_from_deployable_rank",
+    "test_metrics_use_held_out_test_rows_only",
+    "service_metrics_are_vector_valued_not_aggregated_into_one_scalar",
+    "deterministic_report_digest"
+  ]
+}
