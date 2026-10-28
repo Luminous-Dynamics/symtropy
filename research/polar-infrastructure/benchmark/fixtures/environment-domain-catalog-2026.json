@@ -149,12 +149,13 @@
         "service deficit",
         "inspection/maintenance burden"
       ],
-      "evidence_basis": "site_data_required",
-      "confidence_or_data_limitations": "Fog harvesting is not a guaranteed water source; characterize local yields.",
+      "evidence_basis": "NASA POWER/ERA5 can supply broad meteorological drivers; a Gobabeb BSRN station radiation/temperature/humidity/pressure series is published for site-specific comparison; fog yield, salt/dust deposition and equipment response still require dedicated evidence.",
+      "confidence_or_data_limitations": "Station observations are available in a separate PANGAEA/BSRN series, but must be ingested, checked and aligned with source metadata; the series is not an all-hazard dataset and does not by itself validate this environment profile.",
       "source_urls": [
         "https://power.larc.nasa.gov/docs/",
         "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis",
-        "https://doi.org/10.1029/2024EF005725"
+        "https://doi.org/10.1029/2024EF005725",
+        "https://doi.pangaea.de/10.1594/PANGAEA.968639"
       ],
       "implementation_status": "planned",
       "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
