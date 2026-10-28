@@ -8,6 +8,8 @@ A peer-reviewed study published on 20 October 2026, “Observation-contract audi
 
 That finding changes Careframe's evaluation order: **audit what the policy actually receives before comparing whether the policy succeeded**. A score comparison across state, image or point-cloud paths is invalid if one path silently receives less semantic state, uses different units/order, or is given simulator ground truth unavailable to the others.
 
+In the authors' specific matched setup, the reported state-only control reached 0.606 mean success, compared with 0.600 for a default Diffusion Policy pathway and 0.400 for a retrained ACT baseline. Removing object geometry collapsed the state control to 0.016 mean success. These are study-specific values, not universal rankings and not direct Careframe baselines; their importance is methodological: semantic state completeness can dominate the apparent value of a policy or sensing modality.
+
 Reference:
 - He, Wang & Xu, “Observation-contract auditing for valid modality comparison in robot manipulation benchmarks,” *Scientific Reports*, published 20 October 2026. https://www.nature.com/articles/s41598-026-76821-1
 - Jiang et al., “What Are We Actually Benchmarking in Robot Manipulation?” (2 June 2026), on shortcut solvability, statistical significance, overfitting and data-source dependence. https://arxiv.org/abs/2606.04233
