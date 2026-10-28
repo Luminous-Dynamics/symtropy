@@ -1851,6 +1851,70 @@ mod tests {
     }
 
     #[test]
+    fn forward_kinematics_preserves_rotation_group_invariants_across_seeded_states() {
+        let model = morphology();
+        let joints = model["joints"].as_array().expect("joint array");
+        let revolute = joints
+            .iter()
+            .filter(|joint| str_at(joint, "joint_type") == Some("revolute"))
+            .collect::<Vec<_>>();
+        assert_eq!(revolute.len(), 9);
+
+        for sample in 0..101usize {
+            let mut state = zero_joint_state();
+            for (joint_index, joint) in revolute.iter().enumerate() {
+                let fraction = ((sample * 17 + joint_index * 11) % 101) as f64 / 100.0;
+                let lower = num_at(joint, "lower_limit_rad").expect("lower limit");
+                let upper = num_at(joint, "upper_limit_rad").expect("upper limit");
+                let joint_id = str_at(joint, "joint_id").expect("joint id");
+                state[joint_id] = json!(lower + fraction * (upper - lower));
+            }
+
+            let poses = compute_forward_kinematics(&model, &state)
+                .expect("bounded deterministic state must evaluate");
+            assert_eq!(poses.len(), model["links"].as_array().expect("links").len());
+            assert_eq!(
+                poses,
+                compute_forward_kinematics(&model, &state)
+                    .expect("same state must deterministically evaluate")
+            );
+
+            for (link_id, pose) in &poses {
+                assert!(
+                    pose.translation.iter().all(|value| value.is_finite()),
+                    "{link_id} has non-finite position in sample {sample}"
+                );
+                for row in 0..3 {
+                    for column in 0..3 {
+                        let dot = (0..3)
+                            .map(|index| {
+                                pose.rotation[index][row] * pose.rotation[index][column]
+                            })
+                            .sum::<f64>();
+                        let expected = if row == column { 1.0 } else { 0.0 };
+                        assert!(
+                            (dot - expected).abs() < 1.0e-9,
+                            "{link_id} rotation is not orthonormal in sample {sample}:                              ({row},{column})={dot}"
+                        );
+                    }
+                }
+                let rotation = pose.rotation;
+                let determinant =
+                    rotation[0][0] * (rotation[1][1] * rotation[2][2]
+                        - rotation[1][2] * rotation[2][1])
+                    - rotation[0][1] * (rotation[1][0] * rotation[2][2]
+                        - rotation[1][2] * rotation[2][0])
+                    + rotation[0][2] * (rotation[1][0] * rotation[2][1]
+                        - rotation[1][1] * rotation[2][0]);
+                assert!(
+                    (determinant - 1.0).abs() < 1.0e-9,
+                    "{link_id} rotation determinant is {determinant} in sample {sample}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn forward_kinematics_rejects_missing_unknown_fixed_and_out_of_range_states() {
         let model = morphology();
 
