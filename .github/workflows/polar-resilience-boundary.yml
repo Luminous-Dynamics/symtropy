@@ -100,7 +100,7 @@ jobs:
               .evidence_class == "test_design_only" and
               .numerical_parameters_embedded == false and
               (.profile_ids | length == 1) and
-              (($profile_ids | index(.profile_ids[0])) != null) and
+              (.profile_ids[0] as $pid | ($profile_ids | index($pid)) != null) and
               (.event_sequence | length >= 3) and
               (.required_model_adapters | length > 0) and
               (.required_metrics | length > 0)
