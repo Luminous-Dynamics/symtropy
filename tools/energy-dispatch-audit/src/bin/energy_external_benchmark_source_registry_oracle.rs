@@ -11,13 +11,20 @@ const REGISTRY_BYTES: &[u8] =
     include_bytes!("../../fixtures/energy-external-benchmark-source-registry-v0.1.json");
 const EXPERIMENT_BYTES: &[u8] =
     include_bytes!("../../fixtures/energy-external-benchmark-source-registry-experiment-v0.1.json");
+const CITYLEARN_MANIFEST_BYTES: &[u8] =
+    include_bytes!("../../fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json");
 const REGISTRY_SHA256: &str =
-    "d53b6f0f247b8c277ad853566c4ab2f4621b92314022d43ad00b10043fc631a1";
+    "6481f1d4e4c2cc814582960350c2323b86aea8a388b97c83f7c516785f44783a";
 const EXPERIMENT_SHA256: &str =
-    "669308da2193ae7e78b240d66c998a3858270c06e27469aafacccc909287a6e9";
+    "8c61231d68aef4badad3a61b362cb0348dc7177b329fa9f2bc8dc329c015416d";
+const CITYLEARN_MANIFEST_SHA256: &str =
+    "bd5086f66e47b400a1e37b4f6a6b5fffeabe02bf2c3a7a7c001c108813efe657";
 const REGISTRY_SCHEMA: &str = "energy-external-benchmark-source-registry-v0.1";
 const EXPERIMENT_SCHEMA: &str = "energy-external-benchmark-source-registry-experiment-v0.1";
 const REGISTRY_ID: &str = "energy-external-benchmark-source-registry-2026-10-28";
+const CITYLEARN_DATASET_ID: &str = "citylearn_challenge_2022_phase_all_plus_evs";
+const CITYLEARN_SOURCE_COMMIT: &str = "834575c1a0194c8ae9d648ae858376a94dfceb78";
+const CITYLEARN_SCHEMA_BLOB_SHA1: &str = "5d58d31fd75e4845d73d319c69df34d64223f533";
 
 fn sha256_hex(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
@@ -27,7 +34,7 @@ fn valid_sha256(value: &str) -> bool {
     value.len() == 64 && value.chars().all(|c| c.is_ascii_hexdigit())
 }
 
-fn required_checks() -> [&'static str; 10] {
+fn required_checks() -> [&'static str; 13] {
     [
         "source_ids_are_unique_and_nonempty",
         "source_urls_are_canonical_http_or_https",
@@ -39,6 +46,9 @@ fn required_checks() -> [&'static str; 10] {
         "mutable_rolling_sources_cannot_be_canonical_benchmarks_without_snapshot",
         "removed_citylearn_dataset_families_are_not_selected",
         "registry_claim_ceiling_remains_discovery_only",
+        "selected_citylearn_dataset_is_present_in_pinned_release",
+        "citylearn_manifest_pins_all_schema_referenced_source_files",
+        "forecast_columns_are_not_assumed_causal_without_issue_times",
     ]
 }
 
@@ -76,6 +86,12 @@ struct Source {
     raw_sha256: Option<String>,
     selected_dataset_id: Option<String>,
     removed_dataset_families: Vec<String>,
+    pinned_source_commit: Option<String>,
+    selected_schema_path: Option<String>,
+    selected_schema_git_blob_sha1: Option<String>,
+    referenced_data_file_count: Option<usize>,
+    simulator_step_count: Option<usize>,
+    dataset_source_manifest_path: Option<String>,
     window_semantics: String,
     limitations: Vec<String>,
 }
@@ -91,6 +107,45 @@ struct Experiment {
     known_answers: KnownAnswers,
     claim_ceiling: String,
     required_checks: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CityLearnManifest {
+    schema_version: String,
+    dataset_id: String,
+    source_repository: String,
+    source_release_tag: String,
+    source_commit: String,
+    source_commit_is_pinned: bool,
+    schema_path: String,
+    schema_git_blob_sha1: String,
+    schema_size_bytes: usize,
+    start_date: String,
+    simulation_start_step: usize,
+    simulation_end_step: usize,
+    time_steps: usize,
+    seconds_per_time_step: u32,
+    buildings: usize,
+    random_seed: u64,
+    dataset_license_status: String,
+    forecast_feature_names: Vec<String>,
+    forecast_issue_time_status: String,
+    external_raw_bytes_committed: bool,
+    source_inventory_status: String,
+    referenced_csv_count: usize,
+    files: Vec<CityLearnFile>,
+    required_checks: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CityLearnFile {
+    path: String,
+    git_blob_sha1: String,
+    size_bytes: usize,
+    data_rows: usize,
+    immutable_source_url: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -112,6 +167,15 @@ struct KnownAnswers {
     removed_citylearn_families: Vec<String>,
     eskom_rolling_feed_canonical_benchmark: bool,
     imported_external_bytes: usize,
+    citylearn_selected_dataset_id: String,
+    citylearn_source_commit: String,
+    citylearn_schema_blob_sha1: String,
+    citylearn_referenced_csv_count: usize,
+    citylearn_simulation_time_steps: usize,
+    citylearn_building_count: usize,
+    citylearn_schema_size_bytes: usize,
+    citylearn_forecast_issue_times_verified: bool,
+    citylearn_dataset_terms_cleared: bool,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
