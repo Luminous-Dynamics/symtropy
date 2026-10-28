@@ -30,7 +30,7 @@ jobs:
       - name: Run planner and simulation tests
         run: |
           cd tools/lighting-study-plan
-          python3 -m unittest -v test_plan_independent_scene_families test_simulate_power_operating_characteristics test_compare_mean_inference_methods test_mnar_sensitivity_audit
+          python3 -m unittest -v test_plan_independent_scene_families test_simulate_power_operating_characteristics test_compare_mean_inference_methods test_mnar_sensitivity_audit test_mar_adjustment_and_mnar_tipping
       - name: Smoke-test synthetic operating-characteristic output
         run: |
           python3 tools/lighting-study-plan/simulate_power_operating_characteristics.py \
@@ -57,4 +57,13 @@ jobs:
           python3 -m json.tool /tmp/lighting-mnar-sensitivity.json > /dev/null
           grep -q 'synthetic_missingness_sensitivity_diagnostics_no_empirical_claim' /tmp/lighting-mnar-sensitivity.json
           grep -q 'bounded_worst_case_hoeffding' /tmp/lighting-mnar-sensitivity.json
+      - name: Smoke-test MAR adjustment and MNAR tipping
+        run: |
+          python3 tools/lighting-study-plan/mar_adjustment_and_mnar_tipping.py \
+            --replicates 200 --seed 20261028 --sample-sizes 10,20 \
+            --output /tmp/lighting-mar-mnar-tipping.json
+          python3 -m json.tool /tmp/lighting-mar-mnar-tipping.json > /dev/null
+          grep -q 'synthetic_missingness_adjustment_diagnostics_no_empirical_claim' /tmp/lighting-mar-mnar-tipping.json
+          grep -q 'missing_mean_tipping_delta_pp' /tmp/lighting-mar-mnar-tipping.json
+
 
