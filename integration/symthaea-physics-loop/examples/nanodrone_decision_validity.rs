@@ -507,26 +507,21 @@ fn event_and_alert_metrics(
             let duration = rows[*last].decision_time_s - rows[*first].decision_time_s;
             if duration > 0.0 { duration_minutes += duration / 60.0; duration_observable = true; }
         }
-        let mut episode_start: Option<usize> = None;
-        let mut prev_alert: Option<usize> = None;
-        let mut episode_has_event = false;
-        for idx in indices {
-            if !alerts[idx] {
-                if episode_start.is_some() && !episode_has_event { false_episodes += 1; }
-                episode_start = None; prev_alert = None; episode_has_event = false;
-                continue;
-            }
-            if let Some(prev) = prev_alert {
-                if rows[idx].decision_time_s - rows[prev].decision_time_s > merge_gap_s + EPS {
-                    if episode_start.is_some() && !episode_has_event { false_episodes += 1; }
-                    episode_start = None; episode_has_event = false;
+        let alert_indices: Vec<usize> = indices.into_iter().filter(|idx| alerts[*idx]).collect();
+        let mut episode: Vec<usize> = Vec::new();
+        let mut previous_alert_time: Option<f64> = None;
+        for idx in alert_indices {
+            let time = rows[idx].decision_time_s;
+            if let Some(previous) = previous_alert_time {
+                if time - previous > merge_gap_s + EPS {
+                    if !episode.is_empty() && !episode.iter().any(|i| alert_events[*i]) { false_episodes += 1; }
+                    episode.clear();
                 }
             }
-            if episode_start.is_none() { episode_start = Some(idx); }
-            episode_has_event |= alert_events[idx];
-            prev_alert = Some(idx);
+            episode.push(idx);
+            previous_alert_time = Some(time);
         }
-        if episode_start.is_some() && !episode_has_event { false_episodes += 1; }
+        if !episode.is_empty() && !episode.iter().any(|i| alert_events[*i]) { false_episodes += 1; }
     }
     let rate = if duration_observable && duration_minutes > 0.0 { Some(false_episodes as f64 / duration_minutes) } else { None };
     let recall = if evs.is_empty() { None } else { Some(detected_count as f64 / evs.len() as f64) };
@@ -763,6 +758,21 @@ mod tests {
         assert_eq!(detected, 1);
         assert_eq!(recall, Some(1.0));
         assert!(lead.unwrap() > 0.0);
+    }
+
+    #[test]
+    fn false_alert_episodes_merge_by_elapsed_time() {
+        let rows = vec![
+            row("f", 0.0, 0.5, 0.0, 0.0),
+            row("f", 0.1, 0.6, 0.0, 0.0),
+            row("f", 0.2, 0.7, 0.0, 0.0),
+            row("f", 0.3, 0.8, 0.0, 0.0),
+        ];
+        let alerts = vec![false, true, true, false];
+        let merged = event_and_alert_metrics(&rows, &alerts, 1.0, 0.11, 0.11);
+        let split = event_and_alert_metrics(&rows, &alerts, 1.0, 0.11, 0.05);
+        assert_eq!(merged.4, 1);
+        assert_eq!(split.4, 2);
     }
 
     #[test]
