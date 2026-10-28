@@ -1,0 +1,71 @@
+{
+  "schema_version": "energy-robust-policy-stress-panel-v0.1",
+  "benchmark_id": "set-valued-essential-reserve-policy-under-shift",
+  "claim_ceiling": "Synthetic abstract one-quantum dispatch only. This does not establish real forecast calibration, a physical-site result, a safety certification, or industry superiority.",
+  "probability_model": null,
+  "probability_note": "No scenario probabilities or frequency weights are supported. Report unweighted per-scenario and worst-case outcomes only; do not compute expected cost, EVPI, VSS, CVaR, or confidence intervals.",
+  "model": {
+    "initial_soc_quanta": 2,
+    "capacity_quanta": 2,
+    "max_discharge_quanta_per_interval": 1,
+    "actions": ["hold", "serve_essential", "serve_flexible"]
+  },
+  "forecast_contract": {
+    "t0": {"grid_t1": {"value": "unknown", "available_at": 0}, "grid_t2": {"value": "unknown", "available_at": 0}},
+    "t1": {"grid_t2": {"value": "unknown", "available_at": 1}}
+  },
+  "training_scenarios": [
+    {"scenario_id": "early_outage_clears", "intervals": [
+      {"time_index": 0, "grid_available": false, "essential_demand": 0, "flexible_demand": 1},
+      {"time_index": 1, "grid_available": false, "essential_demand": 1, "flexible_demand": 0},
+      {"time_index": 2, "grid_available": true, "essential_demand": 0, "flexible_demand": 0}
+    ]},
+    {"scenario_id": "early_outage_persists", "intervals": [
+      {"time_index": 0, "grid_available": false, "essential_demand": 0, "flexible_demand": 1},
+      {"time_index": 1, "grid_available": false, "essential_demand": 1, "flexible_demand": 0},
+      {"time_index": 2, "grid_available": false, "essential_demand": 1, "flexible_demand": 0}
+    ]},
+    {"scenario_id": "late_outage", "intervals": [
+      {"time_index": 0, "grid_available": false, "essential_demand": 0, "flexible_demand": 1},
+      {"time_index": 1, "grid_available": true, "essential_demand": 0, "flexible_demand": 0},
+      {"time_index": 2, "grid_available": false, "essential_demand": 1, "flexible_demand": 0}
+    ]},
+    {"scenario_id": "no_late_outage", "intervals": [
+      {"time_index": 0, "grid_available": false, "essential_demand": 0, "flexible_demand": 1},
+      {"time_index": 1, "grid_available": true, "essential_demand": 0, "flexible_demand": 0},
+      {"time_index": 2, "grid_available": true, "essential_demand": 0, "flexible_demand": 0}
+    ]}
+  ],
+  "held_out_stress_scenarios": [
+    {"scenario_id": "heldout_critical_and_flexible_now", "stress_family": "unseen_current_critical_load", "intervals": [
+      {"time_index": 0, "grid_available": false, "essential_demand": 1, "flexible_demand": 1},
+      {"time_index": 1, "grid_available": false, "essential_demand": 1, "flexible_demand": 0},
+      {"time_index": 2, "grid_available": false, "essential_demand": 1, "flexible_demand": 0}
+    ]},
+    {"scenario_id": "heldout_long_outage_flex_surge", "stress_family": "long_outage_and_flexible_surge", "intervals": [
+      {"time_index": 0, "grid_available": false, "essential_demand": 0, "flexible_demand": 2},
+      {"time_index": 1, "grid_available": false, "essential_demand": 1, "flexible_demand": 0},
+      {"time_index": 2, "grid_available": false, "essential_demand": 1, "flexible_demand": 1}
+    ]},
+    {"scenario_id": "heldout_critical_demand_surge", "stress_family": "essential_demand_surge", "intervals": [
+      {"time_index": 0, "grid_available": false, "essential_demand": 0, "flexible_demand": 1},
+      {"time_index": 1, "grid_available": false, "essential_demand": 2, "flexible_demand": 0},
+      {"time_index": 2, "grid_available": false, "essential_demand": 1, "flexible_demand": 0}
+    ]},
+    {"scenario_id": "heldout_late_double_critical", "stress_family": "late_outage_demand_shift", "intervals": [
+      {"time_index": 0, "grid_available": false, "essential_demand": 0, "flexible_demand": 1},
+      {"time_index": 1, "grid_available": true, "essential_demand": 0, "flexible_demand": 0},
+      {"time_index": 2, "grid_available": false, "essential_demand": 2, "flexible_demand": 1}
+    ]}
+  ],
+  "required_checks": [
+    "policies_use_observable_prefix_not_scenario_id",
+    "robust_policy_uses_training_uncertainty_set_only",
+    "unknown_prefix_fails_closed_for_flexible_service",
+    "essential_service_priority_is_explicit",
+    "battery_capacity_and_discharge_limits_are_enforced",
+    "held_out_scenario_results_are_reported_separately",
+    "no_probability_weighted_metrics_without_supported_probabilities",
+    "all_scenario_time_pairs_are_accounted_for"
+  ]
+}
