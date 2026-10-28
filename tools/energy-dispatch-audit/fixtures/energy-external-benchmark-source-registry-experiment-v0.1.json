@@ -2,7 +2,7 @@
   "schema_version": "energy-external-benchmark-source-registry-experiment-v0.1",
   "registry_id": "energy-external-benchmark-source-registry-2026-10-28",
   "source_registry_path": "tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-v0.1.json",
-  "source_registry_sha256": "5b580bd00f0c3663cce2b0cd0ddecb9ce55a520491b0b659852094be8261d701",
+  "source_registry_sha256": "6481f1d4e4c2cc814582960350c2323b86aea8a388b97c83f7c516785f44783a",
   "expected_coverage": {
     "source_count": 3,
     "reference_only_not_imported_count": 3,
@@ -48,5 +48,5 @@
     "forecast_columns_are_not_assumed_causal_without_issue_times"
   ],
   "citylearn_source_manifest_path": "tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json",
-  "citylearn_source_manifest_sha256": "2b0843776e0fb4729a3cec0b822970ccd163182915477aba0e01ccd19eff3066"
+  "citylearn_source_manifest_sha256": "bd5086f66e47b400a1e37b4f6a6b5fffeabe02bf2c3a7a7c001c108813efe657"
 }
