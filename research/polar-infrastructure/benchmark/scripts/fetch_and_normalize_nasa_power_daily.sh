@@ -21,6 +21,10 @@ LON=$4
 START=$5
 END=$6
 OUT_DIR=$7
+[[ "$PROFILE_ID" =~ ^[a-z0-9]+([._-][a-z0-9]+)*$ ]] || { echo "invalid profile ID" >&2; exit 2; }
+[[ -n "$LOCATION_LABEL" ]] || { echo "location label must be non-empty" >&2; exit 2; }
+[[ "$LAT" =~ ^-?[0-9]+([.][0-9]+)?$ && "$LON" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || { echo "coordinates must be numeric" >&2; exit 2; }
+[[ "$START" =~ ^[0-9]{8}$ && "$END" =~ ^[0-9]{8}$ ]] || { echo "dates must use YYYYMMDD" >&2; exit 2; }
 command -v curl >/dev/null || { echo "curl is required" >&2; exit 69; }
 
 mkdir -p "$OUT_DIR"
