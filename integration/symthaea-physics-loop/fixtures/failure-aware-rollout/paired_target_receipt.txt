@@ -1,0 +1,1 @@
+Synthetic shared target-window identity for failure-aware evaluator smoke only.
