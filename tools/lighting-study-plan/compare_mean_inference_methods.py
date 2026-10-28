@@ -58,7 +58,14 @@ def _quantile(values: list[float], probability: float) -> float:
     lower = int(position)
     fraction = position - lower
     upper = min(lower + 1, len(ordered) - 1)
-    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
+    if fraction == 0.0:
+        return ordered[lower]
+    left, right = ordered[lower], ordered[upper]
+    if math.isinf(left) or math.isinf(right):
+        if left == right:
+            return left
+        return -math.inf if left < 0.0 and right < 0.0 else math.inf
+    return left * (1.0 - fraction) + right * fraction
 
 
 def draw_standardized(rng: random.Random, distribution: str, student_t_df: int = 3) -> float:
