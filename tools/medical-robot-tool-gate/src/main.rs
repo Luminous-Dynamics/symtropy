@@ -836,7 +836,19 @@ fn validate_morphology(model: &Value) -> Vec<String> {
             "source",
         ];
         morphology_unknown_fields(joint, JOINT_FIELDS, &mut findings);
-        if !morphology_required_fields(joint, JOINT_FIELDS) {
+        const REQUIRED_JOINT_FIELDS: &[&str] = &[
+            "joint_id",
+            "parent_link",
+            "child_link",
+            "joint_type",
+            "origin_m",
+            "axis_xyz",
+            "max_effort_nm",
+            "max_velocity_rad_s",
+            "command_enabled",
+            "source",
+        ];
+        if !morphology_required_fields(joint, REQUIRED_JOINT_FIELDS) {
             push_findings(&mut findings, "MORPHOLOGY_INCOMPLETE");
         }
         let joint_id = str_at(joint, "joint_id").unwrap_or("");
@@ -907,6 +919,29 @@ fn validate_morphology(model: &Value) -> Vec<String> {
                     || lower.zip(upper).is_none_or(|(lo, hi)| lo >= hi)
                 {
                     push_findings(&mut findings, "MORPHOLOGY_REVOLUTE_LIMITS_INVALID");
+                }
+                if effort.is_none_or(|value| !(0.001..=1000.0).contains(&value))
+                    || velocity.is_none_or(|value| !(0.001..=20.0).contains(&value))
+                {
+                    push_findings(&mut findings, "MORPHOLOGY_JOINT_ENVELOPE_INVALID");
+                }
+            }
+            Some("continuous") => {
+                let unit_axis = axis.is_some_and(|axis| {
+                    let norm = axis
+                        .iter()
+                        .map(|component| component * component)
+                        .sum::<f64>()
+                        .sqrt();
+                    (norm - 1.0).abs() <= 1.0e-3
+                });
+                if !unit_axis {
+                    push_findings(&mut findings, "MORPHOLOGY_CONTINUOUS_AXIS_INVALID");
+                }
+                if joint.get("lower_limit_rad").is_some()
+                    || joint.get("upper_limit_rad").is_some()
+                {
+                    push_findings(&mut findings, "MORPHOLOGY_CONTINUOUS_JOINT_HAS_POSITION_LIMITS");
                 }
                 if effort.is_none_or(|value| !(0.001..=1000.0).contains(&value))
                     || velocity.is_none_or(|value| !(0.001..=20.0).contains(&value))
@@ -999,7 +1034,7 @@ fn axis_angle_rotation(axis: [f64; 3], angle: f64) -> [[f64; 3]; 3] {
 }
 
 /// Computes geometry-only forward kinematics for a previously validated tree.
-/// Input is a map from every revolute joint ID to a bounded position in radians.
+/// Input includes every movable joint ID: bounded revolute angles and continuous angles with a finite numerical magnitude limit.
 /// This function has no actuator, controller, velocity or physics side effects.
 fn compute_forward_kinematics(
     model: &Value,
@@ -1027,28 +1062,38 @@ fn compute_forward_kinematics(
             push_findings(&mut findings, "JOINT_STATE_UNKNOWN_ID");
             continue;
         };
-        if str_at(joint, "joint_type") != Some("revolute") {
+        let joint_type = str_at(joint, "joint_type").unwrap_or("");
+        if joint_type == "fixed" {
             push_findings(&mut findings, "JOINT_STATE_FOR_FIXED_JOINT");
+            continue;
+        }
+        if !["revolute", "continuous"].contains(&joint_type) {
+            push_findings(&mut findings, "JOINT_STATE_TYPE_UNSUPPORTED");
             continue;
         }
         let Some(position) = value.as_f64().filter(|position| position.is_finite()) else {
             push_findings(&mut findings, "JOINT_STATE_VALUE_INVALID");
             continue;
         };
-        let lower = num_at(joint, "lower_limit_rad").unwrap_or(f64::NAN);
-        let upper = num_at(joint, "upper_limit_rad").unwrap_or(f64::NAN);
-        if position < lower || position > upper {
-            push_findings(&mut findings, "JOINT_STATE_OUT_OF_LIMITS");
+        if joint_type == "revolute" {
+            let lower = num_at(joint, "lower_limit_rad").unwrap_or(f64::NAN);
+            let upper = num_at(joint, "upper_limit_rad").unwrap_or(f64::NAN);
+            if position < lower || position > upper {
+                push_findings(&mut findings, "JOINT_STATE_OUT_OF_LIMITS");
+                continue;
+            }
+        } else if position.abs() > 1_000_000.0 {
+            push_findings(&mut findings, "JOINT_STATE_CONTINUOUS_MAGNITUDE_INVALID");
             continue;
         }
         positions.insert(joint_id.clone(), position);
     }
 
     for joint in joints {
-        if str_at(joint, "joint_type") == Some("revolute") {
+        if ["revolute", "continuous"].contains(&str_at(joint, "joint_type").unwrap_or("")) {
             let joint_id = str_at(joint, "joint_id").unwrap_or("");
             if !positions.contains_key(joint_id) {
-                push_findings(&mut findings, "JOINT_STATE_MISSING_REVOLUTE_JOINT");
+                push_findings(&mut findings, "JOINT_STATE_MISSING_MOVABLE_JOINT");
             }
         }
     }
@@ -1078,8 +1123,9 @@ fn compute_forward_kinematics(
                 parent_pose.translation[axis] + parent_frame_offset[axis]
             });
 
-            let joint_rotation = if str_at(joint, "joint_type") == Some("revolute") {
-                let axis = finite_vec3(&joint["axis_xyz"]).expect("validated revolute axis");
+            let joint_type = str_at(joint, "joint_type").unwrap_or("");
+            let joint_rotation = if ["revolute", "continuous"].contains(&joint_type) {
+                let axis = finite_vec3(&joint["axis_xyz"]).expect("validated movable axis");
                 axis_angle_rotation(axis, positions[joint["joint_id"].as_str().unwrap_or("")])
             } else {
                 LinkPose::identity().rotation
