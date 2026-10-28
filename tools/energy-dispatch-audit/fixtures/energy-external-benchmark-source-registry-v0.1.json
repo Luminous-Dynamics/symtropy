@@ -94,7 +94,7 @@
         "building_count": 17,
         "referenced_csv_file_count": 30,
         "file_manifest_path": "tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-phase-all-plus-evs-source-manifest-v0.1.json",
-        "file_manifest_sha256": "5fe0c6c851f540e9131dd1adc114b3318df4c1fc2d44201271c8ca7097aa988f",
+        "file_manifest_sha256": "384943157aead2106eb4b8847451a1b8e5db097840efba68dee9b82f7c59db0e",
         "external_data_bytes_copied_into_symtropy": false,
         "license_review_required": true
       }
