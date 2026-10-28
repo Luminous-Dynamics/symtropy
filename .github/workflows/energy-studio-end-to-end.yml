@@ -130,6 +130,42 @@ jobs:
           sha256sum "$source_fixture" "$context/multistage-causal-tree-report.json" > "$context/multistage-causal-tree-receipts.sha256"
           cat "$context/multistage-causal-tree-receipts.sha256"
 
+      - name: Qualify forecast freshness and information latency against exact known answers
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/information-freshness-context"
+          mkdir -p "$context"
+          source_panel="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-information-freshness-panel-v0.1.json"
+          experiment="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-information-freshness-experiment-v0.1.json"
+          cp "$source_panel" "$context/source-panel.json"
+          cp "$experiment" "$context/experiment.json"
+          oracle="$work/targets/symtropy/debug/energy_information_freshness_oracle"
+          "$oracle" "$context/report.json" > "$context/qualification.log"
+          cat "$context/qualification.log"
+          panel_sha="$(sha256sum "$source_panel" | cut -d' ' -f1)"
+          experiment_sha="$(sha256sum "$experiment" | cut -d' ' -f1)"
+          test "$(jq -r .source_panel_sha256 "$context/report.json")" = "$panel_sha"
+          test "$(jq -r .experiment_fixture_sha256 "$context/report.json")" = "$experiment_sha"
+          jq -e '
+            .status == "PASS_SYNTHETIC_INFORMATION_FRESHNESS_ONLY" and
+            .scenario_count == 4 and .interval_count == 12 and
+            .qualified_policy_count == 3 and .counterfactual_policy_count == 1 and
+            .policy_results.fresh_forecast.essential_unserved_total == 0 and
+            .policy_results.fresh_forecast.flexible_unserved_total == 1 and
+            .policy_results.delayed_forecast_fail_closed.essential_unserved_total == 0 and
+            .policy_results.delayed_forecast_fail_closed.flexible_unserved_total == 4 and
+            .policy_results.stale_forecast_fail_closed.essential_unserved_total == 0 and
+            .policy_results.stale_forecast_fail_closed.flexible_unserved_total == 4 and
+            .policy_results.stale_blind_counterfactual.qualification_status == "DISQUALIFIED_UNSAFE_COUNTERFACTUAL" and
+            .policy_results.stale_blind_counterfactual.essential_unserved_total == 1 and
+            .policy_results.stale_blind_counterfactual.flexible_unserved_total == 0 and
+            .physical_dispatch_audit == "NOT_RUN_ABSTRACT_BATTERY_MODEL"
+          ' "$context/report.json" >/dev/null
+          sha256sum "$context/source-panel.json" "$context/experiment.json" "$context/report.json" > "$context/receipts.sha256"
+          cat "$context/receipts.sha256"
+
       - name: Verify published South African tariff arithmetic against hand-calculated answers
         shell: bash
         run: |
@@ -616,6 +652,11 @@ jobs:
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-candidate-scenario-panel-v0.1.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-scenario-panel-v0.1.json
             ${{ runner.temp }}/energy-studio/nonanticipativity-context/*
+            ${{ runner.temp }}/energy-studio/information-freshness-context/*
+            ${{ github.workspace }}/tools/energy-dispatch-audit/ENERGY_INFORMATION_FRESHNESS_BENCHMARK_V0_1.md
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-information-freshness-panel-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-information-freshness-experiment-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/src/bin/energy_information_freshness_oracle.rs
             ${{ github.workspace }}/tools/energy-dispatch-audit/NONANTICIPATIVE_POLICY_BENCHMARK_V0_1.md
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-nonanticipativity-counterexample-v0.1.json
             ${{ runner.temp }}/energy-studio/sa-tariff-context/*
