@@ -239,7 +239,8 @@
             "interval_accumulation",
             "sample_event",
             "mission_time",
-            "unknown"
+            "unknown",
+            "calendar_day_label"
           ]
         },
         "timezone": {
