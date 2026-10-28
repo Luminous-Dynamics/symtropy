@@ -4673,16 +4673,31 @@ pub fn audit_acquisition_policy_comparison(pool: &Value) -> AcquisitionPolicyCom
     }
     summaries.push(acquisition_summary("random", random_runs));
 
-    for (policy, feature) in [
-        ("uncalibrated_uncertainty", "uncalibrated_uncertainty"),
-        ("calibrated_uncertainty", "calibrated_uncertainty"),
-        ("novelty", "novelty"),
-        ("cost_aware_voi", "estimated_voi"),
+    for (policy, feature, cost_aware) in [
+        ("uncalibrated_uncertainty", "uncalibrated_uncertainty", false),
+        ("calibrated_uncertainty", "calibrated_uncertainty", false),
+        ("novelty", "novelty", false),
+        ("cost_aware_voi", "estimated_voi", true),
     ] {
         let selected = eligible.iter().max_by(|left, right| {
-            let left_score = left.features[feature] / left.cost_units;
-            let right_score = right.features[feature] / right.cost_units;
-            left_score.total_cmp(&right_score)
+            let score = |candidate: &AcquisitionCandidate| {
+                if !cost_aware {
+                    candidate.features[feature]
+                } else {
+                    // Normalize both money/resource cost and elapsed time against the
+                    // declared caps. When the time cap is zero, only zero-duration
+                    // candidates can be eligible and the duration term is zero.
+                    let cost_fraction = candidate.cost_units / max_cost;
+                    let duration_fraction = if max_duration > 0.0 {
+                        candidate.duration_seconds / max_duration
+                    } else {
+                        0.0
+                    };
+                    candidate.features[feature] / (cost_fraction + duration_fraction)
+                }
+            };
+            score(left).total_cmp(&score(right))
+                .then_with(|| right.cost_units.total_cmp(&left.cost_units))
                 .then_with(|| right.duration_seconds.total_cmp(&left.duration_seconds))
                 .then_with(|| right.id.cmp(&left.id))
         }).expect("eligible set checked non-empty");
@@ -5086,6 +5101,37 @@ mod acquisition_policy_comparison_tests {
         let report = audit_acquisition_policy_comparison(&value);
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|finding| finding.starts_with("RANDOM_SEEDS:seed values must be unique")));
+    }
+
+    #[test]
+    fn uncertainty_policy_uses_raw_uncertainty_not_implicit_cost_normalization() {
+        let mut value = fixture();
+        value["measurements"][0]["selection_features"]["calibrated_uncertainty"] = json!(0.90);
+        value["measurements"][1]["selection_features"]["calibrated_uncertainty"] = json!(0.95);
+        let report = audit_acquisition_policy_comparison(&value);
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(
+            policy(&report, "calibrated_uncertainty").runs[0].selected_measurement_id.as_deref(),
+            Some("measure-noise")
+        );
+    }
+
+    #[test]
+    fn cost_aware_voi_normalizes_both_cost_and_elapsed_time() {
+        let mut value = fixture();
+        value["measurements"][0]["duration_seconds"] = json!(90.0);
+        value["measurements"][0]["selection_features"]["estimated_voi"] = json!(8.0);
+        value["measurements"][1]["selection_features"]["estimated_voi"] = json!(5.0);
+        let report = audit_acquisition_policy_comparison(&value);
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(
+            policy(&report, "cost_aware_voi").runs[0].selected_measurement_id.as_deref(),
+            Some("measure-regime")
+        );
+        assert_eq!(
+            policy(&report, "cost_aware_voi").runs[0].duration_seconds,
+            Some(20.0)
+        );
     }
 
     #[test]
