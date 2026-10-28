@@ -138,6 +138,9 @@ jobs:
           grep -q 'same total budget' "$protocol"
           grep -q 'audit-acquisition-policies' "$protocol"
           grep -q 'glass-acquisition-policy-comparison-v0.1.schema.json' "$protocol"
+          grep -q 'glass-acquisition-outcome-oracle-v0.1.schema.json' "$protocol"
+          grep -q 'GLASS-CLOSED-LOOP-001 #2785' "$protocol"
+          grep -q 'proceedings.mlr.press/v306/malik26a.html' "$protocol"
           grep -q 'calibration alone' "$protocol"
           echo "OOD acquisition-value protocol and matched-budget baselines: PASS"
 
