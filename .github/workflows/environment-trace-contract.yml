@@ -185,9 +185,15 @@ jobs:
             .event_annotations[0].dates_local_as_published == ["2025-06-04","2025-06-25","2025-06-26"] and
             (.candidate_auxiliary_sources | length >= 2) and
             all(.candidate_auxiliary_sources[]; .admission_status == "candidate_not_admitted") and
-            .candidate_auxiliary_sources[] | select(.source_id == "sasscal_weathernet_gobabeb_met_8893") | .current_radiation_status | contains("sensor not installed at this station") and
-            .candidate_auxiliary_sources[] | select(.source_id == "sasscal_weathernet_gobabeb_met_8893") | any(.known_page_examples[]; .reported_hourly_records == 24 and .status == "publisher_page_inspected_not_raw_file_ingested") and
-            .candidate_auxiliary_sources[] | select(.source_id == "sasscal_weathernet_gobabeb_met_8893") | any(.known_page_examples[]; .reported_valid_dates == ["2023-01-01","2023-01-02","2023-01-03","2023-01-04"] and .status == "publisher_page_inspected_not_raw_file_ingested")
+            any(.candidate_auxiliary_sources[];
+              .source_id == "sasscal_weathernet_gobabeb_met_8893" and
+              (.current_radiation_status | contains("sensor not installed at this station")) and
+              any(.known_page_examples[]; .reported_hourly_records == 24 and .status == "publisher_page_inspected_not_raw_file_ingested")
+            ) and
+            any(.candidate_auxiliary_sources[];
+              .source_id == "sasscal_weathernet_gobabeb_met_8893" and
+              any(.known_page_examples[]; .reported_valid_dates == ["2023-01-01","2023-01-02","2023-01-03","2023-01-04"] and .status == "publisher_page_inspected_not_raw_file_ingested")
+            )
           ' "$plan"
 
       - name: Validate resilience bake-off preregistration contract
