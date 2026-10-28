@@ -872,7 +872,7 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
                     fail(&mut audit, "FAIL", "CANDIDATE_UNREGISTERED", &format!("episode {campaign_id} evaluates unknown family {candidate_id}"));
                     continue;
                 };
-                if event.get("predicted_feasible_before_observation") != family.get("predicted_feasible").unwrap_or(&Value::Null) {
+                if event.get("predicted_feasible_before_observation") != family.get("predicted_feasible") {
                     fail(&mut audit, "FAIL", "PREDICTION_RECEIPT_MISMATCH", &format!("episode {campaign_id} predicted feasibility differs from public catalog"));
                 }
                 let Some((feasible, utility)) = outcome_by_id.get(candidate_id).copied() else {
@@ -953,8 +953,27 @@ fn close(left: Option<f64>, right: Option<f64>) -> bool {
 
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
+    if args.len() == 5 && args[1] == "--replay" {
+        let report_raw = match fs::read(&args[2]) {
+            Ok(bytes) => bytes,
+            Err(e) => { eprintln!("cannot read {}: {e}", args[2]); return ExitCode::from(2); }
+        };
+        let public_raw = match fs::read(&args[3]) {
+            Ok(bytes) => bytes,
+            Err(e) => { eprintln!("cannot read {}: {e}", args[3]); return ExitCode::from(2); }
+        };
+        let oracle_raw = match fs::read(&args[4]) {
+            Ok(bytes) => bytes,
+            Err(e) => { eprintln!("cannot read {}: {e}", args[4]); return ExitCode::from(2); }
+        };
+        let replay = audit_replay(&report_raw, &public_raw, &oracle_raw);
+        let status = replay.get("status").and_then(Value::as_str).unwrap_or("FAIL");
+        let code = match status { "PASS" => 0, "UNRESOLVED" => 3, _ => 2 };
+        println!("{}", serde_json::to_string_pretty(&replay).expect("replay report serializes"));
+        return ExitCode::from(code);
+    }
     if args.len() != 3 {
-        eprintln!("Usage: run-search-space-loop <public-policy-catalog.json> <sealed-outcome-oracle.json>");
+        eprintln!("Usage:\n  run-search-space-loop <public-policy-catalog.json> <sealed-outcome-oracle.json>\n  run-search-space-loop --replay <loop-report.json> <public-policy-catalog.json> <sealed-outcome-oracle.json>");
         return ExitCode::from(64);
     }
     let public_raw = match fs::read(&args[1]) {
@@ -1146,4 +1165,62 @@ mod tests {
         let second = run_all(PUBLIC, ORACLE);
         assert_eq!(first, second);
     }
+
+    #[test]
+    fn independent_replay_recomputes_the_full_live_loop_receipt() {
+        let report = run_all(PUBLIC, ORACLE);
+        let report_raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&report_raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "PASS");
+        assert_eq!(replay["episodes_checked"], 20);
+        assert!(replay["events_checked"].as_u64().unwrap() >= 70);
+        assert_eq!(replay["cost_units_recomputed"], 100.0);
+    }
+
+    #[test]
+    fn independent_replay_rejects_forged_observation_values() {
+        let (public, oracle) = values();
+        let mut report = run_all(PUBLIC, ORACLE);
+        let event = report["episodes"].as_array_mut().unwrap()[0]["events"].as_array_mut().unwrap()
+            .iter_mut().find(|e| e["action_type"] == "evaluate_candidate").unwrap();
+        event["observed_outcome"]["utility"] = json!(9999.0);
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, &serde_json::to_vec(&public).unwrap(), &serde_json::to_vec(&oracle).unwrap());
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "OBSERVATION_ORACLE_MISMATCH"));
+    }
+
+    #[test]
+    fn independent_replay_rejects_underreported_action_cost() {
+        let report = run_all(PUBLIC, ORACLE);
+        let mut report = report;
+        report["episodes"].as_array_mut().unwrap()[0]["events"][0]["cost_units_charged"] = json!(0.01);
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "ACTION_CHARGE_MISMATCH"));
+    }
+
+    #[test]
+    fn independent_replay_rejects_stale_view_digest() {
+        let mut report = run_all(PUBLIC, ORACLE);
+        report["episodes"].as_array_mut().unwrap()[0]["events"][0]["decision_view_sha256"] = json!("0".repeat(64));
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "DECISION_VIEW_DIGEST_MISMATCH"));
+    }
+
+    #[test]
+    fn independent_replay_refuses_relabelled_oracle_bytes() {
+        let report = run_all(PUBLIC, ORACLE);
+        let raw = serde_json::to_vec(&report).unwrap();
+        let mut changed: Value = serde_json::from_slice(ORACLE).unwrap();
+        changed["environments"][0]["outcomes"][0]["utility"] = json!(1234.0);
+        let changed_raw = serde_json::to_vec(&changed).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, &changed_raw);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "ORACLE_DIGEST_MISMATCH"));
+    }
+
 }
