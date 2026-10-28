@@ -32,6 +32,40 @@ jobs:
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Validate Earth-desert and Solar-System catalog invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-environment-domain-catalog" and
+            (.profiles | length >= 50) and
+            ([.profiles[].scenario_id] | length == (unique | length)) and
+            all(.profiles[];
+              (.scenario_id | type == "string" and length > 0) and
+              (.domain == "earth_extreme_environment" or
+               .domain == "space_cross_cutting" or
+               .domain == "solar_system_body" or
+               .domain == "solar_system_small_body") and
+              (.location_or_body | type == "string" and length > 0) and
+              (.deployment_mode | type == "string" and length > 0) and
+              (.stressors | type == "array" and length > 0) and
+              (.coupled_hazard_hypotheses | type == "array" and length > 0) and
+              (.model_requirements | type == "array" and length > 0) and
+              (.required_metrics | type == "array" and length > 0) and
+              (.evidence_basis | type == "string" and length > 0) and
+              (.confidence_or_data_limitations | type == "string" and length > 0) and
+              (.source_urls | type == "array" and length > 0 and all(.[]; startswith("https://")))
+            ) and
+            ([.profiles[].scenario_id] | index("earth.desert_dust_storm") != null) and
+            ([.profiles[].scenario_id] | index("earth.hyperarid_atacama") != null) and
+            ([.profiles[].scenario_id] | index("ss.moon_permanently_shadowed_region") != null or index("ss.moon_equatorial_and_south_pole") != null) and
+            ([.profiles[].scenario_id] | index("ss.mars_global_dust_storm") != null) and
+            ([.profiles[].scenario_id] | index("ss.europa") != null) and
+            ([.profiles[].scenario_id] | index("ss.titan_surface_and_lakes") != null) and
+            ([.profiles[].scenario_id] | index("ss.venus_surface") != null) and
+            ([.profiles[].scenario_id] | index("ss.neptune_atmospheric_level") != null)
+          ' research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
 
