@@ -5242,7 +5242,7 @@ pub fn audit_acquisition_campaign_transcript(transcript: &Value) -> AcquisitionT
     let root_keys = [
         "schema_version", "benchmark_id", "evidence_class", "claim_ceiling",
         "policy_id", "policy_input_sha256", "policy_code_sha256", "policy_config_sha256",
-        "max_cost_units", "max_duration_seconds", "events",
+        "max_cost_units", "max_duration_seconds", "measurement_cost_catalog", "events",
     ];
     if !relationship_exact_keys(transcript, &root_keys) {
         transcript_fail(&mut findings, "TRANSCRIPT_ROOT_KEYS", "missing or unknown top-level fields");
@@ -5284,6 +5284,44 @@ pub fn audit_acquisition_campaign_transcript(transcript: &Value) -> AcquisitionT
     if max_duration.map_or(true, |value| !value.is_finite() || value < 0.0) {
         transcript_fail(&mut findings, "TRANSCRIPT_DURATION_CAP", "max_duration_seconds must be finite and non-negative");
         hard_failure = true;
+    }
+
+    let mut measurement_catalog: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+    let catalog = transcript.get("measurement_cost_catalog").and_then(Value::as_array);
+    if catalog.map_or(true, Vec::is_empty) {
+        transcript_fail(&mut findings, "TRANSCRIPT_COST_CATALOG", "non-empty measurement_cost_catalog required");
+        hard_failure = true;
+    }
+    if let Some(items) = catalog {
+        for (index, item) in items.iter().enumerate() {
+            if !relationship_exact_keys(item, &["measurement_id", "cost_units", "duration_seconds"]) {
+                transcript_fail(&mut findings, "TRANSCRIPT_CATALOG_KEYS", format!("catalog item {index} has missing or unknown fields"));
+                hard_failure = true;
+                continue;
+            }
+            let id = item.get("measurement_id").and_then(Value::as_str).unwrap_or("");
+            let cost = item.get("cost_units").and_then(Value::as_f64);
+            let duration = item.get("duration_seconds").and_then(Value::as_f64);
+            if !is_stable_slug(id) {
+                transcript_fail(&mut findings, "TRANSCRIPT_CATALOG_ID", format!("catalog item {index} has invalid measurement_id"));
+                hard_failure = true;
+                continue;
+            }
+            if cost.map_or(true, |value| !value.is_finite() || value <= 0.0) {
+                transcript_fail(&mut findings, "TRANSCRIPT_CATALOG_COST", format!("catalog item {id} cost must be finite and positive"));
+                hard_failure = true;
+                continue;
+            }
+            if duration.map_or(true, |value| !value.is_finite() || value < 0.0) {
+                transcript_fail(&mut findings, "TRANSCRIPT_CATALOG_DURATION", format!("catalog item {id} duration must be finite and non-negative"));
+                hard_failure = true;
+                continue;
+            }
+            if measurement_catalog.insert(id.to_string(), (cost.unwrap(), duration.unwrap())).is_some() {
+                transcript_fail(&mut findings, "TRANSCRIPT_CATALOG_DUPLICATE", format!("catalog repeats measurement_id {id}"));
+                hard_failure = true;
+            }
+        }
     }
 
     let events = transcript.get("events").and_then(Value::as_array);
@@ -5354,23 +5392,35 @@ pub fn audit_acquisition_campaign_transcript(transcript: &Value) -> AcquisitionT
                         transcript_fail(&mut findings, "TRANSCRIPT_REQUEST_DURATION", format!("event {event_id} duration must be finite and non-negative"));
                         hard_failure = true;
                     }
-                    if let (Some(cost), Some(duration)) = (
-                        cost.filter(|value| value.is_finite() && *value > 0.0),
-                        duration.filter(|value| value.is_finite() && *value >= 0.0),
-                    ) {
-                        total_cost_units += cost;
-                        total_duration_seconds += duration;
-                        if let Some(cap) = max_cost {
-                            if total_cost_units > cap + 1e-9 {
-                                transcript_fail(&mut findings, "TRANSCRIPT_COST_OVERRUN", format!("event {event_id} raises cumulative cost above cap"));
+                    match measurement_catalog.get(measurement_id).copied() {
+                        Some((registered_cost, registered_duration)) => {
+                            if cost.map_or(true, |value| !value.is_finite() || (value - registered_cost).abs() > 1e-9) {
+                                transcript_fail(&mut findings, "TRANSCRIPT_COST_TAMPER", format!("event {event_id} declared cost does not match the frozen measurement catalog"));
                                 hard_failure = true;
+                            }
+                            if duration.map_or(true, |value| !value.is_finite() || (value - registered_duration).abs() > 1e-9) {
+                                transcript_fail(&mut findings, "TRANSCRIPT_DURATION_TAMPER", format!("event {event_id} declared duration does not match the frozen measurement catalog"));
+                                hard_failure = true;
+                            }
+                            // Charge evaluator-registered costs even when the policy under-reports them.
+                            total_cost_units += registered_cost;
+                            total_duration_seconds += registered_duration;
+                            if let Some(cap) = max_cost {
+                                if total_cost_units > cap + 1e-9 {
+                                    transcript_fail(&mut findings, "TRANSCRIPT_COST_OVERRUN", format!("event {event_id} raises cumulative catalog cost above cap"));
+                                    hard_failure = true;
+                                }
+                            }
+                            if let Some(cap) = max_duration {
+                                if total_duration_seconds > cap + 1e-9 {
+                                    transcript_fail(&mut findings, "TRANSCRIPT_DURATION_OVERRUN", format!("event {event_id} raises cumulative catalog duration above cap"));
+                                    hard_failure = true;
+                                }
                             }
                         }
-                        if let Some(cap) = max_duration {
-                            if total_duration_seconds > cap + 1e-9 {
-                                transcript_fail(&mut findings, "TRANSCRIPT_DURATION_OVERRUN", format!("event {event_id} raises cumulative duration above cap"));
-                                hard_failure = true;
-                            }
+                        None => {
+                            transcript_fail(&mut findings, "TRANSCRIPT_CATALOG_UNKNOWN_MEASUREMENT", format!("event {event_id} requests measurement {measurement_id} absent from the frozen catalog"));
+                            hard_failure = true;
                         }
                     }
                     measurement_requests += 1;
@@ -5525,6 +5575,38 @@ mod acquisition_campaign_transcript_tests {
         let report = audit_acquisition_campaign_transcript(&transcript);
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_COST_OVERRUN:")));
+    }
+
+    #[test]
+    fn declared_measurement_cost_cannot_be_underreported() {
+        let mut transcript = fixture();
+        transcript["events"][0]["cost_units"] = json!(0.1);
+        let report = audit_acquisition_campaign_transcript(&transcript);
+        assert_eq!(report.status, "FAIL");
+        assert_eq!(report.total_cost_units, 2.0);
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_COST_TAMPER:")));
+    }
+
+    #[test]
+    fn budget_is_charged_from_registered_catalog_not_event_payload() {
+        let mut transcript = fixture();
+        transcript["events"][0]["cost_units"] = json!(0.1);
+        transcript["max_cost_units"] = json!(1.0);
+        let report = audit_acquisition_campaign_transcript(&transcript);
+        assert_eq!(report.status, "FAIL");
+        assert_eq!(report.total_cost_units, 2.0);
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_COST_OVERRUN:")));
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_COST_TAMPER:")));
+    }
+
+    #[test]
+    fn requested_measurement_must_exist_in_registered_cost_catalog() {
+        let mut transcript = fixture();
+        transcript["events"][0]["measurement_id"] = json!("unregistered-assay");
+        transcript["events"][1]["measurement_id"] = json!("unregistered-assay");
+        let report = audit_acquisition_campaign_transcript(&transcript);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_CATALOG_UNKNOWN_MEASUREMENT:")));
     }
 
     #[test]
