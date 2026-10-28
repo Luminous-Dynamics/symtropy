@@ -1,0 +1,180 @@
+name: Energy CityLearn Control Baseline Panel
+
+on:
+  pull_request:
+    paths:
+      - "tools/energy-dispatch-audit/scripts/citylearn_control_baseline_panel.py"
+      - "tools/energy-dispatch-audit/tests/test_citylearn_control_baseline_panel.py"
+      - "tools/energy-dispatch-audit/fixtures/energy-citylearn-control-benchmark-protocol-v0.1.json"
+      - ".github/workflows/energy-citylearn-control-baseline.yml"
+  workflow_dispatch:
+    inputs:
+      dataset_terms_reviewed:
+        description: "Confirm that the selected dataset's reuse terms have been reviewed for this run"
+        type: boolean
+        required: true
+        default: false
+      data_terms_review_reference:
+        description: "Link or identifier for the recorded dataset-terms review"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  protocol-tests:
+    name: Validate benchmark protocol without downloading external data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: false
+      - name: Compile research-only adapter
+        run: python -m py_compile tools/energy-dispatch-audit/scripts/citylearn_control_baseline_panel.py
+      - name: Run standard-library protocol and negative-control tests
+        run: python -m unittest discover -s tools/energy-dispatch-audit/tests -p "test_citylearn_control_baseline_panel.py" -v
+      - name: Verify the machine-readable protocol split and baseline contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = json.loads(Path("tools/energy-dispatch-audit/fixtures/energy-citylearn-control-benchmark-protocol-v0.1.json").read_text())
+          assert len(p["controllers"]) == 4
+          assert [s["steps"] for s in p["splits"]] == [5256, 876, 2628]
+          assert sum(s["steps"] for s in p["splits"]) == 8760
+          assert p["environment"]["disable_all_forecast_named_observations"] is True
+          assert p["source"]["commit"] == "834575c1a0194c8ae9d648ae858376a94dfceb78"
+          print("PASS protocol contract; no external dataset was downloaded")
+          PY
+
+  simulated-baseline-panel:
+    name: Run official CityLearn baselines on the pinned dataset
+    if: github.event_name == 'workflow_dispatch' && inputs.dataset_terms_reviewed == true && inputs.data_terms_review_reference != ''
+    needs: protocol-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: false
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          toolchain: "1.96.0"
+
+      - name: Bootstrap Rust audit tool and adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path tools/energy-dispatch-audit/Cargo.toml
+
+      - name: Fetch only the pinned CityLearn source folders
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_root="$RUNNER_TEMP/citylearn-source"
+          source_commit="834575c1a0194c8ae9d648ae858376a94dfceb78"
+          dataset_path="data/datasets/citylearn_challenge_2022_phase_all_plus_evs"
+          git clone --filter=blob:none --depth 1 --no-checkout --branch v3.0.2 \
+            https://github.com/citylearn-project/CityLearn.git "$source_root"
+          git -C "$source_root" sparse-checkout init --cone
+          git -C "$source_root" sparse-checkout set citylearn "$dataset_path"
+          git -C "$source_root" checkout --detach "$source_commit"
+          test "$(git -C "$source_root" rev-parse HEAD)" = "$source_commit"
+
+      - name: Install CityLearn from the pinned source checkout and record resolved environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_root="$RUNNER_TEMP/citylearn-source"
+          artifacts="$GITHUB_WORKSPACE/energy-citylearn-control-artifacts"
+          mkdir -p "$artifacts"
+          python -m pip install --upgrade pip
+          python -m pip install "$source_root"
+          python -m pip check
+          python - <<'PY'
+          import importlib.metadata
+          assert importlib.metadata.version("citylearn") == "3.0.2"
+          print("PASS exact CityLearn package version")
+          PY
+          python -m pip freeze > "$artifacts/python-environment.txt"
+          git -C "$source_root" rev-parse HEAD > "$artifacts/citylearn-source-commit.txt"
+          sha256sum "$artifacts/python-environment.txt" "$artifacts/citylearn-source-commit.txt" \
+            > "$artifacts/python-environment-receipts.sha256"
+
+      - name: Audit raw data bytes and generate SHA-256 receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_root="$RUNNER_TEMP/citylearn-source"
+          artifacts="$GITHUB_WORKSPACE/energy-citylearn-control-artifacts"
+          cargo run --locked --manifest-path tools/energy-dispatch-audit/Cargo.toml \
+            --bin energy_citylearn_source_snapshot_audit -- \
+            "$source_root" "$artifacts/citylearn-source-report.json"
+          jq -e '
+            .status == "PASS_PINNED_SOURCE_BYTES_ONLY" and
+            .source_commit_verified == true and
+            .schema_git_blob_identity_verified == true and
+            .schema_csv_reference_count == 30 and
+            .schema_csv_references_match_manifest == true and
+            .source_file_git_blob_identities_verified == true and
+            .raw_sha256_receipts_generated == true and
+            .file_count == 30 and
+            .total_source_bytes_verified == 13049604 and
+            .dataset_terms_cleared == false and
+            .forecast_issue_times_verified == false
+          ' "$artifacts/citylearn-source-report.json" >/dev/null
+          jq -r '.files[] | "\(.sha256)  \(.path) [git-blob=\(.git_blob_sha1)]"' \
+            "$artifacts/citylearn-source-report.json" > "$artifacts/citylearn-raw-sha256-receipts.txt"
+
+      - name: Execute fixed-baseline panel with all forecast-named observations disabled
+        shell: bash
+        env:
+          DATA_TERMS_REVIEW_REFERENCE: ${{inputs.data_terms_review_reference}
+        run: |
+          set -euo pipefail
+          source_root="$RUNNER_TEMP/citylearn-source"
+          dataset_root="$source_root/data/datasets/citylearn_challenge_2022_phase_all_plus_evs"
+          artifacts="$GITHUB_WORKSPACE/energy-citylearn-control-artifacts"
+          python tools/energy-dispatch-audit/scripts/citylearn_control_baseline_panel.py \
+            --source-checkout-root "$source_root" \
+            --dataset-root "$dataset_root" \
+            --source-audit-report "$artifacts/citylearn-source-report.json" \
+            --source-audit-receipts "$artifacts/citylearn-raw-sha256-receipts.txt" \
+            --protocol tools/energy-dispatch-audit/fixtures/energy-citylearn-control-benchmark-protocol-v0.1.json \
+            --output-dir "$artifacts/baseline-panel" \
+            --acknowledge-data-terms-review \
+            --data-terms-review-reference "$DATA_TERMS_REVIEW_REFERENCE"
+          report="$artifacts/baseline-panel/report.json"
+          jq -e '
+            .report.status == "PASS_SIMULATED_BASELINE_PANEL_ONLY" and
+            .report.source.forecast_observations_exposed == 0 and
+            .report.source.source_raw_sha256_receipts_verified == true and
+            (.report.results | length) == 12
+          ' "$report" >/dev/null
+          sha256sum "$report" "$artifacts/baseline-panel/action-trace.jsonl" \
+            "$artifacts/citylearn-source-report.json" "$artifacts/citylearn-raw-sha256-receipts.txt" \
+            "$artifacts/python-environment.txt" > "$artifacts/benchmark-receipts.sha256"
+          cat "$artifacts/benchmark-receipts.sha256"
+
+      - name: Upload benchmark outputs and receipts only, not source CSVs
+        uses: actions/upload-artifact@v4
+        with:
+          name: energy-citylearn-control-baseline-v0.1
+          if-no-files-found: error
+          path: |
+            tools/energy-dispatch-audit/fixtures/energy-citylearn-control-benchmark-protocol-v0.1.json
+            tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json
+            energy-citylearn-control-artifacts/baseline-panel/report.json
+            energy-citylearn-control-artifacts/baseline-panel/action-trace.jsonl
+            energy-citylearn-control-artifacts/citylearn-source-report.json
+            energy-citylearn-control-artifacts/citylearn-raw-sha256-receipts.txt
+            energy-citylearn-control-artifacts/python-environment.txt
+            energy-citylearn-control-artifacts/python-environment-receipts.sha256
+            energy-citylearn-control-artifacts/benchmark-receipts.sha256
