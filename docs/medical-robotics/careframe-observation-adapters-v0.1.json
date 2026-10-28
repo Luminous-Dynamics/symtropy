@@ -1,0 +1,446 @@
+{
+  "schema_version": "careframe-observation-adapters-v0",
+  "suite_id": "CAREFRAME_OBSERVATION_CONTRACT_AUDIT",
+  "revision": 1,
+  "purpose": "Synthetic declarations of three observation adapters used to exercise matched-contract auditing. They are not claims that production adapters exist or have equivalent accuracy.",
+  "adapters": [
+    {
+      "adapter_id": "state_vector_estimate",
+      "modality": "state_vector",
+      "raw_inputs": [
+        "encoder_estimate",
+        "odometry_estimate",
+        "perception_estimate",
+        "task_context",
+        "safety_supervisor"
+      ],
+      "source_state": "sensor_or_estimator",
+      "field_order": [
+        "robot.base_position_m",
+        "robot.base_orientation_xyzw",
+        "robot.base_linear_velocity_m_s",
+        "robot.base_angular_velocity_rad_s",
+        "robot.joint_positions_rad",
+        "robot.joint_velocities_rad_s",
+        "tool.id",
+        "tool.revision",
+        "task.target_id",
+        "task.phase",
+        "safety.stop_requested",
+        "safety.authority_state",
+        "scene.target_pose_m",
+        "scene.object_pose_m",
+        "scene.object_dimensions_m",
+        "scene.obstacle_poses_m",
+        "scene.perception_confidence",
+        "scene.visibility_mask"
+      ],
+      "field_specs": [
+        {
+          "field_id": "robot.base_position_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.base_orientation_xyzw",
+          "value_type": "vector4",
+          "unit": "unitless",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.base_linear_velocity_m_s",
+          "value_type": "vector3",
+          "unit": "m/s",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.base_angular_velocity_rad_s",
+          "value_type": "vector3",
+          "unit": "rad/s",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.joint_positions_rad",
+          "value_type": "number_map",
+          "unit": "rad",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.joint_velocities_rad_s",
+          "value_type": "number_map",
+          "unit": "rad/s",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "tool.id",
+          "value_type": "string",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "tool.revision",
+          "value_type": "integer",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "task.target_id",
+          "value_type": "string",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "task.phase",
+          "value_type": "enum_string",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "safety.stop_requested",
+          "value_type": "boolean",
+          "unit": "unitless",
+          "source_family": "safety_supervisor"
+        },
+        {
+          "field_id": "safety.authority_state",
+          "value_type": "enum_string",
+          "unit": "unitless",
+          "source_family": "safety_supervisor"
+        },
+        {
+          "field_id": "scene.target_pose_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.object_pose_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.object_dimensions_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.obstacle_poses_m",
+          "value_type": "vector3_list",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.perception_confidence",
+          "value_type": "scalar_0_1",
+          "unit": "unitless",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.visibility_mask",
+          "value_type": "boolean_map",
+          "unit": "unitless",
+          "source_family": "perception_estimate"
+        }
+      ],
+      "scoring_only_field_ids": [
+        "scene.object_mass_kg",
+        "scene.surface_friction_coefficient"
+      ]
+    },
+    {
+      "adapter_id": "rgb_derived_estimate",
+      "modality": "rgb",
+      "raw_inputs": [
+        "rgb_frame",
+        "encoder_estimate",
+        "odometry_estimate",
+        "task_context",
+        "safety_supervisor"
+      ],
+      "source_state": "sensor_or_estimator",
+      "field_order": [
+        "robot.base_position_m",
+        "robot.base_orientation_xyzw",
+        "robot.base_linear_velocity_m_s",
+        "robot.base_angular_velocity_rad_s",
+        "robot.joint_positions_rad",
+        "robot.joint_velocities_rad_s",
+        "tool.id",
+        "tool.revision",
+        "task.target_id",
+        "task.phase",
+        "safety.stop_requested",
+        "safety.authority_state",
+        "scene.target_pose_m",
+        "scene.object_pose_m",
+        "scene.object_dimensions_m",
+        "scene.obstacle_poses_m",
+        "scene.perception_confidence",
+        "scene.visibility_mask"
+      ],
+      "field_specs": [
+        {
+          "field_id": "robot.base_position_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.base_orientation_xyzw",
+          "value_type": "vector4",
+          "unit": "unitless",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.base_linear_velocity_m_s",
+          "value_type": "vector3",
+          "unit": "m/s",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.base_angular_velocity_rad_s",
+          "value_type": "vector3",
+          "unit": "rad/s",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.joint_positions_rad",
+          "value_type": "number_map",
+          "unit": "rad",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.joint_velocities_rad_s",
+          "value_type": "number_map",
+          "unit": "rad/s",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "tool.id",
+          "value_type": "string",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "tool.revision",
+          "value_type": "integer",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "task.target_id",
+          "value_type": "string",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "task.phase",
+          "value_type": "enum_string",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "safety.stop_requested",
+          "value_type": "boolean",
+          "unit": "unitless",
+          "source_family": "safety_supervisor"
+        },
+        {
+          "field_id": "safety.authority_state",
+          "value_type": "enum_string",
+          "unit": "unitless",
+          "source_family": "safety_supervisor"
+        },
+        {
+          "field_id": "scene.target_pose_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.object_pose_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.object_dimensions_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.obstacle_poses_m",
+          "value_type": "vector3_list",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.perception_confidence",
+          "value_type": "scalar_0_1",
+          "unit": "unitless",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.visibility_mask",
+          "value_type": "boolean_map",
+          "unit": "unitless",
+          "source_family": "perception_estimate"
+        }
+      ],
+      "scoring_only_field_ids": [
+        "scene.object_mass_kg",
+        "scene.surface_friction_coefficient"
+      ]
+    },
+    {
+      "adapter_id": "point_cloud_derived_estimate",
+      "modality": "point_cloud",
+      "raw_inputs": [
+        "point_cloud",
+        "encoder_estimate",
+        "odometry_estimate",
+        "task_context",
+        "safety_supervisor"
+      ],
+      "source_state": "sensor_or_estimator",
+      "field_order": [
+        "robot.base_position_m",
+        "robot.base_orientation_xyzw",
+        "robot.base_linear_velocity_m_s",
+        "robot.base_angular_velocity_rad_s",
+        "robot.joint_positions_rad",
+        "robot.joint_velocities_rad_s",
+        "tool.id",
+        "tool.revision",
+        "task.target_id",
+        "task.phase",
+        "safety.stop_requested",
+        "safety.authority_state",
+        "scene.target_pose_m",
+        "scene.object_pose_m",
+        "scene.object_dimensions_m",
+        "scene.obstacle_poses_m",
+        "scene.perception_confidence",
+        "scene.visibility_mask"
+      ],
+      "field_specs": [
+        {
+          "field_id": "robot.base_position_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.base_orientation_xyzw",
+          "value_type": "vector4",
+          "unit": "unitless",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.base_linear_velocity_m_s",
+          "value_type": "vector3",
+          "unit": "m/s",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.base_angular_velocity_rad_s",
+          "value_type": "vector3",
+          "unit": "rad/s",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.joint_positions_rad",
+          "value_type": "number_map",
+          "unit": "rad",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "robot.joint_velocities_rad_s",
+          "value_type": "number_map",
+          "unit": "rad/s",
+          "source_family": "proprioception"
+        },
+        {
+          "field_id": "tool.id",
+          "value_type": "string",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "tool.revision",
+          "value_type": "integer",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "task.target_id",
+          "value_type": "string",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "task.phase",
+          "value_type": "enum_string",
+          "unit": "unitless",
+          "source_family": "task_context"
+        },
+        {
+          "field_id": "safety.stop_requested",
+          "value_type": "boolean",
+          "unit": "unitless",
+          "source_family": "safety_supervisor"
+        },
+        {
+          "field_id": "safety.authority_state",
+          "value_type": "enum_string",
+          "unit": "unitless",
+          "source_family": "safety_supervisor"
+        },
+        {
+          "field_id": "scene.target_pose_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.object_pose_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.object_dimensions_m",
+          "value_type": "vector3",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.obstacle_poses_m",
+          "value_type": "vector3_list",
+          "unit": "m",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.perception_confidence",
+          "value_type": "scalar_0_1",
+          "unit": "unitless",
+          "source_family": "perception_estimate"
+        },
+        {
+          "field_id": "scene.visibility_mask",
+          "value_type": "boolean_map",
+          "unit": "unitless",
+          "source_family": "perception_estimate"
+        }
+      ],
+      "scoring_only_field_ids": [
+        "scene.object_mass_kg",
+        "scene.surface_friction_coefficient"
+      ]
+    }
+  ]
+}
