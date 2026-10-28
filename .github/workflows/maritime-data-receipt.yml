@@ -26,6 +26,8 @@ on:
       - 'docs/tech/CYPORT_BENCHMARK_TASKS_V0_1.md'
       - 'docs/tech/CYPORT_FEATURE_AVAILABILITY_V0_1.json'
       - 'docs/tech/CYPORT_FEATURE_AVAILABILITY_V0_1.md'
+      - 'docs/tech/CYPORT_ASOF_FORECAST_REPLAY_V0_1.json'
+      - 'docs/tech/CYPORT_ASOF_FORECAST_REPLAY_V0_1.md'
       - 'docs/tech/CYPORT_INTERACTION_SOURCE_PROFILE_V0_1.json'
       - 'docs/tech/MARITIME_CYPORT_INTERACTION_PROFILE_V0_1.md'
       - 'Cargo.toml'
@@ -93,6 +95,9 @@ jobs:
 
       - name: Validate complete CyPort feature availability register
         run: cargo run --locked -p maritime-data-receipt -- --validate-cyport-feature-availability docs/tech/CYPORT_FEATURE_AVAILABILITY_V0_1.json
+
+      - name: Validate CyPort as-of forecast replay policy and lead-time limits
+        run: cargo run --locked -p maritime-data-receipt -- --validate-cyport-asof-replay-contract docs/tech/CYPORT_ASOF_FORECAST_REPLAY_V0_1.json
 
       - name: Validate frozen CyPort benchmark task contract
         run: cargo run --locked -p maritime-data-receipt -- --validate-cyport-benchmark-tasks docs/tech/CYPORT_BENCHMARK_TASKS_V0_1.json

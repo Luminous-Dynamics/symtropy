@@ -1,0 +1,95 @@
+{
+  "schema_id": "luminous.symtropy.maritime.cyport-asof-forecast-replay",
+  "schema_version": "0.1.0",
+  "status": "POLICY_ONLY_NO_REPLAY_EXECUTED",
+  "source": {
+    "repository": "https://github.com/ChenchenMobility/Maritime-Data-CyPort",
+    "revision": "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
+    "resource_path": "Tropical_cyclone_interaction/interaction_data.csv",
+    "git_blob_sha1": "21beb5b7673918143a0ab108b03acc3cccaeb330",
+    "byte_length": 643047,
+    "target_date_field": "start_date",
+    "target_date_precision": "DATE_ONLY",
+    "target_timezone_status": "UNVERIFIED"
+  },
+  "split_manifest": {
+    "path": "docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json",
+    "schema_id": "luminous.symtropy.maritime.cyport-episode-split",
+    "schema_version": "0.1.0",
+    "split_unit": "SID",
+    "test_period": "2022-2023"
+  },
+  "archive_candidate": {
+    "provider": "NOAA National Hurricane Center",
+    "archive_url": "https://www.nhc.noaa.gov/data/",
+    "product_families": [
+      "Tropical Cyclone Advisory Archive",
+      "Marine & Advisory Text Products",
+      "Marine Graphical Products"
+    ],
+    "status": "CANDIDATE_NOT_AUDITED_ROW_BY_ROW",
+    "completeness_claimed": false,
+    "forecast_archive_may_supply_asof_features": true,
+    "retrospective_best_track_allowed_as_predictor": false,
+    "storm_crosswalk_status": "NOT_BUILT_OR_VERIFIED",
+    "coverage_note": "Archive availability, missing products, source revisions, and storm-by-storm coverage must be inventoried. Do not infer completeness from the existence of an archive index."
+  },
+  "replay_policy": {
+    "forecast_issue_time_required": true,
+    "feature_availability_at_cutoff_required": true,
+    "immutable_source_artifact_hash_required": true,
+    "source_publication_time_required": true,
+    "retrieval_time_required": true,
+    "forecast_valid_time_required": true,
+    "units_and_transformation_lineage_required": true,
+    "feature_whitelist": [],
+    "exact_lead_time_claim_allowed": false,
+    "calendar_day_lead_claim_allowed": false,
+    "replay_run_allowed": false,
+    "blocked_reason": "CyPort start_date is date-only; its time-zone and within-day event-time semantics have not been established. No exact or calendar-day lead-time claim is allowed until target-time semantics and source publication timing are verified."
+  },
+  "required_feature_receipt_fields": [
+    "interaction_id",
+    "storm_sid",
+    "port_pid",
+    "feature_name",
+    "feature_value_or_missing_reason",
+    "units",
+    "source_uri",
+    "source_revision_or_product_id",
+    "source_artifact_sha256",
+    "source_artifact_byte_length",
+    "source_publication_time_utc",
+    "source_retrieval_time_utc",
+    "forecast_valid_start_utc",
+    "forecast_valid_end_utc",
+    "feature_available_at_utc",
+    "source_kind",
+    "derivation_id",
+    "join_method",
+    "storm_crosswalk_evidence_id",
+    "target_date_semantics_review_id"
+  ],
+  "promotion_gates": [
+    "PIN_SOURCE_AND_REVIEW_REUSE_TERMS",
+    "AUDIT_STORM_ID_CROSSWALK_WITH_AMBIGUOUS_AND_UNMATCHED_COUNTS",
+    "VERIFY_TARGET_DATE_TIMEZONE_AND_EVENT_TIME_SEMANTICS",
+    "CAPTURE_IMMUTABLE_ARCHIVED_FORECAST_PRODUCTS_AND_SHA256",
+    "PROVE_EACH_FEATURE_WAS_PUBLISHED_AND_AVAILABLE_BY_ISSUE_CUTOFF",
+    "EXCLUDE_RETROSPECTIVE_BEST_TRACK_AND_POST_EVENT_NETWORK_WINDOWS",
+    "LOCK_TRAIN_CALIBRATION_TEST_SPLIT_BEFORE_FIT",
+    "REPORT_STORM_CLUSTERED_UNCERTAINTY_AND_POSITIVE_STORM_COUNTS",
+    "REQUIRE_INDEPENDENT_EXTERNAL_REPLAY_BEFORE_OPERATIONAL_CLAIMS"
+  ],
+  "future_lead_time_targets": {
+    "status": "FUTURE_TARGET_ONLY_NOT_CURRENTLY_EVALUABLE",
+    "candidate_lead_hours": [24, 48, 72],
+    "requires_timestamped_targets": true,
+    "requires_issue_time_and_valid_time": true
+  },
+  "claim_ceiling": [
+    "This contract defines evidence requirements and a source candidate only.",
+    "No NOAA archive coverage audit, storm crosswalk, historical replay, predictor eligibility approval, model fit, score, causal effect, physical truth, or operational authority is claimed.",
+    "HURDAT2/IBTrACS best-track records are retrospective analysis products and are not a substitute for the archived forecast available at an issuance time."
+  ]
+}

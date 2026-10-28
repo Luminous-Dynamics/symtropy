@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 
 mod adaptive_resilience;
+mod cyport_asof_forecast_replay;
 mod cyport_benchmark_tasks;
 mod cyport_feature_availability;
 mod cyport_interaction_profile;
@@ -1073,6 +1074,18 @@ fn verify(
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let first_arg = args.next();
+    if first_arg.as_deref() == Some("--validate-cyport-asof-replay-contract") {
+        let contract_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-cyport-asof-replay-contract <contract-json-path>"
+                .to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err(
+                "too many arguments for CyPort as-of replay contract validation".to_owned(),
+            );
+        }
+        return cyport_asof_forecast_replay::run_cli(&contract_path);
+    }
     if first_arg.as_deref() == Some("--validate-cyport-feature-availability") {
         let register_path = args.next().ok_or_else(|| {
             "usage: maritime-data-receipt --validate-cyport-feature-availability <register-json-path>"
