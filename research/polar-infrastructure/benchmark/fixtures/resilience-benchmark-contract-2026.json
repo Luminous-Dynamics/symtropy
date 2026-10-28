@@ -10,7 +10,7 @@
     "unit": "kWh per disturbance episode",
     "direction": "lower_is_better",
     "tail_probability": 0.95,
-    "minimum_relative_improvement_target": 0.10,
+    "minimum_relative_improvement_target": 0.1,
     "comparison": "strongest_admissible_deployable_baseline",
     "uncertainty_requirement": "paired_95_percent_interval_excludes_zero_improvement",
     "status": "target_not_measured"
@@ -122,6 +122,18 @@
       "class": "diagnostic_only",
       "required": false,
       "role": "upper_bound_using_future_disturbances_never_a_deployable_baseline"
+    },
+    {
+      "baseline_id": "centralized_coordinated_dispatch",
+      "class": "deployable_baseline",
+      "required": "for_multi_site_cases_when_technically_compatible",
+      "role": "shared-resource optimization when coordination link is healthy; declare communication and observation dependency"
+    },
+    {
+      "baseline_id": "local_autonomy_fallback",
+      "class": "deployable_baseline",
+      "required": "for_multi_agent_cases_when_fallback_is_part_of_claim",
+      "role": "safe local service continuity under loss or corruption of coordination inputs"
     }
   ],
   "required_metric_ids": [
@@ -136,7 +148,13 @@
     "development_to_locked_test_degradation",
     "input_coverage_and_missing_window_rate",
     "wall_time_and_peak_memory",
-    "simulation_or_optimization_evaluation_count"
+    "simulation_or_optimization_evaluation_count",
+    "critical_service_delivery_by_hierarchy",
+    "outage_duration_by_hierarchy",
+    "coordination_loss_detection_latency",
+    "safe_local_fallback_latency",
+    "shared_state_reconciliation_time",
+    "cascading_failure_count"
   ],
   "fairness_protocol": {
     "paired_disturbance_seeds": true,
@@ -150,7 +168,7 @@
   },
   "superiority_criteria": {
     "primary_metric": "cvar95_critical_energy_not_served",
-    "minimum_relative_improvement": 0.10,
+    "minimum_relative_improvement": 0.1,
     "confidence_level": 0.95,
     "interval_must_exclude_zero_improvement": true,
     "hard_constraint_noninferiority_required": true,
@@ -166,11 +184,85 @@
     "https://gmlc.doe.gov/sites/default/files/resources/GMLC1.1_Vol3_Resilience.pdf",
     "https://resourcecenter.ieee-pes.org/publications/technical-reports/pes_tr_143_amps_060826",
     "https://doi.org/10.1594/PANGAEA.968639",
-    "https://power.larc.nasa.gov/docs/services/api/validate/"
+    "https://power.larc.nasa.gov/docs/services/api/validate/",
+    "https://resourcecenter.ieee-pes.org/publications/technical-reports/pes_tr_tr148_itslc_102026",
+    "https://doi.org/10.1016/j.epsr.2026.112736"
   ],
   "result_policy": {
     "report_kind": "preregistration_contract_only_no_performance_results",
     "no_empirical_superiority_claim": true,
     "must_state_current_evidence_maturity_level": true
+  },
+  "benchmark_design_axes": [
+    {
+      "axis_id": "critical_service_function",
+      "required": true,
+      "values": [
+        "electricity",
+        "heat",
+        "water",
+        "communications",
+        "sanitation",
+        "other_declared_critical_service"
+      ],
+      "rule": "declare service contract, units and minimum floor; never collapse services before reporting"
+    },
+    {
+      "axis_id": "time_phase",
+      "required": true,
+      "values": [
+        "withstand",
+        "adapt",
+        "degraded_operation",
+        "recovery",
+        "restoration"
+      ],
+      "rule": "report outcomes and time-to-recover for each declared phase"
+    },
+    {
+      "axis_id": "decision_hierarchy",
+      "required": true,
+      "values": [
+        "device_control",
+        "site_microgrid",
+        "community_multi_site",
+        "operator_coordination"
+      ],
+      "rule": "each represented layer has a dependency-graph digest; unsupported layers are not_covered"
+    },
+    {
+      "axis_id": "connectivity_state",
+      "required": "for_multi_agent_or_multi_site_cases",
+      "values": [
+        "healthy",
+        "delayed",
+        "stale",
+        "partitioned",
+        "reconnection"
+      ],
+      "rule": "freeze visibility, message delays, loss behavior and state-reconciliation rules"
+    },
+    {
+      "axis_id": "resource_sharing",
+      "required": "when_cross_site_flows_are_modeled",
+      "values": [
+        "local_only",
+        "shared_storage",
+        "shared_spares",
+        "shared_logistics",
+        "declared_combination"
+      ],
+      "rule": "declare ownership, flow limits, priority and allocation fairness"
+    }
+  ],
+  "paired_scenario_contract": {
+    "paired_disturbance_and_initial_state_required": true,
+    "dependency_graph_digest_required_for_multi_layer_cases": true,
+    "message_delay_loss_and_stale_data_model_must_be_declared": true,
+    "policy_visible_information_must_be_frozen_per_arm": true,
+    "reconnection_and_shared_state_reconciliation_must_be_specified": true,
+    "unmodeled_layers_marked_not_covered": true,
+    "research_hypothesis": "local fallback plus explicit state reconciliation may preserve more service during coordination partitions; healthy centralized coordination may improve shared-resource efficiency",
+    "hypothesis_status": "not_tested"
   }
 }
