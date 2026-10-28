@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 import random
 import unittest
 import mnar_sensitivity_audit as audit
@@ -55,6 +56,11 @@ class MnarSensitivityTests(unittest.TestCase):
     def test_bounded_method_has_no_observed_null_inflation_signal_in_smoke(self):
         report=audit.simulate(replicates=1000,seed=7,sample_sizes=(10,20))
         self.assertEqual(report["summary"]["bounded_null_scenarios_with_intervals_above_alpha"], [])
+
+    def test_fixed_seed_report_is_deterministic(self):
+        a=audit.simulate(replicates=200,seed=123,sample_sizes=(10,))
+        b=audit.simulate(replicates=200,seed=123,sample_sizes=(10,))
+        self.assertEqual(json.dumps(a,sort_keys=True),json.dumps(b,sort_keys=True))
 
     def test_invalid_configuration_rejected(self):
         with self.assertRaises(audit.MissingnessAuditError): audit.simulate(replicates=99)
