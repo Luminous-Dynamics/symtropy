@@ -1,0 +1,1 @@
+synthetic-only recoverability frontier fixture v0.1; not physical flight data
