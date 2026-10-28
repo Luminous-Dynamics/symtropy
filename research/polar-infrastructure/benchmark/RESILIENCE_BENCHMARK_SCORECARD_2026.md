@@ -15,6 +15,31 @@ The benchmark therefore has three linked but separate tracks:
 
 Success at one track does not prove success at the next. A SHA-256 hash establishes byte identity, not sensor correctness. Agreement with a weather reanalysis does not validate an electrical or thermal solver. A good average score does not establish safety under tail events.
 
+## 1.1 Paradigm shift: long-horizon, path-dependent resilience
+
+A recent *Nature Reviews Electrical Engineering* review argues that event-by-event resilience is insufficient for climate adaptation planning: future resilience should be assessed across changing climate conditions and possible extreme-event futures over long horizons, linking risk to planning and investment. IEEE PES's October 2026 TR148 likewise emphasizes changing grid structures, extreme weather, interdependent failures, and coordination. These references change the benchmark question from “did the controller survive this storm?” to “does the system preserve critical services across evolving hazard regimes while its equipment, inventories, reserves, repair capacity and adaptation choices change?”
+
+Sources:
+- Nature Reviews Electrical Engineering, “Long-horizon resilience of power systems under climate change,” published 21 August 2026: https://www.nature.com/articles/s44287-026-00322-6
+- IEEE PES TR148, “Reliability and Resilience for New Grid Needs,” published 1 October 2026: https://resourcecenter.ieee-pes.org/publications/technical-reports/pes_tr_tr148_itslc_102026
+- IEEE PES TR143, “Power System Resilience Metrics and Evaluation Methods,” published 8 June 2026: https://resourcecenter.ieee-pes.org/publications/technical-reports/pes_tr_143_amps_060826
+
+### New falsifiable comparison
+
+The [long-horizon resilience contract](fixtures/long-horizon-resilience-contract-2026.json) and Rust validator `src/bin/long_horizon_contract.rs` preregister a 30-year design horizon with chronological operational substeps and three comparison arms:
+
+1. **Event-reset baseline:** a diagnostic showing what goes wrong when state is reset between disruptions. It is not a serious SOTA comparator and may not be used to claim adaptive-controller superiority on its own.
+2. **Stateful, no-adaptation baseline:** preserves equipment, storage, fuel, repair, spares and service-deficit state but does not take long-horizon adaptation actions. This isolates the value of state carry-over.
+3. **Stateful adaptive candidate:** uses the same exogenous trajectories, initial conditions, declared information and matched compute budget, while making explicitly timed adaptation decisions.
+
+Required state includes storage health, fuel and consumables, equipment degradation, repair queues, spares and replenishment delays, water/other reserves, accumulated service-deficit debt, and controller/recovery mode. The experiment must not silently erase accumulated debt after a short recovery or restart an event with idealized inventories.
+
+The contract requires at least two nonstationary scenario families, a frozen whole-site-year/episode holdout, paired trajectories and no silent gap imputation. Its current four scenario families are design labels only: **no numeric climate parameters, source traces, scenario probabilities or physical outputs are claimed**. The verifier deliberately refuses weights unless a probability basis is admitted and checked. Until then, use worst-case-per-family and explicitly labeled empirical stress-set summaries; do not call them expected risk.
+
+Metrics include cumulative critical-service deficit by service, time to first floor breach, breach duration, state debt after each event and recovery, repair/spares stockout time, worst-case results per scenario family, and compute requirements. Lifecycle/adaptation cost is only scored once cost inputs are admitted. No universal weighted score should allow an improvement in one service to conceal a hard-floor failure in another.
+
+**Aspirational research question, not a result:** does stateful adaptation improve the long-horizon service frontier relative to a stateful no-adaptation policy at matched information and resource budget, without increasing hard-constraint breaches in any preregistered critical-service group? The 30-year horizon and scenario labels are a contract for the experiment, not a validated forecast.
+
 ## 2. Industry comparison must be layer-matched
 
 Compare systems at the level of the actual claim; do not make a single overall feature comparison across unlike tools.
