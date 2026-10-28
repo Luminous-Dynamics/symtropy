@@ -49,16 +49,18 @@
       "source_variable": null,
       "transformation": "map source variable and document any conversion; do not infer missing values",
       "evidence_class": "not_evaluated",
-      "required_for_replay": true
+      "required_for_replay": true,
+      "temporal_semantics": "interval_mean"
     },
     {
       "variable_id": "global_horizontal_irradiance",
       "physical_quantity": "global horizontal solar irradiance",
-      "canonical_unit": "W m-2",
+      "canonical_unit": "kWh m-2 day-1",
       "source_variable": null,
       "transformation": "document averaging/accumulation interval and any unit conversion",
       "evidence_class": "not_evaluated",
-      "required_for_replay": true
+      "required_for_replay": true,
+      "temporal_semantics": "interval_accumulation"
     },
     {
       "variable_id": "wind_speed_10m",
@@ -67,16 +69,18 @@
       "source_variable": null,
       "transformation": "document height, averaging interval and any vector-to-speed conversion",
       "evidence_class": "not_evaluated",
-      "required_for_replay": true
+      "required_for_replay": true,
+      "temporal_semantics": "interval_mean"
     },
     {
       "variable_id": "precipitation_amount",
       "physical_quantity": "precipitation amount over the declared interval",
-      "canonical_unit": "m water equivalent",
+      "canonical_unit": "m water equivalent day-1",
       "source_variable": null,
       "transformation": "document whether source is a rate or interval accumulation",
       "evidence_class": "not_evaluated",
-      "required_for_replay": true
+      "required_for_replay": true,
+      "temporal_semantics": "interval_accumulation"
     },
     {
       "variable_id": "relative_humidity_2m",
@@ -85,7 +89,8 @@
       "source_variable": null,
       "transformation": "document percentage-to-fraction conversion if applicable",
       "evidence_class": "not_evaluated",
-      "required_for_replay": false
+      "required_for_replay": false,
+      "temporal_semantics": "interval_mean"
     },
     {
       "variable_id": "fog_liquid_water_content",
@@ -94,7 +99,8 @@
       "source_variable": null,
       "transformation": "requires a suitable instrument or validated derivation; meteorological reanalysis alone is not assumed to provide it",
       "evidence_class": "not_evaluated",
-      "required_for_replay": false
+      "required_for_replay": false,
+      "temporal_semantics": "unknown"
     },
     {
       "variable_id": "salt_deposition_flux",
@@ -103,7 +109,8 @@
       "source_variable": null,
       "transformation": "requires local deposition observations or a separately validated model",
       "evidence_class": "not_evaluated",
-      "required_for_replay": false
+      "required_for_replay": false,
+      "temporal_semantics": "unknown"
     },
     {
       "variable_id": "dust_deposition_flux",
@@ -112,7 +119,8 @@
       "source_variable": null,
       "transformation": "requires local deposition observations or a separately validated model",
       "evidence_class": "not_evaluated",
-      "required_for_replay": false
+      "required_for_replay": false,
+      "temporal_semantics": "unknown"
     }
   ],
   "quality": {
