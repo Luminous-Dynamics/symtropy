@@ -4565,7 +4565,7 @@ pub fn audit_acquisition_policy_comparison(pool: &Value) -> AcquisitionPolicyCom
     }
 
     let scenario_ids = pool.get("scenarios").and_then(Value::as_array)
-        .map(|items| items.iter().filter_map(|item| nonempty_string(item, "id").map(ToOwned::to_owned)).collect::<Vec<_>>())
+        .map(|items| items.iter().filter_map(|item| nonempty_string(item, "id")).collect::<Vec<_>>())
         .unwrap_or_default();
     let scenarios: BTreeSet<String> = scenario_ids.iter().cloned().collect();
     let mut actions = Vec::new();
@@ -4695,6 +4695,7 @@ pub fn audit_acquisition_policy_comparison(pool: &Value) -> AcquisitionPolicyCom
         audit_kind: "synthetic_acquisition_policy_comparison".to_string(),
         benchmark_id: benchmark_id.map(ToOwned::to_owned),
         evidence_class: pool.get("evidence_class").and_then(Value::as_str).map(ToOwned::to_owned),
+        input_sha256: None,
         random_seed_count: seeds.len(),
         available_measurements,
         budget_eligible_measurements: eligible.len(),
