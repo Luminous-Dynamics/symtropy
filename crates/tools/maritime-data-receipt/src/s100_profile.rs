@@ -67,6 +67,7 @@ const USE_KEYS: &[&str] = &[
     "independent_review_required",
 ];
 const BINDING_KEYS: &[&str] = &["receipt_id", "receipt_sha256", "artifact_sha256"];
+#[cfg(test)]
 const VALID: &str = "METADATA_CONTRACT_VALID_NOT_ADMITTED";
 
 fn exact_keys(value: &Value, keys: &[&str]) -> Result<(), &'static str> {
@@ -227,10 +228,10 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     let coverage = member(profile, "coverage")?;
     exact_keys(coverage, COVERAGE_KEYS)?;
     text(coverage, "coverage_id")?;
-    if !coverage
+    if coverage
         .get("horizontal_crs")
         .and_then(Value::as_str)
-        .is_some_and(|value| !value.trim().is_empty())
+        .is_none_or(|value| value.trim().is_empty())
     {
         return Err("MISSING_CRS");
     }
