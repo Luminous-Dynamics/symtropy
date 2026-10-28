@@ -77,6 +77,27 @@ Required secondary endpoints: cost/time to first independently qualified feasibl
 
 Software integrity gate: zero accepted hard-constraint mutations, zero hidden-outcome leakage in metamorphic controls, deterministic receipt replay, no budget undercharging, and a non-empty positive-control search space. Synthetic fixtures validate verifier behavior only; they cannot establish empirical policy ranking.
 
+## Executable matched-budget campaign evaluator v0.1
+
+The first outcome-scoring slice is now present separately from the proposal-envelope checker:
+
+- Public policy trace: \`tools/glass-silicon-contract-audit/fixtures/search-space-campaign-input.synthetic.json\`
+- Sealed evaluator outcomes and action tariffs: \`tools/glass-silicon-contract-audit/fixtures/search-space-outcome-oracle.synthetic.json\`
+- Public trace schema: \`docs/tech/glass-search-space-campaign-input-v0.1.schema.json\`
+- Evaluator-only schema: \`docs/tech/glass-search-space-outcome-oracle-v0.1.schema.json\`
+- CLI: \`audit-search-space-trial <public-campaign-input.json> <sealed-oracle.json>\`
+
+Run:
+
+    cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
+    cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-search-space-trial -- tools/glass-silicon-contract-audit/fixtures/search-space-campaign-input.synthetic.json tools/glass-silicon-contract-audit/fixtures/search-space-outcome-oracle.synthetic.json
+
+The synthetic known-answer panel contains 16 campaigns across four policy classes (fixed space, random expansion, rule-based expansion, LLM outer-loop expansion) and four deliberately distinct regimes (helpful, neutral, harmful, misleading prior). All campaigns share the same maximum resource cap. Evaluator-owned tariffs charge expansion generation and candidate evaluation before results; the policy cannot self-report a lower charge. A candidate can only be evaluated after its expansion action, one candidate cannot be evaluated twice in a campaign, and each policy arm must appear in each regime. Missing outcomes are UNRESOLVED, not zero. Predictions of feasibility are recorded before revealing evaluator outcomes, so false-feasible predictions are counted.
+
+The fixture's known-answer pattern is intentionally non-universal: fixed-space best feasible utility is 4 while LLM expansion reaches 10 in the helpful regime; the arms tie at 6 in the neutral regime; fixed space reaches 8 and LLM expansion only 6 in the harmful regime; a misleading prior produces a false-feasible LLM prediction. This matrix demonstrates the scorer can represent improvement, neutrality and regression—it is not evidence that any live policy achieved those utilities.
+
+The audit reports per-campaign utility, verified feasible hits, false-feasible predictions, first-feasible cost, charged cost/time and raw input/oracle SHA-256 digests. The hidden-outcome mutation test keeps the public trace byte-identical while showing that the score changes when sealed outcomes change. This verifies separation at the evaluator interface only; it does not prove the policy ran in a sandbox, that actual observed actions were generated without hidden information, or that a material label is authentic. Issue #2785 remains the isolation/replay follow-on.
+
 ## Advancement gates
 
 1. Synthetic contract: schema and CLI known answers; mutation tests for stale parents, missing evidence, unknown domains, hidden outcomes, duplicate IDs, budget undercharging and constraint weakening.
