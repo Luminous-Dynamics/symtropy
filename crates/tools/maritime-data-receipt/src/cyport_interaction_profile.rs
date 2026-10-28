@@ -9,10 +9,10 @@
 //! physical/operational decisions. The source dataset is deliberately not
 //! copied into this repository; callers provide a local file.
 
+use super::JsonValue;
 use serde::Serialize;
 use sha1::{Digest as Sha1Digest, Sha1};
 use std::collections::{BTreeMap, BTreeSet};
-use std::env;
 use std::fs;
 
 const MAX_CSV_BYTES: usize = 5 * 1024 * 1024;
@@ -908,11 +908,13 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 actual.storm_count,
                 actual.interaction_rows,
                 actual.unique_port_ids,
-            ) != (storms, interaction_rows, ports)
+            ) != (storms, interaction_rows, Some(ports))
             {
                 return Err(format!(
                     "pinned CyPort {name} split drift: expected ({storms} storms, {interaction_rows} rows, {ports} ports), observed ({} storms, {} rows, {} ports)",
-                    actual.storm_count, actual.interaction_rows, actual.unique_port_ids
+                    actual.storm_count,
+                    actual.interaction_rows,
+                    actual.unique_port_ids.unwrap_or_default()
                 ));
             }
         }
@@ -1628,6 +1630,7 @@ pub(super) fn run_cli(csv_path: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
 
     const SYNTHETIC_FIXTURE: &[u8] =
         include_bytes!("../tests/fixtures/cyport-interaction-profile-synthetic.csv");

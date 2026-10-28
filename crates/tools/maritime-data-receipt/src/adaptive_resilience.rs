@@ -716,7 +716,7 @@ fn compute_metric(
                     .checked_mul(duration)
                     .ok_or_else(|| format!("{path}: service-loss multiplication overflow"))?;
                 sum.checked_add(amount)
-                    .ok_or_else(|| format!("{path}: integrated unmet-service overflow".to_owned()))
+                    .ok_or_else(|| format!("{path}: integrated unmet-service overflow"))
             })?;
     Ok(TrajectoryMetric {
         trace_id,
