@@ -1,0 +1,67 @@
+name: Energy Chronological Generalization Gate
+
+on:
+  pull_request:
+    paths:
+      - "tools/energy-dispatch-audit/src/bin/energy_chronological_generalization_oracle.rs"
+      - "tools/energy-dispatch-audit/fixtures/energy-chronological-generalization-*.json"
+      - "tools/energy-dispatch-audit/ENERGY_CHRONOLOGICAL_GENERALIZATION_BENCHMARK_V0_1.md"
+      - ".github/workflows/energy-chronological-generalization.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chronological-integrity:
+    name: Reject temporal leakage before scoring the held-out block
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+
+      - name: Run Rust unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked --manifest-path tools/energy-dispatch-audit/Cargo.toml
+
+      - name: Run frozen chronological known-answer oracle
+        shell: bash
+        run: |
+          set -euo pipefail
+          context="$GITHUB_WORKSPACE/energy-chronological-generalization-artifacts"
+          mkdir -p "$context"
+          panel="tools/energy-dispatch-audit/fixtures/energy-chronological-generalization-panel-v0.1.json"
+          experiment="tools/energy-dispatch-audit/fixtures/energy-chronological-generalization-experiment-v0.1.json"
+          cargo run --locked --manifest-path tools/energy-dispatch-audit/Cargo.toml \
+            --bin energy_chronological_generalization_oracle -- "$context/report.json"
+          jq -e '
+            .qualification_status == "PASS_SYNTHETIC_TEMPORAL_INTEGRITY_ONLY" and
+            .train_rows == 6 and .validation_rows == 3 and .test_rows == 6 and
+            .model_results.static_no_reserve.essential_unserved == 4 and
+            .model_results.static_no_reserve.flexible_unserved == 0 and
+            .model_results.persistence.essential_unserved == 2 and
+            .model_results.persistence.flexible_unserved == 1 and
+            .model_results.observable_signal.essential_unserved == 0 and
+            .model_results.observable_signal.flexible_unserved == 1 and
+            .model_results.hindsight_oracle.deployable == false and
+            .ranked_deployable_models == ["observable_signal", "persistence", "static_no_reserve"] and
+            .physical_dispatch_audit == "NOT_RUN_SYNTHETIC_EVENT_CLASSIFICATION_ABSTRACTION"
+          ' "$context/report.json" >/dev/null
+          sha256sum "$panel" "$experiment" "$context/report.json" > "$context/receipts.sha256"
+          cat "$context/receipts.sha256"
+
+      - name: Preserve fixture, report, and digest receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: energy-chronological-generalization-v0.1
+          if-no-files-found: error
+          path: |
+            tools/energy-dispatch-audit/fixtures/energy-chronological-generalization-panel-v0.1.json
+            tools/energy-dispatch-audit/fixtures/energy-chronological-generalization-experiment-v0.1.json
+            energy-chronological-generalization-artifacts/report.json
+            energy-chronological-generalization-artifacts/receipts.sha256
