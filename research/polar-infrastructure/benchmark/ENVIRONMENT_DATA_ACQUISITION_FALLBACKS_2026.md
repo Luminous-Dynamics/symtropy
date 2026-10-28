@@ -36,6 +36,22 @@ If the complete text export cannot be acquired through any allowed route, stop a
 - **NOAA NCEI ISD / GHCNh.** These global surface-station products can supply temperature, dew point, wind, pressure, precipitation, visibility and related surface observations. They may provide an alternate transport/provider route for some meteorological covariates, but exact Gobabeb station overlap, product/version, per-source data limitations and licence must be checked. They are not a replacement for BSRN short-wave radiation unless the exact record contains a comparable irradiance variable. Sources: https://www.ncei.noaa.gov/products/land-based-station/integrated-surface-database and https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly.
 
 
+## 2.1 Alternate route found: SASSCAL WeatherNet for meteorological covariates
+
+The publisher's station pages are browser-accessible even when the PANGAEA/BSRN endpoints do not resolve in the shell. Two concrete examples were inspected:
+
+- **Hourly sample:** 27 July 2022, Gobabeb Met station 8893 reports 24 records for the day and says “Missing hours none - all hourly values available.” The table includes air temperature, soil temperature, rain, fog, wind speed/direction, humidity and leaf wetness. Its note says the solar sensor is not installed at this station. URL: https://www.sasscalweathernet.org/weatherstat_hourly_we.php?date_crit_daily=2022-07-27&loggerid_crit=8893
+- **Sparse daily sample:** January 2023 displays numeric rows for January 1–4 and blank values for January 5–31. Thus only 4 of 31 calendar-day rows are populated in the visible table (about 12.9% row coverage). The same page presents an aggregate fog/precipitation summary; those values must not be mistaken for complete-month observations without a documented coverage/aggregation contract. URL: https://www.sasscalweathernet.org/weatherstat_daily_we.php?loggerid_crit=8893&yrmth_crit=2023-01
+- A later 2026 view also states that the solar and barometric-pressure sensors are not installed: https://dev.sasscalweathernet.org/index/hourly/8893
+
+This is a promising *separate meteorological/fog covariate source*. July 2022 is outside the planned locked 2020–2021 time split, so the displayed day is adapter-development/missingness evidence only—not evidence for the locked validation. Historical station listing indicates a broader period, but actual monthly coverage still has to be audited before it can supply a locked test.
+
+**Radiation ruling:** do not use SASSCAL Gobabeb as a radiation reference on this evidence. An older station-sheet listing may conflict with the actual hourly and 2026 pages that say the solar sensor is not installed. The exact sensor history and output fields are unverified. Keep BSRN as the planned irradiance reference, or locate a separate properly licensed radiation record.
+
+The SASSCAL pages expose a “Download CSV” action. If the page's export link is available in a browser, save the actual CSV and register it offline via [register_local_environment_source.sh](scripts/register_local_environment_source.sh). The source origin, full file size, exact period, quality flags and licensing must be reviewed before ingestion. The sources inspected here do not establish the terms needed for redistribution/commercial use, so the SASSCAL record remains `candidate_not_admitted`.
+
+**Coverage-first negative control:** a 31-day source window with only four displayed daily observations must be marked insufficient-coverage under any rule requiring a full or threshold-compliant window. Missing rows stay missing, not zero. The minimum acceptance threshold is intentionally left blank until the intended aggregation, use and source QA requirements are preregistered; it must be frozen before looking at locked-test errors.
+
 ## 3. Offline source-registration contract
 
 `register_local_pangaea_source.sh DOI LICENSE_LABEL EVIDENCE_CLASS SOURCE_FILE OUT_DIR`:
