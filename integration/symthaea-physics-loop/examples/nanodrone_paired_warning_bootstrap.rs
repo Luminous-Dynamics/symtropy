@@ -717,6 +717,20 @@ mod tests {
         assert_eq!(x1.upper_95,x2.upper_95);
     }
     #[test]
+    fn false_alert_episodes_merge_by_elapsed_time() {
+        let rows = vec![
+            row("f", 0.0, 0.0, 0.0, 0.0),
+            row("f", 0.1, 0.0, 0.9, 0.9),
+            row("f", 0.2, 0.0, 0.9, 0.9),
+            row("f", 0.3, 0.0, 0.0, 0.0),
+        ];
+        let merged = event_metrics(&rows, true, 0.5, 1.0, 0.11, 0.11);
+        let separate = event_metrics(&rows, true, 0.5, 1.0, 0.11, 0.05);
+        assert_eq!(merged.false_episodes, 1);
+        assert_eq!(separate.false_episodes, 2);
+    }
+
+    #[test]
     fn disjoint_train_calibration_test_flights_required() {
         let rows=vec![row("train",0.0,0.0,0.1,0.2)];
         let train=BTreeSet::from(["train".to_string()]);
