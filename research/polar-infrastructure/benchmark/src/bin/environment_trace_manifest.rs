@@ -155,7 +155,9 @@ fn uri_with_scheme(value: &str) -> bool {
 }
 
 fn https_url(value: &str) -> bool {
-    value.starts_with("https://") && value["https://".len()..].contains('.')
+    value
+        .strip_prefix("https://")
+        .is_some_and(|remainder| !remainder.is_empty() && !remainder.starts_with('/'))
 }
 
 fn utc_timestamp_shape(value: &str) -> bool {
@@ -225,6 +227,9 @@ fn validate(manifest: &Manifest) -> ValidationReport {
     check_nonempty(&mut errors, &manifest.trace_asset.format, "trace_asset.format");
     check_nonempty(&mut errors, &manifest.quality.missing_data_policy, "quality.missing_data_policy");
     check_nonempty(&mut errors, &manifest.quality.uncertainty_method, "quality.uncertainty_method");
+    for note in &manifest.quality.known_biases_or_limits {
+        check_nonempty(&mut errors, note, "quality.known_biases_or_limits[]");
+    }
     check_nonempty(&mut errors, &manifest.provenance.transformation_recipe, "provenance.transformation_recipe");
 
     if !valid_evidence_class(&manifest.evidence_class) {
@@ -540,6 +545,13 @@ mod tests {
         manifest.time_axis.missing_sample_count = RequiredNullable(Some(2));
         let report = validate(&manifest);
         assert!(report.errors.iter().any(|error| error.contains("expected_sample_count must equal")));
+    }
+
+    #[test]
+    fn nullable_fields_must_be_present_even_when_the_value_is_null() {
+        let mut value: serde_json::Value = serde_json::from_str(TEMPLATE).expect("template JSON should parse");
+        value["acquisition"].as_object_mut().expect("acquisition object").remove("source_url");
+        assert!(serde_json::from_value::<Manifest>(value).is_err());
     }
 
     #[test]
