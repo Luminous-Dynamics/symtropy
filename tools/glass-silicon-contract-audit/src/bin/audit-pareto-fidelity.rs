@@ -206,7 +206,11 @@ fn validate_contract(public: &Value, oracle: &Value, report: &mut Value) {
         if ids.insert(id.to_owned()) == false {
             fail(report, "FAIL", "CANDIDATE_ID_DUPLICATE", &format!("duplicate candidate ID {id}"));
         }
-        let _ = required_number(candidate, "screen_priority", &path, false, report);
+        if let Some(priority) = required_number(candidate, "screen_priority", &path, false, report) {
+            if !(0.0..=1.0).contains(&priority) {
+                fail(report, "FAIL", "SCREEN_PRIORITY_OUT_OF_RANGE", &format!("{path}.screen_priority must be in [0, 1]"));
+            }
+        }
         if !candidate.get("features").and_then(Value::as_array).is_some_and(|features| features.len() == 2 && features.iter().all(|f| f.as_f64().is_some_and(f64::is_finite))) {
             fail(report, "FAIL", "CANDIDATE_FEATURES_INVALID", &format!("{path}.features must contain exactly two finite numbers"));
         }
@@ -249,10 +253,13 @@ fn validate_contract(public: &Value, oracle: &Value, report: &mut Value) {
             }
             let objectives = outcome.get("objectives").unwrap_or(&Value::Null);
             only_keys(objectives, &["quality", "energy"], &format!("{out_path}.objectives"), report);
-            for name in ["quality", "energy"] {
-                if !objectives.get(name).and_then(Value::as_f64).is_some_and(f64::is_finite) {
-                    fail(report, "FAIL", "OUTCOME_OBJECTIVE_INVALID", &format!("{out_path}.objectives.{name} must be finite"));
-                }
+            let quality = objectives.get("quality").and_then(Value::as_f64);
+            let energy = objectives.get("energy").and_then(Value::as_f64);
+            if !quality.is_some_and(|value| value.is_finite() && (0.0..=1.0).contains(&value)) {
+                fail(report, "FAIL", "OUTCOME_QUALITY_OUT_OF_RANGE", &format!("{out_path}.objectives.quality must be finite and in [0, 1]"));
+            }
+            if !energy.is_some_and(|value| value.is_finite() && value >= 0.0) {
+                fail(report, "FAIL", "OUTCOME_ENERGY_INVALID", &format!("{out_path}.objectives.energy must be finite and non-negative"));
             }
             if fidelity == "screen" {
                 if !outcome.get("constraints").is_some_and(Value::is_null) {
@@ -854,6 +861,33 @@ mod tests {
         assert!(report["confirmed_infeasible_candidates"].as_array().unwrap().iter().any(|id| id == "glass-d"));
         assert!(!report["accepted_feasible_candidates"].as_array().unwrap().iter().any(|id| id == "glass-d"));
         assert_eq!(report["accepted_feasible_candidates"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn objective_directions_reference_point_and_units_cannot_be_changed_post_hoc() {
+        let (mut public, oracle) = values();
+        public["objectives"][1]["direction"] = json!("maximize");
+        let changed_direction = run_all(&serde_json::to_vec(&public).unwrap(), &serde_json::to_vec(&oracle).unwrap());
+        assert_eq!(changed_direction["status"], "FAIL");
+        assert!(changed_direction["findings"].as_array().unwrap().iter().any(|finding| finding["code"] == "OBJECTIVE_CONTRACT_CHANGED"));
+
+        let (mut public, oracle) = values();
+        public["reference_point"]["energy"] = json!(100.0);
+        let changed_reference = run_all(&serde_json::to_vec(&public).unwrap(), &serde_json::to_vec(&oracle).unwrap());
+        assert_eq!(changed_reference["status"], "FAIL");
+        assert!(changed_reference["findings"].as_array().unwrap().iter().any(|finding| finding["code"] == "PARETO_REFERENCE_POINT_CHANGED"));
+    }
+
+    #[test]
+    fn objective_values_must_stay_inside_declared_physical_units_domain() {
+        let (public, mut oracle) = values();
+        let environment = oracle["environments"].as_array_mut().unwrap().iter_mut()
+            .find(|environment| environment["environment_id"] == "informative").unwrap();
+        environment["outcomes"].as_array_mut().unwrap().iter_mut()
+            .find(|outcome| outcome["candidate_id"] == "glass-a" && outcome["fidelity"] == "confirmatory").unwrap()["objectives"]["quality"] = json!(1.5);
+        let report = run_all(&serde_json::to_vec(&public).unwrap(), &serde_json::to_vec(&oracle).unwrap());
+        assert_eq!(report["status"], "FAIL");
+        assert!(report["findings"].as_array().unwrap().iter().any(|finding| finding["code"] == "OUTCOME_QUALITY_OUT_OF_RANGE"));
     }
 
     #[test]
