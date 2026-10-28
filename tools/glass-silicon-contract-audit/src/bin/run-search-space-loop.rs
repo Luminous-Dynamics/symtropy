@@ -1,4 +1,4 @@
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::env;
@@ -24,7 +24,6 @@ enum Action {
 
 #[derive(Clone, Debug)]
 struct Tariff {
-    action_type: String,
     cost: f64,
     seconds: f64,
 }
@@ -113,13 +112,6 @@ fn method_for_policy(policy: &str) -> Option<&'static str> {
         "prior_guided_expansion" | "static_prior_expansion" => Some("prior_guided"),
         _ => None,
     }
-}
-
-fn expansion_threshold(catalog: &Value, policy: &str) -> Option<f64> {
-    catalog.get("policy_contract")?
-        .get("thresholds")?
-        .get(policy)?
-        .as_f64()
 }
 
 fn choose_action(policy: &str, view: &Value, expansion_decision_made: bool) -> Action {
@@ -235,7 +227,7 @@ fn get_tariffs(oracle: &Value, report: &mut Value) -> HashMap<String, Tariff> {
         let Some(key) = req_string(item, "action_type", report, &format!("oracle.action_cost_catalog[{i}]")) else { continue };
         let Some(cost) = finite_number(item, "cost_units", report, &format!("oracle.action_cost_catalog[{i}]"), true) else { continue };
         let Some(seconds) = finite_number(item, "duration_seconds", report, &format!("oracle.action_cost_catalog[{i}]"), false) else { continue };
-        if tariffs.insert(key.to_owned(), Tariff { action_type: key.to_owned(), cost, seconds }).is_some() {
+        if tariffs.insert(key.to_owned(), Tariff { cost, seconds }).is_some() {
             fail(report, "FAIL", "TARIFF_DUPLICATE", &format!("duplicate action tariff {key}"));
         }
     }
@@ -635,9 +627,6 @@ mod tests {
     fn run_env(public: &Value, oracle: &Value, env: &str, policy: &str) -> Value {
         run_one(public, oracle, env, policy)
     }
-    fn episode<'a>(all: &'a Value, env: &str, policy: &str) -> &'a Value {
-        all["episodes"].as_array().unwrap().iter().find(|e| e["environment_id"] == env && e["policy_class"] == policy).unwrap()
-    }
     fn action_signature(events: &[Value]) -> Vec<(String, String)> {
         events.iter().map(|e| (
             e["action_type"].as_str().unwrap_or("").to_owned(),
@@ -677,9 +666,9 @@ mod tests {
     #[test]
     fn static_expansion_is_separated_from_observation_conditioned_expansion() {
         let (public, oracle) = values();
-        let static = run_env(&public, &oracle, "harmful", "static_prior_expansion");
+        let static_report = run_env(&public, &oracle, "harmful", "static_prior_expansion");
         let adaptive = run_env(&public, &oracle, "harmful", "prior_guided_expansion");
-        assert_eq!(static["events"][0]["action_type"], "expand_space");
+        assert_eq!(static_report["events"][0]["action_type"], "expand_space");
         assert_eq!(adaptive["events"][0]["action_type"], "evaluate_candidate");
         assert_eq!(static["expansions"], 1);
         assert_eq!(adaptive["expansions"], 0);
