@@ -27,7 +27,9 @@
     "required_metrics",
     "evidence_basis",
     "confidence_or_data_limitations",
-    "source_urls"
+    "source_urls",
+    "implementation_status",
+    "status_rationale"
   ],
   "common_dimensions": [
     "illumination_and_energy",
