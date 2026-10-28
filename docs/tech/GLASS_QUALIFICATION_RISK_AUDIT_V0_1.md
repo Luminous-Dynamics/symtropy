@@ -1,12 +1,12 @@
 # Glass–Silicon Statistical Qualification Risk Gate v0.1
 
 **Status:** synthetic executable audit; exact-head runtime qualification pending  
-**Benchmark ID:** \`glass-qualification-risk-synthetic-v0-1\`  
+**Benchmark ID:** `glass-qualification-risk-synthetic-v0-1`  
 **Claim ceiling:** exact binomial interval and decision-gate mechanics only. The fixture does not establish real-material performance, production yield, or the independence/representativeness of any plant observations.
 
 ## Why this is a distinct increment
 
-The Pareto/fidelity benchmark in \`GLASS_PARETO_FIDELITY_BENCHMARK_V0_1.md\` asks which candidate evaluations to buy. This companion asks a different question: when is the evidence strong enough to call a candidate qualified?
+The Pareto/fidelity benchmark in `GLASS_PARETO_FIDELITY_BENCHMARK_V0_1.md` asks which candidate evaluations to buy. This companion asks a different question: when is the evidence strong enough to call a candidate qualified?
 
 A single confirmatory pass is inadequate when process outcomes vary. A measured 95/100 pass rate does not demonstrate, at 95% confidence, that the underlying pass probability meets a 95% requirement. This gate refuses to equate a point estimate with evidence.
 
@@ -14,14 +14,14 @@ A single confirmatory pass is inadequate when process outcomes vary. A measured 
 
 The public task, evaluator-only outcomes, and report schemas are in:
 
-- \`docs/tech/glass-qualification-risk-task-v0.1.schema.json\`
-- \`docs/tech/glass-qualification-risk-oracle-v0.1.schema.json\`
-- \`docs/tech/glass-qualification-risk-report-v0.1.schema.json\`
+- `docs/tech/glass-qualification-risk-task-v0.1.schema.json`
+- `docs/tech/glass-qualification-risk-oracle-v0.1.schema.json`
+- `docs/tech/glass-qualification-risk-report-v0.1.schema.json`
 
 Fixture data:
 
-- \`tools/glass-silicon-contract-audit/fixtures/glass-qualification-risk-task.synthetic.json\`
-- \`tools/glass-silicon-contract-audit/fixtures/glass-qualification-risk-oracle.synthetic.json\`
+- `tools/glass-silicon-contract-audit/fixtures/glass-qualification-risk-task.synthetic.json`
+- `tools/glass-silicon-contract-audit/fixtures/glass-qualification-risk-oracle.synthetic.json`
 
 v0.1 freezes the target success probability at 0.95 and confidence level at 0.95. Every candidate outcome is a sequence of Bernoulli pass/fail trials. Trial counts are capped at 1,000 and candidate count at 100. The tool does not accept a caller-selected confidence level after seeing the results.
 
@@ -44,15 +44,15 @@ The synthetic fixture contains five examples:
 
 | Candidate | Evidence | Expected disposition |
 |---|---:|---|
-| \`lot-alpha\` | 72/72 passes | QUALIFIED |
-| \`lot-beta\` | 71/71 passes | UNRESOLVED |
-| \`lot-gamma\` | 85/100 passes | NOT_QUALIFIED |
-| \`lot-delta\` | 76/80 passes (95% point rate) | UNRESOLVED |
-| \`lot-epsilon\` | 0 trials | UNRESOLVED |
+| `lot-alpha` | 72/72 passes | QUALIFIED |
+| `lot-beta` | 71/71 passes | UNRESOLVED |
+| `lot-gamma` | 85/100 passes | NOT_QUALIFIED |
+| `lot-delta` | 76/80 passes (95% point rate) | UNRESOLVED |
+| `lot-epsilon` | 0 trials | UNRESOLVED |
 
 Tests cover exact endpoint boundary values, the distinction between an observed rate and its confidence interval, a binomial boundary control for false qualification, three different dispositions, empty evidence, forged decisions, digest mismatch, duplicate/unregistered candidate IDs, malformed trials, missing outcomes, and unknown properties.
 
-The report commits to SHA-256 digests of the exact public task and sealed outcome bytes. \`--replay\` deterministically recomputes the report and rejects any changed decision, field, or digest. It is a deterministic receipt verifier, not a sandbox or a replacement for an independent statistical implementation.
+The report commits to SHA-256 digests of the exact public task and sealed outcome bytes. `--replay` deterministically recomputes the report and rejects any changed decision, field, or digest. It is a deterministic receipt verifier, not a sandbox or a replacement for an independent statistical implementation.
 
 ## Important assumptions and failure modes
 
@@ -68,7 +68,7 @@ Do not treat multiple cycles from one physical sample as independent replicates 
 
 ## Run
 
-\`\`\`sh
+```sh
 cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-risk
 
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-risk -- \\
@@ -79,7 +79,7 @@ cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
   --replay glass-qualification-risk-report.json \\
   tools/glass-silicon-contract-audit/fixtures/glass-qualification-risk-task.synthetic.json \\
   tools/glass-silicon-contract-audit/fixtures/glass-qualification-risk-oracle.synthetic.json
-\`\`\`
+```
 
 ## Promotion gates
 
