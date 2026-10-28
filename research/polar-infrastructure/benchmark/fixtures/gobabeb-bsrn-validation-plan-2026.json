@@ -178,14 +178,15 @@
         "fog_total",
         "wind_speed_direction",
         "relative_humidity",
-        "soil_temperature"
+        "soil_temperature",
+        "radiation_sensor_listed_in_station_datasheet"
       ],
       "temporal_coverage_note": "Indexed data sheet reports daily availability from 2014-10-04 through 2023-01-04; a September 2026 page shows extensive missing values.",
       "license_status": "unknown_not_admitted",
       "data_completeness_status": "unverified",
       "evidence_class": "measured_field_candidate",
       "admission_status": "candidate_not_admitted",
-      "limitation": "No global/downward short-wave radiation variable was verified on the inspected page; not a substitute for BSRN radiometry."
+      "limitation": "The station datasheet lists a Campbell NR-Lite radiation sensor; an accessible daily table does not establish the exact radiation output field, usable hourly coverage, calibration/QA, or data rights. Use as a candidate for local fog/meteorology and potentially radiation only after the actual export and terms are reviewed."
     },
     {
       "source_id": "noaa_ncei_ghcnh_or_isd",
