@@ -2,7 +2,7 @@
   "schema_version": "energy-external-benchmark-source-registry-experiment-v0.1",
   "registry_id": "energy-external-benchmark-source-registry-2026-10-28",
   "source_registry_path": "tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-v0.1.json",
-  "source_registry_sha256": "d53b6f0f247b8c277ad853566c4ab2f4621b92314022d43ad00b10043fc631a1",
+  "source_registry_sha256": "5b580bd00f0c3663cce2b0cd0ddecb9ce55a520491b0b659852094be8261d701",
   "expected_coverage": {
     "source_count": 3,
     "reference_only_not_imported_count": 3,
@@ -20,7 +20,16 @@
       "ALADI_*"
     ],
     "eskom_rolling_feed_canonical_benchmark": false,
-    "imported_external_bytes": 0
+    "imported_external_bytes": 0,
+    "citylearn_selected_dataset_id": "citylearn_challenge_2022_phase_all_plus_evs",
+    "citylearn_source_commit": "834575c1a0194c8ae9d648ae858376a94dfceb78",
+    "citylearn_schema_blob_sha1": "5d58d31fd75e4845d73d319c69df34d64223f533",
+    "citylearn_referenced_csv_count": 30,
+    "citylearn_simulation_time_steps": 8760,
+    "citylearn_building_count": 17,
+    "citylearn_schema_size_bytes": 27644,
+    "citylearn_forecast_issue_times_verified": false,
+    "citylearn_dataset_terms_cleared": false
   },
   "claim_ceiling": "Source discovery and promotion-gate conformance only; no external dataset has been downloaded, rights-cleared, or qualified.",
   "required_checks": [
@@ -33,6 +42,11 @@
     "reported_windows_and_cadence_are_consistent",
     "mutable_rolling_sources_cannot_be_canonical_benchmarks_without_snapshot",
     "removed_citylearn_dataset_families_are_not_selected",
-    "registry_claim_ceiling_remains_discovery_only"
-  ]
+    "registry_claim_ceiling_remains_discovery_only",
+    "selected_citylearn_dataset_is_present_in_pinned_release",
+    "citylearn_manifest_pins_all_schema_referenced_source_files",
+    "forecast_columns_are_not_assumed_causal_without_issue_times"
+  ],
+  "citylearn_source_manifest_path": "tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json",
+  "citylearn_source_manifest_sha256": "2b0843776e0fb4729a3cec0b822970ccd163182915477aba0e01ccd19eff3066"
 }
