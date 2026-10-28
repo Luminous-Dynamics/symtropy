@@ -169,7 +169,7 @@ fn validate_pair(a: &Receipt, b: &Receipt) -> Result<(), String> {
         ("event gap", (a.event_gap_s - b.event_gap_s).abs() <= EPS),
         ("alert-merge gap", (a.alert_merge_gap_s - b.alert_merge_gap_s).abs() <= EPS),
     ];
-    let mismatches: Vec<&str> = same.iter().filter(|(_, ok)| !ok).map(|(name, _)| *name).collect();
+    let mismatches: Vec<&str> = same.iter().filter(|(_, ok)| !*ok).map(|(name, _)| *name).collect();
     if !mismatches.is_empty() {
         return Err(format!("non-comparable receipts; mismatched fields: {}", mismatches.join(", ")));
     }
