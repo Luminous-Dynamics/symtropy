@@ -600,7 +600,7 @@ fn evaluate(args: &Args, validated: Validated) -> Result<Report, String> {
         grouped.entry((checkpoint_key(&CheckpointRow {
             family_id: branch.family_id.clone(), flight_id: branch.flight_id.clone(),
             rollout_start_id: branch.rollout_start_id.clone(), regime: branch.regime.clone(),
-            checkpoint_time_s: branch.checkpoint_time_s,
+            checkpoint_time_s: branch.checkpoint_time_s, remaining_budget_s: branch.remaining_budget_s,
         }), branch.training_seed, branch.intervention_id.clone())).or_default().push(branch);
     }
 
