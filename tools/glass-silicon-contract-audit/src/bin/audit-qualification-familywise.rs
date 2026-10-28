@@ -83,10 +83,6 @@ fn log_binomial_pmf(n: usize, k: usize, p: f64) -> f64 {
     log_choose + (k as f64) * p.ln() + ((n - k) as f64) * (-p).ln_1p()
 }
 
-fn binomial_pmf(n: usize, k: usize, p: f64) -> f64 {
-    log_binomial_pmf(n, k, p).exp()
-}
-
 // P[X >= k], X ~ Binomial(n, p). n is contract-bounded at 1,000.
 fn binomial_upper_tail(n: usize, k: usize, p: f64) -> f64 {
     if k == 0 {
@@ -444,12 +440,11 @@ mod tests {
     }
 
     #[test]
-    fn single_candidate_family_reduces_to_ordinary_two_sided_exact_interval() {
-        let family_alpha = (1.0 - FAMILYWISE_CONFIDENCE_LEVEL) / 2.0;
-        let ordinary = simultaneous_interval(20, 19, family_alpha);
-        let per_candidate_familywise = simultaneous_interval(20, 19, family_alpha / 1.0);
-        assert!(close(ordinary.0, per_candidate_familywise.0));
-        assert!(close(ordinary.1, per_candidate_familywise.1));
+    fn single_candidate_family_matches_exact_interval_known_answer() {
+        let per_tail_alpha = (1.0 - FAMILYWISE_CONFIDENCE_LEVEL) / 2.0;
+        let (lower, upper) = simultaneous_interval(20, 19, per_tail_alpha);
+        assert!(close(lower, 0.7512672372279723));
+        assert!(close(upper, 0.9987349105020502));
     }
 
     #[test]
