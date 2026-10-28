@@ -254,5 +254,40 @@
       "compressed_archive",
       "other_binary"
     ]
+  },
+  "coverage_admission_policy": {
+    "policy_id": "coverage_before_aggregation_v0",
+    "status": "proposed_not_executed",
+    "missing_values_are_zero": false,
+    "allow_incomplete_daily_series_to_be_treated_as_complete_month": false,
+    "require_expected_observed_missing_counts_per_variable_and_window": true,
+    "require_coverage_fraction_before_metrics": true,
+    "minimum_coverage_threshold_fraction": null,
+    "minimum_coverage_threshold_must_be_frozen_before_locked_test": true,
+    "threshold_choice_requires": "predeclared for the target variable, aggregation, decision and source QA; do not choose it after inspecting locked-test errors",
+    "metadata_only_negative_control": {
+      "source_candidate": "sasscal_weathernet_gobabeb_met_8893",
+      "period": "2023-01",
+      "expected_daily_rows": 31,
+      "publisher_displayed_dates_with_values": [
+        "2023-01-01",
+        "2023-01-02",
+        "2023-01-03",
+        "2023-01-04"
+      ],
+      "publisher_displayed_rows_missing": 27,
+      "visible_row_coverage_fraction": 0.12903225806451613,
+      "monthly_summary_must_not_be_accepted_as_complete_observed_month": true,
+      "status": "metadata_only_not_ingested",
+      "expected_decision": "insufficient_coverage_unless a separately predeclared and justified coverage policy allows the intended use"
+    },
+    "second_metadata_example": {
+      "source_candidate": "sasscal_weathernet_gobabeb_met_8893",
+      "period": "2022-07-27 hourly",
+      "publisher_reported_records": 24,
+      "publisher_reported_missing_hours": "none",
+      "status": "metadata_only_not_ingested",
+      "expected_decision": "one reported full 24-hour table is not evidence of month-long coverage or of source-wide completeness"
+    }
   }
 }
