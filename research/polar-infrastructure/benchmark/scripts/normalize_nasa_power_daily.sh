@@ -191,7 +191,7 @@ CONFIG_SHA=""
 BYTE_SIZE=$(wc -c < "$CSV_OUT" | tr -d ' ')
 file_uri() {
   local encoded
-  encoded=$(jq -nr --arg path "$1" '$path | @uri' | sed 's/%2F/\\//g')
+  encoded=$(jq -nr --arg path "$1" '$path | @uri' | sed 's/%2F/\//g')
   printf 'file://%s' "$encoded"
 }
 RAW_URI=$(file_uri "$RAW_COPY")
