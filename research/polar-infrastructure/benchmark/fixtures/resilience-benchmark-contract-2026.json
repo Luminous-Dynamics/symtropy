@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "symtropy-resilience-benchmark-contract",
+  "contract_id": "resilience-comparison-contract-v0",
+  "status": "proposed_not_executed",
+  "evidence_class": "test_design_only",
+  "purpose": "pre-register evidence admission, strong baselines, primary outcomes, fairness constraints, and superiority criteria before a controller bake-off",
+  "primary_endpoint": {
+    "metric_id": "cvar95_critical_energy_not_served",
+    "unit": "kWh per disturbance episode",
+    "direction": "lower_is_better",
+    "tail_probability": 0.95,
+    "minimum_relative_improvement_target": 0.10,
+    "comparison": "strongest_admissible_deployable_baseline",
+    "uncertainty_requirement": "paired_95_percent_interval_excludes_zero_improvement",
+    "status": "target_not_measured"
+  },
+  "claim_policy": {
+    "single_composite_score_allowed": false,
+    "oracle_counts_as_deployable_baseline": false,
+    "reanalysis_counts_as_in_situ_measurement": false,
+    "hash_counts_as_physical_validation": false,
+    "zero_observed_violations_proves_universal_safety": false,
+    "post_test_endpoint_or_holdout_changes_allowed": false,
+    "unadmitted_or_invalid_cases_may_be_scored_as_pass": false
+  },
+  "admission_gates": [
+    {
+      "gate_id": "source_trace_integrity",
+      "required": true,
+      "passed": false,
+      "evidence_required": "raw_source_bytes_license_citation_source_sha256_and_repeatable_transform"
+    },
+    {
+      "gate_id": "time_unit_and_qaqc_review",
+      "required": true,
+      "passed": false,
+      "evidence_required": "reviewed_variable_mapping_timezone_interval_semantics_missingness_and_quality_flags"
+    },
+    {
+      "gate_id": "model_verification",
+      "required": true,
+      "passed": false,
+      "evidence_required": "known_answer_tests_numerical_convergence_invariants_and_independent_reference_cases"
+    },
+    {
+      "gate_id": "locked_holdout_frozen",
+      "required": true,
+      "passed": false,
+      "evidence_required": "whole_episode_or_site_year_holdout_and_frozen_primary_endpoint"
+    },
+    {
+      "gate_id": "strong_baselines_admitted",
+      "required": true,
+      "passed": false,
+      "evidence_required": "compatible_deployable_baselines_or_documented_exclusions_frozen_before_test"
+    },
+    {
+      "gate_id": "paired_information_and_budget",
+      "required": true,
+      "passed": false,
+      "evidence_required": "same_trace_initial_state_measurements_forecast_budget_action_limits_and_disturbance_seed"
+    },
+    {
+      "gate_id": "independent_replay",
+      "required": true,
+      "passed": false,
+      "evidence_required": "clean_environment_replay_with_artifact_digests_and_declared_numerical_tolerance"
+    }
+  ],
+  "baseline_ladder": [
+    {
+      "baseline_id": "static_or_current_policy",
+      "class": "deployable_baseline",
+      "required": true,
+      "role": "incumbent_or_no_adaptation_reference"
+    },
+    {
+      "baseline_id": "transparent_rule_policy",
+      "class": "deployable_baseline",
+      "required": true,
+      "role": "fixed_threshold_or_priority_dispatch"
+    },
+    {
+      "baseline_id": "greedy_short_horizon",
+      "class": "deployable_baseline",
+      "required": "when_technically_compatible",
+      "role": "myopic_action_selection_under_matched_observations"
+    },
+    {
+      "baseline_id": "deterministic_mpc",
+      "class": "deployable_baseline",
+      "required": "when_technically_compatible",
+      "role": "matched_forecast_horizon_and_action_constraints"
+    },
+    {
+      "baseline_id": "robust_or_stochastic_mpc",
+      "class": "deployable_baseline",
+      "required": "when_available_and_compatible",
+      "role": "stronger_uncertainty_aware_comparator"
+    },
+    {
+      "baseline_id": "reopt_or_homer_reference",
+      "class": "external_planning_reference",
+      "required": "for_compatible_microgrid_planning_cases",
+      "role": "pin_tool_version_model_boundary_and_assumptions"
+    },
+    {
+      "baseline_id": "opendss_reference",
+      "class": "external_physics_reference",
+      "required": "for_compatible_distribution_network_cases",
+      "role": "pin_feeder_model_and_compare_only_shared_outputs"
+    },
+    {
+      "baseline_id": "symtropy_candidate",
+      "class": "candidate",
+      "required": true,
+      "role": "declare_extra_information_compute_and_model_fidelity"
+    },
+    {
+      "baseline_id": "perfect_information_oracle",
+      "class": "diagnostic_only",
+      "required": false,
+      "role": "upper_bound_using_future_disturbances_never_a_deployable_baseline"
+    }
+  ],
+  "required_metric_ids": [
+    "critical_energy_not_served_kwh",
+    "critical_load_fraction_served",
+    "critical_service_outage_hours",
+    "time_to_service_restoration",
+    "hard_constraint_violation_count_and_severity",
+    "cvar95_critical_energy_not_served",
+    "p95_recovery_time",
+    "worst_group_outcome_by_hazard_family",
+    "development_to_locked_test_degradation",
+    "input_coverage_and_missing_window_rate",
+    "wall_time_and_peak_memory",
+    "simulation_or_optimization_evaluation_count"
+  ],
+  "fairness_protocol": {
+    "paired_disturbance_seeds": true,
+    "equal_information_or_declared_ablation": true,
+    "whole_episode_or_site_year_splits": true,
+    "locked_test_may_not_be_used_for_tuning": true,
+    "confidence_intervals_resample_temporal_blocks": true,
+    "multiple_policy_comparisons_must_be_declared": true,
+    "negative_controls_required": true,
+    "repeat_run_in_clean_environment_required": true
+  },
+  "superiority_criteria": {
+    "primary_metric": "cvar95_critical_energy_not_served",
+    "minimum_relative_improvement": 0.10,
+    "confidence_level": 0.95,
+    "interval_must_exclude_zero_improvement": true,
+    "hard_constraint_noninferiority_required": true,
+    "economic_or_resource_noninferiority_margin": null,
+    "economic_or_resource_margin_must_be_frozen_before_locked_test": true,
+    "no_material_regression_in_preregistered_hazard_groups": true,
+    "cross_site_claim_requires_independent_site_or_time_block": true
+  },
+  "source_references": [
+    "https://www.nlr.gov/reopt/about/index",
+    "https://support.homerenergy.com/docs/getting-started/solving-problems-with-homer-software",
+    "https://opendss.epri.com/",
+    "https://gmlc.doe.gov/sites/default/files/resources/GMLC1.1_Vol3_Resilience.pdf",
+    "https://resourcecenter.ieee-pes.org/publications/technical-reports/pes_tr_143_amps_060826",
+    "https://doi.org/10.1594/PANGAEA.968639",
+    "https://power.larc.nasa.gov/docs/services/api/validate/"
+  ],
+  "result_policy": {
+    "report_kind": "preregistration_contract_only_no_performance_results",
+    "no_empirical_superiority_claim": true,
+    "must_state_current_evidence_maturity_level": true
+  }
+}
