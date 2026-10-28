@@ -12,6 +12,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "careframe-design-space"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -67,14 +75,6 @@ name = "libc"
 version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
-
-[[package]]
-name = "careframe-design-space"
-version = "0.1.0"
-dependencies = [
- "serde_json",
- "sha2",
-]
 
 [[package]]
 name = "memchr"
