@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Glass–Silicon Acquisition Policy Comparison Input v0.1",
-  "description": "Synthetic finite-pool input for comparing random, uncertainty, novelty, and cost-aware selection under the same budget. Passing this schema does not validate policy effectiveness or industrial outcomes.",
+  "title": "Glass–Silicon Policy-Visible Acquisition Catalog v0.1",
+  "description": "Policy-visible candidates, costs, selection proxies, and predeclared random seeds only. Evaluator scenarios, utilities, feasibility labels, and observation outcomes are forbidden in this public input.",
   "type": "object",
-  "additionalProperties": true,
+  "additionalProperties": false,
   "required": [
     "benchmark_id",
     "evidence_class",
@@ -13,63 +13,57 @@
     "max_measurement_cost",
     "max_duration_seconds",
     "producer_access",
-    "scenarios",
-    "actions",
-    "constraint_controls",
     "measurements",
     "acquisition_policy_comparison"
   ],
   "properties": {
-    "benchmark_id": {"const": "glass-silicon-decision-value-synthetic-v0.1"},
-    "evidence_class": {"const": "synthetic"},
-    "claim_ceiling": {"type": "string", "minLength": 1},
-    "utility_unit": {"type": "string", "minLength": 1},
-    "cost_unit": {"type": "string", "minLength": 1},
-    "max_measurement_cost": {"type": "number", "minimum": 0},
-    "max_duration_seconds": {"type": "number", "minimum": 0},
+    "benchmark_id": {
+      "const": "glass-silicon-decision-value-synthetic-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "utility_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cost_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "max_measurement_cost": {
+      "type": "number",
+      "minimum": 0
+    },
+    "max_duration_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
     "producer_access": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["ground_truth", "unobserved_utilities", "oracle_scores", "future_outcomes"],
+      "required": [
+        "ground_truth",
+        "unobserved_utilities",
+        "oracle_scores",
+        "future_outcomes"
+      ],
       "properties": {
-        "ground_truth": {"const": false},
-        "unobserved_utilities": {"const": false},
-        "oracle_scores": {"const": false},
-        "future_outcomes": {"const": false}
-      }
-    },
-    "scenarios": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["id"],
-        "properties": {"id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"}}
-      }
-    },
-    "actions": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["id", "utility_by_scenario", "feasible_by_scenario"],
-        "properties": {
-          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
-          "utility_by_scenario": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "number"}},
-          "feasible_by_scenario": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "boolean"}}
-        }
-      }
-    },
-    "constraint_controls": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["action_id", "scenario_id", "must_be_feasible"],
-        "properties": {
-          "action_id": {"type": "string"},
-          "scenario_id": {"type": "string"},
-          "must_be_feasible": {"type": "boolean"}
+        "ground_truth": {
+          "const": false
+        },
+        "unobserved_utilities": {
+          "const": false
+        },
+        "oracle_scores": {
+          "const": false
+        },
+        "future_outcomes": {
+          "const": false
         }
       }
     },
@@ -78,21 +72,51 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "cost_units", "duration_seconds", "observation_by_scenario", "selection_features"],
+        "required": [
+          "id",
+          "cost_units",
+          "duration_seconds",
+          "selection_features"
+        ],
         "properties": {
-          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
-          "cost_units": {"type": "number", "exclusiveMinimum": 0},
-          "duration_seconds": {"type": "number", "minimum": 0},
-          "observation_by_scenario": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string", "minLength": 1}},
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "cost_units": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "duration_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
           "selection_features": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["uncalibrated_uncertainty", "calibrated_uncertainty", "novelty", "estimated_voi"],
+            "required": [
+              "uncalibrated_uncertainty",
+              "calibrated_uncertainty",
+              "novelty",
+              "estimated_voi"
+            ],
             "properties": {
-              "uncalibrated_uncertainty": {"type": "number", "minimum": 0},
-              "calibrated_uncertainty": {"type": "number", "minimum": 0},
-              "novelty": {"type": "number", "minimum": 0},
-              "estimated_voi": {"type": "number", "minimum": 0}
+              "uncalibrated_uncertainty": {
+                "type": "number",
+                "minimum": 0
+              },
+              "calibrated_uncertainty": {
+                "type": "number",
+                "minimum": 0
+              },
+              "novelty": {
+                "type": "number",
+                "minimum": 0
+              },
+              "estimated_voi": {
+                "type": "number",
+                "minimum": 0
+              }
             }
           }
         }
@@ -101,14 +125,22 @@
     "acquisition_policy_comparison": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["protocol_version", "random_seeds"],
+      "required": [
+        "protocol_version",
+        "random_seeds"
+      ],
       "properties": {
-        "protocol_version": {"const": 1},
+        "protocol_version": {
+          "const": 1
+        },
         "random_seeds": {
           "type": "array",
           "minItems": 10,
           "uniqueItems": true,
-          "items": {"type": "integer", "minimum": 0}
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
         }
       }
     }
