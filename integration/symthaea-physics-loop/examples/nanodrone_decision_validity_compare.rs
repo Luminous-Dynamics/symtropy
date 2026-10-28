@@ -302,6 +302,17 @@ mod tests {
     }
 
     #[test]
+    fn unequal_realized_test_alert_rates_are_explicitly_not_matched() {
+        let a = receipt("base", Some(0.7), Some(0.3), &"p".repeat(64));
+        let mut b = receipt("candidate", Some(0.8), Some(0.4), &"p".repeat(64));
+        b.operating_points[0].test.realized_alert_rate = 0.15;
+        validate_pair(&a, &b).unwrap();
+        let c = compare(&a, &b, 0.01, &"1".repeat(64), &"2".repeat(64));
+        assert!(!c.points[0].test_alert_rates_within_tolerance);
+        assert!(c.points[0].note.contains("do not claim equal-alert-budget superiority"));
+    }
+
+    #[test]
     fn mismatched_truth_receipt_is_rejected() {
         let a = receipt("base", Some(0.7), Some(0.3), &"p".repeat(64));
         let b = receipt("candidate", Some(0.8), Some(0.4), &"q".repeat(64));
