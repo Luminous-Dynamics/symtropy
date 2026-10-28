@@ -98,6 +98,7 @@ struct TraceVariable {
     canonical_unit: String,
     source_variable: RequiredNullable<String>,
     transformation: String,
+    temporal_semantics: String,
     evidence_class: String,
     required_for_replay: bool,
 }
@@ -397,6 +398,19 @@ fn validate(manifest: &Manifest) -> ValidationReport {
         if !variable_ids.insert(variable.variable_id.clone()) {
             errors.push(format!("duplicate variable_id {}", variable.variable_id));
         }
+        if !matches!(
+            variable.temporal_semantics.as_str(),
+            "instantaneous"
+                | "interval_mean"
+                | "interval_accumulation"
+                | "interval_maximum"
+                | "interval_minimum"
+                | "sample_event"
+                | "derived"
+                | "unknown"
+        ) {
+            errors.push(format!("unsupported temporal semantics for variable {}", variable.variable_id));
+        }
         if !valid_evidence_class(&variable.evidence_class) {
             errors.push(format!("unsupported evidence class for variable {}", variable.variable_id));
         }
@@ -650,6 +664,16 @@ mod tests {
         let removed = value["acquisition"].as_object_mut().expect("acquisition object").remove("source_url");
         assert!(removed.is_some());
         assert!(serde_json::from_value::<Manifest>(value).is_err());
+    }
+
+    #[test]
+    fn variable_temporal_semantics_are_explicit_and_validated() {
+        let mut manifest: Manifest = serde_json::from_str(TEMPLATE).expect("template should deserialize");
+        assert_eq!(manifest.variables[1].temporal_semantics, "interval_accumulation");
+        manifest.variables[0].temporal_semantics = "daily_maybe_mean".to_string();
+        let report = validate(&manifest);
+        assert!(!report.contract_valid);
+        assert!(report.errors.iter().any(|error| error.contains("unsupported temporal semantics")));
     }
 
     #[test]
