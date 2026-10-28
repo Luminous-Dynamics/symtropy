@@ -297,6 +297,9 @@ fn read_starts(path: &Path) -> Result<(Vec<StartRow>, Vec<u8>), String> {
     if starts.is_empty() { return Err("evaluation-start manifest has header but no starts".into()); }
     let mut count_by_flight = BTreeMap::<String, usize>::new();
     for row in &starts { *count_by_flight.entry(row.flight_id.clone()).or_default() += 1; }
+    if count_by_flight.len() < 2 {
+        return Err("at least two evaluation flights are required for crossed inference".into());
+    }
     if count_by_flight.values().copied().collect::<BTreeSet<_>>().len() != 1 {
         return Err("registered rollout starts must be balanced across flights".into());
     }
