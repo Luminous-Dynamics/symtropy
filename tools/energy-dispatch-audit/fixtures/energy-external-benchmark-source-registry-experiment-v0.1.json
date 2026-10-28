@@ -2,7 +2,7 @@
   "schema_version": "energy-external-benchmark-source-registry-experiment-v0.1",
   "registry_id": "energy-external-benchmark-source-registry-2026-10-28",
   "source_registry_path": "tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-v0.1.json",
-  "source_registry_sha256": "6481f1d4e4c2cc814582960350c2323b86aea8a388b97c83f7c516785f44783a",
+  "source_registry_sha256": "69695a9f93c6c27592d1e09ee2af283ab1838f85cb5ad550b23d14158c9c892f",
   "expected_coverage": {
     "source_count": 3,
     "reference_only_not_imported_count": 3,
