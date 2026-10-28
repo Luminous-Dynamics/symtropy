@@ -4373,6 +4373,7 @@ pub struct AcquisitionPolicyComparisonReport {
     pub benchmark_id: Option<String>,
     pub evidence_class: Option<String>,
     pub input_sha256: Option<String>,
+    pub oracle_sha256: Option<String>,
     pub random_seed_count: usize,
     pub available_measurements: usize,
     pub budget_eligible_measurements: usize,
@@ -4428,6 +4429,7 @@ fn acquisition_policy_invalid(
         benchmark_id: object_string(pool, "benchmark_id").map(ToOwned::to_owned),
         evidence_class: object_string(pool, "evidence_class").map(ToOwned::to_owned),
         input_sha256: None,
+        oracle_sha256: None,
         random_seed_count,
         available_measurements,
         budget_eligible_measurements,
@@ -4696,6 +4698,7 @@ pub fn audit_acquisition_policy_comparison(pool: &Value) -> AcquisitionPolicyCom
         benchmark_id: benchmark_id.map(ToOwned::to_owned),
         evidence_class: pool.get("evidence_class").and_then(Value::as_str).map(ToOwned::to_owned),
         input_sha256: None,
+        oracle_sha256: None,
         random_seed_count: seeds.len(),
         available_measurements,
         budget_eligible_measurements: eligible.len(),
@@ -4706,6 +4709,191 @@ pub fn audit_acquisition_policy_comparison(pool: &Value) -> AcquisitionPolicyCom
         findings: Vec::new(),
         claim_ceiling: "Synthetic policy-selection and regret arithmetic only; selector scores are fixture-declared proxies, not trained uncertainty models or measured acquisition performance.".to_string(),
     }
+}
+
+
+/// Validates a policy-visible catalog and an evaluator-owned oracle as separate inputs.
+/// The internal legacy finite-pool evaluator receives a merged copy only after this
+/// boundary check; the built-in selectors rank public cost/feature fields, while scoring
+/// uses the evaluator's observation map. This is not a sandbox for arbitrary user code.
+pub fn audit_acquisition_policy_comparison_sealed(
+    policy_input: &Value,
+    oracle: &Value,
+) -> AcquisitionPolicyComparisonReport {
+    let mut errors = Vec::new();
+    let public_root_keys = [
+        "benchmark_id", "evidence_class", "claim_ceiling", "utility_unit", "cost_unit",
+        "max_measurement_cost", "max_duration_seconds", "producer_access",
+        "measurements", "acquisition_policy_comparison",
+    ];
+    let oracle_root_keys = [
+        "schema_version", "benchmark_id", "evidence_class", "scenarios",
+        "actions", "constraint_controls", "measurement_outcomes",
+    ];
+    if !relationship_exact_keys(policy_input, &public_root_keys) {
+        errors.push("PUBLIC_INPUT_KEYS:missing fields or evaluator-only fields in policy-visible input".to_string());
+    }
+    if !relationship_exact_keys(oracle, &oracle_root_keys) {
+        errors.push("SEALED_ORACLE_KEYS:missing or unknown evaluator-only fields".to_string());
+    }
+    if oracle.get("schema_version").and_then(Value::as_u64) != Some(1) {
+        errors.push("SEALED_ORACLE_VERSION:expected schema_version 1".to_string());
+    }
+    if object_string(oracle, "evidence_class") != Some("synthetic_evaluator_only") {
+        errors.push("SEALED_ORACLE_CLASS:evaluator oracle must declare synthetic_evaluator_only".to_string());
+    }
+    let public_benchmark = object_string(policy_input, "benchmark_id");
+    let oracle_benchmark = object_string(oracle, "benchmark_id");
+    if public_benchmark.is_none() || public_benchmark != oracle_benchmark {
+        errors.push("SEALED_ORACLE_BENCHMARK:public and oracle benchmark IDs must match".to_string());
+    }
+    if object_string(policy_input, "evidence_class") != Some("synthetic") {
+        errors.push("PUBLIC_EVIDENCE_CLASS:policy input must declare synthetic evidence".to_string());
+    }
+    if policy_input.get("acquisition_policy_comparison")
+        .and_then(|v| v.get("protocol_version")).and_then(Value::as_u64) != Some(1) {
+        errors.push("POLICY_PROTOCOL_VERSION:acquisition_policy_comparison.protocol_version must be integer 1".to_string());
+    }
+    if !relationship_exact_keys(
+        policy_input.get("acquisition_policy_comparison").unwrap_or(&Value::Null),
+        &["protocol_version", "random_seeds"],
+    ) {
+        errors.push("POLICY_PROTOCOL_KEYS:expected only protocol_version and random_seeds".to_string());
+    }
+    let access = policy_input.get("producer_access").unwrap_or(&Value::Null);
+    if !relationship_exact_keys(access, &[
+        "ground_truth", "unobserved_utilities", "oracle_scores", "future_outcomes",
+    ]) || ["ground_truth", "unobserved_utilities", "oracle_scores", "future_outcomes"]
+        .iter().any(|key| access.get(*key).and_then(Value::as_bool) != Some(false)) {
+        errors.push("PUBLIC_ACCESS_CONTRACT:all evaluator-only access declarations must be explicitly false".to_string());
+    }
+
+    let public_measurements = policy_input.get("measurements").and_then(Value::as_array);
+    if public_measurements.map_or(true, Vec::is_empty) {
+        errors.push("PUBLIC_MEASUREMENTS:non-empty public measurements array required".to_string());
+    }
+    let mut public_ids = BTreeSet::new();
+    if let Some(items) = public_measurements {
+        for (index, item) in items.iter().enumerate() {
+            if !relationship_exact_keys(item, &["id", "cost_units", "duration_seconds", "selection_features"]) {
+                errors.push(format!("PUBLIC_MEASUREMENT_KEYS:index {index} contains missing or evaluator-only fields"));
+                continue;
+            }
+            let id = nonempty_string(item, "id");
+            if id.as_deref().map_or(true, |value| !is_stable_slug(value)) {
+                errors.push(format!("PUBLIC_MEASUREMENT_ID:index {index} has invalid ID"));
+            } else if !public_ids.insert(id.unwrap()) {
+                errors.push(format!("PUBLIC_MEASUREMENT_ID:index {index} duplicates a measurement ID"));
+            }
+            if !relationship_exact_keys(
+                item.get("selection_features").unwrap_or(&Value::Null),
+                &[
+                    "uncalibrated_uncertainty", "calibrated_uncertainty",
+                    "novelty", "estimated_voi",
+                ],
+            ) {
+                errors.push(format!("PUBLIC_SELECTION_FEATURES:index {index} has missing or unknown features"));
+            }
+        }
+    }
+
+    let scenarios = oracle.get("scenarios").and_then(Value::as_array);
+    let mut scenario_ids = BTreeSet::new();
+    if scenarios.map_or(true, Vec::is_empty) {
+        errors.push("SEALED_SCENARIOS:non-empty evaluator scenario list required".to_string());
+    }
+    if let Some(items) = scenarios {
+        for (index, item) in items.iter().enumerate() {
+            if !relationship_exact_keys(item, &["id"]) {
+                errors.push(format!("SEALED_SCENARIO_KEYS:index {index} has missing or unknown fields"));
+                continue;
+            }
+            match nonempty_string(item, "id") {
+                Some(id) if is_stable_slug(&id) => {
+                    if !scenario_ids.insert(id.clone()) {
+                        errors.push(format!("SEALED_SCENARIO_ID:duplicate scenario ID {id}"));
+                    }
+                }
+                _ => errors.push(format!("SEALED_SCENARIO_ID:index {index} has invalid ID")),
+            }
+        }
+    }
+
+    let outcome_map = oracle.get("measurement_outcomes").and_then(Value::as_object);
+    if outcome_map.is_none() {
+        errors.push("SEALED_OUTCOMES:measurement_outcomes must be an object".to_string());
+    } else {
+        let outcome_ids = outcome_map.unwrap().keys().cloned().collect::<BTreeSet<_>>();
+        if outcome_ids != public_ids {
+            errors.push("SEALED_OUTCOME_CENSUS:oracle outcome IDs must match public measurement IDs exactly".to_string());
+        }
+        for (id, item) in outcome_map.unwrap() {
+            if !public_ids.contains(id) {
+                continue;
+            }
+            if !relationship_exact_keys(item, &["observation_by_scenario"]) {
+                errors.push(format!("SEALED_OUTCOME_KEYS:{id} has missing or unknown evaluator fields"));
+                continue;
+            }
+            let observations = item.get("observation_by_scenario").unwrap_or(&Value::Null);
+            if !decision_exact_map_keys(observations, &scenario_ids) {
+                errors.push(format!("SEALED_OBSERVATION_CENSUS:{id} must map every scenario exactly once"));
+                continue;
+            }
+            if let Some(object) = observations.as_object() {
+                for (scenario, label) in object {
+                    if label.as_str().map_or(true, |value| value.trim().is_empty()) {
+                        errors.push(format!("SEALED_OBSERVATION_VALUE:{id}/{scenario} must be a non-empty string"));
+                    }
+                }
+            }
+        }
+    }
+
+    if !errors.is_empty() {
+        return acquisition_policy_invalid(
+            policy_input,
+            errors,
+            "FAIL",
+            policy_input.get("acquisition_policy_comparison")
+                .and_then(|v| v.get("random_seeds")).and_then(Value::as_array).map_or(0, Vec::len),
+            public_measurements.map_or(0, Vec::len),
+            0,
+            None,
+        );
+    }
+
+    let mut combined = policy_input.clone();
+    let Some(combined_object) = combined.as_object_mut() else {
+        return acquisition_policy_invalid(
+            policy_input,
+            vec!["PUBLIC_INPUT_ROOT:policy input must be an object".to_string()],
+            "FAIL", 0, 0, 0, None,
+        );
+    };
+    for key in ["scenarios", "actions", "constraint_controls"] {
+        combined_object.insert(key.to_string(), oracle.get(key).cloned().unwrap_or(Value::Null));
+    }
+    let mut merged_measurements = Vec::new();
+    for item in public_measurements.unwrap() {
+        let mut merged_item = item.clone();
+        let id = item.get("id").and_then(Value::as_str).unwrap_or("");
+        let observations = oracle.get("measurement_outcomes")
+            .and_then(|value| value.get(id))
+            .and_then(|value| value.get("observation_by_scenario"))
+            .cloned()
+            .unwrap_or(Value::Null);
+        if let Some(object) = merged_item.as_object_mut() {
+            object.insert("observation_by_scenario".to_string(), observations);
+        }
+        merged_measurements.push(merged_item);
+    }
+    combined_object.insert("measurements".to_string(), Value::Array(merged_measurements));
+    let mut report = audit_acquisition_policy_comparison(&combined);
+    report.input_sha256 = None;
+    report.oracle_sha256 = None;
+    report.claim_ceiling = "Separated synthetic policy-visible catalog and evaluator-owned oracle; this validates the built-in comparison contract, not isolation of arbitrary selector code or real manufacturing performance.".to_string();
+    report
 }
 
 #[cfg(test)]
