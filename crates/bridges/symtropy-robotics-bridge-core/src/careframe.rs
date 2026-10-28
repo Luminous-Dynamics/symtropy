@@ -798,21 +798,26 @@ mod tests {
         let morphology: CareframeMorphology =
             serde_json::from_str(MORPHOLOGY_JSON).expect("morphology parses");
         validate_morphology(&morphology).expect("frozen morphology is valid");
-        let revolute = morphology
+        let movable = morphology
             .joints
             .iter()
-            .filter(|joint| joint.joint_type == "revolute")
+            .filter(|joint| ["revolute", "continuous"].contains(&joint.joint_type.as_str()))
             .collect::<Vec<_>>();
-        assert_eq!(revolute.len(), 9);
+        assert_eq!(movable.len(), 9);
 
         // Deterministic boundary-rich coverage: no RNG or hidden seed dependency.
         for sample in 0..32usize {
             let mut state = BTreeMap::new();
-            for (joint_index, joint) in revolute.iter().enumerate() {
+            for (joint_index, joint) in movable.iter().enumerate() {
                 let slot = (sample * 17 + joint_index * 29) % 101;
                 let fraction = slot as f64 / 100.0;
-                let position = joint.lower_limit_rad
-                    + fraction * (joint.upper_limit_rad - joint.lower_limit_rad);
+                let position = if joint.joint_type == "continuous" {
+                    (fraction * 2.0 - 1.0) * 8.0 * std::f64::consts::PI
+                } else {
+                    let lower = joint.lower_limit_rad.expect("revolute lower limit");
+                    let upper = joint.upper_limit_rad.expect("revolute upper limit");
+                    lower + fraction * (upper - lower)
+                };
                 state.insert(joint.joint_id.clone(), position);
             }
             let state_json = serde_json::to_string(&state).expect("state serializes");
@@ -842,6 +847,96 @@ mod tests {
                 assert!(body.collider.as_any().downcast_ref::<HyperBox<3>>().is_some());
             }
         }
+    }
+
+    fn morphology_with_continuous_drive_wheels() -> String {
+        let mut morphology: serde_json::Value =
+            serde_json::from_str(MORPHOLOGY_JSON).expect("morphology JSON parses");
+        for joint_id in ["left_drive", "right_drive"] {
+            let joint = morphology["joints"]
+                .as_array_mut()
+                .expect("joint array")
+                .iter_mut()
+                .find(|joint| joint["joint_id"] == joint_id)
+                .expect("drive wheel joint exists");
+            joint["joint_type"] = serde_json::Value::String("continuous".to_owned());
+            joint.as_object_mut()
+                .expect("joint object")
+                .remove("lower_limit_rad");
+            joint.as_object_mut()
+                .expect("joint object")
+                .remove("upper_limit_rad");
+        }
+        serde_json::to_string(&morphology).expect("continuous morphology serializes")
+    }
+
+    #[test]
+    fn continuous_wheel_joints_accept_many_revolutions_and_reject_unbounded_numeric_input() {
+        let continuous_morphology = morphology_with_continuous_drive_wheels();
+        let mut state: BTreeMap<String, f64> = serde_json::from_str(ZERO_JOINT_STATE_JSON)
+            .expect("nominal joint state parses");
+        state.insert("left_drive".to_owned(), 20.0 * std::f64::consts::PI);
+        state.insert("right_drive".to_owned(), -16.0 * std::f64::consts::PI);
+        let state_json = serde_json::to_string(&state).expect("continuous state serializes");
+        let mut physics = world();
+        let assembly = spawn_static_collision_assembly(
+            &mut physics,
+            &continuous_morphology,
+            &state_json,
+            Point::origin(),
+        )
+        .expect("continuous wheel rotations are not position-limited");
+        assert_eq!(assembly.len(), 16);
+        assert_eq!(physics.body_count(), 16);
+
+        state.insert("left_drive".to_owned(), 1_000_001.0);
+        let huge_state_json = serde_json::to_string(&state).expect("large state serializes");
+        let mut untouched_world = world();
+        let err = spawn_static_collision_assembly(
+            &mut untouched_world,
+            &continuous_morphology,
+            &huge_state_json,
+            Point::origin(),
+        )
+        .expect_err("continuous angle with excessive numeric magnitude rejects");
+        assert!(err
+            .iter()
+            .any(|finding| finding == "JOINT_STATE_CONTINUOUS_MAGNITUDE_INVALID"));
+        assert_eq!(untouched_world.body_count(), 0);
+        assert!(untouched_world.constraints.is_empty());
+    }
+
+    #[test]
+    fn continuous_wheels_reject_position_limits_and_missing_or_unknown_movable_states() {
+        let continuous_morphology = morphology_with_continuous_drive_wheels();
+        let mut with_limit: serde_json::Value =
+            serde_json::from_str(&continuous_morphology).expect("morphology parses");
+        with_limit["joints"][0]["lower_limit_rad"] = serde_json::json!(0.0);
+        let with_limit_json =
+            serde_json::to_string(&with_limit).expect("bounded continuous model serializes");
+        let err = validate_morphology(
+            &serde_json::from_str(&with_limit_json).expect("typed candidate parses"),
+        )
+        .expect_err("continuous joint must not declare position bounds");
+        assert!(err
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_CONTINUOUS_JOINT_HAS_POSITION_LIMITS"));
+
+        let mut missing_state: BTreeMap<String, f64> =
+            serde_json::from_str(ZERO_JOINT_STATE_JSON).expect("nominal state parses");
+        missing_state.remove("left_drive");
+        let mut physics = world();
+        let err = spawn_static_collision_assembly(
+            &mut physics,
+            &continuous_morphology,
+            &serde_json::to_string(&missing_state).expect("state serializes"),
+            Point::origin(),
+        )
+        .expect_err("missing continuous wheel state rejects");
+        assert!(err
+            .iter()
+            .any(|finding| finding == "JOINT_STATE_MISSING_MOVABLE_JOINT"));
+        assert_eq!(physics.body_count(), 0);
     }
 
     #[test]
