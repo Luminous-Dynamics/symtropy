@@ -32,6 +32,12 @@ A trace cannot be marked `validated_for_replay` until the manifest carries all o
 
 The JSON Schema expresses the core shape and elevated requirements for a replay-validated manifest. The Rust contract gate is implemented in [environment_trace_manifest.rs](src/bin/environment_trace_manifest.rs): it rejects unknown/missing fields, duplicate variable IDs, invalid status/evidence combinations, incomplete replay metadata, bad digest syntax and inconsistent sample counts. Its report explicitly says it does not hash the actual artifact or validate physical-model correctness. The workflow's jq assertions are structural guardrails; neither jq nor the Rust gate is a full Draft 2020-12 JSON Schema engine or a replacement for data-quality review and domain expert sign-off.
 
+## 2.1 Minimal value-shape and physical-sanity screening
+
+The NASA POWER daily normalizer checks that requested fields are numeric or explicitly missing, daily irradiation/wind/precipitation are non-negative, relative humidity is within 0–100%, daily minimum does not exceed daily maximum, and the daily mean lies between them when all three exist. These checks catch malformed records before CSV generation; they are not a site validation, a climatological envelope, or a controller/plant model.
+
+Do not copy those rules wholesale into the station-data adapter. The published Gobabeb BSRN record includes small negative nighttime SWD samples (for example, values around -3 W/m²). Those raw instrument values must be preserved and analyzed with the instrument's QA/offset context; a separate, explicitly declared screened metric can coexist with the raw metric. A universal global-horizontal-radiation `>= 0` check would incorrectly discard legitimate measurement information in that source class.
+
 ## 3. Chronology and split policy
 
 ### Preserve joint history
