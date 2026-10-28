@@ -27,6 +27,14 @@ fn valid_sha256(value: &str) -> bool {
     value.len() == 64 && value.chars().all(|c| c.is_ascii_hexdigit())
 }
 
+fn verify_raw_sha256(path: &str, expected: &str, bytes: &[u8]) -> Result<String, String> {
+    let actual = sha256_hex(bytes);
+    if actual != expected {
+        return Err(format!("raw SHA-256 mismatch for {path}: expected {expected}, got {actual}"));
+    }
+    Ok(actual)
+}
+
 #[derive(Clone, Debug, Deserialize)]
 struct Manifest {
     schema_version: String,
@@ -299,10 +307,7 @@ fn verify_snapshot(root: &Path) -> Result<Report, String> {
         if data_rows != entry.data_rows {
             return Err(format!("row count mismatch for {}: expected {}, got {}", entry.path, entry.data_rows, data_rows));
         }
-        let actual_sha256 = sha256_hex(&bytes);
-        if actual_sha256 != entry.raw_sha256 {
-            return Err(format!("raw SHA-256 mismatch for {}: expected {}, got {}", entry.path, entry.raw_sha256, actual_sha256));
-        }
+        let actual_sha256 = verify_raw_sha256(&entry.path, &entry.raw_sha256, &bytes)?;
         total_bytes = total_bytes.checked_add(bytes.len())
             .ok_or_else(|| "source byte total overflow".to_owned())?;
         receipts.push(FileReceipt {
@@ -425,9 +430,15 @@ mod tests {
     }
 
     #[test]
-    fn rejects_manifest_with_mismatched_raw_sha256() {
+    fn rejects_manifest_with_malformed_raw_sha256() {
         let mut manifest: Manifest = serde_json::from_slice(MANIFEST_BYTES).unwrap();
-        manifest.files[0].raw_sha256 = "0".repeat(64);
+        manifest.files[0].raw_sha256 = "not-a-sha256".to_owned();
         assert!(validate_manifest(&manifest).is_err());
+    }
+
+    #[test]
+    fn rejects_source_bytes_that_disagree_with_pinned_raw_sha256() {
+        let error = verify_raw_sha256("fixture.csv", &"0".repeat(64), b"abc").unwrap_err();
+        assert!(error.contains("raw SHA-256 mismatch for fixture.csv"));
     }
 }
