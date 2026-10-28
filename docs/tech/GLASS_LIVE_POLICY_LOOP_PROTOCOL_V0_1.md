@@ -25,6 +25,11 @@ Run from repository root:
     cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
     cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog.synthetic.json tools/glass-silicon-contract-audit/fixtures/search-space-live-outcome-oracle.synthetic.json
 
+    cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- --replay search-space-live-loop-report.json tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog.synthetic.json tools/glass-silicon-contract-audit/fixtures/search-space-live-outcome-oracle.synthetic.json
+
+The normal run command can be redirected to \`search-space-live-loop-report.json\` before replay. The \`--replay\` mode independently rebuilds each public decision view, validates action ordering/visibility and proposal digests, recomputes evaluator charges, verifies observations against the sealed oracle, and recomputes each episode summary. It fails closed on forged observations, under-reported costs, stale view hashes and mismatched input/oracle byte digests. This replay mode is a separate code path in the same executable; it is not a separate OS process and does not replace the still-required subprocess/WASM isolation gate.
+
+
 ## Policy arms are software controls, not claimed SOTA implementations
 
 The runner executes five deterministic policy controls:
