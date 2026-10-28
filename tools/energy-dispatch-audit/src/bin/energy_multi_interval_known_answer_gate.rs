@@ -241,7 +241,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     )?;
 
     println!(
-        "PASS: actual Sol-Atlas scenario {} matches {} schedules and {} frozen Pareto vectors",
+        "PASS: actual Sol-Atlas multi-interval dispatch scenario {} matches {} schedules and {} frozen Pareto vectors",
         case_id,
         required_u64(&known, "feasible_complete_schedules")?,
         expected_frontier.len()
