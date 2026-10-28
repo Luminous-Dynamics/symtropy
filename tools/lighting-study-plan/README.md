@@ -64,3 +64,21 @@ The simulator uses 33 scenarios across three pilot-SD sensitivity settings, incl
 It separately reports point-estimate feasibility gates and one-sided Wilson lower-bound feasibility gates. The latter asks for evidence that the true feasible fraction meets the specified threshold. Ten out of ten pass events cannot establish a 95% true pass rate at 95% confidence.
 
 On the included synthetic planner output, the small-sample Student-t test shows an anti-conservative left-skew counterexample: approximately 9.5–10.1% null rejection versus one-sided per-comparison alpha 1.667%, in the specified standardized lognormal family. This is a statistical stress-test finding on constructed data, not a statement about real buildings. See [the operating-characteristic protocol](../../docs/research/LIGHTING_POWER_OPERATING_CHARACTERISTICS_V0_1.md) for full assumptions and limits.
+
+
+## Mean-inference method stress benchmark
+
+This exploratory harness compares the one-sample Student-t, percentile-bootstrap, and studentized-bootstrap-t **lower confidence bounds for the arithmetic mean** across independent scene families. It exercises 24 fixed combinations of 10/20 families, normal/left-skew/right-skew/heavy-tail effects, and null/near-margin/target alternatives. Each rejection-rate and lower-bound-coverage fraction has an individual 95% Wilson Monte Carlo interval.
+
+```sh
+python3 -m unittest -v test_plan_independent_scene_families \
+  test_simulate_power_operating_characteristics test_compare_mean_inference_methods
+python3 compare_mean_inference_methods.py \
+  --replicates 500 --bootstrap-replicates 199 --alpha 0.05 \
+  --seed 20261028 --output /tmp/mean-inference-stress.json
+python3 -m json.tool /tmp/mean-inference-stress.json >/dev/null
+```
+
+The local prototype exposed skew sensitivity in all three procedures: at 10 independent families, null rejection in the left-skewed case was 15.0% for Student-t, 18.8% for percentile bootstrap, and 9.4% for studentized bootstrap-t in 500 repetitions. These are synthetic stress results, not an empirical finding about building outcomes. The bootstrap-t result is less anti-conservative in that example but still not qualified as a reliable method. The harness deliberately does not select a winner from its development grid. See [mean-inference method protocol](../../docs/research/LIGHTING_MEAN_INFERENCE_METHOD_STRESS_V0_1.md).
+
+A separate exact sign-test helper targets the median and is not included in the mean-estimand rankings. Any method-selection claim requires a separately frozen confirmation suite plus pilot-variance, missingness and family-shift sensitivity analyses.
