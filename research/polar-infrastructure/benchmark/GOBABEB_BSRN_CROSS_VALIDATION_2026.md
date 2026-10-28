@@ -68,6 +68,8 @@ Keep entire months or seasons together rather than randomly splitting one-minute
 
 NASA POWER's own validation API describes comparisons against the nearest qualifying station with site-selection and QC criteria. Do not treat that service as an independent confirmation of a custom Gobabeb comparison unless the exact selected station, source, overlap and data reuse are checked. Prefer to report the direct, locally reproducible comparison from the pinned station file and the pinned POWER request.
 
+The machine-readable [Gobabeb-versus-POWER validation plan](fixtures/gobabeb-bsrn-validation-plan-2026.json) pins the planned temporal split: calibration 2016–2018, validation 2019, and locked test 2020–2021. Those are **planned windows**, not evidence that each monthly file has passed QA/QC; preserve any missing months and do not shift the locked split to improve scores. The file's admission gates are all false until source data are actually acquired and reviewed. The 2025 monthly record was inspected only to establish the publisher's variable inventory and sampling display, not to compute the planned locked-test metrics.
+
 ## 4. Report metrics before using the trace in resilience simulations
 
 For every matched variable and temporal aggregation, report:
