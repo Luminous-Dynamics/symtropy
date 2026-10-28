@@ -1,0 +1,127 @@
+name: GLASS-PARETO-FIDELITY Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/glass-silicon-contract-audit/**"
+      - "docs/tech/glass-pareto-fidelity-task-v0.1.schema.json"
+      - "docs/tech/glass-pareto-fidelity-oracle-v0.1.schema.json"
+      - "docs/tech/GLASS_PARETO_FIDELITY_BENCHMARK_V0_1.md"
+      - ".github/workflows/glass-pareto-fidelity.yml"
+  push:
+    branches:
+      - "research/glass-pareto-fidelity-v0.1"
+    paths:
+      - "tools/glass-silicon-contract-audit/**"
+      - "docs/tech/glass-pareto-fidelity-task-v0.1.schema.json"
+      - "docs/tech/glass-pareto-fidelity-oracle-v0.1.schema.json"
+      - "docs/tech/GLASS_PARETO_FIDELITY_BENCHMARK_V0_1.md"
+      - ".github/workflows/glass-pareto-fidelity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  pareto-fidelity:
+    name: Constrained Pareto/fidelity known answers and replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Validate strict task and oracle schema contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          public_schema="docs/tech/glass-pareto-fidelity-task-v0.1.schema.json"
+          oracle_schema="docs/tech/glass-pareto-fidelity-oracle-v0.1.schema.json"
+          public_task="tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-task.synthetic.json"
+          sealed_oracle="tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-oracle.synthetic.json"
+
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.benchmark_id.const == "glass-pareto-fidelity-synthetic-v0-1" and
+            .properties.budgets.properties.max_cost_units.const == 5.5 and
+            .properties.objectives.const[0].direction == "maximize" and
+            .properties.objectives.const[1].direction == "minimize" and
+            .properties.hard_constraints.const[0].qualifying_fidelity == "confirmatory" and
+            .properties.reference_point.const.energy == 10 and
+            .additionalProperties == false
+          ' "$public_schema" > /dev/null
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.evidence_class.const == "synthetic_evaluator_only" and
+            .properties.action_cost_catalog.minItems == 2 and
+            .properties.environments.minItems == 3 and
+            .additionalProperties == false
+          ' "$oracle_schema" > /dev/null
+
+          jq -e '
+            .schema_version == 1 and
+            .benchmark_id == "glass-pareto-fidelity-synthetic-v0-1" and
+            .evidence_class == "synthetic" and
+            .budgets.max_cost_units == 5.5 and
+            .budgets.max_duration_seconds == 9 and
+            (.candidates | length) == 5 and
+            (.objectives | length) == 2
+          ' "$public_task" > /dev/null
+          jq -e '
+            .schema_version == 1 and
+            .evidence_class == "synthetic_evaluator_only" and
+            (.environments | length) == 3 and
+            ([.environments[].outcomes | length] == [10,10,10]) and
+            ([.environments[].outcomes[] | select(.fidelity == "screen" and .constraints != null)] | length) == 0
+          ' "$sealed_oracle" > /dev/null
+          echo "Strict Pareto/fidelity schemas and public/sealed fixture separation: PASS"
+
+      - name: Run Pareto/fidelity Rust known-answer and mutation tests
+        run: cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-pareto-fidelity
+
+      - name: Execute campaign and replay exact bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          public_task="tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-task.synthetic.json"
+          sealed_oracle="tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-oracle.synthetic.json"
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-pareto-fidelity -- \
+            "$public_task" "$sealed_oracle" > glass-pareto-fidelity-report.json
+          public_digest="$(sha256sum "$public_task" | awk '{print $1}')"
+          oracle_digest="$(sha256sum "$sealed_oracle" | awk '{print $1}')"
+          jq -e --arg public_digest "$public_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_constrained_pareto_fidelity_event_loop" and
+            .input_sha256 == $public_digest and
+            .oracle_sha256 == $oracle_digest and
+            .environment_count == 3 and
+            .policy_count == 4 and
+            .campaigns_checked == 12 and
+            ([.campaigns[] | select(.status != "PASS")] | length) == 0 and
+            ([.campaigns[] | select(.cost_units_charged > 5.5 or .duration_seconds_charged > 9)] | length) == 0 and
+            ([.campaigns[] | select(.policy_class == "screen_only" and (.confirmatory_evaluations != 0 or (.accepted_feasible_candidates | length) != 0 or .observed_hypervolume != 0))] | length) == 0 and
+            ([.campaigns[] | select(.environment_id == "informative" and .policy_class == "screen_then_confirm")][0].observed_pareto_candidate_ids == ["glass-a","glass-b"]) and
+            ([.campaigns[] | select(.environment_id == "misleading_low_fidelity" and .policy_class == "screen_then_confirm")][0].accepted_feasible_candidates == ["glass-a"]) and
+            ([.campaigns[] | select(.environment_id == "informative" and .policy_class == "confirmatory_priority")][0].confirmed_infeasible_candidates == ["glass-d"]) and
+            ([.campaigns[] | select(.environment_id == "informative" and .policy_class == "screen_then_confirm")][0].cost_units_charged == 5.5) and
+            ([.campaigns[] | select(.observed_hypervolume > .oracle_hypervolume)] | length) == 0
+          ' glass-pareto-fidelity-report.json
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-pareto-fidelity -- \
+            --replay glass-pareto-fidelity-report.json "$public_task" "$sealed_oracle" > glass-pareto-fidelity-replay.json
+          jq -e --arg public_digest "$public_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_pareto_fidelity_replay" and
+            .input_sha256 == $public_digest and
+            .oracle_sha256 == $oracle_digest and
+            .campaigns_checked == 12 and
+            .events_checked > 0 and
+            .cost_units_recomputed == 48
+          ' glass-pareto-fidelity-replay.json
+          echo "Constrained Pareto/fidelity campaign and deterministic transcript replay: PASS"
