@@ -87,13 +87,13 @@ Hypervolume cannot be compared across tasks with different units, objective scal
 ```sh
 cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-pareto-fidelity
 
-cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-pareto-fidelity -- \\
-  tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-task.synthetic.json \\
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-pareto-fidelity -- \
+  tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-task.synthetic.json \
   tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-oracle.synthetic.json > glass-pareto-fidelity-report.json
 
-cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-pareto-fidelity -- \\
-  --replay glass-pareto-fidelity-report.json \\
-  tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-task.synthetic.json \\
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-pareto-fidelity -- \
+  --replay glass-pareto-fidelity-report.json \
+  tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-task.synthetic.json \
   tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-oracle.synthetic.json
 ```
 
