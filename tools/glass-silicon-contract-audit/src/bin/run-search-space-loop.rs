@@ -1592,7 +1592,8 @@ mod tests {
             .iter_mut().find(|e| e["environment_id"] == "helpful").unwrap();
         let outcome = env["outcomes"].as_array_mut().unwrap()
             .iter_mut().find(|o| o["candidate_family_id"] == next_id).unwrap();
-        outcome["feasible"] = json!(!outcome["feasible"].as_bool().unwrap());
+        let changed_feasibility = !outcome["feasible"].as_bool().unwrap();
+        outcome["feasible"] = json!(changed_feasibility);
         outcome["utility"] = json!(9.75);
 
         let mutated = run_env(&public, &mutated_oracle, "helpful", "uniform_random_fixed_space");
