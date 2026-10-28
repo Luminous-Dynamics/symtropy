@@ -951,6 +951,7 @@ mod tests {
         );
 
         fs::remove_file(&path).unwrap();
+        fs::remove_file(&altered_path).unwrap();
         fs::remove_dir(&directory).unwrap();
     }
 
