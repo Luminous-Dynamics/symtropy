@@ -751,6 +751,7 @@ jobs:
             .input_sha256 == $catalog_digest and
             .oracle_sha256 == $oracle_digest and
             .environment_count == 4 and
+            .policy_count == 6 and
             .episodes_checked == 24 and
             ([.episodes[] | select(.cost_units_charged != 5.0)] | length) == 0 and
             ([.episodes[] | select(.duration_seconds_charged > 25.0)] | length) == 0 and
