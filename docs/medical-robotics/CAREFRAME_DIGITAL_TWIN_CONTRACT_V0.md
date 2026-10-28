@@ -18,6 +18,15 @@ Careframe therefore begins with a distinct named, versioned morphology contract.
 
 All link geometry uses conservative bounding boxes. Every size, mass, joint origin, effort limit and velocity limit is an invented synthetic placeholder used to test the graph/validator—not measured, optimized, or suitable as an engineering specification. Even the nominal aggregate mass is only arithmetic over those placeholders, not a weight estimate for a build.
 
+## Joint-type semantics added in v0
+
+The morphology contract explicitly distinguishes:
+- `fixed`: no joint position state, zero position bounds and zero motion/effort envelope in this synthetic representation.
+- `revolute`: one bounded angular position in radians; both lower and upper position limits are mandatory.
+- `continuous`: angular position can exceed a single turn, so lower/upper position bounds must be absent. Effort and velocity envelopes remain required. The geometry-only state evaluator applies a finite numerical magnitude cap to keep calculations well-conditioned; this is a numerical input guard, **not a physical stop or wheel-turn limit**.
+
+Careframe's drive wheels are continuous joints. The Rust manifest/morphology validator, forward-kinematics evaluator and URDF exporter must agree on that semantics, as must the Symthaea morphology JSON Schema and the Symtropy collision-proxy adapter. A mismatch between these representations is a failing contract test.
+
 ## Strict invariants
 
 - Exact schema version and morphology ID/revision.
