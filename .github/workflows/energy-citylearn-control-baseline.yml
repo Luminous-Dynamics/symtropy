@@ -136,7 +136,7 @@ jobs:
       - name: Execute fixed-baseline panel with all forecast-named observations disabled
         shell: bash
         env:
-          DATA_TERMS_REVIEW_REFERENCE: ${{inputs.data_terms_review_reference}
+          DATA_TERMS_REVIEW_REFERENCE: ${{ inputs.data_terms_review_reference }}
         run: |
           set -euo pipefail
           source_root="$RUNNER_TEMP/citylearn-source"
