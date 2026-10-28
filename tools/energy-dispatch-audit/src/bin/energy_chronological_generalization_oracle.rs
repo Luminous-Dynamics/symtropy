@@ -270,7 +270,7 @@ fn validate_panel(panel: &Panel) -> Result<(), String> {
         }
     }
     if panel.required_checks.len() != required_checks().len()
-        || required_checks().iter().any(|required| !panel.required_checks.iter().any(|v| v == required))
+        || required_checks().iter().any(|required| !panel.required_checks.iter().any(|v| v.as_str() == *required))
     {
         return Err("required temporal-integrity check registry changed".to_owned());
     }
@@ -309,7 +309,7 @@ fn validate_experiment(
     if !experiment.claim_ceiling.to_ascii_lowercase().contains("synthetic")
         || !experiment.claim_ceiling.to_ascii_lowercase().contains("not a")
         || experiment.required_checks.len() != required_checks().len()
-        || required_checks().iter().any(|required| !experiment.required_checks.iter().any(|v| v == required))
+        || required_checks().iter().any(|required| !experiment.required_checks.iter().any(|v| v.as_str() == *required))
     {
         return Err("experiment claim ceiling or integrity registry changed".to_owned());
     }
@@ -490,7 +490,7 @@ mod tests {
         let report = run_fixture().unwrap();
         assert_eq!(report.test_rows, 6);
         assert_eq!(report.ranked_deployable_models, vec![
-            "observable_signal", "persistence", "static_no_reserve"
+            "observable_signal".to_owned(), "persistence".to_owned(), "static_no_reserve".to_owned()
         ]);
         assert_eq!(report.model_results["static_no_reserve"].essential_unserved, 4);
         assert_eq!(report.model_results["static_no_reserve"].flexible_unserved, 0);
