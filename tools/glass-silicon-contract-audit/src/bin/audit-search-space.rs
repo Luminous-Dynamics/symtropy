@@ -142,8 +142,18 @@ fn audit(base_raw: &[u8], proposal_raw: &[u8]) -> Value {
         report["proposal_id"] = json!(id);
     }
     let _space_id = nonempty_string(&base, "space_id", &mut report);
-    let _base_claim = nonempty_string(&base, "claim_ceiling", &mut report);
-    let _proposal_claim = nonempty_string(&proposal, "claim_ceiling", &mut report);
+    let base_claim = nonempty_string(&base, "claim_ceiling", &mut report);
+    let proposal_claim = nonempty_string(&proposal, "claim_ceiling", &mut report);
+    if let (Some(base_claim), Some(proposal_claim)) = (base_claim, proposal_claim) {
+        if base_claim != proposal_claim {
+            add_finding(
+                &mut report,
+                "FAIL",
+                "CLAIM_CEILING_MUTATION_ATTEMPTED",
+                "a proposal cannot change the registered claim ceiling; revise the benchmark contract separately",
+            );
+        }
+    }
 
     let parent = proposal.get("parent_space_sha256").and_then(Value::as_str);
     if !sha256_string(parent) {
@@ -222,6 +232,9 @@ fn audit(base_raw: &[u8], proposal_raw: &[u8]) -> Value {
         add_finding(&mut report, "FAIL", "BASE_CANDIDATE_FAMILIES_REQUIRED", "base candidate_families must be an array");
         return report;
     };
+    if base_families.is_empty() {
+        add_finding(&mut report, "FAIL", "BASE_SEARCH_SPACE_EMPTY", "the registered parent space must contain at least one candidate family");
+    }
     for (index, family) in base_families.iter().enumerate() {
         object_has_only(family, &["id", "domain", "description"], &format!("base.candidate_families[{index}]"), &mut report);
         let id = family.get("id").and_then(Value::as_str).unwrap_or("");
@@ -441,6 +454,27 @@ mod tests {
         let report = audit(BASE, &bytes);
         assert_eq!(report["status"], "FAIL");
         assert!(report["findings"].as_array().unwrap().iter().any(|x| x["code"] == "EMPTY_SEARCH_SPACE"));
+    }
+
+    #[test]
+    fn claim_ceiling_cannot_be_changed_by_proposal() {
+        let bytes = mutated(|p| p["claim_ceiling"] = json!("Synthetic-only is removed and industrial savings are now claimed."));
+        let report = audit(BASE, &bytes);
+        assert_eq!(report["status"], "FAIL");
+        assert!(report["findings"].as_array().unwrap().iter().any(|x| x["code"] == "CLAIM_CEILING_MUTATION_ATTEMPTED"));
+    }
+
+    #[test]
+    fn empty_parent_space_is_rejected_even_if_proposal_adds_candidates() {
+        let mut base: Value = serde_json::from_slice(BASE).unwrap();
+        base["candidate_families"] = json!([]);
+        let base_bytes = serde_json::to_vec(&base).unwrap();
+        let mut proposal: Value = serde_json::from_slice(VALID).unwrap();
+        proposal["parent_space_sha256"] = json!(sha256(&base_bytes));
+        let proposal_bytes = serde_json::to_vec(&proposal).unwrap();
+        let report = audit(&base_bytes, &proposal_bytes);
+        assert_eq!(report["status"], "FAIL");
+        assert!(report["findings"].as_array().unwrap().iter().any(|x| x["code"] == "BASE_SEARCH_SPACE_EMPTY"));
     }
 
     #[test]
