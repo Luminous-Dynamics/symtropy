@@ -61,6 +61,7 @@ jobs:
             (.required | index("cases") != null)
           ' "$schema"
           jq -e '
+            . as $root |
             .schema_version == "0.3.0" and
             .artifact_kind == "paired-resilience-comparison-input" and
             .evidence_class == "synthetic_fixture" and
@@ -69,9 +70,9 @@ jobs:
             (.cases | length == 12) and
             ([.cases[].case_id] | length == (unique | length)) and
             ([.cases[].trajectory_id] | unique | length == 6) and
-            all(.cases[]; (.gate_results | keys) == (.signed_gate_margins | keys)) and
-            all(.cases[]; (.gate_results | keys | sort) == (.gate_ids | sort)) and
-            all(.cases[]; (.severity | keys | sort) == ([.axes[].id] | sort))
+            all($root.cases[]; (.gate_results | keys) == (.signed_gate_margins | keys)) and
+            all($root.cases[]; (.gate_results | keys | sort) == ($root.gate_ids | sort)) and
+            all($root.cases[]; (.severity | keys | sort) == ([$root.axes[].id] | sort))
           ' "$fixture"
 
       - name: Test paired comparison contract in Rust
