@@ -219,6 +219,22 @@ fn validate_panel(panel: &Panel) -> Result<(), String> {
             return Err(format!("{source_id}: reserve value exceeds battery capacity"));
         }
     }
+    let expected_source_timing = [
+        ("fresh_context_forecast", "fresh", 0, 0, 0),
+        ("delayed_context_forecast", "fresh_when_arrived", 1, 1, 1),
+        ("stale_context_forecast", "stale", -3, -1, -3),
+    ];
+    for (source_id, expected_status, issued_at, valid_until, available_at) in expected_source_timing {
+        let source = panel.forecast_sources.get(source_id)
+            .ok_or_else(|| format!("forecast source missing: {source_id}"))?;
+        if source.freshness_status != expected_status
+            || source.issued_at_time_index != issued_at
+            || source.valid_until_time_index != valid_until
+            || source.available_at_time_index != available_at
+        {
+            return Err(format!("forecast source temporal contract changed: {source_id}"));
+        }
+    }
     if panel.forecast_sources.len() != 3 {
         return Err("unexpected forecast source added or removed".to_owned());
     }
@@ -618,6 +634,6 @@ mod tests {
         experiment["source_panel_sha256"] = Value::String(sha256_hex(&changed_panel));
         let changed_experiment = serde_json::to_vec(&experiment).unwrap();
         let error = build_report(&changed_panel, &changed_experiment).unwrap_err();
-        assert!(error.contains("known answer changed"));
+        assert!(error.contains("temporal contract changed"));
     }
 }
