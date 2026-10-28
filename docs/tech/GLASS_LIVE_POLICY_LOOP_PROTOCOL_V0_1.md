@@ -59,7 +59,7 @@ All observation-conditioned arms begin with the same public-priority screening c
 
 ## Required interpretation of current known answers
 
-The four hidden synthetic regimes are helpful, neutral, harmful, and misleading prior. The runner emits 20 episodes: five controls in each regime. Its current known-answer assertions are intended to show:
+The four hidden synthetic regimes are helpful, neutral, harmful, and misleading prior. The runner emits 24 episodes: six controls in each regime. Its current known-answer assertions are intended to show:
 
 - Observation-conditioned policies can expand in the helpful regime.
 - The same policy can refrain from expansion when the initial measurement is already strong.
