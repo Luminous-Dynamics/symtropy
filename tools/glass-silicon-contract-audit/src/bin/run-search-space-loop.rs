@@ -1047,9 +1047,9 @@ mod tests {
         let adaptive = run_env(&public, &oracle, "harmful", "prior_guided_expansion");
         assert_eq!(static_report["events"][0]["action_type"], "expand_space");
         assert_eq!(adaptive["events"][0]["action_type"], "evaluate_candidate");
-        assert_eq!(static["expansions"], 1);
+        assert_eq!(static_report["expansions"], 1);
         assert_eq!(adaptive["expansions"], 0);
-        assert_eq!(static["best_verified_feasible_utility"], 6.0);
+        assert_eq!(static_report["best_verified_feasible_utility"], 6.0);
         assert_eq!(adaptive["best_verified_feasible_utility"], 8.0);
     }
 
