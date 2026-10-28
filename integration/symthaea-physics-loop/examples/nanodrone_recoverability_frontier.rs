@@ -21,6 +21,7 @@ struct CheckpointRow {
     rollout_start_id: String,
     regime: String,
     checkpoint_time_s: f64,
+    remaining_budget_s: f64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -30,6 +31,8 @@ struct BranchRow {
     rollout_start_id: String,
     regime: String,
     checkpoint_time_s: f64,
+    remaining_budget_s: f64,
+    branch_elapsed_s: f64,
     training_seed: u64,
     intervention_id: String,
     branch_seed: u64,
@@ -78,6 +81,7 @@ struct CheckpointEstimate {
     regime: String,
     training_seed: u64,
     checkpoint_time_s: f64,
+    remaining_budget_s: f64,
     intervention_id: String,
     branch_replicates: usize,
     successes: usize,
@@ -128,6 +132,7 @@ struct Report {
     intervention_ids: Vec<String>,
     recoverability_threshold: f64,
     recoverability_interval: String,
+    budget_contract: String,
     horizon_bootstrap_scope: String,
     max_tracking_rmse_m: f64,
     bootstrap_replicates_requested: usize,
@@ -330,6 +335,7 @@ fn is_success(branch: &BranchRow, max_tracking_rmse_m: f64) -> bool {
         && branch.mission_completed
         && branch.boundary_violation_count == 0
         && branch.deadline_misses == 0
+        && branch.branch_elapsed_s <= branch.remaining_budget_s + EPS
         && branch.tracking_rmse_m.is_some_and(|x| x.is_finite() && x >= 0.0 && x <= max_tracking_rmse_m)
 }
 
@@ -372,12 +378,23 @@ fn validate_inputs(
     let mut checkpoint_map = BTreeMap::<CheckpointKey, CheckpointRow>::new();
     let mut flight_family = BTreeMap::<String, String>::new();
     let mut times_by_start = BTreeMap::<(String, String, String), BTreeSet<u64>>::new();
+    let mut terminal_deadlines = BTreeMap::<(String, String, String), f64>::new();
     for c in &checkpoints {
         if c.family_id.trim().is_empty() || c.flight_id.trim().is_empty() || c.rollout_start_id.trim().is_empty() || c.regime.trim().is_empty() {
             return Err("checkpoint manifest contains empty identity/regime".into());
         }
         if !c.checkpoint_time_s.is_finite() || c.checkpoint_time_s <= 0.0 {
             return Err("checkpoint time must be positive and finite".into());
+        }
+        if !c.remaining_budget_s.is_finite() || c.remaining_budget_s <= 0.0 {
+            return Err("remaining task budget must be positive and finite at every checkpoint".into());
+        }
+        let start_key = (c.family_id.clone(), c.flight_id.clone(), c.rollout_start_id.clone());
+        let terminal_deadline = c.checkpoint_time_s + c.remaining_budget_s;
+        if let Some(old) = terminal_deadlines.insert(start_key, terminal_deadline) {
+            if (old - terminal_deadline).abs() > EPS {
+                return Err(format!("checkpoint times and remaining budgets do not preserve a fixed terminal deadline for flight {} start {}", c.flight_id, c.rollout_start_id));
+            }
         }
         if train_families.contains(&c.family_id) {
             return Err(format!("evaluation family {:?} also appears in training-family manifest", c.family_id));
@@ -411,25 +428,28 @@ fn validate_inputs(
     let training_set = args.training_seeds.iter().copied().collect::<BTreeSet<_>>();
     let branch_set = args.branch_seeds.iter().copied().collect::<BTreeSet<_>>();
     let intervention_set = args.interventions.iter().cloned().collect::<BTreeSet<_>>();
-    let mut by_flight_start_regime = BTreeMap::<(String, String, String), String>::new();
-
-    for c in &checkpoints {
-        by_flight_start_regime.insert((c.family_id.clone(), c.flight_id.clone(), c.rollout_start_id.clone()), c.regime.clone());
-    }
-
     for b in &branches {
-        if !checkpoint_map.contains_key(&checkpoint_key(&CheckpointRow {
+        let checkpoint_identity = CheckpointRow {
             family_id: b.family_id.clone(), flight_id: b.flight_id.clone(),
             rollout_start_id: b.rollout_start_id.clone(), regime: b.regime.clone(),
-            checkpoint_time_s: b.checkpoint_time_s,
-        })) {
-            return Err(format!("branch references unregistered checkpoint: family={} flight={} start={} time={}", b.family_id, b.flight_id, b.rollout_start_id, b.checkpoint_time_s));
+            checkpoint_time_s: b.checkpoint_time_s, remaining_budget_s: b.remaining_budget_s,
+        };
+        let registered = checkpoint_map.get(&checkpoint_key(&checkpoint_identity))
+            .ok_or_else(|| format!("branch references unregistered checkpoint: family={} flight={} start={} time={}", b.family_id, b.flight_id, b.rollout_start_id, b.checkpoint_time_s))?;
+        if registered.regime != b.regime {
+            return Err("branch regime does not match its registered checkpoint".into());
+        }
+        if (registered.remaining_budget_s - b.remaining_budget_s).abs() > EPS {
+            return Err("branch remaining budget does not match its registered checkpoint".into());
         }
         if !training_set.contains(&b.training_seed) || !branch_set.contains(&b.branch_seed) || !intervention_set.contains(&b.intervention_id) {
             return Err("branch contains an unregistered training seed, branch seed, or intervention".into());
         }
-        if by_flight_start_regime.get(&(b.family_id.clone(), b.flight_id.clone(), b.rollout_start_id.clone())) != Some(&b.regime) {
-            return Err("branch regime does not match its registered checkpoint".into());
+        if !b.remaining_budget_s.is_finite() || b.remaining_budget_s <= 0.0 {
+            return Err("branch remaining budget must be positive and finite".into());
+        }
+        if !b.branch_elapsed_s.is_finite() || b.branch_elapsed_s < 0.0 || b.branch_elapsed_s > b.remaining_budget_s + EPS {
+            return Err("branch elapsed time is invalid or exceeds the registered remaining task budget".into());
         }
         if !valid_hex(&b.state_snapshot_sha256, 64) || !valid_hex(&b.exogenous_tape_sha256, 64) {
             return Err("snapshot and exogenous-tape identifiers must be 64-character hexadecimal digests".into());
@@ -605,7 +625,7 @@ fn evaluate(args: &Args, validated: Validated) -> Result<Report, String> {
         estimates.push(CheckpointEstimate {
             family_id: first.family_id.clone(), flight_id: first.flight_id.clone(),
             rollout_start_id: first.rollout_start_id.clone(), regime: first.regime.clone(),
-            training_seed, checkpoint_time_s, intervention_id: intervention,
+            training_seed, checkpoint_time_s, remaining_budget_s: first.remaining_budget_s, intervention_id: intervention,
             branch_replicates: n, successes, success_rate, wilson_95_one_sided_lower: lower,
             qualifies_recoverable: lower + EPS >= args.recoverability_threshold,
             boundary_violation_rate: violation_rate, deadline_miss_rate: deadline_rate,
@@ -701,6 +721,7 @@ fn evaluate(args: &Args, validated: Validated) -> Result<Report, String> {
         intervention_ids: validated.interventions.clone(),
         recoverability_threshold: args.recoverability_threshold,
         recoverability_interval: "one-sided 95% Wilson lower bound across branch seeds at each fixed state/training seed; horizon 0 means no registered checkpoint passed".into(),
+        budget_contract: "Every checkpoint binds a positive remaining task budget; checkpoint time plus remaining budget must equal the same registered terminal deadline for that flight/start, and successful branches must finish within the budget.".into(),
         horizon_bootstrap_scope: "crossed resampling of independent family clusters and training seeds, conditional on the registered branch-seed panel; per-checkpoint Wilson bounds gate recoverability, but branch-seed identities are not re-resampled into the horizon-delta interval".into(),
         max_tracking_rmse_m: args.max_tracking_rmse_m,
         bootstrap_replicates_requested: args.bootstrap_replicates,
@@ -765,7 +786,7 @@ mod tests {
             for checkpoint_time_s in [1.0, 2.0] {
                 checkpoints.push(CheckpointRow {
                     family_id: family.into(), flight_id: flight.into(), rollout_start_id: "start-1".into(),
-                    regime: regime.into(), checkpoint_time_s,
+                    regime: regime.into(), checkpoint_time_s, remaining_budget_s: 4.0 - checkpoint_time_s,
                 });
                 for training_seed in [101, 102] {
                     let snapshot = format!("{:064x}", 1000 + idx as u64 * 100 + checkpoint_time_s as u64 * 10 + training_seed);
@@ -774,7 +795,8 @@ mod tests {
                             let tape = format!("{:064x}", 100_000 + idx as u64 * 1000 + checkpoint_time_s as u64 * 100 + training_seed + branch_seed);
                             branches.push(BranchRow {
                                 family_id: family.into(), flight_id: flight.into(), rollout_start_id: "start-1".into(),
-                                regime: regime.into(), checkpoint_time_s, training_seed,
+                                regime: regime.into(), checkpoint_time_s, remaining_budget_s: 4.0 - checkpoint_time_s,
+                                branch_elapsed_s: 0.5, training_seed,
                                 intervention_id: intervention_id.into(), branch_seed,
                                 state_snapshot_sha256: snapshot.clone(), exogenous_tape_sha256: tape,
                                 restore_verified: true, status: "ok".into(), mission_completed: true,
@@ -807,7 +829,7 @@ mod tests {
     fn failed_or_late_tracking_branch_is_not_recoverable() {
         let branch = BranchRow {
             family_id: "family-a".into(), flight_id: "flight-a".into(), rollout_start_id: "start-a".into(),
-            regime: "nominal".into(), checkpoint_time_s: 1.0, training_seed: 7,
+            regime: "nominal".into(), checkpoint_time_s: 1.0, remaining_budget_s: 3.0, branch_elapsed_s: 1.0, training_seed: 7,
             intervention_id: "continue".into(), branch_seed: 1,
             state_snapshot_sha256: "a".repeat(64), exogenous_tape_sha256: "b".repeat(64),
             restore_verified: true, status: "ok".into(), mission_completed: true,
