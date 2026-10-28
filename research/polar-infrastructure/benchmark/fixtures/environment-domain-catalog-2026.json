@@ -1,0 +1,1225 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "symtropy-environment-domain-catalog",
+  "catalog_revision": "2026-10-28",
+  "status": "research_taxonomy_not_physical_model",
+  "evidence_class": "mixed_sources_and_hypotheses_no_simulation_claim",
+  "coverage_policy": {
+    "required_status_for_each_profile": [
+      "implemented",
+      "planned",
+      "not_applicable_with_rationale",
+      "blocked_by_missing_data_or_model"
+    ],
+    "explicit_unknowns_are_not_passes": true,
+    "cross_domain_transfer_requires_held_out_validation": true,
+    "no_single_universal_environment_score": true,
+    "note": "Profiles are scenario families, not exhaustive representations of all locations, seasons, altitudes, event sequences, or unknown physics."
+  },
+  "required_profile_fields": [
+    "scenario_id",
+    "domain",
+    "location_or_body",
+    "deployment_mode",
+    "stressors",
+    "coupled_hazard_hypotheses",
+    "model_requirements",
+    "required_metrics",
+    "evidence_basis",
+    "confidence_or_data_limitations",
+    "source_urls"
+  ],
+  "common_dimensions": [
+    "illumination_and_energy",
+    "thermal_radiation",
+    "atmosphere_pressure_chemistry",
+    "radiation_and_plasma",
+    "dust_regolith_particles",
+    "gravity_terrain_contact",
+    "materials_corrosion_phase_change",
+    "volatile_resources_and_isru",
+    "communications_latency_autonomy",
+    "maintenance_and_resupply",
+    "planetary_protection_or_sample_integrity",
+    "model_validation_and_uncertainty"
+  ],
+  "profiles": [
+    {
+      "scenario_id": "earth.hot_arid_sahara_arabian",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "Sahara/Arabian hot-arid site archetype",
+      "deployment_mode": "terrestrial_remote_microgrid_or_infrastructure",
+      "stressors": [
+        "high ambient and ground temperature",
+        "large diurnal thermal cycling",
+        "high solar and UV",
+        "low precipitation",
+        "wind-blown sand and dust"
+      ],
+      "coupled_hazard_hypotheses": [
+        "PV/inverter derating plus battery thermal constraints",
+        "dust deposition during peak heat",
+        "water/cooling demand rises during reduced generation"
+      ],
+      "model_requirements": [
+        "site time series for temperature, irradiance, wind and dust where available",
+        "asset-specific thermal derating curves",
+        "water demand and source uncertainty"
+      ],
+      "required_metrics": [
+        "per-service deficit and floor breaches",
+        "storage temperature/SOC",
+        "dust deposition and cleaning burden",
+        "water budget",
+        "recovery time"
+      ],
+      "evidence_basis": "site_observations_or_reanalysis_required",
+      "confidence_or_data_limitations": "Archetype only; not a fixed climate distribution.",
+      "source_urls": [
+        "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+      ]
+    },
+    {
+      "scenario_id": "earth.hyperarid_atacama",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "Atacama hyper-arid archetype; high-altitude plateau must be a separate stratum",
+      "deployment_mode": "terrestrial_remote_microgrid_resource_system",
+      "stressors": [
+        "very low precipitation",
+        "high solar/UV",
+        "dust and salts",
+        "large day-night thermal swing",
+        "optional high-altitude low-pressure stratum"
+      ],
+      "coupled_hazard_hypotheses": [
+        "water-source uncertainty plus abrasive/corrosive deposits",
+        "altitude-related cooling/combustion derating",
+        "solar abundance with storage or water bottleneck"
+      ],
+      "model_requirements": [
+        "local elevation and pressure",
+        "measured/reanalysis weather",
+        "water chemistry/yield and asset response"
+      ],
+      "required_metrics": [
+        "water quantity/quality",
+        "service continuity",
+        "equipment derating",
+        "corrosion/maintenance interval",
+        "storage endurance"
+      ],
+      "evidence_basis": "site_data_required",
+      "confidence_or_data_limitations": "The Atacama name alone does not specify elevation, water, season or equipment site.",
+      "source_urls": [
+        "https://www.nasa.gov/"
+      ]
+    },
+    {
+      "scenario_id": "earth.coastal_desert_namib",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "Namib coastal desert archetype",
+      "deployment_mode": "terrestrial_remote_infrastructure",
+      "stressors": [
+        "hyper-aridity",
+        "coastal fog variability",
+        "marine salt aerosols",
+        "sand and dust deposition"
+      ],
+      "coupled_hazard_hypotheses": [
+        "salt corrosion plus dust abrasion",
+        "fog-water yield shortfall during dry/hot event",
+        "maintenance-access interruption"
+      ],
+      "model_requirements": [
+        "coastal meteorology",
+        "salt deposition/corrosion model",
+        "fog capture yield uncertainty if used"
+      ],
+      "required_metrics": [
+        "water-source reliability",
+        "corrosion degradation",
+        "service deficit",
+        "inspection/maintenance burden"
+      ],
+      "evidence_basis": "site_data_required",
+      "confidence_or_data_limitations": "Fog harvesting is not a guaranteed water source; characterize local yields.",
+      "source_urls": [
+        "https://www.nasa.gov/"
+      ]
+    },
+    {
+      "scenario_id": "earth.cold_desert_gobi",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "Gobi cold-desert archetype",
+      "deployment_mode": "terrestrial_remote_microgrid_or_critical_services",
+      "stressors": [
+        "very cold winters",
+        "hot summers",
+        "low precipitation",
+        "wind-blown dust",
+        "freeze-thaw cycling"
+      ],
+      "coupled_hazard_hypotheses": [
+        "low-generation event plus cold battery",
+        "dust ingress plus cold start",
+        "fuel/valve failure plus repair delay"
+      ],
+      "model_requirements": [
+        "seasonal weather time series",
+        "battery and fuel-system temperature models",
+        "maintenance/logistics assumptions"
+      ],
+      "required_metrics": [
+        "critical-service breach duration",
+        "cold-start success",
+        "storage health",
+        "fuel autonomy",
+        "recovery"
+      ],
+      "evidence_basis": "site_data_required",
+      "confidence_or_data_limitations": "Cold and hot extremes are season/site specific.",
+      "source_urls": [
+        "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+      ]
+    },
+    {
+      "scenario_id": "earth.high_altitude_dry_plateau",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "High-altitude dry plateau archetype",
+      "deployment_mode": "terrestrial_energy_water_and_communications",
+      "stressors": [
+        "reduced air density/pressure",
+        "high UV",
+        "strong solar",
+        "cold nights",
+        "low water availability"
+      ],
+      "coupled_hazard_hypotheses": [
+        "cooling/combustion derating plus high load",
+        "water treatment/freeze constraint",
+        "battery thermal stress"
+      ],
+      "model_requirements": [
+        "site altitude/pressure",
+        "manufacturer derating curves",
+        "water and cooling model"
+      ],
+      "required_metrics": [
+        "delivered service",
+        "derated capacity",
+        "temperature margins",
+        "water quality/quantity",
+        "maintenance"
+      ],
+      "evidence_basis": "site_data_required",
+      "confidence_or_data_limitations": "Apply pressure corrections only to equipment whose physics depends on them.",
+      "source_urls": [
+        "https://www.nasa.gov/"
+      ]
+    },
+    {
+      "scenario_id": "earth.salt_flat_evaporitic",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "Salt flat/evaporitic terrain archetype",
+      "deployment_mode": "terrestrial_power_and_control_electronics",
+      "stressors": [
+        "saline dust",
+        "episodic wetting",
+        "abrasive deposits",
+        "high reflection at some sites"
+      ],
+      "coupled_hazard_hypotheses": [
+        "contamination lowers insulation margin",
+        "connector/sensor degradation",
+        "salt corrosion plus moisture events"
+      ],
+      "model_requirements": [
+        "local salt chemistry and deposition",
+        "equipment ingress/insulation/corrosion model"
+      ],
+      "required_metrics": [
+        "isolation margin",
+        "fault events",
+        "sensor validity",
+        "corrosion rate",
+        "maintenance burden"
+      ],
+      "evidence_basis": "site_or_material_test_data_required",
+      "confidence_or_data_limitations": "Do not assume all evaporitic deposits have identical chemistry.",
+      "source_urls": [
+        "https://www.nasa.gov/"
+      ]
+    },
+    {
+      "scenario_id": "earth.desert_dust_storm",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "Hot-arid dust-storm episode",
+      "deployment_mode": "terrestrial_remote_microgrid",
+      "stressors": [
+        "time-varying aerosol loading",
+        "wind",
+        "solar attenuation",
+        "dust ingress",
+        "visibility/access reduction"
+      ],
+      "coupled_hazard_hypotheses": [
+        "multi-day PV loss plus filter clogging",
+        "sensor bias plus delayed maintenance",
+        "reserve depletion while cleaning/resupply is blocked"
+      ],
+      "model_requirements": [
+        "chronological aerosol/irradiance/wind trace",
+        "dust deposition/cleaning model",
+        "maintenance and reserve model"
+      ],
+      "required_metrics": [
+        "service shortfall",
+        "reserve exhaustion time",
+        "sensor validity",
+        "cleaning burden",
+        "recovery"
+      ],
+      "evidence_basis": "observed_or_explicitly_synthetic_event",
+      "confidence_or_data_limitations": "Synthetic dust storms must not be used as frequency estimates without a defensible event model.",
+      "source_urls": [
+        "https://www.nasa.gov/"
+      ]
+    },
+    {
+      "scenario_id": "earth.heatwave_drought",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "Compound heatwave and drought episode",
+      "deployment_mode": "terrestrial_community_or_critical_infrastructure",
+      "stressors": [
+        "multi-day heat including warm nights",
+        "high cooling demand",
+        "water restrictions",
+        "utility/transport stress"
+      ],
+      "coupled_hazard_hypotheses": [
+        "load peak coincides with asset derating",
+        "water and power floors fail together",
+        "heat-related repair delay"
+      ],
+      "model_requirements": [
+        "joint heat-load-water trace",
+        "asset thermal model",
+        "owner-approved critical service floors"
+      ],
+      "required_metrics": [
+        "per-service deficits",
+        "thermal gate breaches",
+        "water budget",
+        "worst continuous outage",
+        "recovery"
+      ],
+      "evidence_basis": "observed_or_reanalysis_episode",
+      "confidence_or_data_limitations": "Use joint chronology; don't independently shuffle correlated weather/load variables.",
+      "source_urls": [
+        "https://www.nasa.gov/"
+      ]
+    },
+    {
+      "scenario_id": "earth.tropical_hot_humid",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "Hot-humid tropical site archetype",
+      "deployment_mode": "terrestrial_critical_services",
+      "stressors": [
+        "high humidity/wet-bulb heat",
+        "corrosion",
+        "biological growth",
+        "heavy precipitation"
+      ],
+      "coupled_hazard_hypotheses": [
+        "cooling demand plus wet electrical faults",
+        "corrosion plus communications/maintenance disruption"
+      ],
+      "model_requirements": [
+        "humidity/wet-bulb time series",
+        "corrosion and ingress models",
+        "site outage records where available"
+      ],
+      "required_metrics": [
+        "thermal safety gate",
+        "power quality",
+        "service deficit",
+        "corrosion/repair interval"
+      ],
+      "evidence_basis": "site_data_required",
+      "confidence_or_data_limitations": "Human heat-stress limits require domain-specific qualified guidance and are not derived by the energy scorer.",
+      "source_urls": [
+        "https://www.nasa.gov/"
+      ]
+    },
+    {
+      "scenario_id": "earth.monsoon_flood_cyclone",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "Flood/monsoon/cyclone episode",
+      "deployment_mode": "terrestrial_community_microgrid",
+      "stressors": [
+        "floodwater",
+        "high wind",
+        "water ingress",
+        "debris",
+        "grid/fuel/access disruption"
+      ],
+      "coupled_hazard_hypotheses": [
+        "flood plus communications loss",
+        "fuel resupply failure plus islanding",
+        "multiple assets share flood exposure"
+      ],
+      "model_requirements": [
+        "site flood/wind scenario",
+        "asset elevation and ingress ratings",
+        "access and repair chronology"
+      ],
+      "required_metrics": [
+        "life-safety/critical services",
+        "fault isolation",
+        "restoration time",
+        "resupply access"
+      ],
+      "evidence_basis": "site_specific_hazard_model_required",
+      "confidence_or_data_limitations": "No live fault injection; use simulation or approved isolated testbeds.",
+      "source_urls": [
+        "https://www.nasa.gov/"
+      ]
+    },
+    {
+      "scenario_id": "earth.coastal_storm_salt",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "Coastal salt-spray storm",
+      "deployment_mode": "terrestrial_microgrid_and_comms",
+      "stressors": [
+        "salt spray",
+        "storm surge",
+        "wind",
+        "humidity",
+        "access interruption"
+      ],
+      "coupled_hazard_hypotheses": [
+        "corrosion plus surge/outage",
+        "switchgear contamination plus communications loss"
+      ],
+      "model_requirements": [
+        "coastal hazard and corrosion models",
+        "asset siting and protection data"
+      ],
+      "required_metrics": [
+        "service floors",
+        "electrical integrity",
+        "recovery",
+        "repair/spares"
+      ],
+      "evidence_basis": "site_specific_hazard_model_required",
+      "confidence_or_data_limitations": "Separate acute surge damage from long-term corrosion degradation.",
+      "source_urls": [
+        "https://www.nasa.gov/"
+      ]
+    },
+    {
+      "scenario_id": "earth.polar_station_mobile_ice",
+      "domain": "earth_extreme_environment",
+      "location_or_body": "Fixed polar station or mobile sea-ice platform",
+      "deployment_mode": "remote_polar_infrastructure",
+      "stressors": [
+        "deep cold",
+        "polar night/low solar season",
+        "wind/icing",
+        "isolation",
+        "snow/ice mobility"
+      ],
+      "coupled_hazard_hypotheses": [
+        "energy scarcity plus storage derating",
+        "fuel delay plus repair queue",
+        "mobile ice changes location and boundary conditions"
+      ],
+      "model_requirements": [
+        "site- and season-specific weather/illumination",
+        "asset derating",
+        "fixed-land vs mobile-ice domain distinction"
+      ],
+      "required_metrics": [
+        "heat/water/sanitation/comms service floors",
+        "autonomy",
+        "reserve exhaustion",
+        "recovery"
+      ],
+      "evidence_basis": "existing_polar_benchmark_domain_with_site_specific_validation_needed",
+      "confidence_or_data_limitations": "Do not merge Arctic land, Antarctic station, sea ice and mobile platforms without justified transfer.",
+      "source_urls": [
+        "https://www.nasa.gov/"
+      ]
+    },
+    {
+      "scenario_id": "space.vacuum_thermal_cycling",
+      "domain": "space_cross_cutting",
+      "location_or_body": "Orbital or interplanetary vacuum environment",
+      "deployment_mode": "spacecraft_or_surface_asset",
+      "stressors": [
+        "vacuum",
+        "radiative heat exchange",
+        "eclipse and illumination cycling",
+        "material outgassing"
+      ],
+      "coupled_hazard_hypotheses": [
+        "eclipse plus depleted energy reserve",
+        "cold-soak plus actuator/material constraint",
+        "thermal cycling plus seal degradation"
+      ],
+      "model_requirements": [
+        "radiative thermal model",
+        "orbit/illumination geometry",
+        "materials vacuum data"
+      ],
+      "required_metrics": [
+        "temperature margins",
+        "power reserve",
+        "thermal cycling damage proxy",
+        "fault and recovery"
+      ],
+      "evidence_basis": "mission_environment_model_required",
+      "confidence_or_data_limitations": "Do not model convective air cooling in vacuum.",
+      "source_urls": [
+        "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+      ]
+    },
+    {
+      "scenario_id": "space.solar_particle_events_and_gcr",
+      "domain": "space_cross_cutting",
+      "location_or_body": "Cislunar/interplanetary mission radiation environment",
+      "deployment_mode": "spacecraft_or_crewed_habitat_trade_study",
+      "stressors": [
+        "UV",
+        "solar particle events",
+        "galactic cosmic rays",
+        "accumulated dose",
+        "single-event effects"
+      ],
+      "coupled_hazard_hypotheses": [
+        "radiation-induced reset plus delayed communications",
+        "degradation plus long mission duration",
+        "rare critical upset"
+      ],
+      "model_requirements": [
+        "mission duration/orbit/depth",
+        "shielding and material response",
+        "qualified radiation transport/dose model"
+      ],
+      "required_metrics": [
+        "dose and uncertainty",
+        "single-event response",
+        "safe-mode/recovery",
+        "availability and loss-of-function"
+      ],
+      "evidence_basis": "qualified_radiation_model_required",
+      "confidence_or_data_limitations": "Mean dose alone does not represent rare-event risk or tissue dose; crewed missions require specialized review.",
+      "source_urls": [
+        "https://science.nasa.gov/astrobiology/researchers/funded-research/ppr/"
+      ]
+    },
+    {
+      "scenario_id": "space.delayed_disconnected_comms",
+      "domain": "space_cross_cutting",
+      "location_or_body": "Deep-space or intermittent-contact mission",
+      "deployment_mode": "autonomous_robot_or_habitat",
+      "stressors": [
+        "long signal light-time",
+        "scheduled contact windows",
+        "outages",
+        "asymmetric latency"
+      ],
+      "coupled_hazard_hypotheses": [
+        "event occurs between contacts",
+        "human override unavailable",
+        "state estimate drifts during disconnected operation"
+      ],
+      "model_requirements": [
+        "mission geometry/light-time",
+        "contact schedule",
+        "onboard autonomy and fallback model"
+      ],
+      "required_metrics": [
+        "safe autonomy duration",
+        "invalid command rate",
+        "fallback latency",
+        "mission/service continuity"
+      ],
+      "evidence_basis": "mission_geometry_and_comms_model_required",
+      "confidence_or_data_limitations": "Don't assume synchronous cloud control or immediate human intervention.",
+      "source_urls": [
+        "https://science.nasa.gov/"
+      ]
+    },
+    {
+      "scenario_id": "space.planetary_protection_and_sample_integrity",
+      "domain": "space_cross_cutting",
+      "location_or_body": "Potentially habitable or sample-return target",
+      "deployment_mode": "robotic_sampling_or_return",
+      "stressors": [
+        "forward contamination",
+        "sample cross-contamination",
+        "sterilization constraints",
+        "transport of contaminants"
+      ],
+      "coupled_hazard_hypotheses": [
+        "sampling mission violates clean/dirty boundary",
+        "system detects environmental signal but sample chain is contaminated"
+      ],
+      "model_requirements": [
+        "mission-specific planetary-protection plan",
+        "contamination transport and cleanliness monitoring"
+      ],
+      "required_metrics": [
+        "traceable sample custody",
+        "contamination limits",
+        "barrier state",
+        "mission-specific compliance gates"
+      ],
+      "evidence_basis": "mission_specific_plan_and_specialist_review_required",
+      "confidence_or_data_limitations": "Not reducible to microgrid service score. Applies especially to Mars Special Regions and icy ocean worlds.",
+      "source_urls": [
+        "https://science.nasa.gov/astrobiology/researchers/funded-research/ppr/"
+      ]
+    },
+    {
+      "scenario_id": "ss.mercury_sunlit_and_shadowed",
+      "domain": "solar_system_body",
+      "location_or_body": "Mercury: sunlit terrain versus permanently shadowed polar crater",
+      "deployment_mode": "surface_robot_or_resource_prospector",
+      "stressors": [
+        "high incident sunlight on exposed terrain",
+        "extreme day/night temperature changes",
+        "near-vacuum/exosphere",
+        "polar cold traps",
+        "solar particles"
+      ],
+      "coupled_hazard_hypotheses": [
+        "hot sunlit equipment adjacent to cryogenic resource site",
+        "mobility/access failure while power/thermal demands conflict"
+      ],
+      "model_requirements": [
+        "terrain- and time-resolved illumination",
+        "radiative thermal model",
+        "local volatile/resource model",
+        "radiation environment"
+      ],
+      "required_metrics": [
+        "temperature margins",
+        "power endurance",
+        "access/mobility",
+        "volatile sampling integrity"
+      ],
+      "evidence_basis": "mission_data_plus_site_model_required",
+      "confidence_or_data_limitations": "Polar ice/resource grade and exact site conditions need local evidence.",
+      "source_urls": [
+        "https://science.nasa.gov/mercury/facts/"
+      ]
+    },
+    {
+      "scenario_id": "ss.venus_surface",
+      "domain": "solar_system_body",
+      "location_or_body": "Venus surface",
+      "deployment_mode": "short_lived_lander_or_technology_stress_test",
+      "stressors": [
+        "about 467 C surface temperature",
+        "roughly 92 bar pressure",
+        "CO2-dominated atmosphere",
+        "reactive trace chemistry"
+      ],
+      "coupled_hazard_hypotheses": [
+        "thermal degradation plus pressure-vessel failure",
+        "material chemistry limits mission duration"
+      ],
+      "model_requirements": [
+        "high-temperature material/electronics data",
+        "pressure vessel and chemistry model",
+        "altitude-specific atmosphere"
+      ],
+      "required_metrics": [
+        "temperature/pressure margins",
+        "sensor/compute survival",
+        "mission duration",
+        "failure mode"
+      ],
+      "evidence_basis": "historical_lander_data_and_material_tests_required",
+      "confidence_or_data_limitations": "Not a conventional crewed habitat scenario; pressure/temperature range is extreme.",
+      "source_urls": [
+        "https://science.nasa.gov/venus/venus-facts/",
+        "https://nssdc.gsfc.nasa.gov/planetary/factsheet/venusfact.html"
+      ]
+    },
+    {
+      "scenario_id": "ss.venus_cloud_layer",
+      "domain": "solar_system_body",
+      "location_or_body": "Venus atmosphere at explicitly selected altitude",
+      "deployment_mode": "hypothetical_aerostat_or_flight_platform",
+      "stressors": [
+        "altitude-dependent pressure/temperature",
+        "sulfuric-acid aerosol chemistry",
+        "wind and circulation",
+        "solar-energy and comms constraints"
+      ],
+      "coupled_hazard_hypotheses": [
+        "aerosol corrosion plus float/flight control issue",
+        "altitude excursion moves vehicle outside thermal/pressure envelope"
+      ],
+      "model_requirements": [
+        "altitude-resolved atmospheric model",
+        "acid-compatible materials",
+        "vehicle/flight dynamics"
+      ],
+      "required_metrics": [
+        "altitude and flight envelope",
+        "material degradation",
+        "energy reserve",
+        "communication availability"
+      ],
+      "evidence_basis": "hypothetical_architecture_requires_altitude_specific_model",
+      "confidence_or_data_limitations": "Never substitute cloud-level conditions for the surface environment.",
+      "source_urls": [
+        "https://science.nasa.gov/venus/venus-facts/"
+      ]
+    },
+    {
+      "scenario_id": "ss.moon_equatorial_and_south_pole",
+      "domain": "solar_system_body",
+      "location_or_body": "Moon: equatorial terrain, illuminated south-pole ridge, and permanently shadowed region as separate subcases",
+      "deployment_mode": "surface_rover_lander_or_future_surface_infrastructure",
+      "stressors": [
+        "vacuum",
+        "low gravity",
+        "abrasive regolith",
+        "extreme thermal changes",
+        "radiation and micrometeoroids",
+        "complex polar illumination/shadows",
+        "possible volatile-bearing cold traps"
+      ],
+      "coupled_hazard_hypotheses": [
+        "extended shadow plus storage depletion",
+        "dust ingress plus thermal cycle",
+        "volatile sampling access plus mobility/communications failure"
+      ],
+      "model_requirements": [
+        "site DEM/terrain illumination",
+        "radiative thermal model",
+        "regolith/contact mechanics",
+        "mission-specific radiation and volatile map"
+      ],
+      "required_metrics": [
+        "power endurance",
+        "thermal limits",
+        "mobility/access",
+        "dust damage",
+        "resource uncertainty",
+        "autonomy/recovery"
+      ],
+      "evidence_basis": "lunar_mission_data_plus_site_model_required",
+      "confidence_or_data_limitations": "South-pole illumination is location-dependent; do not presume constant sunlight or homogeneous ice.",
+      "source_urls": [
+        "https://www.nasa.gov/reference/moonbase-environment/",
+        "https://www.nasa.gov/moonbase-environment-visualization/",
+        "https://www.nasa.gov/lunar-surface-technology/"
+      ]
+    },
+    {
+      "scenario_id": "ss.mars_surface_and_global_dust_storm",
+      "domain": "solar_system_body",
+      "location_or_body": "Mars: equatorial, highland, polar seasonal-ice and global/regional dust-storm subcases",
+      "deployment_mode": "rover_lander_or_future_surface_infrastructure",
+      "stressors": [
+        "thin CO2 atmosphere",
+        "cold and large diurnal temperature range",
+        "dust storms",
+        "radiation",
+        "seasonal ice/illumination",
+        "lower sunlight"
+      ],
+      "coupled_hazard_hypotheses": [
+        "storm reduces PV yield while dust contaminates sensors",
+        "cold battery plus repair/resupply delay",
+        "seasonal resource access and power shortage overlap"
+      ],
+      "model_requirements": [
+        "site/season atmosphere and weather",
+        "dust optical depth/deposition",
+        "thermal and power model",
+        "radiation and pressure model",
+        "stateful resource model"
+      ],
+      "required_metrics": [
+        "energy autonomy",
+        "critical-service shortfall",
+        "dust/thermal degradation",
+        "survival/restart",
+        "reserve exhaustion",
+        "recovery"
+      ],
+      "evidence_basis": "mission_observations_and_validated_site_model_required",
+      "confidence_or_data_limitations": "Mars is a cold desert, but its low pressure, gravity, radiation, chemistry and dust behavior are not equivalent to Earth deserts.",
+      "source_urls": [
+        "https://science.nasa.gov/mars/facts/"
+      ]
+    },
+    {
+      "scenario_id": "ss.phobos_deimos",
+      "domain": "solar_system_body",
+      "location_or_body": "Mars moons Phobos and Deimos",
+      "deployment_mode": "orbital_proximity_operations_or_surface_contact",
+      "stressors": [
+        "very low gravity",
+        "irregular terrain",
+        "regolith uncertainty",
+        "thermal/vacuum exposure",
+        "autonomous contact"
+      ],
+      "coupled_hazard_hypotheses": [
+        "sampling-tool reaction pushes vehicle away",
+        "anchoring/mobility model wrong for weak gravity"
+      ],
+      "model_requirements": [
+        "body shape/gravity",
+        "contact and regolith mechanics",
+        "proximity operations"
+      ],
+      "required_metrics": [
+        "contact stability",
+        "anchoring and sample success",
+        "propellant/energy use",
+        "recovery"
+      ],
+      "evidence_basis": "limited_direct_data_requires_explicit_uncertainty",
+      "confidence_or_data_limitations": "Do not assume Earth-like soil traction.",
+      "source_urls": [
+        "https://science.nasa.gov/mars/facts/"
+      ]
+    },
+    {
+      "scenario_id": "ss.asteroids_ceres_comets",
+      "domain": "solar_system_small_body",
+      "location_or_body": "Representative asteroid, Ceres, and active comet cases",
+      "deployment_mode": "orbital_rendezvous_touch_and_go_or_surface_robot",
+      "stressors": [
+        "micro/low gravity",
+        "irregular shapes",
+        "boulder-rich/weak regolith",
+        "vacuum and thermal cycling",
+        "low sunlight at belt distances",
+        "comet outgassing and dust jets"
+      ],
+      "coupled_hazard_hypotheses": [
+        "unexpected regolith strength changes sampling dynamics",
+        "outgassing disturbs attitude/orbit",
+        "long autonomous mission plus limited power/communications"
+      ],
+      "model_requirements": [
+        "target-specific gravity/shape/ephemeris",
+        "contact mechanics",
+        "thermal/volatile activity model",
+        "spacecraft dynamics"
+      ],
+      "required_metrics": [
+        "contact/sampling success",
+        "attitude/orbit error",
+        "thermal margins",
+        "energy endurance",
+        "fault recovery"
+      ],
+      "evidence_basis": "target_specific_mission_data_and_model_required",
+      "confidence_or_data_limitations": "Bennu findings show that small-body surfaces can be jagged and mechanically weak; don't presume smooth generic regolith.",
+      "source_urls": [
+        "https://science.nasa.gov/missions/osiris-rex/asteroid-bennus-rugged-surface-baffled-nasa-we-finally-know-why/",
+        "https://science.nasa.gov/resource/asteroid-bennus-surprising-surface-revealed-by-nasa-spacecraft/"
+      ]
+    },
+    {
+      "scenario_id": "ss.jupiter_orbit_and_atmosphere",
+      "domain": "solar_system_body",
+      "location_or_body": "Jupiter system: orbiter radiation environment and a separately defined atmospheric entry/depth profile",
+      "deployment_mode": "orbiter_or_short_lived_entry_probe",
+      "stressors": [
+        "strong magnetosphere and energetic particles",
+        "radiation-sensitive electronics",
+        "gas giant pressure/wind increasing with depth",
+        "low solar flux relative to Earth"
+      ],
+      "coupled_hazard_hypotheses": [
+        "radiation event causes upset before scheduled contact",
+        "entry thermal/pressure envelope exceeded"
+      ],
+      "model_requirements": [
+        "orbit-dependent radiation transport",
+        "particle dose and single-event response",
+        "entry trajectory and pressure-depth atmosphere"
+      ],
+      "required_metrics": [
+        "dose margin",
+        "upset recovery",
+        "entry thermal/pressure margin",
+        "autonomous safe-mode behavior"
+      ],
+      "evidence_basis": "mission_orbit_and_probe_specific_model_required",
+      "confidence_or_data_limitations": "Jupiter has no ordinary solid surface for a surface habitat contract.",
+      "source_urls": [
+        "https://science.nasa.gov/jupiter/jupiter-facts/"
+      ]
+    },
+    {
+      "scenario_id": "ss.io",
+      "domain": "solar_system_body",
+      "location_or_body": "Jupiter's moon Io",
+      "deployment_mode": "flyby_or_orbital_science_or_extreme_surface_probe_study",
+      "stressors": [
+        "intense volcanism",
+        "tidal deformation",
+        "SO2 environment",
+        "high radiation/plasma"
+      ],
+      "coupled_hazard_hypotheses": [
+        "volcanic plume/deposit alters surface or sensor state",
+        "radiation-induced faults plus limited communications"
+      ],
+      "model_requirements": [
+        "volcanic/thermal surface dynamics",
+        "Jovian radiation/plasma",
+        "chemistry/material compatibility"
+      ],
+      "required_metrics": [
+        "radiation tolerance",
+        "thermal/chemical survivability",
+        "mission duration",
+        "fault recovery"
+      ],
+      "evidence_basis": "flyby_or_orbital_data_plus_local_model_required",
+      "confidence_or_data_limitations": "Not a conventional habitat candidate; very active environment.",
+      "source_urls": [
+        "https://science.nasa.gov/jupiter/jupiter-moons/io/facts/"
+      ]
+    },
+    {
+      "scenario_id": "ss.europa",
+      "domain": "solar_system_body",
+      "location_or_body": "Europa surface/orbit; inferred subsurface ocean is a separate science model",
+      "deployment_mode": "orbiter_flyby_surface_probe_or_sampling",
+      "stressors": [
+        "intense Jovian radiation",
+        "icy terrain",
+        "vacuum/thermal cycling",
+        "uncertain surface chemistry",
+        "planetary protection"
+      ],
+      "coupled_hazard_hypotheses": [
+        "radiation upsets plus communication gaps",
+        "sample contamination invalidates science outcome",
+        "surface energy and thermal reserve exhausted"
+      ],
+      "model_requirements": [
+        "orbit- and shielding-specific radiation",
+        "ice/regolith model",
+        "sample containment/planetary protection plan"
+      ],
+      "required_metrics": [
+        "dose and upset handling",
+        "mission survival",
+        "sample integrity",
+        "resource/power endurance"
+      ],
+      "evidence_basis": "mission_measurements_plus_model; subsurface ocean inferred_not_directly_sampled",
+      "confidence_or_data_limitations": "Habitability evidence is not evidence that life exists; protect potential ocean environments.",
+      "source_urls": [
+        "https://science.nasa.gov/jupiter/jupiter-moons/europa/europa-facts/",
+        "https://science.nasa.gov/astrobiology/researchers/funded-research/ppr/"
+      ]
+    },
+    {
+      "scenario_id": "ss.ganymede",
+      "domain": "solar_system_body",
+      "location_or_body": "Jupiter's moon Ganymede",
+      "deployment_mode": "orbital_or_surface_science",
+      "stressors": [
+        "cold icy terrain",
+        "tenuous exosphere",
+        "local magnetic field embedded in Jovian magnetosphere",
+        "subsurface ocean evidence"
+      ],
+      "coupled_hazard_hypotheses": [
+        "charged-particle/communications interaction",
+        "surface contact and thermal failure"
+      ],
+      "model_requirements": [
+        "local and Jovian magnetic environment",
+        "radiation model",
+        "ice/regolith/contact model"
+      ],
+      "required_metrics": [
+        "dose/electronics",
+        "contact/mobility",
+        "thermal limits",
+        "autonomous operations"
+      ],
+      "evidence_basis": "mission_observations_and_model",
+      "confidence_or_data_limitations": "Separate Ganymede's own magnetic field from the ambient Jovian environment.",
+      "source_urls": [
+        "https://science.nasa.gov/jupiter/jupiter-moons/ganymede/facts/"
+      ]
+    },
+    {
+      "scenario_id": "ss.callisto",
+      "domain": "solar_system_body",
+      "location_or_body": "Jupiter's moon Callisto",
+      "deployment_mode": "orbital_or_surface_science",
+      "stressors": [
+        "cold icy/rocky terrain",
+        "heavily cratered surface",
+        "tenuous exosphere",
+        "subsurface ocean hypothesis"
+      ],
+      "coupled_hazard_hypotheses": [
+        "deep-crater mobility and access failure",
+        "long low-solar mission with limited resupply"
+      ],
+      "model_requirements": [
+        "local terrain/gravity",
+        "thermal/power",
+        "orbit-specific radiation",
+        "uncertainty for subsurface inference"
+      ],
+      "required_metrics": [
+        "access/mobility",
+        "power endurance",
+        "thermal limits",
+        "mission recovery"
+      ],
+      "evidence_basis": "mission_data_and_model; ocean remains uncertain",
+      "confidence_or_data_limitations": "Do not mark inferred ocean as established ground truth.",
+      "source_urls": [
+        "https://science.nasa.gov/jupiter/jupiter-moons/callisto/facts/"
+      ]
+    },
+    {
+      "scenario_id": "ss.saturn_rings_and_atmosphere",
+      "domain": "solar_system_body",
+      "location_or_body": "Saturn ring-region orbit and a separate atmospheric entry/depth profile",
+      "deployment_mode": "orbiter_or_entry_probe",
+      "stressors": [
+        "ring-particle impact environment",
+        "low solar flux",
+        "long seasons",
+        "gas giant pressure/winds at depth"
+      ],
+      "coupled_hazard_hypotheses": [
+        "orbital debris encounter plus communication loss",
+        "entry thermal/pressure exceedance"
+      ],
+      "model_requirements": [
+        "orbit/ring particle environment",
+        "entry altitude/pressure profile",
+        "thermal/power/communications model"
+      ],
+      "required_metrics": [
+        "impact risk and shielding",
+        "entry margins",
+        "power endurance",
+        "safe-mode recovery"
+      ],
+      "evidence_basis": "mission_trajectory_specific_model_required",
+      "confidence_or_data_limitations": "Saturn has no ordinary solid surface; orbit and atmospheric-depth modes must not be mixed.",
+      "source_urls": [
+        "https://science.nasa.gov/saturn/facts/",
+        "https://science.nasa.gov/saturn/moons/facts/"
+      ]
+    },
+    {
+      "scenario_id": "ss.enceladus",
+      "domain": "solar_system_body",
+      "location_or_body": "Saturn's moon Enceladus: surface and plume-sampling modes",
+      "deployment_mode": "orbital_plume_sampling_or_surface_science",
+      "stressors": [
+        "icy cold surface",
+        "water vapor/ice particle plumes",
+        "salts and simple organic material",
+        "possible subsurface ocean",
+        "planetary protection"
+      ],
+      "coupled_hazard_hypotheses": [
+        "plume sampling trajectory uncertainty",
+        "sample contamination",
+        "low-power cold operation"
+      ],
+      "model_requirements": [
+        "plume trajectory/composition uncertainty",
+        "cryogenic sampling materials",
+        "planetary-protection process"
+      ],
+      "required_metrics": [
+        "sampling success",
+        "sample integrity",
+        "thermal margins",
+        "power/autonomy"
+      ],
+      "evidence_basis": "Cassini_observations_plus_future_mission_model",
+      "confidence_or_data_limitations": "Plume/ocean chemistry is evidence-sensitive; do not assume stable resource concentration.",
+      "source_urls": [
+        "https://science.nasa.gov/mission/cassini/science/enceladus/",
+        "https://science.nasa.gov/astrobiology/researchers/funded-research/ppr/"
+      ]
+    },
+    {
+      "scenario_id": "ss.titan_surface_and_lakes",
+      "domain": "solar_system_body",
+      "location_or_body": "Saturn's moon Titan: surface terrain and hydrocarbon lake/coast cases",
+      "deployment_mode": "lander_rover_or_rotorcraft_and_sampling",
+      "stressors": [
+        "surface near 94 K",
+        "dense nitrogen/methane atmosphere",
+        "methane/ethane rain, lakes and seas",
+        "organic haze",
+        "low sunlight and long seasons"
+      ],
+      "coupled_hazard_hypotheses": [
+        "cryogenic fluid/material failure",
+        "rotorcraft or mobility failure",
+        "low solar power plus long autonomous periods"
+      ],
+      "model_requirements": [
+        "cryogenic materials/fluid properties",
+        "atmospheric flight/mobility",
+        "thermal/power budget and seasonal model"
+      ],
+      "required_metrics": [
+        "thermal/material margins",
+        "mobility/flight",
+        "energy endurance",
+        "sample/mission integrity"
+      ],
+      "evidence_basis": "Cassini_Huygens_data_plus_mission_specific_model",
+      "confidence_or_data_limitations": "Earth water/soil properties are not valid substitutes for methane/ethane and cryogenic conditions.",
+      "source_urls": [
+        "https://science.nasa.gov/saturn/moons/titan/facts/"
+      ]
+    },
+    {
+      "scenario_id": "ss.uranus_neptune_atmospheric_levels",
+      "domain": "solar_system_body",
+      "location_or_body": "Uranus/Neptune at explicitly declared atmospheric pressure/depth levels",
+      "deployment_mode": "orbiter_or_entry_probe_or_hypothetical_atmospheric_vehicle",
+      "stressors": [
+        "very low temperatures",
+        "high winds",
+        "hydrogen/helium-rich atmosphere",
+        "pressure increasing with depth",
+        "unusual magnetospheres",
+        "very weak sunlight"
+      ],
+      "coupled_hazard_hypotheses": [
+        "entry thermal/pressure failure",
+        "atmospheric dynamics exceed vehicle envelope",
+        "power and communications limited by distance"
+      ],
+      "model_requirements": [
+        "planet-specific altitude/pressure profile",
+        "winds and entry dynamics",
+        "radiation/magnetosphere",
+        "power and link budget"
+      ],
+      "required_metrics": [
+        "entry/flight margins",
+        "thermal/pressure response",
+        "autonomy duration",
+        "communications"
+      ],
+      "evidence_basis": "Voyager_and_remote_observations_plus_model",
+      "confidence_or_data_limitations": "No ordinary solid surface; define pressure-level and mission mode, never use a generic surface-habitat assumption.",
+      "source_urls": [
+        "https://science.nasa.gov/uranus/facts/",
+        "https://science.nasa.gov/neptune/neptune-facts/"
+      ]
+    },
+    {
+      "scenario_id": "ss.triton",
+      "domain": "solar_system_body",
+      "location_or_body": "Neptune's moon Triton",
+      "deployment_mode": "flyby_orbiter_or_surface_probe_study",
+      "stressors": [
+        "surface around 38 K",
+        "nitrogen frost and thin atmosphere",
+        "seasonal energy",
+        "geyser-like activity"
+      ],
+      "coupled_hazard_hypotheses": [
+        "volatile phase change alters surface and atmosphere",
+        "long-duration thermal/power limitation"
+      ],
+      "model_requirements": [
+        "cryogenic volatile model",
+        "limited-illumination power budget",
+        "mobility/thermal model"
+      ],
+      "required_metrics": [
+        "volatile/thermal margins",
+        "power endurance",
+        "autonomy",
+        "mission recovery"
+      ],
+      "evidence_basis": "Voyager_flyby_data_plus_large_uncertainty",
+      "confidence_or_data_limitations": "Very limited direct observations; distinguish observed plume activity from extrapolated long-term rates.",
+      "source_urls": [
+        "https://science.nasa.gov/neptune/moons/triton/"
+      ]
+    },
+    {
+      "scenario_id": "ss.pluto_charon_kuiper_belt",
+      "domain": "solar_system_body",
+      "location_or_body": "Pluto/Charon and generic Kuiper-belt small-body trade-study classes",
+      "deployment_mode": "flyby_orbiter_or_surface_robot",
+      "stressors": [
+        "extremely low insolation",
+        "cryogenic nitrogen/methane/carbon-monoxide ices",
+        "tenuous seasonal atmosphere on Pluto",
+        "weak gravity",
+        "long communications latency"
+      ],
+      "coupled_hazard_hypotheses": [
+        "power/thermal endurance shortfall",
+        "seasonal volatile phase transition",
+        "autonomy with no resupply"
+      ],
+      "model_requirements": [
+        "body-specific thermal/volatile model",
+        "ephemeris and illumination",
+        "power source and comms budget",
+        "target gravity/terrain"
+      ],
+      "required_metrics": [
+        "power/thermal margins",
+        "volatile state",
+        "autonomy duration",
+        "communications and recovery"
+      ],
+      "evidence_basis": "New_Horizons_for_Pluto; generic_Kuiper_profile_is_hypothetical",
+      "confidence_or_data_limitations": "Pluto and Charon need separate models; generic Kuiper profile is for trade studies only.",
+      "source_urls": [
+        "https://science.nasa.gov/dwarf-planets/pluto/facts/"
+      ]
+    }
+  ],
+  "required_evidence_labels": [
+    "measured_field",
+    "mission_observed",
+    "remote_observation",
+    "validated_simulation",
+    "uncalibrated_model",
+    "synthetic_stress",
+    "hypothesized",
+    "not_evaluated",
+    "not_applicable_with_rationale"
+  ],
+  "validation_rules": [
+    "All scenario_id values are unique and stable.",
+    "Each profile declares a deployment_mode; gas/ice giants must not be silently treated as solid-surface habitats.",
+    "Every profile states required model domains and the evidence basis/limitations.",
+    "Missing environmental dimensions are unknown/not_evaluated, not numerically zero.",
+    "No probabilities are assigned to synthetic/adversarial stress cases without a defensible occurrence model.",
+    "A high-level body label never substitutes for site, season, altitude/depth, orbit, illumination or mission trajectory."
+  ]
+}
