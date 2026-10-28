@@ -2047,10 +2047,8 @@ mod tests {
         one_turn_state["left_drive"] = json!(0.37);
         one_turn_state["right_drive"] = json!(-0.81);
         let mut many_turns_state = one_turn_state.clone();
-        many_turns_state["left_drive"] =
-            json!(0.37 + 64.0 * std::f64::consts::PI);
-        many_turns_state["right_drive"] =
-            json!(-0.81 - 48.0 * std::f64::consts::PI);
+        many_turns_state["left_drive"] = json!(0.37 + 64.0 * std::f64::consts::PI);
+        many_turns_state["right_drive"] = json!(-0.81 - 48.0 * std::f64::consts::PI);
 
         let one_turn = compute_forward_kinematics(&model, &one_turn_state)
             .expect("continuous wheel angle must be accepted");
@@ -2059,9 +2057,8 @@ mod tests {
 
         for link_id in ["left_drive_wheel", "right_drive_wheel"] {
             assert_eq!(
-                one_turn[link_id].translation,
-                many_turns[link_id].translation,
-                "revolute wheel rotation should not translate the link origin"
+                one_turn[link_id].translation, many_turns[link_id].translation,
+                "continuous wheel rotation should not translate the link origin"
             );
             for row in 0..3 {
                 for column in 0..3 {
