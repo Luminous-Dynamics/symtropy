@@ -264,5 +264,21 @@
     "unmodeled_layers_marked_not_covered": true,
     "research_hypothesis": "local fallback plus explicit state reconciliation may preserve more service during coordination partitions; healthy centralized coordination may improve shared-resource efficiency",
     "hypothesis_status": "not_tested"
+  },
+  "long_horizon_extension": {
+    "contract_path": "research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json",
+    "validator_path": "research/polar-infrastructure/benchmark/src/bin/long_horizon_contract.rs",
+    "schema_path": "research/polar-infrastructure/benchmark/schemas/long-horizon-resilience-contract-0.1.0.schema.json",
+    "status": "proposed_not_executed",
+    "horizon_years": 30,
+    "scenario_family_count": 4,
+    "nonstationary_scenario_count": 3,
+    "path_dependent_state_count": 9,
+    "state_carryover_required": true,
+    "event_reset_baseline_is_diagnostic_only": true,
+    "probability_weights_allowed_without_verified_basis": false,
+    "admission_gate_count": 8,
+    "admission_gates_all_false": true,
+    "performance_claim": "none"
   }
 }
