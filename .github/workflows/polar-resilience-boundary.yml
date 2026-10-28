@@ -55,6 +55,11 @@ jobs:
               (.required_metrics | type == "array" and length > 0) and
               (.evidence_basis | type == "string" and length > 0) and
               (.confidence_or_data_limitations | type == "string" and length > 0) and
+              (.implementation_status == "implemented" or
+               .implementation_status == "planned" or
+               .implementation_status == "not_applicable_with_rationale" or
+               .implementation_status == "blocked_by_missing_data_or_model") and
+              (.status_rationale | type == "string" and length > 0) and
               (.source_urls | type == "array" and length > 0 and all(.[]; startswith("https://")))
             ) and
             ([.profiles[].scenario_id] | index("earth.desert_dust_storm") != null) and
