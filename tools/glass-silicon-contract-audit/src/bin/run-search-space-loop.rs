@@ -312,7 +312,9 @@ fn choose_action(policy: &str, view: &Value, expansion_decision_made: bool) -> A
     let observations = view.get("observations").and_then(Value::as_array).cloned().unwrap_or_default();
 
     // Static expansion is a deliberately non-adaptive control. It expands before observing any result.
-    if policy == "static_prior_expansion" && !expanded {
+    if policy == "static_prior_expansion" && !expanded
+        && expansion_method_available(view, "prior_guided")
+    {
         return Action::Expand("prior_guided".to_owned());
     }
 
@@ -351,7 +353,7 @@ fn choose_action(policy: &str, view: &Value, expansion_decision_made: bool) -> A
             let first = &observations[0];
             let value = first.get("utility").and_then(Value::as_f64).unwrap_or(f64::NEG_INFINITY);
             let feasible = first.get("feasible").and_then(Value::as_bool).unwrap_or(false);
-            if !feasible || value < threshold {
+            if (!feasible || value < threshold) && expansion_method_available(view, method) {
                 return Action::Expand(method.to_owned());
             }
         }
@@ -380,6 +382,56 @@ fn expansion_threshold_from_view(view: &Value, policy: &str) -> Option<f64> {
     view.get("public_thresholds")?.get(policy)?.as_f64()
 }
 
+fn expansion_method_available(view: &Value, method: &str) -> bool {
+    view.get("available_expansion_methods")
+        .and_then(Value::as_array)
+        .is_some_and(|methods| methods.iter().any(|item| item.as_str() == Some(method)))
+}
+
+fn affordable_expansion_methods(
+    tariffs: &HashMap<String, Tariff>,
+    expansion_used: bool,
+    remaining_cost: f64,
+    remaining_seconds: f64,
+) -> Vec<String> {
+    if expansion_used {
+        return Vec::new();
+    }
+    [
+        ("random", "expand_random"),
+        ("rule_based", "expand_rule_based"),
+        ("prior_guided", "expand_prior_guided"),
+    ]
+    .into_iter()
+    .filter_map(|(method, tariff_key)| {
+        tariffs.get(tariff_key)
+            .filter(|tariff| {
+                tariff.cost <= remaining_cost + 1e-9
+                    && tariff.seconds <= remaining_seconds + 1e-9
+            })
+            .map(|_| method.to_owned())
+    })
+    .collect()
+}
+
+fn tariff_view(tariffs: &HashMap<String, Tariff>, action_type: &str) -> Value {
+    tariffs.get(action_type).map_or(Value::Null, |tariff| {
+        json!({
+            "cost_units": tariff.cost,
+            "duration_seconds": tariff.seconds
+        })
+    })
+}
+
+fn action_costs_view(tariffs: &HashMap<String, Tariff>) -> Value {
+    json!({
+        "evaluate_candidate": tariff_view(tariffs, "evaluate_candidate"),
+        "expand_random": tariff_view(tariffs, "expand_random"),
+        "expand_rule_based": tariff_view(tariffs, "expand_rule_based"),
+        "expand_prior_guided": tariff_view(tariffs, "expand_prior_guided")
+    })
+}
+
 fn build_public_view(
     catalog: &Value,
     policy: &str,
@@ -390,6 +442,7 @@ fn build_public_view(
     expansion_used: bool,
     remaining_cost: f64,
     remaining_seconds: f64,
+    tariffs: &HashMap<String, Tariff>,
 ) -> Value {
     let visible_candidates = catalog.get("candidate_families").and_then(Value::as_array).into_iter().flatten()
         .filter(|c| c.get("id").and_then(Value::as_str).is_some_and(|id| visible.contains(id)))
@@ -413,6 +466,10 @@ fn build_public_view(
         "feasible": o.feasible,
         "utility": o.utility
     })).collect::<Vec<_>>();
+    let available_expansions = affordable_expansion_methods(
+        tariffs, expansion_used, remaining_cost, remaining_seconds
+    );
+    let action_costs = action_costs_view(tariffs);
     json!({
         "policy_id": policy,
         "campaign_seed": catalog.get("policy_contract").and_then(|v| v.get("random_seed")).and_then(Value::as_u64).unwrap_or(0),
@@ -420,7 +477,8 @@ fn build_public_view(
         "observations": obs,
         "expanded_candidate_ids": expanded_candidate_ids,
         "expansion_used": expansion_used,
-        "available_expansion_methods": if expansion_used { Vec::<String>::new() } else { vec!["random".to_owned(), "rule_based".to_owned(), "prior_guided".to_owned()] },
+        "available_expansion_methods": available_expansions,
+        "action_costs": action_costs,
         "public_thresholds": catalog.get("policy_contract").and_then(|v| v.get("thresholds")).cloned().unwrap_or_else(|| json!({})),
         "remaining_cost_units": remaining_cost,
         "remaining_duration_seconds": remaining_seconds
@@ -577,7 +635,7 @@ where
             break;
         }
         let view = build_public_view(catalog, policy, &visible, &evaluated, &observations,
-            &expanded_candidate_ids, expansion_used, remaining_cost, remaining_seconds);
+            &expanded_candidate_ids, expansion_used, remaining_cost, remaining_seconds, &tariffs);
         let consideration_due = !expansion_decision_made
             && observations.len() == 1
             && method_for_policy(policy).is_some();
@@ -954,6 +1012,7 @@ fn build_replay_view(
     expansion_used: bool,
     remaining_cost: f64,
     remaining_seconds: f64,
+    tariffs: &HashMap<String, Tariff>,
 ) -> Value {
     let visible_candidates = catalog.get("candidate_families").and_then(Value::as_array).into_iter().flatten()
         .filter(|c| c.get("id").and_then(Value::as_str).is_some_and(|id| visible.contains(id)))
@@ -978,7 +1037,8 @@ fn build_replay_view(
         "observations": observations,
         "expanded_candidate_ids": expanded_candidate_ids,
         "expansion_used": expansion_used,
-        "available_expansion_methods": if expansion_used { Vec::<String>::new() } else { vec!["random".to_owned(), "rule_based".to_owned(), "prior_guided".to_owned()] },
+        "available_expansion_methods": available_expansions,
+        "action_costs": action_costs,
         "public_thresholds": catalog.get("policy_contract").and_then(|v| v.get("thresholds")).cloned().unwrap_or_else(|| json!({})),
         "remaining_cost_units": remaining_cost,
         "remaining_duration_seconds": remaining_seconds
@@ -1222,7 +1282,8 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
 
             let view = build_replay_view(
                 &catalog, policy, &visible, &evaluated, &observations, &expanded_ids,
-                expansion_used, (max_cost - cost_used).max(0.0), (max_seconds - seconds_used).max(0.0)
+                expansion_used, (max_cost - cost_used).max(0.0), (max_seconds - seconds_used).max(0.0),
+                &tariffs
             );
             let expected_view_digest = sha256(&serde_json::to_vec(&view).unwrap_or_default());
             if event.get("decision_view_sha256").and_then(Value::as_str) != Some(expected_view_digest.as_str()) {
@@ -1651,10 +1712,17 @@ mod tests {
     use super::*;
 
     const PUBLIC: &[u8] = include_bytes!("../../fixtures/search-space-live-policy-catalog.synthetic.json");
+    const TIGHT_BUDGET_PUBLIC: &[u8] = include_bytes!("../../fixtures/search-space-live-policy-catalog-tight-budget.synthetic.json");
     const ORACLE: &[u8] = include_bytes!("../../fixtures/search-space-live-outcome-oracle.synthetic.json");
 
     fn values() -> (Value, Value) {
         (serde_json::from_slice(PUBLIC).unwrap(), serde_json::from_slice(ORACLE).unwrap())
+    }
+
+    fn fixture_tariffs() -> HashMap<String, Tariff> {
+        let oracle: Value = serde_json::from_slice(ORACLE).unwrap();
+        let mut report = json!({"status": "PASS", "findings": []});
+        get_tariffs(&oracle, &mut report)
     }
     fn run_env(public: &Value, oracle: &Value, env: &str, policy: &str) -> Value {
         run_one(public, oracle, env, policy)
@@ -1886,13 +1954,52 @@ mod tests {
             .filter(|c| c["initially_visible"] == true)
             .filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
         let view = build_public_view(&public, "uniform_random_fixed_space", &visible,
-            &HashSet::new(), &[], &[], false, 5.0, 25.0);
+            &HashSet::new(), &[], &[], false, 5.0, 25.0, &fixture_tariffs());
         let first = uniform_random_next_candidate(&view).unwrap();
         let second = uniform_random_next_candidate(&view).unwrap();
         assert_eq!(first, second);
         assert!(visible.contains(&first));
     }
 
+
+    #[test]
+    fn three_unit_budget_stress_lane_preserves_budget_parity_and_replay() {
+        let report = run_all(TIGHT_BUDGET_PUBLIC, ORACLE);
+        assert_eq!(report["status"], "PASS");
+        assert_eq!(report["policy_count"], 6);
+        assert_eq!(report["episodes_checked"], 24);
+        for episode in report["episodes"].as_array().unwrap() {
+            assert_eq!(episode["cost_units_charged"], 3.0, "{}", episode["campaign_id"]);
+            assert!(episode["duration_seconds_charged"].as_f64().unwrap() <= 25.0);
+        }
+
+        // GP-EI and uniform random now face a genuine selection problem: they cannot
+        // exhaust all five initially visible candidates under a three-evaluation cap.
+        for episode in report["episodes"].as_array().unwrap()
+            .iter().filter(|episode| episode["policy_class"] == "gp_ei_fixed_space")
+        {
+            assert_eq!(episode["expansions"], 0);
+            assert_eq!(episode["evaluations"], 3);
+        }
+        for control in report["auxiliary_controls"].as_array().unwrap() {
+            assert_eq!(control["expansions"], 0);
+            assert_eq!(control["evaluations"], 3);
+            assert_eq!(control["cost_units_charged"], 3.0);
+        }
+
+        // A prior-guided expansion costs three units, so it is unavailable after
+        // the common one-unit screening action. The policy must continue safely
+        // within the budget rather than emit an action that the evaluator must reject.
+        assert!(report["episodes"].as_array().unwrap().iter()
+            .filter(|episode| episode["policy_class"] == "prior_guided_expansion")
+            .all(|episode| episode["expansions"] == 0));
+
+        let report_raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&report_raw, TIGHT_BUDGET_PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "PASS");
+        assert_eq!(replay["episodes_checked"], 24);
+        assert_eq!(replay["cost_units_recomputed"], 72.0);
+    }
 
     #[test]
     fn live_loop_runs_all_policy_regime_pairs_with_budget_parity() {
@@ -1928,7 +2035,7 @@ mod tests {
             .filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
         let observations = vec![Observation { candidate_id: "glass-a".to_owned(), feasible: true, utility: 4.0 }];
         let evaluated = HashSet::from(["glass-a".to_owned()]);
-        let view = build_public_view(&public, "gp_ei_fixed_space", &initial, &evaluated, &observations, &[], false, 4.0, 20.0);
+        let view = build_public_view(&public, "gp_ei_fixed_space", &initial, &evaluated, &observations, &[], false, 4.0, 20.0, &fixture_tariffs());
         let first = gp_ei_next_candidate(&view).unwrap();
         let second = gp_ei_next_candidate(&view).unwrap();
         assert_eq!(first, second);
@@ -2009,7 +2116,7 @@ mod tests {
         let initial: BTreeSet<String> = public["candidate_families"].as_array().unwrap().iter()
             .filter(|c| c["initially_visible"] == true)
             .filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
-        let view = build_public_view(&public, "random_expansion", &initial, &HashSet::new(), &[], &[], false, 5.0, 25.0);
+        let view = build_public_view(&public, "random_expansion", &initial, &HashSet::new(), &[], &[], false, 5.0, 25.0, &fixture_tariffs());
         let text = serde_json::to_string(&view).unwrap();
         assert!(!text.contains("helpful"));
         assert!(!text.contains("harmful"));
@@ -2122,7 +2229,7 @@ mod tests {
         let initial: BTreeSet<String> = public["candidate_families"].as_array().unwrap().iter()
             .filter(|c| c["initially_visible"] == true)
             .filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
-        let view = build_public_view(&public, "fixed_space", &initial, &HashSet::new(), &[], &[], false, 5.0, 25.0);
+        let view = build_public_view(&public, "fixed_space", &initial, &HashSet::new(), &[], &[], false, 5.0, 25.0, &fixture_tariffs());
         let serialized = serde_json::to_string(&view).unwrap();
         assert!(!serialized.contains("oracle_best_feasible_utility"));
         assert!(!serialized.contains("terminal_simple_regret"));
