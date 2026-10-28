@@ -193,7 +193,20 @@ jobs:
             any(.candidate_auxiliary_sources[];
               .source_id == "sasscal_weathernet_gobabeb_met_8893" and
               any(.known_page_examples[]; .reported_valid_dates == ["2023-01-01","2023-01-02","2023-01-03","2023-01-04"] and .status == "publisher_page_inspected_not_raw_file_ingested")
-            )
+            ) and
+            .coverage_admission_policy.policy_id == "coverage_before_aggregation_v0" and
+            .coverage_admission_policy.missing_values_are_zero == false and
+            .coverage_admission_policy.allow_incomplete_daily_series_to_be_treated_as_complete_month == false and
+            .coverage_admission_policy.minimum_coverage_threshold_fraction == null and
+            .coverage_admission_policy.minimum_coverage_threshold_must_be_frozen_before_locked_test == true and
+            .coverage_admission_policy.metadata_only_negative_control.expected_daily_rows == 31 and
+            (.coverage_admission_policy.metadata_only_negative_control.publisher_displayed_dates_with_values | length) == 4 and
+            .coverage_admission_policy.metadata_only_negative_control.publisher_displayed_rows_missing == 27 and
+            .coverage_admission_policy.metadata_only_negative_control.visible_row_coverage_fraction > 0.12 and
+            .coverage_admission_policy.metadata_only_negative_control.visible_row_coverage_fraction < 0.14 and
+            .coverage_admission_policy.metadata_only_negative_control.status == "metadata_only_not_ingested" and
+            .coverage_admission_policy.second_metadata_example.publisher_reported_records == 24 and
+            .coverage_admission_policy.second_metadata_example.status == "metadata_only_not_ingested"
           ' "$plan"
 
       - name: Validate resilience bake-off preregistration contract
