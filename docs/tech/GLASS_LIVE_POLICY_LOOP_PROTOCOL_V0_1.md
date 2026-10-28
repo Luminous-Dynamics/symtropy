@@ -14,11 +14,11 @@ The sealed oracle includes environment identity, candidate feasibility, utilitie
 
 ## Executable artifacts
 
-- CLI: \`tools/glass-silicon-contract-audit/src/bin/run-search-space-loop.rs\`
-- Public catalog: \`tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog.synthetic.json\`
-- Sealed oracle: \`tools/glass-silicon-contract-audit/fixtures/search-space-live-outcome-oracle.synthetic.json\`
-- Public schema: \`docs/tech/glass-search-space-live-catalog-v0.1.schema.json\`
-- Sealed-oracle schema: \`docs/tech/glass-search-space-live-oracle-v0.1.schema.json\`
+- CLI: `tools/glass-silicon-contract-audit/src/bin/run-search-space-loop.rs`
+- Public catalog: `tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog.synthetic.json`
+- Sealed oracle: `tools/glass-silicon-contract-audit/fixtures/search-space-live-outcome-oracle.synthetic.json`
+- Public schema: `docs/tech/glass-search-space-live-catalog-v0.1.schema.json`
+- Sealed-oracle schema: `docs/tech/glass-search-space-live-oracle-v0.1.schema.json`
 
 Run from repository root:
 
@@ -27,20 +27,21 @@ Run from repository root:
 
     cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- --replay search-space-live-loop-report.json tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog.synthetic.json tools/glass-silicon-contract-audit/fixtures/search-space-live-outcome-oracle.synthetic.json
 
-The normal run command can be redirected to \`search-space-live-loop-report.json\` before replay. The \`--replay\` mode independently rebuilds each public decision view and the registered deterministic policy's expected next action from that view, then validates action ordering/visibility and proposal digests, recomputes evaluator charges, verifies observations against the sealed oracle, and recomputes each episode summary. A legal-but-policy-inconsistent action fails replay. It fails closed on forged observations, under-reported costs, stale view hashes and mismatched input/oracle byte digests. This replay mode is a separate code path in the same executable; it is not a separate OS process and does not replace the still-required subprocess/WASM isolation gate.
+The normal run command can be redirected to `search-space-live-loop-report.json` before replay. The `--replay` mode independently rebuilds each public decision view and the registered deterministic policy's expected next action from that view, then validates action ordering/visibility and proposal digests, recomputes evaluator charges, verifies observations against the sealed oracle, and recomputes each episode summary. A legal-but-policy-inconsistent action fails replay. It fails closed on forged observations, under-reported costs, stale view hashes and mismatched input/oracle byte digests. This replay mode is a separate code path in the same executable; it is not a separate OS process and does not replace the still-required subprocess/WASM isolation gate.
 
 
 ## Policy arms are software controls, not claimed SOTA implementations
 
 The runner executes six deterministic policy controls:
 
-1. \`fixed_space\`: never expands; chooses candidates using its declared public selector scores.
-2. \`random_expansion\`: after the common first screening observation, expands randomly only when the revealed result crosses a fixed synthetic low-value threshold.
-4. \`rule_based_expansion\`: applies a separately frozen synthetic trigger and then uses the predeclared rule-based expansion.
-5. \`prior_guided_expansion\`: applies a more permissive trigger and uses a public prior-score proxy to select an expansion. It is **not an actual LLM call**.
-6. \`static_prior_expansion\`: always expands before seeing any measurement; this is the non-adaptive expansion control.
+1. `fixed_space`: never expands; chooses candidates using declared public selector scores.
+2. `gp_ei_fixed_space`: never expands; fits an RBF Gaussian process to revealed utility observations over public 2D candidate features and ranks visible candidates by expected improvement. Hyperparameters are fixed in source for this synthetic finite-pool baseline: lengthscale 0.85, observation-noise variance 0.05, utility normalized by 10, and exploration offset xi 0.01.
+3. `random_expansion`: after the common first screening observation, expands randomly only when the revealed result crosses a fixed synthetic low-value threshold.
+4. `rule_based_expansion`: applies a separately frozen synthetic trigger and then uses the predeclared rule-based expansion.
+5. `prior_guided_expansion`: applies a more permissive trigger and uses a public prior-score proxy to select an expansion. It is **not an actual LLM call**.
+6. `static_prior_expansion`: always expands before seeing any measurement; this is the non-adaptive expansion control.
 
-These thresholds and selection scores are controlled test policy inputs. They are not trained or calibrated on glass data and they do not represent GP expected improvement, a real LLM, or an incumbent industrial optimizer. Keep the conventional fixed-space GP-EI, random/DOE, cost-aware BO and the incumbent workflow as mandatory real-policy comparators when their input semantics match. This synthetic runner tests the event loop and observation timing before those live adapters are built.
+The GP-EI arm is a real implementation of the finite-pool RBF Gaussian-process expected-improvement acquisition rule, but only for the declared 2D synthetic candidates and frozen hyperparameters. It is not yet a full GP-EI/PI implementation for real continuous/mixed glass-process variables, and it is not independently tuned against production materials datasets. The proxy-score control and expansion triggers are also fixed synthetic policy inputs, not results from trained glass models. This event-loop benchmark verifies action semantics and accounting before expanding the baseline suite. For real empirical comparisons, keep GP-EI/PI, random/DOE/space-filling, random-forest or TPE for mixed/categorical spaces, cost-aware/multi-fidelity VOI, the incumbent engineering workflow, and reproducible LLM-AL/GOLLuM implementations where licensing and input semantics permit.
 
 ### Strong literature baselines to add to the live adapter lane
 
