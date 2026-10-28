@@ -1190,6 +1190,28 @@ mod tests {
     }
 
     #[test]
+    fn event_replay_rejects_underreported_fidelity_cost() {
+        let report = run_all(PUBLIC, ORACLE);
+        let mut forged = report.clone();
+        forged["campaigns"][0]["events"][0]["cost_units_charged"] = json!(0.001);
+        let raw = serde_json::to_vec(&forged).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|finding| finding["code"] == "ACTION_COST_MISMATCH"));
+    }
+
+    #[test]
+    fn event_replay_rejects_a_forged_pre_action_view_digest() {
+        let report = run_all(PUBLIC, ORACLE);
+        let mut forged = report.clone();
+        forged["campaigns"][0]["events"][0]["decision_view_sha256"] = json!("0".repeat(64));
+        let raw = serde_json::to_vec(&forged).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|finding| finding["code"] == "DECISION_VIEW_DIGEST_MISMATCH"));
+    }
+
+    #[test]
     fn exact_inputs_replay_to_identical_campaigns_and_metrics() {
         let report = run_all(PUBLIC, ORACLE);
         let raw = serde_json::to_vec(&report).unwrap();
