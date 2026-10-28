@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
-use std::{env, fs, path::Path};
+use std::{env, fs, path::Path, process::Command};
 
 const MANIFEST_BYTES: &[u8] =
     include_bytes!("../../fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json");
@@ -79,7 +79,10 @@ struct Report {
     buildings: usize,
     file_count: usize,
     total_source_bytes_verified: usize,
-    raw_sha256_receipts_verified: bool,
+    source_commit_verified: bool,
+    schema_git_blob_identity_verified: bool,
+    source_file_git_blob_identities_verified: bool,
+    raw_sha256_receipts_generated: bool,
     dataset_terms_cleared: bool,
     forecast_issue_times_verified: bool,
     source_bytes_committed_to_symtropy: bool,
@@ -167,6 +170,24 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
     Ok(())
 }
 
+fn git_text(root: &Path, args: &[String]) -> Result<String, String> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(args)
+        .output()
+        .map_err(|error| format!("failed to execute git for {}: {error}", root.display()))?;
+    if !output.status.success() {
+        return Err(format!(
+            "git {:?} failed in {}: {}",
+            args,
+            root.display(),
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
+}
+
 fn verify_snapshot(root: &Path) -> Result<Report, String> {
     let actual_manifest_sha = sha256_hex(MANIFEST_BYTES);
     if actual_manifest_sha != MANIFEST_SHA256 {
@@ -177,6 +198,24 @@ fn verify_snapshot(root: &Path) -> Result<Report, String> {
     let manifest: Manifest = serde_json::from_slice(MANIFEST_BYTES)
         .map_err(|error| format!("manifest parse failed: {error}"))?;
     validate_manifest(&manifest)?;
+
+    let actual_commit = git_text(root, &["rev-parse".to_owned(), "HEAD".to_owned()])?;
+    if actual_commit != manifest.source_commit {
+        return Err(format!(
+            "source checkout commit mismatch: expected {}, got {actual_commit}",
+            manifest.source_commit
+        ));
+    }
+    let schema_blob = git_text(root, &[
+        "rev-parse".to_owned(),
+        format!("HEAD:{}", manifest.schema_path),
+    ])?;
+    if schema_blob != manifest.schema_git_blob_sha1 {
+        return Err(format!(
+            "schema Git blob identity mismatch: expected {}, got {schema_blob}",
+            manifest.schema_git_blob_sha1
+        ));
+    }
 
     let schema_path = root.join(&manifest.schema_path);
     let schema_bytes = fs::read(&schema_path).map_err(|error| {
@@ -199,6 +238,17 @@ fn verify_snapshot(root: &Path) -> Result<Report, String> {
     let mut receipts = Vec::with_capacity(manifest.files.len());
     let mut total_bytes = 0usize;
     for entry in &manifest.files {
+        let actual_blob = git_text(root, &[
+            "rev-parse".to_owned(),
+            format!("HEAD:{}", entry.path),
+        ])?;
+        if actual_blob != entry.git_blob_sha1 {
+            return Err(format!(
+                "Git blob identity mismatch for {}: expected {}, got {actual_blob}",
+                entry.path, entry.git_blob_sha1
+            ));
+        }
+
         let path = root.join(&entry.path);
         let bytes = fs::read(&path)
             .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
@@ -235,7 +285,10 @@ fn verify_snapshot(root: &Path) -> Result<Report, String> {
         buildings: manifest.buildings,
         file_count: receipts.len(),
         total_source_bytes_verified: total_bytes,
-        raw_sha256_receipts_verified: receipts.len() == 30 && receipts.iter().all(|receipt| valid_sha1(&receipt.git_blob_sha1) && receipt.sha256.len() == 64),
+        source_commit_verified: actual_commit == SOURCE_COMMIT,
+        schema_git_blob_identity_verified: schema_blob == manifest.schema_git_blob_sha1,
+        source_file_git_blob_identities_verified: receipts.len() == manifest.referenced_csv_count,
+        raw_sha256_receipts_generated: receipts.len() == 30 && receipts.iter().all(|receipt| valid_sha1(&receipt.git_blob_sha1) && receipt.sha256.len() == 64),
         dataset_terms_cleared: false,
         forecast_issue_times_verified: false,
         source_bytes_committed_to_symtropy: false,
@@ -271,6 +324,9 @@ fn main() {
             println!("source commit: {}", report.source_commit);
             println!("files verified: {}", report.file_count);
             println!("source bytes verified: {}", report.total_source_bytes_verified);
+            println!("source commit verified: {}", report.source_commit_verified);
+            println!("schema and file Git blobs verified: {}", report.schema_git_blob_identity_verified && report.source_file_git_blob_identities_verified);
+            println!("raw SHA-256 receipts generated: {}", report.raw_sha256_receipts_generated);
             println!("dataset terms cleared: {}", report.dataset_terms_cleared);
             println!("forecast issue times verified: {}", report.forecast_issue_times_verified);
             println!("source data committed to Symtropy: {}", report.source_bytes_committed_to_symtropy);
