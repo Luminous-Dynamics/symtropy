@@ -130,6 +130,38 @@ jobs:
           sha256sum "$source_fixture" "$context/multistage-causal-tree-report.json" > "$context/multistage-causal-tree-receipts.sha256"
           cat "$context/multistage-causal-tree-receipts.sha256"
 
+      - name: Qualify scenario-set omission sensitivity against exact known answers
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/uncertainty-set-omission-context"
+          mkdir -p "$context"
+          source_panel="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-robust-policy-stress-panel-v0.1.json"
+          experiment="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-uncertainty-set-omission-experiment-v0.1.json"
+          cp "$source_panel" "$context/source-panel.json"
+          cp "$experiment" "$context/experiment.json"
+          oracle="$work/targets/symtropy/debug/energy_uncertainty_set_omission_oracle"
+          "$oracle" "$context/report.json" > "$context/qualification.log"
+          cat "$context/qualification.log"
+          panel_sha="$(sha256sum "$source_panel" | cut -d' ' -f1)"
+          experiment_sha="$(sha256sum "$experiment" | cut -d' ' -f1)"
+          test "$(jq -r .source_panel_sha256 "$context/report.json")" = "$panel_sha"
+          test "$(jq -r .experiment_fixture_sha256 "$context/report.json")" = "$experiment_sha"
+          jq -e '
+            .status == "PASS_SYNTHETIC_SCENARIO_SET_SENSITIVITY_ONLY" and
+            .training_subsets_enumerated == 16 and
+            .subset_held_out_pairs == 64 and
+            .summary_counts.subset_scenario_pairs_with_essential_degradation_vs_full_set == 7 and
+            .summary_counts.subset_scenario_pairs_with_flexible_service_degradation_vs_full_set == 0 and
+            .summary_counts.subset_scenario_pairs_with_first_action_change_vs_full_set == 14 and
+            (.minimum_critical_omissions | length) == 1 and
+            .minimum_critical_omissions[0].omitted_training_scenario_ids == ["early_outage_persists"] and
+            .physical_dispatch_audit == "NOT_RUN; abstract battery-only model"
+          ' "$context/report.json" >/dev/null
+          sha256sum "$context/source-panel.json" "$context/experiment.json" "$context/report.json" > "$context/receipts.sha256"
+          cat "$context/receipts.sha256"
+
       - name: Verify published South African tariff arithmetic against hand-calculated answers
         shell: bash
         run: |
@@ -616,6 +648,10 @@ jobs:
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-candidate-scenario-panel-v0.1.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-scenario-panel-v0.1.json
             ${{ runner.temp }}/energy-studio/nonanticipativity-context/*
+            ${{ runner.temp }}/energy-studio/uncertainty-set-omission-context/*
+            ${{ github.workspace }}/tools/energy-dispatch-audit/ENERGY_UNCERTAINTY_SET_OMISSION_BENCHMARK_V0_1.md
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-uncertainty-set-omission-experiment-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/src/bin/energy_uncertainty_set_omission_oracle.rs
             ${{ github.workspace }}/tools/energy-dispatch-audit/NONANTICIPATIVE_POLICY_BENCHMARK_V0_1.md
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-nonanticipativity-counterexample-v0.1.json
             ${{ runner.temp }}/energy-studio/sa-tariff-context/*

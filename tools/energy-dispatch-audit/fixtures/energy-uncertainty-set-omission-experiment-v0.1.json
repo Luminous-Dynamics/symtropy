@@ -1,0 +1,28 @@
+{
+  "schema_version": "energy-uncertainty-set-omission-experiment-v0.1",
+  "benchmark_id": "energy-uncertainty-set-omission-fragility-v0.1",
+  "source_panel_path": "tools/energy-dispatch-audit/fixtures/energy-robust-policy-stress-panel-v0.1.json",
+  "source_panel_git_blob_sha1": "78d30640af989cad87a4563ab6c98b9644816b7a",
+  "source_panel_sha256": "8f721bfd7f9d88d0dbcd43c86e6a3233a34ccb8bb63bd6fb465cd4874a4f2b2d",
+  "source_panel_hashing_rule": "The executable must hash the exact raw bytes read from source_panel_path using SHA-256; do not hard-code a digest for normalized/re-serialized JSON.",
+  "policy": "set_valued_essential_reserve",
+  "subset_enumeration": "all subsets, including the empty set, of the four frozen training scenarios",
+  "held_out_evaluation": "evaluate all four unchanged held-out stress scenarios for every subset",
+  "expected_coverage": {
+    "training_subsets": 16,
+    "held_out_scenarios_per_subset": 4,
+    "subset_held_out_pairs": 64
+  },
+  "claim_ceiling": "Synthetic finite-panel sensitivity only; subset rows are not independent samples, probabilities, confidence intervals, or real-world risk estimates.",
+  "required_checks": [
+    "enumerate_exactly_16_training_subsets",
+    "evaluate_all_4_heldout_scenarios_per_subset",
+    "compare_each_subset_to_the_full_training_set_on_the_same_heldout_scenario",
+    "report_essential_and_flexible_service_separately",
+    "record_full_action_trace_out_of_set_prefix_misses_and_first_action_changes",
+    "empty_training_set_fails_closed_for_discretionary_flexible_service",
+    "full_training_set_self_delta_is_zero",
+    "no_probability_weighted_metrics_without_supported_probabilities",
+    "preserve_exact_source_and_report_sha256"
+  ]
+}
