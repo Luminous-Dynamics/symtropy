@@ -128,6 +128,42 @@ if [ "${STFR_CHECK_NANODRONE_RESIDUAL_SPECTRUM:-0}" = "1" ]; then
   ' "$smoke_output" >/dev/null
 fi
 
+if [ "\${STFR_CHECK_MODEL_EXPLOITATION_GAP:-0}" = "1" ]; then
+  cargo test --manifest-path "$integration_manifest" --example model_exploitation_gap
+  cargo check --manifest-path "$integration_manifest" --example model_exploitation_gap
+
+  # Synthetic-only CLI smoke: verifies paired scenario joins and failure-cost handling.
+  fixture="$SYMTROPY_PATH/integration/symthaea-physics-loop/fixtures/model-exploitation-gap"
+  smoke_output="$backup_dir/model-exploitation-gap-smoke.json"
+  dataset_receipt_sha256="$(sha256sum "$fixture/dataset_receipt.txt" | awk '{print $1}')"
+  paired_scenario_receipt_sha256="$(sha256sum "$fixture/paired_scenario_receipt.txt" | awk '{print $1}')"
+  objective_spec_sha256="$(sha256sum "$fixture/objective_spec.txt" | awk '{print $1}')"
+  baseline_artifact_sha256="$(sha256sum "$fixture/baseline_artifact_manifest.txt" | awk '{print $1}')"
+  candidate_artifact_sha256="$(sha256sum "$fixture/candidate_artifact_manifest.txt" | awk '{print $1}')"
+  cargo run --manifest-path "$integration_manifest" --example model_exploitation_gap -- \
+    --input "$fixture/paired_planner_runs.csv" \
+    --scenarios-manifest "$fixture/scenarios.csv" \
+    --dataset-receipt-sha256 "$dataset_receipt_sha256" \
+    --paired-scenario-receipt-sha256 "$paired_scenario_receipt_sha256" \
+    --objective-spec-sha256 "$objective_spec_sha256" \
+    --baseline-artifact-sha256 "$baseline_artifact_sha256" \
+    --candidate-artifact-sha256 "$candidate_artifact_sha256" \
+    --baseline-source-commit "$STFR_SYMTROPY_SHA" --candidate-source-commit "$STFR_SYMTROPY_SHA" \
+    --baseline-method synthetic-ungated --candidate-method synthetic-gated \
+    --failure-cost 100.0 --evidence-class synthetic --bootstrap 100 --seed 23 \
+    --output "$smoke_output"
+  jq -e '
+    .schema_version == "symtropy-model-exploitation-gap-v0.1"
+    and .evidence_class == "synthetic"
+    and .registered_scenario_count == 5
+    and .baseline.failed_rollouts == 1
+    and .candidate.failed_rollouts == 0
+    and .candidate.mean_absolute_exploitation_gap < .baseline.mean_absolute_exploitation_gap
+    and .candidate.safety_boundary_violation_rate < .baseline.safety_boundary_violation_rate
+    and .worst_exploitation_scenarios[0].scenario_id == "scenario-005"
+  ' "$smoke_output" >/dev/null
+fi
+
 if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
   out="${STFB_OUTPUT_PATH:-$SYMTROPY_PATH/symthaea-symtropy-flight-transfer.json}"
   cargo run --manifest-path "$integration_manifest" --example paired_flight_transfer > "$out"
