@@ -22,6 +22,8 @@ on:
       - 'docs/tech/MARITIME_HISTORICAL_VALIDATION_CORPUS_V0_1.json'
       - 'docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json'
       - 'docs/tech/CYPORT_EPISODE_SPLIT_V0_1.md'
+      - 'docs/tech/CYPORT_BENCHMARK_TASKS_V0_1.json'
+      - 'docs/tech/CYPORT_BENCHMARK_TASKS_V0_1.md'
       - 'docs/tech/CYPORT_INTERACTION_SOURCE_PROFILE_V0_1.json'
       - 'docs/tech/MARITIME_CYPORT_INTERACTION_PROFILE_V0_1.md'
       - 'Cargo.toml'
@@ -86,6 +88,9 @@ jobs:
 
       - name: Validate frozen CyPort cyclone-grouped temporal split manifest
         run: cargo run --locked -p maritime-data-receipt -- --validate-cyport-episode-split-manifest docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json
+
+      - name: Validate frozen CyPort benchmark task contract
+        run: cargo run --locked -p maritime-data-receipt -- --validate-cyport-benchmark-tasks docs/tech/CYPORT_BENCHMARK_TASKS_V0_1.json
 
       - name: Verify synthetic port identity crosswalk metadata
         run: cargo run --locked -p maritime-data-receipt -- --validate-port-crosswalk crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json
