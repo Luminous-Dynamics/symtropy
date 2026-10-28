@@ -623,7 +623,7 @@ mod tests {
     fn expansion_must_precede_evaluation_of_the_new_family() {
         let mut public: Value = serde_json::from_slice(PUBLIC).unwrap();
         let campaign = public["campaigns"].as_array_mut().unwrap().iter_mut().find(|c| c["campaign_id"] == "helpful-random-expansion").unwrap();
-        campaign["events"].as_array_mut().unwrap().swap(0, 1);
+        campaign["events"].as_array_mut().unwrap().swap(0, 3);
         for (i, event) in campaign["events"].as_array_mut().unwrap().iter_mut().enumerate() {
             event["event_seq"] = json!(i + 1);
         }
