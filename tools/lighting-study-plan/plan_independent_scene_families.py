@@ -215,11 +215,15 @@ def build_report(rows: list[dict[str, object]], *, input_sha256: str, source_sha
                  evidence_tier: str, assumed_effect_pct: float, superiority_margin_pct: float,
                  target_power: float, alpha: float, sd_multipliers: list[float],
                  min_families: int, min_new_families: int, min_pair_coverage: float,
-                 min_feasibility: float, max_families: int) -> dict[str, object]:
+                 min_feasibility: float, max_families: int,
+                 comparison_family_size: int = 1) -> dict[str, object]:
     if evidence_tier not in TIERS:
         raise PlanInputError(f"unsupported evidence tier {evidence_tier!r}")
     if not (0.5 < target_power < 1.0) or not (0.0 < alpha < 0.2):
         raise PlanInputError("target_power must be in (0.5,1); alpha must be in (0,0.2)")
+    if not isinstance(comparison_family_size, int) or isinstance(comparison_family_size, bool) or comparison_family_size < 1:
+        raise PlanInputError("comparison_family_size must be a positive integer")
+    alpha_per_comparison = alpha / comparison_family_size
     if not (0.0 <= min_pair_coverage <= 1.0 and 0.0 <= min_feasibility <= 1.0):
         raise PlanInputError("coverage and feasibility thresholds must be in [0,1]")
     if min_families < 10 or min_new_families < 10 or max_families < min_new_families:
@@ -291,7 +295,7 @@ def build_report(rows: list[dict[str, object]], *, input_sha256: str, source_sha
                 assumed_effect=assumed_effect_pct,
                 margin=superiority_margin_pct,
                 target_power=target_power,
-                alpha=alpha,
+                alpha=alpha_per_comparison,
                 min_new_families=min_new_families,
                 max_families=max_families,
             )
@@ -348,7 +352,9 @@ def build_report(rows: list[dict[str, object]], *, input_sha256: str, source_sha
         "design_assumptions": {
             "assumed_true_mean_savings_pct": assumed_effect_pct,
             "superiority_margin_savings_pct": superiority_margin_pct,
-            "alpha_one_sided": alpha,
+            "alpha_familywise_one_sided": alpha,
+            "comparison_family_size": comparison_family_size,
+            "alpha_per_comparison_one_sided": alpha_per_comparison,
             "target_power": target_power,
             "sd_sensitivity_multipliers": sd_multipliers,
             "min_pilot_scene_families": min_families,
@@ -379,7 +385,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="preregistered design alternative, not automatically inferred from the pilot")
     parser.add_argument("--superiority-margin-pct", type=float, default=5.0)
     parser.add_argument("--target-power", type=float, default=0.80)
-    parser.add_argument("--alpha", type=float, default=0.05, help="one-sided family-level alpha for this endpoint")
+    parser.add_argument("--alpha", type=float, default=0.05, help="one-sided family-wise alpha across the declared comparison family")
+    parser.add_argument("--comparison-family-size", type=int, default=1,
+                        help="number of preregistered superiority comparisons adjusted using Bonferroni")
     parser.add_argument("--sd-multipliers", default="1,1.5,2", help="comma-separated mandatory pilot-SD sensitivity factors")
     parser.add_argument("--min-families", type=int, default=10, help="minimum independent pilot families")
     parser.add_argument("--min-new-families", type=int, default=10, help="minimum new held-out confirmatory families")
@@ -399,7 +407,8 @@ def main(argv: list[str] | None = None) -> int:
                               alpha=args.alpha, sd_multipliers=multipliers, min_families=args.min_families,
                               min_new_families=args.min_new_families, min_pair_coverage=args.min_pair_coverage,
                               min_feasibility=args.min_feasibility,
-                              max_families=args.max_families)
+                              max_families=args.max_families,
+                              comparison_family_size=args.comparison_family_size)
     except (PlanInputError, OSError, ValueError, OverflowError) as exc:
         print(f"lighting study plan: FAIL: {exc}", file=sys.stderr)
         return 2
@@ -410,6 +419,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"lighting study plan: {report['decision']}")
     print(f"independent_pilot_families={report['pilot']['scene_family_count']} "
           f"paired_coverage={report['pilot']['paired_energy_coverage']:.3f}")
+    print(f"comparison_family_size={args.comparison_family_size} "
+          f"alpha_per_comparison={args.alpha / args.comparison_family_size:.6g}")
     for result in report["sensitivity"]:
         print(f"sd_multiplier={result['pilot_sd_multiplier']} "
               f"new_independent_families={result['required_new_independent_families']} "
