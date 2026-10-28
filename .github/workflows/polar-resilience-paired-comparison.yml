@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md"
+      - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
       - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json"
       - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json"
@@ -13,6 +14,7 @@ on:
   push:
     paths:
       - "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md"
+      - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
       - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json"
       - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json"
