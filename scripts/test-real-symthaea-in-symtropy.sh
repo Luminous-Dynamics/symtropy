@@ -94,6 +94,38 @@ if [ "${STFR_CHECK_NANODRONE_RESIDUAL_SPECTRUM:-0}" = "1" ]; then
   cargo check --manifest-path "$integration_manifest" --example nanodrone_decision_validity_compare
   cargo test --manifest-path "$integration_manifest" --example nanodrone_failure_aware_rollout
   cargo check --manifest-path "$integration_manifest" --example nanodrone_failure_aware_rollout
+
+  # Synthetic-only end-to-end CLI smoke. This is never a physical-flight result.
+  fixture="$SYMTROPY_PATH/integration/symthaea-physics-loop/fixtures/failure-aware-rollout"
+  smoke_output="$backup_dir/failure-aware-rollout-smoke.json"
+  dataset_receipt_sha256="$(sha256sum "$fixture/dataset_receipt.txt" | awk '{print $1}')"
+  paired_target_receipt_sha256="$(sha256sum "$fixture/paired_target_receipt.txt" | awk '{print $1}')"
+  baseline_artifact_sha256="$(sha256sum "$fixture/baseline_artifact_manifest.txt" | awk '{print $1}')"
+  candidate_artifact_sha256="$(sha256sum "$fixture/candidate_artifact_manifest.txt" | awk '{print $1}')"
+  cargo run --manifest-path "$integration_manifest" --example nanodrone_failure_aware_rollout -- \
+    --input "$fixture/paired_scores.csv" \
+    --starts-manifest "$fixture/evaluation_starts.csv" \
+    --train-flights "$fixture/train_flights.txt" \
+    --dataset-receipt-sha256 "$dataset_receipt_sha256" \
+    --paired-target-receipt-sha256 "$paired_target_receipt_sha256" \
+    --baseline-artifact-sha256 "$baseline_artifact_sha256" \
+    --candidate-artifact-sha256 "$candidate_artifact_sha256" \
+    --baseline-method synthetic-baseline --candidate-method synthetic-candidate \
+    --baseline-source-commit "$STFR_SYMTROPY_SHA" --candidate-source-commit "$STFR_SYMTROPY_SHA" \
+    --training-seeds 101,102 --horizons-s 0.5,1.0 \
+    --channel position --divergence-limit-m 2.0 --evidence-class synthetic \
+    --bootstrap 50 --seed 17 --output "$smoke_output"
+  jq -e '
+    .schema_version == "symtropy-failure-aware-rollout-v0.1"
+    and .evidence_class == "synthetic"
+    and .registered_flight_count == 2
+    and .registered_rollout_start_count == 2
+    and (.horizons | length) == 2
+    and all(.horizons[]; .baseline.registered_rollout_count == 4 and .candidate.registered_rollout_count == 4)
+    and .horizons[1].baseline.penalized_rollout_count == 1
+    and .horizons[1].candidate.penalized_rollout_count == 0
+    and .horizons[1].candidate.failure_aware_position_rmse_m < .horizons[1].baseline.failure_aware_position_rmse_m
+  ' "$smoke_output" >/dev/null
 fi
 
 if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
