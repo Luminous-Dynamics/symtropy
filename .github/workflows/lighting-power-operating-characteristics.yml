@@ -1,0 +1,43 @@
+name: lighting-power-operating-characteristics
+
+on:
+  pull_request:
+    paths:
+      - "tools/lighting-study-plan/**"
+      - "docs/research/LIGHTING_POWER_AND_SCENE_FAMILY_PLANNING_V0_1.md"
+      - "docs/research/LIGHTING_POWER_OPERATING_CHARACTERISTICS_V0_1.md"
+      - ".github/workflows/lighting-study-plan.yml"
+      - ".github/workflows/lighting-power-operating-characteristics.yml"
+  push:
+    paths:
+      - "tools/lighting-study-plan/**"
+      - "docs/research/LIGHTING_POWER_AND_SCENE_FAMILY_PLANNING_V0_1.md"
+      - "docs/research/LIGHTING_POWER_OPERATING_CHARACTERISTICS_V0_1.md"
+      - ".github/workflows/lighting-study-plan.yml"
+      - ".github/workflows/lighting-power-operating-characteristics.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  standard-library-statistics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run planner and simulation tests
+        run: |
+          cd tools/lighting-study-plan
+          python3 -m unittest -v test_plan_independent_scene_families test_simulate_power_operating_characteristics
+      - name: Smoke-test synthetic operating-characteristic output
+        run: |
+          python3 tools/lighting-study-plan/simulate_power_operating_characteristics.py \
+            tools/lighting-study-plan/fixtures/synthetic-plan-output-example.json \
+            --replicates 500 --seed 20261028 \
+            --output /tmp/lighting-operating-characteristics.json
+          python3 -m json.tool /tmp/lighting-operating-characteristics.json > /dev/null
+          grep -q 'synthetic_simulation_diagnostics_no_empirical_claim' /tmp/lighting-operating-characteristics.json
+          grep -q 'independent_scene_family' /tmp/lighting-operating-characteristics.json
+          grep -q 'skewed_lognormal_left' /tmp/lighting-operating-characteristics.json
