@@ -36,7 +36,7 @@ The runner executes six deterministic policy controls:
 
 1. \`fixed_space\`: never expands; chooses candidates using its declared public selector scores.
 2. \`random_expansion\`: after the common first screening observation, expands randomly only when the revealed result crosses a fixed synthetic low-value threshold.
-3. \`rule_based_expansion\`: applies a separately frozen synthetic trigger and then uses the predeclared rule-based expansion.
+4. \`rule_based_expansion\`: applies a separately frozen synthetic trigger and then uses the predeclared rule-based expansion.
 4. \`prior_guided_expansion\`: applies a more permissive trigger and uses a public prior-score proxy to select an expansion. It is **not an actual LLM call**.
 5. \`static_prior_expansion\`: always expands before seeing any measurement; this is the non-adaptive expansion control.
 
