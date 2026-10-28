@@ -75,6 +75,14 @@ These outcomes validate the event loop only. They do not show that the prior heu
 The evaluator scorecard now also reports terminal simple regret: the sealed environment's best feasible utility minus the best feasible utility reached by the campaign. The oracle optimum and regret are kept out of the policy view. The independent replay recomputes both from the sealed outcome oracle and rejects a forged regret field. In the helpful synthetic known answer, fixed-space and GP-EI have regret 6, while prior-guided expansion reaches regret 0. This validates metric/replay behavior only; it is not empirical evidence that expansion is superior.
 
 
+## Repeated-seed random baseline
+
+The live loop now registers 20 preregistered non-negative integer seeds for the auxiliary `uniform_random_fixed_space` control. Each seed/environment pair is evaluated separately, with the seed included in the public decision view and in the episode receipt. The random ranking is deterministic for a fixed seed and public state, but varies across seeds; changing an unobserved oracle outcome cannot change the next action until the outcome is revealed.
+
+The runner emits 80 auxiliary episodes (20 seeds × four environments) and an aggregate per-environment summary: mean best feasible utility, mean terminal simple regret, sample standard deviation of regret, mean cost to first feasible result, false-feasible counts, and resource usage. Independent replay re-runs each seed/environment pair and recalculates the aggregate from the individual receipts; a summary that does not match the individual runs is rejected.
+
+This provides an uncertainty/variance view for the synthetic random control only. It is not a 20-seed trial of the actual GP-EI or prior-guided policy, and the results remain synthetic. Empirical promotion still needs paired repeated runs of every real policy on rights-cleared, family/source-held-out tasks with model/prompt/compute costs fully charged.
+
 ## Follow-on promotion gates
 
 1. **Runtime isolation:** launch a policy as a sandboxed subprocess/WASM module, send only the current public view, reject all undeclared fields, and replay every action/event against the sealed evaluator independently.
