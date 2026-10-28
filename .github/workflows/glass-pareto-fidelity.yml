@@ -41,6 +41,7 @@ jobs:
           set -euo pipefail
           public_schema="docs/tech/glass-pareto-fidelity-task-v0.1.schema.json"
           oracle_schema="docs/tech/glass-pareto-fidelity-oracle-v0.1.schema.json"
+          report_schema="docs/tech/glass-pareto-fidelity-report-v0.1.schema.json"
           public_task="tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-task.synthetic.json"
           sealed_oracle="tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-oracle.synthetic.json"
 
@@ -62,6 +63,14 @@ jobs:
             .properties.environments.minItems == 3 and
             .additionalProperties == false
           ' "$oracle_schema" > /dev/null
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.audit_kind.const == "synthetic_constrained_pareto_fidelity_event_loop" and
+            .properties.campaigns.items.properties.events.items.properties.decision_view_sha256.pattern == "^[0-9a-f]{64}$" and
+            .properties.campaigns.items.properties.cost_units_charged.maximum == 5.5 and
+            .additionalProperties == false
+          ' "$report_schema" > /dev/null
 
           jq -e '
             .schema_version == 1 and
