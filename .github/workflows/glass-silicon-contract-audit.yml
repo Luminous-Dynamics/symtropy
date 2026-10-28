@@ -114,7 +114,7 @@ jobs:
           grep -q 'SHA-256 fingerprint of the raw manifest bytes' "$protocol"
           grep -q 'audit-false-feasible-bound <summary.json>' "$protocol"
           grep -q 'Hoeffding upper confidence bound' "$protocol"
-          grep -q '600 independent negative groups' "$protocol"
+          grep -q '600 independent negative units' "$protocol"
           grep -q 'Held-out evaluation integrity: declarations are not isolation' "$protocol"
           grep -q 'GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json' "$protocol"
           grep -q 'audit-eval-receipt <receipt.json>' "$protocol"
