@@ -445,15 +445,15 @@ pub fn evaluate_fifo_path(
         if !seen_edges.insert(leg.edge_id.as_str()) {
             return Err(FifoPathEvaluationError::RepeatedEdge(leg.edge_id.clone()));
         }
-        if let Some(expected_node_id) = previous_node {
-            if leg.from_node_id.as_str() != expected_node_id {
-                return Err(FifoPathEvaluationError::DisconnectedLegs {
-                    previous_edge_id: previous_edge_id.unwrap_or_default().to_owned(),
-                    next_edge_id: leg.edge_id.clone(),
-                    expected_node_id: expected_node_id.to_owned(),
-                    actual_node_id: leg.from_node_id.clone(),
-                });
-            }
+        if let Some(expected_node_id) = previous_node
+            && leg.from_node_id.as_str() != expected_node_id
+        {
+            return Err(FifoPathEvaluationError::DisconnectedLegs {
+                previous_edge_id: previous_edge_id.unwrap_or_default().to_owned(),
+                next_edge_id: leg.edge_id.clone(),
+                expected_node_id: expected_node_id.to_owned(),
+                actual_node_id: leg.from_node_id.clone(),
+            });
         }
 
         let leg_departure = current_time
