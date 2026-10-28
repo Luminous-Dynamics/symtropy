@@ -1,0 +1,76 @@
+{
+  "schema_version": "energy-decision-value-panel-v0.1",
+  "benchmark_id": "decision-value-vs-forecast-error-v0.1",
+  "claim_ceiling": "Synthetic deterministic counterexample only; not a calibrated forecaster, real dispatch result, site-safety certificate, or industry comparison.",
+  "probability_model": null,
+  "model": {
+    "initial_soc_quanta": 2,
+    "capacity_quanta": 2,
+    "max_discharge_quanta_per_interval": 1,
+    "decision_rule": "serve flexible at t0 iff soc_after_discretionary_discharge >= forecast future essential-reserve quanta; otherwise hold; serve essential before flexible at later intervals"
+  },
+  "forecast_target": "Total essential-service quanta required after t0 during grid-unavailable intervals.",
+  "decision_time_index": 0,
+  "observable_contexts": ["north", "east", "south"],
+  "forecast_models": {
+    "lower_mae_tail_blind": {
+      "description": "Low average absolute error but underpredicts the high critical-reserve case.",
+      "forecast_by_observable_context": {"north": 0, "east": 1, "south": 1}
+    },
+    "higher_mae_critical_reserve": {
+      "description": "Higher average absolute error due to a conservative false alarm on north; preserves reserve for the high critical-reserve case.",
+      "forecast_by_observable_context": {"north": 2, "east": 1, "south": 2}
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "no_future_critical",
+      "observable_context": "north",
+      "true_future_essential_reserve_quanta": 0,
+      "intervals": [
+        {"time_index": 0, "grid_available": false, "essential_demand": 0, "flexible_demand": 1},
+        {"time_index": 1, "grid_available": true, "essential_demand": 0, "flexible_demand": 0},
+        {"time_index": 2, "grid_available": true, "essential_demand": 0, "flexible_demand": 0}
+      ]
+    },
+    {
+      "scenario_id": "single_late_critical",
+      "observable_context": "east",
+      "true_future_essential_reserve_quanta": 1,
+      "intervals": [
+        {"time_index": 0, "grid_available": false, "essential_demand": 0, "flexible_demand": 1},
+        {"time_index": 1, "grid_available": true, "essential_demand": 0, "flexible_demand": 0},
+        {"time_index": 2, "grid_available": false, "essential_demand": 1, "flexible_demand": 0}
+      ]
+    },
+    {
+      "scenario_id": "persistent_critical_load",
+      "observable_context": "south",
+      "true_future_essential_reserve_quanta": 2,
+      "intervals": [
+        {"time_index": 0, "grid_available": false, "essential_demand": 0, "flexible_demand": 1},
+        {"time_index": 1, "grid_available": false, "essential_demand": 1, "flexible_demand": 0},
+        {"time_index": 2, "grid_available": false, "essential_demand": 1, "flexible_demand": 0}
+      ]
+    },
+    {
+      "scenario_id": "single_early_critical",
+      "observable_context": "east",
+      "true_future_essential_reserve_quanta": 1,
+      "intervals": [
+        {"time_index": 0, "grid_available": false, "essential_demand": 0, "flexible_demand": 1},
+        {"time_index": 1, "grid_available": false, "essential_demand": 1, "flexible_demand": 0},
+        {"time_index": 2, "grid_available": true, "essential_demand": 0, "flexible_demand": 0}
+      ]
+    }
+  ],
+  "required_checks": [
+    "controller_uses_forecast_value_keyed_by_observable_context_not_scenario_id",
+    "forecast_error_is_scored_separately_from_realized_service_outcomes",
+    "critical_and_flexible_service_are_reported_separately",
+    "probability_weighted_metrics_are_not_computed_without_probabilities",
+    "perfect_information_reference_is_marked_non_deployable",
+    "all_scenario_policy_pairs_are_accounted_for",
+    "decision_rule_and_forecast_target_are_explicit"
+  ]
+}
