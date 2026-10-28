@@ -167,10 +167,7 @@ pub fn spawn_static_collision_assembly(
             .get(&link.link_id)
             .expect("validated graph computes a pose for every link")
             .clone();
-        let half_extents = link
-            .collision
-            .dimensions_m
-            .map(|dimension| dimension * 0.5);
+        let half_extents = link.collision.dimensions_m.map(|dimension| dimension * 0.5);
         let collider = Box::new(HyperBox::<3>::new(half_extents));
         let body = RigidBody::new(
             BodyHandle(0),
@@ -203,7 +200,9 @@ fn sha256_hex(bytes: &[u8]) -> String {
 
 fn valid_identifier(value: &str) -> bool {
     let mut chars = value.chars();
-    chars.next().is_some_and(|first| first.is_ascii_alphabetic())
+    chars
+        .next()
+        .is_some_and(|first| first.is_ascii_alphabetic())
         && chars.all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
@@ -310,7 +309,10 @@ fn validate_morphology(model: &CareframeMorphology) -> Result<(), Vec<String>> {
                 .push(joint.child_link.clone());
         }
         if !finite_vec3(&joint.origin_m)
-            || joint.origin_m.iter().any(|coordinate| coordinate.abs() > 10.0)
+            || joint
+                .origin_m
+                .iter()
+                .any(|coordinate| coordinate.abs() > 10.0)
         {
             findings.insert("MORPHOLOGY_JOINT_ORIGIN_INVALID".to_owned());
         }
@@ -333,18 +335,25 @@ fn validate_morphology(model: &CareframeMorphology) -> Result<(), Vec<String>> {
                 }
             }
             "revolute" => {
-                let norm = joint.axis_xyz.iter().map(|axis| axis * axis).sum::<f64>().sqrt();
+                let norm = joint
+                    .axis_xyz
+                    .iter()
+                    .map(|axis| axis * axis)
+                    .sum::<f64>()
+                    .sqrt();
                 if !finite_vec3(&joint.axis_xyz) || (norm - 1.0).abs() > 1.0e-3 {
                     findings.insert("MORPHOLOGY_REVOLUTE_AXIS_INVALID".to_owned());
                 }
-                if joint.lower_limit_rad.is_none_or(|lower| {
-                    !lower.is_finite() || !(-50.0..=50.0).contains(&lower)
-                }) || joint.upper_limit_rad.is_none_or(|upper| {
-                    !upper.is_finite() || !(-50.0..=50.0).contains(&upper)
-                }) || joint
+                if joint
                     .lower_limit_rad
-                    .zip(joint.upper_limit_rad)
-                    .is_none_or(|(lower, upper)| lower >= upper)
+                    .is_none_or(|lower| !lower.is_finite() || !(-50.0..=50.0).contains(&lower))
+                    || joint
+                        .upper_limit_rad
+                        .is_none_or(|upper| !upper.is_finite() || !(-50.0..=50.0).contains(&upper))
+                    || joint
+                        .lower_limit_rad
+                        .zip(joint.upper_limit_rad)
+                        .is_none_or(|(lower, upper)| lower >= upper)
                 {
                     findings.insert("MORPHOLOGY_REVOLUTE_LIMITS_INVALID".to_owned());
                 }
@@ -357,7 +366,12 @@ fn validate_morphology(model: &CareframeMorphology) -> Result<(), Vec<String>> {
                 }
             }
             "continuous" => {
-                let norm = joint.axis_xyz.iter().map(|axis| axis * axis).sum::<f64>().sqrt();
+                let norm = joint
+                    .axis_xyz
+                    .iter()
+                    .map(|axis| axis * axis)
+                    .sum::<f64>()
+                    .sqrt();
                 if !finite_vec3(&joint.axis_xyz) || (norm - 1.0).abs() > 1.0e-3 {
                     findings.insert("MORPHOLOGY_CONTINUOUS_AXIS_INVALID".to_owned());
                 }
@@ -464,7 +478,11 @@ fn axis_angle_rotor(axis: [f64; 3], angle: f64) -> Rotor<3> {
     if angle.abs() < 1.0e-15 {
         return Rotor::identity();
     }
-    let norm = axis.iter().map(|component| component * component).sum::<f64>().sqrt();
+    let norm = axis
+        .iter()
+        .map(|component| component * component)
+        .sum::<f64>()
+        .sqrt();
     let [x, y, z] = axis.map(|component| component / norm);
     let cosine = angle.cos();
     let sine = angle.sin();
@@ -537,9 +555,8 @@ mod tests {
     const MORPHOLOGY_JSON: &str = include_str!(
         "../../../../docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json"
     );
-    const ZERO_JOINT_STATE_JSON: &str = include_str!(
-        "../../../../docs/medical-robotics/careframe-nominal-joint-state-v0.json"
-    );
+    const ZERO_JOINT_STATE_JSON: &str =
+        include_str!("../../../../docs/medical-robotics/careframe-nominal-joint-state-v0.json");
     const COLLISION_PROBE_CORPUS_JSON: &str = include_str!(
         "../../../../docs/medical-robotics/careframe-collision-probe-corpus-v0.1.json"
     );
@@ -598,14 +615,18 @@ mod tests {
         assert_eq!(assembly.revision, 1);
         assert_eq!(assembly.morphology_sha256.len(), 64);
         assert_eq!(assembly.joint_state_sha256.len(), 64);
-        assert!(assembly
-            .morphology_sha256
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()));
-        assert!(assembly
-            .joint_state_sha256
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()));
+        assert!(
+            assembly
+                .morphology_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        );
+        assert!(
+            assembly
+                .joint_state_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        );
 
         let torso_handle = assembly.handle_for_link("torso_shell").expect("torso link");
         let torso = physics.body(torso_handle).expect("torso body");
@@ -682,7 +703,11 @@ mod tests {
         );
         let body = physics.body(probe).expect("probe remains in physics world");
         assert!(
-            body.transform.translation.0.iter().all(|value| value.is_finite()),
+            body.transform
+                .translation
+                .0
+                .iter()
+                .all(|value| value.is_finite()),
             "collision response should not produce non-finite probe coordinates"
         );
     }
@@ -714,7 +739,11 @@ mod tests {
         let mut expected_contacts = 0usize;
         for case in &suite.cases {
             assert!(!case.case_id.trim().is_empty());
-            assert!(case_ids.insert(case.case_id.clone()), "duplicate {}", case.case_id);
+            assert!(
+                case_ids.insert(case.case_id.clone()),
+                "duplicate {}",
+                case.case_id
+            );
             assert!(!case.rationale.trim().is_empty());
             assert!(case.position_m.iter().all(|value| value.is_finite()));
             if case.expected_contact {
@@ -837,14 +866,23 @@ mod tests {
                 let body = physics.body(*handle).expect("each proxy resolves");
                 assert_eq!(body.body_type, BodyType::Static);
                 assert!(
-                    body.transform.translation.0.iter().all(|value| value.is_finite()),
+                    body.transform
+                        .translation
+                        .0
+                        .iter()
+                        .all(|value| value.is_finite()),
                     "non-finite link translation in sample {sample}"
                 );
                 assert!(
                     body.transform.rotation.is_proper_rotation(1.0e-7),
                     "improper rotation in sample {sample}"
                 );
-                assert!(body.collider.as_any().downcast_ref::<HyperBox<3>>().is_some());
+                assert!(
+                    body.collider
+                        .as_any()
+                        .downcast_ref::<HyperBox<3>>()
+                        .is_some()
+                );
             }
         }
     }
@@ -860,10 +898,12 @@ mod tests {
                 .find(|joint| joint["joint_id"] == joint_id)
                 .expect("drive wheel joint exists");
             joint["joint_type"] = serde_json::Value::String("continuous".to_owned());
-            joint.as_object_mut()
+            joint
+                .as_object_mut()
                 .expect("joint object")
                 .remove("lower_limit_rad");
-            joint.as_object_mut()
+            joint
+                .as_object_mut()
                 .expect("joint object")
                 .remove("upper_limit_rad");
         }
@@ -873,8 +913,8 @@ mod tests {
     #[test]
     fn continuous_wheel_joints_accept_many_revolutions_and_reject_unbounded_numeric_input() {
         let continuous_morphology = morphology_with_continuous_drive_wheels();
-        let mut state: BTreeMap<String, f64> = serde_json::from_str(ZERO_JOINT_STATE_JSON)
-            .expect("nominal joint state parses");
+        let mut state: BTreeMap<String, f64> =
+            serde_json::from_str(ZERO_JOINT_STATE_JSON).expect("nominal joint state parses");
         state.insert("left_drive".to_owned(), 20.0 * std::f64::consts::PI);
         state.insert("right_drive".to_owned(), -16.0 * std::f64::consts::PI);
         let state_json = serde_json::to_string(&state).expect("continuous state serializes");
@@ -899,9 +939,10 @@ mod tests {
             Point::origin(),
         )
         .expect_err("continuous angle with excessive numeric magnitude rejects");
-        assert!(err
-            .iter()
-            .any(|finding| finding == "JOINT_STATE_CONTINUOUS_MAGNITUDE_INVALID"));
+        assert!(
+            err.iter()
+                .any(|finding| finding == "JOINT_STATE_CONTINUOUS_MAGNITUDE_INVALID")
+        );
         assert_eq!(untouched_world.body_count(), 0);
         assert!(untouched_world.constraints.is_empty());
     }
@@ -918,9 +959,10 @@ mod tests {
             &serde_json::from_str(&with_limit_json).expect("typed candidate parses"),
         )
         .expect_err("continuous joint must not declare position bounds");
-        assert!(err
-            .iter()
-            .any(|finding| finding == "MORPHOLOGY_CONTINUOUS_JOINT_HAS_POSITION_LIMITS"));
+        assert!(
+            err.iter()
+                .any(|finding| finding == "MORPHOLOGY_CONTINUOUS_JOINT_HAS_POSITION_LIMITS")
+        );
 
         let mut missing_state: BTreeMap<String, f64> =
             serde_json::from_str(ZERO_JOINT_STATE_JSON).expect("nominal state parses");
@@ -933,9 +975,10 @@ mod tests {
             Point::origin(),
         )
         .expect_err("missing continuous wheel state rejects");
-        assert!(err
-            .iter()
-            .any(|finding| finding == "JOINT_STATE_MISSING_MOVABLE_JOINT"));
+        assert!(
+            err.iter()
+                .any(|finding| finding == "JOINT_STATE_MISSING_MOVABLE_JOINT")
+        );
         assert_eq!(physics.body_count(), 0);
     }
 
@@ -995,7 +1038,11 @@ mod tests {
             Point::origin(),
         )
         .expect_err("oversized morphology input rejects before parsing");
-        assert!(error.iter().any(|finding| finding == "MORPHOLOGY_JSON_TOO_LARGE"));
+        assert!(
+            error
+                .iter()
+                .any(|finding| finding == "MORPHOLOGY_JSON_TOO_LARGE")
+        );
         assert_eq!(physics.body_count(), 0);
 
         let oversized_state = " ".repeat(MAX_JOINT_STATE_BYTES + 1);
@@ -1006,7 +1053,11 @@ mod tests {
             Point::origin(),
         )
         .expect_err("oversized joint state rejects before parsing");
-        assert!(error.iter().any(|finding| finding == "JOINT_STATE_JSON_TOO_LARGE"));
+        assert!(
+            error
+                .iter()
+                .any(|finding| finding == "JOINT_STATE_JSON_TOO_LARGE")
+        );
         assert_eq!(physics.body_count(), 0);
     }
 
@@ -1024,7 +1075,11 @@ mod tests {
             Point::origin(),
         )
         .expect_err("physical authority must never be admitted");
-        assert!(error.iter().any(|finding| finding == "MORPHOLOGY_AUTHORITY_FORBIDDEN"));
+        assert!(
+            error
+                .iter()
+                .any(|finding| finding == "MORPHOLOGY_AUTHORITY_FORBIDDEN")
+        );
         assert_eq!(physics.body_count(), 0);
 
         let mut state: serde_json::Value =
@@ -1038,7 +1093,11 @@ mod tests {
             Point::origin(),
         )
         .expect_err("out-of-range joint state must be rejected");
-        assert!(error.iter().any(|finding| finding == "JOINT_STATE_OUT_OF_LIMITS"));
+        assert!(
+            error
+                .iter()
+                .any(|finding| finding == "JOINT_STATE_OUT_OF_LIMITS")
+        );
         assert_eq!(physics.body_count(), 0);
     }
 }
