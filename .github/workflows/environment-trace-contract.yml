@@ -284,6 +284,17 @@ jobs:
             .superiority_criteria.economic_or_resource_noninferiority_margin == null and
             .superiority_criteria.economic_or_resource_margin_must_be_frozen_before_locked_test == true and
             .result_policy.no_empirical_superiority_claim == true and
+            .long_horizon_extension.status == "proposed_not_executed" and
+            .long_horizon_extension.horizon_years == 30 and
+            .long_horizon_extension.scenario_family_count == 4 and
+            .long_horizon_extension.nonstationary_scenario_count == 3 and
+            .long_horizon_extension.path_dependent_state_count == 9 and
+            .long_horizon_extension.state_carryover_required == true and
+            .long_horizon_extension.event_reset_baseline_is_diagnostic_only == true and
+            .long_horizon_extension.probability_weights_allowed_without_verified_basis == false and
+            .long_horizon_extension.admission_gate_count == 8 and
+            .long_horizon_extension.admission_gates_all_false == true and
+            .long_horizon_extension.performance_claim == "none" and
             .result_policy.report_kind == "preregistration_contract_only_no_performance_results"
           ' "$contract"
           test -s research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md
