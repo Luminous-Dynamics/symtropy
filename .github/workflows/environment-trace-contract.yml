@@ -11,6 +11,7 @@ on:
       - "research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md"
       - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
       - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
@@ -38,6 +39,7 @@ on:
       - "research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md"
       - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
       - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
@@ -147,6 +149,25 @@ jobs:
           test -s research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md
           test -s research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md
 
+      - name: Validate environmental coverage assessment schema contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Environmental Coverage Assessment" and
+            .type == "object" and
+            .additionalProperties == false and
+            (.required | index("expected_sample_count") != null) and
+            (.required | index("observed_sample_count") != null) and
+            (.required | index("minimum_coverage_fraction") != null) and
+            any(.properties.minimum_coverage_fraction.oneOf[]; .type == "null") and
+            any(.properties.minimum_coverage_fraction.oneOf[]; .type == "number" and .exclusiveMinimum == 0 and .maximum == 1) and
+            .properties.expected_sample_count.minimum == 1 and
+            .properties.observed_sample_count.minimum == 0
+          ' "$schema"
+
       - name: Validate Gobabeb station validation plan
         shell: bash
         run: |
@@ -199,6 +220,10 @@ jobs:
               any(.known_page_examples[]; .reported_valid_dates == ["2023-01-01","2023-01-02","2023-01-03","2023-01-04"] and .status == "publisher_page_inspected_not_raw_file_ingested")
             ) and
             .coverage_admission_policy.policy_id == "coverage_before_aggregation_v0" and
+            .coverage_admission_policy.status == "coverage_gate_and_synthetic_contract_tests_implemented_real_source_not_admitted" and
+            .coverage_admission_policy.implementation_path == "research/polar-infrastructure/benchmark/scripts/evaluate_environment_coverage.sh" and
+            .coverage_admission_policy.test_path == "research/polar-infrastructure/benchmark/scripts/test_environment_coverage.sh" and
+            .coverage_admission_policy.schema_path == "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json" and
             .coverage_admission_policy.missing_values_are_zero == false and
             .coverage_admission_policy.allow_incomplete_daily_series_to_be_treated_as_complete_month == false and
             .coverage_admission_policy.minimum_coverage_threshold_fraction == null and
