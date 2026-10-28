@@ -174,7 +174,7 @@ fn utc_timestamp_shape(value: &str) -> bool {
     }
 
     for range in [0..4, 5..7, 8..10, 11..13, 14..16, 17..19] {
-        if !bytes[range].iter().all(u8::is_ascii_digit) {
+        if !bytes[range].iter().all(|byte| byte.is_ascii_digit()) {
             return false;
         }
     }
@@ -193,7 +193,7 @@ fn utc_timestamp_shape(value: &str) -> bool {
         return false;
     };
     if year == 0 || !(1..=12).contains(&month) || !(0..=23).contains(&hour)
-        || !(0..=59).contains(&minute) || !(0..=60).contains(&second)
+        || !(0..=59).contains(&minute) || !(0..=59).contains(&second)
     {
         return false;
     }
