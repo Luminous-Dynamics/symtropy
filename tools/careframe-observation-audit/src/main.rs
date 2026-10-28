@@ -835,13 +835,17 @@ mod tests {
         assert_eq!(sha256_hex(CONTRACT_SOURCE).len(), 64);
         assert_eq!(sha256_hex(SUITE_SOURCE).len(), 64);
         assert_eq!(sha256_hex(AUDITOR_SOURCE).len(), 64);
+        let repository_root =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let contract_path = repository_root.join(DEFAULT_CONTRACT);
+        let suite_path = repository_root.join(DEFAULT_SUITE);
         assert_eq!(
             sha256_hex(CONTRACT_SOURCE),
-            sha256_hex(&fs::read(DEFAULT_CONTRACT).expect("contract file"))
+            sha256_hex(&fs::read(contract_path).expect("contract file"))
         );
         assert_eq!(
             sha256_hex(SUITE_SOURCE),
-            sha256_hex(&fs::read(DEFAULT_SUITE).expect("suite file"))
+            sha256_hex(&fs::read(suite_path).expect("suite file"))
         );
     }
 }
