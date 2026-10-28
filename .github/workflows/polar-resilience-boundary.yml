@@ -34,8 +34,10 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
-      - name: Run Rust unit and negative-control tests
-        run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
+
+- name: Run focused boundary analyzer tests before crate-wide integration tests
+        run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_boundary
+
       - name: Exercise boundary frontier CLI on synthetic fixture
         shell: bash
         run: |
@@ -73,3 +75,6 @@ jobs:
               .initial_state_id] == ["reserve_high"]) and
             .gates_without_observed_breach == ["sanitation_floor"]
           ' /tmp/polar-boundary-report.json
+
+      - name: Run Rust unit and negative-control tests
+        run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
