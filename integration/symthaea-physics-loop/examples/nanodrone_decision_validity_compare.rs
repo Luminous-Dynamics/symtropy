@@ -5,6 +5,7 @@
 //! It never creates a composite score or a significance claim.
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -93,8 +94,10 @@ struct Comparison {
     comparison_kind: String,
     evidence_class: String,
     baseline_method: String,
+    baseline_report_sha256: String,
     baseline_source_commit: String,
     candidate_method: String,
+    candidate_report_sha256: String,
     candidate_source_commit: String,
     channel: String,
     unit: String,
@@ -140,9 +143,13 @@ fn parse_args() -> Result<Args, String> {
     })
 }
 
-fn read_report(path: &PathBuf) -> Result<Receipt, String> {
+fn read_report(path: &PathBuf) -> Result<(Receipt, String), String> {
     let bytes = fs::read(path).map_err(|e| format!("cannot read report {}: {e}", path.display()))?;
-    serde_json::from_slice(&bytes).map_err(|e| format!("invalid report {}: {e}", path.display()))
+    let mut hash = Sha256::new();
+    hash.update(&bytes);
+    let digest = format!("{:x}", hash.finalize());
+    let report = serde_json::from_slice(&bytes).map_err(|e| format!("invalid report {}: {e}", path.display()))?;
+    Ok((report, digest))
 }
 
 fn validate_pair(a: &Receipt, b: &Receipt) -> Result<(), String> {
@@ -186,11 +193,7 @@ fn delta(a: Option<f64>, b: Option<f64>) -> Delta {
     }}
 }
 
-fn scalar_delta(a: f64, b: f64) -> Delta {
-    Delta { baseline: Some(a), candidate: Some(b), candidate_minus_baseline: Some(b - a) }
-}
-
-fn compare(a: &Receipt, b: &Receipt, tolerance: f64) -> Comparison {
+fn compare(a: &Receipt, b: &Receipt, tolerance: f64, a_hash: &str, b_hash: &str) -> Comparison {
     let points = a.operating_points.iter().zip(&b.operating_points).map(|(base, cand)| {
         let rate_delta = (base.test.realized_alert_rate - cand.test.realized_alert_rate).abs();
         ComparedPoint {
@@ -220,8 +223,10 @@ fn compare(a: &Receipt, b: &Receipt, tolerance: f64) -> Comparison {
         comparison_kind: "receipt-checked-descriptive-delta".into(),
         evidence_class: a.evidence_class.clone(),
         baseline_method: a.warning_method.clone(),
+        baseline_report_sha256: a_hash.into(),
         baseline_source_commit: a.source_commit.clone(),
         candidate_method: b.warning_method.clone(),
+        candidate_report_sha256: b_hash.into(),
         candidate_source_commit: b.source_commit.clone(),
         channel: a.channel.clone(), unit: a.unit.clone(), error_threshold: a.error_threshold,
         horizon_s: a.expected_horizon_s, paired_window_receipt_sha256: a.paired_window_receipt_sha256.clone(),
@@ -237,10 +242,10 @@ fn compare(a: &Receipt, b: &Receipt, tolerance: f64) -> Comparison {
 
 fn run() -> Result<(), String> {
     let args = parse_args()?;
-    let baseline = read_report(&args.baseline)?;
-    let candidate = read_report(&args.candidate)?;
+    let (baseline, baseline_hash) = read_report(&args.baseline)?;
+    let (candidate, candidate_hash) = read_report(&args.candidate)?;
     validate_pair(&baseline, &candidate)?;
-    let output = serde_json::to_string_pretty(&compare(&baseline, &candidate, args.alert_rate_tolerance))
+    let output = serde_json::to_string_pretty(&compare(&baseline, &candidate, args.alert_rate_tolerance, &baseline_hash, &candidate_hash))
         .map_err(|e| format!("cannot serialize comparison: {e}"))?;
     if let Some(path) = args.output {
         fs::write(&path, format!("{output}\n")).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
@@ -290,7 +295,7 @@ mod tests {
         let a = receipt("base", Some(0.7), Some(0.3), &"p".repeat(64));
         let b = receipt("candidate", Some(0.8), Some(0.4), &"p".repeat(64));
         validate_pair(&a, &b).unwrap();
-        let c = compare(&a, &b, 0.01);
+        let c = compare(&a, &b, 0.01, &"1".repeat(64), &"2".repeat(64));
         assert!((c.points[0].test_auprc.candidate_minus_baseline.unwrap() - 0.1).abs() < 1e-12);
         assert!(c.points[0].test_alert_rates_within_tolerance);
         assert!(c.claim_ceiling.contains("Descriptive"));
@@ -308,7 +313,7 @@ mod tests {
         let a = receipt("base", None, None, &"p".repeat(64));
         let b = receipt("candidate", Some(0.8), Some(0.4), &"p".repeat(64));
         validate_pair(&a, &b).unwrap();
-        let c = compare(&a, &b, 0.01);
+        let c = compare(&a, &b, 0.01, &"1".repeat(64), &"2".repeat(64));
         assert_eq!(c.points[0].test_auprc.candidate_minus_baseline, None);
     }
 }
