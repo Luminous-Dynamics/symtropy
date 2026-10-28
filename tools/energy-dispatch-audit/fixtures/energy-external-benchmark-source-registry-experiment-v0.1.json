@@ -1,0 +1,38 @@
+{
+  "schema_version": "energy-external-benchmark-source-registry-experiment-v0.1",
+  "registry_id": "energy-external-benchmark-source-registry-2026-10-28",
+  "source_registry_path": "tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-v0.1.json",
+  "source_registry_sha256": "d53b6f0f247b8c277ad853566c4ab2f4621b92314022d43ad00b10043fc631a1",
+  "expected_coverage": {
+    "source_count": 3,
+    "reference_only_not_imported_count": 3,
+    "ingested_digest_pinned_count": 0,
+    "qualified_for_benchmark_count": 0
+  },
+  "known_answers": {
+    "south_african_series_expected_hourly_rows": 43824,
+    "south_african_series_expected_cadence_seconds": 3600,
+    "citylearn_official_release": "v3.0.2",
+    "citylearn_public_dataset_count": 32,
+    "removed_citylearn_families": [
+      "rec_2023_*",
+      "EC_Ermesinde",
+      "ALADI_*"
+    ],
+    "eskom_rolling_feed_canonical_benchmark": false,
+    "imported_external_bytes": 0
+  },
+  "claim_ceiling": "Source discovery and promotion-gate conformance only; no external dataset has been downloaded, rights-cleared, or qualified.",
+  "required_checks": [
+    "source_ids_are_unique_and_nonempty",
+    "source_urls_are_canonical_http_or_https",
+    "source_status_and_snapshot_fields_are_consistent",
+    "qualified_sources_require_raw_sha256_and_snapshot_url",
+    "unresolved_data_rights_block_benchmark_qualification",
+    "national_system_data_cannot_claim_site_dispatch_validation",
+    "reported_windows_and_cadence_are_consistent",
+    "mutable_rolling_sources_cannot_be_canonical_benchmarks_without_snapshot",
+    "removed_citylearn_dataset_families_are_not_selected",
+    "registry_claim_ceiling_remains_discovery_only"
+  ]
+}
