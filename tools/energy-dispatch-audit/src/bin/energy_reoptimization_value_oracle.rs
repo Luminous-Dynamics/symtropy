@@ -303,7 +303,7 @@ fn reserve_used(panel: &Panel, context: &str, policy: &str, threshold_override: 
         HIGH_THRESHOLD => {
             let threshold = threshold_override.unwrap_or(3.0);
             let trigger = residual >= threshold;
-            Ok((if trigger { updated } else { initial }, trigger, 1 + usize::from(trigger)))
+            Ok((if trigger { updated } else { initial }, trigger, if trigger { 2 } else { 1 }))
         }
         _ => Err(format!("unknown policy {policy}")),
     }
