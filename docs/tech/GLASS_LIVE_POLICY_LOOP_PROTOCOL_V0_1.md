@@ -32,7 +32,7 @@ The normal run command can be redirected to \`search-space-live-loop-report.json
 
 ## Policy arms are software controls, not claimed SOTA implementations
 
-The runner executes five deterministic policy controls:
+The runner executes six deterministic policy controls:
 
 1. \`fixed_space\`: never expands; chooses candidates using its declared public selector scores.
 2. \`random_expansion\`: after the common first screening observation, expands randomly only when the revealed result crosses a fixed synthetic low-value threshold.
