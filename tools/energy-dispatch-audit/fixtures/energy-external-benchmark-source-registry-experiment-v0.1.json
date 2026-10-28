@@ -1,0 +1,52 @@
+{
+  "schema_version": "energy-external-benchmark-source-registry-experiment-v0.1",
+  "registry_id": "energy-external-benchmark-source-registry-2026-10-28",
+  "source_registry_path": "tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-v0.1.json",
+  "source_registry_sha256": "d761b4eee434f41262734dc2cb0e78f39c8032da3e2a1436ab1c7b73285b9d06",
+  "expected_coverage": {
+    "source_count": 3,
+    "reference_only_not_imported_count": 3,
+    "ingested_digest_pinned_count": 0,
+    "qualified_for_benchmark_count": 0
+  },
+  "known_answers": {
+    "south_african_series_expected_hourly_rows": 43824,
+    "south_african_series_expected_cadence_seconds": 3600,
+    "citylearn_official_release": "v3.0.2",
+    "citylearn_public_dataset_count": 32,
+    "removed_citylearn_families": [
+      "rec_2023_*",
+      "EC_Ermesinde",
+      "ALADI_*"
+    ],
+    "eskom_rolling_feed_canonical_benchmark": false,
+    "imported_external_bytes": 0,
+    "citylearn_selected_dataset_id": "citylearn_challenge_2022_phase_all_plus_evs",
+    "citylearn_source_commit": "834575c1a0194c8ae9d648ae858376a94dfceb78",
+    "citylearn_schema_blob_sha1": "5d58d31fd75e4845d73d319c69df34d64223f533",
+    "citylearn_referenced_csv_count": 30,
+    "citylearn_simulation_time_steps": 8760,
+    "citylearn_building_count": 17,
+    "citylearn_schema_size_bytes": 27644,
+    "citylearn_forecast_issue_times_verified": false,
+    "citylearn_dataset_terms_cleared": false
+  },
+  "claim_ceiling": "Source discovery and source-file digest verification only; no external dataset files have been imported into Symtropy, rights-cleared, or qualified.",
+  "required_checks": [
+    "source_ids_are_unique_and_nonempty",
+    "source_urls_are_canonical_http_or_https",
+    "source_status_and_snapshot_fields_are_consistent",
+    "qualified_sources_require_raw_sha256_and_snapshot_url",
+    "unresolved_data_rights_block_benchmark_qualification",
+    "national_system_data_cannot_claim_site_dispatch_validation",
+    "reported_windows_and_cadence_are_consistent",
+    "mutable_rolling_sources_cannot_be_canonical_benchmarks_without_snapshot",
+    "removed_citylearn_dataset_families_are_not_selected",
+    "registry_claim_ceiling_remains_discovery_only",
+    "selected_citylearn_dataset_is_present_in_pinned_release",
+    "citylearn_manifest_pins_all_schema_referenced_source_files",
+    "forecast_columns_are_not_assumed_causal_without_issue_times"
+  ],
+  "citylearn_source_manifest_path": "tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json",
+  "citylearn_source_manifest_sha256": "d35ad5e750032a4b24e797b856dc3984fb8401cb5943debc3660a49e63e7145d"
+}

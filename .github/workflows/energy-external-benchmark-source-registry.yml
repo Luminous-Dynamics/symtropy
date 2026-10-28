@@ -1,0 +1,132 @@
+name: Energy External Source Registry Gate
+
+on:
+  pull_request:
+    paths:
+      - "tools/energy-dispatch-audit/src/bin/energy_external_benchmark_source_registry_oracle.rs"
+      - "tools/energy-dispatch-audit/src/bin/energy_citylearn_source_snapshot_audit.rs"
+      - "tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-*.json"
+      - "tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json"
+      - "tools/energy-dispatch-audit/ENERGY_EXTERNAL_BENCHMARK_SOURCE_REGISTRY_V0_1.md"
+      - ".github/workflows/energy-external-benchmark-source-registry.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-registry:
+    name: Validate source provenance and audit pinned CityLearn bytes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+
+      - name: Bootstrap direct dependency set and run adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path tools/energy-dispatch-audit/Cargo.toml
+
+      - name: Replay source-registry known answers
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifacts="$GITHUB_WORKSPACE/energy-external-source-registry-artifacts"
+          mkdir -p "$artifacts"
+          registry="tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-v0.1.json"
+          experiment="tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-experiment-v0.1.json"
+          manifest="tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json"
+          cargo run --locked --manifest-path tools/energy-dispatch-audit/Cargo.toml \
+            --bin energy_external_benchmark_source_registry_oracle -- "$artifacts/report.json"
+          jq -e '
+            .status == "PASS_SOURCE_DISCOVERY_AND_PINNED_DATASET_MANIFEST_ONLY" and
+            .citylearn_dataset_id == "citylearn_challenge_2022_phase_all_plus_evs" and
+            .citylearn_source_commit == "834575c1a0194c8ae9d648ae858376a94dfceb78" and
+            .citylearn_schema_git_blob_sha1 == "5d58d31fd75e4845d73d319c69df34d64223f533" and
+            .citylearn_source_file_count == 30 and .citylearn_simulation_time_steps == 8760 and
+            .citylearn_forecast_issue_times_verified == false and
+            .citylearn_dataset_terms_cleared == false and
+            .source_count == 3 and .imported_external_bytes == 0 and
+            .qualified_sources == 0 and
+            .status_counts.reference_only_not_imported == 3 and
+            .source_results[0].expected_rows == 43824 and
+            .promotion_gate == "RAW_FILE_SNAPSHOT_AND_LICENSE_REVIEW_REQUIRED_BEFORE_DATASET_INGESTION_OR_BENCHMARK_CLAIMS"
+          ' "$artifacts/report.json" >/dev/null
+          sha256sum "$registry" "$experiment" "$manifest" > "$artifacts/contract-receipts.sha256"
+
+      - name: Fetch exact CityLearn tag and sparse-check out one dataset
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_root="$RUNNER_TEMP/citylearn-source"
+          source_commit="834575c1a0194c8ae9d648ae858376a94dfceb78"
+          dataset_path="data/datasets/citylearn_challenge_2022_phase_all_plus_evs"
+          git clone --filter=blob:none --depth 1 --no-checkout --branch v3.0.2 \
+            https://github.com/citylearn-project/CityLearn.git "$source_root"
+          git -C "$source_root" sparse-checkout init --cone
+          git -C "$source_root" sparse-checkout set "$dataset_path"
+          git -C "$source_root" checkout --detach "$source_commit"
+          test "$(git -C "$source_root" rev-parse HEAD)" = "$source_commit"
+
+          manifest="tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json"
+          while IFS='|' read -r source_path expected_blob; do
+            actual_blob="$(git -C "$source_root" rev-parse "HEAD:$source_path")"
+            test "$actual_blob" = "$expected_blob" || {
+              echo "Source blob mismatch for $source_path: expected $expected_blob, got $actual_blob" >&2
+              exit 2
+            }
+          done < <(jq -r '.files[] | [.path, .git_blob_sha1] | join("|")' "$manifest")
+          schema_path="$(jq -r .schema_path "$manifest")"
+          schema_blob="$(git -C "$source_root" rev-parse "HEAD:$schema_path")"
+          test "$schema_blob" = "$(jq -r .schema_git_blob_sha1 "$manifest")"
+
+      - name: Hash raw bytes and validate source file sizes and logical CSV rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_root="$RUNNER_TEMP/citylearn-source"
+          artifacts="$GITHUB_WORKSPACE/energy-external-source-registry-artifacts"
+          cargo run --locked --manifest-path tools/energy-dispatch-audit/Cargo.toml \
+            --bin energy_citylearn_source_snapshot_audit -- "$source_root" "$artifacts/citylearn-source-report.json"
+          jq -e '
+            .status == "PASS_PINNED_SOURCE_BYTES_ONLY" and
+            .dataset_id == "citylearn_challenge_2022_phase_all_plus_evs" and
+            .source_commit_verified == true and
+            .schema_git_blob_identity_verified == true and
+            .schema_csv_reference_count == 30 and
+            .schema_csv_references_match_manifest == true and
+            .source_file_git_blob_identities_verified == true and
+            .raw_sha256_receipts_generated == true and
+            .file_count == 30 and
+            .total_source_bytes_verified == 13049604 and
+            .dataset_terms_cleared == false and
+            .forecast_issue_times_verified == false and
+            .source_bytes_committed_to_symtropy == false and
+            (.files | length) == 30 and
+            all(.files[]; (.sha256 | test("^[0-9a-f]{64}$")))
+          ' "$artifacts/citylearn-source-report.json" >/dev/null
+          jq -r '.files[] | "\(.sha256)  \(.path) [git-blob=\(.git_blob_sha1)]"' \
+            "$artifacts/citylearn-source-report.json" > "$artifacts/citylearn-raw-sha256-receipts.txt"
+          sha256sum tools/energy-dispatch-audit/Cargo.lock "$artifacts/report.json" \
+            "$artifacts/citylearn-source-report.json" "$artifacts/citylearn-raw-sha256-receipts.txt" \
+            "$artifacts/contract-receipts.sha256" > "$artifacts/receipts.sha256"
+          cat "$artifacts/receipts.sha256"
+
+      - name: Preserve only contracts and verification receipts, not source CSV bytes
+        uses: actions/upload-artifact@v4
+        with:
+          name: energy-external-source-registry-v0.1
+          if-no-files-found: error
+          path: |
+            tools/energy-dispatch-audit/Cargo.lock
+            tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-v0.1.json
+            tools/energy-dispatch-audit/fixtures/energy-external-benchmark-source-registry-experiment-v0.1.json
+            tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json
+            energy-external-source-registry-artifacts/report.json
+            energy-external-source-registry-artifacts/citylearn-source-report.json
+            energy-external-source-registry-artifacts/citylearn-raw-sha256-receipts.txt
+            energy-external-source-registry-artifacts/contract-receipts.sha256
+            energy-external-source-registry-artifacts/receipts.sha256
