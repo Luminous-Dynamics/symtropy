@@ -134,7 +134,7 @@ cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
   tools/glass-silicon-contract-audit/fixtures/search-space-live-outcome-oracle.synthetic.json
 ```
 
-The scorecard itself replays each report against its exact catalog and the same sealed outcome-oracle bytes before using any metric. It fails closed on invalid JSON, mismatched input/oracle digests, a lane that does not replay PASS, missing or incorrect budget points, and incomplete report coverage.
+The versioned output contract is [glass-search-space-budget-frontier-scorecard-v0.1.schema.json](./glass-search-space-budget-frontier-scorecard-v0.1.schema.json). The scorecard itself replays each report against its exact catalog and the same sealed outcome-oracle bytes before using any metric. It fails closed on invalid JSON, mismatched input/oracle digests, a lane that does not replay PASS, missing or incorrect budget points, and incomplete report coverage.
 
 It emits:
 - Three lane receipts binding the exact report, catalog and oracle bytes, including replayed episode/event counts and recomputed resource totals.
