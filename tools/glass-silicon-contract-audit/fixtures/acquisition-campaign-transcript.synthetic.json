@@ -36,5 +36,12 @@
       "decision_id": null,
       "reason": "Synthetic transcript does not establish a physically qualified output."
     }
+  ],
+  "measurement_cost_catalog": [
+    {
+      "measurement_id": "measure-regime",
+      "cost_units": 2,
+      "duration_seconds": 20
+    }
   ]
 }
