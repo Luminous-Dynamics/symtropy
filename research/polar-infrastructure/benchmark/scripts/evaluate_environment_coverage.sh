@@ -38,7 +38,7 @@ VALID=$(jq -e '
   (.observed_sample_count | type == "number" and floor == . and . >= 0) and
   (.observed_sample_count <= .expected_sample_count) and
   (.minimum_coverage_fraction == null or
-    (.minimum_coverage_fraction | type == "number" and . >= 0 and . <= 1))
+    (.minimum_coverage_fraction | type == "number" and . > 0 and . <= 1))
 ' "$INPUT" 2>/dev/null || true)
 
 if [[ "$VALID" != "true" ]]; then
