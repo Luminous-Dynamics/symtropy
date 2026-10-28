@@ -30,7 +30,7 @@ A trace cannot be marked `validated_for_replay` until the manifest carries all o
 - **Transformation provenance:** code revision, deterministic recipe/configuration digest, derived-artifact SHA-256, format/size, and validation evidence against independent observations or a declared reference where applicable.
 - **Intended-use boundary:** site/time/body/mission, model applicability, excluded physics and evidence class. Mark unsupported variables unknown/not-evaluated; never silently substitute zero.
 
-The JSON Schema expresses the core shape and elevated requirements for a replay-validated manifest. The workflow's jq assertions are structural guardrails, not a replacement for a full JSON Schema validator, data-quality review, or domain expert sign-off.
+The JSON Schema expresses the core shape and elevated requirements for a replay-validated manifest. The Rust contract gate is implemented in [environment_trace_manifest.rs](src/bin/environment_trace_manifest.rs): it rejects unknown/missing fields, duplicate variable IDs, invalid status/evidence combinations, incomplete replay metadata, bad digest syntax and inconsistent sample counts. Its report explicitly says it does not hash the actual artifact or validate physical-model correctness. The workflow's jq assertions are structural guardrails; neither jq nor the Rust gate is a full Draft 2020-12 JSON Schema engine or a replacement for data-quality review and domain expert sign-off.
 
 ## 3. Chronology and split policy
 
