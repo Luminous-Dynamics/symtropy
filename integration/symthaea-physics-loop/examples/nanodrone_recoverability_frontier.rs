@@ -6,7 +6,7 @@
 use csv::ReaderBuilder;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -353,7 +353,6 @@ struct Validated {
     training_seeds: Vec<u64>,
     branch_seeds: Vec<u64>,
     interventions: Vec<String>,
-    train_families: BTreeSet<String>,
     checkpoint_manifest_sha256: String,
     train_manifest_sha256: String,
     input_sha256: String,
@@ -371,7 +370,7 @@ fn validate_inputs(
     if checkpoints.is_empty() || branches.is_empty() { return Err("checkpoint manifest and branch CSV must be non-empty".into()); }
     let mut checkpoint_map = BTreeMap::<CheckpointKey, CheckpointRow>::new();
     let mut flight_family = BTreeMap::<String, String>::new();
-    let mut starts_by_flight = BTreeMap::<(String, String), BTreeSet<String>>::new();
+    let mut times_by_start = BTreeMap::<(String, String, String), BTreeSet<u64>>::new();
     for c in &checkpoints {
         if c.family_id.trim().is_empty() || c.flight_id.trim().is_empty() || c.rollout_start_id.trim().is_empty() || c.regime.trim().is_empty() {
             return Err("checkpoint manifest contains empty identity/regime".into());
@@ -389,7 +388,8 @@ fn validate_inputs(
         if checkpoint_map.insert(key, c.clone()).is_some() {
             return Err(format!("duplicate checkpoint key family={} flight={} start={} time={}", c.family_id, c.flight_id, c.rollout_start_id, c.checkpoint_time_s));
         }
-        starts_by_flight.entry((c.family_id.clone(), c.flight_id.clone())).or_default().insert(c.rollout_start_id.clone());
+        times_by_start.entry((c.family_id.clone(), c.flight_id.clone(), c.rollout_start_id.clone()))
+            .or_default().insert(c.checkpoint_time_s.to_bits());
     }
     if checkpoint_map.len() != checkpoints.len() { return Err("duplicate checkpoint manifest rows".into()); }
     let families = checkpoints.iter().map(|c| c.family_id.clone()).collect::<BTreeSet<_>>().into_iter().collect::<Vec<_>>();
@@ -397,16 +397,10 @@ fn validate_inputs(
     if families.len() < 2 { return Err("at least two independent evaluation families are required".into()); }
     if flights.len() < 2 { return Err("at least two evaluation flights are required".into()); }
 
-    for ((family, flight), starts) in &starts_by_flight {
-        let times_by_start = checkpoints.iter().filter(|c| &c.family_id == family && &c.flight_id == flight)
-            .fold(BTreeMap::<String, BTreeSet<u64>>::new(), |mut acc, c| {
-                acc.entry(c.rollout_start_id.clone()).or_default().insert(c.checkpoint_time_s.to_bits());
-                acc
-            });
-        for (start, times) in times_by_start {
-            if times.len() < 2 { return Err(format!("flight {flight} start {start} needs at least two checkpoints")); }
+    for ((family, flight, start), times) in &times_by_start {
+        if times.len() < 2 {
+            return Err(format!("family {family} flight {flight} start {start} needs at least two checkpoints"));
         }
-        let _ = starts;
     }
 
     let mut seen = BTreeSet::<BranchKey>::new();
@@ -499,7 +493,7 @@ fn validate_inputs(
     Ok(Validated {
         checkpoints, branches, families, flights, training_seeds: args.training_seeds.clone(),
         branch_seeds: args.branch_seeds.clone(), interventions: args.interventions.clone(),
-        train_families, checkpoint_manifest_sha256, train_manifest_sha256, input_sha256,
+        checkpoint_manifest_sha256, train_manifest_sha256, input_sha256,
     })
 }
 
@@ -544,20 +538,24 @@ fn crossed_bootstrap_delta(
     for _ in 0..replicates {
         let sampled_families = (0..families.len()).map(|_| families[rng.index(families.len())].clone()).collect::<Vec<_>>();
         let sampled_training_seeds = (0..training_seeds.len()).map(|_| training_seeds[rng.index(training_seeds.len())]).collect::<Vec<_>>();
-        let mut deltas = Vec::new();
+        let mut family_deltas = Vec::new();
         for family in &sampled_families {
+            let mut deltas_within_family = Vec::new();
             for (flight, start) in family_starts.get(family).into_iter().flatten() {
                 for train_seed in &sampled_training_seeds {
                     let key = UnitKey(family.clone(), flight.clone(), start.clone(), *train_seed);
                     if let Some(unit) = horizons.get(&key) {
                         if let (Some(candidate), Some(reference)) = (unit.get(intervention), unit.get("continue")) {
-                            deltas.push(candidate - reference);
+                            deltas_within_family.push(candidate - reference);
                         }
                     }
                 }
             }
+            if !deltas_within_family.is_empty() {
+                family_deltas.push(mean(&deltas_within_family));
+            }
         }
-        if !deltas.is_empty() { samples.push(mean(&deltas)); }
+        if !family_deltas.is_empty() { samples.push(mean(&family_deltas)); }
     }
     samples.sort_by(f64::total_cmp);
     Interval {
@@ -589,10 +587,10 @@ fn evaluate(args: &Args, validated: Validated) -> Result<Report, String> {
         let mut unit_key_value = unit_key(first);
         let unit = horizon_by_unit.entry(unit_key_value.clone()).or_default();
         let horizon = unit.entry(intervention.clone()).or_insert(0.0);
-        if lower + EPS >= args.recoverability_threshold {
-            *horizon = horizon.max(checkpoint_time_s);
+        if lower + EPS >= args.recoverability_threshold && checkpoint_time_s > *horizon {
+            *horizon = checkpoint_time_s;
         }
-        unit_key_value.3 = training_seed;
+        let _ = training_seed;
         let finite_rmse = branches.iter().filter_map(|b| b.tracking_rmse_m.filter(|x| x.is_finite())).collect::<Vec<_>>();
         let finite_energy = branches.iter().filter_map(|b| b.energy_wh.filter(|x| x.is_finite())).collect::<Vec<_>>();
         let violation_rate = branches.iter().filter(|b| b.boundary_violation_count > 0).count() as f64 / n as f64;
@@ -620,17 +618,28 @@ fn evaluate(args: &Args, validated: Validated) -> Result<Report, String> {
 
     let mut intervention_summaries = Vec::new();
     for intervention in &validated.interventions {
-        let mut values = Vec::new();
-        let mut paired = Vec::new();
-        let mut recoverable = 0usize;
-        let mut count = 0usize;
-        for (key, arms) in &horizon_by_unit {
-            let value = *arms.get(intervention).ok_or_else(|| format!("missing horizon for intervention {intervention}"))?;
-            let reference = *arms.get("continue").ok_or_else(|| "missing continue reference horizon".to_string())?;
-            values.push(value);
-            paired.push(value - reference);
-            if value > 0.0 { recoverable += 1; }
-            count += 1;
+        let mut family_means = Vec::new();
+        let mut family_deltas = Vec::new();
+        let mut family_recoverable_rates = Vec::new();
+        for family in &validated.families {
+            let mut values = Vec::new();
+            let mut paired = Vec::new();
+            let mut recoverable = 0usize;
+            let mut count = 0usize;
+            for (key, arms) in &horizon_by_unit {
+                if &key.0 != family { continue; }
+                let value = *arms.get(intervention).ok_or_else(|| format!("missing horizon for intervention {intervention}"))?;
+                let reference = *arms.get("continue").ok_or_else(|| "missing continue reference horizon".to_string())?;
+                values.push(value);
+                paired.push(value - reference);
+                if value > 0.0 { recoverable += 1; }
+                count += 1;
+            }
+            if count > 0 {
+                family_means.push(mean(&values));
+                family_deltas.push(mean(&paired));
+                family_recoverable_rates.push(recoverable as f64 / count as f64);
+            }
         }
         let bootstrap = crossed_bootstrap_delta(&horizon_by_unit, &family_starts, &validated.families,
             &validated.training_seeds, intervention, args.bootstrap_replicates,
@@ -638,9 +647,9 @@ fn evaluate(args: &Args, validated: Validated) -> Result<Report, String> {
         intervention_summaries.push(InterventionSummary {
             intervention_id: intervention.clone(),
             reference_intervention_id: "continue".into(),
-            mean_recoverability_horizon_s: mean(&values),
-            recoverable_unit_rate: if count == 0 { 0.0 } else { recoverable as f64 / count as f64 },
-            mean_paired_horizon_delta_vs_continue_s: mean(&paired),
+            mean_recoverability_horizon_s: mean(&family_means),
+            recoverable_unit_rate: mean(&family_recoverable_rates),
+            mean_paired_horizon_delta_vs_continue_s: mean(&family_deltas),
             paired_crossed_bootstrap_delta_ci95_s: bootstrap,
             note: if intervention == "continue" {
                 "Reference arm; a zero paired delta is expected by construction.".into()
@@ -684,7 +693,7 @@ fn evaluate(args: &Args, validated: Validated) -> Result<Report, String> {
         branch_seeds: validated.branch_seeds.clone(),
         intervention_ids: validated.interventions.clone(),
         recoverability_threshold: args.recoverability_threshold,
-        recoverability_interval: "one-sided 95% Wilson lower bound across branch seeds at each fixed state/training seed".into(),
+        recoverability_interval: "one-sided 95% Wilson lower bound across branch seeds at each fixed state/training seed; horizon 0 means no registered checkpoint passed".into(),
         max_tracking_rmse_m: args.max_tracking_rmse_m,
         bootstrap_replicates_requested: args.bootstrap_replicates,
         bootstrap_seed: args.bootstrap_seed,
