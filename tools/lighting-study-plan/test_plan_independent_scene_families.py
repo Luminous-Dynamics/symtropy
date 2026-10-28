@@ -155,6 +155,32 @@ class StudyPlanTests(unittest.TestCase):
                 target_power=.8, alpha=.05, sd_multipliers=[1, 1], min_families=10, min_new_families=10,
                 min_pair_coverage=.9, min_feasibility=.95, max_families=500)
 
+    def test_comparison_family_adjustment_never_reduces_required_families(self):
+        pilot = make_csv()
+        unadjusted = self.report(
+            pilot, assumed_effect_pct=6.0, superiority_margin_pct=5.0,
+            sd_multipliers=[1.0], comparison_family_size=1,
+        )
+        adjusted = self.report(
+            pilot, assumed_effect_pct=6.0, superiority_margin_pct=5.0,
+            sd_multipliers=[1.0], comparison_family_size=5,
+        )
+        self.assertAlmostEqual(unadjusted["design_assumptions"]["alpha_per_comparison_one_sided"], 0.05)
+        self.assertAlmostEqual(adjusted["design_assumptions"]["alpha_per_comparison_one_sided"], 0.01)
+        self.assertGreater(
+            adjusted["sensitivity"][0]["required_new_independent_families"],
+            unadjusted["sensitivity"][0]["required_new_independent_families"],
+        )
+
+    def test_non_integer_comparison_family_size_is_rejected(self):
+        rows, raw = self.load_text(make_csv())
+        with self.assertRaisesRegex(plan.PlanInputError, "positive integer"):
+            plan.build_report(rows, input_sha256=hashlib.sha256(raw).hexdigest(), source_sha256="0"*64,
+                evidence_tier="simulation_only", assumed_effect_pct=20, superiority_margin_pct=5,
+                target_power=.8, alpha=.05, sd_multipliers=[1],
+                min_families=10, min_new_families=10, min_pair_coverage=.9,
+                min_feasibility=.95, max_families=500, comparison_family_size=0)
+
     def test_seed_count_does_not_define_independent_sample_size(self):
         report = self.report(make_csv(seeds=20))
         self.assertEqual(report["pilot"]["scene_family_count"], 12)
