@@ -61,6 +61,7 @@
         "classes": {
           "const": [
             "fixed_space",
+            "gp_ei_fixed_space",
             "random_expansion",
             "rule_based_expansion",
             "prior_guided_expansion",
@@ -106,7 +107,8 @@
           "screen_priority",
           "predicted_feasible",
           "selector_scores",
-          "failure_fallback_score"
+          "failure_fallback_score",
+          "features"
         ],
         "properties": {
           "id": {
@@ -132,6 +134,7 @@
             "additionalProperties": false,
             "required": [
               "fixed_space",
+              "gp_ei_fixed_space",
               "random_expansion",
               "rule_based_expansion",
               "prior_guided_expansion",
@@ -152,11 +155,22 @@
               },
               "static_prior_expansion": {
                 "type": "number"
+              },
+              "gp_ei_fixed_space": {
+                "type": "number"
               }
             }
           },
           "failure_fallback_score": {
             "type": "number"
+          },
+          "features": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            }
           }
         }
       }
