@@ -40,115 +40,162 @@
           "field_id": "robot.base_position_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.base_orientation_xyzw",
           "value_type": "vector4",
           "unit": "unitless",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_orientation_quaternion_xyzw",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.base_linear_velocity_m_s",
           "value_type": "vector3",
           "unit": "m/s",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.base_angular_velocity_rad_s",
           "value_type": "vector3",
           "unit": "rad/s",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_cartesian_xyz_rad_s",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.joint_positions_rad",
           "value_type": "number_map",
           "unit": "rad",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "joint_local_map",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.joint_velocities_rad_s",
           "value_type": "number_map",
           "unit": "rad/s",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "joint_local_map",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "tool.id",
           "value_type": "string",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "tool_catalog",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "tool.revision",
           "value_type": "integer",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "tool_catalog",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "task.target_id",
           "value_type": "string",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "task_semantic",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "task.phase",
           "value_type": "enum_string",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "task_semantic",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "safety.stop_requested",
           "value_type": "boolean",
           "unit": "unitless",
-          "source_family": "safety_supervisor"
+          "source_family": "safety_supervisor",
+          "coordinate_frame": "safety_supervisor",
+          "temporal_semantics": "current_supervisor_state"
         },
         {
           "field_id": "safety.authority_state",
           "value_type": "enum_string",
           "unit": "unitless",
-          "source_family": "safety_supervisor"
+          "source_family": "safety_supervisor",
+          "coordinate_frame": "safety_supervisor",
+          "temporal_semantics": "current_supervisor_state"
         },
         {
           "field_id": "scene.target_pose_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.object_pose_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.object_dimensions_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "object_local_dimensions_xyz",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.obstacle_poses_m",
           "value_type": "vector3_list",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "world_cartesian_xyz_list",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.perception_confidence",
           "value_type": "scalar_0_1",
           "unit": "unitless",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "not_applicable",
+          "temporal_semantics": "current_perception_result"
         },
         {
           "field_id": "scene.visibility_mask",
           "value_type": "boolean_map",
           "unit": "unitless",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "not_applicable",
+          "temporal_semantics": "current_perception_result"
         }
       ],
       "scoring_only_field_ids": [
         "scene.object_mass_kg",
         "scene.surface_friction_coefficient"
-      ]
+      ],
+      "implementation_status": "synthetic_fixture_only",
+      "observation_metadata": {
+        "clock_domain": "simulation_episode_clock_v0",
+        "timestamp_unit": "ns",
+        "temporal_alignment_policy": "same_simulation_tick",
+        "maximum_source_skew_ns": 0,
+        "coordinate_frame_revision": "careframe-world-frames-v0",
+        "calibration_revision": "synthetic-calibration-fixture-v0",
+        "provenance_state": "synthetic_fixture_only",
+        "runtime_source_digest_status": "not_available_for_synthetic_fixture"
+      }
     },
     {
       "adapter_id": "rgb_derived_estimate",
@@ -186,115 +233,162 @@
           "field_id": "robot.base_position_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.base_orientation_xyzw",
           "value_type": "vector4",
           "unit": "unitless",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_orientation_quaternion_xyzw",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.base_linear_velocity_m_s",
           "value_type": "vector3",
           "unit": "m/s",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.base_angular_velocity_rad_s",
           "value_type": "vector3",
           "unit": "rad/s",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_cartesian_xyz_rad_s",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.joint_positions_rad",
           "value_type": "number_map",
           "unit": "rad",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "joint_local_map",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.joint_velocities_rad_s",
           "value_type": "number_map",
           "unit": "rad/s",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "joint_local_map",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "tool.id",
           "value_type": "string",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "tool_catalog",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "tool.revision",
           "value_type": "integer",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "tool_catalog",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "task.target_id",
           "value_type": "string",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "task_semantic",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "task.phase",
           "value_type": "enum_string",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "task_semantic",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "safety.stop_requested",
           "value_type": "boolean",
           "unit": "unitless",
-          "source_family": "safety_supervisor"
+          "source_family": "safety_supervisor",
+          "coordinate_frame": "safety_supervisor",
+          "temporal_semantics": "current_supervisor_state"
         },
         {
           "field_id": "safety.authority_state",
           "value_type": "enum_string",
           "unit": "unitless",
-          "source_family": "safety_supervisor"
+          "source_family": "safety_supervisor",
+          "coordinate_frame": "safety_supervisor",
+          "temporal_semantics": "current_supervisor_state"
         },
         {
           "field_id": "scene.target_pose_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.object_pose_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.object_dimensions_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "object_local_dimensions_xyz",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.obstacle_poses_m",
           "value_type": "vector3_list",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "world_cartesian_xyz_list",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.perception_confidence",
           "value_type": "scalar_0_1",
           "unit": "unitless",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "not_applicable",
+          "temporal_semantics": "current_perception_result"
         },
         {
           "field_id": "scene.visibility_mask",
           "value_type": "boolean_map",
           "unit": "unitless",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "not_applicable",
+          "temporal_semantics": "current_perception_result"
         }
       ],
       "scoring_only_field_ids": [
         "scene.object_mass_kg",
         "scene.surface_friction_coefficient"
-      ]
+      ],
+      "implementation_status": "synthetic_fixture_only",
+      "observation_metadata": {
+        "clock_domain": "simulation_episode_clock_v0",
+        "timestamp_unit": "ns",
+        "temporal_alignment_policy": "same_simulation_tick",
+        "maximum_source_skew_ns": 0,
+        "coordinate_frame_revision": "careframe-world-frames-v0",
+        "calibration_revision": "synthetic-calibration-fixture-v0",
+        "provenance_state": "synthetic_fixture_only",
+        "runtime_source_digest_status": "not_available_for_synthetic_fixture"
+      }
     },
     {
       "adapter_id": "point_cloud_derived_estimate",
@@ -332,115 +426,162 @@
           "field_id": "robot.base_position_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.base_orientation_xyzw",
           "value_type": "vector4",
           "unit": "unitless",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_orientation_quaternion_xyzw",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.base_linear_velocity_m_s",
           "value_type": "vector3",
           "unit": "m/s",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.base_angular_velocity_rad_s",
           "value_type": "vector3",
           "unit": "rad/s",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "world_cartesian_xyz_rad_s",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.joint_positions_rad",
           "value_type": "number_map",
           "unit": "rad",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "joint_local_map",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "robot.joint_velocities_rad_s",
           "value_type": "number_map",
           "unit": "rad/s",
-          "source_family": "proprioception"
+          "source_family": "proprioception",
+          "coordinate_frame": "joint_local_map",
+          "temporal_semantics": "instantaneous_state"
         },
         {
           "field_id": "tool.id",
           "value_type": "string",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "tool_catalog",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "tool.revision",
           "value_type": "integer",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "tool_catalog",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "task.target_id",
           "value_type": "string",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "task_semantic",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "task.phase",
           "value_type": "enum_string",
           "unit": "unitless",
-          "source_family": "task_context"
+          "source_family": "task_context",
+          "coordinate_frame": "task_semantic",
+          "temporal_semantics": "task_scoped_state"
         },
         {
           "field_id": "safety.stop_requested",
           "value_type": "boolean",
           "unit": "unitless",
-          "source_family": "safety_supervisor"
+          "source_family": "safety_supervisor",
+          "coordinate_frame": "safety_supervisor",
+          "temporal_semantics": "current_supervisor_state"
         },
         {
           "field_id": "safety.authority_state",
           "value_type": "enum_string",
           "unit": "unitless",
-          "source_family": "safety_supervisor"
+          "source_family": "safety_supervisor",
+          "coordinate_frame": "safety_supervisor",
+          "temporal_semantics": "current_supervisor_state"
         },
         {
           "field_id": "scene.target_pose_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.object_pose_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "world_cartesian_xyz",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.object_dimensions_m",
           "value_type": "vector3",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "object_local_dimensions_xyz",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.obstacle_poses_m",
           "value_type": "vector3_list",
           "unit": "m",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "world_cartesian_xyz_list",
+          "temporal_semantics": "estimated_scene_state"
         },
         {
           "field_id": "scene.perception_confidence",
           "value_type": "scalar_0_1",
           "unit": "unitless",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "not_applicable",
+          "temporal_semantics": "current_perception_result"
         },
         {
           "field_id": "scene.visibility_mask",
           "value_type": "boolean_map",
           "unit": "unitless",
-          "source_family": "perception_estimate"
+          "source_family": "perception_estimate",
+          "coordinate_frame": "not_applicable",
+          "temporal_semantics": "current_perception_result"
         }
       ],
       "scoring_only_field_ids": [
         "scene.object_mass_kg",
         "scene.surface_friction_coefficient"
-      ]
+      ],
+      "implementation_status": "synthetic_fixture_only",
+      "observation_metadata": {
+        "clock_domain": "simulation_episode_clock_v0",
+        "timestamp_unit": "ns",
+        "temporal_alignment_policy": "same_simulation_tick",
+        "maximum_source_skew_ns": 0,
+        "coordinate_frame_revision": "careframe-world-frames-v0",
+        "calibration_revision": "synthetic-calibration-fixture-v0",
+        "provenance_state": "synthetic_fixture_only",
+        "runtime_source_digest_status": "not_available_for_synthetic_fixture"
+      }
     }
   ]
 }
