@@ -5,7 +5,10 @@
   "status": "synthetic_only",
   "reference_controller_id": "rule_baseline",
   "candidate_controller_id": "adaptive_candidate",
-  "controllers": ["rule_baseline", "adaptive_candidate"],
+  "controllers": [
+    "rule_baseline",
+    "adaptive_candidate"
+  ],
   "axes": [
     {
       "id": "storm_duration_h",
@@ -13,7 +16,22 @@
       "higher_is_more_severe": true
     }
   ],
-  "gate_ids": ["critical_energy", "communications"],
+  "gate_ids": [
+    "critical_energy",
+    "communications"
+  ],
+  "gate_margin_contracts": {
+    "critical_energy": {
+      "unit": "normalized_unitless",
+      "signed_margin_definition": "delivered critical-energy fraction minus preregistered required service-floor fraction",
+      "hard_gate": true
+    },
+    "communications": {
+      "unit": "normalized_unitless",
+      "signed_margin_definition": "one minus observed message-latency-to-deadline ratio, normalized to the declared deadline",
+      "hard_gate": true
+    }
+  },
   "cases": [
     {
       "case_id": "rule-t1",
@@ -23,9 +41,17 @@
       "hazard_family": "coastal_wind",
       "initial_state_id": "state-1",
       "replicate_id": "replicate-1",
-      "severity": {"storm_duration_h": 1.0},
-      "gate_results": {"critical_energy": "pass", "communications": "pass"},
-      "signed_gate_margins": {"critical_energy": 0.4, "communications": 0.1}
+      "severity": {
+        "storm_duration_h": 1
+      },
+      "gate_results": {
+        "critical_energy": "pass",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": 0.4,
+        "communications": 0.1
+      }
     },
     {
       "case_id": "candidate-t1",
@@ -35,9 +61,17 @@
       "hazard_family": "coastal_wind",
       "initial_state_id": "state-1",
       "replicate_id": "replicate-1",
-      "severity": {"storm_duration_h": 1.0},
-      "gate_results": {"critical_energy": "pass", "communications": "pass"},
-      "signed_gate_margins": {"critical_energy": 0.5, "communications": 0.2}
+      "severity": {
+        "storm_duration_h": 1
+      },
+      "gate_results": {
+        "critical_energy": "pass",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": 0.5,
+        "communications": 0.2
+      }
     },
     {
       "case_id": "rule-t2",
@@ -47,9 +81,17 @@
       "hazard_family": "coastal_wind",
       "initial_state_id": "state-2",
       "replicate_id": "replicate-1",
-      "severity": {"storm_duration_h": 2.0},
-      "gate_results": {"critical_energy": "breach", "communications": "pass"},
-      "signed_gate_margins": {"critical_energy": -0.2, "communications": 0.1}
+      "severity": {
+        "storm_duration_h": 2
+      },
+      "gate_results": {
+        "critical_energy": "breach",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": -0.2,
+        "communications": 0.1
+      }
     },
     {
       "case_id": "candidate-t2",
@@ -59,9 +101,17 @@
       "hazard_family": "coastal_wind",
       "initial_state_id": "state-2",
       "replicate_id": "replicate-1",
-      "severity": {"storm_duration_h": 2.0},
-      "gate_results": {"critical_energy": "pass", "communications": "pass"},
-      "signed_gate_margins": {"critical_energy": 0.05, "communications": 0.15}
+      "severity": {
+        "storm_duration_h": 2
+      },
+      "gate_results": {
+        "critical_energy": "pass",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": 0.05,
+        "communications": 0.15
+      }
     },
     {
       "case_id": "rule-t3",
@@ -71,9 +121,17 @@
       "hazard_family": "compound_weather",
       "initial_state_id": "state-3",
       "replicate_id": "replicate-2",
-      "severity": {"storm_duration_h": 3.0},
-      "gate_results": {"critical_energy": "breach", "communications": "breach"},
-      "signed_gate_margins": {"critical_energy": -0.8, "communications": -0.1}
+      "severity": {
+        "storm_duration_h": 3
+      },
+      "gate_results": {
+        "critical_energy": "breach",
+        "communications": "breach"
+      },
+      "signed_gate_margins": {
+        "critical_energy": -0.8,
+        "communications": -0.1
+      }
     },
     {
       "case_id": "candidate-t3",
@@ -83,9 +141,17 @@
       "hazard_family": "compound_weather",
       "initial_state_id": "state-3",
       "replicate_id": "replicate-2",
-      "severity": {"storm_duration_h": 3.0},
-      "gate_results": {"critical_energy": "breach", "communications": "pass"},
-      "signed_gate_margins": {"critical_energy": -0.3, "communications": 0.05}
+      "severity": {
+        "storm_duration_h": 3
+      },
+      "gate_results": {
+        "critical_energy": "breach",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": -0.3,
+        "communications": 0.05
+      }
     },
     {
       "case_id": "rule-t4",
@@ -95,9 +161,17 @@
       "hazard_family": "compound_weather",
       "initial_state_id": "state-4",
       "replicate_id": "replicate-2",
-      "severity": {"storm_duration_h": 4.0},
-      "gate_results": {"critical_energy": "pass", "communications": "breach"},
-      "signed_gate_margins": {"critical_energy": 0.1, "communications": -0.2}
+      "severity": {
+        "storm_duration_h": 4
+      },
+      "gate_results": {
+        "critical_energy": "pass",
+        "communications": "breach"
+      },
+      "signed_gate_margins": {
+        "critical_energy": 0.1,
+        "communications": -0.2
+      }
     },
     {
       "case_id": "candidate-t4",
@@ -107,9 +181,17 @@
       "hazard_family": "compound_weather",
       "initial_state_id": "state-4",
       "replicate_id": "replicate-2",
-      "severity": {"storm_duration_h": 4.0},
-      "gate_results": {"critical_energy": "breach", "communications": "breach"},
-      "signed_gate_margins": {"critical_energy": -0.1, "communications": -0.1}
+      "severity": {
+        "storm_duration_h": 4
+      },
+      "gate_results": {
+        "critical_energy": "breach",
+        "communications": "breach"
+      },
+      "signed_gate_margins": {
+        "critical_energy": -0.1,
+        "communications": -0.1
+      }
     },
     {
       "case_id": "rule-t5",
@@ -119,9 +201,17 @@
       "hazard_family": "communications_partition",
       "initial_state_id": "state-5",
       "replicate_id": "replicate-3",
-      "severity": {"storm_duration_h": 5.0},
-      "gate_results": {"critical_energy": "invalid", "communications": "pass"},
-      "signed_gate_margins": {"critical_energy": null, "communications": 0.0}
+      "severity": {
+        "storm_duration_h": 5
+      },
+      "gate_results": {
+        "critical_energy": "invalid",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": null,
+        "communications": 0
+      }
     },
     {
       "case_id": "candidate-t5",
@@ -131,9 +221,17 @@
       "hazard_family": "communications_partition",
       "initial_state_id": "state-5",
       "replicate_id": "replicate-3",
-      "severity": {"storm_duration_h": 5.0},
-      "gate_results": {"critical_energy": "not_evaluated", "communications": "invalid"},
-      "signed_gate_margins": {"critical_energy": null, "communications": null}
+      "severity": {
+        "storm_duration_h": 5
+      },
+      "gate_results": {
+        "critical_energy": "not_evaluated",
+        "communications": "invalid"
+      },
+      "signed_gate_margins": {
+        "critical_energy": null,
+        "communications": null
+      }
     },
     {
       "case_id": "rule-t6",
@@ -143,9 +241,17 @@
       "hazard_family": "communications_partition",
       "initial_state_id": "state-6",
       "replicate_id": "replicate-3",
-      "severity": {"storm_duration_h": 6.0},
-      "gate_results": {"critical_energy": "not_evaluated", "communications": "invalid"},
-      "signed_gate_margins": {"critical_energy": null, "communications": null}
+      "severity": {
+        "storm_duration_h": 6
+      },
+      "gate_results": {
+        "critical_energy": "not_evaluated",
+        "communications": "invalid"
+      },
+      "signed_gate_margins": {
+        "critical_energy": null,
+        "communications": null
+      }
     },
     {
       "case_id": "candidate-t6",
@@ -155,9 +261,17 @@
       "hazard_family": "communications_partition",
       "initial_state_id": "state-6",
       "replicate_id": "replicate-3",
-      "severity": {"storm_duration_h": 6.0},
-      "gate_results": {"critical_energy": "invalid", "communications": "not_evaluated"},
-      "signed_gate_margins": {"critical_energy": null, "communications": null}
+      "severity": {
+        "storm_duration_h": 6
+      },
+      "gate_results": {
+        "critical_energy": "invalid",
+        "communications": "not_evaluated"
+      },
+      "signed_gate_margins": {
+        "critical_energy": null,
+        "communications": null
+      }
     }
   ]
 }
