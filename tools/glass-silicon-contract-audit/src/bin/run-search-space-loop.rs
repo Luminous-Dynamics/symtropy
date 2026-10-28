@@ -1717,6 +1717,108 @@ mod tests {
     }
 
 
+
+    #[test]
+    fn every_policy_action_is_invariant_to_unobserved_outcome_mutations() {
+        // Metamorphic noninterference check: for a given public history, changing a
+        // still-hidden evaluator outcome must not change any action selected before
+        // that candidate's observation could be revealed. This is stronger than
+        // checking the random baseline alone, but is still a harness-level property,
+        // not a proof of OS sandbox security.
+        let (public, oracle) = values();
+        let policy_classes = [
+            "fixed_space",
+            "gp_ei_fixed_space",
+            "random_expansion",
+            "rule_based_expansion",
+            "prior_guided_expansion",
+            "static_prior_expansion",
+            "uniform_random_fixed_space",
+        ];
+        let environments = ["helpful", "neutral", "harmful", "misleading_prior"];
+
+        for environment_id in environments {
+            let oracle_environment = oracle["environments"].as_array().unwrap()
+                .iter()
+                .find(|env| env["environment_id"] == environment_id)
+                .unwrap();
+
+            for policy in policy_classes {
+                let original = run_env(&public, &oracle, environment_id, policy);
+                assert_eq!(original["status"], "PASS", "{environment_id}/{policy}");
+                let original_events = original["events"].as_array().unwrap();
+
+                for (step, event) in original_events.iter().enumerate() {
+                    let observed_before: HashSet<String> = original_events[..step].iter()
+                        .filter(|prior| prior["action_type"] == "evaluate_candidate")
+                        .filter_map(|prior| prior["candidate_family_id"].as_str().map(str::to_owned))
+                        .collect();
+
+                    for outcome in oracle_environment["outcomes"].as_array().unwrap() {
+                        let Some(candidate_id) = outcome["candidate_family_id"].as_str() else {
+                            continue;
+                        };
+                        if observed_before.contains(candidate_id) {
+                            continue;
+                        }
+
+                        let old_feasible = outcome["feasible"].as_bool().unwrap();
+                        let mut counterfactual_oracle = oracle.clone();
+                        let target_environment = counterfactual_oracle["environments"].as_array_mut().unwrap()
+                            .iter_mut()
+                            .find(|env| env["environment_id"] == environment_id)
+                            .unwrap();
+                        let target_outcome = target_environment["outcomes"].as_array_mut().unwrap()
+                            .iter_mut()
+                            .find(|candidate| candidate["candidate_family_id"] == candidate_id)
+                            .unwrap();
+                        target_outcome["feasible"] = json!(!old_feasible);
+                        target_outcome["utility"] = json!(if old_feasible { 0.0 } else { 10.0 });
+
+                        let counterfactual = run_env(&public, &counterfactual_oracle, environment_id, policy);
+                        let counterfactual_events = counterfactual["events"].as_array().unwrap();
+                        assert!(
+                            counterfactual_events.len() > step,
+                            "counterfactual campaign ended before decision {step}: {environment_id}/{policy}, hidden={candidate_id}"
+                        );
+
+                        // All action choices through this step are made before the changed
+                        // outcome can affect the visible observation history. Compare the
+                        // action and exact decision-view digest, not evaluator score fields.
+                        for index in 0..=step {
+                            let baseline = &original_events[index];
+                            let altered = &counterfactual_events[index];
+                            for field in [
+                                "action_type",
+                                "candidate_family_id",
+                                "expansion_method",
+                                "decision_view_sha256",
+                            ] {
+                                assert_eq!(
+                                    baseline.get(field),
+                                    altered.get(field),
+                                    "hidden outcome changed pre-observation decision: env={environment_id}, policy={policy}, target={candidate_id}, step={step}, event={index}, field={field}"
+                                );
+                            }
+                        }
+
+                        // Mutating a still-hidden outcome must change the evaluator result
+                        // if and when the corresponding observation is actually revealed.
+                        if event["action_type"] == "evaluate_candidate"
+                            && event["candidate_family_id"] == candidate_id
+                        {
+                            assert_ne!(
+                                event["observed_outcome"],
+                                counterfactual_events[step]["observed_outcome"],
+                                "counterfactual mutation did not reach the revealed observation: {environment_id}/{policy}/{candidate_id}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn random_seed_summary_reports_variance_and_is_bound_to_individual_runs() {
         let report = run_all(PUBLIC, ORACLE);
