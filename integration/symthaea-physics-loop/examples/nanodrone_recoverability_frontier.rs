@@ -128,6 +128,7 @@ struct Report {
     intervention_ids: Vec<String>,
     recoverability_threshold: f64,
     recoverability_interval: String,
+    horizon_bootstrap_scope: String,
     max_tracking_rmse_m: f64,
     bootstrap_replicates_requested: usize,
     bootstrap_seed: u64,
@@ -406,6 +407,7 @@ fn validate_inputs(
     let mut seen = BTreeSet::<BranchKey>::new();
     let mut snapshots = BTreeMap::<SnapshotKey, String>::new();
     let mut tapes = BTreeMap::<TapeKey, String>::new();
+    let mut branch_seed_for_tape = BTreeMap::<(String, String, String, u64, u64, String), u64>::new();
     let training_set = args.training_seeds.iter().copied().collect::<BTreeSet<_>>();
     let branch_set = args.branch_seeds.iter().copied().collect::<BTreeSet<_>>();
     let intervention_set = args.interventions.iter().cloned().collect::<BTreeSet<_>>();
@@ -463,6 +465,13 @@ fn validate_inputs(
         if let Some(old) = tapes.insert(tape_key, b.exogenous_tape_sha256.clone()) {
             if old != b.exogenous_tape_sha256 {
                 return Err("paired intervention arms do not share the registered exogenous disturbance tape".into());
+            }
+        }
+        let digest_key = (b.family_id.clone(), b.flight_id.clone(), b.rollout_start_id.clone(),
+            b.checkpoint_time_s.to_bits(), b.training_seed, b.exogenous_tape_sha256.clone());
+        if let Some(previous_seed) = branch_seed_for_tape.insert(digest_key, b.branch_seed) {
+            if previous_seed != b.branch_seed {
+                return Err("distinct branch seeds reuse the same exogenous disturbance-tape digest at a fixed state".into());
             }
         }
     }
@@ -584,13 +593,11 @@ fn evaluate(args: &Args, validated: Validated) -> Result<Report, String> {
         let success_rate = successes as f64 / n as f64;
         let lower = wilson_lower_one_sided(successes, n);
         let first = branches[0];
-        let mut unit_key_value = unit_key(first);
-        let unit = horizon_by_unit.entry(unit_key_value.clone()).or_default();
+        let unit = horizon_by_unit.entry(unit_key(first)).or_default();
         let horizon = unit.entry(intervention.clone()).or_insert(0.0);
         if lower + EPS >= args.recoverability_threshold && checkpoint_time_s > *horizon {
             *horizon = checkpoint_time_s;
         }
-        let _ = training_seed;
         let finite_rmse = branches.iter().filter_map(|b| b.tracking_rmse_m.filter(|x| x.is_finite())).collect::<Vec<_>>();
         let finite_energy = branches.iter().filter_map(|b| b.energy_wh.filter(|x| x.is_finite())).collect::<Vec<_>>();
         let violation_rate = branches.iter().filter(|b| b.boundary_violation_count > 0).count() as f64 / n as f64;
@@ -694,6 +701,7 @@ fn evaluate(args: &Args, validated: Validated) -> Result<Report, String> {
         intervention_ids: validated.interventions.clone(),
         recoverability_threshold: args.recoverability_threshold,
         recoverability_interval: "one-sided 95% Wilson lower bound across branch seeds at each fixed state/training seed; horizon 0 means no registered checkpoint passed".into(),
+        horizon_bootstrap_scope: "crossed resampling of independent family clusters and training seeds, conditional on the registered branch-seed panel; per-checkpoint Wilson bounds gate recoverability, but branch-seed identities are not re-resampled into the horizon-delta interval".into(),
         max_tracking_rmse_m: args.max_tracking_rmse_m,
         bootstrap_replicates_requested: args.bootstrap_replicates,
         bootstrap_seed: args.bootstrap_seed,
@@ -855,6 +863,17 @@ mod tests {
         let (checkpoints, branches, mut train) = fixture_inputs();
         train.insert("family-a".into());
         assert!(validate_fixture(&args, checkpoints, branches, train).unwrap_err().contains("also appears in training-family manifest"));
+    }
+
+    #[test]
+    fn distinct_branch_seeds_cannot_reuse_the_same_tape_digest() {
+        let args = test_args();
+        let (checkpoints, mut branches, train) = fixture_inputs();
+        let first_tape = branches.iter().find(|b| b.family_id == "family-a" && b.checkpoint_time_s == 1.0 && b.training_seed == 101 && b.intervention_id == "continue" && b.branch_seed == 11).unwrap().exogenous_tape_sha256.clone();
+        for row in branches.iter_mut().filter(|b| b.family_id == "family-a" && b.checkpoint_time_s == 1.0 && b.training_seed == 101 && b.branch_seed == 12) {
+            row.exogenous_tape_sha256 = first_tape.clone();
+        }
+        assert!(validate_fixture(&args, checkpoints, branches, train).unwrap_err().contains("distinct branch seeds reuse"));
     }
 
     #[test]
