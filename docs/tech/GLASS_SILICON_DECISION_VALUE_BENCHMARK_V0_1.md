@@ -421,3 +421,23 @@ The randomization test is valid only under the declared paired randomization/exc
 The current baseline floor should explicitly acknowledge [MADE (ICML 2026)](https://proceedings.mlr.press/v306/malik26a.html) and its [reference implementation](https://github.com/diffractivelabs/MADE). MADE evaluates iterative agent pipelines under a constrained oracle budget and reports discovery metrics including AF, EF, AUDC and mSUN; it also emphasizes adaptive planning as search spaces grow. We should reproduce compatible generic discovery metrics where the candidate/oracle semantics match, then add the industrial dimensions that convex-hull discovery alone does not cover: accepted-grade yield, hard feasibility gates, cost/time including failures, causal effect evidence, and evidence provenance. Do not reinterpret a convex-hull stability outcome as proof of glass formation or saleable container-glass output. [Paper](https://proceedings.mlr.press/v306/malik26a.html) · [MADE README/results format](https://github.com/diffractivelabs/MADE#results-format).
 
 The 2022 NIST active-learning benchmark supplies another important historical control: on its real Fe–Co–Ni thin-film library, Expected Improvement performed best overall among the evaluated acquisition functions. That is not a glass result, but it reinforces that standard expected-improvement BO is a mandatory comparator where compatible, not an optional weak baseline. [NIST publication](https://www.nist.gov/publications/benchmarking-active-learning-strategies-materials-optimization-and-discovery).
+
+
+## Adaptive search-space expansion benchmark (GLASS-SPACE-EXPANSION-001 #2788)
+
+Follow-on: [issue #2788](https://github.com/Luminous-Dynamics/symtropy/issues/2788).
+
+A *Communications Materials* paper published 25 August 2026 proposes an LLM-driven outer loop that redefines the materials search space while an inner Bayesian-optimization loop selects candidates. Its reported gains are strongest for target properties where the model has substantial prior knowledge; this is a relevant baseline design, not proof that adaptive expansion helps glass or industrial processes. [Iwasaki et al. (2026)](https://www.nature.com/articles/s43246-026-01304-9).
+
+### Required comparison
+
+Run the same initial evidence and total resource budget through: fixed-space random/DOE; fixed-space GP expected improvement/PI where compatible; fixed-space uncertainty/novelty/cost-aware VOI; random or rule-based search-space expansion; and LLM-proposed expansion with the same inner optimizer. Charge outer-loop inference, candidate enumeration, feasibility filtering, and all rejected candidate evaluations to the same cost/time budget.
+
+Record each proposed space change as an immutable event bound to the parent-space digest, proposer/code/config digest, evidence references, allowed candidate-domain delta, expected decision benefit, and expansion cost. A new space cannot weaken hard constraints, raise/erase minimum product requirements, or increase its claim ceiling. Unsupported or unverified proposals remain proposed/`UNRESOLVED`; they are not automatically admitted because a model generated them.
+
+### Metrics and controls
+
+Report independently: verified feasible discoveries per fully charged budget; cost/time to first accepted feasible candidate; cumulative best feasible utility versus cost; new-family/source/campaign coverage; feasibility rejection and unsupported-domain rates; false-feasible risk; expansion cost/runtime; and downstream quality/causal evidence. Include an expansion-helpful environment, a neutral environment, and a case where expansion harms performance. Test a misleading prior where model-suggested expansions systematically enter an unproductive domain, plus a metamorphic holdout test where sealed outcomes cannot change proposals before observations are revealed.
+
+Use MADE's closed-loop campaign framing and discovery-efficiency metrics when candidate/oracle semantics match, but do not equate convex-hull stability with glass formation or saleable product. Expansion only counts as improvement if it beats fixed-space and strong expansion baselines under the same budget without increasing hard-constraint violations or false-feasible decisions. A larger candidate pool, more unique compositions, or a more articulate rationale is not success by itself.
+
