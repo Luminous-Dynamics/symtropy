@@ -96,6 +96,8 @@ jobs:
             .dataset_id == "citylearn_challenge_2022_phase_all_plus_evs" and
             .source_commit_verified == true and
             .schema_git_blob_identity_verified == true and
+            .schema_csv_reference_count == 30 and
+            .schema_csv_references_match_manifest == true and
             .source_file_git_blob_identities_verified == true and
             .raw_sha256_receipts_generated == true and
             .file_count == 30 and
