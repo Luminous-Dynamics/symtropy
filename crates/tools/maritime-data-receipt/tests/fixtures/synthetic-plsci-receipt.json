@@ -35,7 +35,7 @@
     ],
     "time_coverage_start_utc": null,
     "time_coverage_end_utc": null,
-    "survey_or_observation_time_utc": null,
+    "survey_or_observation_time_utc": "2026-10-15T00:00:00Z",
     "verification_state": "synthetic",
     "uncertainty_statement": "Invented fixture only; not UNCTAD data or an actual observation.",
     "freshness_policy": "not_applicable_synthetic",
@@ -51,7 +51,7 @@
     "permitted_use_statement": "Invented test fixture only; do not represent as sourced UNCTAD values."
   },
   "intended_use": {
-    "scope": "synthetic_test_only",
+    "scope": "provenance_test_only",
     "navigation_use_authorized": false,
     "physical_truth_claim_authorized": false,
     "independent_review_required": true
