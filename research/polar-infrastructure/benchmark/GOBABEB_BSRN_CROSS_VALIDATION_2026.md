@@ -35,6 +35,21 @@ The BSRN data are not bundled in this repository. Before ingesting any month:
 
 Do not build a parser by assuming that a browser-rendered HTML table is byte-identical to PANGAEA's tab-delimited download. Use a captured example from the actual file format as an adapter fixture before implementation.
 
+### Source acquisition helper
+
+The new [PANGAEA source fetcher](scripts/fetch_pangaea_source_file.sh) retrieves one exact dataset DOI's tab-delimited representation, preserves the raw bytes, and writes a download manifest with resolved URL, HTTP status, content type, retrieval time, byte count and SHA-256. It refuses HTML/error pages or a response with no timestamp-shaped data rows. It deliberately does not parse columns or assert timezone/interval meaning.
+
+Example for the publisher's June 2025 format-inspection record:
+
+```bash
+bash research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh \
+  10.1594/PANGAEA.983811 \
+  "Baseline Surface Radiation Network License 1.0 (BSRN-1.0)" \
+  ./artifacts/gobabeb-bsrn-2025-06
+```
+
+Before running, verify that the named license applies to that exact monthly record. The June 2025 file is for source-format/adapter work and is **not** part of the planned 2020–2021 locked validation window. Network retrieval has not been demonstrated from this authoring environment; no downloaded source file is committed by this PR.
+
 ## 3. Matched comparison contract
 
 The purpose of the first comparison is to quantify the error of the point reanalysis against the instrument record—not to show controller superiority.
