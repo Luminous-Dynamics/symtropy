@@ -6,6 +6,9 @@ on:
       - "research/polar-infrastructure/benchmark/schemas/environment-trace-manifest-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
       - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
+      - "research/polar-infrastructure/benchmark/GOBABEB_BSRN_CROSS_VALIDATION_2026.md"
+      - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
+      - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
       - "research/polar-infrastructure/benchmark/fixtures/nasa-power-daily-response-synthetic-2026.json"
       - "research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh"
@@ -18,6 +21,9 @@ on:
       - "research/polar-infrastructure/benchmark/schemas/environment-trace-manifest-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
       - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
+      - "research/polar-infrastructure/benchmark/GOBABEB_BSRN_CROSS_VALIDATION_2026.md"
+      - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
+      - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
       - "research/polar-infrastructure/benchmark/fixtures/nasa-power-daily-response-synthetic-2026.json"
       - "research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh"
@@ -115,6 +121,34 @@ jobs:
 
           # This jq stage checks structural guardrails; it is not a JSON Schema engine.
           test -s research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md
+
+      - name: Validate Gobabeb station validation plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan="research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-environment-observation-validation-plan" and
+            .plan_id == "gobabeb_bsrn_vs_nasa_power_daily_v0" and
+            .status == "design_only_not_executed" and
+            .evidence_class == "test_design_only" and
+            .station_reference.source_file_included == false and
+            .station_reference.license == "Baseline Surface Radiation Network License 1.0 (BSRN-1.0)" and
+            .model_reference.evidence_class == "reanalysis" and
+            .model_reference.model_data_downloaded == false and
+            (.variable_pairs | length >= 3) and
+            all(.variable_pairs[]; .required_time_semantics_review == true) and
+            (.time_split.policy == "whole_calendar_years_no_random_timestamp_split") and
+            (.time_split.calibration.end_exclusive_utc == .time_split.validation.start_inclusive_utc) and
+            (.time_split.validation.end_exclusive_utc == .time_split.locked_test.start_inclusive_utc) and
+            (.time_split.locked_test.start_inclusive_utc < .time_split.locked_test.end_exclusive_utc) and
+            ([.metrics[]] | length >= 10) and
+            (.admission_gates | to_entries | all(.[]; .value == false)) and
+            .result_policy.report_kind == "validation_plan_only_no_comparison_metrics" and
+            .result_policy.do_not_claim_station_accuracy_from_series_metadata == true and
+            .result_policy.do_not_claim_controller_superiority_from_trace_validation == true
+          ' "$plan"
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
