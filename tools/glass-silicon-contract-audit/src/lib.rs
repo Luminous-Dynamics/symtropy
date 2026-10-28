@@ -4911,6 +4911,10 @@ mod sealed_acquisition_policy_input_tests {
             .expect("sealed outcome oracle fixture must parse")
     }
 
+    fn policy<'a>(report: &'a AcquisitionPolicyComparisonReport, name: &str) -> &'a AcquisitionPolicySummary {
+        report.policies.iter().find(|item| item.policy == name).expect("policy report exists")
+    }
+
     fn selections(report: &AcquisitionPolicyComparisonReport) -> Vec<(String, Option<u64>, Option<String>)> {
         let mut entries = report.policies.iter().flat_map(|policy| {
             policy.runs.iter().map(|run| (policy.policy.clone(), run.seed, run.selected_measurement_id.clone()))
