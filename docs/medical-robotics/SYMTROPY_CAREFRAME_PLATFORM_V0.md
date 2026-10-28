@@ -61,6 +61,10 @@ No path should exist from a language model directly to motor current, torque com
 
 ## 3. Embodiment: modular humanoid, wheel-first
 
+The current wheel-drive links use **continuous joints**, not an artificial ±4π position interval. Bounded revolute joints remain appropriate for torso/head/arm pivots with modeled ranges. Both joint types are accepted by the geometry-only FK and URDF interchange path; this does not introduce motor commands or dynamics.
+
+
+
 The initial synthetic articulated model is documented in [the Careframe digital-twin contract](CAREFRAME_DIGITAL_TWIN_CONTRACT_V0.md) and `careframe-wheeled-upper-body-morphology-v0.json`. It specifies a 16-link/15-joint bounding-primitive graph with every joint command disabled. This does not yet mean the generic robotics bridge imports it into the physical engine as an articulated multibody model; a tested kinematic/collider adapter is a separate next gate.
 
 ### Common upper body
