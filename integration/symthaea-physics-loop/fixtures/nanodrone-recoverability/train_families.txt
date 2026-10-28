@@ -1,0 +1,2 @@
+# Training families only; disjoint from the two synthetic evaluation families.
+train-only-family
