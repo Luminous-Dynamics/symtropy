@@ -8,7 +8,7 @@
 use csv::ReaderBuilder;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -280,6 +280,31 @@ fn sha256(bytes: &[u8]) -> String {
     format!("{:x}", hash.finalize())
 }
 
+fn validate_row(row: &ScoreRow, line: usize) -> Result<(), String> {
+    if row.flight_id.trim().is_empty() {
+        return Err(format!("line {line}: flight_id must be non-empty"));
+    }
+    for (name, value) in [
+        ("decision_time_s", row.decision_time_s),
+        ("outcome_time_s", row.outcome_time_s),
+        ("risk_score", row.risk_score),
+        ("feature_max_time_s", row.feature_max_time_s),
+        ("error_value", row.error_value),
+    ] {
+        if !value.is_finite() { return Err(format!("line {line}: {name} must be finite")); }
+    }
+    if !(0.0..=1.0).contains(&row.risk_score) || row.error_value < 0.0 {
+        return Err(format!("line {line}: risk_score must be in [0,1] and error_value non-negative"));
+    }
+    if row.outcome_time_s <= row.decision_time_s {
+        return Err(format!("line {line}: outcome_time_s must be later than decision_time_s"));
+    }
+    if row.feature_max_time_s > row.decision_time_s + EPS {
+        return Err(format!("line {line}: causal leakage; feature_max_time_s is after decision time"));
+    }
+    Ok(())
+}
+
 fn read_rows(path: &Path) -> Result<(Vec<ScoreRow>, Vec<u8>), String> {
     let bytes = fs::read(path).map_err(|e| format!("cannot read scores {}: {e}", path.display()))?;
     if bytes.is_empty() {
@@ -297,29 +322,7 @@ fn read_rows(path: &Path) -> Result<(Vec<ScoreRow>, Vec<u8>), String> {
     for (offset, rec) in rdr.deserialize::<ScoreRow>().enumerate() {
         let row = rec.map_err(|e| format!("CSV record {}: {e}", offset + 2))?;
         let line = offset + 2;
-        if row.flight_id.trim().is_empty() {
-            return Err(format!("line {line}: flight_id must be non-empty"));
-        }
-        for (name, value) in [
-            ("decision_time_s", row.decision_time_s),
-            ("outcome_time_s", row.outcome_time_s),
-            ("risk_score", row.risk_score),
-            ("feature_max_time_s", row.feature_max_time_s),
-            ("error_value", row.error_value),
-        ] {
-            if !value.is_finite() {
-                return Err(format!("line {line}: {name} must be finite"));
-            }
-        }
-        if !(0.0..=1.0).contains(&row.risk_score) || row.error_value < 0.0 {
-            return Err(format!("line {line}: risk_score must be in [0,1] and error_value non-negative"));
-        }
-        if row.outcome_time_s <= row.decision_time_s {
-            return Err(format!("line {line}: outcome_time_s must be later than decision_time_s"));
-        }
-        if row.feature_max_time_s > row.decision_time_s + EPS {
-            return Err(format!("line {line}: causal leakage; feature_max_time_s is after decision time"));
-        }
+        validate_row(&row, line)?;
         rows.push(row);
     }
     if rows.is_empty() {
@@ -360,10 +363,6 @@ fn validate_splits(
         }
     }
     Ok(())
-}
-
-fn sorted_scores(rows: &[ScoreRow]) -> Vec<LabelScore> {
-    rows.iter().map(|r| LabelScore { score: r.risk_score, positive: r.label(f64::INFINITY) }).collect()
 }
 
 fn quantile_threshold(rows: &[ScoreRow], budget: f64) -> Result<f64, String> {
@@ -473,7 +472,7 @@ fn event_and_alert_metrics(
 ) -> (usize, usize, Option<f64>, Option<f64>, usize, Option<f64>, Option<f64>) {
     let evs = events(rows, error_threshold, event_gap_s);
     let mut detected = vec![false; evs.len()];
-    let mut leads = Vec::new();
+    let mut event_leads: Vec<Option<f64>> = vec![None; evs.len()];
     let mut alert_events = vec![false; rows.len()];
     for (ri, (row, is_alert)) in rows.iter().zip(alerts).enumerate() {
         if !*is_alert { continue; }
@@ -484,12 +483,14 @@ fn event_and_alert_metrics(
                 && row.outcome_time_s <= event.end_s + EPS
             {
                 detected[ei] = true;
-                leads.push(event.start_s - row.decision_time_s);
+                let lead = event.start_s - row.decision_time_s;
+                event_leads[ei] = Some(event_leads[ei].map_or(lead, |old| old.max(lead)));
                 alert_events[ri] = true;
             }
         }
     }
     let detected_count = detected.iter().filter(|x| **x).count();
+    let mut leads: Vec<f64> = event_leads.into_iter().flatten().collect();
     leads.sort_by(f64::total_cmp);
     let median_lead = if leads.is_empty() { None } else {
         let n = leads.len();
@@ -740,14 +741,14 @@ mod tests {
         let r = row("f1", 1.0, 1.5, 0.8, 0.1);
         let mut invalid = r.clone();
         invalid.feature_max_time_s = 1.01;
-        assert!(invalid.feature_max_time_s > invalid.decision_time_s + EPS);
+        assert!(validate_row(&invalid, 2).is_err());
     }
 
     #[test]
     fn an_alert_after_event_onset_is_not_early_detection() {
-        let rows = vec![row("f1", 0.0, 0.1, 0.0, 0.0), row("f1", 0.1, 0.2, 1.0, 2.0),
-            row("f1", 0.2, 0.3, 1.0, 2.0), row("f1", 0.3, 0.4, 0.0, 0.0)];
-        let alerts = vec![false, true, true, false];
+        let rows = vec![row("f1", 0.0, 0.2, 0.0, 2.0), row("f1", 0.1, 0.3, 1.0, 2.0),
+            row("f1", 0.2, 0.4, 1.0, 2.0), row("f1", 0.3, 0.5, 0.0, 2.0)];
+        let alerts = vec![false, false, true, true];
         let (_, detected, recall, _, _, _, _) = event_and_alert_metrics(&rows, &alerts, 1.0, 0.11, 0.11);
         assert_eq!(detected, 0);
         assert_eq!(recall, Some(0.0));
@@ -755,8 +756,8 @@ mod tests {
 
     #[test]
     fn early_alert_detects_event_and_counts_lead_time() {
-        let rows = vec![row("f1", 0.0, 0.1, 1.0, 0.0), row("f1", 0.1, 0.2, 0.0, 2.0),
-            row("f1", 0.2, 0.3, 0.0, 2.0), row("f1", 0.3, 0.4, 0.0, 0.0)];
+        let rows = vec![row("f1", 0.0, 0.2, 1.0, 2.0), row("f1", 0.1, 0.3, 0.0, 2.0),
+            row("f1", 0.2, 0.4, 0.0, 2.0), row("f1", 0.3, 0.5, 0.0, 0.0)];
         let alerts = vec![true, false, false, false];
         let (_, detected, recall, lead, _, _, _) = event_and_alert_metrics(&rows, &alerts, 1.0, 0.11, 0.11);
         assert_eq!(detected, 1);
