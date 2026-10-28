@@ -235,6 +235,14 @@ fn validate(manifest: &Manifest) -> ValidationReport {
     if !valid_evidence_class(&manifest.evidence_class) {
         errors.push(format!("unsupported root evidence_class {}", manifest.evidence_class));
     }
+    if manifest.status == "validated_for_replay"
+        && !matches!(
+            manifest.evidence_class.as_str(),
+            "measured_field" | "reanalysis" | "mission_observed" | "remote_observation" | "validated_simulation"
+        )
+    {
+        errors.push("validated_for_replay requires an admitted evidence class; synthetic, hypothesized and unevaluated traces cannot claim this status".to_string());
+    }
     if !matches!(
         manifest.status.as_str(),
         "template_only" | "ingested_unvalidated" | "validated_for_replay" | "blocked"
@@ -423,6 +431,9 @@ fn validate(manifest: &Manifest) -> ValidationReport {
             }
             if manifest.quality.validated_against.is_empty() {
                 errors.push("quality.validated_against must name at least one reference or validation method".to_string());
+            }
+            for reference in &manifest.quality.validated_against {
+                check_nonempty(&mut errors, reference, "quality.validated_against[]");
             }
 
             for variable in &manifest.variables {
