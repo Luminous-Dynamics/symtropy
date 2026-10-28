@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import plan_independent_scene_families as planner_module
 from plan_independent_scene_families import _t_critical
 
 SCHEMA_VERSION = "0.1.0"
@@ -257,6 +258,7 @@ def main(argv: list[str] | None = None) -> int:
                           lower_bound_pct=args.lower_bound_pct, upper_bound_pct=args.upper_bound_pct,
                           difficulty_slope_pp=args.difficulty_slope_pp, sample_sizes=sizes)
         report["source_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+        report["t_critical_helper_source_sha256"] = hashlib.sha256(Path(planner_module.__file__).read_bytes()).hexdigest()
     except (MissingnessAuditError, ValueError, OverflowError) as exc:
         print(f"lighting MNAR sensitivity audit: FAIL: {exc}", file=sys.stderr)
         return 2
