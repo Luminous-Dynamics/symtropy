@@ -20,6 +20,8 @@ use std::fmt;
 
 mod capacity_window;
 pub use capacity_window::*;
+mod time_dependent;
+pub use time_dependent::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Mode {
@@ -2470,8 +2472,9 @@ mod tests {
             EdgeMetrics::default(),
         ));
 
-        let routes =
-            pareto_routes(&network, &passenger_demand(1), SearchLimits::default()).unwrap();
+        let mut demand = passenger_demand(1);
+        demand.destination = "C".to_owned();
+        let routes = pareto_routes(&network, &demand, SearchLimits::default()).unwrap();
         assert_eq!(routes.len(), 1);
         assert_eq!(routes[0].edge_ids, vec!["z-direct".to_owned()]);
     }
@@ -2914,7 +2917,7 @@ mod tests {
             assignment_id: "assignment-1".to_owned(),
             capacity_scope_id: "shift-2026-10-13-day".to_owned(),
             module_id: "container-42".to_owned(),
-            module_profile_id: "iso-40ft-v1".to_owned(),
+            module_profile_id: "iso-series1-example-v1".to_owned(),
             transfer_edge_id: "road-rail-at-hub".to_owned(),
             equipment_id: "hub-cross-dock-crane-3".to_owned(),
             terminal_id: "Hub".to_owned(),
@@ -3256,7 +3259,7 @@ mod tests {
             assignment_id: "assignment-2".to_owned(),
             capacity_scope_id: "shift-2026-10-13-day".to_owned(),
             module_id: "container-43".to_owned(),
-            module_profile_id: "iso-40ft-v1".to_owned(),
+            module_profile_id: "iso-series1-example-v1".to_owned(),
             transfer_edge_id: "road-rail-at-hub-2".to_owned(),
             equipment_id: "hub-cross-dock-crane-3".to_owned(),
             terminal_id: "Hub".to_owned(),
