@@ -397,3 +397,18 @@ Schema: [glass-acquisition-campaign-transcript-v0.1.schema.json](./glass-acquisi
 
 The output includes the raw transcript SHA-256, request/result counts, cumulative cost/time, final disposition, and findings. A `PASS` means the transcript structure and declared budget accounting are internally consistent only; it does **not** establish observation truth, policy process isolation, material feasibility, or plant impact. The next step in [GLASS-CLOSED-LOOP-001 #2785](https://github.com/Luminous-Dynamics/symtropy/issues/2785) is deterministic replay of the trace against a sealed evaluator and an isolated policy execution lane.
 
+
+
+## Preregistered causal-impact trial contract (v0.1)
+
+Follow-on work: [GLASS-CAUSAL-TRIAL-001 #2787](https://github.com/Luminous-Dynamics/symtropy/issues/2787).
+
+Command:
+
+`cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-causal-trial tools/glass-silicon-contract-audit/fixtures/causal-trial-paired-block.synthetic.json`
+
+Input schema: [glass-causal-trial-v0.1.schema.json](./glass-causal-trial-v0.1.schema.json). The first offline reference case is a synthetic balanced paired randomized crossover: eight blocks, four in each order, 5% minimum relative reduction, and one-sided process direction expressed as lower energy per accepted tonne. The evaluator recomputes `energy_kwh / accepted_tonnes` per period, paired savings, the mean relative reduction and its 95% paired-t interval. It also calculates a two-sided exact sign-flip randomization p-value over the paired block contrasts (exhaustive enumeration is capped at 20 blocks).
+
+The reference fixture is constructed to produce approximately 6.61% mean relative reduction, a lower 95% interval bound above 5%, and exact two-sided p approximately 0.0078125. These are synthetic known answers—not measured plant savings. A trial can be structurally valid yet return claim status `NOT_SUPPORTED` when its target effect or inference threshold is not met. Missing/censored/stale measurement or unknown quality gives `UNRESOLVED`; a hard quality failure or post-outcome preregistration fails the audit and cannot be offset by energy improvement.
+
+The randomization test is valid only under the declared paired randomization/exchangeability assumptions. This tool checks the declared schedule and arithmetic; it does not prove that randomization was actually followed, that the evidence references are authentic, that crossover carryover is absent, or that the trial is representative of other campaigns/sites. Actual intervention requires site authorization and independent engineering/safety review. Use independently metered energy and accepted-grade product denominators, retain failed and excluded outcomes, and preregister the estimand and analysis before outcomes are accessed.
