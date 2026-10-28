@@ -91,7 +91,7 @@ The original five-unit cap is retained as an upper-budget smoke test, but it is 
 - Fixture: `tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog-tight-budget.synthetic.json`
 - Oracle: the same evaluator-only outcome fixture as the five-unit lane. The public catalog and sealed outcome artifact remain byte-distinct and are independently SHA-256 bound.
 - Budget: 3 cost units and at most 25 synthetic seconds for every primary policy episode. At the frozen evaluation tariff, fixed-space GP-EI can evaluate only three of the five initially visible candidates; the repeated-seed random control faces the same cap.
-- Action surface: each policy receives the declared action tariffs as budget metadata, plus only expansion methods whose full evaluator-owned cost **and duration** fit the remaining budget. An expansion decision that is unaffordable is not offered as an available action; policies continue with affordable candidate evaluations instead.
+- Action surface: each policy receives the declared action tariffs as budget metadata, plus only expansion methods whose full evaluator-owned cost **and duration** fit while also reserving one follow-up candidate evaluation. An expansion that fits by itself but would consume the entire remaining budget without permitting a measurement is not offered as an eligible action; policies continue with affordable candidate evaluations instead.
 - Accounting and replay: the evaluator still charges from its own tariff catalog before revealing an outcome. The replay reconstructs the tariff view and affordability set from the sealed oracle, then checks the action/view digest and cumulative charges. The policy cannot lower the tariff by editing its response.
 
 Run the pressure lane with:
