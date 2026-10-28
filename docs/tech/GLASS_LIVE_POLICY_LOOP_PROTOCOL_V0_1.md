@@ -105,6 +105,21 @@ cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
 The three-unit lane is a **diagnostic budget-frontier point**, not an assertion that three units is the correct industrial budget, and not a policy-performance result. Compare matched policy/seed pairs at multiple budget levels before selecting any deployment budget. The protocol known answer requires complete 24-arm episode coverage, exactly three charged units per primary episode, three GP-EI evaluations without expansion, three evaluations per random-seed control, zero unaffordable prior-guided expansions, and deterministic independent replay. If a policy has to abstain or cannot afford a useful action, record that as a result instead of waiving cost or hard constraints.
 
 
+
+## Four-unit expansion frontier
+
+The three-unit lane is intentionally strict: after the first screen, even the cheapest expansion cannot leave enough budget for a follow-up measurement. A complementary four-unit catalog tests a different, equally important condition: some expansion actions become useful and affordable, while the higher-cost prior-guided expansion is still too expensive after screening.
+
+- Fixture: `tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog-four-unit.synthetic.json`
+- Shared cap: 4 cost units and at most 25 synthetic seconds for every policy and random-seed control.
+- Fixed-space GP-EI can make four evaluations instead of exhaustively evaluating all five initially visible candidates.
+- In the helpful synthetic environment, random expansion has budget for its one follow-up evaluation (expected best feasible utility 6) and rule-based expansion has budget for its follow-up (expected utility 8). The static prior-expansion arm can spend before observing and then afford a follow-up evaluation (expected utility 10 in this deliberately constructed case). These are test-fixture known answers, **not measured optimizer performance**.
+- An expansion policy cannot use a nominally affordable expansion that leaves no budget for an evaluation. Every expansion event in the scored campaign must be followed by an evaluation of that newly visible candidate. The independent replayer recomputes this from the public state, tariffs and event order.
+- The adaptive prior-guided arm cannot pay its 3-unit expansion plus a 1-unit follow-up after the initial 1-unit screen, so it must continue from the current space. This exposes the distinction between an expensive proposal made before observations and the same proposal made adaptively after a screen.
+
+The four-unit known-answer gate requires 24 matched primary episodes, four charged units for each, GP-EI and uniform-random controls making four evaluations, expansion help/tie/harm outcomes remaining visible, no unmeasured expansion, and independent replay reporting 96 recomputed primary-policy cost units. Read together, the 3-, 4-, and 5-unit lanes form a small **budget frontier**: constrained selection, mixed feasible expansion decisions, and the prior full-budget smoke test. These synthetic points validate the harness only; they do not define a real experimental cost scale.
+
+
 ## Follow-on promotion gates
 
 1. **Runtime isolation:** launch a policy as a sandboxed subprocess/WASM module, send only the current public view, reject all undeclared fields, and replay every action/event against the sealed evaluator independently.
