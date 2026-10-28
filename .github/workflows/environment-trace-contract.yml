@@ -6,12 +6,14 @@ on:
       - "research/polar-infrastructure/benchmark/schemas/environment-trace-manifest-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
       - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
+      - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
       - ".github/workflows/environment-trace-contract.yml"
   push:
     paths:
       - "research/polar-infrastructure/benchmark/schemas/environment-trace-manifest-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
       - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
+      - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
       - ".github/workflows/environment-trace-contract.yml"
   workflow_dispatch:
 
@@ -88,7 +90,25 @@ jobs:
             (.provenance.transformation_recipe | length > 0)
           ' "$template"
 
-          # This workflow checks structural guardrails and the template's honest
-          # not-yet-ingested state; it deliberately does not claim full JSON Schema
-          # engine validation, data quality, physical-model validity, or replay success.
+          # This jq stage checks structural guardrails; it is not a JSON Schema engine.
           test -s research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
+
+      - name: Test fail-closed Rust manifest gate
+        run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin environment_trace_manifest
+
+      - name: Validate template with the Rust manifest gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin environment_trace_manifest -- research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json > /tmp/environment-trace-manifest-report.json
+          jq -e '
+            .report_kind == "symtropy-environment-trace-manifest-validation-report" and
+            .contract_valid == true and
+            .manifest_status == "template_only" and
+            .candidate_for_independent_verification == false and
+            .result_scope == "manifest_shape_and_gate_metadata_only_not_data_hash_or_physical_validation" and
+            any(.warnings[]; contains("contains no acquired trace"))
+          ' /tmp/environment-trace-manifest-report.json
