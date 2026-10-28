@@ -1,0 +1,136 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "symtropy-environment-trace-manifest",
+  "manifest_id": "namib_coastal_desert_trace_template_v0",
+  "profile_id": "earth.coastal_desert_namib",
+  "status": "template_only",
+  "evidence_class": "not_evaluated",
+  "acquisition": {
+    "provider": null,
+    "dataset_name": null,
+    "dataset_version": null,
+    "source_url": null,
+    "attribution": null,
+    "license_or_access_terms": null,
+    "accessed_at_utc": null,
+    "source_data_sha256": null
+  },
+  "spatial_context": {
+    "location_label": "Namib coastal desert archetype; select a specific site or grid cell before replay",
+    "latitude_deg": null,
+    "longitude_deg": null,
+    "elevation_m": null,
+    "spatial_support": "not_selected_site_or_grid_cell",
+    "coordinate_reference": "WGS84_if_geographic_coordinates_are_selected"
+  },
+  "time_axis": {
+    "start_utc": null,
+    "end_utc": null,
+    "sample_interval_seconds": null,
+    "expected_sample_count": null,
+    "observed_sample_count": null,
+    "missing_sample_count": null,
+    "timestamp_semantics": "unknown",
+    "timezone": "UTC",
+    "gap_policy": "not_selected"
+  },
+  "trace_asset": {
+    "uri": null,
+    "sha256": null,
+    "format": "not_selected",
+    "byte_size": null,
+    "immutable_archive_uri": null
+  },
+  "variables": [
+    {
+      "variable_id": "air_temperature_2m",
+      "physical_quantity": "near-surface air temperature at 2 m",
+      "canonical_unit": "K",
+      "source_variable": null,
+      "transformation": "map source variable and document any conversion; do not infer missing values",
+      "evidence_class": "not_evaluated",
+      "required_for_replay": true
+    },
+    {
+      "variable_id": "global_horizontal_irradiance",
+      "physical_quantity": "global horizontal solar irradiance",
+      "canonical_unit": "W m-2",
+      "source_variable": null,
+      "transformation": "document averaging/accumulation interval and any unit conversion",
+      "evidence_class": "not_evaluated",
+      "required_for_replay": true
+    },
+    {
+      "variable_id": "wind_speed_10m",
+      "physical_quantity": "near-surface wind speed at 10 m",
+      "canonical_unit": "m s-1",
+      "source_variable": null,
+      "transformation": "document height, averaging interval and any vector-to-speed conversion",
+      "evidence_class": "not_evaluated",
+      "required_for_replay": true
+    },
+    {
+      "variable_id": "precipitation_amount",
+      "physical_quantity": "precipitation amount over the declared interval",
+      "canonical_unit": "m water equivalent",
+      "source_variable": null,
+      "transformation": "document whether source is a rate or interval accumulation",
+      "evidence_class": "not_evaluated",
+      "required_for_replay": true
+    },
+    {
+      "variable_id": "relative_humidity_2m",
+      "physical_quantity": "near-surface relative humidity at 2 m",
+      "canonical_unit": "1 (fraction)",
+      "source_variable": null,
+      "transformation": "document percentage-to-fraction conversion if applicable",
+      "evidence_class": "not_evaluated",
+      "required_for_replay": false
+    },
+    {
+      "variable_id": "fog_liquid_water_content",
+      "physical_quantity": "fog liquid water content",
+      "canonical_unit": "kg m-3",
+      "source_variable": null,
+      "transformation": "requires a suitable instrument or validated derivation; meteorological reanalysis alone is not assumed to provide it",
+      "evidence_class": "not_evaluated",
+      "required_for_replay": false
+    },
+    {
+      "variable_id": "salt_deposition_flux",
+      "physical_quantity": "surface salt deposition mass flux",
+      "canonical_unit": "kg m-2 s-1",
+      "source_variable": null,
+      "transformation": "requires local deposition observations or a separately validated model",
+      "evidence_class": "not_evaluated",
+      "required_for_replay": false
+    },
+    {
+      "variable_id": "dust_deposition_flux",
+      "physical_quantity": "surface dust deposition mass flux",
+      "canonical_unit": "kg m-2 s-1",
+      "source_variable": null,
+      "transformation": "requires local deposition observations or a separately validated model",
+      "evidence_class": "not_evaluated",
+      "required_for_replay": false
+    }
+  ],
+  "quality": {
+    "validation_status": "not_evaluated",
+    "missing_data_policy": "Choose and justify before ingestion; retain an explicit missingness mask, never silently impute missing values as zero",
+    "known_biases_or_limits": [
+      "No site, dataset, time range, or measured values have been selected.",
+      "Regional reanalysis is not a substitute for local fog liquid-water content, salt deposition, or dust deposition observations.",
+      "A trace can be source-verified without being validated for a particular engineering use."
+    ],
+    "uncertainty_method": "not_selected; record source uncertainty and distinguish it from controller/scenario uncertainty",
+    "validation_evidence_uri": null,
+    "validated_against": []
+  },
+  "provenance": {
+    "processing_code_revision": null,
+    "transformation_recipe": "Template only. After source selection, pin a deterministic transformation recipe, units, temporal semantics, gap handling and configuration digest.",
+    "transformation_config_sha256": null,
+    "created_at_utc": null
+  }
+}
