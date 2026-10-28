@@ -59,7 +59,7 @@ These are executable policy controls, not state-of-the-art implementations. No a
 4. **Outcomes must be complete.** Missing candidate/fidelity outcomes yield UNRESOLVED; they are not converted to zero, failed feasibility, or free retries.
 5. **Pareto membership is based only on confirmed feasible candidates.** An infeasible candidate with excellent objectives is still excluded from the accepted front.
 6. **Hypervolume definitions are fixed.** Objective directions and the reference point are validated rather than tuned after observing outcomes.
-7. **Replay is exact.** Re-running the deterministic policy loop from the exact public/oracle bytes must reproduce actions, decision-view digests, observations, costs, feasibility, Pareto membership, hypervolume, and regret.
+7. **Replay is event-by-event.** The receipt replayer reconstructs each pre-action public view, checks the registered policy's next action and view digest, recomputes evaluator-owned charges, matches each revealed observation to the sealed oracle, and recomputes feasibility, Pareto membership, hypervolume, regret, and campaign coverage. Mutation tests must reject forged action digests, underreported charges, and forged hypervolume. This is an independent accounting/replay path over the same deterministic policy implementation, not a hardened sandbox against malicious native code.
 
 ## Metrics
 
