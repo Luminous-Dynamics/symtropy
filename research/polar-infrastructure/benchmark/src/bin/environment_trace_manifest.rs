@@ -162,13 +162,76 @@ fn https_url(value: &str) -> bool {
 
 fn utc_timestamp_shape(value: &str) -> bool {
     let bytes = value.as_bytes();
-    bytes.len() >= 20
-        && bytes.get(4) == Some(&b'-')
-        && bytes.get(7) == Some(&b'-')
-        && bytes.get(10) == Some(&b'T')
-        && bytes.get(13) == Some(&b':')
-        && bytes.get(16) == Some(&b':')
-        && value.ends_with('Z')
+    if bytes.len() < 20
+        || bytes.get(4) != Some(&b'-')
+        || bytes.get(7) != Some(&b'-')
+        || bytes.get(10) != Some(&b'T')
+        || bytes.get(13) != Some(&b':')
+        || bytes.get(16) != Some(&b':')
+        || !value.ends_with('Z')
+    {
+        return false;
+    }
+
+    for range in [0..4, 5..7, 8..10, 11..13, 14..16, 17..19] {
+        if !bytes[range].iter().all(u8::is_ascii_digit) {
+            return false;
+        }
+    }
+
+    let parse = |range: std::ops::Range<usize>| {
+        std::str::from_utf8(&bytes[range]).ok()?.parse::<u32>().ok()
+    };
+    let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) = (
+        parse(0..4),
+        parse(5..7),
+        parse(8..10),
+        parse(11..13),
+        parse(14..16),
+        parse(17..19),
+    ) else {
+        return false;
+    };
+    if year == 0 || !(1..=12).contains(&month) || !(0..=23).contains(&hour)
+        || !(0..=59).contains(&minute) || !(0..=60).contains(&second)
+    {
+        return false;
+    }
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let max_day = match month {
+        2 if leap_year => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    };
+    if day == 0 || day > max_day {
+        return false;
+    }
+
+    if bytes.len() == 20 {
+        return true;
+    }
+    if bytes.get(19) != Some(&b'.') {
+        return false;
+    }
+    let fraction = &bytes[20..bytes.len() - 1];
+    !fraction.is_empty() && fraction.iter().all(u8::is_ascii_digit)
+}
+
+fn utc_timestamp_order_key(value: &str) -> Option<(String, u32)> {
+    if !utc_timestamp_shape(value) {
+        return None;
+    }
+    let bytes = value.as_bytes();
+    let fraction = if bytes.len() == 20 {
+        0
+    } else {
+        let digits = &value[20..value.len() - 1];
+        let leading_nine: String = digits.chars().take(9).collect();
+        let padded = format!("{leading_nine}{:0<width$}", "", width = 9 - leading_nine.len());
+        padded.parse::<u32>().ok()?
+    };
+    Some((value[..19].to_string(), fraction))
 }
 
 fn check_nonempty(errors: &mut Vec<String>, value: &str, field: &str) {
@@ -379,8 +442,10 @@ fn validate(manifest: &Manifest) -> ValidationReport {
             check_utc_time(&mut errors, start, "time_axis.start_utc");
             check_utc_time(&mut errors, end, "time_axis.end_utc");
             if let (Some(start), Some(end)) = (start, end) {
-                if start >= end {
-                    errors.push("time_axis.start_utc must be earlier than end_utc".to_string());
+                match (utc_timestamp_order_key(start), utc_timestamp_order_key(end)) {
+                    (Some(start_key), Some(end_key)) if start_key < end_key => {}
+                    (Some(_), Some(_)) => errors.push("time_axis.start_utc must be earlier than end_utc".to_string()),
+                    _ => {}
                 }
             }
 
@@ -561,8 +626,20 @@ mod tests {
     #[test]
     fn nullable_fields_must_be_present_even_when_the_value_is_null() {
         let mut value: serde_json::Value = serde_json::from_str(TEMPLATE).expect("template JSON should parse");
-        value["acquisition"].as_object_mut().expect("acquisition object").remove("source_url");
+        let removed = value["acquisition"].as_object_mut().expect("acquisition object").remove("source_url");
+        assert!(removed.is_some());
         assert!(serde_json::from_value::<Manifest>(value).is_err());
+    }
+
+    #[test]
+    fn utc_timestamp_validation_checks_calendar_and_ordering_shape() {
+        assert!(!utc_timestamp_shape("abcd-ef-ghTij:kl:mnZ"));
+        assert!(!utc_timestamp_shape("2026-02-30T14:39:00Z"));
+        assert!(utc_timestamp_shape("2024-02-29T14:39:00.250Z"));
+        assert!(
+            utc_timestamp_order_key("2026-10-28T14:39:00.501Z")
+                > utc_timestamp_order_key("2026-10-28T14:39:00.500Z")
+        );
     }
 
     #[test]
