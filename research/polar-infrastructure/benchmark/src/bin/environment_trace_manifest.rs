@@ -333,7 +333,7 @@ fn validate(manifest: &Manifest) -> ValidationReport {
     }
     if !matches!(
         manifest.time_axis.timestamp_semantics.as_str(),
-        "instantaneous" | "interval_mean" | "interval_accumulation" | "sample_event" | "mission_time" | "unknown"
+        "instantaneous" | "interval_mean" | "interval_accumulation" | "sample_event" | "mission_time" | "calendar_day_label" | "unknown"
     ) {
         errors.push("unsupported time_axis.timestamp_semantics".to_string());
     }
