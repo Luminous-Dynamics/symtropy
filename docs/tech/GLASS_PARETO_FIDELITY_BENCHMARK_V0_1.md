@@ -1,7 +1,7 @@
 # Glass–Silicon Constrained Pareto and Multi-Fidelity Benchmark v0.1
 
 **Status:** synthetic executable benchmark; exact-head runtime qualification pending  
-**Benchmark ID:** \`glass-pareto-fidelity-synthetic-v0-1\`  
+**Benchmark ID:** `glass-pareto-fidelity-synthetic-v0-1`  
 **Claim ceiling:** accounting, hard-constraint, Pareto-scoring, and deterministic replay mechanics only. The fixture does not establish glass/silicon process performance or superiority over published methods.
 
 ## Why this lane exists
@@ -25,14 +25,15 @@ The practical industry baseline is not only a named BO paper. Where a rights-cle
 ## Frozen synthetic task contract
 
 Public input:
-- \`tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-task.synthetic.json\`
-- \`docs/tech/glass-pareto-fidelity-task-v0.1.schema.json\`
+- `tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-task.synthetic.json`
+- `docs/tech/glass-pareto-fidelity-task-v0.1.schema.json`
 
 Evaluator-only input:
-- \`tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-oracle.synthetic.json\`
-- \`docs/tech/glass-pareto-fidelity-oracle-v0.1.schema.json\`
+- `tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-oracle.synthetic.json`
+- `docs/tech/glass-pareto-fidelity-oracle-v0.1.schema.json`
+- `docs/tech/glass-pareto-fidelity-report-v0.1.schema.json` (versioned evaluator report/receipt)
 
-There are five synthetic candidate families and three regimes: \`informative\`, \`neutral\`, and \`misleading_low_fidelity\`. The public task freezes:
+There are five synthetic candidate families and three regimes: `informative`, `neutral`, and `misleading_low_fidelity`. The public task freezes:
 - two objectives, quality (maximize) and synthetic energy (minimize);
 - a Pareto reference point of quality 0 and energy 10;
 - the qualification hard gate;
@@ -43,16 +44,16 @@ The oracle owns the fidelity tariff table and all outcomes. A screen costs 0.5 u
 
 ## Policies actually executed
 
-- \`confirmatory_priority\`: spends its budget on confirmatory candidates, chosen from public priority.
-- \`screen_then_confirm\`: screens three candidates, then confirms screened candidates by the revealed screening objectives.
-- \`screen_only\`: uses screening alone and must never report a qualified candidate or a feasible Pareto front.
-- \`random_confirmatory\`: selects confirmatory candidates in a deterministic seed-derived order.
+- `confirmatory_priority`: spends its budget on confirmatory candidates, chosen from public priority.
+- `screen_then_confirm`: screens three candidates, then confirms screened candidates by the revealed screening objectives.
+- `screen_only`: uses screening alone and must never report a qualified candidate or a feasible Pareto front.
+- `random_confirmatory`: selects confirmatory candidates in a deterministic seed-derived order.
 
 These are executable policy controls, not state-of-the-art implementations. No arm calls an LLM or fits a Gaussian process. This initial stage tests whether a richer policy may be evaluated safely—not whether any policy wins on real materials.
 
 ## Non-negotiable evaluator rules
 
-1. **Hard constraints are lexicographically prior to reward.** Only confirmatory observations can establish \`qualification=true\`. A screen can guide where to spend next, but cannot certify feasibility.
+1. **Hard constraints are lexicographically prior to reward.** Only confirmatory observations can establish `qualification=true`. A screen can guide where to spend next, but cannot certify feasibility.
 2. **Costs and duration come from the sealed tariff table.** Action cost is charged before the selected outcome is exposed; policy output cannot set its own price.
 3. **Public and evaluator-only data are separate byte artifacts.** Reports bind both by SHA-256.
 4. **Outcomes must be complete.** Missing candidate/fidelity outcomes yield UNRESOLVED; they are not converted to zero, failed feasibility, or free retries.
@@ -83,7 +84,7 @@ Hypervolume cannot be compared across tasks with different units, objective scal
 
 ## Reproduce locally
 
-\`\`\`sh
+```sh
 cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-pareto-fidelity
 
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-pareto-fidelity -- \\
@@ -94,7 +95,7 @@ cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
   --replay glass-pareto-fidelity-report.json \\
   tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-task.synthetic.json \\
   tools/glass-silicon-contract-audit/fixtures/glass-pareto-fidelity-oracle.synthetic.json
-\`\`\`
+```
 
 ## Promotion gates
 
