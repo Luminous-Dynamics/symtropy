@@ -9,6 +9,9 @@ use symthaea_bevy_brain::CognitiveBrain;
 use symthaea_fep::HapticSemanticBinder;
 use symtropy_bevy_core::{BevyPhysics, PhysicsBody};
 use symtropy_math::Bivector;
+use symtropy_robotics_bridge_core::observation::{
+    BaseKinematicObservationV0, BASE_KINEMATIC_OBSERVATION_DIM,
+};
 
 /// Marker for the root entity of a robotic agent (ECS tag component only —
 /// for the consciousness-driving agent with `.tick()`/`.phi()`, see
@@ -114,33 +117,46 @@ type SensoryInputQuery<'w, 's> = Query<
 fn propagate_sensory_input_system(mut query: SensoryInputQuery, physics: Res<BevyPhysics<3>>) {
     for (mut brain, transform, body_comp, haptic_binder, proximity) in &mut query {
         if let Some(hb) = haptic_binder {
-            // Base state: [pos(3), rot(4), vel(3), ang_vel(3)] (13 dims)
-            let mut state = vec![0.0f32; 13];
-            state[0] = transform.translation.x;
-            state[1] = transform.translation.y;
-            state[2] = transform.translation.z;
-            state[3] = transform.rotation.x;
-            state[4] = transform.rotation.y;
-            state[5] = transform.rotation.z;
-            state[6] = transform.rotation.w;
+            // Missing physics state is unavailable, not a zero-velocity observation.
+            let Some(body) = physics.world.body(body_comp.handle) else {
+                brain.perception_hv = None;
+                brain.perception_input.clear();
+                continue;
+            };
+            let observation = BaseKinematicObservationV0 {
+                base_position_m: [
+                    transform.translation.x,
+                    transform.translation.y,
+                    transform.translation.z,
+                ],
+                base_orientation_xyzw: [
+                    transform.rotation.x,
+                    transform.rotation.y,
+                    transform.rotation.z,
+                    transform.rotation.w,
+                ],
+                base_linear_velocity_m_s: [
+                    body.linear_velocity[0] as f32,
+                    body.linear_velocity[1] as f32,
+                    body.linear_velocity[2] as f32,
+                ],
+                base_angular_velocity_bivector_xy_xz_yz_rad_s: [
+                    body.angular_velocity.get(0, 1) as f32,
+                    body.angular_velocity.get(0, 2) as f32,
+                    body.angular_velocity.get(1, 2) as f32,
+                ],
+            };
+            let Ok(state) = observation.try_to_ordered_values() else {
+                // Do not publish a malformed frame or reuse the previous one.
+                brain.perception_hv = None;
+                brain.perception_input.clear();
+                continue;
+            };
 
-            if let Some(body) = physics.world.body(body_comp.handle) {
-                state[7] = body.linear_velocity[0] as f32;
-                state[8] = body.linear_velocity[1] as f32;
-                state[9] = body.linear_velocity[2] as f32;
-                // Bivector 3D has 3 components: xy, xz, yz
-                state[10] = body.angular_velocity.get(0, 1) as f32;
-                state[11] = body.angular_velocity.get(0, 2) as f32;
-                state[12] = body.angular_velocity.get(1, 2) as f32;
-            }
-
-            // Optional: Append proximity data (first 3 closest objects: [dist, dx, dy, dz] * 3 = 12 dims)
-            // Total dims would be 13 + 12 = 25.
-            // For now, keeping it at 13 to match the binder initialization in spawn_robot.
-            // Future: Dynamically resize binder or use a fixed large capacity.
-
-            // Project into 16,384D semantic space
-            let health = vec![1.0f32; state.len()];
+            // This named 13-value base layout excludes joints, tools, task
+            // context, scene estimates, and proximity. It is not the complete
+            // Careframe matched-semantic-state contract.
+            let health = vec![1.0f32; BASE_KINEMATIC_OBSERVATION_DIM];
             brain.perception_hv = Some(hb.binder.bind_with_health(&state, &health));
         } else {
             // Legacy path
@@ -201,7 +217,7 @@ pub fn spawn_robot(
 ) -> Entity {
     // Create a binder for the standard 13-dim state
     let haptic_binder = RoboticHapticBinder {
-        binder: HapticSemanticBinder::new(13, 16384),
+        binder: HapticSemanticBinder::new(BASE_KINEMATIC_OBSERVATION_DIM, 16384),
     };
 
     commands
