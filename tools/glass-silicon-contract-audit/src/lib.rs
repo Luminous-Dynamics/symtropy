@@ -5121,16 +5121,18 @@ mod acquisition_policy_comparison_tests {
         let mut value = fixture();
         value["measurements"][0]["duration_seconds"] = json!(90.0);
         value["measurements"][0]["selection_features"]["estimated_voi"] = json!(8.0);
-        value["measurements"][1]["selection_features"]["estimated_voi"] = json!(5.0);
+        value["measurements"][1]["selection_features"]["estimated_voi"] = json!(10.0);
         let report = audit_acquisition_policy_comparison(&value);
         assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        // VOI/cost alone would choose the long measure-regime (8/2 > 10/3);
+        // joint normalized cost/time charge correctly prefers the faster measure-noise.
         assert_eq!(
             policy(&report, "cost_aware_voi").runs[0].selected_measurement_id.as_deref(),
-            Some("measure-regime")
+            Some("measure-noise")
         );
         assert_eq!(
             policy(&report, "cost_aware_voi").runs[0].duration_seconds,
-            Some(20.0)
+            Some(30.0)
         );
     }
 
