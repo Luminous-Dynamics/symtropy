@@ -1,0 +1,137 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "symtropy-environment-observation-validation-plan",
+  "plan_id": "gobabeb_bsrn_vs_nasa_power_daily_v0",
+  "status": "design_only_not_executed",
+  "evidence_class": "test_design_only",
+  "site": {
+    "profile_id": "earth.coastal_desert_namib",
+    "station_name": "Gobabeb",
+    "station_id": "GOB",
+    "latitude_deg": -23.5614,
+    "longitude_deg": 15.04198,
+    "elevation_m": 407.0,
+    "surface_description": "desert gravel; flat rural topography per publisher metadata"
+  },
+  "station_reference": {
+    "series_doi": "https://doi.org/10.1594/PANGAEA.968639",
+    "publisher_url": "https://doi.pangaea.de/10.1594/PANGAEA.968639",
+    "example_monthly_doi": "https://doi.org/10.1594/PANGAEA.983811",
+    "reported_series_start_utc": "2012-05-16T00:00:00Z",
+    "reported_series_end_utc": "2026-08-31T23:59:00Z",
+    "reported_sample_interval_seconds": 60,
+    "reported_sample_interval_semantics": "must_be_confirmed_from_actual_monthly_file_metadata_before_ingestion",
+    "license": "Baseline Surface Radiation Network License 1.0 (BSRN-1.0)",
+    "source_file_included": false
+  },
+  "model_reference": {
+    "provider": "NASA POWER",
+    "daily_api": "https://power.larc.nasa.gov/api/temporal/daily/point",
+    "documentation": "https://power.larc.nasa.gov/docs/services/api/temporal/daily/",
+    "time_standard_request": "UTC",
+    "evidence_class": "reanalysis",
+    "model_data_downloaded": false
+  },
+  "variable_pairs": [
+    {
+      "pair_id": "swd_vs_allsky_sfc_sw_dwn",
+      "station_variable": "SWD",
+      "station_quantity": "short-wave downward global radiation",
+      "station_unit": "W m-2",
+      "power_variable": "ALLSKY_SFC_SW_DWN",
+      "power_quantity": "all-sky surface shortwave downward irradiance",
+      "comparison_quantity": "daily integrated irradiation",
+      "comparison_unit": "kWh m-2 day-1",
+      "station_transform": "Integrate valid station values using documented time interval and sample semantics; do not assume timestamps are interval means until confirmed.",
+      "power_transform": "Use source-native daily integrated value without treating it as instantaneous W m-2.",
+      "required_time_semantics_review": true
+    },
+    {
+      "pair_id": "t2_vs_t2m",
+      "station_variable": "T2",
+      "station_quantity": "air temperature at 2 m",
+      "station_unit": "degC",
+      "power_variable": "T2M",
+      "power_quantity": "near-surface air temperature at 2 m",
+      "comparison_quantity": "daily mean 2 m air temperature",
+      "comparison_unit": "degC",
+      "station_transform": "Aggregate valid minute samples using documented temporal semantics and report valid sample count.",
+      "power_transform": "Use the POWER daily mean in its source unit; convert explicitly only if needed.",
+      "required_time_semantics_review": true
+    },
+    {
+      "pair_id": "rh_vs_rh2m",
+      "station_variable": "RH",
+      "station_quantity": "relative humidity",
+      "station_unit": "%",
+      "power_variable": "RH2M",
+      "power_quantity": "near-surface relative humidity at 2 m",
+      "comparison_quantity": "daily mean relative humidity",
+      "comparison_unit": "%",
+      "station_transform": "Aggregate valid minute samples using documented temporal semantics and report valid sample count.",
+      "power_transform": "Use POWER daily mean; retain percent units for comparison.",
+      "required_time_semantics_review": true
+    }
+  ],
+  "time_split": {
+    "policy": "whole_calendar_years_no_random_timestamp_split",
+    "calibration": {
+      "start_inclusive_utc": "2016-01-01T00:00:00Z",
+      "end_exclusive_utc": "2019-01-01T00:00:00Z"
+    },
+    "validation": {
+      "start_inclusive_utc": "2019-01-01T00:00:00Z",
+      "end_exclusive_utc": "2020-01-01T00:00:00Z"
+    },
+    "locked_test": {
+      "start_inclusive_utc": "2020-01-01T00:00:00Z",
+      "end_exclusive_utc": "2022-01-01T00:00:00Z"
+    },
+    "locked_test_must_not_be_used_for": [
+      "bias correction",
+      "parameter tuning",
+      "selecting the primary error metric",
+      "choosing valid-observation coverage thresholds"
+    ],
+    "missing_month_policy": "Preserve and report missing months; do not move holdout boundaries after inspecting test errors."
+  },
+  "metrics": [
+    "expected_day_count",
+    "matched_day_count",
+    "excluded_day_count",
+    "matched_coverage_fraction",
+    "mean_bias_error_power_minus_station_with_units",
+    "mean_absolute_error_with_units",
+    "root_mean_square_error_with_units",
+    "median_absolute_error_with_units",
+    "95th_percentile_absolute_error_with_units",
+    "correlation",
+    "regression_slope_and_intercept",
+    "block_bootstrap_confidence_interval",
+    "metrics_stratified_by_month_and_day_night_for_irradiance"
+  ],
+  "uncertainty": {
+    "resampling_unit": "contiguous_blocks_of_days",
+    "proposed_block_length_days": 7,
+    "proposed_replicates": 10000,
+    "random_seed": 20261028,
+    "status": "proposal_requires_review_before_locked_test"
+  },
+  "admission_gates": {
+    "source_hashes_verified": false,
+    "monthly_file_dois_recorded": false,
+    "license_review_recorded": false,
+    "time_standard_confirmed": false,
+    "timestamp_interval_semantics_confirmed": false,
+    "unit_mappings_reviewed": false,
+    "station_qc_and_missingness_reviewed": false,
+    "independent_station_comparison_run": false,
+    "locked_test_evaluated": false
+  },
+  "result_policy": {
+    "report_kind": "validation_plan_only_no_comparison_metrics",
+    "do_not_claim_station_accuracy_from_series_metadata": true,
+    "do_not_claim_controller_superiority_from_trace_validation": true,
+    "station_data_and_reanalysis_remain_separate_evidence_classes": true
+  }
+}
