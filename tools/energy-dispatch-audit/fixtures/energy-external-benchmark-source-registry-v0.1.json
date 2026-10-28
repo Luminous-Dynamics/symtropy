@@ -79,25 +79,7 @@
       "selected_schema_git_blob_sha1": "5d58d31fd75e4845d73d319c69df34d64223f533",
       "referenced_data_file_count": 30,
       "simulator_step_count": 8760,
-      "dataset_source_manifest_path": "tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json",
-      "pinned_dataset_reference": {
-        "release_tag": "v3.0.2",
-        "observed_source_commit": "834575c1a0194c8ae9d648ae858376a94dfceb78",
-        "dataset_schema_path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/schema.json",
-        "schema_git_blob_sha1": "5d58d31fd75e4845d73d319c69df34d64223f533",
-        "schema_raw_sha256": "6a0e70131018cfb45219930d2551227bf286e9ece6c25186e85e468715279c3a",
-        "schema_byte_length": 27644,
-        "simulation_start_time_step": 0,
-        "simulation_end_time_step": 8759,
-        "start_date": "2024-08-01",
-        "seconds_per_time_step": 3600,
-        "building_count": 17,
-        "referenced_csv_file_count": 30,
-        "file_manifest_path": "tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-phase-all-plus-evs-source-manifest-v0.1.json",
-        "file_manifest_sha256": "384943157aead2106eb4b8847451a1b8e5db097840efba68dee9b82f7c59db0e",
-        "external_data_bytes_copied_into_symtropy": false,
-        "license_review_required": true
-      }
+      "dataset_source_manifest_path": "tools/energy-dispatch-audit/fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json"
     },
     {
       "source_id": "eskom_rolling_demand_dashboard",
