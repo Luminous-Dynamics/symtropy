@@ -638,8 +638,8 @@ jobs:
           set -euo pipefail
           base_schema="docs/tech/glass-search-space-base-v0.1.schema.json"
           proposal_schema="docs/tech/glass-search-space-proposal-v0.1.schema.json"
-          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.hard_constraints.minItems == 1 and .properties.candidate_families.minItems == 1 and .additionalProperties == false' "$base_schema" > /dev/null
-          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.parent_space_sha256.pattern == "^[a-fA-F0-9]{64}$" and .properties.hard_constraint_changes.maxItems == 0 and .properties.generation_cost_units.exclusiveMinimum == 0 and .additionalProperties == false' "$proposal_schema" > /dev/null
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.hard_constraints.minItems == 1 and .properties.candidate_families.minItems == 1 and .additionalProperties == false' "$base_schema" > /dev/null
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.parent_space_sha256.pattern == "^[a-fA-F0-9]{64}$" and .properties.hard_constraint_changes.maxItems == 0 and .properties.generation_cost_units.exclusiveMinimum == 0 and .additionalProperties == false' "$proposal_schema" > /dev/null
 
           base="tools/glass-silicon-contract-audit/fixtures/base-space.synthetic.json"
           proposal="tools/glass-silicon-contract-audit/fixtures/space-proposal-helpful.synthetic.json"
