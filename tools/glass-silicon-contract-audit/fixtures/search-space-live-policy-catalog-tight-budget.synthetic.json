@@ -1,0 +1,238 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "glass-space-expansion-live-loop-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic budget-pressure policy and accounting mechanics only; no material model, physical feasibility, state-of-the-art result, or industrial benefit is validated.",
+  "budgets": {
+    "max_cost_units": 3,
+    "max_duration_seconds": 25
+  },
+  "policy_contract": {
+    "version": 1,
+    "classes": [
+      "fixed_space",
+      "gp_ei_fixed_space",
+      "random_expansion",
+      "rule_based_expansion",
+      "prior_guided_expansion",
+      "static_prior_expansion"
+    ],
+    "thresholds": {
+      "random_expansion": 5.5,
+      "rule_based_expansion": 6.5,
+      "prior_guided_expansion": 7.5
+    },
+    "note": "Synthetic policies use only public selector proxies and previously revealed observations. Thresholds are deliberately fixed for evaluator mechanics, not trained material policies.",
+    "random_seed": 0,
+    "random_seeds": [
+      3,
+      5,
+      7,
+      11,
+      13,
+      17,
+      19,
+      23,
+      29,
+      31,
+      37,
+      41,
+      43,
+      47,
+      53,
+      59,
+      61,
+      67,
+      71,
+      73
+    ]
+  },
+  "candidate_families": [
+    {
+      "id": "glass-a",
+      "domain": "glass",
+      "initially_visible": true,
+      "screen_priority": 1,
+      "predicted_feasible": true,
+      "selector_scores": {
+        "fixed_space": 0.99,
+        "random_expansion": 0.6,
+        "rule_based_expansion": 0.6,
+        "prior_guided_expansion": 0.6,
+        "static_prior_expansion": 0.6,
+        "gp_ei_fixed_space": 0
+      },
+      "failure_fallback_score": 0.6,
+      "features": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "silicon-a",
+      "domain": "metallurgical_grade_silicon",
+      "initially_visible": true,
+      "screen_priority": 0.1,
+      "predicted_feasible": false,
+      "selector_scores": {
+        "fixed_space": 0.45,
+        "random_expansion": 0.3,
+        "rule_based_expansion": 0.3,
+        "prior_guided_expansion": 0.3,
+        "static_prior_expansion": 0.2,
+        "gp_ei_fixed_space": 0
+      },
+      "failure_fallback_score": 0.3,
+      "features": [
+        0,
+        1
+      ]
+    },
+    {
+      "id": "glass-b",
+      "domain": "glass",
+      "initially_visible": true,
+      "screen_priority": 0.1,
+      "predicted_feasible": true,
+      "selector_scores": {
+        "fixed_space": 0.85,
+        "random_expansion": 0.9,
+        "rule_based_expansion": 0.9,
+        "prior_guided_expansion": 0.9,
+        "static_prior_expansion": 0.9,
+        "gp_ei_fixed_space": 0
+      },
+      "failure_fallback_score": 0.9,
+      "features": [
+        1,
+        0
+      ]
+    },
+    {
+      "id": "glass-c",
+      "domain": "glass",
+      "initially_visible": true,
+      "screen_priority": 0.1,
+      "predicted_feasible": true,
+      "selector_scores": {
+        "fixed_space": 0.7,
+        "random_expansion": 0.8,
+        "rule_based_expansion": 0.8,
+        "prior_guided_expansion": 0.8,
+        "static_prior_expansion": 0.8,
+        "gp_ei_fixed_space": 0
+      },
+      "failure_fallback_score": 1,
+      "features": [
+        1,
+        1
+      ]
+    },
+    {
+      "id": "silicon-b",
+      "domain": "metallurgical_grade_silicon",
+      "initially_visible": true,
+      "screen_priority": 0.1,
+      "predicted_feasible": false,
+      "selector_scores": {
+        "fixed_space": 0.35,
+        "random_expansion": 0.2,
+        "rule_based_expansion": 0.2,
+        "prior_guided_expansion": 0.2,
+        "static_prior_expansion": 0.2,
+        "gp_ei_fixed_space": 0
+      },
+      "failure_fallback_score": 0.2,
+      "features": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "id": "random-family",
+      "domain": "glass",
+      "initially_visible": false,
+      "screen_priority": 0.1,
+      "predicted_feasible": true,
+      "selector_scores": {
+        "fixed_space": 0,
+        "random_expansion": 0.99,
+        "rule_based_expansion": 0.2,
+        "prior_guided_expansion": 0.2,
+        "static_prior_expansion": 0.1,
+        "gp_ei_fixed_space": 0
+      },
+      "failure_fallback_score": 0.99,
+      "features": [
+        2,
+        0
+      ]
+    },
+    {
+      "id": "rule-family",
+      "domain": "glass",
+      "initially_visible": false,
+      "screen_priority": 0.1,
+      "predicted_feasible": true,
+      "selector_scores": {
+        "fixed_space": 0,
+        "random_expansion": 0.2,
+        "rule_based_expansion": 0.99,
+        "prior_guided_expansion": 0.2,
+        "static_prior_expansion": 0.1,
+        "gp_ei_fixed_space": 0
+      },
+      "failure_fallback_score": 0.2,
+      "features": [
+        0,
+        2
+      ]
+    },
+    {
+      "id": "llm-family",
+      "domain": "glass",
+      "initially_visible": false,
+      "screen_priority": 0.1,
+      "predicted_feasible": true,
+      "selector_scores": {
+        "fixed_space": 0,
+        "random_expansion": 0.2,
+        "rule_based_expansion": 0.2,
+        "prior_guided_expansion": 0.99,
+        "static_prior_expansion": 0.99,
+        "gp_ei_fixed_space": 0
+      },
+      "failure_fallback_score": 0.2,
+      "features": [
+        2,
+        2
+      ]
+    }
+  ],
+  "expansion_options": [
+    {
+      "method": "random",
+      "candidate_family_id": "random-family",
+      "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidence_refs": [
+        "fixture:synthetic-random-proposal"
+      ]
+    },
+    {
+      "method": "rule_based",
+      "candidate_family_id": "rule-family",
+      "proposal_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence_refs": [
+        "fixture:synthetic-rule-proposal"
+      ]
+    },
+    {
+      "method": "prior_guided",
+      "candidate_family_id": "llm-family",
+      "proposal_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence_refs": [
+        "fixture:synthetic-prior-guided-proposal"
+      ]
+    }
+  ]
+}
