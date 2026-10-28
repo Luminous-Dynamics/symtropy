@@ -175,6 +175,8 @@ jobs:
             .network_fallback.status == "fallback_implemented_not_used_for_real_source_yet" and
             (.event_annotations | length >= 1) and
             all(.event_annotations[]; .status == "metadata_only_not_scored") and
+            .event_annotations[0].source_doi == "10.1594/PANGAEA.983811" and
+            .event_annotations[0].dates_local_as_published == ["2025-06-04","2025-06-25","2025-06-26"] and
             (.candidate_auxiliary_sources | length >= 2) and
             all(.candidate_auxiliary_sources[]; .admission_status == "candidate_not_admitted")
           ' "$plan"
