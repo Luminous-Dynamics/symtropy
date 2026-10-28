@@ -1247,16 +1247,26 @@ fn export_urdf(model: &Value) -> Result<String, Vec<String>> {
             "    <origin xyz=\"{}\" rpy=\"0 0 0\"/>\n",
             urdf_vec3(&origin)
         ));
-        if joint_type == "revolute" {
+        if ["revolute", "continuous"].contains(&joint_type) {
             let axis = finite_vec3(&joint["axis_xyz"]).expect("validated axis");
             xml.push_str(&format!("    <axis xyz=\"{}\"/>\n", urdf_vec3(&axis)));
-            xml.push_str(&format!(
-                "    <limit lower=\"{}\" upper=\"{}\" effort=\"{}\" velocity=\"{}\"/>\n",
-                urdf_float(num_at(joint, "lower_limit_rad").expect("validated lower limit")),
-                urdf_float(num_at(joint, "upper_limit_rad").expect("validated upper limit")),
-                urdf_float(num_at(joint, "max_effort_nm").expect("validated effort")),
-                urdf_float(num_at(joint, "max_velocity_rad_s").expect("validated velocity"))
-            ));
+            let effort = urdf_float(num_at(joint, "max_effort_nm").expect("validated effort"));
+            let velocity =
+                urdf_float(num_at(joint, "max_velocity_rad_s").expect("validated velocity"));
+            if joint_type == "revolute" {
+                xml.push_str(&format!(
+                    "    <limit lower=\"{}\" upper=\"{}\" effort=\"{}\" velocity=\"{}\"/>\n",
+                    urdf_float(num_at(joint, "lower_limit_rad").expect("validated lower limit")),
+                    urdf_float(num_at(joint, "upper_limit_rad").expect("validated upper limit")),
+                    effort,
+                    velocity
+                ));
+            } else {
+                xml.push_str(&format!(
+                    "    <limit effort=\"{}\" velocity=\"{}\"/>\n",
+                    effort, velocity
+                ));
+            }
         }
         xml.push_str("  </joint>\n");
     }
@@ -1657,6 +1667,15 @@ mod tests {
         let model = morphology();
         assert_eq!(model["links"].as_array().expect("links").len(), 16);
         assert_eq!(model["joints"].as_array().expect("joints").len(), 15);
+        assert_eq!(
+            model["joints"]
+                .as_array()
+                .expect("joints")
+                .iter()
+                .filter(|joint| str_at(joint, "joint_type") == Some("continuous"))
+                .count(),
+            2
+        );
         let findings = validate_morphology(&model);
         assert!(findings.is_empty(), "{findings:?}");
     }
@@ -1812,6 +1831,11 @@ mod tests {
         );
         assert_eq!(xml.matches("<link name=").count(), 16);
         assert_eq!(xml.matches("<joint name=").count(), 15);
+        assert_eq!(xml.matches("type=\"revolute\"").count(), 7);
+        assert_eq!(xml.matches("type=\"continuous\"").count(), 2);
+        assert_eq!(xml.matches("type=\"fixed\"").count(), 6);
+        assert!(xml.contains("<joint name=\"left_drive\" type=\"continuous\">"));
+        assert!(xml.contains("<limit effort=\"8\" velocity=\"2\"/>"));
         assert_eq!(xml.matches("<collision>").count(), 16);
         assert!(!xml.contains("<inertial>"));
         assert!(!xml.contains("<transmission"));
@@ -1900,20 +1924,27 @@ mod tests {
     fn forward_kinematics_preserves_rotation_group_invariants_across_seeded_states() {
         let model = morphology();
         let joints = model["joints"].as_array().expect("joint array");
-        let revolute = joints
+        let movable = joints
             .iter()
-            .filter(|joint| str_at(joint, "joint_type") == Some("revolute"))
+            .filter(|joint| {
+                ["revolute", "continuous"].contains(&str_at(joint, "joint_type").unwrap_or(""))
+            })
             .collect::<Vec<_>>();
-        assert_eq!(revolute.len(), 9);
+        assert_eq!(movable.len(), 9);
 
         for sample in 0..101usize {
             let mut state = zero_joint_state();
-            for (joint_index, joint) in revolute.iter().enumerate() {
+            for (joint_index, joint) in movable.iter().enumerate() {
                 let fraction = ((sample * 17 + joint_index * 11) % 101) as f64 / 100.0;
-                let lower = num_at(joint, "lower_limit_rad").expect("lower limit");
-                let upper = num_at(joint, "upper_limit_rad").expect("upper limit");
                 let joint_id = str_at(joint, "joint_id").expect("joint id");
-                state[joint_id] = json!(lower + fraction * (upper - lower));
+                let position = if str_at(joint, "joint_type") == Some("continuous") {
+                    (fraction * 2.0 - 1.0) * 8.0 * std::f64::consts::PI
+                } else {
+                    let lower = num_at(joint, "lower_limit_rad").expect("lower limit");
+                    let upper = num_at(joint, "upper_limit_rad").expect("upper limit");
+                    lower + fraction * (upper - lower)
+                };
+                state[joint_id] = json!(position);
             }
 
             let poses = compute_forward_kinematics(&model, &state)
@@ -1973,7 +2004,7 @@ mod tests {
         assert!(compute_forward_kinematics(&model, &missing)
             .expect_err("missing state rejects")
             .iter()
-            .any(|finding| finding == "JOINT_STATE_MISSING_REVOLUTE_JOINT"));
+            .any(|finding| finding == "JOINT_STATE_MISSING_MOVABLE_JOINT"));
 
         let mut unknown = zero_joint_state();
         unknown["silent_joint"] = json!(0.0);
@@ -1995,6 +2026,22 @@ mod tests {
             .expect_err("out-of-range state rejects")
             .iter()
             .any(|finding| finding == "JOINT_STATE_OUT_OF_LIMITS"));
+    }
+
+    #[test]
+    fn continuous_drive_joints_are_unbounded_but_numerically_bounded() {
+        let model = morphology();
+        let mut state = zero_joint_state();
+        state["left_drive"] = json!(20.0 * std::f64::consts::PI);
+        let poses = compute_forward_kinematics(&model, &state)
+            .expect("continuous wheel rotations must not hit a position limit");
+        assert_eq!(poses.len(), 16);
+
+        state["left_drive"] = json!(1_000_001.0);
+        assert!(compute_forward_kinematics(&model, &state)
+            .expect_err("huge continuous angle loses numeric reliability")
+            .iter()
+            .any(|finding| finding == "JOINT_STATE_CONTINUOUS_MAGNITUDE_INVALID"));
     }
 
     #[test]
