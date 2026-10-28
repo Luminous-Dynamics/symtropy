@@ -845,4 +845,28 @@ jobs:
             .cost_units_recomputed == 96.0
           ' "$four_unit_replay"
           echo "Four-unit expansion frontier and independent transcript replay: PASS"
+
+          # Pair the same four regimes across the 3/4/5-unit frontier only after each
+          # report has passed independent transcript replay. Keep per-environment
+          # comparisons separate so a helpful-prior win cannot hide a harmful-prior loss.
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
+            --frontier \
+            "search-space-live-tight-budget-report.json" "$tight_catalog" \
+            "search-space-live-four-unit-report.json" "$four_unit_catalog" \
+            "search-space-live-loop-report.json" "$catalog" "$oracle" > search-space-budget-frontier-scorecard.json
+          jq -e '
+            .status == "PASS" and
+            .audit_kind == "synthetic_paired_budget_frontier_scorecard" and
+            .budget_points == 3 and
+            ([.lane_receipts[] | select(.replay_status != "PASS")] | length) == 0 and
+            ([.lane_receipts[].budget_units] == [3, 4, 5]) and
+            ([.environmentwise_metrics] | length == 1) and
+            (.environmentwise_metrics | length) == 72 and
+            (.policy_frontier | length) == 18 and
+            ([.environmentwise_metrics[] | select(.budget_units == 4 and .environment_id == "harmful")] | length) == 6 and
+            ([.policy_frontier[] | select(.environment_count != 4)] | length) == 0 and
+            (has("global_mean_utility") | not) and
+            (has("pooled_utility_winner") | not)
+          ' search-space-budget-frontier-scorecard.json
+          echo "Replay-verified, environment-stratified 3/4/5-unit frontier scorecard: PASS"
           echo "Live observation-conditioned loop and independent transcript replay: PASS"
