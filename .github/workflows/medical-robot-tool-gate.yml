@@ -228,11 +228,17 @@ jobs:
           assert all(link.find("visual/geometry/box") is not None for link in links)
           assert all(link.find("collision/geometry/box") is not None for link in links)
           assert all(link.find("inertial") is None for link in links)
-          assert sum(joint.attrib["type"] == "revolute" for joint in joints) == 9
+          assert sum(joint.attrib["type"] == "revolute" for joint in joints) == 7
+          assert sum(joint.attrib["type"] == "continuous" for joint in joints) == 2
           assert sum(joint.attrib["type"] == "fixed" for joint in joints) == 6
           assert all(joint.find("parent") is not None and joint.find("child") is not None for joint in joints)
-          assert all(joint.find("limit") is not None for joint in joints if joint.attrib["type"] == "revolute")
+          assert all(joint.find("limit") is not None for joint in joints if joint.attrib["type"] in ("revolute", "continuous"))
           assert all(joint.find("limit") is None for joint in joints if joint.attrib["type"] == "fixed")
+          for joint in joints:
+              if joint.attrib["type"] == "continuous":
+                  limit = joint.find("limit")
+                  assert limit is not None and "effort" in limit.attrib and "velocity" in limit.attrib
+                  assert "lower" not in limit.attrib and "upper" not in limit.attrib
           PY
 
           # Cross-check Rust forward kinematics against an independent FK evaluator
@@ -298,9 +304,13 @@ jobs:
 
           links = {link.attrib["name"] for link in urdf.findall("link")}
           joints = urdf.findall("joint")
-          revolute = {joint.attrib["name"] for joint in joints if joint.attrib["type"] == "revolute"}
+          movable = {
+              joint.attrib["name"]
+              for joint in joints
+              if joint.attrib["type"] in ("revolute", "continuous")
+          }
           assert len(links) == 16 and len(joints) == 15
-          assert set(joint_state) == revolute, (set(joint_state), revolute)
+          assert set(joint_state) == movable, (set(joint_state), movable)
           assert set(rust_receipt["link_poses"]) == links
 
           root_link = model["root_link"]
@@ -323,7 +333,7 @@ jobs:
                   world_offset = matvec(parent_rotation, xyz)
                   translation = [parent_translation[i] + world_offset[i] for i in range(3)]
                   rotation = mul(parent_rotation, from_rpy(rpy))
-                  if joint.attrib["type"] == "revolute":
+                  if joint.attrib["type"] in ("revolute", "continuous"):
                       axis = floats(joint.find("axis").attrib.get("xyz"), [1, 0, 0])
                       rotation = mul(rotation, axis_rotation(axis, joint_state[joint.attrib["name"]]))
                   elif joint.attrib["type"] != "fixed":
