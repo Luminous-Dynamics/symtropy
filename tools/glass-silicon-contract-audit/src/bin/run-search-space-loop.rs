@@ -1030,6 +1030,10 @@ fn build_replay_view(
                 "evaluated": evaluated.contains(id)
             })
         }).collect::<Vec<_>>();
+    let available_expansions = affordable_expansion_methods(
+        tariffs, expansion_used, remaining_cost, remaining_seconds
+    );
+    let action_costs = action_costs_view(tariffs);
     json!({
         "policy_id": policy,
         "campaign_seed": catalog.get("policy_contract").and_then(|v| v.get("random_seed")).and_then(Value::as_u64).unwrap_or(0),
