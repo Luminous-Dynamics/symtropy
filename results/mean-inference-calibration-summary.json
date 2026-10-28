@@ -1,0 +1,92 @@
+{
+  "schema_version": "0.1.0",
+  "report_type": "frozen_synthetic_mean_inference_calibration_summary",
+  "decision": "synthetic_confirmatory_inference_calibration_diagnostics_no_empirical_claim",
+  "claim_scope": "synthetic statistical operating-characteristic calibration only; no measured lighting, Radiance, calibrated photometry or industry comparison",
+  "design": {
+    "design_tag": "LIGHTING-MEAN-INFERENCE-CALIBRATION-v0.1-confirmation",
+    "seed": 20261029,
+    "null_scenarios": 8,
+    "null_replicates_per_scenario": 5000,
+    "target_scenarios": 5,
+    "target_replicates_per_scenario": 1000,
+    "total_scenario_cells": 13,
+    "bootstrap_replicates_per_dataset": 199,
+    "family_effect_sd_percentage_points": 3.0,
+    "superiority_margin_percentage_points": 5.0,
+    "target_mean_percentage_points": 9.5,
+    "backend_for_attached_local_run": "NumPy 2.3.5 vectorized bootstrap",
+    "monte_carlo_adjustment": "Bonferroni simultaneous one-sided Wilson score bounds over 24 null and 39 coverage method-scenario comparisons",
+    "gates": {
+      "simultaneous_false_superiority_upper_bound_max": 0.06,
+      "simultaneous_finite_interval_coverage_lower_bound_min": 0.94,
+      "maximum_unresolved_or_failed_rate_per_cell": 0.01
+    }
+  },
+  "summary_by_method": {
+    "student_t": {
+      "max_null_false_superiority_upper_simultaneous_bound": 0.060889674901955175,
+      "min_finite_interval_coverage_lower_simultaneous_bound": 0.9260432054468358,
+      "max_unresolved_lower_bound_rate": 0.2882,
+      "mean_target_power": 0.9496,
+      "min_target_power": 0.915,
+      "all_gates_pass": false
+    },
+    "percentile_bootstrap": {
+      "max_null_false_superiority_upper_simultaneous_bound": 0.10079933668253123,
+      "min_finite_interval_coverage_lower_simultaneous_bound": 0.8985219678393692,
+      "max_unresolved_lower_bound_rate": 0.2882,
+      "mean_target_power": 0.9496,
+      "min_target_power": 0.915,
+      "all_gates_pass": false
+    },
+    "studentized_bootstrap_t": {
+      "max_null_false_superiority_upper_simultaneous_bound": 0.08617081749055275,
+      "min_finite_interval_coverage_lower_simultaneous_bound": 0.776105386540146,
+      "max_unresolved_lower_bound_rate": 0.8986,
+      "mean_target_power": 0.6214,
+      "min_target_power": 0.369,
+      "all_gates_pass": false
+    }
+  },
+  "conclusion": "No method passed. Student-t was closest on false-superiority calibration but missed the 6% simultaneous upper-bound limit and the 94% coverage lower-bound requirement. Percentile bootstrap and studentized bootstrap-t failed more clearly. Unresolved lower bounds were kept visible and separately gated.",
+  "interpretation_examples": [
+    {
+      "scenario": "n12 normal null",
+      "observed_false_superiority_rate": {
+        "student_t": 0.049,
+        "percentile_bootstrap": 0.0754,
+        "studentized_bootstrap_t": 0.055
+      }
+    },
+    {
+      "scenario": "n12 Student-t(3) null",
+      "observed_false_superiority_rate": {
+        "student_t": 0.0474,
+        "percentile_bootstrap": 0.0886,
+        "studentized_bootstrap_t": 0.0748
+      }
+    },
+    {
+      "scenario": "n12 left-skew two-point null",
+      "unresolved_lower_bound_rate": {
+        "student_t": 0.277,
+        "percentile_bootstrap": 0.277,
+        "studentized_bootstrap_t": 0.8968
+      },
+      "warning": "Zero rejections on this discrete stress case is not evidence of a useful test when many outcomes are unresolved."
+    }
+  ],
+  "source_receipts": {
+    "benchmark_source_sha256_standalone_package": "e45e319dfc3811ddb2f612f61fa63390b993398e99a7eba6fa2b4d9cafab7840",
+    "local_method_comparator_mirror_sha256": "0cd055eb7a1ca6b30200a8d38cc8ff6d34d8453626532f9bdb21cbf8966f3ad5",
+    "full_report_sha256": "a3273a50d926d75a640b2a5a89fb99597e08d9ce8f87e9b353d4992c240db844",
+    "note": "The downloadable standalone package includes a local source-mirrored comparator helper. In-repository execution resolves and hashes the repository comparator file, which may produce a different dependency digest."
+  },
+  "limits": [
+    "All outcomes are synthetic; no Radiance, DIALux, calibrated photometry or measured energy consumption is used.",
+    "Finite-interval coverage is conditional on a finite bound; unresolved outputs are reported and separately gated.",
+    "The methods are valid only to the extent their statistical assumptions and finite-sample behavior hold. These outcomes do not establish a method for deployment.",
+    "No method winner or SOTA claim is declared."
+  ]
+}
