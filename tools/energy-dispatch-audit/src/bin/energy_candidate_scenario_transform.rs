@@ -237,9 +237,12 @@ fn apply_transform(
             }
             let mut found = 0_usize;
             for interval_index in 0..2 {
+                // Clone the immutable list before set_pointer mutably borrows the candidate tree.
+                // Service indices are preserved, so the exact JSON-pointer mutations stay stable.
                 let services = candidate["scenarios"][0]["intervals"][interval_index]["service_requested"]
                     .as_array()
-                    .ok_or_else(|| invalid("candidate interval service_requested list missing"))?;
+                    .ok_or_else(|| invalid("candidate interval service_requested list missing"))?
+                    .clone();
                 for (service_index, service) in services.iter().enumerate() {
                     let service_id = service["service_id"].as_str()
                         .ok_or_else(|| invalid("requested service ID missing"))?;
