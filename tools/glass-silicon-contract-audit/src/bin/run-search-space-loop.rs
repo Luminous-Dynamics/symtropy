@@ -8,9 +8,8 @@ use std::path::Path;
 use std::process::{Command, ExitCode, Stdio};
 
 const BENCHMARK_ID: &str = "glass-space-expansion-live-loop-synthetic-v0-1";
-const POLICY_CLASSES: [&str; 7] = [
+const POLICY_CLASSES: [&str; 6] = [
     "fixed_space",
-    "uniform_random_fixed_space",
     "gp_ei_fixed_space",
     "random_expansion",
     "rule_based_expansion",
@@ -97,7 +96,7 @@ fn finite_number(v: &Value, field: &str, report: &mut Value, path: &str, positiv
 }
 
 fn allowed_policy(policy: &str) -> bool {
-    POLICY_CLASSES.contains(&policy)
+    POLICY_CLASSES.contains(&policy) || policy == "uniform_random_fixed_space"
 }
 
 fn tariff_key_for_method(method: &str) -> Option<&'static str> {
@@ -771,6 +770,8 @@ where
         "oracle_sha256": oracle_digest,
         "policy_count": POLICY_CLASSES.len(),
         "policy_execution_mode": "in_process_reference",
+        "auxiliary_control_count": 0,
+        "auxiliary_controls": [],
         "environment_count": 0,
         "episodes_checked": 0,
         "episodes": [],
@@ -833,9 +834,27 @@ where
             episodes.push(episode);
         }
     }
+    let mut auxiliary_controls = Vec::new();
+    for env in environments {
+        let Some(env_id) = env.get("environment_id").and_then(Value::as_str) else { continue };
+        let mut control = run_one_with_executor(&public, &oracle, env_id, "uniform_random_fixed_space", executor);
+        if let Some(object) = control.as_object_mut() {
+            object.insert("input_sha256".to_owned(), json!(input_digest));
+            object.insert("oracle_sha256".to_owned(), json!(oracle_digest));
+        }
+        if control.get("status").and_then(Value::as_str) == Some("FAIL") {
+            fail(&mut top, "FAIL", "AUXILIARY_CONTROL_FAILED", &format!("uniform-random baseline failed in environment {env_id}"));
+        } else if control.get("status").and_then(Value::as_str) == Some("UNRESOLVED") {
+            fail(&mut top, "UNRESOLVED", "AUXILIARY_CONTROL_UNRESOLVED", &format!("uniform-random baseline unresolved in environment {env_id}"));
+        }
+        auxiliary_controls.push(control);
+    }
+
     top["environment_count"] = json!(environments.len());
     top["episodes_checked"] = json!(episodes.len());
     top["episodes"] = json!(episodes);
+    top["auxiliary_control_count"] = json!(auxiliary_controls.len());
+    top["auxiliary_controls"] = json!(auxiliary_controls);
     top
 }
 
@@ -921,7 +940,7 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
             return audit;
         }
     };
-    only_keys(&report, &["status","audit_kind","benchmark_id","input_sha256","oracle_sha256","policy_count","policy_execution_mode","environment_count","episodes_checked","episodes","findings","claim_ceiling"], "run_report", &mut audit);
+    only_keys(&report, &["status","audit_kind","benchmark_id","input_sha256","oracle_sha256","policy_count","policy_execution_mode","auxiliary_control_count","auxiliary_controls","environment_count","episodes_checked","episodes","findings","claim_ceiling"], "run_report", &mut audit);
     if report.get("audit_kind").and_then(Value::as_str) != Some("synthetic_live_policy_event_loop")
         || report.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID) {
         fail(&mut audit, "FAIL", "RUN_REPORT_KIND_INVALID", "input report is not a live policy event-loop report for this benchmark");
@@ -962,6 +981,43 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
         fail(&mut audit, "FAIL", "ENVIRONMENTS_REQUIRED", "sealed oracle has no environment array");
         return audit;
     };
+    let Some(auxiliary_controls) = report.get("auxiliary_controls").and_then(Value::as_array) else {
+        fail(&mut audit, "FAIL", "AUXILIARY_CONTROLS_REQUIRED", "run report has no auxiliary control results");
+        return audit;
+    };
+    if report.get("auxiliary_control_count").and_then(Value::as_u64) != Some(auxiliary_controls.len() as u64)
+        || auxiliary_controls.len() != oracle_envs.len() {
+        fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_COUNT_MISMATCH", "one uniform-random baseline result is required for each sealed environment");
+    }
+    let mut auxiliary_environment_ids = HashSet::new();
+    for (i, control) in auxiliary_controls.iter().enumerate() {
+        let env_id = control.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        if !auxiliary_environment_ids.insert(env_id.to_owned()) {
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_DUPLICATE", &format!("duplicate uniform-random control for environment {env_id}"));
+        }
+        if control.get("policy_class").and_then(Value::as_str) != Some("uniform_random_fixed_space") {
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_POLICY_INVALID", &format!("auxiliary control {i} is not the registered uniform-random baseline"));
+        }
+        if control.get("input_sha256").and_then(Value::as_str) != Some(public_digest.as_str())
+            || control.get("oracle_sha256").and_then(Value::as_str) != Some(oracle_digest.as_str()) {
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_DIGEST_MISMATCH", &format!("uniform-random control {env_id} is not bound to the exact public/oracle inputs"));
+        }
+        let mut expected = run_one(&catalog, &oracle, env_id, "uniform_random_fixed_space");
+        if let Some(object) = expected.as_object_mut() {
+            object.insert("input_sha256".to_owned(), json!(public_digest));
+            object.insert("oracle_sha256".to_owned(), json!(oracle_digest));
+        }
+        if &expected != control {
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_REPLAY_MISMATCH", &format!("uniform-random control {env_id} does not match replay from public state and sealed outcomes"));
+        }
+    }
+    for env in oracle_envs {
+        let env_id = env.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        if !auxiliary_environment_ids.contains(env_id) {
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_ENVIRONMENT_MISSING", &format!("uniform-random control missing for {env_id}"));
+        }
+    }
+
     let Some(episodes) = report.get("episodes").and_then(Value::as_array) else {
         fail(&mut audit, "FAIL", "EPISODES_REQUIRED", "run report has no episodes array");
         return audit;
@@ -1524,6 +1580,26 @@ mod tests {
 
 
     #[test]
+    fn auxiliary_uniform_random_baseline_is_included_and_independently_replayed() {
+        let report = run_all(PUBLIC, ORACLE);
+        assert_eq!(report["status"], "PASS");
+        assert_eq!(report["policy_count"], 6);
+        assert_eq!(report["episodes_checked"], 24);
+        assert_eq!(report["auxiliary_control_count"], 4);
+        for control in report["auxiliary_controls"].as_array().unwrap() {
+            assert_eq!(control["policy_class"], "uniform_random_fixed_space");
+            assert_eq!(control["expansions"], 0);
+            assert_eq!(control["evaluations"], 5);
+            assert_eq!(control["cost_units_charged"], 5.0);
+        }
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "PASS");
+        assert_eq!(replay["episodes_checked"], 24);
+    }
+
+
+    #[test]
     fn uniform_random_fixed_space_is_a_real_score_independent_baseline() {
         let (public, oracle) = values();
         for environment in ["helpful", "neutral", "harmful", "misleading_prior"] {
@@ -1559,7 +1635,7 @@ mod tests {
     fn live_loop_runs_all_policy_regime_pairs_with_budget_parity() {
         let report = run_all(PUBLIC, ORACLE);
         assert_eq!(report["status"], "PASS");
-        assert_eq!(report["episodes_checked"], 28);
+        assert_eq!(report["episodes_checked"], 24);
         assert_eq!(report["environment_count"], 4);
         for e in report["episodes"].as_array().unwrap() {
             assert_eq!(e["cost_units_charged"], 5.0, "{}", e["campaign_id"]);
@@ -1753,7 +1829,7 @@ mod tests {
         let report_raw = serde_json::to_vec(&report).unwrap();
         let replay = audit_replay(&report_raw, PUBLIC, ORACLE);
         assert_eq!(replay["status"], "PASS");
-        assert_eq!(replay["episodes_checked"], 28);
+        assert_eq!(replay["episodes_checked"], 24);
         assert!(replay["events_checked"].as_u64().unwrap() >= 90);
         assert_eq!(replay["cost_units_recomputed"], 120.0);
     }
