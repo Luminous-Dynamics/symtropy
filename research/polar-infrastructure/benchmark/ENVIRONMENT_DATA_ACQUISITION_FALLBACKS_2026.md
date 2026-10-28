@@ -29,6 +29,12 @@ Try these routes in order, without relabeling a failure as an absent dataset:
 
 If the complete text export cannot be acquired through any allowed route, stop at the metadata/preview stage. Do not fabricate missing rows or infer full-month coverage from the preview.
 
+### Alternate environmental sources (not yet admitted)
+
+- **SASSCAL WeatherNet — Gobabeb Met, station 8893.** Publicly indexed station pages show daily/hourly records with air temperature, precipitation, fog, wind and humidity. Its data sheet reports historical daily availability from 4 October 2014 to 4 January 2023, while an indexed September 2026 view contains extensive missing values. This may provide useful local fog/precipitation covariates when available, but the data-use licence and current completeness have not been verified here. Do not use it for commercial redistribution until terms are checked. Sources: https://data.sasscal.org/weatherstat_daily_we.php?loggerid_crit=8893&yrmth_crit=2026-09 and https://sasscalapps.dedicated.co.za/station_datasheet_we.php?loggerid_crit=8893.
+- **NOAA NCEI ISD / GHCNh.** These global surface-station products can supply temperature, dew point, wind, pressure, precipitation, visibility and related surface observations. They may provide an alternate transport/provider route for some meteorological covariates, but exact Gobabeb station overlap, product/version, per-source data limitations and licence must be checked. They are not a replacement for BSRN short-wave radiation unless the exact record contains a comparable irradiance variable. Sources: https://www.ncei.noaa.gov/products/land-based-station/integrated-surface-database and https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly.
+
+
 ## 3. Offline source-registration contract
 
 `register_local_pangaea_source.sh DOI LICENSE_LABEL EVIDENCE_CLASS SOURCE_FILE OUT_DIR`:
@@ -41,6 +47,20 @@ If the complete text export cannot be acquired through any allowed route, stop a
 The helper is intentionally not a scientific parser. It does not authenticate the DOI-to-file relationship, check the full schema/columns, confirm timezone or integration semantics, interpret quality flags, normalize values, or validate physical plausibility. The test suite uses a synthetic fixture; it is not evidence that a real PANGAEA export has passed.
 
 After registration, inspect the entire real metaheader and the exact table header before writing or running a source-specific adapter. Preserve the raw file. Write normalized output to a separate artifact with its own transformation revision, configuration digest, SHA-256, row count and missingness report.
+
+Example, after downloading the **complete text export** through a permitted browser/network route and checking the exact record's licence:
+
+```bash
+bash research/polar-infrastructure/benchmark/scripts/register_local_pangaea_source.sh \
+  10.1594/PANGAEA.983811 \
+  "Baseline Surface Radiation Network License 1.0 (BSRN-1.0)" \
+  measured_field \
+  "$HOME/Downloads/PANGAEA.983811.tab" \
+  ./artifacts/gobabeb-bsrn-2025-06
+```
+
+The helper now requires the declared DOI to appear in the opening metaheader. This catches a common file/DOI mix-up, but it still does not authenticate that the file genuinely came from PANGAEA. The test fixture deliberately uses `not_evaluated` and synthetic values; its DOI string is only a contract test and is not a claim that it contains published measurements.
+
 
 ## 4. Dataset-use rules are engineering constraints
 
