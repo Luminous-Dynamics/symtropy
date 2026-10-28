@@ -295,6 +295,20 @@ jobs:
             .long_horizon_extension.admission_gate_count == 8 and
             .long_horizon_extension.admission_gates_all_false == true and
             .long_horizon_extension.performance_claim == "none" and
+            .paired_comparison_extension.status == "proposed_not_executed" and
+            .paired_comparison_extension.evidence_class == "synthetic_only" and
+            .paired_comparison_extension.contract_path == "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json" and
+            .paired_comparison_extension.schema_path == "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json" and
+            .paired_comparison_extension.evaluator_path == "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs" and
+            .paired_comparison_extension.independent_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py" and
+            .paired_comparison_extension.controller_count == 2 and
+            .paired_comparison_extension.trajectory_count == 6 and
+            .paired_comparison_extension.case_row_count == 12 and
+            .paired_comparison_extension.gate_count == 2 and
+            .paired_comparison_extension.complete_controller_trajectory_matrix_required == true and
+            .paired_comparison_extension.invalid_and_unevaluated_outcomes_must_remain_visible == true and
+            .paired_comparison_extension.gate_specific_margin_contracts_required == true and
+            .paired_comparison_extension.performance_claim == "none" and
             .result_policy.report_kind == "preregistration_contract_only_no_performance_results"
           ' "$contract"
           test -s research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md
