@@ -15,7 +15,7 @@ from typing import Any
 TOP_KEYS = {
     "schema_version", "artifact_kind", "evidence_class", "status",
     "reference_controller_id", "candidate_controller_id", "controllers",
-    "axes", "gate_ids", "cases",
+    "axes", "gate_ids", "gate_margin_contracts", "cases",
 }
 CASE_KEYS = {
     "case_id", "controller_id", "trajectory_id", "comparison_group_id",
@@ -24,7 +24,7 @@ CASE_KEYS = {
 }
 RESULT_KEYS = {
     "schema_version", "report_kind", "evidence_class", "status",
-    "controller_count", "trajectory_count", "case_count", "coverage",
+    "controller_count", "trajectory_count", "case_count", "gate_margin_contracts", "coverage",
     "paired_gate_comparisons", "performance_claim", "result_scope",
 }
 STATUSES = {"pass", "breach", "invalid", "not_evaluated"}
@@ -92,6 +92,13 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
     metadata: dict[str, tuple[Any, ...]] = {}
     trajectories: set[str] = set()
     expected_axes, expected_gates = set(axis_ids), set(gates)
+    contracts = doc["gate_margin_contracts"]
+    _need(set(contracts) == expected_gates, "gate margin contracts do not match declared gates")
+    for gate, contract in contracts.items():
+        _need(set(contract) == {"unit", "signed_margin_definition", "hard_gate"}
+              and isinstance(contract["unit"], str) and contract["unit"].strip()
+              and isinstance(contract["signed_margin_definition"], str) and contract["signed_margin_definition"].strip()
+              and contract["hard_gate"] is True, "every scored gate needs an explicit hard-gate margin contract")
     for case in doc["cases"]:
         _need(set(case) == CASE_KEYS, "case keys do not match contract")
         for field in ("case_id", "controller_id", "trajectory_id", "comparison_group_id",
@@ -202,6 +209,7 @@ def build_expected_report(doc: dict[str, Any]) -> dict[str, Any]:
         "controller_count": len(controllers),
         "trajectory_count": len(trajectories),
         "case_count": len(doc["cases"]),
+        "gate_margin_contracts": doc["gate_margin_contracts"],
         "coverage": coverage,
         "paired_gate_comparisons": comparisons,
         "performance_claim": False,
