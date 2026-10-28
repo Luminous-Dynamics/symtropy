@@ -762,7 +762,11 @@ jobs:
             ([.episodes[] | select(.environment_id == "harmful" and .policy_class == "prior_guided_expansion")][0].best_verified_feasible_utility == 8.0) and
             ([.episodes[] | select(.environment_id == "harmful" and .policy_class == "static_prior_expansion")][0].best_verified_feasible_utility == 6.0) and
             ([.episodes[] | select(.environment_id == "misleading_prior" and .policy_class == "prior_guided_expansion")][0].false_feasible_predictions == 1) and
-            ([.episodes[] | select(.policy_class == "gp_ei_fixed_space" and (.expansions != 0 or .evaluations != 5 or .cost_units_charged != 5.0))] | length) == 0
+            ([.episodes[] | select(.policy_class == "gp_ei_fixed_space" and (.expansions != 0 or .evaluations != 5 or .cost_units_charged != 5.0))] | length) == 0 and
+            ([.episodes[] | select(.terminal_simple_regret == null or .terminal_simple_regret < 0)] | length) == 0 and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "fixed_space")][0].terminal_simple_regret == 6.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "gp_ei_fixed_space")][0].terminal_simple_regret == 6.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "prior_guided_expansion")][0].terminal_simple_regret == 0.0)
           ' search-space-live-loop-report.json
           replay_report="search-space-live-loop-replay-report.json"
           cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
