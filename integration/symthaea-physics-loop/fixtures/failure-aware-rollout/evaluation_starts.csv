@@ -1,0 +1,3 @@
+flight_id,rollout_start_id,regime
+flight-01,start-001,nominal
+flight-02,start-001,nominal

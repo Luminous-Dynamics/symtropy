@@ -1,0 +1,1 @@
+Synthetic dataset identity for failure-aware evaluator smoke only. Contains no physical flight data.
