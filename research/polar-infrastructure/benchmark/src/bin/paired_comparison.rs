@@ -15,6 +15,7 @@ struct Input {
     controllers: Vec<String>,
     axes: Vec<Axis>,
     gate_ids: Vec<String>,
+    gate_margin_contracts: BTreeMap<String, GateMarginContract>,
     cases: Vec<Case>,
 }
 
@@ -24,6 +25,14 @@ struct Axis {
     id: String,
     unit: String,
     higher_is_more_severe: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct GateMarginContract {
+    unit: String,
+    signed_margin_definition: String,
+    hard_gate: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -102,6 +111,17 @@ fn validate(input: &Input) -> Result<(), String> {
 
     let expected_axes: BTreeSet<String> = axis_ids.into_iter().collect();
     let expected_gates: BTreeSet<String> = input.gate_ids.iter().cloned().collect();
+    if input.gate_margin_contracts.keys().cloned().collect::<BTreeSet<_>>() != expected_gates {
+        return Err("gate margin contracts must match the declared gate IDs exactly".into());
+    }
+    for (gate, contract) in &input.gate_margin_contracts {
+        if !nonempty(&contract.unit) || !nonempty(&contract.signed_margin_definition) {
+            return Err(format!("gate {gate} must declare margin units and signed-margin semantics"));
+        }
+        if !contract.hard_gate {
+            return Err(format!("gate {gate} is not declared as a hard gate; soft metrics cannot be scored as service gates"));
+        }
+    }
     let declared_controllers: BTreeSet<String> = input.controllers.iter().cloned().collect();
     let mut case_ids = BTreeSet::new();
     let mut trajectory_meta: BTreeMap<String, TrajectoryMeta> = BTreeMap::new();
@@ -277,6 +297,7 @@ fn analyze(input: &Input) -> Value {
         "controller_count": input.controllers.len(),
         "trajectory_count": trajectories.len(),
         "case_count": input.cases.len(),
+        "gate_margin_contracts": input.gate_margin_contracts,
         "coverage": coverage,
         "paired_gate_comparisons": comparisons,
         "performance_claim": false,
