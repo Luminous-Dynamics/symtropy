@@ -1,0 +1,478 @@
+{
+  "schema_version": "energy-nonanticipativity-counterexample-v0.1",
+  "fixture_id": "energy-causal-policy-vs-wait-and-see-toy-v0.1",
+  "status": "frozen synthetic hand-checkable counterexample; independent Rust oracle and workflow integration pending",
+  "claim_ceiling": "One-quantum abstract dispatch model only. This fixture specifies causal-consistency known answers; it is not site data or evidence of field resilience.",
+  "units": {
+    "energy": "integer model quanta",
+    "time": "discrete model intervals"
+  },
+  "model": {
+    "initial_battery_soc_quanta": 1,
+    "usable_battery_capacity_quanta": 1,
+    "battery_charge_allowed": false,
+    "battery_discharge_limit_quanta_per_interval": 1,
+    "grid_available_at_t0": false,
+    "flexible_demand_quanta_at_t0": 1,
+    "essential_demand_quanta_at_t0": 0,
+    "scenario_reveals_at_t1": true,
+    "architecture_manifest": {
+      "topology": "battery-only",
+      "usable_capacity_quanta": 1,
+      "charge_allowed": false,
+      "discharge_limit_quanta_per_interval": 1
+    },
+    "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
+  },
+  "observable_prefixes": [
+    {
+      "prefix_id": "common-before-reveal",
+      "time_index": 0,
+      "observable_state": {
+        "battery_soc_quanta": 1,
+        "grid_available": false,
+        "flexible_demand_quanta": 1,
+        "essential_demand_quanta": 0
+      },
+      "available_forecast": {
+        "future_grid_state": {
+          "value": "unknown",
+          "available_at_time_index": 0
+        },
+        "future_essential_demand": {
+          "value": "unknown",
+          "available_at_time_index": 0
+        }
+      },
+      "expected_information_set": "shared-t0",
+      "observable_history": [
+        {
+          "time_index": 0,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 1,
+            "essential_demand_quanta": 0
+          },
+          "available_forecast": {
+            "future_grid_state": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            },
+            "future_essential_demand": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "prefix_id": "early-outage-revealed-soc0",
+      "time_index": 1,
+      "observable_state": {
+        "battery_soc_quanta": 0,
+        "grid_available": false,
+        "flexible_demand_quanta": 0,
+        "essential_demand_quanta": 1,
+        "outage_observed": true
+      },
+      "expected_information_set": "early-outage-revealed-soc0-t1",
+      "observable_history": [
+        {
+          "time_index": 0,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 1,
+            "essential_demand_quanta": 0
+          },
+          "available_forecast": {
+            "future_grid_state": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            },
+            "future_essential_demand": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            }
+          },
+          "committed_action": "discharge_to_flexible"
+        },
+        {
+          "time_index": 1,
+          "observable_state": {
+            "battery_soc_quanta": 0,
+            "grid_available": false,
+            "flexible_demand_quanta": 0,
+            "essential_demand_quanta": 1,
+            "outage_observed": true
+          }
+        }
+      ]
+    },
+    {
+      "prefix_id": "early-outage-revealed-soc1",
+      "time_index": 1,
+      "observable_state": {
+        "battery_soc_quanta": 1,
+        "grid_available": false,
+        "flexible_demand_quanta": 0,
+        "essential_demand_quanta": 1,
+        "outage_observed": true
+      },
+      "expected_information_set": "early-outage-revealed-soc1-t1",
+      "observable_history": [
+        {
+          "time_index": 0,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 1,
+            "essential_demand_quanta": 0
+          },
+          "available_forecast": {
+            "future_grid_state": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            },
+            "future_essential_demand": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            }
+          },
+          "committed_action": "hold_for_critical"
+        },
+        {
+          "time_index": 1,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 0,
+            "essential_demand_quanta": 1,
+            "outage_observed": true
+          }
+        }
+      ]
+    },
+    {
+      "prefix_id": "no-outage-revealed-soc0",
+      "time_index": 1,
+      "observable_state": {
+        "battery_soc_quanta": 0,
+        "grid_available": true,
+        "flexible_demand_quanta": 0,
+        "essential_demand_quanta": 0,
+        "outage_observed": false
+      },
+      "expected_information_set": "no-outage-revealed-soc0-t1",
+      "observable_history": [
+        {
+          "time_index": 0,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 1,
+            "essential_demand_quanta": 0
+          },
+          "available_forecast": {
+            "future_grid_state": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            },
+            "future_essential_demand": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            }
+          },
+          "committed_action": "discharge_to_flexible"
+        },
+        {
+          "time_index": 1,
+          "observable_state": {
+            "battery_soc_quanta": 0,
+            "grid_available": true,
+            "flexible_demand_quanta": 0,
+            "essential_demand_quanta": 0,
+            "outage_observed": false
+          }
+        }
+      ]
+    },
+    {
+      "prefix_id": "no-outage-revealed-soc1",
+      "time_index": 1,
+      "observable_state": {
+        "battery_soc_quanta": 1,
+        "grid_available": true,
+        "flexible_demand_quanta": 0,
+        "essential_demand_quanta": 0,
+        "outage_observed": false
+      },
+      "expected_information_set": "no-outage-revealed-soc1-t1",
+      "observable_history": [
+        {
+          "time_index": 0,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": false,
+            "flexible_demand_quanta": 1,
+            "essential_demand_quanta": 0
+          },
+          "available_forecast": {
+            "future_grid_state": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            },
+            "future_essential_demand": {
+              "value": "unknown",
+              "available_at_time_index": 0
+            }
+          },
+          "committed_action": "hold_for_critical"
+        },
+        {
+          "time_index": 1,
+          "observable_state": {
+            "battery_soc_quanta": 1,
+            "grid_available": true,
+            "flexible_demand_quanta": 0,
+            "essential_demand_quanta": 0,
+            "outage_observed": false
+          }
+        }
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "early_outage",
+      "evaluator_only_future": {
+        "at_t0_hidden_from_policy": {
+          "grid_available_at_t1": false,
+          "essential_demand_at_t1": 1,
+          "outage_at_t1": true
+        }
+      },
+      "after_reveal": {
+        "grid_available": false,
+        "essential_demand_quanta": 1,
+        "outage_observed": true
+      }
+    },
+    {
+      "scenario_id": "no_outage",
+      "evaluator_only_future": {
+        "at_t0_hidden_from_policy": {
+          "grid_available_at_t1": true,
+          "essential_demand_at_t1": 0,
+          "outage_at_t1": false
+        }
+      },
+      "after_reveal": {
+        "grid_available": true,
+        "essential_demand_quanta": 0,
+        "outage_observed": false
+      }
+    }
+  ],
+  "action_catalog": {
+    "hold_for_critical": {
+      "t0_battery_discharge_quanta": 0,
+      "t0_flexible_served_quanta": 0,
+      "t0_flexible_unserved_quanta": 1
+    },
+    "discharge_to_flexible": {
+      "t0_battery_discharge_quanta": 1,
+      "t0_flexible_served_quanta": 1,
+      "t0_flexible_unserved_quanta": 0
+    },
+    "serve_essential_from_battery": {
+      "t1_battery_discharge_quanta": 1,
+      "t1_essential_served_quanta": 1
+    },
+    "idle": {
+      "t1_battery_discharge_quanta": 0
+    }
+  },
+  "known_answer_traces": [
+    {
+      "policy_id": "wait_and_see_oracle_noncausal_reference",
+      "reference_only": true,
+      "expected_nonanticipativity_gate": "reject_as_deployable_policy",
+      "traces": [
+        {
+          "scenario_id": "early_outage",
+          "steps": [
+            {
+              "time_index": 0,
+              "observable_prefix_id": "common-before-reveal",
+              "information_set_id": "shared-t0",
+              "action": "hold_for_critical"
+            },
+            {
+              "time_index": 1,
+              "observable_prefix_id": "early-outage-revealed-soc1",
+              "information_set_id": "early-outage-revealed-soc1-t1",
+              "action": "serve_essential_from_battery"
+            }
+          ],
+          "objective_vector": {
+            "essential_unserved_quanta": 0,
+            "flexible_unserved_quanta": 1
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
+        },
+        {
+          "scenario_id": "no_outage",
+          "steps": [
+            {
+              "time_index": 0,
+              "observable_prefix_id": "common-before-reveal",
+              "information_set_id": "shared-t0",
+              "action": "discharge_to_flexible"
+            },
+            {
+              "time_index": 1,
+              "observable_prefix_id": "no-outage-revealed-soc0",
+              "information_set_id": "no-outage-revealed-soc0-t1",
+              "action": "idle"
+            }
+          ],
+          "objective_vector": {
+            "essential_unserved_quanta": 0,
+            "flexible_unserved_quanta": 0
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
+        }
+      ],
+      "expected_violation": {
+        "time_index": 0,
+        "information_set_id": "shared-t0",
+        "conflicting_actions": [
+          "hold_for_critical",
+          "discharge_to_flexible"
+        ]
+      }
+    },
+    {
+      "policy_id": "causal_policy_hold_for_critical",
+      "reference_only": false,
+      "expected_nonanticipativity_gate": "pass",
+      "traces": [
+        {
+          "scenario_id": "early_outage",
+          "steps": [
+            {
+              "time_index": 0,
+              "observable_prefix_id": "common-before-reveal",
+              "information_set_id": "shared-t0",
+              "action": "hold_for_critical"
+            },
+            {
+              "time_index": 1,
+              "observable_prefix_id": "early-outage-revealed-soc1",
+              "information_set_id": "early-outage-revealed-soc1-t1",
+              "action": "serve_essential_from_battery"
+            }
+          ],
+          "objective_vector": {
+            "essential_unserved_quanta": 0,
+            "flexible_unserved_quanta": 1
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
+        },
+        {
+          "scenario_id": "no_outage",
+          "steps": [
+            {
+              "time_index": 0,
+              "observable_prefix_id": "common-before-reveal",
+              "information_set_id": "shared-t0",
+              "action": "hold_for_critical"
+            },
+            {
+              "time_index": 1,
+              "observable_prefix_id": "no-outage-revealed-soc1",
+              "information_set_id": "no-outage-revealed-soc1-t1",
+              "action": "idle"
+            }
+          ],
+          "objective_vector": {
+            "essential_unserved_quanta": 0,
+            "flexible_unserved_quanta": 1
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
+        }
+      ]
+    },
+    {
+      "policy_id": "causal_policy_discharge_to_flexible",
+      "reference_only": false,
+      "expected_nonanticipativity_gate": "pass",
+      "traces": [
+        {
+          "scenario_id": "early_outage",
+          "steps": [
+            {
+              "time_index": 0,
+              "observable_prefix_id": "common-before-reveal",
+              "information_set_id": "shared-t0",
+              "action": "discharge_to_flexible"
+            },
+            {
+              "time_index": 1,
+              "observable_prefix_id": "early-outage-revealed-soc0",
+              "information_set_id": "early-outage-revealed-soc0-t1",
+              "action": "idle"
+            }
+          ],
+          "objective_vector": {
+            "essential_unserved_quanta": 1,
+            "flexible_unserved_quanta": 0
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
+        },
+        {
+          "scenario_id": "no_outage",
+          "steps": [
+            {
+              "time_index": 0,
+              "observable_prefix_id": "common-before-reveal",
+              "information_set_id": "shared-t0",
+              "action": "discharge_to_flexible"
+            },
+            {
+              "time_index": 1,
+              "observable_prefix_id": "no-outage-revealed-soc0",
+              "information_set_id": "no-outage-revealed-soc0-t1",
+              "action": "idle"
+            }
+          ],
+          "objective_vector": {
+            "essential_unserved_quanta": 0,
+            "flexible_unserved_quanta": 0
+          },
+          "architecture_sha256": "d5e5bebb2510f525501fcc33a9507631a0bb01c5636b0c3062129893b77c112c"
+        }
+      ]
+    }
+  ],
+  "required_negative_controls": [
+    "change_one_t0_action_in_wait_and_see_trace_to_test_conflict_detection",
+    "assign_identical_observable_prefixes_different_information_set_ids",
+    "assign_different_observable_prefixes_same_information_set_id",
+    "insert_forecast_with_availability_time_after_action_time",
+    "omit_or_duplicate_a_time_step",
+    "change_architecture_digest_between_scenarios",
+    "tamper_with_trace_bytes_without_updating_receipt",
+    "causal_but_physically_infeasible_trace_must_fail_dispatch_audit"
+  ],
+  "measurement_boundary": {
+    "probabilities": "none",
+    "costs": "not represented",
+    "emissions": "not represented",
+    "physical_model": "abstract integer energy balance to be formalized and independently checked by the Rust oracle",
+    "claim_ceiling": "causal-consistency counterexample only; not a complete dispatch qualification or field-performance claim"
+  }
+}

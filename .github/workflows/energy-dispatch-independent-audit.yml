@@ -1,0 +1,28 @@
+name: Energy Dispatch Independent Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/energy-dispatch-audit/**"
+      - ".github/workflows/energy-dispatch-independent-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/energy-dispatch-audit/**"
+      - ".github/workflows/energy-dispatch-independent-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Standalone Rust audit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Run independent-auditor tests
+        run: cargo test --manifest-path tools/energy-dispatch-audit/Cargo.toml
