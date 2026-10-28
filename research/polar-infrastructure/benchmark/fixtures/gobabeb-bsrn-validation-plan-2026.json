@@ -257,7 +257,7 @@
   },
   "coverage_admission_policy": {
     "policy_id": "coverage_before_aggregation_v0",
-    "status": "proposed_not_executed",
+    "status": "coverage_gate_and_synthetic_contract_tests_implemented_real_source_not_admitted",
     "missing_values_are_zero": false,
     "allow_incomplete_daily_series_to_be_treated_as_complete_month": false,
     "require_expected_observed_missing_counts_per_variable_and_window": true,
@@ -288,6 +288,9 @@
       "publisher_reported_missing_hours": "none",
       "status": "metadata_only_not_ingested",
       "expected_decision": "one reported full 24-hour table is not evidence of month-long coverage or of source-wide completeness"
-    }
+    },
+    "implementation_path": "research/polar-infrastructure/benchmark/scripts/evaluate_environment_coverage.sh",
+    "test_path": "research/polar-infrastructure/benchmark/scripts/test_environment_coverage.sh",
+    "schema_path": "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
   }
 }
