@@ -860,7 +860,6 @@ jobs:
             .budget_points == 3 and
             ([.lane_receipts[] | select(.replay_status != "PASS")] | length) == 0 and
             ([.lane_receipts[].budget_units] == [3, 4, 5]) and
-            ([.environmentwise_metrics] | length == 1) and
             (.environmentwise_metrics | length) == 72 and
             (.policy_frontier | length) == 18 and
             ([.environmentwise_metrics[] | select(.budget_units == 4 and .environment_id == "harmful")] | length) == 6 and
