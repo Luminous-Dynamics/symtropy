@@ -796,7 +796,7 @@ jobs:
             ([.episodes[] | select(.cost_units_charged != 3.0)] | length) == 0 and
             ([.episodes[] | select(.duration_seconds_charged > 25.0)] | length) == 0 and
             ([.episodes[] | select(.policy_class == "gp_ei_fixed_space" and (.expansions != 0 or .evaluations != 3))] | length) == 0 and
-            ([.episodes[] | select(.policy_class == "prior_guided_expansion" and .expansions != 0)] | length) == 0 and
+            ([.episodes[] | select(.expansions != 0)] | length) == 0 and
             ([.auxiliary_controls[] | select(.expansions != 0 or .evaluations != 3 or .cost_units_charged != 3.0)] | length) == 0
           ' search-space-live-tight-budget-report.json
           tight_replay_report="search-space-live-tight-budget-replay-report.json"
