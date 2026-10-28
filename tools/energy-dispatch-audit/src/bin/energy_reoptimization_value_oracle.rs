@@ -297,7 +297,7 @@ fn reserve_used(panel: &Panel, context: &str, policy: &str, threshold_override: 
         EVENT => {
             let threshold = threshold_override.unwrap_or(panel.model.event_trigger_threshold);
             let trigger = residual >= threshold;
-            Ok((if trigger { updated } else { initial }, trigger, 1 + usize::from(trigger)))
+            Ok((if trigger { updated } else { initial }, trigger, if trigger { 2 } else { 1 }))
         }
         NO_REOPT => Ok((initial, false, 1)),
         HIGH_THRESHOLD => {
