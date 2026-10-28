@@ -13,7 +13,8 @@
       "fixed_space",
       "random_expansion",
       "rule_based_expansion",
-      "prior_guided_expansion"
+      "prior_guided_expansion",
+      "static_prior_expansion"
     ],
     "thresholds": {
       "random_expansion": 5.5,
@@ -33,7 +34,8 @@
         "fixed_space": 0.99,
         "random_expansion": 0.6,
         "rule_based_expansion": 0.6,
-        "prior_guided_expansion": 0.6
+        "prior_guided_expansion": 0.6,
+        "static_prior_expansion": 0.6
       },
       "failure_fallback_score": 0.6
     },
@@ -47,7 +49,8 @@
         "fixed_space": 0.45,
         "random_expansion": 0.3,
         "rule_based_expansion": 0.3,
-        "prior_guided_expansion": 0.3
+        "prior_guided_expansion": 0.3,
+        "static_prior_expansion": 0.2
       },
       "failure_fallback_score": 0.3
     },
@@ -61,7 +64,8 @@
         "fixed_space": 0.85,
         "random_expansion": 0.9,
         "rule_based_expansion": 0.9,
-        "prior_guided_expansion": 0.9
+        "prior_guided_expansion": 0.9,
+        "static_prior_expansion": 0.9
       },
       "failure_fallback_score": 0.9
     },
@@ -75,7 +79,8 @@
         "fixed_space": 0.7,
         "random_expansion": 0.8,
         "rule_based_expansion": 0.8,
-        "prior_guided_expansion": 0.8
+        "prior_guided_expansion": 0.8,
+        "static_prior_expansion": 0.8
       },
       "failure_fallback_score": 1
     },
@@ -89,7 +94,8 @@
         "fixed_space": 0.35,
         "random_expansion": 0.2,
         "rule_based_expansion": 0.2,
-        "prior_guided_expansion": 0.2
+        "prior_guided_expansion": 0.2,
+        "static_prior_expansion": 0.2
       },
       "failure_fallback_score": 0.2
     },
@@ -103,7 +109,8 @@
         "fixed_space": 0,
         "random_expansion": 0.99,
         "rule_based_expansion": 0.2,
-        "prior_guided_expansion": 0.2
+        "prior_guided_expansion": 0.2,
+        "static_prior_expansion": 0.1
       },
       "failure_fallback_score": 0.99
     },
@@ -117,7 +124,8 @@
         "fixed_space": 0,
         "random_expansion": 0.2,
         "rule_based_expansion": 0.99,
-        "prior_guided_expansion": 0.2
+        "prior_guided_expansion": 0.2,
+        "static_prior_expansion": 0.1
       },
       "failure_fallback_score": 0.2
     },
@@ -131,7 +139,8 @@
         "fixed_space": 0,
         "random_expansion": 0.2,
         "rule_based_expansion": 0.2,
-        "prior_guided_expansion": 0.99
+        "prior_guided_expansion": 0.99,
+        "static_prior_expansion": 0.99
       },
       "failure_fallback_score": 0.2
     }
