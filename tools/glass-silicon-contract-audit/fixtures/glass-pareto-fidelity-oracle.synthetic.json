@@ -1,0 +1,335 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "glass-pareto-fidelity-synthetic-v0-1",
+  "evidence_class": "synthetic_evaluator_only",
+  "claim_ceiling": "Evaluator-only synthetic outcomes and tariffs; screen labels cannot qualify hard constraints.",
+  "action_cost_catalog": [
+    {
+      "fidelity": "screen",
+      "cost_units": 0.5,
+      "duration_seconds": 1
+    },
+    {
+      "fidelity": "confirmatory",
+      "cost_units": 2,
+      "duration_seconds": 3
+    }
+  ],
+  "environments": [
+    {
+      "environment_id": "informative",
+      "outcomes": [
+        {
+          "candidate_id": "glass-a",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.88,
+            "energy": 8.2
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-a",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.9,
+            "energy": 8
+          },
+          "constraints": {
+            "qualification": true
+          }
+        },
+        {
+          "candidate_id": "glass-b",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.8,
+            "energy": 5.3
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-b",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.82,
+            "energy": 5
+          },
+          "constraints": {
+            "qualification": true
+          }
+        },
+        {
+          "candidate_id": "glass-c",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.69,
+            "energy": 3.1
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-c",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.7,
+            "energy": 3
+          },
+          "constraints": {
+            "qualification": true
+          }
+        },
+        {
+          "candidate_id": "glass-d",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.35,
+            "energy": 9
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-d",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.99,
+            "energy": 2
+          },
+          "constraints": {
+            "qualification": false
+          }
+        },
+        {
+          "candidate_id": "glass-e",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.72,
+            "energy": 6.1
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-e",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.75,
+            "energy": 6
+          },
+          "constraints": {
+            "qualification": true
+          }
+        }
+      ]
+    },
+    {
+      "environment_id": "neutral",
+      "outcomes": [
+        {
+          "candidate_id": "glass-a",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.8,
+            "energy": 8
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-a",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.9,
+            "energy": 8
+          },
+          "constraints": {
+            "qualification": true
+          }
+        },
+        {
+          "candidate_id": "glass-b",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.73,
+            "energy": 5.2
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-b",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.82,
+            "energy": 5
+          },
+          "constraints": {
+            "qualification": true
+          }
+        },
+        {
+          "candidate_id": "glass-c",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.68,
+            "energy": 3.3
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-c",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.7,
+            "energy": 3
+          },
+          "constraints": {
+            "qualification": true
+          }
+        },
+        {
+          "candidate_id": "glass-d",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.69,
+            "energy": 8.5
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-d",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.99,
+            "energy": 2
+          },
+          "constraints": {
+            "qualification": false
+          }
+        },
+        {
+          "candidate_id": "glass-e",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.7,
+            "energy": 6.3
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-e",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.75,
+            "energy": 6
+          },
+          "constraints": {
+            "qualification": true
+          }
+        }
+      ]
+    },
+    {
+      "environment_id": "misleading_low_fidelity",
+      "outcomes": [
+        {
+          "candidate_id": "glass-a",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.87,
+            "energy": 8
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-a",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.9,
+            "energy": 8
+          },
+          "constraints": {
+            "qualification": true
+          }
+        },
+        {
+          "candidate_id": "glass-b",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.6,
+            "energy": 8
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-b",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.82,
+            "energy": 5
+          },
+          "constraints": {
+            "qualification": true
+          }
+        },
+        {
+          "candidate_id": "glass-c",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.4,
+            "energy": 8
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-c",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.7,
+            "energy": 3
+          },
+          "constraints": {
+            "qualification": true
+          }
+        },
+        {
+          "candidate_id": "glass-d",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.99,
+            "energy": 1
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-d",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.99,
+            "energy": 2
+          },
+          "constraints": {
+            "qualification": false
+          }
+        },
+        {
+          "candidate_id": "glass-e",
+          "fidelity": "screen",
+          "objectives": {
+            "quality": 0.55,
+            "energy": 8
+          },
+          "constraints": null
+        },
+        {
+          "candidate_id": "glass-e",
+          "fidelity": "confirmatory",
+          "objectives": {
+            "quality": 0.75,
+            "energy": 6
+          },
+          "constraints": {
+            "qualification": true
+          }
+        }
+      ]
+    }
+  ]
+}
