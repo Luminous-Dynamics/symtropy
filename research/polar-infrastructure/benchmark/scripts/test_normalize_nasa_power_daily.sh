@@ -66,6 +66,23 @@ grep -Fx '"20240103","295.15","304.15","285.15","6.2","2.1","0","0.55"' "$CSV" >
 ! grep -q -- '-999' "$CSV"
 
 # Independently verify hashes, manifest-to-file binding, CSV byte size and row count.
+# Determinism check: identical source/request must yield byte-identical
+# normalized trace and transform config even when acquisition output directory differs.
+bash "$NORMALIZER" \
+  "$FIXTURE" \
+  "earth.coastal_desert_namib" \
+  "Synthetic fixture location; not a measured Namib site" \
+  "-23.56" \
+  "15.04" \
+  "20240101" \
+  "20240103" \
+  "$TMP_DIR/repeat" \
+  "https://example.invalid/synthetic-fixture-not-a-data-source" \
+  "synthetic_stress"
+cmp "$CSV" "$TMP_DIR/repeat/environment-trace.csv"
+cmp "$CONFIG" "$TMP_DIR/repeat/acquisition-config.json"
+test "$(jq -r '.provenance.transformation_config_sha256' "$MANIFEST")" = "$(jq -r '.provenance.transformation_config_sha256' "$TMP_DIR/repeat/environment-trace-manifest.json")"
+
 VERIFY_REPORT=$(bash "$SCRIPT_DIR/verify_environment_trace_artifacts.sh" "$MANIFEST" "$RAW" "$CSV" "$CONFIG")
 jq -e '
   .report_kind == "symtropy-environment-trace-artifact-integrity-report" and
