@@ -352,7 +352,7 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
     const SPEC_FIELDS: &[&str] = &["field_id", "value_type", "unit", "source_family"];
     let Some(adapters) = suite.get("adapters").and_then(Value::as_array) else {
         push_findings(&mut findings, "ADAPTERS_REQUIRED");
-        return finish_report(suite, catalog, policy_ids.len(), oracle_ids.len(), findings);
+        return finish_report(suite, policy_ids.len(), oracle_ids.len(), findings);
     };
     if adapters.len() != EXPECTED_ADAPTERS {
         push_findings(&mut findings, "ADAPTER_COUNT_DRIFT");
@@ -412,7 +412,10 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
                 if duplicate_strings(&inputs) {
                     push_findings(&mut findings, "RAW_INPUT_DUPLICATE");
                 }
-                let expected = expected_inputs.iter().map(|item| (*item).to_owned()).collect::<BTreeSet<_>>();
+                let expected = expected_inputs
+                    .iter()
+                    .map(|item| (*item).to_owned())
+                    .collect::<BTreeSet<_>>();
                 let actual = inputs.iter().cloned().collect::<BTreeSet<_>>();
                 if actual != expected {
                     push_findings(&mut findings, "RAW_INPUT_CONTRACT_MISMATCH");
@@ -497,8 +500,12 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
     }
 
     if expected_adapter_ids.len() != adapters.len()
-        || expected_adapter_ids.iter().any(|id| !seen_adapter_ids.contains(id))
-        || seen_adapter_ids.iter().any(|id| !expected_adapter_ids.contains(id))
+        || expected_adapter_ids
+            .iter()
+            .any(|id| !seen_adapter_ids.contains(id))
+        || seen_adapter_ids
+            .iter()
+            .any(|id| !expected_adapter_ids.contains(id))
     {
         push_findings(&mut findings, "PROFILE_ADAPTER_SET_MISMATCH");
     }
@@ -823,7 +830,13 @@ mod tests {
         assert_eq!(sha256_hex(CONTRACT_SOURCE).len(), 64);
         assert_eq!(sha256_hex(SUITE_SOURCE).len(), 64);
         assert_eq!(sha256_hex(AUDITOR_SOURCE).len(), 64);
-        assert_eq!(sha256_hex(CONTRACT_SOURCE), sha256_hex(&fs::read(DEFAULT_CONTRACT).expect("contract file")));
-        assert_eq!(sha256_hex(SUITE_SOURCE), sha256_hex(&fs::read(DEFAULT_SUITE).expect("suite file")));
+        assert_eq!(
+            sha256_hex(CONTRACT_SOURCE),
+            sha256_hex(&fs::read(DEFAULT_CONTRACT).expect("contract file"))
+        );
+        assert_eq!(
+            sha256_hex(SUITE_SOURCE),
+            sha256_hex(&fs::read(DEFAULT_SUITE).expect("suite file"))
+        );
     }
 }
