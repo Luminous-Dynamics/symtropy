@@ -14,11 +14,11 @@ const EXPERIMENT_BYTES: &[u8] =
 const CITYLEARN_MANIFEST_BYTES: &[u8] =
     include_bytes!("../../fixtures/citylearn-challenge-2022-plus-evs-v3.0.2-source-manifest-v0.1.json");
 const REGISTRY_SHA256: &str =
-    "69695a9f93c6c27592d1e09ee2af283ab1838f85cb5ad550b23d14158c9c892f";
+    "d761b4eee434f41262734dc2cb0e78f39c8032da3e2a1436ab1c7b73285b9d06";
 const EXPERIMENT_SHA256: &str =
-    "6e30d0c46fd301669173ff5bc21afd90e598ec109f87d3ac22008597b5ee52d3";
+    "799fa407b17ddc897acae476f7321fc6f63273ef0cfd34964797e1b25545092f";
 const CITYLEARN_MANIFEST_SHA256: &str =
-    "bd5086f66e47b400a1e37b4f6a6b5fffeabe02bf2c3a7a7c001c108813efe657";
+    "d35ad5e750032a4b24e797b856dc3984fb8401cb5943debc3660a49e63e7145d";
 const REGISTRY_SCHEMA: &str = "energy-external-benchmark-source-registry-v0.1";
 const EXPERIMENT_SCHEMA: &str = "energy-external-benchmark-source-registry-experiment-v0.1";
 const REGISTRY_ID: &str = "energy-external-benchmark-source-registry-2026-10-28";
@@ -147,6 +147,7 @@ struct CityLearnFile {
     git_blob_sha1: String,
     size_bytes: usize,
     data_rows: usize,
+    raw_sha256: String,
     immutable_source_url: String,
 }
 
@@ -387,14 +388,14 @@ fn validate_citylearn_manifest(
         || !manifest.dataset_license_status.contains("not_independently_cleared")
         || manifest.forecast_issue_time_status != "not_verified_from_schema_and_column_names"
         || manifest.external_raw_bytes_committed
-        || !manifest.source_inventory_status.contains("remote_git_commit_and_blob_ids_are_inventoried")
+        || !manifest.source_inventory_status.contains("remote_git_commit_and_blob_ids_pinned")
         || manifest.referenced_csv_count != 30
         || manifest.files.len() != 30
     {
         return Err("CityLearn manifest identity, time coverage, rights state or claim ceiling changed".to_owned());
     }
 
-    const MANIFEST_CHECKS: [&str; 8] = [
+    const MANIFEST_CHECKS: [&str; 9] = [
         "exact_source_commit_and_tag",
         "schema_blob_sha1_matches_selected_release",
         "all_schema_referenced_csv_files_are_listed",
@@ -403,6 +404,7 @@ fn validate_citylearn_manifest(
         "forecast_issue_time_is_not_assumed_from_column_name",
         "dataset_license_is_not_assumed_from_software_license",
         "national_or_simulated_data_are_not_claimed_as_south_african_field_evidence",
+        "all_raw_file_sha256_digests_are_pinned_and_verified",
     ];
     if manifest.required_checks.len() != MANIFEST_CHECKS.len()
         || MANIFEST_CHECKS.iter().any(|required| {
@@ -450,6 +452,7 @@ fn validate_citylearn_manifest(
         if basename.contains('/')
             || !basenames.insert(basename.to_owned())
             || !valid_sha1(&file.git_blob_sha1)
+            || !valid_sha256(&file.raw_sha256)
             || file.size_bytes == 0
             || file.data_rows == 0
         {
@@ -768,7 +771,7 @@ mod tests {
         let r = registry();
         validate_citylearn_manifest(&m, &r).unwrap();
         assert_eq!(m.files.len(), 30);
-        assert!(m.files.iter().all(|file| valid_sha1(&file.git_blob_sha1)));
+        assert!(m.files.iter().all(|file| valid_sha1(&file.git_blob_sha1) && valid_sha256(&file.raw_sha256)));
     }
 
     #[test]
@@ -802,5 +805,12 @@ mod tests {
         let a = serde_json::to_vec(&run_fixture().unwrap()).unwrap();
         let b = serde_json::to_vec(&run_fixture().unwrap()).unwrap();
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn rejects_citylearn_file_without_valid_raw_sha256() {
+        let mut m = manifest();
+        m.files[0].raw_sha256 = "not-a-sha256".to_owned();
+        assert!(validate_citylearn_manifest(&m, &registry()).is_err());
     }
 }
