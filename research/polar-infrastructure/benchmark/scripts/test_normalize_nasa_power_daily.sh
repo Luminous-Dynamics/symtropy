@@ -39,6 +39,7 @@ jq -e '
   .status == "ingested_unvalidated" and
   .evidence_class == "synthetic_stress" and
   .acquisition.provider == "synthetic test fixture" and
+  (.acquisition.source_artifact_uri | startswith("file://")) and
   .acquisition.attribution == "Synthetic test fixture; not an observational dataset." and
   .spatial_context.latitude_deg == -23.56 and
   .spatial_context.longitude_deg == 15.04 and
@@ -64,10 +65,15 @@ grep -Fx '"20240102","294.15","","284.15","5","4","0.0003","","' "$CSV" >/dev/nu
 grep -Fx '"20240103","295.15","304.15","285.15","6.2","2.1","0","0.55"' "$CSV" >/dev/null
 ! grep -q -- '-999' "$CSV"
 
-# The raw and transformed artifacts must match their recorded byte digests.
-test "$(sha256sum "$RAW" | awk '{print $1}')" = "$(jq -r '.acquisition.source_data_sha256' "$MANIFEST")"
-test "$(sha256sum "$CSV" | awk '{print $1}')" = "$(jq -r '.trace_asset.sha256' "$MANIFEST")"
-test "$(sha256sum "$CONFIG" | awk '{print $1}')" = "$(jq -r '.provenance.transformation_config_sha256' "$MANIFEST")"
+# Independently verify hashes, manifest-to-file binding, CSV byte size and row count.
+VERIFY_REPORT=$(bash "$SCRIPT_DIR/verify_environment_trace_artifacts.sh" "$MANIFEST" "$RAW" "$CSV" "$CONFIG")
+jq -e '
+  .report_kind == "symtropy-environment-trace-artifact-integrity-report" and
+  .byte_hashes_and_trace_row_count_verified == true and
+  .expected_sample_count == 3 and
+  .trace_csv_rows_including_header == 4 and
+  .result_scope == "artifact_integrity_only_not_data_quality_or_physical_model_validation"
+' <<<"$VERIFY_REPORT" >/dev/null
 jq -e '.request.requested_daily_sample_count == 3 and .request.start_inclusive == "20240101" and .request.end_inclusive == "20240103" and .request.timezone == "UTC"' "$CONFIG" >/dev/null
 
 # Check the Rust manifest gate against the emitted test-only manifest when a
