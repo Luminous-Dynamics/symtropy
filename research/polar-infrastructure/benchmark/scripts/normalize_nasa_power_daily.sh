@@ -374,7 +374,7 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
       ("Evidence class is " + $evidence_class + "; this manifest does not itself validate the physical data source."),
       "Daily averages/extrema/accumulations do not resolve intra-day power ramps or controller dynamics.",
       "Fog liquid-water content, salt deposition, dust deposition, equipment response and local microclimate are not validated by this trace.",
-      ("NASA POWER source streams: " + $api_sources),
+      ("Source response streams: " + $api_sources),
       ("Acquisition configuration: " + $config_uri)
     ],
     uncertainty_method:"Not estimated by this acquisition step; record source-specific uncertainty and validate against appropriately matched observations before use.",
