@@ -26,7 +26,7 @@ L,& \text{otherwise}.
 \end{cases}
 \]
 
-Report conditional finite RMSE and divergence rate as secondary diagnostics only. Do not replace a failed rollout with a missing row.
+Report conditional finite RMSE and the penalty-bearing rollout failure rate as secondary diagnostics only; the latter includes missing predictions, timeouts, constraint violations, non-finite states, and over-limit errors, so it is deliberately not labelled a pure physical-divergence rate. Do not replace a failed rollout with a missing row.
 
 ## Input and split contract
 
@@ -46,8 +46,8 @@ The JSON receipt hashes the exact bytes of the scored CSV and starts/train manif
 
 For every horizon, report baseline and candidate:
 
-- failure-aware position RMSE, divergent rollout count/rate, and conditional finite RMSE;
-- candidate-minus-baseline RMSE and divergence-rate differences;
+- failure-aware position RMSE, penalized rollout count/rate, and conditional finite RMSE;
+- candidate-minus-baseline RMSE and penalty-bearing rollout failure-rate differences;
 - percentile intervals from a paired crossed bootstrap.
 
 A bootstrap replicate samples the complete flight IDs with replacement and training seeds independently with replacement, then applies the same sampled flight and seed indices to both methods. All starts from a sampled flight-seed cell stay together. This estimates uncertainty over these two sampled factors for the fixed evaluation design; it does not certify distribution-wide generalization. Fewer than ten recordings or ten seeds triggers a warning, not a validity guarantee.
@@ -80,7 +80,7 @@ Choose the divergence limit and horizon grid appropriate to the dataset before e
 1. Reproduce the upstream baseline and match its exact registered starts, state conventions, motor/control inputs, and horizons.
 2. Compare physics, residual MLP, physics-plus-residual, recurrent, explicit-history, ESN/online-uncertainty, and persistent HDC/LTC models using the same paired flight × seed starts.
 3. Preregister one primary horizon and failure-aware RMSE endpoint. Require the paired crossed 95% interval for candidate-minus-baseline to exclude zero and a practically meaningful minimum effect (initial target: 10% relative RMSE reduction). Treat other horizons and regimes as secondary unless multiplicity is addressed.
-4. Report divergence rate, conditional finite RMSE, regime-specific values, model size, per-rollout latency, p95/p99 latency, and hard deadline misses.
+4. Report penalty-bearing rollout failure rate, conditional finite RMSE, regime-specific values, model size, per-rollout latency, p95/p99 latency, and hard deadline misses.
 5. Only after an offline rollout gate passes, test whether the model improves closed-loop tracking and safety in paired simulator episodes; a lower open-loop error alone is not controller or flight-safety evidence.
 
 Related research:
