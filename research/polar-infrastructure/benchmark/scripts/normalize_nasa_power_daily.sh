@@ -254,7 +254,6 @@ jq -n \
   --arg data_lat "$DATA_LAT" \
   --arg data_lon "$DATA_LON" \
   --argjson expected "$EXPECTED_COUNT" \
-  --arg retrieved_at "$RETRIEVED_AT" \
   '{
     schema_version:"0.1.0",
     provider:$provider,
@@ -270,7 +269,6 @@ jq -n \
     },
     source_url:$url,
     requested_daily_sample_count:$expected,
-    retrieved_at_utc:$retrieved_at,
     missing_values_policy:"Preserve NASA POWER fill values as empty CSV cells; do not impute.",
     normalization:{
       T2M:"C to K by adding 273.15",
