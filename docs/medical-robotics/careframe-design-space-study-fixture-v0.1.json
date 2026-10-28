@@ -1,0 +1,102 @@
+{
+  "schema_version": "careframe-design-study-v0",
+  "study_id": "CAREFRAME-PARETO-SYNTHETIC-001",
+  "evidence_class": "synthetic_fixture_only",
+  "scenario_set_sha256": "5ace9ef4fe263649d8d0614f16f052738bd8a87611bc2e4cf663ebed86c51ddc",
+  "claim_ceiling": "Pareto selection of submitted benchmark metrics only. No device safety, clinical performance or regulatory claim.",
+  "budget": {
+    "task_attempts_per_candidate": 100,
+    "time_budget_seconds_per_candidate": 600,
+    "same_budget_for_all_candidates": true
+  },
+  "candidates": [
+    {
+      "candidate_id": "wheeled_upper_body_humanoid",
+      "embodiment": "wheeled_upper_body_humanoid",
+      "evidence_class": "synthetic_fixture_only",
+      "scenario_set_sha256": "5ace9ef4fe263649d8d0614f16f052738bd8a87611bc2e4cf663ebed86c51ddc",
+      "attempted_tasks": 100,
+      "successful_tasks": 90,
+      "intervention_count": 35,
+      "p95_recovery_ms": 65000,
+      "energy_wh_per_attempt": 80,
+      "maintenance_hours_per_100_tasks": 14,
+      "hard_gates": {
+        "authority_escalations_blocked": true,
+        "stale_revision_mutations_blocked": true,
+        "privacy_revocation_blocked": true,
+        "safe_stop_fault_injection_passed": true,
+        "unsafe_eligible_count": 0,
+        "physical_actuation_authorized": false,
+        "patient_contact_authorized": false,
+        "clinical_use_authorized": false
+      }
+    },
+    {
+      "candidate_id": "wheeled_mobile_manipulator",
+      "embodiment": "wheeled_mobile_manipulator",
+      "evidence_class": "synthetic_fixture_only",
+      "scenario_set_sha256": "5ace9ef4fe263649d8d0614f16f052738bd8a87611bc2e4cf663ebed86c51ddc",
+      "attempted_tasks": 100,
+      "successful_tasks": 85,
+      "intervention_count": 18,
+      "p95_recovery_ms": 30000,
+      "energy_wh_per_attempt": 40,
+      "maintenance_hours_per_100_tasks": 8,
+      "hard_gates": {
+        "authority_escalations_blocked": true,
+        "stale_revision_mutations_blocked": true,
+        "privacy_revocation_blocked": true,
+        "safe_stop_fault_injection_passed": true,
+        "unsafe_eligible_count": 0,
+        "physical_actuation_authorized": false,
+        "patient_contact_authorized": false,
+        "clinical_use_authorized": false
+      }
+    },
+    {
+      "candidate_id": "fixed_base_manipulator",
+      "embodiment": "fixed_base_manipulator",
+      "evidence_class": "synthetic_fixture_only",
+      "scenario_set_sha256": "5ace9ef4fe263649d8d0614f16f052738bd8a87611bc2e4cf663ebed86c51ddc",
+      "attempted_tasks": 100,
+      "successful_tasks": 78,
+      "intervention_count": 25,
+      "p95_recovery_ms": 50000,
+      "energy_wh_per_attempt": 60,
+      "maintenance_hours_per_100_tasks": 20,
+      "hard_gates": {
+        "authority_escalations_blocked": true,
+        "stale_revision_mutations_blocked": true,
+        "privacy_revocation_blocked": true,
+        "safe_stop_fault_injection_passed": true,
+        "unsafe_eligible_count": 0,
+        "physical_actuation_authorized": false,
+        "patient_contact_authorized": false,
+        "clinical_use_authorized": false
+      }
+    },
+    {
+      "candidate_id": "biped_humanoid",
+      "embodiment": "biped_humanoid",
+      "evidence_class": "synthetic_fixture_only",
+      "scenario_set_sha256": "5ace9ef4fe263649d8d0614f16f052738bd8a87611bc2e4cf663ebed86c51ddc",
+      "attempted_tasks": 100,
+      "successful_tasks": 92,
+      "intervention_count": 15,
+      "p95_recovery_ms": 20000,
+      "energy_wh_per_attempt": 70,
+      "maintenance_hours_per_100_tasks": 12,
+      "hard_gates": {
+        "authority_escalations_blocked": true,
+        "stale_revision_mutations_blocked": true,
+        "privacy_revocation_blocked": true,
+        "safe_stop_fault_injection_passed": false,
+        "unsafe_eligible_count": 1,
+        "physical_actuation_authorized": false,
+        "patient_contact_authorized": false,
+        "clinical_use_authorized": false
+      }
+    }
+  ]
+}
