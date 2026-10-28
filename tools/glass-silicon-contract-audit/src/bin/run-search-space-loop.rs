@@ -719,6 +719,7 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
 
     let mut episodes_checked = 0usize;
     let mut events_checked = 0usize;
+    let mut policy_actions_checked = 0usize;
     let mut evals_replayed = 0usize;
     let mut expansions_replayed = 0usize;
     let mut total_cost = 0.0f64;
@@ -761,6 +762,7 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
         let mut observations = Vec::<Value>::new();
         let mut expanded_ids = Vec::<String>::new();
         let mut expansion_used = false;
+        let mut expansion_decision_made = policy == "fixed_space" || policy == "static_prior_expansion";
         let mut cost_used = 0.0f64;
         let mut seconds_used = 0.0f64;
         let mut feasible_hits = 0usize;
@@ -801,6 +803,29 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
             let expected_view_digest = sha256(&serde_json::to_vec(&view).unwrap_or_default());
             if event.get("decision_view_sha256").and_then(Value::as_str) != Some(expected_view_digest.as_str()) {
                 fail(&mut audit, "FAIL", "DECISION_VIEW_DIGEST_MISMATCH", &format!("episode {campaign_id} event {event_index} view digest is not reproducible from the prior public state"));
+            }
+
+            let consideration_due = !expansion_decision_made
+                && observations.len() == 1
+                && method_for_policy(policy).is_some();
+            let expected_action = choose_action(policy, &view, expansion_decision_made);
+            if consideration_due {
+                expansion_decision_made = true;
+            }
+            let action_matches = match &expected_action {
+                Action::Evaluate(expected_id) => event_type == "evaluate_candidate" && candidate_id == expected_id,
+                Action::Expand(expected_method) => {
+                    event_type == "expand_space"
+                        && event.get("expansion_method").and_then(Value::as_str) == Some(expected_method.as_str())
+                }
+                Action::Stop(reason) => {
+                    fail(&mut audit, "FAIL", "POLICY_ACTION_AFTER_STOP", &format!("episode {campaign_id} event {event_index} occurs after deterministic policy would stop: {reason}"));
+                    false
+                }
+            };
+            policy_actions_checked += 1;
+            if !action_matches {
+                fail(&mut audit, "FAIL", "POLICY_ACTION_MISMATCH", &format!("episode {campaign_id} event {event_index} does not match the registered deterministic policy action for the reconstructed public view"));
             }
 
             let (tariff_key, method) = if event_type == "evaluate_candidate" {
@@ -936,6 +961,7 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
     }
     audit["episodes_checked"] = json!(episodes_checked);
     audit["events_checked"] = json!(events_checked);
+    audit["policy_actions_checked"] = json!(policy_actions_checked);
     audit["evaluations_replayed"] = json!(evals_replayed);
     audit["expansions_replayed"] = json!(expansions_replayed);
     audit["cost_units_recomputed"] = json!(total_cost);
@@ -1175,6 +1201,18 @@ mod tests {
         assert_eq!(replay["episodes_checked"], 20);
         assert!(replay["events_checked"].as_u64().unwrap() >= 70);
         assert_eq!(replay["cost_units_recomputed"], 100.0);
+    }
+
+    #[test]
+    fn independent_replay_rejects_a_legal_but_policy_inconsistent_action() {
+        let mut report = run_all(PUBLIC, ORACLE);
+        let first_event = &mut report["episodes"].as_array_mut().unwrap()[0]["events"].as_array_mut().unwrap()[0];
+        assert_eq!(first_event["action_type"], "evaluate_candidate");
+        first_event["candidate_family_id"] = json!("glass-b");
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "POLICY_ACTION_MISMATCH"));
     }
 
     #[test]
