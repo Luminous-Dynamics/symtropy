@@ -165,7 +165,7 @@ jobs:
           grep -q 'randomization p-value' "$protocol"
           grep -q 'GLASS-SPACE-EXPANSION-001 #2788' "$protocol"
           grep -q 's43246-026-01304-9' "$protocol"
-          grep -q 'new candidate pool' "$protocol"
+          grep -q 'A larger candidate pool, more unique compositions' "$protocol"
           echo "OOD acquisition-value protocol and matched-budget baselines: PASS"
 
       - name: Audit separated acquisition input/oracle schemas and known answer
