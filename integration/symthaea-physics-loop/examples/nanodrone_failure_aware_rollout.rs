@@ -322,15 +322,15 @@ fn effective_error(status: &str, error: Option<f64>, limit: f64) -> Result<Effec
         }
     }
     if status != "ok" {
-        return Ok(EffectiveError { capped_squared_error: limit * limit, divergent: true, conditional_error_squared: None });
+        return Ok(EffectiveError { capped_squared_error: limit * limit, penalized: true, conditional_error_squared: None });
     }
     let value = error.ok_or_else(|| "status ok requires a finite position error".to_string())?;
     if value > limit {
-        return Ok(EffectiveError { capped_squared_error: limit * limit, divergent: true, conditional_error_squared: None });
+        return Ok(EffectiveError { capped_squared_error: limit * limit, penalized: true, conditional_error_squared: None });
     }
     Ok(EffectiveError {
         capped_squared_error: value * value,
-        divergent: false,
+        penalized: false,
         conditional_error_squared: Some(value * value),
     })
 }
@@ -467,7 +467,7 @@ fn read_and_validate(args: &Args, train: &BTreeSet<String>, starts: &[StartRow])
 
 fn model_summary(rows: &[&RolloutRow], baseline: bool, limit: f64) -> Result<ModelSummary, String> {
     let mut sumsq = 0.0;
-    let mut divergent = 0usize;
+    let mut penalized = 0usize;
     let mut conditional_sumsq = 0.0;
     let mut conditional_count = 0usize;
     for row in rows {
@@ -478,7 +478,7 @@ fn model_summary(rows: &[&RolloutRow], baseline: bool, limit: f64) -> Result<Mod
         };
         let effective = effective_error(status, error, limit)?;
         sumsq += effective.capped_squared_error;
-        divergent += usize::from(effective.penalized);
+        penalized += usize::from(effective.penalized);
         if let Some(value) = effective.conditional_error_squared {
             conditional_sumsq += value;
             conditional_count += 1;
@@ -486,8 +486,8 @@ fn model_summary(rows: &[&RolloutRow], baseline: bool, limit: f64) -> Result<Mod
     }
     Ok(ModelSummary {
         registered_rollout_count: rows.len(),
-        penalized_rollout_count: divergent,
-        penalized_rollout_rate: divergent as f64 / rows.len().max(1) as f64,
+        penalized_rollout_count: penalized,
+        penalized_rollout_rate: penalized as f64 / rows.len().max(1) as f64,
         failure_aware_position_rmse_m: (sumsq / rows.len().max(1) as f64).sqrt(),
         conditional_finite_position_rmse_m: if conditional_count == 0 { None } else { Some((conditional_sumsq / conditional_count as f64).sqrt()) },
         conditional_finite_rollout_count: conditional_count,
@@ -569,22 +569,22 @@ fn crossed_bootstrap(
         let sampled_seeds: Vec<&u64> = (0..seeds.len()).map(|_| &seeds[rng.index(seeds.len())]).collect();
         let mut b_sumsq = 0.0;
         let mut c_sumsq = 0.0;
-        let mut b_div = 0usize;
-        let mut c_div = 0usize;
+        let mut b_penalized = 0usize;
+        let mut c_penalized = 0usize;
         let mut count = 0usize;
         for flight in &sampled_flights {
             for s in &sampled_seeds {
                 let cell = cells.get(&(flight.to_string(), **s)).ok_or("missing crossed cell").expect("validated balanced crossed design");
                 b_sumsq += cell.baseline_sumsq;
                 c_sumsq += cell.candidate_sumsq;
-                b_div += cell.baseline_penalized_count;
-                c_div += cell.candidate_penalized_count;
+                b_penalized += cell.baseline_penalized_count;
+                c_penalized += cell.candidate_penalized_count;
                 count += cell.rollout_count;
             }
         }
         if count > 0 {
             rmse_deltas.push((c_sumsq / count as f64).sqrt() - (b_sumsq / count as f64).sqrt());
-            penalized_rate_deltas.push(c_div as f64 / count as f64 - b_div as f64 / count as f64);
+            penalized_rate_deltas.push(c_penalized as f64 / count as f64 - b_penalized as f64 / count as f64);
         }
     }
     (interval(rmse_deltas), interval(penalized_rate_deltas))
@@ -608,9 +608,9 @@ fn run() -> Result<(), String> {
         let baseline = model_summary(&rows, true, args.divergence_limit_m)?;
         let candidate = model_summary(&rows, false, args.divergence_limit_m)?;
         let delta_rmse = candidate.failure_aware_position_rmse_m - baseline.failure_aware_position_rmse_m;
-        let delta_divergence = candidate.penalized_rollout_rate - baseline.penalized_rollout_rate;
+        let delta_penalty_rate = candidate.penalized_rollout_rate - baseline.penalized_rollout_rate;
         let cells = cell_stats(&data, hidx, args.divergence_limit_m)?;
-        let (rmse_ci, divergence_ci) = crossed_bootstrap(&cells, &data.flights, &data.seeds,
+        let (rmse_ci, penalty_rate_ci) = crossed_bootstrap(&cells, &data.flights, &data.seeds,
             args.bootstrap_replicates, args.bootstrap_seed.wrapping_add(hidx as u64));
         let excludes_zero = match (rmse_ci.lower_95, rmse_ci.upper_95) {
             (Some(lo), Some(hi)) => lo > 0.0 || hi < 0.0,
@@ -620,8 +620,8 @@ fn run() -> Result<(), String> {
             horizon_s: *horizon, baseline: baseline.clone(), candidate: candidate.clone(),
             delta_failure_aware_rmse_candidate_minus_baseline_m: delta_rmse,
             paired_crossed_bootstrap_delta_rmse_m: rmse_ci,
-            delta_penalized_rollout_rate_candidate_minus_baseline: delta_divergence,
-            paired_crossed_bootstrap_delta_penalized_rollout_rate: divergence_ci,
+            delta_penalized_rollout_rate_candidate_minus_baseline: delta_penalty_rate,
+            paired_crossed_bootstrap_delta_penalized_rollout_rate: penalty_rate_ci,
             rmse_interval_excludes_zero: excludes_zero,
             claim_note: if excludes_zero {
                 "The crossed-bootstrap interval excludes zero on this fixed flight-by-seed cohort. This does not prove controller benefit, deployment-wide generalization, or physical-flight safety.".into()
