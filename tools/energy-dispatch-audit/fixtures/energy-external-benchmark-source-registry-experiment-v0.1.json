@@ -31,7 +31,7 @@
     "citylearn_forecast_issue_times_verified": false,
     "citylearn_dataset_terms_cleared": false
   },
-  "claim_ceiling": "Source discovery and source-file digest verification only; no raw dataset files have been imported into Symtropy, rights-cleared, or qualified.",
+  "claim_ceiling": "Source discovery and source-file digest verification only; no external dataset files have been imported into Symtropy, rights-cleared, or qualified.",
   "required_checks": [
     "source_ids_are_unique_and_nonempty",
     "source_urls_are_canonical_http_or_https",
