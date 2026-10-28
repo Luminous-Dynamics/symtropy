@@ -76,6 +76,28 @@ Useful entry points:
 - IEEE 2030.8 microgrid-controller testing scope: https://standards.ieee.org/ieee/2030.8/6169/
 - NIST SP 800-160 Vol. 2 Rev. 1 cyber-resiliency framework: https://csrc.nist.gov/pubs/sp/800/160/v2/r1/final
 
+## 4.1 First executable pilot: Gobabeb/Namib daily environment envelope
+
+The live acquisition adapter is [fetch_and_normalize_nasa_power_daily.sh](scripts/fetch_and_normalize_nasa_power_daily.sh), which requests a single point from the NASA POWER Daily API in UTC and passes the response to [normalize_nasa_power_daily.sh](scripts/normalize_nasa_power_daily.sh). The latter refuses unexpected response layout, request dates, time standard or parameter units; preserves the raw response copy and its SHA-256; maps source variables to canonical units; keeps fill values blank; and emits a manifest marked `ingested_unvalidated`. Daily solar irradiance is a daily energy total, not instantaneous power, and daily meteorology is not enough to establish inverter stability or control-loop performance.
+
+A published Gobabeb location is 23°33′42.61″S, 15°02′30.15″E (approximately latitude -23.561836, longitude 15.041708). The station is in the Namib Desert at the fog/rain ecotone. See the [EIS Namibia library record for a Gobabeb research-station paper](https://the-eis.com/elibrary/index.php/search/22385) and the [Gobabeb institute overview](https://gobabeb.org/). Do not treat the coordinate alone as proof that a gridded product equals the station record.
+
+From a machine with network access, the first repeatable pilot command is:
+
+```bash
+bash research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh \
+  earth.coastal_desert_namib \
+  "Gobabeb station coordinates; NASA POWER point trace, not station observations" \
+  -23.561836 15.041708 20240101 20241231 \
+  ./artifacts/gobabeb-power-2024
+```
+
+This issues one modest daily API request, records the effective URL and exact requested/response geometry coordinates, and writes `source-response.json`, `environment-trace.csv`, `acquisition-config.json`, and `environment-trace-manifest.json`. The current adapter intentionally does **not** mark the manifest `validated_for_replay`; users must archive the artifacts durably, check units/quality, and validate variables against suitable reference observations before treating them as an engineering trace. The checked-in fixture is explicitly synthetic and exists only to test transformations and negative controls offline.
+
+For a suitability check, NASA POWER documents its [validation API](https://power.larc.nasa.gov/docs/services/api/validate/), which compares supported POWER variables with nearby qualifying surface sites and reports statistics such as bias and RMSE. The selection is based on nearest qualifying site and parameter-specific availability; verify the selected station, temporal match, QC and representativeness rather than equating a generic validation result with Gobabeb site validation. The [NASA POWER Daily API documentation](https://power.larc.nasa.gov/docs/services/api/temporal/daily/) also notes that daily data can be UTC or local solar time, with LST the default, so the adapter explicitly requests and checks UTC.
+
+A priority follow-on is an **hourly** trace adapter, followed by appropriate site-meter and plant response traces. Daily records can support broad seasonal feasibility screening; they cannot serve as a proxy for fast electrical controller, EMT or protection tests. Those require a separately validated plant model and matched hourly/sub-hour disturbances or suitable laboratory traces.
+
 ## 5. Fair benchmark arms
 
 Every comparison must use the same episode boundaries, service contract, initial-state digest, disturbance trace, asset limits, controller-visible observations/forecasts, hardware class, decision deadline and metric extractor. Record controller version/configuration and tuning budget. If an arm receives better forecasts, longer horizon or more compute, show it as a separate information/compute tier.
