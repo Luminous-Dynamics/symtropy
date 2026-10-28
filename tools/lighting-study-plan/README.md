@@ -46,3 +46,21 @@ The input digest and planner-source digest are included in the JSON report. The 
 The planner uses a transparent normal-effect, plug-in-SD approximation. It numerically inverts the one-sided Student-t CDF for a critical value, but treats pilot standard deviation as known and does not calculate exact noncentral-t power. Variance-estimation uncertainty, heavy-tailed family effects, clustered missingness, and shifts to unseen building populations are not fully modeled. Do not present its result as an exact guarantee. Preregister the test, use independent holdout families, and verify operating characteristics by simulation under plausible skew, tails, heterogeneity, and scene-family shift before a confirmatory study.
 
 This plans only the conditional energy-superiority endpoint. Feasibility, light quality, glare, temporal light modulation, service continuity, and other safety/quality endpoints need their own prospective designs and gates. Passing this planner cannot show superiority or certify a lighting design.
+
+
+## Simulation-based operating-characteristic audit
+
+To check whether the declared sample-size recommendations behave under different distributions, run:
+
+```sh
+python3 -m unittest -v test_plan_independent_scene_families test_simulate_power_operating_characteristics
+python3 simulate_power_operating_characteristics.py fixtures/synthetic-plan-output-example.json \
+  --replicates 3000 --seed 20261028 --output /tmp/lighting-power-diagnostics.json
+python3 -m json.tool /tmp/lighting-power-diagnostics.json >/dev/null
+```
+
+The simulator uses 33 scenarios across three pilot-SD sensitivity settings, including nulls under normal, left/right-skewed lognormal and Student-t effects, the declared alternative, an alternative near the worthwhile-effect margin, a shifted-family alternative, and failure/feasibility sensitivity. It reports per-scenario Monte Carlo Wilson intervals and hashes the planner/simulator inputs. Missing/non-compliant families are excluded from conditional energy effect calculations but remain in feasibility denominators, never zero-filled.
+
+It separately reports point-estimate feasibility gates and one-sided Wilson lower-bound feasibility gates. The latter asks for evidence that the true feasible fraction meets the specified threshold. Ten out of ten pass events cannot establish a 95% true pass rate at 95% confidence.
+
+On the included synthetic planner output, the small-sample Student-t test shows an anti-conservative left-skew counterexample: approximately 9.5–10.1% null rejection versus one-sided per-comparison alpha 1.667%, in the specified standardized lognormal family. This is a statistical stress-test finding on constructed data, not a statement about real buildings. See [the operating-characteristic protocol](../../docs/research/LIGHTING_POWER_OPERATING_CHARACTERISTICS_V0_1.md) for full assumptions and limits.
