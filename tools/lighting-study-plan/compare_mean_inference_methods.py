@@ -61,10 +61,10 @@ def _quantile(values: list[float], probability: float) -> float:
     if fraction == 0.0:
         return ordered[lower]
     left, right = ordered[lower], ordered[upper]
-    if math.isinf(left) or math.isinf(right):
-        if left == right:
-            return left
-        return -math.inf if left < 0.0 and right < 0.0 else math.inf
+    if math.isinf(left):
+        return left
+    if math.isinf(right):
+        return right
     return left * (1.0 - fraction) + right * fraction
 
 
