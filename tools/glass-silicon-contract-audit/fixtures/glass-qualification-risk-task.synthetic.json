@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "glass-qualification-risk-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic Bernoulli qualification-gate mechanics only; no real-material, plant-yield, independence, or industrial-performance claim is validated.",
+  "target_success_probability": 0.95,
+  "confidence_level": 0.95,
+  "candidates": [
+    {
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "candidate_id": "lot-beta"
+    },
+    {
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "candidate_id": "lot-delta"
+    },
+    {
+      "candidate_id": "lot-epsilon"
+    }
+  ]
+}
