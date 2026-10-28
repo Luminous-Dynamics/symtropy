@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/glass-search-space-budget-frontier-scorecard-v0.1.schema.json",
+  "title": "Glass–Silicon paired budget-frontier scorecard v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "audit_kind",
+    "benchmark_id",
+    "oracle_sha256",
+    "budget_points",
+    "lane_receipts",
+    "environmentwise_metrics",
+    "policy_frontier",
+    "findings",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNRESOLVED"
+      ]
+    },
+    "audit_kind": {
+      "const": "synthetic_paired_budget_frontier_scorecard"
+    },
+    "benchmark_id": {
+      "const": "glass-space-expansion-live-loop-synthetic-v0-1"
+    },
+    "oracle_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "budget_points": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3
+    },
+    "lane_receipts": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "budget_units",
+          "report_sha256",
+          "catalog_sha256",
+          "oracle_sha256",
+          "replay_status",
+          "episodes_replayed",
+          "events_replayed",
+          "cost_units_recomputed"
+        ],
+        "properties": {
+          "budget_units": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "report_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "catalog_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "oracle_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "replay_status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "UNRESOLVED"
+            ]
+          },
+          "episodes_replayed": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "events_replayed": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "cost_units_recomputed": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "environmentwise_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "budget_units",
+          "environment_id",
+          "policy_class",
+          "best_verified_feasible_utility",
+          "terminal_simple_regret",
+          "utility_per_charged_unit",
+          "first_feasible_cost_units",
+          "false_feasible_predictions",
+          "expansions",
+          "evaluations",
+          "cost_units_charged",
+          "delta_utility_vs_gp_ei",
+          "delta_utility_vs_fixed_space",
+          "delta_utility_vs_seeded_random_mean"
+        ],
+        "properties": {
+          "budget_units": {
+            "enum": [
+              3,
+              4,
+              5
+            ]
+          },
+          "environment_id": {
+            "enum": [
+              "helpful",
+              "neutral",
+              "harmful",
+              "misleading_prior"
+            ]
+          },
+          "policy_class": {
+            "enum": [
+              "fixed_space",
+              "gp_ei_fixed_space",
+              "random_expansion",
+              "rule_based_expansion",
+              "prior_guided_expansion",
+              "static_prior_expansion"
+            ]
+          },
+          "best_verified_feasible_utility": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "terminal_simple_regret": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "utility_per_charged_unit": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "first_feasible_cost_units": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "false_feasible_predictions": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "expansions": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "evaluations": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "cost_units_charged": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "delta_utility_vs_gp_ei": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "delta_utility_vs_fixed_space": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "delta_utility_vs_seeded_random_mean": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "policy_frontier": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "budget_units",
+          "policy_class",
+          "environment_count",
+          "gp_ei_better_environments",
+          "gp_ei_tied_environments",
+          "gp_ei_worse_environments",
+          "worst_environment_delta_vs_gp_ei",
+          "seeded_random_better_environments",
+          "seeded_random_tied_environments",
+          "seeded_random_worse_environments",
+          "worst_environment_delta_vs_seeded_random_mean",
+          "claim_ceiling"
+        ],
+        "properties": {
+          "budget_units": {
+            "enum": [
+              3,
+              4,
+              5
+            ]
+          },
+          "policy_class": {
+            "enum": [
+              "fixed_space",
+              "gp_ei_fixed_space",
+              "random_expansion",
+              "rule_based_expansion",
+              "prior_guided_expansion",
+              "static_prior_expansion"
+            ]
+          },
+          "environment_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "gp_ei_better_environments": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "gp_ei_tied_environments": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "gp_ei_worse_environments": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "worst_environment_delta_vs_gp_ei": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "seeded_random_better_environments": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "seeded_random_tied_environments": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "seeded_random_worse_environments": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "worst_environment_delta_vs_seeded_random_mean": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "detail"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
