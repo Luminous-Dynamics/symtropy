@@ -51,3 +51,29 @@ These are proposed research targets, not industry standards. Offline warnings ar
 ## Run source checks
 
 From the Symtropy integration checkout with its required sibling Symthaea checkout configured, set STFR_CHECK_NANODRONE_RESIDUAL_SPECTRUM=1 when invoking scripts/test-real-symthaea-in-symtropy.sh. That gate runs cargo test and cargo check for both the residual-spectrum and decision-validity examples. The evaluation CLI is documented in the PR description and example usage output.
+
+
+## Paired warning-method deltas
+
+The companion `nanodrone_paired_warning_bootstrap` consumes a **single shared CSV** containing each flight/window once, with both methods' scores and the common future error. This is preferable to joining aggregate JSON: pairing is explicit at the row level and the target label is generated only once.
+
+Required columns:
+
+    flight_id,decision_time_s,outcome_time_s,error_value,baseline_risk_score,candidate_risk_score,baseline_feature_max_time_s,candidate_feature_max_time_s
+
+Both models' latest feature timestamps must be no later than the decision time. Flight/time keys must be unique, times increasing within each flight, target horizon fixed, and calibration/test flights disjoint from train. Pass hashes for the dataset, shared paired truth/conditioning windows, and each model's feature-provenance receipt, plus source commits for both methods.
+
+For every nominal calibration alert budget, the example independently fits baseline and candidate thresholds from calibration only and freezes them for test. It reports each model's actual calibration/test alert rate, AUROC/AUPRC, event recall, warning lead, false alert episodes per observed flight-minute, and candidate-minus-baseline metric deltas. It resamples **whole test flights** with the same sampled flight IDs for both methods and rebuilds event groups inside each bootstrap replicate. Percentile intervals are reported for delta AUROC, AUPRC, event recall and false-alert episode rate when defined. If realized alert rates differ by more than one percentage point, the report explicitly warns that the operating points are not matched-rate.
+
+This is paired cohort inference, not proof of causality, controller benefit or flight safety. A fixed held-out cohort does not establish distribution-wide calibration. Pre-register severe-error threshold, horizon, event gap, alert-merge gap, flight split, warning features and bootstrap seed. The bootstrap samples are flight clusters, not overlapping windows.
+
+Source check gate: `STFR_CHECK_NANODRONE_RESIDUAL_SPECTRUM=1 ./scripts/test-real-symthaea-in-symtropy.sh` also runs cargo test/check for the paired bootstrap example. Evaluating paired output requires frozen precomputed scores from both models and the same target windows; no real-flight score is claimed by the tooling change itself.
+
+
+## Additional generalization audit: complete recordings and fresh training seeds
+
+A July 2026 arXiv preprint on evaluation-recording contamination reports a useful cautionary example on NanoBench: a contaminated training protocol showed 12.1% lower apparent one-second position error (0.262 m vs 0.299 m), but its predeclared 95% interval for the contaminated-minus-disjoint difference crossed zero ([-0.0735, 0.0011] m); the confirmatory criterion was not met. The paper's stated lesson is that windows from the same recording remain dependent, and uncertainty should reflect both complete recordings and fresh training seeds. This is a preprint result, not an industry-wide effect estimate: https://arxiv.org/abs/2607.18482
+
+Our paired flight bootstrap conditions on the specific pair of frozen models and estimates variability over the held-out flight cohort. It does **not** include training-seed variability. For broader model-family claims, report a separate crossed flight-by-seed analysis with the same held-out recordings and paired seed schedule, a failure-aware rollout score that retains divergent trials under a preregistered penalty, a recording-disjoint primary split, and a controlled contamination stress arm. Keep the contamination arm out of deployment claims; it diagnoses evaluation sensitivity.
+
+Use leave-one-trajectory/regime-out splits only when the chosen held-out regime is recorded in the dataset metadata before scoring. Report regime-specific results, not just a pooled metric. Keep exploratory seed results separate from a preregistered confirmatory seed set. Follow-on audit: https://github.com/Luminous-Dynamics/symtropy/issues/2793
