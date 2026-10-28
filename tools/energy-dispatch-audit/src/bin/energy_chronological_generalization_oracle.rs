@@ -418,11 +418,12 @@ fn run_fixture() -> Result<Report, String> {
     check_known_answers(&experiment, &results)?;
 
     let mut ranked: Vec<&ModelResult> = results.values().filter(|result| result.deployable).collect();
-    ranked.sort_by_key(|result| (
-        result.essential_unserved,
-        result.flexible_unserved,
-        result.model_id.as_str(),
-    ));
+    ranked.sort_by(|a, b| {
+        a.essential_unserved
+            .cmp(&b.essential_unserved)
+            .then_with(|| a.flexible_unserved.cmp(&b.flexible_unserved))
+            .then_with(|| a.model_id.cmp(&b.model_id))
+    });
     let ranked_deployable_models = ranked.iter().map(|result| result.model_id.clone()).collect();
 
     Ok(Report {
@@ -533,7 +534,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_a_feature_arriving_after_the_label_deadline() {
+    fn rejects_a_feature_arriving_after_the_decision_deadline() {
         let mut p = panel();
         p.samples[12].signal_available_at_index = p.samples[12].time_index as i32;
         assert!(validate_panel(&p).is_err());
