@@ -9,6 +9,28 @@ A conventional asset-availability or energy-cost metric can look good while peop
 
 Distinguish two questions. Where credible scenario probabilities exist, use probability-weighted metrics and tail measures with uncertainty. Where probabilities are not defensible, report each enumerated stress scenario and worst-case outcomes; do not relabel an unweighted stress suite as expected risk. This reflects recent microgrid reliability research emphasizing chronological adequacy and correlated scarcity rather than a single headline indicator. HIL, commissioning, and periodic controller testing are separate evidence stages, not certificates implied by a passing unit test.
 
+## Three linked, separately scored benchmark tracks
+
+Do not try to make one metric cover slow energy adequacy, fast inverter stability, and cyber-physical integrity. Share provenance, scenario identity, and service-delivery traces across tracks, but keep each domain's physical metrics and acceptance criteria distinct.
+
+### Track A — long-horizon critical-service resilience
+
+This is the existing scorer's scope: delivery of owner-approved heat, water, communications, sanitation, and other declared services through chronological renewable scarcity, reserve depletion, equipment faults, delayed resupply, repair queues, and recovery. Physical unit-hours remain separated by service; the normalized service-deficit summary supplements rather than replaces them. Repeated-event tests must carry state across events.
+
+### Track B — fast electrical dynamics and controller implementation
+
+A suitable electrical benchmark should separately measure frequency and voltage excursions, settling/recovery, current-limit behavior, synchronization/stability margins, protection interactions, computation/decision deadlines, and sensitivity to controller tuning. It must use a matched plant, disturbance sequence, controller-visible input, protection envelope, and metric extractor for all comparator arms; low-order models should be checked against an appropriate EMT or laboratory reference before strong electrical claims are made.
+
+A relevant recent comparison is [A Reproducible Weak-Grid Benchmark with Switching-Averaged EMT Validation for Battery-Backed Grid-Forming Control in PV Microgrids (Energies, 25 June 2026)](https://doi.org/10.3390/en19133017). It compares droop, virtual-synchronous-machine, and power-synchronization control under matched plant data, load disturbance, grid-strength reduction, voltage sag, and current limits, then checks the low-order response with a switching-averaged EMT layer and tuning sensitivity. Its result is a benchmark-specific trade-off among frequency moderation, restoration speed, stability, and implementation burden—not a universal controller ranking. Symtropy should reproduce an appropriate public baseline before extending it to polar constraints and compound events, and should not claim superiority over that paper without a matched, independently reproduced experiment.
+
+### Track C — cross-layer cyber-physical integrity
+
+This track tests whether telemetry freshness, sensor disagreement, command validity, actuator response, controller fallback, and state re-synchronization preserve service delivery under safe, isolated fault injection. Keep evidence-integrity metrics (stale/invalid command handling, detection/fallback latency, command-versus-plant mismatch) separate from the resulting service losses. A detector firing is not proof of containment; stable network uptime is not proof that commands were physically correct.
+
+### Cross-track experiment contract
+
+Every paired comparison should share a stable study ID, scenario/trajectory ID, initial-state digest, model revision, service-contract digest, and policy-visible input trace. Each track may add its own validated model/testbed digest and domain-specific measurements. A cross-layer case must explicitly record which layers were active and which were not covered. Never infer electrical stability from energy-service averages, infer multi-day energy adequacy from a short EMT trace, or infer cybersecurity from correct service metrics alone.
+
 ## Comparison arms
 
 Use identical episode boundaries, service contracts, input data, constraints, hardware, and reporting rules. Pre-register tuning budgets and freeze the final hold-out set.
@@ -24,6 +46,19 @@ Use identical episode boundaries, service contracts, input data, constraints, ha
 | Negative controls | Demonstrate fault detection | Floor violator, failed actuator, stale sensor, invalid evidence |
 
 Do not claim to beat “industry” using a straw-man baseline. Name specific commercial controllers only when version, configuration, model boundary, inputs, hardware and results are documented and reproducible. A paper, vendor claim, simulation, and HIL result are different evidence classes.
+
+### Additional electrical-track targets (separate from service resilience)
+
+These also need a frozen study-specific protocol; they are not universal limits.
+
+| Dimension | Acceptance approach |
+|---|---|
+| Baseline reproduction | Reproduce an appropriate published/open baseline and its primary metrics within declared tolerances before changing the plant or adding polar hazards |
+| Matched comparisons | Identical plant, perturbations, protection/current limits, input visibility, solver settings, output sampling and metric extraction across controller arms |
+| Dynamic constraints | Zero violations of explicitly declared voltage/frequency/current/angle/protection envelopes in the selected test suite, subject to validated model boundaries |
+| Model cross-check | Report discrepancies between reduced-order trajectories and EMT/reference results; explain any controller rank reversal rather than selecting the more favorable model |
+| Tuning robustness | Report performance and failure-boundary sensitivity under preregistered parameter perturbations and tuning budgets |
+| Real-time execution | No missed control deadlines in the declared test suite on named hardware; publish latency distribution and fallback for missed deadlines |
 
 ## Proposed quantitative targets
 
@@ -98,6 +133,7 @@ Evidence does not automatically rise because a workflow passes. Synthetic-only o
 - [NREL/NLR, Hardware-in-the-Loop Test Bed and Test Methodology for Microgrid Controller Evaluation](https://www.nrel.gov/docs/fy20osti/71338.pdf) provides controller-evaluation methodology.
 - [Reliability as a design principle: A systematic review and integrated framework for renewable-based microgrids (2026)](https://www.sciencedirect.com/science/article/pii/S2590174526003612) motivates time-coupled adequacy, correlated scarcity, and service-critical tail measures.
 - [Quantifying Microgrid Resilience by Determining Survivable Durations of Random Outages (IEEE Access, 2025)](https://doi.org/10.1109/ACCESS.2025.3626579) motivates reporting how long critical service can be sustained before failure, rather than only average service fractions.
-- [IEEE 2030.8: Testing of Microgrid Controllers](https://standards.ieee.org/ieee/2030.8/6169/) is another relevant test reference.
+- [IEEE 2030.8-2018: Testing of Microgrid Controllers](https://standards.ieee.org/ieee/2030.8/6169/) is an existing test reference; its successor [P2030.8](https://standards.ieee.org/ieee/2030.8/12543/) was approved as an active revision project on 26 March 2026.
+- [A Reproducible Weak-Grid Benchmark ... (Energies, 2026)](https://doi.org/10.3390/en19133017) is a reproducibility pattern for matched grid-forming controller comparison and a model-to-EMT consistency check, not a polar microgrid validation.
 
 The current code demonstrates metric calculation on synthetic fixtures only. The next scientific milestone is not a higher dashboard score; it is a frozen, reproducible, site-relevant comparison whose evidence can falsify the candidate's value proposition.
