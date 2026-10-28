@@ -21,13 +21,28 @@
     "provenance"
   ],
   "properties": {
-    "schema_version": { "const": "0.1.0" },
-    "artifact_kind": { "const": "symtropy-environment-trace-manifest" },
-    "manifest_id": { "type": "string", "pattern": "^[a-z0-9]+([._-][a-z0-9]+)*$" },
-    "profile_id": { "type": "string", "minLength": 1 },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "artifact_kind": {
+      "const": "symtropy-environment-trace-manifest"
+    },
+    "manifest_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+([._-][a-z0-9]+)*$"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
     "status": {
       "type": "string",
-      "enum": ["template_only", "ingested_unvalidated", "validated_for_replay", "blocked"]
+      "enum": [
+        "template_only",
+        "ingested_unvalidated",
+        "validated_for_replay",
+        "blocked"
+      ]
     },
     "evidence_class": {
       "type": "string",
@@ -57,14 +72,58 @@
         "source_data_sha256"
       ],
       "properties": {
-        "provider": { "type": ["string", "null"] },
-        "dataset_name": { "type": ["string", "null"] },
-        "dataset_version": { "type": ["string", "null"] },
-        "source_url": { "type": ["string", "null"], "format": "uri", "pattern": "^https://" },
-        "attribution": { "type": ["string", "null"] },
-        "license_or_access_terms": { "type": ["string", "null"] },
-        "accessed_at_utc": { "type": ["string", "null"], "format": "date-time" },
-        "source_data_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+        "provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dataset_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dataset_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "attribution": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "license_or_access_terms": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "accessed_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "source_data_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        }
       }
     },
     "spatial_context": {
@@ -79,12 +138,40 @@
         "coordinate_reference"
       ],
       "properties": {
-        "location_label": { "type": "string", "minLength": 1 },
-        "latitude_deg": { "type": ["number", "null"], "minimum": -90, "maximum": 90 },
-        "longitude_deg": { "type": ["number", "null"], "minimum": -180, "maximum": 180 },
-        "elevation_m": { "type": ["number", "null"] },
-        "spatial_support": { "type": "string", "minLength": 1 },
-        "coordinate_reference": { "type": "string", "minLength": 1 }
+        "location_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "latitude_deg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -90,
+          "maximum": 90
+        },
+        "longitude_deg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -180,
+          "maximum": 180
+        },
+        "elevation_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "spatial_support": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_reference": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "time_axis": {
@@ -102,33 +189,116 @@
         "gap_policy"
       ],
       "properties": {
-        "start_utc": { "type": ["string", "null"], "format": "date-time" },
-        "end_utc": { "type": ["string", "null"], "format": "date-time" },
-        "sample_interval_seconds": { "type": ["integer", "null"], "minimum": 1 },
-        "expected_sample_count": { "type": ["integer", "null"], "minimum": 1 },
-        "observed_sample_count": { "type": ["integer", "null"], "minimum": 0 },
-        "missing_sample_count": { "type": ["integer", "null"], "minimum": 0 },
+        "start_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "end_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "sample_interval_seconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "expected_sample_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "observed_sample_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "missing_sample_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
         "timestamp_semantics": {
           "type": "string",
-          "enum": ["instantaneous", "interval_mean", "interval_accumulation", "sample_event", "mission_time", "unknown"]
+          "enum": [
+            "instantaneous",
+            "interval_mean",
+            "interval_accumulation",
+            "sample_event",
+            "mission_time",
+            "unknown"
+          ]
         },
-        "timezone": { "const": "UTC" },
+        "timezone": {
+          "const": "UTC"
+        },
         "gap_policy": {
           "type": "string",
-          "enum": ["not_selected", "preserve_and_report", "bounded_interpolation_with_mask", "reject_trace"]
+          "enum": [
+            "not_selected",
+            "preserve_and_report",
+            "bounded_interpolation_with_mask",
+            "reject_trace"
+          ]
         }
       }
     },
     "trace_asset": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["uri", "sha256", "format", "byte_size", "immutable_archive_uri"],
+      "required": [
+        "uri",
+        "sha256",
+        "format",
+        "byte_size",
+        "immutable_archive_uri"
+      ],
       "properties": {
-        "uri": { "type": ["string", "null"], "format": "uri" },
-        "sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
-        "format": { "type": "string", "minLength": 1 },
-        "byte_size": { "type": ["integer", "null"], "minimum": 1 },
-        "immutable_archive_uri": { "type": ["string", "null"], "format": "uri" }
+        "uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "format": {
+          "type": "string",
+          "minLength": 1
+        },
+        "byte_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "immutable_archive_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        }
       }
     },
     "variables": {
@@ -143,15 +313,33 @@
           "canonical_unit",
           "source_variable",
           "transformation",
+          "temporal_semantics",
           "evidence_class",
           "required_for_replay"
         ],
         "properties": {
-          "variable_id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
-          "physical_quantity": { "type": "string", "minLength": 1 },
-          "canonical_unit": { "type": "string", "minLength": 1 },
-          "source_variable": { "type": ["string", "null"] },
-          "transformation": { "type": "string", "minLength": 1 },
+          "variable_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "physical_quantity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "canonical_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_variable": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transformation": {
+            "type": "string",
+            "minLength": 1
+          },
           "evidence_class": {
             "type": "string",
             "enum": [
@@ -166,7 +354,22 @@
               "not_evaluated"
             ]
           },
-          "required_for_replay": { "type": "boolean" }
+          "required_for_replay": {
+            "type": "boolean"
+          },
+          "temporal_semantics": {
+            "type": "string",
+            "enum": [
+              "instantaneous",
+              "interval_mean",
+              "interval_accumulation",
+              "interval_maximum",
+              "interval_minimum",
+              "sample_event",
+              "derived",
+              "unknown"
+            ]
+          }
         }
       }
     },
@@ -184,18 +387,40 @@
       "properties": {
         "validation_status": {
           "type": "string",
-          "enum": ["not_evaluated", "screened", "validated_for_declared_use", "rejected"]
+          "enum": [
+            "not_evaluated",
+            "screened",
+            "validated_for_declared_use",
+            "rejected"
+          ]
         },
-        "missing_data_policy": { "type": "string", "minLength": 1 },
+        "missing_data_policy": {
+          "type": "string",
+          "minLength": 1
+        },
         "known_biases_or_limits": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
-        "uncertainty_method": { "type": "string", "minLength": 1 },
-        "validation_evidence_uri": { "type": ["string", "null"], "format": "uri" },
+        "uncertainty_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "validation_evidence_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
         "validated_against": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 }
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
@@ -209,71 +434,221 @@
         "created_at_utc"
       ],
       "properties": {
-        "processing_code_revision": { "type": ["string", "null"] },
-        "transformation_recipe": { "type": "string", "minLength": 1 },
-        "transformation_config_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
-        "created_at_utc": { "type": ["string", "null"], "format": "date-time" }
+        "processing_code_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "transformation_recipe": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transformation_config_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "created_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
       }
     }
   },
   "allOf": [
     {
-      "if": { "properties": { "status": { "const": "validated_for_replay" } }, "required": ["status"] },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "validated_for_replay"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
       "then": {
         "properties": {
-          "evidence_class": { "enum": ["measured_field", "reanalysis", "mission_observed", "remote_observation", "validated_simulation"] },
+          "evidence_class": {
+            "enum": [
+              "measured_field",
+              "reanalysis",
+              "mission_observed",
+              "remote_observation",
+              "validated_simulation"
+            ]
+          },
           "acquisition": {
             "properties": {
-              "provider": { "type": "string", "minLength": 1 },
-              "dataset_name": { "type": "string", "minLength": 1 },
-              "dataset_version": { "type": "string", "minLength": 1 },
-              "source_url": { "type": "string", "format": "uri", "pattern": "^https://" },
-              "attribution": { "type": "string", "minLength": 1 },
-              "license_or_access_terms": { "type": "string", "minLength": 1 },
-              "accessed_at_utc": { "type": "string", "format": "date-time" },
-              "source_data_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+              "provider": {
+                "type": "string",
+                "minLength": 1
+              },
+              "dataset_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "dataset_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_url": {
+                "type": "string",
+                "format": "uri",
+                "pattern": "^https://"
+              },
+              "attribution": {
+                "type": "string",
+                "minLength": 1
+              },
+              "license_or_access_terms": {
+                "type": "string",
+                "minLength": 1
+              },
+              "accessed_at_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "source_data_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
             },
-            "required": ["provider", "dataset_name", "dataset_version", "source_url", "attribution", "license_or_access_terms", "accessed_at_utc", "source_data_sha256"]
+            "required": [
+              "provider",
+              "dataset_name",
+              "dataset_version",
+              "source_url",
+              "attribution",
+              "license_or_access_terms",
+              "accessed_at_utc",
+              "source_data_sha256"
+            ]
           },
           "time_axis": {
             "properties": {
-              "start_utc": { "type": "string", "format": "date-time" },
-              "end_utc": { "type": "string", "format": "date-time" },
-              "sample_interval_seconds": { "type": "integer", "minimum": 1 },
-              "expected_sample_count": { "type": "integer", "minimum": 1 },
-              "observed_sample_count": { "type": "integer", "minimum": 1 },
-              "missing_sample_count": { "type": "integer", "minimum": 0 },
-              "gap_policy": { "enum": ["preserve_and_report", "bounded_interpolation_with_mask", "reject_trace"] }
+              "start_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "end_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "sample_interval_seconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "expected_sample_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "observed_sample_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "missing_sample_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "gap_policy": {
+                "enum": [
+                  "preserve_and_report",
+                  "bounded_interpolation_with_mask",
+                  "reject_trace"
+                ]
+              }
             },
-            "required": ["start_utc", "end_utc", "sample_interval_seconds", "expected_sample_count", "observed_sample_count", "missing_sample_count"]
+            "required": [
+              "start_utc",
+              "end_utc",
+              "sample_interval_seconds",
+              "expected_sample_count",
+              "observed_sample_count",
+              "missing_sample_count"
+            ]
           },
           "trace_asset": {
             "properties": {
-              "uri": { "type": "string", "format": "uri" },
-              "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-              "byte_size": { "type": "integer", "minimum": 1 },
-              "immutable_archive_uri": { "type": "string", "format": "uri" }
+              "uri": {
+                "type": "string",
+                "format": "uri"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "byte_size": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "immutable_archive_uri": {
+                "type": "string",
+                "format": "uri"
+              }
             },
-            "required": ["uri", "sha256", "byte_size", "immutable_archive_uri"]
+            "required": [
+              "uri",
+              "sha256",
+              "byte_size",
+              "immutable_archive_uri"
+            ]
           },
           "quality": {
             "properties": {
-              "validation_status": { "const": "validated_for_declared_use" },
-              "validation_evidence_uri": { "type": "string", "format": "uri" },
-              "validated_against": { "type": "array", "minItems": 1 }
+              "validation_status": {
+                "const": "validated_for_declared_use"
+              },
+              "validation_evidence_uri": {
+                "type": "string",
+                "format": "uri"
+              },
+              "validated_against": {
+                "type": "array",
+                "minItems": 1
+              }
             },
-            "required": ["validation_status", "validation_evidence_uri", "validated_against"]
+            "required": [
+              "validation_status",
+              "validation_evidence_uri",
+              "validated_against"
+            ]
           },
           "provenance": {
             "properties": {
-              "processing_code_revision": { "type": "string", "minLength": 1 },
-              "transformation_config_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-              "created_at_utc": { "type": "string", "format": "date-time" }
+              "processing_code_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "transformation_config_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "created_at_utc": {
+                "type": "string",
+                "format": "date-time"
+              }
             },
-            "required": ["processing_code_revision", "transformation_config_sha256", "created_at_utc"]
+            "required": [
+              "processing_code_revision",
+              "transformation_config_sha256",
+              "created_at_utc"
+            ]
           }
         },
-        "required": ["acquisition", "time_axis", "trace_asset", "quality", "provenance"]
+        "required": [
+          "acquisition",
+          "time_axis",
+          "trace_asset",
+          "quality",
+          "provenance"
+        ]
       }
     }
   ]
