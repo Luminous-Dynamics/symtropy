@@ -2,24 +2,33 @@
   "schema_version": 1,
   "benchmark_id": "glass-space-expansion-synthetic-v0-1",
   "evidence_class": "synthetic",
-  "claim_ceiling": "Proposal structure only; this fixture is not evidence of physical performance.",
+  "claim_ceiling": "Synthetic space-version mechanics only; no material or industrial claim is validated.",
   "proposal_id": "space-proposal-helpful-001",
   "parent_space_sha256": "ee1781ca0e9f3255cec9bf22c31a665058507b2ea7f5bf021a24e8a0564226b6",
-  "proposer": {"kind": "rule_based", "id": "synthetic-domain-rules-v1"},
+  "proposer": {
+    "kind": "rule_based",
+    "id": "synthetic-domain-rules-v1"
+  },
   "rationale": "Exercise a documented candidate-family expansion without changing hard product requirements.",
-  "applicability_domains": ["glass"],
+  "applicability_domains": [
+    "glass"
+  ],
   "add_candidate_families": [
     {
       "id": "candidate-glass-family-a",
       "domain": "glass",
       "description": "Additional synthetic family to test expansion traceability.",
-      "evidence_refs": ["fixture:synthetic-rationale-a"]
+      "evidence_refs": [
+        "fixture:synthetic-rationale-a"
+      ]
     }
   ],
   "remove_candidate_family_ids": [],
   "hard_constraint_changes": [],
   "expected_decision_consequence": "Increase candidate coverage in the declared glass domain; decision value must be measured by the sealed evaluator.",
-  "generation_cost_units": 1.0,
-  "generation_duration_seconds": 3.0,
-  "evidence_refs": ["fixture:synthetic-rationale-a"]
+  "generation_cost_units": 1,
+  "generation_duration_seconds": 3,
+  "evidence_refs": [
+    "fixture:synthetic-rationale-a"
+  ]
 }
