@@ -28,6 +28,17 @@ Compare the current human workflow, a standard cart/workstation, a conventional 
 - For hygienic tool/contact surfaces, use only approved surrogate-based protocols at future bench stage; no hygiene claim is accepted from material labels alone.
 - Maintenance time, tool-change time, calibration frequency, failure recovery, availability and cost per completed task.
 
+## Joint-type correctness as a metamorphic benchmark
+
+The two drive-wheel joints are `continuous`, whereas torso/head/arm joints are bounded `revolute` or `fixed`. Include the following metamorphic cases:
+- A drive-wheel angle of several complete revolutions changes its orientation correctly without tripping a fictitious position limit.
+- Bounded revolute positions just inside the limits pass; just outside reject.
+- A continuous joint that declares lower/upper position bounds rejects.
+- Every movable joint must have a value; fixed joints must not; unknown joint IDs reject.
+- Rust FK, URDF export and an independent URDF-derived evaluator must agree at zero and nonzero states to a declared numeric tolerance.
+
+This prevents a plausible but incorrect robot model from silently changing how the base moves. The synthetic angle magnitude cap is numerical conditioning, not an operating limit. The test is geometry-only and conveys no physical motion authority.
+
 ## Morphology / digital-twin conformance
 
 The synthetic Careframe model currently contains 16 links and 15 joints. Before using its geometry for reach, collision or dynamics claims, validate:
