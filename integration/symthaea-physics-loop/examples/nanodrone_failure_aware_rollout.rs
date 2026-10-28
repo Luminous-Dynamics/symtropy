@@ -248,6 +248,11 @@ fn validate_args(args: &Args) -> Result<(), String> {
     if args.horizons_s.iter().any(|x| !horizon_bits.insert(x.to_bits())) {
         return Err("horizon list contains duplicates".into());
     }
+    for pair in args.horizons_s.windows(2) {
+        if pair[1] <= pair[0] || (pair[1] - pair[0]).abs() <= HORIZON_TOLERANCE_S {
+            return Err("horizons must be strictly increasing and separated by more than the matching tolerance".into());
+        }
+    }
     if !matches!(args.evidence_class.as_str(), "synthetic" | "simulation" | "real-flight") {
         return Err("evidence class must be synthetic, simulation, or real-flight".into());
     }
@@ -450,7 +455,10 @@ fn read_and_validate(args: &Args, train: &BTreeSet<String>, starts: &[StartRow])
     }
     validate_complete_grid(&rows, starts, &args.training_seeds, args.horizons_s.len())?;
     validate_failure_persistence(&rows, starts, &args.training_seeds, &args.horizons_s, args.divergence_limit_m)?;
-    Ok(ValidatedData { rows, starts: starts.to_vec(), flights, seeds: args.training_seeds.clone() })
+    Ok(ValidatedData {
+        rows, starts: starts.to_vec(), flights, seeds: args.training_seeds.clone(),
+        input_csv_sha256: sha256(&bytes),
+    })
 }
 
 fn model_summary(rows: &[&RolloutRow], baseline: bool, limit: f64) -> Result<ModelSummary, String> {
@@ -583,7 +591,6 @@ fn run() -> Result<(), String> {
     let (train, train_bytes) = read_manifest(&args.train_manifest)?;
     let (starts, starts_bytes) = read_starts(&args.starts_manifest)?;
     let data = read_and_validate(&args, &train, &starts)?;
-    let csv_bytes = fs::read(&args.input).map_err(|e| format!("cannot read input CSV: {e}"))?;
     let mut warnings = Vec::new();
     if data.flights.len() < 10 { warnings.push("fewer than 10 evaluation recordings; crossed intervals may be unstable".into()); }
     if data.seeds.len() < 10 { warnings.push("fewer than 10 training seeds; seed uncertainty is weakly estimated".into()); }
@@ -641,7 +648,7 @@ fn run() -> Result<(), String> {
         channel: args.channel, unit: "m".into(), divergence_limit_m: args.divergence_limit_m,
         dataset_receipt_sha256: args.dataset_receipt_sha256,
         paired_target_receipt_sha256: args.paired_target_receipt_sha256,
-        input_csv_sha256: sha256(&csv_bytes), starts_manifest_sha256: sha256(&starts_bytes),
+        input_csv_sha256: data.input_csv_sha256.clone(), starts_manifest_sha256: sha256(&starts_bytes),
         train_manifest_sha256: sha256(&train_bytes), training_seeds: data.seeds.clone(),
         horizons_s: args.horizons_s.clone(), bootstrap_replicates_requested: args.bootstrap_replicates,
         bootstrap_seed: args.bootstrap_seed, registered_flight_count: data.flights.len(),
