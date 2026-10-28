@@ -723,13 +723,6 @@ fn run_all(public_raw: &[u8], oracle_raw: &[u8]) -> Value {
 }
 
 fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Value {
-    let report: Value = match serde_json::from_slice(report_raw) {
-        Ok(value) => value,
-        Err(error) => {
-            return json!({"status":"FAIL","audit_kind":"synthetic_pareto_fidelity_replay","findings":[{"code":"REPORT_JSON_INVALID","detail":error.to_string()}]});
-        }
-    };
-    let expected = run_all(public_raw, oracle_raw);
     let mut replay = json!({
         "status": "PASS",
         "audit_kind": "synthetic_pareto_fidelity_replay",
@@ -742,25 +735,275 @@ fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Valu
         "cost_units_recomputed": 0.0,
         "findings": []
     });
+    let report: Value = match serde_json::from_slice(report_raw) {
+        Ok(value) => value,
+        Err(error) => {
+            fail(&mut replay, "FAIL", "REPORT_JSON_INVALID", &error.to_string());
+            return replay;
+        }
+    };
+    let public: Value = match serde_json::from_slice(public_raw) {
+        Ok(value) => value,
+        Err(error) => {
+            fail(&mut replay, "FAIL", "PUBLIC_JSON_INVALID", &error.to_string());
+            return replay;
+        }
+    };
+    let oracle: Value = match serde_json::from_slice(oracle_raw) {
+        Ok(value) => value,
+        Err(error) => {
+            fail(&mut replay, "FAIL", "ORACLE_JSON_INVALID", &error.to_string());
+            return replay;
+        }
+    };
+
     if report.get("input_sha256").and_then(Value::as_str) != Some(sha256(public_raw).as_str()) {
         fail(&mut replay, "FAIL", "INPUT_DIGEST_MISMATCH", "report does not bind to the exact public input bytes");
     }
     if report.get("oracle_sha256").and_then(Value::as_str) != Some(sha256(oracle_raw).as_str()) {
         fail(&mut replay, "FAIL", "ORACLE_DIGEST_MISMATCH", "report does not bind to the exact sealed-oracle bytes");
     }
-    if expected["status"] != "PASS" {
-        fail(&mut replay, "FAIL", "EXPECTED_RUN_FAILED", "the supplied public/oracle inputs do not produce a valid PASS report");
+    if report.get("status").and_then(Value::as_str) != Some("PASS")
+        || report.get("audit_kind").and_then(Value::as_str) != Some("synthetic_constrained_pareto_fidelity_event_loop")
+        || report.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID)
+        || report.get("schema_version").and_then(Value::as_u64) != Some(1)
+    {
+        fail(&mut replay, "FAIL", "REPORT_CONTRACT_INVALID", "campaign report status, schema version, benchmark ID, or audit kind is invalid");
     }
-    if report != expected {
-        fail(&mut replay, "FAIL", "TRANSCRIPT_REPLAY_MISMATCH", "campaigns, actions, view digests, observations, constraint gates, Pareto metrics, or resource totals differ from deterministic replay");
-    } else {
-        let campaigns = expected["campaigns"].as_array().cloned().unwrap_or_default();
-        let events = campaigns.iter().map(|campaign| campaign["events"].as_array().map_or(0, Vec::len)).sum::<usize>();
-        let total_cost = campaigns.iter().map(|campaign| campaign["cost_units_charged"].as_f64().unwrap_or(0.0)).sum::<f64>();
-        replay["campaigns_checked"] = json!(campaigns.len());
-        replay["events_checked"] = json!(events);
-        replay["cost_units_recomputed"] = json!(total_cost);
+
+    let mut contract = json!({"status":"PASS","findings":[]});
+    validate_contract(&public, &oracle, &mut contract);
+    if contract.get("status").and_then(Value::as_str) != Some("PASS") {
+        fail(&mut replay, "FAIL", "INPUT_CONTRACT_INVALID", "public task or sealed oracle does not satisfy its frozen contract");
+        return replay;
     }
+    let tariffs = tariffs_from_oracle(&oracle);
+    let max_cost = public["budgets"]["max_cost_units"].as_f64().unwrap_or(0.0);
+    let max_seconds = public["budgets"]["max_duration_seconds"].as_f64().unwrap_or(0.0);
+    let environments = oracle.get("environments").and_then(Value::as_array).cloned().unwrap_or_default();
+    let campaigns = match report.get("campaigns").and_then(Value::as_array) {
+        Some(value) => value,
+        None => {
+            fail(&mut replay, "FAIL", "CAMPAIGNS_REQUIRED", "report.campaigns must be an array");
+            return replay;
+        }
+    };
+    let expected_count = environments.len() * POLICY_CLASSES.len();
+    if campaigns.len() != expected_count
+        || report.get("campaigns_checked").and_then(Value::as_u64) != Some(campaigns.len() as u64)
+        || report.get("environment_count").and_then(Value::as_u64) != Some(environments.len() as u64)
+        || report.get("policy_count").and_then(Value::as_u64) != Some(POLICY_CLASSES.len() as u64)
+    {
+        fail(&mut replay, "FAIL", "CAMPAIGN_COVERAGE_INVALID", &format!("expected {expected_count} environment/policy campaigns with matching summary counts"));
+    }
+
+    let mut seen_pairs = HashSet::<(String, String)>::new();
+    let mut checked_events = 0usize;
+    let mut total_cost = 0.0f64;
+    for (campaign_index, campaign) in campaigns.iter().enumerate() {
+        let path = format!("report.campaigns[{campaign_index}]");
+        only_keys(
+            campaign,
+            &["status","environment_id","policy_class","events","findings","evaluations","screen_evaluations","confirmatory_evaluations","accepted_feasible_candidates","confirmed_infeasible_candidates","observed_pareto_candidate_ids","true_pareto_candidate_ids","observed_hypervolume","oracle_hypervolume","hypervolume_regret","pareto_recall","cost_units_charged","duration_seconds_charged","claim_ceiling","terminal_disposition"],
+            &path,
+            &mut replay
+        );
+        let environment_id = campaign.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        let policy = campaign.get("policy_class").and_then(Value::as_str).unwrap_or("");
+        if campaign.get("status").and_then(Value::as_str) != Some("PASS") {
+            fail(&mut replay, "FAIL", "CAMPAIGN_STATUS_INVALID", &format!("{path} is not a PASS campaign"));
+        }
+        if !environments.iter().any(|environment| environment.get("environment_id").and_then(Value::as_str) == Some(environment_id)) {
+            fail(&mut replay, "FAIL", "CAMPAIGN_ENVIRONMENT_INVALID", &format!("{path} has unknown environment {environment_id}"));
+        }
+        if !POLICY_CLASSES.contains(&policy) {
+            fail(&mut replay, "FAIL", "CAMPAIGN_POLICY_INVALID", &format!("{path} has unregistered policy {policy}"));
+        }
+        if !seen_pairs.insert((environment_id.to_owned(), policy.to_owned())) {
+            fail(&mut replay, "FAIL", "CAMPAIGN_PAIR_DUPLICATE", &format!("duplicate campaign {environment_id}/{policy}"));
+        }
+        let events = match campaign.get("events").and_then(Value::as_array) {
+            Some(value) => value,
+            None => {
+                fail(&mut replay, "FAIL", "EVENTS_REQUIRED", &format!("{path}.events must be an array"));
+                continue;
+            }
+        };
+
+        let mut observations = Vec::<Value>::new();
+        let mut seen = HashSet::<(String, String)>::new();
+        let mut cost_used = 0.0f64;
+        let mut seconds_used = 0.0f64;
+        let mut screen_count = 0usize;
+        let mut confirmatory_count = 0usize;
+
+        for (event_index, event) in events.iter().enumerate() {
+            let event_path = format!("{path}.events[{event_index}]");
+            only_keys(event, &["event_seq","candidate_id","fidelity","decision_view_sha256","cost_units_charged","duration_seconds_charged","observed_result"], &event_path, &mut replay);
+            if event.get("event_seq").and_then(Value::as_u64) != Some((event_index + 1) as u64) {
+                fail(&mut replay, "FAIL", "EVENT_SEQUENCE_INVALID", &format!("{event_path} event_seq must be consecutive"));
+            }
+            let candidate_id = event.get("candidate_id").and_then(Value::as_str).unwrap_or("");
+            let fidelity = event.get("fidelity").and_then(Value::as_str).unwrap_or("");
+            if candidate_by_id(&public, candidate_id).is_none() {
+                fail(&mut replay, "FAIL", "CANDIDATE_NOT_REGISTERED", &format!("{event_path} references unknown candidate {candidate_id}"));
+                continue;
+            }
+            if !["screen","confirmatory"].contains(&fidelity) {
+                fail(&mut replay, "FAIL", "FIDELITY_NOT_REGISTERED", &format!("{event_path} references unregistered fidelity {fidelity}"));
+                continue;
+            }
+            if !seen.insert((candidate_id.to_owned(), fidelity.to_owned())) {
+                fail(&mut replay, "FAIL", "FIDELITY_REPEAT_INVALID", &format!("{event_path} repeats {candidate_id}/{fidelity}"));
+            }
+
+            let view = build_public_view(&public, &tariffs, &observations, cost_used, seconds_used);
+            let expected_view_digest = sha256(&serde_json::to_vec(&view).unwrap_or_default());
+            if event.get("decision_view_sha256").and_then(Value::as_str) != Some(expected_view_digest.as_str()) {
+                fail(&mut replay, "FAIL", "DECISION_VIEW_DIGEST_MISMATCH", &format!("{event_path} does not bind to the reconstructed pre-action view"));
+            }
+            match choose_action(policy, &view) {
+                Action::Evaluate { candidate_id: expected_id, fidelity: expected_fidelity } => {
+                    if candidate_id != expected_id || fidelity != expected_fidelity {
+                        fail(&mut replay, "FAIL", "POLICY_ACTION_MISMATCH", &format!("{event_path} differs from the registered policy action for the reconstructed view"));
+                    }
+                }
+                Action::Stop(reason) => {
+                    fail(&mut replay, "FAIL", "ACTION_AFTER_POLICY_STOP", &format!("{event_path} exists after the policy should stop: {reason}"));
+                }
+            }
+
+            let Some(tariff) = tariffs.get(fidelity) else {
+                fail(&mut replay, "FAIL", "TARIFF_MISSING", &format!("{event_path} has no registered tariff"));
+                continue;
+            };
+            if cost_used + tariff.cost > max_cost + 1e-9 || seconds_used + tariff.seconds > max_seconds + 1e-9 {
+                fail(&mut replay, "FAIL", "ACTION_OVERRUN", &format!("{event_path} exceeds the shared budget"));
+            }
+            if !event.get("cost_units_charged").and_then(Value::as_f64).is_some_and(|value| close(value, tariff.cost)) {
+                fail(&mut replay, "FAIL", "ACTION_COST_MISMATCH", &format!("{event_path} cost does not match the evaluator-owned tariff"));
+            }
+            if !event.get("duration_seconds_charged").and_then(Value::as_f64).is_some_and(|value| close(value, tariff.seconds)) {
+                fail(&mut replay, "FAIL", "ACTION_DURATION_MISMATCH", &format!("{event_path} duration does not match the evaluator-owned tariff"));
+            }
+
+            cost_used += tariff.cost;
+            seconds_used += tariff.seconds;
+            total_cost += tariff.cost;
+            let Some(outcome) = outcome_for(&oracle, environment_id, candidate_id, fidelity) else {
+                fail(&mut replay, "UNRESOLVED", "SEALED_OUTCOME_MISSING", &format!("no sealed outcome for {environment_id}/{candidate_id}/{fidelity}"));
+                continue;
+            };
+            let expected_result = json!({
+                "objectives": outcome.get("objectives").cloned().unwrap_or(Value::Null),
+                "constraint_results": if fidelity == "confirmatory" {
+                    outcome.get("constraints").cloned().unwrap_or(Value::Null)
+                } else {
+                    Value::Null
+                }
+            });
+            if event.get("observed_result") != Some(&expected_result) {
+                fail(&mut replay, "FAIL", "OBSERVATION_ORACLE_MISMATCH", &format!("{event_path} observed result does not match the sealed oracle"));
+            }
+            if fidelity == "screen" && !expected_result["constraint_results"].is_null() {
+                fail(&mut replay, "FAIL", "LOW_FIDELITY_CONSTRAINT_LEAK", &format!("{event_path} screen cannot establish hard qualification"));
+            }
+            observations.push(json!({
+                "candidate_id": candidate_id,
+                "fidelity": fidelity,
+                "objectives": expected_result["objectives"].clone(),
+                "constraint_results": expected_result["constraint_results"].clone()
+            }));
+            if fidelity == "screen" {
+                screen_count += 1;
+            } else {
+                confirmatory_count += 1;
+            }
+            checked_events += 1;
+        }
+
+        let final_view = build_public_view(&public, &tariffs, &observations, cost_used, seconds_used);
+        match choose_action(policy, &final_view) {
+            Action::Stop(reason) => {
+                if campaign.get("terminal_disposition").and_then(Value::as_str) != Some(reason.as_str()) {
+                    fail(&mut replay, "FAIL", "TERMINAL_DISPOSITION_MISMATCH", &format!("{path} terminal reason does not match the policy at the final public view"));
+                }
+            }
+            Action::Evaluate { candidate_id, fidelity } => {
+                fail(&mut replay, "FAIL", "TRANSCRIPT_TRUNCATED", &format!("{path} ends while the policy still requests {fidelity} for {candidate_id}"));
+            }
+        }
+
+        let accepted = observations.iter().filter(|observation| {
+            observation.get("fidelity").and_then(Value::as_str) == Some("confirmatory")
+                && observation.get("constraint_results").and_then(|value| value.get("qualification")).and_then(Value::as_bool) == Some(true)
+        }).filter_map(|observation| {
+            observation.get("candidate_id").and_then(Value::as_str).map(|id| (id.to_owned(), observation["objectives"].clone()))
+        }).collect::<Vec<_>>();
+        let infeasible = observations.iter().filter(|observation| {
+            observation.get("fidelity").and_then(Value::as_str) == Some("confirmatory")
+                && observation.get("constraint_results").and_then(|value| value.get("qualification")).and_then(Value::as_bool) == Some(false)
+        }).filter_map(|observation| observation.get("candidate_id").and_then(Value::as_str).map(str::to_owned)).collect::<Vec<_>>();
+        let observed_front = pareto_ids(&accepted);
+        let observed_points = observed_front.iter().filter_map(|id| accepted.iter().find(|(candidate_id,_)| candidate_id == id).map(|(_,objectives)| objectives.clone())).collect::<Vec<_>>();
+        let true_feasible = feasible_confirmatory_outcomes(&public, &oracle, environment_id);
+        let true_front = pareto_ids(&true_feasible);
+        let true_points = true_front.iter().filter_map(|id| true_feasible.iter().find(|(candidate_id,_)| candidate_id == id).map(|(_,objectives)| objectives.clone())).collect::<Vec<_>>();
+        let observed_hv = hypervolume(&observed_points, &public["reference_point"]);
+        let oracle_hv = hypervolume(&true_points, &public["reference_point"]);
+        let observed_set = observed_front.iter().cloned().collect::<HashSet<_>>();
+        let true_set = true_front.iter().cloned().collect::<HashSet<_>>();
+        let recall = if true_set.is_empty() { None } else { Some(observed_set.intersection(&true_set).count() as f64 / true_set.len() as f64) };
+
+        if campaign.get("evaluations").and_then(Value::as_u64) != Some(observations.len() as u64)
+            || campaign.get("screen_evaluations").and_then(Value::as_u64) != Some(screen_count as u64)
+            || campaign.get("confirmatory_evaluations").and_then(Value::as_u64) != Some(confirmatory_count as u64)
+        {
+            fail(&mut replay, "FAIL", "EVALUATION_COUNT_MISMATCH", &format!("{path} evaluation counts do not replay"));
+        }
+        if !campaign.get("cost_units_charged").and_then(Value::as_f64).is_some_and(|value| close(value, cost_used))
+            || !campaign.get("duration_seconds_charged").and_then(Value::as_f64).is_some_and(|value| close(value, seconds_used))
+        {
+            fail(&mut replay, "FAIL", "RESOURCE_TOTAL_MISMATCH", &format!("{path} total cost/duration do not replay"));
+        }
+        if campaign.get("accepted_feasible_candidates") != Some(&json!(accepted.iter().map(|(id,_)| id.clone()).collect::<Vec<_>>()))
+            || campaign.get("confirmed_infeasible_candidates") != Some(&json!(infeasible))
+            || campaign.get("observed_pareto_candidate_ids") != Some(&json!(observed_front))
+            || campaign.get("true_pareto_candidate_ids") != Some(&json!(true_front))
+        {
+            fail(&mut replay, "FAIL", "FEASIBILITY_OR_PARETO_MISMATCH", &format!("{path} accepted candidates or Pareto sets do not replay"));
+        }
+        if !campaign.get("observed_hypervolume").and_then(Value::as_f64).is_some_and(|value| close(value, observed_hv))
+            || !campaign.get("oracle_hypervolume").and_then(Value::as_f64).is_some_and(|value| close(value, oracle_hv))
+            || !campaign.get("hypervolume_regret").and_then(Value::as_f64).is_some_and(|value| close(value, (oracle_hv - observed_hv).max(0.0)))
+        {
+            fail(&mut replay, "FAIL", "HYPERVOLUME_MISMATCH", &format!("{path} hypervolume or regret does not replay"));
+        }
+        let recall_matches = match (campaign.get("pareto_recall"), recall) {
+            (Some(Value::Null), None) => true,
+            (Some(value), Some(expected)) => value.as_f64().is_some_and(|actual| close(actual, expected)),
+            _ => false,
+        };
+        if !recall_matches {
+            fail(&mut replay, "FAIL", "PARETO_RECALL_MISMATCH", &format!("{path} Pareto recall does not replay"));
+        }
+
+        if cost_used > max_cost + 1e-9 || seconds_used > max_seconds + 1e-9 {
+            fail(&mut replay, "FAIL", "CAMPAIGN_BUDGET_OVERRUN", &format!("{path} cumulative resource use exceeds the cap"));
+        }
+    }
+
+    for environment in &environments {
+        let environment_id = environment.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        for policy in POLICY_CLASSES {
+            if !seen_pairs.contains(&(environment_id.to_owned(), policy.to_owned())) {
+                fail(&mut replay, "FAIL", "CAMPAIGN_PAIR_MISSING", &format!("missing campaign {environment_id}/{policy}"));
+            }
+        }
+    }
+    replay["campaigns_checked"] = json!(campaigns.len());
+    replay["events_checked"] = json!(checked_events);
+    replay["cost_units_recomputed"] = json!(total_cost);
     replay
 }
 
