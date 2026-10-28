@@ -5,7 +5,11 @@ Permissively-licensed (Apache-2.0 OR MIT) core types and traits for symtropy-rob
 ## Features
 - `PlatformType`: Enumeration of Symthaea robotics platforms.
 - `RoboticAgent`: Trait for agents that can be ticked by the game engine.
+- `ControlRequest` / `EmbodiedIntent`: typed semantic requests with expiry, frame-aware targets and confidence validation.
+- `ControlOutcome`: explicit lifecycle, constraint/veto feedback and request identity validation.
 - `MotorPlanner`: Trait for per-joint motor command planning.
 - `spawn_robot_body`: Helper for spawning a platform-appropriate body into the physics world.
+
+The control contract is intentionally platform-agnostic: it does not import `symthaea-core` or replace local controller/safety logic. It is a request/outcome seam for embodiment-specific adapters.
 
 This crate contains NO AGPL-licensed dependencies and is safe for use in proprietary applications.
