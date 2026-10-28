@@ -112,14 +112,14 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
     if contract.get("revision").and_then(Value::as_u64) != Some(1) {
         push_findings(&mut findings, "CONTRACT_REVISION_UNSUPPORTED");
     }
-    if str_at(contract, "claim_ceiling").is_none_or(str::is_empty) {
+    if str_at(contract, "claim_ceiling").is_none_or(|value| value.trim().is_empty()) {
         push_findings(&mut findings, "CONTRACT_CLAIM_CEILING_REQUIRED");
     }
 
     let mut catalog = BTreeMap::<String, FieldSpec>::new();
     let Some(fields) = contract.get("field_catalog").and_then(Value::as_array) else {
         push_findings(&mut findings, "FIELD_CATALOG_REQUIRED");
-        return finish_report(suite, catalog, 0, 0, findings);
+        return finish_report(suite, 0, 0, findings);
     };
     let mut policy_ids = Vec::new();
     let mut oracle_ids = Vec::new();
@@ -253,7 +253,7 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
         .and_then(Value::as_array)
     else {
         push_findings(&mut findings, "COMPARISON_PROFILES_REQUIRED");
-        return finish_report(suite, catalog, policy_ids.len(), oracle_ids.len(), findings);
+        return finish_report(suite, policy_ids.len(), oracle_ids.len(), findings);
     };
     if profiles.len() != 1 {
         push_findings(&mut findings, "COMPARISON_PROFILE_COUNT_UNSUPPORTED");
@@ -359,7 +359,6 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
     }
 
     let mut seen_adapter_ids = BTreeSet::new();
-    let mut valid_profile_count = 0usize;
     for adapter in adapters {
         check_object(
             adapter,
@@ -458,7 +457,7 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
                 push_findings(&mut findings, "ADAPTER_FIELD_UNKNOWN");
                 continue;
             };
-            if expected.visibility != "policy" {
+            if expected.visibility != "policy" || !expected.required {
                 push_findings(&mut findings, "ORACLE_FIELD_EXPOSED_TO_POLICY");
             }
             if str_at(spec, "value_type") != Some(expected.value_type.as_str()) {
@@ -504,38 +503,16 @@ fn audit_contract(contract: &Value, suite: &Value) -> AuditReport {
         push_findings(&mut findings, "PROFILE_ADAPTER_SET_MISMATCH");
     }
 
-    let base_findings = findings.clone();
-    if base_findings.is_empty() {
-        valid_profile_count = profiles_len(contract);
-    }
-
     finish_report(
         suite,
-        catalog,
         policy_ids.len(),
         oracle_ids.len(),
-        with_profile_count(findings, valid_profile_count),
+        findings,
     )
-}
-
-fn profiles_len(contract: &Value) -> usize {
-    contract
-        .get("comparison_profiles")
-        .and_then(Value::as_array)
-        .map_or(0, Vec::len)
-}
-
-fn with_profile_count(
-    _findings: BTreeSet<String>,
-    count: usize,
-) -> BTreeSet<String> {
-    let _ = count;
-    _findings
 }
 
 fn finish_report(
     suite: &Value,
-    catalog: BTreeMap<String, FieldSpec>,
     policy_field_count: usize,
     oracle_field_count: usize,
     findings: BTreeSet<String>,
