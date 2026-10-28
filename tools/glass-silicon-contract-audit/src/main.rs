@@ -1,4 +1,4 @@
-use glass_silicon_contract_audit::{audit_acquisition_campaign_transcript, audit_acquisition_policy_comparison_sealed, audit_adaptive_decision_campaign, audit_corpus, audit_decision_value_pool, audit_evaluation_receipt, audit_false_feasible_bound, audit_feasibility_corpus, audit_grouped_split_manifest, audit_relationship_graph, audit_mass_balance, hash_artifact_files};
+use glass_silicon_contract_audit::{audit_paired_causal_trial, audit_acquisition_campaign_transcript, audit_acquisition_policy_comparison_sealed, audit_adaptive_decision_campaign, audit_corpus, audit_decision_value_pool, audit_evaluation_receipt, audit_false_feasible_bound, audit_feasibility_corpus, audit_grouped_split_manifest, audit_relationship_graph, audit_mass_balance, hash_artifact_files};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::env;
@@ -13,7 +13,7 @@ fn read_json(path: &str) -> Result<Value, String> {
 
 fn usage() {
     eprintln!(
-        "Usage:\n  glass-silicon-contract-audit audit-corpus <schema.json> <corpus.json>\n  glass-silicon-contract-audit audit-feasibility <corpus.json>\n  glass-silicon-contract-audit audit-grouped-split <manifest.json>\n  glass-silicon-contract-audit audit-relationship-graph <graph.json>\n  glass-silicon-contract-audit audit-false-feasible-bound <summary.json>\n  glass-silicon-contract-audit audit-eval-receipt <receipt.json>\n  glass-silicon-contract-audit audit-decision-value <pool.json>\n  glass-silicon-contract-audit audit-adaptive-campaign <pool.json>\n  glass-silicon-contract-audit audit-acquisition-policies <policy-input.json> <sealed-oracle.json>\n  glass-silicon-contract-audit audit-acquisition-transcript <transcript.json>\n  glass-silicon-contract-audit check-mass <ledger.json>\n  glass-silicon-contract-audit hash-artifacts <corpus.json> <artifact-id> <directory>"
+        "Usage:\n  glass-silicon-contract-audit audit-corpus <schema.json> <corpus.json>\n  glass-silicon-contract-audit audit-feasibility <corpus.json>\n  glass-silicon-contract-audit audit-grouped-split <manifest.json>\n  glass-silicon-contract-audit audit-relationship-graph <graph.json>\n  glass-silicon-contract-audit audit-false-feasible-bound <summary.json>\n  glass-silicon-contract-audit audit-eval-receipt <receipt.json>\n  glass-silicon-contract-audit audit-decision-value <pool.json>\n  glass-silicon-contract-audit audit-adaptive-campaign <pool.json>\n  glass-silicon-contract-audit audit-acquisition-policies <policy-input.json> <sealed-oracle.json>\n  glass-silicon-contract-audit audit-acquisition-transcript <transcript.json>\\n  glass-silicon-contract-audit audit-causal-trial <trial.json>\n  glass-silicon-contract-audit check-mass <ledger.json>\n  glass-silicon-contract-audit hash-artifacts <corpus.json> <artifact-id> <directory>"
     );
 }
 
@@ -183,6 +183,70 @@ fn main() -> ExitCode {
             let manifest_sha256 = format!("{:x}", Sha256::digest(&raw));
             let mut report = audit_grouped_split_manifest(&manifest);
             report.manifest_sha256 = Some(manifest_sha256);
+            let code = report.exit_code() as u8;
+            println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
+            ExitCode::from(code)
+        }
+        Some("audit-causal-trial") if args.len() == 3 => {
+            let raw = match fs::read(&args[2]) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "claim_status": "UNRESOLVED",
+                        "audit_kind": "paired_block_causal_trial",
+                        "benchmark_id": null,
+                        "protocol_id": null,
+                        "trial_sha256": null,
+                        "blocks_declared": 0,
+                        "complete_pairs": 0,
+                        "control_mean_energy_per_accepted_tonne_kwh": null,
+                        "treatment_mean_energy_per_accepted_tonne_kwh": null,
+                        "mean_saving_kwh_per_accepted_tonne": null,
+                        "mean_relative_reduction": null,
+                        "relative_reduction_ci95": null,
+                        "exact_two_sided_randomization_p": null,
+                        "alpha": null,
+                        "minimum_relative_reduction": null,
+                        "control_then_treatment_blocks": 0,
+                        "treatment_then_control_blocks": 0,
+                        "findings": [format!("CAUSAL_TRIAL_INPUT_BYTES:{error}")],
+                        "claim_ceiling": "Input parsing only; no causal or physical effect is certified."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let trial: Value = match serde_json::from_slice(&raw) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "claim_status": "UNRESOLVED",
+                        "audit_kind": "paired_block_causal_trial",
+                        "benchmark_id": null,
+                        "protocol_id": null,
+                        "trial_sha256": Some(format!("{:x}", Sha256::digest(&raw))),
+                        "blocks_declared": 0,
+                        "complete_pairs": 0,
+                        "control_mean_energy_per_accepted_tonne_kwh": null,
+                        "treatment_mean_energy_per_accepted_tonne_kwh": null,
+                        "mean_saving_kwh_per_accepted_tonne": null,
+                        "mean_relative_reduction": null,
+                        "relative_reduction_ci95": null,
+                        "exact_two_sided_randomization_p": null,
+                        "alpha": null,
+                        "minimum_relative_reduction": null,
+                        "control_then_treatment_blocks": 0,
+                        "treatment_then_control_blocks": 0,
+                        "findings": [format!("CAUSAL_TRIAL_INPUT_JSON:{error}")],
+                        "claim_ceiling": "Input parsing only; no causal or physical effect is certified."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let trial_sha256 = format!("{:x}", Sha256::digest(&raw));
+            let mut report = audit_paired_causal_trial(&trial);
+            report.trial_sha256 = Some(trial_sha256);
             let code = report.exit_code() as u8;
             println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
             ExitCode::from(code)
