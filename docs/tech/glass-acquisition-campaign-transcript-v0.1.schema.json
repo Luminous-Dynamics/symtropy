@@ -1,0 +1,306 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Glass–Silicon Acquisition Campaign Transcript v0.1",
+  "description": "Deterministic trace of policy-visible requests, charged resources, returned observation references, and terminal disposition. Passing proves transcript structure only, not outcome truth or feasibility.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "policy_id",
+    "policy_input_sha256",
+    "policy_code_sha256",
+    "policy_config_sha256",
+    "max_cost_units",
+    "max_duration_seconds",
+    "events"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "policy_input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "policy_code_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "policy_config_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "max_cost_units": {
+      "type": "number",
+      "minimum": 0
+    },
+    "max_duration_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_id",
+              "sequence",
+              "event_type",
+              "request_id",
+              "measurement_id",
+              "cost_units",
+              "duration_seconds"
+            ],
+            "properties": {
+              "event_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_-]*$"
+              },
+              "sequence": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "event_type": {
+                "const": "measurement_requested"
+              },
+              "request_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_-]*$"
+              },
+              "measurement_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_-]*$"
+              },
+              "cost_units": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "duration_seconds": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_id",
+              "sequence",
+              "event_type",
+              "request_id",
+              "measurement_id",
+              "measurement_status",
+              "observation_ref"
+            ],
+            "properties": {
+              "event_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_-]*$"
+              },
+              "sequence": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "event_type": {
+                "const": "measurement_result"
+              },
+              "request_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_-]*$"
+              },
+              "measurement_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_-]*$"
+              },
+              "measurement_status": {
+                "enum": [
+                  "VALID",
+                  "INVALID",
+                  "CENSORED",
+                  "FAILED",
+                  "STALE",
+                  "OUT_OF_DOMAIN",
+                  "CONTRADICTORY"
+                ]
+              },
+              "observation_ref": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "measurement_status": {
+                      "const": "VALID"
+                    }
+                  },
+                  "required": [
+                    "measurement_status"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "observation_ref": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "measurement_status": {
+                      "enum": [
+                        "INVALID",
+                        "CENSORED",
+                        "FAILED",
+                        "STALE",
+                        "OUT_OF_DOMAIN",
+                        "CONTRADICTORY"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "measurement_status"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "observation_ref": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_id",
+              "sequence",
+              "event_type",
+              "decision_status",
+              "decision_id",
+              "reason"
+            ],
+            "properties": {
+              "event_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_-]*$"
+              },
+              "sequence": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "event_type": {
+                "const": "decision"
+              },
+              "decision_status": {
+                "enum": [
+                  "FEASIBLE",
+                  "INFEASIBLE",
+                  "UNRESOLVED"
+                ]
+              },
+              "decision_id": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "decision_status": {
+                      "enum": [
+                        "FEASIBLE",
+                        "INFEASIBLE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "decision_status"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "decision_id": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "decision_status": {
+                      "const": "UNRESOLVED"
+                    }
+                  },
+                  "required": [
+                    "decision_status"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "decision_id": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
