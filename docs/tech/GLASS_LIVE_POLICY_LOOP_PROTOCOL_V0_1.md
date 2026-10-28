@@ -144,6 +144,38 @@ It emits:
 The scorecard intentionally emits **no global mean utility and no pooled winner**. A policy that wins in a helpful-prior regime but loses in a harmful or misleading-prior regime should be visible as such. It does not use a cross-budget comparison as if different budgets were randomized treatment arms, and it does not average per-step observations as independent replicates. These are descriptive, deterministic synthetic comparisons. Any inferential claim about policy superiority needs separate held-out tasks, matched policy/seed blocks, uncertainty intervals, and a preregistered estimand.
 
 
+
+## Next scientific lane: constrained multi-objective and multi-fidelity discovery
+
+The current synthetic runner intentionally uses one scalar utility to validate closed-loop accounting. That is not sufficient as the final industrial objective: a scalar can conceal energy/quality/throughput trade-offs, and a reward term must never compensate for a violated hard product specification.
+
+The next baseline set should therefore distinguish **hard feasibility constraints** from **soft objectives** and preserve a Pareto view until a documented decision-maker preference justifies scalarization.
+
+### Literature-grounded comparators
+
+- **Glass-specific multi-objective lookahead BO:** Mende et al., *Multi-Objective Lookahead Bayesian Optimization for Process Parameter Optimization in Non-Isothermal Glass Molding* (Procedia CIRP, 2025, [DOI 10.1016/j.procir.2025.02.137](https://doi.org/10.1016/j.procir.2025.02.137)). This is a strong, unusually domain-relevant comparator for optical glass molding and joint product/process targets. The process is not automatically equivalent to container glass or metallurgical-grade silicon; reproduce it only where task semantics and data rights permit, otherwise use it to inform the baseline design.
+- **Cost-aware multi-fidelity BO with deep Gaussian processes:** Alvi et al., *Deep Gaussian process-based cost-aware batch Bayesian optimization for complex materials design campaigns* (npj Computational Materials, 2026, [article 105](https://www.nature.com/articles/s41524-026-01981-7)). This motivates a first-class batch-and-cost lane rather than comparing all measurements as if they have equal price and turnaround.
+- **Multi-fidelity evaluation discipline:** Sabanza-Gil et al., *Best practices for multi-fidelity Bayesian optimization in materials and molecular research* (Nature Computational Science, 2025, [DOI 10.1038/s43588-025-00822-9](https://doi.org/10.1038/s43588-025-00822-9)). Cheap observations are valuable only when their information is relevant to downstream decisions; the benchmark must include uninformative and misleading low-fidelity sources, not only friendly ones.
+- **Composability / industrial integration:** NIST's 2026 report on a modular autonomous-laboratory ecosystem proposes community-driven standards for avoiding bespoke integrations and vendor-interface duplication ([NIST publication](https://www.nist.gov/publications/towards-composable-modular-laboratory-ecosystem-autonomous-materials-research-and)). A Symtropy adapter should consume versioned experiment/measurement contracts and emit receipts instead of owning a new incompatible instrument stack.
+
+### Required task contract
+
+Keep these categories independent in the input and receipt:
+
+1. **Hard qualification constraints:** composition/process admissibility, glass formation where applicable, product-specific quality bounds, safety, evidence validity, and rights/admission. A violation cannot be compensated by energy or cost savings.
+2. **Objectives:** use only those supported by admitted task data, such as deviation from target optical/property ranges, energy per accepted tonne, throughput, material/operating cost, emissions, or downtime. Keep units and aggregation boundary explicit.
+3. **Fidelities:** each screening, simulation, property assay, confirmatory measurement, or production trial declares cost, elapsed time, noise/validity domain, failure and censoring modes, and which constraints it can or cannot establish.
+4. **Decision preference:** if a single policy utility is needed, the weighting/normalization and decision-owner authorization are fixed before outcomes. Otherwise compare Pareto fronts without post-hoc weights.
+
+### Promotion metrics
+
+Primary comparison for multi-objective tasks: **hypervolume improvement per fully charged cost and elapsed time**, computed against a preregistered reference point with frozen objective direction, scale and units. Do not compare hypervolume values across tasks with incompatible units/reference points. Secondary metrics include cost/time to first independently qualified Pareto candidate, dominated hypervolume regret, feasible Pareto-set coverage, constraint/false-feasible rate and confidence bound, fidelity-choice regret, invalid/censored/retest burden, and behavior under a misleading low-fidelity source.
+
+Required arms, as task compatibility permits: DOE/space filling, random, single-fidelity GP-EI, constrained multi-objective lookahead BO, cost-aware multi-fidelity/batch BO, random-fidelity selection, fixed-fidelity ablation, rule/expert policy, and an LLM-informed policy paired with the same inner optimizer. Compare identical candidate availability and full budget; charge all inference, batch setup, rejected candidates, repetitions and measurement latency. Include scenarios where multifidelity helps, ties, and harms.
+
+No implementation should promote this lane to a physical or industrial result until a rights-cleared task is admitted and its baseline can be reproduced. The current scalar synthetic benchmark remains useful as a software-integrity lane, not as a substitute for this multi-objective/multi-fidelity experiment.
+
+
 ## Follow-on promotion gates
 
 1. **Runtime isolation:** launch a policy as a sandboxed subprocess/WASM module, send only the current public view, reject all undeclared fields, and replay every action/event against the sealed evaluator independently.
