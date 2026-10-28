@@ -3,7 +3,7 @@
   "benchmark_id": "energy-uncertainty-set-omission-fragility-v0.1",
   "source_panel_path": "tools/energy-dispatch-audit/fixtures/energy-robust-policy-stress-panel-v0.1.json",
   "source_panel_git_blob_sha1": "78d30640af989cad87a4563ab6c98b9644816b7a",
-  "source_panel_sha256": "43be7b3da61e3dcbbab27f8fe2fdf23e5bd2a0ac78472e927094390f77ff3ed4",
+  "source_panel_sha256": "8f721bfd7f9d88d0dbcd43c86e6a3233a34ccb8bb63bd6fb465cd4874a4f2b2d",
   "source_panel_hashing_rule": "The executable must hash the exact raw bytes read from source_panel_path using SHA-256; do not hard-code a digest for normalized/re-serialized JSON.",
   "policy": "set_valued_essential_reserve",
   "subset_enumeration": "all subsets, including the empty set, of the four frozen training scenarios",
