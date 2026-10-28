@@ -3,6 +3,12 @@
 **Status: proposed research protocol. Targets below are hypotheses, not achieved results.**  
 **Current evidence ceiling: synthetic scorer correctness only.** This crate scores supplied traces; it does not simulate electrical/thermal dynamics, optimize dispatch, certify a controller, or validate an Arctic/Antarctic site.
 
+## New: source-backed environmental trace replay
+
+The next implementation boundary is a reproducible environmental trace, not just another scenario label. See [ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md](ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md), the [trace-manifest schema](schemas/environment-trace-manifest-0.1.0.schema.json), and the [Namib trace manifest template](fixtures/environment-trace-manifest-template-2026.json). The template intentionally contains no source URL, coordinates, dates, hashes, or observed values; it is not an ingested trace. The separate [Environment Trace Contract workflow](../../../../.github/workflows/environment-trace-contract.yml) checks exact-head structure and the template's not-yet-evaluated state; it is not a full JSON Schema validator or physical-data validation.
+
+The protocol prioritizes chronology-preserving weather/solar traces, explicit gaps and uncertainty, whole-episode temporal holdouts, source-specific field observations for fog/salt/dust, fair baseline information/compute budgets, and distinct integrity/model/service-resilience gates. Performance superiority is a hypothesis until a suitable open baseline is reproduced and a locked comparison passes.
+
 ## Environment domain coverage: deserts and the full solar-system trade space
 
 The [Earth Desert and Solar-System Environment Domain Catalog](ENVIRONMENT_DOMAIN_CATALOG_2026.md) defines the proposed environment taxonomy, and the [machine-readable catalog](fixtures/environment-domain-catalog-2026.json) records scenario IDs, coupled-hazard hypotheses, required model domains, metrics, source links, evidence limitations, and implementation status. Its schema is [environment-domain-catalog-0.1.0.schema.json](schemas/environment-domain-catalog-0.1.0.schema.json). The [compound-test matrix](fixtures/environment-compound-test-matrix-2026.json) provides 51 per-profile coverage templates plus 19 cross-profile interaction templates. All 70 are design-only and have no fabricated numeric environment values.
