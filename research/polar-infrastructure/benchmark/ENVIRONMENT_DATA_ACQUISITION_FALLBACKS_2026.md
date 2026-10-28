@@ -52,6 +52,17 @@ The SASSCAL pages expose a “Download CSV” action. If the page's export link 
 
 **Coverage-first negative control:** a 31-day source window with only four displayed daily observations must be marked insufficient-coverage under any rule requiring a full or threshold-compliant window. Missing rows stay missing, not zero. The minimum acceptance threshold is intentionally left blank until the intended aggregation, use and source QA requirements are preregistered; it must be frozen before looking at locked-test errors.
 
+### Executable coverage gate
+
+The [coverage gate](scripts/evaluate_environment_coverage.sh) is now runnable offline. Given a source ID, variable, window, expected/observed sample counts and a preregistered minimum fraction, it emits a JSON decision and reports observed/missing counts. It blocks scoring when the threshold is null, returns `insufficient_coverage` below the threshold, rejects inconsistent counts, and explicitly records that missing values are not zeros.
+
+```bash
+bash research/polar-infrastructure/benchmark/scripts/evaluate_environment_coverage.sh assessment.json coverage-report.json
+```
+
+Exit codes are 0 (coverage gate passed), 2 (invalid assessment), 3 (threshold not preregistered), and 4 (insufficient coverage). “Passed” means only eligible for the next metric-computation stage with respect to the stated count threshold; it does not validate provenance, licensing, instrument values or physical-model applicability. The contract tests cover the 4/31 sparse-window negative control, a 24/24 sample window, unset thresholds, over-counts and a zero threshold. All test inputs are synthetic; the SASSCAL page counts are captured as metadata-only examples, not ingested data.
+
+
 ## 3. Offline source-registration contract
 
 `register_local_pangaea_source.sh DOI LICENSE_LABEL EVIDENCE_CLASS SOURCE_FILE OUT_DIR`:
