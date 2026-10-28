@@ -762,4 +762,16 @@ jobs:
             ([.episodes[] | select(.environment_id == "harmful" and .policy_class == "static_prior_expansion")][0].best_verified_feasible_utility == 6.0) and
             ([.episodes[] | select(.environment_id == "misleading_prior" and .policy_class == "prior_guided_expansion")][0].false_feasible_predictions == 1)
           ' search-space-live-loop-report.json
-          echo "Live observation-conditioned policy loop, budget parity, static-expansion control, and hidden-prior stress known answers: PASS"
+          replay_report="search-space-live-loop-replay-report.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
+            --replay search-space-live-loop-report.json "$catalog" "$oracle" > "$replay_report"
+          jq -e --arg catalog_digest "$catalog_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "independent_live_policy_transcript_replay" and
+            .input_sha256 == $catalog_digest and
+            .oracle_sha256 == $oracle_digest and
+            .episodes_checked == 20 and
+            .events_checked >= 70 and
+            .cost_units_recomputed == 100.0
+          ' "$replay_report"
+          echo "Live observation-conditioned loop and independent transcript replay: PASS"
