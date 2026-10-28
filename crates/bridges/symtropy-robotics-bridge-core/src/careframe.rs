@@ -423,20 +423,34 @@ fn validate_joint_state(
             findings.insert("JOINT_STATE_UNKNOWN_ID".to_owned());
             continue;
         };
-        if joint.joint_type != "revolute" {
-            findings.insert("JOINT_STATE_FOR_FIXED_JOINT".to_owned());
-            continue;
-        }
-        if !position.is_finite()
-            || *position < joint.lower_limit_rad
-            || *position > joint.upper_limit_rad
-        {
-            findings.insert("JOINT_STATE_OUT_OF_LIMITS".to_owned());
+        match joint.joint_type.as_str() {
+            "fixed" => {
+                findings.insert("JOINT_STATE_FOR_FIXED_JOINT".to_owned());
+                continue;
+            }
+            "revolute" => {
+                if !position.is_finite()
+                    || joint.lower_limit_rad.is_none_or(|lower| *position < lower)
+                    || joint.upper_limit_rad.is_none_or(|upper| *position > upper)
+                {
+                    findings.insert("JOINT_STATE_OUT_OF_LIMITS".to_owned());
+                }
+            }
+            "continuous" => {
+                if !position.is_finite() || position.abs() > 1_000_000.0 {
+                    findings.insert("JOINT_STATE_CONTINUOUS_MAGNITUDE_INVALID".to_owned());
+                }
+            }
+            _ => {
+                findings.insert("JOINT_STATE_TYPE_UNSUPPORTED".to_owned());
+            }
         }
     }
     for joint in &model.joints {
-        if joint.joint_type == "revolute" && !state.contains_key(&joint.joint_id) {
-            findings.insert("JOINT_STATE_MISSING_REVOLUTE_JOINT".to_owned());
+        if ["revolute", "continuous"].contains(&joint.joint_type.as_str())
+            && !state.contains_key(&joint.joint_id)
+        {
+            findings.insert("JOINT_STATE_MISSING_MOVABLE_JOINT".to_owned());
         }
     }
     if findings.is_empty() {
@@ -489,14 +503,14 @@ fn compute_link_poses(
             let Some(parent_pose) = poses.get(&joint.parent_link).cloned() else {
                 continue;
             };
-            let angle = if joint.joint_type == "revolute" {
+            let angle = if ["revolute", "continuous"].contains(&joint.joint_type.as_str()) {
                 state[&joint.joint_id]
             } else {
                 0.0
             };
             let joint_transform = Transform {
                 translation: Point::new(joint.origin_m),
-                rotation: if joint.joint_type == "revolute" {
+                rotation: if ["revolute", "continuous"].contains(&joint.joint_type.as_str()) {
                     axis_angle_rotor(joint.axis_xyz, angle)
                 } else {
                     Rotor::identity()
