@@ -63,7 +63,7 @@ fn only_keys(value: &Value, allowed: &[&str], path: &str, report: &mut Value) {
 
 fn required_number(value: &Value, field: &str, path: &str, positive: bool, report: &mut Value) -> Option<f64> {
     match value.get(field).and_then(Value::as_f64) {
-        Some(number) if number.is_finite() && if positive { number > 0.0 } else { number >= 0.0 } => Some(number),
+        Some(number) if number.is_finite() && (if positive { number > 0.0 } else { number >= 0.0 }) => Some(number),
         _ => {
             fail(report, "FAIL", "NUMBER_INVALID", &format!("{path}.{field} has invalid numeric value"));
             None
@@ -578,7 +578,6 @@ fn run_episode(public: &Value, oracle: &Value, environment_id: &str, policy: &st
                 // Charge from the evaluator-owned tariff before revealing any outcome.
                 cost_used += tariff.cost;
                 seconds_used += tariff.seconds;
-                let event_index = report["events"].as_array().unwrap().len() + 1;
                 let mut event = json!({
                     "event_seq": seq,
                     "candidate_id": candidate_id,
@@ -620,7 +619,6 @@ fn run_episode(public: &Value, oracle: &Value, environment_id: &str, policy: &st
                 }
                 report["evaluations"] = json!(report["evaluations"].as_u64().unwrap_or(0) + 1);
                 terminal = "BUDGET_OR_POLICY_PENDING".to_owned();
-                let _ = event_index;
             }
         }
     }
