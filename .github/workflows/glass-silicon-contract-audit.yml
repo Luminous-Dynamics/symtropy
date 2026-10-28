@@ -6,6 +6,7 @@ on:
       - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
       - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
       - "docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
+      - "docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
@@ -22,6 +23,7 @@ on:
       - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
       - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
       - "docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
+      - "docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
@@ -139,27 +141,43 @@ jobs:
           grep -q 'calibration alone' "$protocol"
           echo "OOD acquisition-value protocol and matched-budget baselines: PASS"
 
-      - name: Audit acquisition policy comparison schema and known answer
+      - name: Audit separated acquisition input/oracle schemas and known answer
         shell: bash
         run: |
           set -euo pipefail
-          schema="docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
+          public_schema="docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
+          oracle_schema="docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
           jq -e '
             .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
             .properties.benchmark_id.const == "glass-silicon-decision-value-synthetic-v0.1" and
             .properties.acquisition_policy_comparison.properties.protocol_version.const == 1 and
             .properties.acquisition_policy_comparison.properties.random_seeds.minItems >= 10 and
             .properties.acquisition_policy_comparison.properties.random_seeds.uniqueItems == true and
-            .properties.measurements.items.properties.selection_features.required == ["uncalibrated_uncertainty", "calibrated_uncertainty", "novelty", "estimated_voi"]
-          ' "$schema" > /dev/null
+            .properties.measurements.items.properties.selection_features.required == ["uncalibrated_uncertainty", "calibrated_uncertainty", "novelty", "estimated_voi"] and
+            .additionalProperties == false and
+            ((.properties | has("actions")) | not) and
+            ((.properties | has("scenarios")) | not) and
+            ((.properties.measurements.items.required | index("observation_by_scenario")) == null)
+          ' "$public_schema" > /dev/null
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.evidence_class.const == "synthetic_evaluator_only" and
+            (.required | index("measurement_outcomes")) != null and
+            .additionalProperties == false
+          ' "$oracle_schema" > /dev/null
 
-          fixture="tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
-          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-acquisition-policies "$fixture" > acquisition-policy-comparison-report.json
-          digest="$(sha256sum "$fixture" | awk '{print $1}')"
-          jq -e --arg digest "$digest" '
+          public_input="tools/glass-silicon-contract-audit/fixtures/acquisition-policy-input.synthetic.json"
+          sealed_oracle="tools/glass-silicon-contract-audit/fixtures/acquisition-outcome-oracle.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-acquisition-policies "$public_input" "$sealed_oracle" > acquisition-policy-comparison-report.json
+          public_digest="$(sha256sum "$public_input" | awk '{print $1}')"
+          oracle_digest="$(sha256sum "$sealed_oracle" | awk '{print $1}')"
+          jq -e --arg public_digest "$public_digest" --arg oracle_digest "$oracle_digest" '
             .status == "PASS" and
             .audit_kind == "synthetic_acquisition_policy_comparison" and
-            .input_sha256 == $digest and
+            .input_sha256 == $public_digest and
+            .oracle_sha256 == $oracle_digest and
             .random_seed_count == 16 and
             .available_measurements == 3 and
             .budget_eligible_measurements == 2 and
@@ -173,7 +191,7 @@ jobs:
             ([.policies[] | select(.policy == "cost_aware_voi")][0].runs[0].selected_measurement_id == "measure-regime") and
             ([.policies[] | .runs[] | select(.selected_measurement_id == "measure-expensive")] | length) == 0
           ' acquisition-policy-comparison-report.json
-          echo "Matched-budget acquisition policy known answer: PASS"
+          echo "Separated policy-visible catalog and sealed oracle known answer: PASS"
 
       - name: Audit relationship graph JSON schema
         shell: bash
