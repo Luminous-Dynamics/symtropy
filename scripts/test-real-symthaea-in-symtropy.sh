@@ -92,6 +92,8 @@ if [ "${STFR_CHECK_NANODRONE_RESIDUAL_SPECTRUM:-0}" = "1" ]; then
   cargo check --manifest-path "$integration_manifest" --example nanodrone_decision_validity
   cargo test --manifest-path "$integration_manifest" --example nanodrone_decision_validity_compare
   cargo check --manifest-path "$integration_manifest" --example nanodrone_decision_validity_compare
+  cargo test --manifest-path "$integration_manifest" --example nanodrone_paired_warning_bootstrap
+  cargo check --manifest-path "$integration_manifest" --example nanodrone_paired_warning_bootstrap
 fi
 
 if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
