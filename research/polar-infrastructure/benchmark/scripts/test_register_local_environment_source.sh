@@ -48,6 +48,10 @@ if bash "$REGISTER" "$SOURCE_ID" "javascript:alert(1)" "$LICENSE" "not_evaluated
   echo "ERROR: unsupported source URL was unexpectedly accepted" >&2
   exit 1
 fi
+if bash "$REGISTER" "$SOURCE_ID" "https://" "$LICENSE" "not_evaluated" "csv" "$SOURCE" "$TMP_DIR/bad-url-empty" >/dev/null 2>&1; then
+  echo "ERROR: URL without a host was unexpectedly accepted" >&2
+  exit 1
+fi
 if bash "$REGISTER" "$SOURCE_ID" "$SOURCE_URL" "$LICENSE" "guess_from_domain" "csv" "$SOURCE" "$TMP_DIR/bad-class" >/dev/null 2>&1; then
   echo "ERROR: unsupported evidence class was unexpectedly accepted" >&2
   exit 1
