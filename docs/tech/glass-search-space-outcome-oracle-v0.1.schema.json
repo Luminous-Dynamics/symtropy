@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Glass–Silicon Space-Expansion Sealed Oracle v0.1",
+  "description": "Evaluator-only outcomes and fixed action tariffs. Never expose this file to proposal generators or policies.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "action_cost_catalog",
+    "environments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "glass-space-expansion-trial-synthetic-v0-1"
+    },
+    "evidence_class": {
+      "const": "synthetic_evaluator_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "action_cost_catalog": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action_type",
+          "cost_units",
+          "duration_seconds"
+        ],
+        "properties": {
+          "action_type": {
+            "enum": [
+              "evaluate_candidate",
+              "expand_random",
+              "expand_rule_based",
+              "expand_llm"
+            ]
+          },
+          "cost_units": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "duration_seconds": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "environments": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "environment_id",
+          "regime",
+          "outcomes"
+        ],
+        "properties": {
+          "environment_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "regime": {
+            "enum": [
+              "helpful",
+              "neutral",
+              "harmful",
+              "misleading_prior"
+            ]
+          },
+          "outcomes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "candidate_family_id",
+                "feasible",
+                "utility"
+              ],
+              "properties": {
+                "candidate_family_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                },
+                "feasible": {
+                  "type": "boolean"
+                },
+                "utility": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
