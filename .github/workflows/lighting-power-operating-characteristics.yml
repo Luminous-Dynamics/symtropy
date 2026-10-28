@@ -30,7 +30,7 @@ jobs:
       - name: Run planner and simulation tests
         run: |
           cd tools/lighting-study-plan
-          python3 -m unittest -v test_plan_independent_scene_families test_simulate_power_operating_characteristics test_compare_mean_inference_methods
+          python3 -m unittest -v test_plan_independent_scene_families test_simulate_power_operating_characteristics test_compare_mean_inference_methods test_mnar_sensitivity_audit
       - name: Smoke-test synthetic operating-characteristic output
         run: |
           python3 tools/lighting-study-plan/simulate_power_operating_characteristics.py \
@@ -49,3 +49,12 @@ jobs:
           python3 -m json.tool /tmp/lighting-mean-inference-methods.json > /dev/null
           grep -q 'synthetic_inference_method_diagnostics_no_empirical_claim' /tmp/lighting-mean-inference-methods.json
           grep -q 'studentized_bootstrap_t' /tmp/lighting-mean-inference-methods.json
+      - name: Smoke-test informative-missingness sensitivity
+        run: |
+          python3 tools/lighting-study-plan/mnar_sensitivity_audit.py \
+            --replicates 250 --seed 20261028 --sample-sizes 10,20 \
+            --output /tmp/lighting-mnar-sensitivity.json
+          python3 -m json.tool /tmp/lighting-mnar-sensitivity.json > /dev/null
+          grep -q 'synthetic_missingness_sensitivity_diagnostics_no_empirical_claim' /tmp/lighting-mnar-sensitivity.json
+          grep -q 'bounded_worst_case_hoeffding' /tmp/lighting-mnar-sensitivity.json
+
