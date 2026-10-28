@@ -493,27 +493,24 @@ fn event_metrics(rows: &[PairedRow], baseline: bool, risk_threshold: f64, error_
         if let (Some(first), Some(last)) = (indices.first(), indices.last()) {
             minutes += ((rows[*last].decision_time_s - rows[*first].decision_time_s).max(0.0)) / 60.0;
         }
-        let mut active = false;
-        let mut previous_alert_time = 0.0;
-        let mut true_episode = false;
-        for idx in indices {
-            let row = &rows[idx];
-            let score = if baseline { row.baseline_risk_score } else { row.candidate_risk_score };
-            let is_alert = score >= risk_threshold;
-            if !is_alert {
-                if active && !true_episode { false_episodes += 1; }
-                active = false; true_episode = false;
-                continue;
+        let alerts: Vec<usize> = indices.into_iter().filter(|idx| {
+            let score = if baseline { rows[*idx].baseline_risk_score } else { rows[*idx].candidate_risk_score };
+            score >= risk_threshold
+        }).collect();
+        let mut episode: Vec<usize> = Vec::new();
+        let mut previous_alert_time: Option<f64> = None;
+        for idx in alerts {
+            let time = rows[idx].decision_time_s;
+            if let Some(previous) = previous_alert_time {
+                if time - previous > merge_gap + EPS {
+                    if !episode.iter().any(|i| alert_is_true[*i]) { false_episodes += 1; }
+                    episode.clear();
+                }
             }
-            if active && row.decision_time_s - previous_alert_time > merge_gap + EPS {
-                if !true_episode { false_episodes += 1; }
-                active = false; true_episode = false;
-            }
-            active = true;
-            true_episode |= alert_is_true[idx];
-            previous_alert_time = row.decision_time_s;
+            episode.push(idx);
+            previous_alert_time = Some(time);
         }
-        if active && !true_episode { false_episodes += 1; }
+        if !episode.is_empty() && !episode.iter().any(|i| alert_is_true[*i]) { false_episodes += 1; }
     }
     let rate = if minutes > 0.0 { Some(false_episodes as f64 / minutes) } else { None };
     EventMetrics {
