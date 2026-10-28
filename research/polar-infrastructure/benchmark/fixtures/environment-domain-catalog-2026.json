@@ -76,8 +76,11 @@
       "evidence_basis": "site_observations_or_reanalysis_required",
       "confidence_or_data_limitations": "Archetype only; not a fixed climate distribution.",
       "source_urls": [
-        "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.hyperarid_atacama",
@@ -111,8 +114,11 @@
       "evidence_basis": "site_data_required",
       "confidence_or_data_limitations": "The Atacama name alone does not specify elevation, water, season or equipment site.",
       "source_urls": [
-        "https://www.nasa.gov/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.coastal_desert_namib",
@@ -144,8 +150,12 @@
       "evidence_basis": "site_data_required",
       "confidence_or_data_limitations": "Fog harvesting is not a guaranteed water source; characterize local yields.",
       "source_urls": [
-        "https://www.nasa.gov/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis",
+        "https://doi.org/10.1029/2024EF005725"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.cold_desert_gobi",
@@ -179,8 +189,11 @@
       "evidence_basis": "site_data_required",
       "confidence_or_data_limitations": "Cold and hot extremes are season/site specific.",
       "source_urls": [
-        "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.high_altitude_dry_plateau",
@@ -214,8 +227,11 @@
       "evidence_basis": "site_data_required",
       "confidence_or_data_limitations": "Apply pressure corrections only to equipment whose physics depends on them.",
       "source_urls": [
-        "https://www.nasa.gov/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.salt_flat_evaporitic",
@@ -247,8 +263,11 @@
       "evidence_basis": "site_or_material_test_data_required",
       "confidence_or_data_limitations": "Do not assume all evaporitic deposits have identical chemistry.",
       "source_urls": [
-        "https://www.nasa.gov/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.desert_dust_storm",
@@ -282,8 +301,11 @@
       "evidence_basis": "observed_or_explicitly_synthetic_event",
       "confidence_or_data_limitations": "Synthetic dust storms must not be used as frequency estimates without a defensible event model.",
       "source_urls": [
-        "https://www.nasa.gov/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.heatwave_drought",
@@ -316,8 +338,11 @@
       "evidence_basis": "observed_or_reanalysis_episode",
       "confidence_or_data_limitations": "Use joint chronology; don't independently shuffle correlated weather/load variables.",
       "source_urls": [
-        "https://www.nasa.gov/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.tropical_hot_humid",
@@ -348,8 +373,11 @@
       "evidence_basis": "site_data_required",
       "confidence_or_data_limitations": "Human heat-stress limits require domain-specific qualified guidance and are not derived by the energy scorer.",
       "source_urls": [
-        "https://www.nasa.gov/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.monsoon_flood_cyclone",
@@ -382,8 +410,11 @@
       "evidence_basis": "site_specific_hazard_model_required",
       "confidence_or_data_limitations": "No live fault injection; use simulation or approved isolated testbeds.",
       "source_urls": [
-        "https://www.nasa.gov/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.coastal_storm_salt",
@@ -414,8 +445,11 @@
       "evidence_basis": "site_specific_hazard_model_required",
       "confidence_or_data_limitations": "Separate acute surge damage from long-term corrosion degradation.",
       "source_urls": [
-        "https://www.nasa.gov/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.polar_station_mobile_ice",
@@ -448,8 +482,11 @@
       "evidence_basis": "existing_polar_benchmark_domain_with_site_specific_validation_needed",
       "confidence_or_data_limitations": "Do not merge Arctic land, Antarctic station, sea ice and mobile platforms without justified transfer.",
       "source_urls": [
-        "https://www.nasa.gov/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "space.vacuum_thermal_cycling",
@@ -482,7 +519,9 @@
       "confidence_or_data_limitations": "Do not model convective air cooling in vacuum.",
       "source_urls": [
         "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "space.solar_particle_events_and_gcr",
@@ -516,7 +555,9 @@
       "confidence_or_data_limitations": "Mean dose alone does not represent rare-event risk or tissue dose; crewed missions require specialized review.",
       "source_urls": [
         "https://science.nasa.gov/astrobiology/researchers/funded-research/ppr/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "space.delayed_disconnected_comms",
@@ -549,7 +590,9 @@
       "confidence_or_data_limitations": "Don't assume synchronous cloud control or immediate human intervention.",
       "source_urls": [
         "https://science.nasa.gov/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "space.planetary_protection_and_sample_integrity",
@@ -580,7 +623,9 @@
       "confidence_or_data_limitations": "Not reducible to microgrid service score. Applies especially to Mars Special Regions and icy ocean worlds.",
       "source_urls": [
         "https://science.nasa.gov/astrobiology/researchers/funded-research/ppr/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.mercury_sunlit_and_shadowed",
@@ -614,7 +659,9 @@
       "confidence_or_data_limitations": "Polar ice/resource grade and exact site conditions need local evidence.",
       "source_urls": [
         "https://science.nasa.gov/mercury/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.venus_surface",
@@ -647,7 +694,9 @@
       "source_urls": [
         "https://science.nasa.gov/venus/venus-facts/",
         "https://nssdc.gsfc.nasa.gov/planetary/factsheet/venusfact.html"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.venus_cloud_layer",
@@ -679,7 +728,9 @@
       "confidence_or_data_limitations": "Never substitute cloud-level conditions for the surface environment.",
       "source_urls": [
         "https://science.nasa.gov/venus/venus-facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.moon_equatorial_and_south_pole",
@@ -720,7 +771,9 @@
         "https://www.nasa.gov/reference/moonbase-environment/",
         "https://www.nasa.gov/moonbase-environment-visualization/",
         "https://www.nasa.gov/lunar-surface-technology/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.mars_surface_and_global_dust_storm",
@@ -759,7 +812,9 @@
       "confidence_or_data_limitations": "Mars is a cold desert, but its low pressure, gravity, radiation, chemistry and dust behavior are not equivalent to Earth deserts.",
       "source_urls": [
         "https://science.nasa.gov/mars/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.phobos_deimos",
@@ -792,7 +847,9 @@
       "confidence_or_data_limitations": "Do not assume Earth-like soil traction.",
       "source_urls": [
         "https://science.nasa.gov/mars/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.asteroids_ceres_comets",
@@ -830,7 +887,9 @@
       "source_urls": [
         "https://science.nasa.gov/missions/osiris-rex/asteroid-bennus-rugged-surface-baffled-nasa-we-finally-know-why/",
         "https://science.nasa.gov/resource/asteroid-bennus-surprising-surface-revealed-by-nasa-spacecraft/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.jupiter_orbit_and_atmosphere",
@@ -862,7 +921,9 @@
       "confidence_or_data_limitations": "Jupiter has no ordinary solid surface for a surface habitat contract.",
       "source_urls": [
         "https://science.nasa.gov/jupiter/jupiter-facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.io",
@@ -894,7 +955,9 @@
       "confidence_or_data_limitations": "Not a conventional habitat candidate; very active environment.",
       "source_urls": [
         "https://science.nasa.gov/jupiter/jupiter-moons/io/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.europa",
@@ -929,7 +992,9 @@
       "source_urls": [
         "https://science.nasa.gov/jupiter/jupiter-moons/europa/europa-facts/",
         "https://science.nasa.gov/astrobiology/researchers/funded-research/ppr/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.ganymede",
@@ -961,7 +1026,9 @@
       "confidence_or_data_limitations": "Separate Ganymede's own magnetic field from the ambient Jovian environment.",
       "source_urls": [
         "https://science.nasa.gov/jupiter/jupiter-moons/ganymede/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.callisto",
@@ -994,7 +1061,9 @@
       "confidence_or_data_limitations": "Do not mark inferred ocean as established ground truth.",
       "source_urls": [
         "https://science.nasa.gov/jupiter/jupiter-moons/callisto/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.saturn_rings_and_atmosphere",
@@ -1027,7 +1096,9 @@
       "source_urls": [
         "https://science.nasa.gov/saturn/facts/",
         "https://science.nasa.gov/saturn/moons/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.enceladus",
@@ -1062,7 +1133,9 @@
       "source_urls": [
         "https://science.nasa.gov/mission/cassini/science/enceladus/",
         "https://science.nasa.gov/astrobiology/researchers/funded-research/ppr/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.titan_surface_and_lakes",
@@ -1096,7 +1169,9 @@
       "confidence_or_data_limitations": "Earth water/soil properties are not valid substitutes for methane/ethane and cryogenic conditions.",
       "source_urls": [
         "https://science.nasa.gov/saturn/moons/titan/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.uranus_neptune_atmospheric_levels",
@@ -1133,7 +1208,9 @@
       "source_urls": [
         "https://science.nasa.gov/uranus/facts/",
         "https://science.nasa.gov/neptune/neptune-facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.triton",
@@ -1165,7 +1242,9 @@
       "confidence_or_data_limitations": "Very limited direct observations; distinguish observed plume activity from extrapolated long-term rates.",
       "source_urls": [
         "https://science.nasa.gov/neptune/moons/triton/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.pluto_charon_kuiper_belt",
@@ -1200,7 +1279,9 @@
       "confidence_or_data_limitations": "Pluto and Charon need separate models; generic Kuiper profile is for trade studies only.",
       "source_urls": [
         "https://science.nasa.gov/dwarf-planets/pluto/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.high_altitude_cold_dry",
@@ -1234,8 +1315,11 @@
       "evidence_basis": "site_data_required",
       "confidence_or_data_limitations": "Separate altitude effects from temperature effects; validate equipment behavior.",
       "source_urls": [
-        "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "earth.wildfire_smoke_drought",
@@ -1268,8 +1352,11 @@
       "evidence_basis": "observed_or_site_specific_hazard_model_required",
       "confidence_or_data_limitations": "A synthetic smoke profile cannot support event-frequency estimates.",
       "source_urls": [
-        "https://www.nasa.gov/"
-      ]
+        "https://power.larc.nasa.gov/docs/",
+        "https://www.ecmwf.int/en/forecasts/datasets/complete-era5-global-atmospheric-reanalysis"
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "space.sun_space_weather",
@@ -1304,7 +1391,9 @@
       "source_urls": [
         "https://science.nasa.gov/sun/solar-storms-and-flares/",
         "https://science.nasa.gov/science-research/heliophysics/nasas-punch-sharpens-solar-storm-forecasting-in-first-test/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "space.low_earth_orbit",
@@ -1340,7 +1429,9 @@
       "source_urls": [
         "https://www.nasa.gov/hrp/hazard-space-radiation/",
         "https://science.nasa.gov/space-weather-centers-of-excellence/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "space.cislunar_eclipse_and_contact",
@@ -1375,7 +1466,9 @@
       "source_urls": [
         "https://www.nasa.gov/reference/moonbase-environment/",
         "https://www.nasa.gov/hrp/hazard-space-radiation/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.mercury_polar_cold_traps",
@@ -1408,7 +1501,9 @@
       "confidence_or_data_limitations": "Do not equate evidence for polar ice with a known extractable resource reserve.",
       "source_urls": [
         "https://science.nasa.gov/mercury/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.moon_permanently_shadowed_region",
@@ -1444,7 +1539,9 @@
       "source_urls": [
         "https://www.nasa.gov/reference/moonbase-environment/",
         "https://www.nasa.gov/lunar-surface-technology/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.mars_global_dust_storm",
@@ -1479,7 +1576,9 @@
       "confidence_or_data_limitations": "Synthetic storms test robustness, not event probability.",
       "source_urls": [
         "https://science.nasa.gov/mars/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.mars_polar_seasonal_ice",
@@ -1511,7 +1610,9 @@
       "confidence_or_data_limitations": "Keep north and south poles, season and depth distinct.",
       "source_urls": [
         "https://science.nasa.gov/mars/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.jupiter_orbital_radiation",
@@ -1545,7 +1646,9 @@
       "source_urls": [
         "https://science.nasa.gov/jupiter/jupiter-facts/",
         "https://www.nasa.gov/reference/jsc-radiation/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.jupiter_atmospheric_entry",
@@ -1578,7 +1681,9 @@
       "confidence_or_data_limitations": "Jupiter has no conventional solid-surface habitat boundary.",
       "source_urls": [
         "https://science.nasa.gov/jupiter/jupiter-facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.saturn_rings_orbit",
@@ -1610,7 +1715,9 @@
       "confidence_or_data_limitations": "Particle density and risk are strongly trajectory-dependent.",
       "source_urls": [
         "https://science.nasa.gov/saturn/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.saturn_atmospheric_entry",
@@ -1642,7 +1749,9 @@
       "confidence_or_data_limitations": "Do not treat Saturn's cloud tops as a solid surface.",
       "source_urls": [
         "https://science.nasa.gov/saturn/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.uranus_atmospheric_level",
@@ -1675,7 +1784,9 @@
       "confidence_or_data_limitations": "There is no ordinary solid surface; specify pressure level.",
       "source_urls": [
         "https://science.nasa.gov/uranus/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.neptune_atmospheric_level",
@@ -1708,7 +1819,9 @@
       "confidence_or_data_limitations": "No conventional solid surface; all test points need a declared atmosphere level.",
       "source_urls": [
         "https://science.nasa.gov/neptune/neptune-facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.uranian_moons",
@@ -1741,7 +1854,9 @@
       "confidence_or_data_limitations": "Do not transfer one moon's terrain or internal structure to all Uranian moons.",
       "source_urls": [
         "https://science.nasa.gov/uranus/facts/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     },
     {
       "scenario_id": "ss.solar_wind_and_heliosphere",
@@ -1775,7 +1890,9 @@
       "source_urls": [
         "https://science.nasa.gov/sun/solar-storms-and-flares/",
         "https://science.nasa.gov/space-weather-centers-of-excellence/"
-      ]
+      ],
+      "implementation_status": "planned",
+      "status_rationale": "Scenario family and test requirements are cataloged; no validated domain model or site/body-specific benchmark result is claimed."
     }
   ],
   "required_evidence_labels": [
