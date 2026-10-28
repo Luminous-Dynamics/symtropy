@@ -18,8 +18,13 @@ Sources:
 - PANGAEA series page: https://doi.pangaea.de/10.1594/PANGAEA.968639
 - Example monthly record with metadata, variables and one-minute observations: https://doi.pangaea.de/10.1594/PANGAEA.983811
 - BSRN data release conditions: https://bsrn.awi.de/data/conditions-of-data-release/
+- PANGAEA metaheader format documentation: https://wiki.pangaea.de/wiki/Metaheader
+- PANGAEA text-export/content-negotiation guidance: https://wiki.pangaea.de/wiki/Data_Access_and_Reuse
+- [DNS/network fallback and license boundaries](ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md)
 - NASA POWER Daily API: https://power.larc.nasa.gov/docs/services/api/temporal/daily/
 - NASA POWER Hourly API: https://power.larc.nasa.gov/docs/services/api/temporal/hourly/
+
+**Use restriction:** the exact June 2025 record is labelled BSRN-1.0. BSRN's release conditions state that the data are supplied for bona fide research and that direct commercial sale/use is forbidden; datasets require citation, and direct archive files may have access restrictions. Do not bundle or commercially use these measurements without reviewing the exact terms and obtaining any required permission. Keep the raw dataset outside this repository unless redistribution terms have been confirmed. The accessible PANGAEA HTML preview is limited to 2,000 rows and is not a complete monthly source file. See the acquisition fallback protocol for a DNS-independent local-registration route.
 
 The station is a measurement reference at its sensor location; it does not make every field a validated environmental driver. In particular, the listed BSRN record does not itself provide dust deposition, salt deposition, fog liquid-water content, wind and precipitation in the same series. Keep those variables missing/unvalidated unless a suitable separate source is added.
 
