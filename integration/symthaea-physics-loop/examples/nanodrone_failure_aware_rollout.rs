@@ -556,10 +556,10 @@ fn interval(values: Vec<f64>) -> Interval {
 
 fn crossed_bootstrap(
     cells: &BTreeMap<(String, u64), Cell>, flights: &[String], seeds: &[u64], reps: usize, seed: u64,
-) -> (Interval, Interval) {
+) -> Result<(Interval, Interval), String> {
     if flights.len() < 2 || seeds.len() < 2 {
         let empty = interval(Vec::new());
-        return (empty.clone(), empty);
+        return Ok((empty.clone(), empty));
     }
     let mut rng = Rng(seed.max(1));
     let mut rmse_deltas = Vec::with_capacity(reps);
@@ -574,7 +574,8 @@ fn crossed_bootstrap(
         let mut count = 0usize;
         for flight in &sampled_flights {
             for s in &sampled_seeds {
-                let cell = cells.get(&(flight.to_string(), **s)).ok_or("missing crossed cell").expect("validated balanced crossed design");
+                let cell = cells.get(&(flight.to_string(), **s))
+                    .ok_or_else(|| "missing crossed flight-by-seed cell during bootstrap".to_string())?;
                 b_sumsq += cell.baseline_sumsq;
                 c_sumsq += cell.candidate_sumsq;
                 b_penalized += cell.baseline_penalized_count;
@@ -587,7 +588,7 @@ fn crossed_bootstrap(
             penalized_rate_deltas.push(c_penalized as f64 / count as f64 - b_penalized as f64 / count as f64);
         }
     }
-    (interval(rmse_deltas), interval(penalized_rate_deltas))
+    Ok((interval(rmse_deltas), interval(penalized_rate_deltas)))
 }
 
 fn run() -> Result<(), String> {
@@ -611,7 +612,7 @@ fn run() -> Result<(), String> {
         let delta_penalty_rate = candidate.penalized_rollout_rate - baseline.penalized_rollout_rate;
         let cells = cell_stats(&data, hidx, args.divergence_limit_m)?;
         let (rmse_ci, penalty_rate_ci) = crossed_bootstrap(&cells, &data.flights, &data.seeds,
-            args.bootstrap_replicates, args.bootstrap_seed.wrapping_add(hidx as u64));
+            args.bootstrap_replicates, args.bootstrap_seed.wrapping_add(hidx as u64))?;
         let excludes_zero = match (rmse_ci.lower_95, rmse_ci.upper_95) {
             (Some(lo), Some(hi)) => lo > 0.0 || hi < 0.0,
             _ => false,
@@ -753,8 +754,8 @@ mod tests {
         }}
         let flights=vec!["f1".to_string(),"f2".to_string(),"f3".to_string()];
         let seeds=vec![1,2];
-        let (a,ad)=crossed_bootstrap(&cells,&flights,&seeds,100,71);
-        let (b,bd)=crossed_bootstrap(&cells,&flights,&seeds,100,71);
+        let (a,ad)=crossed_bootstrap(&cells,&flights,&seeds,100,71).unwrap();
+        let (b,bd)=crossed_bootstrap(&cells,&flights,&seeds,100,71).unwrap();
         assert_eq!(a.lower_95,b.lower_95);
         assert_eq!(a.upper_95,b.upper_95);
         assert_eq!(ad.lower_95,bd.lower_95);
