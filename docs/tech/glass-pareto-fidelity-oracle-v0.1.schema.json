@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/glass-pareto-fidelity-oracle-v0.1.schema.json",
+  "title": "Glass–Silicon evaluator-only Pareto fidelity oracle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "action_cost_catalog",
+    "environments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "glass-pareto-fidelity-synthetic-v0-1"
+    },
+    "evidence_class": {
+      "const": "synthetic_evaluator_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "action_cost_catalog": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fidelity",
+          "cost_units",
+          "duration_seconds"
+        ],
+        "properties": {
+          "fidelity": {
+            "enum": [
+              "screen",
+              "confirmatory"
+            ]
+          },
+          "cost_units": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "duration_seconds": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    },
+    "environments": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "environment_id",
+          "outcomes"
+        ],
+        "properties": {
+          "environment_id": {
+            "enum": [
+              "informative",
+              "neutral",
+              "misleading_low_fidelity"
+            ]
+          },
+          "outcomes": {
+            "type": "array",
+            "minItems": 10,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "candidate_id",
+                "fidelity",
+                "objectives",
+                "constraints"
+              ],
+              "properties": {
+                "candidate_id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$"
+                },
+                "fidelity": {
+                  "enum": [
+                    "screen",
+                    "confirmatory"
+                  ]
+                },
+                "objectives": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "quality",
+                    "energy"
+                  ],
+                  "properties": {
+                    "quality": {
+                      "type": "number"
+                    },
+                    "energy": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "constraints": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "qualification"
+                      ],
+                      "properties": {
+                        "qualification": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "fidelity": {
+                        "const": "screen"
+                      }
+                    },
+                    "required": [
+                      "fidelity"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "constraints": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "fidelity": {
+                        "const": "confirmatory"
+                      }
+                    },
+                    "required": [
+                      "fidelity"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "constraints": {
+                        "type": "object",
+                        "required": [
+                          "qualification"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
