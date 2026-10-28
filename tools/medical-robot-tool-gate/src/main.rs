@@ -938,10 +938,12 @@ fn validate_morphology(model: &Value) -> Vec<String> {
                 if !unit_axis {
                     push_findings(&mut findings, "MORPHOLOGY_CONTINUOUS_AXIS_INVALID");
                 }
-                if joint.get("lower_limit_rad").is_some()
-                    || joint.get("upper_limit_rad").is_some()
+                if joint.get("lower_limit_rad").is_some() || joint.get("upper_limit_rad").is_some()
                 {
-                    push_findings(&mut findings, "MORPHOLOGY_CONTINUOUS_JOINT_HAS_POSITION_LIMITS");
+                    push_findings(
+                        &mut findings,
+                        "MORPHOLOGY_CONTINUOUS_JOINT_HAS_POSITION_LIMITS",
+                    );
                 }
                 if effort.is_none_or(|value| !(0.001..=1000.0).contains(&value))
                     || velocity.is_none_or(|value| !(0.001..=20.0).contains(&value))
@@ -1965,9 +1967,7 @@ mod tests {
                 for row in 0..3 {
                     for column in 0..3 {
                         let dot = (0..3)
-                            .map(|index| {
-                                pose.rotation[index][row] * pose.rotation[index][column]
-                            })
+                            .map(|index| pose.rotation[index][row] * pose.rotation[index][column])
                             .sum::<f64>();
                         let expected = if row == column { 1.0 } else { 0.0 };
                         assert!(
@@ -1978,13 +1978,12 @@ mod tests {
                     }
                 }
                 let rotation = pose.rotation;
-                let determinant =
-                    rotation[0][0] * (rotation[1][1] * rotation[2][2]
-                        - rotation[1][2] * rotation[2][1])
-                    - rotation[0][1] * (rotation[1][0] * rotation[2][2]
-                        - rotation[1][2] * rotation[2][0])
-                    + rotation[0][2] * (rotation[1][0] * rotation[2][1]
-                        - rotation[1][1] * rotation[2][0]);
+                let determinant = rotation[0][0]
+                    * (rotation[1][1] * rotation[2][2] - rotation[1][2] * rotation[2][1])
+                    - rotation[0][1]
+                        * (rotation[1][0] * rotation[2][2] - rotation[1][2] * rotation[2][0])
+                    + rotation[0][2]
+                        * (rotation[1][0] * rotation[2][1] - rotation[1][1] * rotation[2][0]);
                 assert!(
                     (determinant - 1.0).abs() < 1.0e-9,
                     "{link_id} rotation determinant is {determinant} in sample {sample}"
