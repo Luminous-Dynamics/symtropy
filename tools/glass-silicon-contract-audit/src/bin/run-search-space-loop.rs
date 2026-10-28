@@ -500,7 +500,7 @@ fn run_one(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str) 
     let family_rows = catalog.get("candidate_families").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut family_by_id: HashMap<String, Value> = HashMap::new();
     for (i, family) in family_rows.iter().enumerate() {
-        only_keys(family, &["id", "domain", "initially_visible", "screen_priority", "predicted_feasible", "selector_scores", "failure_fallback_score"], &format!("catalog.candidate_families[{i}]"), &mut report);
+        only_keys(family, &["id", "domain", "initially_visible", "screen_priority", "predicted_feasible", "selector_scores", "failure_fallback_score", "features"], &format!("catalog.candidate_families[{i}]"), &mut report);
         let Some(id) = family.get("id").and_then(Value::as_str) else {
             fail(&mut report, "FAIL", "FAMILY_ID_REQUIRED", "each public family requires a string ID");
             continue;
