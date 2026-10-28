@@ -9,6 +9,10 @@ The [resilience benchmark scorecard](RESILIENCE_BENCHMARK_SCORECARD_2026.md) and
 
 Industry comparisons are layer-matched: REopt/HOMER where a compatible planning or hybrid-system problem exists, OpenDSS for a compatible distribution network, and Gobabeb BSRN vs NASA POWER for environmental-input validation. Do not treat those tools as interchangeable or compare policy results across different models and information budgets. The scorecard does not claim Symtropy currently beats any of them.
 
+## New: paired controller comparison and independent report checking
+
+The [paired margin benchmark protocol](../../PAIRED_MARGIN_BENCHMARK_PROTOCOL.md) now defines a v0.3 comparison contract, synthetic paired fixture, Rust evaluator, and independent Python report verifier. It requires a complete controller-by-trajectory matrix and gate-specific signed-margin semantics; invalid and not-evaluated outcomes remain explicit. Its exact-head workflow checks that Rust-produced report against the independent recomputation and runs mutation tests. This is a software-contract increment only: all 12 rows in the fixture are synthetic, and it supplies no measured controller advantage.
+
 ## New: DNS-independent acquisition and rights-aware source choice
 
 The [environmental data acquisition fallback runbook](ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md) records the authoring-shell DNS failure, the limitation of PANGAEA's 2,000-row HTML preview, and an offline local-source registration route. It also states the BSRN-1.0 restriction against direct commercial sale/use: source access is not blanket redistribution or product-use permission. The added [local registration helper](scripts/register_local_pangaea_source.sh) hashes operator-supplied bytes without network access, but explicitly does **not** authenticate the source origin.
