@@ -1,0 +1,11 @@
+{
+  "suite_id": "CAREFRAME_DESIGN_SPACE_SCENARIOS",
+  "suite_version": "0.1.0",
+  "claim_ceiling": "synthetic_fixture_only",
+  "scenarios": [
+    {"scenario_id": "sealed_supply_handoff_nominal", "kind": "nominal"},
+    {"scenario_id": "stale_tool_revision_after_plan", "kind": "authority_mutation"},
+    {"scenario_id": "privacy_permission_revoked_mid_episode", "kind": "privacy_mutation"},
+    {"scenario_id": "dynamic_obstacle_during_handoff", "kind": "environment_shift"}
+  ]
+}
