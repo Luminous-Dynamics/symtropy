@@ -14,6 +14,9 @@ on:
       - "docs/tech/glass-search-space-proposal-v0.1.schema.json"
       - "docs/tech/glass-search-space-campaign-input-v0.1.schema.json"
       - "docs/tech/glass-search-space-outcome-oracle-v0.1.schema.json"
+      - "docs/tech/glass-search-space-live-catalog-v0.1.schema.json"
+      - "docs/tech/glass-search-space-live-oracle-v0.1.schema.json"
+      - "docs/tech/GLASS_LIVE_POLICY_LOOP_PROTOCOL_V0_1.md"
       - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
@@ -38,6 +41,9 @@ on:
       - "docs/tech/glass-search-space-proposal-v0.1.schema.json"
       - "docs/tech/glass-search-space-campaign-input-v0.1.schema.json"
       - "docs/tech/glass-search-space-outcome-oracle-v0.1.schema.json"
+      - "docs/tech/glass-search-space-live-catalog-v0.1.schema.json"
+      - "docs/tech/glass-search-space-live-oracle-v0.1.schema.json"
+      - "docs/tech/GLASS_LIVE_POLICY_LOOP_PROTOCOL_V0_1.md"
       - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
@@ -723,3 +729,37 @@ jobs:
             ([.campaign_results[] | select(.environment_id == "misleading_prior" and .policy_class == "llm_expansion")][0].false_feasible_predictions == 1)
           ' search-space-campaign-report.json
           echo "Sealed adaptive-space campaign matrix, evaluator-owned budget accounting, and helpful/neutral/harmful/prior-bias known answers: PASS"
+
+
+      - name: Run live observation-conditioned search-space policies
+        shell: bash
+        run: |
+          set -euo pipefail
+          catalog_schema="docs/tech/glass-search-space-live-catalog-v0.1.schema.json"
+          oracle_schema="docs/tech/glass-search-space-live-oracle-v0.1.schema.json"
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.candidate_families.minItems >= 1 and .additionalProperties == false' "$catalog_schema" > /dev/null
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.evidence_class.const == "synthetic_evaluator_only" and .properties.action_cost_catalog.minItems >= 4 and .additionalProperties == false' "$oracle_schema" > /dev/null
+
+          catalog="tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog.synthetic.json"
+          oracle="tools/glass-silicon-contract-audit/fixtures/search-space-live-outcome-oracle.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- "$catalog" "$oracle" > search-space-live-loop-report.json
+          catalog_digest="$(sha256sum "$catalog" | awk '{print $1}')"
+          oracle_digest="$(sha256sum "$oracle" | awk '{print $1}')"
+          jq -e --arg catalog_digest "$catalog_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_live_policy_event_loop" and
+            .input_sha256 == $catalog_digest and
+            .oracle_sha256 == $oracle_digest and
+            .environment_count == 4 and
+            .episodes_checked == 20 and
+            ([.episodes[] | select(.cost_units_charged != 5.0)] | length) == 0 and
+            ([.episodes[] | select(.duration_seconds_charged > 25.0)] | length) == 0 and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "fixed_space")][0].best_verified_feasible_utility == 4.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "random_expansion")][0].best_verified_feasible_utility == 6.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "rule_based_expansion")][0].best_verified_feasible_utility == 8.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "prior_guided_expansion")][0].best_verified_feasible_utility == 10.0) and
+            ([.episodes[] | select(.environment_id == "harmful" and .policy_class == "prior_guided_expansion")][0].best_verified_feasible_utility == 8.0) and
+            ([.episodes[] | select(.environment_id == "harmful" and .policy_class == "static_prior_expansion")][0].best_verified_feasible_utility == 6.0) and
+            ([.episodes[] | select(.environment_id == "misleading_prior" and .policy_class == "prior_guided_expansion")][0].false_feasible_predictions == 1)
+          ' search-space-live-loop-report.json
+          echo "Live observation-conditioned policy loop, budget parity, static-expansion control, and hidden-prior stress known answers: PASS"
