@@ -83,6 +83,28 @@ The runner emits 80 auxiliary episodes (20 seeds × four environments) and an ag
 
 This provides an uncertainty/variance view for the synthetic random control only. It is not a 20-seed trial of the actual GP-EI or prior-guided policy, and the results remain synthetic. Empirical promotion still needs paired repeated runs of every real policy on rights-cleared, family/source-held-out tasks with model/prompt/compute costs fully charged.
 
+
+## Budget-pressure sensitivity lane
+
+The original five-unit cap is retained as an upper-budget smoke test, but it is not sufficient on its own to compare final best-feasible utility: a fixed-space policy can measure all five initially visible families, making terminal regret insensitive to candidate ordering. A second, preregistered three-unit catalog is therefore part of the v0.1 synthetic suite.
+
+- Fixture: `tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog-tight-budget.synthetic.json`
+- Oracle: the same evaluator-only outcome fixture as the five-unit lane. The public catalog and sealed outcome artifact remain byte-distinct and are independently SHA-256 bound.
+- Budget: 3 cost units and at most 25 synthetic seconds for every primary policy episode. At the frozen evaluation tariff, fixed-space GP-EI can evaluate only three of the five initially visible candidates; the repeated-seed random control faces the same cap.
+- Action surface: each policy receives the declared action tariffs as budget metadata, plus only expansion methods whose full evaluator-owned cost **and duration** fit the remaining budget. An expansion decision that is unaffordable is not offered as an available action; policies continue with affordable candidate evaluations instead.
+- Accounting and replay: the evaluator still charges from its own tariff catalog before revealing an outcome. The replay reconstructs the tariff view and affordability set from the sealed oracle, then checks the action/view digest and cumulative charges. The policy cannot lower the tariff by editing its response.
+
+Run the pressure lane with:
+
+```sh
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
+  tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog-tight-budget.synthetic.json \
+  tools/glass-silicon-contract-audit/fixtures/search-space-live-outcome-oracle.synthetic.json
+```
+
+The three-unit lane is a **diagnostic budget-frontier point**, not an assertion that three units is the correct industrial budget, and not a policy-performance result. Compare matched policy/seed pairs at multiple budget levels before selecting any deployment budget. The protocol known answer requires complete 24-arm episode coverage, exactly three charged units per primary episode, three GP-EI evaluations without expansion, three evaluations per random-seed control, zero unaffordable prior-guided expansions, and deterministic independent replay. If a policy has to abstain or cannot afford a useful action, record that as a result instead of waiving cost or hard constraints.
+
+
 ## Follow-on promotion gates
 
 1. **Runtime isolation:** launch a policy as a sandboxed subprocess/WASM module, send only the current public view, reject all undeclared fields, and replay every action/event against the sealed evaluator independently.
