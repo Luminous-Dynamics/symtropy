@@ -1,0 +1,65 @@
+{
+  "schema_version": "0.1.0",
+  "report_type": "compact_summary_of_frozen_synthetic_confirmation",
+  "claim_scope": "synthetic statistical method diagnostics only; no real lighting measurement, Radiance result, calibrated photometry, or industry comparison",
+  "source_sha256": "532f13d7a4fa4cc40e118df32b4466a628c60a537ff36621ef6b013335023e88",
+  "seed": 20261028,
+  "scenarios": 72,
+  "monte_carlo_replicates_per_scenario": 200,
+  "method": "fitted one-covariate logistic response model + fitted linear outcome regression + AIPW; asymptotic influence-function intervals; independent scene-family sampling unit",
+  "metrics_by_missingness_mechanism": [
+    {
+      "mechanism": "complete",
+      "max_null_false_superiority_rate": 0.105,
+      "mean_null_bias_percentage_points": 0.013375255653813676,
+      "min_two_sided_95pct_coverage": 0.895,
+      "median_two_sided_95pct_coverage": 0.94,
+      "mean_eligibility_rate": 1
+    },
+    {
+      "mechanism": "mcar_40pct",
+      "max_null_false_superiority_rate": 0.18,
+      "mean_null_bias_percentage_points": 0.0024805435607110587,
+      "min_two_sided_95pct_coverage": 0.835,
+      "median_two_sided_95pct_coverage": 0.9275,
+      "mean_eligibility_rate": 1
+    },
+    {
+      "mechanism": "mar_nonlinear_difficulty",
+      "max_null_false_superiority_rate": 0.16,
+      "mean_null_bias_percentage_points": 0.014228490749900756,
+      "min_two_sided_95pct_coverage": 0.855,
+      "median_two_sided_95pct_coverage": 0.9475,
+      "mean_eligibility_rate": 0.9986111111111112
+    },
+    {
+      "mechanism": "mnar_low_outcome",
+      "max_null_false_superiority_rate": 0.905,
+      "mean_null_bias_percentage_points": 0.8139718143249747,
+      "min_two_sided_95pct_coverage": 0.14,
+      "median_two_sided_95pct_coverage": 0.6767977528089888,
+      "mean_eligibility_rate": 0.958888888888889
+    }
+  ],
+  "constructed_mnar_example": {
+    "n_independent_scene_families": 60,
+    "n_observed": 38,
+    "n_missing": 22,
+    "true_constructed_mean_percentage_saving": 5,
+    "estimate_at_delta_zero": 5.784146085079618,
+    "one_sided_95pct_lower_bound_at_delta_zero": 5.122055541706206,
+    "nearest_negative_delta_grid_tipping_point_pp": -1,
+    "warning": "MNAR mechanism depends on latent outcomes and deliberately violates MAR. This is a constructed failure case, not an empirical estimate."
+  },
+  "interpretation": [
+    "No method selected from this grid.",
+    "False-superiority and coverage metrics are scenario-wise diagnostics, not simultaneous confidence statements.",
+    "Only 200 Monte Carlo replications per scenario; rates have substantial Monte Carlo uncertainty.",
+    "The AIPW normal influence-function interval is not an approved confirmatory decision rule.",
+    "High failure under MNAR diagnoses applying a MAR estimator outside its identifying assumptions."
+  ],
+  "artifact_outputs": {
+    "full_scenario_report": "results/frozen-confirmation-200.json in accompanying downloadable research package",
+    "constructed_sensitivity_curve": "results/interval-sensitivity-demo.json in accompanying downloadable research package"
+  }
+}
