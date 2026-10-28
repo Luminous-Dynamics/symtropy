@@ -35,6 +35,7 @@ jobs:
             --assumed-true-effect-pct 18 \
             --superiority-margin-pct 5 \
             --target-power 0.80 \
+            --comparison-family-size 3 \
             --output /tmp/lighting-study-plan.json
           python3 -m json.tool /tmp/lighting-study-plan.json > /dev/null
           grep -q 'synthetic_planning_demo_no_empirical_claim' /tmp/lighting-study-plan.json
