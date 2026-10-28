@@ -73,6 +73,12 @@ class PairedComparisonVerifierTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate case ID"):
             build_expected_report(doc)
 
+    def test_rejects_missing_gate_margin_semantics(self):
+        doc = copy.deepcopy(self.fixture)
+        doc["gate_margin_contracts"].pop("communications")
+        with self.assertRaisesRegex(ValueError, "margin contracts"):
+            build_expected_report(doc)
+
     def test_rejects_status_margin_contradiction(self):
         doc = copy.deepcopy(self.fixture)
         doc["cases"][0]["signed_gate_margins"]["critical_energy"] = -1.0
