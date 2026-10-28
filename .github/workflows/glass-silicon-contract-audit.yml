@@ -630,3 +630,47 @@ jobs:
           grep -q '"observed_sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"' hash-receipt.json
           grep -q '"rights_status": "unresolved"' hash-receipt.json
           grep -q '"manifest_admission_status": "blocked"' hash-receipt.json
+
+
+      - name: Audit adaptive search-space proposal schema and known answer
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_schema="docs/tech/glass-search-space-base-v0.1.schema.json"
+          proposal_schema="docs/tech/glass-search-space-proposal-v0.1.schema.json"
+          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.hard_constraints.minItems == 1 and .properties.candidate_families.minItems == 1 and .additionalProperties == false' "$base_schema" > /dev/null
+          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.parent_space_sha256.pattern == "^[a-fA-F0-9]{64}$" and .properties.hard_constraint_changes.maxItems == 0 and .properties.generation_cost_units.exclusiveMinimum == 0 and .additionalProperties == false' "$proposal_schema" > /dev/null
+
+          base="tools/glass-silicon-contract-audit/fixtures/base-space.synthetic.json"
+          proposal="tools/glass-silicon-contract-audit/fixtures/space-proposal-helpful.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-search-space -- "$base" "$proposal" > search-space-proposal-report.json
+          base_digest="$(sha256sum "$base" | awk '{print $1}')"
+          proposal_digest="$(sha256sum "$proposal" | awk '{print $1}')"
+          jq -e --arg base_digest "$base_digest" --arg proposal_digest "$proposal_digest" '
+            .status == "PASS" and
+            .audit_kind == "adaptive_search_space_proposal" and
+            .base_space_sha256 == $base_digest and
+            .proposal_sha256 == $proposal_digest and
+            .candidate_family_count_before == 2 and
+            .candidate_family_count_after == 3 and
+            .hard_constraints_unchanged == true and
+            .disposition == "PROPOSED_NOT_ADMITTED" and
+            (.resulting_space_sha256 | type == "string" and length == 64)
+          ' search-space-proposal-report.json
+
+          jq '.hard_constraint_changes = [{"constraint_id":"accepted-grade-output","operation":"weaken","replacement_definition":"Any output counts"}]' "$proposal" > search-space-proposal-weakening.json
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-search-space -- "$base" search-space-proposal-weakening.json > search-space-proposal-weakening-report.json
+          weakening_status=$?
+          set -e
+          test "$weakening_status" -eq 2
+          grep -q 'HARD_CONSTRAINT_MUTATION_ATTEMPTED' search-space-proposal-weakening-report.json
+
+          jq '.parent_space_sha256 = "0000000000000000000000000000000000000000000000000000000000000000"' "$proposal" > search-space-proposal-stale.json
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-search-space -- "$base" search-space-proposal-stale.json > search-space-proposal-stale-report.json
+          stale_status=$?
+          set -e
+          test "$stale_status" -eq 3
+          grep -q 'PARENT_SPACE_MISMATCH' search-space-proposal-stale-report.json
+          echo "Adaptive search-space schema, parent binding, hard-constraint and stale-parent controls: PASS"
