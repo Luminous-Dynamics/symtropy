@@ -23,7 +23,10 @@ fn bool_at(value: &Value, key: &str) -> Option<bool> {
 }
 
 fn num_at(value: &Value, key: &str) -> Option<f64> {
-    value.get(key).and_then(Value::as_f64).filter(|number| number.is_finite())
+    value
+        .get(key)
+        .and_then(Value::as_f64)
+        .filter(|number| number.is_finite())
 }
 
 fn push_findings(findings: &mut BTreeSet<String>, code: &str) {
@@ -106,7 +109,11 @@ fn validate_tool(tool: &Value) -> Vec<String> {
     if str_at(tool, "tool_id").is_none_or(|value| value.trim().is_empty()) {
         push_findings(&mut findings, "TOOL_ID_INVALID");
     }
-    if tool.get("revision").and_then(Value::as_u64).is_none_or(|value| value == 0) {
+    if tool
+        .get("revision")
+        .and_then(Value::as_u64)
+        .is_none_or(|value| value == 0)
+    {
         push_findings(&mut findings, "REVISION_INVALID");
     }
     if str_at(tool, "design_stage") != Some("concept") {
@@ -146,8 +153,14 @@ fn validate_tool(tool: &Value) -> Vec<String> {
         push_findings(&mut findings, "TASK_UNSUPPORTED");
     }
 
-    if !["none", "object_only", "mannequin_only", "patient_contact", "invasive"]
-        .contains(&contact)
+    if ![
+        "none",
+        "object_only",
+        "mannequin_only",
+        "patient_contact",
+        "invasive",
+    ]
+    .contains(&contact)
     {
         push_findings(&mut findings, "CONTACT_CLASS_UNSUPPORTED");
     }
@@ -156,8 +169,8 @@ fn validate_tool(tool: &Value) -> Vec<String> {
     }
 
     match kind {
-        "sealed_supply_gripper"
-            if task == "sealed_supply_transfer" && contact == "object_only" => {}
+        "sealed_supply_gripper" if task == "sealed_supply_transfer" && contact == "object_only" => {
+        }
         "tray_carrier" if task == "tray_transfer" && contact == "object_only" => {}
         "telepresence_head" if task == "telepresence_support" && contact == "none" => {}
         "trainer_probe"
@@ -224,11 +237,7 @@ fn validate_tool(tool: &Value) -> Vec<String> {
     }
 
     let hygiene = tool.get("hygiene").unwrap_or(&NULL_VALUE);
-    const HYGIENE_FIELDS: &[&str] = &[
-        "surface_materials_declared",
-        "cleaning_claim",
-        "single_use",
-    ];
+    const HYGIENE_FIELDS: &[&str] = &["surface_materials_declared", "cleaning_claim", "single_use"];
     unknown_fields(hygiene, HYGIENE_FIELDS, &mut findings);
     if !has_required_keys(hygiene, HYGIENE_FIELDS) {
         push_findings(&mut findings, "MANIFEST_INCOMPLETE");
@@ -244,11 +253,7 @@ fn validate_tool(tool: &Value) -> Vec<String> {
     }
 
     let electrical = tool.get("electrical").unwrap_or(&NULL_VALUE);
-    const ELECTRICAL_FIELDS: &[&str] = &[
-        "powered",
-        "max_power_w",
-        "protective_isolation_declared",
-    ];
+    const ELECTRICAL_FIELDS: &[&str] = &["powered", "max_power_w", "protective_isolation_declared"];
     unknown_fields(electrical, ELECTRICAL_FIELDS, &mut findings);
     if !has_required_keys(electrical, ELECTRICAL_FIELDS) {
         push_findings(&mut findings, "MANIFEST_INCOMPLETE");
@@ -424,7 +429,9 @@ fn run_corpus(root: &Value) -> Result<CorpusReport, Vec<String>> {
         };
 
         if expected_findings.is_none() || expected_disposition.is_none() {
-            failures.push(format!("{case_id}: expected disposition/findings are malformed"));
+            failures.push(format!(
+                "{case_id}: expected disposition/findings are malformed"
+            ));
             continue;
         }
         let expected_disposition = expected_disposition.expect("validated above");
@@ -596,10 +603,9 @@ fn write_or_print_template(tool_kind: &str, output_path: Option<&str>) {
 
 const MORPHOLOGY_PATH: &str =
     "docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json";
-const MORPHOLOGY_SOURCE: &[u8] =
-    include_bytes!(
-        "../../../docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json"
-    );
+const MORPHOLOGY_SOURCE: &[u8] = include_bytes!(
+    "../../../docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json"
+);
 
 fn finite_vec3(value: &Value) -> Option<[f64; 3]> {
     let items = value.as_array()?;
@@ -656,7 +662,11 @@ fn validate_morphology(model: &Value) -> Vec<String> {
     if str_at(model, "model_id").is_none_or(|id| id.trim().is_empty()) {
         push_findings(&mut findings, "MORPHOLOGY_MODEL_ID_INVALID");
     }
-    if model.get("revision").and_then(Value::as_u64).is_none_or(|value| value == 0) {
+    if model
+        .get("revision")
+        .and_then(Value::as_u64)
+        .is_none_or(|value| value == 0)
+    {
         push_findings(&mut findings, "MORPHOLOGY_REVISION_INVALID");
     }
     if str_at(model, "morphology_kind") != Some("wheeled_upper_body_humanoid") {
@@ -665,8 +675,7 @@ fn validate_morphology(model: &Value) -> Vec<String> {
     if str_at(model, "evidence_class") != Some("synthetic_morphology_proposal") {
         push_findings(&mut findings, "MORPHOLOGY_EVIDENCE_CLASS_UNSUPPORTED");
     }
-    if str_at(model, "geometry_fidelity")
-        != Some("bounding_primitives_not_manufacturing_geometry")
+    if str_at(model, "geometry_fidelity") != Some("bounding_primitives_not_manufacturing_geometry")
     {
         push_findings(&mut findings, "MORPHOLOGY_GEOMETRY_FIDELITY_UNSUPPORTED");
     }
@@ -691,11 +700,7 @@ fn validate_morphology(model: &Value) -> Vec<String> {
     }
 
     let controller = model.get("controller").unwrap_or(&NULL_VALUE);
-    const CONTROLLER_FIELDS: &[&str] = &[
-        "kinematics_only",
-        "commands_enabled",
-        "inertia_source",
-    ];
+    const CONTROLLER_FIELDS: &[&str] = &["kinematics_only", "commands_enabled", "inertia_source"];
     morphology_unknown_fields(controller, CONTROLLER_FIELDS, &mut findings);
     if !morphology_required_fields(controller, CONTROLLER_FIELDS) {
         push_findings(&mut findings, "MORPHOLOGY_INCOMPLETE");
@@ -738,10 +743,9 @@ fn validate_morphology(model: &Value) -> Vec<String> {
         .and_then(Value::as_array)
         .is_some_and(|items| {
             !items.is_empty()
-                && items.iter().all(|item| {
-                    item.as_str()
-                        .is_some_and(|value| !value.trim().is_empty())
-                })
+                && items
+                    .iter()
+                    .all(|item| item.as_str().is_some_and(|value| !value.trim().is_empty()))
         });
     if !caveats_valid {
         push_findings(&mut findings, "MORPHOLOGY_CAVEATS_REQUIRED");
@@ -875,9 +879,8 @@ fn validate_morphology(model: &Value) -> Vec<String> {
 
         match str_at(joint, "joint_type") {
             Some("fixed") => {
-                let zero_axis = axis.is_some_and(|axis| {
-                    axis.iter().all(|component| component.abs() <= 1.0e-8)
-                });
+                let zero_axis =
+                    axis.is_some_and(|axis| axis.iter().all(|component| component.abs() <= 1.0e-8));
                 if !zero_axis
                     || lower != Some(0.0)
                     || upper != Some(0.0)
@@ -959,11 +962,7 @@ impl LinkPose {
 
 fn rotation_product(a: [[f64; 3]; 3], b: [[f64; 3]; 3]) -> [[f64; 3]; 3] {
     std::array::from_fn(|row| {
-        std::array::from_fn(|column| {
-            (0..3)
-                .map(|index| a[row][index] * b[index][column])
-                .sum()
-        })
+        std::array::from_fn(|column| (0..3).map(|index| a[row][index] * b[index][column]).sum())
     })
 }
 
@@ -1086,7 +1085,13 @@ fn compute_forward_kinematics(
                 LinkPose::identity().rotation
             };
             let rotation = rotation_product(parent_pose.rotation, joint_rotation);
-            poses.insert(child_id.to_owned(), LinkPose { rotation, translation });
+            poses.insert(
+                child_id.to_owned(),
+                LinkPose {
+                    rotation,
+                    translation,
+                },
+            );
             processed.insert(index);
             made_progress = true;
         }
@@ -1103,9 +1108,7 @@ fn urdf_identifier_valid(value: &str) -> bool {
     characters
         .next()
         .is_some_and(|first| first.is_ascii_alphabetic())
-        && characters.all(|character| {
-            character.is_ascii_alphanumeric() || character == '_'
-        })
+        && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
 fn urdf_float(value: f64) -> String {
@@ -1143,11 +1146,7 @@ fn export_urdf(model: &Value) -> Result<String, Vec<String>> {
         if !urdf_identifier_valid(str_at(link, "link_id").unwrap_or("")) {
             push_findings(&mut findings, "URDF_LINK_NAME_UNSUPPORTED");
         }
-        if str_at(
-            link.get("collision").unwrap_or(&NULL_VALUE),
-            "shape",
-        ) != Some("box")
-        {
+        if str_at(link.get("collision").unwrap_or(&NULL_VALUE), "shape") != Some("box") {
             push_findings(&mut findings, "URDF_COLLISION_SHAPE_UNSUPPORTED");
         }
     }
@@ -1204,10 +1203,7 @@ fn export_urdf(model: &Value) -> Result<String, Vec<String>> {
         ));
         if joint_type == "revolute" {
             let axis = finite_vec3(&joint["axis_xyz"]).expect("validated axis");
-            xml.push_str(&format!(
-                "    <axis xyz=\"{}\"/>\n",
-                urdf_vec3(&axis)
-            ));
+            xml.push_str(&format!("    <axis xyz=\"{}\"/>\n", urdf_vec3(&axis)));
             xml.push_str(&format!(
                 "    <limit lower=\"{}\" upper=\"{}\" effort=\"{}\" velocity=\"{}\"/>\n",
                 urdf_float(num_at(joint, "lower_limit_rad").expect("validated lower limit")),
@@ -1223,10 +1219,9 @@ fn export_urdf(model: &Value) -> Result<String, Vec<String>> {
 }
 
 fn export_urdf_file(model_path: &str, output_path: &str) {
-    if let (Ok(input_path), Ok(output_file)) = (
-        fs::canonicalize(model_path),
-        fs::canonicalize(output_path),
-    ) {
+    if let (Ok(input_path), Ok(output_file)) =
+        (fs::canonicalize(model_path), fs::canonicalize(output_path))
+    {
         if input_path == output_file {
             eprintln!("input morphology and output URDF must not resolve to the same file");
             process::exit(2);
@@ -1299,11 +1294,17 @@ fn export_urdf_file(model_path: &str, output_path: &str) {
 }
 
 fn links_len(model: &Value) -> usize {
-    model.get("links").and_then(Value::as_array).map_or(0, Vec::len)
+    model
+        .get("links")
+        .and_then(Value::as_array)
+        .map_or(0, Vec::len)
 }
 
 fn joints_len(model: &Value) -> usize {
-    model.get("joints").and_then(Value::as_array).map_or(0, Vec::len)
+    model
+        .get("joints")
+        .and_then(Value::as_array)
+        .map_or(0, Vec::len)
 }
 
 fn link_poses_json(poses: &BTreeMap<String, LinkPose>) -> Value {
@@ -1760,9 +1761,9 @@ mod tests {
         assert!(xml.contains("<joint name=\"torso_yaw\" type=\"revolute\">"));
         assert!(xml.contains("<origin xyz=\"0 0 0.22\" rpy=\"0 0 0\"/>"));
         assert!(xml.contains("<axis xyz=\"0 0 1\"/>"));
-        assert!(xml.contains(
-            "<limit lower=\"-1.2\" upper=\"1.2\" effort=\"20\" velocity=\"0.35\"/>"
-        ));
+        assert!(
+            xml.contains("<limit lower=\"-1.2\" upper=\"1.2\" effort=\"20\" velocity=\"0.35\"/>")
+        );
         assert_eq!(xml.matches("<link name=").count(), 16);
         assert_eq!(xml.matches("<joint name=").count(), 15);
         assert_eq!(xml.matches("<collision>").count(), 16);
@@ -1790,12 +1791,10 @@ mod tests {
 
         let mut unsafe_joint = morphology();
         unsafe_joint["joints"][0]["joint_id"] = json!("wheel<drive>");
-        assert!(
-            export_urdf(&unsafe_joint)
-                .expect_err("non-token joint name blocks export")
-                .iter()
-                .any(|finding| finding == "URDF_JOINT_NAME_UNSUPPORTED")
-        );
+        assert!(export_urdf(&unsafe_joint)
+            .expect_err("non-token joint name blocks export")
+            .iter()
+            .any(|finding| finding == "URDF_JOINT_NAME_UNSUPPORTED"));
     }
 
     #[test]
@@ -1851,7 +1850,10 @@ mod tests {
         let model = morphology();
 
         let mut missing = zero_joint_state();
-        missing.as_object_mut().expect("state object").remove("left_elbow");
+        missing
+            .as_object_mut()
+            .expect("state object")
+            .remove("left_elbow");
         assert!(compute_forward_kinematics(&model, &missing)
             .expect_err("missing state rejects")
             .iter()
@@ -1958,9 +1960,18 @@ mod tests {
         let root = corpus();
         let base = root["cases"][0]["manifest"].clone();
         for (field, expected) in [
-            ("physical_actuation_authorized", "PHYSICAL_ACTUATION_AUTHORITY_FORBIDDEN"),
-            ("patient_contact_authorized", "PATIENT_CONTACT_AUTHORITY_FORBIDDEN"),
-            ("clinical_use_authorized", "CLINICAL_USE_AUTHORITY_FORBIDDEN"),
+            (
+                "physical_actuation_authorized",
+                "PHYSICAL_ACTUATION_AUTHORITY_FORBIDDEN",
+            ),
+            (
+                "patient_contact_authorized",
+                "PATIENT_CONTACT_AUTHORITY_FORBIDDEN",
+            ),
+            (
+                "clinical_use_authorized",
+                "CLINICAL_USE_AUTHORITY_FORBIDDEN",
+            ),
         ] {
             let mut manifest = base.clone();
             manifest["authority"][field] = Value::Bool(true);
@@ -1983,7 +1994,9 @@ mod tests {
         let base = root["cases"][0]["manifest"].clone();
         let mut top = base.clone();
         top["silent_autonomy"] = json!(true);
-        assert!(validate_tool(&top).iter().any(|finding| finding == "UNKNOWN_FIELD"));
+        assert!(validate_tool(&top)
+            .iter()
+            .any(|finding| finding == "UNKNOWN_FIELD"));
 
         let mut mechanical = base.clone();
         mechanical["mechanical"]["unbounded_force"] = json!(9999);
@@ -1993,11 +2006,15 @@ mod tests {
 
         let mut privacy = base.clone();
         privacy["privacy"]["capture_without_consent"] = json!(true);
-        assert!(validate_tool(&privacy).iter().any(|finding| finding == "UNKNOWN_FIELD"));
+        assert!(validate_tool(&privacy)
+            .iter()
+            .any(|finding| finding == "UNKNOWN_FIELD"));
 
         let mut hygiene = base.clone();
         hygiene["hygiene"]["sterility_claim"] = json!("validated");
-        assert!(validate_tool(&hygiene).iter().any(|finding| finding == "UNKNOWN_FIELD"));
+        assert!(validate_tool(&hygiene)
+            .iter()
+            .any(|finding| finding == "UNKNOWN_FIELD"));
 
         let mut electrical = base.clone();
         electrical["electrical"]["remote_override"] = json!(true);
@@ -2007,7 +2024,9 @@ mod tests {
 
         let mut authority = base;
         authority["authority"]["unreviewed_clinical_mode"] = json!(true);
-        assert!(validate_tool(&authority).iter().any(|finding| finding == "UNKNOWN_FIELD"));
+        assert!(validate_tool(&authority)
+            .iter()
+            .any(|finding| finding == "UNKNOWN_FIELD"));
     }
 
     #[test]
@@ -2042,8 +2061,10 @@ mod tests {
             );
             assert!(
                 !findings.is_empty()
-                    || bool_at(&case["manifest"]["authority"], "physical_actuation_authorized")
-                        == Some(false)
+                    || bool_at(
+                        &case["manifest"]["authority"],
+                        "physical_actuation_authorized"
+                    ) == Some(false)
             );
         }
         let mut manifest = root["cases"][0]["manifest"].clone();
@@ -2151,8 +2172,11 @@ mod tests {
                     manifest["contact_class"] = json!(contact);
                     let allowed = matches!(
                         (kind, task, contact),
-                        ("sealed_supply_gripper", "sealed_supply_transfer", "object_only")
-                            | ("tray_carrier", "tray_transfer", "object_only")
+                        (
+                            "sealed_supply_gripper",
+                            "sealed_supply_transfer",
+                            "object_only"
+                        ) | ("tray_carrier", "tray_transfer", "object_only")
                             | ("telepresence_head", "telepresence_support", "none")
                             | (
                                 "trainer_probe",
@@ -2224,7 +2248,14 @@ mod tests {
             ),
             (
                 "max_torque_nm",
-                vec![json!(-1), json!(0), json!(20), json!(21), json!("1"), Value::Null],
+                vec![
+                    json!(-1),
+                    json!(0),
+                    json!(20),
+                    json!(21),
+                    json!("1"),
+                    Value::Null,
+                ],
                 vec![false, true, true, false, false, false],
             ),
         ] {
@@ -2274,8 +2305,11 @@ mod tests {
                         manifest["privacy"]["captures_audio"] = json!(captures_audio);
                         manifest["privacy"]["captures_video"] = json!(captures_video);
                         manifest["privacy"]["physical_privacy_shutter"] = json!(shutter);
-                        manifest["privacy"]["default_capture_state"] =
-                            json!(if default_enabled { "enabled" } else { "disabled" });
+                        manifest["privacy"]["default_capture_state"] = json!(if default_enabled {
+                            "enabled"
+                        } else {
+                            "disabled"
+                        });
                         let captures = captures_audio || captures_video;
                         let allowed = !captures || (shutter && !default_enabled);
                         let findings = validate_tool(&manifest);
@@ -2304,8 +2338,7 @@ mod tests {
                     let mut manifest = base.clone();
                     manifest["electrical"]["powered"] = json!(powered);
                     manifest["electrical"]["max_power_w"] = json!(power);
-                    manifest["electrical"]["protective_isolation_declared"] =
-                        json!(isolated);
+                    manifest["electrical"]["protective_isolation_declared"] = json!(isolated);
                     let allowed = if powered {
                         power > 0.0 && power <= 100.0 && isolated
                     } else {
@@ -2331,8 +2364,7 @@ mod tests {
         assert_eq!(sha256_hex(CORPUS_SOURCE).len(), 64);
         let parsed: Value = serde_json::from_slice(CORPUS_SOURCE).expect("embedded corpus");
         assert_eq!(sha256_hex(MORPHOLOGY_SOURCE).len(), 64);
-        let model: Value =
-            serde_json::from_slice(MORPHOLOGY_SOURCE).expect("embedded morphology");
+        let model: Value = serde_json::from_slice(MORPHOLOGY_SOURCE).expect("embedded morphology");
         assert_eq!(
             validate_morphology(&model),
             Vec::<String>::new(),
@@ -2340,9 +2372,7 @@ mod tests {
         );
         assert_eq!(
             sha256_hex(&serde_json::to_vec(&parsed).expect("canonical test serialization")),
-            sha256_hex(
-                &serde_json::to_vec(&corpus()).expect("canonical corpus serialization")
-            )
+            sha256_hex(&serde_json::to_vec(&corpus()).expect("canonical corpus serialization"))
         );
     }
 }
