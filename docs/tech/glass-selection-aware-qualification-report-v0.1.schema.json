@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/glass-selection-aware-qualification-report-v0.1.schema.json",
+  "title": "Glass selection-aware qualification report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "audit_kind",
+    "benchmark_id",
+    "input_sha256",
+    "oracle_sha256",
+    "target_success_probability",
+    "familywise_confidence_level",
+    "adjustment",
+    "family_size",
+    "per_candidate_tail_alpha",
+    "decisions",
+    "findings",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "audit_kind": {
+      "const": "synthetic_selection_aware_binomial_qualification"
+    },
+    "benchmark_id": {
+      "const": "glass-selection-aware-qualification-synthetic-v0-1"
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "oracle_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "target_success_probability": {
+      "const": 0.95
+    },
+    "familywise_confidence_level": {
+      "const": 0.95
+    },
+    "adjustment": {
+      "const": "bonferroni_simultaneous_two_sided_exact_binomial"
+    },
+    "family_size": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "per_candidate_tail_alpha": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 0.025
+    },
+    "decisions": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidate_id",
+          "trial_count",
+          "successes",
+          "empirical_success_rate",
+          "simultaneous_confidence_interval",
+          "disposition",
+          "interpretation"
+        ],
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "trial_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "successes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "empirical_success_rate": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "simultaneous_confidence_interval": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lower",
+              "upper"
+            ],
+            "properties": {
+              "lower": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "upper": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "disposition": {
+            "enum": [
+              "QUALIFIED",
+              "NOT_QUALIFIED",
+              "UNRESOLVED"
+            ]
+          },
+          "interpretation": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "detail"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "const": "Synthetic Bonferroni-simultaneous binomial qualification mechanics only; no real-material, plant-yield, independence, or industrial-performance claim is validated."
+    }
+  }
+}
