@@ -189,6 +189,14 @@ RAW_SHA=$(sha256sum "$RAW_COPY" | awk '{print $1}')
 CSV_SHA=$(sha256sum "$CSV_OUT" | awk '{print $1}')
 CONFIG_SHA=""
 BYTE_SIZE=$(wc -c < "$CSV_OUT" | tr -d ' ')
+file_uri() {
+  local encoded
+  encoded=$(jq -nr --arg path "$1" '$path | @uri' | sed 's/%2F/\\//g')
+  printf 'file://%s' "$encoded"
+}
+RAW_URI=$(file_uri "$RAW_COPY")
+CSV_URI=$(file_uri "$CSV_OUT")
+CONFIG_URI=$(file_uri "$CONFIG_OUT")
 LAT_NUM=$(jq -n --arg x "$LAT" '$x|tonumber')
 LON_NUM=$(jq -n --arg x "$LON" '$x|tonumber')
 ELEVATION=$(jq -r '.geometry.coordinates[2] // empty' "$RAW_COPY")
@@ -269,8 +277,8 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
    --arg api_sources "$API_SOURCES" \
    --arg raw_sha "$RAW_SHA" \
    --arg csv_sha "$CSV_SHA" \
-   --arg csv_uri "file://$CSV_OUT" \
-   --arg raw_uri "file://$RAW_COPY" \
+   --arg csv_uri "$CSV_URI" \
+   --arg raw_uri "$RAW_URI" \
    --arg config_sha "$CONFIG_SHA" \
    --arg revision "$PROCESSING_REVISION" \
    --argjson elevation "$GEOMETRY_ELEVATION_JSON" \
@@ -278,7 +286,7 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
    --argjson observed "$OBSERVED_COUNT" \
    --argjson missing "$MISSING_COUNT" \
    --argjson byte_size "$BYTE_SIZE" \
-   --arg config_uri "file://$CONFIG_OUT" '
+   --arg config_uri "$CONFIG_URI" '
   $template[0] |
   .manifest_id = ("nasa_power_daily_" + $profile + "_" + .schema_version | gsub("[^a-zA-Z0-9._-]"; "_")) |
   .profile_id = $profile |
@@ -289,6 +297,7 @@ jq --slurpfile template "$(dirname "$0")/../fixtures/environment-trace-manifest-
     dataset_name:$data_title,
     dataset_version:$data_version,
     source_url:$source_url,
+    source_artifact_uri:$raw_uri,
     attribution:(if $evidence_class == "reanalysis" then "NASA POWER; cite the API and product sources in derived research." else "Synthetic test fixture; not an observational dataset." end),
     license_or_access_terms:(if $evidence_class == "reanalysis" then "Access/redistribution terms have not been independently reviewed; consult NASA POWER documentation before redistribution." else "Test-only synthetic fixture with no external data license claim." end),
     accessed_at_utc:$retrieved_at,
