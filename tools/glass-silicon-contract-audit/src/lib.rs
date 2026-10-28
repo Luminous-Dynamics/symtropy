@@ -5181,3 +5181,420 @@ mod acquisition_policy_comparison_tests {
         assert!(report.findings.iter().any(|finding| finding.starts_with("BASE_DECISION_POOL:")));
     }
 }
+
+
+// --- GLASS-CLOSED-LOOP-001: deterministic acquisition campaign transcript ---
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct AcquisitionTranscriptReport {
+    pub status: String,
+    pub audit_kind: String,
+    pub benchmark_id: Option<String>,
+    pub policy_id: Option<String>,
+    pub transcript_sha256: Option<String>,
+    pub events_checked: usize,
+    pub measurement_requests: usize,
+    pub measurement_results: usize,
+    pub total_cost_units: f64,
+    pub total_duration_seconds: f64,
+    pub final_decision_status: Option<String>,
+    pub findings: Vec<String>,
+    pub claim_ceiling: String,
+}
+
+impl AcquisitionTranscriptReport {
+    pub fn exit_code(&self) -> i32 {
+        match self.status.as_str() {
+            "PASS" => 0,
+            "FAIL" => 2,
+            _ => 3,
+        }
+    }
+}
+
+fn transcript_is_sha256(value: &str) -> bool {
+    value.len() == 64 && value.chars().all(|ch| ch.is_ascii_digit() || ('a'..='f').contains(&ch))
+}
+
+fn transcript_fail(findings: &mut Vec<String>, code: &str, detail: impl AsRef<str>) {
+    findings.push(format!("{code}:{}", detail.as_ref()));
+}
+
+/// Checks transcript structure, ordered request/result pairing, resource charging,
+/// and terminal disposition. A PASS validates event integrity only; it does not
+/// validate the truth of observations or certify the physical feasibility of a decision.
+pub fn audit_acquisition_campaign_transcript(transcript: &Value) -> AcquisitionTranscriptReport {
+    let mut findings = Vec::new();
+    let mut hard_failure = false;
+    let benchmark_id = object_string(transcript, "benchmark_id").map(ToOwned::to_owned);
+    let policy_id = object_string(transcript, "policy_id").map(ToOwned::to_owned);
+    let mut events_checked = 0usize;
+    let mut measurement_requests = 0usize;
+    let mut measurement_results = 0usize;
+    let mut total_cost_units = 0.0_f64;
+    let mut total_duration_seconds = 0.0_f64;
+    let mut final_decision_status: Option<String> = None;
+    let max_cost = transcript.get("max_cost_units").and_then(Value::as_f64);
+    let max_duration = transcript.get("max_duration_seconds").and_then(Value::as_f64);
+
+    let root_keys = [
+        "schema_version", "benchmark_id", "evidence_class", "claim_ceiling",
+        "policy_id", "policy_input_sha256", "policy_code_sha256", "policy_config_sha256",
+        "max_cost_units", "max_duration_seconds", "events",
+    ];
+    if !relationship_exact_keys(transcript, &root_keys) {
+        transcript_fail(&mut findings, "TRANSCRIPT_ROOT_KEYS", "missing or unknown top-level fields");
+        hard_failure = true;
+    }
+    if transcript.get("schema_version").and_then(Value::as_u64) != Some(1) {
+        transcript_fail(&mut findings, "TRANSCRIPT_SCHEMA_VERSION", "schema_version must be integer 1");
+        hard_failure = true;
+    }
+    if object_string(transcript, "evidence_class") != Some("synthetic") {
+        transcript_fail(&mut findings, "TRANSCRIPT_EVIDENCE_CLASS", "transcript fixture must declare synthetic evidence");
+        hard_failure = true;
+    }
+    if benchmark_id.as_deref().map_or(true, |value| !is_stable_slug(value)) {
+        transcript_fail(&mut findings, "TRANSCRIPT_BENCHMARK_ID", "missing or invalid benchmark_id");
+        hard_failure = true;
+    }
+    if policy_id.as_deref().map_or(true, |value| !is_stable_slug(value)) {
+        transcript_fail(&mut findings, "TRANSCRIPT_POLICY_ID", "missing or invalid policy_id");
+        hard_failure = true;
+    }
+    if transcript.get("claim_ceiling").and_then(Value::as_str).map_or(true, |value| value.trim().is_empty()) {
+        transcript_fail(&mut findings, "TRANSCRIPT_CLAIM_CEILING", "claim ceiling must be non-empty");
+        hard_failure = true;
+    }
+    for field in ["policy_input_sha256", "policy_code_sha256", "policy_config_sha256"] {
+        match transcript.get(field).and_then(Value::as_str) {
+            Some(value) if transcript_is_sha256(value) => {},
+            _ => {
+                transcript_fail(&mut findings, "TRANSCRIPT_DIGEST", format!("{field} must be 64 lowercase hexadecimal characters"));
+                hard_failure = true;
+            }
+        }
+    }
+    if max_cost.map_or(true, |value| !value.is_finite() || value < 0.0) {
+        transcript_fail(&mut findings, "TRANSCRIPT_COST_CAP", "max_cost_units must be finite and non-negative");
+        hard_failure = true;
+    }
+    if max_duration.map_or(true, |value| !value.is_finite() || value < 0.0) {
+        transcript_fail(&mut findings, "TRANSCRIPT_DURATION_CAP", "max_duration_seconds must be finite and non-negative");
+        hard_failure = true;
+    }
+
+    let events = transcript.get("events").and_then(Value::as_array);
+    if events.map_or(true, Vec::is_empty) {
+        transcript_fail(&mut findings, "TRANSCRIPT_EVENTS", "at least one event is required");
+        hard_failure = true;
+    }
+    if events.map_or(0, Vec::len) > 10000 {
+        transcript_fail(&mut findings, "TRANSCRIPT_EVENT_LIMIT", "maximum supported event count is 10000");
+        hard_failure = true;
+    }
+
+    let mut event_ids = BTreeSet::new();
+    let mut request_ids = BTreeSet::new();
+    let mut pending: Option<(String, String)> = None;
+    let mut found_decision = false;
+    if let Some(items) = events {
+        events_checked = items.len();
+        for (index, event) in items.iter().enumerate() {
+            let sequence = event.get("sequence").and_then(Value::as_u64);
+            if sequence != Some(index as u64 + 1) {
+                transcript_fail(&mut findings, "TRANSCRIPT_SEQUENCE", format!("event index {index} must have consecutive sequence {}", index + 1));
+                hard_failure = true;
+            }
+            let event_id = event.get("event_id").and_then(Value::as_str).unwrap_or("");
+            if !is_stable_slug(event_id) || !event_ids.insert(event_id.to_string()) {
+                transcript_fail(&mut findings, "TRANSCRIPT_EVENT_ID", format!("event index {index} has invalid or duplicate event_id"));
+                hard_failure = true;
+            }
+            let event_type = event.get("event_type").and_then(Value::as_str).unwrap_or("");
+            if found_decision {
+                transcript_fail(&mut findings, "TRANSCRIPT_AFTER_TERMINAL", format!("event {event_id} occurs after terminal decision"));
+                hard_failure = true;
+                continue;
+            }
+
+            match event_type {
+                "measurement_requested" => {
+                    if !relationship_exact_keys(event, &[
+                        "event_id", "sequence", "event_type", "request_id", "measurement_id",
+                        "cost_units", "duration_seconds",
+                    ]) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_REQUEST_KEYS", format!("event {event_id} has missing or unknown fields"));
+                        hard_failure = true;
+                        continue;
+                    }
+                    if pending.is_some() {
+                        transcript_fail(&mut findings, "TRANSCRIPT_CONCURRENT_REQUEST", format!("event {event_id} requested a new measurement before the previous result"));
+                        hard_failure = true;
+                    }
+                    let request_id = event.get("request_id").and_then(Value::as_str).unwrap_or("");
+                    let measurement_id = event.get("measurement_id").and_then(Value::as_str).unwrap_or("");
+                    if !is_stable_slug(request_id) || !request_ids.insert(request_id.to_string()) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_REQUEST_ID", format!("event {event_id} has invalid or reused request_id"));
+                        hard_failure = true;
+                    }
+                    if !is_stable_slug(measurement_id) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_MEASUREMENT_ID", format!("event {event_id} has invalid measurement_id"));
+                        hard_failure = true;
+                    }
+                    let cost = event.get("cost_units").and_then(Value::as_f64);
+                    let duration = event.get("duration_seconds").and_then(Value::as_f64);
+                    if cost.map_or(true, |value| !value.is_finite() || value <= 0.0) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_REQUEST_COST", format!("event {event_id} cost must be finite and positive"));
+                        hard_failure = true;
+                    }
+                    if duration.map_or(true, |value| !value.is_finite() || value < 0.0) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_REQUEST_DURATION", format!("event {event_id} duration must be finite and non-negative"));
+                        hard_failure = true;
+                    }
+                    if let (Some(cost), Some(duration)) = (
+                        cost.filter(|value| value.is_finite() && *value > 0.0),
+                        duration.filter(|value| value.is_finite() && *value >= 0.0),
+                    ) {
+                        total_cost_units += cost;
+                        total_duration_seconds += duration;
+                        if let Some(cap) = max_cost {
+                            if total_cost_units > cap + 1e-9 {
+                                transcript_fail(&mut findings, "TRANSCRIPT_COST_OVERRUN", format!("event {event_id} raises cumulative cost above cap"));
+                                hard_failure = true;
+                            }
+                        }
+                        if let Some(cap) = max_duration {
+                            if total_duration_seconds > cap + 1e-9 {
+                                transcript_fail(&mut findings, "TRANSCRIPT_DURATION_OVERRUN", format!("event {event_id} raises cumulative duration above cap"));
+                                hard_failure = true;
+                            }
+                        }
+                    }
+                    measurement_requests += 1;
+                    pending = Some((request_id.to_string(), measurement_id.to_string()));
+                }
+                "measurement_result" => {
+                    if !relationship_exact_keys(event, &[
+                        "event_id", "sequence", "event_type", "request_id", "measurement_id",
+                        "measurement_status", "observation_ref",
+                    ]) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_RESULT_KEYS", format!("event {event_id} has missing or unknown fields"));
+                        hard_failure = true;
+                        continue;
+                    }
+                    let request_id = event.get("request_id").and_then(Value::as_str).unwrap_or("");
+                    let measurement_id = event.get("measurement_id").and_then(Value::as_str).unwrap_or("");
+                    match pending.take() {
+                        Some((pending_request, pending_measurement)) if pending_request == request_id && pending_measurement == measurement_id => {},
+                        Some(pair) => {
+                            transcript_fail(&mut findings, "TRANSCRIPT_RESULT_MISMATCH", format!("event {event_id} returned {request_id}/{measurement_id}, expected {}/{}", pair.0, pair.1));
+                            hard_failure = true;
+                        }
+                        None => {
+                            transcript_fail(&mut findings, "TRANSCRIPT_ORPHAN_RESULT", format!("event {event_id} has no preceding pending request"));
+                            hard_failure = true;
+                        }
+                    }
+                    let status = event.get("measurement_status").and_then(Value::as_str).unwrap_or("");
+                    let allowed = ["VALID", "INVALID", "CENSORED", "FAILED", "STALE", "OUT_OF_DOMAIN", "CONTRADICTORY"];
+                    if !allowed.contains(&status) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_RESULT_STATUS", format!("event {event_id} has invalid measurement_status"));
+                        hard_failure = true;
+                    }
+                    let observation_ref = event.get("observation_ref");
+                    if status == "VALID" {
+                        if observation_ref.and_then(Value::as_str).map_or(true, |value| value.trim().is_empty()) {
+                            transcript_fail(&mut findings, "TRANSCRIPT_OBSERVATION_REF", format!("valid event {event_id} requires a non-empty observation_ref"));
+                            hard_failure = true;
+                        }
+                    } else if !observation_ref.map_or(false, Value::is_null) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_FAILED_OBSERVATION", format!("non-valid event {event_id} must not disclose an observation_ref"));
+                        hard_failure = true;
+                    }
+                    measurement_results += 1;
+                }
+                "decision" => {
+                    if !relationship_exact_keys(event, &[
+                        "event_id", "sequence", "event_type", "decision_status", "decision_id", "reason",
+                    ]) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_DECISION_KEYS", format!("event {event_id} has missing or unknown fields"));
+                        hard_failure = true;
+                        continue;
+                    }
+                    if index + 1 != items.len() {
+                        transcript_fail(&mut findings, "TRANSCRIPT_DECISION_NOT_TERMINAL", format!("decision event {event_id} must be the final event"));
+                        hard_failure = true;
+                    }
+                    if pending.is_some() {
+                        transcript_fail(&mut findings, "TRANSCRIPT_DECISION_WITH_PENDING_REQUEST", format!("decision event {event_id} cannot precede the pending measurement result"));
+                        hard_failure = true;
+                    }
+                    let status = event.get("decision_status").and_then(Value::as_str).unwrap_or("");
+                    if !["FEASIBLE", "INFEASIBLE", "UNRESOLVED"].contains(&status) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_DECISION_STATUS", format!("event {event_id} has invalid decision_status"));
+                        hard_failure = true;
+                    }
+                    let decision_id = event.get("decision_id");
+                    if status == "UNRESOLVED" {
+                        if !decision_id.map_or(false, Value::is_null) {
+                            transcript_fail(&mut findings, "TRANSCRIPT_UNRESOLVED_ID", format!("UNRESOLVED decision {event_id} must use a null decision_id"));
+                            hard_failure = true;
+                        }
+                    } else if decision_id.and_then(Value::as_str).map_or(true, |value| !is_stable_slug(value)) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_DECISION_ID", format!("qualified/infeasible decision {event_id} requires a stable decision_id"));
+                        hard_failure = true;
+                    }
+                    if event.get("reason").and_then(Value::as_str).map_or(true, |value| value.trim().is_empty()) {
+                        transcript_fail(&mut findings, "TRANSCRIPT_DECISION_REASON", format!("event {event_id} requires a non-empty reason"));
+                        hard_failure = true;
+                    }
+                    final_decision_status = Some(status.to_string());
+                    found_decision = true;
+                }
+                _ => {
+                    transcript_fail(&mut findings, "TRANSCRIPT_EVENT_TYPE", format!("event {event_id} has unknown event_type"));
+                    hard_failure = true;
+                }
+            }
+        }
+    }
+
+    if pending.is_some() {
+        findings.push("TRANSCRIPT_INCOMPLETE_PENDING:measurement request has no matching result; charged resources remain included".to_string());
+    }
+    if !found_decision {
+        findings.push("TRANSCRIPT_NO_TERMINAL_DECISION:campaign has no terminal decision; disposition is UNRESOLVED".to_string());
+    }
+    findings.sort();
+    findings.dedup();
+    let unresolved = pending.is_some() || !found_decision;
+    let status = if hard_failure {
+        "FAIL"
+    } else if unresolved {
+        "UNRESOLVED"
+    } else {
+        "PASS"
+    };
+
+    AcquisitionTranscriptReport {
+        status: status.to_string(),
+        audit_kind: "acquisition_campaign_transcript".to_string(),
+        benchmark_id,
+        policy_id,
+        transcript_sha256: None,
+        events_checked,
+        measurement_requests,
+        measurement_results,
+        total_cost_units,
+        total_duration_seconds,
+        final_decision_status,
+        findings,
+        claim_ceiling: "Transcript ordering, request/result pairing, and budget accounting only; observation truth, policy isolation, feasibility, data rights, and physical process outcomes are not certified.".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod acquisition_campaign_transcript_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn fixture() -> Value {
+        serde_json::from_str(include_str!("../fixtures/acquisition-campaign-transcript.synthetic.json"))
+            .expect("synthetic transcript fixture must parse")
+    }
+
+    #[test]
+    fn valid_transcript_passes_and_accounts_for_charged_measurement() {
+        let report = audit_acquisition_campaign_transcript(&fixture());
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.events_checked, 3);
+        assert_eq!(report.measurement_requests, 1);
+        assert_eq!(report.measurement_results, 1);
+        assert_eq!(report.total_cost_units, 2.0);
+        assert_eq!(report.total_duration_seconds, 20.0);
+        assert_eq!(report.final_decision_status.as_deref(), Some("UNRESOLVED"));
+    }
+
+    #[test]
+    fn request_cost_overrun_fails_even_if_final_decision_abstains() {
+        let mut transcript = fixture();
+        transcript["max_cost_units"] = json!(1.0);
+        let report = audit_acquisition_campaign_transcript(&transcript);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_COST_OVERRUN:")));
+    }
+
+    #[test]
+    fn orphan_result_fails_closed() {
+        let mut transcript = fixture();
+        transcript["events"].as_array_mut().unwrap().remove(0);
+        transcript["events"][0]["sequence"] = json!(1);
+        transcript["events"][1]["sequence"] = json!(2);
+        let report = audit_acquisition_campaign_transcript(&transcript);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_ORPHAN_RESULT:")));
+    }
+
+    #[test]
+    fn sequence_gap_fails_closed() {
+        let mut transcript = fixture();
+        transcript["events"][1]["sequence"] = json!(5);
+        let report = audit_acquisition_campaign_transcript(&transcript);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_SEQUENCE:")));
+    }
+
+    #[test]
+    fn duplicate_event_id_fails_closed() {
+        let mut transcript = fixture();
+        transcript["events"][1]["event_id"] = json!("event-1");
+        let report = audit_acquisition_campaign_transcript(&transcript);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_EVENT_ID:")));
+    }
+
+    #[test]
+    fn no_result_or_decision_abstains_unresolved_instead_of_inventing_success() {
+        let mut transcript = fixture();
+        transcript["events"].as_array_mut().unwrap().pop();
+        let report = audit_acquisition_campaign_transcript(&transcript);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_INCOMPLETE_PENDING:")));
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_NO_TERMINAL_DECISION:")));
+        assert_eq!(report.total_cost_units, 2.0);
+    }
+
+    #[test]
+    fn decision_cannot_precede_the_final_event_or_pending_measurement() {
+        let mut transcript = fixture();
+        transcript["events"][1] = json!({
+            "event_id":"event-2","sequence":2,"event_type":"decision",
+            "decision_status":"UNRESOLVED","decision_id":null,"reason":"not enough evidence"
+        });
+        let report = audit_acquisition_campaign_transcript(&transcript);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_DECISION_WITH_PENDING_REQUEST:")));
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_DECISION_NOT_TERMINAL:")));
+    }
+
+    #[test]
+    fn failed_measurement_is_charged_without_revealing_an_observation() {
+        let mut transcript = fixture();
+        transcript["events"][1]["measurement_status"] = json!("FAILED");
+        transcript["events"][1]["observation_ref"] = Value::Null;
+        let report = audit_acquisition_campaign_transcript(&transcript);
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.total_cost_units, 2.0);
+        assert_eq!(report.measurement_results, 1);
+    }
+
+    #[test]
+    fn valid_result_requires_an_observation_reference() {
+        let mut transcript = fixture();
+        transcript["events"][1]["observation_ref"] = Value::Null;
+        let report = audit_acquisition_campaign_transcript(&transcript);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("TRANSCRIPT_OBSERVATION_REF:")));
+    }
+}
