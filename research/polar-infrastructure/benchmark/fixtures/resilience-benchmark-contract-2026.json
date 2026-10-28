@@ -280,5 +280,23 @@
     "admission_gate_count": 8,
     "admission_gates_all_false": true,
     "performance_claim": "none"
+  },
+  "paired_comparison_extension": {
+    "contract_path": "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json",
+    "schema_path": "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json",
+    "evaluator_path": "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs",
+    "independent_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py",
+    "workflow_path": ".github/workflows/polar-resilience-paired-comparison.yml",
+    "protocol_path": "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md",
+    "status": "proposed_not_executed",
+    "evidence_class": "synthetic_only",
+    "controller_count": 2,
+    "trajectory_count": 6,
+    "case_row_count": 12,
+    "gate_count": 2,
+    "complete_controller_trajectory_matrix_required": true,
+    "invalid_and_unevaluated_outcomes_must_remain_visible": true,
+    "gate_specific_margin_contracts_required": true,
+    "performance_claim": "none"
   }
 }
