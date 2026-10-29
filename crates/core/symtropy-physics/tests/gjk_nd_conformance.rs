@@ -382,6 +382,11 @@ fn active_set_gjk_matches_sat_on_seeded_rotated_six_dimensional_boxes() {
 }
 
 #[test]
+fn active_set_gjk_handles_one_dimension() {
+    assert_nd_contract::<1>();
+}
+
+#[test]
 fn active_set_gjk_handles_five_dimensions() {
     assert_nd_contract::<5>();
 }
@@ -394,6 +399,54 @@ fn active_set_gjk_handles_six_dimensions() {
 #[test]
 fn active_set_gjk_handles_eight_dimensions() {
     assert_nd_contract::<8>();
+}
+
+
+fn assert_specialized_scale_contract<const D: usize>() {
+    let base_a = box_at(SVector::<f64, D>::zeros(), 1.0);
+    let separated = box_at(
+        SVector::from_fn(|axis, _| if axis == 0 { 3.5 } else { 0.0 }),
+        1.0,
+    );
+    let overlapping = box_at(SVector::from_element(0.5), 1.0);
+
+    assert!(!aabb_oracle(&base_a, &separated));
+    assert!(aabb_oracle(&base_a, &overlapping));
+    for scale in [1e-12, 1e-9, 1.0, 1e9, 1e12] {
+        let a = AxisAlignedBox {
+            center: base_a.center * scale,
+            half_extents: base_a.half_extents * scale,
+        };
+        let b_separated = AxisAlignedBox {
+            center: separated.center * scale,
+            half_extents: separated.half_extents * scale,
+        };
+        let b_overlapping = AxisAlignedBox {
+            center: overlapping.center * scale,
+            half_extents: overlapping.half_extents * scale,
+        };
+
+        assert_eq!(
+            intersects_support_maps(&a, &b_separated).termination,
+            GjkTermination::Separated,
+            "D={D}: separated specialized-path fixture changed at scale {scale:e}"
+        );
+        assert_eq!(
+            intersects_support_maps(&a, &b_overlapping).termination,
+            GjkTermination::Intersecting,
+            "D={D}: overlapping specialized-path fixture changed at scale {scale:e}"
+        );
+    }
+}
+
+#[test]
+fn two_dimensional_specialized_path_is_scale_invariant() {
+    assert_specialized_scale_contract::<2>();
+}
+
+#[test]
+fn three_dimensional_specialized_path_is_scale_invariant() {
+    assert_specialized_scale_contract::<3>();
 }
 
 #[test]
