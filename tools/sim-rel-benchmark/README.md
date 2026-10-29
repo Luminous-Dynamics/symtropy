@@ -43,7 +43,7 @@ One record per line, UTF-8 text:
 - Vector fields contain finite comma-separated numbers; masses must be positive, damping non-negative, and vector lengths equal.
 - Each spring is `node_a,node_b,stiffness`; node indices are zero-based and `node_b=-1` denotes an immovable, zero-displacement anchor.
 - Each force pulse is `node,start_step,end_step,amplitude`; the start is inclusive and the end exclusive. The literal `none` means no springs/pulses (scenarios must still declare at least one spring).
-- `dt` must be finite and positive; steps are bounded to 1..=100000 and observation stride is positive.
+- `dt` must be finite and positive; steps are bounded to 1..=100000 and observation stride is positive. Parity is checked at every integration step; RMSE is reported only at the declared observation stride (always including the initial and final states).
 - Scenario generation is deterministic and currently noise-free. Noise, repeated trial/participant structures, active interventions, grammar inference, and 30+ held-out qualification coverage are future increments.
 
 ## Receipt fields
