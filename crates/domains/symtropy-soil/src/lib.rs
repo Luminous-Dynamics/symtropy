@@ -23,6 +23,8 @@ pub enum SoilWaterError {
     InvalidDepth,
     /// Soil water capacity must be finite and strictly positive.
     InvalidCapacity,
+    /// The control area must be finite and strictly positive.
+    InvalidArea,
     /// Initial storage exceeded the configured capacity.
     InitialStorageExceedsCapacity,
     /// Supplied outflows exceed the water available in this step.
@@ -39,6 +41,7 @@ impl fmt::Display for SoilWaterError {
         match self {
             Self::InvalidDepth => write!(f, "depth must be finite and non-negative"),
             Self::InvalidCapacity => write!(f, "capacity must be finite and strictly positive"),
+            Self::InvalidArea => write!(f, "area must be finite and strictly positive"),
             Self::InitialStorageExceedsCapacity => {
                 write!(f, "initial storage exceeds configured capacity")
             }
@@ -80,6 +83,48 @@ impl DepthMm {
             return Err(SoilWaterError::InvalidDepth);
         }
         let mm = cm * 10.0;
+        if !mm.is_finite() {
+            return Err(SoilWaterError::NonFiniteArithmetic);
+        }
+        Ok(Self(mm))
+    }
+
+    /// Converts a total water volume in liters over a surface area in square
+    /// meters to equivalent depth in millimeters.
+    ///
+    /// Since one liter per square meter equals one millimeter of water,
+    /// `1_000 L / 10 m² = 100 mm`.
+    pub fn from_liters_over_area(
+        volume_liters: f64,
+        area_square_meters: f64,
+    ) -> Result<Self, SoilWaterError> {
+        if !area_square_meters.is_finite() || area_square_meters <= 0.0 {
+            return Err(SoilWaterError::InvalidArea);
+        }
+        if !volume_liters.is_finite() || volume_liters < 0.0 {
+            return Err(SoilWaterError::InvalidDepth);
+        }
+        let mm = volume_liters / area_square_meters;
+        if !mm.is_finite() {
+            return Err(SoilWaterError::NonFiniteArithmetic);
+        }
+        Ok(Self(mm))
+    }
+
+    /// Converts a constant non-negative rate in millimeters per hour integrated
+    /// over a finite non-negative duration in hours.
+    pub fn from_rate_mm_per_hour(
+        rate_mm_per_hour: f64,
+        duration_hours: f64,
+    ) -> Result<Self, SoilWaterError> {
+        if !rate_mm_per_hour.is_finite()
+            || rate_mm_per_hour < 0.0
+            || !duration_hours.is_finite()
+            || duration_hours < 0.0
+        {
+            return Err(SoilWaterError::InvalidDepth);
+        }
+        let mm = rate_mm_per_hour * duration_hours;
         if !mm.is_finite() {
             return Err(SoilWaterError::NonFiniteArithmetic);
         }
@@ -325,6 +370,70 @@ mod tests {
         let from_mm = DepthMm::new(10.0).unwrap();
         assert_eq!(from_cm, from_mm);
         assert_eq!(DepthMm::from_centimeters(-1.0), Err(SoilWaterError::InvalidDepth));
+    }
+
+    #[test]
+    fn area_and_time_unit_conversions_preserve_equivalent_depth() {
+        let from_volume = DepthMm::from_liters_over_area(1_000.0, 10.0).unwrap();
+        let from_rate = DepthMm::from_rate_mm_per_hour(20.0, 5.0).unwrap();
+        let reference = DepthMm::new(100.0).unwrap();
+        assert_eq!(from_volume, reference);
+        assert_eq!(from_rate, reference);
+        assert_eq!(
+            DepthMm::from_liters_over_area(1.0, 0.0),
+            Err(SoilWaterError::InvalidArea)
+        );
+        assert_eq!(
+            DepthMm::from_rate_mm_per_hour(10.0, f64::INFINITY),
+            Err(SoilWaterError::InvalidDepth)
+        );
+    }
+
+    #[test]
+    fn fixed_seed_property_sweep_preserves_mass_balance() {
+        // Small deterministic xorshift generator keeps this test dependency-free
+        // and exactly replayable on every platform.
+        fn next(seed: &mut u64) -> f64 {
+            *seed ^= *seed << 13;
+            *seed ^= *seed >> 7;
+            *seed ^= *seed << 17;
+            (*seed as f64) / (u64::MAX as f64)
+        }
+
+        let mut seed = 0x5EED_7E22_2026_u64;
+        for _case in 0..10_000 {
+            let initial_mm = next(&mut seed) * 1_000.0;
+            let precipitation_mm = next(&mut seed) * 25.0;
+            let irrigation_mm = next(&mut seed) * 25.0;
+            let available = initial_mm + precipitation_mm + irrigation_mm;
+            let total_outflow = next(&mut seed) * available * 0.8;
+            let evapotranspiration_mm = total_outflow * next(&mut seed);
+            let remaining_after_et = total_outflow - evapotranspiration_mm;
+            let runoff_mm = remaining_after_et * next(&mut seed);
+            let drainage_mm = remaining_after_et - runoff_mm;
+
+            let initial = state(initial_mm, 10_000.0);
+            let fluxes = fluxes(
+                precipitation_mm,
+                irrigation_mm,
+                evapotranspiration_mm,
+                runoff_mm,
+                drainage_mm,
+            );
+            let result = advance(initial, fluxes).expect("generated case is within bounds");
+            let expected = initial_mm + precipitation_mm + irrigation_mm - total_outflow;
+            let tolerance = 1.0e-9 * expected.abs().max(1.0);
+            assert!(
+                (result.state.storage_mm() - expected).abs() <= tolerance,
+                "case {_case}: storage mismatch"
+            );
+            assert!(
+                result.balance_residual_mm.abs() <= tolerance,
+                "case {_case}: balance residual exceeded tolerance"
+            );
+            assert!(result.state.storage_mm() >= 0.0);
+            assert!(result.state.storage_mm() <= result.state.capacity_mm());
+        }
     }
 
     #[test]
