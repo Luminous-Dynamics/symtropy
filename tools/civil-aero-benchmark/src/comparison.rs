@@ -4,7 +4,7 @@
 //! missions or parameter evidence classes and never translates a Pareto result into flight
 //! authorization, structural adequacy, or manufacturing release.
 
-use crate::{ResultRow, MODEL_VERSION};
+use crate::{MODEL_VERSION, ResultRow};
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -72,7 +72,9 @@ pub fn compare_candidates(rows: &[ResultRow]) -> Result<ParetoReport, String> {
         if row.lift_screen_pass && row.energy_screen_pass {
             report.eligible_candidate_ids.push(row.case.case_id.clone());
         } else {
-            report.infeasible_candidate_ids.push(row.case.case_id.clone());
+            report
+                .infeasible_candidate_ids
+                .push(row.case.case_id.clone());
         }
     }
 
@@ -81,9 +83,13 @@ pub fn compare_candidates(rows: &[ResultRow]) -> Result<ParetoReport, String> {
             other.case.case_id != candidate.case.case_id && dominates(other, candidate)
         });
         if is_dominated {
-            report.dominated_candidate_ids.push(candidate.case.case_id.clone());
+            report
+                .dominated_candidate_ids
+                .push(candidate.case.case_id.clone());
         } else {
-            report.pareto_candidate_ids.push(candidate.case.case_id.clone());
+            report
+                .pareto_candidate_ids
+                .push(candidate.case.case_id.clone());
         }
     }
 
@@ -151,7 +157,10 @@ mod tests {
             report.eligible_candidate_ids,
             vec!["baseline".to_owned(), "higher-drag".to_owned()]
         );
-        assert_eq!(report.dominated_candidate_ids, vec!["higher-drag".to_owned()]);
+        assert_eq!(
+            report.dominated_candidate_ids,
+            vec!["higher-drag".to_owned()]
+        );
         assert_eq!(report.pareto_candidate_ids, vec!["baseline".to_owned()]);
         assert_eq!(report.evidence_level, "screening_only");
     }
@@ -181,16 +190,15 @@ mod tests {
         let mut insufficient = case("insufficient-energy");
         // Keep mission inputs fixed; increase drag enough to fail the energy gate.
         insufficient.cd0 = 0.25;
-        let insufficient = insufficient.evaluate().expect("valid input, infeasible screen");
+        let insufficient = insufficient
+            .evaluate()
+            .expect("valid input, infeasible screen");
         let report = compare_candidates(&[baseline, insufficient]).expect("same mission");
         assert_eq!(
             report.infeasible_candidate_ids,
             vec!["insufficient-energy".to_owned()]
         );
-        assert_eq!(
-            report.pareto_candidate_ids,
-            vec!["baseline".to_owned()]
-        );
+        assert_eq!(report.pareto_candidate_ids, vec!["baseline".to_owned()]);
     }
 
     #[test]
