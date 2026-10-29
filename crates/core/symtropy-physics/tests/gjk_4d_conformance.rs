@@ -110,7 +110,12 @@ fn sat_intersects_4d(a: &OrientedBox4, b: &OrientedBox4) -> bool {
                     })
                     .sum();
                 let signed_distance = center_delta.dot(&normal).abs();
-                let tolerance = 1e-10 * normal.norm() * (1.0 + a.center.norm() + b.center.norm());
+                let geometry_scale = a.center.norm()
+                    .max(b.center.norm())
+                    .max(a.half_extents.norm())
+                    .max(b.half_extents.norm())
+                    .max(center_delta.norm());
+                let tolerance = 64.0 * f64::EPSILON * normal.norm() * geometry_scale;
                 if signed_distance > radius_a + radius_b + tolerance {
                     return false;
                 }
@@ -183,6 +188,14 @@ fn fixture_boxes() -> (OrientedBox4, OrientedBox4) {
     (a, b)
 }
 
+fn scaled_box(box4: &OrientedBox4, scale: f64) -> OrientedBox4 {
+    OrientedBox4 {
+        rotation: box4.rotation,
+        center: box4.center * scale,
+        half_extents: box4.half_extents * scale,
+    }
+}
+
 #[test]
 fn separated_rotated_hyperboxes_in_4d_are_not_a_false_positive() {
     let (a, b) = fixture_boxes();
@@ -222,6 +235,33 @@ fn gjk_4d_classification_is_translation_invariant() {
         baseline,
         intersects_support_maps(&translated_a, &translated_b).intersecting
     );
+}
+
+#[test]
+fn gjk_4d_separation_is_invariant_to_uniform_scale() {
+    use symtropy_physics::GjkTermination;
+
+    let (base_a, base_b) = fixture_boxes();
+    assert!(!sat_intersects_4d(&base_a, &base_b));
+
+    // Scale the same dimensionless, independently SAT-verified separation
+    // across 24 orders of magnitude. These are geometric equivalents, not
+    // tolerance-tuning examples; the expected classification is unchanged.
+    for scale in [1e-12, 1e-9, 1.0, 1e9, 1e12] {
+        let a = scaled_box(&base_a, scale);
+        let b = scaled_box(&base_b, scale);
+        assert!(
+            !sat_intersects_4d(&a, &b),
+            "SAT oracle changed classification at scale {scale:e}"
+        );
+        let result = intersects_support_maps(&a, &b);
+        assert_eq!(
+            result.termination,
+            GjkTermination::Separated,
+            "GJK classification changed at scale {scale:e}: {:?}",
+            result.termination
+        );
+    }
 }
 
 #[test]
