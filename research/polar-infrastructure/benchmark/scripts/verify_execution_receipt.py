@@ -116,6 +116,9 @@ def _verify_receipt_validated(
     bindings = receipt.get("paired_input_bindings", {})
     for key in ("trajectory_sha256", "initial_state_sha256", "controller_artifact_sha256"):
         need(is_sha(bindings.get(key)), f"invalid paired input binding: {key}")
+    if receipt_version == "0.2.0":
+        for key in ("information_budget_sha256", "observation_trace_sha256"):
+            need(is_sha(bindings.get(key)), f"invalid paired input binding: {key}")
     inventory_by_role = {artifact["role"]: artifact for artifact in inventory}
     need(inventory_by_role["controller_artifact"]["sha256"] == bindings["controller_artifact_sha256"],
          "controller artifact inventory digest does not match paired input binding")
