@@ -339,6 +339,25 @@ mod tests {
     }
 
     #[test]
+    fn parses_complete_acquisition_bench_csv() {
+        let path = env::temp_dir().join("transformer-acquisition-summary-test.csv");
+        let path = path.to_string_lossy().into_owned();
+        let mut csv = format!("{}\\n", INPUT_HEADER.join(","));
+        for seed in 1..=2 {
+            for policy in POLICIES {
+                csv.push_str(&format!(
+                    "{policy},{seed},3,10,10.5,5,2,50,c-{policy}-{seed}-a;c-{policy}-{seed}-b;c-{policy}-{seed}-c,1.5\\n"
+                ));
+            }
+        }
+        fs::write(&path, csv).unwrap();
+        let trials = read_trials(&path).unwrap();
+        assert_eq!(trials.len(), POLICIES.len() * 2);
+        assert!(trials.contains_key(&("EXPECTED_IMPROVEMENT".to_string(), 2)));
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
     fn rejects_missing_policy_for_one_seed() {
         let mut rows=BTreeMap::new();
         for seed in 1..=3 {
