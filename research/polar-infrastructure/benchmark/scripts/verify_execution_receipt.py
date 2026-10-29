@@ -50,6 +50,12 @@ def verify_artifact_bytes(artifact: dict[str, Any]) -> bool:
 
 
 def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
+    need(set(receipt) == {
+        "schema_version", "artifact_kind", "evidence_class", "status", "receipt_id", "case_id",
+        "controller_id", "execution_state", "execution_performed", "scoring_eligible", "provenance",
+        "paired_input_bindings", "artifact_inventory", "resource_limits", "observed_resources",
+        "execution_evidence", "independent_verification", "claim_policy",
+    }, "receipt keys do not match the strict v0.1 contract")
     need(receipt.get("schema_version") == "0.1.0"
          and receipt.get("artifact_kind") == "symtropy-controller-execution-receipt",
          "unsupported receipt header")
@@ -121,6 +127,8 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
             "status": "not_run", "verifier_id": None, "verifier_revision": None, "verified_artifact_count": 0
         }, "unexecuted receipt cannot claim independent verification")
     elif state in {"completed", "failed"}:
+        need(receipt.get("evidence_class") != "synthetic_fixture",
+             "synthetic fixture cannot claim that execution occurred")
         need(receipt.get("execution_performed") is True, "executed receipt must declare execution_performed")
         need(receipt.get("execution_state") == state, "receipt status/execution_state mismatch")
         need(all(isinstance(observed[k], int) and not isinstance(observed[k], bool) and observed[k] >= 0
