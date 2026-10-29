@@ -13,6 +13,7 @@ Symthaea cognition (beliefs, goals, planning, skill selection)
 → RuntimeAssuranceGate
 → per-session RequestSequenceGuard
 → DispatchBoundary (authenticate + gate + sequence + submit)
+   passes session + sequence + full leased request to adapter
 → platform adapter and local controller
 → independent runtime safety authority
 → plant (Symtropy simulation or robot)
