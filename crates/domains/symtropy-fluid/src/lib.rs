@@ -24,28 +24,48 @@ const VISCOSITY_REGULARIZATION: f64 = 0.01;
 #[derive(Clone, Debug, PartialEq)]
 pub enum SphError {
     InvalidDimension,
-    InvalidConfig { field: &'static str },
+    InvalidConfig {
+        field: &'static str,
+    },
     InvalidTimeStep,
-    NonFiniteGravity { axis: usize },
+    NonFiniteGravity {
+        axis: usize,
+    },
     InvalidParticleField {
         particle: usize,
         field: &'static str,
         axis: Option<usize>,
     },
-    NonPositiveDensity { particle: usize },
-    NumericRange { particle: Option<usize>, field: &'static str },
+    NonPositiveDensity {
+        particle: usize,
+    },
+    NumericRange {
+        particle: Option<usize>,
+        field: &'static str,
+    },
     Kernel(SphKernelError),
-    TimeStepTooLarge { requested: f64, maximum: f64 },
+    TimeStepTooLarge {
+        requested: f64,
+        maximum: f64,
+    },
 }
 
 impl fmt::Display for SphError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidDimension => write!(f, "SPH fluid requires D >= 1"),
-            Self::InvalidConfig { field } => write!(f, "invalid SPH configuration field: {field}"),
+            Self::InvalidConfig { field } => {
+                write!(f, "invalid SPH configuration field: {field}")
+            }
             Self::InvalidTimeStep => write!(f, "time step must be finite and positive"),
-            Self::NonFiniteGravity { axis } => write!(f, "non-finite gravity component on axis {axis}"),
-            Self::InvalidParticleField { particle, field, axis } => {
+            Self::NonFiniteGravity { axis } => {
+                write!(f, "non-finite gravity component on axis {axis}")
+            }
+            Self::InvalidParticleField {
+                particle,
+                field,
+                axis,
+            } => {
                 write!(f, "invalid particle {particle} field {field}")?;
                 if let Some(axis) = axis {
                     write!(f, " on axis {axis}")?;
@@ -64,7 +84,10 @@ impl fmt::Display for SphError {
             }
             Self::Kernel(error) => write!(f, "SPH kernel error: {error}"),
             Self::TimeStepTooLarge { requested, maximum } => {
-                write!(f, "time step {requested} exceeds configured stability limit {maximum}")
+                write!(
+                    f,
+                    "time step {requested} exceeds configured stability limit {maximum}"
+                )
             }
         }
     }
@@ -162,13 +185,19 @@ impl SphConfig {
         }
         Poly6Kernel::<D>::new(self.smoothing_radius)?;
         if !self.rest_density.is_finite() || self.rest_density <= 0.0 {
-            return Err(SphError::InvalidConfig { field: "rest_density" });
+            return Err(SphError::InvalidConfig {
+                field: "rest_density",
+            });
         }
         if !self.pressure_stiffness.is_finite() || self.pressure_stiffness <= 0.0 {
-            return Err(SphError::InvalidConfig { field: "pressure_stiffness (c0^2)" });
+            return Err(SphError::InvalidConfig {
+                field: "pressure_stiffness (c0^2)",
+            });
         }
         if !self.viscosity.is_finite() || self.viscosity < 0.0 {
-            return Err(SphError::InvalidConfig { field: "viscosity (dynamic viscosity)" });
+            return Err(SphError::InvalidConfig {
+                field: "viscosity (dynamic viscosity)",
+            });
         }
         Ok(())
     }
@@ -265,8 +294,7 @@ impl<const D: usize> FluidSimulation<D> {
             if density <= 0.0 {
                 return Err(SphError::NonPositiveDensity { particle: i });
             }
-            let pressure =
-                self.config.pressure_stiffness * (density - self.config.rest_density);
+            let pressure = self.config.pressure_stiffness * (density - self.config.rest_density);
             if !pressure.is_finite() {
                 return Err(SphError::NumericRange {
                     particle: Some(i),
@@ -306,8 +334,7 @@ impl<const D: usize> FluidSimulation<D> {
 
                 let pressure_coefficient =
                     pressures[i] / rho_i_squared + pressures[j] / rho_j_squared;
-                pressure_acceleration -=
-                    gradient * (self.particles[j].mass * pressure_coefficient);
+                pressure_acceleration -= gradient * (self.particles[j].mass * pressure_coefficient);
 
                 if self.config.viscosity > 0.0 {
                     let r_squared = displacement.norm_squared();
@@ -332,8 +359,7 @@ impl<const D: usize> FluidSimulation<D> {
                         // sum is mu_i + mu_j = 2 * mu. The form and sign must
                         // remain independently verified against shear-flow
                         // references before this profile is called validated.
-                        let coefficient = self.particles[j].mass
-                            * (2.0 * self.config.viscosity)
+                        let coefficient = self.particles[j].mass * (2.0 * self.config.viscosity)
                             / rho_product
                             * r_dot_gradient
                             / denominator;
@@ -350,8 +376,8 @@ impl<const D: usize> FluidSimulation<D> {
                 }
             }
 
-            let force = (pressure_acceleration + viscosity_acceleration + gravity)
-                * self.particles[i].mass;
+            let force =
+                (pressure_acceleration + viscosity_acceleration + gravity) * self.particles[i].mass;
             if !force.iter().all(|component| component.is_finite()) {
                 return Err(SphError::NumericRange {
                     particle: Some(i),
@@ -480,11 +506,7 @@ impl<const D: usize> FluidSimulation<D> {
         })
     }
 
-    fn validate_particle(
-        &self,
-        index: usize,
-        particle: &FluidParticle<D>,
-    ) -> Result<(), SphError> {
+    fn validate_particle(&self, index: usize, particle: &FluidParticle<D>) -> Result<(), SphError> {
         if !particle.mass.is_finite() || particle.mass <= 0.0 {
             return Err(SphError::InvalidParticleField {
                 particle: index,
@@ -512,9 +534,7 @@ impl<const D: usize> FluidSimulation<D> {
     }
 }
 
-fn max_speed<const D: usize>(
-    particles: &[FluidParticle<D>],
-) -> Result<f64, SphError> {
+fn max_speed<const D: usize>(particles: &[FluidParticle<D>]) -> Result<f64, SphError> {
     let mut result: f64 = 0.0;
     for (index, particle) in particles.iter().enumerate() {
         let speed = particle.velocity.norm();
