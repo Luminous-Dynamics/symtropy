@@ -327,6 +327,10 @@ jobs:
             .execution_receipt_extension.controller_artifact_inventory_digest_must_match_paired_binding == true and
             .execution_receipt_extension.resource_policy_payload_must_equal_canonical_numeric_limits == true and
             .execution_receipt_extension.resource_policy_digest_must_match_resource_limits_sha256 == true and
+            .execution_receipt_extension.paired_input_payloads_rehashed_before_receipt_acceptance == true and
+            (.execution_receipt_extension.paired_input_validation_scope | contains("complete controller/trajectory matrix")) and
+            (.execution_receipt_extension.receipt_set_validation | contains("reuse indexed case, trajectory and controller artifact maps")) and
+            .execution_receipt_extension.receipt_set_input_tamper_negative_control_path == "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py" and
             (.execution_receipt_extension.binds | index("controller_artifact_bytes_in_inventory") != null) and
             (.execution_receipt_extension.binds | index("canonical_resource_policy_bytes") != null) and
             (.execution_receipt_extension.requirements | length >= 9) and
