@@ -28,7 +28,7 @@ impl fmt::Display for SphKernelError {
             Self::InvalidDimension => write!(f, "SPH kernel requires D >= 1"),
             Self::UnsupportedDimension => {
                 write!(f, "SPH kernel dimension exceeds the reference envelope")
-            },
+            }
             Self::InvalidSmoothingLength => {
                 write!(
                     f,
@@ -38,7 +38,9 @@ impl fmt::Display for SphKernelError {
             Self::NonFiniteDisplacement { axis } => {
                 write!(f, "non-finite kernel displacement on axis {axis}")
             }
-            Self::NumericRange => write!(f, "SPH kernel arithmetic exceeded the finite numeric range"),
+            Self::NumericRange => {
+                write!(f, "SPH kernel arithmetic exceeded the finite numeric range")
+            }
         }
     }
 }
