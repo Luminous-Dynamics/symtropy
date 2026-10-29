@@ -67,3 +67,13 @@ cargo run --release --locked --manifest-path tools/glass-silicon-contract-audit/
 \`\`\`
 
 **Current limitation:** no local Rust compiler was available during authoring. The exact-head Rust build, test results and generated benchmark artifact must be read from CI; queued or pending is not a pass. Until then, this protocol and simulator are proposed benchmark code, not a verified result.
+
+
+## Industry comparison target (not yet implemented)
+
+The current pair of sequential Bernoulli methods is a statistical research baseline, not yet an industry-complete acceptance-sampling comparison. The next benchmark should include the current official standards as *separate, use-case-matched baselines*:
+
+- [ISO 2859-1:2026](https://www.iso.org/standard/2859-1) defines AQL-indexed single, double and multiple sampling schemes for lot-by-lot inspection by attributes, including switching rules. It is published as the third edition in January 2026.
+- [ISO 28591:2017](https://www.iso.org/standard/64623.html), confirmed current in 2024, specifies sequential sampling plans for discrete items and indexes plans by producer's-risk and consumer's-risk points.
+
+These plans should not be declared beaten just because the e-process consumes fewer Bernoulli trials under an IID simulation. The comparator must match the standard's lot structure, sampling rules, AQL/quality levels, producer and consumer risks, acceptance/rejection outcomes, and switching policy. Compare operating-characteristic (OC) curves, average sample number (ASN), false acceptance / false rejection risk, inconclusive outcomes and total inspection cost. Record the exact standard edition and use only lawfully available standard-derived algorithms/tables; this benchmark currently neither implements nor certifies compliance with either ISO standard.
