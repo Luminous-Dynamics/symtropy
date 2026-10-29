@@ -155,9 +155,7 @@ pub fn generate_coupon(spec: CouponSpec) -> Result<TriangleMesh, String> {
 pub fn tmr_naca0012_half_thickness(x_fraction: f64) -> f64 {
     let x = x_fraction.clamp(0.0, 1.0);
     0.594_689_181
-        * (0.298_222_773 * x.sqrt()
-            - 0.127_125_232 * x
-            - 0.357_907_906 * x.powi(2)
+        * (0.298_222_773 * x.sqrt() - 0.127_125_232 * x - 0.357_907_906 * x.powi(2)
             + 0.291_984_971 * x.powi(3)
             - 0.105_174_606 * x.powi(4))
 }
@@ -182,10 +180,7 @@ impl TriangleMesh {
             {
                 return Err("triangle index is outside the vertex array".to_owned());
             }
-            if a == b
-                || b == c
-                || c == a
-                || triangle_area_mm2(self.vertices_mm, *triangle) <= 1e-12
+            if a == b || b == c || c == a || triangle_area_mm2(self.vertices_mm, *triangle) <= 1e-12
             {
                 return Err("mesh contains a degenerate triangle".to_owned());
             }
@@ -291,7 +286,8 @@ impl TriangleMesh {
             || audit.signed_volume_mm3 <= 0.0
         {
             return Err(
-                "refusing to manifest a mesh that fails closed-volume/orientation checks".to_owned(),
+                "refusing to manifest a mesh that fails closed-volume/orientation checks"
+                    .to_owned(),
             );
         }
         let escaped_output = json_escape(output_file);
@@ -484,11 +480,11 @@ mod tests {
     fn exports_units_and_non_flight_boundary_in_manifest() {
         let spec = spec();
         let mesh = generate_coupon(spec).expect("coupon mesh");
-        let stl = mesh.to_ascii_stl("civil_aero_nonflight_coupon").expect("STL");
+        let stl = mesh
+            .to_ascii_stl("civil_aero_nonflight_coupon")
+            .expect("STL");
         assert!(stl.starts_with("solid civil_aero_nonflight_coupon\n"));
-        let manifest = mesh
-            .json_manifest(spec, "coupon.stl")
-            .expect("manifest");
+        let manifest = mesh.json_manifest(spec, "coupon.stl").expect("manifest");
         assert!(manifest.contains("\"units\": \"millimetres; STL itself does not encode units\""));
         assert!(manifest.contains("\"orientation_consistent\": true"));
         assert!(manifest.contains("\"maximum_thickness_in_mesh_mm\": 11.891"));
