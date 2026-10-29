@@ -27,6 +27,14 @@ The [counterexample-search protocol](../COUNTEREXAMPLE_SEARCH_BENCHMARK_PROTOCOL
 
 The pilot and confirmatory budgets are proposed design values (10 repetitions × 50 invocations, then 50 repetitions × 200 invocations); they are not measured results. The analytic known-answer track is contract-only, the validated plant track is not admitted, and the locked site/episode holdout has not been created. All admission gates remain false. Searcher superiority does not imply controller superiority.
 
+## New: causal mechanism attribution and placebo evaluation
+
+The [paired protocol's mechanism-attribution section](../../PAIRED_MARGIN_BENCHMARK_PROTOCOL.md#causal-mechanism-attribution-ablation-and-placebo-controls) specifies how to test *why* a policy improves, not only whether its score changes. Each claimed mechanism must be isolated with one-factor ablations, identical content-bound trajectories and initial states, a shared observation/resource budget, randomized run order and a predeclared episode/site-year analysis.
+
+Required controls include a deterministic no-op placebo, stale/shuffled forecast negatives, and feature-computed-but-not-consumed controls. Deterministic no-op cases should produce no unexplained output divergence beyond declared numerical tolerance; stochastic-placebo suites should have a predeclared nominal false-positive level and report uncertainty around observed type-I error. Report paired effect estimates, scenario-family slices, sensitivity to model uncertainty and resource-adjusted effect sizes. No single scalar or mean gain should conceal a critical-gate regression.
+
+This is motivated by the 2026 review [Causal inference and machine learning in power and energy systems](https://doi.org/10.1016/j.egyai.2026.100774), which recommends causal validation steps such as treatment-effect estimates, placebo/refutation tests and sensitivity analysis where the study supports them. In Symtropy, these are targets for future controlled experiments; the current synthetic fixture does not establish physical or field causality.
+
 ## New: causal information parity and anti-look-ahead
 
 The paired comparison has advanced to a content-bound v0.5 fixture and schema: [paired-comparison-v0.5.json](fixtures/paired-comparison-v0.5.json) and [the v0.5 schema](schemas/paired-comparison-input-0.5.0.schema.json). The shared information budget declares decision cadence, allowable input types, forecast look-ahead, compute and memory ceilings. Each trajectory binds a time-stamped observation trace, and the independent verifier rejects future measurements, forecasts issued after a decision, forecasts beyond the declared horizon, tampered trace bytes and per-case information-budget drift.
