@@ -146,5 +146,29 @@ jobs:
                  (.data_sha256 | type == "string" and test("^[0-9a-fA-F]{64}$")) and
                  (.byte_length | type == "number" and . > 0)
                end)
+            ) and
+            any(.sources[];
+              .source_id == "NASA-TMR-NACA0012-LADSON-FORCES" and
+              .data_sha256 == "78cd2f6aa4968e80f44cbf6c96f699bd9c6e45681d958ec528a10cf72ed23357" and
+              .byte_length == 1343 and
+              .git_blob_sha1 == "336d2e1bebb65a9613d65a2d36d9d942bd745acf" and
+              .upstream_git_commit == "20a39f549dbff988a6accc421ac84dafc4487695" and
+              .admission_status == "bytes_pinned_license_reviewed_parser_pending"
+            ) and
+            any(.sources[];
+              .source_id == "NASA-TMR-NACA0012-LADSON-PRESSURE" and
+              .data_sha256 == "547e022634a360cd7697813543348cd447ee0038cdbc8f00a5296c7822ec7af8" and
+              .byte_length == 6331 and
+              .git_blob_sha1 == "c533ce28db34b6cb12073f9a6feb20c73b2a1dd1" and
+              .upstream_git_commit == "20a39f549dbff988a6accc421ac84dafc4487695" and
+              .admission_status == "bytes_pinned_license_reviewed_parser_pending"
+            ) and
+            any(.sources[];
+              .source_id == "NASA-TMR-NACA0012-GREGORY-PRESSURE" and
+              .data_sha256 == "38d8474bc67661c3cef5e4cd9eeddb95d4a436d06abc1f58a8518066f510647c" and
+              .byte_length == 1608 and
+              .git_blob_sha1 == "80d0ec12030ffd902952ae2c199671348243dfbf" and
+              .upstream_git_commit == "20a39f549dbff988a6accc421ac84dafc4487695" and
+              .admission_status == "bytes_pinned_license_reviewed_parser_pending"
             )
           ' tools/civil-aero-benchmark/data/source_manifest.v0.1.json
