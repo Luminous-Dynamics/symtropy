@@ -9,11 +9,12 @@ use std::process;
 const HOURS_PER_YEAR: f64 = 8_760.0;
 const HOURS_TOLERANCE: f64 = 1.0e-6;
 const WEIGHT_TOLERANCE: f64 = 1.0e-9;
+const CURRENT_MOMENT_REL_TOLERANCE: f64 = 1.0e-12;
 
 #[derive(Clone, Debug)]
 struct Candidate { id: String, capex: f64, p0_w: f64, pk_w: f64 }
 #[derive(Clone, Debug)]
-struct Interval { hours: f64, load_pu: f64, price_per_kwh: f64 }
+struct Interval { hours: f64, current_pu_mean: f64, mean_square_current_pu2: f64, price_per_kwh: f64 }
 #[derive(Clone, Debug)]
 struct Scenario { weight: f64, intervals: Vec<Interval> }
 #[derive(Clone, Debug)]
@@ -182,7 +183,7 @@ fn read_candidates(path: &str) -> Result<Vec<Candidate>, String> {
 }
 
 fn read_scenarios(path: &str) -> Result<BTreeMap<String, Scenario>, String> {
-    let rows = read_table(path, &["scenario_id", "weight", "interval_id", "hours", "load_pu", "price_per_kwh"])?;
+    let rows = read_table(path, &["scenario_id", "weight", "interval_id", "hours", "current_pu_mean", "mean_square_current_pu2", "price_per_kwh"])?;
     if rows.is_empty() { return Err(format!("{path}: at least one scenario interval is required")); }
     let mut scenarios: BTreeMap<String, Scenario> = BTreeMap::new();
     let mut interval_ids: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
@@ -192,17 +193,26 @@ fn read_scenarios(path: &str) -> Result<BTreeMap<String, Scenario>, String> {
         let weight = parse_number(&row[1], &format!("{path}:{line}: weight"))?;
         let interval_id = nonempty(&row[2], &format!("{path}:{line}: interval_id"))?;
         let hours = parse_number(&row[3], &format!("{path}:{line}: hours"))?;
-        let load_pu = parse_number(&row[4], &format!("{path}:{line}: load_pu"))?;
-        let price_per_kwh = parse_number(&row[5], &format!("{path}:{line}: price_per_kwh"))?;
+        let current_pu_mean = parse_number(&row[4], &format!("{path}:{line}: current_pu_mean"))?;
+        let mean_square_current_pu2 = parse_number(&row[5], &format!("{path}:{line}: mean_square_current_pu2"))?;
+        let price_per_kwh = parse_number(&row[6], &format!("{path}:{line}: price_per_kwh"))?;
         if !(0.0..=1.0).contains(&weight) || weight == 0.0 { return Err(format!("{path}:{line}: weight must be in (0, 1]")); }
-        if hours <= 0.0 || load_pu < 0.0 || price_per_kwh < 0.0 {
-            return Err(format!("{path}:{line}: hours must be positive; load_pu and price_per_kwh must be non-negative"));
+        if hours <= 0.0 || current_pu_mean < 0.0 || mean_square_current_pu2 < 0.0 || price_per_kwh < 0.0 {
+            return Err(format!("{path}:{line}: hours must be positive; current moments and price must be non-negative"));
+        }
+        let squared_mean = current_pu_mean * current_pu_mean;
+        if !squared_mean.is_finite() {
+            return Err(format!("{path}:{line}: current_pu_mean is too large to square safely"));
+        }
+        let moment_tolerance = CURRENT_MOMENT_REL_TOLERANCE * squared_mean.max(mean_square_current_pu2).max(1.0);
+        if mean_square_current_pu2 + moment_tolerance < squared_mean {
+            return Err(format!("{path}:{line}: mean_square_current_pu2 must be at least current_pu_mean squared (within relative tolerance)"));
         }
         if let Some(existing) = scenarios.get_mut(&scenario_id) {
             if (existing.weight - weight).abs() > WEIGHT_TOLERANCE { return Err(format!("{path}:{line}: inconsistent weight for scenario {scenario_id:?}")); }
-            existing.intervals.push(Interval { hours, load_pu, price_per_kwh });
+            existing.intervals.push(Interval { hours, current_pu_mean, mean_square_current_pu2, price_per_kwh });
         } else {
-            scenarios.insert(scenario_id.clone(), Scenario { weight, intervals: vec![Interval { hours, load_pu, price_per_kwh }] });
+            scenarios.insert(scenario_id.clone(), Scenario { weight, intervals: vec![Interval { hours, current_pu_mean, mean_square_current_pu2, price_per_kwh }] });
         }
         if !interval_ids.entry(scenario_id.clone()).or_default().insert(interval_id.clone()) {
             return Err(format!("{path}:{line}: duplicate interval_id {interval_id:?} in scenario {scenario_id:?}"));
@@ -279,7 +289,9 @@ fn evaluate_scenario(candidate: &Candidate, scenario: &Scenario) -> ScenarioMetr
     let mut annual_loss_kwh = 0.0;
     let mut annual_loss_cost = 0.0;
     for interval in &scenario.intervals {
-        let load_loss_w = candidate.pk_w * interval.load_pu * interval.load_pu;
+        // The load-loss term depends on mean-square per-unit current, not the
+        // square of an interval's arithmetic mean current.
+        let load_loss_w = candidate.pk_w * interval.mean_square_current_pu2;
         let loss_kwh = (candidate.p0_w + load_loss_w) * interval.hours / 1_000.0;
         annual_loss_kwh += loss_kwh;
         annual_loss_cost += loss_kwh * interval.price_per_kwh;
@@ -366,10 +378,71 @@ mod tests {
     #[test]
     fn loss_formula_matches_hand_calculation() {
         let c = candidate("hand", 10.0, 1_000.0, 4_000.0);
-        let s = Scenario { weight: 1.0, intervals: vec![Interval { hours: 8_760.0, load_pu: 0.5, price_per_kwh: 1.0 }] };
+        let s = Scenario { weight: 1.0, intervals: vec![Interval { hours: 8_760.0, current_pu_mean: 0.5, mean_square_current_pu2: 0.25, price_per_kwh: 1.0 }] };
         let metrics = evaluate_scenario(&c, &s);
         assert!((metrics.annual_loss_kwh - 17_520.0).abs() < 1.0e-9);
         assert!((metrics.annual_loss_cost - 17_520.0).abs() < 1.0e-9);
+    }
+
+
+    #[test]
+    fn mean_square_current_prevents_variance_loss_underestimation() {
+        let c = candidate("moment", 0.0, 0.0, 4_000.0);
+        let constant = Scenario {
+            weight: 1.0,
+            intervals: vec![Interval { hours: 8_760.0, current_pu_mean: 0.5, mean_square_current_pu2: 0.25, price_per_kwh: 1.0 }],
+        };
+        // A 50/50 trace at 0 pu and 1 pu has mean current 0.5 pu,
+        // but mean-square current 0.5 pu².
+        let variable = Scenario {
+            weight: 1.0,
+            intervals: vec![Interval { hours: 8_760.0, current_pu_mean: 0.5, mean_square_current_pu2: 0.5, price_per_kwh: 1.0 }],
+        };
+        let constant_metrics = evaluate_scenario(&c, &constant);
+        let variable_metrics = evaluate_scenario(&c, &variable);
+        assert!((constant_metrics.annual_loss_kwh - 8_760.0).abs() < 1.0e-9);
+        assert!((variable_metrics.annual_loss_kwh - 17_520.0).abs() < 1.0e-9);
+        assert!((variable_metrics.annual_loss_kwh / constant_metrics.annual_loss_kwh - 2.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn splitting_intervals_preserves_loss_when_second_moment_and_tariff_are_preserved() {
+        let c = candidate("split", 0.0, 700.0, 3_000.0);
+        let whole = Scenario {
+            weight: 1.0,
+            intervals: vec![Interval { hours: 8.0, current_pu_mean: 0.6, mean_square_current_pu2: 0.34375, price_per_kwh: 2.0 }],
+        };
+        let split = Scenario {
+            weight: 1.0,
+            intervals: vec![
+                Interval { hours: 3.0, current_pu_mean: 0.7, mean_square_current_pu2: 0.5, price_per_kwh: 2.0 },
+                Interval { hours: 5.0, current_pu_mean: 0.5, mean_square_current_pu2: 0.25, price_per_kwh: 2.0 },
+            ],
+        };
+        let a = evaluate_scenario(&c, &whole);
+        let b = evaluate_scenario(&c, &split);
+        assert!((a.annual_loss_kwh - b.annual_loss_kwh).abs() < 1.0e-12);
+        assert!((a.annual_loss_cost - b.annual_loss_cost).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn mean_square_current_cannot_be_lower_than_squared_mean() {
+        let path = std::env::temp_dir().join("transformer-bench-moment-test.csv");
+        let path = path.to_string_lossy().into_owned();
+        let bad = "scenario_id,weight,interval_id,hours,current_pu_mean,mean_square_current_pu2,price_per_kwh\na,1.0,all,8760,0.5,0.2,2\n";
+        fs::write(&path, bad).unwrap();
+        assert!(read_scenarios(&path).is_err());
+        let _ = fs::remove_file(&path);
+    }
+
+    #[test]
+    fn moment_schema_rejects_mean_only_profile() {
+        let path = std::env::temp_dir().join("transformer-bench-mean-only-test.csv");
+        let path = path.to_string_lossy().into_owned();
+        let mean_only = "scenario_id,weight,interval_id,hours,load_pu,price_per_kwh\na,1.0,all,8760,0.5,2\n";
+        fs::write(&path, mean_only).unwrap();
+        assert!(read_scenarios(&path).is_err());
+        let _ = fs::remove_file(&path);
     }
 
     #[test]
@@ -379,13 +452,13 @@ mod tests {
     fn scenario_weights_and_annual_hours_are_validated() {
         let path = std::env::temp_dir().join("transformer-bench-scenarios-test.csv");
         let path = path.to_string_lossy().into_owned();
-        let valid = "scenario_id,weight,interval_id,hours,load_pu,price_per_kwh\na,0.7,all,8760,0.5,2\nb,0.3,all,8760,1.0,3\n";
+        let valid = "scenario_id,weight,interval_id,hours,current_pu_mean,mean_square_current_pu2,price_per_kwh\na,0.7,all,8760,0.5,0.25,2\nb,0.3,all,8760,1.0,1.0,3\n";
         fs::write(&path, valid).unwrap();
         assert_eq!(read_scenarios(&path).unwrap().len(), 2);
-        let bad_hours = "scenario_id,weight,interval_id,hours,load_pu,price_per_kwh\na,1.0,part,8000,0.5,2\n";
+        let bad_hours = "scenario_id,weight,interval_id,hours,current_pu_mean,mean_square_current_pu2,price_per_kwh\na,1.0,part,8000,0.5,0.25,2\n";
         fs::write(&path, bad_hours).unwrap();
         assert!(read_scenarios(&path).is_err());
-        let bad_weights = "scenario_id,weight,interval_id,hours,load_pu,price_per_kwh\na,0.8,all,8760,0.5,2\nb,0.3,all,8760,1.0,3\n";
+        let bad_weights = "scenario_id,weight,interval_id,hours,current_pu_mean,mean_square_current_pu2,price_per_kwh\na,0.8,all,8760,0.5,0.25,2\nb,0.3,all,8760,1.0,1.0,3\n";
         fs::write(&path, bad_weights).unwrap();
         assert!(read_scenarios(&path).is_err());
         let _ = fs::remove_file(&path);
