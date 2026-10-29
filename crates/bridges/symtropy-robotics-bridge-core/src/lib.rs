@@ -7,6 +7,7 @@ pub mod agent;
 pub mod assurance;
 pub mod control;
 pub mod differential_drive;
+pub mod epoch_differential_drive;
 pub mod dispatch;
 pub mod epoch_authority;
 pub mod epoch_command_queue;
@@ -28,6 +29,11 @@ pub use assurance::{
 pub use control::{
     ControlOutcome, ControlOutcomeError, ControlOutcomeStatus, ControlRequest, ControlRequestError,
     EmbodiedIntent, IntentValidationError, ManipulationOperation, Pose3,
+};
+pub use epoch_differential_drive::{
+    EpochDifferentialDriveError, EpochFencedCommandProvenance,
+    EpochFencedDifferentialDriveAdapter, EpochFencedDifferentialDriveLocalController,
+    EpochFencedDifferentialDriveReceipt, EpochFencedNativeReceipt,
 };
 pub use differential_drive::{
     CommandProvenance, DifferentialDriveAdapter, DifferentialDriveClock, DifferentialDriveCommand,
