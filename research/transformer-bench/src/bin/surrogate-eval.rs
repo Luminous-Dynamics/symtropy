@@ -6,10 +6,12 @@ use std::env;
 use std::fs;
 use std::process;
 
-const HEADER: [&str; 8] = [
+const HEADER: [&str; 10] = [
     "candidate_id",
     "geometry_family",
     "material_id",
+    "frequency_hz",
+    "excitation_class",
     "reference_core_loss_w",
     "predicted_core_loss_w",
     "prediction_lower_w",
@@ -22,6 +24,8 @@ struct Observation {
     candidate_id: String,
     geometry_family: String,
     material_id: String,
+    frequency_hz: f64,
+    excitation_class: String,
     reference: f64,
     predicted: f64,
     lower: f64,
@@ -42,8 +46,8 @@ struct Summary {
     max_relative_error_pct: f64,
     spearman_rank_correlation: Option<f64>,
     top_k: usize,
-    top_k_recall_pct: f64,
-    best_candidate_regret_pct: f64,
+    top_k_recall_pct: Option<f64>,
+    best_candidate_regret_pct: Option<f64>,
     prediction_interval_coverage_pct: f64,
     mean_interval_width_pct: f64,
 }
@@ -115,6 +119,68 @@ fn run() -> Result<(), String> {
         )?);
     }
 
+    let frequencies: Vec<f64> = {
+        let mut values: Vec<f64> = observations.iter().map(|row| row.frequency_hz).collect();
+        values.sort_by(f64::total_cmp);
+        values.dedup_by(|a, b| *a == *b);
+        values
+    };
+    for frequency in frequencies {
+        let subset: Vec<Observation> = observations
+            .iter()
+            .filter(|row| row.frequency_hz == frequency)
+            .cloned()
+            .collect();
+        summaries.push(summarize(
+            "frequency_hz",
+            &format!("{frequency:g}"),
+            &subset,
+            model_fea_queries,
+            universe,
+            full_pool_fea_queries,
+            requested_k,
+        )?);
+    }
+
+    let excitation_classes: BTreeSet<String> = observations.iter().map(|row| row.excitation_class.clone()).collect();
+    for excitation in excitation_classes {
+        let subset: Vec<Observation> = observations
+            .iter()
+            .filter(|row| row.excitation_class == excitation)
+            .cloned()
+            .collect();
+        summaries.push(summarize(
+            "excitation_class",
+            &excitation,
+            &subset,
+            model_fea_queries,
+            universe,
+            full_pool_fea_queries,
+            requested_k,
+        )?);
+    }
+
+    let operating_domains: BTreeSet<String> = observations
+        .iter()
+        .map(|row| format!("{:.6}Hz/{}", row.frequency_hz, row.excitation_class))
+        .collect();
+    for domain in operating_domains {
+        let subset: Vec<Observation> = observations
+            .iter()
+            .filter(|row| format!("{:.6}Hz/{}", row.frequency_hz, row.excitation_class) == domain)
+            .cloned()
+            .collect();
+        summaries.push(summarize(
+            "operating_domain",
+            &domain,
+            &subset,
+            model_fea_queries,
+            universe,
+            full_pool_fea_queries,
+            requested_k,
+        )?);
+    }
+
     let materials: BTreeSet<String> =
         observations.iter().map(|row| row.material_id.clone()).collect();
     for material in materials {
@@ -129,6 +195,7 @@ fn run() -> Result<(), String> {
             &subset,
             model_fea_queries,
             universe,
+            full_pool_fea_queries,
             requested_k,
         )?);
     }
@@ -206,15 +273,23 @@ fn read_observations(path: &str) -> Result<(Vec<Observation>, u64), String> {
         }
         let geometry_family = nonempty(fields[1], "geometry_family")?;
         let material_id = nonempty(fields[2], "material_id")?;
-        let reference = finite_number(fields[3], "reference_core_loss_w")?;
-        let predicted = finite_number(fields[4], "predicted_core_loss_w")?;
-        let lower = finite_number(fields[5], "prediction_lower_w")?;
-        let upper = finite_number(fields[6], "prediction_upper_w")?;
-        let calls: u64 = fields[7]
+        let frequency_hz = finite_number(fields[3], "frequency_hz")?;
+        let excitation_class = nonempty(fields[4], "excitation_class")?;
+        let reference = finite_number(fields[5], "reference_core_loss_w")?;
+        let predicted = finite_number(fields[6], "predicted_core_loss_w")?;
+        let lower = finite_number(fields[7], "prediction_lower_w")?;
+        let upper = finite_number(fields[8], "prediction_upper_w")?;
+        let calls: u64 = fields[9]
             .trim()
             .parse()
             .map_err(|_| format!("{path}:{line_number}: model_fea_queries must be an integer"))?;
 
+        if frequency_hz <= 0.0 {
+            return Err(format!("{path}:{line_number}: frequency_hz must be positive"));
+        }
+        if !matches!(excitation_class.as_str(), "SINUSOIDAL" | "DISTORTED" | "OTHER_DECLARED") {
+            return Err(format!("{path}:{line_number}: excitation_class must be SINUSOIDAL, DISTORTED, or OTHER_DECLARED"));
+        }
         if reference <= 0.0 {
             return Err(format!("{path}:{line_number}: reference_core_loss_w must be positive"));
         }
@@ -235,6 +310,8 @@ fn read_observations(path: &str) -> Result<(Vec<Observation>, u64), String> {
             candidate_id,
             geometry_family,
             material_id,
+            frequency_hz,
+            excitation_class,
             reference,
             predicted,
             lower,
@@ -366,15 +443,26 @@ fn summarize(
         return Err(format!("scope {scope_type}={scope_id:?}: derived interval width is non-finite"));
     }
 
+    let same_operating_domain = observations.iter().all(|row| {
+        row.frequency_hz == observations[0].frequency_hz
+            && row.excitation_class == observations[0].excitation_class
+    });
+    let (rank_correlation, top_k_recall_pct, best_candidate_regret_pct) = if same_operating_domain {
+        let k = requested_k.min(n);
+        let true_order = ordered_indices(observations, false);
+        let predicted_order = ordered_indices(observations, true);
+        let true_top: BTreeSet<usize> = true_order.iter().take(k).copied().collect();
+        let predicted_top: BTreeSet<usize> = predicted_order.iter().take(k).copied().collect();
+        let overlap = true_top.intersection(&predicted_top).count();
+        let true_best = observations[true_order[0]].reference;
+        let predicted_best_true_loss = observations[predicted_order[0]].reference;
+        let regret_pct = (predicted_best_true_loss - true_best).max(0.0) / true_best * 100.0;
+        (spearman(&reference, &predicted), Some(overlap as f64 / k as f64 * 100.0), Some(regret_pct))
+    } else {
+        // Ranking candidates across different frequencies/excitation classes is not a valid like-for-like comparison.
+        (None, None, None)
+    };
     let k = requested_k.min(n);
-    let true_order = ordered_indices(observations, false);
-    let predicted_order = ordered_indices(observations, true);
-    let true_top: BTreeSet<usize> = true_order.iter().take(k).copied().collect();
-    let predicted_top: BTreeSet<usize> = predicted_order.iter().take(k).copied().collect();
-    let overlap = true_top.intersection(&predicted_top).count();
-    let true_best = observations[true_order[0]].reference;
-    let predicted_best_true_loss = observations[predicted_order[0]].reference;
-    let regret_pct = (predicted_best_true_loss - true_best).max(0.0) / true_best * 100.0;
     Ok(Summary {
         scope_type: scope_type.to_string(),
         scope_id: scope_id.to_string(),
@@ -386,10 +474,10 @@ fn summarize(
         median_relative_error_pct: median(&sorted_errors),
         p95_relative_error_pct: quantile_nearest_rank(&sorted_errors, 0.95),
         max_relative_error_pct: sorted_errors[n - 1],
-        spearman_rank_correlation: spearman(&reference, &predicted),
+        spearman_rank_correlation: rank_correlation,
         top_k: k,
-        top_k_recall_pct: overlap as f64 / k as f64 * 100.0,
-        best_candidate_regret_pct: regret_pct,
+        top_k_recall_pct,
+        best_candidate_regret_pct,
         prediction_interval_coverage_pct: covered as f64 / n as f64 * 100.0,
         mean_interval_width_pct: mean(&relative_widths),
     })
@@ -429,8 +517,8 @@ fn write_report(path: &str, summaries: &[Summary]) -> Result<(), String> {
             row.max_relative_error_pct,
             spearman,
             row.top_k,
-            row.top_k_recall_pct,
-            row.best_candidate_regret_pct,
+            row.top_k_recall_pct.map(|value| format!("{value:.6}")).unwrap_or_default(),
+            row.best_candidate_regret_pct.map(|value| format!("{value:.6}")).unwrap_or_default(),
             row.prediction_interval_coverage_pct,
             row.mean_interval_width_pct
         ));
@@ -447,6 +535,8 @@ mod tests {
             candidate_id: id.to_string(),
             geometry_family: "g1".to_string(),
             material_id: "m1".to_string(),
+            frequency_hz: 50.0,
+            excitation_class: "SINUSOIDAL".to_string(),
             reference,
             predicted,
             lower,
@@ -465,7 +555,7 @@ mod tests {
         assert!(s.mean_relative_error_pct.abs() < 1.0e-12);
         assert!(s.best_candidate_regret_pct.abs() < 1.0e-12);
         assert!((s.spearman_rank_correlation.unwrap() - 1.0).abs() < 1.0e-12);
-        assert!((s.top_k_recall_pct - 100.0).abs() < 1.0e-12);
+        assert!((s.top_k_recall_pct.unwrap() - 100.0).abs() < 1.0e-12);
         assert!((s.prediction_interval_coverage_pct - 100.0).abs() < 1.0e-12);
     }
 
@@ -523,7 +613,7 @@ mod tests {
         let report = summarize("overall", "all", &rows, calls, 3000, 3000, 2).unwrap();
         assert!(report.mean_relative_error_pct > 0.0);
         assert_eq!(report.prediction_interval_coverage_pct, 100.0);
-        assert_eq!(report.top_k_recall_pct, 100.0);
+        assert_eq!(report.top_k_recall_pct, Some(100.0));
         let reduction = (1.0 - report.model_fea_queries as f64 / report.full_pool_fea_queries as f64) * 100.0;
         assert!((reduction - 99.7333333333).abs() < 1.0e-8);
     }
