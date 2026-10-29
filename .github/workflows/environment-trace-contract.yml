@@ -328,6 +328,12 @@ jobs:
             .execution_receipt_extension.signed_execution_attestation_verifier_implemented == false and
             .execution_receipt_extension.attestation_policy_path == "research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json" and
             .execution_receipt_extension.attestation_policy_schema_path == "research/polar-infrastructure/benchmark/schemas/execution-attestation-verification-policy-0.1.0.schema.json" and
+            .execution_receipt_extension.attestation_profile_path == "research/EXECUTION_ATTESTATION_PROFILE_2026.md" and
+            .execution_receipt_extension.attestation_policy_test_status == "wrapper_negative_controls_only_no_real_signature_test" and
+            .execution_receipt_extension.cosign_version_tested_in_policy == "v3.1.4" and
+            .execution_receipt_extension.actual_cosign_signature_tested == false and
+            .execution_receipt_extension.trusted_attestation_workflow_implemented == false and
+            .execution_receipt_extension.signed_receipt_verification_authorizes_scoring == false and
             .execution_receipt_extension.attestation_wrapper_path == "research/polar-infrastructure/benchmark/scripts/verify_signed_execution_receipt.sh" and
             .execution_receipt_extension.attestation_wrapper_test_path == "research/polar-infrastructure/benchmark/scripts/tests/test_signed_execution_receipt_wrapper.py" and
             .execution_receipt_extension.attestation_policy_status == "design_only_not_enabled" and
