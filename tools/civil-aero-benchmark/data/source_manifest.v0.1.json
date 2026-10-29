@@ -1,0 +1,111 @@
+{
+  "manifest_schema": "civil-aero-evidence-manifest/0.1.0",
+  "program": "AERO-CIVIL-001",
+  "status": "source_discovery_only",
+  "important": "No source bytes have been ingested or admitted by this manifest. Null hashes are intentional. Do not use these records as qualified benchmark data until the acquisition, byte hashing, licence/applicability review, and independent parsing gates pass.",
+  "sources": [
+    {
+      "source_id": "NASA-TMR-NACA0012-LADSON-FORCES",
+      "kind": "experimental_force_data",
+      "description": "Ladson tripped NACA 0012 lift/drag data recommended by NASA TMR for force comparison against fully turbulent CFD at Reynolds number 6 million.",
+      "url": "https://tmbwg.github.io/turbmodels/NACA0012_validation/CLCD_Ladson_expdata.dat",
+      "landing_page": "https://tmbwg.github.io/turbmodels/naca0012_val.html",
+      "source_revision": "NASA TMR page states last updated 2022-09-08",
+      "reynolds_number_per_chord": 6000000,
+      "mach_number_recommended": 0.15,
+      "boundary_layer_assumption": "fully turbulent over most of airfoil",
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "parser_review": "pending",
+      "admission_status": "pending_source_bytes"
+    },
+    {
+      "source_id": "NASA-TMR-NACA0012-LADSON-PRESSURE",
+      "kind": "experimental_surface_pressure",
+      "description": "Ladson et al. pressure distribution; NASA TMR notes leading-edge upper-surface pressure peak resolution is a limitation.",
+      "url": "https://tmbwg.github.io/turbmodels/NACA0012_validation/CP_Ladson.dat",
+      "landing_page": "https://tmbwg.github.io/turbmodels/naca0012_val.html",
+      "source_revision": "NASA TMR page states last updated 2022-09-08",
+      "reynolds_number_per_chord": 6000000,
+      "mach_number_recommended": 0.15,
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "parser_review": "pending",
+      "admission_status": "pending_source_bytes"
+    },
+    {
+      "source_id": "NASA-TMR-NACA0012-GREGORY-PRESSURE",
+      "kind": "experimental_surface_pressure",
+      "description": "Gregory and O'Reilly pressure data; NASA TMR notes these data may be more two-dimensional for pressure validation, at a lower Reynolds number.",
+      "url": "https://tmbwg.github.io/turbmodels/NACA0012_validation/CP_Gregory_expdata.dat",
+      "landing_page": "https://tmbwg.github.io/turbmodels/naca0012_val.html",
+      "source_revision": "NASA TMR page states last updated 2022-09-08",
+      "reynolds_number_per_chord": 3000000,
+      "mach_number": null,
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "parser_review": "pending",
+      "admission_status": "pending_source_bytes"
+    },
+    {
+      "source_id": "NASA-TMR-NACA0012-GEOMETRY-POINTS",
+      "kind": "reference_geometry",
+      "description": "Surface points for NASA TMR's corrected sharp-trailing-edge scaled NACA 0012 profile. NASA TMR page records a historical typo in the earlier formula and explains that older grids used the typo before closing the trailing edge.",
+      "url": "https://tmbwg.github.io/turbmodels/NACA0012_grids/n0012points_superbig_clust_fix.dat",
+      "landing_page": "https://tmbwg.github.io/turbmodels/naca0012_val.html",
+      "source_revision": "NASA TMR page states corrected surface points added 2022-09-08",
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "parser_review": "pending",
+      "admission_status": "pending_source_bytes"
+    },
+    {
+      "source_id": "NASA-TMR-NACA0012-GRID-ARCHIVE",
+      "kind": "CFD_grid_archive",
+      "description": "Nested 2-D/3-D NACA 0012 C-grids for grid refinement work. NASA TMR documents five nested grids; NASA-hosted zip is linked from the grid page. Verify exact archive bytes and the grid/profile convention before use.",
+      "url": "https://www.nasa.gov/wp-content/uploads/2026/02/naca0012-grids.zip",
+      "landing_page": "https://tmbwg.github.io/turbmodels/naca0012_grids.html",
+      "source_revision": "NASA TMR grid page states last updated 2026-04-14",
+      "grid_levels_reported": [
+        "1793x513",
+        "897x257",
+        "449x129",
+        "225x65",
+        "113x33"
+      ],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "archive_integrity_review": "pending",
+      "grid_parser_review": "pending",
+      "admission_status": "pending_source_bytes"
+    },
+    {
+      "source_id": "UIUC-LOW-SPEED-AIRFOIL-TESTS",
+      "kind": "low_reynolds_experimental_dataset_catalog",
+      "description": "UIUC Low-Speed Airfoil Tests program and associated data books/reports. Use for a separate small-aircraft low-Reynolds-number lineage only after selecting a precise digitized/primary data file, resolving its experimental conditions, and reviewing terms.",
+      "url": "https://m-selig.web.engr.illinois.edu/uiuc_lsat.html",
+      "related_publication": "Selig, Guglielmo, Broeren, and Giguere (1996), Experiments on Airfoils at Low Reynolds Numbers",
+      "related_publication_url": "https://m-selig.ae.illinois.edu/pubs/SeligGuglielmoBroerenGiguere-1996-AIAA-1996-0062.pdf",
+      "reynolds_number_scope_reported_by_UIUC_for_volume_1": "30000 to 500000",
+      "data_sha256": null,
+      "byte_length": null,
+      "specific_data_artifact_selected": false,
+      "license_review": "pending",
+      "admission_status": "catalog_only_not_a_test_fixture"
+    }
+  ],
+  "admission_gates": [
+    "Download source bytes from the listed source, not through a paraphrase or screenshot.",
+    "Record UTC acquisition time, final resolved URI, HTTP metadata where available, byte length, and SHA-256 calculated over the exact retained bytes.",
+    "Review licence, terms, citation requirements, revisions, errata, data units, experimental conditions, and relevance to the intended model domain.",
+    "Write a parser with fixtures and negative controls; preserve the raw source unchanged.",
+    "Independently re-calculate parsed point counts, units, and selected values; reject missing values, unit ambiguity, non-finite values, duplicate keys, and partial downloads.",
+    "Keep NASA high-Reynolds-number solver validation distinct from UIUC low-Reynolds-number airfoil/application validation.",
+    "Only change admission_status after all relevant evidence is retained and reviewed. Never convert a null hash to a pass."
+  ]
+}
