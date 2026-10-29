@@ -19,6 +19,7 @@ function numeric(s) {
   label = substr($0, RSTART + 3, RLENGTH - 4)
   if (label in seen) exit 21
   seen[label] = 1
+  zone_count++
   current = label
   next
 }
@@ -33,7 +34,7 @@ function numeric(s) {
 END {
   if (rows != 53 || by_zone["80 grit"] != 17 ||
       by_zone["120 grit"] != 18 || by_zone["180 grit"] != 18 ||
-      length(seen) != 3) exit 26
+      zone_count != 3) exit 26
   print "force_rows=" rows " zones=3 counts=80:17,120:18,180:18"
 }
 ' data/reference/nasa-tmr/CLCD_Ladson_expdata.dat
@@ -62,7 +63,7 @@ function numeric(s) {
   by_zone[current]++
 }
 END {
-  if (rows != 405 || length(seen) != 9) exit 36
+  if (rows != 405 || zone_count != 9) exit 36
   for (zone in seen) if (by_zone[zone] != 45) exit 37
   print "ladson_pressure_rows=" rows " zones=9 points_per_zone=45"
 }
@@ -92,7 +93,7 @@ function numeric(s) {
   by_zone[current]++
 }
 END {
-  if (rows != 73 || length(seen) != 3 ||
+  if (rows != 73 || zone_count != 3 ||
       by_zone["alpha=0"] != 25 ||
       by_zone["alpha=10"] != 24 ||
       by_zone["alpha=15"] != 24) exit 46
