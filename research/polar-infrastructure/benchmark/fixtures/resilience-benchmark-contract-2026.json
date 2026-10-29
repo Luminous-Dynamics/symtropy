@@ -361,6 +361,21 @@
       "signed_execution_attestation_verification",
       "resource_budget_compliance",
       "complete_equal_budget_receipt_set"
-    ]
+    ],
+    "attestation_policy_path": "research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json",
+    "attestation_policy_schema_path": "research/polar-infrastructure/benchmark/schemas/execution-attestation-verification-policy-0.1.0.schema.json",
+    "attestation_wrapper_path": "research/polar-infrastructure/benchmark/scripts/verify_signed_execution_receipt.sh",
+    "attestation_wrapper_test_path": "research/polar-infrastructure/benchmark/scripts/tests/test_signed_execution_receipt_wrapper.py",
+    "attestation_policy_status": "design_only_not_enabled",
+    "attestation_tool": "Sigstore Cosign v3.1.4 exact reviewed release",
+    "standardized_bundle_only": true,
+    "legacy_sigstore_bundle_allowed": false,
+    "certificate_identity_pinned": true,
+    "oidc_issuer_pinned": true,
+    "out_of_band_policy_digest_required": true,
+    "transparency_log_bypass_allowed": false,
+    "signing_workflow_on_protected_main_required": true,
+    "attestation_implementation_status": "not_implemented_for_scoring",
+    "scoring_eligible_for_any_receipt": false
   }
 }
