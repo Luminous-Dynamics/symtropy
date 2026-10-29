@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 import sys
 import unittest
@@ -34,6 +35,21 @@ class ExecutionReceiptVerifierTests(unittest.TestCase):
         receipt = copy.deepcopy(self.receipt)
         receipt["paired_input_bindings"]["trajectory_sha256"] = "a" * 64
         with self.assertRaisesRegex(ValueError, "disagree with the paired case row"):
+            self.verify(receipt)
+
+    def test_rejects_controller_artifact_inventory_drift(self):
+        receipt = copy.deepcopy(self.receipt)
+        artifact = next(a for a in receipt["artifact_inventory"] if a["role"] == "controller_artifact")
+        artifact["sha256"] = "a" * 64
+        with self.assertRaisesRegex(ValueError, "payload SHA-256 mismatch|controller artifact inventory digest"):
+            self.verify(receipt)
+
+    def test_rejects_resource_policy_not_matching_numeric_budget(self):
+        receipt = copy.deepcopy(self.receipt)
+        artifact = next(a for a in receipt["artifact_inventory"] if a["role"] == "resource_policy")
+        artifact["payload"] = '{"wall_time_ms":999}'
+        artifact["sha256"] = hashlib.sha256(artifact["payload"].encode("utf-8")).hexdigest()
+        with self.assertRaisesRegex(ValueError, "resource policy artifact must match canonical"):
             self.verify(receipt)
 
     def test_rejects_wrong_controller_for_case(self):
