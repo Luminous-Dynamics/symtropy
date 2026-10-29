@@ -39,8 +39,10 @@ Start with one calibrated-to-the-simulator differential-drive model and one froz
 
 The manifest defines:
 - **30 nominal seed cases**;
-- **6 fault families × 3 severities × 30 paired seeds = 540 fault cases**;
-- **570 unique scenario identities, each executed in all four arms = 2,280 episode records** before reruns.
+- five fault families with 3 severities each and one restart/authority family with 6 severities: (5 × 3 × 30) + (1 × 6 × 30) = **630 fault cases**;
+- **660 unique scenario identities**, each executed in all four arms = **2,640 arm-episode records** before reruns.
+
+The restart/authority family has more severities because it distinguishes restart position, authority-store unavailability/corruption, generation rollback/stale replica, and concurrent generation claims. The machine-readable manifest is the source of truth; campaign tooling should derive counts from each family's actual severity list rather than assume every fault family has the same size.
 
 The same scenario ID, seed, initial state, route/map, sensor input, fault injection tick, and simulation settings must be paired across all arms. Seed values are the frozen integers in `robotics-paired-recovery-scenarios-v0.1.json`; do not add or remove seeds after seeing results. A new manifest revision is a new experiment, not a silent replacement.
 
@@ -91,6 +93,8 @@ A mock sink proves only interface behavior in that fixture. Simulation proves on
 - Invalid/expired/vetoed dispatch count.
 - Wrong-ticket, unknown-request, duplicate-tick, backward-time, illegal-transition, and post-terminal-event rejection counts.
 - Stale-epoch event acceptance count; any accepted event from a prior controller generation is a non-compensatory hard-gate failure, including when ticket strings are reused after restart.
+- Epoch-authority fail-open acceptance count: any command or outcome accepted while the generation store is unavailable, missing, corrupt, or rolled back is a hard-gate failure.
+- Epoch claim outcomes: successful claims, compare-and-advance conflicts, superseded activations, failed-closed store reads, rollback detections, and claim latency.
 - Controller outcome coverage: registered submitted requests with terminal outcome, failed/expired lifecycle, and unresolved/time-out lifecycle.
 - Session/restart fencing outcomes and stale-event rejection.
 - False-veto rate on a frozen nominal corpus, with a declared definition and denominator.
@@ -158,3 +162,8 @@ Progression:
 4. **Tier D — physical robot:** supervised, low-risk missions only after platform-specific hazard analysis, emergency-stop verification, and qualified human oversight.
 
 Do not call Tier A/B physical safety, collision-proof planning, or SOTA superiority. Publish exact configuration, evidence tier, uncertainty, and failures alongside every claim.
+
+
+### Epoch-authority hard gate
+
+- **Command/outcome accepted while epoch authority is unavailable or rolled back: 0**.

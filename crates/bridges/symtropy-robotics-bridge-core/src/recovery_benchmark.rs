@@ -123,6 +123,8 @@ pub struct RecoveryTrialRecord {
     pub outcome_integrity_violations: u64,
     /// Old-epoch controller events incorrectly accepted after a generation change.
     pub stale_epoch_event_acceptances: u64,
+    /// Commands/outcomes accepted with unavailable, corrupt, or rolled-back epoch authority.
+    pub epoch_authority_fail_open_acceptances: u64,
     /// Requests left without a resolved terminal or explicitly classified timeout.
     pub unresolved_lifecycles: u64,
     pub controller_deadline_misses: u64,
@@ -179,6 +181,7 @@ pub struct RecoveryArmSummary {
     pub unsafe_dispatches: u64,
     pub outcome_integrity_violations: u64,
     pub stale_epoch_event_acceptances: u64,
+    pub epoch_authority_fail_open_acceptances: u64,
     pub unresolved_lifecycles: u64,
     pub controller_deadline_misses: u64,
     pub nominal_admissible_requests: u64,
@@ -339,6 +342,7 @@ pub fn score_recovery_campaign(
             .saturating_add(trial.unsafe_dispatches)
             .saturating_add(trial.outcome_integrity_violations)
             .saturating_add(trial.stale_epoch_event_acceptances)
+            .saturating_add(trial.epoch_authority_fail_open_acceptances)
             .saturating_add(trial.unresolved_lifecycles)
     });
 
@@ -461,6 +465,9 @@ fn summarize_arm(arm: RecoveryBenchmarkArm, trials: &[&RecoveryTrialRecord]) -> 
         ),
         stale_epoch_event_acceptances: saturating_count_sum(
             trials.iter().map(|trial| trial.stale_epoch_event_acceptances),
+        ),
+        epoch_authority_fail_open_acceptances: saturating_count_sum(
+            trials.iter().map(|trial| trial.epoch_authority_fail_open_acceptances),
         ),
         unresolved_lifecycles: saturating_count_sum(
             trials.iter().map(|trial| trial.unresolved_lifecycles),
@@ -611,6 +618,7 @@ mod tests {
             unsafe_dispatches: 0,
             outcome_integrity_violations: 0,
             stale_epoch_event_acceptances: 0,
+            epoch_authority_fail_open_acceptances: 0,
             unresolved_lifecycles: 0,
             controller_deadline_misses: 0,
             admissible_requests: if expected_scenario.class == RecoveryScenarioClass::Nominal {
@@ -736,6 +744,28 @@ mod tests {
             .find(|arm| arm.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback)
             .unwrap();
         assert_eq!(b3.stale_epoch_event_acceptances, 1);
+    }
+
+    #[test]
+    fn authority_unavailable_fail_open_acceptance_blocks_hard_gate() {
+        let (expected_scenarios, mut trials) = complete_campaign();
+        let open_failure = trials
+            .iter_mut()
+            .find(|row| {
+                row.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback && row.class.is_faulted()
+            })
+            .unwrap();
+        open_failure.epoch_authority_fail_open_acceptances = 1;
+
+        let summary = score_recovery_campaign(&expected_scenarios, &trials).unwrap();
+        assert!(!summary.hard_gates_clear);
+        assert_eq!(summary.total_hard_gate_violations, 1);
+        let b3 = summary
+            .per_arm
+            .iter()
+            .find(|arm| arm.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback)
+            .unwrap();
+        assert_eq!(b3.epoch_authority_fail_open_acceptances, 1);
     }
 
     #[test]
