@@ -210,10 +210,9 @@ impl RuntimeAssuranceGate {
             max_speed_mps: Some(speed),
             ..
         } = &request.intent
+            && *speed > self.envelope.max_speed_mps
         {
-            if *speed > self.envelope.max_speed_mps {
-                reasons.push(VetoReason::SpeedLimitExceeded);
-            }
+            reasons.push(VetoReason::SpeedLimitExceeded);
         }
 
         // These semantic requests are routed to the adapter for containment or
