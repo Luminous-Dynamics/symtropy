@@ -55,7 +55,8 @@ fn run() -> Result<(), String> {
     }
     if out_path.exists() || manifest_path.exists() {
         return Err(
-            "refusing to overwrite an existing output; choose new paths or move old files".to_owned(),
+            "refusing to overwrite an existing output; choose new paths or move old files"
+                .to_owned(),
         );
     }
 
