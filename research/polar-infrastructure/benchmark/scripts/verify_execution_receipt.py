@@ -53,8 +53,17 @@ def verify_artifact_bytes(artifact: dict[str, Any]) -> bool:
     return True
 
 
-def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
-    validate_paired_input(paired)
+def verify_receipt(
+    receipt: dict[str, Any],
+    paired: dict[str, Any],
+    *,
+    paired_validated: bool = False,
+    paired_case_by_id: dict[str, dict[str, Any]] | None = None,
+    trajectory_artifacts_by_id: dict[str, dict[str, Any]] | None = None,
+    controller_artifacts_by_id: dict[str, dict[str, Any]] | None = None,
+) -> None:
+    if not paired_validated:
+        validate_paired_input(paired)
     need(set(receipt) == {
         "schema_version", "artifact_kind", "evidence_class", "status", "receipt_id", "case_id",
         "controller_id", "execution_state", "execution_performed", "scoring_eligible", "execution_attestation", "provenance",
@@ -99,8 +108,8 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
     need(inventory_by_role["controller_artifact"]["sha256"] == bindings["controller_artifact_sha256"],
          "controller artifact inventory digest does not match paired input binding")
 
-    case = next((c for c in paired.get("cases", [])
-                 if c.get("case_id") == receipt.get("case_id")), None)
+    case_index = paired_case_by_id or {c["case_id"]: c for c in paired.get("cases", [])}
+    case = case_index.get(receipt.get("case_id"))
     need(case is not None, "receipt case_id is absent from paired input fixture")
     need(case["controller_id"] == receipt["controller_id"], "receipt controller does not match paired case")
     need(case["trajectory_id"] == bindings.get("trajectory_id")
@@ -109,10 +118,14 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
          and case["initial_state_sha256"] == bindings.get("initial_state_sha256")
          and case["controller_artifact_sha256"] == bindings.get("controller_artifact_sha256"),
          "receipt input bindings disagree with the paired case row")
-    trajectory = next((a for a in paired.get("trajectory_artifacts", [])
-                       if a.get("trajectory_id") == bindings.get("trajectory_id")), None)
-    controller = next((a for a in paired.get("controller_artifacts", [])
-                       if a.get("controller_id") == receipt["controller_id"]), None)
+    trajectory_index = trajectory_artifacts_by_id or {
+        a["trajectory_id"]: a for a in paired.get("trajectory_artifacts", [])
+    }
+    controller_index = controller_artifacts_by_id or {
+        a["controller_id"]: a for a in paired.get("controller_artifacts", [])
+    }
+    trajectory = trajectory_index.get(bindings.get("trajectory_id"))
+    controller = controller_index.get(receipt["controller_id"])
     need(trajectory is not None and controller is not None, "paired input artifact registry is incomplete")
     need(trajectory["trajectory_sha256"] == bindings["trajectory_sha256"]
          and trajectory["initial_state_sha256"] == bindings["initial_state_sha256"]
