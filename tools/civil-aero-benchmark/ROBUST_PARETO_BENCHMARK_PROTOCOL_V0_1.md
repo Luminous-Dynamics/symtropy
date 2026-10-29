@@ -34,11 +34,17 @@ All solver-dependent comparisons must pin the same geometry, units, boundary con
 | B0 | Exact analytical screening model in this crate | Cheap smoke check and dimensional/monotonicity oracle only |
 | B1 | Public NASA TMR NACA 0012 prescribed reference results | Verify input/output interpretation against a published solver-validation lineage |
 | B2 | Fixed geometry solved with a pinned SU2 build/config | Establish CFD and mesh-convergence baseline |
-| B3 | Standard SU2 adjoint/shape-optimization workflow | Industry/open-source design-optimization baseline |
-| B4 | Predeclared conventional multi-objective method with fixed evaluation budget | Test whether active/adaptive experiment selection improves the trade-off frontier |
-| B5 | Symthaea proposes measurements/candidates; Symtropy schedules/replays; SU2 evaluates; independent verifier audits | Proposed system under test; no assumed advantage |
+| B3 | Standard SU2 adjoint/shape-optimization workflow | Engineering solver/gradient baseline on the tasks where it applies |
+| B4 | Official ShapeBench task/API and its reproducible baselines | Broad matched-budget comparison across geometry classes/objectives |
+| B5 | Decision-aware experiment-selection policy under the same frozen ShapeBench tasks and total cost | Proposed method; no assumed advantage |
+| B6 | High-fidelity CFD replay and independent physical-data/coupon validation | Check whether the apparent optimizer win survives a higher-fidelity or physical boundary |
 
-B0 cannot be reported as competing with B2-B5 on physical accuracy. The first-order model lacks boundary layers, transition, separated flow, viscous details, and three-dimensional effects. Use each method only for the task it can support.
+ShapeBench (2026) is a crucial benchmark addition, not something this project should attempt to recreate. Its preprint describes 103 tasks across eight shape categories and baselines including adjoint, L-BFGS-B, PSO, CMA-ES, Bayesian optimization, OpenEvolve, ShinkaEvolve and ShapeEvolve where applicable. It reports optimizer rankings that vary strongly by task and budget (mean pairwise Spearman rho reported as 0.013), illustrating why one easy airfoil result cannot establish general superiority. Exact code/data revisions, task licences, APIs, environments and cost rules must be reviewed and pinned before integration:
+- ShapeBench paper: https://arxiv.org/abs/2605.20763
+- Official code linked by the paper: https://github.com/ShapeBench/ShapeBench
+- Dataset linked by the paper: https://huggingface.co/datasets/ShapeBench
+
+B0 cannot be reported as competing with B2-B6 on physical accuracy. The first-order model lacks boundary layers, transition, separated flow, viscous details, and three-dimensional effects. Use each method only for the task it can support. ShapeBench results also do not imply validation for a new Reynolds/Mach regime or a manufactured article.
 
 SU2 is explicitly designed for PDE-based simulation and aerodynamic shape optimization, including adjoint methods. We should compare against it, not create a new CFD solver to obtain a flattering but weak baseline:
 - SU2: https://github.com/su2code/SU2
@@ -123,7 +129,11 @@ For physical model accuracy, set thresholds after the selected reference experim
 
 ## 9. Research landscape and honest comparison
 
-Modern aerodynamic optimization already uses adjoints, numerical optimization and multi-objective robust optimization. For example, the 2026 paper on surrogate-assisted robust airfoil optimization reports a Kriging/EHVI approach and a claimed efficiency benefit in its tested tasks. It is a relevant comparator, not a result reproduced by this project:
+Modern aerodynamic optimization already uses adjoints, numerical optimization and multi-objective robust optimization. The 2026 ShapeBench suite is now the strongest practical choice for a broad matched-budget optimizer comparison, because it includes heterogeneous tasks and multiple classical and LLM-driven baselines. The project should first reproduce a manageable subset before claiming any new method advantage. Its results also caution that rankings vary across problem classes, so report category/task distributions and fidelity gaps:
+- ShapeBench (2026): https://arxiv.org/abs/2605.20763
+- ShapeBench code: https://github.com/ShapeBench/ShapeBench
+
+A separate 2026 paper on surrogate-assisted robust airfoil optimization reports a Kriging/EHVI approach and claimed efficiency benefits in its own tasks. It is a relevant comparator, but is neither independently reproduced nor beaten by this project:
 - Paper: https://www.sciencedirect.com/science/article/pii/S2666496826000191
 
 The proposed differentiator should be decision credibility per engineering cost: an adaptive workflow that selects informative measurements, preserves model limits, rejects model exploitation, and demonstrates that an optimized candidate survives held-out conditions and a manufactured coupon. That differentiator remains a hypothesis until measured head-to-head.
