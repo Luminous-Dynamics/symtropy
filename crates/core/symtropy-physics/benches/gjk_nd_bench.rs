@@ -99,6 +99,7 @@ fn bench_gjk_nd(criterion: &mut Criterion) {
     bench_dimension::<5>(criterion);
     bench_dimension::<6>(criterion);
     bench_dimension::<8>(criterion);
+    bench_dimension::<16>(criterion);
 }
 
 criterion_group!(benches, bench_gjk_nd);
