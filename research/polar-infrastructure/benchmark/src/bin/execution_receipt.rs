@@ -15,6 +15,7 @@ struct Receipt {
     execution_state: String,
     execution_performed: bool,
     scoring_eligible: bool,
+    execution_attestation: ExecutionAttestation,
     provenance: Provenance,
     paired_input_bindings: InputBindings,
     artifact_inventory: Vec<Artifact>,
@@ -24,6 +25,18 @@ struct Receipt {
     execution_evidence: ExecutionEvidence,
     independent_verification: IndependentVerification,
     claim_policy: ClaimPolicy,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ExecutionAttestation {
+    scheme: String,
+    status: String,
+    issuer_id: Option<String>,
+    signature_bundle_sha256: Option<String>,
+    signed_payload_sha256: Option<String>,
+    verifier_id: Option<String>,
+    verifier_revision: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -102,6 +115,8 @@ struct ClaimPolicy {
     scoring_requires_completed_execution: bool,
     scoring_requires_independent_output_hash_verification: bool,
     resource_limits_must_be_shared_across_comparison_arms: bool,
+    scoring_requires_signed_execution_attestation: bool,
+    signed_execution_attestation_verifier_implemented: bool,
 }
 
 fn nonempty(s: &str) -> bool {
@@ -243,8 +258,21 @@ fn validate(r: &Receipt) -> Result<(), String> {
         || !r.claim_policy.scoring_requires_completed_execution
         || !r.claim_policy.scoring_requires_independent_output_hash_verification
         || !r.claim_policy.resource_limits_must_be_shared_across_comparison_arms
+        || !r.claim_policy.scoring_requires_signed_execution_attestation
+        || r.claim_policy.signed_execution_attestation_verifier_implemented
     {
-        return Err("claim policy weakens execution, verification, or equal-resource-budget requirements".into());
+        return Err("claim policy weakens execution, verification, signed-attestation, or equal-resource-budget requirements".into());
+    }
+    if r.scoring_eligible
+        || r.execution_attestation.scheme != "none"
+        || r.execution_attestation.status != "not_implemented"
+        || r.execution_attestation.issuer_id.is_some()
+        || r.execution_attestation.signature_bundle_sha256.is_some()
+        || r.execution_attestation.signed_payload_sha256.is_some()
+        || r.execution_attestation.verifier_id.is_some()
+        || r.execution_attestation.verifier_revision.is_some()
+    {
+        return Err("v0.1 receipt contract cannot authorize scoring until a signed execution-attestation verifier is implemented".into());
     }
     match r.independent_verification.status.as_str() {
         "not_run" => {
@@ -455,14 +483,14 @@ mod tests {
             verified_artifact_count: 3,
         };
         r.observed_resources.wall_time_ms = Some(r.resource_limits.wall_time_ms + 1);
-        assert!(validate(&r).unwrap_err().contains("exceeded its declared resource budget"));
+        assert!(validate(&r).unwrap_err().contains("cannot authorize scoring"));
     }
 
     #[test]
     fn rejects_score_eligible_run_without_independent_verification() {
         let mut r = completed_receipt();
         r.scoring_eligible = true;
-        assert!(validate(&r).unwrap_err().contains("requires independent verification"));
+        assert!(validate(&r).unwrap_err().contains("cannot authorize scoring"));
     }
 
     #[test]
@@ -477,7 +505,7 @@ mod tests {
     fn rejects_synthetic_execution_claim() {
         let mut r = load();
         r.execution_performed = true;
-        assert!(validate(&r).unwrap_err().contains("must not claim execution"));
+        assert!(validate(&r).unwrap_err().contains("cannot authorize scoring"));
     }
 
     #[test]
