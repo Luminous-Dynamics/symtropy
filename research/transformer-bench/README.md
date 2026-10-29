@@ -71,6 +71,12 @@ Unit tests cover the arithmetic, second-moment inequality, mean-vs-mean-square l
 6. Benchmark manual/incumbent design, deterministic grid or space-filling sweep, conventional constrained multi-objective optimization, and Symthaea-guided search under the same candidate budget and frozen holdouts.
 7. Only after held-out manufacturer/lab data qualify prediction error should results nominate a prototype for competent manufacture and formal testing.
 
+## State-of-the-art comparator (not a result from this repository)
+
+Zou et al., “A geometry-aware surrogate model for fast transformer core loss prediction and design optimization,” Electric Power Systems Research, DOI [10.1016/j.epsr.2026.113713](https://doi.org/10.1016/j.epsr.2026.113713), report one screening case that reduced 3,000 candidate schemes to 8 FE-verified schemes (99.7% fewer FE calls), with 2.6% mean and 4.6% maximum relative error on those shortlisted schemes. Their stated scope is GOES, 50 Hz sinusoidal steady state, and a three-phase three-limb transformer. Their results also report that comparative gains are conditional on material and validation split; random-split performance must not be treated as proof of transfer to unseen geometry families. Source: https://www.sciencedirect.com/science/article/abs/pii/S0378779626010060.
+
+Follow-on benchmark specification: [PWR-TX-SOTA-001 #2859](https://github.com/Luminous-Dynamics/symtropy/issues/2859). Its 3% mean / 5% maximum screening targets and 99% FE-call reduction target are aspirational replication/extension gates, not this harness's results. A faithful reproduction requires compatible public candidate data, FEA settings, and geometry/material splits. Substitute synthetic examples cannot reproduce or validate the published result.
+
 ## References
 
 - Li et al. (2025), “A Review of Data-Driven Models for Electromagnetic Devices Design and Analysis,” IEEE Access 13, 142161–142185, DOI 10.1109/ACCESS.2025.3591965. Covers data-driven models for electromagnetic devices including transformers and FEA acceleration; it does not validate this harness.
