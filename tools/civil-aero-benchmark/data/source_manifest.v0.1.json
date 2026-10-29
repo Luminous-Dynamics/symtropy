@@ -29,7 +29,13 @@
         "80 grit": 17,
         "120 grit": 18,
         "180 grit": 18
-      }
+      },
+      "upstream_repository": "TMBWG/turbmodels",
+      "upstream_git_commit": "20a39f549dbff988a6accc421ac84dafc4487695",
+      "immutable_source_url": "https://github.com/TMBWG/turbmodels/blob/20a39f549dbff988a6accc421ac84dafc4487695/NACA0012_validation/CLCD_Ladson_expdata.dat",
+      "raw_source_url": "https://raw.githubusercontent.com/TMBWG/turbmodels/20a39f549dbff988a6accc421ac84dafc4487695/NACA0012_validation/CLCD_Ladson_expdata.dat",
+      "parser_artifact": "tools/civil-aero-benchmark/src/reference_data.rs",
+      "independent_structure_recount": "row and zone counts independently parsed in this session; reproducible awk audit added, CI pending"
     },
     {
       "source_id": "NASA-TMR-NACA0012-LADSON-PRESSURE",
@@ -53,7 +59,13 @@
       "applicability_note": "Exact file header states M=0.3, Re=6 million, alpha=.0169, free transition; do not silently conflate with the M=0.15 tripped-force dataset.",
       "expected_observation_count": 405,
       "expected_zone_count": 9,
-      "expected_points_per_zone": 45
+      "expected_points_per_zone": 45,
+      "upstream_repository": "TMBWG/turbmodels",
+      "upstream_git_commit": "20a39f549dbff988a6accc421ac84dafc4487695",
+      "immutable_source_url": "https://github.com/TMBWG/turbmodels/blob/20a39f549dbff988a6accc421ac84dafc4487695/NACA0012_validation/CP_Ladson.dat",
+      "raw_source_url": "https://raw.githubusercontent.com/TMBWG/turbmodels/20a39f549dbff988a6accc421ac84dafc4487695/NACA0012_validation/CP_Ladson.dat",
+      "parser_artifact": "tools/civil-aero-benchmark/src/reference_data.rs",
+      "independent_structure_recount": "row and zone counts independently parsed in this session; reproducible awk audit added, CI pending"
     },
     {
       "source_id": "NASA-TMR-NACA0012-GREGORY-PRESSURE",
@@ -79,7 +91,13 @@
         "alpha=0": 25,
         "alpha=10": 24,
         "alpha=15": 24
-      }
+      },
+      "upstream_repository": "TMBWG/turbmodels",
+      "upstream_git_commit": "20a39f549dbff988a6accc421ac84dafc4487695",
+      "immutable_source_url": "https://github.com/TMBWG/turbmodels/blob/20a39f549dbff988a6accc421ac84dafc4487695/NACA0012_validation/CP_Gregory_expdata.dat",
+      "raw_source_url": "https://raw.githubusercontent.com/TMBWG/turbmodels/20a39f549dbff988a6accc421ac84dafc4487695/NACA0012_validation/CP_Gregory_expdata.dat",
+      "parser_artifact": "tools/civil-aero-benchmark/src/reference_data.rs",
+      "independent_structure_recount": "row and zone counts independently parsed in this session; reproducible awk audit added, CI pending"
     },
     {
       "source_id": "NASA-TMR-NACA0012-GEOMETRY-POINTS",
