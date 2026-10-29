@@ -50,7 +50,7 @@ jobs:
           cmp /tmp/aero-pareto-a.txt /tmp/aero-pareto-b.txt
           test "$(wc -l < /tmp/aero-pareto-a.csv)" -eq 5
           grep -q "pareto=balanced_reference;lower_mass_higher_drag;higher_mass_lower_drag" /tmp/aero-pareto-a.txt
-          awk -F, '$1 == "dominated_high_drag" { exit !($9 == "false" && $10 == "false") }' /tmp/aero-pareto-a.csv
+          awk -F, '$1 == "dominated_high_drag" { found = 1; if ($9 != "false" || $10 != "false") exit 1 } END { if (!found) exit 1 }' /tmp/aero-pareto-a.csv
           sha256sum /tmp/aero-pareto-a.csv
       - name: Validate evidence manifest without promoting pending sources
         shell: bash
