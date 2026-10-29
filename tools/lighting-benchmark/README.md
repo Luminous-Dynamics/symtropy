@@ -42,7 +42,7 @@ The Python validator is test-only: it checks the draft 2020-12 schema, validates
 
 ## Radiance `rtrace` parsing profile
 
-The pure Rust module `tools/lighting-benchmark/src/radiance.rs` generates deterministic six-value ray-input rows for `rtrace -I` and strictly parses the explicit legacy-RGB `rtrace -h- -I+ -ov -cs 3 -x 1` output profile. It requires exactly six finite numeric fields per record (echoed input origin xyz + RGB irradiance), exact record count, sequential frozen-grid identity, and coordinates within the stated tolerance. It preserves both expected and reported coordinates and rejects partial, reordered, malformed, non-finite, negative-channel or overflowed outputs as a whole.
+The pure Rust module `tools/lighting-benchmark/src/radiance.rs` generates deterministic six-value ray-input rows for `rtrace -I` and strictly parses the explicit legacy-RGB `rtrace -h- -I+ -ov -cs 3 -x 1` output profile. It requires exactly six finite numeric fields per record (echoed input origin xyz + RGB irradiance), exact record count, sequential frozen-grid identity, and coordinates within the stated tolerance. It preserves both expected coordinates and the echoed input-origin coordinates and rejects partial, reordered, malformed, non-finite, negative-channel or overflowed outputs as a whole.
 
 The conversion has a stable ID, `radiance_rgb_legacy_47_4_120_11_6_v1`, and applies `lux = 47.4*R + 120.0*G + 11.6*B`. This is a named legacy RGB convention, not a spectral conversion or physical accuracy claim. The official source/version and format decisions are documented in `docs/research/RADIANCE_RTRACE_PROFILE_V0_1.md`.
 
@@ -76,7 +76,7 @@ Mock-based integration tests exercise success, malformed/nonzero output, child e
 To build and run the process-contract smoke test:
 
 ```sh
-cargo build --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-rtrace-parse
+CARGO_TARGET_DIR=target cargo build --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-rtrace-parse
 bash tools/lighting-benchmark/tests/radiance-runner-smoke.sh
 LIGHTING_RTRACE_PARSER=target/debug/lighting-rtrace-parse bash tools/lighting-benchmark/tests/radiance-runner-smoke.sh
 ```
