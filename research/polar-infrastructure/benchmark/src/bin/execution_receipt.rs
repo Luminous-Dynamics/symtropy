@@ -151,6 +151,33 @@ fn valid_artifact(a: &Artifact) -> bool {
         }
 }
 
+fn validate_failed_outputs(e: &ExecutionEvidence) -> Result<(), String> {
+    let allowed: BTreeSet<&str> = ["output_trace", "stdout", "stderr"].into_iter().collect();
+    let mut roles = BTreeSet::new();
+    let mut ids = BTreeSet::new();
+    let mut by_role = std::collections::BTreeMap::new();
+    for artifact in &e.output_artifacts {
+        if !valid_artifact(artifact) || !allowed.contains(artifact.role.as_str())
+            || !roles.insert(artifact.role.as_str()) || !ids.insert(artifact.artifact_id.as_str())
+        {
+            return Err("failed receipt contains an invalid or duplicate output artifact".into());
+        }
+        by_role.insert(artifact.role.as_str(), artifact.sha256.as_str());
+    }
+    for (role, indexed) in [
+        ("output_trace", e.output_trace_sha256.as_deref()),
+        ("stdout", e.stdout_sha256.as_deref()),
+        ("stderr", e.stderr_sha256.as_deref()),
+    ] {
+        match (by_role.get(role), indexed) {
+            (Some(actual), Some(declared)) if *actual == declared => {}
+            (None, None) => {}
+            _ => return Err(format!("failed receipt {role} digest index disagrees with output inventory")),
+        }
+    }
+    Ok(())
+}
+
 fn validate(r: &Receipt) -> Result<(), String> {
     if r.schema_version != "0.1.0"
         || r.artifact_kind != "symtropy-controller-execution-receipt"
@@ -334,6 +361,7 @@ fn validate(r: &Receipt) -> Result<(), String> {
             {
                 return Err("failed run must have non-synthetic execution evidence and cannot be score eligible".into());
             }
+            validate_failed_outputs(&r.execution_evidence)?;
         }
         "invalid" => {
             if r.execution_state != "invalid" || r.scoring_eligible {
