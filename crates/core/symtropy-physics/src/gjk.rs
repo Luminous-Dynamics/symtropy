@@ -1082,12 +1082,11 @@ mod proptests {
     }
 }
 
-
 #[cfg(test)]
 mod termination_status_tests {
     use super::*;
     use crate::support_map::WorldSupportMap;
-    use symtropy_math::{Point, Sphere};
+    use symtropy_math::Sphere;
 
     struct NonFiniteSupportMap;
 
