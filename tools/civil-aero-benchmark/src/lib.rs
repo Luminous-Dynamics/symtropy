@@ -5,6 +5,7 @@
 //! every result screening_only. Parameters and declared provenance are not independently
 //! authenticated by this crate.
 
+pub mod budget;
 pub mod comparison;
 pub mod robustness;
 pub mod reference_data;
