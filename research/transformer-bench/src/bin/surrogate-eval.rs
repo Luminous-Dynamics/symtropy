@@ -163,7 +163,7 @@ fn read_observations(path: &str) -> Result<(Vec<Observation>, u64), String> {
         .ok_or_else(|| format!("{path}: missing header"))?
         .trim_end_matches('\r');
     let header_columns: Vec<&str> = header.split(',').collect();
-    if header_columns != HEADER {
+    if header_columns.as_slice() != HEADER.as_slice() {
         return Err(format!(
             "{path}: expected header [{}], got [{}]",
             HEADER.join(","),
@@ -212,8 +212,8 @@ fn read_observations(path: &str) -> Result<(Vec<Observation>, u64), String> {
         if predicted < 0.0 || lower < 0.0 || upper < 0.0 {
             return Err(format!("{path}:{line_number}: predicted loss and interval bounds must be non-negative"));
         }
-        if lower > upper {
-            return Err(format!("{path}:{line_number}: prediction_lower_w cannot exceed prediction_upper_w"));
+        if lower > predicted || predicted > upper {
+            return Err(format!("{path}:{line_number}: predicted_core_loss_w must lie inside its prediction interval"));
         }
         match declared_queries {
             None => declared_queries = Some(calls),
@@ -336,6 +336,9 @@ fn summarize(
         .iter()
         .map(|row| (row.predicted - row.reference).abs() / row.reference * 100.0)
         .collect();
+    if errors.iter().any(|value| !value.is_finite()) {
+        return Err(format!("scope {scope_type}={scope_id:?}: derived relative error is non-finite"));
+    }
     let mut sorted_errors = errors.clone();
     sorted_errors.sort_by(f64::total_cmp);
 
@@ -349,6 +352,9 @@ fn summarize(
         .iter()
         .map(|row| (row.upper - row.lower) / row.reference * 100.0)
         .collect();
+    if relative_widths.iter().any(|value| !value.is_finite()) {
+        return Err(format!("scope {scope_type}={scope_id:?}: derived interval width is non-finite"));
+    }
 
     let k = requested_k.min(n);
     let true_order = ordered_indices(observations, false);
@@ -457,7 +463,7 @@ mod tests {
     #[test]
     fn ranking_metrics_detect_wrong_selected_candidate_even_with_small_error() {
         let rows = vec![
-            obs("a", 10.0, 10.2, 10.0, 10.4),
+            obs("a", 10.0, 10.05, 10.0, 10.4),
             obs("b", 10.1, 10.0, 9.8, 10.2),
             obs("c", 40.0, 40.1, 39.0, 41.0),
         ];
