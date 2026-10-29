@@ -590,13 +590,13 @@ mod tests {
         let path = env::temp_dir().join("transformer-surrogate-eval-test.csv");
         let path = path.to_string_lossy().into_owned();
         let header = HEADER.join(",");
-        fs::write(&path, format!("{header}\na,g1,m1,0,2,1,3,2\n")).unwrap();
+        fs::write(&path, format!("{header}\na,g1,m1,50,SINUSOIDAL,0,2,1,3,2\n")).unwrap();
         assert!(read_observations(&path).is_err());
-        fs::write(&path, format!("{header}\na,g1,m1,10,2,3,1,2\n")).unwrap();
+        fs::write(&path, format!("{header}\na,g1,m1,50,SINUSOIDAL,10,2,3,1,2\n")).unwrap();
         assert!(read_observations(&path).is_err());
         fs::write(
             &path,
-            format!("{header}\na,g1,m1,10,10,9,11,2\nb,g1,m1,20,20,19,21,3\n"),
+            format!("{header}\na,g1,m1,50,SINUSOIDAL,10,10,9,11,2\nb,g1,m1,50,SINUSOIDAL,20,20,19,21,3\n"),
         )
         .unwrap();
         assert!(read_observations(&path).is_err());
@@ -616,6 +616,30 @@ mod tests {
         assert_eq!(report.top_k_recall_pct, Some(100.0));
         let reduction = (1.0 - report.model_fea_queries as f64 / report.full_pool_fea_queries as f64) * 100.0;
         assert!((reduction - 99.7333333333).abs() < 1.0e-8);
+    }
+
+    #[test]
+    fn cross_frequency_or_waveform_pooling_suppresses_unfair_rank_metrics() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures/surrogate_predictions_domains_synthetic.csv");
+        let (rows, calls) = read_observations(path.to_str().unwrap()).unwrap();
+        assert_eq!(rows.len(), 9);
+        assert_eq!(calls, 8);
+        let pooled = summarize("overall", "all", &rows, calls, 3000, 3000, 2).unwrap();
+        assert!(pooled.spearman_rank_correlation.is_none());
+        assert!(pooled.top_k_recall_pct.is_none());
+        assert!(pooled.best_candidate_regret_pct.is_none());
+
+        let domain_rows: Vec<Observation> = rows
+            .iter()
+            .filter(|row| row.frequency_hz == 50.0 && row.excitation_class == "SINUSOIDAL")
+            .cloned()
+            .collect();
+        assert_eq!(domain_rows.len(), 3);
+        let same_domain = summarize("operating_domain", "50Hz/SINUSOIDAL", &domain_rows, calls, 3000, 3000, 2).unwrap();
+        assert!(same_domain.spearman_rank_correlation.is_some());
+        assert!(same_domain.top_k_recall_pct.is_some());
+        assert!(same_domain.best_candidate_regret_pct.is_some());
     }
 
     #[test]
