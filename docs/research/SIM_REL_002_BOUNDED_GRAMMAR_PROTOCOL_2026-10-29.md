@@ -62,7 +62,7 @@ Do not compress these into one scalar. Correct retention, non-identifiability ha
 
 ## 6. Current pilot versus qualification corpus
 
-The current fixture contains 18 hand-authored target functions: six training, six validation and six held-out cases. It includes four held-out depth-two out-of-grammar controls and two held-out in-grammar compositions. The current split is a pilot smoke corpus, not a statistically meaningful superiority benchmark: the number of target functions is small, target selection is hand-designed, and there is no noise model.
+The current fixture contains 18 hand-authored target functions: six training, six validation and six held-out cases. It includes three held-out depth-two out-of-grammar controls (majority-of-three, exactly-one, exactly-two), one out-of-grammar validation control (the mux), and three held-out in-grammar compositions. These are pilot controls, not a sealed qualification set. The current split is a pilot smoke corpus, not a statistically meaningful superiority benchmark: the number of target functions is small, target selection is hand-designed, and there is no noise model.
 
 Qualification before an efficacy claim requires:
 
