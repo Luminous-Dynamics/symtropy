@@ -6,11 +6,11 @@ This standalone Rust binary compares declared candidate loss data against explic
 
 ## Scope and physics boundary
 
-For each interval, the harness uses the first-order approximation:
+For each interval, the harness uses the first-order screening approximation:
 
-P_loss(t) = P0 + Pk × load_pu²
+P_loss = P0 + Pk × mean_square_current_pu2
 
-P0 is declared no-load loss in watts, Pk is declared rated-load loss in watts, and load_pu is per-unit load. Interval energy is P_loss × hours / 1000 kWh. Interval loss cost multiplies that energy by the supplied tariff. It calculates expected values over declared scenario weights and a worst-case value across those scenarios. Lifetime loss cost is the NPV of repeating each scenario's annual tariff/load profile for the configured life with a constant real discount rate.
+P0 is declared no-load loss in watts, Pk is declared rated-load loss in watts, and `mean_square_current_pu2` is the time-average of squared per-unit current over that interval, measured relative to the reference rated current. It is **not** the square of the arithmetic mean current. Because E[I²] ≥ E[I]², reducing a varying interval to its mean current and then squaring can understate load losses and can change candidate rankings. The input contract therefore requires both `current_pu_mean` and `mean_square_current_pu2`; constant-current intervals set the latter to the former squared. The harness checks the moment inequality but cannot reconstruct or verify the underlying current trace. Interval energy is P_loss × hours / 1000 kWh. Interval loss cost multiplies that energy by the supplied tariff. It calculates expected values over declared scenario weights and a worst-case value across those scenarios. Lifetime loss cost is the NPV of repeating each scenario's annual tariff/current profile for the configured life with a constant real discount rate.
 
 This is a screening approximation only. It does not model temperature-dependent resistance, harmonics, stray losses, saturation, inrush, frequency/voltage variation, insulation fields, partial discharge, hot spots, oil flow, short-circuit forces, tank behavior, sound, ageing, fault probability, or manufacturing tolerances. It cannot establish IEC/SANS compliance. Declared P0 and Pk must have a named/versioned source and matching reference conditions before engineering use.
 
@@ -34,7 +34,7 @@ Exact header: candidate_id,capex,p0_w,pk_w. Numeric values must be finite and no
 
 ### scenario_profiles.csv
 
-Exact header: scenario_id,weight,interval_id,hours,load_pu,price_per_kwh. Each scenario must cover 8,760 hours, scenario weights must be consistent per scenario and sum to 1, and interval IDs must be unique within each scenario. Weights are in (0,1]; durations are positive; load and price are non-negative and finite. This verifies only row-level IDs and annual duration totals. It does not verify timestamp coverage, interval overlap, daylight-saving-time handling, meter quality, or representativeness of the tariff/profile.
+Exact header: scenario_id,weight,interval_id,hours,current_pu_mean,mean_square_current_pu2,price_per_kwh. Each scenario must cover 8,760 hours, scenario weights must be consistent per scenario and sum to 1, and interval IDs must be unique within each scenario. Weights are in (0,1]; durations are positive; current moments and price are non-negative and finite; the second moment must be at least the squared mean within a declared numerical tolerance. This verifies only row-level IDs, moments and annual duration totals. It does not verify timestamp coverage, interval overlap, daylight-saving-time handling, meter quality, calibration, or representativeness of the tariff/profile. Mean current alone is insufficient: provide `mean_square_current_pu2` from the underlying trace before aggregation; do not fill it with the square of a varying interval's average unless the interval truly has constant current.
 
 ### required_gates.csv
 
@@ -57,18 +57,19 @@ Report rows are sorted by candidate ID. Pareto decisions use full-precision valu
 
 ## Hand-checkable equation
 
-For P0 = 1,000 W, Pk = 4,000 W, load_pu = 0.5, and 8,760 hours: P_loss = 1,000 + 4,000 × 0.5² = 2,000 W, so annual loss energy is 2,000 / 1,000 × 8,760 = 17,520 kWh.
+For P0 = 1,000 W, Pk = 4,000 W, mean current = 0.5 pu, mean-square current = 0.25 pu², and 8,760 hours: P_loss = 1,000 + 4,000 × 0.25 = 2,000 W, so annual loss energy is 17,520 kWh. A 50/50 current trace at 0 and 1.0 pu has the same mean current but mean-square current 0.5 pu²; in the P0 = 0 case it has 17,520 kWh of load loss versus 8,760 kWh for constant 0.5 pu current. This fixture is a model-arithmetic example, not field evidence.
 
-Unit tests cover the arithmetic, scenario weights and annual coverage, malformed CSV, non-finite values, missing/failed gates, digest syntax, Pareto dominance, and exclusion of incomplete manifests from the eligible frontier.
+Unit tests cover the arithmetic, second-moment inequality, mean-vs-mean-square loss underestimation, interval splitting invariance, scenario weights and annual coverage, malformed CSV, non-finite values, missing/failed gates, digest syntax, Pareto dominance, and exclusion of incomplete manifests from the eligible frontier.
 
 ## Next qualification steps
 
 1. Replace synthetic fixtures with a named incumbent transformer and traceable loss data including test conditions; preserve source evidence immutably and hash it.
 2. Add timestamp-aware profile verification, temperature/harmonic-adjusted losses, and uncertainty only after reference models/test cases are defined.
 3. Reuse Symtropy's existing thermal primitives; add FEM baselines with pinned solver versions and mesh/convergence checks rather than cloning another thermal model.
-4. Implement separate independent receipt validators. The candidate generator and report must never certify their own evidence.
-5. Benchmark manual/incumbent design, deterministic grid or space-filling sweep, conventional constrained multi-objective optimization, and Symthaea-guided search under the same candidate budget and frozen holdouts.
-6. Only after held-out manufacturer/lab data qualify prediction error should results nominate a prototype for competent manufacture and formal testing.
+4. Expand the loss model to temperature-corrected load losses, harmonic/stray-loss components and transformer thermal dynamics only after their reference data and verification oracles are defined.
+5. Implement separate independent receipt validators. The candidate generator and report must never certify their own evidence.
+6. Benchmark manual/incumbent design, deterministic grid or space-filling sweep, conventional constrained multi-objective optimization, and Symthaea-guided search under the same candidate budget and frozen holdouts.
+7. Only after held-out manufacturer/lab data qualify prediction error should results nominate a prototype for competent manufacture and formal testing.
 
 ## References
 
