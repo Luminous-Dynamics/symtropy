@@ -64,3 +64,11 @@ jobs:
             and (.cases | length) == 18
             and all(.policy_summaries[]; .in_grammar_target_retention_rate == 1)
           ' "$RUNNER_TEMP/sim-rel-002-receipt.json"
+
+      - name: Retain exact-head receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-rel-002-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/sim-rel-002-receipt.json
+          if-no-files-found: error
+          retention-days: 30
