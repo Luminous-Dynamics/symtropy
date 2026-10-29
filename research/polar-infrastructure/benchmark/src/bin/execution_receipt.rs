@@ -299,10 +299,11 @@ fn validate(r: &Receipt) -> Result<(), String> {
             }
         }
         "failed" => {
-            if r.execution_state != "failed" || !r.execution_performed || r.scoring_eligible
+            if r.evidence_class == "synthetic_fixture"
+                || r.execution_state != "failed" || !r.execution_performed || r.scoring_eligible
                 || !resources_present(&r.observed_resources)
             {
-                return Err("failed run must record that execution occurred and cannot be score eligible".into());
+                return Err("failed run must have non-synthetic execution evidence and cannot be score eligible".into());
             }
         }
         "invalid" => {
