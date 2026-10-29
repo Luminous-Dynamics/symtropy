@@ -54,6 +54,8 @@ pub enum GjkFailureReason {
     ActiveSetIterationLimit,
     /// Zero-dimensional collision queries are not supported.
     InvalidDimension,
+    /// Squared-distance arithmetic is outside the reliable f64 dynamic range.
+    DynamicRangeLimit,
 }
 
 /// Termination outcome for a GJK query.
@@ -104,6 +106,26 @@ fn simplex_is_finite<const D: usize>(simplex: &Simplex<D>) -> bool {
     simplex.iter().all(|point| vector_is_finite(point))
 }
 
+/// Compute a squared norm only when f64 can represent it in the normal range.
+///
+/// Squared-distance underflow is dangerous here: a nonzero separation can turn
+/// into zero and be misclassified as contact. Overflow/subnormal values are
+/// unresolved numerical queries, not geometric evidence.
+fn checked_norm_squared<const D: usize>(
+    vector: &SVector<f64, D>,
+) -> Result<f64, GjkFailureReason> {
+    if !vector_is_finite(vector) {
+        return Err(GjkFailureReason::NonFiniteArithmetic);
+    }
+    let squared = vector.norm_squared();
+    if !squared.is_finite()
+        || (squared < f64::MIN_POSITIVE && vector.iter().any(|component| *component != 0.0))
+    {
+        return Err(GjkFailureReason::DynamicRangeLimit);
+    }
+    Ok(squared)
+}
+
 /// Separate geometric zero tolerance from world-coordinate roundoff.
 ///
 /// The geometric tolerance scales with the bodies and their relative separation,
@@ -119,8 +141,11 @@ fn scale_relative_tolerances_squared<const D: usize>(
 ) -> Result<(f64, f64), GjkFailureReason> {
     let (_, radius_a) = shape_a.bounding_sphere_world();
     let (_, radius_b) = shape_b.bounding_sphere_world();
-    if !radius_a.is_finite() || !radius_b.is_finite() || radius_a < 0.0 || radius_b < 0.0 {
+    if radius_a.is_nan() || radius_b.is_nan() || radius_a < 0.0 || radius_b < 0.0 {
         return Err(GjkFailureReason::NonFiniteInput);
+    }
+    if !radius_a.is_finite() || !radius_b.is_finite() {
+        return Err(GjkFailureReason::DynamicRangeLimit);
     }
 
     let center_delta = center_b - center_a;
@@ -145,10 +170,14 @@ fn scale_relative_tolerances_squared<const D: usize>(
     let coordinate_tolerance = 64.0 * f64::EPSILON * coordinate_scale;
     let geometric_squared = geometric_tolerance * geometric_tolerance;
     let coordinate_squared = coordinate_tolerance * coordinate_tolerance;
-    if geometric_squared.is_finite() && coordinate_squared.is_finite() {
+    if geometric_squared.is_finite()
+        && coordinate_squared.is_finite()
+        && geometric_squared >= f64::MIN_POSITIVE
+        && coordinate_squared >= f64::MIN_POSITIVE
+    {
         Ok((geometric_squared, coordinate_squared))
     } else {
-        Err(GjkFailureReason::NonFiniteArithmetic)
+        Err(GjkFailureReason::DynamicRangeLimit)
     }
 }
 
@@ -218,10 +247,11 @@ pub fn intersects_support_maps<const D: usize>(
     // Initial direction: from A to B. The fallback must scale with the query,
     // rather than making all tiny geometries appear coincident.
     let mut direction = center_b - center_a;
-    if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
-        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
-    }
-    if direction.norm_squared() <= geometric_tolerance_squared {
+    let direction_squared = match checked_norm_squared(&direction) {
+        Ok(squared) => squared,
+        Err(reason) => return indeterminate(simplex, 0, reason),
+    };
+    if direction_squared <= geometric_tolerance_squared {
         direction = SVector::zeros();
         direction[0] = 1.0;
     }
@@ -234,14 +264,17 @@ pub fn intersects_support_maps<const D: usize>(
     direction = -first;
 
     for iteration in 0..MAX_ITERATIONS {
-        let direction_squared = direction.norm_squared();
-        if !direction_squared.is_finite() || !simplex_is_finite(&simplex) {
-            return indeterminate(
-                simplex,
-                iteration,
-                GjkFailureReason::NonFiniteArithmetic,
-            );
-        }
+        let direction_squared = match checked_norm_squared(&direction) {
+            Ok(squared) if simplex_is_finite(&simplex) => squared,
+            Ok(_) => {
+                return indeterminate(
+                    simplex,
+                    iteration,
+                    GjkFailureReason::NonFiniteArithmetic,
+                );
+            }
+            Err(reason) => return indeterminate(simplex, iteration, reason),
+        };
         if direction_squared <= geometric_tolerance_squared {
             return GjkResult {
                 intersecting: true,
@@ -263,7 +296,10 @@ pub fn intersects_support_maps<const D: usize>(
             return indeterminate(simplex, iteration, GjkFailureReason::NonFiniteSupport);
         }
         let support_projection = new_point.dot(&direction);
-        let new_point_squared = new_point.norm_squared();
+        let new_point_squared = match checked_norm_squared(&new_point) {
+            Ok(squared) => squared,
+            Err(reason) => return indeterminate(simplex, iteration, reason),
+        };
         if !support_projection.is_finite() || !new_point_squared.is_finite() {
             return indeterminate(
                 simplex,
@@ -368,10 +404,11 @@ fn intersects_support_maps_with_active_set<const D: usize>(
         };
 
     let mut direction = center_b - center_a;
-    if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
-        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
-    }
-    if direction.norm_squared() <= geometric_tolerance_squared {
+    let direction_squared = match checked_norm_squared(&direction) {
+        Ok(squared) => squared,
+        Err(reason) => return indeterminate(simplex, 0, reason),
+    };
+    if direction_squared <= geometric_tolerance_squared {
         direction = SVector::zeros();
         direction[0] = 1.0;
     }
@@ -384,14 +421,17 @@ fn intersects_support_maps_with_active_set<const D: usize>(
     let mut closest = first;
 
     for iteration in 0..MAX_ND_ITERATIONS {
-        let closest_squared = closest.norm_squared();
-        if !closest_squared.is_finite() || !simplex_is_finite(&simplex) {
-            return indeterminate(
-                simplex,
-                iteration,
-                GjkFailureReason::NonFiniteArithmetic,
-            );
-        }
+        let closest_squared = match checked_norm_squared(&closest) {
+            Ok(squared) if simplex_is_finite(&simplex) => squared,
+            Ok(_) => {
+                return indeterminate(
+                    simplex,
+                    iteration,
+                    GjkFailureReason::NonFiniteArithmetic,
+                );
+            }
+            Err(reason) => return indeterminate(simplex, iteration, reason),
+        };
         if closest_squared <= geometric_tolerance_squared {
             return GjkResult {
                 intersecting: true,
@@ -507,10 +547,8 @@ fn closest_point_on_hull_active_set<const D: usize>(
     while steps < max_steps {
         steps += 1;
         closest = weighted_point(points, &active, &weights)?;
-        let closest_squared = closest.norm_squared();
-        if !closest_squared.is_finite() {
-            return Err(GjkFailureReason::NonFiniteArithmetic);
-        }
+        let closest_squared = checked_norm_squared(&closest)?;
+
         // A feasible convex combination already within the declared contact
         // band is sufficient for the outer GJK query to classify intersection.
         // Continuing KKT pivoting at ~machine-zero can magnify roundoff and
@@ -812,10 +850,11 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
         };
 
     let mut direction = center_b - center_a;
-    if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
-        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
-    }
-    if direction.norm_squared() <= origin_tolerance_squared {
+    let direction_squared = match checked_norm_squared(&direction) {
+        Ok(squared) => squared,
+        Err(reason) => return indeterminate(simplex, 0, reason),
+    };
+    if direction_squared <= origin_tolerance_squared {
         direction = SVector::zeros();
         direction[0] = 1.0;
     }
@@ -828,14 +867,10 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
     let mut closest = first;
 
     for iteration in 0..MAX_ITERATIONS {
-        let closest_squared = closest.norm_squared();
-        if !closest_squared.is_finite() {
-            return indeterminate(
-                simplex,
-                iteration,
-                GjkFailureReason::NonFiniteArithmetic,
-            );
-        }
+        let closest_squared = match checked_norm_squared(&closest) {
+            Ok(squared) => squared,
+            Err(reason) => return indeterminate(simplex, iteration, reason),
+        };
         if closest_squared <= origin_tolerance_squared {
             return GjkResult {
                 intersecting: true,
