@@ -524,6 +524,8 @@ mod tests {
     use super::*;
 
     const CORPUS: &str = include_str!("../fixtures/spring-mass-v1.tsv");
+    const QUALIFICATION_CORPUS: &str =
+        include_str!("../fixtures/spring-mass-qualification-v1.tsv");
 
     #[test]
     fn sha256_known_vector() {
@@ -540,6 +542,27 @@ mod tests {
         assert!(scenarios.iter().any(|s| s.split == "train"));
         assert!(scenarios.iter().any(|s| s.split == "validation"));
         assert!(scenarios.iter().any(|s| s.split == "heldout"));
+    }
+
+    #[test]
+    fn qualification_corpus_has_thirty_heldout_compositions() {
+        let scenarios = parse_corpus(QUALIFICATION_CORPUS).expect("qualification corpus must parse");
+        assert_eq!(scenarios.len(), 42);
+        assert_eq!(scenarios.iter().filter(|s| s.split == "train").count(), 6);
+        assert_eq!(scenarios.iter().filter(|s| s.split == "validation").count(), 6);
+        assert_eq!(scenarios.iter().filter(|s| s.split == "heldout").count(), 30);
+        assert!(scenarios.iter().any(|s| s.difficulty == "easy"));
+        assert!(scenarios.iter().any(|s| s.difficulty == "medium"));
+        assert!(scenarios.iter().any(|s| s.difficulty == "hard"));
+    }
+
+    #[test]
+    fn qualification_corpus_reference_parity_holds() {
+        for scenario in parse_corpus(QUALIFICATION_CORPUS).expect("valid qualification corpus") {
+            let receipt = compare_solvers(&scenario);
+            assert_eq!(receipt.status, "PASS", "scenario {}", scenario.id);
+            assert!(receipt.max_abs_delta <= 1.0e-10);
+        }
     }
 
     #[test]
