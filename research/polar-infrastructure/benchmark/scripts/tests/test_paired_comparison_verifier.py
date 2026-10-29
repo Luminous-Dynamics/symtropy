@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from verify_paired_comparison import build_expected_report, verify_documents  # noqa: E402
 
 HERE = Path(__file__).resolve().parents[1]
-FIXTURE = HERE.parent / "fixtures" / "paired-comparison-v0.4.json"
+FIXTURE = HERE.parent / "fixtures" / "paired-comparison-v0.5.json"
 
 
 class PairedComparisonVerifierTests(unittest.TestCase):
@@ -113,6 +113,60 @@ class PairedComparisonVerifierTests(unittest.TestCase):
         doc = copy.deepcopy(self.fixture)
         doc["trajectory_artifacts"][1]["initial_state_id"] = doc["trajectory_artifacts"][0]["initial_state_id"]
         with self.assertRaisesRegex(ValueError, "one initial_state_id references multiple payload digests"):
+            build_expected_report(doc)
+
+    def test_rejects_information_budget_digest_tampering(self):
+        doc = copy.deepcopy(self.fixture)
+        doc["information_budget_payload"] += " "
+        with self.assertRaisesRegex(ValueError, "information-budget payload SHA-256 mismatch"):
+            build_expected_report(doc)
+
+    def test_rejects_case_with_unequal_information_budget(self):
+        doc = copy.deepcopy(self.fixture)
+        doc["cases"][0]["information_budget_sha256"] = "a" * 64
+        with self.assertRaisesRegex(ValueError, "case uses a different information budget"):
+            build_expected_report(doc)
+
+    def test_rejects_observation_trace_payload_tampering(self):
+        doc = copy.deepcopy(self.fixture)
+        doc["trajectory_artifacts"][0]["observation_trace_payload"] += " "
+        with self.assertRaisesRegex(ValueError, "observation-trace payload SHA-256 mismatch"):
+            build_expected_report(doc)
+
+    def test_rejects_measurement_from_future(self):
+        import hashlib
+        doc = copy.deepcopy(self.fixture)
+        artifact = doc["trajectory_artifacts"][0]
+        trace = json.loads(artifact["observation_trace_payload"])
+        decision = trace["decisions"][0]
+        next(item for item in decision["information"] if item["kind"] == "measurement")["observed_at_s"] = decision["decision_time_s"] + 1
+        artifact["observation_trace_payload"] = json.dumps(trace, separators=(",", ":"))
+        artifact["observation_trace_sha256"] = hashlib.sha256(artifact["observation_trace_payload"].encode("utf-8")).hexdigest()
+        with self.assertRaisesRegex(ValueError, "look-ahead leak: measurement observed after decision time"):
+            build_expected_report(doc)
+
+    def test_rejects_forecast_issued_in_future(self):
+        import hashlib
+        doc = copy.deepcopy(self.fixture)
+        artifact = doc["trajectory_artifacts"][0]
+        trace = json.loads(artifact["observation_trace_payload"])
+        decision = trace["decisions"][0]
+        next(item for item in decision["information"] if item["kind"] == "forecast")["issued_at_s"] = decision["decision_time_s"] + 1
+        artifact["observation_trace_payload"] = json.dumps(trace, separators=(",", ":"))
+        artifact["observation_trace_sha256"] = hashlib.sha256(artifact["observation_trace_payload"].encode("utf-8")).hexdigest()
+        with self.assertRaisesRegex(ValueError, "look-ahead leak: forecast issued after decision time"):
+            build_expected_report(doc)
+
+    def test_rejects_forecast_beyond_declared_horizon(self):
+        import hashlib
+        doc = copy.deepcopy(self.fixture)
+        artifact = doc["trajectory_artifacts"][0]
+        trace = json.loads(artifact["observation_trace_payload"])
+        decision = trace["decisions"][0]
+        next(item for item in decision["information"] if item["kind"] == "forecast")["valid_time_s"] = decision["decision_time_s"] + 301
+        artifact["observation_trace_payload"] = json.dumps(trace, separators=(",", ":"))
+        artifact["observation_trace_sha256"] = hashlib.sha256(artifact["observation_trace_payload"].encode("utf-8")).hexdigest()
+        with self.assertRaisesRegex(ValueError, "forecast valid time exceeds the declared forecast horizon"):
             build_expected_report(doc)
 
 
