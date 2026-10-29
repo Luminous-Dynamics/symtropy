@@ -64,15 +64,27 @@ def _verify_receipt_validated(
 ) -> None:
     # Internal fast path: callers must validate the complete paired input before
     # entering. The public verify_receipt() function never exposes a bypass flag.
-    need(set(receipt) == {
-        "schema_version", "artifact_kind", "evidence_class", "status", "receipt_id", "case_id",
-        "controller_id", "execution_state", "execution_performed", "scoring_eligible", "execution_attestation", "provenance",
-        "paired_input_bindings", "artifact_inventory", "resource_limits", "resource_limits_sha256",
-        "observed_resources", "execution_evidence", "independent_verification", "claim_policy",
-    }, "receipt keys do not match the strict v0.1 contract")
-    need(receipt.get("schema_version") == "0.1.0"
-         and receipt.get("artifact_kind") == "symtropy-controller-execution-receipt",
+    receipt_version = receipt.get("schema_version")
+    need(receipt_version in {"0.1.0", "0.2.0"}
+         and set(receipt) == {
+            "schema_version", "artifact_kind", "evidence_class", "status", "receipt_id", "case_id",
+            "controller_id", "execution_state", "execution_performed", "scoring_eligible", "execution_attestation", "provenance",
+            "paired_input_bindings", "artifact_inventory", "resource_limits", "resource_limits_sha256",
+            "observed_resources", "execution_evidence", "independent_verification", "claim_policy",
+         }, "receipt keys/version do not match the supported strict contract")
+    need(receipt.get("artifact_kind") == "symtropy-controller-execution-receipt",
          "unsupported receipt header")
+    expected_binding_keys = {
+        "trajectory_id", "trajectory_sha256", "initial_state_id",
+        "initial_state_sha256", "controller_artifact_sha256",
+    }
+    if receipt_version == "0.2.0":
+        expected_binding_keys |= {"information_budget_sha256", "observation_trace_sha256"}
+    need(set(receipt.get("paired_input_bindings", {})) == expected_binding_keys,
+         "receipt paired_input_bindings do not match the versioned strict contract")
+    need((receipt_version == "0.1.0" and paired.get("schema_version") == "0.4.0")
+         or (receipt_version == "0.2.0" and paired.get("schema_version") == "0.5.0"),
+         "receipt version is incompatible with paired-input version")
     need(receipt.get("claim_policy") == {
         "synthetic_payloads_are_execution_evidence": False,
         "scoring_requires_completed_execution": True,
