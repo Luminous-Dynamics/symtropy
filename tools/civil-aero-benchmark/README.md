@@ -141,3 +141,13 @@ The CI workflow runs sha256sum -c against the pinned raw files before the parser
 
 The corrected TMR profile-point file and grid archive remain separate source-admission items; do not conflate the geometry polynomial or these experimental datasets with a grid-convergence result.
 
+## Deterministic normalized reference export
+
+The reference_export binary turns the strict parser output into one consistent CSV schema, preserving dataset ID, exact source SHA-256, upstream Git revision, condition zone, and original source line. It leaves non-applicable measurement columns blank and emits source_parser_output_unqualified to make the evidence limit visible. The all-dataset mode produces one header followed by 531 observations; per-dataset modes preserve their own row counts.
+
+Run from this package directory:
+
+`cargo run --locked --bin reference_export -- all > reference-observations.csv`
+
+The workflow checks the all-dataset output is deterministic across two invocations, verifies source-hash/revision binding in known rows, and checks per-dataset row counts. The normalized CSV is derived from the original source; the exact unmodified files remain authoritative and the export is not independent experimental data or an aerodynamic validation result.
+
