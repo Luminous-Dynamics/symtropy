@@ -320,6 +320,10 @@ jobs:
             .execution_receipt_extension.template_path == "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-template-2026.json" and
             .execution_receipt_extension.validator_path == "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs" and
             .execution_receipt_extension.independent_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py" and
+            .execution_receipt_extension.receipt_set_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py" and
+            .execution_receipt_extension.receipt_set_test_path == "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py" and
+            .execution_receipt_extension.resource_limits_digest_path == "resource_limits_sha256" and
+            (.execution_receipt_extension.requirements | length >= 6) and
             .execution_receipt_extension.scoring_eligible_for_template == false and
             .execution_receipt_extension.requires_independent_output_hash_verification == true and
             .execution_receipt_extension.requires_shared_resource_budget_across_arms == true and
