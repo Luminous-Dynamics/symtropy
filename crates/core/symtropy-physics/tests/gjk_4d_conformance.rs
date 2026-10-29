@@ -83,7 +83,7 @@ fn separated_rotated_hyperboxes_in_4d_are_not_a_false_positive() {
 }
 
 #[test]
-fn 4d_gjk_classification_is_translation_invariant() {
+fn gjk_4d_classification_is_translation_invariant() {
     let (a, b) = fixture_boxes();
     let baseline = intersects_support_maps(&a, &b).intersecting;
 
