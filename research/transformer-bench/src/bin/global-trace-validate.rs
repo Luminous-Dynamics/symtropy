@@ -533,6 +533,19 @@ mod tests {
              broken,1.0,2025-01-01T00:00:00Z,2026-01-01T00:00:00Z,UTC,b,2025-04-10T00:00:00Z,2025-07-20T00:00:00Z,0.5,0.25,1.0,USD,2026,REAL\n\
              broken,1.0,2025-01-01T00:00:00Z,2026-01-01T00:00:00Z,UTC,c,2025-07-21T00:00:00Z,2026-01-01T00:00:00Z,0.5,0.25,1.0,USD,2026,REAL\n"
         );
+        let total_declared_seconds: i64 = [
+            ("2025-01-01T00:00:00Z", "2025-04-11T00:00:00Z"),
+            ("2025-04-10T00:00:00Z", "2025-07-20T00:00:00Z"),
+            ("2025-07-21T00:00:00Z", "2026-01-01T00:00:00Z"),
+        ]
+        .iter()
+        .map(|(start, end)| {
+            parse_utc_timestamp(start, "test").unwrap().epoch_seconds
+                .abs_diff(parse_utc_timestamp(end, "test").unwrap().epoch_seconds)
+        })
+        .sum::<u64>() as i64;
+        assert_eq!(total_declared_seconds, 8_760 * 3_600);
+
         let error = parse_trace(&text, "hostile").unwrap_err();
         assert!(error.contains("overlap") || error.contains("gap"));
     }
