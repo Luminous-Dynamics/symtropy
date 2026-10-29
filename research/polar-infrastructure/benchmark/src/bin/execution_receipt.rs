@@ -55,6 +55,10 @@ struct InputBindings {
     initial_state_id: String,
     initial_state_sha256: String,
     controller_artifact_sha256: String,
+    #[serde(default)]
+    information_budget_sha256: Option<String>,
+    #[serde(default)]
+    observation_trace_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
