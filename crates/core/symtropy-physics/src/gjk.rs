@@ -593,7 +593,7 @@ fn closest_point_on_hull_exhaustive<const D: usize>(
         }
 
         for weight in weights.iter_mut() {
-            *weight = weight.max(0.0);
+            *weight = (*weight).max(0.0);
         }
         normalize_weights(&mut weights)?;
 
@@ -609,7 +609,7 @@ fn closest_point_on_hull_exhaustive<const D: usize>(
                 if distance_squared <= origin_tolerance_squared
                     && *best_distance <= origin_tolerance_squared =>
             {
-                mask.count_ones() > best_mask.count_ones()
+                mask.count_ones() > (*best_mask).count_ones()
             }
             Some((_, _, best_distance)) => distance_squared < *best_distance,
         };
