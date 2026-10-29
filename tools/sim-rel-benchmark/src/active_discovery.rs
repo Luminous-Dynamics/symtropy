@@ -207,16 +207,27 @@ fn esc(s:&str)->String{
         c if c.is_control()=>o.push_str(&format!("\\u{:04x}",c as u32)),c=>o.push(c)}}o
 }
 fn str_array(v:&[String])->String{format!("[{}]",v.iter().map(|s|format!("\"{}\"",esc(s))).collect::<Vec<_>>().join(","))}
-fn percentile(v:&[usize],p:f64)->usize{if v.is_empty(){0}else{v[((v.len()-1)as f64*p).ceil() as usize].min(*v.last().unwrap())}}
+fn nearest_rank_percentile(v:&[usize],p:f64)->usize{
+    if v.is_empty(){0}else{
+        let rank=((v.len() as f64*p).ceil() as usize).max(1);
+        v[rank.saturating_sub(1).min(v.len()-1)]
+    }
+}
+fn median(v:&[usize])->f64{
+    if v.is_empty(){0.0}else{
+        let mid=v.len()/2;
+        if v.len()%2==0{v[mid-1] as f64/2.0+v[mid] as f64/2.0}else{v[mid] as f64}
+    }
+}
 fn summary(policy:&str,split:&str,episodes:&[&Episode])->String{
     let n=episodes.len().max(1);let identified=episodes.iter().filter(|e|e.identified).count();
     let correct=episodes.iter().filter(|e|e.correct).count();let ambiguous=episodes.iter().filter(|e|e.ambiguous).count();
     let lost=episodes.iter().filter(|e|!e.truth_retained).count();
     let mut q:Vec<usize>=episodes.iter().map(|e|e.actions.len()).collect();q.sort_unstable();
     let mean=q.iter().sum::<usize>() as f64/n as f64;
-    format!("{{\"policy\":\"{}\",\"split\":\"{}\",\"episodes\":{},\"identified\":{},\"correct_identifications\":{},\"ambiguous\":{},\"truth_lost\":{},\"identification_rate\":{:.8},\"ambiguity_rate\":{:.8},\"truth_retention_rate\":{:.8},\"mean_interventions\":{:.8},\"median_interventions\":{},\"p90_interventions\":{},\"max_interventions\":{}}}",
+    format!("{{\"policy\":\"{}\",\"split\":\"{}\",\"episodes\":{},\"identified\":{},\"correct_identifications\":{},\"ambiguous\":{},\"truth_lost\":{},\"identification_rate\":{:.8},\"ambiguity_rate\":{:.8},\"truth_retention_rate\":{:.8},\"mean_interventions\":{:.8},\"median_interventions\":{:.2},\"p90_interventions\":{},\"max_interventions\":{}}}",
         esc(policy),esc(split),episodes.len(),identified,correct,ambiguous,lost,identified as f64/n as f64,ambiguous as f64/n as f64,
-        (episodes.len()-lost) as f64/n as f64,mean,percentile(&q,0.5),percentile(&q,0.9),q.last().copied().unwrap_or(0))
+        (episodes.len()-lost) as f64/n as f64,mean,median(&q),nearest_rank_percentile(&q,0.9),q.last().copied().unwrap_or(0))
 }
 fn render_episode(e:&Episode)->String{
     format!("{{\"policy\":\"{}\",\"identified\":{},\"correct\":{},\"ambiguous\":{},\"truth_retained\":{},\"intervention_count\":{},\"actions\":[{}],\"remaining_models\":{}}}",
@@ -245,6 +256,16 @@ fn git_head()->Result<String,String>{
     if !o.status.success(){return Err("git rev-parse HEAD failed".into());}
     String::from_utf8(o.stdout).map(|s|s.trim().to_owned()).map_err(|e|format!("git stdout is not UTF-8: {e}"))
 }
+fn require_clean_worktree()->Result<(),String>{
+    let o=Command::new("git").args(["status","--porcelain=v1","--untracked-files=all"]).output()
+        .map_err(|e|format!("git status failed: {e}"))?;
+    if !o.status.success(){return Err("git status --porcelain failed".into());}
+    let status=String::from_utf8(o.stdout).map_err(|e|format!("git status stdout is not UTF-8: {e}"))?;
+    if !status.trim().is_empty(){
+        return Err(format!("working tree is not clean: {}",status.trim().replace('\n',"; ")));
+    }
+    Ok(())
+}
 fn run()->Result<(),Box<dyn std::error::Error>>{
     let(mut problems_path,mut truth_path,mut expected,mut out)=(None,None,None,None);
     let mut args=env::args().skip(1);
@@ -257,6 +278,7 @@ fn run()->Result<(),Box<dyn std::error::Error>>{
     let expected=expected.ok_or("--expected-head required")?;let out=out.ok_or("--out required")?;
     let head=git_head().map_err(|e|format!("identity gate: {e}"))?;
     if head!=expected{return Err(format!("exact-head mismatch: expected {expected}, got {head}").into());}
+    require_clean_worktree().map_err(|e|format!("identity gate: {e}"))?;
     let pb=fs::read(problems_path)?;let tb=fs::read(truth_path)?;
     let ph=sha256_hex(&pb);let th=sha256_hex(&tb);
     let ps=std::str::from_utf8(&pb)?;let ts=std::str::from_utf8(&tb)?;
@@ -309,6 +331,14 @@ mod tests{
             assert!(e.truth_retained,"{} / {}",t.problem.id,p.name());
             if e.identified{assert!(e.correct,"false unique identification for {}",t.problem.id);}
         }}}
+    }
+    #[test]fn percentile_and_median_statistics_follow_explicit_definitions(){
+        let values=vec![1,2,3,4,5,6,7,8,9,10];
+        assert_eq!(nearest_rank_percentile(&values,0.5),5);
+        assert_eq!(nearest_rank_percentile(&values,0.9),9);
+        assert_eq!(median(&[1,2,3,4]),2.5);
+        assert_eq!(median(&[1,2,3]),2.0);
+        assert_eq!(median(&[]),0.0);
     }
     #[test]fn seeded_random_is_reproducible(){
         let t=tasks().remove(0);let a=run_episode(&t.problem,&t.truth,Policy::Random,1234).unwrap();
