@@ -4,14 +4,14 @@ This package is intentionally isolated with its own empty workspace and has **no
 
 ## What it currently proves
 
-The first vertical is a reference-parity smoke test only. It reads the synthetic TSV corpus and simulates each linear spring-mass scenario using two independently implemented force calculations:
+The first vertical is a reference-parity smoke test only. In addition to the 5-case smoke corpus, the qualification candidate corpus contains 42 deterministic cases (6 train, 6 validation, 30 held-out) across three nominal difficulty tiers. It is coverage for the reference simulator, not yet a qualified model-discovery benchmark. It reads the synthetic TSV corpus and simulates each linear spring-mass scenario using two independently implemented force calculations:
 
 1. direct edgewise spring-force accumulation;
 2. a stiffness matrix assembled from the same declared spring graph.
 
 Both use the same declared semi-implicit Euler integrator. The harness checks their complete state traces against a fixed absolute tolerance, validates core scenario fields, rejects duplicate scenario IDs and malformed records, hashes the exact corpus bytes with an in-process SHA-256 implementation, and binds the receipt to the exact checked-out Git HEAD.
 
-**It does not implement a discovery agent, infer a grammar, compare model quality to SOTA, validate physical measurements, or prove Chain Theory.** The two force paths solve the same known equations; parity is an implementation check, not a scientific discovery result. The five-case smoke corpus is not the 30+ case qualification corpus specified by the protocol.
+**It does not implement a discovery agent, infer a grammar, compare model quality to SOTA, validate physical measurements, or prove Chain Theory.** The two force paths solve the same known equations; parity is an implementation check, not a scientific discovery result. The five-case smoke corpus is a quick smoke test. The 42-case qualification candidate corpus meets the protocol's count/split target, but it remains **unqualified until its tests and receipts are executed on the exact head**; it still checks solver parity, not grammar-discovery quality.
 
 ## Commands
 
@@ -25,6 +25,10 @@ cargo run --locked --manifest-path tools/sim-rel-benchmark/Cargo.toml --bin sim-
   --corpus tools/sim-rel-benchmark/fixtures/spring-mass-v1.tsv \
   --expected-head "$EXPECTED_HEAD" \
   --out /tmp/sim-rel-reference-receipt.json
+cargo run --locked --manifest-path tools/sim-rel-benchmark/Cargo.toml --bin sim-rel-reference -- \
+  --corpus tools/sim-rel-benchmark/fixtures/spring-mass-qualification-v1.tsv \
+  --expected-head "$EXPECTED_HEAD" \
+  --out /tmp/sim-rel-qualification-receipt.json
 ```
 
 The executable rejects a mismatch between `--expected-head` and `git rev-parse HEAD`. To bind the run to a known reviewed SHA, set `EXPECTED_HEAD` to that exact SHA rather than deriving it from the checkout.
@@ -52,6 +56,7 @@ The stable JSON receipt contains:
 - schema version and `synthetic_only: true`;
 - exact Git HEAD and SHA-256 of the raw corpus bytes;
 - case count and overall parity disposition;
+- per-case observation stride and sampled-state count;
 - per-case ID, split, step count, recorded state count, maximum absolute state delta, RMSE, and PASS/FAIL.
 
 The receipt contains no timestamps, random seeds, or host-specific paths, so repeat output should be byte-stable for a fixed Git HEAD and corpus bytes. Float values are serialized with 17 digits after the decimal in scientific notation. SHA-256 is implemented locally and includes a known-vector unit test.
