@@ -37,3 +37,7 @@ path = "src/bin/replay_cli.rs"
 [[bench]]
 name = "physics_bench"
 harness = false
+
+[[bench]]
+name = "gjk_nd_bench"
+harness = false
