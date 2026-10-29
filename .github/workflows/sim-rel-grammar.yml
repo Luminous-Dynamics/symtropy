@@ -20,6 +20,8 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  # Build outputs must not appear as untracked files inside the exact-head checkout.
+  CARGO_TARGET_DIR: ${{ runner.temp }}/sim-rel-002-cargo-target
 
 jobs:
   qualify:
