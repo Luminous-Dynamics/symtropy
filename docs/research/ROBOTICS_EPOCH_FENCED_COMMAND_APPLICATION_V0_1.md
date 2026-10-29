@@ -10,7 +10,8 @@ Submission-time fencing alone does not cancel commands that have already entered
 
 `EpochCommandQueue<T>` adds:
 
-- Explicit controller epoch and positive bounded capacity.
+- Explicit controller epoch, positive bounded capacity, and a monotonic deadline attached to every queued command.
+- Rejects commands that are already expired at enqueue and rechecks the deadline immediately before application using the same declared monotonic clock domain.
 - Fail-closed rejection of stale-epoch enqueues, duplicate request IDs while already pending in the same epoch, and queue overflow. Overflow never evicts an older accepted command to make room for a newer one.
 - Monotonic epoch advancement that returns every queued prior-generation command as a cancellation/audit record and empties the queue.
 - A single `apply_next` callback instead of a public pop operation, keeping the same in-process queue exclusively borrowed while the application callback executes.
@@ -28,6 +29,7 @@ For the production adapter, enforce the token again at the native command accept
 ## Benchmark gates
 
 - Stale epoch enqueue acceptance: 0.
+- Expired command application acceptance: 0; a deadline miss that is explicitly rejected is not itself an application-boundary violation.
 - Pending prior-generation commands executed after epoch advance: 0.
 - Queue overflow must return an explicit rejection and must never silently overwrite an accepted command.
 - Epoch authority unavailable/rolled back: no command application may be claimed authorized.
