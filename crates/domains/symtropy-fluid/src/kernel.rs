@@ -163,7 +163,7 @@ impl<const D: usize> Poly6Kernel<D> {
 
 fn gamma_dimension_half_plus_four<const D: usize>() -> Result<f64, SphKernelError> {
     let mut value;
-    if D % 2 == 0 {
+    if D.is_multiple_of(2) {
         // D/2 + 4 is an integer; Gamma(n) = (n - 1)!.
         let argument = D / 2 + 4;
         value = 1.0;
