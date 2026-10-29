@@ -232,6 +232,7 @@ impl ControlOutcomeStatus {
             Self::Executing => matches!(
                 next,
                 Self::Constrained
+                    | Self::Vetoed
                     | Self::Executing
                     | Self::Completed
                     | Self::Failed
