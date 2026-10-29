@@ -393,12 +393,8 @@ mod tests {
 
     #[test]
     fn exact_half_period_ties_preserve_reversal_oddness() {
-        let d = PeriodicBox::new(
-            SVector::zeros(),
-            SVector::from([10.0, 10.0]),
-            [true, true],
-        )
-        .unwrap();
+        let d =
+            PeriodicBox::new(SVector::zeros(), SVector::from([10.0, 10.0]), [true, true]).unwrap();
         let positive = d
             .minimum_image_displacement(&SVector::from([5.0, -5.0]))
             .unwrap();
