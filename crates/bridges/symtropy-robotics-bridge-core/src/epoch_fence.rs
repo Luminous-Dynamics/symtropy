@@ -125,11 +125,8 @@ impl EpochFencedOutcomeLedger {
             });
         }
 
-        if !self.ledgers.contains_key(&next_epoch) {
-            let ledger =
-                ControlOutcomeLedger::new(self.max_records).map_err(EpochFenceError::Ledger)?;
-            self.ledgers.insert(next_epoch, ledger);
-        }
+        // Create the epoch ledger lazily on the first accepted submission.
+        // Repeated empty restarts must not grow memory independently of capacity.
         self.current_epoch = next_epoch;
         Ok(())
     }
@@ -153,6 +150,11 @@ impl EpochFencedOutcomeLedger {
             return Err(EpochFenceError::CapacityReached);
         }
 
+        if !self.ledgers.contains_key(&epoch) {
+            let ledger =
+                ControlOutcomeLedger::new(self.max_records).map_err(EpochFenceError::Ledger)?;
+            self.ledgers.insert(epoch, ledger);
+        }
         let ledger = self
             .ledgers
             .get_mut(&epoch)
@@ -342,6 +344,20 @@ mod tests {
             })
         );
         assert_eq!(fence.current_epoch(), epoch(2));
+    }
+
+    #[test]
+    fn empty_epoch_churn_does_not_grow_epoch_ledgers() {
+        let mut fence = ledger();
+        assert_eq!(fence.ledgers.len(), 1);
+        fence.advance_epoch(epoch(2)).unwrap();
+        fence.advance_epoch(epoch(3)).unwrap();
+        fence.advance_epoch(epoch(4)).unwrap();
+        assert_eq!(fence.ledgers.len(), 1);
+        fence
+            .register_submission(epoch(4), &submission(14, "ticket-D"))
+            .unwrap();
+        assert_eq!(fence.ledgers.len(), 2);
     }
 
     #[test]
