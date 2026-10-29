@@ -123,7 +123,7 @@ pub struct RecoveryTrialRecord {
     pub outcome_integrity_violations: u64,
     /// Old-epoch controller events incorrectly accepted after a generation change.
     pub stale_epoch_event_acceptances: u64,
-    /// Commands/outcomes accepted while the epoch authority was unavailable, corrupt, or rolled back.
+    /// Commands/outcomes accepted with unavailable, corrupt, or rolled-back epoch authority.
     pub epoch_authority_fail_open_acceptances: u64,
     /// Requests left without a resolved terminal or explicitly classified timeout.
     pub unresolved_lifecycles: u64,
