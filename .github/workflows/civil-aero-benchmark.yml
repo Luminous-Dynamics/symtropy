@@ -41,6 +41,17 @@ jobs:
           test "$(wc -l < /tmp/aero-report-a.csv)" -eq 4
           grep -q "screening_only" /tmp/aero-report-a.csv
           sha256sum /tmp/aero-report-a.csv
+      - name: Matched-mission Pareto and exploitation controls
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin pareto -- tools/civil-aero-benchmark/data/candidate_designs.csv > /tmp/aero-pareto-a.csv 2> /tmp/aero-pareto-a.txt
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin pareto -- tools/civil-aero-benchmark/data/candidate_designs.csv > /tmp/aero-pareto-b.csv 2> /tmp/aero-pareto-b.txt
+          cmp /tmp/aero-pareto-a.csv /tmp/aero-pareto-b.csv
+          cmp /tmp/aero-pareto-a.txt /tmp/aero-pareto-b.txt
+          test "$(wc -l < /tmp/aero-pareto-a.csv)" -eq 5
+          grep -q "pareto=balanced_reference;lower_mass_higher_drag;higher_mass_lower_drag" /tmp/aero-pareto-a.txt
+          awk -F, '$1 == "dominated_high_drag" { exit !($9 == "false" && $10 == "false") }' /tmp/aero-pareto-a.csv
+          sha256sum /tmp/aero-pareto-a.csv
       - name: Validate evidence manifest without promoting pending sources
         shell: bash
         run: |
