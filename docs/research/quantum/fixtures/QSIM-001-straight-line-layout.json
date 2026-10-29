@@ -1,0 +1,73 @@
+{
+  "schema_version": "qsim-001/1",
+  "fixture_id": "QSIM-001-STRAIGHT-LINE-LAYOUT-001",
+  "evidence_class": "analytic_fixture",
+  "purpose": "Validate Euclidean source-detector geometry under a controlled displacement. This fixture does not model optical transmission, phase, coupling, photon statistics, or quantum state evolution.",
+  "units": {
+    "length": "m",
+    "coordinate_frame": "right-handed Cartesian XYZ",
+    "frame_origin": "declared laboratory origin",
+    "frame_transform": "identity"
+  },
+  "components": [
+    {
+      "id": "source-001",
+      "kind": "source_reference_point",
+      "position_m": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "detector-001",
+      "kind": "detector_reference_point",
+      "nominal_position_m": [
+        0.2,
+        0,
+        0
+      ]
+    }
+  ],
+  "perturbation": {
+    "id": "detector-y-offset-1mm",
+    "target_component_id": "detector-001",
+    "delta_position_m": [
+      0,
+      0.001,
+      0
+    ],
+    "interpretation": "geometric displacement only; no dynamics or causal optical model is implied"
+  },
+  "analytic_oracle": {
+    "formula": "sqrt(dx*dx + dy*dy + dz*dz)",
+    "nominal_separation_m": 0.2,
+    "perturbed_separation_m": 0.20000249998437522,
+    "separation_change_m": 0.0000024999843752093742,
+    "absolute_tolerance_m": 1e-12,
+    "derivation": "Nominal delta=(0.2,0,0); perturbed delta=(0.2,0.001,0). Expected values derive from the Euclidean norm, independently of any candidate scenario evaluator."
+  },
+  "qualification": {
+    "required_checks": [
+      "reject non-finite coordinates",
+      "reject missing or mismatched coordinate-frame identifiers",
+      "reject length unit mismatch",
+      "reject unknown component ID in perturbation",
+      "compare computed Euclidean distances with analytic oracle within absolute_tolerance_m"
+    ],
+    "prohibited_claims": [
+      "optical path length for a multi-component optical system",
+      "transmission probability",
+      "phase or interference prediction",
+      "photon loss or detector efficiency prediction",
+      "quantum advantage"
+    ]
+  },
+  "provenance": {
+    "model": "analytic Euclidean geometry",
+    "model_version": "1",
+    "calibration_status": "not_applicable_for_geometry_fixture",
+    "raw_hardware_data": false,
+    "note": "Floating-point correctness tolerance is not a claim about physical measurement accuracy."
+  }
+}
