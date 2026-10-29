@@ -515,6 +515,31 @@ mod tests{
         }
     }
 
+    #[test]
+    fn mixture_e_processes_are_supermartingales_on_both_composite_null_grids() {
+        for n in 0..=32 {
+            for x in 0..=n {
+                let upper = log_e_upper(n, x, TARGET_SUCCESS_PROBABILITY).exp();
+                for p in [0.0_f64, 0.25, 0.5, 0.75, 0.95] {
+                    let failure = log_e_upper(n + 1, x, TARGET_SUCCESS_PROBABILITY).exp();
+                    let success = log_e_upper(n + 1, x + 1, TARGET_SUCCESS_PROBABILITY).exp();
+                    let next_expectation = (1.0 - p) * failure + p * success;
+                    assert!(next_expectation <= upper + 1e-9 * upper.abs().max(1.0),
+                        "upper process is not a supermartingale at p={p}, n={n}, x={x}");
+                }
+
+                let lower = log_e_lower(n, x, TARGET_SUCCESS_PROBABILITY).exp();
+                for p in [0.95_f64, 0.975, 1.0] {
+                    let failure = log_e_lower(n + 1, x, TARGET_SUCCESS_PROBABILITY).exp();
+                    let success = log_e_lower(n + 1, x + 1, TARGET_SUCCESS_PROBABILITY).exp();
+                    let next_expectation = (1.0 - p) * failure + p * success;
+                    assert!(next_expectation <= lower + 1e-9 * lower.abs().max(1.0),
+                        "lower process is not a supermartingale at p={p}, n={n}, x={x}");
+                }
+            }
+        }
+    }
+
     fn balanced_sequence(successes: usize, n: usize) -> Vec<bool> {
         let mut previous = 0usize;
         let mut sequence = Vec::with_capacity(n);
