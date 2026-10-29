@@ -45,7 +45,7 @@ class ExecutionReceiptVerifierTests(unittest.TestCase):
     def test_rejects_synthetic_receipt_promoted_to_scoring(self):
         receipt = copy.deepcopy(self.receipt)
         receipt["scoring_eligible"] = True
-        with self.assertRaisesRegex(ValueError, "must remain synthetic and ineligible"):
+        with self.assertRaisesRegex(ValueError, "cannot authorize scoring until signed execution attestation"):
             self.verify(receipt)
 
     def test_rejects_synthetic_receipt_claiming_execution(self):
@@ -66,6 +66,13 @@ class ExecutionReceiptVerifierTests(unittest.TestCase):
         receipt = copy.deepcopy(self.receipt)
         receipt["physical_safety_certified"] = True
         with self.assertRaisesRegex(ValueError, "strict v0.1 contract"):
+            self.verify(receipt)
+
+    def test_rejects_self_asserted_attestation_promotion(self):
+        receipt = copy.deepcopy(self.receipt)
+        receipt["execution_attestation"]["scheme"] = "sigstore_bundle"
+        receipt["execution_attestation"]["status"] = "verified"
+        with self.assertRaisesRegex(ValueError, "signed-attestation gate to remain explicitly unimplemented"):
             self.verify(receipt)
 
     def test_rejects_missing_artifact_role(self):
