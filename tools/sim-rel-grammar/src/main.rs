@@ -460,17 +460,18 @@ fn run_episode(
     }
     // One post-fit falsification probe challenges a provisional singleton, if budget permits.
     let mut audit_action = None;
-    if remaining.len() == 1 && actions.len() < problem.budget && !available.is_empty() {
-        if let Some(a) =
+    if remaining.len() == 1
+        && actions.len() < problem.budget
+        && !available.is_empty()
+        && let Some(a) =
             choose_falsification_action(remaining[0], candidates, &available, policy, &mut rng)
-        {
-            let y = (target_sig >> a) & 1;
-            obs.push((a, y));
-            actions.push(a);
-            available.retain(|v| *v != a);
-            remaining.retain(|sig| ((sig >> a) & 1) == y);
-            audit_action = Some(a);
-        }
+    {
+        let y = (target_sig >> a) & 1;
+        obs.push((a, y));
+        actions.push(a);
+        available.retain(|candidate| *candidate != a);
+        remaining.retain(|sig| ((sig >> a) & 1) == y);
+        audit_action = Some(a);
     }
     let audit_mismatch = audit_action.is_some() && remaining.is_empty();
     let status = episode_status(&remaining, &obs).to_owned();
@@ -606,7 +607,7 @@ fn median(v: &[usize]) -> f64 {
         0.0
     } else {
         let m = v.len() / 2;
-        if v.len() % 2 == 0 {
+        if v.len().is_multiple_of(2) {
             v[m - 1] as f64 / 2.0 + v[m] as f64 / 2.0
         } else {
             v[m] as f64
