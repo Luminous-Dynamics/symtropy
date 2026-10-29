@@ -31,6 +31,7 @@ pub struct MeshAudit {
     pub unique_edge_count: usize,
     pub signed_volume_mm3: f64,
     pub watertight_two_manifold: bool,
+    pub orientation_consistent: bool,
 }
 
 impl CouponSpec {
@@ -169,6 +170,8 @@ impl TriangleMesh {
         }
 
         let mut edge_uses: BTreeMap<(usize, usize), usize> = BTreeMap::new();
+        let mut edge_orientation: BTreeMap<(usize, usize), i32> = BTreeMap::new();
+        let mut vertex_used = vec![false; self.vertices_mm.len()];
         for triangle in &self.triangles {
             let [a, b, c] = *triangle;
             if a >= self.vertices_mm.len()
@@ -184,13 +187,22 @@ impl TriangleMesh {
             {
                 return Err("mesh contains a degenerate triangle".to_owned());
             }
+            vertex_used[a] = true;
+            vertex_used[b] = true;
+            vertex_used[c] = true;
             for (u, v) in [(a, b), (b, c), (c, a)] {
                 let key = if u < v { (u, v) } else { (v, u) };
                 *edge_uses.entry(key).or_insert(0) += 1;
+                *edge_orientation.entry(key).or_insert(0) += if u < v { 1 } else { -1 };
             }
         }
+        if vertex_used.iter().any(|used| !used) {
+            return Err("mesh contains an unreferenced vertex".to_owned());
+        }
 
-        let watertight_two_manifold = edge_uses.values().all(|uses| *uses == 2);
+        let edge_two_manifold = edge_uses.values().all(|uses| *uses == 2);
+        let orientation_consistent = edge_orientation.values().all(|balance| *balance == 0);
+        let watertight_two_manifold = edge_two_manifold && orientation_consistent;
         let signed_volume_mm3 = self.signed_volume_mm3();
         Ok(MeshAudit {
             vertex_count: self.vertices_mm.len(),
@@ -198,6 +210,7 @@ impl TriangleMesh {
             unique_edge_count: edge_uses.len(),
             signed_volume_mm3,
             watertight_two_manifold,
+            orientation_consistent,
         })
     }
 
@@ -269,6 +282,7 @@ impl TriangleMesh {
                 "  \"triangle_count\": {},\n",
                 "  \"unique_edge_count\": {},\n",
                 "  \"watertight_two_manifold\": {},\n",
+                "  \"orientation_consistent\": {},\n",
                 "  \"signed_volume_mm3\": {:.9},\n",
                 "  \"output_file\": \"{}\",\n",
                 "  \"output_sha256\": null,\n",
@@ -289,6 +303,7 @@ impl TriangleMesh {
             audit.triangle_count,
             audit.unique_edge_count,
             audit.watertight_two_manifold,
+            audit.orientation_consistent,
             audit.signed_volume_mm3,
             escaped_output
         ))
@@ -371,6 +386,7 @@ mod tests {
         let mesh = generate_coupon(spec()).expect("coupon mesh");
         let audit = mesh.audit().expect("mesh audit");
         assert!(audit.watertight_two_manifold);
+        assert!(audit.orientation_consistent);
         assert!(audit.signed_volume_mm3 > 0.0);
         assert!(audit.triangle_count > 100);
         assert!(audit.unique_edge_count > 100);
@@ -381,6 +397,7 @@ mod tests {
         assert!(tmr_naca0012_half_thickness(0.0).abs() < 1e-12);
         assert!(tmr_naca0012_half_thickness(1.0).abs() < 1e-12);
         assert!(tmr_naca0012_half_thickness(0.3) > 0.05);
+        assert!((tmr_naca0012_half_thickness(0.29717) - 0.05948603830292508).abs() < 1e-10);
     }
 
     #[test]
