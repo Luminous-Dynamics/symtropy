@@ -65,6 +65,7 @@ jobs:
           jq -e '
             .manifest_schema == "civil-aero-coupon/0.1.0" and
             .watertight_two_manifold == true and
+            .orientation_consistent == true and
             .signed_volume_mm3 > 0 and
             (.output_sha256 | type == "string" and test("^[0-9a-f]{64}$")) and
             .output_sha256_status == "computed_from_exact_stl_bytes" and
