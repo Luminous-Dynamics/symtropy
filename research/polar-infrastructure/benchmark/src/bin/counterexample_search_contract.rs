@@ -139,7 +139,7 @@ fn validate(c: &Value) -> Result<(), String> {
         no(&t["physical_evidence"], &format!("{p}.physical_evidence"))?;
         no(&t["eligible_for_controller_superiority_claim"], &format!("{p}.eligible_for_controller_superiority_claim"))?;
     }
-    for (id,status) in [("analytic_known_answer","contract_only"),("validated_plant_model","not_admitted"),("locked_site_episode_holdout","not_created")] {
+    for (id,status) in [("analytic_known_answer","smoke_implementation_committed"),("validated_plant_model","not_admitted"),("locked_site_episode_holdout","not_created")] {
         let track = tracks.iter().find(|t| t["track_id"].as_str()==Some(id)).ok_or_else(|| format!("missing track {id}"))?;
         if track["status"].as_str() != Some(status) { return Err(format!("track {id} status overstates evidence")); }
     }
