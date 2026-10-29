@@ -340,6 +340,17 @@
     "scoring_eligible_for_template": false,
     "requires_independent_output_hash_verification": true,
     "requires_shared_resource_budget_across_arms": true,
-    "actual_execution_claim": "none"
+    "actual_execution_claim": "none",
+    "receipt_set_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py",
+    "resource_limits_digest_path": "resource_limits_sha256",
+    "requirements": [
+      "complete receipt for every declared controller by trajectory case",
+      "same numeric resource limits and resource-policy digest across arms",
+      "same observation-policy digest across arms",
+      "same plant-model, executable and runtime-environment digests across arms",
+      "same run-configuration digest within each paired trajectory",
+      "independent input and output payload hash verification before scoring"
+    ],
+    "receipt_set_test_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
   }
 }
