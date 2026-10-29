@@ -63,6 +63,12 @@ class ExecutionReceiptSetTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "one receipt per declared"):
             self.verify(self.receipts[:-1])
 
+    def test_rejects_tampered_paired_input_before_receipt_set_validation(self):
+        paired = copy.deepcopy(self.paired)
+        paired["trajectory_artifacts"][0]["trajectory_payload"] += "-tampered"
+        with self.assertRaisesRegex(ValueError, "trajectory payload SHA-256 mismatch"):
+            verify_receipt_set(paired, copy.deepcopy(self.receipts))
+
     def test_rejects_duplicate_receipt(self):
         receipts = copy.deepcopy(self.receipts)
         receipts[-1] = copy.deepcopy(receipts[0])
