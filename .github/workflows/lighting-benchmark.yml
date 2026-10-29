@@ -7,6 +7,9 @@ on:
       - "docs/research/LIGHTING_SYSTEMS_DESIGN_BENCHMARK_V0_1.md"
       - "docs/research/LIGHTING_ROBUST_SEARCH_AND_MEASUREMENT_V0_1.md"
       - "docs/research/RADIANCE_RTRACE_PROFILE_V0_1.md"
+      - "docs/research/RADIANCE_RUNNER_V0_2.md"
+      - "docs/research/RADIANCE_CONVERGENCE_SWEEP_PROTOCOL_V0_1.md"
+      - "docs/research/LIGHTING_BENCHMARK_COMPARISON_PROTOCOL_V0_2.md"
       - "docs/research/lighting-benchmark-case.schema.json"
       - "docs/research/lighting-run-receipt.schema.json"
       - "docs/research/lighting-failure-receipt.schema.json"
@@ -32,6 +35,8 @@ permissions:
 jobs:
   evaluator:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_DIR: target
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.96.0
