@@ -85,3 +85,15 @@ Read ROBUST_PARETO_BENCHMARK_PROTOCOL_V0_1.md for the baseline ladder and resear
 
 The intended differentiator is decision credibility per engineering cost—not a claimed aerodynamic result: useful experiments selected with a fixed expensive-evaluation budget, held-out-condition generalization, honest uncertainty and model discrepancy, independent feasibility checks, and improvement confirmed on manufactured non-flight coupons. No SOTA superiority claim is supported until the same tasks, compute budget, data splits, physical conditions and objective constraints are measured head-to-head.
 
+## Parametric non-flight coupon geometry
+
+The optional Rust binary named coupon_mesh creates a watertight, extruded, ground-test-only NACA 0012 coupon using the corrected scaled sharp-trailing-edge polynomial published by NASA TMR. It uses cosine chordwise spacing and performs an internal edge-use and signed-volume audit before writing ASCII STL. The generated JSON manifest explicitly states that its dimensions are millimetres, its SHA-256 still needs to be computed over the exact output bytes, and the geometry is not approved for flight or any specific wind tunnel.
+
+Example command (100 mm chord / 80 mm span are only CI smoke-test parameters, not recommended dimensions for a real facility):
+
+`cargo run --locked --bin coupon_mesh -- --chord-mm 100 --span-mm 80 --chordwise 32 --spanwise 4 --out out/coupon.stl --manifest out/coupon.json`
+
+For a real non-flight ground-test article, choose chord, span, blockage margin, support and measurement envelope only after the facility owner reviews the actual test section, Reynolds-number target and force-balance limits. The generator cannot assess those constraints. It does not add mounting hardware, internal structure, load qualification or finishing allowance. STL does not encode units, so retain the JSON manifest alongside the geometry and calculate exact-file hashes after export.
+
+The profile convention follows the corrected scaled sharp-TE equation on NASA TMR's validation page, but is generated analytically; it is not copied from the raw reference grid or experimental data. The source bytes and experimental data remain unadmitted until the AERO-DATA-001 gates pass.
+
