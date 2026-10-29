@@ -541,7 +541,7 @@ fn closest_point_on_hull_active_set<const D: usize>(
             }
         }
         let dimension_factor = (D.max(1) as f64).min(1.0e6);
-        let optimality_tolerance = 128.0
+        let optimality_tolerance = 256.0
             * dimension_factor
             * f64::EPSILON
             * dot_roundoff_scale.max(f64::MIN_POSITIVE);
