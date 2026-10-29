@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from verify_paired_comparison import build_expected_report, verify_documents  # noqa: E402
+from verify_paired_comparison import build_expected_report, strict_json_loads, verify_documents  # noqa: E402
 
 HERE = Path(__file__).resolve().parents[1]
 FIXTURE = HERE.parent / "fixtures" / "paired-comparison-v0.5.json"
@@ -23,6 +23,18 @@ class PairedComparisonVerifierTests(unittest.TestCase):
 
     def test_reference_report_is_accepted(self):
         self.verify()
+
+    def test_rejects_duplicate_json_object_keys(self):
+        with self.assertRaisesRegex(ValueError, "duplicate JSON object key"):
+            strict_json_loads('{"status":"synthetic_only","status":"field_validated"}')
+
+    def test_report_is_invariant_to_case_and_artifact_order(self):
+        doc = copy.deepcopy(self.fixture)
+        doc["cases"].reverse()
+        doc["trajectory_artifacts"].reverse()
+        doc["controller_artifacts"].reverse()
+        # The exact score summary must not depend on incidental source-array order.
+        verify_documents(doc, copy.deepcopy(self.reference_report))
 
     def test_rejects_missing_controller_trajectory_row(self):
         doc = copy.deepcopy(self.fixture)
