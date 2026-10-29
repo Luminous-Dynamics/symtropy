@@ -14,6 +14,7 @@
 
 use arrayvec::ArrayVec;
 use nalgebra::SVector;
+use smallvec::SmallVec;
 use symtropy_math::{Point, Shape, Transform};
 
 use crate::support_map::{TransformedShape, WorldSupportMap};
@@ -21,11 +22,12 @@ use crate::support_map::{TransformedShape, WorldSupportMap};
 /// Maximum GJK iterations before giving up.
 const MAX_ITERATIONS: usize = 64;
 
-/// Maximum simplex size: D+1 vertices. Cap at 5 (D=4).
+/// Maximum inline simplex size for the common 2D–4D paths.
 const MAX_SIMPLEX: usize = 5;
 
-/// Stack-allocated simplex type. Zero heap allocation.
-type Simplex<const D: usize> = ArrayVec<SVector<f64, D>, MAX_SIMPLEX>;
+/// Small dimensions stay inline; higher dimensions spill to heap storage.
+/// The logical simplex size is dimension-dependent (up to D+1 vertices).
+type Simplex<const D: usize> = SmallVec<[SVector<f64, D>; MAX_SIMPLEX]>;
 
 /// Why a GJK query did not produce a definitive geometric classification.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -46,6 +48,8 @@ pub enum GjkFailureReason {
     IterationLimit,
     /// World-coordinate roundoff is too large for a safe geometric classification.
     CoordinatePrecisionLimit,
+    /// The dimension-generic active-set reducer failed to make bounded progress.
+    ActiveSetIterationLimit,
 }
 
 /// Termination outcome for a GJK query.
@@ -177,10 +181,13 @@ pub fn intersects_support_maps<const D: usize>(
     shape_a: &dyn WorldSupportMap<D>,
     shape_b: &dyn WorldSupportMap<D>,
 ) -> GjkResult<D> {
-    // Four dimensions need a five-vertex simplex. The 3D tetrahedron reducer
-    // is not a valid facet test for a 4D simplex.
+    // D=4 keeps the audited exhaustive-face reducer. Higher dimensions must
+    // use a true active-set minimizer, not the 3D tetrahedron-specific reducer.
     if D == 4 {
         return intersects_support_maps_with_closest_simplex(shape_a, shape_b);
+    }
+    if D > 4 {
+        return intersects_support_maps_with_active_set(shape_a, shape_b);
     }
 
     let center_a = shape_a.center_world();
@@ -283,6 +290,383 @@ pub fn intersects_support_maps<const D: usize>(
         MAX_ITERATIONS,
         GjkFailureReason::IterationLimit,
     )
+}
+
+/// GJK path for D >= 5 using a dimension-generic minimum-norm active set.
+///
+/// Unlike exhaustive face enumeration (2^m subsets), this maintains a small
+/// active corral and pivots vertices in/out until the convex hull minimum-norm
+/// point satisfies the KKT optimality condition. The active set is at most D+1
+/// points; the temporary candidate set may contain D+2 points. Higher dimensions
+/// spill inline-small containers to heap storage.
+fn intersects_support_maps_with_active_set<const D: usize>(
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
+) -> GjkResult<D> {
+    let center_a = shape_a.center_world();
+    let center_b = shape_b.center_world();
+    let mut simplex = Simplex::<D>::new();
+    if !vector_is_finite(&center_a) || !vector_is_finite(&center_b) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteInput);
+    }
+
+    let (geometric_tolerance_squared, coordinate_tolerance_squared) =
+        match scale_relative_tolerances_squared(shape_a, shape_b, &center_a, &center_b) {
+            Ok(tolerances) => tolerances,
+            Err(reason) => return indeterminate(simplex, 0, reason),
+        };
+
+    let mut direction = center_b - center_a;
+    if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
+    }
+    if direction.norm_squared() <= geometric_tolerance_squared {
+        direction = SVector::zeros();
+        direction[0] = 1.0;
+    }
+
+    let first = minkowski_support(shape_a, shape_b, &direction);
+    if !vector_is_finite(&first) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteSupport);
+    }
+    simplex.push(first);
+    let mut closest = first;
+
+    for iteration in 0..MAX_ITERATIONS {
+        let closest_squared = closest.norm_squared();
+        if !closest_squared.is_finite() || !simplex_is_finite(&simplex) {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
+        if closest_squared <= geometric_tolerance_squared {
+            return GjkResult {
+                intersecting: true,
+                termination: GjkTermination::Intersecting,
+                simplex,
+                iterations: iteration,
+            };
+        }
+        if closest_squared <= coordinate_tolerance_squared {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::CoordinatePrecisionLimit,
+            );
+        }
+
+        direction = -closest;
+        let new_point = minkowski_support(shape_a, shape_b, &direction);
+        if !vector_is_finite(&new_point) {
+            return indeterminate(simplex, iteration, GjkFailureReason::NonFiniteSupport);
+        }
+        let improvement = (new_point - closest).dot(&direction);
+        if !improvement.is_finite() {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
+        let progress_tolerance = 64.0 * f64::EPSILON * closest_squared;
+        if improvement <= progress_tolerance {
+            return GjkResult {
+                intersecting: false,
+                termination: GjkTermination::Separated,
+                simplex,
+                iterations: iteration,
+            };
+        }
+
+        for point in &simplex {
+            let delta_squared = (*point - new_point).norm_squared();
+            if !delta_squared.is_finite() {
+                return indeterminate(
+                    simplex,
+                    iteration,
+                    GjkFailureReason::NonFiniteArithmetic,
+                );
+            }
+            if delta_squared <= coordinate_tolerance_squared {
+                return indeterminate(simplex, iteration, GjkFailureReason::DuplicateSupport);
+            }
+        }
+
+        // A proper D-dimensional GJK simplex has at most D+1 vertices. One
+        // support point is appended before the active set reduces it again.
+        if simplex.len() > D + 1 {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::SimplexCapacityExceeded,
+            );
+        }
+        simplex.push(new_point);
+        match closest_point_on_hull_active_set(&simplex) {
+            Ok((reduced, next_closest)) => {
+                simplex = reduced;
+                closest = next_closest;
+            }
+            Err(reason) => return indeterminate(simplex, iteration, reason),
+        }
+    }
+
+    indeterminate(
+        simplex,
+        MAX_ITERATIONS,
+        GjkFailureReason::IterationLimit,
+    )
+}
+
+/// Find the closest point to the origin in the convex hull of points using
+/// Wolfe-style minimum-norm active-set pivots. No subset enumeration is used.
+fn closest_point_on_hull_active_set<const D: usize>(
+    points: &Simplex<D>,
+) -> Result<(Simplex<D>, SVector<f64, D>), GjkFailureReason> {
+    if points.is_empty() || points.len() > D + 2 {
+        return Err(GjkFailureReason::DegenerateSimplex);
+    }
+
+    let mut active: SmallVec<[usize; MAX_SIMPLEX]> = SmallVec::new();
+    let mut weights: SmallVec<[f64; MAX_SIMPLEX]> = SmallVec::new();
+    active.push(0);
+    weights.push(1.0);
+    let weight_tolerance = 128.0 * f64::EPSILON;
+    let max_steps = 64usize
+        .saturating_mul(points.len().max(1))
+        .saturating_mul(points.len().max(1));
+    let mut steps = 0usize;
+    let mut closest = points[0];
+
+    while steps < max_steps {
+        steps += 1;
+        closest = weighted_point(points, &active, &weights)?;
+        let closest_squared = closest.norm_squared();
+        if !closest_squared.is_finite() {
+            return Err(GjkFailureReason::NonFiniteArithmetic);
+        }
+
+        let mut best_index = 0usize;
+        let mut best_dot = f64::INFINITY;
+        let mut max_dot_magnitude = closest_squared.abs();
+        for (index, point) in points.iter().enumerate() {
+            let dot = closest.dot(point);
+            if !dot.is_finite() {
+                return Err(GjkFailureReason::NonFiniteArithmetic);
+            }
+            max_dot_magnitude = max_dot_magnitude.max(dot.abs());
+            if dot < best_dot {
+                best_dot = dot;
+                best_index = index;
+            }
+        }
+        let optimality_tolerance = 128.0 * f64::EPSILON
+            * max_dot_magnitude.max(f64::MIN_POSITIVE);
+        if closest_squared - best_dot <= optimality_tolerance {
+            let mut reduced = Simplex::<D>::new();
+            for index in active.iter() {
+                reduced.push(points[*index]);
+            }
+            return Ok((reduced, closest));
+        }
+
+        if active.contains(&best_index) || active.len() >= D + 1 {
+            return Err(GjkFailureReason::DegenerateSimplex);
+        }
+        active.push(best_index);
+        weights.push(0.0);
+
+        // Minor cycles: move toward the affine minimizer until it lies in the
+        // active simplex, dropping vertices when their barycentric weight hits 0.
+        let mut minor_converged = false;
+        while steps < max_steps {
+            steps += 1;
+            let affine_weights = affine_minimum_weights(points, &active)
+                .ok_or(GjkFailureReason::DegenerateSimplex)?;
+            if affine_weights
+                .iter()
+                .all(|weight| weight.is_finite() && *weight >= -weight_tolerance)
+            {
+                weights = affine_weights
+                    .iter()
+                    .map(|weight| weight.max(0.0))
+                    .collect();
+                normalize_weights(&mut weights)?;
+                closest = weighted_point(points, &active, &weights)?;
+                minor_converged = true;
+                break;
+            }
+
+            let mut theta = 1.0f64;
+            for index in 0..weights.len() {
+                let affine = affine_weights[index];
+                let current = weights[index];
+                if affine < current {
+                    let denominator = current - affine;
+                    if denominator > 0.0 {
+                        theta = theta.min(current / denominator);
+                    }
+                }
+            }
+            if !theta.is_finite() || !(0.0..=1.0).contains(&theta) {
+                return Err(GjkFailureReason::DegenerateSimplex);
+            }
+            for index in 0..weights.len() {
+                weights[index] += theta * (affine_weights[index] - weights[index]);
+            }
+
+            let mut index = 0usize;
+            while index < weights.len() {
+                if weights[index] <= weight_tolerance && weights.len() > 1 {
+                    weights.remove(index);
+                    active.remove(index);
+                } else {
+                    index += 1;
+                }
+            }
+            normalize_weights(&mut weights)?;
+            if active.is_empty() || active.len() != weights.len() {
+                return Err(GjkFailureReason::DegenerateSimplex);
+            }
+            closest = weighted_point(points, &active, &weights)?;
+        }
+
+        if !minor_converged {
+            return Err(GjkFailureReason::ActiveSetIterationLimit);
+        }
+    }
+
+    let _ = closest;
+    Err(GjkFailureReason::ActiveSetIterationLimit)
+}
+
+fn weighted_point<const D: usize>(
+    points: &Simplex<D>,
+    active: &[usize],
+    weights: &[f64],
+) -> Result<SVector<f64, D>, GjkFailureReason> {
+    if active.is_empty() || active.len() != weights.len() {
+        return Err(GjkFailureReason::DegenerateSimplex);
+    }
+    let mut result = SVector::<f64, D>::zeros();
+    for (index, weight) in active.iter().zip(weights.iter()) {
+        if !weight.is_finite() {
+            return Err(GjkFailureReason::NonFiniteArithmetic);
+        }
+        result += points[*index] * *weight;
+    }
+    if vector_is_finite(&result) {
+        Ok(result)
+    } else {
+        Err(GjkFailureReason::NonFiniteArithmetic)
+    }
+}
+
+fn normalize_weights(
+    weights: &mut SmallVec<[f64; MAX_SIMPLEX]>,
+) -> Result<(), GjkFailureReason> {
+    let sum: f64 = weights.iter().sum();
+    if !sum.is_finite() || sum <= f64::MIN_POSITIVE {
+        return Err(GjkFailureReason::DegenerateSimplex);
+    }
+    for weight in weights.iter_mut() {
+        *weight /= sum;
+    }
+    Ok(())
+}
+
+/// Compute the minimum-norm point in the affine hull of the active vertices.
+/// Returns barycentric weights, or None if the Gram system is numerically singular.
+fn affine_minimum_weights<const D: usize>(
+    points: &Simplex<D>,
+    active: &[usize],
+) -> Option<SmallVec<[f64; MAX_SIMPLEX]>> {
+    if active.is_empty() {
+        return None;
+    }
+    if active.len() == 1 {
+        let mut weights = SmallVec::<[f64; MAX_SIMPLEX]>::new();
+        weights.push(1.0);
+        return Some(weights);
+    }
+
+    let base = points[*active.first()?];
+    let edge_count = active.len() - 1;
+    let mut edges: SmallVec<[SVector<f64, D>; MAX_SIMPLEX]> = SmallVec::new();
+    for index in active.iter().skip(1) {
+        edges.push(points[*index] - base);
+    }
+
+    let mut matrix = vec![0.0f64; edge_count * edge_count];
+    let mut rhs = vec![0.0f64; edge_count];
+    for row in 0..edge_count {
+        rhs[row] = -edges[row].dot(&base);
+        for column in 0..edge_count {
+            matrix[row * edge_count + column] = edges[row].dot(&edges[column]);
+        }
+    }
+    let solution = solve_dense_system(&mut matrix, &mut rhs, edge_count)?;
+    let mut weights = SmallVec::<[f64; MAX_SIMPLEX]>::new();
+    let mut sum = 0.0;
+    for value in solution.iter() {
+        weights.push(*value);
+        sum += *value;
+    }
+    weights.insert(0, 1.0 - sum);
+    if weights.iter().all(|weight| weight.is_finite()) {
+        Some(weights)
+    } else {
+        None
+    }
+}
+
+/// Partial-pivoted dense solve. The matrix size is at most D.
+fn solve_dense_system(matrix: &mut [f64], rhs: &mut [f64], size: usize) -> Option<Vec<f64>> {
+    if size == 0 || matrix.len() != size * size || rhs.len() != size {
+        return None;
+    }
+    let scale = matrix
+        .iter()
+        .fold(0.0f64, |largest, value| largest.max(value.abs()));
+    if !scale.is_finite() || scale == 0.0 {
+        return None;
+    }
+    for column in 0..size {
+        let mut pivot = column;
+        for row in (column + 1)..size {
+            if matrix[row * size + column].abs() > matrix[pivot * size + column].abs() {
+                pivot = row;
+            }
+        }
+        if matrix[pivot * size + column].abs() <= scale * 64.0 * f64::EPSILON {
+            return None;
+        }
+        if pivot != column {
+            for entry in 0..size {
+                matrix.swap(column * size + entry, pivot * size + entry);
+            }
+            rhs.swap(column, pivot);
+        }
+
+        let diagonal = matrix[column * size + column];
+        for entry in column..size {
+            matrix[column * size + entry] /= diagonal;
+        }
+        rhs[column] /= diagonal;
+        for row in 0..size {
+            if row == column {
+                continue;
+            }
+            let factor = matrix[row * size + column];
+            for entry in column..size {
+                matrix[row * size + entry] -= factor * matrix[column * size + entry];
+            }
+            rhs[row] -= factor * rhs[column];
+        }
+    }
+    rhs.iter().all(|value| value.is_finite()).then(|| rhs.to_vec())
 }
 
 /// GJK path for 4D using an exhaustive closest-point reduction over simplex faces.
