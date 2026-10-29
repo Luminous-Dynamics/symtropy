@@ -199,12 +199,8 @@ fn apply_motor_commands_system(
     for (joint, body, parent) in &mut joints {
         if let Ok((brain, _agent, _legacy_drive)) = brains.get(parent.get()) {
             let output = &brain.motor_output;
-            if output.len() > joint.motor_index {
-                let raw_target = output[joint.motor_index] as f64;
-                // Cognitive output is normalized by contract. Fail closed on
-                // non-finite values and clamp finite values to that contract.
-                if raw_target.is_finite() {
-                    let target = raw_target.clamp(-1.0, 1.0);
+            if let Some(&raw_output) = output.get(joint.motor_index) {
+                if let Some(target) = normalized_motor_output(raw_output) {
                     if let Some(rb) = physics.world.body_mut(body.handle) {
                         let mut torque = Bivector::zero();
                         torque.set(0, 1, target * MOTOR_TORQUE_GAIN);
@@ -214,6 +210,14 @@ fn apply_motor_commands_system(
             }
         }
     }
+}
+
+
+/// Validate the LTC output contract before the legacy torque conversion.
+/// Non-finite output yields no command; finite output is bounded to [-1, 1].
+fn normalized_motor_output(output: f32) -> Option<f64> {
+    let value = output as f64;
+    value.is_finite().then(|| value.clamp(-1.0, 1.0))
 }
 
 pub fn spawn_robot(
@@ -800,4 +804,15 @@ mod direct_drive_authority_tests {
         world.entity_mut(robot).insert(LegacyDirectMotorDrive);
         assert!(authorized_roots.iter(&world).any(|entity| entity == robot));
     }
+
+    #[test]
+    fn legacy_motor_output_rejects_non_finite_and_clamps_to_normalized_range() {
+        assert_eq!(normalized_motor_output(f32::NAN), None);
+        assert_eq!(normalized_motor_output(f32::INFINITY), None);
+        assert_eq!(normalized_motor_output(f32::NEG_INFINITY), None);
+        assert_eq!(normalized_motor_output(2.0), Some(1.0));
+        assert_eq!(normalized_motor_output(-2.0), Some(-1.0));
+        assert_eq!(normalized_motor_output(0.25), Some(0.25));
+    }
+
 }
