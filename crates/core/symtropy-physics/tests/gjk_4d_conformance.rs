@@ -195,9 +195,11 @@ fn separated_rotated_hyperboxes_in_4d_are_not_a_false_positive() {
 
     assert!(
         !ab.intersecting,
-        "independent feasibility oracle says separated; GJK returned intersecting after {} iterations",
+        "independent SAT oracle says separated; GJK returned intersecting after {} iterations",
         ab.iterations
     );
+    assert_eq!(ab.termination, symtropy_physics::GjkTermination::Separated);
+    assert_eq!(ba.termination, symtropy_physics::GjkTermination::Separated);
     assert_eq!(
         ab.intersecting,
         ba.intersecting,
@@ -231,10 +233,9 @@ fn overlapping_rotated_hyperboxes_in_4d_are_detected() {
         sat_intersects_4d(&a, &b),
         "independent 4D SAT oracle must confirm the overlap positive control"
     );
-    assert!(
-        intersects_support_maps(&a, &b).intersecting,
-        "both boxes contain the shared origin and therefore must intersect"
-    );
+    let result = intersects_support_maps(&a, &b);
+    assert!(result.intersecting, "both boxes contain the shared origin and therefore must intersect");
+    assert_eq!(result.termination, symtropy_physics::GjkTermination::Intersecting);
 }
 
 #[test]
