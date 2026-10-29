@@ -48,7 +48,7 @@ One record per line, UTF-8 text:
 - Each spring is `node_a,node_b,stiffness`; node indices are zero-based and `node_b=-1` denotes an immovable, zero-displacement anchor.
 - Each force pulse is `node,start_step,end_step,amplitude`; the start is inclusive and the end exclusive. The literal `none` means no springs/pulses (scenarios must still declare at least one spring).
 - `dt` must be finite and positive; steps are bounded to 1..=100000 and observation stride is positive. Parity is checked at every integration step; RMSE is reported only at the declared observation stride (always including the initial and final states).
-- Scenario generation is deterministic and currently noise-free. Noise, repeated trial/participant structures, active interventions, grammar inference, and 30+ held-out qualification coverage are future increments.
+- Scenario generation is deterministic and currently noise-free. Noise, repeated trial/participant structures, active intervention selection, and grammar inference are future increments. The 42-case corpus includes 30 held-out compositions, but it is not qualified until the exact-head tests and receipts have actually run.
 
 ## Receipt fields
 
@@ -59,13 +59,13 @@ The stable JSON receipt contains:
 - per-case observation stride and sampled-state count;
 - per-case ID, split, step count, recorded state count, maximum absolute state delta, RMSE, and PASS/FAIL.
 
-The receipt contains no timestamps, random seeds, or host-specific paths, so repeat output should be byte-stable for a fixed Git HEAD and corpus bytes. Float values are serialized with 17 digits after the decimal in scientific notation. SHA-256 is implemented locally and includes a known-vector unit test.
+The receipt contains no timestamps, random seeds, or host-specific paths, so repeat output should be byte-stable for a fixed Git HEAD and corpus bytes. Float values are serialized with 17 digits after the decimal in scientific notation. SHA-256 is implemented locally and includes a known-vector unit test. Tests also check edge-order invariance, node relabeling invariance, observation-stride accounting, and fail-closed behavior for non-finite simulation results.
 
 ## Next implementation gates
 
 1. Run the isolated format/test/CLI commands on the exact PR head and retain output/digests.
-2. Expand tests for node relabeling, invalid force ranges, numerical stability, and integration tolerances.
-3. Freeze a 30+ case corpus across three difficulty tiers and whole-topology composition holdouts.
+2. Execute the existing relabeling, non-finite-state, endpoint, parity, and corpus-coverage tests; add invalid-force and numerical-stability controls as gaps are found.
+3. Audit whether the 30 held-out compositions provide sufficient topology diversity and whole-family separation; preregister any corpus revision before model comparison.
 4. Add a conventional graph baseline that is not merely a second implementation of the exact same equations.
 5. Add a truly distinct relational-grammar candidate and an explicit shared-grammar rejection path.
 6. Add the same-budget intervention-selection policy comparison.
