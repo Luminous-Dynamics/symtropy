@@ -537,30 +537,39 @@ fn three_dimensional_specialized_path_is_scale_invariant() {
     assert_specialized_scale_contract::<3>();
 }
 
-#[test]
-fn squared_distance_dynamic_range_is_indeterminate_not_false_overlap() {
+fn assert_dynamic_range_contract<const D: usize>() {
     for scale in [1e-200, 1e200] {
-        let a = box_at(SVector::<f64, 5>::zeros(), scale);
-        let b = box_at(
-            SVector::from([3.5 * scale, 0.0, 0.0, 0.0, 0.0]),
-            scale,
-        );
+        let a = box_at(SVector::<f64, D>::zeros(), scale);
+        let separated_center =
+            SVector::from_fn(|axis, _| if axis == 0 { 3.5 * scale } else { 0.0 });
+        let b = box_at(separated_center, scale);
         assert!(
             !aabb_oracle(&a, &b),
-            "independent AABB oracle must keep the extreme-scale pair separated"
+            "D={D}: independent AABB oracle must keep the extreme-scale pair separated"
         );
 
         let result = intersects_support_maps(&a, &b);
         assert_eq!(
             result.termination,
             GjkTermination::Indeterminate(GjkFailureReason::DynamicRangeLimit),
-            "scale {scale:e} must not turn unrepresentable squared distance into a collision"
+            "D={D}, scale {scale:e} must not turn unrepresentable squared distance into a collision"
         );
         assert!(
             !result.intersecting,
-            "dynamic-range uncertainty must not be promoted to intersection"
+            "D={D}: dynamic-range uncertainty must not be promoted to intersection"
         );
     }
+}
+
+#[test]
+fn squared_distance_dynamic_range_is_indeterminate_not_false_overlap() {
+    assert_dynamic_range_contract::<1>();
+    assert_dynamic_range_contract::<2>();
+    assert_dynamic_range_contract::<3>();
+    assert_dynamic_range_contract::<4>();
+    assert_dynamic_range_contract::<5>();
+    assert_dynamic_range_contract::<6>();
+    assert_dynamic_range_contract::<8>();
 }
 
 #[test]
