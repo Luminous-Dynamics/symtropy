@@ -40,6 +40,31 @@ Do not call a controller resilient because a gate has no observed breach when it
 5. **Search study:** compare engineering-authored cases, seeded space-filling sampling, interaction coverage and adaptive falsification at fixed evaluation budgets. Score distinct independently replayed counterexamples per model call, time to first counterexample, replay success, novel failure-family yield and locked-holdout generalization. Search quality and controller quality are separate claims.
 6. **Model validation:** start with one narrow, validated electrical subsystem; test the plant independently before controller rankings. Emit timestamped traces and conservation/solver diagnostics through a versioned simulator adapter. Add multi-site communications partitions only after delay, loss, stale data, fallback and state reconciliation semantics are explicit.
 
+## Causal mechanism attribution, ablation and placebo controls
+
+A paired controller bake-off estimates whether two policies differ on the tested trajectories; it does not, by itself, establish *why* they differ. Claims such as "memory improved recovery," "longer forecasts improved resilience," or "state reconciliation reduced cascading failures" need predeclared interventions that isolate the named mechanism.
+
+For each mechanism claim:
+
+1. Freeze a base policy and an intervention variant that changes exactly one intended mechanism. Bind both artifacts, configuration, model, trajectory, initial state, observation budget and resource limits by digest.
+2. Use paired disturbances and, where the simulator allows it, common random numbers for exogenous randomness. Randomize execution order across controller arms to reduce warm-up, cache and thermal-order artifacts. A controller that receives a different scenario or extra information is a different comparison, not an ablation.
+3. Predeclare the primary outcome and analysis unit. Report paired per-episode/site-year effects and block-resampled uncertainty; minute-level samples within one event are not independent replicates. For each gate, retain breach, invalid and unevaluated outcomes.
+4. Include a **no-op placebo**: activate the ablation pathway while preserving the policy's effective action. In a deterministic plant, output divergence above a declared numerical tolerance is an evaluator defect or unmodeled side effect. In a stochastic plant, compare distributions under preregistered equivalence margins rather than require byte equality of random outcomes.
+5. Include **negative-mechanism controls**: a shuffled or deliberately stale forecast must not be described as a benefit of better prediction; a disabled reconciliation hook must not be credited with reconciliation gains; and a feature whose computation is enabled but whose output is not consumed should not improve outcomes except through explicitly measured resource effects.
+6. Run sensitivity analysis across scenario families, plant/model uncertainty and admissible budget settings. Publish subgroup regressions and failed ablations; do not select the mechanism definition or delete negative results after the locked test.
+
+This advances beyond leaderboard-style comparison toward causal explanation. A 2026 review of causal inference in power and energy systems notes the limited adoption of causal discovery in this domain and recommends adding at least one causally grounded validation step beyond prediction accuracy—such as treatment-effect estimates, placebo/refutation tests and sensitivity analysis—when the question supports those methods. It does not imply that every simulation comparison identifies a real-world causal effect; physical validity and deployment assumptions remain prerequisites.
+
+### Benchmarks for attribution claims
+
+- **Deterministic no-op placebo:** zero unexplained output divergences beyond the declared numerical tolerance.
+- **Paired effect:** publish mean/median and tail-effect differences by scenario family, with a predeclared episode/site-year-level confidence interval and no timestamp-level pseudo-replication.
+- **Placebo calibration:** for stochastic placebo suites, test the false-positive rate at a declared nominal level (for example, 5%) across repeated null interventions; report the interval around that rate instead of claiming it must be exactly 5% in a finite sample.
+- **Mechanism robustness:** require the claimed direction to replicate across predeclared nonstationary families and at least one model-uncertainty perturbation before making a cross-regime mechanism claim.
+- **Resource-adjusted effect:** report the paired effect alongside compute, memory, observation count, forecast horizon, runtime and cost. A positive control effect that disappears under matched budgets is a resource-premium result, not evidence of a better controller architecture.
+
+Research reference: [Causal inference and machine learning in power and energy systems: A review of assumptions, applications and opportunities](https://doi.org/10.1016/j.egyai.2026.100774).
+
 ## Execution receipts and equal-resource comparison
 
 The content-bound v0.4 paired input protects static identities; v0.5 adds the information-budget and per-trajectory observation-trace digests. Neither input proves that an execution occurred or that the measured run stayed within its declared budget. Versioned controller execution receipts separate these claims.
