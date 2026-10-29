@@ -67,7 +67,7 @@ impl RtraceParseError {
             Self::InvalidNumber => "rtrace_output_invalid_number",
             Self::NonFiniteOutputValue => "rtrace_output_non_finite_value",
             Self::NegativeIrradianceChannel => "rtrace_negative_irradiance_channel",
-            Self::CoordinateMismatch => "rtrace_reported_coordinate_mismatch",
+            Self::CoordinateMismatch => "rtrace_echoed_origin_coordinate_mismatch",
             Self::NonFiniteIlluminance => "rtrace_derived_illuminance_non_finite",
         }
     }
