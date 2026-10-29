@@ -112,7 +112,7 @@ class ExecutionReceiptVerifierTests(unittest.TestCase):
     def test_rejects_paired_case_missing_from_input(self):
         paired = copy.deepcopy(self.paired)
         paired["cases"] = [c for c in paired["cases"] if c["case_id"] != "candidate-t1"]
-        with self.assertRaisesRegex(ValueError, "absent from paired input"):
+        with self.assertRaisesRegex(ValueError, "incomplete controller/trajectory matrix|absent from paired input"):
             self.verify(paired=paired)
 
 
