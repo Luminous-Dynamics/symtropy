@@ -119,7 +119,7 @@ pub fn render_rtrace_irradiance_input(
 
 /// Parse all records from `rtrace -h- -I+ -ov -cs 3 -x 1` output.
 ///
-/// The `-opv` output profile is six finite numbers per line: reported point xyz
+/// The `-ov` output profile is six finite numbers per line: echoed input-origin xyz
 /// then RGB irradiance. Lines are mapped to the frozen grid by their exact order,
 /// and coordinates are checked before any sample is returned. Headers, blank
 /// records, reordered points, partial output and extra output are errors. The
