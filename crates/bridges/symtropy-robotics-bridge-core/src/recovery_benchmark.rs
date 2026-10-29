@@ -128,6 +128,10 @@ pub struct RecoveryTrialRecord {
     pub stale_epoch_command_application_acceptances: u64,
     /// Expired commands actually accepted/applied at the application boundary.
     pub expired_command_application_acceptances: u64,
+    /// Native controller reported accepting a command under the wrong controller epoch.
+    pub native_controller_epoch_mismatch_acceptances: u64,
+    /// Native controller reported accepting a command at or after its deadline.
+    pub native_expired_command_acceptances: u64,
     /// Commands/outcomes accepted with unavailable, corrupt, or rolled-back epoch authority.
     pub epoch_authority_fail_open_acceptances: u64,
     /// Requests left without a resolved terminal or explicitly classified timeout.
@@ -189,6 +193,10 @@ pub struct RecoveryArmSummary {
     pub stale_epoch_command_admission_acceptances: u64,
     pub stale_epoch_command_application_acceptances: u64,
     pub expired_command_application_acceptances: u64,
+    /// Native controller reported accepting a command under the wrong controller epoch.
+    pub native_controller_epoch_mismatch_acceptances: u64,
+    /// Native controller reported accepting a command at or after its deadline.
+    pub native_expired_command_acceptances: u64,
     pub epoch_authority_fail_open_acceptances: u64,
     pub unresolved_lifecycles: u64,
     pub controller_deadline_misses: u64,
@@ -351,6 +359,8 @@ pub fn score_recovery_campaign(
             .saturating_add(trial.stale_epoch_command_admission_acceptances)
             .saturating_add(trial.stale_epoch_command_application_acceptances)
             .saturating_add(trial.expired_command_application_acceptances)
+            .saturating_add(trial.native_controller_epoch_mismatch_acceptances)
+            .saturating_add(trial.native_expired_command_acceptances)
             .saturating_add(trial.epoch_authority_fail_open_acceptances)
             .saturating_add(trial.unresolved_lifecycles)
     });
@@ -493,6 +503,16 @@ fn summarize_arm(arm: RecoveryBenchmarkArm, trials: &[&RecoveryTrialRecord]) -> 
             trials
                 .iter()
                 .map(|trial| trial.expired_command_application_acceptances),
+        ),
+        native_controller_epoch_mismatch_acceptances: saturating_count_sum(
+            trials
+                .iter()
+                .map(|trial| trial.native_controller_epoch_mismatch_acceptances),
+        ),
+        native_expired_command_acceptances: saturating_count_sum(
+            trials
+                .iter()
+                .map(|trial| trial.native_expired_command_acceptances),
         ),
         epoch_authority_fail_open_acceptances: saturating_count_sum(
             trials
@@ -651,6 +671,8 @@ mod tests {
             stale_epoch_command_admission_acceptances: 0,
             stale_epoch_command_application_acceptances: 0,
             expired_command_application_acceptances: 0,
+            native_controller_epoch_mismatch_acceptances: 0,
+            native_expired_command_acceptances: 0,
             epoch_authority_fail_open_acceptances: 0,
             unresolved_lifecycles: 0,
             controller_deadline_misses: 0,
@@ -882,6 +904,52 @@ mod tests {
             .find(|arm| arm.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback)
             .unwrap();
         assert_eq!(b3.expired_command_application_acceptances, 1);
+        assert_eq!(b3.controller_deadline_misses, 0);
+    }
+
+    #[test]
+    fn native_epoch_mismatch_acceptance_blocks_hard_gate() {
+        let (expected_scenarios, mut trials) = complete_campaign();
+        let violation = trials
+            .iter_mut()
+            .find(|row| {
+                row.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback && row.class.is_faulted()
+            })
+            .unwrap();
+        violation.native_controller_epoch_mismatch_acceptances = 1;
+
+        let summary = score_recovery_campaign(&expected_scenarios, &trials).unwrap();
+        assert!(!summary.hard_gates_clear);
+        assert_eq!(summary.total_hard_gate_violations, 1);
+        let b3 = summary
+            .per_arm
+            .iter()
+            .find(|arm| arm.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback)
+            .unwrap();
+        assert_eq!(b3.native_controller_epoch_mismatch_acceptances, 1);
+    }
+
+    #[test]
+    fn native_expired_acceptance_blocks_hard_gate() {
+        let (expected_scenarios, mut trials) = complete_campaign();
+        let violation = trials
+            .iter_mut()
+            .find(|row| {
+                row.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback && row.class.is_faulted()
+            })
+            .unwrap();
+        violation.native_expired_command_acceptances = 1;
+        violation.controller_deadline_misses = 0;
+
+        let summary = score_recovery_campaign(&expected_scenarios, &trials).unwrap();
+        assert!(!summary.hard_gates_clear);
+        assert_eq!(summary.total_hard_gate_violations, 1);
+        let b3 = summary
+            .per_arm
+            .iter()
+            .find(|arm| arm.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback)
+            .unwrap();
+        assert_eq!(b3.native_expired_command_acceptances, 1);
         assert_eq!(b3.controller_deadline_misses, 0);
     }
 
