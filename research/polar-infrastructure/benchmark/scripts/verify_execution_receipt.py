@@ -157,6 +157,8 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
         need(isinstance(evidence.get("started_at_utc"), str) and evidence["started_at_utc"]
              and isinstance(evidence.get("ended_at_utc"), str) and evidence["ended_at_utc"],
              "executed receipt requires start and end timestamps")
+        need(isinstance(evidence.get("process_exit_code"), int) and not isinstance(evidence.get("process_exit_code"), bool),
+             "executed receipt requires a process exit code")
         need(all(isinstance(observed[k], int) and not isinstance(observed[k], bool) and observed[k] >= 0
                  for k in RESOURCE_KEYS), "executed receipt needs resource measurements")
         outputs = evidence.get("output_artifacts")
