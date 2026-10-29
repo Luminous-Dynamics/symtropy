@@ -342,11 +342,11 @@ mod tests {
     fn parses_complete_acquisition_bench_csv() {
         let path = env::temp_dir().join("transformer-acquisition-summary-test.csv");
         let path = path.to_string_lossy().into_owned();
-        let mut csv = format!("{}\\n", INPUT_HEADER.join(","));
+        let mut csv = format!("{}\n", INPUT_HEADER.join(","));
         for seed in 1..=2 {
             for policy in POLICIES {
                 csv.push_str(&format!(
-                    "{policy},{seed},3,10,10.5,5,2,50,c-{policy}-{seed}-a;c-{policy}-{seed}-b;c-{policy}-{seed}-c,1.5\\n"
+                    "{policy},{seed},3,10,10.5,5,2,50,c-{policy}-{seed}-a;c-{policy}-{seed}-b;c-{policy}-{seed}-c,1.5\n"
                 ));
             }
         }
