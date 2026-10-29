@@ -326,16 +326,7 @@ mod tests {
                 require_healthy_communication: true,
             },
             envelope: EmbodimentEnvelope {
-                supported_intents: vec![
-                    IntentKind::NavigateTo,
-                    IntentKind::HoldPosition,
-                    IntentKind::Inspect,
-                    IntentKind::Reach,
-                    IntentKind::Manipulate,
-                    IntentKind::Stabilize,
-                    IntentKind::Stop,
-                    IntentKind::RequestAssistance,
-                ],
+                supported_intents: vec![IntentKind::NavigateTo],
                 workspace: AxisAlignedWorkspace {
                     frame_id: "map".into(),
                     min_m: [-5.0, -5.0, 0.0],
@@ -601,4 +592,86 @@ mod tests {
         );
         assert_eq!(boundary.lock().unwrap().controller().calls, vec![113]);
     }
+
+    #[test]
+    fn actuator_battery_and_required_link_faults_never_reach_controller() {
+        let mut boundary = make_boundary();
+
+        let mut actuator_failed = state();
+        actuator_failed.actuator_ready = false;
+        let receipt = dispatch(
+            &mut boundary,
+            "verified-test-credential",
+            1,
+            &request(114, 11.0, [1.0, 1.0, 2.0], 1.0),
+            10.5,
+            &actuator_failed,
+        );
+        assert_eq!(receipt.status, DispatchStatus::Rejected);
+
+        let mut low_battery = state();
+        low_battery.battery_fraction = 0.02;
+        let receipt = dispatch(
+            &mut boundary,
+            "verified-test-credential",
+            2,
+            &request(115, 11.0, [1.0, 1.0, 2.0], 1.0),
+            10.5,
+            &low_battery,
+        );
+        assert_eq!(receipt.status, DispatchStatus::Rejected);
+
+        let mut lost_link = state();
+        lost_link.communication_healthy = false;
+        let receipt = dispatch(
+            &mut boundary,
+            "verified-test-credential",
+            3,
+            &request(116, 11.0, [1.0, 1.0, 2.0], 1.0),
+            10.5,
+            &lost_link,
+        );
+        assert_eq!(receipt.status, DispatchStatus::Rejected);
+        assert!(boundary.controller().calls.is_empty());
+    }
+
+    #[test]
+    fn unsupported_intent_never_reaches_controller() {
+        let mut boundary = make_boundary();
+        let unsupported = ControlRequest {
+            request_id: 117,
+            issued_at_s: 10.0,
+            expires_at_s: 11.0,
+            belief_confidence: 0.9,
+            intent: EmbodiedIntent::HoldPosition,
+        };
+        let receipt = dispatch(
+            &mut boundary,
+            "verified-test-credential",
+            1,
+            &unsupported,
+            10.5,
+            &state(),
+        );
+        assert_eq!(receipt.status, DispatchStatus::Rejected);
+        assert!(receipt.rejections.contains(&DispatchRejection::Runtime(VetoReason::UnsupportedIntent)));
+        assert!(boundary.controller().calls.is_empty());
+    }
+
+    #[test]
+    fn non_finite_pose_never_reaches_controller() {
+        let mut boundary = make_boundary();
+        let invalid = request(118, 11.0, [f64::NAN, 1.0, 2.0], 1.0);
+        let receipt = dispatch(
+            &mut boundary,
+            "verified-test-credential",
+            1,
+            &invalid,
+            10.5,
+            &state(),
+        );
+        assert_eq!(receipt.status, DispatchStatus::Rejected);
+        assert!(boundary.controller().calls.is_empty());
+    }
+
 }
