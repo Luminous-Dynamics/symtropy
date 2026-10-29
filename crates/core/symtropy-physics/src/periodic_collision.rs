@@ -149,10 +149,12 @@ pub fn query_periodic_convex<const D: usize>(
 
     for offset in offsets {
         let translated_bounds = translate_aabb(domain, &bounds_b, offset)?;
+        // The image enumerator outward-rounds integer ranges to avoid
+        // floating-point under-enumeration. That can include a harmless
+        // near-boundary false positive; disjoint AABBs are themselves a
+        // definitive separation and do not require a GJK call.
         if !bounds_a.overlaps(&translated_bounds) {
-            return Err(PeriodicCollisionError::NumericRange {
-                field: "candidate AABB postcondition",
-            });
+            continue;
         }
 
         let shift = domain.offset_vector(offset)?;
@@ -382,6 +384,25 @@ mod tests {
         assert_eq!(result.hits.len(), 1);
         assert_eq!(result.hits[0].image_offset.periods, [-1, 0]);
         assert!(result.contact_set_complete());
+    }
+
+    #[test]
+    fn outward_rounded_aabb_false_positive_is_a_separation_not_error() {
+        let domain = x_periodic_domain();
+        let sphere_a = Sphere::new(Point::origin(), 0.5);
+        let sphere_b = Sphere::new(Point::origin(), 0.5);
+        let transform_a = Transform::from_translation(Point::new([0.5, 0.0]));
+        let transform_b = Transform::from_translation(Point::new([11.50000000000001, 0.0]));
+
+        let result = query_periodic_convex(
+            &domain, &sphere_a, &transform_a, &sphere_b, &transform_b, 8,
+        )
+        .unwrap();
+
+        assert_eq!(result.status(), PeriodicCollisionStatus::Separated);
+        assert_eq!(result.image_candidates, 1);
+        assert_eq!(result.gjk_calls, 0);
+        assert!(result.hits.is_empty());
     }
 
     #[test]
