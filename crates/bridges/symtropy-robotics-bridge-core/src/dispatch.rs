@@ -110,7 +110,7 @@ pub enum DispatchStatus {
 /// Audit receipt for one attempted dispatch. Authentication failures do not
 /// reveal an authenticated session ID. The observation timestamp is absent if
 /// the caller supplied an invalid clock value.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DispatchReceipt {
     pub request_id: u64,
     pub session_id: Option<u64>,
