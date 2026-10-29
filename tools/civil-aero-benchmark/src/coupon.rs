@@ -214,7 +214,7 @@ impl TriangleMesh {
         })
     }
 
-    pub fn signed_volume_mm3(&self) -> f64 {
+    fn signed_volume_mm3(&self) -> f64 {
         self.triangles
             .iter()
             .map(|triangle| {
@@ -401,6 +401,16 @@ mod tests {
     }
 
     #[test]
+    fn rejects_inconsistent_face_winding() {
+        let mut mesh = generate_coupon(spec()).expect("coupon mesh");
+        mesh.triangles[0].swap(1, 2);
+        let audit = mesh.audit().expect("topology can still be inspected");
+        assert!(!audit.orientation_consistent);
+        assert!(!audit.watertight_two_manifold);
+        assert!(mesh.to_ascii_stl("bad_winding").is_err());
+    }
+
+    #[test]
     fn rejects_bad_dimensions_and_resolution() {
         let mut bad = spec();
         bad.chord_mm = f64::NAN;
@@ -420,6 +430,7 @@ mod tests {
             .json_manifest(spec, "coupon.stl")
             .expect("manifest");
         assert!(manifest.contains("\"units\": \"millimetres; STL itself does not encode units\""));
+        assert!(manifest.contains("\"orientation_consistent\": true"));
         assert!(manifest.contains("\"manufacturing_release\": \"not_authorized\""));
         assert!(manifest.contains("\"output_sha256\": null"));
     }
