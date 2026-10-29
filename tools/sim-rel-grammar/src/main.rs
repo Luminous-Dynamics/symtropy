@@ -220,7 +220,7 @@ fn choose_action(survivors: &[u8], available: &[u8], policy: Policy, rng: &mut u
             let mut best = None;
             let mut best_score = 0usize;
             for a in available {
-                let ones = survivors.iter().filter(|sig| (**sig >> a) & 1 == 1).count();
+                let ones = survivors.iter().filter(|sig| (**sig >> *a) & 1 == 1).count();
                 let score = ones.min(survivors.len() - ones);
                 if score > best_score { best_score = score; best = Some(*a); }
             }
