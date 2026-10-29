@@ -23,7 +23,7 @@ pub use control::{
     EmbodiedIntent, IntentValidationError, ManipulationOperation, Pose3,
 };
 pub use dispatch::{
-    AuthenticatedSession, ControllerReceipt, ControllerSink, ControllerSubmitError,
+    AuthenticatedSession, ControllerDispatchContext, ControllerReceipt, ControllerSink, ControllerSubmitError,
     DispatchBoundary, DispatchReceipt, DispatchRejection, DispatchStatus, SessionAuthenticationError,
     SessionAuthenticator,
 };
