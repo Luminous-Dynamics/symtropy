@@ -1,0 +1,5 @@
+scenario_id,weight,interval_id,hours,load_pu,price_per_kwh
+typical_demo,0.7,off_peak,6570,0.25,3.00
+typical_demo,0.7,peak,2190,0.80,4.00
+stress_demo,0.3,off_peak,4380,0.35,3.20
+stress_demo,0.3,peak,4380,1.05,4.20
