@@ -4099,102 +4099,102 @@
     },
     {
       "event_seq": 819,
-      "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "kind": "register_candidate",
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 820,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 821,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 822,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 823,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 824,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 825,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 826,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 827,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 828,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 829,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 830,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 831,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 832,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 833,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 834,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 835,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 836,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 837,
       "kind": "observe_trial",
-      "candidate_id": "lot-gamma"
+      "candidate_id": "lot-delta"
     },
     {
       "event_seq": 838,
-      "kind": "register_candidate",
+      "kind": "observe_trial",
       "candidate_id": "lot-delta"
     },
     {
@@ -4504,171 +4504,76 @@
     },
     {
       "event_seq": 900,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 901,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 902,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 903,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 904,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 905,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 906,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 907,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 908,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 909,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 910,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 911,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 912,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 913,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 914,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 915,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 916,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 917,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 918,
-      "kind": "observe_trial",
-      "candidate_id": "lot-delta"
-    },
-    {
-      "event_seq": 919,
       "kind": "register_candidate",
       "candidate_id": "lot-epsilon"
     },
     {
-      "event_seq": 920,
+      "event_seq": 901,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 921,
+      "event_seq": 902,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 922,
+      "event_seq": 903,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 923,
+      "event_seq": 904,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 924,
+      "event_seq": 905,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 925,
+      "event_seq": 906,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 926,
+      "event_seq": 907,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 927,
+      "event_seq": 908,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 928,
+      "event_seq": 909,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 929,
+      "event_seq": 910,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 930,
+      "event_seq": 911,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 931,
+      "event_seq": 912,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 932,
+      "event_seq": 913,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     },
     {
-      "event_seq": 933,
+      "event_seq": 914,
       "kind": "observe_trial",
       "candidate_id": "lot-beta"
     }
