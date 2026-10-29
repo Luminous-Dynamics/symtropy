@@ -36,6 +36,8 @@ def is_sha(value: Any) -> bool:
 
 
 def verify_artifact_bytes(artifact: dict[str, Any]) -> bool:
+    need(set(artifact) == {"artifact_id", "role", "source_uri", "payload", "sha256"},
+         "artifact keys do not match the strict v0.1 contract")
     need(is_sha(artifact.get("sha256")), f"invalid SHA-256 for artifact {artifact.get('artifact_id')}")
     payload = artifact.get("payload")
     uri = artifact.get("source_uri")
@@ -147,12 +149,21 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
             out_roles.add(artifact.get("role"))
             out_ids.add(artifact.get("artifact_id"))
             verify_artifact_bytes(artifact)
-        need(out_roles == REQUIRED_OUTPUT_ROLES, "executed receipt must bind trace, stdout and stderr outputs")
+        if state == "completed":
+            need(out_roles == REQUIRED_OUTPUT_ROLES, "completed receipt must bind trace, stdout and stderr outputs")
+        else:
+            need(out_roles.issubset(REQUIRED_OUTPUT_ROLES), "failed receipt has an unsupported output role")
         by_role = {a["role"]: a for a in outputs}
-        need(evidence.get("output_trace_sha256") == by_role["output_trace"]["sha256"]
-             and evidence.get("stdout_sha256") == by_role["stdout"]["sha256"]
-             and evidence.get("stderr_sha256") == by_role["stderr"]["sha256"],
-             "output digest index does not match output artifact inventory")
+        indexed_digests = {
+            "output_trace": evidence.get("output_trace_sha256"),
+            "stdout": evidence.get("stdout_sha256"),
+            "stderr": evidence.get("stderr_sha256"),
+        }
+        for role, digest in indexed_digests.items():
+            if role in by_role:
+                need(digest == by_role[role]["sha256"], f"{role} digest index does not match output inventory")
+            else:
+                need(digest is None, f"{role} digest is declared without an output artifact")
         if receipt.get("scoring_eligible"):
             need(state == "completed" and receipt.get("evidence_class") != "synthetic_fixture",
                  "only completed non-synthetic execution can be scoring eligible")
