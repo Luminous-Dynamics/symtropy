@@ -1081,3 +1081,97 @@ mod proptests {
         assert!(!result.intersecting);
     }
 }
+
+
+#[cfg(test)]
+mod termination_status_tests {
+    use super::*;
+    use crate::support_map::WorldSupportMap;
+    use symtropy_math::{Point, Sphere};
+
+    struct NonFiniteSupportMap;
+
+    impl WorldSupportMap<3> for NonFiniteSupportMap {
+        fn support_world(&self, _direction: &SVector<f64, 3>) -> SVector<f64, 3> {
+            SVector::from([f64::NAN, 0.0, 0.0])
+        }
+
+        fn center_world(&self) -> SVector<f64, 3> {
+            SVector::zeros()
+        }
+
+        fn bounding_sphere_world(&self) -> (SVector<f64, 3>, f64) {
+            (SVector::zeros(), 1.0)
+        }
+    }
+
+    #[test]
+    fn converged_separation_has_explicit_separated_status() {
+        let a = Sphere::<3>::unit();
+        let b = Sphere::<3>::unit();
+        let result = intersects(
+            &a,
+            &SVector::zeros(),
+            &b,
+            &SVector::from([4.0, 0.0, 0.0]),
+        );
+
+        assert!(!result.intersecting);
+        assert_eq!(result.termination, GjkTermination::Separated);
+    }
+
+    #[test]
+    fn overlapping_pair_has_explicit_intersecting_status() {
+        let a = Sphere::<3>::unit();
+        let b = Sphere::<3>::unit();
+        let result = intersects(
+            &a,
+            &SVector::zeros(),
+            &b,
+            &SVector::from([1.0, 0.0, 0.0]),
+        );
+
+        assert!(result.intersecting);
+        assert_eq!(result.termination, GjkTermination::Intersecting);
+    }
+
+    #[test]
+    fn non_finite_support_is_indeterminate_not_separated() {
+        let invalid = NonFiniteSupportMap;
+        let ordinary = Sphere::<3>::unit();
+        let result = intersects_support_maps(&invalid, &ordinary);
+
+        assert!(!result.intersecting);
+        assert_eq!(
+            result.termination,
+            GjkTermination::Indeterminate(GjkFailureReason::NonFiniteSupport)
+        );
+    }
+
+    #[test]
+    fn non_finite_query_center_is_indeterminate() {
+        struct NonFiniteCenterMap;
+        impl WorldSupportMap<3> for NonFiniteCenterMap {
+            fn support_world(&self, direction: &SVector<f64, 3>) -> SVector<f64, 3> {
+                *direction
+            }
+
+            fn center_world(&self) -> SVector<f64, 3> {
+                SVector::from([0.0, f64::INFINITY, 0.0])
+            }
+
+            fn bounding_sphere_world(&self) -> (SVector<f64, 3>, f64) {
+                (self.center_world(), 1.0)
+            }
+        }
+
+        let invalid = NonFiniteCenterMap;
+        let ordinary = Sphere::<3>::unit();
+        let result = intersects_support_maps(&invalid, &ordinary);
+
+        assert_eq!(
+            result.termination,
+            GjkTermination::Indeterminate(GjkFailureReason::NonFiniteInput)
+        );
+    }
+}
