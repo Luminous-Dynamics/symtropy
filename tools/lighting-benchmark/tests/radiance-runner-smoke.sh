@@ -72,7 +72,7 @@ run() {
     --output-dir "$TEST_ROOT/out-$name"
 }
 run success "$TEST_ROOT/rtrace-ok" "$RTRACE_SHA" "$PARSER" "$PARSER_SHA" "$TEST_ROOT/case/config.json" 5
-jq -e '.run_status=="process_parse_ok" and .scoring_eligible==false and .service_energy_metric_wh_per_compliant_task_hour==null and .process.invocation_attempted==true and .artifacts.normalized_samples_sha256!=null' "$TEST_ROOT/out-success/run-report.json" >/dev/null || fail "success report contract"
+jq -e '.run_status=="process_parse_ok" and .scoring_eligible==false and .service_energy_metric_wh_per_compliant_task_hour==null and .process.invocation_attempted==true and .artifacts.normalized_samples_sha256!=null and .execution.command_argv_sha256!=null and .execution.ray_input_sha256!=null and .execution.expected_grid_tsv_sha256!=null' "$TEST_ROOT/out-success/run-report.json" >/dev/null || fail "success report contract"
 [[ $(jq 'length' "$TEST_ROOT/out-success/samples.json") -eq 2 ]] || fail "two normalized samples expected"
 [[ $(grep -c -- '-I+' "$TEST_ROOT/out-success/command-argv.txt") -eq 1 ]] || fail "explicit irradiance flag not recorded"
 [[ $(grep -c -- '-ov' "$TEST_ROOT/out-success/command-argv.txt") -eq 1 ]] || fail "origin+value output profile not recorded"
@@ -129,4 +129,18 @@ pass "duplicate solver settings rejected before invocation"
 if run bad-parser-pin "$TEST_ROOT/rtrace-ok" "$RTRACE_SHA" "$PARSER" "$(printf '0%.0s' {1..64})" "$TEST_ROOT/case/config.json" 5; then fail "wrong parser digest unexpectedly accepted"; fi
 jq -e '.failure_code=="parser_digest_mismatch" and .process.invocation_attempted==false' "$TEST_ROOT/out-bad-parser-pin/run-report.json" >/dev/null || fail "parser digest report"
 pass "parser digest mismatch rejected before invocation"
+
+cat > "$TEST_ROOT/rtrace-mutable" <<'RTRACE'
+#!/usr/bin/env bash
+printf 'source replaced during invocation\n' > __MUTABLE_PATH__
+while read -r x y z dx dy dz; do printf '%s %s %s 1 1 1\n' "$x" "$y" "$z"; done
+RTRACE
+sed -i "s|__MUTABLE_PATH__|$TEST_ROOT/rtrace-mutable|" "$TEST_ROOT/rtrace-mutable"
+chmod 700 "$TEST_ROOT/rtrace-mutable"
+MUTABLE_SHA=$(sha256sum "$TEST_ROOT/rtrace-mutable"|awk '{print $1}')
+run mutation "$TEST_ROOT/rtrace-mutable" "$MUTABLE_SHA" "$PARSER" "$PARSER_SHA" "$TEST_ROOT/case/config.json" 5
+jq -e --arg pin "$MUTABLE_SHA" '.run_status=="process_parse_ok" and .tools.staged_rtrace_sha256==$pin and .scoring_eligible==false and .execution.ray_input_sha256!=null' "$TEST_ROOT/out-mutation/run-report.json" >/dev/null || fail "staged source mutation report"
+[[ "$(sha256sum "$TEST_ROOT/rtrace-mutable"|awk '{print $1}')" != "$MUTABLE_SHA" ]] || fail "mock did not replace original source path"
+pass "execution uses the hashed staged copy despite source-path replacement"
+
 echo "radiance-runner smoke: all scenarios passed; mocks only, no optical accuracy claim"
