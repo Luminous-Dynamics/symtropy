@@ -35,6 +35,8 @@ Dimensions 3 and 4 are specialized-path controls. Dimensions 5, 6, 8, and 16 exe
 
 The field is not waiting for "GJK works in N-D" as a new theorem. The differentiating research opportunity is a dimension-generic, numerically fail-closed implementation with independent oracles, scale/degeneracy coverage, explicit uncertainty, and honest cost curves beyond 3D.
 
+A candidate follow-up is to compare the active-set minimum-norm solver with first-order and update-and-stabilize alternatives under the same work–precision gates; see [PHYS-GJK-ND-OPT-001](https://github.com/Luminous-Dynamics/symtropy/issues/2869). An update-and-stabilize framework for minimum-norm points combines first-order updates and active-set stabilization and reports promising preliminary results, but adapting it to the GJK closest-simplex subproblem requires independent implementation and validation: [Mathematical Programming (2024)](https://link.springer.com/article/10.1007/s10107-024-02077-0).
+
 - [De Loera, Haddock and Rademacher, *The Minimum Euclidean-Norm Point in a Convex Polytope: Wolfe's Combinatorial Algorithm is Exponential*](https://doi.org/10.1137/18M1221072): a related minimum-norm active-set method has an exponential worst case. Symtropy's implementation is Wolfe-style, not proven polynomial; avoiding an explicit 2^m subset loop is not itself a complexity guarantee. Measure pivot counts, indeterminate tails and runtime growth by D, and consider a fallback/iteration policy for pathological dimensions.
 
 ## Claim ceiling
