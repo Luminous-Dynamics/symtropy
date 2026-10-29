@@ -1,0 +1,201 @@
+{
+  "schema_version": "0.1",
+  "status": "preregistration",
+  "title": "Symthaea-Symtropy paired robotics recovery scenarios",
+  "embodiment": "differential_drive_simulation_only",
+  "arms": [
+    "B0_native_controller_reference",
+    "B1_symthaea_intent_native_controller",
+    "B2_guarded_adapter",
+    "B3_guarded_outcome_feedback"
+  ],
+  "nominal_seeds": [
+    11,
+    23,
+    37,
+    41,
+    53,
+    67,
+    79,
+    83,
+    97,
+    101,
+    113,
+    127,
+    131,
+    149,
+    157,
+    163,
+    173,
+    179,
+    191,
+    199,
+    211,
+    223,
+    227,
+    239,
+    251,
+    263,
+    269,
+    277,
+    281,
+    293
+  ],
+  "fault_seeds": [
+    11,
+    23,
+    37,
+    41,
+    53,
+    67,
+    79,
+    83,
+    97,
+    101,
+    113,
+    127,
+    131,
+    149,
+    157,
+    163,
+    173,
+    179,
+    191,
+    199,
+    211,
+    223,
+    227,
+    239,
+    251,
+    263,
+    269,
+    277,
+    281,
+    293
+  ],
+  "expansion": {
+    "scenario_id": "fault:<family_id>:<severity_id>:seed:<seed>",
+    "fault_case_count": "6 families x 3 severities x 30 seeds = 540",
+    "nominal_case_count": 30,
+    "unique_scenario_count": 570,
+    "arm_episode_record_count": 2280,
+    "pairing_key": [
+      "scenario_id",
+      "seed"
+    ],
+    "determinism_requirement": "Each key yields the same initial state, task, and exogenous fault schedule for every arm."
+  },
+  "fault_families": [
+    {
+      "id": "observation_freshness_loss",
+      "purpose": "Exercise stale and unavailable observations against declared freshness limits.",
+      "severities": [
+        "below_or_at_freshness_boundary",
+        "past_freshness_boundary",
+        "sustained_missing_observations"
+      ],
+      "profile_required_fields": [
+        "freshness_limit",
+        "age_at_injection",
+        "missing_duration",
+        "sensor_stream_id",
+        "injection_tick"
+      ],
+      "expected_boundary": "Expired or missing required evidence must not be treated as fresh; behavior depends on frozen policy and should fail closed when required evidence cannot be established."
+    },
+    {
+      "id": "command_path_delay_loss",
+      "purpose": "Exercise delayed and dropped requests/acknowledgements at the controller boundary.",
+      "severities": [
+        "one_controller_period",
+        "two_controller_periods",
+        "four_controller_periods_or_drop"
+      ],
+      "profile_required_fields": [
+        "controller_update_period_ns",
+        "delay_ns",
+        "drop_pattern",
+        "request_deadline_ns",
+        "injection_tick"
+      ],
+      "expected_boundary": "Lease is rechecked at actual enqueue/application; expired requests are not submitted."
+    },
+    {
+      "id": "actuator_degradation",
+      "purpose": "Exercise recovery with reduced, bounded native actuator authority while retaining the local safety controller.",
+      "severities": [
+        "ten_percent_authority_loss",
+        "thirty_percent_authority_loss",
+        "fifty_percent_authority_loss"
+      ],
+      "profile_required_fields": [
+        "affected_actuator_or_axis",
+        "nominal_limit",
+        "degraded_limit",
+        "ramp_profile",
+        "injection_tick"
+      ],
+      "expected_boundary": "Never compensate for degradation by bypassing native limits; unsafe actuation is a hard failure."
+    },
+    {
+      "id": "environment_goal_change",
+      "purpose": "Exercise replanning after an obstacle or feasible-goal change.",
+      "severities": [
+        "early_episode_change",
+        "mid_episode_change",
+        "late_episode_change"
+      ],
+      "profile_required_fields": [
+        "map_or_goal_before_digest",
+        "map_or_goal_after_digest",
+        "change_tick",
+        "observation_visibility_tick"
+      ],
+      "expected_boundary": "The cognitive policy may not consume information before its declared visibility tick; path feasibility remains a separate planner/controller responsibility."
+    },
+    {
+      "id": "outcome_stream_disorder",
+      "purpose": "Exercise lifecycle integrity under duplicate, delayed, reordered, and post-terminal events.",
+      "severities": [
+        "single_duplicate_or_delay",
+        "reordered_nonterminal_events",
+        "terminal_replay_or_ticket_mismatch"
+      ],
+      "profile_required_fields": [
+        "event_ids",
+        "ticket_ids",
+        "delivery_order",
+        "original_tick",
+        "delivery_tick",
+        "terminal_state"
+      ],
+      "expected_boundary": "Wrong-ticket, invalid ordering, and post-terminal events must be rejected without mutating last accepted state."
+    },
+    {
+      "id": "controller_restart_session_rekey",
+      "purpose": "Exercise restart fencing and old event rejection around a controller/session epoch change.",
+      "severities": [
+        "restart_before_first_outcome",
+        "restart_while_executing",
+        "restart_after_terminal"
+      ],
+      "profile_required_fields": [
+        "controller_epoch_before",
+        "controller_epoch_after",
+        "session_before",
+        "session_after",
+        "restart_tick",
+        "ticket_before",
+        "late_old_event_schedule"
+      ],
+      "expected_boundary": "Old-session/old-ticket outcomes must not be treated as current after restart. If durable epoch/rekey support is absent, report capability not implemented and fail the corresponding gate."
+    }
+  ],
+  "preregistration_rules": [
+    "Freeze numeric profile values and all injection ticks before scored runs.",
+    "Do not silently replace seeds, omit failures, or change scenario expansion after viewing arm results.",
+    "The same scenario identity is paired across all arms.",
+    "Any simulator crash, timeout, unresolved lifecycle, or missing raw record is explicitly represented.",
+    "Mock/simulation results do not qualify HIL or physical safety."
+  ]
+}
