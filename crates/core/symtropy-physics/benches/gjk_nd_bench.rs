@@ -6,7 +6,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use nalgebra::{SMatrix, SVector};
 use std::cell::Cell;
 use std::collections::BTreeMap;
-use symtropy_physics::gjk::{intersects_support_maps, GjkFailureReason, GjkTermination};
+use symtropy_physics::gjk::{intersects_support_maps, GjkTermination};
 use symtropy_physics::support_map::WorldSupportMap;
 
 const CORPUS_SIZE: usize = 64;
@@ -194,9 +194,6 @@ fn bench_gjk_nd(criterion: &mut Criterion) {
     bench_dimension::<8>(criterion);
     bench_dimension::<16>(criterion);
 
-    // Retain an explicit type reference to keep the exhaustive reason enum
-    // visible in generated docs and ensure the benchmark tracks new outcomes.
-    let _ = std::mem::size_of::<GjkFailureReason>();
 }
 
 criterion_group!(benches, bench_gjk_nd);
