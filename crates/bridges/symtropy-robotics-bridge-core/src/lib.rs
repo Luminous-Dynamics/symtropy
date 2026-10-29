@@ -9,13 +9,14 @@ pub mod control;
 pub mod differential_drive;
 pub mod dispatch;
 pub mod epoch_authority;
+pub mod epoch_command_queue;
 pub mod epoch_fence;
 pub mod epoch_fenced_sink;
-pub mod outcome_ledger;
-pub mod recovery_benchmark;
 pub mod haptic;
 pub mod motor;
+pub mod outcome_ledger;
 pub mod platform;
+pub mod recovery_benchmark;
 pub mod safety;
 pub mod sequence_guard;
 
@@ -32,29 +33,30 @@ pub use differential_drive::{
     CommandProvenance, DifferentialDriveAdapter, DifferentialDriveClock, DifferentialDriveCommand,
     DifferentialDriveConfigError, DifferentialDriveLocalController,
 };
-pub use epoch_authority::{
-    ControllerEpochAuthority, ControllerEpochStore, EpochAuthorityError,
-    EpochAuthorityStoreError,
-};
-pub use epoch_fenced_sink::{
-    EpochFencedControllerReceipt, EpochFencedControllerSink, EpochFencedSubmitError,
-};
-pub use epoch_fence::{
-    ControllerEpoch, EpochFenceError, EpochFencedOutcomeLedger,
-};
 pub use dispatch::{
     AuthenticatedSession, ControllerDispatchContext, ControllerReceipt, ControllerSink,
     ControllerSubmitError, DispatchBoundary, DispatchReceipt, DispatchRejection, DispatchStatus,
     SessionAuthenticationError, SessionAuthenticator,
 };
+pub use epoch_authority::{
+    ControllerEpochAuthority, ControllerEpochStore, EpochAuthorityError, EpochAuthorityStoreError,
+};
+pub use epoch_command_queue::{
+    EpochCommandApplication, EpochCommandQueue, EpochCommandQueueError, EpochCommandQueueStats,
+    EpochQueuedCommand,
+};
+pub use epoch_fence::{ControllerEpoch, EpochFenceError, EpochFencedOutcomeLedger};
+pub use epoch_fenced_sink::{
+    EpochFencedControllerReceipt, EpochFencedControllerSink, EpochFencedSubmitError,
+};
 pub use haptic::{HapticAttestation, HapticOracle};
+pub use motor::{MotorPlanner, UniformGainPlanner};
 pub use outcome_ledger::{ControlOutcomeLedger, OutcomeIngestReceipt, OutcomeLedgerError};
+pub use platform::PlatformType;
 pub use recovery_benchmark::{
     ExpectedRecoveryScenario, PairedRecoveryComparison, RecoveryArmSummary, RecoveryBenchmarkArm,
     RecoveryBenchmarkError, RecoveryBenchmarkSummary, RecoveryScenarioClass, RecoveryTrialRecord,
     score_recovery_campaign,
 };
-pub use motor::{MotorPlanner, UniformGainPlanner};
-pub use platform::PlatformType;
 pub use safety::JointSafetyAuthority;
 pub use sequence_guard::{RequestSequenceGuard, SequenceGuardError, SequencedRuntimeAssurance};

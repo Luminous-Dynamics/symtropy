@@ -14,7 +14,7 @@
 //! needs an external transactional authority and is not implemented here.
 
 use crate::assurance::{RuntimeSafetyState, VetoReason};
-use crate::control::{ControlRequest, EmbodiedIntent};
+use crate::control::ControlRequest;
 use crate::sequence_guard::{SequenceGuardError, SequencedRuntimeAssurance};
 use serde::{Deserialize, Serialize};
 
@@ -301,7 +301,7 @@ mod tests {
         AxisAlignedWorkspace, EmbodimentEnvelope, IntentKind, RuntimeAssuranceGate,
         RuntimeAssurancePolicy,
     };
-    use crate::control::Pose3;
+    use crate::control::{EmbodiedIntent, Pose3};
     use crate::sequence_guard::RequestSequenceGuard;
     use std::sync::{Arc, Mutex};
 

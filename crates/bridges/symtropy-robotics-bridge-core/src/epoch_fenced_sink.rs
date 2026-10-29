@@ -176,7 +176,9 @@ mod tests {
         };
         let mut fenced = EpochFencedControllerSink::new(epoch(4), sink);
         let request = request(11);
-        let receipt = fenced.submit_at_epoch(epoch(4), &context(&request)).unwrap();
+        let receipt = fenced
+            .submit_at_epoch(epoch(4), &context(&request))
+            .unwrap();
 
         assert_eq!(receipt.epoch, epoch(4));
         assert_eq!(receipt.receipt.ticket, "native-ticket-reused");

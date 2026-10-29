@@ -108,10 +108,7 @@ pub struct ControllerEpochAuthority<S> {
 }
 
 impl<S: ControllerEpochStore> ControllerEpochAuthority<S> {
-    pub fn new(
-        controller_id: impl Into<String>,
-        store: S,
-    ) -> Result<Self, EpochAuthorityError> {
+    pub fn new(controller_id: impl Into<String>, store: S) -> Result<Self, EpochAuthorityError> {
         let controller_id = controller_id.into();
         if controller_id.trim().is_empty() {
             return Err(EpochAuthorityError::EmptyControllerId);
@@ -144,10 +141,11 @@ impl<S: ControllerEpochStore> ControllerEpochAuthority<S> {
             .generation()
             .checked_add(1)
             .ok_or(EpochAuthorityError::GenerationOverflow)?;
-        let next = ControllerEpoch::new(expected_next)
-            .map_err(|_| EpochAuthorityError::InvalidStoredGeneration {
+        let next = ControllerEpoch::new(expected_next).map_err(|_| {
+            EpochAuthorityError::InvalidStoredGeneration {
                 generation: expected_next,
-            })?;
+            }
+        })?;
 
         let returned = self
             .store
@@ -175,10 +173,7 @@ impl<S: ControllerEpochStore> ControllerEpochAuthority<S> {
     ///
     /// This is not a substitute for the command sink checking the fencing token
     /// atomically when it accepts a command.
-    pub fn ensure_current(
-        &self,
-        supplied: ControllerEpoch,
-    ) -> Result<(), EpochAuthorityError> {
+    pub fn ensure_current(&self, supplied: ControllerEpoch) -> Result<(), EpochAuthorityError> {
         let current = self.read_valid_generation()?;
         if current != supplied {
             return Err(EpochAuthorityError::StaleEpoch {
@@ -198,9 +193,8 @@ impl<S: ControllerEpochStore> ControllerEpochAuthority<S> {
             .store
             .read_generation(&self.controller_id)
             .map_err(EpochAuthorityError::Store)?;
-        let epoch = ControllerEpoch::new(generation).map_err(|_| {
-            EpochAuthorityError::InvalidStoredGeneration { generation }
-        })?;
+        let epoch = ControllerEpoch::new(generation)
+            .map_err(|_| EpochAuthorityError::InvalidStoredGeneration { generation })?;
         self.observe_high_water(generation)?;
         Ok(epoch)
     }
@@ -313,9 +307,9 @@ mod tests {
                     observed_generation: observed,
                 });
             }
-            let next = expected_generation.checked_add(1).ok_or(
-                EpochAuthorityStoreError::CorruptState,
-            )?;
+            let next = expected_generation
+                .checked_add(1)
+                .ok_or(EpochAuthorityStoreError::CorruptState)?;
             generations.insert(controller_id.to_owned(), next);
 
             if self.supersede_after_advance.swap(false, Ordering::SeqCst) {
@@ -331,9 +325,7 @@ mod tests {
         }
     }
 
-    fn authority(
-        store: Arc<TestStore>,
-    ) -> ControllerEpochAuthority<Arc<TestStore>> {
+    fn authority(store: Arc<TestStore>) -> ControllerEpochAuthority<Arc<TestStore>> {
         ControllerEpochAuthority::new("left-wheel-controller", store).unwrap()
     }
 
@@ -487,7 +479,10 @@ mod tests {
         let verifier = authority(store);
         let current = verifier.current_epoch().unwrap();
         assert_eq!(
-            claimed.iter().filter(|candidate| **candidate == current).count(),
+            claimed
+                .iter()
+                .filter(|candidate| **candidate == current)
+                .count(),
             1
         );
         for candidate in claimed {
@@ -550,10 +545,13 @@ mod tests {
         let second_epoch = second.claim_next_epoch().unwrap();
         assert_eq!(first_epoch, epoch(11));
         assert_eq!(second_epoch, epoch(12));
-        assert_eq!(first.ensure_current(first_epoch), Err(EpochAuthorityError::StaleEpoch {
-            expected_current_generation: 12,
-            supplied_generation: 11,
-        }));
+        assert_eq!(
+            first.ensure_current(first_epoch),
+            Err(EpochAuthorityError::StaleEpoch {
+                expected_current_generation: 12,
+                supplied_generation: 11,
+            })
+        );
         assert_eq!(second.ensure_current(second_epoch), Ok(()));
     }
 }

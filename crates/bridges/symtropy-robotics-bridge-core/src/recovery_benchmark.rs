@@ -63,10 +63,9 @@ impl RecoveryScenarioClass {
             family_id,
             severity_id,
         } = self
+            && (family_id.trim().is_empty() || severity_id.trim().is_empty())
         {
-            if family_id.trim().is_empty() || severity_id.trim().is_empty() {
-                return Err(RecoveryBenchmarkError::InvalidScenarioClass);
-            }
+            return Err(RecoveryBenchmarkError::InvalidScenarioClass);
         }
         Ok(())
     }
@@ -125,6 +124,10 @@ pub struct RecoveryTrialRecord {
     pub stale_epoch_event_acceptances: u64,
     /// Commands submitted to a sink despite a stale controller generation.
     pub stale_epoch_command_admission_acceptances: u64,
+    /// Stale-generation commands accepted/applied at the application boundary.
+    pub stale_epoch_command_application_acceptances: u64,
+    /// Expired commands actually accepted/applied at the application boundary.
+    pub expired_command_application_acceptances: u64,
     /// Commands/outcomes accepted with unavailable, corrupt, or rolled-back epoch authority.
     pub epoch_authority_fail_open_acceptances: u64,
     /// Requests left without a resolved terminal or explicitly classified timeout.
@@ -184,6 +187,8 @@ pub struct RecoveryArmSummary {
     pub outcome_integrity_violations: u64,
     pub stale_epoch_event_acceptances: u64,
     pub stale_epoch_command_admission_acceptances: u64,
+    pub stale_epoch_command_application_acceptances: u64,
+    pub expired_command_application_acceptances: u64,
     pub epoch_authority_fail_open_acceptances: u64,
     pub unresolved_lifecycles: u64,
     pub controller_deadline_misses: u64,
@@ -316,10 +321,8 @@ pub fn score_recovery_campaign(
 
     let mut per_arm = Vec::with_capacity(RecoveryBenchmarkArm::ALL.len());
     for arm in RecoveryBenchmarkArm::ALL {
-        let arm_trials: Vec<&RecoveryTrialRecord> = trials
-            .iter()
-            .filter(|trial| trial.arm == arm)
-            .collect();
+        let arm_trials: Vec<&RecoveryTrialRecord> =
+            trials.iter().filter(|trial| trial.arm == arm).collect();
         per_arm.push(summarize_arm(arm, &arm_trials));
     }
 
@@ -346,6 +349,8 @@ pub fn score_recovery_campaign(
             .saturating_add(trial.outcome_integrity_violations)
             .saturating_add(trial.stale_epoch_event_acceptances)
             .saturating_add(trial.stale_epoch_command_admission_acceptances)
+            .saturating_add(trial.stale_epoch_command_application_acceptances)
+            .saturating_add(trial.expired_command_application_acceptances)
             .saturating_add(trial.epoch_authority_fail_open_acceptances)
             .saturating_add(trial.unresolved_lifecycles)
     });
@@ -386,7 +391,11 @@ fn validate_trial(trial: &RecoveryTrialRecord) -> Result<(), RecoveryBenchmarkEr
     }
     trial.class.validate()?;
 
-    match (&trial.class, trial.recovery_success, trial.time_to_safe_recovery_ns) {
+    match (
+        &trial.class,
+        trial.recovery_success,
+        trial.time_to_safe_recovery_ns,
+    ) {
         (RecoveryScenarioClass::Nominal, None, None) => {}
         (RecoveryScenarioClass::Nominal, _, _) => {
             return Err(RecoveryBenchmarkError::InvalidRecoveryFields);
@@ -433,11 +442,9 @@ fn summarize_arm(arm: RecoveryBenchmarkArm, trials: &[&RecoveryTrialRecord]) -> 
     let mut sorted_latencies = latencies;
     sorted_latencies.sort_unstable();
 
-    let nominal_admissible_requests = saturating_count_sum(
-        nominal.iter().map(|trial| trial.admissible_requests),
-    );
-    let nominal_false_vetoes =
-        saturating_count_sum(nominal.iter().map(|trial| trial.false_vetoes));
+    let nominal_admissible_requests =
+        saturating_count_sum(nominal.iter().map(|trial| trial.admissible_requests));
+    let nominal_false_vetoes = saturating_count_sum(nominal.iter().map(|trial| trial.false_vetoes));
 
     RecoveryArmSummary {
         arm,
@@ -461,22 +468,36 @@ fn summarize_arm(arm: RecoveryBenchmarkArm, trials: &[&RecoveryTrialRecord]) -> 
         hard_boundary_violations: saturating_count_sum(
             trials.iter().map(|trial| trial.hard_boundary_violations),
         ),
-        unsafe_dispatches: saturating_count_sum(
-            trials.iter().map(|trial| trial.unsafe_dispatches),
-        ),
+        unsafe_dispatches: saturating_count_sum(trials.iter().map(|trial| trial.unsafe_dispatches)),
         outcome_integrity_violations: saturating_count_sum(
-            trials.iter().map(|trial| trial.outcome_integrity_violations),
+            trials
+                .iter()
+                .map(|trial| trial.outcome_integrity_violations),
         ),
         stale_epoch_event_acceptances: saturating_count_sum(
-            trials.iter().map(|trial| trial.stale_epoch_event_acceptances),
+            trials
+                .iter()
+                .map(|trial| trial.stale_epoch_event_acceptances),
         ),
         stale_epoch_command_admission_acceptances: saturating_count_sum(
             trials
                 .iter()
                 .map(|trial| trial.stale_epoch_command_admission_acceptances),
         ),
+        stale_epoch_command_application_acceptances: saturating_count_sum(
+            trials
+                .iter()
+                .map(|trial| trial.stale_epoch_command_application_acceptances),
+        ),
+        expired_command_application_acceptances: saturating_count_sum(
+            trials
+                .iter()
+                .map(|trial| trial.expired_command_application_acceptances),
+        ),
         epoch_authority_fail_open_acceptances: saturating_count_sum(
-            trials.iter().map(|trial| trial.epoch_authority_fail_open_acceptances),
+            trials
+                .iter()
+                .map(|trial| trial.epoch_authority_fail_open_acceptances),
         ),
         unresolved_lifecycles: saturating_count_sum(
             trials.iter().map(|trial| trial.unresolved_lifecycles),
@@ -628,6 +649,8 @@ mod tests {
             outcome_integrity_violations: 0,
             stale_epoch_event_acceptances: 0,
             stale_epoch_command_admission_acceptances: 0,
+            stale_epoch_command_application_acceptances: 0,
+            expired_command_application_acceptances: 0,
             epoch_authority_fail_open_acceptances: 0,
             unresolved_lifecycles: 0,
             controller_deadline_misses: 0,
@@ -672,8 +695,16 @@ mod tests {
         assert_eq!(summary.paired_b3_vs_b2.paired_fault_scenarios, 1);
         assert_eq!(summary.paired_b3_vs_b2.b3_wins, 1);
         assert_eq!(summary.paired_b3_vs_b2.b2_wins, 0);
-        assert_eq!(summary.paired_b3_vs_b2.recovery_success_delta_percentage_points, 100.0);
-        assert_eq!(summary.b3_vs_b2_nominal_success_delta_percentage_points, 0.0);
+        assert_eq!(
+            summary
+                .paired_b3_vs_b2
+                .recovery_success_delta_percentage_points,
+            100.0
+        );
+        assert_eq!(
+            summary.b3_vs_b2_nominal_success_delta_percentage_points,
+            0.0
+        );
 
         let b3 = summary
             .per_arm
@@ -722,8 +753,7 @@ mod tests {
         let unsafe_baseline = trials
             .iter_mut()
             .find(|row| {
-                row.arm == RecoveryBenchmarkArm::NativeControllerReference
-                    && row.class.is_faulted()
+                row.arm == RecoveryBenchmarkArm::NativeControllerReference && row.class.is_faulted()
             })
             .unwrap();
         unsafe_baseline.unsafe_dispatches = 1;
@@ -731,7 +761,12 @@ mod tests {
         let summary = score_recovery_campaign(&expected, &trials).unwrap();
         assert!(!summary.hard_gates_clear);
         assert_eq!(summary.total_hard_gate_violations, 1);
-        assert_eq!(summary.paired_b3_vs_b2.recovery_success_delta_percentage_points, 100.0);
+        assert_eq!(
+            summary
+                .paired_b3_vs_b2
+                .recovery_success_delta_percentage_points,
+            100.0
+        );
     }
 
     #[test]
@@ -802,14 +837,70 @@ mod tests {
     }
 
     #[test]
+    fn stale_epoch_command_application_blocks_hard_gate_separately_from_admission_and_events() {
+        let (expected_scenarios, mut trials) = complete_campaign();
+        let stale_application = trials
+            .iter_mut()
+            .find(|row| {
+                row.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback && row.class.is_faulted()
+            })
+            .unwrap();
+        stale_application.stale_epoch_command_application_acceptances = 1;
+
+        let summary = score_recovery_campaign(&expected_scenarios, &trials).unwrap();
+        assert!(!summary.hard_gates_clear);
+        assert_eq!(summary.total_hard_gate_violations, 1);
+        let b3 = summary
+            .per_arm
+            .iter()
+            .find(|arm| arm.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback)
+            .unwrap();
+        assert_eq!(b3.stale_epoch_command_application_acceptances, 1);
+        assert_eq!(b3.stale_epoch_command_admission_acceptances, 0);
+        assert_eq!(b3.stale_epoch_event_acceptances, 0);
+    }
+
+    #[test]
+    fn expired_command_application_blocks_hard_gate_even_if_deadline_rejection_is_measured_safely()
+    {
+        let (expected_scenarios, mut trials) = complete_campaign();
+        let expired_application = trials
+            .iter_mut()
+            .find(|row| {
+                row.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback && row.class.is_faulted()
+            })
+            .unwrap();
+        expired_application.expired_command_application_acceptances = 1;
+        expired_application.controller_deadline_misses = 0;
+
+        let summary = score_recovery_campaign(&expected_scenarios, &trials).unwrap();
+        assert!(!summary.hard_gates_clear);
+        assert_eq!(summary.total_hard_gate_violations, 1);
+        let b3 = summary
+            .per_arm
+            .iter()
+            .find(|arm| arm.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback)
+            .unwrap();
+        assert_eq!(b3.expired_command_application_acceptances, 1);
+        assert_eq!(b3.controller_deadline_misses, 0);
+    }
+
+    #[test]
     fn unexpected_and_missing_scenarios_fail_closed() {
-        let (expected_scenarios, trials) = complete_campaign();
+        let (expected_scenarios, mut unexpected_trials) = complete_campaign();
+        let mut unexpected = unexpected_trials
+            .iter()
+            .find(|row| row.class.is_faulted())
+            .unwrap()
+            .clone();
+        unexpected.scenario_id = "unexpected-scenario".into();
+        unexpected_trials.push(unexpected);
         assert_eq!(
-            score_recovery_campaign(&expected_scenarios[0..1], &trials),
+            score_recovery_campaign(&expected_scenarios, &unexpected_trials),
             Err(RecoveryBenchmarkError::UnexpectedScenario)
         );
 
-        let mut missing_trials = trials.clone();
+        let (expected_scenarios, mut missing_trials) = complete_campaign();
         missing_trials.retain(|row| row.scenario_id != "fault-a");
         assert_eq!(
             score_recovery_campaign(&expected_scenarios, &missing_trials),
