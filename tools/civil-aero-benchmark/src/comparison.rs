@@ -23,9 +23,16 @@ pub fn compare_candidates(rows: &[ResultRow]) -> Result<ParetoReport, String> {
         return Err("candidate comparison requires at least one evaluated candidate".to_owned());
     }
 
-    let reference = &rows[0].case;
+    // Recompute metrics from the stored inputs instead of trusting caller-constructed
+    // ResultRow fields; the comparator is an independent arithmetic boundary.
+    let evaluated: Vec<ResultRow> = rows
+        .iter()
+        .map(|row| row.case.evaluate())
+        .collect::<Result<_, _>>()?;
+
+    let reference = &evaluated[0].case;
     let mut seen = HashSet::new();
-    for row in rows {
+    for row in &evaluated {
         if row.case.case_id.trim().is_empty() {
             return Err("candidate case_id must not be empty".to_owned());
         }
@@ -56,12 +63,12 @@ pub fn compare_candidates(rows: &[ResultRow]) -> Result<ParetoReport, String> {
         pareto_candidate_ids: Vec::new(),
     };
 
-    let eligible: Vec<&ResultRow> = rows
+    let eligible: Vec<&ResultRow> = evaluated
         .iter()
         .filter(|row| row.lift_screen_pass && row.energy_screen_pass)
         .collect();
 
-    for row in rows {
+    for row in &evaluated {
         if row.lift_screen_pass && row.energy_screen_pass {
             report.eligible_candidate_ids.push(row.case.case_id.clone());
         } else {
@@ -140,9 +147,9 @@ mod tests {
         worse.cd0 *= 1.1;
         let worse = worse.evaluate().expect("higher drag");
         let report = compare_candidates(&[baseline, worse]).expect("same mission");
-        assert_eq!(report.eligible_candidate_ids, ["baseline", "higher-drag"]);
-        assert_eq!(report.dominated_candidate_ids, ["higher-drag"]);
-        assert_eq!(report.pareto_candidate_ids, ["baseline"]);
+        assert_eq!(report.eligible_candidate_ids, vec!["baseline".to_owned(), "higher-drag".to_owned()]);
+        assert_eq!(report.dominated_candidate_ids, vec!["higher-drag".to_owned()]);
+        assert_eq!(report.pareto_candidate_ids, vec!["baseline".to_owned()]);
         assert_eq!(report.evidence_level, "screening_only");
     }
 
@@ -172,7 +179,7 @@ mod tests {
         insufficient.battery_energy_wh = 1.0;
         let insufficient = insufficient.evaluate().expect("valid input, infeasible screen");
         let report = compare_candidates(&[baseline, insufficient]).expect("same mission");
-        assert_eq!(report.infeasible_candidate_ids, ["insufficient-energy"]);
+        assert_eq!(report.infeasible_candidate_ids, vec!["insufficient-energy".to_owned()]);
         assert_eq!(report.pareto_candidate_ids, ["baseline"]);
     }
 
