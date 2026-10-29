@@ -23,6 +23,8 @@ use crate::support_map::{TransformedShape, WorldSupportMap};
 const MAX_ITERATIONS: usize = 64;
 /// Larger bounded budget for dimension-generic active-set GJK.
 const MAX_ND_ITERATIONS: usize = 128;
+/// Exhaustive fallback is limited to at most 2^8-1 subsets on a stalled simplex.
+const MAX_ND_EXHAUSTIVE_FALLBACK_POINTS: usize = 8;
 
 /// Maximum inline simplex size for the common 2D–4D paths.
 const MAX_SIMPLEX: usize = 5;
@@ -515,6 +517,29 @@ fn intersects_support_maps_with_active_set<const D: usize>(
                 simplex = reduced;
                 closest = next_closest;
             }
+            Err(reason)
+                if D <= 6
+                    && simplex.len() <= MAX_ND_EXHAUSTIVE_FALLBACK_POINTS
+                    && (reason == GjkFailureReason::DegenerateSimplex
+                        || reason == GjkFailureReason::ActiveSetIterationLimit) =>
+            {
+                // On a small stalled simplex, use a bounded exhaustive reference
+                // path to distinguish a true degenerate query from an active-set
+                // cycling/conditioning failure. Never permit this exponential
+                // fallback to scale with unrestricted D.
+                match closest_point_on_hull_exhaustive(
+                    &simplex,
+                    geometric_tolerance_squared,
+                ) {
+                    Ok((reduced, next_closest)) => {
+                        simplex = reduced;
+                        closest = next_closest;
+                    }
+                    Err(fallback_reason) => {
+                        return indeterminate(simplex, iteration, fallback_reason);
+                    }
+                }
+            }
             Err(reason) => return indeterminate(simplex, iteration, reason),
         }
     }
@@ -524,6 +549,83 @@ fn intersects_support_maps_with_active_set<const D: usize>(
         MAX_ND_ITERATIONS,
         GjkFailureReason::IterationLimit,
     )
+}
+
+/// Bounded exhaustive closest-hull fallback for a stalled low-dimensional query.
+///
+/// The active-set solver is the generic fast path. If it cannot produce a
+/// consistent stationary point and the candidate simplex has at most eight
+/// points, enumerate its faces as a recovery/reference method. This is capped
+/// at 255 subsets and is never used for D>6, so worst-case exponential work does
+/// not grow without bound with the compile-time dimension.
+fn closest_point_on_hull_exhaustive<const D: usize>(
+    points: &Simplex<D>,
+    origin_tolerance_squared: f64,
+) -> Result<(Simplex<D>, SVector<f64, D>), GjkFailureReason> {
+    let count = points.len();
+    if count == 0 || count > MAX_ND_EXHAUSTIVE_FALLBACK_POINTS {
+        return Err(GjkFailureReason::SimplexCapacityExceeded);
+    }
+
+    let weight_tolerance = 128.0 * f64::EPSILON;
+    let mut best: Option<(usize, SVector<f64, D>, f64)> = None;
+    for mask in 1usize..(1usize << count) {
+        let face_count = mask.count_ones() as usize;
+        if face_count > D + 1 {
+            continue;
+        }
+
+        let mut face: SmallVec<[usize; MAX_SIMPLEX]> = SmallVec::new();
+        for index in 0..count {
+            if mask & (1usize << index) != 0 {
+                face.push(index);
+            }
+        }
+        let Some(mut weights) = affine_minimum_weights(points, &face) else {
+            // Degenerate faces are represented by their smaller subsets.
+            continue;
+        };
+        if weights
+            .iter()
+            .any(|weight| !weight.is_finite() || *weight < -weight_tolerance)
+        {
+            continue;
+        }
+
+        for weight in weights.iter_mut() {
+            *weight = weight.max(0.0);
+        }
+        normalize_weights(&mut weights)?;
+
+        let mut candidate = SVector::<f64, D>::zeros();
+        for (index, weight) in face.iter().zip(weights.iter()) {
+            candidate += points[*index] * *weight;
+        }
+        let distance_squared = checked_norm_squared(&candidate)?;
+
+        let replace = match best.as_ref() {
+            None => true,
+            Some((best_mask, _, best_distance))
+                if distance_squared <= origin_tolerance_squared
+                    && *best_distance <= origin_tolerance_squared =>
+            {
+                mask.count_ones() > best_mask.count_ones()
+            }
+            Some((_, _, best_distance)) => distance_squared < *best_distance,
+        };
+        if replace {
+            best = Some((mask, candidate, distance_squared));
+        }
+    }
+
+    let (best_mask, closest, _) = best.ok_or(GjkFailureReason::DegenerateSimplex)?;
+    let mut reduced = Simplex::<D>::new();
+    for index in 0..count {
+        if best_mask & (1usize << index) != 0 {
+            reduced.push(points[index]);
+        }
+    }
+    Ok((reduced, closest))
 }
 
 /// Find the closest point to the origin in the convex hull of points using
