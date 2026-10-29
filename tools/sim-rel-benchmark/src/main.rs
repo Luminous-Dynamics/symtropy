@@ -579,6 +579,17 @@ mod tests {
     }
 
     #[test]
+    fn observation_stride_controls_recorded_state_count() {
+        let scenario = parse_corpus(CORPUS).unwrap().remove(2);
+        let receipt = compare_solvers(&scenario);
+        let expected = scenario.steps / scenario.observation_stride
+            + 1
+            + usize::from(scenario.steps % scenario.observation_stride != 0);
+        assert_eq!(receipt.observations, expected);
+        assert_eq!(receipt.observation_stride, scenario.observation_stride);
+    }
+
+    #[test]
     fn invalid_endpoint_is_rejected() {
         let mut scenario = parse_corpus(CORPUS).unwrap().remove(0);
         scenario.springs[0].a = scenario.masses.len();
