@@ -86,8 +86,10 @@ fn validate(c: &Value) -> Result<(), String> {
     }
 
     let info = &c["input_information_contract"];
+    keys(info, &["same_declared_parameter_domain","same_formal_property_and_gate_definitions","same_controller_observation_contract","searcher_can_use_only_current_and_prior_non_holdout_observations","unbounded_pretraining_oracle_queries_forbidden","surrogate_training_and_cache_queries_count_toward_budget","cached_results_must_be_content_addressed","hidden_oracle_access_forbidden"], "$.input_information_contract")?;
     for (k,v) in obj(info,"$.input_information_contract")? { yes(v, &format!("$.input_information_contract.{k}"))?; }
     let split = &c["split_contract"];
+    keys(split, &["split_unit","development_set","validation_set","locked_holdout","holdout_frozen_before_confirmatory_run","holdout_used_for_searcher_selection_or_tuning","test_leakage_invalidates_claim","holdout_discovery_is_reported_separately"], "$.split_contract")?;
     if split["split_unit"].as_str() != Some("whole_scenario_family_episode_or_site_year") { return Err("split must preserve whole scenarios/episodes/site-years".into()); }
     for k in ["development_set","validation_set","locked_holdout"] { text(&split[k], k)?; }
     yes(&split["holdout_frozen_before_confirmatory_run"], "holdout freeze")?;
@@ -95,9 +97,10 @@ fn validate(c: &Value) -> Result<(), String> {
     yes(&split["test_leakage_invalidates_claim"], "test leakage policy")?;
     yes(&split["holdout_discovery_is_reported_separately"], "holdout reporting")?;
 
+    keys(&c["counterexample_admission"], &["candidate_violation_is_not_yet_a_counterexample","counterexample_requires_independent_replay","replay_must_use_exact_input_digest","replay_must_use_pinned_controller_and_model_artifacts","replay_result_must_reproduce_same_gate_family","invalid_or_unevaluated_outcome_never_counts_as_failure_discovery","duplicate_replays_count_once_for_unique_failure_family_yield","failure_family_fingerprint_is_versioned"], "$.counterexample_admission")?;
     for (k,v) in obj(&c["counterexample_admission"],"$.counterexample_admission")? { yes(v, &format!("counterexample admission {k}"))?; }
     let records = unique_strings(&c["required_record_fields"], "$.required_record_fields", 10)?;
-    for k in ["searcher_id","search_run_id","preregistered_seed","oracle_invocation_index","scenario_input_sha256","controller_artifact_sha256","plant_model_sha256","run_configuration_sha256","oracle_status","gate_result","replay_status","failure_family_fingerprint","wall_time_ms","peak_memory_bytes"] {
+    for k in ["searcher_id","search_run_id","preregistered_seed","oracle_invocation_index","scenario_input_sha256","controller_artifact_sha256","plant_model_sha256","run_configuration_sha256","oracle_status","gate_result","signed_gate_margin","replay_status","replay_artifact_sha256","failure_family_fingerprint","wall_time_ms","cpu_time_ms","peak_memory_bytes"] {
         if !records.contains(k) { return Err(format!("missing required record field {k}")); }
     }
     let metrics = unique_strings(&c["required_metrics"], "$.required_metrics", 8)?;
@@ -106,6 +109,7 @@ fn validate(c: &Value) -> Result<(), String> {
     }
 
     let st = &c["statistical_contract"];
+    keys(st, &["primary_endpoint","report_confidence_interval","non_falsified_runs_are_right_censored_at_budget","survival_analysis_required","independent_unit","paired_or_blocked_seed_design_required","multiple_comparison_plan_required","effect_size_target","effect_size_target_frozen_after_pilot_before_locked_holdout","superiority_requires_paired_uncertainty_interval_excluding_zero","no_single_composite_score_allowed"], "$.statistical_contract")?;
     if st["primary_endpoint"].as_str() != Some("falsification_rate_at_budget")
         || st["independent_unit"].as_str() != Some("search_run") || !st["effect_size_target"].is_null() {
         return Err("invalid primary endpoint/unit or premature effect-size target".into());
@@ -119,6 +123,7 @@ fn validate(c: &Value) -> Result<(), String> {
     let mut track_ids = BTreeSet::new();
     for (i,t) in tracks.iter().enumerate() {
         let p = format!("$.benchmark_tracks[{i}]");
+        keys(t, &["track_id","status","oracle_type","purpose","physical_evidence","eligible_for_controller_superiority_claim"], &p)?;
         text(&t["track_id"], &p)?;
         if !track_ids.insert(t["track_id"].as_str().unwrap().to_string()) { return Err("duplicate track ID".into()); }
         text(&t["purpose"], &p)?; text(&t["oracle_type"], &p)?;
@@ -131,8 +136,12 @@ fn validate(c: &Value) -> Result<(), String> {
     }
 
     let gates = obj(&c["admission_gates"], "$.admission_gates")?;
+    let gate_ids: BTreeSet<&str> = gates.keys().map(String::as_str).collect();
+    let expected_gate_ids: BTreeSet<&str> = ["source_and_model_admission","formal_gate_definition_reviewed","strong_baseline_adapters_pinned","resource_and_information_budget_frozen","random_seeds_and_blocking_frozen","failure_family_fingerprint_policy_frozen","locked_holdout_created_and_sealed","independent_replay_verifier_admitted"].into_iter().collect();
+    if gate_ids != expected_gate_ids { return Err("admission gate inventory is incomplete or contains unknown gates".into()); }
     if gates.is_empty() || gates.values().any(|v| v.as_bool()!=Some(false)) { return Err("all admission gates must remain false".into()); }
     let claim = &c["claim_policy"];
+    keys(claim, &["performance_claim","synthetic_oracle_results_are_physical_evidence","searcher_superiority_implies_controller_superiority","zero_discoveries_proves_safety","holdout_tuning_allowed"], "$.claim_policy")?;
     if claim["performance_claim"].as_str()!=Some("none") { return Err("performance claims forbidden".into()); }
     for k in ["synthetic_oracle_results_are_physical_evidence","searcher_superiority_implies_controller_superiority","zero_discoveries_proves_safety","holdout_tuning_allowed"] {
         no(&claim[k], &format!("claim policy {k}"))?;
@@ -141,6 +150,7 @@ fn validate(c: &Value) -> Result<(), String> {
     if refs.len()<3 { return Err("at least three references required".into()); }
     for (i,r) in refs.iter().enumerate() {
         let p=format!("$.research_references[{i}]");
+        keys(r, &["title","url","relevance"], &p)?;
         text(&r["title"],&p)?; text(&r["relevance"],&p)?;
         if !text(&r["url"],&p)?.starts_with("https://") { return Err(format!("{p} URL must use HTTPS")); }
     }
