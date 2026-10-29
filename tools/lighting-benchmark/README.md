@@ -42,7 +42,7 @@ The Python validator is test-only: it checks the draft 2020-12 schema, validates
 
 ## Radiance `rtrace` parsing profile
 
-The pure Rust module `tools/lighting-benchmark/src/radiance.rs` generates deterministic six-value ray-input rows for `rtrace -I` and strictly parses the explicit legacy-RGB `rtrace -h -I -opv -cs 3` output profile. It requires exactly six finite numeric fields per record (reported xyz + RGB irradiance), exact record count, sequential frozen-grid identity, and coordinates within the stated tolerance. It preserves both expected and reported coordinates and rejects partial, reordered, malformed, non-finite, negative-channel or overflowed outputs as a whole.
+The pure Rust module `tools/lighting-benchmark/src/radiance.rs` generates deterministic six-value ray-input rows for `rtrace -I` and strictly parses the explicit legacy-RGB `rtrace -h- -I+ -ov -cs 3 -x 1` output profile. It requires exactly six finite numeric fields per record (echoed input origin xyz + RGB irradiance), exact record count, sequential frozen-grid identity, and coordinates within the stated tolerance. It preserves both expected and reported coordinates and rejects partial, reordered, malformed, non-finite, negative-channel or overflowed outputs as a whole.
 
 The conversion has a stable ID, `radiance_rgb_legacy_47_4_120_11_6_v1`, and applies `lux = 47.4*R + 120.0*G + 11.6*B`. This is a named legacy RGB convention, not a spectral conversion or physical accuracy claim. The official source/version and format decisions are documented in `docs/research/RADIANCE_RTRACE_PROFILE_V0_1.md`.
 
@@ -61,3 +61,24 @@ From the repository root:
 The example data are hand-authored synthetic fixtures. Passing tests establish only the evaluator's local contract. They do not validate Radiance outputs, a physical fixture, spectra, glare, flicker, temperature, product safety, annual energy, or superiority over industry products.
 
 The stress matrix is a fixed set of synthetic interventions, not a calibrated distribution or a claim about the frequency/severity of real faults. It deliberately keeps held-out scenario families separate from development families within each tier. The JSON schema at docs/research/lighting-run-receipt.schema.json defines the planned evidence-carrying run receipt, including source/input hashes, toolchain identity, raw grid coordinates/samples, derived metric provenance, interval basis, gate results and evidence tier. It structurally rejects a compliant receipt with a nonzero solver exit or a non-passing gate, and requires measurement records for calibrated/physical evidence tiers. Cross-field checks such as sample ordering, interval lower ≤ upper, digest correctness and summary-to-grid equality still belong in the independent verifier. A future adapter must parse and validate the versioned case JSON, pin solver/tool identities, preserve raw results, and pass candidates through an independent evaluator. No missing or unsupported evidence may be imputed as a pass.
+
+
+## Radiance subprocess runner v0.2
+
+The companion `radiance-runner.sh` stages read-only copies of the octree, case, design, property data, adapter configuration, `rtrace`, and strict parser before execution. The staged tool digests are checked against caller-supplied SHA-256 pins before and after the run. It records the full argv, a minimal child environment, raw stdout/stderr, supervisor diagnostics, parser diagnostics, normalized ordered samples and input/output digests.
+
+The locked output profile is `-h- -I+ -ov -cs 3 -x 1`. The explicit signs prevent relying on Radiance boolean defaults, and `-ov` returns the input origin plus RGB irradiance. `-opv` would include an additional intersection-point tuple and is not compatible with the six-field parser.
+
+The adapter configuration is versioned as `legacy-rgb-v1` and accepts only a restricted list of unique numeric solver settings. The settings are placed before the locked output flags; attempts to override output arity, irradiance mode or the octree are rejected. The report always has `scoring_eligible: false` and a null service-energy metric—even when the process and parser pass. This is process/parser evidence, not optical accuracy or product validation.
+
+Mock-based integration tests exercise success, malformed/nonzero output, child exit 124 versus supervisor timeout, wrong executable/parser digest, missing executable, invalid/reserved settings and non-rankable report semantics. CI also runs the same harness with the Rust parser binary. No test in this workflow downloads or invokes an official Radiance distribution.
+
+To build and run the process-contract smoke test:
+
+```sh
+cargo build --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-rtrace-parse
+bash tools/lighting-benchmark/tests/radiance-runner-smoke.sh
+LIGHTING_RTRACE_PARSER=target/debug/lighting-rtrace-parse bash tools/lighting-benchmark/tests/radiance-runner-smoke.sh
+```
+
+**Toolchain pin limitation:** the digest is computed from the caller's actual executable bytes and checked against the supplied expected hash. That proves byte identity to the supplied pin, not official provenance or reproducible-build identity. Before an actual run is reported, record a verified source archive hash, build environment and executable hash. Solver settings must come from a predeclared convergence sweep, not the mock values in test fixtures. After the process-contract gate, build a pinned octree and validate against suitable analytical cases and calibrated physical photometry. 
