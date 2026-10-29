@@ -297,8 +297,8 @@ jobs:
             .long_horizon_extension.performance_claim == "none" and
             .paired_comparison_extension.status == "proposed_not_executed" and
             .paired_comparison_extension.evidence_class == "synthetic_only" and
-            .paired_comparison_extension.contract_path == "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json" and
-            .paired_comparison_extension.schema_path == "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.4.0.schema.json" and
+            .paired_comparison_extension.contract_path == "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json" and
+            .paired_comparison_extension.schema_path == "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.5.0.schema.json" and
             .paired_comparison_extension.evaluator_path == "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs" and
             .paired_comparison_extension.independent_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py" and
             .paired_comparison_extension.controller_count == 2 and
@@ -308,6 +308,20 @@ jobs:
             .paired_comparison_extension.complete_controller_trajectory_matrix_required == true and
             .paired_comparison_extension.invalid_and_unevaluated_outcomes_must_remain_visible == true and
             .paired_comparison_extension.gate_specific_margin_contracts_required == true and
+            .paired_comparison_extension.information_budget_payload_required == true and
+            .paired_comparison_extension.information_budget_sha256_required == true and
+            .paired_comparison_extension.observation_trace_payload_required_per_trajectory == true and
+            .paired_comparison_extension.measurement_observation_time_must_not_exceed_decision_time == true and
+            .paired_comparison_extension.forecast_issue_time_must_not_exceed_decision_time == true and
+            .paired_comparison_extension.forecast_lookahead_must_not_exceed_budget == true and
+            .paired_comparison_extension.shared_information_budget_digest_required == true and
+            .paired_comparison_extension.information_budget_schema_version == "1" and
+            .paired_comparison_extension.decision_interval_seconds == 60 and
+            .paired_comparison_extension.max_forecast_lookahead_seconds == 300 and
+            .paired_comparison_extension.max_compute_budget_milliseconds == 1000 and
+            .paired_comparison_extension.max_memory_budget_megabytes == 256 and
+            .paired_comparison_extension.oracle_future_observations_forbidden == true and
+            .paired_comparison_extension.observation_timing_validation == "independent_python_verifier_required" and
             .paired_comparison_extension.content_addressed_artifacts_required == true and
             .paired_comparison_extension.digest_algorithm == "SHA-256 over exact UTF-8 payload bytes" and
             .paired_comparison_extension.digest_payload_verification == "independent_python_verifier_required" and
