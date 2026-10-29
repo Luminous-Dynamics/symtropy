@@ -381,6 +381,52 @@ fn active_set_gjk_matches_sat_on_seeded_rotated_six_dimensional_boxes() {
     assert_seeded_rotated_box_panel::<6>();
 }
 
+
+struct NonFiniteSupport<const D: usize>;
+
+impl<const D: usize> WorldSupportMap<D> for NonFiniteSupport<D> {
+    fn support_world(&self, _direction: &SVector<f64, D>) -> SVector<f64, D> {
+        SVector::from_element(f64::NAN)
+    }
+
+    fn center_world(&self) -> SVector<f64, D> {
+        SVector::zeros()
+    }
+
+    fn bounding_sphere_world(&self) -> (SVector<f64, D>, f64) {
+        (SVector::zeros(), 1.0)
+    }
+}
+
+#[test]
+fn active_set_gjk_rejects_non_finite_support_in_five_dimensions() {
+    let invalid = NonFiniteSupport::<5>;
+    let ordinary = box_at(SVector::<f64, 5>::zeros(), 1.0);
+    let result = intersects_support_maps(&invalid, &ordinary);
+    assert_eq!(
+        result.termination,
+        GjkTermination::Indeterminate(GjkFailureReason::NonFiniteSupport)
+    );
+}
+
+#[test]
+fn active_set_gjk_surfaces_large_world_coordinate_uncertainty() {
+    let a = box_at(SVector::<f64, 5>::from([1.0e12, 0.0, 0.0, 0.0, 0.0]), 1.0);
+    let b = box_at(
+        SVector::from([1.0e12 + 2.001, 0.0, 0.0, 0.0, 0.0]),
+        1.0,
+    );
+    let representable_gap = (b.center[0] - a.center[0]) - 2.0;
+    assert!(representable_gap > 0.0, "fixture must be separated in f64");
+
+    let result = intersects_support_maps(&a, &b);
+    assert_eq!(
+        result.termination,
+        GjkTermination::Indeterminate(GjkFailureReason::CoordinatePrecisionLimit)
+    );
+    assert!(!result.intersecting);
+}
+
 #[test]
 fn zero_dimensional_query_is_rejected_without_indexing() {
     let a = AxisAlignedBox::<0> {
