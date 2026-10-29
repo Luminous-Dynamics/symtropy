@@ -222,16 +222,24 @@ fn audit(rows: &[Row]) -> Result<Vec<Summary>, String> {
 
         let dimension = held_out_dimension(&split_policy);
         let (train_groups, test_groups, interpretation) = if let Some(dimension) = dimension {
-            let seen_training_groups: BTreeSet<&str> = train
+            let training_groups: BTreeSet<&str> =
+                train.iter().map(|row| group_value(row, dimension)).collect();
+            let validation_groups: BTreeSet<&str> =
+                validation.iter().map(|row| group_value(row, dimension)).collect();
+            let testing_groups: BTreeSet<&str> =
+                test.iter().map(|row| group_value(row, dimension)).collect();
+            if let Some(leaked) = validation_groups.intersection(&training_groups).next() {
+                return Err(format!(
+                    "experiment {:?}, policy {}: validation {} {:?} also appears in TRAIN; group-wise validation is invalid",
+                    experiment_id, split_policy, dimension, leaked
+                ));
+            }
+            let train_and_validation_groups: BTreeSet<&str> = train
                 .iter()
                 .chain(validation.iter())
                 .map(|row| group_value(row, dimension))
                 .collect();
-            let training_groups: BTreeSet<&str> =
-                train.iter().map(|row| group_value(row, dimension)).collect();
-            let testing_groups: BTreeSet<&str> =
-                test.iter().map(|row| group_value(row, dimension)).collect();
-            if let Some(leaked) = testing_groups.intersection(&seen_training_groups).next() {
+            if let Some(leaked) = testing_groups.intersection(&train_and_validation_groups).next() {
                 return Err(format!(
                     "experiment {:?}, policy {}: held-out {} {:?} appears in TRAIN or VALIDATION; test independence is invalid",
                     experiment_id, split_policy, dimension, leaked
@@ -325,7 +333,7 @@ mod tests {
         vec![
             row("train-1", "G1", "M1", "L1", "C1", "HELD_OUT_GEOMETRY", "TRAIN"),
             row("train-2", "G2", "M1", "L2", "C2", "HELD_OUT_GEOMETRY", "TRAIN"),
-            row("val-1", "G1", "M1", "L1", "C3", "HELD_OUT_GEOMETRY", "VALIDATION"),
+            row("val-1", "G4", "M1", "L1", "C3", "HELD_OUT_GEOMETRY", "VALIDATION"),
             row("test-1", "G3", "M2", "L3", "C4", "HELD_OUT_GEOMETRY", "TEST"),
         ]
     }
@@ -370,6 +378,32 @@ mod tests {
                 _ => unreachable!(),
             }
             let error = audit(&rows).unwrap_err();
+            assert!(error.contains(dimension), "{policy}: {error}");
+        }
+    }
+
+    #[test]
+    fn rejects_validation_group_overlap_for_every_held_out_dimension() {
+        for (policy, dimension) in [
+            ("HELD_OUT_GEOMETRY", "geometry_family"),
+            ("HELD_OUT_MANUFACTURER", "manufacturer_id"),
+            ("HELD_OUT_MATERIAL_LOT", "material_lot_id"),
+            ("HELD_OUT_CAMPAIGN", "measurement_campaign_id"),
+        ] {
+            let mut rows = vec![
+                row("train-1", "G1", "M1", "L1", "C1", policy, "TRAIN"),
+                row("val-1", "G2", "M2", "L2", "C2", policy, "VALIDATION"),
+                row("test-1", "G3", "M3", "L3", "C3", policy, "TEST"),
+            ];
+            match dimension {
+                "geometry_family" => rows[1].geometry_family = "G1".to_string(),
+                "manufacturer_id" => rows[1].manufacturer_id = "M1".to_string(),
+                "material_lot_id" => rows[1].material_lot_id = "L1".to_string(),
+                "measurement_campaign_id" => rows[1].measurement_campaign_id = "C1".to_string(),
+                _ => unreachable!(),
+            }
+            let error = audit(&rows).unwrap_err();
+            assert!(error.contains("validation group"), "{policy}: {error}");
             assert!(error.contains(dimension), "{policy}: {error}");
         }
     }
