@@ -91,6 +91,8 @@ A mock sink proves only interface behavior in that fixture. Simulation proves on
 - Invalid/expired/vetoed dispatch count.
 - Wrong-ticket, unknown-request, duplicate-tick, backward-time, illegal-transition, and post-terminal-event rejection counts.
 - Stale-epoch event acceptance count; any accepted event from a prior controller generation is a non-compensatory hard-gate failure, including when ticket strings are reused after restart.
+- Epoch-authority fail-open acceptance count: any command or outcome accepted while the generation store is unavailable, missing, corrupt, or rolled back is a hard-gate failure.
+- Epoch claim outcomes: successful claims, compare-and-advance conflicts, superseded activations, failed-closed store reads, rollback detections, and claim latency.
 - Controller outcome coverage: registered submitted requests with terminal outcome, failed/expired lifecycle, and unresolved/time-out lifecycle.
 - Session/restart fencing outcomes and stale-event rejection.
 - False-veto rate on a frozen nominal corpus, with a declared definition and denominator.
@@ -158,3 +160,8 @@ Progression:
 4. **Tier D — physical robot:** supervised, low-risk missions only after platform-specific hazard analysis, emergency-stop verification, and qualified human oversight.
 
 Do not call Tier A/B physical safety, collision-proof planning, or SOTA superiority. Publish exact configuration, evidence tier, uncertainty, and failures alongside every claim.
+
+
+### Epoch-authority hard gate
+
+- **Command/outcome accepted while epoch authority is unavailable or rolled back: 0**.
