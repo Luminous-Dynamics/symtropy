@@ -3,9 +3,12 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! N-dimensional rigid body physics engine.
 //!
-//! Provides dimension-agnostic rigid body dynamics, GJK collision detection,
-//! and constraint solving. All types are `const D: usize` parameterized for
-//! stack-allocated, SIMD-friendly physics at 2D/3D/4D.
+//! Provides const-generic rigid body dynamics, GJK collision detection,
+//! and constraint solving. GJK keeps 2D/3D/4D paths specialized and uses a
+//! dimension-generic active-set reducer for D >= 5, with inline-small simplex
+//! storage that spills when necessary. Other systems have their own dimensional
+//! limits; in particular, EPA penetration for D >= 4 is an approximation path,
+//! not a claim of fully general N-D contact fidelity.
 //!
 //! # Architecture
 //! - `RigidBody<D>` — position, velocity, angular velocity (bivector), mass, collider
