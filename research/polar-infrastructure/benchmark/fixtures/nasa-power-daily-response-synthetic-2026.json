@@ -1,0 +1,90 @@
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [15.04, -23.56, 50.0]
+  },
+  "header": {
+    "version": "1.0",
+    "api": {
+      "version": "fixture-v0",
+      "name": "synthetic-test-fixture"
+    },
+    "title": "Synthetic NASA POWER-shaped daily fixture; not observed data",
+    "fill_value": -999.0,
+    "time_standard": "UTC",
+    "start": "20240101",
+    "end": "20240103",
+    "sources": ["synthetic-fixture-only"]
+  },
+  "messages": [],
+  "parameters": {
+    "T2M": {
+      "units": "C",
+      "longname": "Daily mean near-surface air temperature at 2 meters"
+    },
+    "T2M_MAX": {
+      "units": "C",
+      "longname": "Daily maximum near-surface air temperature at 2 meters"
+    },
+    "T2M_MIN": {
+      "units": "C",
+      "longname": "Daily minimum near-surface air temperature at 2 meters"
+    },
+    "ALLSKY_SFC_SW_DWN": {
+      "units": "kW-hr/m^2/day",
+      "longname": "Daily all-sky surface shortwave downward irradiance"
+    },
+    "WS10M": {
+      "units": "m/s",
+      "longname": "Daily mean wind speed at 10 meters"
+    },
+    "PRECTOTCORR": {
+      "units": "mm/day",
+      "longname": "Daily corrected precipitation"
+    },
+    "RH2M": {
+      "units": "%",
+      "longname": "Daily mean relative humidity at 2 meters"
+    }
+  },
+  "properties": {
+    "parameter": {
+      "T2M": {
+        "20240101": 20.0,
+        "20240102": 21.0,
+        "20240103": 22.0
+      },
+      "T2M_MAX": {
+        "20240101": 30.0,
+        "20240102": -999.0,
+        "20240103": 31.0
+      },
+      "T2M_MIN": {
+        "20240101": 10.0,
+        "20240102": 11.0,
+        "20240103": 12.0
+      },
+      "ALLSKY_SFC_SW_DWN": {
+        "20240101": 6.5,
+        "20240102": 5.0,
+        "20240103": 6.2
+      },
+      "WS10M": {
+        "20240101": 3.2,
+        "20240102": 4.0,
+        "20240103": 2.1
+      },
+      "PRECTOTCORR": {
+        "20240101": 0.0,
+        "20240102": 0.3,
+        "20240103": 0.0
+      },
+      "RH2M": {
+        "20240101": 60.0,
+        "20240102": -999.0,
+        "20240103": 55.0
+      }
+    }
+  }
+}

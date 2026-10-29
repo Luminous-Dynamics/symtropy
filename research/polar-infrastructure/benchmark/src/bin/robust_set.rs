@@ -339,7 +339,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
 
     let mut scenario_ids = BTreeSet::new();
     let mut episode_ids = BTreeSet::new();
-    let mut scored: Vec<(String, Vec<PolicyScore>)> = Vec::with_capacity(input.scenarios.len());
+    let mut scored: Vec<(String, f64, Vec<PolicyScore>)> = Vec::with_capacity(input.scenarios.len());
     let mut policy_families: Option<BTreeMap<String, (String, String)>> = None;
     let mut baseline: Option<&ScoreInput> = None;
 

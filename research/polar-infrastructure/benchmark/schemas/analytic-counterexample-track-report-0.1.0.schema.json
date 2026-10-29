@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Symtropy Analytic Known-Answer Counterexample Track Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_kind",
+    "status",
+    "evidence_class",
+    "oracle",
+    "known_answer_fixture_validation",
+    "budget_contract",
+    "arms",
+    "claim_policy",
+    "result_scope"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "artifact_kind": {
+      "const": "symtropy-analytic-known-answer-counterexample-track-report"
+    },
+    "status": {
+      "const": "executed_analytic_oracle_only"
+    },
+    "evidence_class": {
+      "const": "synthetic_known_answer"
+    },
+    "oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "failure_families",
+        "boundary_equalities_are_passes",
+        "deterministic"
+      ],
+      "properties": {
+        "domain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x_min",
+            "x_max",
+            "y_min",
+            "y_max"
+          ],
+          "properties": {
+            "x_min": {
+              "const": 0
+            },
+            "x_max": {
+              "const": 1
+            },
+            "y_min": {
+              "const": 0
+            },
+            "y_max": {
+              "const": 1
+            }
+          }
+        },
+        "failure_families": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "family_id",
+              "condition",
+              "signed_margin"
+            ],
+            "properties": {
+              "family_id": {
+                "enum": [
+                  "critical_energy",
+                  "communications_partition"
+                ]
+              },
+              "condition": {
+                "type": "string",
+                "minLength": 1
+              },
+              "signed_margin": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "boundary_equalities_are_passes": {
+          "const": true
+        },
+        "deterministic": {
+          "const": true
+        }
+      }
+    },
+    "known_answer_fixture_validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "fixture_path",
+        "case_count",
+        "searcher_sampling_not_used_for_expected_labels"
+      ],
+      "properties": {
+        "status": {
+          "const": "passed"
+        },
+        "fixture_path": {
+          "const": "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json"
+        },
+        "case_count": {
+          "const": 7
+        },
+        "searcher_sampling_not_used_for_expected_labels": {
+          "const": true
+        }
+      }
+    },
+    "budget_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "search_queries_per_arm",
+        "reserved_replay_queries_per_arm",
+        "total_oracle_invocations_per_arm",
+        "replay_queries_count_against_budget",
+        "unused_replay_slots_use_known_safe_positive_control"
+      ],
+      "properties": {
+        "search_queries_per_arm": {
+          "const": 38
+        },
+        "reserved_replay_queries_per_arm": {
+          "const": 2
+        },
+        "total_oracle_invocations_per_arm": {
+          "const": 40
+        },
+        "replay_queries_count_against_budget": {
+          "const": true
+        },
+        "unused_replay_slots_use_known_safe_positive_control": {
+          "const": true
+        }
+      }
+    },
+    "arms": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "arm_id",
+          "role",
+          "search_query_count",
+          "replay_query_count",
+          "total_oracle_invocations",
+          "budget_respected",
+          "invalid_search_points",
+          "failure_observations",
+          "unique_failure_families_discovered",
+          "first_failure_query_index_by_family",
+          "replay_confirmed_failure_families",
+          "positive_control_replays_passed",
+          "replay_mismatch_count",
+          "all_discovered_families_replay_confirmed",
+          "performance_claim"
+        ],
+        "properties": {
+          "arm_id": {
+            "enum": [
+              "uniform_random_seeded",
+              "halton_space_filling",
+              "stratified_grid",
+              "energy_only_corner"
+            ]
+          },
+          "role": {
+            "enum": [
+              "simple_baseline",
+              "diagnostic_single_gate_control"
+            ]
+          },
+          "search_query_count": {
+            "const": 38
+          },
+          "replay_query_count": {
+            "const": 2
+          },
+          "total_oracle_invocations": {
+            "const": 40
+          },
+          "budget_respected": {
+            "const": true
+          },
+          "invalid_search_points": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failure_observations": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 38
+          },
+          "unique_failure_families_discovered": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "critical_energy",
+                "communications_partition"
+              ]
+            }
+          },
+          "first_failure_query_index_by_family": {
+            "type": "object",
+            "propertyNames": {
+              "enum": [
+                "critical_energy",
+                "communications_partition"
+              ]
+            },
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 38
+            }
+          },
+          "replay_confirmed_failure_families": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "critical_energy",
+                "communications_partition"
+              ]
+            }
+          },
+          "positive_control_replays_passed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "replay_mismatch_count": {
+            "const": 0
+          },
+          "all_discovered_families_replay_confirmed": {
+            "const": true
+          },
+          "performance_claim": {
+            "const": false
+          }
+        }
+      }
+    },
+    "claim_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physical_claim",
+        "controller_superiority_claim",
+        "industry_sota_claim",
+        "purpose"
+      ],
+      "properties": {
+        "physical_claim": {
+          "const": false
+        },
+        "controller_superiority_claim": {
+          "const": false
+        },
+        "industry_sota_claim": {
+          "const": false
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "result_scope": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

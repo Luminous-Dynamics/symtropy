@@ -1,0 +1,421 @@
+name: Polar Resilience Paired Comparison
+
+on:
+  pull_request:
+    paths:
+      - "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md"
+      - "research/COUNTEREXAMPLE_SEARCH_BENCHMARK_PROTOCOL_2026.md"
+      - "research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/counterexample-search-benchmark-contract-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/src/bin/counterexample_search_contract.rs"
+      - "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json"
+      - "research/EXECUTION_ATTESTATION_PROFILE_2026.md"
+      - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
+      - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.4.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.5.0.schema.json"
+      - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_paired_comparison_verifier.py"
+      - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-template-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py"
+      - "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs"
+      - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py"
+      - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison_v0_4.py"
+      - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_verifier.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
+      - "research/polar-infrastructure/benchmark/schemas/execution-attestation-verification-policy-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/verify_signed_execution_receipt.sh"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_signed_execution_receipt_wrapper.py"
+      - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
+      - ".github/workflows/environment-trace-contract.yml"
+      - ".github/workflows/polar-resilience-paired-comparison.yml"
+  push:
+    paths:
+      - "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md"
+      - "research/COUNTEREXAMPLE_SEARCH_BENCHMARK_PROTOCOL_2026.md"
+      - "research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/counterexample-search-benchmark-contract-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/src/bin/counterexample_search_contract.rs"
+      - "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json"
+      - "research/EXECUTION_ATTESTATION_PROFILE_2026.md"
+      - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
+      - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.4.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.5.0.schema.json"
+      - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_paired_comparison_verifier.py"
+      - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-template-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py"
+      - "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs"
+      - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py"
+      - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison_v0_4.py"
+      - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_verifier.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
+      - "research/polar-infrastructure/benchmark/schemas/execution-attestation-verification-policy-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/verify_signed_execution_receipt.sh"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_signed_execution_receipt_wrapper.py"
+      - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
+      - ".github/workflows/environment-trace-contract.yml"
+      - ".github/workflows/polar-resilience-paired-comparison.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: polar-resilience-paired-comparison-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  paired-comparison:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out exact PR head (or exact pushed commit)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert checked-out revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
+
+      - name: Check schema and fixture invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.5.0.schema.json"
+          fixture="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Paired Resilience Comparison Input (Causal Information v0.5)" and
+            .additionalProperties == false and
+            (.required | index("controllers") != null) and
+            (.required | index("gate_margin_contracts") != null) and
+            (.required | index("trajectory_artifacts") != null) and
+            (.required | index("information_budget_payload") != null) and
+            (.properties.schema_version.const == "0.5.0") and
+            (.required | index("information_budget_sha256") != null) and
+            (.properties.information_budget_sha256.pattern == "^[a-f0-9]{64}$") and
+            (.["$defs"].trajectoryArtifact.required | index("observation_trace_payload") != null) and
+            (.["$defs"].trajectoryArtifact.required | index("observation_trace_sha256") != null) and
+            (.required | index("controller_artifacts") != null) and
+            (.properties.gate_margin_contracts.type == "object") and
+            (.required | index("cases") != null)
+          ' "$schema"
+          jq -e '
+            . as $root |
+            .schema_version == "0.5.0" and
+            .artifact_kind == "paired-resilience-comparison-input" and
+            .evidence_class == "synthetic_fixture" and
+            .status == "synthetic_only" and
+            (.controllers | length == 2) and
+            (.cases | length == 12) and
+            (.information_budget_payload | type == "string" and length > 0) and
+            (.information_budget_sha256 | test("^[a-f0-9]{64}$")) and
+            all($root.cases[]; .information_budget_sha256 == $root.information_budget_sha256) and
+            all($root.trajectory_artifacts[]; (.observation_trace_sha256 | test("^[a-f0-9]{64}$")) and (.observation_trace_payload | type == "string" and length > 0)) and
+            (.trajectory_artifacts | length == 6) and
+            (.controller_artifacts | length == 2) and
+            all($root.trajectory_artifacts[]; (.trajectory_sha256 | test("^[a-f0-9]{64}$")) and (.initial_state_sha256 | test("^[a-f0-9]{64}$"))) and
+            all($root.controller_artifacts[]; (.controller_sha256 | test("^[a-f0-9]{64}$"))) and
+            all($root.cases[]; (.trajectory_sha256 | test("^[a-f0-9]{64}$")) and (.initial_state_sha256 | test("^[a-f0-9]{64}$")) and (.controller_artifact_sha256 | test("^[a-f0-9]{64}$"))) and
+            ([.cases[].case_id] | length == (unique | length)) and
+            ([.cases[].trajectory_id] | unique | length == 6) and
+            (($root.gate_margin_contracts | keys | sort) == ($root.gate_ids | sort)) and
+            all($root.gate_margin_contracts[]; .hard_gate == true and (.unit | type == "string" and length > 0) and (.signed_margin_definition | type == "string" and length > 0)) and
+            all($root.cases[]; (.gate_results | keys) == (.signed_gate_margins | keys)) and
+            all($root.cases[]; (.gate_results | keys | sort) == ($root.gate_ids | sort)) and
+            all($root.cases[]; (.severity | keys | sort) == ([$root.axes[].id] | sort))
+          ' "$fixture"
+
+      - name: Test paired comparison contract in Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="research/polar-infrastructure/benchmark/Cargo.toml"
+          fixture="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json"
+          cargo test --locked --manifest-path "$manifest" --bin paired_comparison
+          cargo run --locked --quiet --manifest-path "$manifest" --bin paired_comparison -- "$fixture" > /tmp/paired-comparison-report.json
+          jq -e '
+            .report_kind == "paired-resilience-comparison-report" and
+            .schema_version == "0.5.0" and
+            .evidence_class == "synthetic_fixture" and
+            .status == "synthetic_only" and
+            .controller_count == 2 and
+            .trajectory_count == 6 and
+            .case_count == 12 and
+            .information_budget.payload_sha256_verification == "delegated_to_independent_verifier" and
+            .information_budget.oracle_future_observations_forbidden == true and
+            .information_budget.forecast_lookahead_seconds == 300 and
+            .content_bindings.payload_sha256_verification == "delegated_to_independent_verifier" and
+            (.content_bindings.trajectory_digests | length == 6) and
+            all(.content_bindings.trajectory_digests[]; (.observation_trace_sha256 | test("^[a-f0-9]{64}$"))) and
+            (.content_bindings.controller_digests | length == 2) and
+            .performance_claim == false and
+            (.coverage | length == 4) and
+            (.gate_margin_contracts | length == 2) and
+            (.paired_gate_comparisons | length == 2)
+          ' /tmp/paired-comparison-report.json
+          python3 research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py "$fixture" /tmp/paired-comparison-report.json
+
+      - name: Validate fixed-budget counterexample search contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/counterexample-search-benchmark-contract-0.1.0.schema.json"
+          contract="research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Counterexample Search Benchmark Contract" and
+            .additionalProperties == false and
+            (.required | index("searchers") != null) and
+            (.required | index("budget_contract") != null) and
+            (.required | index("statistical_contract") != null) and
+            (.required | index("admission_gates") != null)
+          ' "$schema"
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-counterexample-search-benchmark-contract" and
+            .status == "proposed_not_executed" and
+            .evidence_class == "test_design_only" and
+            (.searchers | length >= 3) and
+            any(.searchers[]; .searcher_id == "uniform_random" and .class == "baseline") and
+            any(.searchers[]; .searcher_id == "symtropy_adaptive_multiobjective" and .class == "candidate") and
+            .budget_contract.same_invocation_budget_across_searchers == true and
+            .budget_contract.invalid_invocations_count_against_budget == true and
+            .budget_contract.failed_or_timed_out_invocations_count_against_budget == true and
+            .budget_contract.confirmatory_repetitions >= 30 and
+            .input_information_contract.surrogate_training_and_cache_queries_count_toward_budget == true and
+            .split_contract.holdout_used_for_searcher_selection_or_tuning == false and
+            .counterexample_admission.counterexample_requires_independent_replay == true and
+            .statistical_contract.primary_endpoint == "falsification_rate_at_budget" and
+            .statistical_contract.effect_size_target == null and
+            all(.benchmark_tracks[]; .physical_evidence == false and .eligible_for_controller_superiority_claim == false) and
+            all(.admission_gates | to_entries[]; .value == false) and
+            .claim_policy.performance_claim == "none" and
+            .claim_policy.synthetic_oracle_results_are_physical_evidence == false
+          ' "$contract"
+          manifest="research/polar-infrastructure/benchmark/Cargo.toml"
+          cargo test --locked --manifest-path "$manifest" --bin counterexample_search_contract
+          cargo run --locked --quiet --manifest-path "$manifest" --bin counterexample_search_contract -- "$contract" > /tmp/counterexample-search-contract-report.json
+          jq -e '
+            .report_kind == "counterexample-search-benchmark-contract-validation" and
+            .contract_valid == true and
+            .searcher_count == 5 and
+            .confirmatory_invocation_budget_per_searcher == 200 and
+            .confirmatory_repetitions == 50 and
+            .admission_gates_all_false == true and
+            .candidate_for_execution == false and
+            .performance_claim == "none"
+          ' /tmp/counterexample-search-contract-report.json
+
+      - name: Execute analytic known-answer counterexample smoke track
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json"
+          fixture_schema="research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json"
+          report_schema="research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Analytic Counterexample Known-Answer Fixture" and
+            .additionalProperties == false and
+            (.required | index("cases") != null)
+          ' "$fixture_schema"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Analytic Known-Answer Counterexample Track Report" and
+            .additionalProperties == false and
+            (.required | index("budget_contract") != null) and
+            (.required | index("known_answer_fixture_validation") != null) and
+            (.required | index("claim_policy") != null)
+          ' "$report_schema"
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "analytic-counterexample-known-answer-fixture" and
+            .evidence_class == "synthetic_known_answer" and
+            .status == "design_only_not_physical_evidence" and
+            (.cases | length == 7) and
+            ([.cases[].case_id] | length == (unique | length)) and
+            all(.cases[]; .x >= 0 and .x <= 1 and .y >= 0 and .y <= 1) and
+            any(.cases[]; .case_id == "energy_boundary_is_pass" and (.expected_failure_families | length == 0)) and
+            any(.cases[]; .case_id == "energy_boundary_crossing_is_breach" and .expected_failure_families == ["critical_energy"]) and
+            any(.cases[]; .case_id == "communications_interior_is_breach" and .expected_failure_families == ["communications_partition"])
+          ' "$fixture"
+          manifest="research/polar-infrastructure/benchmark/Cargo.toml"
+          cargo test --locked --manifest-path "$manifest" --bin analytic_counterexample_track
+          cargo run --locked --quiet --manifest-path "$manifest" --bin analytic_counterexample_track > /tmp/analytic-counterexample-track-report.json
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-analytic-known-answer-counterexample-track-report" and
+            .status == "executed_analytic_oracle_only" and
+            .evidence_class == "synthetic_known_answer" and
+            .known_answer_fixture_validation.status == "passed" and
+            .known_answer_fixture_validation.case_count == 7 and
+            .budget_contract.search_queries_per_arm == 38 and
+            .budget_contract.reserved_replay_queries_per_arm == 2 and
+            .budget_contract.total_oracle_invocations_per_arm == 40 and
+            (.arms | length == 4) and
+            all(.arms[]; .search_query_count == 38 and .replay_query_count == 2 and .total_oracle_invocations == 40 and .budget_respected and .invalid_search_points == 0 and .replay_mismatch_count == 0 and .all_discovered_families_replay_confirmed and (.performance_claim == false)) and
+            any(.arms[]; .arm_id == "stratified_grid" and (.unique_failure_families_discovered | length == 2) and (.replay_confirmed_failure_families | length == 2)) and
+            any(.arms[]; .arm_id == "energy_only_corner" and .unique_failure_families_discovered == ["critical_energy"] and .positive_control_replays_passed == 1) and
+            .claim_policy.physical_claim == false and
+            .claim_policy.controller_superiority_claim == false and
+            .claim_policy.industry_sota_claim == false
+          ' /tmp/analytic-counterexample-track-report.json
+
+      - name: Validate execution receipt template schema contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.1.0.schema.json"
+          receipt="research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-template-2026.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Controller Execution Receipt" and
+            .additionalProperties == false and
+            (.required | index("paired_input_bindings") != null) and
+            (.required | index("resource_limits") != null) and
+            (.required | index("resource_limits_sha256") != null) and
+            (.required | index("independent_verification") != null) and
+            (.required | index("execution_attestation") != null) and
+            (.properties.scoring_eligible.const == false) and
+            (.properties.execution_attestation.properties.status.const == "not_implemented") and
+            (.properties.claim_policy.required | index("scoring_requires_signed_execution_attestation") != null) and
+            (.properties.claim_policy.properties.signed_execution_attestation_verifier_implemented.const == false) and
+            (.properties.independent_verification.properties.status.enum | index("passed") != null)
+          ' "$schema"
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-controller-execution-receipt" and
+            .evidence_class == "synthetic_fixture" and
+            .status == "design_only_not_executed" and
+            .execution_state == "not_executed" and
+            .execution_performed == false and
+            .scoring_eligible == false and
+            .execution_attestation.scheme == "none" and
+            .execution_attestation.status == "not_implemented" and
+            .execution_attestation.issuer_id == null and
+            .execution_attestation.signature_bundle_sha256 == null and
+            .claim_policy.scoring_requires_signed_execution_attestation == true and
+            .claim_policy.signed_execution_attestation_verifier_implemented == false and
+            .independent_verification.status == "not_run" and
+            all(.observed_resources[]; . == null) and
+            (.artifact_inventory | length == 8) and
+            (.resource_limits_sha256 | test("^[a-f0-9]{64}$")) and
+            (.execution_evidence.output_artifacts | length == 0)
+          ' "$receipt"
+          cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin execution_receipt
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin execution_receipt -- "$receipt" > /tmp/execution-receipt-report.json
+          jq -e '.contract_valid == true and .execution_performed == false and .scoring_eligible == false and .candidate_for_performance_claim == false' /tmp/execution-receipt-report.json
+          python3 research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py "$receipt" research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json
+          python3 -m unittest discover \
+            -s research/polar-infrastructure/benchmark/scripts/tests \
+            -p 'test_execution_receipt_verifier.py' -v
+          python3 -m unittest discover \
+            -s research/polar-infrastructure/benchmark/scripts/tests \
+            -p 'test_execution_receipt_set_verifier.py' -v
+
+      - name: Validate v0.2 causal execution receipt bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json"
+          receipt="research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json"
+          paired="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Controller Execution Receipt v0.2 (Causal Information Bound)" and
+            .additionalProperties == false and
+            (.properties.schema_version.const == "0.2.0") and
+            (.properties.paired_input_bindings.required | index("information_budget_sha256") != null) and
+            (.properties.paired_input_bindings.required | index("observation_trace_sha256") != null) and
+            (.properties.scoring_eligible.const == false) and
+            (.properties.claim_policy.properties.signed_execution_attestation_verifier_implemented.const == false)
+          ' "$schema"
+          jq -e --arg budget "$(jq -r '.information_budget_sha256' "$paired")" --arg trace "$(jq -r '.trajectory_artifacts[] | select(.trajectory_id == "trajectory-1") | .observation_trace_sha256' "$paired")" '
+            .schema_version == "0.2.0" and
+            .status == "design_only_not_executed" and
+            .execution_performed == false and
+            .scoring_eligible == false and
+            .paired_input_bindings.information_budget_sha256 == $budget and
+            .paired_input_bindings.observation_trace_sha256 == $trace and
+            (any(.artifact_inventory[]; .role == "observation_policy" and .sha256 == $budget))
+          ' "$receipt"
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin execution_receipt -- "$receipt" > /tmp/execution-receipt-v02-report.json
+          jq -e '.schema_version == "0.2.0" and .contract_valid == true and .execution_performed == false and .scoring_eligible == false' /tmp/execution-receipt-v02-report.json
+          python3 research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py "$receipt" "$paired"
+          python3 -m unittest discover \
+            -s research/polar-infrastructure/benchmark/scripts/tests \
+            -p 'test_execution_receipt_v0_2_verifier.py' -v
+
+      - name: Validate signed execution-attestation policy (scoring remains disabled)
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/execution-attestation-verification-policy-0.1.0.schema.json"
+          policy="research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Execution Attestation Verification Policy" and
+            .additionalProperties == false and
+            (.required | index("claim_boundary") != null) and
+            (.properties.scoring_authorized.const == false) and
+            (.properties.cosign.properties.version.const == "v3.1.4") and
+            (.properties.bundle_format.properties.legacy_bundle_allowed.const == false)
+          ' "$schema"
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-execution-attestation-verification-policy" and
+            .status == "design_only_not_enabled" and
+            .scoring_authorized == false and
+            .cosign.version == "v3.1.4" and
+            .cosign.verify_command == "verify-blob" and
+            .cosign.skip_transparency_log_allowed == false and
+            .cosign.insecure_ignore_sct_allowed == false and
+            .cosign.mutable_identity_regex_allowed == false and
+            .bundle_format.legacy_bundle_allowed == false and
+            .trust_boundary.policy_digest_must_be_pinned_out_of_band == true and
+            .trust_boundary.signing_workflow_must_not_execute_untrusted_pull_request_code_as_attester == true and
+            .claim_boundary.scoring_authorized == false
+          ' "$policy"
+          python3 -m unittest discover \
+            -s research/polar-infrastructure/benchmark/scripts/tests \
+            -p 'test_signed_execution_receipt_wrapper.py' -v
+
+      - name: Run independent verifier mutation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover \
+            -s research/polar-infrastructure/benchmark/scripts/tests \
+            -p 'test_paired_comparison_verifier.py' -v
+          python3 -m unittest discover \
+            -s research/polar-infrastructure/benchmark/scripts/tests \
+            -p 'test_execution_receipt_verifier.py' -v

@@ -1,13 +1,126 @@
 # Polar resilience benchmark targets and industry-comparison protocol
 
 **Status: proposed research protocol. Targets below are hypotheses, not achieved results.**  
-**Current evidence ceiling: synthetic scorer correctness only.** This crate scores supplied traces; it does not simulate electrical/thermal dynamics, optimize dispatch, certify a controller, or validate an Arctic/Antarctic site.
+**Current evidence ceiling: synthetic scorer correctness plus source/manifest contract checks only.** No real Gobabeb source has been ingested or scored; this crate scores supplied traces but does not itself simulate electrical/thermal dynamics, optimize dispatch, certify a controller, or validate an Arctic/Antarctic site.
+
+## New: preregistered resilience scorecard and industry comparison
+
+The [resilience benchmark scorecard](RESILIENCE_BENCHMARK_SCORECARD_2026.md) and [machine-readable comparison contract](fixtures/resilience-benchmark-contract-2026.json) define the baseline ladder, evidence admission gates, fair paired comparisons, tail-risk/service metrics, and claim limits. The contract is intentionally marked proposed and all admission gates are false. Its first superiority target is an aspirational 10% reduction in locked-test CVaR95 critical energy not served versus the strongest admissible deployable baseline, with paired uncertainty excluding zero improvement; this is **not measured or achieved**. An economic/resource non-inferiority margin must be chosen before the locked test, not after observing results.
+
+Industry comparisons are layer-matched: REopt/HOMER where a compatible planning or hybrid-system problem exists, OpenDSS for a compatible distribution network, and Gobabeb BSRN vs NASA POWER for environmental-input validation. Do not treat those tools as interchangeable or compare policy results across different models and information budgets. The scorecard does not claim Symtropy currently beats any of them.
+
+## New: strict signed-receipt verification profile
+
+The [execution-attestation profile](../EXECUTION_ATTESTATION_PROFILE_2026.md) and [machine-readable policy](fixtures/execution-attestation-verification-policy-2026.json) define the next trust boundary: pin the receipt-policy digest out-of-band, require an exact protected-main signer identity and GitHub OIDC issuer, reject legacy Sigstore bundles, and use an exact reviewed Cosign release. The [wrapper](scripts/verify_signed_execution_receipt.sh) performs signature verification for exact receipt bytes but **does not authorize scoring**. Its tests use a stubbed Cosign executable to exercise policy/failure behavior; no real signed receipt or trusted signing workflow has been tested or implemented. Receipt v0.1 remains permanently ineligible under its schema.
+
+## New: execution receipts and cross-arm budget fairness
+
+The paired evaluator now has a [controller execution receipt schema](schemas/controller-execution-receipt-0.1.0.schema.json), [design-only template](fixtures/controller-execution-receipt-template-2026.json), Rust contract validator, independent payload verifier and [receipt-set verifier](scripts/verify_execution_receipt_set.py). The receipt records plant-model, configuration, executable/runtime, controller-artifact and output identities, a canonical digest of the numeric resource ceilings, observed resource use, process outcome and independent-verification status. Its eight-role input inventory requires the controller artifact digest to match the paired-input binding; the resource-policy payload must equal the exact sorted compact JSON encoding of the numeric limits and share its digest.
+
+Before evaluating receipts, the receipt-set verifier validates the complete v0.4 or v0.5 paired input and independently rehashes all declared trajectory, initial-state, controller and—on v0.5—observation-trace and information-budget payloads. It indexes cases and artifacts once for reuse across the receipt matrix. The gate requires a complete controller-by-trajectory matrix, matched numeric resource limits and canonical resource-policy identity, shared observation policy, a common plant/executable/runtime environment, the same configuration for both arms on each paired scenario, and stable controller artifact identity. Mutation tests exercise missing receipts, budget drift, policy drift, model drift, trajectory-binding errors and paired-input payload tampering. These fixtures are synthetic test objects: no execution occurred and the templates are not score-eligible. **Receipt v0.1 disables scoring eligibility for every receipt** because cryptographic signed-execution-attestation verification has not been implemented. A receipt cannot promote itself to a measured result merely by setting an “independent verification passed” field.
+
+The additive [v0.2 receipt schema](schemas/controller-execution-receipt-0.2.0.schema.json) and [design-only template](fixtures/controller-execution-receipt-v0.2-template-2026.json) bind both the v0.5 information-budget digest and the exact per-trajectory observation-trace digest. The independent verifier checks the bindings against the paired case and artifact registry; the observation-policy inventory payload must equal the declared budget payload. The receipt-set verifier also requires the same budget digest across every arm and includes the observation-trace digest in trajectory parity. Eight new v0.2 receipt verifier tests and three receipt-set v0.2 tests cover drift and version-crossing controls. These are contract tests, not actual simulation executions. The signed execution-attestation verifier is still unimplemented, so **v0.2 receipts are also always scoring-ineligible**.
+
+## New: fixed-budget counterexample-search benchmark
+
+The [counterexample-search protocol](../COUNTEREXAMPLE_SEARCH_BENCHMARK_PROTOCOL_2026.md), [machine-readable contract](fixtures/counterexample-search-benchmark-contract-2026.json), and Rust validator define a separate benchmark for the *scenario searcher*, not the controller. It compares uniform random sampling, deterministic space-filling, optimization-based falsification, coverage-guided search and a Symtropy adaptive multi-objective candidate at equal oracle-invocation budgets. Invalid and timed-out calls count against budget; an alleged failure only counts after independent replay. The primary endpoint is falsification rate at budget, reported with uncertainty and survival curves for non-falsified runs.
+
+The pilot and confirmatory budgets are proposed design values (10 repetitions × 50 invocations, then 50 repetitions × 200 invocations); they are not measured results. A new executable [analytic known-answer track](src/bin/analytic_counterexample_track.rs) now exercises a seven-case golden fixture ([fixture](fixtures/analytic-counterexample-known-answer-2026.json)), two disjoint analytic failure families, four simple search/diagnostic arms, fixed-budget accounting (38 search + 2 replay calls per arm), exact replay and safe positive controls. Its strict fixture/report schemas are [here](schemas/analytic-counterexample-known-answer-0.1.0.schema.json) and [here](schemas/analytic-counterexample-track-report-0.1.0.schema.json). The exact-head workflow runs its Rust unit tests and emits a synthetic-only report. This is a harness smoke test, not a measured algorithm ranking: the full five-class production searcher comparison is still unimplemented, the validated plant track is not admitted, and the locked site/episode holdout has not been created. All admission gates remain false. Searcher superiority does not imply controller superiority.
+
+## New: causal mechanism attribution and placebo evaluation
+
+The [paired protocol's mechanism-attribution section](../../PAIRED_MARGIN_BENCHMARK_PROTOCOL.md#causal-mechanism-attribution-ablation-and-placebo-controls) specifies how to test *why* a policy improves, not only whether its score changes. Each claimed mechanism must be isolated with one-factor ablations, identical content-bound trajectories and initial states, a shared observation/resource budget, randomized run order and a predeclared episode/site-year analysis.
+
+Required controls include a deterministic no-op placebo, stale/shuffled forecast negatives, and feature-computed-but-not-consumed controls. Deterministic no-op cases should produce no unexplained output divergence beyond declared numerical tolerance; stochastic-placebo suites should have a predeclared nominal false-positive level and report uncertainty around observed type-I error. Report paired effect estimates, scenario-family slices, sensitivity to model uncertainty and resource-adjusted effect sizes. No single scalar or mean gain should conceal a critical-gate regression.
+
+This is motivated by the 2026 review [Causal inference and machine learning in power and energy systems](https://doi.org/10.1016/j.egyai.2026.100774), which recommends causal validation steps such as treatment-effect estimates, placebo/refutation tests and sensitivity analysis where the study supports them. In Symtropy, these are targets for future controlled experiments; the current synthetic fixture does not establish physical or field causality.
+
+## New: causal information parity and anti-look-ahead
+
+The paired comparison has advanced to a content-bound v0.5 fixture and schema: [paired-comparison-v0.5.json](fixtures/paired-comparison-v0.5.json) and [the v0.5 schema](schemas/paired-comparison-input-0.5.0.schema.json). The shared information budget declares decision cadence, allowable input types, forecast look-ahead, compute and memory ceilings. Each trajectory binds a time-stamped observation trace, and the independent verifier rejects future measurements, forecasts issued after a decision, forecasts beyond the declared horizon, tampered trace bytes and per-case information-budget drift.
+
+These values and traces are synthetic contract controls, not calibrated operating limits or evidence of controller performance. A trace alone cannot prove that a real process did not read hidden files or use network access; real studies must enforce process/network isolation, record actual input digests at decision time, and require an independently verified execution receipt. The next performance target is an information-efficiency Pareto frontier: critical-service risk versus forecast horizon, telemetry, compute, memory and runtime at otherwise matched physical disturbances and action constraints.
+
+Research motivation includes the 9 October 2026 leakage-controlled energy-forecasting study, which shows why future-dependent preprocessing invalidates nominal out-of-sample claims; the September 2026 microgrid-RL review, which finds no single method dominates all cost, latency, resilience and deployment dimensions; and NIST's 2026 TEVV-Athlon approach to structured evaluation plans.
+References: [energy forecasting leakage study](https://doi.org/10.1155/er/4433079), [microgrid adaptive-intelligence review](https://link.springer.com/article/10.1007/s10462-026-11663-x), [NIST TEVV-Athlon](https://www.nist.gov/artificial-intelligence/ai-research/tevv-athlon-framework-evaluating-ai-systems).
+
+## New: paired controller comparison and independent report checking
+
+The [paired margin benchmark protocol](../../PAIRED_MARGIN_BENCHMARK_PROTOCOL.md) and [content-bound fixture](fixtures/paired-comparison-v0.4.json) now defines a content-bound v0.4 comparison contract, synthetic paired fixture, Rust evaluator, and independent Python report verifier. It requires a complete controller-by-trajectory matrix, gate-specific signed-margin semantics, and exact SHA-256 bindings for trajectory payloads, initial states and controller artifacts; invalid and not-evaluated outcomes remain explicit. The independent verifier recomputes payload hashes over exact UTF-8 fixture bytes. Its exact-head workflow checks that Rust-produced report against the independent recomputation and runs mutation tests. This is a software-contract increment only: all 12 rows in the fixture are synthetic, and it supplies no measured controller advantage.
+
+## New: DNS-independent acquisition and rights-aware source choice
+
+The [environmental data acquisition fallback runbook](ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md) records the authoring-shell DNS failure, the limitation of PANGAEA's 2,000-row HTML preview, and an offline local-source registration route. It also states the BSRN-1.0 restriction against direct commercial sale/use: source access is not blanket redistribution or product-use permission. The added [local registration helper](scripts/register_local_pangaea_source.sh) hashes operator-supplied bytes without network access, but explicitly does **not** authenticate the source origin.
+
+SASSCAL WeatherNet's “Gobabeb Met” (station ID 8893) is a browser-accessible fallback for **meteorological/fog covariates**, not a current radiation reference. The inspected 27 July 2022 hourly page reports 24 observations and no missing hours, while the January 2023 daily page displays only four populated days out of 31; the 2026/hourly pages state that the solar sensor is not installed. An older station-sheet radiation-sensor listing is therefore conflicting and is not enough to admit radiometry. The January page's aggregate summary must not be treated as a full-month total without a coverage contract. The export has a “Download CSV” action, but raw bytes have not been acquired, the historical coverage has not been audited, and data-use terms remain unverified. It is a **candidate_not_admitted** and the displayed examples are metadata-only/development evidence, not the locked-test result.
+
+NOAA NCEI's ISD/GHCNh remains another candidate for surface temperature/dew point, wind, pressure and precipitation, but the exact station period/overlap and terms still need confirmation. Neither source is treated as a substitute for BSRN radiation observations.
+
+See [the DNS fallback and coverage protocol](ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md), plus [SASSCAL daily](https://www.sasscalweathernet.org/weatherstat_daily_we.php?loggerid_crit=8893&yrmth_crit=2023-01), [SASSCAL hourly 27 July 2022](https://www.sasscalweathernet.org/weatherstat_hourly_we.php?date_crit_daily=2022-07-27&loggerid_crit=8893), [NOAA NCEI ISD](https://www.ncei.noaa.gov/products/land-based-station/integrated-surface-database) and [NOAA GHCNh](https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly).
+
+## New: hierarchical resilience and autonomy
+
+The resilience scorecard now preregisters device, site/microgrid, community/multi-site and operator-coordination levels, plus explicit communication-delay/partition and state-reconciliation tests. This follows the context-dependent metric agenda in IEEE PES TR148 (October 2026) and recent resilience review literature. The key new experiment is to compare a centralized policy, local fallback and hybrid fallback/reconciliation policy under paired identical physical disturbances and controlled communication loss. See [the scorecard's coordination-partition experiment](RESILIENCE_BENCHMARK_SCORECARD_2026.md#21-new-benchmark-axis-hierarchy-autonomy-and-interdependence). This is a research hypothesis, not an executed controller result.
+
+## New: executable coverage admission gate
+
+The [coverage gate](scripts/evaluate_environment_coverage.sh), [assessment schema](schemas/environment-coverage-assessment-0.1.0.schema.json) and [synthetic contract tests](scripts/test_environment_coverage.sh) turn missingness into an executable decision before calculating station/model metrics. The gate rejects inconsistent counts, blocks scoring if the minimum coverage threshold is null, rejects windows below the preregistered threshold, and records expected/observed/missing counts without imputing missing values as zeros. Its synthetic negative control rejects 4/31 populated rows under an 80% threshold; a 24/24 example only passes the single-window coverage test and does not imply site-wide or model validity. The actual SASSCAL and BSRN sources remain unadmitted until their raw data, terms and QA/QC are reviewed.
+
+## New: long-horizon, nonstationary resilience contract
+
+The new [long-horizon contract](fixtures/long-horizon-resilience-contract-2026.json), [Rust validator](src/bin/long_horizon_contract.rs), and [Draft 2020-12 schema](schemas/long-horizon-resilience-contract-0.1.0.schema.json) turn a recent research direction into an executable design contract. A 2026 Nature Reviews Electrical Engineering review argues for resilience assessment across changing climate conditions and multiple futures, not only individual events; IEEE PES's October 2026 TR148 emphasizes extreme weather, interdependent failures and coordination. This benchmark now distinguishes an event-reset diagnostic baseline from a stateful no-adaptation baseline and a stateful adaptive candidate. The validator rejects state resets in the long-horizon run, unfrozen or reused holdouts, missing path-dependent states, and probability weights without a verified probability basis.
+
+The fixture has four design-only scenario families, three nonstationary labels, nine persistent states and twelve declared metrics. All eight admission gates remain false; no environmental parameter values or probability weights are fabricated. The 30-year design horizon is a test plan, not a forecast. See the [long-horizon scorecard section](RESILIENCE_BENCHMARK_SCORECARD_2026.md#11-paradigm-shift-long-horizon-path-dependent-resilience).
+
+Sources: [Nature Reviews Electrical Engineering, 21 Aug 2026](https://www.nature.com/articles/s44287-026-00322-6), [IEEE PES TR148, 1 Oct 2026](https://resourcecenter.ieee-pes.org/publications/technical-reports/pes_tr_tr148_itslc_102026), [IEEE PES TR143, 8 Jun 2026](https://resourcecenter.ieee-pes.org/publications/technical-reports/pes_tr_143_amps_060826).
+
+## New: independent Gobabeb station validation lane
+
+The [Gobabeb BSRN cross-validation protocol](GOBABEB_BSRN_CROSS_VALIDATION_2026.md) identifies a real station dataset series (PANGAEA DOI 10.1594/PANGAEA.968639) with radiation, 2 m temperature, relative humidity and pressure observations and a published coverage range through 2026-08-31. The new [PANGAEA fetcher](scripts/fetch_pangaea_source_file.sh) pins and hashes an individual monthly source file without normalizing or validating it. It specifies direct matched-window evaluation of POWER against the instrument record, with source DOI/hash pinning, timestamp and unit alignment, missingness, bias/MAE/RMSE, block uncertainty, and locked time blocks. **No station data have yet been ingested or scored by this PR**; the PANGAEA/BSRN observation path is an evidence-backed next step, not a result. The [machine-readable plan](fixtures/gobabeb-bsrn-validation-plan-2026.json) pins calibration (2016–2018), validation (2019) and locked test (2020–2021) windows before computing metrics; its data-admission flags remain false. The station's variables do not cover every required hazard (including dust/salt deposition and fog liquid-water content), so those remain separate unknowns.
+
+## New: source-backed environmental trace replay
+
+The next implementation boundary is a reproducible environmental trace, not just another scenario label. See [ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md](ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md), the [trace-manifest schema](schemas/environment-trace-manifest-0.1.0.schema.json), and the [Namib trace manifest template](fixtures/environment-trace-manifest-template-2026.json). The template intentionally contains no source URL, coordinates, dates, hashes, or observed values; it is not an ingested trace. The [NASA POWER acquisition adapter](scripts/fetch_and_normalize_nasa_power_daily.sh) and [normalizer](scripts/normalize_nasa_power_daily.sh) provide a source-pinned daily pilot, while a clearly synthetic offline fixture exercises conversions and missing-data cases. [The artifact verifier](scripts/verify_environment_trace_artifacts.sh) recomputes artifact digests and checks byte size/row count. The [Environment Trace Contract workflow](../../../.github/workflows/environment-trace-contract.yml) runs those tests alongside the Rust metadata gate. These checks do not replace physical-data/model validation.
+
+The protocol prioritizes chronology-preserving weather/solar traces, explicit gaps and uncertainty, whole-episode temporal holdouts, source-specific field observations for fog/salt/dust, fair baseline information/compute budgets, and distinct integrity/model/service-resilience gates. Performance superiority is a hypothesis until a suitable open baseline is reproduced and a locked comparison passes.
+
+## Environment domain coverage: deserts and the full solar-system trade space
+
+The [Earth Desert and Solar-System Environment Domain Catalog](ENVIRONMENT_DOMAIN_CATALOG_2026.md) defines the proposed environment taxonomy, and the [machine-readable catalog](fixtures/environment-domain-catalog-2026.json) records scenario IDs, coupled-hazard hypotheses, required model domains, metrics, source links, evidence limitations, and implementation status. Its schema is [environment-domain-catalog-0.1.0.schema.json](schemas/environment-domain-catalog-0.1.0.schema.json). The [compound-test matrix](fixtures/environment-compound-test-matrix-2026.json) provides 51 per-profile coverage templates plus 19 cross-profile interaction templates. All 70 are design-only and have no fabricated numeric environment values.
+
+Deserts are a first-class Earth benchmark family: hot arid, hyper-arid, coastal fog desert, cold desert, high-altitude dry terrain, salt flat, dust storm, and compound heatwave/drought each stress different assumptions. The first test queue should prioritize dust deposition plus thermal derating; dust storm plus water scarcity and delayed maintenance; cold-desert night plus depleted storage/cold start; coastal salt plus dust; and high-altitude derating.
+
+The initial catalog also covers cross-cutting space conditions (vacuum/thermal cycling, solar weather, radiation, low gravity, communication latency and planetary protection), terrestrial bodies, gas/ice-giant atmospheric levels, key moons, asteroids/comets, and outer-system objects. It intentionally does not collapse them into one "environment score". Venus's surface, a Venus cloud-layer vehicle, Titan's cryogenic hydrocarbon surface, Europa's radiation-exposed ice, a lunar permanently shadowed region, and Neptune at a specified atmospheric pressure are separate physical contracts, not interchangeable variants of a generic hostile climate.
+
+Current status: these are **scenario families to parameterize and validate**, not 51 validated models or executed tests. All 51 catalog profiles are currently marked planned. CI checks catalog IDs, status/evidence metadata, and one-to-one coverage-template presence, not physical correctness or habitat feasibility. Unmodelled conditions remain unknown; cross-domain transfer requires an explicit model and held-out validation.
 
 ## Why this benchmark should differ
 
 A conventional asset-availability or energy-cost metric can look good while people lose heat, water, sanitation, or communications. Evaluate delivered services over time against owner-approved floors; report fuel, cost, repair burden, compute, and other trade-offs separately. Lower fuel use never compensates for a breached critical-service floor.
 
 Distinguish two questions. Where credible scenario probabilities exist, use probability-weighted metrics and tail measures with uncertainty. Where probabilities are not defensible, report each enumerated stress scenario and worst-case outcomes; do not relabel an unweighted stress suite as expected risk. This reflects recent microgrid reliability research emphasizing chronological adequacy and correlated scarcity rather than a single headline indicator. HIL, commissioning, and periodic controller testing are separate evidence stages, not certificates implied by a passing unit test.
+
+## Three linked, separately scored benchmark tracks
+
+Do not try to make one metric cover slow energy adequacy, fast inverter stability, and cyber-physical integrity. Share provenance, scenario identity, and service-delivery traces across tracks, but keep each domain's physical metrics and acceptance criteria distinct.
+
+### Track A — long-horizon critical-service resilience
+
+This is the existing scorer's scope: delivery of owner-approved heat, water, communications, sanitation, and other declared services through chronological renewable scarcity, reserve depletion, equipment faults, delayed resupply, repair queues, and recovery. Physical unit-hours remain separated by service; the normalized service-deficit summary supplements rather than replaces them. Repeated-event tests must carry state across events.
+
+### Track B — fast electrical dynamics and controller implementation
+
+A suitable electrical benchmark should separately measure frequency and voltage excursions, settling/recovery, current-limit behavior, synchronization/stability margins, protection interactions, computation/decision deadlines, and sensitivity to controller tuning. It must use a matched plant, disturbance sequence, controller-visible input, protection envelope, and metric extractor for all comparator arms; low-order models should be checked against an appropriate EMT or laboratory reference before strong electrical claims are made.
+
+A relevant recent comparison is [A Reproducible Weak-Grid Benchmark with Switching-Averaged EMT Validation for Battery-Backed Grid-Forming Control in PV Microgrids (Energies, 25 June 2026)](https://doi.org/10.3390/en19133017). It compares droop, virtual-synchronous-machine, and power-synchronization control under matched plant data, load disturbance, grid-strength reduction, voltage sag, and current limits, then checks the low-order response with a switching-averaged EMT layer and tuning sensitivity. Its result is a benchmark-specific trade-off among frequency moderation, restoration speed, stability, and implementation burden—not a universal controller ranking. Symtropy should reproduce an appropriate public baseline before extending it to polar constraints and compound events, and should not claim superiority over that paper without a matched, independently reproduced experiment.
+
+### Track C — cross-layer cyber-physical integrity
+
+This track tests whether telemetry freshness, sensor disagreement, command validity, actuator response, controller fallback, and state re-synchronization preserve service delivery under safe, isolated fault injection. Keep evidence-integrity metrics (stale/invalid command handling, detection/fallback latency, command-versus-plant mismatch) separate from the resulting service losses. A detector firing is not proof of containment; stable network uptime is not proof that commands were physically correct.
+
+### Cross-track experiment contract
+
+Every paired comparison should share a stable study ID, scenario/trajectory ID, initial-state digest, model revision, service-contract digest, and policy-visible input trace. Each track may add its own validated model/testbed digest and domain-specific measurements. A cross-layer case must explicitly record which layers were active and which were not covered. Never infer electrical stability from energy-service averages, infer multi-day energy adequacy from a short EMT trace, or infer cybersecurity from correct service metrics alone.
 
 ## Comparison arms
 
@@ -24,6 +137,19 @@ Use identical episode boundaries, service contracts, input data, constraints, ha
 | Negative controls | Demonstrate fault detection | Floor violator, failed actuator, stale sensor, invalid evidence |
 
 Do not claim to beat “industry” using a straw-man baseline. Name specific commercial controllers only when version, configuration, model boundary, inputs, hardware and results are documented and reproducible. A paper, vendor claim, simulation, and HIL result are different evidence classes.
+
+### Additional electrical-track targets (separate from service resilience)
+
+These also need a frozen study-specific protocol; they are not universal limits.
+
+| Dimension | Acceptance approach |
+|---|---|
+| Baseline reproduction | Reproduce an appropriate published/open baseline and its primary metrics within declared tolerances before changing the plant or adding polar hazards |
+| Matched comparisons | Identical plant, perturbations, protection/current limits, input visibility, solver settings, output sampling and metric extraction across controller arms |
+| Dynamic constraints | Zero violations of explicitly declared voltage/frequency/current/angle/protection envelopes in the selected test suite, subject to validated model boundaries |
+| Model cross-check | Report discrepancies between reduced-order trajectories and EMT/reference results; explain any controller rank reversal rather than selecting the more favorable model |
+| Tuning robustness | Report performance and failure-boundary sensitivity under preregistered parameter perturbations and tuning budgets |
+| Real-time execution | No missed control deadlines in the declared test suite on named hardware; publish latency distribution and fallback for missed deadlines |
 
 ## Proposed quantitative targets
 
@@ -98,6 +224,7 @@ Evidence does not automatically rise because a workflow passes. Synthetic-only o
 - [NREL/NLR, Hardware-in-the-Loop Test Bed and Test Methodology for Microgrid Controller Evaluation](https://www.nrel.gov/docs/fy20osti/71338.pdf) provides controller-evaluation methodology.
 - [Reliability as a design principle: A systematic review and integrated framework for renewable-based microgrids (2026)](https://www.sciencedirect.com/science/article/pii/S2590174526003612) motivates time-coupled adequacy, correlated scarcity, and service-critical tail measures.
 - [Quantifying Microgrid Resilience by Determining Survivable Durations of Random Outages (IEEE Access, 2025)](https://doi.org/10.1109/ACCESS.2025.3626579) motivates reporting how long critical service can be sustained before failure, rather than only average service fractions.
-- [IEEE 2030.8: Testing of Microgrid Controllers](https://standards.ieee.org/ieee/2030.8/6169/) is another relevant test reference.
+- [IEEE 2030.8-2018: Testing of Microgrid Controllers](https://standards.ieee.org/ieee/2030.8/6169/) is an existing test reference; its successor [P2030.8](https://standards.ieee.org/ieee/2030.8/12543/) was approved as an active revision project on 26 March 2026.
+- [A Reproducible Weak-Grid Benchmark ... (Energies, 2026)](https://doi.org/10.3390/en19133017) is a reproducibility pattern for matched grid-forming controller comparison and a model-to-EMT consistency check, not a polar microgrid validation.
 
 The current code demonstrates metric calculation on synthetic fixtures only. The next scientific milestone is not a higher dashboard score; it is a frozen, reproducible, site-relevant comparison whose evidence can falsify the candidate's value proposition.

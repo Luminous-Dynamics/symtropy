@@ -1,0 +1,375 @@
+{
+  "schema_version": "0.4.0",
+  "artifact_kind": "paired-resilience-comparison-input",
+  "evidence_class": "synthetic_fixture",
+  "status": "synthetic_only",
+  "reference_controller_id": "rule_baseline",
+  "candidate_controller_id": "adaptive_candidate",
+  "controllers": [
+    "rule_baseline",
+    "adaptive_candidate"
+  ],
+  "axes": [
+    {
+      "id": "storm_duration_h",
+      "unit": "hour",
+      "higher_is_more_severe": true
+    }
+  ],
+  "gate_ids": [
+    "critical_energy",
+    "communications"
+  ],
+  "gate_margin_contracts": {
+    "critical_energy": {
+      "unit": "normalized_unitless",
+      "signed_margin_definition": "delivered critical-energy fraction minus preregistered required service-floor fraction",
+      "hard_gate": true
+    },
+    "communications": {
+      "unit": "normalized_unitless",
+      "signed_margin_definition": "one minus observed message-latency-to-deadline ratio, normalized to the declared deadline",
+      "hard_gate": true
+    }
+  },
+  "cases": [
+    {
+      "case_id": "rule-t1",
+      "controller_id": "rule_baseline",
+      "trajectory_id": "trajectory-1",
+      "comparison_group_id": "coastal-wind",
+      "hazard_family": "coastal_wind",
+      "initial_state_id": "state-1",
+      "replicate_id": "replicate-1",
+      "severity": {
+        "storm_duration_h": 1
+      },
+      "gate_results": {
+        "critical_energy": "pass",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": 0.4,
+        "communications": 0.1
+      },
+      "trajectory_sha256": "de1746e2cdc62abcf73e4ee47c123fef2553b3bae09048ecbc6aa9bd7d19743c",
+      "initial_state_sha256": "fdc98a444eb68adfb1f5ff3d0e56094d3244e3bb60fb7e62e3784eef3509d36c",
+      "controller_artifact_sha256": "e85f96ea1fd25674adcfb4e7775e5d20c5f5c3f0722e02aeb0af41b4a152c3c0"
+    },
+    {
+      "case_id": "candidate-t1",
+      "controller_id": "adaptive_candidate",
+      "trajectory_id": "trajectory-1",
+      "comparison_group_id": "coastal-wind",
+      "hazard_family": "coastal_wind",
+      "initial_state_id": "state-1",
+      "replicate_id": "replicate-1",
+      "severity": {
+        "storm_duration_h": 1
+      },
+      "gate_results": {
+        "critical_energy": "pass",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": 0.5,
+        "communications": 0.2
+      },
+      "trajectory_sha256": "de1746e2cdc62abcf73e4ee47c123fef2553b3bae09048ecbc6aa9bd7d19743c",
+      "initial_state_sha256": "fdc98a444eb68adfb1f5ff3d0e56094d3244e3bb60fb7e62e3784eef3509d36c",
+      "controller_artifact_sha256": "9cc853b3bf2b2af72e19227665f879ab9bbbdf43b447804c52e67332c4796f59"
+    },
+    {
+      "case_id": "rule-t2",
+      "controller_id": "rule_baseline",
+      "trajectory_id": "trajectory-2",
+      "comparison_group_id": "coastal-wind",
+      "hazard_family": "coastal_wind",
+      "initial_state_id": "state-2",
+      "replicate_id": "replicate-1",
+      "severity": {
+        "storm_duration_h": 2
+      },
+      "gate_results": {
+        "critical_energy": "breach",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": -0.2,
+        "communications": 0.1
+      },
+      "trajectory_sha256": "7cc6c4dee46da81517e4df94eb4398af27fd35c069b3241d078cbe39de65199e",
+      "initial_state_sha256": "2711416834b36d877894b2c5a355fa9e83cde750e22f3c7994f433a272c86d13",
+      "controller_artifact_sha256": "e85f96ea1fd25674adcfb4e7775e5d20c5f5c3f0722e02aeb0af41b4a152c3c0"
+    },
+    {
+      "case_id": "candidate-t2",
+      "controller_id": "adaptive_candidate",
+      "trajectory_id": "trajectory-2",
+      "comparison_group_id": "coastal-wind",
+      "hazard_family": "coastal_wind",
+      "initial_state_id": "state-2",
+      "replicate_id": "replicate-1",
+      "severity": {
+        "storm_duration_h": 2
+      },
+      "gate_results": {
+        "critical_energy": "pass",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": 0.05,
+        "communications": 0.15
+      },
+      "trajectory_sha256": "7cc6c4dee46da81517e4df94eb4398af27fd35c069b3241d078cbe39de65199e",
+      "initial_state_sha256": "2711416834b36d877894b2c5a355fa9e83cde750e22f3c7994f433a272c86d13",
+      "controller_artifact_sha256": "9cc853b3bf2b2af72e19227665f879ab9bbbdf43b447804c52e67332c4796f59"
+    },
+    {
+      "case_id": "rule-t3",
+      "controller_id": "rule_baseline",
+      "trajectory_id": "trajectory-3",
+      "comparison_group_id": "compound-weather",
+      "hazard_family": "compound_weather",
+      "initial_state_id": "state-3",
+      "replicate_id": "replicate-2",
+      "severity": {
+        "storm_duration_h": 3
+      },
+      "gate_results": {
+        "critical_energy": "breach",
+        "communications": "breach"
+      },
+      "signed_gate_margins": {
+        "critical_energy": -0.8,
+        "communications": -0.1
+      },
+      "trajectory_sha256": "7b4306c853c0db07b12211c923f3ee5be411b880bd4d6910e1229eabed009d79",
+      "initial_state_sha256": "f16054d176ab1b49eabbf13e8c3264cf565f58bd1adc3d01a490f27aabfebfd6",
+      "controller_artifact_sha256": "e85f96ea1fd25674adcfb4e7775e5d20c5f5c3f0722e02aeb0af41b4a152c3c0"
+    },
+    {
+      "case_id": "candidate-t3",
+      "controller_id": "adaptive_candidate",
+      "trajectory_id": "trajectory-3",
+      "comparison_group_id": "compound-weather",
+      "hazard_family": "compound_weather",
+      "initial_state_id": "state-3",
+      "replicate_id": "replicate-2",
+      "severity": {
+        "storm_duration_h": 3
+      },
+      "gate_results": {
+        "critical_energy": "breach",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": -0.3,
+        "communications": 0.05
+      },
+      "trajectory_sha256": "7b4306c853c0db07b12211c923f3ee5be411b880bd4d6910e1229eabed009d79",
+      "initial_state_sha256": "f16054d176ab1b49eabbf13e8c3264cf565f58bd1adc3d01a490f27aabfebfd6",
+      "controller_artifact_sha256": "9cc853b3bf2b2af72e19227665f879ab9bbbdf43b447804c52e67332c4796f59"
+    },
+    {
+      "case_id": "rule-t4",
+      "controller_id": "rule_baseline",
+      "trajectory_id": "trajectory-4",
+      "comparison_group_id": "compound-weather",
+      "hazard_family": "compound_weather",
+      "initial_state_id": "state-4",
+      "replicate_id": "replicate-2",
+      "severity": {
+        "storm_duration_h": 4
+      },
+      "gate_results": {
+        "critical_energy": "pass",
+        "communications": "breach"
+      },
+      "signed_gate_margins": {
+        "critical_energy": 0.1,
+        "communications": -0.2
+      },
+      "trajectory_sha256": "a2b7cb5450ae9d83d5067a1e744a8c410c38384fb7f01e712daee8628dd594f7",
+      "initial_state_sha256": "13d8d0f5f1d759be038645c1e4eef15901317bdc49dfc397fd2968097b734b75",
+      "controller_artifact_sha256": "e85f96ea1fd25674adcfb4e7775e5d20c5f5c3f0722e02aeb0af41b4a152c3c0"
+    },
+    {
+      "case_id": "candidate-t4",
+      "controller_id": "adaptive_candidate",
+      "trajectory_id": "trajectory-4",
+      "comparison_group_id": "compound-weather",
+      "hazard_family": "compound_weather",
+      "initial_state_id": "state-4",
+      "replicate_id": "replicate-2",
+      "severity": {
+        "storm_duration_h": 4
+      },
+      "gate_results": {
+        "critical_energy": "breach",
+        "communications": "breach"
+      },
+      "signed_gate_margins": {
+        "critical_energy": -0.1,
+        "communications": -0.1
+      },
+      "trajectory_sha256": "a2b7cb5450ae9d83d5067a1e744a8c410c38384fb7f01e712daee8628dd594f7",
+      "initial_state_sha256": "13d8d0f5f1d759be038645c1e4eef15901317bdc49dfc397fd2968097b734b75",
+      "controller_artifact_sha256": "9cc853b3bf2b2af72e19227665f879ab9bbbdf43b447804c52e67332c4796f59"
+    },
+    {
+      "case_id": "rule-t5",
+      "controller_id": "rule_baseline",
+      "trajectory_id": "trajectory-5",
+      "comparison_group_id": "partition",
+      "hazard_family": "communications_partition",
+      "initial_state_id": "state-5",
+      "replicate_id": "replicate-3",
+      "severity": {
+        "storm_duration_h": 5
+      },
+      "gate_results": {
+        "critical_energy": "invalid",
+        "communications": "pass"
+      },
+      "signed_gate_margins": {
+        "critical_energy": null,
+        "communications": 0
+      },
+      "trajectory_sha256": "b688ac204bd310b6c700237791b7b3785248fc5d6af5173fa2b43cd6c8e70df3",
+      "initial_state_sha256": "4a2749002cd588905fb4859fca3aac40e1928ddf57c0ab3b5b697f096a355479",
+      "controller_artifact_sha256": "e85f96ea1fd25674adcfb4e7775e5d20c5f5c3f0722e02aeb0af41b4a152c3c0"
+    },
+    {
+      "case_id": "candidate-t5",
+      "controller_id": "adaptive_candidate",
+      "trajectory_id": "trajectory-5",
+      "comparison_group_id": "partition",
+      "hazard_family": "communications_partition",
+      "initial_state_id": "state-5",
+      "replicate_id": "replicate-3",
+      "severity": {
+        "storm_duration_h": 5
+      },
+      "gate_results": {
+        "critical_energy": "not_evaluated",
+        "communications": "invalid"
+      },
+      "signed_gate_margins": {
+        "critical_energy": null,
+        "communications": null
+      },
+      "trajectory_sha256": "b688ac204bd310b6c700237791b7b3785248fc5d6af5173fa2b43cd6c8e70df3",
+      "initial_state_sha256": "4a2749002cd588905fb4859fca3aac40e1928ddf57c0ab3b5b697f096a355479",
+      "controller_artifact_sha256": "9cc853b3bf2b2af72e19227665f879ab9bbbdf43b447804c52e67332c4796f59"
+    },
+    {
+      "case_id": "rule-t6",
+      "controller_id": "rule_baseline",
+      "trajectory_id": "trajectory-6",
+      "comparison_group_id": "partition",
+      "hazard_family": "communications_partition",
+      "initial_state_id": "state-6",
+      "replicate_id": "replicate-3",
+      "severity": {
+        "storm_duration_h": 6
+      },
+      "gate_results": {
+        "critical_energy": "not_evaluated",
+        "communications": "invalid"
+      },
+      "signed_gate_margins": {
+        "critical_energy": null,
+        "communications": null
+      },
+      "trajectory_sha256": "21c1c985a7242a6c0e5bfc935a54a8d9f5f631c93c9fd7733583213106a5bb0a",
+      "initial_state_sha256": "c48f1f106f98b236def9d5397a60538b359f93c3d365bead56001faa599034f2",
+      "controller_artifact_sha256": "e85f96ea1fd25674adcfb4e7775e5d20c5f5c3f0722e02aeb0af41b4a152c3c0"
+    },
+    {
+      "case_id": "candidate-t6",
+      "controller_id": "adaptive_candidate",
+      "trajectory_id": "trajectory-6",
+      "comparison_group_id": "partition",
+      "hazard_family": "communications_partition",
+      "initial_state_id": "state-6",
+      "replicate_id": "replicate-3",
+      "severity": {
+        "storm_duration_h": 6
+      },
+      "gate_results": {
+        "critical_energy": "invalid",
+        "communications": "not_evaluated"
+      },
+      "signed_gate_margins": {
+        "critical_energy": null,
+        "communications": null
+      },
+      "trajectory_sha256": "21c1c985a7242a6c0e5bfc935a54a8d9f5f631c93c9fd7733583213106a5bb0a",
+      "initial_state_sha256": "c48f1f106f98b236def9d5397a60538b359f93c3d365bead56001faa599034f2",
+      "controller_artifact_sha256": "9cc853b3bf2b2af72e19227665f879ab9bbbdf43b447804c52e67332c4796f59"
+    }
+  ],
+  "trajectory_artifacts": [
+    {
+      "trajectory_id": "trajectory-1",
+      "initial_state_id": "state-1",
+      "trajectory_payload": "synthetic-trajectory-payload-v1:trajectory-1:seed=101",
+      "trajectory_sha256": "de1746e2cdc62abcf73e4ee47c123fef2553b3bae09048ecbc6aa9bd7d19743c",
+      "initial_state_payload": "synthetic-initial-state-payload-v1:state-1",
+      "initial_state_sha256": "fdc98a444eb68adfb1f5ff3d0e56094d3244e3bb60fb7e62e3784eef3509d36c"
+    },
+    {
+      "trajectory_id": "trajectory-2",
+      "initial_state_id": "state-2",
+      "trajectory_payload": "synthetic-trajectory-payload-v1:trajectory-2:seed=102",
+      "trajectory_sha256": "7cc6c4dee46da81517e4df94eb4398af27fd35c069b3241d078cbe39de65199e",
+      "initial_state_payload": "synthetic-initial-state-payload-v1:state-2",
+      "initial_state_sha256": "2711416834b36d877894b2c5a355fa9e83cde750e22f3c7994f433a272c86d13"
+    },
+    {
+      "trajectory_id": "trajectory-3",
+      "initial_state_id": "state-3",
+      "trajectory_payload": "synthetic-trajectory-payload-v1:trajectory-3:seed=103",
+      "trajectory_sha256": "7b4306c853c0db07b12211c923f3ee5be411b880bd4d6910e1229eabed009d79",
+      "initial_state_payload": "synthetic-initial-state-payload-v1:state-3",
+      "initial_state_sha256": "f16054d176ab1b49eabbf13e8c3264cf565f58bd1adc3d01a490f27aabfebfd6"
+    },
+    {
+      "trajectory_id": "trajectory-4",
+      "initial_state_id": "state-4",
+      "trajectory_payload": "synthetic-trajectory-payload-v1:trajectory-4:seed=104",
+      "trajectory_sha256": "a2b7cb5450ae9d83d5067a1e744a8c410c38384fb7f01e712daee8628dd594f7",
+      "initial_state_payload": "synthetic-initial-state-payload-v1:state-4",
+      "initial_state_sha256": "13d8d0f5f1d759be038645c1e4eef15901317bdc49dfc397fd2968097b734b75"
+    },
+    {
+      "trajectory_id": "trajectory-5",
+      "initial_state_id": "state-5",
+      "trajectory_payload": "synthetic-trajectory-payload-v1:trajectory-5:seed=105",
+      "trajectory_sha256": "b688ac204bd310b6c700237791b7b3785248fc5d6af5173fa2b43cd6c8e70df3",
+      "initial_state_payload": "synthetic-initial-state-payload-v1:state-5",
+      "initial_state_sha256": "4a2749002cd588905fb4859fca3aac40e1928ddf57c0ab3b5b697f096a355479"
+    },
+    {
+      "trajectory_id": "trajectory-6",
+      "initial_state_id": "state-6",
+      "trajectory_payload": "synthetic-trajectory-payload-v1:trajectory-6:seed=106",
+      "trajectory_sha256": "21c1c985a7242a6c0e5bfc935a54a8d9f5f631c93c9fd7733583213106a5bb0a",
+      "initial_state_payload": "synthetic-initial-state-payload-v1:state-6",
+      "initial_state_sha256": "c48f1f106f98b236def9d5397a60538b359f93c3d365bead56001faa599034f2"
+    }
+  ],
+  "controller_artifacts": [
+    {
+      "controller_id": "rule_baseline",
+      "controller_payload": "synthetic-controller-artifact-v1:rule_baseline:revision=fixture-a",
+      "controller_sha256": "e85f96ea1fd25674adcfb4e7775e5d20c5f5c3f0722e02aeb0af41b4a152c3c0"
+    },
+    {
+      "controller_id": "adaptive_candidate",
+      "controller_payload": "synthetic-controller-artifact-v1:adaptive_candidate:revision=fixture-b",
+      "controller_sha256": "9cc853b3bf2b2af72e19227665f879ab9bbbdf43b447804c52e67332c4796f59"
+    }
+  ]
+}

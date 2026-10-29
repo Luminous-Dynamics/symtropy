@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Symtropy Execution Attestation Verification Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_kind",
+    "status",
+    "evidence_class",
+    "scoring_authorized",
+    "attestation_scheme",
+    "signed_subject",
+    "bundle_format",
+    "cosign",
+    "trust_boundary",
+    "verification_requirements",
+    "claim_boundary",
+    "references"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "artifact_kind": {"const": "symtropy-execution-attestation-verification-policy"},
+    "status": {"const": "design_only_not_enabled"},
+    "evidence_class": {"const": "policy_design_only"},
+    "scoring_authorized": {"const": false},
+    "attestation_scheme": {"const": "sigstore_signed_blob"},
+    "signed_subject": {"const": "exact UTF-8 bytes of the immutable controller execution receipt"},
+    "bundle_format": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format_id", "media_type", "legacy_bundle_allowed"],
+      "properties": {
+        "format_id": {"const": "sigstore_standardized_bundle_v0_3"},
+        "media_type": {"const": "application/vnd.dev.sigstore.bundle.v0.3+json"},
+        "legacy_bundle_allowed": {"const": false}
+      }
+    },
+    "cosign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version_policy",
+        "version",
+        "verify_command",
+        "certificate_identity",
+        "certificate_oidc_issuer",
+        "skip_transparency_log_allowed",
+        "insecure_ignore_sct_allowed",
+        "mutable_identity_regex_allowed"
+      ],
+      "properties": {
+        "version_policy": {"const": "exact_reviewed_release"},
+        "version": {"const": "v3.1.4"},
+        "verify_command": {"const": "verify-blob"},
+        "certificate_identity": {"type": "string", "pattern": "^https://github\\.com/Luminous-Dynamics/symtropy/\\.github/workflows/controller-execution-attestation\\.yml@refs/heads/main$"},
+        "certificate_oidc_issuer": {"const": "https://token.actions.githubusercontent.com"},
+        "skip_transparency_log_allowed": {"const": false},
+        "insecure_ignore_sct_allowed": {"const": false},
+        "mutable_identity_regex_allowed": {"const": false}
+      }
+    },
+    "trust_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signing_workflow_must_be_on_protected_default_branch",
+        "signing_workflow_must_not_execute_untrusted_pull_request_code_as_attester",
+        "policy_digest_must_be_pinned_out_of_band",
+        "receipt_must_be_generated_by_the_trusted_execution_job",
+        "untrusted_external_receipt_must_not_be_signed_just_because_it_is_well_formed"
+      ],
+      "properties": {
+        "signing_workflow_must_be_on_protected_default_branch": {"const": true},
+        "signing_workflow_must_not_execute_untrusted_pull_request_code_as_attester": {"const": true},
+        "policy_digest_must_be_pinned_out_of_band": {"const": true},
+        "receipt_must_be_generated_by_the_trusted_execution_job": {"const": true},
+        "untrusted_external_receipt_must_not_be_signed_just_because_it_is_well_formed": {"const": true}
+      }
+    },
+    "verification_requirements": {
+      "type": "array",
+      "minItems": 9,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["valid_signature_proves", "valid_signature_does_not_prove", "scoring_authorized"],
+      "properties": {
+        "valid_signature_proves": {"type": "string", "minLength": 1},
+        "valid_signature_does_not_prove": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "scoring_authorized": {"const": false}
+      }
+    },
+    "references": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {"type": "string", "format": "uri"}
+    }
+  }
+}

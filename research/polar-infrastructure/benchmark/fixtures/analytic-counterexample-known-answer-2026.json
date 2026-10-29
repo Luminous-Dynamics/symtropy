@@ -1,0 +1,51 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "analytic-counterexample-known-answer-fixture",
+  "evidence_class": "synthetic_known_answer",
+  "status": "design_only_not_physical_evidence",
+  "oracle_id": "two_gate_analytic_oracle_v0",
+  "cases": [
+    {
+      "case_id": "energy_boundary_is_pass",
+      "x": 0.7,
+      "y": 0.7,
+      "expected_failure_families": []
+    },
+    {
+      "case_id": "energy_boundary_crossing_is_breach",
+      "x": 0.7001,
+      "y": 0.7,
+      "expected_failure_families": ["critical_energy"]
+    },
+    {
+      "case_id": "communications_boundary_is_pass",
+      "x": 0.2,
+      "y": 0.8,
+      "expected_failure_families": []
+    },
+    {
+      "case_id": "communications_interior_is_breach",
+      "x": 0.199,
+      "y": 0.701,
+      "expected_failure_families": ["communications_partition"]
+    },
+    {
+      "case_id": "high_high_corner_finds_energy_family",
+      "x": 0.9,
+      "y": 0.9,
+      "expected_failure_families": ["critical_energy"]
+    },
+    {
+      "case_id": "low_high_corner_finds_communications_family",
+      "x": 0.1,
+      "y": 0.9,
+      "expected_failure_families": ["communications_partition"]
+    },
+    {
+      "case_id": "safe_interior_is_pass",
+      "x": 0.5,
+      "y": 0.5,
+      "expected_failure_families": []
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Symtropy Analytic Counterexample Known-Answer Fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_kind",
+    "evidence_class",
+    "status",
+    "oracle_id",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "artifact_kind": {
+      "const": "analytic-counterexample-known-answer-fixture"
+    },
+    "evidence_class": {
+      "const": "synthetic_known_answer"
+    },
+    "status": {
+      "const": "design_only_not_physical_evidence"
+    },
+    "oracle_id": {
+      "const": "two_gate_analytic_oracle_v0"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "x",
+        "y",
+        "expected_failure_families"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "expected_failure_families": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "critical_energy",
+              "communications_partition"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

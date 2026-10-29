@@ -1,0 +1,490 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "symtropy-resilience-benchmark-contract",
+  "contract_id": "resilience-comparison-contract-v0",
+  "status": "proposed_not_executed",
+  "evidence_class": "test_design_only",
+  "purpose": "pre-register evidence admission, strong baselines, primary outcomes, fairness constraints, and superiority criteria before a controller bake-off",
+  "primary_endpoint": {
+    "metric_id": "cvar95_critical_energy_not_served",
+    "unit": "kWh per disturbance episode",
+    "direction": "lower_is_better",
+    "tail_probability": 0.95,
+    "minimum_relative_improvement_target": 0.1,
+    "comparison": "strongest_admissible_deployable_baseline",
+    "uncertainty_requirement": "paired_95_percent_interval_excludes_zero_improvement",
+    "status": "target_not_measured"
+  },
+  "claim_policy": {
+    "single_composite_score_allowed": false,
+    "oracle_counts_as_deployable_baseline": false,
+    "reanalysis_counts_as_in_situ_measurement": false,
+    "hash_counts_as_physical_validation": false,
+    "zero_observed_violations_proves_universal_safety": false,
+    "post_test_endpoint_or_holdout_changes_allowed": false,
+    "unadmitted_or_invalid_cases_may_be_scored_as_pass": false
+  },
+  "admission_gates": [
+    {
+      "gate_id": "source_trace_integrity",
+      "required": true,
+      "passed": false,
+      "evidence_required": "raw_source_bytes_license_citation_source_sha256_and_repeatable_transform"
+    },
+    {
+      "gate_id": "time_unit_and_qaqc_review",
+      "required": true,
+      "passed": false,
+      "evidence_required": "reviewed_variable_mapping_timezone_interval_semantics_missingness_and_quality_flags"
+    },
+    {
+      "gate_id": "model_verification",
+      "required": true,
+      "passed": false,
+      "evidence_required": "known_answer_tests_numerical_convergence_invariants_and_independent_reference_cases"
+    },
+    {
+      "gate_id": "locked_holdout_frozen",
+      "required": true,
+      "passed": false,
+      "evidence_required": "whole_episode_or_site_year_holdout_and_frozen_primary_endpoint"
+    },
+    {
+      "gate_id": "strong_baselines_admitted",
+      "required": true,
+      "passed": false,
+      "evidence_required": "compatible_deployable_baselines_or_documented_exclusions_frozen_before_test"
+    },
+    {
+      "gate_id": "paired_information_and_budget",
+      "required": true,
+      "passed": false,
+      "evidence_required": "same_trace_initial_state_measurements_forecast_budget_action_limits_and_disturbance_seed"
+    },
+    {
+      "gate_id": "independent_replay",
+      "required": true,
+      "passed": false,
+      "evidence_required": "clean_environment_replay_with_artifact_digests_and_declared_numerical_tolerance"
+    }
+  ],
+  "baseline_ladder": [
+    {
+      "baseline_id": "static_or_current_policy",
+      "class": "deployable_baseline",
+      "required": true,
+      "role": "incumbent_or_no_adaptation_reference"
+    },
+    {
+      "baseline_id": "transparent_rule_policy",
+      "class": "deployable_baseline",
+      "required": true,
+      "role": "fixed_threshold_or_priority_dispatch"
+    },
+    {
+      "baseline_id": "greedy_short_horizon",
+      "class": "deployable_baseline",
+      "required": "when_technically_compatible",
+      "role": "myopic_action_selection_under_matched_observations"
+    },
+    {
+      "baseline_id": "deterministic_mpc",
+      "class": "deployable_baseline",
+      "required": "when_technically_compatible",
+      "role": "matched_forecast_horizon_and_action_constraints"
+    },
+    {
+      "baseline_id": "robust_or_stochastic_mpc",
+      "class": "deployable_baseline",
+      "required": "when_available_and_compatible",
+      "role": "stronger_uncertainty_aware_comparator"
+    },
+    {
+      "baseline_id": "reopt_or_homer_reference",
+      "class": "external_planning_reference",
+      "required": "for_compatible_microgrid_planning_cases",
+      "role": "pin_tool_version_model_boundary_and_assumptions"
+    },
+    {
+      "baseline_id": "opendss_reference",
+      "class": "external_physics_reference",
+      "required": "for_compatible_distribution_network_cases",
+      "role": "pin_feeder_model_and_compare_only_shared_outputs"
+    },
+    {
+      "baseline_id": "symtropy_candidate",
+      "class": "candidate",
+      "required": true,
+      "role": "declare_extra_information_compute_and_model_fidelity"
+    },
+    {
+      "baseline_id": "perfect_information_oracle",
+      "class": "diagnostic_only",
+      "required": false,
+      "role": "upper_bound_using_future_disturbances_never_a_deployable_baseline"
+    },
+    {
+      "baseline_id": "centralized_coordinated_dispatch",
+      "class": "deployable_baseline",
+      "required": "for_multi_site_cases_when_technically_compatible",
+      "role": "shared-resource optimization when coordination link is healthy; declare communication and observation dependency"
+    },
+    {
+      "baseline_id": "local_autonomy_fallback",
+      "class": "deployable_baseline",
+      "required": "for_multi_agent_cases_when_fallback_is_part_of_claim",
+      "role": "safe local service continuity under loss or corruption of coordination inputs"
+    }
+  ],
+  "required_metric_ids": [
+    "critical_energy_not_served_kwh",
+    "critical_load_fraction_served",
+    "critical_service_outage_hours",
+    "time_to_service_restoration",
+    "hard_constraint_violation_count_and_severity",
+    "cvar95_critical_energy_not_served",
+    "p95_recovery_time",
+    "worst_group_outcome_by_hazard_family",
+    "development_to_locked_test_degradation",
+    "input_coverage_and_missing_window_rate",
+    "wall_time_and_peak_memory",
+    "simulation_or_optimization_evaluation_count",
+    "critical_service_delivery_by_hierarchy",
+    "outage_duration_by_hierarchy",
+    "coordination_loss_detection_latency",
+    "safe_local_fallback_latency",
+    "shared_state_reconciliation_time",
+    "cascading_failure_count"
+  ],
+  "fairness_protocol": {
+    "paired_disturbance_seeds": true,
+    "equal_information_or_declared_ablation": true,
+    "whole_episode_or_site_year_splits": true,
+    "locked_test_may_not_be_used_for_tuning": true,
+    "confidence_intervals_resample_temporal_blocks": true,
+    "multiple_policy_comparisons_must_be_declared": true,
+    "negative_controls_required": true,
+    "repeat_run_in_clean_environment_required": true
+  },
+  "superiority_criteria": {
+    "primary_metric": "cvar95_critical_energy_not_served",
+    "minimum_relative_improvement": 0.1,
+    "confidence_level": 0.95,
+    "interval_must_exclude_zero_improvement": true,
+    "hard_constraint_noninferiority_required": true,
+    "economic_or_resource_noninferiority_margin": null,
+    "economic_or_resource_margin_must_be_frozen_before_locked_test": true,
+    "no_material_regression_in_preregistered_hazard_groups": true,
+    "cross_site_claim_requires_independent_site_or_time_block": true
+  },
+  "source_references": [
+    "https://www.nlr.gov/reopt/about/index",
+    "https://support.homerenergy.com/docs/getting-started/solving-problems-with-homer-software",
+    "https://opendss.epri.com/",
+    "https://gmlc.doe.gov/sites/default/files/resources/GMLC1.1_Vol3_Resilience.pdf",
+    "https://resourcecenter.ieee-pes.org/publications/technical-reports/pes_tr_143_amps_060826",
+    "https://doi.org/10.1594/PANGAEA.968639",
+    "https://power.larc.nasa.gov/docs/services/api/validate/",
+    "https://resourcecenter.ieee-pes.org/publications/technical-reports/pes_tr_tr148_itslc_102026",
+    "https://doi.org/10.1016/j.epsr.2026.112736"
+  ],
+  "result_policy": {
+    "report_kind": "preregistration_contract_only_no_performance_results",
+    "no_empirical_superiority_claim": true,
+    "must_state_current_evidence_maturity_level": true
+  },
+  "benchmark_design_axes": [
+    {
+      "axis_id": "critical_service_function",
+      "required": true,
+      "values": [
+        "electricity",
+        "heat",
+        "water",
+        "communications",
+        "sanitation",
+        "other_declared_critical_service"
+      ],
+      "rule": "declare service contract, units and minimum floor; never collapse services before reporting"
+    },
+    {
+      "axis_id": "time_phase",
+      "required": true,
+      "values": [
+        "withstand",
+        "adapt",
+        "degraded_operation",
+        "recovery",
+        "restoration"
+      ],
+      "rule": "report outcomes and time-to-recover for each declared phase"
+    },
+    {
+      "axis_id": "decision_hierarchy",
+      "required": true,
+      "values": [
+        "device_control",
+        "site_microgrid",
+        "community_multi_site",
+        "operator_coordination"
+      ],
+      "rule": "each represented layer has a dependency-graph digest; unsupported layers are not_covered"
+    },
+    {
+      "axis_id": "connectivity_state",
+      "required": "for_multi_agent_or_multi_site_cases",
+      "values": [
+        "healthy",
+        "delayed",
+        "stale",
+        "partitioned",
+        "reconnection"
+      ],
+      "rule": "freeze visibility, message delays, loss behavior and state-reconciliation rules"
+    },
+    {
+      "axis_id": "resource_sharing",
+      "required": "when_cross_site_flows_are_modeled",
+      "values": [
+        "local_only",
+        "shared_storage",
+        "shared_spares",
+        "shared_logistics",
+        "declared_combination"
+      ],
+      "rule": "declare ownership, flow limits, priority and allocation fairness"
+    }
+  ],
+  "paired_scenario_contract": {
+    "paired_disturbance_and_initial_state_required": true,
+    "dependency_graph_digest_required_for_multi_layer_cases": true,
+    "message_delay_loss_and_stale_data_model_must_be_declared": true,
+    "policy_visible_information_must_be_frozen_per_arm": true,
+    "reconnection_and_shared_state_reconciliation_must_be_specified": true,
+    "unmodeled_layers_marked_not_covered": true,
+    "research_hypothesis": "local fallback plus explicit state reconciliation may preserve more service during coordination partitions; healthy centralized coordination may improve shared-resource efficiency",
+    "hypothesis_status": "not_tested"
+  },
+  "long_horizon_extension": {
+    "contract_path": "research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json",
+    "validator_path": "research/polar-infrastructure/benchmark/src/bin/long_horizon_contract.rs",
+    "schema_path": "research/polar-infrastructure/benchmark/schemas/long-horizon-resilience-contract-0.1.0.schema.json",
+    "status": "proposed_not_executed",
+    "horizon_years": 30,
+    "scenario_family_count": 4,
+    "nonstationary_scenario_count": 3,
+    "path_dependent_state_count": 9,
+    "state_carryover_required": true,
+    "event_reset_baseline_is_diagnostic_only": true,
+    "probability_weights_allowed_without_verified_basis": false,
+    "admission_gate_count": 8,
+    "admission_gates_all_false": true,
+    "performance_claim": "none"
+  },
+  "paired_comparison_extension": {
+    "contract_path": "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json",
+    "schema_path": "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.5.0.schema.json",
+    "evaluator_path": "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs",
+    "independent_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py",
+    "workflow_path": ".github/workflows/polar-resilience-paired-comparison.yml",
+    "protocol_path": "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md",
+    "status": "proposed_not_executed",
+    "evidence_class": "synthetic_only",
+    "controller_count": 2,
+    "trajectory_count": 6,
+    "case_row_count": 12,
+    "gate_count": 2,
+    "complete_controller_trajectory_matrix_required": true,
+    "invalid_and_unevaluated_outcomes_must_remain_visible": true,
+    "gate_specific_margin_contracts_required": true,
+    "performance_claim": "none",
+    "content_addressed_artifacts_required": true,
+    "artifact_categories": [
+      "trajectory_payload",
+      "initial_state_payload",
+      "controller_artifact_payload"
+    ],
+    "digest_algorithm": "SHA-256 over exact UTF-8 payload bytes",
+    "digest_payload_verification": "independent_python_verifier_required",
+    "synthetic_fixture_payloads_are_physical_evidence": false,
+    "information_budget_payload_required": true,
+    "information_budget_sha256_required": true,
+    "observation_trace_payload_required_per_trajectory": true,
+    "measurement_observation_time_must_not_exceed_decision_time": true,
+    "forecast_issue_time_must_not_exceed_decision_time": true,
+    "forecast_lookahead_must_not_exceed_budget": true,
+    "shared_information_budget_digest_required": true,
+    "information_budget_schema_version": "1",
+    "decision_interval_seconds": 60,
+    "max_forecast_lookahead_seconds": 300,
+    "max_compute_budget_milliseconds": 1000,
+    "max_memory_budget_megabytes": 256,
+    "oracle_future_observations_forbidden": true,
+    "observation_timing_validation": "independent_python_verifier_required"
+  },
+  "execution_receipt_extension": {
+    "schema_path": "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.1.0.schema.json",
+    "template_path": "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-template-2026.json",
+    "validator_path": "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs",
+    "independent_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py",
+    "workflow_path": ".github/workflows/polar-resilience-paired-comparison.yml",
+    "status": "design_only_not_executed",
+    "evidence_class": "synthetic_fixture",
+    "binds": [
+      "paired_trajectory_and_initial_state",
+      "controller_artifact",
+      "plant_model",
+      "run_configuration",
+      "executable",
+      "runtime_environment",
+      "observation_policy",
+      "resource_policy",
+      "command",
+      "output_trace",
+      "stdout",
+      "stderr",
+      "controller_artifact_bytes_in_inventory",
+      "canonical_resource_policy_bytes"
+    ],
+    "resource_limits": [
+      "wall_time_ms",
+      "cpu_time_ms",
+      "peak_memory_bytes",
+      "simulator_calls",
+      "observation_count"
+    ],
+    "scoring_eligible_for_template": false,
+    "requires_independent_output_hash_verification": true,
+    "requires_shared_resource_budget_across_arms": true,
+    "actual_execution_claim": "none",
+    "receipt_set_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py",
+    "resource_limits_digest_path": "resource_limits_sha256",
+    "requirements": [
+      "complete receipt for every declared controller by trajectory case",
+      "same numeric resource limits and resource-policy digest across arms",
+      "canonical resource-policy payload must equal the sorted compact JSON numeric limits object",
+      "controller artifact is present in the inventory and matches the paired-input digest",
+      "same observation-policy digest across arms",
+      "same plant-model, executable and runtime-environment digests across arms",
+      "same run-configuration digest within each paired trajectory",
+      "independent input and output payload hash verification before scoring",
+      "signed execution attestation remains unimplemented, so no v0.1 receipt is scoring eligible"
+    ],
+    "receipt_set_test_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py",
+    "execution_attestation_schema_status": "not_implemented",
+    "signed_execution_attestation_verifier_implemented": false,
+    "scoring_eligible_for_any_v0_1_receipt": false,
+    "future_scoring_requires": [
+      "completed_execution",
+      "independent_input_output_hash_verification",
+      "signed_execution_attestation_verification",
+      "resource_budget_compliance",
+      "complete_equal_budget_receipt_set"
+    ],
+    "attestation_policy_path": "research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json",
+    "attestation_policy_schema_path": "research/polar-infrastructure/benchmark/schemas/execution-attestation-verification-policy-0.1.0.schema.json",
+    "attestation_wrapper_path": "research/polar-infrastructure/benchmark/scripts/verify_signed_execution_receipt.sh",
+    "attestation_wrapper_test_path": "research/polar-infrastructure/benchmark/scripts/tests/test_signed_execution_receipt_wrapper.py",
+    "attestation_policy_status": "design_only_not_enabled",
+    "attestation_tool": "Sigstore Cosign v3.1.4 exact reviewed release",
+    "standardized_bundle_only": true,
+    "legacy_sigstore_bundle_allowed": false,
+    "certificate_identity_pinned": true,
+    "oidc_issuer_pinned": true,
+    "out_of_band_policy_digest_required": true,
+    "transparency_log_bypass_allowed": false,
+    "signing_workflow_on_protected_main_required": true,
+    "attestation_implementation_status": "not_implemented_for_scoring",
+    "scoring_eligible_for_any_receipt": false,
+    "attestation_profile_path": "research/EXECUTION_ATTESTATION_PROFILE_2026.md",
+    "attestation_policy_test_status": "wrapper_negative_controls_only_no_real_signature_test",
+    "cosign_version_tested_in_policy": "v3.1.4",
+    "actual_cosign_signature_tested": false,
+    "trusted_attestation_workflow_implemented": false,
+    "signed_receipt_verification_authorizes_scoring": false,
+    "required_input_artifact_role_count": 8,
+    "controller_artifact_inventory_digest_must_match_paired_binding": true,
+    "resource_policy_payload_must_equal_canonical_numeric_limits": true,
+    "resource_policy_digest_must_match_resource_limits_sha256": true,
+    "paired_input_payloads_rehashed_before_receipt_acceptance": true,
+    "paired_input_validation_scope": "full v0.4 paired fixture: schema-level semantic invariants, complete controller/trajectory matrix, all trajectory/initial-state/controller payload SHA-256 hashes",
+    "receipt_set_validation": "validate paired input once; reuse indexed case, trajectory and controller artifact maps across all receipts",
+    "receipt_set_input_tamper_negative_control_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py",
+    "v02_extension": {
+      "schema_path": "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json",
+      "template_path": "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json",
+      "validator_path": "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs",
+      "independent_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py",
+      "receipt_set_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py",
+      "v02_tests_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py",
+      "status": "design_only_not_executed",
+      "schema_version": "0.2.0",
+      "paired_input_schema_version": "0.5.0",
+      "binds_information_budget_digest": true,
+      "binds_observation_trace_digest": true,
+      "requires_observation_policy_payload_to_match_budget": true,
+      "execution_attestation_verifier_implemented": false,
+      "scoring_authorized": false,
+      "performance_claim": "none"
+    }
+  },
+  "counterexample_search_extension": {
+    "contract_path": "research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json",
+    "schema_path": "research/polar-infrastructure/benchmark/schemas/counterexample-search-benchmark-contract-0.1.0.schema.json",
+    "validator_path": "research/polar-infrastructure/benchmark/src/bin/counterexample_search_contract.rs",
+    "protocol_path": "research/COUNTEREXAMPLE_SEARCH_BENCHMARK_PROTOCOL_2026.md",
+    "workflow_path": ".github/workflows/polar-resilience-paired-comparison.yml",
+    "status": "proposed_not_executed",
+    "evidence_class": "test_design_only",
+    "searcher_count": 5,
+    "pilot_repetitions": 10,
+    "pilot_invocation_budget_per_searcher": 50,
+    "confirmatory_repetitions": 50,
+    "confirmatory_invocation_budget_per_searcher": 200,
+    "primary_endpoint": "falsification_rate_at_budget",
+    "independent_replay_required": true,
+    "invalid_and_timeout_invocations_count_against_budget": true,
+    "locked_holdout_not_created": true,
+    "all_admission_gates_false": true,
+    "performance_claim": "none",
+    "synthetic_oracle_is_physical_evidence": false,
+    "analytic_known_answer_smoke_track": {
+      "status": "smoke_implementation_committed",
+      "binary_path": "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs",
+      "golden_fixture_path": "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json",
+      "fixture_schema_path": "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json",
+      "report_schema_path": "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json",
+      "protocol_path": "research/COUNTEREXAMPLE_SEARCH_BENCHMARK_PROTOCOL_2026.md",
+      "arm_count": 4,
+      "search_calls_per_arm": 38,
+      "replay_calls_per_arm": 2,
+      "total_oracle_invocations_per_arm": 40,
+      "evidence_class": "synthetic_known_answer",
+      "physical_evidence": false,
+      "controller_superiority_claim": false,
+      "industry_sota_claim": false
+    }
+  },
+  "causal_ablation_extension": {
+    "status": "proposed_not_executed",
+    "evidence_class": "test_design_only",
+    "protocol_path": "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md",
+    "benchmark_targets_path": "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md",
+    "one_factor_ablation_required": true,
+    "identical_paired_disturbances_required": true,
+    "content_bound_model_controller_and_input_artifacts_required": true,
+    "shared_information_and_resource_budget_required": true,
+    "randomized_execution_order_required": true,
+    "deterministic_no_op_placebo_required": true,
+    "deterministic_no_op_divergence_above_declared_tolerance_allowed": false,
+    "stale_or_shuffled_forecast_negative_control_required": true,
+    "feature_computed_but_not_consumed_negative_control_required": true,
+    "blocked_episode_or_site_year_analysis_required": true,
+    "stochastic_placebo_nominal_false_positive_level": 0.05,
+    "false_positive_uncertainty_must_be_reported": true,
+    "sensitivity_to_model_and_scenario_uncertainty_required": true,
+    "resource_adjusted_effects_required": true,
+    "physical_or_field_causal_claim": "none",
+    "performance_claim": "none"
+  }
+}

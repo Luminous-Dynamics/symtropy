@@ -1,0 +1,595 @@
+name: Environment Trace Contract
+
+on:
+  pull_request:
+    paths:
+      - "research/polar-infrastructure/benchmark/schemas/environment-trace-manifest-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
+      - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
+      - "research/polar-infrastructure/benchmark/GOBABEB_BSRN_CROSS_VALIDATION_2026.md"
+      - "research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md"
+      - "research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md"
+      - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
+      - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.5.0.schema.json"
+      - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json"
+      - "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs"
+      - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py"
+      - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
+      - ".github/workflows/polar-resilience-paired-comparison.yml"
+      - "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/long-horizon-resilience-contract-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/src/bin/long_horizon_contract.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
+      - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/nasa-power-daily-response-synthetic-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/verify_environment_trace_artifacts.sh"
+      - "research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh"
+      - "research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh"
+      - "research/polar-infrastructure/benchmark/scripts/test_register_local_pangaea_source.sh"
+      - "research/polar-infrastructure/benchmark/scripts/test_register_local_environment_source.sh"
+      - "research/polar-infrastructure/benchmark/scripts/evaluate_environment_coverage.sh"
+      - "research/polar-infrastructure/benchmark/scripts/test_environment_coverage.sh"
+      - "research/polar-infrastructure/benchmark/scripts/register_local_pangaea_source.sh"
+      - "research/polar-infrastructure/benchmark/scripts/register_local_environment_source.sh"
+      - ".github/workflows/environment-trace-contract.yml"
+  push:
+    paths:
+      - "research/polar-infrastructure/benchmark/schemas/environment-trace-manifest-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
+      - "research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md"
+      - "research/polar-infrastructure/benchmark/GOBABEB_BSRN_CROSS_VALIDATION_2026.md"
+      - "research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md"
+      - "research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md"
+      - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
+      - "research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.5.0.schema.json"
+      - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json"
+      - "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs"
+      - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py"
+      - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
+      - ".github/workflows/polar-resilience-paired-comparison.yml"
+      - "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/long-horizon-resilience-contract-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/src/bin/long_horizon_contract.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json"
+      - "research/polar-infrastructure/benchmark/src/bin/environment_trace_manifest.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/nasa-power-daily-response-synthetic-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/verify_environment_trace_artifacts.sh"
+      - "research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh"
+      - "research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh"
+      - "research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh"
+      - "research/polar-infrastructure/benchmark/scripts/test_register_local_pangaea_source.sh"
+      - "research/polar-infrastructure/benchmark/scripts/test_register_local_environment_source.sh"
+      - "research/polar-infrastructure/benchmark/scripts/evaluate_environment_coverage.sh"
+      - "research/polar-infrastructure/benchmark/scripts/test_environment_coverage.sh"
+      - "research/polar-infrastructure/benchmark/scripts/register_local_pangaea_source.sh"
+      - "research/polar-infrastructure/benchmark/scripts/register_local_environment_source.sh"
+      - ".github/workflows/environment-trace-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: environment-trace-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trace-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact PR head (or exact pushed commit)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert checked-out revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Check trace schema and template contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/environment-trace-manifest-0.1.0.schema.json"
+          template="research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Environmental Trace Manifest" and
+            .type == "object" and
+            .additionalProperties == false and
+            (.required | index("acquisition") != null) and
+            (.properties.acquisition.required | index("source_artifact_uri") != null) and
+            (.required | index("spatial_context") != null) and
+            (.required | index("time_axis") != null) and
+            (.required | index("trace_asset") != null) and
+            (.required | index("variables") != null) and
+            (.properties.variables.items.required | index("temporal_semantics") != null) and
+            (.properties.variables.items.properties.temporal_semantics.enum | index("interval_accumulation") != null) and
+            (.properties.time_axis.properties.timestamp_semantics.enum | index("calendar_day_label") != null) and
+            (.required | index("quality") != null) and
+            (.required | index("provenance") != null) and
+            (.allOf | any(.[]; ."if".properties.status.const == "validated_for_replay" and ."then".properties.trace_asset.properties.sha256.pattern == "^[a-f0-9]{64}$" and ."then".properties.provenance.properties.processing_code_revision.pattern == "^([a-f0-9]{40}|[a-f0-9]{64})$"))
+          ' "$schema"
+
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-environment-trace-manifest" and
+            .manifest_id == "namib_coastal_desert_trace_template_v0" and
+            .profile_id == "earth.coastal_desert_namib" and
+            .status == "template_only" and
+            .evidence_class == "not_evaluated" and
+            .acquisition.source_url == null and
+            .acquisition.source_artifact_uri == null and
+            .acquisition.source_data_sha256 == null and
+            .spatial_context.latitude_deg == null and
+            .spatial_context.longitude_deg == null and
+            .time_axis.start_utc == null and
+            .time_axis.end_utc == null and
+            .time_axis.observed_sample_count == null and
+            .trace_asset.uri == null and
+            .trace_asset.sha256 == null and
+            .quality.validation_status == "not_evaluated" and
+            (.variables | length >= 8) and
+            ([.variables[].variable_id] | length == (unique | length)) and
+            all(.variables[];
+              (.variable_id | type == "string" and length > 0) and
+              (.canonical_unit | type == "string" and length > 0) and
+              (.temporal_semantics == "instantaneous" or
+               .temporal_semantics == "interval_mean" or
+               .temporal_semantics == "interval_accumulation" or
+               .temporal_semantics == "interval_maximum" or
+               .temporal_semantics == "interval_minimum" or
+               .temporal_semantics == "sample_event" or
+               .temporal_semantics == "derived" or
+               .temporal_semantics == "unknown") and
+              .source_variable == null and
+              .evidence_class == "not_evaluated"
+            ) and
+            (.quality.known_biases_or_limits | length >= 1) and
+            (.provenance.transformation_recipe | length > 0)
+          ' "$template"
+
+          # This jq stage checks structural guardrails; it is not a JSON Schema engine.
+          test -s research/polar-infrastructure/benchmark/ENVIRONMENT_TRACE_REPLAY_PROTOCOL_2026.md
+          test -s research/polar-infrastructure/benchmark/ENVIRONMENT_DATA_ACQUISITION_FALLBACKS_2026.md
+
+      - name: Validate environmental coverage assessment schema contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Environmental Coverage Assessment" and
+            .type == "object" and
+            .additionalProperties == false and
+            (.required | index("expected_sample_count") != null) and
+            (.required | index("observed_sample_count") != null) and
+            (.required | index("minimum_coverage_fraction") != null) and
+            any(.properties.minimum_coverage_fraction.oneOf[]; .type == "null") and
+            any(.properties.minimum_coverage_fraction.oneOf[]; .type == "number" and .exclusiveMinimum == 0 and .maximum == 1) and
+            .properties.expected_sample_count.minimum == 1 and
+            .properties.observed_sample_count.minimum == 0
+          ' "$schema"
+
+      - name: Validate Gobabeb station validation plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan="research/polar-infrastructure/benchmark/fixtures/gobabeb-bsrn-validation-plan-2026.json"
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-environment-observation-validation-plan" and
+            .plan_id == "gobabeb_bsrn_vs_nasa_power_daily_v0" and
+            .status == "design_only_not_executed" and
+            .evidence_class == "test_design_only" and
+            .station_reference.source_file_included == false and
+            .station_reference.license == "Baseline Surface Radiation Network License 1.0 (BSRN-1.0)" and
+            .model_reference.evidence_class == "reanalysis" and
+            .model_reference.model_data_downloaded == false and
+            (.variable_pairs | length >= 3) and
+            all(.variable_pairs[]; .required_time_semantics_review == true) and
+            (.time_split.policy == "whole_calendar_years_no_random_timestamp_split") and
+            (.time_split.calibration.end_exclusive_utc == .time_split.validation.start_inclusive_utc) and
+            (.time_split.validation.end_exclusive_utc == .time_split.locked_test.start_inclusive_utc) and
+            (.time_split.locked_test.start_inclusive_utc < .time_split.locked_test.end_exclusive_utc) and
+            ([.metrics[]] | length >= 10) and
+            (.admission_gates | to_entries | all(.[]; .value == false)) and
+            .result_policy.report_kind == "validation_plan_only_no_comparison_metrics" and
+            .result_policy.do_not_claim_station_accuracy_from_series_metadata == true and
+            .result_policy.do_not_claim_controller_superiority_from_trace_validation == true and
+            .source_use_restrictions.direct_commercial_sale_of_data_allowed == false and
+            .source_use_restrictions.license_review_recorded == false and
+            .source_use_restrictions.raw_data_committed_to_repository == false and
+            .network_fallback.publisher_html_preview_accessible_via_research_browser == true and
+            .network_fallback.publisher_html_preview_row_limit == 2000 and
+            .network_fallback.preview_is_complete_source == false and
+            .network_fallback.local_registration_authenticates_source_origin == false and
+            .network_fallback.generic_source_registration_helper == "research/polar-infrastructure/benchmark/scripts/register_local_environment_source.sh" and
+            (.network_fallback.generic_source_registration_supports | index("compressed_archive") != null) and
+            .network_fallback.status == "fallback_implemented_not_used_for_real_source_yet" and
+            (.event_annotations | length >= 1) and
+            all(.event_annotations[]; .status == "metadata_only_not_scored") and
+            .event_annotations[0].source_doi == "10.1594/PANGAEA.983811" and
+            .event_annotations[0].dates_local_as_published == ["2025-06-04","2025-06-25","2025-06-26"] and
+            (.candidate_auxiliary_sources | length >= 2) and
+            all(.candidate_auxiliary_sources[]; .admission_status == "candidate_not_admitted") and
+            any(.candidate_auxiliary_sources[];
+              .source_id == "sasscal_weathernet_gobabeb_met_8893" and
+              (.current_radiation_status | contains("sensor not installed at this station")) and
+              any(.known_page_examples[]; .reported_hourly_records == 24 and .status == "publisher_page_inspected_not_raw_file_ingested")
+            ) and
+            any(.candidate_auxiliary_sources[];
+              .source_id == "sasscal_weathernet_gobabeb_met_8893" and
+              any(.known_page_examples[]; .reported_valid_dates == ["2023-01-01","2023-01-02","2023-01-03","2023-01-04"] and .status == "publisher_page_inspected_not_raw_file_ingested")
+            ) and
+            .coverage_admission_policy.policy_id == "coverage_before_aggregation_v0" and
+            .coverage_admission_policy.status == "coverage_gate_and_synthetic_contract_tests_implemented_real_source_not_admitted" and
+            .coverage_admission_policy.implementation_path == "research/polar-infrastructure/benchmark/scripts/evaluate_environment_coverage.sh" and
+            .coverage_admission_policy.test_path == "research/polar-infrastructure/benchmark/scripts/test_environment_coverage.sh" and
+            .coverage_admission_policy.schema_path == "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json" and
+            .coverage_admission_policy.missing_values_are_zero == false and
+            .coverage_admission_policy.allow_incomplete_daily_series_to_be_treated_as_complete_month == false and
+            .coverage_admission_policy.minimum_coverage_threshold_fraction == null and
+            .coverage_admission_policy.minimum_coverage_threshold_must_be_frozen_before_locked_test == true and
+            .coverage_admission_policy.metadata_only_negative_control.expected_daily_rows == 31 and
+            (.coverage_admission_policy.metadata_only_negative_control.publisher_displayed_dates_with_values | length) == 4 and
+            .coverage_admission_policy.metadata_only_negative_control.publisher_displayed_rows_missing == 27 and
+            .coverage_admission_policy.metadata_only_negative_control.visible_row_coverage_fraction > 0.12 and
+            .coverage_admission_policy.metadata_only_negative_control.visible_row_coverage_fraction < 0.14 and
+            .coverage_admission_policy.metadata_only_negative_control.status == "metadata_only_not_ingested" and
+            .coverage_admission_policy.second_metadata_example.publisher_reported_records == 24 and
+            .coverage_admission_policy.second_metadata_example.status == "metadata_only_not_ingested"
+          ' "$plan"
+
+      - name: Validate resilience bake-off preregistration contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          contract="research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-resilience-benchmark-contract" and
+            .contract_id == "resilience-comparison-contract-v0" and
+            .status == "proposed_not_executed" and
+            .evidence_class == "test_design_only" and
+            .primary_endpoint.metric_id == "cvar95_critical_energy_not_served" and
+            .primary_endpoint.minimum_relative_improvement_target == 0.10 and
+            .primary_endpoint.status == "target_not_measured" and
+            .claim_policy.single_composite_score_allowed == false and
+            .claim_policy.oracle_counts_as_deployable_baseline == false and
+            .claim_policy.hash_counts_as_physical_validation == false and
+            .claim_policy.post_test_endpoint_or_holdout_changes_allowed == false and
+            (.admission_gates | length >= 7) and
+            all(.admission_gates[]; .required == true and .passed == false) and
+            ([.admission_gates[].gate_id] | length == (unique | length)) and
+            any(.baseline_ladder[]; .baseline_id == "deterministic_mpc" and .class == "deployable_baseline") and
+            any(.baseline_ladder[]; .baseline_id == "perfect_information_oracle" and .class == "diagnostic_only") and
+            ([.baseline_ladder[].baseline_id] | length == (unique | length)) and
+            ([.required_metric_ids[]] | length >= 10 and length == (unique | length)) and
+            any(.benchmark_design_axes[]; .axis_id == "decision_hierarchy" and .required == true) and
+            any(.required_metric_ids[]; . == "critical_service_delivery_by_hierarchy") and
+            any(.required_metric_ids[]; . == "shared_state_reconciliation_time") and
+            .paired_scenario_contract.dependency_graph_digest_required_for_multi_layer_cases == true and
+            .paired_scenario_contract.message_delay_loss_and_stale_data_model_must_be_declared == true and
+            .paired_scenario_contract.reconnection_and_shared_state_reconciliation_must_be_specified == true and
+            .paired_scenario_contract.hypothesis_status == "not_tested" and
+            .fairness_protocol.paired_disturbance_seeds == true and
+            .fairness_protocol.whole_episode_or_site_year_splits == true and
+            .fairness_protocol.locked_test_may_not_be_used_for_tuning == true and
+            .fairness_protocol.confidence_intervals_resample_temporal_blocks == true and
+            .superiority_criteria.minimum_relative_improvement == .primary_endpoint.minimum_relative_improvement_target and
+            .superiority_criteria.economic_or_resource_noninferiority_margin == null and
+            .superiority_criteria.economic_or_resource_margin_must_be_frozen_before_locked_test == true and
+            .result_policy.no_empirical_superiority_claim == true and
+            .long_horizon_extension.status == "proposed_not_executed" and
+            .long_horizon_extension.horizon_years == 30 and
+            .long_horizon_extension.scenario_family_count == 4 and
+            .long_horizon_extension.nonstationary_scenario_count == 3 and
+            .long_horizon_extension.path_dependent_state_count == 9 and
+            .long_horizon_extension.state_carryover_required == true and
+            .long_horizon_extension.event_reset_baseline_is_diagnostic_only == true and
+            .long_horizon_extension.probability_weights_allowed_without_verified_basis == false and
+            .long_horizon_extension.admission_gate_count == 8 and
+            .long_horizon_extension.admission_gates_all_false == true and
+            .long_horizon_extension.performance_claim == "none" and
+            .paired_comparison_extension.status == "proposed_not_executed" and
+            .paired_comparison_extension.evidence_class == "synthetic_only" and
+            .paired_comparison_extension.contract_path == "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json" and
+            .paired_comparison_extension.schema_path == "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.5.0.schema.json" and
+            .paired_comparison_extension.evaluator_path == "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs" and
+            .paired_comparison_extension.independent_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py" and
+            .paired_comparison_extension.controller_count == 2 and
+            .paired_comparison_extension.trajectory_count == 6 and
+            .paired_comparison_extension.case_row_count == 12 and
+            .paired_comparison_extension.gate_count == 2 and
+            .paired_comparison_extension.complete_controller_trajectory_matrix_required == true and
+            .paired_comparison_extension.invalid_and_unevaluated_outcomes_must_remain_visible == true and
+            .paired_comparison_extension.gate_specific_margin_contracts_required == true and
+            .paired_comparison_extension.information_budget_payload_required == true and
+            .paired_comparison_extension.information_budget_sha256_required == true and
+            .paired_comparison_extension.observation_trace_payload_required_per_trajectory == true and
+            .paired_comparison_extension.measurement_observation_time_must_not_exceed_decision_time == true and
+            .paired_comparison_extension.forecast_issue_time_must_not_exceed_decision_time == true and
+            .paired_comparison_extension.forecast_lookahead_must_not_exceed_budget == true and
+            .paired_comparison_extension.shared_information_budget_digest_required == true and
+            .paired_comparison_extension.information_budget_schema_version == "1" and
+            .paired_comparison_extension.decision_interval_seconds == 60 and
+            .paired_comparison_extension.max_forecast_lookahead_seconds == 300 and
+            .paired_comparison_extension.max_compute_budget_milliseconds == 1000 and
+            .paired_comparison_extension.max_memory_budget_megabytes == 256 and
+            .paired_comparison_extension.oracle_future_observations_forbidden == true and
+            .paired_comparison_extension.observation_timing_validation == "independent_python_verifier_required" and
+            .paired_comparison_extension.content_addressed_artifacts_required == true and
+            .paired_comparison_extension.digest_algorithm == "SHA-256 over exact UTF-8 payload bytes" and
+            .paired_comparison_extension.digest_payload_verification == "independent_python_verifier_required" and
+            .paired_comparison_extension.synthetic_fixture_payloads_are_physical_evidence == false and
+            (.paired_comparison_extension.artifact_categories | sort) == (["trajectory_payload", "initial_state_payload", "controller_artifact_payload"] | sort) and
+            .paired_comparison_extension.performance_claim == "none" and
+            .execution_receipt_extension.status == "design_only_not_executed" and
+            .execution_receipt_extension.evidence_class == "synthetic_fixture" and
+            .execution_receipt_extension.schema_path == "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.1.0.schema.json" and
+            .execution_receipt_extension.template_path == "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-template-2026.json" and
+            .execution_receipt_extension.validator_path == "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs" and
+            .execution_receipt_extension.independent_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py" and
+            .execution_receipt_extension.receipt_set_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py" and
+            .execution_receipt_extension.receipt_set_test_path == "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py" and
+            .execution_receipt_extension.resource_limits_digest_path == "resource_limits_sha256" and
+            .execution_receipt_extension.required_input_artifact_role_count == 8 and
+            .execution_receipt_extension.controller_artifact_inventory_digest_must_match_paired_binding == true and
+            .execution_receipt_extension.resource_policy_payload_must_equal_canonical_numeric_limits == true and
+            .execution_receipt_extension.resource_policy_digest_must_match_resource_limits_sha256 == true and
+            .execution_receipt_extension.paired_input_payloads_rehashed_before_receipt_acceptance == true and
+            (.execution_receipt_extension.paired_input_validation_scope | contains("complete controller/trajectory matrix")) and
+            (.execution_receipt_extension.receipt_set_validation | contains("reuse indexed case, trajectory and controller artifact maps")) and
+            .execution_receipt_extension.receipt_set_input_tamper_negative_control_path == "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py" and
+            (.execution_receipt_extension.binds | index("controller_artifact_bytes_in_inventory") != null) and
+            (.execution_receipt_extension.binds | index("canonical_resource_policy_bytes") != null) and
+            (.execution_receipt_extension.requirements | length >= 9) and
+            .execution_receipt_extension.scoring_eligible_for_template == false and
+            .execution_receipt_extension.signed_execution_attestation_verifier_implemented == false and
+            .execution_receipt_extension.attestation_policy_path == "research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json" and
+            .execution_receipt_extension.attestation_policy_schema_path == "research/polar-infrastructure/benchmark/schemas/execution-attestation-verification-policy-0.1.0.schema.json" and
+            .execution_receipt_extension.attestation_profile_path == "research/EXECUTION_ATTESTATION_PROFILE_2026.md" and
+            .execution_receipt_extension.attestation_policy_test_status == "wrapper_negative_controls_only_no_real_signature_test" and
+            .execution_receipt_extension.cosign_version_tested_in_policy == "v3.1.4" and
+            .execution_receipt_extension.actual_cosign_signature_tested == false and
+            .execution_receipt_extension.trusted_attestation_workflow_implemented == false and
+            .execution_receipt_extension.signed_receipt_verification_authorizes_scoring == false and
+            .execution_receipt_extension.attestation_wrapper_path == "research/polar-infrastructure/benchmark/scripts/verify_signed_execution_receipt.sh" and
+            .execution_receipt_extension.attestation_wrapper_test_path == "research/polar-infrastructure/benchmark/scripts/tests/test_signed_execution_receipt_wrapper.py" and
+            .execution_receipt_extension.attestation_policy_status == "design_only_not_enabled" and
+            .execution_receipt_extension.attestation_tool == "Sigstore Cosign v3.1.4 exact reviewed release" and
+            .execution_receipt_extension.standardized_bundle_only == true and
+            .execution_receipt_extension.legacy_sigstore_bundle_allowed == false and
+            .execution_receipt_extension.certificate_identity_pinned == true and
+            .execution_receipt_extension.oidc_issuer_pinned == true and
+            .execution_receipt_extension.out_of_band_policy_digest_required == true and
+            .execution_receipt_extension.transparency_log_bypass_allowed == false and
+            .execution_receipt_extension.signing_workflow_on_protected_main_required == true and
+            .execution_receipt_extension.attestation_implementation_status == "not_implemented_for_scoring" and
+            .execution_receipt_extension.scoring_eligible_for_any_receipt == false and
+            .execution_receipt_extension.scoring_eligible_for_any_v0_1_receipt == false and
+            .execution_receipt_extension.execution_attestation_schema_status == "not_implemented" and
+            (.execution_receipt_extension.future_scoring_requires | length >= 5) and
+            .execution_receipt_extension.requires_independent_output_hash_verification == true and
+            .execution_receipt_extension.requires_shared_resource_budget_across_arms == true and
+            .execution_receipt_extension.actual_execution_claim == "none" and
+            (.execution_receipt_extension.resource_limits | sort) == (["wall_time_ms", "cpu_time_ms", "peak_memory_bytes", "simulator_calls", "observation_count"] | sort) and
+            .execution_receipt_extension.v02_extension.status == "design_only_not_executed" and
+            .execution_receipt_extension.v02_extension.schema_version == "0.2.0" and
+            .execution_receipt_extension.v02_extension.paired_input_schema_version == "0.5.0" and
+            .execution_receipt_extension.v02_extension.schema_path == "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json" and
+            .execution_receipt_extension.v02_extension.template_path == "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json" and
+            .execution_receipt_extension.v02_extension.validator_path == "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs" and
+            .execution_receipt_extension.v02_extension.independent_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py" and
+            .execution_receipt_extension.v02_extension.receipt_set_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py" and
+            .execution_receipt_extension.v02_extension.v02_tests_path == "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py" and
+            .execution_receipt_extension.v02_extension.binds_information_budget_digest == true and
+            .execution_receipt_extension.v02_extension.binds_observation_trace_digest == true and
+            .execution_receipt_extension.v02_extension.requires_observation_policy_payload_to_match_budget == true and
+            .execution_receipt_extension.v02_extension.execution_attestation_verifier_implemented == false and
+            .execution_receipt_extension.v02_extension.scoring_authorized == false and
+            .execution_receipt_extension.v02_extension.performance_claim == "none" and
+            .causal_ablation_extension.status == "proposed_not_executed" and
+            .causal_ablation_extension.evidence_class == "test_design_only" and
+            .causal_ablation_extension.protocol_path == "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md" and
+            .causal_ablation_extension.benchmark_targets_path == "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md" and
+            .causal_ablation_extension.one_factor_ablation_required == true and
+            .causal_ablation_extension.identical_paired_disturbances_required == true and
+            .causal_ablation_extension.content_bound_model_controller_and_input_artifacts_required == true and
+            .causal_ablation_extension.shared_information_and_resource_budget_required == true and
+            .causal_ablation_extension.randomized_execution_order_required == true and
+            .causal_ablation_extension.deterministic_no_op_placebo_required == true and
+            .causal_ablation_extension.deterministic_no_op_divergence_above_declared_tolerance_allowed == false and
+            .causal_ablation_extension.stale_or_shuffled_forecast_negative_control_required == true and
+            .causal_ablation_extension.feature_computed_but_not_consumed_negative_control_required == true and
+            .causal_ablation_extension.blocked_episode_or_site_year_analysis_required == true and
+            .causal_ablation_extension.stochastic_placebo_nominal_false_positive_level == 0.05 and
+            .causal_ablation_extension.false_positive_uncertainty_must_be_reported == true and
+            .causal_ablation_extension.sensitivity_to_model_and_scenario_uncertainty_required == true and
+            .causal_ablation_extension.resource_adjusted_effects_required == true and
+            .causal_ablation_extension.physical_or_field_causal_claim == "none" and
+            .causal_ablation_extension.performance_claim == "none" and
+            .counterexample_search_extension.status == "proposed_not_executed" and
+            .counterexample_search_extension.evidence_class == "test_design_only" and
+            .counterexample_search_extension.contract_path == "research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json" and
+            .counterexample_search_extension.schema_path == "research/polar-infrastructure/benchmark/schemas/counterexample-search-benchmark-contract-0.1.0.schema.json" and
+            .counterexample_search_extension.validator_path == "research/polar-infrastructure/benchmark/src/bin/counterexample_search_contract.rs" and
+            .counterexample_search_extension.protocol_path == "research/COUNTEREXAMPLE_SEARCH_BENCHMARK_PROTOCOL_2026.md" and
+            .counterexample_search_extension.searcher_count == 5 and
+            .counterexample_search_extension.pilot_repetitions == 10 and
+            .counterexample_search_extension.pilot_invocation_budget_per_searcher == 50 and
+            .counterexample_search_extension.confirmatory_repetitions == 50 and
+            .counterexample_search_extension.confirmatory_invocation_budget_per_searcher == 200 and
+            .counterexample_search_extension.primary_endpoint == "falsification_rate_at_budget" and
+            .counterexample_search_extension.independent_replay_required == true and
+            .counterexample_search_extension.invalid_and_timeout_invocations_count_against_budget == true and
+            .counterexample_search_extension.locked_holdout_not_created == true and
+            .counterexample_search_extension.all_admission_gates_false == true and
+            .counterexample_search_extension.performance_claim == "none" and
+            .counterexample_search_extension.synthetic_oracle_is_physical_evidence == false and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.status == "smoke_implementation_committed" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.binary_path == "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.golden_fixture_path == "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.fixture_schema_path == "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.report_schema_path == "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.arm_count == 4 and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.search_calls_per_arm == 38 and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.replay_calls_per_arm == 2 and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.total_oracle_invocations_per_arm == 40 and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.evidence_class == "synthetic_known_answer" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.physical_evidence == false and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.controller_superiority_claim == false and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.industry_sota_claim == false and
+            .result_policy.report_kind == "preregistration_contract_only_no_performance_results"
+          ' "$contract"
+          test -s research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md
+
+      - name: Test long-horizon resilience contract validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="research/polar-infrastructure/benchmark/Cargo.toml"
+          fixture="research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json"
+          schema="research/polar-infrastructure/benchmark/schemas/long-horizon-resilience-contract-0.1.0.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Long-Horizon Resilience Contract" and
+            .additionalProperties == false and
+            (.required | index("horizon") != null) and
+            (.properties.horizon.required | index("carry_state_between_events") != null) and
+            (.properties.scenario_families.items.properties.scenario_weight.type | index("null") != null) and
+            (.properties.comparison_design.properties.locked_holdout_used_for_tuning.type == "boolean")
+          ' "$schema"
+          jq -e '
+            .status == "proposed_not_executed" and
+            .evidence_class == "test_design_only" and
+            .evidence_boundary.probability_basis_verified == false and
+            .evidence_boundary.scenario_weights == null and
+            .horizon.carry_state_between_events == true and
+            .horizon.allow_state_reset_between_events == false and
+            .comparison_design.locked_holdout_used_for_tuning == false and
+            ([.scenario_families[] | select(.nonstationary == true)] | length >= 2) and
+            all(.scenario_families[]; .scenario_weight == null and .source_admission_status == "not_admitted") and
+            all(.admission_gates | to_entries[]; .value == false)
+          ' "$fixture"
+          cargo test --locked --manifest-path "$manifest" --bin long_horizon_contract
+          cargo run --locked --quiet --manifest-path "$manifest" --bin long_horizon_contract -- "$fixture" > /tmp/long-horizon-contract-report.json
+          jq -e '
+            .report_kind == "symtropy-long-horizon-resilience-contract-report" and
+            .schema_version == "0.1.0" and
+            .contract_id == "long_horizon_climate_adaptation_v0" and
+            .contract_valid == true and
+            .candidate_for_execution == false and
+            .evidence_level == "test_design_only" and
+            .scenario_family_count == 4 and
+            .nonstationary_scenario_count == 3 and
+            .admission_gates_closed == true and
+            .result_scope == "design_contract_validation_only_no_environment_or_controller_performance"
+          ' /tmp/long-horizon-contract-report.json
+
+      - name: Validate shell-script syntax without network access
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n research/polar-infrastructure/benchmark/scripts/fetch_pangaea_source_file.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/register_local_pangaea_source.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/test_register_local_pangaea_source.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/register_local_environment_source.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/test_register_local_environment_source.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/evaluate_environment_coverage.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/test_environment_coverage.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/fetch_and_normalize_nasa_power_daily.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/normalize_nasa_power_daily.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/verify_environment_trace_artifacts.sh
+          bash -n research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh
+
+      - name: Test PANGAEA source downloader with mocked responses
+        shell: bash
+        run: bash research/polar-infrastructure/benchmark/scripts/test_fetch_pangaea_source_file.sh
+
+      - name: Test offline PANGAEA source registration
+        shell: bash
+        run: bash research/polar-infrastructure/benchmark/scripts/test_register_local_pangaea_source.sh
+
+      - name: Test generic offline environmental-source registration
+        shell: bash
+        run: bash research/polar-infrastructure/benchmark/scripts/test_register_local_environment_source.sh
+
+      - name: Test fail-closed environmental coverage gate
+        shell: bash
+        run: bash research/polar-infrastructure/benchmark/scripts/test_environment_coverage.sh
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
+
+      - name: Test fail-closed Rust manifest gate
+        run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin environment_trace_manifest
+
+      - name: Build manifest gate and run synthetic trace normalizer contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin environment_trace_manifest
+          TRACE_MANIFEST_BIN=research/polar-infrastructure/benchmark/target/debug/environment_trace_manifest \
+            bash research/polar-infrastructure/benchmark/scripts/test_normalize_nasa_power_daily.sh
+
+      - name: Validate template with the Rust manifest gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin environment_trace_manifest -- research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json > /tmp/environment-trace-manifest-report.json
+          jq -e '
+            .report_kind == "symtropy-environment-trace-manifest-validation-report" and
+            .contract_valid == true and
+            .manifest_status == "template_only" and
+            .candidate_for_independent_verification == false and
+            .result_scope == "manifest_shape_and_gate_metadata_only_not_data_hash_or_physical_validation" and
+            any(.warnings[]; contains("contains no acquired trace"))
+          ' /tmp/environment-trace-manifest-report.json
+
+          # Fail-closed negative control: the empty template must not become
+          # replay-eligible merely by changing its status string.
+          jq '.status = "validated_for_replay"' research/polar-infrastructure/benchmark/fixtures/environment-trace-manifest-template-2026.json > /tmp/incomplete-validated-trace.json
+          if cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin environment_trace_manifest -- /tmp/incomplete-validated-trace.json > /tmp/incomplete-trace-report.json; then
+            echo "ERROR: incomplete trace manifest was unexpectedly accepted"
+            exit 1
+          fi
+          jq -e '
+            .contract_valid == false and
+            .candidate_for_independent_verification == false and
+            any(.errors[]; contains("source_data_sha256")) and
+            any(.errors[]; contains("sample counts"))
+          ' /tmp/incomplete-trace-report.json

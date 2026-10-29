@@ -1,0 +1,307 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Symtropy Paired Resilience Comparison Input (Content-Bound v0.4)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_kind",
+    "evidence_class",
+    "status",
+    "reference_controller_id",
+    "candidate_controller_id",
+    "controllers",
+    "axes",
+    "gate_ids",
+    "gate_margin_contracts",
+    "trajectory_artifacts",
+    "controller_artifacts",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.3.0"
+    },
+    "artifact_kind": {
+      "const": "paired-resilience-comparison-input"
+    },
+    "evidence_class": {
+      "const": "synthetic_fixture"
+    },
+    "status": {
+      "const": "synthetic_only"
+    },
+    "reference_controller_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_controller_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "controllers": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "axes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/axis"
+      }
+    },
+    "gate_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "gate_margin_contracts": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/gateMarginContract"
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "trajectory_artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/trajectoryArtifact"
+      }
+    },
+    "controller_artifacts": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/controllerArtifact"
+      }
+    }
+  },
+  "$defs": {
+    "axis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "unit",
+        "higher_is_more_severe"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "higher_is_more_severe": {
+          "type": "boolean"
+        }
+      }
+    },
+    "gateResult": {
+      "enum": [
+        "pass",
+        "breach",
+        "invalid",
+        "not_evaluated"
+      ]
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "controller_id",
+        "trajectory_id",
+        "comparison_group_id",
+        "hazard_family",
+        "initial_state_id",
+        "replicate_id",
+        "severity",
+        "gate_results",
+        "signed_gate_margins",
+        "trajectory_sha256",
+        "initial_state_sha256",
+        "controller_artifact_sha256"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trajectory_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "comparison_group_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hazard_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_state_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replicate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "gate_results": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/gateResult"
+          }
+        },
+        "signed_gate_margins": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "trajectory_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "initial_state_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "controller_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "gateMarginContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "signed_margin_definition",
+        "hard_gate"
+      ],
+      "properties": {
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signed_margin_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hard_gate": {
+          "const": true
+        }
+      }
+    },
+    "trajectoryArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trajectory_id",
+        "initial_state_id",
+        "trajectory_payload",
+        "trajectory_sha256",
+        "initial_state_payload",
+        "initial_state_sha256"
+      ],
+      "properties": {
+        "trajectory_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_state_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trajectory_payload": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trajectory_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "initial_state_payload": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_state_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "controllerArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "controller_id",
+        "controller_payload",
+        "controller_sha256"
+      ],
+      "properties": {
+        "controller_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_payload": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  },
+  "description": "Synthetic-only paired comparison input. Content digests bind shared trajectories, initial states and controller artifacts; actual payload verification is independently performed over exact UTF-8 payload bytes."
+}

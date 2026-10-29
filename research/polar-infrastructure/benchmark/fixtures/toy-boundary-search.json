@@ -1,0 +1,109 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "polar-resilience-boundary-search-input",
+  "evidence_class": "synthetic_only",
+  "status": "synthetic_fixture",
+  "search_partition_id": "toy-boundary-search-only-not-holdout",
+  "axes": [
+    { "id": "renewable_deficit_hours", "unit": "h", "higher_is_more_severe": true },
+    { "id": "fuel_delay_hours", "unit": "h", "higher_is_more_severe": true }
+  ],
+  "gate_ids": [
+    "heat_floor",
+    "water_floor",
+    "communications_floor",
+    "sanitation_floor"
+  ],
+  "cases": [
+    {
+      "case_id": "pass_nominal",
+      "comparison_group_id": "supply_cold_low_reserve",
+      "hazard_family": "supply_plus_cold",
+      "initial_state_id": "reserve_low",
+      "replicate_id": "replicate-1",
+      "severity": { "renewable_deficit_hours": 1.0, "fuel_delay_hours": 1.0 },
+      "outcome": "pass",
+      "failed_gate_ids": []
+    },
+    {
+      "case_id": "heat_short_low_a",
+      "comparison_group_id": "supply_cold_low_reserve",
+      "hazard_family": "supply_plus_cold",
+      "initial_state_id": "reserve_low",
+      "replicate_id": "replicate-1",
+      "severity": { "renewable_deficit_hours": 2.0, "fuel_delay_hours": 1.0 },
+      "outcome": "gate_breach",
+      "failed_gate_ids": ["heat_floor"]
+    },
+    {
+      "case_id": "heat_dominated",
+      "comparison_group_id": "supply_cold_low_reserve",
+      "hazard_family": "supply_plus_cold",
+      "initial_state_id": "reserve_low",
+      "replicate_id": "replicate-1",
+      "severity": { "renewable_deficit_hours": 3.0, "fuel_delay_hours": 2.0 },
+      "outcome": "gate_breach",
+      "failed_gate_ids": ["heat_floor"]
+    },
+    {
+      "case_id": "heat_short_low_b",
+      "comparison_group_id": "supply_cold_low_reserve",
+      "hazard_family": "supply_plus_cold",
+      "initial_state_id": "reserve_low",
+      "replicate_id": "replicate-2",
+      "severity": { "renewable_deficit_hours": 1.0, "fuel_delay_hours": 4.0 },
+      "outcome": "gate_breach",
+      "failed_gate_ids": ["heat_floor"]
+    },
+    {
+      "case_id": "water_short_low",
+      "comparison_group_id": "supply_cold_low_reserve",
+      "hazard_family": "supply_plus_cold",
+      "initial_state_id": "reserve_low",
+      "replicate_id": "replicate-1",
+      "severity": { "renewable_deficit_hours": 1.0, "fuel_delay_hours": 3.0 },
+      "outcome": "gate_breach",
+      "failed_gate_ids": ["water_floor"]
+    },
+    {
+      "case_id": "combined_high",
+      "comparison_group_id": "supply_cold_low_reserve",
+      "hazard_family": "supply_plus_cold",
+      "initial_state_id": "reserve_low",
+      "replicate_id": "replicate-1",
+      "severity": { "renewable_deficit_hours": 3.0, "fuel_delay_hours": 3.0 },
+      "outcome": "gate_breach",
+      "failed_gate_ids": ["heat_floor", "water_floor"]
+    },
+    {
+      "case_id": "invalid_run",
+      "comparison_group_id": "supply_cold_low_reserve",
+      "hazard_family": "supply_plus_cold",
+      "initial_state_id": "reserve_low",
+      "replicate_id": "replicate-1",
+      "severity": { "renewable_deficit_hours": 2.0, "fuel_delay_hours": 2.0 },
+      "outcome": "invalid",
+      "failed_gate_ids": []
+    },
+    {
+      "case_id": "not_evaluated_run",
+      "comparison_group_id": "supply_cold_low_reserve",
+      "hazard_family": "supply_plus_cold",
+      "initial_state_id": "reserve_low",
+      "replicate_id": "replicate-1",
+      "severity": { "renewable_deficit_hours": 2.5, "fuel_delay_hours": 2.5 },
+      "outcome": "not_evaluated",
+      "failed_gate_ids": []
+    },
+    {
+      "case_id": "communications_case_other_state",
+      "comparison_group_id": "telemetry_restart_high_reserve",
+      "hazard_family": "telemetry_and_restart",
+      "initial_state_id": "reserve_high",
+      "replicate_id": "replicate-1",
+      "severity": { "renewable_deficit_hours": 0.5, "fuel_delay_hours": 1.0 },
+      "outcome": "gate_breach",
+      "failed_gate_ids": ["communications_floor"]
+    }
+  ]
+}

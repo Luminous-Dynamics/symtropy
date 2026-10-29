@@ -1,0 +1,296 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "symtropy-environment-observation-validation-plan",
+  "plan_id": "gobabeb_bsrn_vs_nasa_power_daily_v0",
+  "status": "design_only_not_executed",
+  "evidence_class": "test_design_only",
+  "site": {
+    "profile_id": "earth.coastal_desert_namib",
+    "station_name": "Gobabeb",
+    "station_id": "GOB",
+    "latitude_deg": -23.5614,
+    "longitude_deg": 15.04198,
+    "elevation_m": 407,
+    "surface_description": "desert gravel; flat rural topography per publisher metadata"
+  },
+  "station_reference": {
+    "series_doi": "https://doi.org/10.1594/PANGAEA.968639",
+    "publisher_url": "https://doi.pangaea.de/10.1594/PANGAEA.968639",
+    "example_monthly_doi": "https://doi.org/10.1594/PANGAEA.983811",
+    "reported_series_start_utc": "2012-05-16T00:00:00Z",
+    "reported_series_end_utc": "2026-08-31T23:59:00Z",
+    "reported_sample_interval_seconds": 60,
+    "reported_sample_interval_semantics": "must_be_confirmed_from_actual_monthly_file_metadata_before_ingestion",
+    "license": "Baseline Surface Radiation Network License 1.0 (BSRN-1.0)",
+    "source_file_included": false
+  },
+  "model_reference": {
+    "provider": "NASA POWER",
+    "daily_api": "https://power.larc.nasa.gov/api/temporal/daily/point",
+    "documentation": "https://power.larc.nasa.gov/docs/services/api/temporal/daily/",
+    "time_standard_request": "UTC",
+    "evidence_class": "reanalysis",
+    "model_data_downloaded": false
+  },
+  "variable_pairs": [
+    {
+      "pair_id": "swd_vs_allsky_sfc_sw_dwn",
+      "station_variable": "SWD",
+      "station_quantity": "short-wave downward global radiation",
+      "station_unit": "W m-2",
+      "power_variable": "ALLSKY_SFC_SW_DWN",
+      "power_quantity": "all-sky surface shortwave downward irradiance",
+      "comparison_quantity": "daily integrated irradiation",
+      "comparison_unit": "kWh m-2 day-1",
+      "station_transform": "Integrate valid station values using documented time interval and sample semantics; do not assume timestamps are interval means until confirmed.",
+      "power_transform": "Use source-native daily integrated value without treating it as instantaneous W m-2.",
+      "required_time_semantics_review": true
+    },
+    {
+      "pair_id": "t2_vs_t2m",
+      "station_variable": "T2",
+      "station_quantity": "air temperature at 2 m",
+      "station_unit": "degC",
+      "power_variable": "T2M",
+      "power_quantity": "near-surface air temperature at 2 m",
+      "comparison_quantity": "daily mean 2 m air temperature",
+      "comparison_unit": "degC",
+      "station_transform": "Aggregate valid minute samples using documented temporal semantics and report valid sample count.",
+      "power_transform": "Use the POWER daily mean in its source unit; convert explicitly only if needed.",
+      "required_time_semantics_review": true
+    },
+    {
+      "pair_id": "rh_vs_rh2m",
+      "station_variable": "RH",
+      "station_quantity": "relative humidity",
+      "station_unit": "%",
+      "power_variable": "RH2M",
+      "power_quantity": "near-surface relative humidity at 2 m",
+      "comparison_quantity": "daily mean relative humidity",
+      "comparison_unit": "%",
+      "station_transform": "Aggregate valid minute samples using documented temporal semantics and report valid sample count.",
+      "power_transform": "Use POWER daily mean; retain percent units for comparison.",
+      "required_time_semantics_review": true
+    }
+  ],
+  "time_split": {
+    "policy": "whole_calendar_years_no_random_timestamp_split",
+    "calibration": {
+      "start_inclusive_utc": "2016-01-01T00:00:00Z",
+      "end_exclusive_utc": "2019-01-01T00:00:00Z"
+    },
+    "validation": {
+      "start_inclusive_utc": "2019-01-01T00:00:00Z",
+      "end_exclusive_utc": "2020-01-01T00:00:00Z"
+    },
+    "locked_test": {
+      "start_inclusive_utc": "2020-01-01T00:00:00Z",
+      "end_exclusive_utc": "2022-01-01T00:00:00Z"
+    },
+    "locked_test_must_not_be_used_for": [
+      "bias correction",
+      "parameter tuning",
+      "selecting the primary error metric",
+      "choosing valid-observation coverage thresholds"
+    ],
+    "missing_month_policy": "Preserve and report missing months; do not move holdout boundaries after inspecting test errors."
+  },
+  "metrics": [
+    "expected_day_count",
+    "matched_day_count",
+    "excluded_day_count",
+    "matched_coverage_fraction",
+    "mean_bias_error_power_minus_station_with_units",
+    "mean_absolute_error_with_units",
+    "root_mean_square_error_with_units",
+    "median_absolute_error_with_units",
+    "95th_percentile_absolute_error_with_units",
+    "correlation",
+    "regression_slope_and_intercept",
+    "block_bootstrap_confidence_interval",
+    "metrics_stratified_by_month_and_day_night_for_irradiance"
+  ],
+  "uncertainty": {
+    "resampling_unit": "contiguous_blocks_of_days",
+    "proposed_block_length_days": 7,
+    "proposed_replicates": 10000,
+    "random_seed": 20261028,
+    "status": "proposal_requires_review_before_locked_test"
+  },
+  "admission_gates": {
+    "source_hashes_verified": false,
+    "monthly_file_dois_recorded": false,
+    "license_review_recorded": false,
+    "time_standard_confirmed": false,
+    "timestamp_interval_semantics_confirmed": false,
+    "unit_mappings_reviewed": false,
+    "station_qc_and_missingness_reviewed": false,
+    "independent_station_comparison_run": false,
+    "locked_test_evaluated": false
+  },
+  "result_policy": {
+    "report_kind": "validation_plan_only_no_comparison_metrics",
+    "do_not_claim_station_accuracy_from_series_metadata": true,
+    "do_not_claim_controller_superiority_from_trace_validation": true,
+    "station_data_and_reanalysis_remain_separate_evidence_classes": true
+  },
+  "event_annotations": [
+    {
+      "event_id": "gobabeb_2025_06_fog_stratus",
+      "source_doi": "10.1594/PANGAEA.983811",
+      "event_kind": "fog_stratus",
+      "dates_local_as_published": [
+        "2025-06-04",
+        "2025-06-25",
+        "2025-06-26"
+      ],
+      "source_basis": "publisher metadata comment",
+      "status": "metadata_only_not_scored",
+      "permitted_use_in_current_plan": "source-format/development evidence only; cannot be claimed as a locked test because the record has already been inspected",
+      "required_before_scoring": [
+        "acquire full source through allowed route",
+        "review full temporal metadata",
+        "define event label independently of controller outcomes",
+        "pin hourly/daily aggregation and matched coverage"
+      ]
+    }
+  ],
+  "source_use_restrictions": {
+    "license": "Baseline Surface Radiation Network License 1.0 (BSRN-1.0)",
+    "direct_commercial_sale_of_data_allowed": false,
+    "interpretation": "The published release rule forbids direct commercial sale of the data. This field does not assert that every use of derived values or every commercial product is either permitted or prohibited; consult the exact terms and obtain appropriate review or permission before commercial deployment or redistribution.",
+    "raw_data_committed_to_repository": false,
+    "dataset_specific_citation_required": true,
+    "license_review_recorded": false
+  },
+  "candidate_auxiliary_sources": [
+    {
+      "source_id": "sasscal_weathernet_gobabeb_met_8893",
+      "publisher": "SASSCAL WeatherNet",
+      "station_id": 8893,
+      "source_urls": [
+        "https://data.sasscal.org/weatherstat_daily_we.php?loggerid_crit=8893&yrmth_crit=2026-09",
+        "https://sasscalapps.dedicated.co.za/station_datasheet_we.php?loggerid_crit=8893"
+      ],
+      "variables_seen_in_publisher_page": [
+        "air_temperature_mean_min_max",
+        "precipitation_total",
+        "fog_total",
+        "wind_speed_direction",
+        "relative_humidity",
+        "soil_temperature",
+        "leaf_wetness_on_hourly_view"
+      ],
+      "temporal_coverage_note": "Publisher station listing reports daily availability from 2014-10-04 through 2023-01-04. A publisher-rendered 2022-07-27 hourly table reports 24 data records and no missing hours; a Jan 2023 daily table shows data only for Jan 1–4, with Jan 5–31 missing. These are inspected page examples, not a full coverage audit.",
+      "license_status": "unknown_not_admitted",
+      "data_completeness_status": "unverified",
+      "evidence_class": "measured_field_candidate",
+      "admission_status": "candidate_not_admitted",
+      "limitation": "Candidate for measured-field fog/meteorology, subject to license, completeness and quality review. Do not use for radiation comparison: current publisher hourly pages say the solar sensor is not installed, and an older datasheet signal is contradictory. The visible pages provide examples but not a validated source artifact.",
+      "current_radiation_status": "publisher hourly pages explicitly state 'Solar: sensor not installed at this station'; an older station sheet may list a radiation sensor, so current/historical sensor provenance is conflicting and no irradiation field is admitted.",
+      "known_page_examples": [
+        {
+          "url": "https://www.sasscalweathernet.org/weatherstat_hourly_we.php?date_crit_daily=2022-07-27&loggerid_crit=8893",
+          "reported_hourly_records": 24,
+          "reported_missing_hours": "none",
+          "radiation_note": "sensor not installed at this station",
+          "status": "publisher_page_inspected_not_raw_file_ingested"
+        },
+        {
+          "url": "https://www.sasscalweathernet.org/weatherstat_daily_we.php?loggerid_crit=8893&yrmth_crit=2023-01",
+          "reported_valid_dates": [
+            "2023-01-01",
+            "2023-01-02",
+            "2023-01-03",
+            "2023-01-04"
+          ],
+          "dates_blank_through": "2023-01-31",
+          "radiation_note": "daily solar irradiance cannot be calculated because no hourly values are available",
+          "status": "publisher_page_inspected_not_raw_file_ingested"
+        }
+      ]
+    },
+    {
+      "source_id": "noaa_ncei_ghcnh_or_isd",
+      "publisher": "NOAA National Centers for Environmental Information",
+      "source_urls": [
+        "https://www.ncei.noaa.gov/products/land-based-station/integrated-surface-database",
+        "https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly"
+      ],
+      "variables_seen_in_product_description": [
+        "temperature",
+        "dew_point",
+        "wind",
+        "pressure",
+        "precipitation",
+        "visibility",
+        "weather"
+      ],
+      "exact_gobabeb_station_match": "unverified",
+      "period_overlap_status": "unverified",
+      "license_status": "review_exact_product_and_station_source_terms",
+      "evidence_class": "measured_field_candidate",
+      "admission_status": "candidate_not_admitted",
+      "limitation": "No compatible short-wave radiation field established; can only supplement the variables present in an actual admitted station record."
+    }
+  ],
+  "network_fallback": {
+    "dns_failures_observed_in_authoring_shell": [
+      "doi.pangaea.de",
+      "ftp.bsrn.awi.de"
+    ],
+    "publisher_html_preview_accessible_via_research_browser": true,
+    "publisher_html_preview_row_limit": 2000,
+    "preview_is_complete_source": false,
+    "offline_local_registration_helper": "research/polar-infrastructure/benchmark/scripts/register_local_pangaea_source.sh",
+    "local_registration_authenticates_source_origin": false,
+    "status": "fallback_implemented_not_used_for_real_source_yet",
+    "generic_source_registration_helper": "research/polar-infrastructure/benchmark/scripts/register_local_environment_source.sh",
+    "generic_source_registration_supports": [
+      "csv",
+      "tsv",
+      "fixed_width",
+      "other_text",
+      "compressed_archive",
+      "other_binary"
+    ]
+  },
+  "coverage_admission_policy": {
+    "policy_id": "coverage_before_aggregation_v0",
+    "status": "coverage_gate_and_synthetic_contract_tests_implemented_real_source_not_admitted",
+    "missing_values_are_zero": false,
+    "allow_incomplete_daily_series_to_be_treated_as_complete_month": false,
+    "require_expected_observed_missing_counts_per_variable_and_window": true,
+    "require_coverage_fraction_before_metrics": true,
+    "minimum_coverage_threshold_fraction": null,
+    "minimum_coverage_threshold_must_be_frozen_before_locked_test": true,
+    "threshold_choice_requires": "predeclared for the target variable, aggregation, decision and source QA; do not choose it after inspecting locked-test errors",
+    "metadata_only_negative_control": {
+      "source_candidate": "sasscal_weathernet_gobabeb_met_8893",
+      "period": "2023-01",
+      "expected_daily_rows": 31,
+      "publisher_displayed_dates_with_values": [
+        "2023-01-01",
+        "2023-01-02",
+        "2023-01-03",
+        "2023-01-04"
+      ],
+      "publisher_displayed_rows_missing": 27,
+      "visible_row_coverage_fraction": 0.12903225806451613,
+      "monthly_summary_must_not_be_accepted_as_complete_observed_month": true,
+      "status": "metadata_only_not_ingested",
+      "expected_decision": "insufficient_coverage_unless a separately predeclared and justified coverage policy allows the intended use"
+    },
+    "second_metadata_example": {
+      "source_candidate": "sasscal_weathernet_gobabeb_met_8893",
+      "period": "2022-07-27 hourly",
+      "publisher_reported_records": 24,
+      "publisher_reported_missing_hours": "none",
+      "status": "metadata_only_not_ingested",
+      "expected_decision": "one reported full 24-hour table is not evidence of month-long coverage or of source-wide completeness"
+    },
+    "implementation_path": "research/polar-infrastructure/benchmark/scripts/evaluate_environment_coverage.sh",
+    "test_path": "research/polar-infrastructure/benchmark/scripts/test_environment_coverage.sh",
+    "schema_path": "research/polar-infrastructure/benchmark/schemas/environment-coverage-assessment-0.1.0.schema.json"
+  }
+}

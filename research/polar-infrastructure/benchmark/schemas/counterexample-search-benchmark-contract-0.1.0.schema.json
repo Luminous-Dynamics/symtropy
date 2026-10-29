@@ -1,0 +1,523 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Symtropy Counterexample Search Benchmark Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_kind",
+    "contract_id",
+    "status",
+    "evidence_class",
+    "purpose",
+    "searchers",
+    "budget_contract",
+    "input_information_contract",
+    "split_contract",
+    "counterexample_admission",
+    "required_record_fields",
+    "required_metrics",
+    "statistical_contract",
+    "benchmark_tracks",
+    "admission_gates",
+    "claim_policy",
+    "research_references"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "artifact_kind": {
+      "const": "symtropy-counterexample-search-benchmark-contract"
+    },
+    "contract_id": {
+      "const": "counterexample-search-fixed-budget-v0"
+    },
+    "status": {
+      "const": "proposed_not_executed"
+    },
+    "evidence_class": {
+      "const": "test_design_only"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 40
+    },
+    "searchers": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/searcher"
+      }
+    },
+    "budget_contract": {
+      "$ref": "#/$defs/budgetContract"
+    },
+    "input_information_contract": {
+      "$ref": "#/$defs/informationContract"
+    },
+    "split_contract": {
+      "$ref": "#/$defs/splitContract"
+    },
+    "counterexample_admission": {
+      "$ref": "#/$defs/counterexampleAdmission"
+    },
+    "required_record_fields": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required_metrics": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "falsification_rate_at_budget",
+          "time_to_first_replay_confirmed_counterexample",
+          "survival_curve_for_runs_not_falsified",
+          "unique_replay_confirmed_failure_families_per_100_invocations",
+          "discovery_yield_at_invocations_25_50_100_200",
+          "invalid_invocation_rate",
+          "duplicate_failure_family_rate",
+          "replay_confirmation_rate",
+          "locked_holdout_failure_family_yield",
+          "cross_seed_variance",
+          "wall_time_and_resource_use"
+        ]
+      }
+    },
+    "statistical_contract": {
+      "$ref": "#/$defs/statisticalContract"
+    },
+    "benchmark_tracks": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/benchmarkTrack"
+      }
+    },
+    "admission_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_and_model_admission",
+        "formal_gate_definition_reviewed",
+        "strong_baseline_adapters_pinned",
+        "resource_and_information_budget_frozen",
+        "random_seeds_and_blocking_frozen",
+        "failure_family_fingerprint_policy_frozen",
+        "locked_holdout_created_and_sealed",
+        "independent_replay_verifier_admitted"
+      ],
+      "properties": {
+        "source_and_model_admission": {
+          "type": "boolean"
+        },
+        "formal_gate_definition_reviewed": {
+          "type": "boolean"
+        },
+        "strong_baseline_adapters_pinned": {
+          "type": "boolean"
+        },
+        "resource_and_information_budget_frozen": {
+          "type": "boolean"
+        },
+        "random_seeds_and_blocking_frozen": {
+          "type": "boolean"
+        },
+        "failure_family_fingerprint_policy_frozen": {
+          "type": "boolean"
+        },
+        "locked_holdout_created_and_sealed": {
+          "type": "boolean"
+        },
+        "independent_replay_verifier_admitted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "claim_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "performance_claim",
+        "synthetic_oracle_results_are_physical_evidence",
+        "searcher_superiority_implies_controller_superiority",
+        "zero_discoveries_proves_safety",
+        "holdout_tuning_allowed"
+      ],
+      "properties": {
+        "performance_claim": {
+          "const": "none"
+        },
+        "synthetic_oracle_results_are_physical_evidence": {
+          "const": false
+        },
+        "searcher_superiority_implies_controller_superiority": {
+          "const": false
+        },
+        "zero_discoveries_proves_safety": {
+          "const": false
+        },
+        "holdout_tuning_allowed": {
+          "const": false
+        }
+      }
+    },
+    "research_references": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "url",
+          "relevance"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "relevance": {
+            "type": "string",
+            "minLength": 10
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "searcher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "searcher_id",
+        "class",
+        "strategy",
+        "implementation_status",
+        "adaptive_feedback_allowed",
+        "uses_future_or_holdout_information"
+      ],
+      "properties": {
+        "searcher_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "class": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "strategy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implementation_status": {
+          "enum": [
+            "planned_adapter",
+            "implemented_not_benchmarked",
+            "research_candidate_not_benchmarked"
+          ]
+        },
+        "adaptive_feedback_allowed": {
+          "type": "boolean"
+        },
+        "uses_future_or_holdout_information": {
+          "const": false
+        }
+      }
+    },
+    "budgetContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "budget_unit",
+        "pilot_repetitions",
+        "pilot_invocation_budget_per_searcher",
+        "confirmatory_repetitions",
+        "confirmatory_invocation_budget_per_searcher",
+        "same_invocation_budget_across_searchers",
+        "invalid_invocations_count_against_budget",
+        "failed_or_timed_out_invocations_count_against_budget",
+        "wall_time_and_resource_use_reported_separately",
+        "resource_budget_must_match_across_arms",
+        "run_order_randomized_or_blocked",
+        "random_seeds_preregistered",
+        "repetitions_are_independent_at_search_run_level"
+      ],
+      "properties": {
+        "budget_unit": {
+          "const": "plant_oracle_invocation"
+        },
+        "pilot_repetitions": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "pilot_invocation_budget_per_searcher": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "confirmatory_repetitions": {
+          "type": "integer",
+          "minimum": 30
+        },
+        "confirmatory_invocation_budget_per_searcher": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "same_invocation_budget_across_searchers": {
+          "const": true
+        },
+        "invalid_invocations_count_against_budget": {
+          "const": true
+        },
+        "failed_or_timed_out_invocations_count_against_budget": {
+          "const": true
+        },
+        "wall_time_and_resource_use_reported_separately": {
+          "const": true
+        },
+        "resource_budget_must_match_across_arms": {
+          "const": true
+        },
+        "run_order_randomized_or_blocked": {
+          "const": true
+        },
+        "random_seeds_preregistered": {
+          "const": true
+        },
+        "repetitions_are_independent_at_search_run_level": {
+          "const": true
+        }
+      }
+    },
+    "informationContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "same_declared_parameter_domain",
+        "same_formal_property_and_gate_definitions",
+        "same_controller_observation_contract",
+        "searcher_can_use_only_current_and_prior_non_holdout_observations",
+        "unbounded_pretraining_oracle_queries_forbidden",
+        "surrogate_training_and_cache_queries_count_toward_budget",
+        "cached_results_must_be_content_addressed",
+        "hidden_oracle_access_forbidden"
+      ],
+      "properties": {
+        "same_declared_parameter_domain": {
+          "const": true
+        },
+        "same_formal_property_and_gate_definitions": {
+          "const": true
+        },
+        "same_controller_observation_contract": {
+          "const": true
+        },
+        "searcher_can_use_only_current_and_prior_non_holdout_observations": {
+          "const": true
+        },
+        "unbounded_pretraining_oracle_queries_forbidden": {
+          "const": true
+        },
+        "surrogate_training_and_cache_queries_count_toward_budget": {
+          "const": true
+        },
+        "cached_results_must_be_content_addressed": {
+          "const": true
+        },
+        "hidden_oracle_access_forbidden": {
+          "const": true
+        }
+      }
+    },
+    "splitContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "split_unit",
+        "development_set",
+        "validation_set",
+        "locked_holdout",
+        "holdout_frozen_before_confirmatory_run",
+        "holdout_used_for_searcher_selection_or_tuning",
+        "test_leakage_invalidates_claim",
+        "holdout_discovery_is_reported_separately"
+      ],
+      "properties": {
+        "split_unit": {
+          "const": "whole_scenario_family_episode_or_site_year"
+        },
+        "development_set": {
+          "type": "string",
+          "minLength": 1
+        },
+        "validation_set": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locked_holdout": {
+          "type": "string",
+          "minLength": 1
+        },
+        "holdout_frozen_before_confirmatory_run": {
+          "const": true
+        },
+        "holdout_used_for_searcher_selection_or_tuning": {
+          "const": false
+        },
+        "test_leakage_invalidates_claim": {
+          "const": true
+        },
+        "holdout_discovery_is_reported_separately": {
+          "const": true
+        }
+      }
+    },
+    "counterexampleAdmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_violation_is_not_yet_a_counterexample",
+        "counterexample_requires_independent_replay",
+        "replay_must_use_exact_input_digest",
+        "replay_must_use_pinned_controller_and_model_artifacts",
+        "replay_result_must_reproduce_same_gate_family",
+        "invalid_or_unevaluated_outcome_never_counts_as_failure_discovery",
+        "duplicate_replays_count_once_for_unique_failure_family_yield",
+        "failure_family_fingerprint_is_versioned"
+      ],
+      "properties": {
+        "candidate_violation_is_not_yet_a_counterexample": {
+          "const": true
+        },
+        "counterexample_requires_independent_replay": {
+          "const": true
+        },
+        "replay_must_use_exact_input_digest": {
+          "const": true
+        },
+        "replay_must_use_pinned_controller_and_model_artifacts": {
+          "const": true
+        },
+        "replay_result_must_reproduce_same_gate_family": {
+          "const": true
+        },
+        "invalid_or_unevaluated_outcome_never_counts_as_failure_discovery": {
+          "const": true
+        },
+        "duplicate_replays_count_once_for_unique_failure_family_yield": {
+          "const": true
+        },
+        "failure_family_fingerprint_is_versioned": {
+          "const": true
+        }
+      }
+    },
+    "statisticalContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_endpoint",
+        "report_confidence_interval",
+        "non_falsified_runs_are_right_censored_at_budget",
+        "survival_analysis_required",
+        "independent_unit",
+        "paired_or_blocked_seed_design_required",
+        "multiple_comparison_plan_required",
+        "effect_size_target",
+        "effect_size_target_frozen_after_pilot_before_locked_holdout",
+        "superiority_requires_paired_uncertainty_interval_excluding_zero",
+        "no_single_composite_score_allowed"
+      ],
+      "properties": {
+        "primary_endpoint": {
+          "const": "falsification_rate_at_budget"
+        },
+        "report_confidence_interval": {
+          "const": true
+        },
+        "non_falsified_runs_are_right_censored_at_budget": {
+          "const": true
+        },
+        "survival_analysis_required": {
+          "const": true
+        },
+        "independent_unit": {
+          "const": "search_run"
+        },
+        "paired_or_blocked_seed_design_required": {
+          "const": true
+        },
+        "multiple_comparison_plan_required": {
+          "const": true
+        },
+        "effect_size_target": {
+          "type": "null"
+        },
+        "effect_size_target_frozen_after_pilot_before_locked_holdout": {
+          "const": true
+        },
+        "superiority_requires_paired_uncertainty_interval_excluding_zero": {
+          "const": true
+        },
+        "no_single_composite_score_allowed": {
+          "const": true
+        }
+      }
+    },
+    "benchmarkTrack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "track_id",
+        "status",
+        "oracle_type",
+        "purpose",
+        "physical_evidence",
+        "eligible_for_controller_superiority_claim"
+      ],
+      "properties": {
+        "track_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "contract_only",
+            "not_admitted",
+            "not_created",
+            "smoke_implementation_committed"
+          ]
+        },
+        "oracle_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 10
+        },
+        "physical_evidence": {
+          "const": false
+        },
+        "eligible_for_controller_superiority_claim": {
+          "const": false
+        }
+      }
+    }
+  }
+}

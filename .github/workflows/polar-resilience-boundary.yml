@@ -1,0 +1,164 @@
+name: Polar Resilience Boundary Analyzer
+
+on:
+  pull_request:
+    paths:
+      - "research/polar-infrastructure/benchmark/**"
+      - ".github/workflows/polar-resilience-boundary.yml"
+  push:
+    paths:
+      - "research/polar-infrastructure/benchmark/**"
+      - ".github/workflows/polar-resilience-boundary.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: polar-resilience-boundary-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  boundary-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact PR head (or exact pushed commit)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert checked-out revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Validate Earth-desert and Solar-System catalog invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-environment-domain-catalog" and
+            (.profiles | length >= 50) and
+            ([.profiles[].scenario_id] | length == (unique | length)) and
+            all(.profiles[];
+              (.scenario_id | type == "string" and length > 0) and
+              (.domain == "earth_extreme_environment" or
+               .domain == "space_cross_cutting" or
+               .domain == "solar_system_body" or
+               .domain == "solar_system_small_body") and
+              (.location_or_body | type == "string" and length > 0) and
+              (.deployment_mode | type == "string" and length > 0) and
+              (.stressors | type == "array" and length > 0) and
+              (.coupled_hazard_hypotheses | type == "array" and length > 0) and
+              (.model_requirements | type == "array" and length > 0) and
+              (.required_metrics | type == "array" and length > 0) and
+              (.evidence_basis | type == "string" and length > 0) and
+              (.confidence_or_data_limitations | type == "string" and length > 0) and
+              (.implementation_status == "implemented" or
+               .implementation_status == "planned" or
+               .implementation_status == "not_applicable_with_rationale" or
+               .implementation_status == "blocked_by_missing_data_or_model") and
+              (.status_rationale | type == "string" and length > 0) and
+              (.source_urls | type == "array" and length > 0 and all(.[]; startswith("https://")))
+            ) and
+            ([.profiles[].scenario_id] | index("earth.desert_dust_storm") != null) and
+            ([.profiles[].scenario_id] | index("earth.hyperarid_atacama") != null) and
+            ([.profiles[].scenario_id] | index("ss.moon_permanently_shadowed_region") != null or index("ss.moon_equatorial_and_south_pole") != null) and
+            ([.profiles[].scenario_id] | index("ss.mars_global_dust_storm") != null) and
+            ([.profiles[].scenario_id] | index("ss.europa") != null) and
+            ([.profiles[].scenario_id] | index("ss.titan_surface_and_lakes") != null) and
+            ([.profiles[].scenario_id] | index("ss.venus_surface") != null) and
+            ([.profiles[].scenario_id] | index("ss.neptune_atmospheric_level") != null)
+          ' research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json
+      - name: Validate environment compound-test matrix coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n -e \
+            --slurpfile catalog research/polar-infrastructure/benchmark/fixtures/environment-domain-catalog-2026.json \
+            --slurpfile matrix research/polar-infrastructure/benchmark/fixtures/environment-compound-test-matrix-2026.json '
+            ($catalog[0].profiles | map(.scenario_id)) as $profile_ids |
+            ($matrix[0].coverage_templates | map(.profile_ids[0])) as $coverage_ids |
+            ($matrix[0].coverage_templates + $matrix[0].compound_templates) as $all_tests |
+            ($all_tests | map(.test_id)) as $test_ids |
+            $matrix[0].schema_version == "0.1.0" and
+            $matrix[0].artifact_kind == "symtropy-environment-compound-test-matrix" and
+            $matrix[0].status == "test_templates_not_executed" and
+            $matrix[0].evidence_class == "test_design_only" and
+            $matrix[0].numerical_parameters_embedded == false and
+            $matrix[0].catalog_profile_count == ($profile_ids | length) and
+            $matrix[0].coverage_template_count == ($profile_ids | length) and
+            ($coverage_ids | length) == ($profile_ids | length) and
+            ($coverage_ids | sort) == ($profile_ids | sort) and
+            ($coverage_ids | length) == ($coverage_ids | unique | length) and
+            ($test_ids | length) == ($test_ids | unique | length) and
+            $matrix[0].compound_template_count == ($matrix[0].compound_templates | length) and
+            $matrix[0].total_test_template_count == ($all_tests | length) and
+            all($matrix[0].coverage_templates[];
+              .status == "template_only" and
+              .evidence_class == "test_design_only" and
+              .numerical_parameters_embedded == false and
+              (.profile_ids | length == 1) and
+              (.profile_ids[0] as $pid | ($profile_ids | index($pid)) != null) and
+              (.event_sequence | length >= 3) and
+              (.required_model_adapters | length > 0) and
+              (.required_metrics | length > 0)
+            ) and
+            all($matrix[0].compound_templates[];
+              .status == "template_only" and
+              .evidence_class == "test_design_only" and
+              .numerical_parameters_embedded == false and
+              (.profile_ids | length >= 2) and
+              (.event_sequence | length >= 3) and
+              (.required_cross_profile_model_domains | length > 0) and
+              all(.profile_ids[]; . as $id | ($profile_ids | index($id)) != null)
+            )
+          '
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
+
+      - name: Run focused boundary analyzer tests before crate-wide integration tests
+        run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_boundary
+
+      - name: Exercise boundary frontier CLI on synthetic fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_boundary -- \
+            research/polar-infrastructure/benchmark/fixtures/toy-boundary-search.json > /tmp/polar-boundary-report.json
+          jq -e '
+            .report_kind == "polar-resilience-boundary-search-report" and
+            .schema_version == "0.2.0" and
+            .evidence_class == "synthetic_only" and
+            .result_scope == "observed_enumerated_cases_only_not_a_safety_certificate_or_probability_estimate" and
+            .case_count == 9 and
+            .pass_count == 1 and
+            .gate_breach_case_count == 6 and
+            .invalid_case_count == 1 and
+            .not_evaluated_case_count == 1 and
+            .frontier_completeness_status == "incomplete_invalid_or_not_evaluated_cases" and
+            (.frontiers | length == 8) and
+            ([.frontiers[] | select(.gate_id == "heat_floor" and .comparison_group_id == "supply_cold_low_reserve") |
+              ([.minimal_observed_failing_points[].case_id],
+               [.maximal_observed_passing_points[].case_id],
+               .observed_pass_count, .observed_breach_count,
+               .invalid_case_count, .not_evaluated_case_count,
+               .valid_coverage_fraction)] ==
+              [[ "heat_short_low_a", "heat_short_low_b" ], ["water_short_low"], 2, 4, 1, 1, 0.75]]) and
+            ([.frontiers[] | select(.gate_id == "water_floor" and .comparison_group_id == "supply_cold_low_reserve") |
+              ([.minimal_observed_failing_points[].case_id],
+               ([.monotonicity_conflict_witnesses[] | select(.passing_case_id == "heat_short_low_b" and .failing_case_id == "water_short_low")] | length == 1))] ==
+              [["water_short_low"], true]) and
+            ([.frontiers[] | select(.gate_id == "sanitation_floor" and .comparison_group_id == "supply_cold_low_reserve") |
+              (.minimal_observed_failing_points | length == 0) and
+              .observed_pass_count == 6 and
+              .status == "incomplete_due_to_invalid_or_not_evaluated_cases"] == [true]) and
+            ([.frontiers[] | select(.gate_id == "communications_floor" and .comparison_group_id == "telemetry_restart_high_reserve") |
+              .initial_state_id] == ["reserve_high"]) and
+            .gates_without_observed_breach == ["sanitation_floor"]
+          ' /tmp/polar-boundary-report.json
+
+      - name: Run Rust unit and negative-control tests
+        run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
