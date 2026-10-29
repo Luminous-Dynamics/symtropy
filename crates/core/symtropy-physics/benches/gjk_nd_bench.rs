@@ -54,7 +54,7 @@ impl<'a, const D: usize> CountingSupportMap<'a, D> {
     }
 }
 
-impl<const D: usize> WorldSupportMap<D> for CountingSupportMap<'_, D> {
+impl<'a, const D: usize> WorldSupportMap<D> for CountingSupportMap<'a, D> {
     fn support_world(&self, direction: &SVector<f64, D>) -> SVector<f64, D> {
         self.support_calls.set(self.support_calls.get() + 1);
         self.inner.support_world(direction)
