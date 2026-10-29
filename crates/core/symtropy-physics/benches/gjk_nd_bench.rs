@@ -158,6 +158,12 @@ fn print_work_summary<const D: usize>(
         *terminal_counts.entry(terminal).or_default() += 1;
     }
 
+    assert_eq!(
+        work_counter_mismatches,
+        0,
+        "D={D} {label}: result-side support counter disagrees with the independent wrapper"
+    );
+
     let support_p50 = quantile(&mut support_evaluations, 0.50);
     let support_p95 = quantile(&mut support_evaluations, 0.95);
     let support_p99 = quantile(&mut support_evaluations, 0.99);
