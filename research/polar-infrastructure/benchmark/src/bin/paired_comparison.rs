@@ -155,6 +155,7 @@ fn validate(input: &Input) -> Result<(), String> {
     let declared_controllers: BTreeSet<String> = input.controllers.iter().cloned().collect();
 
     let mut trajectory_artifact_ids = BTreeSet::new();
+    let mut initial_state_digests: BTreeMap<String, String> = BTreeMap::new();
     for artifact in &input.trajectory_artifacts {
         if !nonempty(&artifact.trajectory_id) || !nonempty(&artifact.initial_state_id)
             || artifact.trajectory_payload.is_empty() || artifact.initial_state_payload.is_empty()
@@ -164,6 +165,13 @@ fn validate(input: &Input) -> Result<(), String> {
         }
         if !trajectory_artifact_ids.insert(artifact.trajectory_id.clone()) {
             return Err(format!("duplicate trajectory artifact: {}", artifact.trajectory_id));
+        }
+        if let Some(previous_digest) = initial_state_digests.get(&artifact.initial_state_id) {
+            if previous_digest != &artifact.initial_state_sha256 {
+                return Err(format!("initial_state_id {} references multiple payload digests", artifact.initial_state_id));
+            }
+        } else {
+            initial_state_digests.insert(artifact.initial_state_id.clone(), artifact.initial_state_sha256.clone());
         }
     }
     let mut controller_artifact_ids = BTreeSet::new();
