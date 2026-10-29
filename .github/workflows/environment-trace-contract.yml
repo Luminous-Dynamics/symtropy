@@ -326,6 +326,21 @@ jobs:
             (.execution_receipt_extension.requirements | length >= 6) and
             .execution_receipt_extension.scoring_eligible_for_template == false and
             .execution_receipt_extension.signed_execution_attestation_verifier_implemented == false and
+            .execution_receipt_extension.attestation_policy_path == "research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json" and
+            .execution_receipt_extension.attestation_policy_schema_path == "research/polar-infrastructure/benchmark/schemas/execution-attestation-verification-policy-0.1.0.schema.json" and
+            .execution_receipt_extension.attestation_wrapper_path == "research/polar-infrastructure/benchmark/scripts/verify_signed_execution_receipt.sh" and
+            .execution_receipt_extension.attestation_wrapper_test_path == "research/polar-infrastructure/benchmark/scripts/tests/test_signed_execution_receipt_wrapper.py" and
+            .execution_receipt_extension.attestation_policy_status == "design_only_not_enabled" and
+            .execution_receipt_extension.attestation_tool == "Sigstore Cosign v3.1.4 exact reviewed release" and
+            .execution_receipt_extension.standardized_bundle_only == true and
+            .execution_receipt_extension.legacy_sigstore_bundle_allowed == false and
+            .execution_receipt_extension.certificate_identity_pinned == true and
+            .execution_receipt_extension.oidc_issuer_pinned == true and
+            .execution_receipt_extension.out_of_band_policy_digest_required == true and
+            .execution_receipt_extension.transparency_log_bypass_allowed == false and
+            .execution_receipt_extension.signing_workflow_on_protected_main_required == true and
+            .execution_receipt_extension.attestation_implementation_status == "not_implemented_for_scoring" and
+            .execution_receipt_extension.scoring_eligible_for_any_receipt == false and
             .execution_receipt_extension.scoring_eligible_for_any_v0_1_receipt == false and
             .execution_receipt_extension.execution_attestation_schema_status == "not_implemented" and
             (.execution_receipt_extension.future_scoring_requires | length >= 5) and
