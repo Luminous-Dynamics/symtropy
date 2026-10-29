@@ -72,9 +72,22 @@ References:
 - [Toward Standardized Benchmarking of Search-Based Scenario Selection Methods in Autonomous System Validation](https://doi.org/10.3390/jmse14151386), *Journal of Marine Science and Engineering*, 2026.
 - [Continuous Requirement Conformance Falsification via Cross-Revision Knowledge Transfer](https://conf.researchr.org/details/icst-2026/icst-2026-research/29/Continuous-Requirement-Conformance-Falsification-for-Cyber), ICST 2026; future research opportunity for controlled reuse across revisions.
 
+## Executable analytic known-answer smoke track (new, synthetic only)
+
+The repository now includes an executable Rust smoke track at `src/bin/analytic_counterexample_track.rs`, an independently authored seven-case golden fixture at `fixtures/analytic-counterexample-known-answer-2026.json`, and strict schemas for the fixture and report. The paired-comparison workflow tests and runs the track on the exact checked-out revision.
+
+The known-answer oracle has two disjoint failure families in a unit-square domain:
+- Critical-energy gate: breach when `x + y > 1.4`; signed margin `1.4 - x - y`.
+- Communications-partition gate: breach when `x < 0.2` and `y > 0.7`; signed margin `max(x - 0.2, 0.7 - y)`.
+- Boundary equality is a pass. The separate golden fixture includes boundary-pass cases, just-over-boundary breaches, one safe interior point and points in both failure families. Rust tests compare oracle outputs to this separately authored fixture before emitting a report.
+
+Four arms exercise the fixed-budget machinery: seeded uniform random, Halton space filling, stratified grid, and an explicitly labelled energy-only diagnostic control. Each arm gets 38 search queries plus exactly two replay/positive-control calls, for 40 total oracle invocations. Unused replay slots run the known-safe positive control; they are not silently spent on extra search calls. The grid is expected to locate and replay-confirm both analytic families, while the energy-only diagnostic should find only the energy family. This is a known-answer test of coverage bookkeeping and replay controls, not evidence that the grid is a better general search algorithm.
+
+The emitted report fixes `physical_claim=false`, `controller_superiority_claim=false`, and `industry_sota_claim=false`. No statistical comparison is inferred from this single finite toy suite. The production benchmark still needs compatible, pinned implementations of the five planned searcher classes, an admitted physical oracle, repeated independently seeded runs, exact counterexample fingerprints, independent replay, and a sealed holdout.
+
 ## Current implementation status
 
 - Added a machine-readable fixed-budget contract and strict Draft 2020-12 schema.
 - Added a Rust fail-closed contract validator and negative controls for unfair budgets, holdout leakage, non-replayed failures, unadmitted evidence and composite-score claims.
-- The contract is design-only; all admission gates are false.
-- The next scientific milestone is to implement and pin compatible searcher adapters on the analytic known-answer track, test exact replay and measurement first, and only then apply them to an independently admitted plant model.
+- The contract remains design-only with all admission gates false. The analytic known-answer smoke track now exercises four simple deterministic search arms, fixed-budget replay and a seven-case golden fixture. It does not implement the full five-arm production comparison and does not admit a physical model.
+- The next scientific milestone is to pin compatible production searcher adapters and independent replay on the analytic track, then apply them to an independently admitted plant model with repeated runs and a locked holdout.
