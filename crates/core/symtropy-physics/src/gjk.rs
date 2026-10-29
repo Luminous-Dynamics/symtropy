@@ -274,7 +274,7 @@ fn closest_point_on_simplex<const D: usize>(
             // Project tiny negative round-off back onto the simplex face.
             let weight_sum: f64 = weights[..face_count]
                 .iter()
-                .map(|weight| weight.max(0.0))
+                .map(|weight| (*weight).max(0.0))
                 .sum();
             if weight_sum <= f64::MIN_POSITIVE {
                 continue;
