@@ -9,6 +9,10 @@ The [resilience benchmark scorecard](RESILIENCE_BENCHMARK_SCORECARD_2026.md) and
 
 Industry comparisons are layer-matched: REopt/HOMER where a compatible planning or hybrid-system problem exists, OpenDSS for a compatible distribution network, and Gobabeb BSRN vs NASA POWER for environmental-input validation. Do not treat those tools as interchangeable or compare policy results across different models and information budgets. The scorecard does not claim Symtropy currently beats any of them.
 
+## New: strict signed-receipt verification profile
+
+The [execution-attestation profile](../EXECUTION_ATTESTATION_PROFILE_2026.md) and [machine-readable policy](fixtures/execution-attestation-verification-policy-2026.json) define the next trust boundary: pin the receipt-policy digest out-of-band, require an exact protected-main signer identity and GitHub OIDC issuer, reject legacy Sigstore bundles, and use an exact reviewed Cosign release. The [wrapper](scripts/verify_signed_execution_receipt.sh) performs signature verification for exact receipt bytes but **does not authorize scoring**. Its tests use a stubbed Cosign executable to exercise policy/failure behavior; no real signed receipt or trusted signing workflow has been tested or implemented. Receipt v0.1 remains permanently ineligible under its schema.
+
 ## New: execution receipts and cross-arm budget fairness
 
 The paired evaluator now has a [controller execution receipt schema](schemas/controller-execution-receipt-0.1.0.schema.json), [design-only template](fixtures/controller-execution-receipt-template-2026.json), Rust contract validator, independent payload verifier and [receipt-set verifier](scripts/verify_execution_receipt_set.py). The receipt records plant/model/configuration/runtime and output artifact identities, a canonical digest of the numeric resource ceilings, observed resource use, process outcome and independent-verification status.
