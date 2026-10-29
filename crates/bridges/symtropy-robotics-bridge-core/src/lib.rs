@@ -8,6 +8,7 @@ pub mod assurance;
 pub mod control;
 pub mod differential_drive;
 pub mod dispatch;
+pub mod epoch_authority;
 pub mod epoch_fence;
 pub mod outcome_ledger;
 pub mod recovery_benchmark;
@@ -29,6 +30,10 @@ pub use control::{
 pub use differential_drive::{
     CommandProvenance, DifferentialDriveAdapter, DifferentialDriveClock, DifferentialDriveCommand,
     DifferentialDriveConfigError, DifferentialDriveLocalController,
+};
+pub use epoch_authority::{
+    ControllerEpochAuthority, ControllerEpochStore, EpochAuthorityError,
+    EpochAuthorityStoreError,
 };
 pub use epoch_fence::{
     ControllerEpoch, EpochFenceError, EpochFencedOutcomeLedger,
