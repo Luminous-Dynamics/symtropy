@@ -18,8 +18,11 @@ The current test corpus contains:
 | Minimum-image displacement | 2,000 | Brute-force integer period shifts and choose the shortest representative |
 | Periodic AABB candidate sets | 2,000 | Enumerate image offsets in a fixed wider envelope and recompute overlap directly |
 | Periodic sphere CCD | 500 | Directly invoke Euclidean sphere CCD on every shifted image in a wider envelope |
+| Minimum-image lattice-shift invariance | 1,000 | Add random integer multiples of each period and confirm the minimum image is unchanged |
+| Uniform scaling covariance | 1,000 | Scale origins, periods, points and displacements together at four scale factors; compare offsets and scaled outputs |
+| AABB global lattice translation | 500 | Translate both boxes by the same integer number of cells and require the image-offset set to remain unchanged |
 
-These are planned/executable assertions, **not passing measurements**. Until the tests run, do not report observed zero mismatches.
+Together these are more than 8,000 deterministic scenario assertions, **not passing measurements**. Until the tests run, do not report observed zero mismatches.
 
 ## Geometry contract
 
