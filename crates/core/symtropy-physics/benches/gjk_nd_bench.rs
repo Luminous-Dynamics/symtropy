@@ -150,8 +150,21 @@ fn print_work_summary<const D: usize>(
     let iterations_p95 = quantile(&mut iterations, 0.95);
     let iterations_p99 = quantile(&mut iterations, 0.99);
 
+    let terminal_fields = terminal_counts
+        .iter()
+        .map(|(name, count)| format!("{name}={count}"))
+        .collect::<Vec<_>>()
+        .join(";");
+    let reason_fields = indeterminate_reasons
+        .iter()
+        .map(|(name, count)| format!("{name}={count}"))
+        .collect::<Vec<_>>()
+        .join(";");
+
+    // Versioned, whitespace-free key/value records are easy to archive and
+    // compare in CI without scraping Rust Debug formatting.
     eprintln!(
-        "GJK_WORK dimension={D} scenario={label} corpus={} support_map_evaluations_p50={support_p50} support_map_evaluations_p95={support_p95} support_map_evaluations_p99={support_p99} iterations_p50={iterations_p50} iterations_p95={iterations_p95} iterations_p99={iterations_p99} terminal_counts={terminal_counts:?} indeterminate_reasons={indeterminate_reasons:?}",
+        "GJK_WORK,v1,dimension={D},scenario={label},corpus={},support_map_evaluations_p50={support_p50},support_map_evaluations_p95={support_p95},support_map_evaluations_p99={support_p99},iterations_p50={iterations_p50},iterations_p95={iterations_p95},iterations_p99={iterations_p99},terminal_counts={terminal_fields},indeterminate_reasons={reason_fields}",
         corpus.len()
     );
 }
