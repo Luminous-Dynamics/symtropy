@@ -131,7 +131,7 @@
     },
     "artifact_inventory": {
       "type": "array",
-      "minItems": 7,
+      "minItems": 8,
       "items": {
         "$ref": "#/$defs/artifact"
       },
@@ -566,7 +566,8 @@
             "command",
             "output_trace",
             "stdout",
-            "stderr"
+            "stderr",
+            "controller_artifact"
           ]
         },
         "source_uri": {
