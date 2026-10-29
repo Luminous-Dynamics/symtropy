@@ -6,6 +6,7 @@
 //! authenticated by this crate.
 
 pub mod comparison;
+pub mod coupon;
 
 use std::collections::HashSet;
 use std::f64::consts::PI;
