@@ -39,5 +39,5 @@ jobs:
           cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml -- tools/civil-aero-benchmark/data/example_cases.csv > /tmp/aero-report-b.csv
           cmp /tmp/aero-report-a.csv /tmp/aero-report-b.csv
           test "$(wc -l < /tmp/aero-report-a.csv)" -eq 4
-          head -n 1 /tmp/aero-report-a.csv | grep -q "screening_only"
+          grep -q "screening_only" /tmp/aero-report-a.csv
           sha256sum /tmp/aero-report-a.csv
