@@ -13,6 +13,8 @@ on:
       - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
       - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json"
       - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.4.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.5.0.schema.json"
       - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_paired_comparison_verifier.py"
       - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.1.0.schema.json"
@@ -41,6 +43,8 @@ on:
       - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
       - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json"
       - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.4.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.5.0.schema.json"
       - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_paired_comparison_verifier.py"
       - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.1.0.schema.json"
@@ -89,27 +93,36 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          schema="research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.4.0.schema.json"
-          fixture="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json"
+          schema="research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.5.0.schema.json"
+          fixture="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json"
           jq -e '
             .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
-            .title == "Symtropy Paired Resilience Comparison Input (Content-Bound v0.4)" and
+            .title == "Symtropy Paired Resilience Comparison Input (Causal Information v0.5)" and
             .additionalProperties == false and
             (.required | index("controllers") != null) and
             (.required | index("gate_margin_contracts") != null) and
             (.required | index("trajectory_artifacts") != null) and
+            (.required | index("information_budget_payload") != null) and
+            (.required | index("information_budget_sha256") != null) and
+            (.properties.information_budget_sha256.pattern == "^[a-f0-9]{64}$") and
+            (.properties.trajectory_artifacts.items.required | index("observation_trace_payload") != null) and
+            (.properties.trajectory_artifacts.items.required | index("observation_trace_sha256") != null) and
             (.required | index("controller_artifacts") != null) and
             (.properties.gate_margin_contracts.type == "object") and
             (.required | index("cases") != null)
           ' "$schema"
           jq -e '
             . as $root |
-            .schema_version == "0.4.0" and
+            .schema_version == "0.5.0" and
             .artifact_kind == "paired-resilience-comparison-input" and
             .evidence_class == "synthetic_fixture" and
             .status == "synthetic_only" and
             (.controllers | length == 2) and
             (.cases | length == 12) and
+            (.information_budget_payload | type == "string" and length > 0) and
+            (.information_budget_sha256 | test("^[a-f0-9]{64}$")) and
+            all($root.cases[]; .information_budget_sha256 == $root.information_budget_sha256) and
+            all($root.trajectory_artifacts[]; (.observation_trace_sha256 | test("^[a-f0-9]{64}$")) and (.observation_trace_payload | type == "string" and length > 0)) and
             (.trajectory_artifacts | length == 6) and
             (.controller_artifacts | length == 2) and
             all($root.trajectory_artifacts[]; (.trajectory_sha256 | test("^[a-f0-9]{64}$")) and (.initial_state_sha256 | test("^[a-f0-9]{64}$"))) and
@@ -134,14 +147,18 @@ jobs:
           cargo run --locked --quiet --manifest-path "$manifest" --bin paired_comparison -- "$fixture" > /tmp/paired-comparison-report.json
           jq -e '
             .report_kind == "paired-resilience-comparison-report" and
-            .schema_version == "0.4.0" and
+            .schema_version == "0.5.0" and
             .evidence_class == "synthetic_fixture" and
             .status == "synthetic_only" and
             .controller_count == 2 and
             .trajectory_count == 6 and
             .case_count == 12 and
+            .information_budget.payload_sha256_verification == "delegated_to_independent_verifier" and
+            .information_budget.oracle_future_observations_forbidden == true and
+            .information_budget.forecast_lookahead_seconds == 300 and
             .content_bindings.payload_sha256_verification == "delegated_to_independent_verifier" and
             (.content_bindings.trajectory_digests | length == 6) and
+            all(.content_bindings.trajectory_digests[]; (.observation_trace_sha256 | test("^[a-f0-9]{64}$"))) and
             (.content_bindings.controller_digests | length == 2) and
             .performance_claim == false and
             (.coverage | length == 4) and
