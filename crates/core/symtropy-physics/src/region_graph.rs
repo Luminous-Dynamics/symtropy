@@ -680,6 +680,8 @@ pub struct TransitionReceipt<const D: usize> {
     pub source_revision: u64,
     pub target_revision: u64,
     pub interface_revision: u64,
+    pub source_model_revision: u64,
+    pub target_model_revision: u64,
     pub before: RegionState<D>,
     pub after: RegionState<D>,
     pub momentum_before: SVector<f64, D>,
@@ -891,6 +893,9 @@ impl<const D: usize> RegionStateStore<D> {
             return Err(RegionTransitionError::OutsideSourceBoundary);
         }
 
+        let source_region = graph
+            .region(interface.source)
+            .ok_or(RegionGraphError::UnknownRegion { id: interface.source })?;
         let target_region = graph
             .region(interface.target)
             .ok_or(RegionGraphError::UnknownRegion { id: interface.target })?;
@@ -1029,6 +1034,8 @@ impl<const D: usize> RegionStateStore<D> {
             source_revision: before.revision,
             target_revision,
             interface_revision: interface.revision,
+            source_model_revision: source_region.model_revision,
+            target_model_revision: target_region.model_revision,
             before,
             after: after.clone(),
             momentum_before,
@@ -1146,6 +1153,9 @@ mod tests {
         assert_eq!(store.state(99).unwrap(), &receipt.after);
         assert_eq!(receipt.after.position, SVector::from([0.0, 0.25]));
         assert_eq!(receipt.after.velocity, SVector::from([1.0, 0.0]));
+        assert_eq!(receipt.after.local_time, 12.0);
+        assert_eq!(receipt.source_model_revision, 1);
+        assert_eq!(receipt.target_model_revision, 1);
 
         assert_eq!(
             store.transition(&graph, request(100)).unwrap(),
@@ -1335,6 +1345,62 @@ mod tests {
         let restored_velocity = inverse.map_velocity(&mapped_velocity).unwrap();
         assert!((restored_position - position).norm() < 1e-12);
         assert!((restored_velocity - velocity).norm() < 1e-12);
+    }
+
+    #[test]
+    fn explicit_time_map_transforms_local_clock_and_velocity() {
+        let mut graph = RegionGraph::<2>::new().unwrap();
+        let mut source = region(1, [-1.0, -1.0], [0.0, 1.0]);
+        source.clock_id = "source-clock".to_string();
+        let mut target = region(2, [0.0, -1.0], [1.0, 1.0]);
+        target.clock_id = "target-clock".to_string();
+        graph.add_region(source).unwrap();
+        graph.add_region(target).unwrap();
+
+        let map = AffineRegionMap::new(
+            SMatrix::<f64, 2, 2>::identity(),
+            SVector::zeros(),
+            2.0,
+            5.0,
+        )
+        .unwrap();
+        let interface = RegionInterface::new(
+            InterfaceId(15),
+            RegionId(1),
+            RegionId(2),
+            3,
+            boundary_x0(),
+            boundary_x0(),
+            map,
+            None,
+            false,
+            CrossingDirection::Either,
+            QuantityPolicy::ExplicitTransform,
+            QuantityPolicy::ExplicitTransform,
+            Some("clock-transform-v1".to_string()),
+        )
+        .unwrap();
+        graph.add_interface(interface).unwrap();
+
+        let mut store = RegionStateStore::new().unwrap();
+        store.insert_state(&graph, state()).unwrap();
+        let mut request = request(107);
+        request.interface_id = InterfaceId(15);
+        request.expected_interface_revision = 3;
+        request.direction = CrossingDirection::NegativeToPositive;
+
+        let receipt = match store.transition(&graph, request).unwrap() {
+            TransitionOutcome::Committed(receipt) => receipt,
+            _ => panic!("first transition must commit"),
+        };
+        assert_eq!(receipt.after.local_time, 29.0);
+        assert_eq!(receipt.after.velocity, SVector::from([0.5, 0.0]));
+        assert_eq!(
+            receipt.transform_identity.as_deref(),
+            Some("clock-transform-v1")
+        );
+        assert!((receipt.kinetic_energy_before - 1.0).abs() < 1e-12);
+        assert!((receipt.kinetic_energy_after - 0.25).abs() < 1e-12);
     }
 
     #[test]
