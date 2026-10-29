@@ -164,3 +164,28 @@ Supported policies are `RANDOM_ROW`, `HELD_OUT_GEOMETRY`, `HELD_OUT_MANUFACTURER
 The fixture is synthetic and exists only to exercise input semantics. This audit validates declared keys and split assignment; it does not establish that source IDs are truthful, verify source-data digests, detect near-duplicate geometries, prove measurement independence, or authenticate measurement provenance. A stronger future gate should bind canonical geometry/property hashes, artifact digests, preprocessing versions and data-lineage receipts. Split disjointness is necessary but not sufficient for scientific validity.
 
 This gate turns one recommendation from the global benchmark contract into an executable check. For any claimed transfer to new geometry, manufacturer, material lot, or measurement campaign, publish the matching held-out policy's results separately from random-split scores. Use independent test values and freeze split assignments before model selection.
+
+## Artifact-bound evidence receipt
+
+The `evidence-receipt` binary verifies that every artifact listed in a manifest exists beneath a declared root and has exactly the expected SHA-256 digest. It writes a deterministic receipt bound to the manifest's own digest. It rejects absolute paths, parent traversal, platform-ambiguous path separators, duplicate artifact IDs/paths, malformed hashes, and symlinks resolving outside the artifact root. A missing or modified artifact produces a FAIL row and a non-zero exit status after writing the receipt.
+
+Run the synthetic contract fixture:
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin evidence-receipt -- \
+  research/transformer-bench/fixtures \
+  research/transformer-bench/fixtures/evidence-manifest-synthetic.csv \
+  /tmp/evidence-receipt.csv
+```
+
+Manifest header:
+
+`artifact_id,role,relative_path,sha256`
+
+The checked-in synthetic manifest binds `evidence/sample-payload.txt` whose exact bytes are `abc`; its SHA-256 value is a standard test vector. It verifies the plumbing only and is not an engineering artifact.
+
+Receipt header:
+
+`manifest_sha256,artifact_id,role,relative_path,expected_sha256,observed_sha256,status,detail`
+
+A matching digest proves only that the bytes read at verification time match the digest declared in the manifest. It does **not** authenticate the source, identify who produced the artifact, prove that a test or solver actually ran, or establish scientific validity. Preserve the manifest and receipt in a version-controlled or independently anchored record; where adversarial tampering is in scope, add a digital signature or transparency-log anchor and independently validate producer identity. The SHA-256 implementation has standard known-answer tests; Rust tests still need to pass on the exact PR head before this gate is relied upon.
