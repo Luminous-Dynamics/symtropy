@@ -67,13 +67,22 @@ impl fmt::Display for SoilWaterError {
                 )
             }
             Self::InvalidRetentionParameters => {
-                write!(f, "retention parameters are outside the model's admissible domain")
+                write!(
+                    f,
+                    "retention parameters are outside the model's admissible domain"
+                )
             }
             Self::InvalidHydraulicConductivity => {
-                write!(f, "saturated hydraulic conductivity must be finite and non-negative")
+                write!(
+                    f,
+                    "saturated hydraulic conductivity must be finite and non-negative"
+                )
             }
             Self::InvalidPressureHead => {
-                write!(f, "pressure-head magnitude must be finite and non-negative")
+                write!(
+                    f,
+                    "pressure-head magnitude must be finite and non-negative"
+                )
             }
         }
     }
@@ -245,10 +254,7 @@ impl VanGenuchtenMualem {
     ///
     /// Logarithms avoid overflow in the power term for very dry states or
     /// extreme finite inputs.
-    pub fn effective_saturation(
-        self,
-        pressure_head_cm: f64,
-    ) -> Result<f64, SoilWaterError> {
+    pub fn effective_saturation(self, pressure_head_cm: f64) -> Result<f64, SoilWaterError> {
         if !pressure_head_cm.is_finite() || pressure_head_cm < 0.0 {
             return Err(SoilWaterError::InvalidPressureHead);
         }
@@ -286,10 +292,7 @@ impl VanGenuchtenMualem {
 
     /// Returns volumetric water content for a non-negative pressure-head
     /// magnitude in centimeters.
-    pub fn water_content(
-        self,
-        pressure_head_cm: f64,
-    ) -> Result<f64, SoilWaterError> {
+    pub fn water_content(self, pressure_head_cm: f64) -> Result<f64, SoilWaterError> {
         let effective = self.effective_saturation(pressure_head_cm)?;
         let content = self.theta_r + (self.theta_s - self.theta_r) * effective;
         if content.is_finite() && (self.theta_r..=self.theta_s).contains(&content) {
@@ -300,10 +303,7 @@ impl VanGenuchtenMualem {
     }
 
     /// Returns relative unsaturated hydraulic conductivity in [0, 1].
-    pub fn relative_conductivity(
-        self,
-        pressure_head_cm: f64,
-    ) -> Result<f64, SoilWaterError> {
+    pub fn relative_conductivity(self, pressure_head_cm: f64) -> Result<f64, SoilWaterError> {
         let effective = self.effective_saturation(pressure_head_cm)?;
         if effective == 0.0 {
             return Ok(0.0);
@@ -319,10 +319,7 @@ impl VanGenuchtenMualem {
     }
 
     /// Returns unsaturated conductivity in millimeters per hour.
-    pub fn hydraulic_conductivity(
-        self,
-        pressure_head_cm: f64,
-    ) -> Result<f64, SoilWaterError> {
+    pub fn hydraulic_conductivity(self, pressure_head_cm: f64) -> Result<f64, SoilWaterError> {
         let relative = self.relative_conductivity(pressure_head_cm)?;
         let conductivity = self.ks_mm_per_hour * relative;
         if conductivity.is_finite() && conductivity >= 0.0 {
