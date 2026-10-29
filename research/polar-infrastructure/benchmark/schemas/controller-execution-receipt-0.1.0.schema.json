@@ -14,6 +14,7 @@
     "execution_state",
     "execution_performed",
     "scoring_eligible",
+    "execution_attestation",
     "provenance",
     "paired_input_bindings",
     "artifact_inventory",
@@ -71,7 +72,7 @@
       "type": "boolean"
     },
     "scoring_eligible": {
-      "type": "boolean"
+      "const": false
     },
     "provenance": {
       "type": "object",
@@ -228,6 +229,8 @@
         "synthetic_payloads_are_execution_evidence",
         "scoring_requires_completed_execution",
         "scoring_requires_independent_output_hash_verification",
+        "scoring_requires_signed_execution_attestation",
+        "signed_execution_attestation_verifier_implemented",
         "resource_limits_must_be_shared_across_comparison_arms"
       ],
       "properties": {
@@ -242,6 +245,12 @@
         },
         "resource_limits_must_be_shared_across_comparison_arms": {
           "const": true
+        },
+        "scoring_requires_signed_execution_attestation": {
+          "const": true
+        },
+        "signed_execution_attestation_verifier_implemented": {
+          "const": false
         }
       }
     },
@@ -282,6 +291,42 @@
     },
     "resource_limits_sha256": {
       "$ref": "#/$defs/sha256"
+    },
+    "execution_attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scheme",
+        "status",
+        "issuer_id",
+        "signature_bundle_sha256",
+        "signed_payload_sha256",
+        "verifier_id",
+        "verifier_revision"
+      ],
+      "properties": {
+        "scheme": {
+          "const": "none"
+        },
+        "status": {
+          "const": "not_implemented"
+        },
+        "issuer_id": {
+          "type": "null"
+        },
+        "signature_bundle_sha256": {
+          "type": "null"
+        },
+        "signed_payload_sha256": {
+          "type": "null"
+        },
+        "verifier_id": {
+          "type": "null"
+        },
+        "verifier_revision": {
+          "type": "null"
+        }
+      }
     }
   },
   "allOf": [
@@ -483,47 +528,6 @@
               },
               "verified_artifact_count": {
                 "const": 0
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "scoring_eligible": {
-            "const": true
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "status": {
-            "const": "completed"
-          },
-          "evidence_class": {
-            "enum": [
-              "simulator",
-              "hardware_in_loop",
-              "field_observation"
-            ]
-          },
-          "independent_verification": {
-            "properties": {
-              "status": {
-                "const": "passed"
-              },
-              "verifier_id": {
-                "type": "string",
-                "minLength": 1
-              },
-              "verifier_revision": {
-                "type": "string",
-                "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$"
-              },
-              "verified_artifact_count": {
-                "minimum": 3
               }
             }
           }
