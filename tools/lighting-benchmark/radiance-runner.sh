@@ -67,6 +67,7 @@ OCTREE_SHA=$(sha256 "$OCTREE"); CASE_SHA=$(sha256 "$CASE_JSON"); DESIGN_SHA=$(sh
 PROPERTY_SHA=$(sha256 "$PROPERTY_DATA"); CONFIG_SHA=$(sha256 "$ADAPTER_CONFIG")
 RUN_STATUS=preflight; FAILURE_CODE=; FAILURE_DETAIL=; INVOCATION_ATTEMPTED=false; EXIT_CODE=null; TIMED_OUT=false; DURATION_MS=null
 STDOUT_SHA=; STDERR_SHA=; SUPERVISOR_SHA=; SAMPLES_SHA=; DIAGNOSTICS_SHA=
+GRID_JSON_SHA=; GRID_TSV_SHA=; RAYS_SHA=; ARGV_SHA=; ENV_SHA=
 
 write_report() {
   jq -n \
@@ -76,7 +77,7 @@ write_report() {
     --arg ersha "$EXPECTED_RTRACE_SHA" --arg rsha "$RTRACE_SHA" --arg epsha "$EXPECTED_PARSER_SHA" --arg psha "$PARSER_SHA" \
     --arg octsha "$OCTREE_SHA" --arg casesha "$CASE_SHA" --arg designsha "$DESIGN_SHA" --arg propsha "$PROPERTY_SHA" --arg cfgsha "$CONFIG_SHA" \
     --arg outsha "$STDOUT_SHA" --arg errsha "$STDERR_SHA" --arg supsha "$SUPERVISOR_SHA" --arg samsha "$SAMPLES_SHA" --arg diagsha "$DIAGNOSTICS_SHA" \
-    --arg attempted "$INVOCATION_ATTEMPTED" --arg exitcode "$EXIT_CODE" --arg timeout "$TIMED_OUT" --arg duration "$DURATION_MS" \
+    --arg attempted "$INVOCATION_ATTEMPTED" --arg exitcode "$EXIT_CODE" --arg timeout "$TIMED_OUT" --arg duration "$DURATION_MS" --arg gridjsonsha "$GRID_JSON_SHA" --arg gridtsvsha "$GRID_TSV_SHA" --arg rayssha "$RAYS_SHA" --arg argvsha "$ARGV_SHA" --arg envsha "$ENV_SHA" \
     '{report_version:"0.2.0",report_kind:"radiance_process_attempt",case_id:$case_id,engine_version_label:$engine,run_status:$status,
       failure_code:(if $code=="" then null else $code end),failure_detail:(if $detail=="" then null else $detail end),
       process:{invocation_attempted:($attempted=="true"),exit_code:(if $exitcode=="null" then null else ($exitcode|tonumber) end),
@@ -87,6 +88,7 @@ write_report() {
       artifacts:{stdout_sha256:(if $outsha=="" then null else $outsha end),stderr_sha256:(if $errsha=="" then null else $errsha end),
         supervisor_stderr_sha256:(if $supsha=="" then null else $supsha end),normalized_samples_sha256:(if $samsha=="" then null else $samsha end),
         parser_diagnostics_sha256:(if $diagsha=="" then null else $diagsha end)},
+      execution:{expected_grid_json_sha256:(if $gridjsonsha=="" then null else $gridjsonsha end),expected_grid_tsv_sha256:(if $gridtsvsha=="" then null else $gridtsvsha end),ray_input_sha256:(if $rayssha=="" then null else $rayssha end),command_argv_sha256:(if $argvsha=="" then null else $argvsha end),child_environment_sha256:(if $envsha=="" then null else $envsha end)},
       scoring_eligible:false,service_energy_metric_wh_per_compliant_task_hour:null}' > "$OUT_DIR/run-report.json"
 }
 report_failure() { RUN_STATUS=$1; FAILURE_CODE=$2; FAILURE_DETAIL=$3; write_report; echo "radiance-runner: $RUN_STATUS/$FAILURE_CODE; report=$OUT_DIR/run-report.json" >&2; exit 1; }
@@ -120,6 +122,8 @@ while IFS=$'\t' read -r idx x y z; do
 done < "$OUT_DIR/expected-grid.tsv" > "$OUT_DIR/rtrace-input.txt"
 printf '%s\n' "$(jq -r '.rtrace_args[]|.[]' "$ADAPTER_CONFIG")" '-h-' '-I+' '-ov' '-cs' '3' '-x' '1' "$OUT_DIR/scene.oct" > "$OUT_DIR/command-argv.txt"
 printf '%s\n' 'LC_ALL=C' 'LANG=C' 'PATH=/usr/bin:/bin' > "$OUT_DIR/child-environment.txt"
+GRID_JSON_SHA=$(sha256 "$OUT_DIR/expected-grid.json"); GRID_TSV_SHA=$(sha256 "$OUT_DIR/expected-grid.tsv")
+RAYS_SHA=$(sha256 "$OUT_DIR/rtrace-input.txt"); ARGV_SHA=$(sha256 "$OUT_DIR/command-argv.txt"); ENV_SHA=$(sha256 "$OUT_DIR/child-environment.txt")
 [[ "$(sha256 "$RTRACE")" == "$RTRACE_SHA" && "$(sha256 "$PARSER")" == "$PARSER_SHA" ]] || report_failure invalid_input staged_tool_changed_before_execution "staged tool bytes changed before run."
 START_NS=$(date +%s%N); INVOCATION_ATTEMPTED=true
 set +e
