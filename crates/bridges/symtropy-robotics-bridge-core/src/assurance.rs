@@ -190,7 +190,11 @@ impl RuntimeAssuranceGate {
             return Self::veto(request.request_id, vec![VetoReason::InvalidSafetyState]);
         }
 
-        if !self.envelope.supported_intents.contains(&IntentKind::from(&request.intent)) {
+        if !self
+            .envelope
+            .supported_intents
+            .contains(&IntentKind::from(&request.intent))
+        {
             reasons.push(VetoReason::UnsupportedIntent);
         }
 
@@ -202,7 +206,11 @@ impl RuntimeAssuranceGate {
             }
         }
 
-        if let EmbodiedIntent::NavigateTo { max_speed_mps: Some(speed), .. } = &request.intent {
+        if let EmbodiedIntent::NavigateTo {
+            max_speed_mps: Some(speed),
+            ..
+        } = &request.intent
+        {
             if *speed > self.envelope.max_speed_mps {
                 reasons.push(VetoReason::SpeedLimitExceeded);
             }
@@ -341,7 +349,11 @@ mod tests {
 
     #[test]
     fn admits_fresh_request_inside_declared_envelope() {
-        let decision = gate().evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 10.5, &healthy_state());
+        let decision = gate().evaluate(
+            &navigate([1.0, 2.0, 3.0], Some(1.5)),
+            10.5,
+            &healthy_state(),
+        );
         assert!(decision.permitted);
         assert!(decision.reasons.is_empty());
         assert_eq!(decision.request_id, 41);
@@ -349,7 +361,11 @@ mod tests {
 
     #[test]
     fn expired_intent_is_vetoed_before_platform_dispatch() {
-        let decision = gate().evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 11.1, &healthy_state());
+        let decision = gate().evaluate(
+            &navigate([1.0, 2.0, 3.0], Some(1.5)),
+            11.1,
+            &healthy_state(),
+        );
         assert_eq!(decision.reasons, vec![VetoReason::InvalidRequest]);
         assert!(!decision.permitted);
     }
@@ -358,52 +374,77 @@ mod tests {
     fn stale_sensors_veto_motion() {
         let mut state = healthy_state();
         state.sensor_age_s = 0.11;
-        assert!(gate().evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 10.5, &state)
-            .reasons.contains(&VetoReason::StaleSensors));
+        assert!(
+            gate()
+                .evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 10.5, &state)
+                .reasons
+                .contains(&VetoReason::StaleSensors)
+        );
     }
 
     #[test]
     fn emergency_stop_vetoes_motion() {
         let mut state = healthy_state();
         state.emergency_stop_active = true;
-        assert!(gate().evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 10.5, &state)
-            .reasons.contains(&VetoReason::EmergencyStopActive));
+        assert!(
+            gate()
+                .evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 10.5, &state)
+                .reasons
+                .contains(&VetoReason::EmergencyStopActive)
+        );
     }
 
     #[test]
     fn actuator_failure_vetoes_motion() {
         let mut state = healthy_state();
         state.actuator_ready = false;
-        assert!(gate().evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 10.5, &state)
-            .reasons.contains(&VetoReason::ActuatorUnavailable));
+        assert!(
+            gate()
+                .evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 10.5, &state)
+                .reasons
+                .contains(&VetoReason::ActuatorUnavailable)
+        );
     }
 
     #[test]
     fn battery_below_reserve_vetoes_motion() {
         let mut state = healthy_state();
         state.battery_fraction = 0.1;
-        assert!(gate().evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 10.5, &state)
-            .reasons.contains(&VetoReason::BatteryBelowReserve));
+        assert!(
+            gate()
+                .evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 10.5, &state)
+                .reasons
+                .contains(&VetoReason::BatteryBelowReserve)
+        );
     }
 
     #[test]
     fn communication_loss_vetoes_when_policy_requires_link() {
         let mut state = healthy_state();
         state.communication_healthy = false;
-        assert!(gate().evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 10.5, &state)
-            .reasons.contains(&VetoReason::CommunicationUnavailable));
+        assert!(
+            gate()
+                .evaluate(&navigate([1.0, 2.0, 3.0], Some(1.5)), 10.5, &state)
+                .reasons
+                .contains(&VetoReason::CommunicationUnavailable)
+        );
     }
 
     #[test]
     fn unsupported_intent_is_explicitly_vetoed() {
         let mut g = gate();
-        g.envelope.supported_intents.retain(|kind| *kind != IntentKind::Manipulate);
+        g.envelope
+            .supported_intents
+            .retain(|kind| *kind != IntentKind::Manipulate);
         let manipulation = request(EmbodiedIntent::Manipulate {
             target: pose("map", [0.0, 0.0, 1.0]),
             operation: ManipulationOperation::Grasp,
         });
-        assert!(g.evaluate(&manipulation, 10.5, &healthy_state()).reasons
-            .contains(&VetoReason::UnsupportedIntent));
+        assert!(
+            g.evaluate(&manipulation, 10.5, &healthy_state())
+                .reasons
+                .contains(&VetoReason::UnsupportedIntent)
+        );
     }
 
     #[test]
@@ -411,15 +452,31 @@ mod tests {
         let inspect = request(EmbodiedIntent::Inspect {
             target: pose("camera_local", [1.0, 2.0, 3.0]),
         });
-        assert!(gate().evaluate(&inspect, 10.5, &healthy_state()).reasons
-            .contains(&VetoReason::FrameMismatch));
+        assert!(
+            gate()
+                .evaluate(&inspect, 10.5, &healthy_state())
+                .reasons
+                .contains(&VetoReason::FrameMismatch)
+        );
     }
 
     #[test]
     fn workspace_and_speed_limits_fail_closed() {
-        let outside = gate().evaluate(&navigate([50.0, 0.0, 3.0], Some(1.0)), 10.5, &healthy_state());
-        assert!(outside.reasons.contains(&VetoReason::TargetOutsideWorkspace));
-        let too_fast = gate().evaluate(&navigate([1.0, 0.0, 3.0], Some(2.1)), 10.5, &healthy_state());
+        let outside = gate().evaluate(
+            &navigate([50.0, 0.0, 3.0], Some(1.0)),
+            10.5,
+            &healthy_state(),
+        );
+        assert!(
+            outside
+                .reasons
+                .contains(&VetoReason::TargetOutsideWorkspace)
+        );
+        let too_fast = gate().evaluate(
+            &navigate([1.0, 0.0, 3.0], Some(2.1)),
+            10.5,
+            &healthy_state(),
+        );
         assert!(too_fast.reasons.contains(&VetoReason::SpeedLimitExceeded));
     }
 
@@ -442,7 +499,11 @@ mod tests {
     fn invalid_envelope_fails_closed() {
         let mut g = gate();
         g.envelope.workspace.max_m[0] = f64::NAN;
-        let decision = g.evaluate(&navigate([1.0, 2.0, 3.0], Some(1.0)), 10.5, &healthy_state());
+        let decision = g.evaluate(
+            &navigate([1.0, 2.0, 3.0], Some(1.0)),
+            10.5,
+            &healthy_state(),
+        );
         assert_eq!(decision.reasons, vec![VetoReason::InvalidEnvelope]);
     }
 
@@ -450,7 +511,11 @@ mod tests {
     fn stale_safety_snapshot_vetoes_motion() {
         let mut state = healthy_state();
         state.observed_at_s = 10.0;
-        assert!(gate().evaluate(&navigate([1.0, 2.0, 3.0], Some(1.0)), 10.5, &state)
-            .reasons.contains(&VetoReason::StaleSnapshot));
+        assert!(
+            gate()
+                .evaluate(&navigate([1.0, 2.0, 3.0], Some(1.0)), 10.5, &state)
+                .reasons
+                .contains(&VetoReason::StaleSnapshot)
+        );
     }
 }

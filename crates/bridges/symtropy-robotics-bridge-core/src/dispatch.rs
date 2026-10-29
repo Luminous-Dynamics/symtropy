@@ -63,9 +63,19 @@ pub trait SessionAuthenticator {
 /// Stable result categories from the controller adapter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ControllerSubmitError {
+    /// The native controller refused an otherwise well-formed goal.
     RejectedByController,
+    /// The controller or transport is unavailable and could not accept a goal.
     ControllerUnavailable,
+    /// The request lease expired before the adapter could enqueue the goal.
     DeadlineMissed,
+    /// The request or adapter input failed validation before controller submission.
+    InvalidRequest,
+    /// This embodiment adapter does not implement the requested intent.
+    UnsupportedIntent,
+    /// The target frame or requested capability exceeds the adapter contract.
+    CapabilityMismatch,
+    /// An unexpected adapter/controller failure prevented submission.
     InternalFailure,
 }
 
@@ -180,26 +190,24 @@ where
         };
 
         let session_id = session.session_id();
-        let decision = match self.runtime.evaluate(
-            session_id,
-            sequence,
-            request,
-            now_s,
-            safety_state,
-        ) {
-            Ok(decision) => decision,
-            Err(error) => {
-                return DispatchReceipt {
-                    request_id: request.request_id,
-                    session_id: Some(session_id),
-                    sequence,
-                    observed_at_s: valid_time(now_s),
-                    status: DispatchStatus::Rejected,
-                    rejections: vec![DispatchRejection::Sequence(error)],
-                    controller_ticket: None,
-                };
-            }
-        };
+        let decision =
+            match self
+                .runtime
+                .evaluate(session_id, sequence, request, now_s, safety_state)
+            {
+                Ok(decision) => decision,
+                Err(error) => {
+                    return DispatchReceipt {
+                        request_id: request.request_id,
+                        session_id: Some(session_id),
+                        sequence,
+                        observed_at_s: valid_time(now_s),
+                        status: DispatchStatus::Rejected,
+                        rejections: vec![DispatchRejection::Sequence(error)],
+                        controller_ticket: None,
+                    };
+                }
+            };
 
         if !decision.permitted {
             return DispatchReceipt {
@@ -246,7 +254,15 @@ where
                 session_id: Some(session_id),
                 sequence,
                 observed_at_s: valid_time(now_s),
-                status: DispatchStatus::ControllerFailed,
+                status: match error {
+                    ControllerSubmitError::RejectedByController
+                    | ControllerSubmitError::DeadlineMissed
+                    | ControllerSubmitError::InvalidRequest
+                    | ControllerSubmitError::UnsupportedIntent
+                    | ControllerSubmitError::CapabilityMismatch => DispatchStatus::Rejected,
+                    ControllerSubmitError::ControllerUnavailable
+                    | ControllerSubmitError::InternalFailure => DispatchStatus::ControllerFailed,
+                },
                 rejections: vec![DispatchRejection::Controller(error)],
                 controller_ticket: None,
             },
@@ -433,9 +449,12 @@ mod tests {
             &state(),
         );
         assert_eq!(receipt.status, DispatchStatus::Rejected);
-        assert_eq!(receipt.rejections, vec![DispatchRejection::Authentication(
-            SessionAuthenticationError::InvalidCredential
-        )]);
+        assert_eq!(
+            receipt.rejections,
+            vec![DispatchRejection::Authentication(
+                SessionAuthenticationError::InvalidCredential
+            )]
+        );
         assert!(boundary.controller().calls.is_empty());
         assert_eq!(boundary.tracked_sessions(), 0);
     }
@@ -465,7 +484,9 @@ mod tests {
         assert_eq!(replay.status, DispatchStatus::Rejected);
         assert!(matches!(
             replay.rejections.as_slice(),
-            [DispatchRejection::Sequence(SequenceGuardError::DuplicateOrOutOfOrder { .. })]
+            [DispatchRejection::Sequence(
+                SequenceGuardError::DuplicateOrOutOfOrder { .. }
+            )]
         ));
         assert!(boundary.controller().calls.is_empty());
     }
@@ -535,15 +556,39 @@ mod tests {
         let mut boundary = make_boundary();
         let ok = request(110, 11.0, [1.0, 1.0, 2.0], 1.0);
         assert_eq!(
-            dispatch(&mut boundary, "verified-test-credential", 5, &ok, 10.5, &state()).status,
+            dispatch(
+                &mut boundary,
+                "verified-test-credential",
+                5,
+                &ok,
+                10.5,
+                &state()
+            )
+            .status,
             DispatchStatus::Submitted
         );
         assert_eq!(
-            dispatch(&mut boundary, "verified-test-credential", 5, &ok, 10.5, &state()).status,
+            dispatch(
+                &mut boundary,
+                "verified-test-credential",
+                5,
+                &ok,
+                10.5,
+                &state()
+            )
+            .status,
             DispatchStatus::Rejected
         );
         assert_eq!(
-            dispatch(&mut boundary, "verified-test-credential", 4, &ok, 10.5, &state()).status,
+            dispatch(
+                &mut boundary,
+                "verified-test-credential",
+                4,
+                &ok,
+                10.5,
+                &state()
+            )
+            .status,
             DispatchStatus::Rejected
         );
         assert_eq!(boundary.controller().calls, vec![110]);
@@ -564,7 +609,9 @@ mod tests {
         assert_eq!(receipt.status, DispatchStatus::ControllerFailed);
         assert_eq!(
             receipt.rejections,
-            vec![DispatchRejection::Controller(ControllerSubmitError::ControllerUnavailable)]
+            vec![DispatchRejection::Controller(
+                ControllerSubmitError::ControllerUnavailable
+            )]
         );
         assert!(receipt.controller_ticket.is_none());
         assert_eq!(boundary.controller().calls, vec![111]);
@@ -583,7 +630,10 @@ mod tests {
             &state(),
         );
         assert_eq!(receipt.status, DispatchStatus::ControllerFailed);
-        assert_eq!(receipt.rejections, vec![DispatchRejection::EmptyControllerTicket]);
+        assert_eq!(
+            receipt.rejections,
+            vec![DispatchRejection::EmptyControllerTicket]
+        );
         assert!(receipt.controller_ticket.is_none());
     }
 
@@ -607,11 +657,17 @@ mod tests {
         }
         let receipts: Vec<_> = joins.into_iter().map(|join| join.join().unwrap()).collect();
         assert_eq!(
-            receipts.iter().filter(|r| r.status == DispatchStatus::Submitted).count(),
+            receipts
+                .iter()
+                .filter(|r| r.status == DispatchStatus::Submitted)
+                .count(),
             1
         );
         assert_eq!(
-            receipts.iter().filter(|r| r.status == DispatchStatus::Rejected).count(),
+            receipts
+                .iter()
+                .filter(|r| r.status == DispatchStatus::Rejected)
+                .count(),
             1
         );
         assert_eq!(boundary.lock().unwrap().controller().calls, vec![113]);
@@ -678,7 +734,11 @@ mod tests {
             &state(),
         );
         assert_eq!(receipt.status, DispatchStatus::Rejected);
-        assert!(receipt.rejections.contains(&DispatchRejection::Runtime(VetoReason::UnsupportedIntent)));
+        assert!(
+            receipt
+                .rejections
+                .contains(&DispatchRejection::Runtime(VetoReason::UnsupportedIntent))
+        );
         assert!(boundary.controller().calls.is_empty());
     }
 
@@ -697,5 +757,4 @@ mod tests {
         assert_eq!(receipt.status, DispatchStatus::Rejected);
         assert!(boundary.controller().calls.is_empty());
     }
-
 }
