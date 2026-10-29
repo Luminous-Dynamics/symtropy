@@ -103,10 +103,11 @@ jobs:
             (.required | index("gate_margin_contracts") != null) and
             (.required | index("trajectory_artifacts") != null) and
             (.required | index("information_budget_payload") != null) and
+            (.properties.schema_version.const == "0.5.0") and
             (.required | index("information_budget_sha256") != null) and
             (.properties.information_budget_sha256.pattern == "^[a-f0-9]{64}$") and
-            (.properties.trajectory_artifacts.items.required | index("observation_trace_payload") != null) and
-            (.properties.trajectory_artifacts.items.required | index("observation_trace_sha256") != null) and
+            (.["$defs"].trajectoryArtifact.required | index("observation_trace_payload") != null) and
+            (.["$defs"].trajectoryArtifact.required | index("observation_trace_sha256") != null) and
             (.required | index("controller_artifacts") != null) and
             (.properties.gate_margin_contracts.type == "object") and
             (.required | index("cases") != null)
