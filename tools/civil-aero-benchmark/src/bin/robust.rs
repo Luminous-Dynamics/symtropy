@@ -38,7 +38,7 @@ fn run() -> Result<(), String> {
             println!("{}", stress_result_csv_row(&case.case_id, result));
         }
         eprintln!(
-            "case={} model={} evidence={} scenario_basis={} scenarios={} passed={} lift_failures={} energy_failures={} worst_energy_scenario={} worst_energy_wh={:.8} worst_energy_margin_wh={:.8} lowest_lift_margin={} lowest_lift_margin_coefficient={:.8} robust_screen_pass={} probability=none",
+            "case={} model={} evidence={} scenario_basis={} scenarios={} passed={} lift_failures={} energy_failures={} worst_energy_scenario={} worst_energy_wh={:.8} worst_energy_margin_scenario={} worst_energy_margin_wh={:.8} lowest_lift_margin={} lowest_lift_margin_coefficient={:.8} robust_screen_pass={} probability=none",
             report.case_id,
             report.model_version,
             report.evidence_level,
@@ -49,6 +49,7 @@ fn run() -> Result<(), String> {
             report.energy_failure_count,
             report.worst_energy_scenario,
             report.results.iter().map(|row| row.route_energy_wh).fold(f64::NEG_INFINITY, f64::max),
+            report.worst_energy_margin_scenario,
             report.worst_energy_margin_wh,
             report.lowest_lift_margin_scenario,
             report.lowest_lift_margin_coefficient,
