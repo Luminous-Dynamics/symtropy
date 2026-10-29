@@ -179,7 +179,7 @@ jobs:
             .claim_policy.signed_execution_attestation_verifier_implemented == false and
             .independent_verification.status == "not_run" and
             all(.observed_resources[]; . == null) and
-            (.artifact_inventory | length == 7) and
+            (.artifact_inventory | length == 8) and
             (.resource_limits_sha256 | test("^[a-f0-9]{64}$")) and
             (.execution_evidence.output_artifacts | length == 0)
           ' "$receipt"
