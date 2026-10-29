@@ -428,9 +428,6 @@ fn intersects_support_maps_with_active_set<const D: usize>(
         let progress_tolerance = 64.0
             * f64::EPSILON
             * progress_scale.max(closest_squared).max(f64::MIN_POSITIVE);
-        if improvement < -progress_tolerance {
-            return indeterminate(simplex, iteration, GjkFailureReason::DegenerateSimplex);
-        }
         if improvement <= progress_tolerance {
             return GjkResult {
                 intersecting: false,
@@ -546,9 +543,6 @@ fn closest_point_on_hull_active_set<const D: usize>(
             * f64::EPSILON
             * dot_roundoff_scale.max(f64::MIN_POSITIVE);
         let kkt_gap = closest_squared - best_dot;
-        if kkt_gap < -optimality_tolerance {
-            return Err(GjkFailureReason::DegenerateSimplex);
-        }
         if kkt_gap <= optimality_tolerance {
             let mut reduced = Simplex::<D>::new();
             for index in active.iter() {
@@ -854,9 +848,6 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
         let progress_tolerance = 64.0
             * f64::EPSILON
             * progress_scale.max(closest_squared).max(f64::MIN_POSITIVE);
-        if improvement < -progress_tolerance {
-            return indeterminate(simplex, iteration, GjkFailureReason::DegenerateSimplex);
-        }
         if improvement <= progress_tolerance {
             return GjkResult {
                 intersecting: false,
