@@ -126,3 +126,9 @@ The `split-audit` binary turns the minimum data-leakage check into a runnable co
 Command and schema are documented in [README.md](README.md); the synthetic contract fixture is `fixtures/split-audit-synthetic.csv`. This remains a first integrity layer: IDs and lineage are caller-declared, and no near-duplicate geometry detection, source-hash authentication, or scientific independence proof is provided. Future evidence receipts should bind normalized geometry/material hashes, the original data artifact digest, preprocessing version, split-manifest digest, evaluator revision, and output digest.
 
 For research claims, report random-row metrics and group-held-out metrics separately. A candidate should not be described as globally generalizable because it passes a random split or because the aggregate score is low. It must be evaluated on the intended transfer axis and abstain when its operating domain or evidence level is unsupported.
+
+## Executable artifact integrity receipt
+
+The `evidence-receipt` binary checks declared SHA-256 digests against the actual bytes for artifacts listed in a manifest, restricts paths to the selected artifact root, blocks path traversal and symlink escapes, and binds each receipt row to the exact manifest digest. A tampered or missing artifact fails closed. A synthetic manifest and one known-answer payload exercise the interface.
+
+This is a byte-integrity gate, not provenance authentication: an unsigned manifest can itself be replaced, and matching bytes do not prove a solver ran or a source is authoritative. Preserve the manifest and receipt in a version-controlled or independently anchored record. Adversarial workflows need a signature/transparency-log policy, independent identity verification, and separately verified solver/query receipts. See the run command and limitations in [README.md](README.md).
