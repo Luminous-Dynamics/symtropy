@@ -5,7 +5,7 @@
 
 use std::collections::HashSet;
 
-use crate::{Case, ResultRow, MODEL_VERSION};
+use crate::{Case, MODEL_VERSION, ResultRow};
 
 pub const STRESS_INPUT_HEADER: &str = "scenario_id,scenario_basis,source_ref,airframe_mass_factor,cd0_factor,cruise_speed_factor,air_density_factor,propulsive_efficiency_factor,battery_energy_factor,route_distance_factor,assumed_max_lift_coefficient_factor";
 pub const STRESS_OUTPUT_HEADER: &str = "case_id,scenario_id,scenario_basis,evidence_level,total_mass_kg,required_lift_coefficient,estimated_drag_coefficient,estimated_drag_n,estimated_lift_to_drag,route_energy_wh,usable_battery_energy_wh,energy_margin_wh,lift_margin_coefficient,lift_screen_pass,energy_screen_pass,scenario_screen_pass";
@@ -73,14 +73,20 @@ impl StressScenario {
             ));
         }
         if self.source_ref.trim().is_empty() {
-            return Err(format!("scenario {}: source_ref must not be empty", self.scenario_id));
+            return Err(format!(
+                "scenario {}: source_ref must not be empty",
+                self.scenario_id
+            ));
         }
         for (name, value) in [
             ("airframe_mass_factor", self.airframe_mass_factor),
             ("cd0_factor", self.cd0_factor),
             ("cruise_speed_factor", self.cruise_speed_factor),
             ("air_density_factor", self.air_density_factor),
-            ("propulsive_efficiency_factor", self.propulsive_efficiency_factor),
+            (
+                "propulsive_efficiency_factor",
+                self.propulsive_efficiency_factor,
+            ),
             ("battery_energy_factor", self.battery_energy_factor),
             ("route_distance_factor", self.route_distance_factor),
             (
@@ -130,7 +136,10 @@ pub fn run_stress_suite(case: &Case, scenarios: &[StressScenario]) -> Result<Str
     for scenario in scenarios {
         scenario.validate()?;
         if !seen.insert(scenario.scenario_id.clone()) {
-            return Err(format!("duplicate stress scenario ID: {}", scenario.scenario_id));
+            return Err(format!(
+                "duplicate stress scenario ID: {}",
+                scenario.scenario_id
+            ));
         }
 
         let changed = scenario.apply(case)?;
@@ -169,7 +178,10 @@ pub fn run_stress_suite(case: &Case, scenarios: &[StressScenario]) -> Result<Str
         .expect("non-empty scenarios");
     let lowest_lift_margin = results
         .iter()
-        .min_by(|a, b| a.lift_margin_coefficient.total_cmp(&b.lift_margin_coefficient))
+        .min_by(|a, b| {
+            a.lift_margin_coefficient
+                .total_cmp(&b.lift_margin_coefficient)
+        })
         .expect("non-empty scenarios");
 
     Ok(StressReport {
@@ -212,7 +224,9 @@ pub fn parse_stress_scenarios_csv(input: &str) -> Result<Vec<StressScenario>, St
             continue;
         }
         if line.contains('"') {
-            return Err(format!("line {line_number}: quoted CSV fields are not supported"));
+            return Err(format!(
+                "line {line_number}: quoted CSV fields are not supported"
+            ));
         }
         let fields: Vec<&str> = line.split(',').map(str::trim).collect();
         if fields.len() != STRESS_INPUT_HEADER.split(',').count() {
@@ -335,10 +349,12 @@ mod tests {
         assert!(report.robust_screen_pass);
         assert_eq!(report.scenario_basis, "synthetic_stress_not_probability");
         assert!((report.results[0].route_energy_wh - nominal.route_energy_wh).abs() < 1e-12);
-        assert!((report.results[0].lift_margin_coefficient
-            - (candidate.assumed_max_lift_coefficient - nominal.required_lift_coefficient))
-            .abs()
-            < 1e-12);
+        assert!(
+            (report.results[0].lift_margin_coefficient
+                - (candidate.assumed_max_lift_coefficient - nominal.required_lift_coefficient))
+                .abs()
+                < 1e-12
+        );
     }
 
     #[test]
