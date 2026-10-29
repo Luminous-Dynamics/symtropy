@@ -17,7 +17,7 @@ use nalgebra::SVector;
 use symtropy_math::{LatticeOffset, PeriodicBox};
 
 use crate::periodic_collision::{
-    PeriodicCollisionError, PeriodicSphereCcdHit, sphere_sphere_ccd_periodic,
+    PeriodicCollisionError, PeriodicSphereCcdHit, sphere_sphere_ccd_periodic_all,
 };
 use crate::periodic_sphere_response::{
     PeriodicImpulseError, PeriodicImpulseReport, resolve_periodic_sphere_impact,
@@ -270,7 +270,7 @@ impl<const D: usize> PeriodicSphereWorld<D> {
         let mut working = self.bodies.clone();
         let mut elapsed = 0.0_f64;
         let mut events = Vec::new();
-        let mut suppressed_zero_time_pairs = BTreeSet::<(u64, u64)>::new();
+        let mut suppressed_zero_time_contacts = BTreeSet::<(u64, u64, [i64; D])>::new();
 
         loop {
             let remaining = dt - elapsed;
@@ -294,7 +294,7 @@ impl<const D: usize> PeriodicSphereWorld<D> {
                     let body_b = &working[index_b];
                     let pair_key = (body_a.id, body_b.id);
 
-                    let hit = sphere_sphere_ccd_periodic(
+                    let hits = sphere_sphere_ccd_periodic_all(
                         &self.domain,
                         &body_a.position,
                         &body_a.velocity,
@@ -306,25 +306,29 @@ impl<const D: usize> PeriodicSphereWorld<D> {
                         self.max_image_candidates,
                     )?;
 
-                    let Some(hit) = hit else {
-                        continue;
-                    };
+                    for hit in hits {
+                        let contact_key = (pair_key.0, pair_key.1, hit.image_offset.periods);
+                        if hit.toi_seconds <= time_epsilon(dt)
+                            && suppressed_zero_time_contacts.contains(&contact_key)
+                        {
+                            continue;
+                        }
 
-                    if hit.toi_seconds <= time_epsilon(dt) && suppressed_zero_time_pairs.contains(&pair_key) {
-                        continue;
-                    }
-
-                    let candidate = (
-                        hit.toi_seconds,
-                        body_a.id,
-                        body_b.id,
-                        hit.image_offset,
-                        index_a,
-                        index_b,
-                        hit,
-                    );
-                    if earliest.as_ref().is_none_or(|current| candidate_precedes(&candidate, current)) {
-                        earliest = Some(candidate);
+                        let candidate = (
+                            hit.toi_seconds,
+                            body_a.id,
+                            body_b.id,
+                            hit.image_offset,
+                            index_a,
+                            index_b,
+                            hit,
+                        );
+                        if earliest
+                            .as_ref()
+                            .is_none_or(|current| candidate_precedes(&candidate, current))
+                        {
+                            earliest = Some(candidate);
+                        }
                     }
                 }
             }
@@ -350,7 +354,7 @@ impl<const D: usize> PeriodicSphereWorld<D> {
             if advance > time_epsilon(dt) {
                 advance_all(&mut working, advance)?;
                 elapsed += advance;
-                suppressed_zero_time_pairs.clear();
+                suppressed_zero_time_contacts.clear();
             }
 
             let body_a = &working[index_a];
@@ -372,7 +376,7 @@ impl<const D: usize> PeriodicSphereWorld<D> {
             working[index_b].velocity = impulse.velocity_b_after;
 
             if applied {
-                suppressed_zero_time_pairs.retain(|(a, b)| {
+                suppressed_zero_time_contacts.retain(|(a, b, _)| {
                     *a != affected_a && *a != affected_b && *b != affected_a && *b != affected_b
                 });
             }
@@ -381,7 +385,7 @@ impl<const D: usize> PeriodicSphereWorld<D> {
             // original TOI was positive. Any later positive-time advance clears
             // this suppression; an impulse to either body also invalidates
             // other suppressions involving that body.
-            suppressed_zero_time_pairs.insert((id_a, id_b));
+            suppressed_zero_time_contacts.insert((id_a, id_b, image_offset.periods));
 
             let fraction = (elapsed / dt).clamp(0.0, 1.0);
             events.push(PeriodicSphereWorldEvent {
@@ -392,11 +396,12 @@ impl<const D: usize> PeriodicSphereWorld<D> {
                 impulse,
             });
 
-            // The zero-time suppression set prevents repeatedly selecting a
-            // touching-but-separating pair. Any successful impulse clears
-            // suppression involving its bodies first, allowing new contacts
-            // in a simultaneous impact chain to be reconsidered. The event
-            // budget remains the final fail-closed guard against cycles.
+            // Suppress only this exact image contact. Other lattice images of
+            // the same body pair remain eligible for later TOIs during a long
+            // step. Any positive-time advancement clears these immediate
+            // contact suppressions; an impulse to either body also invalidates
+            // prior suppressions involving that body. The event budget remains
+            // the final fail-closed guard against contact cycles.
         }
 
         let momentum_after = total_momentum(&working)?;
