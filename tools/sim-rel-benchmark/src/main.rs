@@ -462,6 +462,25 @@ fn current_git_head() -> Result<String, String> {
         .map_err(|e| format!("git returned a non-UTF-8 HEAD: {e}"))
 }
 
+fn require_clean_worktree() -> Result<(), String> {
+    let out = Command::new("git")
+        .args(["status", "--porcelain=v1", "--untracked-files=all"])
+        .output()
+        .map_err(|e| format!("could not execute git status: {e}"))?;
+    if !out.status.success() {
+        return Err("git status --porcelain failed; run from a Git checkout".to_owned());
+    }
+    let status = String::from_utf8(out.stdout)
+        .map_err(|e| format!("git status returned non-UTF-8 output: {e}"))?;
+    if !status.trim().is_empty() {
+        return Err(format!(
+            "working tree is not clean: {}",
+            status.trim().replace('\n', "; ")
+        ));
+    }
+    Ok(())
+}
+
 fn json_escape(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
 }
@@ -514,6 +533,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     if head != expected_head {
         return Err(format!("exact-head mismatch: expected {expected_head}, checkout is {head}").into());
     }
+    require_clean_worktree().map_err(|e| format!("identity gate: {e}"))?;
 
     let bytes = fs::read(&corpus)?;
     let corpus_sha = sha256_hex(&bytes);
