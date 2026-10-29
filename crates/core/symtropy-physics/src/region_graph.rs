@@ -235,6 +235,28 @@ impl<const D: usize> PlaneBoundary<D> {
 /// Time: t_dst = time_scale * t_src + time_offset.
 /// Velocity: v_dst = A v_src / time_scale.
 /// time_scale means dt_dst = time_scale * dt_src and must be finite and > 0.
+fn boundary_intersects_region<const D: usize>(
+    boundary: &PlaneBoundary<D>,
+    region: &RegionSpec<D>,
+) -> bool {
+    let mut minimum = 0.0;
+    let mut maximum = 0.0;
+    for axis in 0..D {
+        let normal = boundary.normal[axis];
+        if normal >= 0.0 {
+            minimum += normal * region.lower[axis];
+            maximum += normal * region.upper[axis];
+        } else {
+            minimum += normal * region.upper[axis];
+            maximum += normal * region.lower[axis];
+        }
+    }
+    minimum.is_finite()
+        && maximum.is_finite()
+        && boundary.offset >= minimum - boundary.tolerance
+        && boundary.offset <= maximum + boundary.tolerance
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct AffineRegionMap<const D: usize> {
     pub linear: SMatrix<f64, D, D>,
@@ -460,6 +482,34 @@ impl<const D: usize> RegionInterface<D> {
             transform_identity,
         })
     }
+
+    /// Revalidate public fields at graph insertion; callers can construct or
+    /// deserialize this type without going through the constructor.
+    pub fn validate(&self) -> Result<(), RegionGraphError> {
+        if D == 0 {
+            return Err(RegionGraphError::InvalidDimension);
+        }
+        if self.source == self.target {
+            return Err(RegionGraphError::SelfInterface);
+        }
+        self.source_boundary.validate()?;
+        self.target_boundary.validate()?;
+        self.map.validate()?;
+        if self.reversible && self.inverse_map.is_none() {
+            return Err(RegionGraphError::InverseRequired);
+        }
+        if let Some(inverse) = &self.inverse_map {
+            inverse.validate()?;
+            self.map.validate_inverse(inverse, DEFAULT_MAP_TOLERANCE)?;
+        }
+        if (self.momentum_policy == QuantityPolicy::ExplicitTransform
+            || self.energy_policy == QuantityPolicy::ExplicitTransform)
+            && self.transform_identity.as_ref().is_none_or(|identity| identity.trim().is_empty())
+        {
+            return Err(RegionGraphError::MissingTransformIdentity);
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -501,6 +551,7 @@ impl<const D: usize> RegionGraph<D> {
         if self.interfaces.contains_key(&interface.id) {
             return Err(RegionGraphError::DuplicateInterface { id: interface.id });
         }
+        interface.validate()?;
         let source = self
             .regions
             .get(&interface.source)
@@ -509,6 +560,12 @@ impl<const D: usize> RegionGraph<D> {
             .regions
             .get(&interface.target)
             .ok_or(RegionGraphError::UnknownRegion { id: interface.target })?;
+
+        if !boundary_intersects_region(&interface.source_boundary, source)
+            || !boundary_intersects_region(&interface.target_boundary, target)
+        {
+            return Err(RegionGraphError::BoundaryOutsideRegion);
+        }
 
         let any_conservation_policy = matches!(
             interface.momentum_policy,
@@ -520,6 +577,7 @@ impl<const D: usize> RegionGraph<D> {
         if any_conservation_policy {
             if source.coordinate_unit != target.coordinate_unit
                 || source.time_unit != target.time_unit
+                || source.clock_id != target.clock_id
             {
                 return Err(RegionGraphError::UnitMismatchForConservation);
             }
@@ -985,6 +1043,7 @@ mod tests {
             metric_profile: "euclidean".to_string(),
             coordinate_unit: "m".to_string(),
             time_unit: "s".to_string(),
+            clock_id: "sim-clock".to_string(),
             model_revision: 1,
         }
     }
@@ -1120,7 +1179,7 @@ mod tests {
         graph.add_region(region(2, [0.0, -1.0], [2.0, 1.0])).unwrap();
 
         let scale = SMatrix::<f64, 2, 2>::from_diagonal(&SVector::from([2.0, 1.0]));
-        let map = AffineRegionMap::new(scale, SVector::zeros(), 1.0).unwrap();
+        let map = AffineRegionMap::new(scale, SVector::zeros(), 1.0, 0.0).unwrap();
         let interface = RegionInterface::new(
             InterfaceId(11),
             RegionId(1),
@@ -1151,7 +1210,7 @@ mod tests {
         graph.add_region(region(2, [0.0, -1.0], [1.0, 1.0])).unwrap();
         let mut translated = SVector::zeros();
         translated[0] = 0.25;
-        let map = AffineRegionMap::new(SMatrix::identity(), translated, 1.0).unwrap();
+        let map = AffineRegionMap::new(SMatrix::identity(), translated, 1.0, 0.0).unwrap();
         let interface = RegionInterface::new(
             InterfaceId(12),
             RegionId(1),
@@ -1239,7 +1298,7 @@ mod tests {
     #[test]
     fn affine_inverse_roundtrips_position_and_velocity() {
         let linear = SMatrix::<f64, 2, 2>::new(0.0, -1.0, 1.0, 0.0);
-        let map = AffineRegionMap::new(linear, SVector::from([3.0, -2.0]), 1.0).unwrap();
+        let map = AffineRegionMap::new(linear, SVector::from([3.0, -2.0]), 1.0, 0.0).unwrap();
         let inverse = map.inverse().unwrap();
         map.validate_inverse(&inverse, 1e-12).unwrap();
 
