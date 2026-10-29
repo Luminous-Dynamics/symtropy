@@ -109,7 +109,10 @@ impl StressScenario {
         changed.route_distance_km *= self.route_distance_factor;
         changed.assumed_max_lift_coefficient *= self.assumed_max_lift_coefficient_factor;
         changed.validate().map_err(|error| {
-            format!("scenario {} makes candidate {} invalid: {error}", self.scenario_id, case.case_id)
+            format!(
+                "scenario {} makes candidate {} invalid: {error}",
+                self.scenario_id, case.case_id
+            )
         })?;
         Ok(changed)
     }
@@ -193,7 +196,9 @@ pub fn parse_stress_scenarios_csv(input: &str) -> Result<Vec<StressScenario>, St
         .ok_or_else(|| "stress-scenario CSV is empty".to_owned())?
         .trim_end_matches('\r');
     if header != STRESS_INPUT_HEADER {
-        return Err(format!("unexpected stress-scenario CSV header; expected exactly: {STRESS_INPUT_HEADER}"));
+        return Err(format!(
+            "unexpected stress-scenario CSV header; expected exactly: {STRESS_INPUT_HEADER}"
+        ));
     }
 
     let mut scenarios = Vec::new();
@@ -237,9 +242,14 @@ pub fn parse_stress_scenarios_csv(input: &str) -> Result<Vec<StressScenario>, St
             route_distance_factor: number(9, "route_distance_factor")?,
             assumed_max_lift_coefficient_factor: number(10, "assumed_max_lift_coefficient_factor")?,
         };
-        scenario.validate().map_err(|error| format!("line {line_number}: {error}"))?;
+        scenario
+            .validate()
+            .map_err(|error| format!("line {line_number}: {error}"))?;
         if !seen.insert(scenario.scenario_id.clone()) {
-            return Err(format!("line {line_number}: duplicate scenario_id {}", scenario.scenario_id));
+            return Err(format!(
+                "line {line_number}: duplicate scenario_id {}",
+                scenario.scenario_id
+            ));
         }
         scenarios.push(scenario);
     }
