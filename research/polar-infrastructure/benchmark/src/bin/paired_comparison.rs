@@ -557,4 +557,14 @@ mod tests {
         input.trajectory_artifacts[0].observation_trace_sha256 = "not-a-digest".into();
         assert!(validate(&input).unwrap_err().contains("observation-trace artifacts"));
     }
+
+    #[test]
+    fn rejects_information_budget_that_allows_oracle_future() {
+        let mut input = load();
+        input.information_budget_payload = input.information_budget_payload.replace(
+            r#""forbid_oracle_future_observations":true"#,
+            r#""forbid_oracle_future_observations":false"#
+        );
+        assert!(validate(&input).unwrap_err().contains("causal information budget"));
+    }
 }
