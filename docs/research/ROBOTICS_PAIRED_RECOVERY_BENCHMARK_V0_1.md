@@ -95,6 +95,8 @@ A mock sink proves only interface behavior in that fixture. Simulation proves on
 - Stale-epoch event acceptance count; any accepted event from a prior controller generation is a non-compensatory hard-gate failure, including when ticket strings are reused after restart.
 - Stale-epoch command admission acceptance count; any old-generation command accepted by a controller sink is independently a hard-gate failure, distinct from late outcome delivery.
 - Stale-epoch command application acceptance count; any command from a prior generation accepted/applied at the actual command application boundary is its own hard-gate failure, distinct from both admission and outcome delivery. Missing application-level evidence is unobserved, not zero.
+- Native-controller epoch-mismatch acceptance count; if the native controller reports accepting a command under a generation other than the request's epoch, it is a non-compensatory failure.
+- Native expired-command acceptance count; a native acceptance timestamp at or beyond the monotonic deadline fails the hard gate. A command rejected safely for missing its deadline is measured separately and is not counted as an expired acceptance.
 - Expired-command application acceptance count; a request that has reached its monotonic deadline must not be applied. This is distinct from a deadline miss that was safely rejected and is a non-compensatory hard gate.
 - Epoch-authority fail-open acceptance count: any command or outcome accepted while the generation store is unavailable, missing, corrupt, or rolled back is a hard-gate failure.
 - Epoch claim outcomes: successful claims, compare-and-advance conflicts, superseded activations, failed-closed store reads, rollback detections, and claim latency.
