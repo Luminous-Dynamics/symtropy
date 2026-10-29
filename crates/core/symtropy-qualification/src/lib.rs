@@ -225,10 +225,7 @@ pub struct QualificationReceipt {
 }
 
 impl QualificationReceipt {
-    pub fn new(
-        payload: ReceiptPayload,
-        volatile: VolatileMetadata,
-    ) -> Result<Self, ReceiptError> {
+    pub fn new(payload: ReceiptPayload, volatile: VolatileMetadata) -> Result<Self, ReceiptError> {
         payload.validate()?;
         let receipt_sha256 = payload.digest()?;
         Ok(Self {
@@ -302,11 +299,17 @@ impl ReceiptPayload {
             ("source.toolchain", self.source.toolchain.as_str()),
             ("source.target_triple", self.source.target_triple.as_str()),
             ("scenario.units", self.scenario.units.as_str()),
-            ("scenario.reference_frame", self.scenario.reference_frame.as_str()),
+            (
+                "scenario.reference_frame",
+                self.scenario.reference_frame.as_str(),
+            ),
             ("oracle.name", self.oracle.name.as_str()),
             ("oracle.version", self.oracle.version.as_str()),
             ("oracle.method", self.oracle.method.as_str()),
-            ("oracle.independence_scope", self.oracle.independence_scope.as_str()),
+            (
+                "oracle.independence_scope",
+                self.oracle.independence_scope.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 return Err(ReceiptError::MissingField { field });
@@ -321,7 +324,10 @@ impl ReceiptPayload {
             return Err(ReceiptError::DirtyWorkingTree);
         }
         for (field, digest) in [
-            ("source.cargo_lock_sha256", self.source.cargo_lock_sha256.as_str()),
+            (
+                "source.cargo_lock_sha256",
+                self.source.cargo_lock_sha256.as_str(),
+            ),
             ("scenario.input_sha256", self.scenario.input_sha256.as_str()),
             (
                 "scenario.configuration_sha256",
@@ -334,7 +340,11 @@ impl ReceiptPayload {
             }
         }
         if self.scenario.validity_envelope.is_empty()
-            || self.scenario.validity_envelope.iter().any(|item| item.trim().is_empty())
+            || self
+                .scenario
+                .validity_envelope
+                .iter()
+                .any(|item| item.trim().is_empty())
         {
             return Err(ReceiptError::MissingField {
                 field: "scenario.validity_envelope",
@@ -364,7 +374,9 @@ impl ReceiptPayload {
         }
 
         match self.execution.status {
-            ExecutionStatus::NotStarted | ExecutionStatus::Unavailable | ExecutionStatus::Skipped => {
+            ExecutionStatus::NotStarted
+            | ExecutionStatus::Unavailable
+            | ExecutionStatus::Skipped => {
                 if self.execution.exit_code.is_some() {
                     return Err(ReceiptError::InconsistentExecutionStatus);
                 }
@@ -414,7 +426,11 @@ impl ReceiptPayload {
                 if !value.is_finite() {
                     return Err(ReceiptError::InvalidMetric);
                 }
-            } else if metric.reason.as_ref().is_none_or(|reason| reason.trim().is_empty()) {
+            } else if metric
+                .reason
+                .as_ref()
+                .is_none_or(|reason| reason.trim().is_empty())
+            {
                 return Err(ReceiptError::InvalidMetric);
             }
         }
@@ -440,7 +456,9 @@ impl ReceiptPayload {
     }
 
     fn validate_pass(&self) -> Result<(), ReceiptError> {
-        if self.execution.status != ExecutionStatus::Completed || self.execution.exit_code != Some(0) {
+        if self.execution.status != ExecutionStatus::Completed
+            || self.execution.exit_code != Some(0)
+        {
             return Err(ReceiptError::DispositionContradictsExecution);
         }
         if self.execution.cases.attempted == 0
@@ -472,7 +490,12 @@ impl ReceiptPayload {
             &self.scenario.configuration_sha256,
         )?;
         self.require_artifact_digest(ArtifactKind::OracleReference, &self.oracle.digest_sha256)?;
-        if self.execution.outcome_reason.as_ref().is_some_and(|reason| !reason.trim().is_empty()) {
+        if self
+            .execution
+            .outcome_reason
+            .as_ref()
+            .is_some_and(|reason| !reason.trim().is_empty())
+        {
             return Err(ReceiptError::PassHasOutcomeReason);
         }
         Ok(())
@@ -554,22 +577,36 @@ impl ReceiptPayload {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ReceiptError {
-    UnsupportedSchema { version: u32 },
-    MissingField { field: &'static str },
-    InvalidDigest { field: &'static str },
+    UnsupportedSchema {
+        version: u32,
+    },
+    MissingField {
+        field: &'static str,
+    },
+    InvalidDigest {
+        field: &'static str,
+    },
     DirtyWorkingTree,
     InvalidCommand,
     InconsistentExecutionStatus,
     InconsistentCaseCounts,
     InvalidArtifactReference,
-    DuplicateArtifact { logical_name: String },
+    DuplicateArtifact {
+        logical_name: String,
+    },
     InvalidMetric,
     DispositionContradictsExecution,
     DispositionContradictsCaseCounts,
     OracleNotIndependent,
-    MissingArtifactKind { kind: ArtifactKind },
-    MissingArtifact { logical_name: String },
-    ArtifactIdentityMismatch { kind: ArtifactKind },
+    MissingArtifactKind {
+        kind: ArtifactKind,
+    },
+    MissingArtifact {
+        logical_name: String,
+    },
+    ArtifactIdentityMismatch {
+        kind: ArtifactKind,
+    },
     ArtifactDigestMismatch {
         logical_name: String,
         expected: String,
@@ -580,7 +617,10 @@ pub enum ReceiptError {
         expected: u64,
         actual: u64,
     },
-    ReceiptDigestMismatch { expected: String, actual: String },
+    ReceiptDigestMismatch {
+        expected: String,
+        actual: String,
+    },
     MissingOutcomeReason,
     PassHasOutcomeReason,
     SerializationFailure,
@@ -589,28 +629,63 @@ pub enum ReceiptError {
 impl fmt::Display for ReceiptError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnsupportedSchema { version } => write!(f, "unsupported receipt schema {version}"),
+            Self::UnsupportedSchema { version } => {
+                write!(f, "unsupported receipt schema {version}")
+            }
             Self::MissingField { field } => write!(f, "missing required receipt field {field}"),
             Self::InvalidDigest { field } => write!(f, "invalid digest in {field}"),
-            Self::DirtyWorkingTree => write!(f, "qualification receipt requires a clean source tree"),
+            Self::DirtyWorkingTree => {
+                write!(f, "qualification receipt requires a clean source tree")
+            }
             Self::InvalidCommand => write!(f, "execution command contains a NUL byte"),
-            Self::InconsistentExecutionStatus => write!(f, "execution status and exit code are inconsistent"),
+            Self::InconsistentExecutionStatus => {
+                write!(f, "execution status and exit code are inconsistent")
+            }
             Self::InconsistentCaseCounts => write!(f, "case counts are inconsistent"),
-            Self::InvalidArtifactReference => write!(f, "artifact reference has an empty name or media type"),
-            Self::DuplicateArtifact { logical_name } => write!(f, "duplicate artifact logical name {logical_name}"),
-            Self::InvalidMetric => write!(f, "metric is non-finite or missing its unit/name/reason"),
-            Self::DispositionContradictsExecution => write!(f, "disposition contradicts execution outcome"),
-            Self::DispositionContradictsCaseCounts => write!(f, "Pass requires every attempted case to pass"),
-            Self::OracleNotIndependent => write!(f, "Pass requires an explicitly independent oracle"),
-            Self::MissingArtifactKind { kind } => write!(f, "missing required artifact kind {kind:?}"),
+            Self::InvalidArtifactReference => {
+                write!(f, "artifact reference has an empty name or media type")
+            }
+            Self::DuplicateArtifact { logical_name } => {
+                write!(f, "duplicate artifact logical name {logical_name}")
+            }
+            Self::InvalidMetric => {
+                write!(f, "metric is non-finite or missing its unit/name/reason")
+            }
+            Self::DispositionContradictsExecution => {
+                write!(f, "disposition contradicts execution outcome")
+            }
+            Self::DispositionContradictsCaseCounts => {
+                write!(f, "Pass requires every attempted case to pass")
+            }
+            Self::OracleNotIndependent => {
+                write!(f, "Pass requires an explicitly independent oracle")
+            }
+            Self::MissingArtifactKind { kind } => {
+                write!(f, "missing required artifact kind {kind:?}")
+            }
             Self::MissingArtifact { logical_name } => write!(f, "missing artifact {logical_name}"),
-            Self::ArtifactIdentityMismatch { kind } => write!(f, "artifact digest does not match declared identity for {kind:?}"),
-            Self::ArtifactDigestMismatch { logical_name, .. } => write!(f, "artifact bytes do not match declared digest for {logical_name}"),
-            Self::ArtifactSizeMismatch { logical_name, .. } => write!(f, "artifact byte length does not match declared size for {logical_name}"),
+            Self::ArtifactIdentityMismatch { kind } => write!(
+                f,
+                "artifact digest does not match declared identity for {kind:?}"
+            ),
+            Self::ArtifactDigestMismatch { logical_name, .. } => write!(
+                f,
+                "artifact bytes do not match declared digest for {logical_name}"
+            ),
+            Self::ArtifactSizeMismatch { logical_name, .. } => write!(
+                f,
+                "artifact byte length does not match declared size for {logical_name}"
+            ),
             Self::ReceiptDigestMismatch { .. } => write!(f, "receipt payload digest mismatch"),
-            Self::MissingOutcomeReason => write!(f, "this disposition requires an explicit outcome reason"),
-            Self::PassHasOutcomeReason => write!(f, "Pass cannot carry a failure/skip/unresolved reason"),
-            Self::SerializationFailure => write!(f, "failed to serialize canonical receipt payload"),
+            Self::MissingOutcomeReason => {
+                write!(f, "this disposition requires an explicit outcome reason")
+            }
+            Self::PassHasOutcomeReason => {
+                write!(f, "Pass cannot carry a failure/skip/unresolved reason")
+            }
+            Self::SerializationFailure => {
+                write!(f, "failed to serialize canonical receipt payload")
+            }
         }
     }
 }
@@ -641,8 +716,8 @@ mod tests {
     use super::{
         ArtifactKind, ArtifactRef, CaseCounts, Disposition, ExecutionRecord, ExecutionStatus,
         MetricClass, MetricRecord, OracleIdentity, OracleIndependence, QualificationReceipt,
-        ReceiptError, ReceiptPayload, ScenarioIdentity, SourceIdentity, VolatileMetadata,
-        RECEIPT_SCHEMA_VERSION, sha256_hex,
+        RECEIPT_SCHEMA_VERSION, ReceiptError, ReceiptPayload, ScenarioIdentity, SourceIdentity,
+        VolatileMetadata, sha256_hex,
     };
     use std::collections::BTreeMap;
 
@@ -768,10 +843,14 @@ mod tests {
     #[test]
     fn missing_required_raw_output_blocks_pass() {
         let mut payload = valid_payload();
-        payload.artifacts.retain(|artifact| artifact.kind != ArtifactKind::Stderr);
+        payload
+            .artifacts
+            .retain(|artifact| artifact.kind != ArtifactKind::Stderr);
         assert_eq!(
             QualificationReceipt::new(payload, volatile("runner")).unwrap_err(),
-            ReceiptError::MissingArtifactKind { kind: ArtifactKind::Stderr }
+            ReceiptError::MissingArtifactKind {
+                kind: ArtifactKind::Stderr,
+            }
         );
     }
 
@@ -877,12 +956,20 @@ mod tests {
     #[test]
     fn reordered_metadata_keys_have_identical_digest() {
         let mut first = valid_payload();
-        first.protocol_metadata.insert("b".to_string(), "2".to_string());
-        first.protocol_metadata.insert("a".to_string(), "1".to_string());
+        first
+            .protocol_metadata
+            .insert("b".to_string(), "2".to_string());
+        first
+            .protocol_metadata
+            .insert("a".to_string(), "1".to_string());
 
         let mut second = valid_payload();
-        second.protocol_metadata.insert("a".to_string(), "1".to_string());
-        second.protocol_metadata.insert("b".to_string(), "2".to_string());
+        second
+            .protocol_metadata
+            .insert("a".to_string(), "1".to_string());
+        second
+            .protocol_metadata
+            .insert("b".to_string(), "2".to_string());
 
         let first = QualificationReceipt::new(first, volatile("one")).unwrap();
         let second = QualificationReceipt::new(second, volatile("two")).unwrap();
