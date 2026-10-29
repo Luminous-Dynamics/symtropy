@@ -1,4 +1,4 @@
-# Paired resilience comparison protocol, v0.3
+# Paired resilience comparison protocol, v0.4
 
 **Status:** proposed synthetic contract; not an executed controller experiment.  
 **Evidence ceiling:** structural/evaluator correctness on authored fixtures. No physical model, real environmental trace, hardware-in-the-loop result, or controller superiority claim is made.
@@ -7,7 +7,21 @@
 
 The critical benchmark shift is from comparing aggregate scores produced by unrelated runs to a **paired, gate-by-gate controller comparison**. Each controller must be evaluated on every declared trajectory with the same initial-state identifier, hazard family, severity vector, replicate and comparison group. A missing execution must be represented as invalid or not evaluated; it may not disappear from the denominator.
 
-The Rust evaluator requires a complete controller-by-trajectory matrix, validates signed gate margins against outcomes, reports every controller/gate coverage cell, and compares a declared reference controller with a candidate on the same trajectory IDs. Each gate must separately declare whether it is a hard gate, its margin unit, and the exact signed-margin definition; the current v0.3 evaluator accepts only hard gates. A positive margin means the declared gate criterion is met; a negative margin means a breach. Invalid and not-evaluated rows must have null margins. The synthetic fixture uses normalized unitless margins only to exercise contract logic; those numbers are not physical observations. One gate's surplus cannot compensate for another gate's breach.
+The Rust evaluator requires a complete controller-by-trajectory matrix, validates signed gate margins against outcomes, reports every controller/gate coverage cell, and compares a declared reference controller with a candidate on the same trajectory IDs. Each gate must separately declare whether it is a hard gate, its margin unit, and the exact signed-margin definition; the evaluator accepts only hard gates. A positive margin means the declared gate criterion is met; a negative margin means a breach. Invalid and not-evaluated rows must have null margins. The synthetic fixture uses normalized unitless margins only to exercise contract logic; those numbers are not physical observations. One gate's surplus cannot compensate for another gate's breach.
+
+## Content-addressed experimental identity
+
+IDs alone are insufficient evidence that two controller executions saw the same inputs. Version 0.4 therefore binds every case to three SHA-256 identities: the exogenous trajectory payload, its initial-state payload, and the exact declared controller artifact payload. The per-case digest references must agree with one artifact registry; paired rows must share trajectory and initial-state identities; all rows for a given controller must reference the same declared controller artifact.
+
+The fixture holds small UTF-8 **synthetic descriptor strings** so the integrity checks are deterministic and portable. They are not simulation traces or executable binaries. The independent Python verifier recomputes SHA-256 over the exact UTF-8 payload bytes; the Rust executable checks format and registry bindings but deliberately delegates byte hashing to that independent verifier. The workflow must run both, and the report says that independent verification is required. A bare hash is not source authentication: for real experiments, the same scheme must bind immutable source/model/controller artifacts, exact executable/container and configuration digests, simulator version, and a signed run receipt or independently captured output hashes. Reproducibility and source rights still require separate review.
+
+This is aligned with—but does not merely duplicate—recent benchmark engineering practice. The 2026 CSBenchLab toolbox paper highlights standardized interfaces, reproducible experiment metadata, and plugin-based reuse; IEEE PES TR143 (8 June 2026) stresses that resilience measures must fit the operational context; and PNNL's CoSim Toolbox report (2 February 2026) describes the engineering cost of linking multiple simulators. The opportunity for Symtropy is to make content identity, pairing integrity and evidence-admission first-class constraints across adapters, rather than treating each simulator run as an unstructured log.
+
+References:
+- [CSBenchLab: A unified control system benchmarking toolbox](https://doi.org/10.1016/j.conengprac.2026.106984), *Control Engineering Practice*, Volume 173, August 2026.
+- [IEEE PES TR143 — Power System Resilience Metrics and Evaluation Methods](https://resourcecenter.ieee-pes.org/publications/technical-reports/pes_tr_143_amps_060826), published 8 June 2026.
+- [PNNL — Multi-Entity Simulation with CoSim Toolbox](https://www.pnnl.gov/publications/multi-entity-simulation-cosim-toolbox), published 2 February 2026.
+- [IEC TR 63515:2025 — Conceptual framework of power system resilience](https://webstore.iec.ch/en/publication/73748), published 11 March 2025.
 
 The separate Python verifier independently recomputes the coverage and paired-outcome summary from raw input rows. It does not import Rust scoring logic. The workflow must run the Rust CLI first and verify that exact emitted report, followed by adversarial mutation tests. Agreement on a synthetic fixture is evaluator evidence, not physical validation.
 
