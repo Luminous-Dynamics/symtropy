@@ -146,6 +146,11 @@ jobs:
             (.required | index("resource_limits") != null) and
             (.required | index("resource_limits_sha256") != null) and
             (.required | index("independent_verification") != null) and
+            (.required | index("execution_attestation") != null) and
+            (.properties.scoring_eligible.const == false) and
+            (.properties.execution_attestation.properties.status.const == "not_implemented") and
+            (.properties.claim_policy.required | index("scoring_requires_signed_execution_attestation") != null) and
+            (.properties.claim_policy.properties.signed_execution_attestation_verifier_implemented.const == false) and
             (.properties.independent_verification.properties.status.enum | index("passed") != null)
           ' "$schema"
           jq -e '
