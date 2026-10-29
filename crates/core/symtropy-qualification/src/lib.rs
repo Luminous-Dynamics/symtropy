@@ -276,7 +276,16 @@ impl QualificationReceipt {
 
 impl ReceiptPayload {
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, ReceiptError> {
-        serde_json::to_vec(self).map_err(|_| ReceiptError::SerializationFailure)
+        let mut canonical = self.clone();
+        canonical.source.feature_flags.sort();
+        canonical.source.feature_flags.dedup();
+        canonical.scenario.validity_envelope.sort();
+        canonical.scenario.validity_envelope.dedup();
+        canonical.metrics.sort_by(|left, right| left.name.cmp(&right.name));
+        canonical
+            .artifacts
+            .sort_by(|left, right| left.logical_name.cmp(&right.logical_name));
+        serde_json::to_vec(&canonical).map_err(|_| ReceiptError::SerializationFailure)
     }
 
     pub fn digest(&self) -> Result<String, ReceiptError> {
@@ -418,9 +427,19 @@ impl ReceiptPayload {
             }
         }
 
+        let mut metric_names = std::collections::BTreeSet::new();
         for metric in &self.metrics {
-            if metric.name.trim().is_empty() || metric.unit.trim().is_empty() {
-                return Err(ReceiptError::InvalidMetric);
+            if metric.name.trim().is_empty()
+                || metric.unit.trim().is_empty()
+                || !metric_names.insert(metric.name.as_str())
+            {
+                return Err(if metric.name.trim().is_empty() || metric.unit.trim().is_empty() {
+                    ReceiptError::InvalidMetric
+                } else {
+                    ReceiptError::DuplicateMetric {
+                        name: metric.name.clone(),
+                    }
+                });
             }
             if let Some(value) = metric.value {
                 if !value.is_finite() {
@@ -594,6 +613,9 @@ pub enum ReceiptError {
     DuplicateArtifact {
         logical_name: String,
     },
+    DuplicateMetric {
+        name: String,
+    },
     InvalidMetric,
     DispositionContradictsExecution,
     DispositionContradictsCaseCounts,
@@ -648,6 +670,7 @@ impl fmt::Display for ReceiptError {
             Self::DuplicateArtifact { logical_name } => {
                 write!(f, "duplicate artifact logical name {logical_name}")
             }
+            Self::DuplicateMetric { name } => write!(f, "duplicate metric name {name}"),
             Self::InvalidMetric => {
                 write!(f, "metric is non-finite or missing its unit/name/reason")
             }
@@ -950,6 +973,50 @@ mod tests {
         assert_eq!(
             QualificationReceipt::new(payload, volatile("runner")).unwrap_err(),
             ReceiptError::DispositionContradictsCaseCounts
+        );
+    }
+
+    #[test]
+    fn unordered_collection_order_does_not_change_payload_digest() {
+        let mut first = valid_payload();
+        first.source.feature_flags = vec!["z-feature".to_string(), "a-feature".to_string()];
+        first.scenario.validity_envelope = vec!["D=3".to_string(), "D=2".to_string()];
+        first.artifacts.reverse();
+        first.metrics.push(MetricRecord {
+            name: "runtime".to_string(),
+            value: Some(12.0),
+            unit: "ms".to_string(),
+            class: MetricClass::Performance,
+            reason: None,
+        });
+
+        let mut second = valid_payload();
+        second.source.feature_flags = vec!["a-feature".to_string(), "z-feature".to_string()];
+        second.scenario.validity_envelope = vec!["D=2".to_string(), "D=3".to_string()];
+        second.artifacts.reverse();
+        second.metrics.push(MetricRecord {
+            name: "runtime".to_string(),
+            value: Some(12.0),
+            unit: "ms".to_string(),
+            class: MetricClass::Performance,
+            reason: None,
+        });
+        second.metrics.reverse();
+
+        let first = QualificationReceipt::new(first, volatile("runner-a")).unwrap();
+        let second = QualificationReceipt::new(second, volatile("runner-b")).unwrap();
+        assert_eq!(first.receipt_sha256, second.receipt_sha256);
+    }
+
+    #[test]
+    fn duplicate_metric_names_are_rejected() {
+        let mut payload = valid_payload();
+        payload.metrics.push(payload.metrics[0].clone());
+        assert_eq!(
+            QualificationReceipt::new(payload, volatile("runner")).unwrap_err(),
+            ReceiptError::DuplicateMetric {
+                name: "minimum_image_error".to_string()
+            }
         );
     }
 
