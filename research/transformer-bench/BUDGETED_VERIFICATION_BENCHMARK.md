@@ -65,3 +65,16 @@ A policy that does not beat strong simple baselines should not be retained merel
 - Intervals are caller-supplied and are not calibrated by this binary.
 - No significance test or cross-dataset aggregation is emitted yet.
 - Synthetic results are plumbing checks only, not industry comparisons or SOTA claims.
+
+## Paired seed-level summary
+
+A companion `acquisition-summary` binary consumes the raw CSV emitted by `acquisition-bench`, requires every policy to have a trial for every paired seed at the same budget/top-k/oracle, and emits per-policy summaries plus paired deltas against RANDOM, MIN_PREDICTED and DIVERSE:
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin acquisition-summary -- \
+  /tmp/acquisition-report.csv /tmp/acquisition-summary.csv 5000
+```
+
+The report includes mean/median regret, mean top-k recall, mean queried-point prediction error, percentile-bootstrap intervals for mean regret, and paired seed-level regret deltas. A negative paired delta means the policy in the `policy` column had lower regret than the `baseline` column. The CLI requires at least two paired seeds and rejects missing policies, duplicated rows and inconsistent budgets/domain-oracle minima.
+
+**Statistical boundary:** these bootstrap intervals quantify variation across stochastic replicate seeds on one supplied candidate pool. They are not confidence intervals over independent transformer designs, manufacturers, geometry families or datasets. Some policies are deterministic, so their seed-level interval can collapse to a point. A credible superiority claim still needs multiple frozen real reference pools, group-held-out tests, and a dataset-level paired analysis with preregistered comparisons. Keep the raw trial file alongside its summary and bind both with `evidence-receipt`.
