@@ -4,8 +4,12 @@
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use nalgebra::{SMatrix, SVector};
-use symtropy_physics::gjk::intersects_support_maps;
+use std::cell::Cell;
+use std::collections::BTreeMap;
+use symtropy_physics::gjk::{intersects_support_maps, GjkFailureReason, GjkTermination};
 use symtropy_physics::support_map::WorldSupportMap;
+
+const CORPUS_SIZE: usize = 64;
 
 #[derive(Clone)]
 struct OrientedBox<const D: usize> {
@@ -33,6 +37,35 @@ impl<const D: usize> WorldSupportMap<D> for OrientedBox<D> {
 
     fn bounding_sphere_world(&self) -> (SVector<f64, D>, f64) {
         (self.center, self.half_extents.norm())
+    }
+}
+
+struct CountingSupportMap<'a, const D: usize> {
+    inner: &'a dyn WorldSupportMap<D>,
+    support_calls: Cell<usize>,
+}
+
+impl<'a, const D: usize> CountingSupportMap<'a, D> {
+    fn new(inner: &'a dyn WorldSupportMap<D>) -> Self {
+        Self {
+            inner,
+            support_calls: Cell::new(0),
+        }
+    }
+}
+
+impl<const D: usize> WorldSupportMap<D> for CountingSupportMap<'_, D> {
+    fn support_world(&self, direction: &SVector<f64, D>) -> SVector<f64, D> {
+        self.support_calls.set(self.support_calls.get() + 1);
+        self.inner.support_world(direction)
+    }
+
+    fn center_world(&self) -> SVector<f64, D> {
+        self.inner.center_world()
+    }
+
+    fn bounding_sphere_world(&self) -> (SVector<f64, D>, f64) {
+        self.inner.bounding_sphere_world()
     }
 }
 
@@ -64,42 +97,106 @@ fn make_box<const D: usize>(seed: &mut u64, x_offset: f64) -> OrientedBox<D> {
     }
 }
 
+fn make_corpus<const D: usize>(
+    seed: &mut u64,
+    x_offset: f64,
+) -> Vec<(OrientedBox<D>, OrientedBox<D>)> {
+    (0..CORPUS_SIZE)
+        .map(|_| (make_box::<D>(seed, 0.0), make_box::<D>(seed, x_offset)))
+        .collect()
+}
+
+fn quantile(values: &mut [usize], quantile: f64) -> usize {
+    values.sort_unstable();
+    let index = ((quantile * values.len() as f64).ceil() as usize)
+        .saturating_sub(1)
+        .min(values.len().saturating_sub(1));
+    values[index]
+}
+
+/// Emit deterministic work counters outside timed Criterion loops. Wrappers only
+/// count support-map calls in this preflight; timed queries use the original maps.
+fn print_work_summary<const D: usize>(
+    label: &str,
+    corpus: &[(OrientedBox<D>, OrientedBox<D>)],
+) {
+    let mut support_evaluations = Vec::with_capacity(corpus.len());
+    let mut iterations = Vec::with_capacity(corpus.len());
+    let mut terminal_counts = BTreeMap::<String, usize>::new();
+    let mut indeterminate_reasons = BTreeMap::<String, usize>::new();
+
+    for (a, b) in corpus {
+        let counted_a = CountingSupportMap::new(a);
+        let counted_b = CountingSupportMap::new(b);
+        let result = intersects_support_maps(&counted_a, &counted_b);
+        support_evaluations.push(counted_a.support_calls.get() + counted_b.support_calls.get());
+        iterations.push(result.iterations);
+
+        let terminal = match result.termination {
+            GjkTermination::Intersecting => "Intersecting".to_owned(),
+            GjkTermination::Separated => "Separated".to_owned(),
+            GjkTermination::Indeterminate(reason) => {
+                *indeterminate_reasons.entry(format!("{reason:?}")).or_default() += 1;
+                format!("Indeterminate({reason:?})")
+            }
+        };
+        *terminal_counts.entry(terminal).or_default() += 1;
+    }
+
+    let support_p50 = quantile(&mut support_evaluations, 0.50);
+    let support_p95 = quantile(&mut support_evaluations, 0.95);
+    let support_p99 = quantile(&mut support_evaluations, 0.99);
+    let iterations_p50 = quantile(&mut iterations, 0.50);
+    let iterations_p95 = quantile(&mut iterations, 0.95);
+    let iterations_p99 = quantile(&mut iterations, 0.99);
+
+    eprintln!(
+        "GJK_WORK dimension={D} scenario={label} corpus={} support_map_evaluations_p50={support_p50} support_map_evaluations_p95={support_p95} support_map_evaluations_p99={support_p99} iterations_p50={iterations_p50} iterations_p95={iterations_p95} iterations_p99={iterations_p99} terminal_counts={terminal_counts:?} indeterminate_reasons={indeterminate_reasons:?}",
+        corpus.len()
+    );
+}
+
 fn bench_dimension<const D: usize>(criterion: &mut Criterion) {
     let mut seed = 0x4e44_474a_4b5f_4245_u64 ^ (D as u64);
-    let a = make_box::<D>(&mut seed, 0.0);
-    // Each oriented box contains a ball of radius at least 0.4. A 0.25 centre
-    // offset is an overlap positive control; an offset of 10 is separated.
-    let overlap = make_box::<D>(&mut seed, 0.25);
-    let separated = make_box::<D>(&mut seed, 10.0);
-    let mut group = criterion.benchmark_group(format!("gjk_nd/dimension_{D}"));
+    let overlap_corpus = make_corpus::<D>(&mut seed, 0.25);
+    let separated_corpus = make_corpus::<D>(&mut seed, 10.0);
 
-    group.bench_function("rotated_overlap", |bench| {
+    print_work_summary("rotated_overlap", &overlap_corpus);
+    print_work_summary("rotated_separated", &separated_corpus);
+
+    let mut group = criterion.benchmark_group(format!("gjk_nd/dimension_{D}"));
+    let mut overlap_cursor = 0usize;
+    group.bench_function("rotated_overlap_64", |bench| {
         bench.iter(|| {
-            black_box(intersects_support_maps(
-                black_box(&a),
-                black_box(&overlap),
-            ))
+            let (a, b) = &overlap_corpus[overlap_cursor % overlap_corpus.len()];
+            overlap_cursor += 1;
+            black_box(intersects_support_maps(black_box(a), black_box(b)))
         })
     });
-    group.bench_function("rotated_separated", |bench| {
+
+    let mut separated_cursor = 0usize;
+    group.bench_function("rotated_separated_64", |bench| {
         bench.iter(|| {
-            black_box(intersects_support_maps(
-                black_box(&a),
-                black_box(&separated),
-            ))
+            let (a, b) = &separated_corpus[separated_cursor % separated_corpus.len()];
+            separated_cursor += 1;
+            black_box(intersects_support_maps(black_box(a), black_box(b)))
         })
     });
     group.finish();
 }
 
 fn bench_gjk_nd(criterion: &mut Criterion) {
-    // D=3/4 serve as specialized-path controls; D>=5 exercises the new active set.
+    // D=3/4 are specialized-path controls; D>=5 exercises the active set.
     bench_dimension::<3>(criterion);
     bench_dimension::<4>(criterion);
     bench_dimension::<5>(criterion);
     bench_dimension::<6>(criterion);
     bench_dimension::<8>(criterion);
     bench_dimension::<16>(criterion);
+
+    // Retain an explicit type reference to keep the exhaustive reason enum
+    // visible in generated docs and ensure the benchmark tracks new outcomes.
+    let _ = std::mem::size_of::<GjkFailureReason>();
 }
 
 criterion_group!(benches, bench_gjk_nd);
