@@ -57,6 +57,9 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
+    - name: Check standalone transformer research formatting
+      run: cargo fmt --manifest-path research/transformer-bench/Cargo.toml -- --check
+
     - name: Test standalone transformer research harness
       run: cargo test --manifest-path research/transformer-bench/Cargo.toml --locked
 
