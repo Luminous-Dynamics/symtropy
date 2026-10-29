@@ -1,0 +1,106 @@
+{
+  "schema_version": "qsim-002-likelihood-bridge-fixtures/1",
+  "description": "Frozen analytic/negative-control adapter cases. No case here provides calibrated physical likelihoods.",
+  "cases": [
+    {
+      "schema_version": "qsim-002-likelihood-bridge/1",
+      "result_id": "QSIM-002-GEOMETRY-ONLY-REJECT-001",
+      "evidence_class": "analytic_fixture",
+      "qualification_status": "NOT_CALIBRATED",
+      "scenario": {
+        "scenario_id": "QSIM-001-STRAIGHT-LINE-LAYOUT-001",
+        "source_repo": "Luminous-Dynamics/symtropy",
+        "source_path": "docs/research/quantum/fixtures/QSIM-001-straight-line-layout.json",
+        "source_ref": "research/qsim-001-quantum-cosimulation-20261029",
+        "source_blob_sha1": "99f4bee9002dc7d5e31dbcec7ffb734071c84a57",
+        "coordinate_frame": "right-handed Cartesian XYZ; identity frame transform",
+        "length_unit": "m",
+        "perturbation_id": "detector-y-offset-1mm",
+        "nominal_separation_m": 0.2,
+        "perturbed_separation_m": 0.20000249998437522,
+        "separation_change_m": 0.0000024999843752093742
+      },
+      "optical_model": {
+        "model_id": "none-qualified",
+        "model_version": "none",
+        "physical_scope": "No qualified geometry-to-optical mapping supplied; Euclidean separation alone is not an optical likelihood.",
+        "validity_status": "not_declared",
+        "wavelength_nm": null,
+        "configuration_fingerprint": null,
+        "model_artifact_digest": null
+      },
+      "calibration": {
+        "status": "absent",
+        "artifact_digests": [],
+        "device_or_configuration_id": null,
+        "calibration_split_id": null,
+        "evaluation_split_id": null,
+        "valid_for_configuration_fingerprint": null,
+        "validity_note": "No physical calibration artifacts are supplied in this analytic geometry fixture."
+      },
+      "provenance": {
+        "source_revision": "76478aa499e88956dc32a9b4c58d2c6586010c72",
+        "geometry_evidence_class": "analytic_fixture",
+        "raw_hardware_data": false,
+        "qualification_method": "Expected geometry is checked with the independent Euclidean norm only; optical likelihood is intentionally not evaluated.",
+        "heldout_artifact_digest": null
+      },
+      "claim_ceiling": [
+        "Analytic geometry only",
+        "No transmission, phase, coupling, detector-yield, or gate-success probability",
+        "Not hardware calibration and not quantum-advantage evidence"
+      ]
+    },
+    {
+      "schema_version": "qsim-002-likelihood-bridge/1",
+      "result_id": "QSIM-002-STALE-CALIBRATION-REJECT-001",
+      "evidence_class": "analytic_fixture",
+      "qualification_status": "STALE_CALIBRATION",
+      "scenario": {
+        "scenario_id": "QSIM-001-STRAIGHT-LINE-LAYOUT-001",
+        "source_repo": "Luminous-Dynamics/symtropy",
+        "source_path": "docs/research/quantum/fixtures/QSIM-001-straight-line-layout.json",
+        "source_ref": "research/qsim-001-quantum-cosimulation-20261029",
+        "source_blob_sha1": "99f4bee9002dc7d5e31dbcec7ffb734071c84a57",
+        "coordinate_frame": "right-handed Cartesian XYZ; identity frame transform",
+        "length_unit": "m",
+        "perturbation_id": "detector-y-offset-1mm",
+        "nominal_separation_m": 0.2,
+        "perturbed_separation_m": 0.20000249998437522,
+        "separation_change_m": 0.0000024999843752093742
+      },
+      "optical_model": {
+        "model_id": "synthetic-optical-model-v0",
+        "model_version": "0",
+        "physical_scope": "Synthetic negative control only; not a model of a real photonic device.",
+        "validity_status": "declared_and_in_domain",
+        "wavelength_nm": 1550,
+        "configuration_fingerprint": "synthetic-config-current-v2",
+        "model_artifact_digest": "synthetic-model-artifact-v0"
+      },
+      "calibration": {
+        "status": "stale",
+        "artifact_digests": [
+          "synthetic-calibration-for-config-v1"
+        ],
+        "device_or_configuration_id": "synthetic-config-v1",
+        "calibration_split_id": "synthetic-calibration-split",
+        "evaluation_split_id": "synthetic-evaluation-split",
+        "valid_for_configuration_fingerprint": "synthetic-config-v1",
+        "validity_note": "Negative control: current configuration is v2 while the calibration is only valid for v1."
+      },
+      "provenance": {
+        "source_revision": "76478aa499e88956dc32a9b4c58d2c6586010c72",
+        "geometry_evidence_class": "analytic_fixture",
+        "raw_hardware_data": false,
+        "qualification_method": "Configuration-fingerprint mismatch must produce STALE_CALIBRATION and omit outcome likelihoods.",
+        "heldout_artifact_digest": null
+      },
+      "claim_ceiling": [
+        "Synthetic stale-calibration negative control",
+        "No likelihood values may be emitted",
+        "No device or hardware performance claim"
+      ]
+    }
+  ]
+}

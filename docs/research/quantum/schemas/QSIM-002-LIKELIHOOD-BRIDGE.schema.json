@@ -1,0 +1,434 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QSIM-002 calibrated geometry-to-likelihood bridge result",
+  "description": "Schema for a provenance-bound bridge from a physical scenario and a qualified optical model to categorical outcome likelihoods. A geometry result alone must not produce likelihood values. Shape validation is necessary but a verifier must also check normalization, label correspondence, split separation, artifact digests, and model validity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "result_id",
+    "evidence_class",
+    "qualification_status",
+    "scenario",
+    "optical_model",
+    "calibration",
+    "provenance",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "qsim-002-likelihood-bridge/1"
+    },
+    "result_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "analytic_fixture",
+        "uncalibrated_simulation",
+        "calibration_derived_estimate",
+        "measured_physical"
+      ]
+    },
+    "qualification_status": {
+      "enum": [
+        "NOT_CALIBRATED",
+        "STALE_CALIBRATION",
+        "OUT_OF_DOMAIN",
+        "INSUFFICIENT_EVIDENCE",
+        "EXPLORATORY_ONLY",
+        "QUALIFIED_LIKELIHOOD"
+      ]
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "source_repo",
+        "source_path",
+        "source_ref",
+        "source_blob_sha1",
+        "coordinate_frame",
+        "length_unit",
+        "perturbation_id"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_repo": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_blob_sha1": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "length_unit": {
+          "const": "m"
+        },
+        "perturbation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nominal_separation_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "perturbed_separation_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "separation_change_m": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "optical_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "model_version",
+        "physical_scope",
+        "validity_status"
+      ],
+      "properties": {
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physical_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "validity_status": {
+          "enum": [
+            "declared_and_in_domain",
+            "out_of_domain",
+            "not_declared"
+          ]
+        },
+        "wavelength_nm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "configuration_fingerprint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model_artifact_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "artifact_digests"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "absent",
+            "pending",
+            "stale",
+            "qualified"
+          ]
+        },
+        "artifact_digests": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "device_or_configuration_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "calibration_split_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evaluation_split_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "valid_for_configuration_fingerprint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "validity_note": {
+          "type": "string"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_revision",
+        "geometry_evidence_class",
+        "raw_hardware_data",
+        "qualification_method"
+      ],
+      "properties": {
+        "source_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry_evidence_class": {
+          "enum": [
+            "analytic_fixture",
+            "simulated",
+            "calibrated_simulation",
+            "measured_physical"
+          ]
+        },
+        "raw_hardware_data": {
+          "type": "boolean"
+        },
+        "qualification_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "heldout_artifact_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "outcome_likelihoods": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "experiment_id",
+          "outcomes",
+          "rows"
+        ],
+        "properties": {
+          "experiment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcomes": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "rows": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "hypothesis_id",
+                "probabilities",
+                "observed_counts"
+              ],
+              "properties": {
+                "hypothesis_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "probabilities": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "observed_counts": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "effective_sample_size": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "interval_lower": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "interval_upper": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "qualification_status": {
+            "const": "QUALIFIED_LIKELIHOOD"
+          }
+        },
+        "required": [
+          "qualification_status"
+        ]
+      },
+      "then": {
+        "required": [
+          "outcome_likelihoods"
+        ],
+        "properties": {
+          "evidence_class": {
+            "enum": [
+              "calibration_derived_estimate",
+              "measured_physical"
+            ]
+          },
+          "optical_model": {
+            "properties": {
+              "validity_status": {
+                "const": "declared_and_in_domain"
+              }
+            }
+          },
+          "calibration": {
+            "properties": {
+              "status": {
+                "const": "qualified"
+              },
+              "artifact_digests": {
+                "minItems": 1
+              },
+              "device_or_configuration_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "calibration_split_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evaluation_split_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "valid_for_configuration_fingerprint": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "status",
+              "artifact_digests",
+              "device_or_configuration_id",
+              "calibration_split_id",
+              "evaluation_split_id",
+              "valid_for_configuration_fingerprint"
+            ]
+          },
+          "provenance": {
+            "properties": {
+              "heldout_artifact_digest": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "heldout_artifact_digest"
+            ]
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "outcome_likelihoods"
+          ]
+        }
+      }
+    }
+  ]
+}
