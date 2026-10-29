@@ -34,6 +34,20 @@ RESULT_KEYS = {
 STATUSES = {"pass", "breach", "invalid", "not_evaluated"}
 
 
+def _reject_duplicate_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON object key: {key}")
+        result[key] = value
+    return result
+
+
+def strict_json_loads(raw: str) -> Any:
+    """Parse JSON while rejecting ambiguous duplicate object keys."""
+    return json.loads(raw, object_pairs_hook=_reject_duplicate_pairs)
+
+
 def _need(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
@@ -400,8 +414,8 @@ def main(argv: list[str]) -> int:
         print("usage: verify_paired_comparison.py INPUT.json REPORT.json", file=sys.stderr)
         return 2
     try:
-        input_doc = json.loads(Path(argv[1]).read_text())
-        report_doc = json.loads(Path(argv[2]).read_text())
+        input_doc = strict_json_loads(Path(argv[1]).read_text())
+        report_doc = strict_json_loads(Path(argv[2]).read_text())
         verify_documents(input_doc, report_doc)
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"verification failed: {exc}", file=sys.stderr)
