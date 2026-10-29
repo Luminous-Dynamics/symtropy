@@ -109,6 +109,12 @@ class PairedComparisonVerifierTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "controller artifacts do not match"):
             build_expected_report(doc)
 
+    def test_rejects_initial_state_id_with_multiple_digests(self):
+        doc = copy.deepcopy(self.fixture)
+        doc["trajectory_artifacts"][1]["initial_state_id"] = doc["trajectory_artifacts"][0]["initial_state_id"]
+        with self.assertRaisesRegex(ValueError, "one initial_state_id references multiple payload digests"):
+            build_expected_report(doc)
+
 
 if __name__ == "__main__":
     unittest.main()
