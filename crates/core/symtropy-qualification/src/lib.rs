@@ -317,7 +317,7 @@ impl ReceiptPayload {
                 field: "source.commit_sha",
             });
         }
-        if !self.source.working_tree_clean {
+        if self.disposition == Disposition::Pass && !self.source.working_tree_clean {
             return Err(ReceiptError::DirtyWorkingTree);
         }
         for (field, digest) in [
@@ -352,11 +352,14 @@ impl ReceiptPayload {
                 field: "execution.command",
             });
         }
-        if self.execution.cases.passed
-            .saturating_add(self.execution.cases.failed)
-            .saturating_add(self.execution.cases.unresolved)
-            > self.execution.cases.attempted
-        {
+        let accounted_cases = self
+            .execution
+            .cases
+            .passed
+            .checked_add(self.execution.cases.failed)
+            .and_then(|count| count.checked_add(self.execution.cases.unresolved))
+            .ok_or(ReceiptError::InconsistentCaseCounts)?;
+        if accounted_cases > self.execution.cases.attempted {
             return Err(ReceiptError::InconsistentCaseCounts);
         }
 
@@ -370,11 +373,7 @@ impl ReceiptPayload {
                 if self.execution.exit_code.is_none() {
                     return Err(ReceiptError::InconsistentExecutionStatus);
                 }
-                if self.execution.cases.passed
-                    + self.execution.cases.failed
-                    + self.execution.cases.unresolved
-                    != self.execution.cases.attempted
-                {
+                if accounted_cases != self.execution.cases.attempted {
                     return Err(ReceiptError::InconsistentCaseCounts);
                 }
             }
@@ -789,6 +788,29 @@ mod tests {
         assert_eq!(
             QualificationReceipt::new(payload, volatile("runner")).unwrap_err(),
             ReceiptError::DispositionContradictsExecution
+        );
+    }
+
+    #[test]
+    fn case_count_overflow_fails_closed() {
+        let mut payload = valid_payload();
+        payload.execution.cases.attempted = u64::MAX;
+        payload.execution.cases.passed = u64::MAX;
+        payload.execution.cases.failed = 1;
+        payload.execution.cases.unresolved = 0;
+        assert_eq!(
+            QualificationReceipt::new(payload, volatile("runner")).unwrap_err(),
+            ReceiptError::InconsistentCaseCounts
+        );
+    }
+
+    #[test]
+    fn dirty_source_tree_cannot_produce_a_pass() {
+        let mut payload = valid_payload();
+        payload.source.working_tree_clean = false;
+        assert_eq!(
+            QualificationReceipt::new(payload, volatile("runner")).unwrap_err(),
+            ReceiptError::DirtyWorkingTree
         );
     }
 
