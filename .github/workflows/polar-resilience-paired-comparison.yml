@@ -8,6 +8,10 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json"
       - "research/polar-infrastructure/benchmark/schemas/counterexample-search-benchmark-contract-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/src/bin/counterexample_search_contract.rs"
+      - "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json"
       - "research/EXECUTION_ATTESTATION_PROFILE_2026.md"
       - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
@@ -42,6 +46,10 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json"
       - "research/polar-infrastructure/benchmark/schemas/counterexample-search-benchmark-contract-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/src/bin/counterexample_search_contract.rs"
+      - "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json"
       - "research/EXECUTION_ATTESTATION_PROFILE_2026.md"
       - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
@@ -226,6 +234,61 @@ jobs:
             .candidate_for_execution == false and
             .performance_claim == "none"
           ' /tmp/counterexample-search-contract-report.json
+
+      - name: Execute analytic known-answer counterexample smoke track
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json"
+          fixture_schema="research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json"
+          report_schema="research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Analytic Counterexample Known-Answer Fixture" and
+            .additionalProperties == false and
+            (.required | index("cases") != null)
+          ' "$fixture_schema"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Analytic Known-Answer Counterexample Track Report" and
+            .additionalProperties == false and
+            (.required | index("budget_contract") != null) and
+            (.required | index("known_answer_fixture_validation") != null) and
+            (.required | index("claim_policy") != null)
+          ' "$report_schema"
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "analytic-counterexample-known-answer-fixture" and
+            .evidence_class == "synthetic_known_answer" and
+            .status == "design_only_not_physical_evidence" and
+            (.cases | length == 7) and
+            ([.cases[].case_id] | length == (unique | length)) and
+            all(.cases[]; .x >= 0 and .x <= 1 and .y >= 0 and .y <= 1) and
+            any(.cases[]; .case_id == "energy_boundary_is_pass" and (.expected_failure_families | length == 0)) and
+            any(.cases[]; .case_id == "energy_boundary_crossing_is_breach" and .expected_failure_families == ["critical_energy"]) and
+            any(.cases[]; .case_id == "communications_interior_is_breach" and .expected_failure_families == ["communications_partition"])
+          ' "$fixture"
+          manifest="research/polar-infrastructure/benchmark/Cargo.toml"
+          cargo test --locked --manifest-path "$manifest" --bin analytic_counterexample_track
+          cargo run --locked --quiet --manifest-path "$manifest" --bin analytic_counterexample_track > /tmp/analytic-counterexample-track-report.json
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-analytic-known-answer-counterexample-track-report" and
+            .status == "executed_analytic_oracle_only" and
+            .evidence_class == "synthetic_known_answer" and
+            .known_answer_fixture_validation.status == "passed" and
+            .known_answer_fixture_validation.case_count == 7 and
+            .budget_contract.search_queries_per_arm == 38 and
+            .budget_contract.reserved_replay_queries_per_arm == 2 and
+            .budget_contract.total_oracle_invocations_per_arm == 40 and
+            (.arms | length == 4) and
+            all(.arms[]; .search_query_count == 38 and .replay_query_count == 2 and .total_oracle_invocations == 40 and .budget_respected and .invalid_search_points == 0 and .replay_mismatch_count == 0 and .all_discovered_families_replay_confirmed and (.performance_claim == false)) and
+            any(.arms[]; .arm_id == "stratified_grid" and (.unique_failure_families_discovered | length == 2) and (.replay_confirmed_failure_families | length == 2)) and
+            any(.arms[]; .arm_id == "energy_only_corner" and .unique_failure_families_discovered == ["critical_energy"] and .positive_control_replays_passed == 1) and
+            .claim_policy.physical_claim == false and
+            .claim_policy.controller_superiority_claim == false and
+            .claim_policy.industry_sota_claim == false
+          ' /tmp/analytic-counterexample-track-report.json
 
       - name: Validate execution receipt template schema contract
         shell: bash
