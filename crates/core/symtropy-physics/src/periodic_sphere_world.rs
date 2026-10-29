@@ -357,9 +357,12 @@ impl<const D: usize> PeriodicSphereWorld<D> {
                     *a != affected_a && *a != affected_b && *b != affected_a && *b != affected_b
                 });
             }
-            if advance <= time_epsilon(dt) {
-                suppressed_zero_time_pairs.insert((id_a, id_b));
-            }
+            // The pair has just been resolved at a touching configuration.
+            // Suppress its immediate zero-time rediscovery even when the
+            // original TOI was positive. Any later positive-time advance clears
+            // this suppression; an impulse to either body also invalidates
+            // other suppressions involving that body.
+            suppressed_zero_time_pairs.insert((id_a, id_b));
 
             let fraction = (elapsed / dt).clamp(0.0, 1.0);
             events.push(PeriodicSphereWorldEvent {
@@ -454,7 +457,7 @@ fn validate_bodies<const D: usize>(
     bodies: &[PeriodicSphereBody<D>],
 ) -> Result<(), PeriodicSphereWorldError> {
     for body in bodies {
-        PeriodicSphereBody::new(
+        let _validated = PeriodicSphereBody::new(
             body.id,
             body.position,
             body.velocity,
@@ -586,7 +589,7 @@ mod tests {
         let mut world = world(1);
         world.add_body(body(1, [0.5, 0.0], [0.0, 0.0], 1.0, 0.0)).unwrap();
         world.add_body(body(2, [9.0, 0.0], [2.0, 0.0], 1.0, 0.0)).unwrap();
-        world.add_body(body(3, [4.0, 0.0], [0.0, 0.0], 1.0, 0.0)).unwrap();
+        world.add_body(body(3, [2.5, 0.0], [0.0, 0.0], 1.0, 0.0)).unwrap();
 
         let before = world.bodies().to_vec();
         let result = world.step(1.0);
@@ -615,10 +618,10 @@ mod tests {
         let mut world = world(8);
         world.add_body(body(1, [0.5, 0.0], [1.0, 0.0], 1.0, 1.0)).unwrap();
         let before = world.bodies().to_vec();
-        assert_eq!(
+        assert!(matches!(
             world.step(f64::NAN),
             Err(PeriodicSphereWorldError::InvalidTimeStep)
-        );
+        ));
         assert_eq!(world.bodies(), before.as_slice());
     }
 }
