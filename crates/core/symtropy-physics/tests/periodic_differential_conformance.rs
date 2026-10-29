@@ -296,7 +296,7 @@ fn minimum_image_is_invariant_under_integer_lattice_translation() {
     .unwrap();
 
     let mut seed = 0x4c41_5454_4943_4553_u64;
-    for case in 0..1_000 {
+    for _ in 0..1_000 {
         let displacement = SVector::from([
             range(&mut seed, -100.0, 100.0),
             range(&mut seed, -100.0, 100.0),
@@ -324,7 +324,6 @@ fn minimum_image_is_invariant_under_integer_lattice_translation() {
         for axis in 0..2 {
             close(reverse[axis], -translated_image[axis], 2e-10);
         }
-        assert!(case < 1_000);
     }
 }
 
@@ -344,7 +343,7 @@ fn wrapping_and_minimum_image_are_uniform_scale_covariant() {
         )
         .unwrap();
 
-        for case in 0..250 {
+        for _ in 0..250 {
             let point = SVector::from([
                 range(&mut seed, -100.0, 100.0),
                 range(&mut seed, -100.0, 100.0),
@@ -372,7 +371,6 @@ fn wrapping_and_minimum_image_are_uniform_scale_covariant() {
             for axis in 0..2 {
                 close(scaled_image[axis], image[axis] * scale, 2e-9);
             }
-            assert!(case < 250);
         }
     }
 }
