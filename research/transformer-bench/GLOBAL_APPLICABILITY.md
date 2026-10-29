@@ -121,7 +121,7 @@ For every deployment, confirm applicable current national adoption, utility proc
 
 ## Executable split-integrity gate
 
-The `split-audit` binary turns the minimum data-leakage check into a runnable contract. It checks the declared split policy against the stated geometry-family, manufacturer, material-lot, or measurement-campaign IDs and rejects held-out groups that also appear in training or validation. It rejects duplicate observation IDs within an experiment/policy ledger and requires all three partitions. Random row splits are retained as a labeled baseline, never as evidence of transfer.
+The `split-audit` binary turns the minimum data-leakage check into a runnable contract. It checks the declared split policy against the stated geometry-family, manufacturer, material-lot, or measurement-campaign IDs and requires the held-out group dimension to be disjoint across TRAIN, VALIDATION, and TEST. Validation groups cannot appear in training, and test groups cannot appear in either earlier partition. It rejects duplicate observation IDs within an experiment/policy ledger and requires all three partitions. Random row splits are retained as a labeled baseline, never as evidence of transfer.
 
 Command and schema are documented in [README.md](README.md); the synthetic contract fixture is `fixtures/split-audit-synthetic.csv`. This remains a first integrity layer: IDs and lineage are caller-declared, and no near-duplicate geometry detection, source-hash authentication, or scientific independence proof is provided. Future evidence receipts should bind normalized geometry/material hashes, the original data artifact digest, preprocessing version, split-manifest digest, evaluator revision, and output digest.
 
