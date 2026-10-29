@@ -140,14 +140,26 @@ The receipt/verifier suite must prove it can detect:
 
 A negative control is required evidence that the verifier can fail—not decorative test coverage.
 
+## Implementation status
+
+The first typed Rust implementation is in draft [PR #2910](https://github.com/Luminous-Dynamics/symtropy/pull/2910), package `symtropy-qualification`. Its CI has been started but the current exact-head results must be checked before adopting the API. The implementation currently provides:
+
+- typed provenance, scenario, oracle, execution, case-count, metric and artifact records;
+- six dispositions with fail-closed constraints;
+- payload SHA-256 digest and artifact-byte/size verification;
+- canonical ordering for map-like metadata, artifacts, metrics, feature flags and validity-envelope labels;
+- rejection of non-independent oracle passes, dirty-source passes, missing required artifacts, incomplete case accounting, non-finite metrics and integer overflow;
+- negative-control unit tests for changed bytes, tampered payload, NotRun/Skipped/timeout, missing artifacts, duplicate metrics and volatile-metadata stability.
+
+The digest binds the declared payload, not the truth of its claims. An independence field is a declaration, not proof that the oracle is independent. Referenced artifact bytes still need to be retrieved and verified by the caller.
+
 ## Migration plan
 
-1. Freeze this field contract and a canonical serializer/hash rule.
-2. Add typed Rust representation and versioned schema validation in a shared crate, without making core physics depend on a hosted CI API.
-3. Add fixtures for all six dispositions and missing/mismatched metadata.
-4. Emit one truthful NotRun or Indeterminate receipt fixture where tests have not executed; never fabricate successful data.
-5. Convert the periodic differential corpus and WCSPH benchmark into receipts.
-6. Add the SU2 runner and adaptive-search benchmark only after the common receipt/verifier passes its own negative controls.
+1. Verify the exact-head unit tests and Clippy for [PR #2910](https://github.com/Luminous-Dynamics/symtropy/pull/2910), then freeze the schema/serialization contract.
+2. Add golden serialization fixtures and test compatible/unsupported schema versions before publishing receipts.
+3. Emit only truthful NotRun/Indeterminate receipts where qualification has not executed; never fabricate successful data.
+4. Convert the periodic differential corpus and WCSPH benchmark to receipts while retaining the raw logs and exact-head workflow IDs.
+5. Add the SU2 runner and adaptive-search benchmark only after the common receipt/verifier passes its own negative controls.
 
 ## Claim ceiling
 
