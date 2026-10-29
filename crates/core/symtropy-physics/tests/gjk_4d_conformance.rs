@@ -35,6 +35,125 @@ impl WorldSupportMap<4> for OrientedBox4 {
     }
 }
 
+fn det3(m: [[f64; 3]; 3]) -> f64 {
+    m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
+        - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+        + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0])
+}
+
+/// Four-dimensional generalized cross product: a vector orthogonal to u, v, w.
+fn normal_4d(
+    u: &SVector<f64, 4>,
+    v: &SVector<f64, 4>,
+    w: &SVector<f64, 4>,
+) -> SVector<f64, 4> {
+    let mut normal = SVector::<f64, 4>::zeros();
+    for omitted in 0..4 {
+        let mut minor = [[0.0; 3]; 3];
+        for row in 0..3 {
+            let vector = match row {
+                0 => u,
+                1 => v,
+                _ => w,
+            };
+            let mut column = 0;
+            for axis in 0..4 {
+                if axis == omitted {
+                    continue;
+                }
+                minor[row][column] = vector[axis];
+                column += 1;
+            }
+        }
+        normal[omitted] = if omitted % 2 == 0 {
+            det3(minor)
+        } else {
+            -det3(minor)
+        };
+    }
+    normal
+}
+
+/// Independent SAT oracle for full-dimensional 4D parallelepipeds.
+///
+/// A 4D zonotope facet normal is orthogonal to three generators. The Minkowski
+/// difference of two 4D boxes has eight edge generators, so checking every
+/// independent triple yields the complete finite SAT candidate set. This
+/// deliberately does not call GJK or EPA.
+fn sat_intersects_4d(a: &OrientedBox4, b: &OrientedBox4) -> bool {
+    let mut generators: Vec<SVector<f64, 4>> = Vec::with_capacity(8);
+    for axis in 0..4 {
+        generators.push(a.rotation.column(axis).into_owned());
+        generators.push(b.rotation.column(axis).into_owned());
+    }
+
+    let center_delta = b.center - a.center;
+    for i in 0..generators.len() {
+        for j in (i + 1)..generators.len() {
+            for k in (j + 1)..generators.len() {
+                let normal = normal_4d(&generators[i], &generators[j], &generators[k]);
+                let normal_squared = normal.norm_squared();
+                if !normal_squared.is_finite() || normal_squared <= 1e-20 {
+                    continue;
+                }
+
+                let radius_a: f64 = (0..4)
+                    .map(|axis| {
+                        a.half_extents[axis]
+                            * normal.dot(&a.rotation.column(axis).into_owned()).abs()
+                    })
+                    .sum();
+                let radius_b: f64 = (0..4)
+                    .map(|axis| {
+                        b.half_extents[axis]
+                            * normal.dot(&b.rotation.column(axis).into_owned()).abs()
+                    })
+                    .sum();
+                let signed_distance = center_delta.dot(&normal).abs();
+                let tolerance = 1e-10 * normal.norm() * (1.0 + a.center.norm() + b.center.norm());
+                if signed_distance > radius_a + radius_b + tolerance {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
+fn plane_rotation_4d(i: usize, j: usize, angle: f64) -> SMatrix<f64, 4, 4> {
+    let mut rotation = SMatrix::<f64, 4, 4>::identity();
+    let (sin, cos) = angle.sin_cos();
+    rotation[(i, i)] = cos;
+    rotation[(j, j)] = cos;
+    rotation[(i, j)] = -sin;
+    rotation[(j, i)] = sin;
+    rotation
+}
+
+fn rotation_from_seed(seed: &mut u64) -> SMatrix<f64, 4, 4> {
+    fn unit(seed: &mut u64) -> f64 {
+        *seed = seed
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        ((*seed >> 11) as f64) / ((1u64 << 53) as f64)
+    }
+
+    let planes = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)];
+    let mut rotation = SMatrix::<f64, 4, 4>::identity();
+    for (i, j) in planes {
+        let angle = (2.0 * unit(seed) - 1.0) * std::f64::consts::PI;
+        rotation *= plane_rotation_4d(i, j, angle);
+    }
+    rotation
+}
+
+fn unit_interval(seed: &mut u64) -> f64 {
+    *seed = seed
+        .wrapping_mul(6_364_136_223_846_793_005)
+        .wrapping_add(1_442_695_040_888_963_407);
+    ((*seed >> 11) as f64) / ((1u64 << 53) as f64)
+}
+
 fn fixture_boxes() -> (OrientedBox4, OrientedBox4) {
     // Frozen separated configuration originally found by comparing the GJK
     // classification with a linear-feasibility oracle over the two box interiors.
@@ -67,6 +186,10 @@ fn fixture_boxes() -> (OrientedBox4, OrientedBox4) {
 #[test]
 fn separated_rotated_hyperboxes_in_4d_are_not_a_false_positive() {
     let (a, b) = fixture_boxes();
+    assert!(
+        !sat_intersects_4d(&a, &b),
+        "independent 4D SAT oracle must confirm the frozen fixture is separated"
+    );
     let ab = intersects_support_maps(&a, &b);
     let ba = intersects_support_maps(&b, &a);
 
@@ -105,7 +228,41 @@ fn overlapping_rotated_hyperboxes_in_4d_are_detected() {
     b.center = SVector::zeros();
 
     assert!(
+        sat_intersects_4d(&a, &b),
+        "independent 4D SAT oracle must confirm the overlap positive control"
+    );
+    assert!(
         intersects_support_maps(&a, &b).intersecting,
         "both boxes contain the shared origin and therefore must intersect"
     );
+}
+
+#[test]
+fn gjk_4d_matches_independent_sat_on_seeded_oriented_boxes() {
+    let mut seed = 0x4d47_4a4b_5f53_4154_u64;
+    for case_id in 0..256 {
+        let rotation_a = rotation_from_seed(&mut seed);
+        let rotation_b = rotation_from_seed(&mut seed);
+        let half_extents_a = SVector::from_fn(|_, _| 0.2 + unit_interval(&mut seed));
+        let half_extents_b = SVector::from_fn(|_, _| 0.2 + unit_interval(&mut seed));
+        let center_a = SVector::from_fn(|_, _| 2.0 * unit_interval(&mut seed) - 1.0);
+        let center_b = SVector::from_fn(|_, _| 3.0 * unit_interval(&mut seed) - 1.5);
+        let a = OrientedBox4 {
+            rotation: rotation_a,
+            center: center_a,
+            half_extents: half_extents_a,
+        };
+        let b = OrientedBox4 {
+            rotation: rotation_b,
+            center: center_b,
+            half_extents: half_extents_b,
+        };
+
+        let expected = sat_intersects_4d(&a, &b);
+        let actual = intersects_support_maps(&a, &b).intersecting;
+        assert_eq!(
+            actual, expected,
+            "4D GJK/SAT classification mismatch at seeded case {case_id}"
+        );
+    }
 }
