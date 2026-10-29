@@ -219,6 +219,26 @@ fn validate(r: &Receipt) -> Result<(), String> {
     {
         return Err("claim policy weakens execution, verification, or equal-resource-budget requirements".into());
     }
+    match r.independent_verification.status.as_str() {
+        "not_run" => {
+            if r.independent_verification.verifier_id.is_some()
+                || r.independent_verification.verifier_revision.is_some()
+                || r.independent_verification.verified_artifact_count != 0
+            {
+                return Err("not_run verification must not claim verifier identity or verified artifacts".into());
+            }
+        }
+        "passed" => {
+            if !r.independent_verification.verifier_id.as_deref().map(nonempty).unwrap_or(false)
+                || !r.independent_verification.verifier_revision.as_deref().map(valid_revision).unwrap_or(false)
+                || r.independent_verification.verified_artifact_count < 3
+            {
+                return Err("passed verification requires a pinned verifier revision and at least three verified artifacts".into());
+            }
+        }
+        "failed" => {}
+        _ => return Err("unsupported independent verification status".into()),
+    }
 
     match r.status.as_str() {
         "design_only_not_executed" => {
@@ -247,6 +267,7 @@ fn validate(r: &Receipt) -> Result<(), String> {
             if r.evidence_class == "synthetic_fixture"
                 || r.execution_state != "completed"
                 || !r.execution_performed
+                || r.provenance.receipt_created_at_utc.as_deref().map(nonempty) != Some(true)
                 || r.execution_evidence.started_at_utc.as_deref().map(nonempty) != Some(true)
                 || r.execution_evidence.ended_at_utc.as_deref().map(nonempty) != Some(true)
                 || r.execution_evidence.process_exit_code != Some(0)
@@ -305,6 +326,10 @@ fn validate(r: &Receipt) -> Result<(), String> {
         "failed" => {
             if r.evidence_class == "synthetic_fixture"
                 || r.execution_state != "failed" || !r.execution_performed || r.scoring_eligible
+                || r.provenance.receipt_created_at_utc.as_deref().map(nonempty) != Some(true)
+                || r.execution_evidence.started_at_utc.as_deref().map(nonempty) != Some(true)
+                || r.execution_evidence.ended_at_utc.as_deref().map(nonempty) != Some(true)
+                || r.execution_evidence.process_exit_code.is_none()
                 || !resources_present(&r.observed_resources)
             {
                 return Err("failed run must have non-synthetic execution evidence and cannot be score eligible".into());
