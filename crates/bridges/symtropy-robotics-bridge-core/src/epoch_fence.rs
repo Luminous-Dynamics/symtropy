@@ -153,7 +153,10 @@ impl EpochFencedOutcomeLedger {
             return Err(EpochFenceError::CapacityReached);
         }
 
-        let ledger = self.ledgers.get_mut(&epoch).ok_or(EpochFenceError::UnknownRequest)?;
+        let ledger = self
+            .ledgers
+            .get_mut(&epoch)
+            .ok_or(EpochFenceError::UnknownRequest)?;
         ledger
             .register_submission(receipt)
             .map_err(EpochFenceError::Ledger)?;
@@ -187,7 +190,10 @@ impl EpochFencedOutcomeLedger {
             });
         }
 
-        let ledger = self.ledgers.get_mut(&epoch).ok_or(EpochFenceError::UnknownRequest)?;
+        let ledger = self
+            .ledgers
+            .get_mut(&epoch)
+            .ok_or(EpochFenceError::UnknownRequest)?;
         ledger
             .ingest(controller_ticket, outcome)
             .map_err(EpochFenceError::Ledger)
@@ -244,7 +250,7 @@ impl EpochFencedOutcomeLedger {
 mod tests {
     use super::*;
     use crate::control::ControlOutcomeStatus;
-    use crate::dispatch::{DispatchRejection};
+    use crate::dispatch::DispatchRejection;
 
     fn epoch(generation: u64) -> ControllerEpoch {
         ControllerEpoch::new(generation).unwrap()
@@ -315,19 +321,22 @@ mod tests {
 
     #[test]
     fn epoch_advance_must_be_strictly_monotonic() {
-        let mut fence = ledger();
+        let mut fence = EpochFencedOutcomeLedger::new(epoch(2), 8).unwrap();
         assert_eq!(
-            fence.advance_epoch(epoch(1)),
+            fence.advance_epoch(epoch(2)),
             Err(EpochFenceError::EpochDidNotAdvance {
-                current_epoch: 1,
-                requested_epoch: 1,
+                current_epoch: 2,
+                requested_epoch: 2,
             })
         );
         assert_eq!(
-            fence.advance_epoch(epoch(0)),
-            Err(EpochFenceError::InvalidEpoch)
+            fence.advance_epoch(epoch(1)),
+            Err(EpochFenceError::EpochDidNotAdvance {
+                current_epoch: 2,
+                requested_epoch: 1,
+            })
         );
-        assert_eq!(fence.current_epoch(), epoch(1));
+        assert_eq!(fence.current_epoch(), epoch(2));
     }
 
     #[test]
@@ -392,7 +401,13 @@ mod tests {
             })
         );
         assert_eq!(
-            fence.ledgers.get(&epoch(1)).unwrap().last_outcome(11).unwrap().status,
+            fence
+                .ledgers
+                .get(&epoch(1))
+                .unwrap()
+                .last_outcome(11)
+                .unwrap()
+                .status,
             ControlOutcomeStatus::Executing
         );
         assert_eq!(fence.unresolved_requests_from_prior_epochs(), 1);
