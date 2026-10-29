@@ -101,3 +101,15 @@ The script refuses mismatched, previously finalized, non-manifold or flight-auth
 
 The profile convention follows the corrected scaled sharp-TE equation on NASA TMR's validation page, but is generated analytically; it is not copied from the raw reference grid or experimental data. The source bytes and experimental data remain unadmitted until the AERO-DATA-001 gates pass.
 
+## External SOTA comparison target: ShapeBench
+
+Do not make a superiority claim from the NACA 0012 smoke test. The 2026 ShapeBench preprint describes 103 aerodynamic shape-optimization tasks across eight shape categories, with standardized budget accounting and comparison baselines spanning adjoint methods, L-BFGS-B, PSO, CMA-ES, Bayesian optimization, OpenEvolve, ShinkaEvolve and ShapeEvolve where applicable. Its reported optimizer rankings vary by task and budget, which is an explicit reason to test a diverse suite rather than extrapolate from one airfoil. See:
+
+- ShapeBench paper: https://arxiv.org/abs/2605.20763
+- Official code linked by the paper: https://github.com/ShapeBench/ShapeBench
+- Dataset linked by the paper: https://huggingface.co/datasets/ShapeBench
+
+The follow-on [AERO-SHAPEBENCH-001 issue #2896](https://github.com/Luminous-Dynamics/symtropy/issues/2896) defines the adapter. Before integration, review the official API, task/data terms, exact release revisions, dependencies, and budget rules. First reproduce a small, diverse smoke subset, then freeze a representative confirmatory subset and held-out geometry families. Compare the proposed Symthaea experiment-selection policy to official and conventional baselines under identical task definitions and matched total cost, including surrogate and high-fidelity evaluations, failed solves, tuning, orchestration and audit work. Only use official high-fidelity replay to confirm candidates where available.
+
+A ShapeBench optimization win would support a claim about that measured optimization method/task suite—not by itself the physical validity of new Reynolds/Mach conditions, a manufactured article, structural adequacy or flight readiness. Keep NASA TMR solver validation, small-aircraft low-Re data, and the non-flight coupon measurements as distinct evidence classes.
+
