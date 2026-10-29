@@ -151,3 +151,13 @@ Run from this package directory:
 
 The workflow checks the all-dataset output is deterministic across two invocations, verifies source-hash/revision binding in known rows, and checks per-dataset row counts. The normalized CSV is derived from the original source; the exact unmodified files remain authoritative and the export is not independent experimental data or an aerodynamic validation result.
 
+## Matched-budget experiment cost accounting
+
+The Rust budget auditor is in src/budget.rs with CLI src/bin/budget_audit.rs. Run it from this package directory:
+
+`cargo run --locked --bin budget_audit -- data/decision_value/matched_budget_ledger.csv`
+
+The ledger requires a fixed budget cap for every policy on the same task/replicate, records per-operation cost/wall/CPU time, binds successful outputs to SHA-256, and requires failure reason codes when an operation fails. Failed or aborted high-fidelity runs still count against the policy's total cost. The auditor rejects a policy overrun and rejects a comparison with only one policy. Actual spend may differ under a common cap; report remaining budget and quality-by-cost curves rather than forcing unused budget to count as consumed.
+
+The committed ledger is synthetic. It charges a nonconverged high-fidelity run to the random baseline and demonstrates bookkeeping only. The CSV's cost units need a documented mapping to actual solver calls, compute, tuning, orchestration and independent-audit effort before a real ShapeBench or CFD comparison. The output label is ledger_audit_only, not aerodynamic validation or an optimizer win.
+
