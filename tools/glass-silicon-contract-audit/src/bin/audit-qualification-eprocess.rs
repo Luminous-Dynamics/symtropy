@@ -21,6 +21,12 @@ fn close(left: f64, right: f64) -> bool {
     left.is_finite() && right.is_finite() && (left - right).abs() <= 1e-9
 }
 
+fn close_relative(left: f64, right: f64, tolerance: f64) -> bool {
+    left.is_finite()
+        && right.is_finite()
+        && (left - right).abs() <= tolerance * left.abs().max(right.abs()).max(1.0)
+}
+
 fn fail(report: &mut Value, code: &str, detail: &str) {
     report["status"] = json!("FAIL");
     if let Some(findings) = report.get_mut("findings").and_then(Value::as_array_mut) {
@@ -498,35 +504,80 @@ mod tests{
                 let upper=log_e_upper(n,x,p0).exp();
                 let upper_failure=log_e_upper(n+1,x,p0).exp();
                 let upper_success=log_e_upper(n+1,x+1,p0).exp();
-                assert!(close((1.0-p0)*upper_failure+p0*upper_success,upper),
+                assert!(close_relative((1.0-p0)*upper_failure+p0*upper_success,upper,1e-9),
                     "upper e-process martingale identity failed at n={n}, x={x}");
                 let lower=log_e_lower(n,x,p0).exp();
                 let lower_failure=log_e_lower(n+1,x,p0).exp();
                 let lower_success=log_e_lower(n+1,x+1,p0).exp();
-                assert!(close((1.0-p0)*lower_failure+p0*lower_success,lower),
+                assert!(close_relative((1.0-p0)*lower_failure+p0*lower_success,lower,1e-9),
                     "lower e-process martingale identity failed at n={n}, x={x}");
             }
         }
     }
 
+    fn balanced_sequence(successes: usize, n: usize) -> Vec<bool> {
+        let mut previous = 0usize;
+        let mut sequence = Vec::with_capacity(n);
+        for t in 1..=n {
+            let current = (t * successes) / n;
+            sequence.push(current > previous);
+            previous = current;
+        }
+        sequence
+    }
+
     #[test]
-    fn e_process_crossing_is_more_efficient_than_alpha_spending_on_same_all_pass_streams(){
-        let alpha_spend_threshold=|i:usize,n:usize| 0.05/(2.0*i as f64*(i+1) as f64*n as f64*(n+1) as f64);
-        let e_threshold=|i:usize| candidate_alpha(i)/2.0;
-        let mut alpha_first=None;
-        let mut e_first=None;
-        for n in 1..=500{
-            let log_e=log_e_upper(n,n,0.95);
-            if alpha_first.is_none() && 0.95_f64.powi(n as i32)<=alpha_spend_threshold(1,n){
-                alpha_first=Some(n);
+    fn e_process_crossing_is_more_efficient_than_alpha_spending_on_same_streams() {
+        let mut alpha_first_one = None;
+        let mut e_first_one = None;
+        let mut alpha_first_two = None;
+        let mut e_first_two = None;
+        for n in 1..=500 {
+            let log_e = log_e_upper(n, n, 0.95);
+            let alpha_one = 0.05 / (2.0 * 1.0 * 2.0 * n as f64 * (n + 1) as f64);
+            let alpha_two = 0.05 / (2.0 * 2.0 * 3.0 * n as f64 * (n + 1) as f64);
+            if alpha_first_one.is_none() && 0.95_f64.powi(n as i32) <= alpha_one {
+                alpha_first_one = Some(n);
             }
-            if e_first.is_none() && log_e>=-e_threshold(1).ln(){
-                e_first=Some(n);
+            if e_first_one.is_none() && log_e >= -(candidate_alpha(1) / 2.0).ln() {
+                e_first_one = Some(n);
+            }
+            if alpha_first_two.is_none() && 0.95_f64.powi(n as i32) <= alpha_two {
+                alpha_first_two = Some(n);
+            }
+            if e_first_two.is_none() && log_e >= -(candidate_alpha(2) / 2.0).ln() {
+                e_first_two = Some(n);
             }
         }
-        assert_eq!(alpha_first,Some(310));
-        assert_eq!(e_first,Some(121));
-        assert!(121*100<310*40);
+        assert_eq!(alpha_first_one, Some(310));
+        assert_eq!(e_first_one, Some(121));
+        assert_eq!(alpha_first_two, Some(334));
+        assert_eq!(e_first_two, Some(146));
+
+        let stream = balanced_sequence(173, 204);
+        let mut successes = 0usize;
+        let (mut e_stop, mut alpha_stop) = (None, None);
+        for (index, passed) in stream.iter().enumerate() {
+            let n = index + 1;
+            if *passed { successes += 1; }
+            let log_upper = log_e_upper(n, successes, 0.95);
+            let log_lower = log_e_lower(n, successes, 0.95);
+            let side_alpha = candidate_alpha(3) / 2.0;
+            if e_stop.is_none() && (log_upper >= -side_alpha.ln() || log_lower >= -side_alpha.ln()) {
+                e_stop = Some((n, successes, if log_lower >= -side_alpha.ln() { "NOT_QUALIFIED" } else { "QUALIFIED" }));
+            }
+            let alpha_t = 0.05 / (2.0 * 3.0 * 4.0 * n as f64 * (n + 1) as f64);
+            if alpha_stop.is_none() {
+                if log_binomial_upper_tail(n, successes, 0.95) <= alpha_t.ln() {
+                    alpha_stop = Some((n, successes, "QUALIFIED"));
+                } else if log_binomial_lower_tail(n, successes, 0.95) <= alpha_t.ln() {
+                    alpha_stop = Some((n, successes, "NOT_QUALIFIED"));
+                }
+            }
+        }
+        assert_eq!(e_stop, Some((106, 89, "NOT_QUALIFIED")));
+        assert_eq!(alpha_stop, Some((185, 156, "NOT_QUALIFIED")));
+        assert!(106 * 100 < 185 * 60);
     }
 
     #[test]
