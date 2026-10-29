@@ -252,7 +252,12 @@ def _verify_receipt_validated(
 
 def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
     """Public fail-closed entry point: validate paired inputs before any receipt."""
-    validate_paired_input(paired)
+    if paired.get("schema_version") == "0.4.0":
+        validate_paired_input_v04(paired)
+    elif paired.get("schema_version") == "0.5.0":
+        validate_paired_input_v05(paired)
+    else:
+        raise ValueError("unsupported paired-input version for execution receipt")
     _verify_receipt_validated(
         receipt,
         paired,
