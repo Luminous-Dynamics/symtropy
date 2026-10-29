@@ -17,19 +17,19 @@ from typing import Any
 TOP_KEYS = {
     "schema_version", "artifact_kind", "evidence_class", "status",
     "reference_controller_id", "candidate_controller_id", "controllers",
-    "axes", "gate_ids", "gate_margin_contracts", "trajectory_artifacts",
-    "controller_artifacts", "cases",
+    "axes", "gate_ids", "gate_margin_contracts", "information_budget_payload",
+    "information_budget_sha256", "trajectory_artifacts", "controller_artifacts", "cases",
 }
 CASE_KEYS = {
     "case_id", "controller_id", "trajectory_id", "comparison_group_id",
     "hazard_family", "initial_state_id", "replicate_id", "severity",
     "gate_results", "signed_gate_margins", "trajectory_sha256",
-    "initial_state_sha256", "controller_artifact_sha256",
+    "initial_state_sha256", "controller_artifact_sha256", "information_budget_sha256",
 }
 RESULT_KEYS = {
     "schema_version", "report_kind", "evidence_class", "status",
     "controller_count", "trajectory_count", "case_count", "gate_margin_contracts",
-    "content_bindings", "coverage", "paired_gate_comparisons", "performance_claim", "result_scope",
+    "information_budget", "content_bindings", "coverage", "paired_gate_comparisons", "performance_claim", "result_scope",
 }
 STATUSES = {"pass", "breach", "invalid", "not_evaluated"}
 
