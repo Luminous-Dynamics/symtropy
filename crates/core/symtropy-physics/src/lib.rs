@@ -27,6 +27,7 @@ pub mod island;
 pub mod joints;
 pub mod manifold_gen;
 pub mod periodic_broadphase;
+pub mod periodic_contact;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
@@ -44,5 +45,6 @@ pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use periodic_broadphase::{
     PeriodicBroadphaseError, image_offsets_for_aabb_pair, swept_aabb_linear, translate_aabb,
 };
+pub use periodic_contact::{PeriodicContactKey, PeriodicContactKeyError};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
