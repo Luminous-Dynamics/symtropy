@@ -71,6 +71,28 @@ Unit tests cover the arithmetic, second-moment inequality, mean-vs-mean-square l
 6. Benchmark manual/incumbent design, deterministic grid or space-filling sweep, conventional constrained multi-objective optimization, and Symthaea-guided search under the same candidate budget and frozen holdouts.
 7. Only after held-out manufacturer/lab data qualify prediction error should results nominate a prototype for competent manufacture and formal testing.
 
+## Surrogate evaluation CLI
+
+A second binary evaluates a frozen reference/prediction table and reports metrics for the overall set, each geometry family, and each material.
+
+Example:
+
+```sh
+cargo run --release --manifest-path research/transformer-bench/Cargo.toml --bin surrogate-eval -- \
+  research/transformer-bench/fixtures/surrogate_predictions_synthetic.csv \
+  /tmp/transformer-surrogate-report.csv 3000 2
+```
+
+Exact input header:
+
+`candidate_id,geometry_family,material_id,reference_core_loss_w,predicted_core_loss_w,prediction_lower_w,prediction_upper_w,model_fea_queries`
+
+The row-level `model_fea_queries` value must be constant: it is the total costly FE calls attributed to that model/search run, including training, shortlist checks, failed/retried jobs and mesh refinements. The fourth CLI argument is the declared size of the candidate universe. This reports a claimed query reduction, not cryptographically audited simulation accounting; exact solver receipts and query logs remain required for a trustworthy comparative result. Held-out reference values may be produced by an evaluator's independent oracle, and are not counted as model-initiated calls.
+
+Metrics include mean/median/P95/maximum absolute relative error, Spearman rank correlation, top-k recall of the lowest-loss candidates, regret of the predicted best candidate against the best reference candidate, prediction-interval coverage, and mean interval width relative to reference loss. The evaluator rejects duplicate candidate IDs, inconsistent query counts, non-finite or physically nonsensical inputs, invalid prediction intervals, and derived non-finite metrics. Reports are stratified by geometry family and material to expose transfer failures hidden by aggregate scores.
+
+`fixtures/surrogate_predictions_synthetic.csv` is deliberately synthetic and tests the metric implementation only. Its values do not replicate the published paper, do not represent FEA output, and must never be cited as a model result. The evaluator assumes the split and source rows were frozen before model tuning; it cannot infer or authenticate data leakage from a CSV alone.
+
 ## State-of-the-art comparator (not a result from this repository)
 
 Zou et al., “A geometry-aware surrogate model for fast transformer core loss prediction and design optimization,” Electric Power Systems Research, DOI [10.1016/j.epsr.2026.113713](https://doi.org/10.1016/j.epsr.2026.113713), report one screening case that reduced 3,000 candidate schemes to 8 FE-verified schemes (99.7% fewer FE calls), with 2.6% mean and 4.6% maximum relative error on those shortlisted schemes. Their stated scope is GOES, 50 Hz sinusoidal steady state, and a three-phase three-limb transformer. Their results also report that comparative gains are conditional on material and validation split; random-split performance must not be treated as proof of transfer to unseen geometry families. Source: https://www.sciencedirect.com/science/article/abs/pii/S0378779626010060.
