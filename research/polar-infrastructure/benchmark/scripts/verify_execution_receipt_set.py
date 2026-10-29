@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from verify_execution_receipt import _verify_receipt_validated
-from verify_paired_comparison import validate_input as validate_paired_input
+from verify_paired_comparison_v0_4 import validate_input as validate_paired_input
 
 SHARED_GLOBAL_ROLES = {
     "plant_model", "executable", "runtime_environment", "observation_policy", "resource_policy",
