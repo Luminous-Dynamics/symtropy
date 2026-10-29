@@ -33,6 +33,8 @@ Dimensions 3 and 4 are specialized-path controls. Dimensions 5, 6, 8, and 16 exe
 
 The field is not waiting for "GJK works in N-D" as a new theorem. The differentiating research opportunity is a dimension-generic, numerically fail-closed implementation with independent oracles, scale/degeneracy coverage, explicit uncertainty, and honest cost curves beyond 3D.
 
+- [De Loera, Haddock and Rademacher, *The Minimum Euclidean-Norm Point in a Convex Polytope: Wolfe's Combinatorial Algorithm is Exponential*](https://doi.org/10.1137/18M1221072): a related minimum-norm active-set method has an exponential worst case. Symtropy's implementation is Wolfe-style, not proven polynomial; avoiding an explicit 2^m subset loop is not itself a complexity guarantee. Measure pivot counts, indeterminate tails and runtime growth by D, and consider a fallback/iteration policy for pathological dimensions.
+
 ## Claim ceiling
 
 This benchmark isolates narrow-phase query latency for these synthetic box workloads. It does not measure broad-phase scaling, full-world step time, contact resolution fidelity, arbitrary convex shapes, EPA accuracy, or cross-platform determinism.
