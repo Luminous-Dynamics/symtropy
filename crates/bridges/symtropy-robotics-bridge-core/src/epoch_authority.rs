@@ -52,6 +52,20 @@ pub trait ControllerEpochStore: Send + Sync {
     ) -> Result<u64, EpochAuthorityStoreError>;
 }
 
+impl<T: ControllerEpochStore + ?Sized> ControllerEpochStore for Arc<T> {
+    fn read_generation(&self, controller_id: &str) -> Result<u64, EpochAuthorityStoreError> {
+        (**self).read_generation(controller_id)
+    }
+
+    fn compare_and_advance(
+        &self,
+        controller_id: &str,
+        expected_generation: u64,
+    ) -> Result<u64, EpochAuthorityStoreError> {
+        (**self).compare_and_advance(controller_id, expected_generation)
+    }
+}
+
 /// Fail-closed errors raised by the authority wrapper.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EpochAuthorityError {
@@ -66,6 +80,10 @@ pub enum EpochAuthorityError {
     },
     SupersededDuringActivation {
         claimed_generation: u64,
+        observed_generation: u64,
+    },
+    GenerationRollbackDetected {
+        highest_observed_generation: u64,
         observed_generation: u64,
     },
     StaleEpoch {
@@ -83,6 +101,9 @@ pub enum EpochAuthorityError {
 pub struct ControllerEpochAuthority<S> {
     controller_id: String,
     store: S,
+    /// Per-process rollback detection only. Durable rollback resistance must
+    /// also be guaranteed by the store implementation itself.
+    highest_observed_generation: Mutex<Option<u64>>,
 }
 
 impl<S: ControllerEpochStore> ControllerEpochAuthority<S> {
@@ -97,6 +118,7 @@ impl<S: ControllerEpochStore> ControllerEpochAuthority<S> {
         Ok(Self {
             controller_id,
             store,
+            highest_observed_generation: Mutex::new(None),
         })
     }
 
@@ -137,6 +159,7 @@ impl<S: ControllerEpochStore> ControllerEpochAuthority<S> {
             });
         }
 
+        self.observe_high_water(next.generation())?;
         let observed = self.read_valid_generation()?;
         if observed != next {
             return Err(EpochAuthorityError::SupersededDuringActivation {
@@ -174,9 +197,32 @@ impl<S: ControllerEpochStore> ControllerEpochAuthority<S> {
             .store
             .read_generation(&self.controller_id)
             .map_err(EpochAuthorityError::Store)?;
-        ControllerEpoch::new(generation).map_err(|_| {
+        let epoch = ControllerEpoch::new(generation).map_err(|_| {
             EpochAuthorityError::InvalidStoredGeneration { generation }
-        })
+        })?;
+        self.observe_high_water(generation)?;
+        Ok(epoch)
+    }
+
+    fn observe_high_water(&self, generation: u64) -> Result<(), EpochAuthorityError> {
+        let mut high_water = self
+            .highest_observed_generation
+            .lock()
+            .map_err(|_| EpochAuthorityError::Store(EpochAuthorityStoreError::CorruptState))?;
+        if let Some(highest) = *high_water {
+            if generation < highest {
+                return Err(EpochAuthorityError::GenerationRollbackDetected {
+                    highest_observed_generation: highest,
+                    observed_generation: generation,
+                });
+            }
+            if generation > highest {
+                *high_water = Some(generation);
+            }
+        } else {
+            *high_water = Some(generation);
+        }
+        Ok(())
     }
 }
 
@@ -419,16 +465,16 @@ mod tests {
         store.set_generation("left-wheel-controller", 8);
         assert_eq!(
             authority.ensure_current(epoch(9)),
-            Err(EpochAuthorityError::StaleEpoch {
-                expected_current_generation: 8,
-                supplied_generation: 9,
+            Err(EpochAuthorityError::GenerationRollbackDetected {
+                highest_observed_generation: 9,
+                observed_generation: 8,
             })
         );
         assert_eq!(
             authority.ensure_current(old),
-            Err(EpochAuthorityError::StaleEpoch {
-                expected_current_generation: 8,
-                supplied_generation: 8,
+            Err(EpochAuthorityError::GenerationRollbackDetected {
+                highest_observed_generation: 9,
+                observed_generation: 8,
             })
         );
     }
