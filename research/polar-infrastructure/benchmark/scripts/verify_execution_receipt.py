@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from verify_paired_comparison_v0_4 import validate_input as validate_paired_input_v04
-from verify_paired_comparison import validate_input as validate_paired_input_v05
+from verify_paired_comparison import strict_json_loads, validate_input as validate_paired_input_v05
 
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 REVISION_RE = re.compile(r"^([a-f0-9]{40}|[a-f0-9]{64})$")
@@ -272,8 +272,8 @@ def main(argv: list[str]) -> int:
         print("usage: verify_execution_receipt.py RECEIPT.json PAIRED_INPUT.json", file=sys.stderr)
         return 2
     try:
-        receipt = json.loads(Path(argv[1]).read_text())
-        paired = json.loads(Path(argv[2]).read_text())
+        receipt = strict_json_loads(Path(argv[1]).read_text())
+        paired = strict_json_loads(Path(argv[2]).read_text())
         verify_receipt(receipt, paired)
     except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as exc:
         print(f"execution receipt verification failed: {exc}", file=sys.stderr)
