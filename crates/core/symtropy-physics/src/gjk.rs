@@ -94,17 +94,19 @@ fn simplex_is_finite<const D: usize>(simplex: &Simplex<D>) -> bool {
     simplex.iter().all(|point| vector_is_finite(point))
 }
 
-/// Squared roundoff tolerance scaled to the query's geometry and world coordinates.
+/// Separate geometric zero tolerance from world-coordinate roundoff.
 ///
-/// The absolute `1e-20` origin test makes equivalent geometry change classification
-/// when uniformly rescaled. Bounding radii capture shape extent; center coordinates
-/// account for precision lost when support points are represented in world space.
-fn scale_relative_origin_tolerance_squared<const D: usize>(
+/// The geometric tolerance scales with the bodies and their relative separation,
+/// so a common translation cannot widen the contact band. A second tolerance
+/// accounts for precision lost when support points are represented far from the
+/// origin. Points inside only that larger band are indeterminate, never promoted
+/// to an intersection merely because world coordinates are large.
+fn scale_relative_tolerances_squared<const D: usize>(
     shape_a: &dyn WorldSupportMap<D>,
     shape_b: &dyn WorldSupportMap<D>,
     center_a: &SVector<f64, D>,
     center_b: &SVector<f64, D>,
-) -> Result<f64, GjkFailureReason> {
+) -> Result<(f64, f64), GjkFailureReason> {
     let (_, radius_a) = shape_a.bounding_sphere_world();
     let (_, radius_b) = shape_b.bounding_sphere_world();
     if !radius_a.is_finite() || !radius_b.is_finite() || radius_a < 0.0 || radius_b < 0.0 {
@@ -115,22 +117,26 @@ fn scale_relative_origin_tolerance_squared<const D: usize>(
     if !vector_is_finite(&center_delta) {
         return Err(GjkFailureReason::NonFiniteArithmetic);
     }
+    let relative_scale = center_delta
+        .iter()
+        .fold(0.0_f64, |largest, value| largest.max(value.abs()));
+    let geometric_scale = radius_a.max(radius_b).max(relative_scale);
+    let geometric_scale = if geometric_scale == 0.0 {
+        1.0
+    } else {
+        geometric_scale
+    };
     let coordinate_scale = center_a
         .iter()
         .chain(center_b.iter())
-        .fold(0.0_f64, |largest, value| largest.max(value.abs()));
-    let separation_scale = center_delta
-        .iter()
-        .fold(0.0_f64, |largest, value| largest.max(value.abs()));
-    let scale = radius_a
-        .max(radius_b)
-        .max(coordinate_scale)
-        .max(separation_scale);
-    let scale = if scale == 0.0 { 1.0 } else { scale };
-    let linear_tolerance = 64.0 * f64::EPSILON * scale;
-    let squared_tolerance = linear_tolerance * linear_tolerance;
-    if squared_tolerance.is_finite() {
-        Ok(squared_tolerance)
+        .fold(geometric_scale, |largest, value| largest.max(value.abs()));
+
+    let geometric_tolerance = 64.0 * f64::EPSILON * geometric_scale;
+    let coordinate_tolerance = 64.0 * f64::EPSILON * coordinate_scale;
+    let geometric_squared = geometric_tolerance * geometric_tolerance;
+    let coordinate_squared = coordinate_tolerance * coordinate_tolerance;
+    if geometric_squared.is_finite() && coordinate_squared.is_finite() {
+        Ok((geometric_squared, coordinate_squared))
     } else {
         Err(GjkFailureReason::NonFiniteArithmetic)
     }
@@ -293,12 +299,11 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
         return indeterminate(simplex, 0, GjkFailureReason::NonFiniteInput);
     }
 
-    let origin_tolerance_squared = match scale_relative_origin_tolerance_squared(
-        shape_a, shape_b, &center_a, &center_b,
-    ) {
-        Ok(tolerance) => tolerance,
-        Err(reason) => return indeterminate(simplex, 0, reason),
-    };
+    let (origin_tolerance_squared, coordinate_tolerance_squared) =
+        match scale_relative_tolerances_squared(shape_a, shape_b, &center_a, &center_b) {
+            Ok(tolerances) => tolerances,
+            Err(reason) => return indeterminate(simplex, 0, reason),
+        };
 
     let mut direction = center_b - center_a;
     if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
@@ -333,6 +338,9 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
                 iterations: iteration,
             };
         }
+        if closest_squared <= coordinate_tolerance_squared {
+            return indeterminate(simplex, iteration, GjkFailureReason::DegenerateSimplex);
+        }
 
         direction = -closest;
         let new_point = minkowski_support(shape_a, shape_b, &direction);
@@ -366,7 +374,7 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
                     GjkFailureReason::NonFiniteArithmetic,
                 );
             }
-            if delta_squared <= origin_tolerance_squared {
+            if delta_squared <= coordinate_tolerance_squared {
                 return indeterminate(simplex, iteration, GjkFailureReason::DuplicateSupport);
             }
         }
