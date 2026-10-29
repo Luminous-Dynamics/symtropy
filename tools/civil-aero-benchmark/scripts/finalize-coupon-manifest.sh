@@ -18,6 +18,7 @@ jq -e --arg path "$stl_path" '
   .output_file == $path and
   .output_sha256 == null and
   .watertight_two_manifold == true and
+  .orientation_consistent == true and
   .signed_volume_mm3 > 0 and
   .manufacturing_release == "not_authorized" and
   .flight_use == "prohibited" and
