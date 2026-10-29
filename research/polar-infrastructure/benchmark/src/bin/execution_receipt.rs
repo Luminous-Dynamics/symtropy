@@ -426,7 +426,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let receipt: Receipt = serde_json::from_str(&raw)?;
     validate(&receipt).map_err(|e| format!("execution receipt rejected: {e}"))?;
     println!("{}", serde_json::json!({
-        "schema_version": "0.1.0",
+        "schema_version": receipt.schema_version,
         "report_kind": "controller-execution-receipt-validation",
         "contract_valid": true,
         "status": receipt.status,
