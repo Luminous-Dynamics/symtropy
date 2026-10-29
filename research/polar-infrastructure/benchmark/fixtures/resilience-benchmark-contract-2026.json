@@ -448,5 +448,27 @@
     "all_admission_gates_false": true,
     "performance_claim": "none",
     "synthetic_oracle_is_physical_evidence": false
+  },
+  "causal_ablation_extension": {
+    "status": "proposed_not_executed",
+    "evidence_class": "test_design_only",
+    "protocol_path": "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md",
+    "benchmark_targets_path": "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md",
+    "one_factor_ablation_required": true,
+    "identical_paired_disturbances_required": true,
+    "content_bound_model_controller_and_input_artifacts_required": true,
+    "shared_information_and_resource_budget_required": true,
+    "randomized_execution_order_required": true,
+    "deterministic_no_op_placebo_required": true,
+    "deterministic_no_op_divergence_above_declared_tolerance_allowed": false,
+    "stale_or_shuffled_forecast_negative_control_required": true,
+    "feature_computed_but_not_consumed_negative_control_required": true,
+    "blocked_episode_or_site_year_analysis_required": true,
+    "stochastic_placebo_nominal_false_positive_level": 0.05,
+    "false_positive_uncertainty_must_be_reported": true,
+    "sensitivity_to_model_and_scenario_uncertainty_required": true,
+    "resource_adjusted_effects_required": true,
+    "physical_or_field_causal_claim": "none",
+    "performance_claim": "none"
   }
 }
