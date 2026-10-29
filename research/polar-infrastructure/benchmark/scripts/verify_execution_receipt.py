@@ -150,6 +150,13 @@ def _verify_receipt_validated(
          and trajectory["initial_state_sha256"] == bindings["initial_state_sha256"]
          and controller["controller_sha256"] == bindings["controller_artifact_sha256"],
          "receipt digest does not resolve to the paired input artifact registry")
+    if receipt_version == "0.2.0":
+        need(trajectory["observation_trace_sha256"] == bindings["observation_trace_sha256"],
+             "receipt observation-trace binding disagrees with the paired input trajectory")
+        observation_policy = inventory_by_role["observation_policy"]
+        need(observation_policy["sha256"] == bindings["information_budget_sha256"]
+             and observation_policy["payload"] == paired["information_budget_payload"],
+             "receipt observation policy artifact disagrees with the paired information budget")
 
     limits = receipt.get("resource_limits", {})
     observed = receipt.get("observed_resources", {})
