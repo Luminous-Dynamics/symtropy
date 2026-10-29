@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from verify_paired_comparison import build_expected_report, verify_documents  # noqa: E402
 
 HERE = Path(__file__).resolve().parents[1]
-FIXTURE = HERE.parent / "fixtures" / "paired-comparison-v0.3.json"
+FIXTURE = HERE.parent / "fixtures" / "paired-comparison-v0.4.json"
 
 
 class PairedComparisonVerifierTests(unittest.TestCase):
@@ -83,6 +83,30 @@ class PairedComparisonVerifierTests(unittest.TestCase):
         doc = copy.deepcopy(self.fixture)
         doc["cases"][0]["signed_gate_margins"]["critical_energy"] = -1.0
         with self.assertRaisesRegex(ValueError, "pass needs nonnegative margin"):
+            build_expected_report(doc)
+
+    def test_rejects_trajectory_payload_tampering(self):
+        doc = copy.deepcopy(self.fixture)
+        doc["trajectory_artifacts"][0]["trajectory_payload"] += "-tampered"
+        with self.assertRaisesRegex(ValueError, "trajectory payload SHA-256 mismatch"):
+            build_expected_report(doc)
+
+    def test_rejects_controller_payload_tampering(self):
+        doc = copy.deepcopy(self.fixture)
+        doc["controller_artifacts"][0]["controller_payload"] += "-tampered"
+        with self.assertRaisesRegex(ValueError, "controller payload SHA-256 mismatch"):
+            build_expected_report(doc)
+
+    def test_rejects_case_referencing_wrong_trace_digest(self):
+        doc = copy.deepcopy(self.fixture)
+        doc["cases"][1]["trajectory_sha256"] = "a" * 64
+        with self.assertRaisesRegex(ValueError, "digest/ID binding"):
+            build_expected_report(doc)
+
+    def test_rejects_missing_controller_artifact(self):
+        doc = copy.deepcopy(self.fixture)
+        doc["controller_artifacts"].pop()
+        with self.assertRaisesRegex(ValueError, "controller artifacts do not match"):
             build_expected_report(doc)
 
 
