@@ -349,13 +349,36 @@ fn assert_seeded_rotated_box_panel<const D: usize>(
     seed_value: u64,
     cases: usize,
     indeterminate_budget: usize,
+    stratified: bool,
 ) {
     let mut seed = seed_value ^ (D as u64);
     let mut indeterminate_cases = 0usize;
+    let mut oracle_intersections = 0usize;
+    let mut oracle_separations = 0usize;
     for case_id in 0..cases {
         let a = seeded_oriented_box::<D>(&mut seed);
-        let b = seeded_oriented_box::<D>(&mut seed);
+        let mut b = seeded_oriented_box::<D>(&mut seed);
+        if stratified {
+            match case_id % 3 {
+                // Both boxes contain an inscribed ball of radius >= 0.3; this
+                // centre shift guarantees intersection without depending on SAT.
+                0 => b.center = a.center + SVector::from_element(0.05),
+                // Each box has circumradius <= sqrt(D), so this offset safely
+                // guarantees separation for the tested dimensions.
+                1 => {
+                    b.center = a.center
+                        + SVector::from_fn(|axis, _| if axis == 0 { 12.0 } else { 0.0 });
+                }
+                _ => {} // retain the independently randomized configuration
+            }
+        }
+
         let expected = sat_oracle(&a, &b);
+        if expected {
+            oracle_intersections += 1;
+        } else {
+            oracle_separations += 1;
+        }
         let result = intersects_support_maps(&a, &b);
         match result.termination {
             GjkTermination::Intersecting => assert!(
@@ -369,6 +392,13 @@ fn assert_seeded_rotated_box_panel<const D: usize>(
             GjkTermination::Indeterminate(_) => indeterminate_cases += 1,
         }
     }
+
+    if stratified {
+        assert!(
+            oracle_intersections >= cases / 4 && oracle_separations >= cases / 4,
+            "D={D}: stratified oracle distribution was too imbalanced: {oracle_intersections} overlaps, {oracle_separations} separations"
+        );
+    }
     assert!(
         indeterminate_cases <= indeterminate_budget,
         "D={D}: indeterminate outcomes {indeterminate_cases}/{cases} exceeded the frozen budget of {indeterminate_budget}"
@@ -377,32 +407,32 @@ fn assert_seeded_rotated_box_panel<const D: usize>(
 
 #[test]
 fn active_set_gjk_matches_sat_on_seeded_rotated_five_dimensional_boxes() {
-    assert_seeded_rotated_box_panel::<5>(0x4e44_474a_4b5f_5341, 64, 6);
+    assert_seeded_rotated_box_panel::<5>(0x4e44_474a_4b5f_5341, 64, 6, false);
 }
 
 #[test]
 fn active_set_gjk_matches_sat_on_seeded_rotated_six_dimensional_boxes() {
-    assert_seeded_rotated_box_panel::<6>(0x4e44_474a_4b5f_5341, 64, 6);
+    assert_seeded_rotated_box_panel::<6>(0x4e44_474a_4b5f_5341, 64, 6, false);
 }
 
 #[test]
 fn active_set_gjk_matches_sat_on_validation_five_dimensional_boxes() {
-    assert_seeded_rotated_box_panel::<5>(0xA17E_5EED_5A7E_0001, 64, 4);
+    assert_seeded_rotated_box_panel::<5>(0xA17E_5EED_5A7E_0001, 64, 4, false);
 }
 
 #[test]
 fn active_set_gjk_matches_sat_on_validation_six_dimensional_boxes() {
-    assert_seeded_rotated_box_panel::<6>(0xA17E_5EED_6A7E_0001, 64, 4);
+    assert_seeded_rotated_box_panel::<6>(0xA17E_5EED_6A7E_0001, 64, 4, false);
 }
 
 #[test]
 fn active_set_gjk_matches_sat_on_confirmation_five_dimensional_boxes() {
-    assert_seeded_rotated_box_panel::<5>(0xC0FF_EE55_5EED_0001, 64, 4);
+    assert_seeded_rotated_box_panel::<5>(0xC0FF_EE55_5EED_0001, 64, 4, false);
 }
 
 #[test]
 fn active_set_gjk_matches_sat_on_confirmation_six_dimensional_boxes() {
-    assert_seeded_rotated_box_panel::<6>(0xC0FF_EE66_5EED_0001, 64, 4);
+    assert_seeded_rotated_box_panel::<6>(0xC0FF_EE66_5EED_0001, 64, 4, false);
 }
 
 
@@ -420,6 +450,16 @@ impl<const D: usize> WorldSupportMap<D> for NonFiniteSupport<D> {
     fn bounding_sphere_world(&self) -> (SVector<f64, D>, f64) {
         (SVector::zeros(), 1.0)
     }
+}
+
+#[test]
+fn active_set_gjk_matches_stratified_overlap_and_separation_panel_in_five_dimensions() {
+    assert_seeded_rotated_box_panel::<5>(0xB411_AA11_5A7E_0001, 96, 10, true);
+}
+
+#[test]
+fn active_set_gjk_matches_stratified_overlap_and_separation_panel_in_six_dimensions() {
+    assert_seeded_rotated_box_panel::<6>(0xB411_AA11_6A7E_0001, 96, 10, true);
 }
 
 #[test]
