@@ -370,7 +370,7 @@ def build_expected_report(doc: dict[str, Any]) -> dict[str, Any]:
         "gate_margin_contracts": doc["gate_margin_contracts"],
         "information_budget": {
             "sha256": doc["information_budget_sha256"],
-            "payload_sha256_verification": "independently_verified",
+            "payload_sha256_verification": "delegated_to_independent_verifier",
             "forecast_lookahead_seconds": budget["max_forecast_lookahead_s"],
             "decision_interval_seconds": budget["decision_interval_s"],
             "compute_budget_ms": budget["max_compute_budget_ms"],
