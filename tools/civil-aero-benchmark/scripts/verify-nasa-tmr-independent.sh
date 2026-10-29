@@ -50,6 +50,7 @@ function numeric(s) {
   label = substr($0, RSTART + 3, RLENGTH - 4)
   if (label in seen) exit 31
   seen[label] = 1
+  zone_count++
   current = label
   next
 }
@@ -80,6 +81,7 @@ function numeric(s) {
   label = substr($0, RSTART + 3, RLENGTH - 4)
   if (label in seen) exit 41
   seen[label] = 1
+  zone_count++
   current = label
   next
 }
