@@ -133,7 +133,7 @@ fn run() -> Result<(), String> {
             .collect();
         summaries.push(summarize(
             "frequency_hz",
-            &format!("{frequency:g}"),
+            &format!("{frequency}"),
             &subset,
             model_fea_queries,
             universe,
@@ -553,7 +553,7 @@ mod tests {
         ];
         let s = summarize("overall", "all", &rows, 8, 3000, 3000, 2).unwrap();
         assert!(s.mean_relative_error_pct.abs() < 1.0e-12);
-        assert!(s.best_candidate_regret_pct.abs() < 1.0e-12);
+        assert!(s.best_candidate_regret_pct.unwrap().abs() < 1.0e-12);
         assert!((s.spearman_rank_correlation.unwrap() - 1.0).abs() < 1.0e-12);
         assert!((s.top_k_recall_pct.unwrap() - 100.0).abs() < 1.0e-12);
         assert!((s.prediction_interval_coverage_pct - 100.0).abs() < 1.0e-12);
@@ -568,8 +568,8 @@ mod tests {
         ];
         let s = summarize("overall", "all", &rows, 2, 100, 100, 1).unwrap();
         assert!(s.mean_relative_error_pct < 1.0);
-        assert!(s.best_candidate_regret_pct > 0.0);
-        assert_eq!(s.top_k_recall_pct, 0.0);
+        assert!(s.best_candidate_regret_pct.unwrap() > 0.0);
+        assert_eq!(s.top_k_recall_pct, Some(0.0));
     }
 
     #[test]
