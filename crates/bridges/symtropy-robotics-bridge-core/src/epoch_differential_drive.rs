@@ -12,7 +12,7 @@
 //! is evidence of native admission, not proof that a physical motor command was
 //! applied. Hardware write/application evidence belongs to a lower-level adapter.
 
-use crate::control::{ControlRequestError, EmbodiedIntent, Pose3};
+use crate::control::{ControlRequestError, EmbodiedIntent};
 use crate::differential_drive::{
     DifferentialDriveClock, DifferentialDriveCommand, DifferentialDriveConfigError,
 };
