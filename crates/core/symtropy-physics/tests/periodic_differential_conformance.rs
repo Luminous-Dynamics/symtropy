@@ -270,12 +270,13 @@ fn periodic_sphere_ccd_all_images_matches_direct_shift_oracle() {
             close(actual[&image], oracle_toi, 1e-10);
         }
         assert!(
-            actual_hits_ordered(&actual_hits_placeholder()),
-            "placeholder unreachable"
+            actual_hits.windows(2).all(|pair| {
+                pair[0].toi_seconds < pair[1].toi_seconds
+                    || (pair[0].toi_seconds == pair[1].toi_seconds
+                        && pair[0].image_offset.periods <= pair[1].image_offset.periods)
+            }),
+            "CCD results are not deterministically ordered at case {case}"
         );
     }
 }
 
-// This compile-time helper is intentionally replaced below by an ordering
-// assertion on captured (TOI, image) rows; it avoids hiding order validation
-// in the map comparison above.
