@@ -923,7 +923,7 @@ mod tests {
     fn truth_ids_must_match_problem_ids() {
         let p = parse_problems(PROBLEMS).unwrap();
         let mut t = parse_truth(TRUTH).unwrap();
-        t.remove("heldout_majority");
+        t.remove("w_013");
         assert!(assemble(p, t).is_err());
     }
     #[test]
