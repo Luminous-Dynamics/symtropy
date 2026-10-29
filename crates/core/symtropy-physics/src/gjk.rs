@@ -44,6 +44,8 @@ pub enum GjkFailureReason {
     SimplexCapacityExceeded,
     /// The iteration budget was exhausted without a definitive result.
     IterationLimit,
+    /// World-coordinate roundoff is too large for a safe geometric classification.
+    CoordinatePrecisionLimit,
 }
 
 /// Termination outcome for a GJK query.
@@ -339,7 +341,7 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
             };
         }
         if closest_squared <= coordinate_tolerance_squared {
-            return indeterminate(simplex, iteration, GjkFailureReason::DegenerateSimplex);
+            return indeterminate(simplex, iteration, GjkFailureReason::CoordinatePrecisionLimit);
         }
 
         direction = -closest;
