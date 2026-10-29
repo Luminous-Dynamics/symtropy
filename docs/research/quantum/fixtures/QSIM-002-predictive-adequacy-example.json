@@ -1,0 +1,58 @@
+{
+  "schema_version": "qsim-002-predictive-adequacy-example/1",
+  "fixture_id": "QSIM-002-SYNTHETIC-HOLDOUT-ADEQUACY-001",
+  "fixture_class": "synthetic_analytic_reference",
+  "deployment_allowed": false,
+  "qualification_status": "EXAMPLE_ONLY",
+  "model": {
+    "model_id": "toy-categorical-sensor",
+    "model_version": "1",
+    "workload_fingerprint": "synthetic-two-outcome-photonic-toy-v1",
+    "evidence_class": "synthetic_analytic_fixture"
+  },
+  "holdout": {
+    "artifact_digest": "synthetic-heldout-counts-fixture-v1",
+    "outcome_order": [
+      "click",
+      "no-click"
+    ],
+    "predicted_probabilities": [
+      0.5,
+      0.5
+    ],
+    "observed_counts": [
+      50,
+      50
+    ],
+    "total_observations": 100,
+    "sampling_assumption": "iid_categorical",
+    "independence_basis": "declared only for this deterministic known-answer fixture; not a physical sampling assertion"
+  },
+  "policy": {
+    "min_observations": 100,
+    "confidence_level": 0.95,
+    "max_total_variation_upper_bound": 0.25,
+    "max_brier_score": 0.6,
+    "max_mean_log_loss_nats": 1
+  },
+  "expected_analytic_metrics": {
+    "empirical_frequencies": [
+      0.5,
+      0.5
+    ],
+    "observed_total_variation": 0,
+    "total_variation_sampling_radius": 0.13581015157406193,
+    "total_variation_upper_bound": 0.13581015157406193,
+    "brier_score": 0.5,
+    "mean_log_loss_nats": 0.6931471805599453,
+    "observed_zero_probability_event": false,
+    "status": "pass"
+  },
+  "intended_use": "Known-answer integration example for the predictive-adequacy interface only.",
+  "prohibited_claims": [
+    "Not calibrated optical data",
+    "Not measured photonic-device outcomes",
+    "Does not qualify the optical model or make it safe for deployment",
+    "Does not establish quantum advantage"
+  ]
+}
