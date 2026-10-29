@@ -227,7 +227,7 @@ impl EpochFencedOutcomeLedger {
                     .get(request_epoch)
                     .and_then(|ledger| ledger.last_outcome(*request_id))
                     .is_none_or(|outcome| !outcome.status.is_terminal());
-                Some(usize::from(unresolved))
+                Some(if unresolved { 1 } else { 0 })
             })
             .sum()
     }
