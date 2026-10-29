@@ -887,13 +887,20 @@ mod tests {
 
     #[test]
     fn unexpected_and_missing_scenarios_fail_closed() {
-        let (expected_scenarios, trials) = complete_campaign();
+        let (expected_scenarios, mut unexpected_trials) = complete_campaign();
+        let mut unexpected = unexpected_trials
+            .iter()
+            .find(|row| row.class.is_faulted())
+            .unwrap()
+            .clone();
+        unexpected.scenario_id = "unexpected-scenario".into();
+        unexpected_trials.push(unexpected);
         assert_eq!(
-            score_recovery_campaign(&expected_scenarios[0..1], &trials),
+            score_recovery_campaign(&expected_scenarios, &unexpected_trials),
             Err(RecoveryBenchmarkError::UnexpectedScenario)
         );
 
-        let mut missing_trials = trials.clone();
+        let (expected_scenarios, mut missing_trials) = complete_campaign();
         missing_trials.retain(|row| row.scenario_id != "fault-a");
         assert_eq!(
             score_recovery_campaign(&expected_scenarios, &missing_trials),
