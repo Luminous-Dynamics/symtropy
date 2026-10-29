@@ -87,7 +87,7 @@ The intended differentiator is decision credibility per engineering cost—not a
 
 ## Parametric non-flight coupon geometry
 
-The optional Rust binary named coupon_mesh creates a watertight, extruded, ground-test-only NACA 0012 coupon using the corrected scaled sharp-trailing-edge polynomial published by NASA TMR. It uses cosine chordwise spacing and performs an internal edge-use and signed-volume audit before writing ASCII STL. The generated JSON manifest explicitly states that its dimensions are millimetres, its SHA-256 still needs to be computed over the exact output bytes, and the geometry is not approved for flight or any specific wind tunnel.
+The optional Rust binary named coupon_mesh creates a watertight, extruded, ground-test-only NACA 0012 coupon using the corrected scaled sharp-trailing-edge polynomial published by NASA TMR. It uses cosine chordwise spacing and performs an internal edge-use, directed edge-winding, unreferenced-vertex, and signed-volume audit before writing ASCII STL. The generated JSON manifest explicitly states that its dimensions are millimetres, its SHA-256 still needs to be computed over the exact output bytes, and the geometry is not approved for flight or any specific wind tunnel.
 
 Example command (100 mm chord / 80 mm span are only CI smoke-test parameters, not recommended dimensions for a real facility):
 
