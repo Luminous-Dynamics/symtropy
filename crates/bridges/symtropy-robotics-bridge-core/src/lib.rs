@@ -10,6 +10,7 @@ pub mod differential_drive;
 pub mod dispatch;
 pub mod epoch_authority;
 pub mod epoch_command_queue;
+pub mod epoch_differential_drive;
 pub mod epoch_fence;
 pub mod epoch_fenced_sink;
 pub mod haptic;
@@ -44,6 +45,11 @@ pub use epoch_authority::{
 pub use epoch_command_queue::{
     EpochCommandApplication, EpochCommandQueue, EpochCommandQueueError, EpochCommandQueueStats,
     EpochQueuedCommand,
+};
+pub use epoch_differential_drive::{
+    EpochDifferentialDriveError, EpochFencedCommandProvenance,
+    EpochFencedDifferentialDriveAdapter, EpochFencedDifferentialDriveLocalController,
+    EpochFencedDifferentialDriveReceipt, EpochFencedNativeReceipt,
 };
 pub use epoch_fence::{ControllerEpoch, EpochFenceError, EpochFencedOutcomeLedger};
 pub use epoch_fenced_sink::{
