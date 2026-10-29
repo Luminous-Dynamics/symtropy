@@ -595,6 +595,58 @@ mod tests {
     }
 
     #[test]
+    fn global_lattice_translation_and_insertion_order_preserve_dynamics() {
+        let mut baseline = world(16);
+        baseline.add_body(body(2, [9.0, 0.0], [2.0, 0.0], 1.0, 1.0)).unwrap();
+        baseline.add_body(body(1, [0.5, 0.0], [0.0, 0.0], 1.0, 1.0)).unwrap();
+
+        let mut translated = world(16);
+        // Deliberately use a different insertion order and shift every point
+        // by three complete cells. Physical trajectories must be equivalent.
+        translated.add_body(body(1, [30.5, 0.0], [0.0, 0.0], 1.0, 1.0)).unwrap();
+        translated.add_body(body(2, [39.0, 0.0], [2.0, 0.0], 1.0, 1.0)).unwrap();
+
+        let baseline_report = baseline.step(1.0).unwrap();
+        let translated_report = translated.step(1.0).unwrap();
+
+        assert_eq!(baseline_report.events.len(), translated_report.events.len());
+        assert_eq!(baseline_report.events.len(), 1);
+        for (left, right) in baseline_report.events.iter().zip(&translated_report.events) {
+            assert_eq!((left.body_a, left.body_b), (right.body_a, right.body_b));
+            assert_eq!(left.image_offset, right.image_offset);
+            close(left.event_time_fraction, right.event_time_fraction, 1e-12);
+        }
+        for (left, right) in baseline.bodies().iter().zip(translated.bodies()) {
+            assert_eq!(left.id, right.id);
+            assert_eq!(left.velocity, right.velocity);
+            close(right.position[0] - left.position[0], 30.0, 1e-12);
+            close(right.position[1] - left.position[1], 0.0, 1e-12);
+        }
+        close(
+            baseline_report.kinetic_energy_before,
+            translated_report.kinetic_energy_before,
+            1e-12,
+        );
+        close(
+            baseline_report.kinetic_energy_after,
+            translated_report.kinetic_energy_after,
+            1e-12,
+        );
+        for axis in 0..2 {
+            close(
+                baseline_report.momentum_before[axis],
+                translated_report.momentum_before[axis],
+                1e-12,
+            );
+            close(
+                baseline_report.momentum_after[axis],
+                translated_report.momentum_after[axis],
+                1e-12,
+            );
+        }
+    }
+
+    #[test]
     fn inelastic_seam_impact_dissipates_energy_without_losing_momentum() {
         let mut world = world(8);
         world.add_body(body(1, [0.5, 0.0], [0.0, 0.0], 1.0, 0.0)).unwrap();
