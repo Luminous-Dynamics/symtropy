@@ -284,3 +284,142 @@ fn periodic_sphere_ccd_all_images_matches_direct_shift_oracle() {
     }
 }
 
+
+
+#[test]
+fn minimum_image_is_invariant_under_integer_lattice_translation() {
+    let domain = PeriodicBox::new(
+        SVector::from([13.25, -5.5]),
+        SVector::from([2.75, 8.0]),
+        [true, true],
+    )
+    .unwrap();
+
+    let mut seed = 0x4c41_5454_4943_4553_u64;
+    for case in 0..1_000 {
+        let displacement = SVector::from([
+            range(&mut seed, -100.0, 100.0),
+            range(&mut seed, -100.0, 100.0),
+        ]);
+        let shifts = [
+            (lcg_next(&mut seed) % 81) as i64 - 40,
+            (lcg_next(&mut seed) % 81) as i64 - 40,
+        ];
+        let translated = SVector::from([
+            displacement[0] + shifts[0] as f64 * domain.periods()[0],
+            displacement[1] + shifts[1] as f64 * domain.periods()[1],
+        ]);
+
+        let original_image = domain.minimum_image_displacement(&displacement).unwrap();
+        let translated_image = domain.minimum_image_displacement(&translated).unwrap();
+        for axis in 0..2 {
+            close(
+                translated_image[axis],
+                original_image[axis],
+                2e-10,
+            );
+        }
+
+        let reverse = domain.minimum_image_displacement(&(-translated)).unwrap();
+        for axis in 0..2 {
+            close(reverse[axis], -translated_image[axis], 2e-10);
+        }
+        assert!(case < 1_000);
+    }
+}
+
+#[test]
+fn wrapping_and_minimum_image_are_uniform_scale_covariant() {
+    let origin = SVector::from([13.25, -5.5]);
+    let periods = SVector::from([2.75, 8.0]);
+    let domain = PeriodicBox::new(origin, periods, [true, true]).unwrap();
+    let scales = [0.125_f64, 0.5, 2.0, 8.0];
+    let mut seed = 0x5343_414c_455f_5045_u64;
+
+    for scale in scales {
+        let scaled_domain = PeriodicBox::new(
+            origin * scale,
+            periods * scale,
+            [true, true],
+        )
+        .unwrap();
+
+        for case in 0..250 {
+            let point = SVector::from([
+                range(&mut seed, -100.0, 100.0),
+                range(&mut seed, -100.0, 100.0),
+            ]);
+            let displacement = SVector::from([
+                range(&mut seed, -100.0, 100.0),
+                range(&mut seed, -100.0, 100.0),
+            ]);
+
+            let wrapped = domain.wrap_point(&point).unwrap();
+            let scaled_wrapped = scaled_domain.wrap_point(&(point * scale)).unwrap();
+            assert_eq!(wrapped.image_offset, scaled_wrapped.image_offset);
+            for axis in 0..2 {
+                close(
+                    scaled_wrapped.position[axis],
+                    wrapped.position[axis] * scale,
+                    2e-9,
+                );
+            }
+
+            let image = domain.minimum_image_displacement(&displacement).unwrap();
+            let scaled_image = scaled_domain
+                .minimum_image_displacement(&(displacement * scale))
+                .unwrap();
+            for axis in 0..2 {
+                close(scaled_image[axis], image[axis] * scale, 2e-9);
+            }
+            assert!(case < 250);
+        }
+    }
+}
+
+#[test]
+fn periodic_aabb_image_sets_are_invariant_under_global_lattice_translation() {
+    let domain = domain_x_periodic();
+    let mut seed = 0x474c_4f42_414c_5f50_u64;
+
+    for case in 0..500 {
+        let ax = range(&mut seed, -15.0, 15.0);
+        let ay = range(&mut seed, -3.0, 3.0);
+        let aw = range(&mut seed, 0.0, 2.0);
+        let ah = range(&mut seed, 0.0, 2.0);
+        let bx = range(&mut seed, -15.0, 15.0);
+        let by = range(&mut seed, -3.0, 3.0);
+        let bw = range(&mut seed, 0.0, 2.0);
+        let bh = range(&mut seed, 0.0, 2.0);
+        let a = aabb([ax, ay], [ax + aw, ay + ah]);
+        let b = aabb([bx, by], [bx + bw, by + bh]);
+        let shift_cells = (lcg_next(&mut seed) % 41) as i64 - 20;
+        let shift = shift_cells as f64 * 10.0;
+        let shifted_a = aabb(
+            [a.min[0] + shift, a.min[1]],
+            [a.max[0] + shift, a.max[1]],
+        );
+        let shifted_b = aabb(
+            [b.min[0] + shift, b.min[1]],
+            [b.max[0] + shift, b.max[1]],
+        );
+
+        let original: BTreeSet<[i64; 2]> =
+            image_offsets_for_aabb_pair(&domain, &a, &b, 64)
+                .unwrap()
+                .into_iter()
+                .map(|offset| offset.periods)
+                .collect();
+        let translated: BTreeSet<[i64; 2]> =
+            image_offsets_for_aabb_pair(&domain, &shifted_a, &shifted_b, 64)
+                .unwrap()
+                .into_iter()
+                .map(|offset| offset.periods)
+                .collect();
+
+        assert_eq!(
+            original, translated,
+            "global lattice shift changed image offsets at case {case}"
+        );
+    }
+}
