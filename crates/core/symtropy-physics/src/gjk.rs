@@ -548,7 +548,7 @@ fn closest_point_on_hull_active_set<const D: usize>(
         // accumulate rounding. Use a conservative dimension-scaled bound here;
         // keep the outer GJK progress certificate stricter and independently
         // fail closed when its sign is inconsistent.
-        let optimality_tolerance = 1024.0
+        let optimality_tolerance = 8192.0
             * dimension_factor
             * f64::EPSILON
             * dot_roundoff_scale.max(f64::MIN_POSITIVE);
