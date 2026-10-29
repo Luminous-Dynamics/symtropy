@@ -16,7 +16,16 @@ From the Symtropy workspace root:
 cargo test -p symtropy-soil
 ```
 
-The current suite includes 13 synthetic tests covering zero flux, inflows/outflows, exact depletion, over-capacity conditions, invalid inputs, millimeter/centimeter/liter-per-area/rate-time conversions, overflow, deterministic replay, multi-step accounting, and a fixed-seed 10,000-case conservation sweep. These are synthetic software-invariant tests, not soil observations or efficacy benchmarks.
+The current suite includes 17 synthetic tests covering zero flux, inflows/outflows, exact depletion, over-capacity conditions, invalid inputs, millimeter/centimeter/liter-per-area/rate-time conversions, overflow, deterministic replay, multi-step accounting, and a fixed-seed 10,000-case conservation sweep. These are synthetic software-invariant tests, not soil observations or efficacy benchmarks.
+
+## Calibrated constitutive relationship
+
+The crate now also contains an opt-in van Genuchten-Mualem relationship for a measured soil, with explicitly stated units and guarded parameter domains:
+
+- water-retention curve: van Genuchten (1980), https://doi.org/10.2136/sssaj1980.03615995004400050002x
+- unsaturated hydraulic conductivity closure: Mualem (1976), https://doi.org/10.1029/WR012i003p00513
+
+This evaluates a curve from supplied parameters; it does not estimate those parameters or infer how biochar changes them. Parameter fitting requires measured retention data, and predictions need validation against independent observations. The model is not a Richards-equation solver and does not calculate transient infiltration/drainage by itself.
 
 ## Accounting identity
 
