@@ -8,6 +8,7 @@ pub mod assurance;
 pub mod control;
 pub mod differential_drive;
 pub mod dispatch;
+pub mod outcome_ledger;
 pub mod haptic;
 pub mod motor;
 pub mod platform;
@@ -33,6 +34,7 @@ pub use dispatch::{
     SessionAuthenticationError, SessionAuthenticator,
 };
 pub use haptic::{HapticAttestation, HapticOracle};
+pub use outcome_ledger::{ControlOutcomeLedger, OutcomeIngestReceipt, OutcomeLedgerError};
 pub use motor::{MotorPlanner, UniformGainPlanner};
 pub use platform::PlatformType;
 pub use safety::JointSafetyAuthority;

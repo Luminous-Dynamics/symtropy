@@ -232,6 +232,7 @@ impl ControlOutcomeStatus {
             Self::Executing => matches!(
                 next,
                 Self::Constrained
+                    | Self::Vetoed
                     | Self::Executing
                     | Self::Completed
                     | Self::Failed
@@ -492,6 +493,14 @@ mod tests {
             next.validate_successor_of(&previous),
             Err(ControlOutcomeError::TickWentBackwards)
         );
+    }
+
+    #[test]
+    fn safety_veto_can_terminate_an_executing_request() {
+        let previous = outcome(ControlOutcomeStatus::Executing, 10.0, 1);
+        let veto = outcome(ControlOutcomeStatus::Vetoed, 10.1, 2);
+        assert_eq!(veto.validate_successor_of(&previous), Ok(()));
+        assert!(veto.status.is_terminal());
     }
 
     #[test]
