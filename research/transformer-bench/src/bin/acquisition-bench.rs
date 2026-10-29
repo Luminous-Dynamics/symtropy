@@ -168,7 +168,10 @@ impl<'a> SplitPool<'a> {
     fn distance_squared(&self, left: &Candidate, right: &Candidate) -> f64 {
         let a = self.normalized_features(left);
         let b = self.normalized_features(right);
-        (0..3).map(|i| (a[i] - b[i]).powi(2)).sum()
+        let continuous: f64 = (0..3).map(|i| (a[i] - b[i]).powi(2)).sum();
+        let geometry_distance = if left.geometry_family == right.geometry_family { 0.0 } else { 1.0 };
+        let material_distance = if left.material_id == right.material_id { 0.0 } else { 1.0 };
+        continuous + geometry_distance + material_distance
     }
 }
 
@@ -480,6 +483,23 @@ mod tests {
         fs::write(&path,format!("{header}\na,G1,M1,50,SINUSOIDAL,0,0,0,10,10,9,11\nb,G1,M1,60,SINUSOIDAL,0,0,0,11,11,10,12\n")).unwrap();
         assert!(read_candidates(&path).unwrap_err().contains("mixes operating domains"));
         let _=fs::remove_file(path);
+    }
+
+    #[test]
+    fn checked_in_synthetic_pool_runs_all_policies_under_equal_budget() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures/acquisition-pool-synthetic.csv");
+        let rows = read_candidates(path.to_str().unwrap()).unwrap();
+        assert_eq!(rows.len(), 24);
+        let pool = SplitPool::new(&rows);
+        let trials: Vec<Trial> = POLICY_NAMES
+            .iter()
+            .map(|policy| evaluate_policy(&pool, policy, 6, 8, 42).unwrap())
+            .collect();
+        assert_eq!(trials.len(), POLICY_NAMES.len());
+        assert!(trials.iter().all(|trial| trial.budget == 6));
+        assert!(trials.iter().all(|trial| trial.oracle_best > 0.0));
+        assert!(trials.iter().all(|trial| trial.observed_best >= trial.oracle_best));
     }
 
     #[test]
