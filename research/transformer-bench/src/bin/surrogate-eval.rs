@@ -35,6 +35,7 @@ struct Summary {
     n: usize,
     model_fea_queries: u64,
     candidate_universe_size: u64,
+    full_pool_fea_queries: u64,
     mean_relative_error_pct: f64,
     median_relative_error_pct: f64,
     p95_relative_error_pct: f64,
@@ -56,9 +57,9 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
-    if args.len() < 4 || args.len() > 5 {
+    if args.len() < 5 || args.len() > 6 {
         return Err(format!(
-            "usage: {} <predictions.csv> <report.csv> <candidate_universe_size> [top_k=8]",
+            "usage: {} <predictions.csv> <report.csv> <candidate_universe_size> <full_pool_fea_queries> [top_k=8]",
             args.first().map(String::as_str).unwrap_or("surrogate-eval")
         ));
     }
@@ -68,8 +69,14 @@ fn run() -> Result<(), String> {
     if universe == 0 {
         return Err("candidate_universe_size must be positive".to_string());
     }
-    let requested_k: usize = if args.len() == 5 {
-        args[4].parse().map_err(|_| "top_k must be a positive integer".to_string())?
+    let full_pool_fea_queries: u64 = args[4]
+        .parse()
+        .map_err(|_| "full_pool_fea_queries must be a positive integer".to_string())?;
+    if full_pool_fea_queries == 0 {
+        return Err("full_pool_fea_queries must be positive".to_string());
+    }
+    let requested_k: usize = if args.len() == 6 {
+        args[5].parse().map_err(|_| "top_k must be a positive integer".to_string())?
     } else {
         8
     };
@@ -85,6 +92,7 @@ fn run() -> Result<(), String> {
         &observations,
         model_fea_queries,
         universe,
+        full_pool_fea_queries,
         requested_k,
     )?);
 
@@ -102,6 +110,7 @@ fn run() -> Result<(), String> {
             &subset,
             model_fea_queries,
             universe,
+            full_pool_fea_queries,
             requested_k,
         )?);
     }
@@ -126,8 +135,8 @@ fn run() -> Result<(), String> {
 
     write_report(&args[2], &summaries)?;
     eprintln!(
-        "surrogate report written: candidates={}, groups={}, model_fea_queries={}, candidate_universe={}; this report is only as valid as its frozen reference dataset and split",
-        observations.len(), summaries.len(), model_fea_queries, universe
+        "surrogate report written: candidates={}, groups={}, model_fea_queries={}, candidate_universe={}, full_pool_fea_queries={}; this report is only as valid as its frozen reference dataset and split",
+        observations.len(), summaries.len(), model_fea_queries, universe, full_pool_fea_queries
     );
     Ok(())
 }
@@ -326,6 +335,7 @@ fn summarize(
     observations: &[Observation],
     model_fea_queries: u64,
     candidate_universe_size: u64,
+    full_pool_fea_queries: u64,
     requested_k: usize,
 ) -> Result<Summary, String> {
     if observations.is_empty() {
@@ -366,7 +376,7 @@ fn summarize(
     let predicted_best_true_loss = observations[predicted_order[0]].reference;
     let regret_pct = (predicted_best_true_loss - true_best).max(0.0) / true_best * 100.0;
     let query_reduction_pct =
-        (1.0 - model_fea_queries as f64 / candidate_universe_size as f64) * 100.0;
+        (1.0 - model_fea_queries as f64 / full_pool_fea_queries as f64) * 100.0;
 
     Ok(Summary {
         scope_type: scope_type.to_string(),
@@ -374,6 +384,7 @@ fn summarize(
         n,
         model_fea_queries,
         candidate_universe_size,
+        full_pool_fea_queries,
         mean_relative_error_pct: mean(&errors),
         median_relative_error_pct: median(&sorted_errors),
         p95_relative_error_pct: quantile_nearest_rank(&sorted_errors, 0.95),
@@ -397,7 +408,7 @@ fn csv_escape(value: &str) -> String {
 
 fn write_report(path: &str, summaries: &[Summary]) -> Result<(), String> {
     let mut output = String::from(
-        "scope_type,scope_id,n,model_fea_queries,candidate_universe_size,fea_query_reduction_pct,mean_relative_error_pct,median_relative_error_pct,p95_relative_error_pct,max_relative_error_pct,spearman_rank_correlation,top_k,top_k_recall_pct,best_candidate_regret_pct,prediction_interval_coverage_pct,mean_interval_width_pct\n",
+        "scope_type,scope_id,n,model_fea_queries,candidate_universe_size,full_pool_fea_queries,fea_query_reduction_pct,mean_relative_error_pct,median_relative_error_pct,p95_relative_error_pct,max_relative_error_pct,spearman_rank_correlation,top_k,top_k_recall_pct,best_candidate_regret_pct,prediction_interval_coverage_pct,mean_interval_width_pct\n",
     );
     for row in summaries {
         let spearman = row
@@ -405,14 +416,15 @@ fn write_report(path: &str, summaries: &[Summary]) -> Result<(), String> {
             .map(|value| format!("{value:.8}"))
             .unwrap_or_default();
         let reduction =
-            (1.0 - row.model_fea_queries as f64 / row.candidate_universe_size as f64) * 100.0;
+            (1.0 - row.model_fea_queries as f64 / row.full_pool_fea_queries as f64) * 100.0;
         output.push_str(&format!(
-            "{},{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{},{},{:.6},{:.6},{:.6},{:.6}\n",
+            "{},{},{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{},{},{:.6},{:.6},{:.6},{:.6}\n",
             row.scope_type,
             csv_escape(&row.scope_id),
             row.n,
             row.model_fea_queries,
             row.candidate_universe_size,
+            row.full_pool_fea_queries,
             reduction,
             row.mean_relative_error_pct,
             row.median_relative_error_pct,
@@ -452,7 +464,7 @@ mod tests {
             obs("b", 20.0, 20.0, 19.0, 21.0),
             obs("c", 30.0, 30.0, 29.0, 31.0),
         ];
-        let s = summarize("overall", "all", &rows, 8, 3000, 2).unwrap();
+        let s = summarize("overall", "all", &rows, 8, 3000, 3000, 2).unwrap();
         assert!(s.mean_relative_error_pct.abs() < 1.0e-12);
         assert!(s.best_candidate_regret_pct.abs() < 1.0e-12);
         assert!((s.spearman_rank_correlation.unwrap() - 1.0).abs() < 1.0e-12);
@@ -467,7 +479,7 @@ mod tests {
             obs("b", 10.1, 10.0, 9.8, 10.2),
             obs("c", 40.0, 40.1, 39.0, 41.0),
         ];
-        let s = summarize("overall", "all", &rows, 2, 100, 1).unwrap();
+        let s = summarize("overall", "all", &rows, 2, 100, 100, 1).unwrap();
         assert!(s.mean_relative_error_pct < 1.0);
         assert!(s.best_candidate_regret_pct > 0.0);
         assert_eq!(s.top_k_recall_pct, 0.0);
@@ -476,8 +488,8 @@ mod tests {
     #[test]
     fn query_reduction_is_computed_from_declared_model_calls() {
         let rows = vec![obs("a", 10.0, 10.0, 9.0, 11.0), obs("b", 20.0, 20.0, 19.0, 21.0)];
-        let s = summarize("overall", "all", &rows, 8, 3000, 1).unwrap();
-        assert!(( (1.0 - s.model_fea_queries as f64 / s.candidate_universe_size as f64) * 100.0 - 99.7333333333).abs() < 1.0e-8);
+        let s = summarize("overall", "all", &rows, 8, 3000, 3000, 1).unwrap();
+        assert!(((1.0 - s.model_fea_queries as f64 / s.full_pool_fea_queries as f64) * 100.0 - 99.7333333333).abs() < 1.0e-8);
     }
 
     #[test]
