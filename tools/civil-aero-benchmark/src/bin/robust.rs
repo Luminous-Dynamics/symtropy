@@ -1,9 +1,9 @@
 use std::{env, fs, process};
 
-use civil_aero_benchmark::robustness::{
-    parse_stress_scenarios_csv, run_stress_suite, stress_result_csv_row, STRESS_OUTPUT_HEADER,
-};
 use civil_aero_benchmark::parse_cases_csv;
+use civil_aero_benchmark::robustness::{
+    STRESS_OUTPUT_HEADER, parse_stress_scenarios_csv, run_stress_suite, stress_result_csv_row,
+};
 
 fn main() {
     if let Err(error) = run() {
@@ -48,7 +48,11 @@ fn run() -> Result<(), String> {
             report.lift_failure_count,
             report.energy_failure_count,
             report.worst_energy_scenario,
-            report.results.iter().map(|row| row.route_energy_wh).fold(f64::NEG_INFINITY, f64::max),
+            report
+                .results
+                .iter()
+                .map(|row| row.route_energy_wh)
+                .fold(f64::NEG_INFINITY, f64::max),
             report.worst_energy_margin_scenario,
             report.worst_energy_margin_wh,
             report.lowest_lift_margin_scenario,
