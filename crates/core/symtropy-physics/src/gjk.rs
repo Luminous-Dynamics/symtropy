@@ -142,7 +142,7 @@ pub fn intersects_support_maps<const D: usize>(
 
     // Initial direction: from A to B.
     let mut direction = center_b - center_a;
-    if !vector_is_finite(&direction) {
+    if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
         return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
     }
     if direction.norm_squared() < 1e-20 {
@@ -252,7 +252,7 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
     }
 
     let mut direction = center_b - center_a;
-    if !vector_is_finite(&direction) {
+    if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
         return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
     }
     if direction.norm_squared() < 1e-20 {
