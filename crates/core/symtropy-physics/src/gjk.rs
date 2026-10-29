@@ -1080,12 +1080,27 @@ fn do_simplex_line<const D: usize>(
     let ab = b - a;
     let ao = -a; // origin - a
 
-    if ab.dot(&ao) > 0.0 {
-        // Origin is between A and B (in the Voronoi region of edge AB)
-        // Direction perpendicular to AB toward origin
+    let ab_squared = ab.norm_squared();
+    let ab_dot_ao = ab.dot(&ao);
+    if ab_dot_ao > 0.0 {
+        // If the origin's projection lies beyond B, B—not the AB segment—is
+        // the closest feature. This also avoids treating every collinear line
+        // extension as an intersection.
+        if ab_dot_ao >= ab_squared {
+            simplex.clear();
+            simplex.push(b);
+            *direction = -b;
+            return false;
+        }
+
+        // Direction perpendicular to AB toward the origin.
         *direction = triple_cross_product(&ab, &ao, &ab);
-        if direction.norm_squared() < 1e-20 {
-            // Origin is on the line segment
+        let ao_squared = ao.norm_squared();
+        let direction_scale_squared = ab_squared * ab_squared * ao_squared;
+        let line_tolerance_squared =
+            (64.0 * f64::EPSILON).powi(2) * direction_scale_squared;
+        if direction.norm_squared() <= line_tolerance_squared {
+            // The origin lies on the segment within a scale-relative roundoff band.
             return true;
         }
     } else {
@@ -1115,7 +1130,7 @@ fn do_simplex_triangle<const D: usize>(
     // perp_part = AC - proj_AB(AC) points toward C
     // negate → points away from C
     let ab_sq = ab.dot(&ab);
-    let ab_perp = if ab_sq > 1e-20 {
+    let ab_perp = if ab_sq.is_finite() && ab_sq > 0.0 {
         let proj = ab * (ac.dot(&ab) / ab_sq);
         -(ac - proj)
     } else {
@@ -1131,7 +1146,7 @@ fn do_simplex_triangle<const D: usize>(
 
     // Edge AC perpendicular: perpendicular to AC, pointing away from B
     let ac_sq = ac.dot(&ac);
-    let ac_perp = if ac_sq > 1e-20 {
+    let ac_perp = if ac_sq.is_finite() && ac_sq > 0.0 {
         let proj = ac * (ab.dot(&ac) / ac_sq);
         -(ab - proj)
     } else {
@@ -1157,7 +1172,11 @@ fn do_simplex_triangle<const D: usize>(
     let e1e2 = ab.dot(&ac);
     let det = e1e1 * e2e2 - e1e2 * e1e2;
 
-    if det.abs() < 1e-20 {
+    let determinant_scale = e1e1 * e2e2;
+    if !det.is_finite()
+        || !determinant_scale.is_finite()
+        || det.abs() <= 64.0 * f64::EPSILON * determinant_scale
+    {
         simplex.clear();
         simplex.push(b);
         simplex.push(a);
@@ -1171,8 +1190,10 @@ fn do_simplex_triangle<const D: usize>(
         ab * ((ao_e1 * e2e2 - ao_e2 * e1e2) / det) + ac * ((ao_e2 * e1e1 - ao_e1 * e1e2) / det);
     let face_normal = ao - proj;
 
-    if face_normal.norm_squared() < 1e-20 {
-        return true; // Origin is on the triangle plane
+    let face_scale_squared = ao.norm_squared().max(e1e1).max(e2e2);
+    let face_tolerance_squared = (64.0 * f64::EPSILON).powi(2) * face_scale_squared;
+    if face_normal.norm_squared() <= face_tolerance_squared {
+        return true; // Origin is on/within roundoff of the triangle plane
     }
 
     *direction = face_normal;
@@ -1253,7 +1274,11 @@ fn face_normal<const D: usize>(
     let e1_e2 = edge1.dot(edge2);
     let denom = e1_norm * e2_norm - e1_e2 * e1_e2;
 
-    if denom.abs() < 1e-20 {
+    let denominator_scale = e1_norm * e2_norm;
+    if !denom.is_finite()
+        || !denominator_scale.is_finite()
+        || denom.abs() <= 64.0 * f64::EPSILON * denominator_scale
+    {
         return SVector::zeros(); // Degenerate
     }
 
