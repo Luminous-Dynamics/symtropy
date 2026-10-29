@@ -70,6 +70,12 @@ pub fn intersects_support_maps<const D: usize>(
     shape_a: &dyn WorldSupportMap<D>,
     shape_b: &dyn WorldSupportMap<D>,
 ) -> GjkResult<D> {
+    // Four dimensions need a five-vertex simplex. The existing 3D tetrahedron
+    // reducer is not a valid facet test in 4D, so use closest-point reduction.
+    if D == 4 {
+        return intersects_support_maps_with_closest_simplex(shape_a, shape_b);
+    }
+
     // Initial direction: from A to B.
     let mut direction = shape_b.center_world() - shape_a.center_world();
     if direction.norm_squared() < 1e-20 {
@@ -114,6 +120,245 @@ pub fn intersects_support_maps<const D: usize>(
         intersecting: false,
         simplex,
         iterations: MAX_ITERATIONS,
+    }
+}
+
+/// GJK path for 4D using an exhaustive closest-point reduction over simplex faces.
+///
+/// A 4D simplex has at most five vertices, so enumerating its non-empty subsets
+/// costs at most 31 small systems. This is intentionally bounded and stack-only.
+/// It avoids applying the 3D tetrahedron facet test to a 4D simplex.
+fn intersects_support_maps_with_closest_simplex<const D: usize>(
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
+) -> GjkResult<D> {
+    let mut direction = shape_b.center_world() - shape_a.center_world();
+    if direction.norm_squared() < 1e-20 {
+        direction = SVector::zeros();
+        direction[0] = 1.0;
+    }
+
+    let first = minkowski_support(shape_a, shape_b, &direction);
+    let mut simplex = Simplex::<D>::new();
+    simplex.push(first);
+    let mut closest = first;
+
+    for iteration in 0..MAX_ITERATIONS {
+        let closest_squared = closest.norm_squared();
+        if closest_squared < 1e-20 {
+            return GjkResult {
+                intersecting: true,
+                simplex,
+                iterations: iteration,
+            };
+        }
+
+        direction = -closest;
+        let new_point = minkowski_support(shape_a, shape_b, &direction);
+        let improvement = (new_point - closest).dot(&direction);
+        let progress_tolerance = 64.0 * f64::EPSILON * closest_squared;
+        if improvement <= progress_tolerance
+            || simplex
+                .iter()
+                .any(|point| (*point - new_point).norm_squared() < 1e-24)
+        {
+            return GjkResult {
+                intersecting: false,
+                simplex,
+                iterations: iteration,
+            };
+        }
+
+        // In 4D, a full simplex contains five points. If it has not enclosed
+        // the origin, treat an unreduced full simplex as numerical failure
+        // rather than panic on ArrayVec capacity or claim intersection.
+        if simplex.len() >= MAX_SIMPLEX {
+            return GjkResult {
+                intersecting: false,
+                simplex,
+                iterations: iteration,
+            };
+        }
+        simplex.push(new_point);
+
+        let Some((reduced, next_closest)) = closest_point_on_simplex(&simplex) else {
+            return GjkResult {
+                intersecting: false,
+                simplex,
+                iterations: iteration,
+            };
+        };
+        simplex = reduced;
+        closest = next_closest;
+
+        if closest.norm_squared() < 1e-20 {
+            return GjkResult {
+                intersecting: true,
+                simplex,
+                iterations: iteration,
+            };
+        }
+    }
+
+    GjkResult {
+        intersecting: false,
+        simplex,
+        iterations: MAX_ITERATIONS,
+    }
+}
+
+/// Return the closest point to the origin on a simplex and the active face.
+///
+/// Every closest point on a convex simplex belongs to the relative interior of
+/// one of its faces. Enumerating at most 2^5 - 1 subsets lets us solve each
+/// candidate face with a small Gram system and retain only non-negative
+/// barycentric coordinates. Degenerate faces are skipped; their lower-dimensional
+/// subsets are considered independently.
+fn closest_point_on_simplex<const D: usize>(
+    simplex: &Simplex<D>,
+) -> Option<(Simplex<D>, SVector<f64, D>)> {
+    let count = simplex.len();
+    if count == 0 || count > MAX_SIMPLEX {
+        return None;
+    }
+
+    let mut best: Option<(usize, SVector<f64, D>, f64)> = None;
+    for mask in 1usize..(1usize << count) {
+        let mut indices = [0usize; MAX_SIMPLEX];
+        let mut face_count = 0usize;
+        for index in 0..count {
+            if mask & (1usize << index) != 0 {
+                indices[face_count] = index;
+                face_count += 1;
+            }
+        }
+
+        let origin = simplex[indices[0]];
+        let edge_count = face_count - 1;
+        let mut weights = [0.0f64; MAX_SIMPLEX];
+        weights[0] = 1.0;
+        let candidate = if edge_count == 0 {
+            origin
+        } else {
+            let mut edges: ArrayVec<SVector<f64, D>, MAX_SIMPLEX> = ArrayVec::new();
+            for i in 1..face_count {
+                edges.push(simplex[indices[i]] - origin);
+            }
+
+            let mut gram = [[0.0f64; MAX_SIMPLEX]; MAX_SIMPLEX];
+            let mut rhs = [0.0f64; MAX_SIMPLEX];
+            for i in 0..edge_count {
+                rhs[i] = -edges[i].dot(&origin);
+                for j in 0..edge_count {
+                    gram[i][j] = edges[i].dot(&edges[j]);
+                }
+            }
+
+            let Some(solution) = solve_small_system(gram, rhs, edge_count) else {
+                continue;
+            };
+            let mut sum = 0.0;
+            for i in 0..edge_count {
+                weights[i + 1] = solution[i];
+                sum += solution[i];
+            }
+            weights[0] = 1.0 - sum;
+
+            if weights[..face_count]
+                .iter()
+                .any(|weight| !weight.is_finite() || *weight < -1e-9)
+            {
+                continue;
+            }
+
+            // Project tiny negative round-off back onto the simplex face.
+            let weight_sum: f64 = weights[..face_count]
+                .iter()
+                .map(|weight| weight.max(0.0))
+                .sum();
+            if weight_sum <= f64::MIN_POSITIVE {
+                continue;
+            }
+            let mut point = SVector::<f64, D>::zeros();
+            for i in 0..face_count {
+                point += simplex[indices[i]] * (weights[i].max(0.0) / weight_sum);
+            }
+            point
+        };
+
+        let distance_squared = candidate.norm_squared();
+        if distance_squared.is_finite()
+            && best
+                .as_ref()
+                .map(|(_, _, best_distance)| distance_squared < *best_distance)
+                .unwrap_or(true)
+        {
+            best = Some((mask, candidate, distance_squared));
+        }
+    }
+
+    let (mask, point, _) = best?;
+    let mut reduced = Simplex::<D>::new();
+    for index in 0..count {
+        if mask & (1usize << index) != 0 {
+            reduced.push(simplex[index]);
+        }
+    }
+    Some((reduced, point))
+}
+
+/// Solve a dense system of at most four equations with partial pivoting.
+fn solve_small_system(
+    mut matrix: [[f64; MAX_SIMPLEX]; MAX_SIMPLEX],
+    mut rhs: [f64; MAX_SIMPLEX],
+    size: usize,
+) -> Option<[f64; MAX_SIMPLEX]> {
+    if size == 0 || size >= MAX_SIMPLEX {
+        return None;
+    }
+    let scale = matrix[..size]
+        .iter()
+        .flat_map(|row| row[..size].iter())
+        .fold(0.0_f64, |largest, value| largest.max(value.abs()));
+    if !scale.is_finite() || scale == 0.0 {
+        return None;
+    }
+
+    for column in 0..size {
+        let mut pivot_row = column;
+        for row in (column + 1)..size {
+            if matrix[row][column].abs() > matrix[pivot_row][column].abs() {
+                pivot_row = row;
+            }
+        }
+        if matrix[pivot_row][column].abs() <= scale * 64.0 * f64::EPSILON {
+            return None;
+        }
+        matrix.swap(column, pivot_row);
+        rhs.swap(column, pivot_row);
+
+        let diagonal = matrix[column][column];
+        for entry in 0..size {
+            matrix[column][entry] /= diagonal;
+        }
+        rhs[column] /= diagonal;
+
+        for row in 0..size {
+            if row == column {
+                continue;
+            }
+            let factor = matrix[row][column];
+            for entry in 0..size {
+                matrix[row][entry] -= factor * matrix[column][entry];
+            }
+            rhs[row] -= factor * rhs[column];
+        }
+    }
+
+    if rhs[..size].iter().all(|value| value.is_finite()) {
+        Some(rhs)
+    } else {
+        None
     }
 }
 
