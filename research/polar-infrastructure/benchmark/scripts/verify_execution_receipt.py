@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from verify_paired_comparison import validate_input as validate_paired_input
+from verify_paired_comparison_v0_4 import validate_input as validate_paired_input
 
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 REVISION_RE = re.compile(r"^([a-f0-9]{40}|[a-f0-9]{64})$")
