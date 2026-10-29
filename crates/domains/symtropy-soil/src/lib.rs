@@ -34,6 +34,12 @@ pub enum SoilWaterError {
     StorageExceedsCapacity,
     /// Arithmetic overflow or another non-finite intermediate was detected.
     NonFiniteArithmetic,
+    /// Retention parameters violate the model's admissible domain.
+    InvalidRetentionParameters,
+    /// Saturated hydraulic conductivity must be finite and non-negative.
+    InvalidHydraulicConductivity,
+    /// Pressure-head magnitude must be finite and non-negative.
+    InvalidPressureHead,
 }
 
 impl fmt::Display for SoilWaterError {
@@ -59,6 +65,15 @@ impl fmt::Display for SoilWaterError {
                     f,
                     "non-finite intermediate encountered during water accounting"
                 )
+            }
+            Self::InvalidRetentionParameters => {
+                write!(f, "retention parameters are outside the model's admissible domain")
+            }
+            Self::InvalidHydraulicConductivity => {
+                write!(f, "saturated hydraulic conductivity must be finite and non-negative")
+            }
+            Self::InvalidPressureHead => {
+                write!(f, "pressure-head magnitude must be finite and non-negative")
             }
         }
     }
@@ -140,6 +155,181 @@ impl DepthMm {
     /// Returns the depth in millimeters.
     pub fn as_mm(self) -> f64 {
         self.0
+    }
+}
+
+/// van Genuchten-Mualem constitutive parameters for a measured soil.
+///
+/// This is a standard parametric relationship, not a biochar-effect model.
+/// Parameters must be fitted or otherwise justified for the specific soil and
+/// state being modeled. All pressure-head magnitudes are in centimeters;
+/// alpha_per_cm is in inverse centimeters; saturated hydraulic conductivity
+/// is in millimeters per hour. Water contents are dimensionless volumetric
+/// fractions in [0, 1].
+///
+/// The retention curve follows van Genuchten (1980), with m = 1 - 1/n:
+///
+/// Se(h) = [1 + (alpha * h)^n]^(-m)
+/// theta(h) = theta_r + (theta_s - theta_r) * Se(h)
+///
+/// Unsaturated conductivity uses the Mualem closure:
+///
+/// Kr = Se^l * [1 - (1 - Se^(1/m))^m]^2
+/// K(h) = Ks * Kr
+///
+/// References:
+/// - https://doi.org/10.2136/sssaj1980.03615995004400050002x
+/// - https://doi.org/10.1029/WR012i003p00513
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct VanGenuchtenMualem {
+    theta_r: f64,
+    theta_s: f64,
+    alpha_per_cm: f64,
+    n: f64,
+    ks_mm_per_hour: f64,
+    pore_connectivity_l: f64,
+}
+
+impl VanGenuchtenMualem {
+    /// Creates a parameter set after validating its mathematical domain.
+    ///
+    /// theta_r and theta_s are volumetric water contents, alpha_per_cm has
+    /// units cm^-1, n is dimensionless and greater than one, ks_mm_per_hour is
+    /// saturated conductivity, and pore_connectivity_l is the Mualem
+    /// pore-connectivity exponent.
+    pub fn new(
+        theta_r: f64,
+        theta_s: f64,
+        alpha_per_cm: f64,
+        n: f64,
+        ks_mm_per_hour: f64,
+        pore_connectivity_l: f64,
+    ) -> Result<Self, SoilWaterError> {
+        let parameters_finite = [
+            theta_r,
+            theta_s,
+            alpha_per_cm,
+            n,
+            ks_mm_per_hour,
+            pore_connectivity_l,
+        ]
+        .into_iter()
+        .all(f64::is_finite);
+
+        if !parameters_finite
+            || theta_r < 0.0
+            || theta_s > 1.0
+            || theta_s <= theta_r
+            || alpha_per_cm <= 0.0
+            || n <= 1.0
+            || pore_connectivity_l < 0.0
+        {
+            return Err(SoilWaterError::InvalidRetentionParameters);
+        }
+        if ks_mm_per_hour < 0.0 {
+            return Err(SoilWaterError::InvalidHydraulicConductivity);
+        }
+
+        Ok(Self {
+            theta_r,
+            theta_s,
+            alpha_per_cm,
+            n,
+            ks_mm_per_hour,
+            pore_connectivity_l,
+        })
+    }
+
+    /// Returns effective saturation for a non-negative matric suction-head
+    /// magnitude in centimeters. A head of zero corresponds to saturation.
+    ///
+    /// Logarithms avoid overflow in the power term for very dry states or
+    /// extreme finite inputs.
+    pub fn effective_saturation(
+        self,
+        pressure_head_cm: f64,
+    ) -> Result<f64, SoilWaterError> {
+        if !pressure_head_cm.is_finite() || pressure_head_cm < 0.0 {
+            return Err(SoilWaterError::InvalidPressureHead);
+        }
+        if pressure_head_cm == 0.0 {
+            return Ok(1.0);
+        }
+
+        let log_alpha_h = self.alpha_per_cm.ln() + pressure_head_cm.ln();
+        let log_power = self.n * log_alpha_h;
+
+        if log_power == f64::INFINITY {
+            return Ok(0.0);
+        }
+        if log_power == f64::NEG_INFINITY {
+            return Ok(1.0);
+        }
+        if log_power.is_nan() {
+            return Err(SoilWaterError::NonFiniteArithmetic);
+        }
+
+        // Stable log(1 + exp(x)) avoids overflow for large positive x.
+        let log_one_plus_power = if log_power > 0.0 {
+            log_power + (-log_power).exp().ln_1p()
+        } else {
+            log_power.exp().ln_1p()
+        };
+        let m = 1.0 - 1.0 / self.n;
+        let saturation = (-m * log_one_plus_power).exp();
+        if saturation.is_finite() && (0.0..=1.0).contains(&saturation) {
+            Ok(saturation)
+        } else {
+            Err(SoilWaterError::NonFiniteArithmetic)
+        }
+    }
+
+    /// Returns volumetric water content for a non-negative pressure-head
+    /// magnitude in centimeters.
+    pub fn water_content(
+        self,
+        pressure_head_cm: f64,
+    ) -> Result<f64, SoilWaterError> {
+        let effective = self.effective_saturation(pressure_head_cm)?;
+        let content = self.theta_r + (self.theta_s - self.theta_r) * effective;
+        if content.is_finite() && (self.theta_r..=self.theta_s).contains(&content) {
+            Ok(content)
+        } else {
+            Err(SoilWaterError::NonFiniteArithmetic)
+        }
+    }
+
+    /// Returns relative unsaturated hydraulic conductivity in [0, 1].
+    pub fn relative_conductivity(
+        self,
+        pressure_head_cm: f64,
+    ) -> Result<f64, SoilWaterError> {
+        let effective = self.effective_saturation(pressure_head_cm)?;
+        if effective == 0.0 {
+            return Ok(0.0);
+        }
+        let m = 1.0 - 1.0 / self.n;
+        let inner = 1.0 - (1.0 - effective.powf(1.0 / m)).powf(m);
+        let relative = effective.powf(self.pore_connectivity_l) * inner * inner;
+        if relative.is_finite() && (0.0..=1.0).contains(&relative) {
+            Ok(relative)
+        } else {
+            Err(SoilWaterError::NonFiniteArithmetic)
+        }
+    }
+
+    /// Returns unsaturated conductivity in millimeters per hour.
+    pub fn hydraulic_conductivity(
+        self,
+        pressure_head_cm: f64,
+    ) -> Result<f64, SoilWaterError> {
+        let relative = self.relative_conductivity(pressure_head_cm)?;
+        let conductivity = self.ks_mm_per_hour * relative;
+        if conductivity.is_finite() && conductivity >= 0.0 {
+            Ok(conductivity)
+        } else {
+            Err(SoilWaterError::NonFiniteArithmetic)
+        }
     }
 }
 
@@ -312,6 +502,75 @@ mod tests {
         assert!(
             (actual - expected).abs() <= tolerance,
             "actual {actual}, expected {expected}, tolerance {tolerance}"
+        );
+    }
+
+    fn hydraulic_parameters() -> VanGenuchtenMualem {
+        VanGenuchtenMualem::new(0.05, 0.45, 0.02, 1.6, 12.0, 0.5)
+            .expect("test parameters should be in-domain")
+    }
+
+    #[test]
+    fn retention_curve_has_correct_saturated_and_dry_limits() {
+        let model = hydraulic_parameters();
+        close(model.effective_saturation(0.0).unwrap(), 1.0);
+        close(model.water_content(0.0).unwrap(), 0.45);
+        let dry = model.water_content(1.0e300).unwrap();
+        assert!((dry - 0.05).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn retention_and_conductivity_are_monotone_over_a_log_pressure_sweep() {
+        let model = hydraulic_parameters();
+        let heads = [0.0, 0.01, 0.1, 1.0, 10.0, 100.0, 1_000.0, 1.0e6];
+        let mut previous_content = model.water_content(heads[0]).unwrap();
+        let mut previous_conductivity = model.hydraulic_conductivity(heads[0]).unwrap();
+        close(previous_conductivity, 12.0);
+        for head in heads.into_iter().skip(1) {
+            let content = model.water_content(head).unwrap();
+            let conductivity = model.hydraulic_conductivity(head).unwrap();
+            assert!(content <= previous_content, "water content increased at head {head}");
+            assert!(
+                conductivity <= previous_conductivity,
+                "conductivity increased at head {head}"
+            );
+            assert!((0.05..=0.45).contains(&content));
+            assert!((0.0..=12.0).contains(&conductivity));
+            previous_content = content;
+            previous_conductivity = conductivity;
+        }
+    }
+
+    #[test]
+    fn hydraulic_parameters_reject_invalid_domains() {
+        assert!(matches!(
+            VanGenuchtenMualem::new(0.45, 0.45, 0.02, 1.6, 12.0, 0.5),
+            Err(SoilWaterError::InvalidRetentionParameters)
+        ));
+        assert!(matches!(
+            VanGenuchtenMualem::new(0.05, 0.45, 0.0, 1.6, 12.0, 0.5),
+            Err(SoilWaterError::InvalidRetentionParameters)
+        ));
+        assert!(matches!(
+            VanGenuchtenMualem::new(0.05, 0.45, 0.02, 1.0, 12.0, 0.5),
+            Err(SoilWaterError::InvalidRetentionParameters)
+        ));
+        assert!(matches!(
+            VanGenuchtenMualem::new(0.05, 0.45, 0.02, 1.6, -0.1, 0.5),
+            Err(SoilWaterError::InvalidHydraulicConductivity)
+        ));
+    }
+
+    #[test]
+    fn retention_model_rejects_invalid_pressure_head() {
+        let model = hydraulic_parameters();
+        assert_eq!(
+            model.water_content(-1.0),
+            Err(SoilWaterError::InvalidPressureHead)
+        );
+        assert_eq!(
+            model.relative_conductivity(f64::NAN),
+            Err(SoilWaterError::InvalidPressureHead)
         );
     }
 
