@@ -1,0 +1,11 @@
+# SIM-REL-001 deterministic smoke corpus v1; synthetic_only=true
+# Fields:
+# id|split|difficulty|masses_csv|x0_csv|v0_csv|damping_csv|dt|steps|springs_semicolon|forces_semicolon|observation_stride
+# Spring = node_a,node_b,stiffness; node_b=-1 denotes an immovable zero-displacement anchor.
+# Force pulse = node,start_step,end_step,amplitude; end_step is exclusive. No pulse = none.
+# This small smoke corpus is not the 30+ case qualification corpus required by the protocol.
+train_chain2|train|easy|1.0,1.5|0.1,0.0|0.0,0.0|0.10,0.15|0.005|200|0,-1,3.0;0,1,4.0|1,5,10,1.0|5
+train_star3|train|easy|1.0,1.2,0.8|0.10,0.0,-0.05|0.0,0.0,0.0|0.10,0.12,0.08|0.005|200|0,-1,2.0;1,0,3.0;2,0,4.0|2,15,20,0.5|5
+validation_chain3|validation|medium|1.0,1.5,0.8|0.08,-0.03,0.0|0.0,0.02,0.0|0.10,0.12,0.09|0.004|250|0,-1,2.5;0,1,4.0;1,2,3.5|2,30,35,0.75|5
+heldout_branch4|heldout|medium|1.0,1.3,0.9,1.1|0.12,0.0,-0.04,0.02|0.0,0.0,0.0,0.0|0.10,0.08,0.13,0.09|0.003|300|0,-1,2.0;0,1,3.0;0,2,2.5;2,3,4.0|3,40,47,0.6|6
+heldout_cycle4|heldout|hard|1.0,1.4,0.9,1.2|0.1,-0.02,0.03,-0.04|0.0,0.0,0.0,0.0|0.08,0.11,0.09,0.12|0.0025|400|0,-1,2.0;0,1,3.5;1,2,2.5;2,3,4.0;3,0,3.0|1,90,96,0.8;3,150,158,-0.4|8
