@@ -224,7 +224,11 @@ mod tests {
     use crate::control::ControlOutcomeStatus;
     use crate::dispatch::DispatchRejection;
 
-    fn submission(request_id: u64, status: DispatchStatus, ticket: Option<&str>) -> DispatchReceipt {
+    fn submission(
+        request_id: u64,
+        status: DispatchStatus,
+        ticket: Option<&str>,
+    ) -> DispatchReceipt {
         DispatchReceipt {
             request_id,
             session_id: Some(9),
@@ -345,7 +349,10 @@ mod tests {
                 outcome(17, ControlOutcomeStatus::Executing, 1.1, 2),
             )
             .unwrap();
-        assert_eq!(executing.previous_status, Some(ControlOutcomeStatus::Accepted));
+        assert_eq!(
+            executing.previous_status,
+            Some(ControlOutcomeStatus::Accepted)
+        );
         assert_eq!(executing.status, ControlOutcomeStatus::Executing);
 
         let completed = ledger
@@ -524,8 +531,7 @@ mod tests {
                     OutcomeLedgerError::InvalidOutcome(ControlOutcomeError::TimeWentBackwards),
                 ),
                 3 => {
-                    let mut invalid =
-                        outcome(request_id, ControlOutcomeStatus::Vetoed, 1.1, 2);
+                    let mut invalid = outcome(request_id, ControlOutcomeStatus::Vetoed, 1.1, 2);
                     invalid.constraint_codes.clear();
                     (
                         ticket.clone(),
