@@ -198,9 +198,14 @@
         "compare_and_advance_expected_generation",
         "compare_and_advance_returned_generation",
         "authority_readback_generation",
-        "claim_latency_ns"
+        "claim_latency_ns",
+        "command_epoch_before_admission",
+        "command_epoch_at_application",
+        "old_command_queue_policy",
+        "command_acceptance_boundary",
+        "sink_invocation_count"
       ],
-      "expected_boundary": "Old-session/old-ticket outcomes must not be treated as current after restart, including when native ticket strings are reused. The integration must use an authoritative, restart-safe monotonic controller generation; missing, rolled-back, corrupt, or unavailable generation evidence fails closed. Concurrent stale claimers must not both remain current. A command/outcome accepted while the epoch authority is unavailable or rolled back is a hard-gate violation."
+      "expected_boundary": "Old-session/old-ticket outcomes must not be treated as current after restart, including when native ticket strings are reused. The integration must use an authoritative, restart-safe monotonic controller generation; missing, rolled-back, corrupt, or unavailable generation evidence fails closed. Concurrent stale claimers must not both remain current. A command/outcome accepted while the epoch authority is unavailable or rolled back is a hard-gate violation. A command carrying an old epoch must be rejected at the command-acceptance boundary with zero sink invocations; accepted stale-generation commands are a separate non-compensatory gate from stale outcome events."
     }
   ],
   "preregistration_rules": [
@@ -211,6 +216,7 @@
     "Mock/simulation results do not qualify HIL or physical safety.",
     "Expand every family-specific severity profile from the manifest, rather than assuming all fault families have exactly three severities.",
     "Any accepted command/outcome while the epoch authority is missing, unavailable, corrupt, or rolled back fails the hard gate.",
-    "The authority-store implementation identity and durability/rollback threat model must be fixed before scored runs."
+    "The authority-store implementation identity and durability/rollback threat model must be fixed before scored runs.",
+    "Record stale command admissions separately from stale outcome-event acceptance; both are non-compensatory hard-gate failures."
   ]
 }
