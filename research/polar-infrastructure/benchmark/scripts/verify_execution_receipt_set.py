@@ -15,7 +15,7 @@ from typing import Any
 
 from verify_execution_receipt import _verify_receipt_validated
 from verify_paired_comparison_v0_4 import validate_input as validate_paired_input_v04
-from verify_paired_comparison import validate_input as validate_paired_input_v05
+from verify_paired_comparison import strict_json_loads, validate_input as validate_paired_input_v05
 
 SHARED_GLOBAL_ROLES = {
     "plant_model", "executable", "runtime_environment", "observation_policy", "resource_policy",
@@ -136,8 +136,8 @@ def main(argv: list[str]) -> int:
               file=sys.stderr)
         return 2
     try:
-        paired = json.loads(Path(argv[1]).read_text())
-        receipts = [json.loads(Path(path).read_text()) for path in argv[2:]]
+        paired = strict_json_loads(Path(argv[1]).read_text())
+        receipts = [strict_json_loads(Path(path).read_text()) for path in argv[2:]]
         verify_receipt_set(paired, receipts)
     except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as exc:
         print(f"execution receipt set verification failed: {exc}", file=sys.stderr)
