@@ -23,7 +23,13 @@
       "license_ref": "https://github.com/TMBWG/turbmodels/blob/20a39f549dbff988a6accc421ac84dafc4487695/LICENSE",
       "retained_copy_path": "tools/civil-aero-benchmark/data/reference/nasa-tmr/CLCD_Ladson_expdata.dat",
       "independent_parse_review": "pending",
-      "mach_number": 0.15
+      "mach_number": 0.15,
+      "expected_observation_count": 53,
+      "expected_zone_counts": {
+        "80 grit": 17,
+        "120 grit": 18,
+        "180 grit": 18
+      }
     },
     {
       "source_id": "NASA-TMR-NACA0012-LADSON-PRESSURE",
@@ -44,7 +50,10 @@
       "retained_copy_path": "tools/civil-aero-benchmark/data/reference/nasa-tmr/CP_Ladson.dat",
       "independent_parse_review": "pending",
       "mach_number": 0.3,
-      "applicability_note": "Exact file header states M=0.3, Re=6 million, alpha=.0169, free transition; do not silently conflate with the M=0.15 tripped-force dataset."
+      "applicability_note": "Exact file header states M=0.3, Re=6 million, alpha=.0169, free transition; do not silently conflate with the M=0.15 tripped-force dataset.",
+      "expected_observation_count": 405,
+      "expected_zone_count": 9,
+      "expected_points_per_zone": 45
     },
     {
       "source_id": "NASA-TMR-NACA0012-GREGORY-PRESSURE",
@@ -64,7 +73,13 @@
       "license_ref": "https://github.com/TMBWG/turbmodels/blob/20a39f549dbff988a6accc421ac84dafc4487695/LICENSE",
       "retained_copy_path": "tools/civil-aero-benchmark/data/reference/nasa-tmr/CP_Gregory_expdata.dat",
       "independent_parse_review": "pending",
-      "data_quality_note": "Exact source header says digitized from a photocopy (approximate) and upper airfoil surface only."
+      "data_quality_note": "Exact source header says digitized from a photocopy (approximate) and upper airfoil surface only.",
+      "expected_observation_count": 73,
+      "expected_zone_counts": {
+        "alpha=0": 25,
+        "alpha=10": 24,
+        "alpha=15": 24
+      }
     },
     {
       "source_id": "NASA-TMR-NACA0012-GEOMETRY-POINTS",
