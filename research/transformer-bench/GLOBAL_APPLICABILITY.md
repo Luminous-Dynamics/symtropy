@@ -50,6 +50,12 @@ A profile should carry:
 
 Calendar years may contain leap days; local-time profiles may contain daylight-saving transitions. A total of 8,760 hours does not prove temporal coverage: a gap and overlap can cancel arithmetically. Canonical ingestion should validate timestamps and interval continuity, not only summed hours. Do not silently pad missing data, interpolate gaps or map absent tariffs/carbon data to zero.
 
+## Executable UTC profile integrity
+
+The standalone `global-trace-validate` binary and [PWR-TX-TRACE-001 #2873](https://github.com/Luminous-Dynamics/symtropy/issues/2873) implement the first chronology gate. It accepts canonical `YYYY-MM-DDTHH:MM:SSZ` timestamps for complete calendar years, computes exact UTC interval coverage, supports 8,760- and 8,784-hour years, and rejects gaps, overlaps, duplicate interval IDs, inconsistent repeated scenario metadata and invalid mean-square current/tariff fields. It requires explicit currency syntax, price year and REAL/NOMINAL basis. See the synthetic common-year and leap-year fixtures and README invocation.
+
+Boundary: the validator does not check the timezone label against an IANA database, convert local wall-clock traces through DST, prove meter calibration/source provenance, validate currency membership against the ISO registry, normalize FX/inflation, or validate tariff law. Upstream local-to-UTC conversion must be audited. A valid interval ledger is not proof of a valid meter trace or representative year.
+
 ## Evidence ladder
 
 1. Analytic arithmetic with hand-checkable reference cases.
@@ -109,6 +115,6 @@ For every deployment, confirm applicable current national adoption, utility proc
 1. Keep the present evaluator marked as an analytic/core-loss screening tool.
 2. Extend its reference table to include explicit frequency and excitation class, then report metrics independently by those domains.
 3. Create fixtures for at least 50 Hz sinusoidal and 60 Hz sinusoidal domains; no transfer claim unless the held-out domain passes.
-4. Version the timestamp/profile and currency contracts before admitting field load/tariff traces.
+4. Continue from the executable UTC annual-trace validator: audit local-time/DST conversion, add a versioned IANA timezone policy where supported, verify currency registry membership, and bind source measurements and tariff artifacts before admitting field traces.
 5. Add a separately reviewed regional profile catalog with evidence-bound editions and explicit qualification statuses.
 6. Acquire a named incumbent with traceable loss-test data; then qualify the analytical and FE baselines before training or judging surrogates.
