@@ -351,6 +351,7 @@ pub fn sphere_sphere_ccd_periodic<const D: usize>(
 mod tests {
     use super::{
         PeriodicCollisionStatus, query_periodic_convex, sphere_sphere_ccd_periodic,
+        sphere_sphere_ccd_periodic_all,
     };
     use nalgebra::SVector;
     use symtropy_math::{PeriodicBox, Point, Sphere, Transform};
