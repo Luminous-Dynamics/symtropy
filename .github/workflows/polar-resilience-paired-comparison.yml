@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md"
+      - "research/COUNTEREXAMPLE_SEARCH_BENCHMARK_PROTOCOL_2026.md"
+      - "research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/counterexample-search-benchmark-contract-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/src/bin/counterexample_search_contract.rs"
       - "research/EXECUTION_ATTESTATION_PROFILE_2026.md"
       - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
@@ -28,6 +32,10 @@ on:
   push:
     paths:
       - "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md"
+      - "research/COUNTEREXAMPLE_SEARCH_BENCHMARK_PROTOCOL_2026.md"
+      - "research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/counterexample-search-benchmark-contract-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/src/bin/counterexample_search_contract.rs"
       - "research/EXECUTION_ATTESTATION_PROFILE_2026.md"
       - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
@@ -141,6 +149,57 @@ jobs:
             (.paired_gate_comparisons | length == 2)
           ' /tmp/paired-comparison-report.json
           python3 research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py "$fixture" /tmp/paired-comparison-report.json
+
+      - name: Validate fixed-budget counterexample search contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/counterexample-search-benchmark-contract-0.1.0.schema.json"
+          contract="research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Counterexample Search Benchmark Contract" and
+            .additionalProperties == false and
+            (.required | index("searchers") != null) and
+            (.required | index("budget_contract") != null) and
+            (.required | index("statistical_contract") != null) and
+            (.required | index("admission_gates") != null)
+          ' "$schema"
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-counterexample-search-benchmark-contract" and
+            .status == "proposed_not_executed" and
+            .evidence_class == "test_design_only" and
+            (.searchers | length >= 3) and
+            any(.searchers[]; .searcher_id == "uniform_random" and .class == "baseline") and
+            any(.searchers[]; .searcher_id == "symtropy_adaptive_multiobjective" and .class == "candidate") and
+            .budget_contract.same_invocation_budget_across_searchers == true and
+            .budget_contract.invalid_invocations_count_against_budget == true and
+            .budget_contract.failed_or_timed_out_invocations_count_against_budget == true and
+            .budget_contract.confirmatory_repetitions >= 30 and
+            .input_information_contract.surrogate_training_and_cache_queries_count_toward_budget == true and
+            .split_contract.holdout_used_for_searcher_selection_or_tuning == false and
+            .counterexample_admission.counterexample_requires_independent_replay == true and
+            .statistical_contract.primary_endpoint == "falsification_rate_at_budget" and
+            .statistical_contract.effect_size_target == null and
+            all(.benchmark_tracks[]; .physical_evidence == false and .eligible_for_controller_superiority_claim == false) and
+            all(.admission_gates | to_entries[]; .value == false) and
+            .claim_policy.performance_claim == "none" and
+            .claim_policy.synthetic_oracle_results_are_physical_evidence == false
+          ' "$contract"
+          manifest="research/polar-infrastructure/benchmark/Cargo.toml"
+          cargo test --locked --manifest-path "$manifest" --bin counterexample_search_contract
+          cargo run --locked --quiet --manifest-path "$manifest" --bin counterexample_search_contract -- "$contract" > /tmp/counterexample-search-contract-report.json
+          jq -e '
+            .report_kind == "counterexample-search-benchmark-contract-validation" and
+            .contract_valid == true and
+            .searcher_count == 5 and
+            .confirmatory_invocation_budget_per_searcher == 200 and
+            .confirmatory_repetitions == 50 and
+            .admission_gates_all_false == true and
+            .candidate_for_execution == false and
+            .performance_claim == "none"
+          ' /tmp/counterexample-search-contract-report.json
 
       - name: Validate execution receipt template schema contract
         shell: bash
