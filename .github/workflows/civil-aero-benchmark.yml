@@ -1,0 +1,43 @@
+name: civil-aero-benchmark
+
+on:
+  push:
+    paths:
+      - "tools/civil-aero-benchmark/**"
+      - ".github/workflows/civil-aero-benchmark.yml"
+  pull_request:
+    paths:
+      - "tools/civil-aero-benchmark/**"
+      - ".github/workflows/civil-aero-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: civil-aero-benchmark-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Format
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/Cargo.toml --check
+      - name: Unit and negative-control tests
+        run: cargo test --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic report check
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml -- tools/civil-aero-benchmark/data/example_cases.csv > /tmp/aero-report-a.csv
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml -- tools/civil-aero-benchmark/data/example_cases.csv > /tmp/aero-report-b.csv
+          cmp /tmp/aero-report-a.csv /tmp/aero-report-b.csv
+          test "$(wc -l < /tmp/aero-report-a.csv)" -eq 4
+          head -n 1 /tmp/aero-report-a.csv | grep -q "screening_only"
+          sha256sum /tmp/aero-report-a.csv
