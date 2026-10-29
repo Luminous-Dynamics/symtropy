@@ -355,6 +355,8 @@ fn assert_seeded_rotated_box_panel<const D: usize>(
     let mut indeterminate_cases = 0usize;
     let mut oracle_intersections = 0usize;
     let mut oracle_separations = 0usize;
+    let mut exhaustive_fallbacks = 0usize;
+    let mut exhaustive_faces_examined = 0usize;
     for case_id in 0..cases {
         let a = seeded_oriented_box::<D>(&mut seed);
         let mut b = seeded_oriented_box::<D>(&mut seed);
@@ -380,6 +382,12 @@ fn assert_seeded_rotated_box_panel<const D: usize>(
             oracle_separations += 1;
         }
         let result = intersects_support_maps(&a, &b);
+        exhaustive_fallbacks += result.work.exhaustive_fallbacks;
+        exhaustive_faces_examined += result.work.exhaustive_faces_examined;
+        assert!(
+            result.work.support_map_evaluations >= 2 * (result.iterations + 1),
+            "D={D}: N-D support-map counter under-reported work at case {case_id}"
+        );
         match result.termination {
             GjkTermination::Intersecting => assert!(
                 expected,
@@ -397,6 +405,14 @@ fn assert_seeded_rotated_box_panel<const D: usize>(
         assert!(
             oracle_intersections >= cases / 4 && oracle_separations >= cases / 4,
             "D={D}: stratified oracle distribution was too imbalanced: {oracle_intersections} overlaps, {oracle_separations} separations"
+        );
+        assert!(
+            exhaustive_fallbacks > 0 && exhaustive_faces_examined > 0,
+            "D={D}: the stratified suite must exercise and report bounded recovery work"
+        );
+        assert!(
+            exhaustive_fallbacks <= cases / 2,
+            "D={D}: fallback use {exhaustive_fallbacks}/{cases} exceeded the frozen 50% diagnostic ceiling"
         );
     }
     assert!(
