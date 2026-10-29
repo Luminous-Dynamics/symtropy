@@ -54,7 +54,9 @@ fn run() -> Result<(), String> {
         return Err("--out and --manifest must refer to different files".to_owned());
     }
     if out_path.exists() || manifest_path.exists() {
-        return Err("refusing to overwrite an existing output; choose new paths or move old files".to_owned());
+        return Err(
+            "refusing to overwrite an existing output; choose new paths or move old files".to_owned(),
+        );
     }
 
     let spec = CouponSpec {
@@ -68,10 +70,16 @@ fn run() -> Result<(), String> {
     let stl = mesh.to_ascii_stl("civil_aero_nonflight_coupon")?;
     let manifest = mesh.json_manifest(spec, &out_path.to_string_lossy())?;
 
-    write_new_file(&out_path, stl.as_bytes())?;
+    if let Err(error) = write_new_file(&out_path, stl.as_bytes()) {
+        let _ = fs::remove_file(&out_path);
+        return Err(error);
+    }
     if let Err(error) = write_new_file(&manifest_path, manifest.as_bytes()) {
         let _ = fs::remove_file(&out_path);
-        return Err(format!("could not write manifest; removed STL to avoid an orphan artifact: {error}"));
+        let _ = fs::remove_file(&manifest_path);
+        return Err(format!(
+            "could not write manifest; removed partial artifacts: {error}"
+        ));
     }
 
     println!(
