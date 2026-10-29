@@ -119,6 +119,19 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
     state = receipt.get("status")
     evidence = receipt.get("execution_evidence", {})
     independent = receipt.get("independent_verification", {})
+    verification_state = independent.get("status")
+    need(verification_state in {"not_run", "passed", "failed"}, "unsupported independent verification status")
+    if verification_state == "not_run":
+        need(independent.get("verifier_id") is None and independent.get("verifier_revision") is None
+             and independent.get("verified_artifact_count") == 0,
+             "not_run verification cannot claim verifier identity or verified artifacts")
+    if verification_state == "passed":
+        need(isinstance(independent.get("verifier_id"), str) and independent["verifier_id"]
+             and isinstance(independent.get("verifier_revision"), str)
+             and REVISION_RE.fullmatch(independent["verifier_revision"]) is not None
+             and isinstance(independent.get("verified_artifact_count"), int)
+             and independent["verified_artifact_count"] >= 3,
+             "passed verification needs pinned verifier identity and at least three verified artifacts")
 
     if state == "design_only_not_executed":
         need(receipt.get("evidence_class") == "synthetic_fixture"
@@ -138,6 +151,12 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
              "synthetic fixture cannot claim that execution occurred")
         need(receipt.get("execution_performed") is True, "executed receipt must declare execution_performed")
         need(receipt.get("execution_state") == state, "receipt status/execution_state mismatch")
+        need(isinstance(receipt.get("provenance", {}).get("receipt_created_at_utc"), str)
+             and receipt["provenance"]["receipt_created_at_utc"],
+             "executed receipt requires a creation timestamp")
+        need(isinstance(evidence.get("started_at_utc"), str) and evidence["started_at_utc"]
+             and isinstance(evidence.get("ended_at_utc"), str) and evidence["ended_at_utc"],
+             "executed receipt requires start and end timestamps")
         need(all(isinstance(observed[k], int) and not isinstance(observed[k], bool) and observed[k] >= 0
                  for k in RESOURCE_KEYS), "executed receipt needs resource measurements")
         outputs = evidence.get("output_artifacts")
