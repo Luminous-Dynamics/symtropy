@@ -453,16 +453,20 @@ fn closest_point_on_hull_active_set<const D: usize>(
         let mut max_dot_magnitude = closest_squared.abs();
         for (index, point) in points.iter().enumerate() {
             let dot = closest.dot(point);
-            if !dot.is_finite() {
+            let point_squared = point.norm_squared();
+            if !dot.is_finite() || !point_squared.is_finite() {
                 return Err(GjkFailureReason::NonFiniteArithmetic);
             }
-            max_dot_magnitude = max_dot_magnitude.max(dot.abs());
+            // The KKT gap subtracts nearly equal dot products. Near the origin,
+            // its floating-point error is set by support-point magnitude, not
+            // by the much smaller closest-point norm.
+            max_dot_magnitude = max_dot_magnitude.max(dot.abs()).max(point_squared);
             if dot < best_dot {
                 best_dot = dot;
                 best_index = index;
             }
         }
-        let optimality_tolerance = 128.0 * f64::EPSILON
+        let optimality_tolerance = 256.0 * f64::EPSILON
             * max_dot_magnitude.max(f64::MIN_POSITIVE);
         if closest_squared - best_dot <= optimality_tolerance {
             let mut reduced = Simplex::<D>::new();
@@ -493,6 +497,17 @@ fn closest_point_on_hull_active_set<const D: usize>(
                     .iter()
                     .map(|weight| weight.max(0.0))
                     .collect();
+                // Do not retain zero-weight vertices in the active corral. They
+                // can spuriously appear as violating KKT points after roundoff.
+                let mut active_index = 0usize;
+                while active_index < weights.len() {
+                    if weights[active_index] <= weight_tolerance && weights.len() > 1 {
+                        weights.remove(active_index);
+                        active.remove(active_index);
+                    } else {
+                        active_index += 1;
+                    }
+                }
                 normalize_weights(&mut weights)?;
                 closest = weighted_point(points, &active, &weights)?;
                 minor_converged = true;
