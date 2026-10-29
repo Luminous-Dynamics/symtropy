@@ -150,6 +150,28 @@ fn validate(input: &Input) -> Result<(), String> {
     if !nonempty(&input.information_budget_payload) || !valid_sha256(&input.information_budget_sha256) {
         return Err("information budget needs a non-empty payload and lowercase SHA-256 digest".into());
     }
+    let budget: Value = serde_json::from_str(&input.information_budget_payload)
+        .map_err(|e| format!("information-budget payload is not valid JSON: {e}"))?;
+    if !budget.is_object() || budget["schema_version"] != "1" {
+        return Err("information-budget fields/version do not match v0.5 contract".into());
+    }
+    if budget["allowed_information_kinds"].as_array()
+        .map(|v| v.iter().filter_map(Value::as_str).collect::<BTreeSet<_>>())
+        != Some(["measurement", "forecast"].into_iter().collect())
+    {
+        return Err("unsupported information kinds".into());
+    }
+    for key in ["decision_interval_s", "max_compute_budget_ms", "max_forecast_lookahead_s", "max_memory_budget_mb"] {
+        if budget[key].as_u64().unwrap_or(0) == 0 {
+            return Err(format!("invalid information-budget value: {key}"));
+        }
+    }
+    if budget["forbid_oracle_future_observations"] != true
+        || budget["forecast_issued_at_must_not_exceed_decision_time"] != true
+        || budget["measurement_observed_at_must_not_exceed_decision_time"] != true
+    {
+        return Err("causal information budget must forbid oracle observations and future-issued forecasts".into());
+    }
     if input.gate_margin_contracts.keys().cloned().collect::<BTreeSet<_>>() != expected_gates {
         return Err("gate margin contracts must match the declared gate IDs exactly".into());
     }
@@ -417,7 +439,12 @@ fn analyze(input: &Input) -> Value {
         "gate_margin_contracts": input.gate_margin_contracts,
         "information_budget": {
             "sha256": input.information_budget_sha256,
-            "payload_sha256_verification": "delegated_to_independent_verifier"
+            "payload_sha256_verification": "delegated_to_independent_verifier",
+            "forecast_lookahead_seconds": serde_json::from_str::<Value>(&input.information_budget_payload).expect("validated budget JSON")["max_forecast_lookahead_s"],
+            "decision_interval_seconds": serde_json::from_str::<Value>(&input.information_budget_payload).expect("validated budget JSON")["decision_interval_s"],
+            "compute_budget_ms": serde_json::from_str::<Value>(&input.information_budget_payload).expect("validated budget JSON")["max_compute_budget_ms"],
+            "memory_budget_mb": serde_json::from_str::<Value>(&input.information_budget_payload).expect("validated budget JSON")["max_memory_budget_mb"],
+            "oracle_future_observations_forbidden": serde_json::from_str::<Value>(&input.information_budget_payload).expect("validated budget JSON")["forbid_oracle_future_observations"]
         },
         "content_bindings": {
             "trajectory_digests": trajectory_digests,
