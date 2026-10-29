@@ -9,6 +9,7 @@ pub mod control;
 pub mod differential_drive;
 pub mod dispatch;
 pub mod outcome_ledger;
+pub mod recovery_benchmark;
 pub mod haptic;
 pub mod motor;
 pub mod platform;
@@ -35,6 +36,11 @@ pub use dispatch::{
 };
 pub use haptic::{HapticAttestation, HapticOracle};
 pub use outcome_ledger::{ControlOutcomeLedger, OutcomeIngestReceipt, OutcomeLedgerError};
+pub use recovery_benchmark::{
+    ExpectedRecoveryScenario, PairedRecoveryComparison, RecoveryArmSummary, RecoveryBenchmarkArm,
+    RecoveryBenchmarkError, RecoveryBenchmarkSummary, RecoveryScenarioClass, RecoveryTrialRecord,
+    score_recovery_campaign,
+};
 pub use motor::{MotorPlanner, UniformGainPlanner};
 pub use platform::PlatformType;
 pub use safety::JointSafetyAuthority;
