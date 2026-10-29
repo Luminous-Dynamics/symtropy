@@ -5,6 +5,8 @@
 //! every result screening_only. Parameters and declared provenance are not independently
 //! authenticated by this crate.
 
+pub mod comparison;
+
 use std::collections::HashSet;
 use std::f64::consts::PI;
 
