@@ -67,3 +67,21 @@ Compare candidates on the same stated mission, payload, density profile, route d
 
 Do not report a CFD validation result until raw bytes, revision, conditions, units, licensing/applicability review, parser tests, convergence evidence and independent checks have been recorded. Do not pool the NASA Re=6,000,000 case with low-Reynolds-number airfoil measurements as if they were the same regime.
 
+## Matched-mission candidate comparison
+
+A second CLI, the Pareto comparator, compares candidates only when they share an identical mission and parameter evidence class:
+
+`cargo run --locked --bin pareto -- data/candidate_designs.csv`
+
+It re-evaluates each candidate from its stored input fields at the comparison boundary rather than trusting caller-provided derived metrics. It excludes candidates failing either screening gate, rejects mixed missions/evidence classes and duplicate IDs, and reports the nondominated set without inventing a single scalar winner.
+
+The frozen synthetic corpus intentionally includes three trade-off candidates and one dominated candidate. Its expected Pareto set is balanced_reference, lower_mass_higher_drag, and higher_mass_lower_drag; dominated_high_drag should be excluded. This expected set is a property of the chosen synthetic fixture, not evidence that any physical airframe is optimal.
+
+Objectives are estimated route energy (lower), total mass (lower), and estimated lift-to-drag (higher). Total mass is merely a proxy here: without structural sizing and load cases, lower mass says nothing about adequate strength. This comparator is not robust optimization; it samples one nominal point per candidate and does not propagate parameter/model uncertainty.
+
+## Robustness and industry-comparison protocol
+
+Read ROBUST_PARETO_BENCHMARK_PROTOCOL_V0_1.md for the baseline ladder and research plan. It compares the first-order screen (B0), public reference case (B1), pinned SU2 fixed-geometry solution (B2), SU2 adjoint optimization (B3), a conventional fixed-budget multi-objective baseline (B4), and the proposed Symthaea/Symtropy/SU2 pipeline (B5).
+
+The intended differentiator is decision credibility per engineering cost—not a claimed aerodynamic result: useful experiments selected with a fixed expensive-evaluation budget, held-out-condition generalization, honest uncertainty and model discrepancy, independent feasibility checks, and improvement confirmed on manufactured non-flight coupons. No SOTA superiority claim is supported until the same tasks, compute budget, data splits, physical conditions and objective constraints are measured head-to-head.
+
