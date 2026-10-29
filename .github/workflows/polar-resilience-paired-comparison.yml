@@ -6,20 +6,24 @@ on:
       - "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md"
       - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
-      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json"
-      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.4.0.schema.json"
       - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_paired_comparison_verifier.py"
+      - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
+      - ".github/workflows/environment-trace-contract.yml"
       - ".github/workflows/polar-resilience-paired-comparison.yml"
   push:
     paths:
       - "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md"
       - "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md"
       - "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs"
-      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json"
-      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json"
+      - "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.4.0.schema.json"
       - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_paired_comparison_verifier.py"
+      - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
+      - ".github/workflows/environment-trace-contract.yml"
       - ".github/workflows/polar-resilience-paired-comparison.yml"
   workflow_dispatch:
 
@@ -53,25 +57,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          schema="research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json"
-          fixture="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json"
+          schema="research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.4.0.schema.json"
+          fixture="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json"
           jq -e '
             .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
-            .title == "Symtropy Paired Resilience Comparison Input" and
+            .title == "Symtropy Paired Resilience Comparison Input (Content-Bound v0.4)" and
             .additionalProperties == false and
             (.required | index("controllers") != null) and
             (.required | index("gate_margin_contracts") != null) and
+            (.required | index("trajectory_artifacts") != null) and
+            (.required | index("controller_artifacts") != null) and
             (.properties.gate_margin_contracts.type == "object") and
             (.required | index("cases") != null)
           ' "$schema"
           jq -e '
             . as $root |
-            .schema_version == "0.3.0" and
+            .schema_version == "0.4.0" and
             .artifact_kind == "paired-resilience-comparison-input" and
             .evidence_class == "synthetic_fixture" and
             .status == "synthetic_only" and
             (.controllers | length == 2) and
             (.cases | length == 12) and
+            (.trajectory_artifacts | length == 6) and
+            (.controller_artifacts | length == 2) and
+            all($root.trajectory_artifacts[]; (.trajectory_sha256 | test("^[a-f0-9]{64}$")) and (.initial_state_sha256 | test("^[a-f0-9]{64}$"))) and
+            all($root.controller_artifacts[]; (.controller_sha256 | test("^[a-f0-9]{64}$"))) and
+            all($root.cases[]; (.trajectory_sha256 | test("^[a-f0-9]{64}$")) and (.initial_state_sha256 | test("^[a-f0-9]{64}$")) and (.controller_artifact_sha256 | test("^[a-f0-9]{64}$"))) and
             ([.cases[].case_id] | length == (unique | length)) and
             ([.cases[].trajectory_id] | unique | length == 6) and
             (($root.gate_margin_contracts | keys | sort) == ($root.gate_ids | sort)) and
@@ -86,17 +97,20 @@ jobs:
         run: |
           set -euo pipefail
           manifest="research/polar-infrastructure/benchmark/Cargo.toml"
-          fixture="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json"
+          fixture="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json"
           cargo test --locked --manifest-path "$manifest" --bin paired_comparison
           cargo run --locked --quiet --manifest-path "$manifest" --bin paired_comparison -- "$fixture" > /tmp/paired-comparison-report.json
           jq -e '
             .report_kind == "paired-resilience-comparison-report" and
-            .schema_version == "0.3.0" and
+            .schema_version == "0.4.0" and
             .evidence_class == "synthetic_fixture" and
             .status == "synthetic_only" and
             .controller_count == 2 and
             .trajectory_count == 6 and
             .case_count == 12 and
+            .content_bindings.payload_sha256_verification == "delegated_to_independent_verifier" and
+            (.content_bindings.trajectory_digests | length == 6) and
+            (.content_bindings.controller_digests | length == 2) and
             .performance_claim == false and
             (.coverage | length == 4) and
             (.gate_margin_contracts | length == 2) and
@@ -108,4 +122,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m unittest discover             -s research/polar-infrastructure/benchmark/scripts/tests             -p 'test_paired_comparison_verifier.py' -v
+          python3 -m unittest discover \
+            -s research/polar-infrastructure/benchmark/scripts/tests \
+            -p 'test_paired_comparison_verifier.py' -v
