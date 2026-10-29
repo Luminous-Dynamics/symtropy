@@ -149,9 +149,7 @@ where
             }
             EmbodiedIntent::Inspect { .. }
             | EmbodiedIntent::Reach { .. }
-            | EmbodiedIntent::Manipulate { .. } => {
-                Err(ControllerSubmitError::UnsupportedIntent)
-            }
+            | EmbodiedIntent::Manipulate { .. } => Err(ControllerSubmitError::UnsupportedIntent),
         }
     }
 }
@@ -302,9 +300,7 @@ mod tests {
         )
     }
 
-    fn adapter(
-        now_s: f64,
-    ) -> DifferentialDriveAdapter<RecordingController, FakeClock> {
+    fn adapter(now_s: f64) -> DifferentialDriveAdapter<RecordingController, FakeClock> {
         DifferentialDriveAdapter::new(
             "map",
             1.2,
@@ -366,10 +362,8 @@ mod tests {
 
     fn boundary(
         now_s: f64,
-    ) -> DispatchBoundary<
-        TestAuthenticator,
-        DifferentialDriveAdapter<RecordingController, FakeClock>,
-    > {
+    ) -> DispatchBoundary<TestAuthenticator, DifferentialDriveAdapter<RecordingController, FakeClock>>
+    {
         let runtime = SequencedRuntimeAssurance::new(
             gate(),
             RequestSequenceGuard::new(4).expect("positive capacity"),
@@ -471,7 +465,8 @@ mod tests {
     }
 
     #[test]
-    fn dispatch_boundary_reclassifies_adapter_deadline_rejection_as_rejected_not_controller_failed() {
+    fn dispatch_boundary_reclassifies_adapter_deadline_rejection_as_rejected_not_controller_failed()
+    {
         let mut boundary = boundary(10.5);
         // Advance the sink clock after admission would be evaluated. The
         // adapter must reject before calling the native-controller trait.

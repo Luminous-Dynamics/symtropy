@@ -89,7 +89,10 @@ pub enum EmbodiedIntent {
 impl EmbodiedIntent {
     pub fn validate(&self) -> Result<(), IntentValidationError> {
         match self {
-            Self::NavigateTo { target, max_speed_mps } => {
+            Self::NavigateTo {
+                target,
+                max_speed_mps,
+            } => {
                 target.validate()?;
                 if max_speed_mps.is_some_and(|v| !v.is_finite() || v <= 0.0) {
                     return Err(IntentValidationError::InvalidSpeedLimit);
@@ -97,10 +100,15 @@ impl EmbodiedIntent {
             }
             Self::Inspect { target } | Self::Reach { target } => target.validate()?,
             Self::Manipulate { target, .. } => target.validate()?,
-            Self::Stop { reason } | Self::RequestAssistance { reason } if reason.trim().is_empty() => {
+            Self::Stop { reason } | Self::RequestAssistance { reason }
+                if reason.trim().is_empty() =>
+            {
                 return Err(IntentValidationError::EmptyReason);
             }
-            Self::HoldPosition | Self::Stabilize | Self::Stop { .. } | Self::RequestAssistance { .. } => {}
+            Self::HoldPosition
+            | Self::Stabilize
+            | Self::Stop { .. }
+            | Self::RequestAssistance { .. } => {}
         }
         Ok(())
     }
@@ -171,7 +179,9 @@ impl ControlRequest {
         if !self.belief_confidence.is_finite() || !(0.0..=1.0).contains(&self.belief_confidence) {
             return Err(ControlRequestError::InvalidConfidence);
         }
-        self.intent.validate().map_err(ControlRequestError::InvalidIntent)
+        self.intent
+            .validate()
+            .map_err(ControlRequestError::InvalidIntent)
     }
 }
 
@@ -191,21 +201,46 @@ pub enum ControlOutcomeStatus {
 
 impl ControlOutcomeStatus {
     pub fn is_terminal(self) -> bool {
-        matches!(self, Self::Vetoed | Self::Completed | Self::Failed | Self::Cancelled | Self::Expired)
+        matches!(
+            self,
+            Self::Vetoed | Self::Completed | Self::Failed | Self::Cancelled | Self::Expired
+        )
     }
 
     fn may_follow(self, next: Self) -> bool {
         match self {
-            Self::Accepted => matches!(next,
-                Self::Constrained | Self::Vetoed | Self::Executing | Self::Completed
-                    | Self::Failed | Self::Cancelled | Self::Expired),
-            Self::Constrained => matches!(next,
-                Self::Constrained | Self::Vetoed | Self::Executing | Self::Completed
-                    | Self::Failed | Self::Cancelled | Self::Expired),
-            Self::Executing => matches!(next,
-                Self::Constrained | Self::Executing | Self::Completed
-                    | Self::Failed | Self::Cancelled | Self::Expired),
-            Self::Vetoed | Self::Completed | Self::Failed | Self::Cancelled | Self::Expired => false,
+            Self::Accepted => matches!(
+                next,
+                Self::Constrained
+                    | Self::Vetoed
+                    | Self::Executing
+                    | Self::Completed
+                    | Self::Failed
+                    | Self::Cancelled
+                    | Self::Expired
+            ),
+            Self::Constrained => matches!(
+                next,
+                Self::Constrained
+                    | Self::Vetoed
+                    | Self::Executing
+                    | Self::Completed
+                    | Self::Failed
+                    | Self::Cancelled
+                    | Self::Expired
+            ),
+            Self::Executing => matches!(
+                next,
+                Self::Constrained
+                    | Self::Executing
+                    | Self::Completed
+                    | Self::Failed
+                    | Self::Cancelled
+                    | Self::Expired
+            ),
+            Self::Vetoed | Self::Completed | Self::Failed | Self::Cancelled | Self::Expired => {
+                false
+            }
         }
     }
 }
@@ -248,8 +283,13 @@ impl ControlOutcome {
         if !self.applied_fraction.is_finite() || !(0.0..=1.0).contains(&self.applied_fraction) {
             return Err(ControlOutcomeError::InvalidAppliedFraction);
         }
-        if matches!(self.status, ControlOutcomeStatus::Constrained | ControlOutcomeStatus::Vetoed)
-            && self.constraint_codes.iter().all(|code| code.trim().is_empty())
+        if matches!(
+            self.status,
+            ControlOutcomeStatus::Constrained | ControlOutcomeStatus::Vetoed
+        ) && self
+            .constraint_codes
+            .iter()
+            .all(|code| code.trim().is_empty())
         {
             return Err(ControlOutcomeError::MissingConstraintCause);
         }
@@ -308,8 +348,15 @@ mod tests {
             status,
             observed_at_s: at,
             tick,
-            applied_fraction: if status == ControlOutcomeStatus::Vetoed { 0.0 } else { 1.0 },
-            constraint_codes: if matches!(status, ControlOutcomeStatus::Constrained | ControlOutcomeStatus::Vetoed) {
+            applied_fraction: if status == ControlOutcomeStatus::Vetoed {
+                0.0
+            } else {
+                1.0
+            },
+            constraint_codes: if matches!(
+                status,
+                ControlOutcomeStatus::Constrained | ControlOutcomeStatus::Vetoed
+            ) {
                 vec!["workspace_limit".into()]
             } else {
                 Vec::new()
@@ -326,21 +373,33 @@ mod tests {
 
     #[test]
     fn rejects_expired_or_future_dated_request() {
-        assert_eq!(request().validate_at(11.1), Err(ControlRequestError::Expired));
+        assert_eq!(
+            request().validate_at(11.1),
+            Err(ControlRequestError::Expired)
+        );
         let mut future = request();
         future.issued_at_s = 12.0;
         future.expires_at_s = 13.0;
-        assert_eq!(future.validate_at(11.0), Err(ControlRequestError::FutureDated));
+        assert_eq!(
+            future.validate_at(11.0),
+            Err(ControlRequestError::FutureDated)
+        );
     }
 
     #[test]
     fn rejects_invalid_confidence_and_request_identity() {
         let mut invalid = request();
         invalid.belief_confidence = f32::NAN;
-        assert_eq!(invalid.validate_at(10.5), Err(ControlRequestError::InvalidConfidence));
+        assert_eq!(
+            invalid.validate_at(10.5),
+            Err(ControlRequestError::InvalidConfidence)
+        );
         invalid = request();
         invalid.request_id = 0;
-        assert_eq!(invalid.validate_at(10.5), Err(ControlRequestError::ZeroRequestId));
+        assert_eq!(
+            invalid.validate_at(10.5),
+            Err(ControlRequestError::ZeroRequestId)
+        );
     }
 
     #[test]
@@ -349,41 +408,68 @@ mod tests {
         if let EmbodiedIntent::NavigateTo { target, .. } = &mut invalid.intent {
             target.position_m[1] = f64::NAN;
         }
-        assert_eq!(invalid.validate_at(10.5),
-            Err(ControlRequestError::InvalidIntent(IntentValidationError::NonFinitePosition)));
+        assert_eq!(
+            invalid.validate_at(10.5),
+            Err(ControlRequestError::InvalidIntent(
+                IntentValidationError::NonFinitePosition
+            ))
+        );
         let mut invalid = request();
         if let EmbodiedIntent::NavigateTo { target, .. } = &mut invalid.intent {
             target.orientation_xyzw = [0.0, 0.0, 0.0, 2.0];
         }
-        assert_eq!(invalid.validate_at(10.5),
-            Err(ControlRequestError::InvalidIntent(IntentValidationError::OrientationNotNormalized)));
+        assert_eq!(
+            invalid.validate_at(10.5),
+            Err(ControlRequestError::InvalidIntent(
+                IntentValidationError::OrientationNotNormalized
+            ))
+        );
     }
 
     #[test]
     fn rejects_invalid_frame_speed_and_empty_reason() {
         let mut invalid = request();
-        if let EmbodiedIntent::NavigateTo { target, max_speed_mps } = &mut invalid.intent {
+        if let EmbodiedIntent::NavigateTo {
+            target,
+            max_speed_mps,
+        } = &mut invalid.intent
+        {
             target.frame_id = "  ".into();
             *max_speed_mps = Some(0.0);
         }
-        assert_eq!(invalid.validate_at(10.5),
-            Err(ControlRequestError::InvalidIntent(IntentValidationError::EmptyFrameId)));
+        assert_eq!(
+            invalid.validate_at(10.5),
+            Err(ControlRequestError::InvalidIntent(
+                IntentValidationError::EmptyFrameId
+            ))
+        );
         let mut invalid = request();
         if let EmbodiedIntent::NavigateTo { max_speed_mps, .. } = &mut invalid.intent {
             *max_speed_mps = Some(f64::INFINITY);
         }
-        assert_eq!(invalid.validate_at(10.5),
-            Err(ControlRequestError::InvalidIntent(IntentValidationError::InvalidSpeedLimit)));
+        assert_eq!(
+            invalid.validate_at(10.5),
+            Err(ControlRequestError::InvalidIntent(
+                IntentValidationError::InvalidSpeedLimit
+            ))
+        );
         invalid.intent = EmbodiedIntent::Stop { reason: " ".into() };
-        assert_eq!(invalid.validate_at(10.5),
-            Err(ControlRequestError::InvalidIntent(IntentValidationError::EmptyReason)));
+        assert_eq!(
+            invalid.validate_at(10.5),
+            Err(ControlRequestError::InvalidIntent(
+                IntentValidationError::EmptyReason
+            ))
+        );
     }
 
     #[test]
     fn veto_requires_machine_readable_cause() {
         let mut invalid = outcome(ControlOutcomeStatus::Vetoed, 10.0, 1);
         invalid.constraint_codes.clear();
-        assert_eq!(invalid.validate(), Err(ControlOutcomeError::MissingConstraintCause));
+        assert_eq!(
+            invalid.validate(),
+            Err(ControlOutcomeError::MissingConstraintCause)
+        );
     }
 
     #[test]
@@ -392,18 +478,30 @@ mod tests {
         let mut next = outcome(ControlOutcomeStatus::Executing, 10.1, 2);
         assert_eq!(next.validate_successor_of(&previous), Ok(()));
         next.request_id = 8;
-        assert_eq!(next.validate_successor_of(&previous), Err(ControlOutcomeError::RequestIdMismatch));
+        assert_eq!(
+            next.validate_successor_of(&previous),
+            Err(ControlOutcomeError::RequestIdMismatch)
+        );
         next = outcome(ControlOutcomeStatus::Executing, 9.0, 2);
-        assert_eq!(next.validate_successor_of(&previous), Err(ControlOutcomeError::TimeWentBackwards));
+        assert_eq!(
+            next.validate_successor_of(&previous),
+            Err(ControlOutcomeError::TimeWentBackwards)
+        );
         next = outcome(ControlOutcomeStatus::Executing, 10.1, 0);
-        assert_eq!(next.validate_successor_of(&previous), Err(ControlOutcomeError::TickWentBackwards));
+        assert_eq!(
+            next.validate_successor_of(&previous),
+            Err(ControlOutcomeError::TickWentBackwards)
+        );
     }
 
     #[test]
     fn terminal_outcome_cannot_be_reopened() {
         let previous = outcome(ControlOutcomeStatus::Completed, 10.0, 3);
         let next = outcome(ControlOutcomeStatus::Executing, 10.1, 4);
-        assert_eq!(next.validate_successor_of(&previous), Err(ControlOutcomeError::IllegalStatusTransition));
+        assert_eq!(
+            next.validate_successor_of(&previous),
+            Err(ControlOutcomeError::IllegalStatusTransition)
+        );
     }
 
     #[test]
@@ -413,9 +511,16 @@ mod tests {
             EmbodiedIntent::Stabilize,
             EmbodiedIntent::Inspect { target: pose() },
             EmbodiedIntent::Reach { target: pose() },
-            EmbodiedIntent::Manipulate { target: pose(), operation: ManipulationOperation::Grasp },
-            EmbodiedIntent::Stop { reason: "operator requested".into() },
-            EmbodiedIntent::RequestAssistance { reason: "uncertain foothold".into() },
+            EmbodiedIntent::Manipulate {
+                target: pose(),
+                operation: ManipulationOperation::Grasp,
+            },
+            EmbodiedIntent::Stop {
+                reason: "operator requested".into(),
+            },
+            EmbodiedIntent::RequestAssistance {
+                reason: "uncertain foothold".into(),
+            },
         ];
         assert!(intents.iter().all(|intent| intent.validate().is_ok()));
     }

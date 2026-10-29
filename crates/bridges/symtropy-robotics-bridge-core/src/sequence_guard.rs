@@ -106,7 +106,6 @@ impl RequestSequenceGuard {
     }
 }
 
-
 /// Ordered admission wrapper that consumes a session sequence before evaluating
 /// the generic runtime gate. Invalid semantic requests also consume their
 /// sequence so the same transport sequence cannot be replayed repeatedly.
@@ -123,7 +122,10 @@ pub struct SequencedRuntimeAssurance {
 
 impl SequencedRuntimeAssurance {
     pub fn new(gate: RuntimeAssuranceGate, sequence_guard: RequestSequenceGuard) -> Self {
-        Self { gate, sequence_guard }
+        Self {
+            gate,
+            sequence_guard,
+        }
     }
 
     /// Sequence ordering is checked first, then generic admission is evaluated.
@@ -242,7 +244,9 @@ mod tests {
     }
 
     fn sample_gate() -> RuntimeAssuranceGate {
-        use crate::assurance::{AxisAlignedWorkspace, EmbodimentEnvelope, IntentKind, RuntimeAssurancePolicy};
+        use crate::assurance::{
+            AxisAlignedWorkspace, EmbodimentEnvelope, IntentKind, RuntimeAssurancePolicy,
+        };
         RuntimeAssuranceGate {
             policy: RuntimeAssurancePolicy {
                 max_sensor_age_s: 0.1,
@@ -293,7 +297,9 @@ mod tests {
         let mut runtime = SequencedRuntimeAssurance::new(sample_gate(), guard);
         let request = sample_request(11.0);
 
-        let first = runtime.evaluate(7, 1, &request, 10.5, &sample_state()).unwrap();
+        let first = runtime
+            .evaluate(7, 1, &request, 10.5, &sample_state())
+            .unwrap();
         assert!(first.permitted);
         assert_eq!(
             runtime.evaluate(7, 1, &request, 10.5, &sample_state()),
@@ -311,7 +317,9 @@ mod tests {
         let mut runtime = SequencedRuntimeAssurance::new(sample_gate(), guard);
         let expired = sample_request(9.0);
 
-        let decision = runtime.evaluate(7, 3, &expired, 10.5, &sample_state()).unwrap();
+        let decision = runtime
+            .evaluate(7, 3, &expired, 10.5, &sample_state())
+            .unwrap();
         assert!(!decision.permitted);
         assert_eq!(runtime.sequence_guard.last_accepted(7), Some(3));
         assert_eq!(
@@ -322,5 +330,4 @@ mod tests {
             })
         );
     }
-
 }
