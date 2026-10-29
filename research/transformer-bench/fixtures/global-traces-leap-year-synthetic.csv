@@ -1,0 +1,3 @@
+scenario_id,weight,period_start_utc,period_end_utc,source_timezone,interval_id,start_utc,end_utc,current_pu_mean,mean_square_current_pu2,price_per_kwh,currency_code,price_year,price_basis
+leap_year_demo,1.0,2024-01-01T00:00:00Z,2025-01-01T00:00:00Z,UTC,first_half,2024-01-01T00:00:00Z,2024-07-02T00:00:00Z,0.50,0.2500,0.12,USD,2024,NOMINAL
+leap_year_demo,1.0,2024-01-01T00:00:00Z,2025-01-01T00:00:00Z,UTC,second_half,2024-07-02T00:00:00Z,2025-01-01T00:00:00Z,0.75,0.5625,0.16,USD,2024,NOMINAL
