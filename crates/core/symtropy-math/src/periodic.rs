@@ -45,16 +45,25 @@ impl fmt::Display for PeriodicDomainError {
                 write!(f, "period must be positive on periodic axis {axis}")
             }
             Self::UnrepresentablePeriod { axis } => {
-                write!(f, "origin + period is not representably greater than origin on axis {axis}")
+                write!(
+                    f,
+                    "origin + period is not representably greater than origin on axis {axis}"
+                )
             }
             Self::NonFiniteCoordinate { axis } => {
                 write!(f, "non-finite point/displacement on axis {axis}")
             }
             Self::CoordinatePrecisionLimit { axis } => {
-                write!(f, "periodic coordinate exceeds precision envelope on axis {axis}")
+                write!(
+                    f,
+                    "periodic coordinate exceeds precision envelope on axis {axis}"
+                )
             }
             Self::InvalidImageOffset { axis } => {
-                write!(f, "image offset is outside the supported numeric envelope on axis {axis}")
+                write!(
+                    f,
+                    "image offset is outside the supported numeric envelope on axis {axis}"
+                )
             }
             Self::OffsetOnNonPeriodicAxis { axis } => {
                 write!(f, "nonzero image offset on non-periodic axis {axis}")
@@ -373,12 +382,8 @@ mod tests {
 
     #[test]
     fn minimum_image_crosses_both_seams() {
-        let d = PeriodicBox::new(
-            SVector::zeros(),
-            SVector::from([10.0, 10.0]),
-            [true, true],
-        )
-        .unwrap();
+        let d =
+            PeriodicBox::new(SVector::zeros(), SVector::from([10.0, 10.0]), [true, true]).unwrap();
         let v = d
             .minimum_image_displacement(&SVector::from([9.0, -9.0]))
             .unwrap();
@@ -388,12 +393,8 @@ mod tests {
 
     #[test]
     fn exact_half_period_ties_preserve_reversal_oddness() {
-        let d = PeriodicBox::new(
-            SVector::zeros(),
-            SVector::from([10.0, 10.0]),
-            [true, true],
-        )
-        .unwrap();
+        let d =
+            PeriodicBox::new(SVector::zeros(), SVector::from([10.0, 10.0]), [true, true]).unwrap();
         let positive = d
             .minimum_image_displacement(&SVector::from([5.0, -5.0]))
             .unwrap();
@@ -453,12 +454,8 @@ mod tests {
 
     #[test]
     fn refuses_unrepresentably_large_period_quotients() {
-        let d = PeriodicBox::new(
-            SVector::zeros(),
-            SVector::from([1.0, 1.0]),
-            [true, true],
-        )
-        .unwrap();
+        let d =
+            PeriodicBox::new(SVector::zeros(), SVector::from([1.0, 1.0]), [true, true]).unwrap();
         assert!(matches!(
             d.wrap_point(&SVector::from([1e18, 0.0])),
             Err(PeriodicDomainError::CoordinatePrecisionLimit { axis: 0 })
@@ -467,12 +464,8 @@ mod tests {
 
     #[test]
     fn offsets_are_rejected_on_non_periodic_axes() {
-        let d = PeriodicBox::new(
-            SVector::zeros(),
-            SVector::from([10.0, 1.0]),
-            [true, false],
-        )
-        .unwrap();
+        let d =
+            PeriodicBox::new(SVector::zeros(), SVector::from([10.0, 1.0]), [true, false]).unwrap();
         assert!(matches!(
             d.offset_vector(LatticeOffset::new([0, 1])),
             Err(PeriodicDomainError::OffsetOnNonPeriodicAxis { axis: 1 })
