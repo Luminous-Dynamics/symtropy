@@ -4,15 +4,14 @@
 //! N-dimensional rigid body physics engine.
 //!
 //! Provides dimension-agnostic rigid body dynamics, GJK collision detection,
-//! and constraint solving. All types are `const D: usize` parameterized for
-//! stack-allocated, SIMD-friendly physics at 2D/3D/4D.
+//! and constraint solving. All types are const-generic over D.
 //!
 //! # Architecture
-//! - `RigidBody<D>` — position, velocity, angular velocity (bivector), mass, collider
-//! - `PhysicsWorld<D>` — owns bodies, steps simulation, resolves collisions
-//! - `gjk::intersects()` — GJK intersection test for any `Shape<D>`
-//! - `contact::ContactManifold<D>` — collision contact data
-//! - `integrator` — semi-implicit Euler with bivector angular dynamics
+//! - RigidBody<D> — position, velocity, angular velocity (bivector), mass, collider
+//! - PhysicsWorld<D> — owns bodies, steps simulation, resolves collisions
+//! - gjk::intersects() — GJK intersection test for any Shape<D>
+//! - contact::ContactManifold<D> — contact data
+//! - integrator — semi-implicit Euler with bivector angular dynamics
 
 pub mod articulation;
 pub mod body;
@@ -27,6 +26,7 @@ pub mod integrator;
 pub mod island;
 pub mod joints;
 pub mod manifold_gen;
+pub mod periodic_broadphase;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
@@ -41,5 +41,8 @@ pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
+pub use periodic_broadphase::{
+    PeriodicBroadphaseError, image_offsets_for_aabb_pair, swept_aabb_linear, translate_aabb,
+};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
