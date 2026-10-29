@@ -52,6 +52,30 @@ jobs:
           grep -q "pareto=balanced_reference;lower_mass_higher_drag;higher_mass_lower_drag" /tmp/aero-pareto-a.txt
           awk -F, '$1 == "dominated_high_drag" { found = 1; if ($9 != "false" || $10 != "false") exit 1 } END { if (!found) exit 1 }' /tmp/aero-pareto-a.csv
           sha256sum /tmp/aero-pareto-a.csv
+      - name: Run deterministic stress-scenario screening
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
+            tools/civil-aero-benchmark/data/example_cases.csv \
+            tools/civil-aero-benchmark/data/illustrative_stress_scenarios.csv \
+            > /tmp/aero-stress-a.csv 2> /tmp/aero-stress-a.txt
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
+            tools/civil-aero-benchmark/data/example_cases.csv \
+            tools/civil-aero-benchmark/data/illustrative_stress_scenarios.csv \
+            > /tmp/aero-stress-b.csv 2> /tmp/aero-stress-b.txt
+          cmp /tmp/aero-stress-a.csv /tmp/aero-stress-b.csv
+          cmp /tmp/aero-stress-a.txt /tmp/aero-stress-b.txt
+          test "$(wc -l < /tmp/aero-stress-a.csv)" -eq 25
+          awk -F, 'NF != 16 { exit 1 }' /tmp/aero-stress-a.csv
+          grep -q "screening_only" /tmp/aero-stress-a.csv
+          grep -q "case=balanced_reference .*robust_screen_pass=true probability=none" /tmp/aero-stress-a.txt
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
+            tools/civil-aero-benchmark/data/robustness_negative_control.csv \
+            tools/civil-aero-benchmark/data/illustrative_stress_scenarios.csv \
+            > /tmp/aero-stress-negative.csv 2> /tmp/aero-stress-negative.txt
+          test "$(wc -l < /tmp/aero-stress-negative.csv)" -eq 9
+          grep -q "case=borderline_energy .*energy_failures=[1-9].*robust_screen_pass=false probability=none" /tmp/aero-stress-negative.txt
+          sha256sum /tmp/aero-stress-a.csv /tmp/aero-stress-negative.csv
       - name: Generate and audit non-flight coupon mesh
         shell: bash
         run: |
