@@ -8,7 +8,7 @@
 
 The first paradigm shift is to make periodicity a topology-aware contract and verify it against independent image enumeration, not to add another geometric code path and trust its own tests.
 
-The new integration corpus at crates/core/symtropy-physics/tests/periodic_differential_conformance.rs deliberately avoids using production image translation to generate the expected candidate set. Expected AABB candidates come from direct integer-image enumeration; expected sphere CCD hits come from trying each shifted Euclidean image with the existing analytic sphere solver. Random cases are deterministic and carry fixed seeds.
+The new integration corpus at crates/core/symtropy-physics/tests/periodic_differential_conformance.rs deliberately avoids using production image translation to generate the expected candidate set. Required AABB candidates come from direct integer-image enumeration (extra candidates are permitted because the range solver rounds outward); expected sphere CCD hits come from trying each shifted Euclidean image with the existing analytic sphere solver. Random cases are deterministic and carry fixed seeds.
 
 The current test corpus contains:
 
@@ -53,7 +53,7 @@ A queued or missing workflow is not a passing result. Any failure must be retain
 
 Correctness gates are strict:
 - zero false definitive separations and zero false definitive intersections on the frozen bounded corpus;
-- exact candidate-set equality with the independent bounded AABB oracle;
+- no missing candidate relative to the independent bounded AABB oracle; conservative extra candidates are permitted and their rate must be reported;
 - exact per-image hit-set equality and TOI agreement within a stated tolerance for the analytic sphere CCD oracle;
 - no non-finite canonical coordinates, offsets, times, velocities or energy/momentum diagnostics;
 - event-budget and image-budget exhaustion must be typed failure, never a successful partial step;
