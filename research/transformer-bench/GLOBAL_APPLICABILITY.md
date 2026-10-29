@@ -81,6 +81,19 @@ Within one lifecycle-cost run, use a coherent currency and price basis. For cros
 
 Unknown local tariff, carbon factor, legal requirement or failure rate remains unknown. A global ranking is permitted only after comparability rules and aggregation policy are preregistered.
 
+## Regional starting-point matrix (checked 2026-10-29; none verified as a product profile)
+
+| Region / context | Primary starting point | What it teaches us | Current profile status |
+|---|---|---|---|
+| European Union | [European Commission power-transformer ecodesign page](https://energy-efficient-products.ec.europa.eu/product-list/power-transformers_en) and [Regulation (EU) 2019/1783](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32019R1783) | The published product rules are scoped to 50 Hz networks and use class-specific loss limits or peak-efficiency-index rules; applicability/exemptions must be checked against the consolidated legal text. | DRAFT; source pointers added, legal scope and clauses not independently qualified |
+| United States | [U.S. DOE distribution-transformer page](https://www.energy.gov/cmei/buildings/distribution-transformers) | DOE's product definition explicitly includes 60 Hz and specific voltage/kVA bounds, with listed exclusions; the DOE page says amended-standard compliance is required beginning 2029-04-23. | DRAFT; regulatory scope and exact CFR clauses still require review |
+| India | [BIS publication on distribution-transformer ratings and loss context](https://www.bis.gov.in/wp-content/uploads/2025/03/news_2024-10-24_11.pdf) and [IndiaCode source lead](https://indiacode.ecourtsindia.com/rules/specification-of-energy-consumption-standards-for-star-labelled-e284ff7e/) | The referenced material distinguishes no-load and load losses and describes total-loss rules at specified load points; current IS 1180 editions, amendments and mandatory BEE applicability need primary-source verification. | DRAFT; current normative edition and legal status not verified |
+| South Africa | [SANS 780:2019 candidate historical copy](https://irp.cdn-website.com/4e0aecb6/files/uploaded/SANS780_2019_Ed5.pdf) and [City Power ground-mounted transformer tender specification](https://www.etenders.gov.za/home/Download/?blobName=47fa128d-b1d1-410c-a0fe-0bdee16b71f9.pdf&downloadedFileName=CP_TSSPEC_164+Rev+3+-+Ground+Mounted+Distribution+Transformers.pdf) | A historical SANS copy and a particular utility tender are research leads, not proof of the current SANS edition or universal South African requirements. The named utility/owner and its current controlled specification are essential. | DRAFT; SABS current status and exact utility requirements not verified |
+
+The U.S. DOE scope reference excludes some transformer categories, so its kVA/frequency summary must not be treated as a universal definition of every transformer bought in the United States. The EU profile must distinguish applicable product regulation from IEC test standards and any national/utility procurement terms. India's star-labeling context must be tied to the current primary legal rules and exact IS 1180 part/amendments, not a mirror or old summary. The South African profile must not infer current applicability from the hosted SANS PDF.
+
+This matrix is intentionally a **research queue**, not a compliance database. Each source record must be captured, hashed and independently reviewed before its region profile can be promoted to VERIFIED. See the initial profile records in `profiles/` and their schema, `profiles/region-profile.schema.json`.
+
 ## Standards starting points
 
 These sources are indexes or scope references, not a completed country-by-country compliance review:
