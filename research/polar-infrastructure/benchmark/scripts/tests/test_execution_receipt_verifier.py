@@ -54,6 +54,20 @@ class ExecutionReceiptVerifierTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must remain synthetic and ineligible"):
             self.verify(receipt)
 
+    def test_rejects_synthetic_receipt_relabelled_as_completed(self):
+        receipt = copy.deepcopy(self.receipt)
+        receipt["status"] = "completed"
+        receipt["execution_state"] = "completed"
+        receipt["execution_performed"] = True
+        with self.assertRaisesRegex(ValueError, "synthetic fixture cannot claim that execution occurred"):
+            self.verify(receipt)
+
+    def test_rejects_unknown_receipt_field(self):
+        receipt = copy.deepcopy(self.receipt)
+        receipt["physical_safety_certified"] = True
+        with self.assertRaisesRegex(ValueError, "strict v0.1 contract"):
+            self.verify(receipt)
+
     def test_rejects_missing_artifact_role(self):
         receipt = copy.deepcopy(self.receipt)
         receipt["artifact_inventory"].pop()
