@@ -10,7 +10,7 @@ Permissively-licensed (Apache-2.0 OR MIT) core types and traits for symtropy-rob
 - ControlOutcome: explicit lifecycle, constraint/veto feedback and request identity validation.
 - RuntimeAssuranceGate: deterministic admission checks for request freshness, supported intents, explicit frames, workspace bounds, speed caps and independently observed health.
 - RequestSequenceGuard and SequencedRuntimeAssurance: bounded per-session monotonic sequence tracking and pre-admission duplicate/order rejection.
-- DispatchBoundary: serializes authentication, sequence/gate admission and synchronous controller submission within one mutable authority instance.
+- DispatchBoundary: serializes authentication, sequence/gate admission and synchronous controller submission within one mutable authority instance; ControllerDispatchContext preserves authenticated session ID, sequence, and the original request lease/provenance at the sink.
 - MotorPlanner: trait for per-joint motor command planning.
 - spawn_robot_body: helper for spawning a platform-appropriate body into the physics world.
 
@@ -20,7 +20,7 @@ The runtime-assurance gate is an admission check, not a trajectory validator, co
 
 DispatchBoundary requires a configured SessionAuthenticator and ControllerSink. The boundary owns these components and sequence state; callers must serialize access to the same instance, or hold one mutex across the entire dispatch call. Multiple independently instantiated boundaries do not share anti-replay state. The authenticator is a trust seam: it must actually validate credentials, revocation and non-reused session identity. AuthenticatedSession is not itself a cryptographic proof.
 
-The sink receipt only means the adapter accepted a submission ticket. It does not prove motion occurred or that the task completed. The boundary is currently tested against mock sinks; it is not yet wired to the real multirotor or non-drone paths. Persistent replay protection across restarts, multi-process atomicity, trajectory collision checking and certified safety are out of scope.
+The sink receives the full request with session, sequence, issue time and expiry so it can re-check the lease immediately before enqueue/application. Its receipt only means the adapter accepted a submission ticket. It does not prove motion occurred or that the task completed. The boundary is currently tested against mock sinks; it is not yet wired to the real multirotor or non-drone paths. Persistent replay protection across restarts, multi-process atomicity, trajectory collision checking and certified safety are out of scope.
 
 See [SYMPTHAEA_RUNTIME_ASSURANCE_GATE_V0_1.md](../../../docs/research/SYMPTHAEA_RUNTIME_ASSURANCE_GATE_V0_1.md) for the fault-injection matrix, proposed performance targets and benchmark baselines.
 
