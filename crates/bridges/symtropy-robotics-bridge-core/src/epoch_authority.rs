@@ -241,6 +241,7 @@ mod tests {
         corrupt_read: AtomicBool,
         wrong_advance_result: AtomicBool,
         supersede_after_advance: AtomicBool,
+        conflict_next_advance: AtomicBool,
     }
 
     impl TestStore {
@@ -253,6 +254,7 @@ mod tests {
                 corrupt_read: AtomicBool::new(false),
                 wrong_advance_result: AtomicBool::new(false),
                 supersede_after_advance: AtomicBool::new(false),
+                conflict_next_advance: AtomicBool::new(false),
             })
         }
 
@@ -295,6 +297,16 @@ mod tests {
 
             let mut generations = self.generations.lock().unwrap();
             let observed = generations.get(controller_id).copied();
+            if self.conflict_next_advance.swap(false, Ordering::SeqCst) {
+                let raced_generation = expected_generation
+                    .checked_add(1)
+                    .ok_or(EpochAuthorityStoreError::CorruptState)?;
+                generations.insert(controller_id.to_owned(), raced_generation);
+                return Err(EpochAuthorityStoreError::CompareAndAdvanceConflict {
+                    expected_generation,
+                    observed_generation: Some(raced_generation),
+                });
+            }
             if observed != Some(expected_generation) {
                 return Err(EpochAuthorityStoreError::CompareAndAdvanceConflict {
                     expected_generation,
@@ -409,6 +421,23 @@ mod tests {
                 returned_generation: 2,
             })
         );
+    }
+
+    #[test]
+    fn stale_compare_and_advance_conflict_fails_closed() {
+        let store = TestStore::with_generation("left-wheel-controller", 7);
+        store.conflict_next_advance.store(true, Ordering::SeqCst);
+        let authority = authority(store.clone());
+        assert_eq!(
+            authority.claim_next_epoch(),
+            Err(EpochAuthorityError::Store(
+                EpochAuthorityStoreError::CompareAndAdvanceConflict {
+                    expected_generation: 7,
+                    observed_generation: Some(8),
+                }
+            ))
+        );
+        assert_eq!(authority.current_epoch(), Ok(epoch(8)));
     }
 
     #[test]
