@@ -100,6 +100,8 @@ jobs:
       - name: Verify byte-pinned NASA TMR source files
         working-directory: tools/civil-aero-benchmark
         run: sha256sum -c data/reference/nasa-tmr/SHA256SUMS
+      - name: Independently audit retained NASA TMR bytes and zones
+        run: bash tools/civil-aero-benchmark/scripts/verify-nasa-tmr-independent.sh
       - name: Run strict NASA TMR parsers and zone-count oracle
         working-directory: tools/civil-aero-benchmark
         shell: bash
