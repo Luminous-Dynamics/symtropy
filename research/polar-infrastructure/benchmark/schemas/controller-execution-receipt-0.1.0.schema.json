@@ -422,6 +422,21 @@
               "hardware_in_loop",
               "field_observation"
             ]
+          },
+          "execution_evidence": {
+            "properties": {
+              "process_exit_code": {
+                "type": "integer"
+              },
+              "started_at_utc": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ended_at_utc": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
           }
         }
       }
