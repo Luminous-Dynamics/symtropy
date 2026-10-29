@@ -348,9 +348,9 @@ mod tests {
     #[test]
     fn rejects_each_non_geometry_holdout_dimension_when_it_leaks() {
         for (policy, dimension) in [
-            ("HELD_OUT_MANUFACTURER", "manufacturer"),
-            ("HELD_OUT_MATERIAL_LOT", "material lot"),
-            ("HELD_OUT_CAMPAIGN", "measurement campaign"),
+            ("HELD_OUT_MANUFACTURER", "manufacturer_id"),
+            ("HELD_OUT_MATERIAL_LOT", "material_lot_id"),
+            ("HELD_OUT_CAMPAIGN", "measurement_campaign_id"),
         ] {
             let mut rows = vec![
                 row("train-1", "G1", "M1", "L1", "C1", policy, "TRAIN"),
