@@ -503,6 +503,51 @@ mod tests {
     }
 
     #[test]
+    fn moderate_exact_binomial_tails_match_independent_known_answers() {
+        assert!(close(log_binomial_lower_tail(100, 85, 0.95).exp(), 0.00013585423899229444));
+        assert!(close(log_binomial_upper_tail(80, 76, 0.95).exp(), 0.6288797712651971));
+        assert!(close(log_binomial_lower_tail(80, 76, 0.95).exp(), 0.5715513627795555));
+    }
+
+    #[test]
+    fn log_tail_keeps_extreme_probability_finite_when_raw_probability_underflows() {
+        let log_probability = log_binomial_lower_tail(1000, 0, 0.95);
+        assert!(log_probability.is_finite());
+        assert!(close(log_probability, 1000.0 * 0.05_f64.ln()));
+        assert_eq!(log_probability.exp(), 0.0);
+        assert!(log_probability < per_tail_alpha(100, 1000).ln());
+    }
+
+    #[test]
+    fn exact_tail_tests_respect_allocated_false_decision_probability_on_a_grid() {
+        for registration_index in 1..=8 {
+            for n in 1..=48 {
+                let alpha = per_tail_alpha(registration_index, n);
+                let log_alpha = alpha.ln();
+                let mut probability_mass = log_binomial_pmf(n, 0, TARGET_SUCCESS_PROBABILITY).exp();
+                let mut false_qualification_probability = 0.0;
+                let mut false_rejection_probability = 0.0;
+                for successes in 0..=n {
+                    if log_binomial_upper_tail(n, successes, TARGET_SUCCESS_PROBABILITY) <= log_alpha {
+                        false_qualification_probability += probability_mass;
+                    }
+                    if log_binomial_lower_tail(n, successes, TARGET_SUCCESS_PROBABILITY) <= log_alpha {
+                        false_rejection_probability += probability_mass;
+                    }
+                    if successes < n {
+                        probability_mass *= ((n - successes) as f64 / (successes + 1) as f64)
+                            * (TARGET_SUCCESS_PROBABILITY / (1.0 - TARGET_SUCCESS_PROBABILITY));
+                    }
+                }
+                assert!(false_qualification_probability <= alpha + 1e-10,
+                    "false qualification {false_qualification_probability} > alpha {alpha} at candidate {registration_index}, n={n}");
+                assert!(false_rejection_probability <= alpha + 1e-10,
+                    "false rejection {false_rejection_probability} > alpha {alpha} at candidate {registration_index}, n={n}");
+            }
+        }
+    }
+
+    #[test]
     fn first_candidate_all_success_boundary_matches_the_allocated_time_budget() {
         let log_alpha_309 = per_tail_alpha(1, 309).ln();
         let log_alpha_310 = per_tail_alpha(1, 310).ln();
