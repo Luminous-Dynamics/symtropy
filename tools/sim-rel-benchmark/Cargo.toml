@@ -1,0 +1,13 @@
+[package]
+name = "sim-rel-benchmark"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Offline, std-only reference parity harness for SIM-REL-001"
+
+[workspace]
+
+[[bin]]
+name = "sim-rel-reference"
+path = "src/main.rs"
