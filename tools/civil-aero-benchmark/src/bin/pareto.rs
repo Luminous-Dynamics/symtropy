@@ -39,8 +39,14 @@ fn main() {
 
     println!("{COMPARISON_HEADER}");
     for row in &rows {
-        let pareto_member = report.pareto_candidate_ids.iter().any(|id| id == &row.case.case_id);
-        let infeasible = report.infeasible_candidate_ids.iter().any(|id| id == &row.case.case_id);
+        let pareto_member = report
+            .pareto_candidate_ids
+            .iter()
+            .any(|id| id == &row.case.case_id);
+        let infeasible = report
+            .infeasible_candidate_ids
+            .iter()
+            .any(|id| id == &row.case.case_id);
         println!(
             "{},{},screening_only,{:.8},{:.8},{:.8},{},{},{},{}",
             row.case.case_id,
