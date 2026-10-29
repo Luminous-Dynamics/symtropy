@@ -113,3 +113,17 @@ The follow-on [AERO-SHAPEBENCH-001 issue #2896](https://github.com/Luminous-Dyna
 
 A ShapeBench optimization win would support a claim about that measured optimization method/task suite—not by itself the physical validity of new Reynolds/Mach conditions, a manufactured article, structural adequacy or flight readiness. Keep NASA TMR solver validation, small-aircraft low-Re data, and the non-flight coupon measurements as distinct evidence classes.
 
+## Deterministic stress-scenario screening
+
+A third CLI evaluates each candidate against an explicit scenario CSV:
+
+`cargo run --locked --bin robust -- data/example_cases.csv data/illustrative_stress_scenarios.csv`
+
+It emits per-candidate/per-scenario lift and drag estimates, energy after reserve, energy margin, lift margin and separate screening flags. The summary reports the scenario producing the highest estimated energy, the lowest energy margin, the lowest lift margin, and counts of screening failures.
+
+The committed stress set includes nominal, overweight, drag-model bias, lower density, lower propulsion efficiency, reduced battery energy, longer route and a combined adverse case. Every factor is visible in the scenario data file. The set is labelled synthetic_stress_not_probability. The multipliers are software stress fixtures, **not probabilities, not measured uncertainty bounds and not a real operating envelope**. Do not use them as aircraft engineering assumptions. Before evaluating a real candidate, replace or supplement them with bounds justified by actual material/build distributions, calibrated measurements, validated model discrepancy and the intended mission environment.
+
+The negative control data file has a nominal estimate that fits its declared usable energy, but the explicit combined stress and lower-efficiency/energy cases expose failures. The CLI reports those failures; it does not convert a failed scenario into a fatal program error, because a stress report is useful evidence. The workflow asserts that the negative control is reported as not robust.
+
+This is a deterministic scenario-sensitivity screen. It is not a Monte Carlo analysis, calibrated reliability estimate, probabilistic safety assessment, structural analysis or flight authorization.
+
