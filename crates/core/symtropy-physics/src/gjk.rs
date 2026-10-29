@@ -464,7 +464,7 @@ fn intersects_support_maps_with_active_set<const D: usize>(
             );
         }
         simplex.push(new_point);
-        match closest_point_on_hull_active_set(&simplex) {
+        match closest_point_on_hull_active_set(&simplex, geometric_tolerance_squared) {
             Ok((reduced, next_closest)) => {
                 simplex = reduced;
                 closest = next_closest;
@@ -484,6 +484,7 @@ fn intersects_support_maps_with_active_set<const D: usize>(
 /// Wolfe-style minimum-norm active-set pivots. No subset enumeration is used.
 fn closest_point_on_hull_active_set<const D: usize>(
     points: &Simplex<D>,
+    origin_tolerance_squared: f64,
 ) -> Result<(Simplex<D>, SVector<f64, D>), GjkFailureReason> {
     if points.is_empty() || points.len() > D + 2 {
         return Err(GjkFailureReason::DegenerateSimplex);
@@ -506,6 +507,17 @@ fn closest_point_on_hull_active_set<const D: usize>(
         let closest_squared = closest.norm_squared();
         if !closest_squared.is_finite() {
             return Err(GjkFailureReason::NonFiniteArithmetic);
+        }
+        // A feasible convex combination already within the declared contact
+        // band is sufficient for the outer GJK query to classify intersection.
+        // Continuing KKT pivoting at ~machine-zero can magnify roundoff and
+        // spuriously label an overlap as degenerate.
+        if closest_squared <= origin_tolerance_squared {
+            let mut reduced = Simplex::<D>::new();
+            for index in active.iter() {
+                reduced.push(points[*index]);
+            }
+            return Ok((reduced, closest));
         }
 
         let mut best_index = 0usize;
