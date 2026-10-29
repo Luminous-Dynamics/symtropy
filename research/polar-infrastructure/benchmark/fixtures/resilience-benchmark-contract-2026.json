@@ -328,7 +328,9 @@
       "command",
       "output_trace",
       "stdout",
-      "stderr"
+      "stderr",
+      "controller_artifact_bytes_in_inventory",
+      "canonical_resource_policy_bytes"
     ],
     "resource_limits": [
       "wall_time_ms",
@@ -346,10 +348,13 @@
     "requirements": [
       "complete receipt for every declared controller by trajectory case",
       "same numeric resource limits and resource-policy digest across arms",
+      "canonical resource-policy payload must equal the sorted compact JSON numeric limits object",
+      "controller artifact is present in the inventory and matches the paired-input digest",
       "same observation-policy digest across arms",
       "same plant-model, executable and runtime-environment digests across arms",
       "same run-configuration digest within each paired trajectory",
-      "independent input and output payload hash verification before scoring"
+      "independent input and output payload hash verification before scoring",
+      "signed execution attestation remains unimplemented, so no v0.1 receipt is scoring eligible"
     ],
     "receipt_set_test_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py",
     "execution_attestation_schema_status": "not_implemented",
@@ -382,6 +387,10 @@
     "cosign_version_tested_in_policy": "v3.1.4",
     "actual_cosign_signature_tested": false,
     "trusted_attestation_workflow_implemented": false,
-    "signed_receipt_verification_authorizes_scoring": false
+    "signed_receipt_verification_authorizes_scoring": false,
+    "required_input_artifact_role_count": 8,
+    "controller_artifact_inventory_digest_must_match_paired_binding": true,
+    "resource_policy_payload_must_equal_canonical_numeric_limits": true,
+    "resource_policy_digest_must_match_resource_limits_sha256": true
   }
 }
