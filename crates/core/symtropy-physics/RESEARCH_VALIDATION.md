@@ -57,6 +57,8 @@ GJK outcomes are categorical and must not be inferred from the legacy Boolean al
 
 The legacy `GjkResult::intersecting` field remains a convenience Boolean for existing callers, but a false value is not sufficient evidence of separation. New research, validation, and engineering code must inspect `termination`.
 
+The 4D closest-point path derives its squared origin/duplicate tolerance from the support maps' bounding radii and world-coordinate scale instead of relying on a fixed absolute zero threshold. The 4D conformance suite checks both a separated fixture and an overlap positive control under uniform scales from `1e-12` through `1e12`, using an independent SAT oracle whose tolerance is also scale-relative. This qualifies only the tested 4D oriented-box fixtures; it does not certify scale robustness for 2D/3D GJK or arbitrary convex support maps.
+
 `PhysicsWorld` records indeterminate pair queries in `collision_query_failures` for the most recent step. An indeterminate pair is **not** sent to EPA using an unqualified simplex. The gameplay step can continue, but a research/engineering result must be rejected or explicitly narrowed whenever a required collision pair is indeterminate. This diagnostic vector is step-scoped rather than a persistent audit log; callers that need a full trace must record it in their run receipt.
 
 This distinction separates numerical termination from physical validity:
