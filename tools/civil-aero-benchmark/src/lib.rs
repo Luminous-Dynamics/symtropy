@@ -7,6 +7,7 @@
 
 pub mod comparison;
 pub mod robustness;
+pub mod reference_data;
 pub mod coupon;
 
 use std::collections::HashSet;
