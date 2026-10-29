@@ -7,8 +7,6 @@
 
 pub mod budget;
 pub mod comparison;
-pub mod budget;
-pub mod comparison;
 pub mod coupon;
 pub mod reference_data;
 pub mod robustness;
