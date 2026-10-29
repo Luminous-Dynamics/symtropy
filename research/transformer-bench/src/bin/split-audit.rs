@@ -222,14 +222,16 @@ fn audit(rows: &[Row]) -> Result<Vec<Summary>, String> {
 
         let dimension = held_out_dimension(&split_policy);
         let (train_groups, test_groups, interpretation) = if let Some(dimension) = dimension {
-            let training_groups: BTreeSet<&str> = train
+            let seen_training_groups: BTreeSet<&str> = train
                 .iter()
                 .chain(validation.iter())
                 .map(|row| group_value(row, dimension))
                 .collect();
+            let training_groups: BTreeSet<&str> =
+                train.iter().map(|row| group_value(row, dimension)).collect();
             let testing_groups: BTreeSet<&str> =
                 test.iter().map(|row| group_value(row, dimension)).collect();
-            if let Some(leaked) = testing_groups.intersection(&training_groups).next() {
+            if let Some(leaked) = testing_groups.intersection(&seen_training_groups).next() {
                 return Err(format!(
                     "experiment {:?}, policy {}: held-out {} {:?} appears in TRAIN or VALIDATION; test independence is invalid",
                     experiment_id, split_policy, dimension, leaked
@@ -241,13 +243,17 @@ fn audit(rows: &[Row]) -> Result<Vec<Summary>, String> {
                 format!("HELD_OUT_GROUP_DISJOINT:{dimension}"),
             )
         } else {
-            let groups: BTreeSet<&str> = group_rows
+            let training_groups: BTreeSet<&str> = train
+                .iter()
+                .map(|row| row.geometry_family.as_str())
+                .collect();
+            let testing_groups: BTreeSet<&str> = test
                 .iter()
                 .map(|row| row.geometry_family.as_str())
                 .collect();
             (
-                groups.len(),
-                groups.len(),
+                training_groups.len(),
+                testing_groups.len(),
                 "RANDOM_ROW_BASELINE_ONLY_NOT_TRANSFER_EVIDENCE".to_string(),
             )
         };
