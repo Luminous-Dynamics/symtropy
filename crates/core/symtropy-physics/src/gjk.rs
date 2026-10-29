@@ -464,24 +464,30 @@ fn intersects_support_maps_with_active_set<const D: usize>(
                 return indeterminate_with_work(
                     simplex,
                     iteration,
-                    GjkFailureReason::NonFiniteArithmetic, work);
+                    GjkFailureReason::NonFiniteArithmetic,
+                    work,
+                );
             }
-            Err(reason) => return indeterminate_with_work(simplex, iteration, reason, work),
+            Err(reason) => {
+                return indeterminate_with_work(simplex, iteration, reason, work);
+            }
         };
         if closest_squared <= geometric_tolerance_squared {
             return GjkResult {
-                work,
                 intersecting: true,
                 termination: GjkTermination::Intersecting,
                 simplex,
                 iterations: iteration,
+                work,
             };
         }
         if closest_squared <= coordinate_tolerance_squared {
             return indeterminate_with_work(
                 simplex,
                 iteration,
-                GjkFailureReason::CoordinatePrecisionLimit, work);
+                GjkFailureReason::CoordinatePrecisionLimit,
+                work,
+            );
         }
 
         direction = -closest;
@@ -493,33 +499,39 @@ fn intersects_support_maps_with_active_set<const D: usize>(
         if let Err(reason) = checked_norm_squared(&new_point) {
             return indeterminate_with_work(simplex, iteration, reason, work);
         }
+
         let improvement = (new_point - closest).dot(&direction);
         if !improvement.is_finite() {
             return indeterminate_with_work(
                 simplex,
                 iteration,
-                GjkFailureReason::NonFiniteArithmetic, work);
+                GjkFailureReason::NonFiniteArithmetic,
+                work,
+            );
         }
-        // Dot-product error is governed by both the closest vector and the
-        // new support vector, not solely by the squared distance. This avoids
-        // demanding sub-machine-precision progress for near-contact pairs.
+        // Dot-product error is governed by both the closest vector and the new
+        // support vector, not solely by the squared distance.
         let progress_scale = closest.norm() * new_point.norm();
         let progress_tolerance = 64.0
             * f64::EPSILON
             * progress_scale.max(closest_squared).max(f64::MIN_POSITIVE);
-        // Since closest is a convex combination of the current simplex, the
-        // exact support improvement cannot be materially negative. A negative
-        // value beyond roundoff indicates a broken numerical certificate.
+        // Since closest is a convex combination of the current simplex, exact
+        // support improvement cannot be materially negative.
         if improvement < -progress_tolerance {
-            return indeterminate_with_work(simplex, iteration, GjkFailureReason::DegenerateSimplex, work);
+            return indeterminate_with_work(
+                simplex,
+                iteration,
+                GjkFailureReason::DegenerateSimplex,
+                work,
+            );
         }
         if improvement <= progress_tolerance {
             return GjkResult {
-                work,
                 intersecting: false,
                 termination: GjkTermination::Separated,
                 simplex,
                 iterations: iteration,
+                work,
             };
         }
 
@@ -529,10 +541,17 @@ fn intersects_support_maps_with_active_set<const D: usize>(
                 return indeterminate_with_work(
                     simplex,
                     iteration,
-                    GjkFailureReason::NonFiniteArithmetic, work);
+                    GjkFailureReason::NonFiniteArithmetic,
+                    work,
+                );
             }
             if delta_squared <= coordinate_tolerance_squared {
-                return indeterminate_with_work(simplex, iteration, GjkFailureReason::DuplicateSupport, work);
+                return indeterminate_with_work(
+                    simplex,
+                    iteration,
+                    GjkFailureReason::DuplicateSupport,
+                    work,
+                );
             }
         }
 
@@ -542,10 +561,17 @@ fn intersects_support_maps_with_active_set<const D: usize>(
             return indeterminate_with_work(
                 simplex,
                 iteration,
-                GjkFailureReason::SimplexCapacityExceeded, work);
+                GjkFailureReason::SimplexCapacityExceeded,
+                work,
+            );
         }
         simplex.push(new_point);
-        match closest_point_on_hull_active_set(&simplex, geometric_tolerance_squared, &mut work) {
+
+        match closest_point_on_hull_active_set(
+            &simplex,
+            geometric_tolerance_squared,
+            &mut work,
+        ) {
             Ok((reduced, next_closest)) => {
                 simplex = reduced;
                 closest = next_closest;
@@ -557,9 +583,8 @@ fn intersects_support_maps_with_active_set<const D: usize>(
                         || reason == GjkFailureReason::ActiveSetIterationLimit) =>
             {
                 // On a small stalled simplex, use a bounded exhaustive reference
-                // path to distinguish a true degenerate query from an active-set
-                // cycling/conditioning failure. Never permit this exponential
-                // fallback to scale with unrestricted D.
+                // path to distinguish a true degenerate query from active-set
+                // conditioning failure. Never let exponential work scale with D.
                 work.exhaustive_fallbacks += 1;
                 match closest_point_on_hull_exhaustive(
                     &simplex,
@@ -571,18 +596,27 @@ fn intersects_support_maps_with_active_set<const D: usize>(
                         closest = next_closest;
                     }
                     Err(fallback_reason) => {
-                        return indeterminate_with_work(simplex, iteration, fallback_reason, work);
+                        return indeterminate_with_work(
+                            simplex,
+                            iteration,
+                            fallback_reason,
+                            work,
+                        );
                     }
                 }
             }
-            Err(reason) => return indeterminate_with_work(simplex, iteration, reason, work),
+            Err(reason) => {
+                return indeterminate_with_work(simplex, iteration, reason, work);
+            }
         }
     }
 
     indeterminate_with_work(
         simplex,
         MAX_ND_ITERATIONS,
-        GjkFailureReason::IterationLimit, work)
+        GjkFailureReason::IterationLimit,
+        work,
+    )
 }
 
 /// Bounded exhaustive closest-hull fallback for a stalled low-dimensional query.
