@@ -54,7 +54,7 @@ def verify_artifact_bytes(artifact: dict[str, Any]) -> bool:
 def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
     need(set(receipt) == {
         "schema_version", "artifact_kind", "evidence_class", "status", "receipt_id", "case_id",
-        "controller_id", "execution_state", "execution_performed", "scoring_eligible", "provenance",
+        "controller_id", "execution_state", "execution_performed", "scoring_eligible", "execution_attestation", "provenance",
         "paired_input_bindings", "artifact_inventory", "resource_limits", "resource_limits_sha256",
         "observed_resources", "execution_evidence", "independent_verification", "claim_policy",
     }, "receipt keys do not match the strict v0.1 contract")
@@ -66,7 +66,16 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
         "scoring_requires_completed_execution": True,
         "scoring_requires_independent_output_hash_verification": True,
         "resource_limits_must_be_shared_across_comparison_arms": True,
+        "scoring_requires_signed_execution_attestation": True,
+        "signed_execution_attestation_verifier_implemented": False,
     }, "receipt claim policy is missing or weakened")
+    need(receipt.get("scoring_eligible") is False,
+         "v0.1 receipt contract cannot authorize scoring until signed execution attestation is verified")
+    need(receipt.get("execution_attestation") == {
+        "scheme": "none", "status": "not_implemented", "issuer_id": None,
+        "signature_bundle_sha256": None, "signed_payload_sha256": None,
+        "verifier_id": None, "verifier_revision": None,
+    }, "v0.1 receipt contract requires the signed-attestation gate to remain explicitly unimplemented")
 
     inventory = receipt.get("artifact_inventory")
     need(isinstance(inventory, list), "artifact_inventory must be an array")
