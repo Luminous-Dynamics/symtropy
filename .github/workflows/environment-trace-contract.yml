@@ -378,6 +378,21 @@ jobs:
             .execution_receipt_extension.requires_shared_resource_budget_across_arms == true and
             .execution_receipt_extension.actual_execution_claim == "none" and
             (.execution_receipt_extension.resource_limits | sort) == (["wall_time_ms", "cpu_time_ms", "peak_memory_bytes", "simulator_calls", "observation_count"] | sort) and
+            .execution_receipt_extension.v02_extension.status == "design_only_not_executed" and
+            .execution_receipt_extension.v02_extension.schema_version == "0.2.0" and
+            .execution_receipt_extension.v02_extension.paired_input_schema_version == "0.5.0" and
+            .execution_receipt_extension.v02_extension.schema_path == "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json" and
+            .execution_receipt_extension.v02_extension.template_path == "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json" and
+            .execution_receipt_extension.v02_extension.validator_path == "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs" and
+            .execution_receipt_extension.v02_extension.independent_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py" and
+            .execution_receipt_extension.v02_extension.receipt_set_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py" and
+            .execution_receipt_extension.v02_extension.v02_tests_path == "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py" and
+            .execution_receipt_extension.v02_extension.binds_information_budget_digest == true and
+            .execution_receipt_extension.v02_extension.binds_observation_trace_digest == true and
+            .execution_receipt_extension.v02_extension.requires_observation_policy_payload_to_match_budget == true and
+            .execution_receipt_extension.v02_extension.execution_attestation_verifier_implemented == false and
+            .execution_receipt_extension.v02_extension.scoring_authorized == false and
+            .execution_receipt_extension.v02_extension.performance_claim == "none" and
             .counterexample_search_extension.status == "proposed_not_executed" and
             .counterexample_search_extension.evidence_class == "test_design_only" and
             .counterexample_search_extension.contract_path == "research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json" and
