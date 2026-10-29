@@ -27,14 +27,71 @@ const MAX_SIMPLEX: usize = 5;
 /// Stack-allocated simplex type. Zero heap allocation.
 type Simplex<const D: usize> = ArrayVec<SVector<f64, D>, MAX_SIMPLEX>;
 
+/// Why a GJK query did not produce a definitive geometric classification.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GjkFailureReason {
+    /// The support-map center or another authored query input was non-finite.
+    NonFiniteInput,
+    /// A support map returned a non-finite support point.
+    NonFiniteSupport,
+    /// Finite inputs produced non-finite intermediate arithmetic.
+    NonFiniteArithmetic,
+    /// The solver repeated a support point before establishing convergence.
+    DuplicateSupport,
+    /// No usable closest point could be computed for the current simplex.
+    DegenerateSimplex,
+    /// The simplex exceeded the algorithm's fixed storage capacity.
+    SimplexCapacityExceeded,
+    /// The iteration budget was exhausted without a definitive result.
+    IterationLimit,
+}
+
+/// Termination outcome for a GJK query.
+///
+/// Separated is reserved for a converged separation conclusion. A failed or
+/// exhausted numerical path must return Indeterminate, never a false negative.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GjkTermination {
+    Intersecting,
+    Separated,
+    Indeterminate(GjkFailureReason),
+}
+
 /// Result of a GJK intersection test.
+///
+/// \`intersecting\` is retained for source compatibility. New code should branch
+/// on \`termination\`; \`false\` alone is not proof that the shapes are separated.
 #[derive(Clone, Debug)]
 pub struct GjkResult<const D: usize> {
     pub intersecting: bool,
-    /// The final simplex (for EPA to use if intersecting).
+    /// Categorical solver result; the authoritative status field.
+    pub termination: GjkTermination,
+    /// The final simplex (safe as an EPA seed only when status is Intersecting).
     pub simplex: Simplex<D>,
     /// Number of iterations used.
     pub iterations: usize,
+}
+
+fn indeterminate<const D: usize>(
+    simplex: Simplex<D>,
+    iterations: usize,
+    reason: GjkFailureReason,
+) -> GjkResult<D> {
+    GjkResult {
+        intersecting: false,
+        termination: GjkTermination::Indeterminate(reason),
+        simplex,
+        iterations,
+    }
+}
+
+#[inline]
+fn vector_is_finite<const D: usize>(vector: &SVector<f64, D>) -> bool {
+    vector.iter().all(|value| value.is_finite())
+}
+
+fn simplex_is_finite<const D: usize>(simplex: &Simplex<D>) -> bool {
+    simplex.iter().all(vector_is_finite)
 }
 
 /// Test if two translated shapes intersect using the GJK algorithm.
@@ -70,57 +127,112 @@ pub fn intersects_support_maps<const D: usize>(
     shape_a: &dyn WorldSupportMap<D>,
     shape_b: &dyn WorldSupportMap<D>,
 ) -> GjkResult<D> {
-    // Four dimensions need a five-vertex simplex. The existing 3D tetrahedron
-    // reducer is not a valid facet test in 4D, so use closest-point reduction.
+    // Four dimensions need a five-vertex simplex. The 3D tetrahedron reducer
+    // is not a valid facet test for a 4D simplex.
     if D == 4 {
         return intersects_support_maps_with_closest_simplex(shape_a, shape_b);
     }
 
+    let center_a = shape_a.center_world();
+    let center_b = shape_b.center_world();
+    let mut simplex = Simplex::<D>::new();
+    if !vector_is_finite(&center_a) || !vector_is_finite(&center_b) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteInput);
+    }
+
     // Initial direction: from A to B.
-    let mut direction = shape_b.center_world() - shape_a.center_world();
+    let mut direction = center_b - center_a;
+    if !vector_is_finite(&direction) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
+    }
     if direction.norm_squared() < 1e-20 {
         direction = SVector::zeros();
         direction[0] = 1.0;
     }
 
     let first = minkowski_support(shape_a, shape_b, &direction);
-    let mut simplex = Simplex::new();
+    if !vector_is_finite(&first) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteSupport);
+    }
     simplex.push(first);
     direction = -first;
 
     for iteration in 0..MAX_ITERATIONS {
-        if direction.norm_squared() < 1e-20 {
+        let direction_squared = direction.norm_squared();
+        if !direction_squared.is_finite() || !simplex_is_finite(&simplex) {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
+        if direction_squared < 1e-20 {
             return GjkResult {
                 intersecting: true,
+                termination: GjkTermination::Intersecting,
                 simplex,
                 iterations: iteration,
             };
         }
 
         let new_point = minkowski_support(shape_a, shape_b, &direction);
-        if new_point.dot(&direction) < -1e-10 {
+        if !vector_is_finite(&new_point) {
+            return indeterminate(simplex, iteration, GjkFailureReason::NonFiniteSupport);
+        }
+        let support_projection = new_point.dot(&direction);
+        if !support_projection.is_finite() {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
+        if support_projection < -1e-10 {
             return GjkResult {
                 intersecting: false,
+                termination: GjkTermination::Separated,
                 simplex,
                 iterations: iteration,
             };
+        }
+        if simplex.len() >= MAX_SIMPLEX {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::SimplexCapacityExceeded,
+            );
         }
 
         simplex.push(new_point);
         if do_simplex(&mut simplex, &mut direction) {
+            if !simplex_is_finite(&simplex) {
+                return indeterminate(
+                    simplex,
+                    iteration,
+                    GjkFailureReason::NonFiniteArithmetic,
+                );
+            }
             return GjkResult {
                 intersecting: true,
+                termination: GjkTermination::Intersecting,
                 simplex,
                 iterations: iteration,
             };
         }
+        if !vector_is_finite(&direction) || !simplex_is_finite(&simplex) {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
     }
 
-    GjkResult {
-        intersecting: false,
+    indeterminate(
         simplex,
-        iterations: MAX_ITERATIONS,
-    }
+        MAX_ITERATIONS,
+        GjkFailureReason::IterationLimit,
+    )
 }
 
 /// GJK path for 4D using an exhaustive closest-point reduction over simplex faces.
@@ -132,22 +244,42 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
     shape_a: &dyn WorldSupportMap<D>,
     shape_b: &dyn WorldSupportMap<D>,
 ) -> GjkResult<D> {
-    let mut direction = shape_b.center_world() - shape_a.center_world();
+    let center_a = shape_a.center_world();
+    let center_b = shape_b.center_world();
+    let mut simplex = Simplex::<D>::new();
+    if !vector_is_finite(&center_a) || !vector_is_finite(&center_b) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteInput);
+    }
+
+    let mut direction = center_b - center_a;
+    if !vector_is_finite(&direction) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
+    }
     if direction.norm_squared() < 1e-20 {
         direction = SVector::zeros();
         direction[0] = 1.0;
     }
 
     let first = minkowski_support(shape_a, shape_b, &direction);
-    let mut simplex = Simplex::<D>::new();
+    if !vector_is_finite(&first) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteSupport);
+    }
     simplex.push(first);
     let mut closest = first;
 
     for iteration in 0..MAX_ITERATIONS {
         let closest_squared = closest.norm_squared();
+        if !closest_squared.is_finite() {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
         if closest_squared < 1e-20 {
             return GjkResult {
                 intersecting: true,
+                termination: GjkTermination::Intersecting,
                 simplex,
                 iterations: iteration,
             };
@@ -155,56 +287,80 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
 
         direction = -closest;
         let new_point = minkowski_support(shape_a, shape_b, &direction);
+        if !vector_is_finite(&new_point) {
+            return indeterminate(simplex, iteration, GjkFailureReason::NonFiniteSupport);
+        }
         let improvement = (new_point - closest).dot(&direction);
+        if !improvement.is_finite() {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
         let progress_tolerance = 64.0 * f64::EPSILON * closest_squared;
-        if improvement <= progress_tolerance
-            || simplex
-                .iter()
-                .any(|point| (*point - new_point).norm_squared() < 1e-24)
-        {
+        if improvement <= progress_tolerance {
             return GjkResult {
                 intersecting: false,
+                termination: GjkTermination::Separated,
                 simplex,
                 iterations: iteration,
             };
         }
 
-        // In 4D, a full simplex contains five points. If it has not enclosed
-        // the origin, treat an unreduced full simplex as numerical failure
-        // rather than panic on ArrayVec capacity or claim intersection.
+        for point in &simplex {
+            let delta_squared = (*point - new_point).norm_squared();
+            if !delta_squared.is_finite() {
+                return indeterminate(
+                    simplex,
+                    iteration,
+                    GjkFailureReason::NonFiniteArithmetic,
+                );
+            }
+            if delta_squared < 1e-24 {
+                return indeterminate(simplex, iteration, GjkFailureReason::DuplicateSupport);
+            }
+        }
+
+        // A full 4D simplex contains five points. Reaching this guard means
+        // reduction failed to leave capacity for the next support point.
         if simplex.len() >= MAX_SIMPLEX {
-            return GjkResult {
-                intersecting: false,
+            return indeterminate(
                 simplex,
-                iterations: iteration,
-            };
+                iteration,
+                GjkFailureReason::SimplexCapacityExceeded,
+            );
         }
         simplex.push(new_point);
 
         let Some((reduced, next_closest)) = closest_point_on_simplex(&simplex) else {
-            return GjkResult {
-                intersecting: false,
-                simplex,
-                iterations: iteration,
-            };
+            return indeterminate(simplex, iteration, GjkFailureReason::DegenerateSimplex);
         };
+        if !vector_is_finite(&next_closest) || !simplex_is_finite(&reduced) {
+            return indeterminate(
+                reduced,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
         simplex = reduced;
         closest = next_closest;
 
         if closest.norm_squared() < 1e-20 {
             return GjkResult {
                 intersecting: true,
+                termination: GjkTermination::Intersecting,
                 simplex,
                 iterations: iteration,
             };
         }
     }
 
-    GjkResult {
-        intersecting: false,
+    indeterminate(
         simplex,
-        iterations: MAX_ITERATIONS,
-    }
+        MAX_ITERATIONS,
+        GjkFailureReason::IterationLimit,
+    )
 }
 
 /// Return the closest point to the origin on a simplex and the active face.
