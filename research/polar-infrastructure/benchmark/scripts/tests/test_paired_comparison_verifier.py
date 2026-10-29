@@ -36,6 +36,29 @@ class PairedComparisonVerifierTests(unittest.TestCase):
         # The exact score summary must not depend on incidental source-array order.
         verify_documents(doc, copy.deepcopy(self.reference_report))
 
+    def test_rejects_duplicate_keys_inside_information_budget_payload(self):
+        import hashlib
+        doc = copy.deepcopy(self.fixture)
+        payload = doc["information_budget_payload"]
+        payload = payload.replace('"schema_version":"1"', '"schema_version":"1","schema_version":"1"', 1)
+        doc["information_budget_payload"] = payload
+        doc["information_budget_sha256"] = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        for case in doc["cases"]:
+            case["information_budget_sha256"] = doc["information_budget_sha256"]
+        with self.assertRaisesRegex(ValueError, "duplicate JSON object key"):
+            build_expected_report(doc)
+
+    def test_rejects_duplicate_keys_inside_observation_trace_payload(self):
+        import hashlib
+        doc = copy.deepcopy(self.fixture)
+        artifact = doc["trajectory_artifacts"][0]
+        payload = artifact["observation_trace_payload"]
+        payload = payload.replace('"schema_version":"1"', '"schema_version":"1","schema_version":"1"', 1)
+        artifact["observation_trace_payload"] = payload
+        artifact["observation_trace_sha256"] = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        with self.assertRaisesRegex(ValueError, "duplicate JSON object key"):
+            build_expected_report(doc)
+
     def test_rejects_missing_controller_trajectory_row(self):
         doc = copy.deepcopy(self.fixture)
         doc["cases"].pop()
