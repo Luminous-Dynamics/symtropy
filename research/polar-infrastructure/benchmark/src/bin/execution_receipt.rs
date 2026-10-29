@@ -19,6 +19,7 @@ struct Receipt {
     paired_input_bindings: InputBindings,
     artifact_inventory: Vec<Artifact>,
     resource_limits: Resources,
+    resource_limits_sha256: String,
     observed_resources: NullableResources,
     execution_evidence: ExecutionEvidence,
     independent_verification: IndependentVerification,
@@ -169,6 +170,9 @@ fn validate(r: &Receipt) -> Result<(), String> {
         if !valid_sha256(digest) {
             return Err("paired input binding has invalid SHA-256 syntax".into());
         }
+    }
+    if !valid_sha256(&r.resource_limits_sha256) {
+        return Err("resource_limits_sha256 has invalid SHA-256 syntax".into());
     }
     if !nonempty(&r.paired_input_bindings.trajectory_id)
         || !nonempty(&r.paired_input_bindings.initial_state_id)
