@@ -77,9 +77,9 @@ pub fn compare_candidates(rows: &[ResultRow]) -> Result<ParetoReport, String> {
     }
 
     for candidate in &eligible {
-        let is_dominated = eligible
-            .iter()
-            .any(|other| other.case.case_id != candidate.case.case_id && dominates(other, candidate));
+        let is_dominated = eligible.iter().any(|other| {
+            other.case.case_id != candidate.case.case_id && dominates(other, candidate)
+        });
         if is_dominated {
             report.dominated_candidate_ids.push(candidate.case.case_id.clone());
         } else {
@@ -147,7 +147,10 @@ mod tests {
         worse.cd0 *= 1.1;
         let worse = worse.evaluate().expect("higher drag");
         let report = compare_candidates(&[baseline, worse]).expect("same mission");
-        assert_eq!(report.eligible_candidate_ids, vec!["baseline".to_owned(), "higher-drag".to_owned()]);
+        assert_eq!(
+            report.eligible_candidate_ids,
+            vec!["baseline".to_owned(), "higher-drag".to_owned()]
+        );
         assert_eq!(report.dominated_candidate_ids, vec!["higher-drag".to_owned()]);
         assert_eq!(report.pareto_candidate_ids, vec!["baseline".to_owned()]);
         assert_eq!(report.evidence_level, "screening_only");
