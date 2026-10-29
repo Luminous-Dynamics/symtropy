@@ -540,7 +540,7 @@ fn three_dimensional_specialized_path_is_scale_invariant() {
 fn assert_dynamic_range_contract<const D: usize>() {
     for scale in [1e-200, 1e200] {
         let a = box_at(SVector::<f64, D>::zeros(), scale);
-        let separated_center =
+        let separated_center: SVector<f64, D> =
             SVector::from_fn(|axis, _| if axis == 0 { 3.5 * scale } else { 0.0 });
         let b = box_at(separated_center, scale);
         assert!(
