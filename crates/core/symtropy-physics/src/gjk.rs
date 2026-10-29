@@ -287,12 +287,22 @@ fn closest_point_on_simplex<const D: usize>(
         };
 
         let distance_squared = candidate.norm_squared();
-        if distance_squared.is_finite()
-            && best
-                .as_ref()
-                .map(|(_, _, best_distance)| distance_squared < *best_distance)
-                .unwrap_or(true)
-        {
+        let replace = if !distance_squared.is_finite() {
+            false
+        } else {
+            match best.as_ref() {
+                // If the origin is on the simplex, prefer the largest available
+                // containing face. EPA benefits from a fuller seed simplex.
+                Some((best_mask, _, best_distance))
+                    if distance_squared < 1e-20 && *best_distance < 1e-20 =>
+                {
+                    mask.count_ones() > best_mask.count_ones()
+                }
+                Some((_, _, best_distance)) => distance_squared < *best_distance,
+                None => true,
+            }
+        };
+        if replace {
             best = Some((mask, candidate, distance_squared));
         }
     }
