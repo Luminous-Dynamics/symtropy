@@ -190,7 +190,7 @@ fn validate_failed_outputs(e: &ExecutionEvidence) -> Result<(), String> {
 }
 
 fn validate(r: &Receipt) -> Result<(), String> {
-    if r.schema_version != "0.1.0"
+    if !["0.1.0", "0.2.0"].contains(&r.schema_version.as_str())
         || r.artifact_kind != "symtropy-controller-execution-receipt"
         || !nonempty(&r.receipt_id)
         || !nonempty(&r.case_id)
