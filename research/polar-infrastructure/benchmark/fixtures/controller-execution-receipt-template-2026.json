@@ -100,5 +100,11 @@
     "scoring_requires_completed_execution": true,
     "scoring_requires_independent_output_hash_verification": true,
     "resource_limits_must_be_shared_across_comparison_arms": true
+  },
+  "independent_verification": {
+    "status": "not_run",
+    "verifier_id": null,
+    "verifier_revision": null,
+    "verified_artifact_count": 0
   }
 }
