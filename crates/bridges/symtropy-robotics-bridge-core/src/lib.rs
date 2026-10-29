@@ -9,6 +9,7 @@ pub mod control;
 pub mod differential_drive;
 pub mod dispatch;
 pub mod epoch_authority;
+pub mod epoch_command_queue;
 pub mod epoch_fence;
 pub mod epoch_fenced_sink;
 pub mod outcome_ledger;
@@ -31,6 +32,9 @@ pub use control::{
 pub use differential_drive::{
     CommandProvenance, DifferentialDriveAdapter, DifferentialDriveClock, DifferentialDriveCommand,
     DifferentialDriveConfigError, DifferentialDriveLocalController,
+};
+pub use epoch_command_queue::{
+    EpochCommandQueue, EpochCommandQueueError, EpochCommandQueueStats, EpochQueuedCommand,
 };
 pub use epoch_authority::{
     ControllerEpochAuthority, ControllerEpochStore, EpochAuthorityError,
