@@ -33,7 +33,7 @@ digest=$(sha256sum -- "$stl_path" | awk '{print $1}')
   exit 2
 }
 
-tmp_path=$(mktemp "\${manifest_path}.tmp.XXXXXX")
+tmp_path=$(mktemp "$manifest_path.tmp.XXXXXX")
 cleanup() {
   rm -f -- "$tmp_path"
 }
