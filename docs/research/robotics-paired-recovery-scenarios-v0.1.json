@@ -206,6 +206,10 @@
         "command_deadline_ns",
         "command_application_time_ns",
         "expired_command_application_acceptance_count",
+        "native_controller_epoch_at_acceptance",
+        "native_controller_acceptance_time_ns",
+        "native_controller_epoch_mismatch_acceptance_count",
+        "native_expired_command_acceptance_count",
         "old_command_queue_policy",
         "command_acceptance_boundary",
         "sink_invocation_count"
@@ -224,6 +228,8 @@
     "The authority-store implementation identity and durability/rollback threat model must be fixed before scored runs.",
     "Record stale command admissions separately from stale outcome-event acceptance; both are non-compensatory hard-gate failures.",
     "Record stale command application acceptance separately from stale admission and stale outcome acceptance; missing application-boundary evidence is unobserved, not zero.",
-    "Use one declared monotonic clock domain for enqueue time, application time, and command deadline; any expired command accepted/applied fails the hard gate."
+    "Use one declared monotonic clock domain for enqueue time, application time, and command deadline; any expired command accepted/applied fails the hard gate.",
+    "Record the epoch observed by the native controller at acceptance; any mismatch with the supplied epoch fails the hard gate.",
+    "Count a safely rejected deadline miss separately from a native command acceptance at or beyond expiry."
   ]
 }
