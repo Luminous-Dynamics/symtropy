@@ -345,10 +345,14 @@ fn seeded_oriented_box<const D: usize>(seed: &mut u64) -> OrientedBox<D> {
     }
 }
 
-fn assert_seeded_rotated_box_panel<const D: usize>() {
-    let mut seed = 0x4e44_474a_4b5f_5341_u64 ^ (D as u64);
+fn assert_seeded_rotated_box_panel<const D: usize>(
+    seed_value: u64,
+    cases: usize,
+    indeterminate_budget: usize,
+) {
+    let mut seed = seed_value ^ (D as u64);
     let mut indeterminate_cases = 0usize;
-    for case_id in 0..24 {
+    for case_id in 0..cases {
         let a = seeded_oriented_box::<D>(&mut seed);
         let b = seeded_oriented_box::<D>(&mut seed);
         let expected = sat_oracle(&a, &b);
@@ -366,19 +370,29 @@ fn assert_seeded_rotated_box_panel<const D: usize>() {
         }
     }
     assert!(
-        indeterminate_cases <= 4,
-        "D={D}: indeterminate outcomes {indeterminate_cases}/24 exceeded the frozen budget of 4"
+        indeterminate_cases <= indeterminate_budget,
+        "D={D}: indeterminate outcomes {indeterminate_cases}/{cases} exceeded the frozen budget of {indeterminate_budget}"
     );
 }
 
 #[test]
 fn active_set_gjk_matches_sat_on_seeded_rotated_five_dimensional_boxes() {
-    assert_seeded_rotated_box_panel::<5>();
+    assert_seeded_rotated_box_panel::<5>(0x4e44_474a_4b5f_5341, 64, 6);
 }
 
 #[test]
 fn active_set_gjk_matches_sat_on_seeded_rotated_six_dimensional_boxes() {
-    assert_seeded_rotated_box_panel::<6>();
+    assert_seeded_rotated_box_panel::<6>(0x4e44_474a_4b5f_5341, 64, 6);
+}
+
+#[test]
+fn active_set_gjk_matches_sat_on_held_out_five_dimensional_boxes() {
+    assert_seeded_rotated_box_panel::<5>(0xA17E_5EED_5A7E_0001, 64, 4);
+}
+
+#[test]
+fn active_set_gjk_matches_sat_on_held_out_six_dimensional_boxes() {
+    assert_seeded_rotated_box_panel::<6>(0xA17E_5EED_6A7E_0001, 64, 4);
 }
 
 
