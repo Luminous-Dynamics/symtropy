@@ -306,9 +306,7 @@ mod tests {
         queue
             .enqueue_at(epoch(4), 71, 100, 1, "drive-forward")
             .unwrap();
-        let applied = queue.apply_next_at(2, |command_epoch, request_id, deadline, command| {
-            (command_epoch, request_id, deadline, *command)
-        });
+        let applied = queue.apply_next_at(2, |_, _, _, command| *command);
         assert_eq!(
             applied,
             Some(EpochCommandApplication::Applied {
@@ -385,7 +383,7 @@ mod tests {
 
         queue.enqueue_at(epoch(2), 10, 100, 1, "new-left").unwrap();
         assert_eq!(
-            queue.apply_next_at(2, |command_epoch, _, _, command| (command_epoch, *command)),
+            queue.apply_next_at(2, |_, _, _, command| *command),
             Some(EpochCommandApplication::Applied {
                 epoch: epoch(2),
                 request_id: 10,
