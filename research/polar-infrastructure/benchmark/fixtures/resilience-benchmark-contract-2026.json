@@ -282,8 +282,8 @@
     "performance_claim": "none"
   },
   "paired_comparison_extension": {
-    "contract_path": "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json",
-    "schema_path": "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json",
+    "contract_path": "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json",
+    "schema_path": "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.4.0.schema.json",
     "evaluator_path": "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs",
     "independent_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py",
     "workflow_path": ".github/workflows/polar-resilience-paired-comparison.yml",
@@ -297,6 +297,15 @@
     "complete_controller_trajectory_matrix_required": true,
     "invalid_and_unevaluated_outcomes_must_remain_visible": true,
     "gate_specific_margin_contracts_required": true,
-    "performance_claim": "none"
+    "performance_claim": "none",
+    "content_addressed_artifacts_required": true,
+    "artifact_categories": [
+      "trajectory_payload",
+      "initial_state_payload",
+      "controller_artifact_payload"
+    ],
+    "digest_algorithm": "SHA-256 over exact UTF-8 payload bytes",
+    "digest_payload_verification": "independent_python_verifier_required",
+    "synthetic_fixture_payloads_are_physical_evidence": false
   }
 }
