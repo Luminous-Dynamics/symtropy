@@ -132,3 +132,10 @@ For research claims, report random-row metrics and group-held-out metrics separa
 The `evidence-receipt` binary checks declared SHA-256 digests against the actual bytes for artifacts listed in a manifest, restricts paths to the selected artifact root, blocks path traversal and symlink escapes, and binds each receipt row to the exact manifest digest. A tampered or missing artifact fails closed. A synthetic manifest and one known-answer payload exercise the interface.
 
 This is a byte-integrity gate, not provenance authentication: an unsigned manifest can itself be replaced, and matching bytes do not prove a solver ran or a source is authoritative. Preserve the manifest and receipt in a version-controlled or independently anchored record. Adversarial workflows need a signature/transparency-log policy, independent identity verification, and separately verified solver/query receipts. See the run command and limitations in [README.md](README.md).
+
+
+## Matched-budget candidate verification
+
+The `acquisition-bench` scaffold compares seeded random, exploitation, interval-width uncertainty, lower-confidence-bound, expected-improvement, and mixed numeric/categorical diversity policies using the same budget. The current frozen-pool replay reports oracle-relative regret and top-k discovery and exists to test decision-oriented evaluation machinery. It is not yet a closed-loop active-learning system: the surrogate is not retrained and no expensive solver is invoked. See [BUDGETED_VERIFICATION_BENCHMARK.md](BUDGETED_VERIFICATION_BENCHMARK.md) and [PWR-TX-ACQ-001](https://github.com/Luminous-Dynamics/symtropy/issues/2907).
+
+Global comparisons should evaluate each frequency/excitation domain separately, use group-held-out geometry/material/manufacturer/campaign partitions, and include the same simple baselines for every region/dataset. Record local requirements and physical objectives separately. Do not report a universal policy winner based on synthetic fixtures or one region's data.
