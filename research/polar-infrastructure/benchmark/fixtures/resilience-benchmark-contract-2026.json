@@ -391,6 +391,10 @@
     "required_input_artifact_role_count": 8,
     "controller_artifact_inventory_digest_must_match_paired_binding": true,
     "resource_policy_payload_must_equal_canonical_numeric_limits": true,
-    "resource_policy_digest_must_match_resource_limits_sha256": true
+    "resource_policy_digest_must_match_resource_limits_sha256": true,
+    "paired_input_payloads_rehashed_before_receipt_acceptance": true,
+    "paired_input_validation_scope": "full v0.4 paired fixture: schema-level semantic invariants, complete controller/trajectory matrix, all trajectory/initial-state/controller payload SHA-256 hashes",
+    "receipt_set_validation": "validate paired input once; reuse indexed case, trajectory and controller artifact maps across all receipts",
+    "receipt_set_input_tamper_negative_control_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
   }
 }
