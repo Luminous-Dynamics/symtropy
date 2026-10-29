@@ -7,9 +7,11 @@
 
 pub mod budget;
 pub mod comparison;
-pub mod robustness;
-pub mod reference_data;
+pub mod budget;
+pub mod comparison;
 pub mod coupon;
+pub mod reference_data;
+pub mod robustness;
 
 use std::collections::HashSet;
 use std::f64::consts::PI;
@@ -62,14 +64,20 @@ impl Case {
         if self.case_id.trim().is_empty() {
             return Err("case_id must not be empty".to_owned());
         }
-        if !matches!(self.parameter_basis.as_str(), "synthetic" | "estimate" | "measured") {
+        if !matches!(
+            self.parameter_basis.as_str(),
+            "synthetic" | "estimate" | "measured"
+        ) {
             return Err(format!(
                 "case {}: parameter_basis must be synthetic, estimate, or measured",
                 self.case_id
             ));
         }
         if self.source_ref.trim().is_empty() {
-            return Err(format!("case {}: source_ref must not be empty", self.case_id));
+            return Err(format!(
+                "case {}: source_ref must not be empty",
+                self.case_id
+            ));
         }
         if self.parameter_basis == "synthetic" {
             if self.source_sha256 != "-" {
@@ -98,7 +106,10 @@ impl Case {
             ("battery_energy_wh", self.battery_energy_wh),
             ("reserve_fraction", self.reserve_fraction),
             ("route_distance_km", self.route_distance_km),
-            ("assumed_max_lift_coefficient", self.assumed_max_lift_coefficient),
+            (
+                "assumed_max_lift_coefficient",
+                self.assumed_max_lift_coefficient,
+            ),
         ] {
             if !value.is_finite() {
                 return Err(format!("case {}: {name} must be finite", self.case_id));
@@ -149,8 +160,8 @@ impl Case {
         let dynamic_pressure_pa = 0.5 * self.air_density_kg_m3 * self.cruise_speed_m_s.powi(2);
         let required_lift_coefficient =
             total_mass_kg * GRAVITY_M_S2 / (dynamic_pressure_pa * self.wing_area_m2);
-        let induced_drag_coefficient = required_lift_coefficient.powi(2)
-            / (PI * self.oswald_efficiency * self.aspect_ratio);
+        let induced_drag_coefficient =
+            required_lift_coefficient.powi(2) / (PI * self.oswald_efficiency * self.aspect_ratio);
         let estimated_drag_coefficient = self.cd0 + induced_drag_coefficient;
         let estimated_drag_n = dynamic_pressure_pa * self.wing_area_m2 * estimated_drag_coefficient;
 
@@ -180,7 +191,10 @@ impl Case {
             energy_wh_per_payload_km,
         ];
         if values.iter().any(|v| !v.is_finite()) {
-            return Err(format!("case {}: calculation produced non-finite output", self.case_id));
+            return Err(format!(
+                "case {}: calculation produced non-finite output",
+                self.case_id
+            ));
         }
 
         Ok(ResultRow {
@@ -234,7 +248,9 @@ pub fn parse_cases_csv(input: &str) -> Result<Vec<Case>, String> {
         .ok_or_else(|| "input CSV is empty".to_owned())?
         .trim_end_matches('\r');
     if header != INPUT_HEADER {
-        return Err(format!("unexpected CSV header; expected exactly: {INPUT_HEADER}"));
+        return Err(format!(
+            "unexpected CSV header; expected exactly: {INPUT_HEADER}"
+        ));
     }
 
     let mut cases = Vec::new();
@@ -286,9 +302,13 @@ pub fn parse_cases_csv(input: &str) -> Result<Vec<Case>, String> {
             route_distance_km: number(15, "route_distance_km")?,
             assumed_max_lift_coefficient: number(16, "assumed_max_lift_coefficient")?,
         };
-        case.validate().map_err(|e| format!("line {line_number}: {e}"))?;
+        case.validate()
+            .map_err(|e| format!("line {line_number}: {e}"))?;
         if !seen_ids.insert(case.case_id.clone()) {
-            return Err(format!("line {line_number}: duplicate case_id {}", case.case_id));
+            return Err(format!(
+                "line {line_number}: duplicate case_id {}",
+                case.case_id
+            ));
         }
         cases.push(case);
     }
@@ -385,7 +405,9 @@ mod tests {
     fn screen_flags_are_not_airworthiness_claims() {
         let mut case = base_case();
         case.battery_energy_wh = 1.0;
-        let result = case.evaluate().expect("valid input but insufficient battery");
+        let result = case
+            .evaluate()
+            .expect("valid input but insufficient battery");
         assert!(!result.energy_screen_pass);
         assert!(result.lift_screen_pass);
     }
