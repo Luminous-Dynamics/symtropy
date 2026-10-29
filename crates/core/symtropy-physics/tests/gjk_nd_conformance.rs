@@ -395,6 +395,16 @@ fn active_set_gjk_matches_sat_on_held_out_six_dimensional_boxes() {
     assert_seeded_rotated_box_panel::<6>(0xA17E_5EED_6A7E_0001, 64, 4);
 }
 
+#[test]
+fn active_set_gjk_matches_sat_on_confirmation_five_dimensional_boxes() {
+    assert_seeded_rotated_box_panel::<5>(0xC0FF_EE55_5EED_0001, 64, 4);
+}
+
+#[test]
+fn active_set_gjk_matches_sat_on_confirmation_six_dimensional_boxes() {
+    assert_seeded_rotated_box_panel::<6>(0xC0FF_EE66_5EED_0001, 64, 4);
+}
+
 
 struct NonFiniteSupport<const D: usize>;
 
