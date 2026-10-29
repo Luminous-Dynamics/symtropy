@@ -320,24 +320,7 @@
     "max_compute_budget_milliseconds": 1000,
     "max_memory_budget_megabytes": 256,
     "oracle_future_observations_forbidden": true,
-    "observation_timing_validation": "independent_python_verifier_required",
-    "execution_receipt_extension": {
-      "schema_path": "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json",
-      "template_path": "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json",
-      "validator_path": "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs",
-      "independent_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py",
-      "receipt_set_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py",
-      "v02_tests_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py",
-      "status": "design_only_not_executed",
-      "schema_version": "0.2.0",
-      "paired_input_schema_version": "0.5.0",
-      "binds_information_budget_digest": true,
-      "binds_observation_trace_digest": true,
-      "requires_observation_policy_payload_to_match_budget": true,
-      "execution_attestation_verifier_implemented": false,
-      "scoring_authorized": false,
-      "performance_claim": "none"
-    }
+    "observation_timing_validation": "independent_python_verifier_required"
   },
   "execution_receipt_extension": {
     "schema_path": "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.1.0.schema.json",
@@ -426,7 +409,24 @@
     "paired_input_payloads_rehashed_before_receipt_acceptance": true,
     "paired_input_validation_scope": "full v0.4 paired fixture: schema-level semantic invariants, complete controller/trajectory matrix, all trajectory/initial-state/controller payload SHA-256 hashes",
     "receipt_set_validation": "validate paired input once; reuse indexed case, trajectory and controller artifact maps across all receipts",
-    "receipt_set_input_tamper_negative_control_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
+    "receipt_set_input_tamper_negative_control_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py",
+    "v02_extension": {
+      "schema_path": "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json",
+      "template_path": "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json",
+      "validator_path": "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs",
+      "independent_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py",
+      "receipt_set_verifier_path": "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py",
+      "v02_tests_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py",
+      "status": "design_only_not_executed",
+      "schema_version": "0.2.0",
+      "paired_input_schema_version": "0.5.0",
+      "binds_information_budget_digest": true,
+      "binds_observation_trace_digest": true,
+      "requires_observation_policy_payload_to_match_budget": true,
+      "execution_attestation_verifier_implemented": false,
+      "scoring_authorized": false,
+      "performance_claim": "none"
+    }
   },
   "counterexample_search_extension": {
     "contract_path": "research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json",
