@@ -29,6 +29,7 @@ pub struct StressScenario {
 pub struct StressResult {
     pub scenario_id: String,
     pub scenario_basis: String,
+    pub total_mass_kg: f64,
     pub required_lift_coefficient: f64,
     pub estimated_drag_coefficient: f64,
     pub estimated_drag_n: f64,
@@ -133,6 +134,7 @@ pub fn run_stress_suite(case: &Case, scenarios: &[StressScenario]) -> Result<Str
         results.push(StressResult {
             scenario_id: scenario.scenario_id.clone(),
             scenario_basis: scenario.scenario_basis.clone(),
+            total_mass_kg: row.total_mass_kg,
             required_lift_coefficient: row.required_lift_coefficient,
             estimated_drag_coefficient: row.estimated_drag_coefficient,
             estimated_drag_n: row.estimated_drag_n,
@@ -170,7 +172,7 @@ pub fn run_stress_suite(case: &Case, scenarios: &[StressScenario]) -> Result<Str
         model_version: MODEL_VERSION,
         evidence_level: "screening_only",
         case_id: case.case_id.clone(),
-        scenario_basis: "synthetic_stress_not_probability",
+        scenario_basis: "synthetic_stress_not_probability".to_owned(),
         scenario_count: results.len(),
         passed_count,
         lift_failure_count,
@@ -255,8 +257,7 @@ pub fn stress_result_csv_row(case_id: &str, result: &StressResult) -> String {
         result.scenario_basis,
         // The factor values that produced these measurements remain in the input CSV.
         // The output is deliberately about scenario outcomes, not a claim of probability.
-        result.required_lift_coefficient
-            * 0.0, // replaced with the candidate's recomputed total mass by the CLI if desired
+        result.total_mass_kg,
         result.required_lift_coefficient,
         result.estimated_drag_coefficient,
         result.estimated_drag_n,
