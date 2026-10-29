@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from verify_execution_receipt import verify_receipt
+from verify_execution_receipt import _verify_receipt_validated
 from verify_paired_comparison import validate_input as validate_paired_input
 
 SHARED_GLOBAL_ROLES = {
@@ -52,10 +52,9 @@ def verify_receipt_set(paired: dict[str, Any], receipts: list[dict[str, Any]]) -
     trajectory_role_digests: dict[tuple[str, str], str] = {}
 
     for receipt in receipts:
-        verify_receipt(
+        _verify_receipt_validated(
             receipt,
             paired,
-            paired_validated=True,
             paired_case_by_id=expected_cases,
             trajectory_artifacts_by_id=trajectories,
             controller_artifacts_by_id=controllers_by_id,
