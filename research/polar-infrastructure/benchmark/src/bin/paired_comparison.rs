@@ -16,6 +16,8 @@ struct Input {
     axes: Vec<Axis>,
     gate_ids: Vec<String>,
     gate_margin_contracts: BTreeMap<String, GateMarginContract>,
+    trajectory_artifacts: Vec<TrajectoryArtifact>,
+    controller_artifacts: Vec<ControllerArtifact>,
     cases: Vec<Case>,
 }
 
@@ -33,6 +35,25 @@ struct GateMarginContract {
     unit: String,
     signed_margin_definition: String,
     hard_gate: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct TrajectoryArtifact {
+    trajectory_id: String,
+    initial_state_id: String,
+    trajectory_payload: String,
+    trajectory_sha256: String,
+    initial_state_payload: String,
+    initial_state_sha256: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct ControllerArtifact {
+    controller_id: String,
+    controller_payload: String,
+    controller_sha256: String,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -55,6 +76,9 @@ struct Case {
     initial_state_id: String,
     replicate_id: String,
     severity: BTreeMap<String, f64>,
+    trajectory_sha256: String,
+    initial_state_sha256: String,
+    controller_artifact_sha256: String,
     gate_results: BTreeMap<String, GateResult>,
     signed_gate_margins: BTreeMap<String, Option<f64>>,
 }
@@ -66,6 +90,8 @@ struct TrajectoryMeta {
     initial_state_id: String,
     replicate_id: String,
     severity: BTreeMap<String, f64>,
+    trajectory_sha256: String,
+    initial_state_sha256: String,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -77,8 +103,12 @@ fn unique(values: &[String]) -> bool {
     set.len() == values.len()
 }
 
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+}
+
 fn validate(input: &Input) -> Result<(), String> {
-    if input.schema_version != "0.3.0"
+    if input.schema_version != "0.4.0"
         || input.artifact_kind != "paired-resilience-comparison-input"
         || input.evidence_class != "synthetic_fixture"
         || input.status != "synthetic_only"
@@ -123,6 +153,40 @@ fn validate(input: &Input) -> Result<(), String> {
         }
     }
     let declared_controllers: BTreeSet<String> = input.controllers.iter().cloned().collect();
+
+    let mut trajectory_artifact_ids = BTreeSet::new();
+    for artifact in &input.trajectory_artifacts {
+        if !nonempty(&artifact.trajectory_id) || !nonempty(&artifact.initial_state_id)
+            || artifact.trajectory_payload.is_empty() || artifact.initial_state_payload.is_empty()
+            || !valid_sha256(&artifact.trajectory_sha256) || !valid_sha256(&artifact.initial_state_sha256)
+        {
+            return Err("trajectory and initial-state artifacts need non-empty payloads and lowercase SHA-256 digests".into());
+        }
+        if !trajectory_artifact_ids.insert(artifact.trajectory_id.clone()) {
+            return Err(format!("duplicate trajectory artifact: {}", artifact.trajectory_id));
+        }
+    }
+    let mut controller_artifact_ids = BTreeSet::new();
+    for artifact in &input.controller_artifacts {
+        if !nonempty(&artifact.controller_id) || artifact.controller_payload.is_empty()
+            || !valid_sha256(&artifact.controller_sha256)
+        {
+            return Err("controller artifacts need a non-empty payload and lowercase SHA-256 digest".into());
+        }
+        if !controller_artifact_ids.insert(artifact.controller_id.clone()) {
+            return Err(format!("duplicate controller artifact: {}", artifact.controller_id));
+        }
+    }
+    if trajectory_artifact_ids != input.cases.iter().map(|c| c.trajectory_id.clone()).collect()
+        || controller_artifact_ids != declared_controllers
+    {
+        return Err("artifact inventories must exactly match the declared trajectories and controllers".into());
+    }
+    let trajectory_artifacts: BTreeMap<&str, &TrajectoryArtifact> = input.trajectory_artifacts.iter()
+        .map(|a| (a.trajectory_id.as_str(), a)).collect();
+    let controller_artifacts: BTreeMap<&str, &ControllerArtifact> = input.controller_artifacts.iter()
+        .map(|a| (a.controller_id.as_str(), a)).collect();
+
     let mut case_ids = BTreeSet::new();
     let mut trajectory_meta: BTreeMap<String, TrajectoryMeta> = BTreeMap::new();
     let mut rows: BTreeMap<(String, String), &Case> = BTreeMap::new();
@@ -147,6 +211,20 @@ fn validate(input: &Input) -> Result<(), String> {
         }
         if !declared_controllers.contains(&case.controller_id) {
             return Err(format!("undeclared controller: {}", case.controller_id));
+        }
+        if !valid_sha256(&case.trajectory_sha256) || !valid_sha256(&case.initial_state_sha256)
+            || !valid_sha256(&case.controller_artifact_sha256)
+        {
+            return Err(format!("case {} contains an invalid SHA-256 digest", case.case_id));
+        }
+        let trajectory_artifact = trajectory_artifacts.get(case.trajectory_id.as_str()).expect("inventory checked");
+        let controller_artifact = controller_artifacts.get(case.controller_id.as_str()).expect("inventory checked");
+        if case.trajectory_sha256 != trajectory_artifact.trajectory_sha256
+            || case.initial_state_id != trajectory_artifact.initial_state_id
+            || case.initial_state_sha256 != trajectory_artifact.initial_state_sha256
+            || case.controller_artifact_sha256 != controller_artifact.controller_sha256
+        {
+            return Err(format!("case {} digest/ID binding does not match the artifact registry", case.case_id));
         }
         if case.severity.keys().cloned().collect::<BTreeSet<_>>() != expected_axes {
             return Err(format!("severity axes do not match declarations for {}", case.case_id));
@@ -176,6 +254,8 @@ fn validate(input: &Input) -> Result<(), String> {
             initial_state_id: case.initial_state_id.clone(),
             replicate_id: case.replicate_id.clone(),
             severity: case.severity.clone(),
+            trajectory_sha256: case.trajectory_sha256.clone(),
+            initial_state_sha256: case.initial_state_sha256.clone(),
         };
         if let Some(previous) = trajectory_meta.get(&case.trajectory_id) {
             if previous != &meta {
@@ -319,7 +399,7 @@ mod tests {
     use super::*;
 
     fn load() -> Input {
-        serde_json::from_str(include_str!("../../fixtures/paired-comparison-v0.3.json")).unwrap()
+        serde_json::from_str(include_str!("../../fixtures/paired-comparison-v0.4.json")).unwrap()
     }
 
     #[test]
@@ -353,5 +433,33 @@ mod tests {
         let mut input = load();
         input.evidence_class = "field_validated".into();
         assert!(validate(&input).unwrap_err().contains("synthetic fixtures only"));
+    }
+
+    #[test]
+    fn rejects_invalid_digest_format() {
+        let mut input = load();
+        input.cases[0].trajectory_sha256 = "NOT_A_SHA256".into();
+        assert!(validate(&input).unwrap_err().contains("invalid SHA-256 digest"));
+    }
+
+    #[test]
+    fn rejects_digest_reference_mismatch() {
+        let mut input = load();
+        input.cases[1].trajectory_sha256 = "a".repeat(64);
+        assert!(validate(&input).unwrap_err().contains("digest/ID binding"));
+    }
+
+    #[test]
+    fn rejects_missing_trajectory_artifact() {
+        let mut input = load();
+        input.trajectory_artifacts.pop();
+        assert!(validate(&input).unwrap_err().contains("artifact inventories"));
+    }
+
+    #[test]
+    fn rejects_controller_artifact_drift() {
+        let mut input = load();
+        input.cases[1].controller_artifact_sha256 = "a".repeat(64);
+        assert!(validate(&input).unwrap_err().contains("digest/ID binding"));
     }
 }
