@@ -12,7 +12,7 @@ Use a release build on an otherwise idle machine. Record the full source SHA, co
 
 ## Matrix
 
-Dimensions 3 and 4 are specialized-path controls. Dimensions 5, 6, 8, and 16 exercise the generic active-set path. Each dimension uses two fixed 64-pair corpora (generated from deterministic seeds) and includes:
+Dimensions 3 and 4 are specialized-path controls. Dimensions 1, 5, 6, 8, and 16 exercise the generic active-set path. Each dimension uses two fixed 64-pair corpora (generated from deterministic seeds) and includes:
 - rotated_overlap: independently oriented boxes whose centres are close enough to guarantee overlap from their inscribed-ball lower bound.
 - rotated_separated: boxes with a large centre offset that guarantees separation.
 
