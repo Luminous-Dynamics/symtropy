@@ -183,8 +183,14 @@ mod tests {
         insufficient.cd0 = 0.25;
         let insufficient = insufficient.evaluate().expect("valid input, infeasible screen");
         let report = compare_candidates(&[baseline, insufficient]).expect("same mission");
-        assert_eq!(report.infeasible_candidate_ids, vec!["insufficient-energy".to_owned()]);
-        assert_eq!(report.pareto_candidate_ids, ["baseline"]);
+        assert_eq!(
+            report.infeasible_candidate_ids,
+            vec!["insufficient-energy".to_owned()]
+        );
+        assert_eq!(
+            report.pareto_candidate_ids,
+            vec!["baseline".to_owned()]
+        );
     }
 
     #[test]
