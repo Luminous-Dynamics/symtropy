@@ -93,7 +93,11 @@ Example command (100 mm chord / 80 mm span are only CI smoke-test parameters, no
 
 `cargo run --locked --bin coupon_mesh -- --chord-mm 100 --span-mm 80 --chordwise 32 --spanwise 4 --out out/coupon.stl --manifest out/coupon.json`
 
-For a real non-flight ground-test article, choose chord, span, blockage margin, support and measurement envelope only after the facility owner reviews the actual test section, Reynolds-number target and force-balance limits. The generator cannot assess those constraints. It does not add mounting hardware, internal structure, load qualification or finishing allowance. STL does not encode units, so retain the JSON manifest alongside the geometry and calculate exact-file hashes after export.
+For a real non-flight ground-test article, choose chord, span, blockage margin, support and measurement envelope only after the facility owner reviews the actual test section, Reynolds-number target and force-balance limits. The generator cannot assess those constraints. It does not add mounting hardware, internal structure, load qualification or finishing allowance. STL does not encode units, so retain the JSON manifest alongside the geometry. After generating a new STL and manifest, bind the exact STL bytes to the manifest with:
+
+`bash tools/civil-aero-benchmark/scripts/finalize-coupon-manifest.sh out/coupon.stl out/coupon.json`
+
+The script refuses mismatched, previously finalized, non-manifold or flight-authorized-looking manifests; it computes SHA-256 over the actual STL bytes, records the digest, and then prints digests for both STL and manifest. Preserve the printed receipt or commit it to the manufacturing evidence record.
 
 The profile convention follows the corrected scaled sharp-TE equation on NASA TMR's validation page, but is generated analytically; it is not copied from the raw reference grid or experimental data. The source bytes and experimental data remain unadmitted until the AERO-DATA-001 gates pass.
 
