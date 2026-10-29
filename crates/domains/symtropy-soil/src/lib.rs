@@ -236,8 +236,7 @@ impl SoilWaterKernel {
         validate_fluxes(fluxes)?;
 
         let inflow_mm = fluxes.precipitation.0 + fluxes.irrigation.0;
-        let outflow_mm =
-            fluxes.evapotranspiration.0 + fluxes.runoff.0 + fluxes.drainage.0;
+        let outflow_mm = fluxes.evapotranspiration.0 + fluxes.runoff.0 + fluxes.drainage.0;
         let available_mm = state.storage.0 + inflow_mm;
 
         if !inflow_mm.is_finite() {
@@ -300,7 +299,9 @@ impl SoilWaterKernel {
         }
 
         let start_volume = state.storage.as_depth().to_volume(self.area)?;
-        let end_volume = WaterStorageMm(end_storage_mm).as_depth().to_volume(self.area)?;
+        let end_volume = WaterStorageMm(end_storage_mm)
+            .as_depth()
+            .to_volume(self.area)?;
         let inflow_volume = WaterDepthMm(inflow_mm).to_volume(self.area)?;
         let outflow_volume = WaterDepthMm(outflow_mm).to_volume(self.area)?;
 
@@ -540,9 +541,7 @@ mod tests {
             .unwrap();
         assert!((huge_volume.value() / 2.0e306 - 1.0).abs() < 1e-12);
 
-        let huge_depth = WaterVolumeM3::new(1.0e308)
-            .to_depth(huge_area)
-            .unwrap();
+        let huge_depth = WaterVolumeM3::new(1.0e308).to_depth(huge_area).unwrap();
         assert!((huge_depth.value() - 1000.0).abs() < 1e-12);
     }
 
@@ -687,6 +686,9 @@ mod tests {
             reports
         }
 
-        assert_eq!(run(model, initial, &schedule), run(model, initial, &schedule));
+        assert_eq!(
+            run(model, initial, &schedule),
+            run(model, initial, &schedule)
+        );
     }
 }
