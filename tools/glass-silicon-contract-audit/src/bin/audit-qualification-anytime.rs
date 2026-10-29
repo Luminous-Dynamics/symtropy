@@ -579,12 +579,13 @@ mod tests {
         assert_eq!(get("lot-beta")["disposition"], "QUALIFIED");
         assert_eq!(get("lot-beta")["trials_observed"], 334);
         assert_eq!(get("lot-gamma")["disposition"], "NOT_QUALIFIED");
-        assert_eq!(get("lot-gamma")["trials_observed"], 204);
+        assert_eq!(get("lot-gamma")["trials_observed"], 185);
+        assert_eq!(get("lot-gamma")["successes_observed"], 156);
         assert_eq!(get("lot-delta")["disposition"], "UNRESOLVED");
         assert_eq!(get("lot-delta")["trials_observed"], 80);
         assert_eq!(get("lot-epsilon")["disposition"], "UNRESOLVED");
         assert_eq!(get("lot-epsilon")["trials_observed"], 0);
-        assert_eq!(report["events_checked"], 933);
+        assert_eq!(report["events_checked"], 914);
     }
 
     #[test]
