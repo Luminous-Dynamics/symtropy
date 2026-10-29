@@ -63,7 +63,7 @@ def _close(left: Any, right: Any, path: str = "$") -> None:
 
 def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]]:
     _need(set(doc) == TOP_KEYS, "input keys do not match the v0.3 contract")
-    _need(doc["schema_version"] == "0.4.0"
+    _need(doc["schema_version"] == "0.5.0"
           and doc["artifact_kind"] == "paired-resilience-comparison-input"
           and doc["evidence_class"] == "synthetic_fixture"
           and doc["status"] == "synthetic_only",
@@ -98,15 +98,46 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
     expected_axes, expected_gates = set(axis_ids), set(gates)
     digest_re = re.compile(r"^[a-f0-9]{64}$")
 
+    _need(isinstance(doc["information_budget_payload"], str) and doc["information_budget_payload"],
+          "information budget payload must be a non-empty UTF-8 string")
+    budget_digest = doc["information_budget_sha256"]
+    _need(isinstance(budget_digest, str) and digest_re.fullmatch(budget_digest),
+          "invalid information-budget digest")
+    _need(hashlib.sha256(doc["information_budget_payload"].encode("utf-8")).hexdigest() == budget_digest,
+          "information-budget payload SHA-256 mismatch")
+    try:
+        budget = json.loads(doc["information_budget_payload"])
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"information-budget payload is not valid JSON: {exc}") from exc
+    budget_keys = {
+        "allowed_information_kinds", "decision_interval_s", "forbid_oracle_future_observations",
+        "forecast_issued_at_must_not_exceed_decision_time", "max_compute_budget_ms",
+        "max_forecast_lookahead_s", "max_memory_budget_mb",
+        "measurement_observed_at_must_not_exceed_decision_time", "schema_version",
+    }
+    _need(isinstance(budget, dict) and set(budget) == budget_keys and budget["schema_version"] == "1",
+          "information-budget fields/version do not match contract")
+    _need(isinstance(budget["allowed_information_kinds"], list)
+          and set(budget["allowed_information_kinds"]) == {"measurement", "forecast"},
+          "unsupported information kinds")
+    for field in ("decision_interval_s", "max_compute_budget_ms", "max_forecast_lookahead_s", "max_memory_budget_mb"):
+        _need(isinstance(budget[field], int) and not isinstance(budget[field], bool) and budget[field] > 0,
+              f"invalid information-budget value: {field}")
+    _need(budget["forbid_oracle_future_observations"] is True
+          and budget["forecast_issued_at_must_not_exceed_decision_time"] is True
+          and budget["measurement_observed_at_must_not_exceed_decision_time"] is True,
+          "causal information budget must forbid oracle observations and future-issued forecasts")
+
     trajectory_artifacts: dict[str, dict[str, Any]] = {}
     initial_state_digests: dict[str, str] = {}
     for artifact in doc["trajectory_artifacts"]:
         _need(set(artifact) == {"trajectory_id", "initial_state_id", "trajectory_payload",
-                                "trajectory_sha256", "initial_state_payload", "initial_state_sha256"},
-              "trajectory artifact keys do not match the v0.4 contract")
+                                "trajectory_sha256", "initial_state_payload", "initial_state_sha256",
+                                "observation_trace_payload", "observation_trace_sha256"},
+              "trajectory artifact keys do not match the v0.5 contract")
         for field in ("trajectory_id", "initial_state_id", "trajectory_payload", "initial_state_payload"):
             _need(isinstance(artifact[field], str) and artifact[field], f"empty trajectory artifact field: {field}")
-        for field in ("trajectory_sha256", "initial_state_sha256"):
+        for field in ("trajectory_sha256", "initial_state_sha256", "observation_trace_sha256"):
             _need(isinstance(artifact[field], str) and digest_re.fullmatch(artifact[field]),
                   f"invalid artifact digest: {field}")
         trajectory_bytes = artifact["trajectory_payload"].encode("utf-8")
@@ -115,6 +146,57 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
               f"trajectory payload SHA-256 mismatch: {artifact['trajectory_id']}")
         _need(hashlib.sha256(initial_state_bytes).hexdigest() == artifact["initial_state_sha256"],
               f"initial-state payload SHA-256 mismatch: {artifact['trajectory_id']}")
+        _need(isinstance(artifact["observation_trace_payload"], str) and artifact["observation_trace_payload"],
+              "observation-trace payload must be a non-empty string")
+        trace_bytes = artifact["observation_trace_payload"].encode("utf-8")
+        _need(hashlib.sha256(trace_bytes).hexdigest() == artifact["observation_trace_sha256"],
+              f"observation-trace payload SHA-256 mismatch: {artifact['trajectory_id']}")
+        try:
+            trace = json.loads(artifact["observation_trace_payload"])
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"observation trace is not valid JSON for {artifact['trajectory_id']}: {exc}") from exc
+        _need(isinstance(trace, dict) and set(trace) == {"schema_version", "trajectory_id", "decisions"}
+              and trace["schema_version"] == "1" and trace["trajectory_id"] == artifact["trajectory_id"]
+              and isinstance(trace["decisions"], list) and trace["decisions"],
+              f"observation trace header/decisions invalid: {artifact['trajectory_id']}")
+        last_decision = None
+        for decision in trace["decisions"]:
+            _need(isinstance(decision, dict) and set(decision) == {"decision_time_s", "information"},
+                  "decision trace entry keys invalid")
+            decision_time = decision["decision_time_s"]
+            _need(isinstance(decision_time, int) and not isinstance(decision_time, bool) and decision_time >= 0,
+                  "decision times must be nonnegative integer seconds")
+            _need(last_decision is None or decision_time - last_decision == budget["decision_interval_s"],
+                  "decision times must advance by the contracted decision interval")
+            last_decision = decision_time
+            _need(isinstance(decision["information"], list) and decision["information"],
+                  "each decision must include at least one observable record")
+            for record in decision["information"]:
+                _need(isinstance(record, dict) and record.get("kind") in budget["allowed_information_kinds"],
+                      "unknown or forbidden information kind")
+                if record["kind"] == "measurement":
+                    _need(set(record) == {"kind", "signal_id", "observed_at_s", "available_at_s", "value"},
+                          "measurement record keys invalid")
+                    for field in ("observed_at_s", "available_at_s", "value"):
+                        _need(isinstance(record[field], (int, float)) and not isinstance(record[field], bool)
+                              and math.isfinite(record[field]), f"invalid measurement field: {field}")
+                    _need(record["observed_at_s"] <= decision_time,
+                          "look-ahead leak: measurement observed after decision time")
+                else:
+                    _need(set(record) == {"kind", "signal_id", "issued_at_s", "available_at_s", "valid_time_s", "value"},
+                          "forecast record keys invalid")
+                    for field in ("issued_at_s", "available_at_s", "valid_time_s", "value"):
+                        _need(isinstance(record[field], (int, float)) and not isinstance(record[field], bool)
+                              and math.isfinite(record[field]), f"invalid forecast field: {field}")
+                    _need(record["issued_at_s"] <= decision_time,
+                          "look-ahead leak: forecast issued after decision time")
+                    _need(record["valid_time_s"] >= decision_time
+                          and record["valid_time_s"] - decision_time <= budget["max_forecast_lookahead_s"],
+                          "forecast valid time exceeds the declared forecast horizon")
+                _need(isinstance(record["signal_id"], str) and record["signal_id"],
+                      "information record needs a signal ID")
+                _need(record["available_at_s"] <= decision_time,
+                      "look-ahead leak: information was not available at decision time")
         _need(artifact["trajectory_id"] not in trajectory_artifacts, "duplicate trajectory artifact ID")
         previous_state_digest = initial_state_digests.get(artifact["initial_state_id"])
         _need(previous_state_digest is None or previous_state_digest == artifact["initial_state_sha256"],
@@ -152,7 +234,10 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
         _need(case["case_id"] not in case_ids, "duplicate case ID")
         case_ids.add(case["case_id"])
         _need(case["controller_id"] in controllers, "undeclared controller")
-        for field in ("trajectory_sha256", "initial_state_sha256", "controller_artifact_sha256"):
+        _need(case["information_budget_sha256"] == budget_digest,
+              "case uses a different information budget")
+        for field in ("trajectory_sha256", "initial_state_sha256", "controller_artifact_sha256",
+                      "information_budget_sha256"):
             _need(isinstance(case[field], str) and digest_re.fullmatch(case[field]),
                   f"invalid case digest: {field}")
         ta = trajectory_artifacts.get(case["trajectory_id"])
@@ -267,6 +352,7 @@ def build_expected_report(doc: dict[str, Any]) -> dict[str, Any]:
             "trajectory_sha256": artifact["trajectory_sha256"],
             "initial_state_id": artifact["initial_state_id"],
             "initial_state_sha256": artifact["initial_state_sha256"],
+            "observation_trace_sha256": artifact["observation_trace_sha256"],
         }
         for tid, artifact in sorted(trajectory_artifacts.items())
     }
@@ -274,7 +360,7 @@ def build_expected_report(doc: dict[str, Any]) -> dict[str, Any]:
         cid: artifact["controller_sha256"] for cid, artifact in sorted(controller_artifacts.items())
     }
     return {
-        "schema_version": "0.4.0",
+        "schema_version": "0.5.0",
         "report_kind": "paired-resilience-comparison-report",
         "evidence_class": "synthetic_fixture",
         "status": "synthetic_only",
@@ -282,6 +368,15 @@ def build_expected_report(doc: dict[str, Any]) -> dict[str, Any]:
         "trajectory_count": len(trajectories),
         "case_count": len(doc["cases"]),
         "gate_margin_contracts": doc["gate_margin_contracts"],
+        "information_budget": {
+            "sha256": doc["information_budget_sha256"],
+            "payload_sha256_verification": "independently_verified",
+            "forecast_lookahead_seconds": budget["max_forecast_lookahead_s"],
+            "decision_interval_seconds": budget["decision_interval_s"],
+            "compute_budget_ms": budget["max_compute_budget_ms"],
+            "memory_budget_mb": budget["max_memory_budget_mb"],
+            "oracle_future_observations_forbidden": budget["forbid_oracle_future_observations"],
+        },
         "content_bindings": {
             "trajectory_digests": trajectory_digest_map,
             "controller_digests": controller_digest_map,
@@ -296,7 +391,7 @@ def build_expected_report(doc: dict[str, Any]) -> dict[str, Any]:
 
 def verify_documents(input_doc: dict[str, Any], report_doc: dict[str, Any]) -> None:
     expected = build_expected_report(input_doc)
-    _need(set(report_doc) == RESULT_KEYS, "report keys do not match v0.3 report contract")
+    _need(set(report_doc) == RESULT_KEYS, "report keys do not match v0.5 report contract")
     _close(report_doc, expected)
 
 
@@ -311,7 +406,7 @@ def main(argv: list[str]) -> int:
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"verification failed: {exc}", file=sys.stderr)
         return 1
-    print("independent paired-comparison report and artifact SHA-256 verification passed (synthetic contract only)")
+    print("independent paired-comparison report, content digests and causal information traces verified (synthetic contract only)")
     return 0
 
 
