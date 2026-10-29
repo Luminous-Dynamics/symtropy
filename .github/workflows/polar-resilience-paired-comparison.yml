@@ -19,6 +19,9 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/tests/test_paired_comparison_verifier.py"
       - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-template-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py"
       - "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs"
       - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py"
       - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison_v0_4.py"
@@ -50,6 +53,9 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/tests/test_paired_comparison_verifier.py"
       - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-template-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py"
       - "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs"
       - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py"
       - "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison_v0_4.py"
@@ -272,6 +278,39 @@ jobs:
           python3 -m unittest discover \
             -s research/polar-infrastructure/benchmark/scripts/tests \
             -p 'test_execution_receipt_set_verifier.py' -v
+
+      - name: Validate v0.2 causal execution receipt bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/controller-execution-receipt-0.2.0.schema.json"
+          receipt="research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-v0.2-template-2026.json"
+          paired="research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.5.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Controller Execution Receipt v0.2 (Causal Information Bound)" and
+            .additionalProperties == false and
+            (.properties.schema_version.const == "0.2.0") and
+            (.properties.paired_input_bindings.required | index("information_budget_sha256") != null) and
+            (.properties.paired_input_bindings.required | index("observation_trace_sha256") != null) and
+            (.properties.scoring_eligible.const == false) and
+            (.properties.claim_policy.properties.signed_execution_attestation_verifier_implemented.const == false)
+          ' "$schema"
+          jq -e --arg budget "$(jq -r '.information_budget_sha256' "$paired")" --arg trace "$(jq -r '.trajectory_artifacts[] | select(.trajectory_id == "trajectory-1") | .observation_trace_sha256' "$paired")" '
+            .schema_version == "0.2.0" and
+            .status == "design_only_not_executed" and
+            .execution_performed == false and
+            .scoring_eligible == false and
+            .paired_input_bindings.information_budget_sha256 == $budget and
+            .paired_input_bindings.observation_trace_sha256 == $trace and
+            (any(.artifact_inventory[]; .role == "observation_policy" and .sha256 == $budget))
+          ' "$receipt"
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin execution_receipt -- "$receipt" > /tmp/execution-receipt-v02-report.json
+          jq -e '.schema_version == "0.2.0" and .contract_valid == true and .execution_performed == false and .scoring_eligible == false' /tmp/execution-receipt-v02-report.json
+          python3 research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py "$receipt" "$paired"
+          python3 -m unittest discover \
+            -s research/polar-infrastructure/benchmark/scripts/tests \
+            -p 'test_execution_receipt_v0_2_verifier.py' -v
 
       - name: Validate signed execution-attestation policy (scoring remains disabled)
         shell: bash
