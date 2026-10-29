@@ -91,6 +91,13 @@ jobs:
             .watertight_two_manifold == true and
             .orientation_consistent == true and
             .signed_volume_mm3 > 0 and
+            .bounding_box_mm.x[0] == 0 and
+            .bounding_box_mm.x[1] == 100 and
+            .bounding_box_mm.y[0] == 0 and
+            .bounding_box_mm.y[1] == 80 and
+            .maximum_thickness_in_mesh_mm > 11.8 and
+            .maximum_thickness_in_mesh_mm < 12 and
+            .geometry_measurement_basis == "computed from in-memory mesh coordinates before STL decimal serialization" and
             (.output_sha256 | type == "string" and test("^[0-9a-f]{64}$")) and
             .output_sha256_status == "computed_from_exact_stl_bytes" and
             .manufacturing_release == "not_authorized" and
