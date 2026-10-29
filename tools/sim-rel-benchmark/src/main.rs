@@ -319,13 +319,35 @@ fn simulate(scenario: &Scenario, solver: Solver) -> Vec<f64> {
     trace
 }
 
+fn failed_receipt(scenario: &Scenario) -> CaseReceipt {
+    CaseReceipt {
+        id: scenario.id.clone(),
+        split: scenario.split.clone(),
+        steps: scenario.steps,
+        observation_stride: scenario.observation_stride,
+        observations: scenario.steps / scenario.observation_stride
+            + 1
+            + (if scenario.steps % scenario.observation_stride != 0 { 1 } else { 0 }),
+        max_abs_delta: f64::MAX,
+        rmse: f64::MAX,
+        status: "FAIL",
+    }
+}
+
 fn compare_solvers(scenario: &Scenario) -> CaseReceipt {
     let edgewise = simulate(scenario, Solver::Edgewise);
     let matrix = simulate(scenario, Solver::StiffnessMatrix);
+    if edgewise.iter().chain(matrix.iter()).any(|v| !v.is_finite()) {
+        return failed_receipt(scenario);
+    }
     let width = scenario.masses.len() * 2;
     let mut max_abs_delta: f64 = 0.0;
     for (a, b) in edgewise.iter().zip(matrix.iter()) {
-        max_abs_delta = max_abs_delta.max((a - b).abs());
+        let delta = (a - b).abs();
+        if !delta.is_finite() {
+            return failed_receipt(scenario);
+        }
+        max_abs_delta = max_abs_delta.max(delta);
     }
     let mut squared_sum = 0.0;
     let mut sampled_values = 0usize;
@@ -344,6 +366,9 @@ fn compare_solvers(scenario: &Scenario) -> CaseReceipt {
         }
     }
     let rmse = (squared_sum / sampled_values as f64).sqrt();
+    if !rmse.is_finite() {
+        return failed_receipt(scenario);
+    }
     let observations = scenario.steps / scenario.observation_stride
         + 1
         + (if scenario.steps % scenario.observation_stride != 0 { 1 } else { 0 });
@@ -610,6 +635,54 @@ mod tests {
             + (if scenario.steps % scenario.observation_stride != 0 { 1 } else { 0 });
         assert_eq!(receipt.observations, expected);
         assert_eq!(receipt.observation_stride, scenario.observation_stride);
+    }
+
+    #[test]
+    fn node_relabeling_preserves_physical_trace() {
+        let scenario = parse_corpus(QUALIFICATION_CORPUS).unwrap().remove(17);
+        let n = scenario.masses.len();
+        let old_to_new: Vec<usize> = (0..n).rev().collect();
+        let mut permuted = scenario.clone();
+        permuted.id = "permuted_nodes".to_owned();
+        permuted.masses = vec![0.0; n];
+        permuted.x0 = vec![0.0; n];
+        permuted.v0 = vec![0.0; n];
+        permuted.damping = vec![0.0; n];
+        for old in 0..n {
+            let new = old_to_new[old];
+            permuted.masses[new] = scenario.masses[old];
+            permuted.x0[new] = scenario.x0[old];
+            permuted.v0[new] = scenario.v0[old];
+            permuted.damping[new] = scenario.damping[old];
+        }
+        for spring in &mut permuted.springs {
+            spring.a = old_to_new[spring.a];
+            spring.b = spring.b.map(|b| old_to_new[b]);
+        }
+        for pulse in &mut permuted.forces {
+            pulse.node = old_to_new[pulse.node];
+        }
+        let original_trace = simulate(&scenario, Solver::Edgewise);
+        let permuted_trace = simulate(&permuted, Solver::Edgewise);
+        let width = n * 2;
+        for frame in 0..=scenario.steps {
+            let start = frame * width;
+            for old in 0..n {
+                let new = old_to_new[old];
+                assert!((original_trace[start + old] - permuted_trace[start + new]).abs() <= 1.0e-10);
+                assert!((original_trace[start + n + old] - permuted_trace[start + n + new]).abs() <= 1.0e-10);
+            }
+        }
+    }
+
+    #[test]
+    fn non_finite_simulation_fails_closed() {
+        let mut scenario = parse_corpus(CORPUS).unwrap().remove(0);
+        scenario.x0[0] = 1.0e308;
+        let receipt = compare_solvers(&scenario);
+        assert_eq!(receipt.status, "FAIL");
+        assert!(receipt.max_abs_delta.is_finite());
+        assert!(receipt.rmse.is_finite());
     }
 
     #[test]
