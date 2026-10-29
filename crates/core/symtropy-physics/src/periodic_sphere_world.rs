@@ -97,6 +97,11 @@ pub enum PeriodicSphereWorldError {
     InvalidConfiguration { field: &'static str },
     DuplicateBodyId { id: u64 },
     BodyRadiusExceedsPeriodicEnvelope { id: u64, axis: usize },
+    PairRadiusExceedsPeriodicEnvelope {
+        body_a: u64,
+        body_b: u64,
+        axis: usize,
+    },
     InvalidBody { id: u64, field: &'static str },
     InvalidTimeStep,
     NonFiniteArithmetic { field: &'static str },
@@ -118,6 +123,14 @@ impl fmt::Display for PeriodicSphereWorldError {
             Self::BodyRadiusExceedsPeriodicEnvelope { id, axis } => write!(
                 f,
                 "sphere body {id} radius must be less than half the period on periodic axis {axis}"
+            ),
+            Self::PairRadiusExceedsPeriodicEnvelope {
+                body_a,
+                body_b,
+                axis,
+            } => write!(
+                f,
+                "sphere radii for bodies {body_a} and {body_b} must sum to less than half the period on periodic axis {axis}"
             ),
             Self::InvalidBody { id, field } => {
                 write!(f, "invalid sphere body {id} field {field}")
@@ -252,6 +265,21 @@ impl<const D: usize> PeriodicSphereWorld<D> {
                     id: body.id,
                     axis,
                 });
+            }
+        }
+        for existing in &self.bodies {
+            for axis in 0..D {
+                if self.domain.is_periodic(axis) == Some(true)
+                    && body.radius + existing.radius >= 0.5 * self.domain.periods()[axis]
+                {
+                    return Err(
+                        PeriodicSphereWorldError::PairRadiusExceedsPeriodicEnvelope {
+                            body_a: existing.id,
+                            body_b: body.id,
+                            axis,
+                        },
+                    );
+                }
             }
         }
         let insertion = self
@@ -708,6 +736,40 @@ mod tests {
         // The first event was processed on the clone; the second event exceeds
         // the cap. The authoritative world remains exactly unchanged.
         assert_eq!(world.bodies(), before.as_slice());
+    }
+
+    #[test]
+    fn pairwise_radius_envelope_prevents_simultaneous_periodic_image_contacts() {
+        let mut world = world(8);
+        let large_a = PeriodicSphereBody::new(
+            10,
+            SVector::from([0.0, 0.0]),
+            SVector::zeros(),
+            3.0,
+            1.0,
+            1.0,
+        )
+        .unwrap();
+        let large_b = PeriodicSphereBody::new(
+            11,
+            SVector::from([5.0, 0.0]),
+            SVector::zeros(),
+            2.1,
+            1.0,
+            1.0,
+        )
+        .unwrap();
+        world.add_body(large_a).unwrap();
+        assert_eq!(
+            world.add_body(large_b),
+            Err(PeriodicSphereWorldError::PairRadiusExceedsPeriodicEnvelope {
+                body_a: 10,
+                body_b: 11,
+                axis: 0,
+            })
+        );
+        assert_eq!(world.bodies().len(), 1);
+        assert_eq!(world.bodies()[0].id, 10);
     }
 
     #[test]
