@@ -280,7 +280,7 @@ impl<const D: usize> FluidSimulation<D> {
         let mut forces = vec![SVector::<f64, D>::zeros(); count];
         let h = self.config.smoothing_radius;
         let h_squared = h * h;
-        let regularization = VISCOSITY_REGULARIZATION * h_squared;
+        let regularization = VISCOSITY_REGULARIZATION * VISCOSITY_REGULARIZATION * h_squared;
 
         for i in 0..count {
             let mut pressure_acceleration = SVector::<f64, D>::zeros();
