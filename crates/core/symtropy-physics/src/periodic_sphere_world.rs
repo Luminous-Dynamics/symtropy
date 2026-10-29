@@ -226,6 +226,16 @@ impl<const D: usize> PeriodicSphereWorld<D> {
         &mut self,
         body: PeriodicSphereBody<D>,
     ) -> Result<(), PeriodicSphereWorldError> {
+        // Fields are public for inspection/interchange, so validate even when
+        // callers did not construct the body through PeriodicSphereBody::new.
+        let _validated = PeriodicSphereBody::new(
+            body.id,
+            body.position,
+            body.velocity,
+            body.radius,
+            body.mass,
+            body.restitution,
+        )?;
         if self.bodies.iter().any(|existing| existing.id == body.id) {
             return Err(PeriodicSphereWorldError::DuplicateBodyId { id: body.id });
         }
