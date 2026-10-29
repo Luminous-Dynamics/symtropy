@@ -453,6 +453,9 @@ fn intersects_support_maps_with_active_set<const D: usize>(
         if !vector_is_finite(&new_point) {
             return indeterminate(simplex, iteration, GjkFailureReason::NonFiniteSupport);
         }
+        if let Err(reason) = checked_norm_squared(&new_point) {
+            return indeterminate(simplex, iteration, reason);
+        }
         let improvement = (new_point - closest).dot(&direction);
         if !improvement.is_finite() {
             return indeterminate(
@@ -888,6 +891,9 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
         if !vector_is_finite(&new_point) {
             return indeterminate(simplex, iteration, GjkFailureReason::NonFiniteSupport);
         }
+        if let Err(reason) = checked_norm_squared(&new_point) {
+            return indeterminate(simplex, iteration, reason);
+        }
         let improvement = (new_point - closest).dot(&direction);
         if !improvement.is_finite() {
             return indeterminate(
@@ -954,7 +960,11 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
         simplex = reduced;
         closest = next_closest;
 
-        if closest.norm_squared() <= origin_tolerance_squared {
+        let closest_squared = match checked_norm_squared(&closest) {
+            Ok(squared) => squared,
+            Err(reason) => return indeterminate(simplex, iteration, reason),
+        };
+        if closest_squared <= origin_tolerance_squared {
             return GjkResult {
                 intersecting: true,
                 termination: GjkTermination::Intersecting,
