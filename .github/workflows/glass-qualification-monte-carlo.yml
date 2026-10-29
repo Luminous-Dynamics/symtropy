@@ -1,0 +1,106 @@
+name: GLASS-QUALIFICATION-MONTE-CARLO Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/glass-silicon-contract-audit/**"
+      - "docs/tech/glass-qualification-monte-carlo-report-v0.1.schema.json"
+      - "docs/tech/GLASS_QUALIFICATION_MONTE_CARLO_V0_1.md"
+      - ".github/workflows/glass-qualification-monte-carlo.yml"
+  push:
+    branches:
+      - "research/glass-eprocess-qualification-v0.1"
+    paths:
+      - "tools/glass-silicon-contract-audit/**"
+      - "docs/tech/glass-qualification-monte-carlo-report-v0.1.schema.json"
+      - "docs/tech/GLASS_QUALIFICATION_MONTE_CARLO_V0_1.md"
+      - ".github/workflows/glass-qualification-monte-carlo.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  paired-operating-characteristics:
+    name: Paired sequential-test Monte Carlo and replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Validate frozen schema and tool contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/tech/glass-qualification-monte-carlo-report-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.benchmark_id.const == "glass-qualification-paired-operating-characteristics-v0-1" and
+            .properties.evidence_class.const == "synthetic_monte_carlo" and
+            .properties.candidate_family_size.const == 5 and
+            .properties.target_success_probability.const == 0.95 and
+            .properties.familywise_alpha.const == 0.05 and
+            .properties.probabilities.prefixItems == [{"const":0.9},{"const":0.95},{"const":0.98},{"const":0.99}] and
+            .additionalProperties == false
+          ' "$schema" > /dev/null
+
+          jq -e '
+            .package.name == "glass-silicon-contract-audit" and
+            .package.edition == "2024" and
+            (.dependencies | has("serde")) and
+            (.dependencies | has("serde_json")) and
+            (.dependencies | has("sha2"))
+          ' tools/glass-silicon-contract-audit/Cargo.toml > /dev/null
+
+      - name: Run simulator unit tests and known-answer boundaries
+        run: cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-monte-carlo
+
+      - name: Run fixed-seed paired Monte Carlo
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="glass-qualification-monte-carlo-report.json"
+          cargo run --release --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-monte-carlo -- \
+            --replications 2500 --seed 20261029 --max-trials 400 > "$report"
+
+          jq -e '
+            .schema_version == 1 and
+            .status == "PASS" and
+            .benchmark_id == "glass-qualification-paired-operating-characteristics-v0-1" and
+            .evidence_class == "synthetic_monte_carlo" and
+            (.configuration_sha256 | test("^[0-9a-f]{64}$")) and
+            .seed == 20261029 and
+            .replications_per_probability == 2500 and
+            .candidate_family_size == 5 and
+            .max_trials_per_candidate == 400 and
+            .total_candidate_attempts_per_probability == 12500 and
+            .probabilities == [0.9,0.95,0.98,0.99] and
+            (.scenarios | length) == 4 and
+            ([.scenarios[].true_success_probability] == [0.9,0.95,0.98,0.99]) and
+            all(.scenarios[];
+              .alpha_spending.method == "alpha_spending" and
+              .mixture_e_process.method == "mixture_e_process" and
+              .alpha_spending.candidate_attempts == 12500 and
+              .mixture_e_process.candidate_attempts == 12500 and
+              (.alpha_spending.familywise_false_decision_rate >= .alpha_spending.familywise_false_decision_wilson_95.lower) and
+              (.alpha_spending.familywise_false_decision_rate <= .alpha_spending.familywise_false_decision_wilson_95.upper) and
+              (.mixture_e_process.familywise_false_decision_rate >= .mixture_e_process.familywise_false_decision_wilson_95.lower) and
+              (.mixture_e_process.familywise_false_decision_rate <= .mixture_e_process.familywise_false_decision_wilson_95.upper) and
+              ( ((.alpha_spending.candidate_qualification_rate + .alpha_spending.candidate_rejection_rate + .alpha_spending.candidate_unresolved_rate) - 1) | fabs < 0.000000001) and
+              ( ((.mixture_e_process.candidate_qualification_rate + .mixture_e_process.candidate_rejection_rate + .mixture_e_process.candidate_unresolved_rate) - 1) | fabs < 0.000000001)
+            )
+          ' "$report"
+          echo "Paired operating-characteristics report is structurally coherent."
+
+      - name: Upload reproducible Monte Carlo report
+        uses: actions/upload-artifact@v4
+        with:
+          name: glass-qualification-monte-carlo-report
+          path: glass-qualification-monte-carlo-report.json
+          if-no-files-found: error
+          retention-days: 30

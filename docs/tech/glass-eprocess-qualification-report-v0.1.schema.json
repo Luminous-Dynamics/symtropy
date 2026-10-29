@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/glass-eprocess-qualification-report-v0.1.schema.json",
+  "title": "Glass mixture e-process report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "audit_kind",
+    "benchmark_id",
+    "input_sha256",
+    "oracle_sha256",
+    "target_success_probability",
+    "familywise_alpha",
+    "allocation",
+    "candidate_count",
+    "events_checked",
+    "events",
+    "decisions",
+    "findings",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "audit_kind": {
+      "const": "synthetic_anytime_mixture_eprocess_qualification"
+    },
+    "benchmark_id": {
+      "const": "glass-anytime-eprocess-qualification-synthetic-v0-1"
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "oracle_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "target_success_probability": {
+      "const": 0.95
+    },
+    "familywise_alpha": {
+      "const": 0.05
+    },
+    "allocation": {
+      "const": "alpha/[i*(i+1)] per candidate, split equally between two mixture e-processes"
+    },
+    "candidate_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "events_checked": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100000
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 100000,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_seq",
+              "kind",
+              "candidate_id",
+              "registration_index",
+              "candidate_spec_sha256"
+            ],
+            "properties": {
+              "event_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000
+              },
+              "kind": {
+                "const": "register_candidate"
+              },
+              "candidate_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "registration_index": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "candidate_spec_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_seq",
+              "kind",
+              "candidate_id",
+              "registration_index",
+              "look_index",
+              "trial_passed",
+              "successes_so_far",
+              "alpha_per_direction",
+              "log_e_upper",
+              "log_e_lower",
+              "log_threshold",
+              "decision"
+            ],
+            "properties": {
+              "event_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000
+              },
+              "kind": {
+                "const": "observe_trial"
+              },
+              "candidate_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "registration_index": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "look_index": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              },
+              "trial_passed": {
+                "type": "boolean"
+              },
+              "successes_so_far": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000
+              },
+              "alpha_per_direction": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 0.0125
+              },
+              "log_e_upper": {
+                "type": "number"
+              },
+              "log_e_lower": {
+                "type": "number"
+              },
+              "log_threshold": {
+                "type": "number",
+                "minimum": 0
+              },
+              "decision": {
+                "enum": [
+                  "QUALIFIED",
+                  "NOT_QUALIFIED",
+                  "UNRESOLVED"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidate_id",
+          "candidate_spec_sha256",
+          "registration_index",
+          "trials_observed",
+          "successes_observed",
+          "empirical_success_rate",
+          "disposition",
+          "terminal_event_seq",
+          "last_log_e_upper",
+          "last_log_e_lower"
+        ],
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "candidate_spec_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "registration_index": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "trials_observed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "successes_observed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "empirical_success_rate": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "disposition": {
+            "enum": [
+              "QUALIFIED",
+              "NOT_QUALIFIED",
+              "UNRESOLVED"
+            ]
+          },
+          "terminal_event_seq": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "last_log_e_upper": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "last_log_e_lower": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "detail"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "const": "Synthetic Bernoulli mixture-e-process mechanics only; no real-material, plant-yield, independence, adaptive-ledger-integrity, or industrial-performance claim is validated."
+    }
+  }
+}

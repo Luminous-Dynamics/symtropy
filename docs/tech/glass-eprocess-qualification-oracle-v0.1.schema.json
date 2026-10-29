@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/glass-eprocess-qualification-oracle-v0.1.schema.json",
+  "title": "Glass mixture e-process sealed oracle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "outcomes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "glass-anytime-eprocess-qualification-synthetic-v0-1"
+    },
+    "evidence_class": {
+      "const": "synthetic_evaluator_only"
+    },
+    "claim_ceiling": {
+      "const": "Synthetic Bernoulli mixture-e-process mechanics only; no real-material, plant-yield, independence, adaptive-ledger-integrity, or industrial-performance claim is validated."
+    },
+    "outcomes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidate_id",
+          "trial_results"
+        ],
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "trial_results": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}
