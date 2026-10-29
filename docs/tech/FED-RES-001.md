@@ -1,6 +1,6 @@
 # FED-RES-001: Federated Defensive Resilience Benchmark
 
-**Status:** design proposal for review; no implementation or performance claim is implied.  
+**Status:** design proposal for review. This branch includes the initial reference safety kernel; the full scenario corpus and performance benchmark are not implemented. No performance claim is implied.  
 **Scope:** synthetic civil-protection and critical-service resilience only.  
 **Parent/composition references:** [Mycelix CIV-RES-000 (#2006)](https://github.com/Luminous-Dynamics/mycelix/issues/2006), [Mycelix LEX-NET-021 (#1117)](https://github.com/Luminous-Dynamics/mycelix/issues/1117), [Symtropy BANK-RES-SIM-001 (#2330)](https://github.com/Luminous-Dynamics/symtropy/issues/2330), and [Symtropy QUAL-002 (#1280)](https://github.com/Luminous-Dynamics/symtropy/issues/1280).
 
@@ -135,7 +135,7 @@ If any target proves unrealistic, publish the gap and its cause. Do not relax th
 
 **Stage A — spec and semantic freeze.** Define typed event/evidence states, scenario schema, oracle contract, seed handling, baseline assumptions, and output format. No network access and no production data.
 
-**Stage B — independent reference model.** Implement the smallest deterministic, dependency-free Rust state machine and oracle. Add property tests for replay, stale evidence, revocation, conflict preservation, local autonomy, and disclosure denial.
+**Stage B — independent reference model (initial slice included).** A dependency-free standalone Rust reference kernel and unit tests are included under `benchmarks/fed-res-001/`. The tests cover local recovery during partition, blocked federation publication during partition, model non-authority, revoked credentials, disputed evidence, corroboration, disclosure, replay, untrusted observations, and non-authoritative analysis. This kernel checks fixture-declared fields only; a separately implemented oracle must still validate source identity/independence, event ground truth, expected state transitions, and recovery outcomes.
 
 **Stage C — synthetic event/recovery simulator.** Add dependency graphs, resource budgets, disruption schedules, paired baseline runs, and deterministic reports. Keep the first benchmark discrete-event and graph-based; do not force it into rigid-body physics where that adds no evidentiary value.
 
