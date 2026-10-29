@@ -325,6 +325,10 @@ jobs:
             .execution_receipt_extension.resource_limits_digest_path == "resource_limits_sha256" and
             (.execution_receipt_extension.requirements | length >= 6) and
             .execution_receipt_extension.scoring_eligible_for_template == false and
+            .execution_receipt_extension.signed_execution_attestation_verifier_implemented == false and
+            .execution_receipt_extension.scoring_eligible_for_any_v0_1_receipt == false and
+            .execution_receipt_extension.execution_attestation_schema_status == "not_implemented" and
+            (.execution_receipt_extension.future_scoring_requires | length >= 5) and
             .execution_receipt_extension.requires_independent_output_hash_verification == true and
             .execution_receipt_extension.requires_shared_resource_budget_across_arms == true and
             .execution_receipt_extension.actual_execution_claim == "none" and
