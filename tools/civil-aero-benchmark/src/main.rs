@@ -1,11 +1,15 @@
 use std::{env, fs, process};
 
-use civil_aero_benchmark::{parse_cases_csv, OUTPUT_HEADER};
+use civil_aero_benchmark::{OUTPUT_HEADER, parse_cases_csv};
 
 fn main() {
     let mut args = env::args();
-    let program = args.next().unwrap_or_else(|| "civil-aero-benchmark".to_owned());
-    let input_path = args.next().unwrap_or_else(|| "data/example_cases.csv".to_owned());
+    let program = args
+        .next()
+        .unwrap_or_else(|| "civil-aero-benchmark".to_owned());
+    let input_path = args
+        .next()
+        .unwrap_or_else(|| "data/example_cases.csv".to_owned());
     if args.next().is_some() {
         eprintln!("usage: {program} [input.csv] (CSV only; see the documented exact header)");
         process::exit(2);
