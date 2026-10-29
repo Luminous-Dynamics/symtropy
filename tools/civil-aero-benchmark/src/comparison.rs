@@ -176,7 +176,8 @@ mod tests {
     fn infeasible_candidate_cannot_enter_pareto_front() {
         let baseline = case("baseline").evaluate().expect("baseline");
         let mut insufficient = case("insufficient-energy");
-        insufficient.battery_energy_wh = 1.0;
+        // Keep mission inputs fixed; increase drag enough to fail the energy gate.
+        insufficient.cd0 = 0.25;
         let insufficient = insufficient.evaluate().expect("valid input, infeasible screen");
         let report = compare_candidates(&[baseline, insufficient]).expect("same mission");
         assert_eq!(report.infeasible_candidate_ids, vec!["insufficient-energy".to_owned()]);
