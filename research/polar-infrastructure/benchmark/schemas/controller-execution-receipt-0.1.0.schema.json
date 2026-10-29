@@ -18,6 +18,7 @@
     "paired_input_bindings",
     "artifact_inventory",
     "resource_limits",
+    "resource_limits_sha256",
     "observed_resources",
     "execution_evidence",
     "independent_verification",
@@ -278,6 +279,9 @@
           "minimum": 0
         }
       }
+    },
+    "resource_limits_sha256": {
+      "$ref": "#/$defs/sha256"
     }
   },
   "allOf": [
