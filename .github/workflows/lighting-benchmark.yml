@@ -55,6 +55,12 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check "jsonschema==4.26.0"
       - name: Validate failure receipt JSON Schemas and negative controls
         run: python3 tools/lighting-benchmark/tests/validate_failure_receipts.py
+      - name: Build strict Radiance parser CLI
+        run: cargo build --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-rtrace-parse
+      - name: Smoke-test Radiance runner with mock parser
+        run: bash tools/lighting-benchmark/tests/radiance-runner-smoke.sh
+      - name: Smoke-test Radiance runner with strict Rust parser
+        run: LIGHTING_RTRACE_PARSER=target/debug/lighting-rtrace-parse bash tools/lighting-benchmark/tests/radiance-runner-smoke.sh
       - name: Run synthetic demonstration
         run: cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-benchmark-demo
       - name: Emit and count stress corpus
