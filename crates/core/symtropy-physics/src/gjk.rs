@@ -52,6 +52,8 @@ pub enum GjkFailureReason {
     CoordinatePrecisionLimit,
     /// The dimension-generic active-set reducer failed to make bounded progress.
     ActiveSetIterationLimit,
+    /// Zero-dimensional collision queries are not supported.
+    InvalidDimension,
 }
 
 /// Termination outcome for a GJK query.
@@ -183,6 +185,14 @@ pub fn intersects_support_maps<const D: usize>(
     shape_a: &dyn WorldSupportMap<D>,
     shape_b: &dyn WorldSupportMap<D>,
 ) -> GjkResult<D> {
+    if D == 0 {
+        return indeterminate(
+            Simplex::<D>::new(),
+            0,
+            GjkFailureReason::InvalidDimension,
+        );
+    }
+
     // D=4 keeps the audited exhaustive-face reducer. Higher dimensions must
     // use a true active-set minimizer, not the 3D tetrahedron-specific reducer.
     if D == 4 {
@@ -500,24 +510,29 @@ fn closest_point_on_hull_active_set<const D: usize>(
 
         let mut best_index = 0usize;
         let mut best_dot = f64::INFINITY;
-        let mut max_dot_magnitude = closest_squared.abs();
+        let mut dot_roundoff_scale = closest_squared.abs();
+        let closest_norm = closest.norm();
         for (index, point) in points.iter().enumerate() {
             let dot = closest.dot(point);
-            let point_squared = point.norm_squared();
-            if !dot.is_finite() || !point_squared.is_finite() {
+            let point_norm = point.norm();
+            if !dot.is_finite() || !point_norm.is_finite() {
                 return Err(GjkFailureReason::NonFiniteArithmetic);
             }
-            // The KKT gap subtracts nearly equal dot products. Near the origin,
-            // its floating-point error is set by support-point magnitude, not
-            // by the much smaller closest-point norm.
-            max_dot_magnitude = max_dot_magnitude.max(dot.abs()).max(point_squared);
+            // The dot-product error scales with ||closest||*||point||, not
+            // ||point||². Using the latter can turn near-contact overlap into
+            // an unproved separation in large but finite geometry.
+            dot_roundoff_scale =
+                dot_roundoff_scale.max(dot.abs()).max(closest_norm * point_norm);
             if dot < best_dot {
                 best_dot = dot;
                 best_index = index;
             }
         }
-        let optimality_tolerance = 256.0 * f64::EPSILON
-            * max_dot_magnitude.max(f64::MIN_POSITIVE);
+        let dimension_factor = (D.max(1) as f64).min(1.0e6);
+        let optimality_tolerance = 128.0
+            * dimension_factor
+            * f64::EPSILON
+            * dot_roundoff_scale.max(f64::MIN_POSITIVE);
         let kkt_gap = closest_squared - best_dot;
         if kkt_gap < -optimality_tolerance {
             return Err(GjkFailureReason::DegenerateSimplex);
