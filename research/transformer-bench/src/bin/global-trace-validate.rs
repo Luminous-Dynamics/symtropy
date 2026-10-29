@@ -129,7 +129,7 @@ fn parse_digits(bytes: &[u8], start: usize, len: usize, context: &str) -> Result
     let slice = bytes
         .get(start..start + len)
         .ok_or_else(|| format!("{context}: invalid UTC timestamp"))?;
-    if !slice.iter().all(u8::is_ascii_digit) {
+    if !slice.iter().all(|byte| byte.is_ascii_digit()) {
         return Err(format!("{context}: timestamp fields must be decimal digits"));
     }
     let text = std::str::from_utf8(slice)
@@ -187,8 +187,8 @@ fn parse_utc_timestamp(value: &str, context: &str) -> Result<UtcStamp, String> {
     let minute = parse_digits(bytes, 14, 2, context)?;
     let second = parse_digits(bytes, 17, 2, context)?;
 
-    if !(1900..=2199).contains(&year) {
-        return Err(format!("{context}: timestamp year must be in 1900..=2199"));
+    if !(1900..=2200).contains(&year) {
+        return Err(format!("{context}: timestamp year must be in 1900..=2200"));
     }
     let max_day =
         days_in_month(year, month).ok_or_else(|| format!("{context}: invalid month {month}"))?;
@@ -416,17 +416,17 @@ fn parse_trace(input: &str, source: &str) -> Result<BTreeMap<String, TraceScenar
         if last.end.epoch_seconds != scenario.period_end.epoch_seconds {
             return Err(format!("scenario {:?}: final interval does not end at period_end_utc", scenario.scenario_id));
         }
-        let duration_hours: i64 = scenario
+        let duration_seconds: i64 = scenario
             .intervals
             .iter()
-            .map(|interval| (interval.end.epoch_seconds - interval.start.epoch_seconds) / 3_600)
+            .map(|interval| interval.end.epoch_seconds - interval.start.epoch_seconds)
             .sum();
         let expected_hours = validate_annual_period(
             scenario.period_start,
             scenario.period_end,
             &format!("scenario {:?}", scenario.scenario_id),
         )?;
-        if duration_hours != i64::from(expected_hours) {
+        if duration_seconds != i64::from(expected_hours) * 3_600 {
             return Err(format!("scenario {:?}: interval durations do not match exact annual coverage", scenario.scenario_id));
         }
     }
