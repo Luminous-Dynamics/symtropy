@@ -17,6 +17,10 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_verifier.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
+      - "research/polar-infrastructure/benchmark/schemas/execution-attestation-verification-policy-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/verify_signed_execution_receipt.sh"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_signed_execution_receipt_wrapper.py"
       - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
       - ".github/workflows/environment-trace-contract.yml"
       - ".github/workflows/polar-resilience-paired-comparison.yml"
@@ -36,6 +40,10 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_verifier.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
+      - "research/polar-infrastructure/benchmark/schemas/execution-attestation-verification-policy-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json"
+      - "research/polar-infrastructure/benchmark/scripts/verify_signed_execution_receipt.sh"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_signed_execution_receipt_wrapper.py"
       - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
       - ".github/workflows/environment-trace-contract.yml"
       - ".github/workflows/polar-resilience-paired-comparison.yml"
@@ -183,6 +191,40 @@ jobs:
           python3 -m unittest discover \
             -s research/polar-infrastructure/benchmark/scripts/tests \
             -p 'test_execution_receipt_set_verifier.py' -v
+
+      - name: Validate signed execution-attestation policy (scoring remains disabled)
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="research/polar-infrastructure/benchmark/schemas/execution-attestation-verification-policy-0.1.0.schema.json"
+          policy="research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .title == "Symtropy Execution Attestation Verification Policy" and
+            .additionalProperties == false and
+            (.required | index("claim_boundary") != null) and
+            (.properties.scoring_authorized.const == false) and
+            (.properties.cosign.properties.version.const == "v3.1.4") and
+            (.properties.bundle_format.properties.legacy_bundle_allowed.const == false)
+          ' "$schema"
+          jq -e '
+            .schema_version == "0.1.0" and
+            .artifact_kind == "symtropy-execution-attestation-verification-policy" and
+            .status == "design_only_not_enabled" and
+            .scoring_authorized == false and
+            .cosign.version == "v3.1.4" and
+            .cosign.verify_command == "verify-blob" and
+            .cosign.skip_transparency_log_allowed == false and
+            .cosign.insecure_ignore_sct_allowed == false and
+            .cosign.mutable_identity_regex_allowed == false and
+            .bundle_format.legacy_bundle_allowed == false and
+            .trust_boundary.policy_digest_must_be_pinned_out_of_band == true and
+            .trust_boundary.signing_workflow_must_not_execute_untrusted_pull_request_code_as_attester == true and
+            .claim_boundary.scoring_authorized == false
+          ' "$policy"
+          python3 -m unittest discover \
+            -s research/polar-infrastructure/benchmark/scripts/tests \
+            -p 'test_signed_execution_receipt_wrapper.py' -v
 
       - name: Run independent verifier mutation tests
         shell: bash
