@@ -1,0 +1,19 @@
+# evaluator-only target outputs, ordered by input action 0..7; not consumed by the policy
+train_x|00001111
+train_y|00110011
+train_z|01010101
+train_not_x|11110000
+train_xor_xy|00111100
+train_and_xy|00000011
+validation_or_xz|01011111
+validation_xor_xyz|01101001
+validation_nand_yz|11101110
+validation_xnor_xy|11000011
+validation_mux|01010011
+validation_implication|11110011
+heldout_majority|00010111
+heldout_exactly_one|01101000
+heldout_exactly_two|00010110
+heldout_x_and_y_or_z|00000111
+heldout_and_xyz|00000001
+heldout_or_xyz|01111111
