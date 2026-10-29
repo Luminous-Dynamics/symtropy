@@ -80,14 +80,14 @@ Example:
 ```sh
 cargo run --release --manifest-path research/transformer-bench/Cargo.toml --bin surrogate-eval -- \
   research/transformer-bench/fixtures/surrogate_predictions_synthetic.csv \
-  /tmp/transformer-surrogate-report.csv 3000 2
+  /tmp/transformer-surrogate-report.csv 3000 3000 2
 ```
 
 Exact input header:
 
 `candidate_id,geometry_family,material_id,reference_core_loss_w,predicted_core_loss_w,prediction_lower_w,prediction_upper_w,model_fea_queries`
 
-The row-level `model_fea_queries` value must be constant: it is the total costly FE calls attributed to that model/search run, including training, shortlist checks, failed/retried jobs and mesh refinements. The fourth CLI argument is the declared size of the candidate universe. This reports a claimed query reduction, not cryptographically audited simulation accounting; exact solver receipts and query logs remain required for a trustworthy comparative result. Held-out reference values may be produced by an evaluator's independent oracle, and are not counted as model-initiated calls.
+The row-level `model_fea_queries` value must be constant: it is the total costly FE calls attributed to that model/search run, including training, shortlist checks, failed/retried jobs and mesh refinements. The third CLI argument is the candidate-universe size. The fourth is `full_pool_fea_queries`: the total calls required to evaluate every candidate with the same pinned solver and convergence/mesh-refinement protocol. The reported FEA-call reduction is `1 - model_fea_queries / full_pool_fea_queries`, not `1 - shortlist_size / candidate_count`. This baseline must include comparable full-pool retries/refinements, and the model count must include training, calibration, shortlist verification, failed/retried jobs and mesh refinements. The reported values are still a caller-declared ledger, not cryptographically audited accounting; exact solver receipts and query logs remain required. Held-out reference values may be produced by an evaluator's independent oracle and are not counted as model-initiated calls.
 
 Metrics include mean/median/P95/maximum absolute relative error, Spearman rank correlation, top-k recall of the lowest-loss candidates, regret of the predicted best candidate against the best reference candidate, prediction-interval coverage, and mean interval width relative to reference loss. The evaluator rejects duplicate candidate IDs, inconsistent query counts, non-finite or physically nonsensical inputs, invalid prediction intervals, and derived non-finite metrics. Reports are stratified by geometry family and material to expose transfer failures hidden by aggregate scores.
 
