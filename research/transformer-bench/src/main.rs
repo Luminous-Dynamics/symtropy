@@ -9,7 +9,7 @@ use std::process;
 const HOURS_PER_YEAR: f64 = 8_760.0;
 const HOURS_TOLERANCE: f64 = 1.0e-6;
 const WEIGHT_TOLERANCE: f64 = 1.0e-9;
-const CURRENT_MOMENT_REL_TOLERANCE: f64 = 1.0e-12;
+const CURRENT_MOMENT_TOLERANCE: f64 = 1.0e-12;
 
 #[derive(Clone, Debug)]
 struct Candidate { id: String, capex: f64, p0_w: f64, pk_w: f64 }
@@ -204,9 +204,9 @@ fn read_scenarios(path: &str) -> Result<BTreeMap<String, Scenario>, String> {
         if !squared_mean.is_finite() {
             return Err(format!("{path}:{line}: current_pu_mean is too large to square safely"));
         }
-        let moment_tolerance = CURRENT_MOMENT_REL_TOLERANCE * squared_mean.max(mean_square_current_pu2).max(1.0);
+        let moment_tolerance = CURRENT_MOMENT_TOLERANCE * squared_mean.max(mean_square_current_pu2).max(1.0);
         if mean_square_current_pu2 + moment_tolerance < squared_mean {
-            return Err(format!("{path}:{line}: mean_square_current_pu2 must be at least current_pu_mean squared (within relative tolerance)"));
+            return Err(format!("{path}:{line}: mean_square_current_pu2 must be at least current_pu_mean squared (within the declared tolerance)"));
         }
         if let Some(existing) = scenarios.get_mut(&scenario_id) {
             if (existing.weight - weight).abs() > WEIGHT_TOLERANCE { return Err(format!("{path}:{line}: inconsistent weight for scenario {scenario_id:?}")); }
