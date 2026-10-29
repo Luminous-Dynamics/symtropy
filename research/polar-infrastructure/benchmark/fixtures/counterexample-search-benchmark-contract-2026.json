@@ -1,0 +1,205 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "symtropy-counterexample-search-benchmark-contract",
+  "contract_id": "counterexample-search-fixed-budget-v0",
+  "status": "proposed_not_executed",
+  "evidence_class": "test_design_only",
+  "purpose": "Compare scenario-generation and falsification methods by replay-confirmed counterexample discovery under identical expensive-oracle budgets, with an untouched holdout. Searcher quality is kept separate from controller quality.",
+  "searchers": [
+    {
+      "searcher_id": "uniform_random",
+      "class": "baseline",
+      "strategy": "uniform_random_sampling",
+      "implementation_status": "planned_adapter",
+      "adaptive_feedback_allowed": false,
+      "uses_future_or_holdout_information": false
+    },
+    {
+      "searcher_id": "deterministic_space_filling",
+      "class": "baseline",
+      "strategy": "deterministic_space_filling",
+      "implementation_status": "planned_adapter",
+      "adaptive_feedback_allowed": false,
+      "uses_future_or_holdout_information": false
+    },
+    {
+      "searcher_id": "optimization_falsifier",
+      "class": "baseline",
+      "strategy": "single_objective_robustness_optimization",
+      "implementation_status": "planned_adapter",
+      "adaptive_feedback_allowed": true,
+      "uses_future_or_holdout_information": false
+    },
+    {
+      "searcher_id": "coverage_guided_search",
+      "class": "baseline",
+      "strategy": "coverage_guided_mutation",
+      "implementation_status": "planned_adapter",
+      "adaptive_feedback_allowed": true,
+      "uses_future_or_holdout_information": false
+    },
+    {
+      "searcher_id": "symtropy_adaptive_multiobjective",
+      "class": "candidate",
+      "strategy": "multiobjective_falsification_and_failure_family_novelty",
+      "implementation_status": "research_candidate_not_benchmarked",
+      "adaptive_feedback_allowed": true,
+      "uses_future_or_holdout_information": false
+    }
+  ],
+  "budget_contract": {
+    "budget_unit": "plant_oracle_invocation",
+    "pilot_repetitions": 10,
+    "pilot_invocation_budget_per_searcher": 50,
+    "confirmatory_repetitions": 50,
+    "confirmatory_invocation_budget_per_searcher": 200,
+    "same_invocation_budget_across_searchers": true,
+    "invalid_invocations_count_against_budget": true,
+    "failed_or_timed_out_invocations_count_against_budget": true,
+    "wall_time_and_resource_use_reported_separately": true,
+    "resource_budget_must_match_across_arms": true,
+    "run_order_randomized_or_blocked": true,
+    "random_seeds_preregistered": true,
+    "repetitions_are_independent_at_search_run_level": true
+  },
+  "input_information_contract": {
+    "same_declared_parameter_domain": true,
+    "same_formal_property_and_gate_definitions": true,
+    "same_controller_observation_contract": true,
+    "searcher_can_use_only_current_and_prior_non_holdout_observations": true,
+    "unbounded_pretraining_oracle_queries_forbidden": true,
+    "surrogate_training_and_cache_queries_count_toward_budget": true,
+    "cached_results_must_be_content_addressed": true,
+    "hidden_oracle_access_forbidden": true
+  },
+  "split_contract": {
+    "split_unit": "whole_scenario_family_episode_or_site_year",
+    "development_set": "to_be_admitted",
+    "validation_set": "to_be_admitted",
+    "locked_holdout": "not_created",
+    "holdout_frozen_before_confirmatory_run": true,
+    "holdout_used_for_searcher_selection_or_tuning": false,
+    "test_leakage_invalidates_claim": true,
+    "holdout_discovery_is_reported_separately": true
+  },
+  "counterexample_admission": {
+    "candidate_violation_is_not_yet_a_counterexample": true,
+    "counterexample_requires_independent_replay": true,
+    "replay_must_use_exact_input_digest": true,
+    "replay_must_use_pinned_controller_and_model_artifacts": true,
+    "replay_result_must_reproduce_same_gate_family": true,
+    "invalid_or_unevaluated_outcome_never_counts_as_failure_discovery": true,
+    "duplicate_replays_count_once_for_unique_failure_family_yield": true,
+    "failure_family_fingerprint_is_versioned": true
+  },
+  "required_record_fields": [
+    "searcher_id",
+    "search_run_id",
+    "preregistered_seed",
+    "oracle_invocation_index",
+    "scenario_input_sha256",
+    "controller_artifact_sha256",
+    "plant_model_sha256",
+    "run_configuration_sha256",
+    "oracle_status",
+    "gate_result",
+    "signed_gate_margin",
+    "failure_family_fingerprint",
+    "replay_status",
+    "replay_artifact_sha256",
+    "wall_time_ms",
+    "cpu_time_ms",
+    "peak_memory_bytes"
+  ],
+  "required_metrics": [
+    "falsification_rate_at_budget",
+    "time_to_first_replay_confirmed_counterexample",
+    "survival_curve_for_runs_not_falsified",
+    "unique_replay_confirmed_failure_families_per_100_invocations",
+    "discovery_yield_at_invocations_25_50_100_200",
+    "invalid_invocation_rate",
+    "duplicate_failure_family_rate",
+    "replay_confirmation_rate",
+    "locked_holdout_failure_family_yield",
+    "cross_seed_variance",
+    "wall_time_and_resource_use"
+  ],
+  "statistical_contract": {
+    "primary_endpoint": "falsification_rate_at_confirmatory_budget",
+    "report_confidence_interval": true,
+    "non_falsified_runs_are_right_censored_at_budget": true,
+    "survival_analysis_required": true,
+    "independent_unit": "search_run",
+    "paired_or_blocked_seed_design_required": true,
+    "multiple_comparison_plan_required": true,
+    "effect_size_target": null,
+    "effect_size_target_frozen_after_pilot_before_locked_holdout": true,
+    "superiority_requires_paired_uncertainty_interval_excluding_zero": true,
+    "no_single_composite_score_allowed": true
+  },
+  "benchmark_tracks": [
+    {
+      "track_id": "analytic_known_answer",
+      "status": "contract_only",
+      "oracle_type": "synthetic_analytical",
+      "purpose": "Test whether searchers discover known analytic failure regions under fixed budgets and whether replay/fingerprint accounting is correct.",
+      "physical_evidence": false,
+      "eligible_for_controller_superiority_claim": false
+    },
+    {
+      "track_id": "validated_plant_model",
+      "status": "not_admitted",
+      "oracle_type": "validated_simulator_required",
+      "purpose": "Evaluate search efficiency on an independently verified plant and frozen formal service constraints.",
+      "physical_evidence": false,
+      "eligible_for_controller_superiority_claim": false
+    },
+    {
+      "track_id": "locked_site_episode_holdout",
+      "status": "not_created",
+      "oracle_type": "independently_admitted_model_and_traces_required",
+      "purpose": "Test generalization beyond searcher tuning episodes and source/site development windows.",
+      "physical_evidence": false,
+      "eligible_for_controller_superiority_claim": false
+    }
+  ],
+  "admission_gates": {
+    "source_and_model_admission": false,
+    "formal_gate_definition_reviewed": false,
+    "strong_baseline_adapters_pinned": false,
+    "resource_and_information_budget_frozen": false,
+    "random_seeds_and_blocking_frozen": false,
+    "failure_family_fingerprint_policy_frozen": false,
+    "locked_holdout_created_and_sealed": false,
+    "independent_replay_verifier_admitted": false
+  },
+  "claim_policy": {
+    "performance_claim": "none",
+    "synthetic_oracle_results_are_physical_evidence": false,
+    "searcher_superiority_implies_controller_superiority": false,
+    "zero_discoveries_proves_safety": false,
+    "holdout_tuning_allowed": false
+  },
+  "research_references": [
+    {
+      "title": "Requirement falsification for cyber-physical systems using generative models",
+      "url": "https://link.springer.com/article/10.1007/s10515-025-00503-x",
+      "relevance": "Uses repeated independent runs, falsification rate, survival analysis and execution budget to compare stochastic searchers."
+    },
+    {
+      "title": "Automated Generation of Benchmarks for Falsification of STL Specifications",
+      "url": "https://doi.org/10.1109/TCAD.2025.3550410",
+      "relevance": "Addresses the shortage of varied benchmarks for comparing falsification methods."
+    },
+    {
+      "title": "Toward Standardized Benchmarking of Search-Based Scenario Selection Methods in Autonomous System Validation",
+      "url": "https://doi.org/10.3390/jmse14151386",
+      "relevance": "Proposes domain-independent, reproducible and comparable evaluation of scenario search methods."
+    },
+    {
+      "title": "Continuous Requirement Conformance Falsification via Cross-Revision Knowledge Transfer",
+      "url": "https://conf.researchr.org/details/icst-2026/icst-2026-research/29/Continuous-Requirement-Conformance-Falsification-for-Cyber",
+      "relevance": "Motivates a future separate track for safe knowledge transfer across controller revisions."
+    }
+  ]
+}
