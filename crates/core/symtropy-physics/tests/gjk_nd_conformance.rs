@@ -538,6 +538,32 @@ fn three_dimensional_specialized_path_is_scale_invariant() {
 }
 
 #[test]
+fn squared_distance_dynamic_range_is_indeterminate_not_false_overlap() {
+    for scale in [1e-200, 1e200] {
+        let a = box_at(SVector::<f64, 5>::zeros(), scale);
+        let b = box_at(
+            SVector::from([3.5 * scale, 0.0, 0.0, 0.0, 0.0]),
+            scale,
+        );
+        assert!(
+            !aabb_oracle(&a, &b),
+            "independent AABB oracle must keep the extreme-scale pair separated"
+        );
+
+        let result = intersects_support_maps(&a, &b);
+        assert_eq!(
+            result.termination,
+            GjkTermination::Indeterminate(GjkFailureReason::DynamicRangeLimit),
+            "scale {scale:e} must not turn unrepresentable squared distance into a collision"
+        );
+        assert!(
+            !result.intersecting,
+            "dynamic-range uncertainty must not be promoted to intersection"
+        );
+    }
+}
+
+#[test]
 fn five_dimensional_classification_is_uniform_scale_invariant() {
     let base_a = box_at(SVector::<f64, 5>::zeros(), 1.0);
     let base_b = box_at(SVector::from([3.5, 0.0, 0.0, 0.0, 0.0]), 1.0);
