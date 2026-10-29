@@ -127,3 +127,17 @@ The negative control data file has a nominal estimate that fits its declared usa
 
 This is a deterministic scenario-sensitivity screen. It is not a Monte Carlo analysis, calibrated reliability estimate, probabilistic safety assessment, structural analysis or flight authorization.
 
+## Pinned NASA TMR experimental bytes and parser contract
+
+Three reference text artifacts are now retained in the repository under data/reference/nasa-tmr/ at the immutable upstream repository commit 20a39f549dbff988a6accc421ac84dafc4487695 (TMBWG/turbmodels). The upstream LICENSE at that commit states CC0 1.0 Universal. Their exact SHA-256 values and byte lengths are recorded in data/source_manifest.v0.1.json and data/reference/nasa-tmr/SHA256SUMS. The copied files retain the upstream Git blob IDs; no rows were regenerated or rounded during mirroring.
+
+- CLCD_Ladson_expdata.dat — 1,343 bytes, SHA-256 78cd2f6aa4968e80f44cbf6c96f699bd9c6e45681d958ec528a10cf72ed23357. The source header says Ladson/NASA TM 4074 (1988), Re=6 million, M=0.15, transition tripped. The three 80/120/180 grit zones have 17/18/18 force observations respectively.
+- CP_Ladson.dat — 6,331 bytes, SHA-256 547e022634a360cd7697813543348cd447ee0038cdbc8f00a5296c7822ec7af8. The file header says M=0.3 and contains nine zones spanning Re=3, 6 and 9 million with different transition descriptions; do not silently treat this as the M=0.15 tripped-force experiment.
+- CP_Gregory_expdata.dat — 1,608 bytes, SHA-256 38d8474bc67661c3cef5e4cd9eeddb95d4a436d06abc1f58a8518066f510647c. The header says Re=2.88 million, digitized approximately from a photocopy, and upper surface only.
+
+The strict Rust parser code is in src/reference_data.rs. It preserves each source zone and original line number, checks required source/variable headers, exact numeric column counts, non-finite values, invalid chord-normalized coordinates, duplicate zone labels and empty zones. Known-answer tests freeze the extracted row and zone counts. The reference_audit binary prints counts without promoting the content to qualified aerodynamics evidence. Run it from this package directory with cargo run --locked --bin reference_audit.
+
+The CI workflow runs sha256sum -c against the pinned raw files before the parser-count check. This demonstrates retained-byte integrity and parser-structure agreement, not independent reproduction of the original experiment, source-authority authentication, CFD verification/validation or flight readiness. The three sources remain marked parser-review-pending in the evidence manifest until the exact-head Rust workflow passes and a separate review is recorded.
+
+The corrected TMR profile-point file and grid archive remain separate source-admission items; do not conflate the geometry polynomial or these experimental datasets with a grid-convergence result.
+
