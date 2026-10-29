@@ -26,9 +26,14 @@ impl fmt::Display for SphKernelError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidDimension => write!(f, "SPH kernel requires D >= 1"),
-            Self::UnsupportedDimension => write!(f, "SPH kernel dimension exceeds the reference envelope"),
+            Self::UnsupportedDimension => {
+                write!(f, "SPH kernel dimension exceeds the reference envelope")
+            },
             Self::InvalidSmoothingLength => {
-                write!(f, "smoothing length must be finite, positive, and numerically representable")
+                write!(
+                    f,
+                    "smoothing length must be finite, positive, and numerically representable"
+                )
             }
             Self::NonFiniteDisplacement { axis } => {
                 write!(f, "non-finite kernel displacement on axis {axis}")
@@ -67,11 +72,7 @@ impl<const D: usize> Poly6Kernel<D> {
 
         let h_squared = smoothing_length * smoothing_length;
         let h_power = smoothing_length.powf((D + 6) as f64);
-        if !h_squared.is_finite()
-            || h_squared <= 0.0
-            || !h_power.is_finite()
-            || h_power <= 0.0
-        {
+        if !h_squared.is_finite() || h_squared <= 0.0 || !h_power.is_finite() || h_power <= 0.0 {
             return Err(SphKernelError::InvalidSmoothingLength);
         }
 
@@ -102,10 +103,7 @@ impl<const D: usize> Poly6Kernel<D> {
     }
 
     /// Evaluate W_D(r,h) = C_D(h) (h² - |r|²)^3 for |r| < h, else zero.
-    pub fn value(
-        &self,
-        displacement: &SVector<f64, D>,
-    ) -> Result<f64, SphKernelError> {
+    pub fn value(&self, displacement: &SVector<f64, D>) -> Result<f64, SphKernelError> {
         self.validate_displacement(displacement)?;
         let r_squared = displacement.norm_squared();
         if !r_squared.is_finite() {
@@ -151,10 +149,7 @@ impl<const D: usize> Poly6Kernel<D> {
         Ok(gradient)
     }
 
-    fn validate_displacement(
-        &self,
-        displacement: &SVector<f64, D>,
-    ) -> Result<(), SphKernelError> {
+    fn validate_displacement(&self, displacement: &SVector<f64, D>) -> Result<(), SphKernelError> {
         for axis in 0..D {
             if !displacement[axis].is_finite() {
                 return Err(SphKernelError::NonFiniteDisplacement { axis });
@@ -226,16 +221,8 @@ mod tests {
     #[test]
     fn poly6_normalizes_in_one_two_and_three_dimensions() {
         close(radial_integral::<1>(2.0), 1.0, 2e-8);
-        close(
-            radial_integral::<2>(2.0 * std::f64::consts::PI),
-            1.0,
-            2e-8,
-        );
-        close(
-            radial_integral::<3>(4.0 * std::f64::consts::PI),
-            1.0,
-            2e-8,
-        );
+        close(radial_integral::<2>(2.0 * std::f64::consts::PI), 1.0, 2e-8);
+        close(radial_integral::<3>(4.0 * std::f64::consts::PI), 1.0, 2e-8);
     }
 
     #[test]
@@ -250,8 +237,8 @@ mod tests {
             let mut minus = displacement;
             plus[axis] += epsilon;
             minus[axis] -= epsilon;
-            let numeric = (kernel.value(&plus).unwrap() - kernel.value(&minus).unwrap())
-                / (2.0 * epsilon);
+            let numeric =
+                (kernel.value(&plus).unwrap() - kernel.value(&minus).unwrap()) / (2.0 * epsilon);
             close(analytic[axis], numeric, 1e-8);
         }
     }
@@ -259,14 +246,8 @@ mod tests {
     #[test]
     fn kernel_is_zero_at_and_outside_support() {
         let kernel = Poly6Kernel::<3>::new(1.0).unwrap();
-        assert_eq!(
-            kernel.value(&SVector::from([1.0, 0.0, 0.0])).unwrap(),
-            0.0
-        );
-        assert_eq!(
-            kernel.value(&SVector::from([2.0, 0.0, 0.0])).unwrap(),
-            0.0
-        );
+        assert_eq!(kernel.value(&SVector::from([1.0, 0.0, 0.0])).unwrap(), 0.0);
+        assert_eq!(kernel.value(&SVector::from([2.0, 0.0, 0.0])).unwrap(), 0.0);
         assert_eq!(
             kernel.gradient(&SVector::from([1.0, 0.0, 0.0])).unwrap(),
             SVector::<f64, 3>::zeros()
