@@ -142,3 +142,25 @@ Follow-on benchmark specification: [PWR-TX-SOTA-001 #2859](https://github.com/Lu
 ## License
 
 MIT OR Apache-2.0.
+
+## Held-out split leakage audit
+
+The `split-audit` binary audits whether benchmark partitions support the declared generalization claim. It is intentionally separate from prediction metrics: good accuracy cannot repair data leakage.
+
+Run the synthetic contract fixture:
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin split-audit -- \
+  research/transformer-bench/fixtures/split-audit-synthetic.csv \
+  /tmp/transformer-split-audit.csv
+```
+
+Exact input header:
+
+`experiment_id,observation_id,geometry_family,material_id,material_lot_id,manufacturer_id,measurement_campaign_id,split_policy,partition`
+
+Supported policies are `RANDOM_ROW`, `HELD_OUT_GEOMETRY`, `HELD_OUT_MANUFACTURER`, `HELD_OUT_MATERIAL_LOT`, and `HELD_OUT_CAMPAIGN`. Every experiment/policy group must contain non-empty `TRAIN`, `VALIDATION`, and `TEST` partitions. Observation IDs must be unique within an experiment/policy ledger. For a held-out policy, the designated test groups must not appear in either training or validation. Any overlap rejects the audit and returns a non-zero exit code. Random row splitting is allowed only as a baseline and is explicitly labeled `RANDOM_ROW_BASELINE_ONLY_NOT_TRANSFER_EVIDENCE`.
+
+The fixture is synthetic and exists only to exercise input semantics. This audit validates declared keys and split assignment; it does not establish that source IDs are truthful, verify source-data digests, detect near-duplicate geometries, prove measurement independence, or authenticate measurement provenance. A stronger future gate should bind canonical geometry/property hashes, artifact digests, preprocessing versions and data-lineage receipts. Split disjointness is necessary but not sufficient for scientific validity.
+
+This gate turns one recommendation from the global benchmark contract into an executable check. For any claimed transfer to new geometry, manufacturer, material lot, or measurement campaign, publish the matching held-out policy's results separately from random-split scores. Use independent test values and freeze split assignments before model selection.
