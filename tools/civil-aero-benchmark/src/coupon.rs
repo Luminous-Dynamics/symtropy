@@ -177,7 +177,11 @@ impl TriangleMesh {
             {
                 return Err("triangle index is outside the vertex array".to_owned());
             }
-            if a == b || b == c || c == a || triangle_area_mm2(self.vertices_mm, *triangle) <= 1e-12 {
+            if a == b
+                || b == c
+                || c == a
+                || triangle_area_mm2(self.vertices_mm, *triangle) <= 1e-12
+            {
                 return Err("mesh contains a degenerate triangle".to_owned());
             }
             for (u, v) in [(a, b), (b, c), (c, a)] {
