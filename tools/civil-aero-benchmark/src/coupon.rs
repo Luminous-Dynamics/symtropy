@@ -273,7 +273,9 @@ impl TriangleMesh {
             || !audit.orientation_consistent
             || audit.signed_volume_mm3 <= 0.0
         {
-            return Err("refusing to manifest a mesh that fails closed-volume/orientation checks".to_owned());
+            return Err(
+                "refusing to manifest a mesh that fails closed-volume/orientation checks".to_owned(),
+            );
         }
         let escaped_output = json_escape(output_file);
         Ok(format!(
