@@ -447,6 +447,10 @@ mod tests {
         serde_json::from_str(include_str!("../../fixtures/controller-execution-receipt-template-2026.json")).unwrap()
     }
 
+    fn load_v02() -> Receipt {
+        serde_json::from_str(include_str!("../../fixtures/controller-execution-receipt-v0.2-template-2026.json")).unwrap()
+    }
+
     fn completed_receipt() -> Receipt {
         let mut r = load();
         r.evidence_class = "simulator".into();
@@ -586,5 +590,28 @@ mod tests {
             .find(|a| a.role == "resource_policy").unwrap();
         artifact.payload = Some("{\\"wall_time_ms\\":1}".into());
         assert!(validate(&r).unwrap_err().contains("canonical numeric resource limits"));
+    }
+
+    #[test]
+    fn v02_template_binds_causal_information_inputs_but_remains_ineligible() {
+        let r = load_v02();
+        validate(&r).unwrap();
+        assert_eq!(r.schema_version, "0.2.0");
+        assert!(!r.scoring_eligible);
+    }
+
+    #[test]
+    fn rejects_v02_missing_information_budget_binding() {
+        let mut r = load_v02();
+        r.paired_input_bindings.information_budget_sha256 = None;
+        assert!(validate(&r).unwrap_err().contains("v0.2 receipt requires valid information-budget"));
+    }
+
+    #[test]
+    fn rejects_v02_observation_policy_digest_drift() {
+        let mut r = load_v02();
+        let artifact = r.artifact_inventory.iter_mut().find(|a| a.role == "observation_policy").unwrap();
+        artifact.sha256 = "a".repeat(64);
+        assert!(validate(&r).unwrap_err().contains("observation policy artifact digest"));
     }
 }
