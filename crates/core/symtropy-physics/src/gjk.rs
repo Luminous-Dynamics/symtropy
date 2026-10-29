@@ -91,7 +91,7 @@ fn vector_is_finite<const D: usize>(vector: &SVector<f64, D>) -> bool {
 }
 
 fn simplex_is_finite<const D: usize>(simplex: &Simplex<D>) -> bool {
-    simplex.iter().all(vector_is_finite)
+    simplex.iter().all(|point| vector_is_finite(point))
 }
 
 /// Test if two translated shapes intersect using the GJK algorithm.
@@ -955,7 +955,7 @@ mod tests {
 mod proptests {
     use super::*;
     use proptest::prelude::*;
-    use symtropy_math::{Point, Sphere};
+    use symtropy_math::Sphere;
 
     proptest! {
         /// Two spheres at the same position always intersect.
