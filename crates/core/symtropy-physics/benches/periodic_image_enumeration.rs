@@ -111,12 +111,14 @@ fn make_corpus(count: usize, kind: FixtureKind) -> Vec<(Aabb<2>, Aabb<2>)> {
                 )
             }
             FixtureKind::SeamCrossing => {
-                let ax = range(&mut state, 0.0, 0.4);
-                let bx = range(&mut state, 9.6, 10.0);
+                // By construction, B's image at n=-1 overlaps A in x;
+                // y-intervals also overlap for every generated pair.
+                let ax = range(&mut state, 0.0, 0.15);
+                let bx = range(&mut state, 9.8, 10.0);
                 let ay = range(&mut state, -1.0, 1.0);
                 let by = ay + range(&mut state, -0.05, 0.05);
-                let aw = range(&mut state, 0.2, 0.7);
-                let bw = range(&mut state, 0.2, 0.7);
+                let aw = range(&mut state, 0.5, 1.0);
+                let bw = range(&mut state, 0.8, 1.2);
                 let ah = range(&mut state, 0.2, 0.7);
                 let bh = range(&mut state, 0.2, 0.7);
                 (
