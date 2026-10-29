@@ -217,14 +217,19 @@ impl EpochFencedOutcomeLedger {
     pub fn unresolved_requests_from_prior_epochs(&self) -> usize {
         self.request_epochs
             .iter()
-            .filter(|(_, request_epoch)| **request_epoch < self.current_epoch)
-            .filter(|(request_id, request_epoch)| {
-                self.ledgers
+            .filter_map(|(request_id, request_epoch)| {
+                if *request_epoch >= self.current_epoch {
+                    return None;
+                }
+
+                let unresolved = self
+                    .ledgers
                     .get(request_epoch)
-                    .and_then(|ledger| ledger.last_outcome(**request_id))
-                    .is_none_or(|outcome| !outcome.status.is_terminal())
+                    .and_then(|ledger| ledger.last_outcome(*request_id))
+                    .is_none_or(|outcome| !outcome.status.is_terminal());
+                Some(usize::from(unresolved))
             })
-            .count()
+            .sum()
     }
 
     /// Number of all registered submissions from epochs prior to the current one.
