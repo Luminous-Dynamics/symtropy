@@ -231,6 +231,7 @@ fn validate(r: &Receipt) -> Result<(), String> {
         "observation_policy",
         "resource_policy",
         "command",
+        "controller_artifact",
     ].into_iter().collect();
     let mut inventory_ids = BTreeSet::new();
     let mut inventory_roles = BTreeSet::new();
@@ -244,6 +245,26 @@ fn validate(r: &Receipt) -> Result<(), String> {
     }
     if inventory_roles != required_roles {
         return Err("artifact inventory must contain exactly one of each required input role".into());
+    }
+    let controller_artifact = r.artifact_inventory.iter().find(|a| a.role == "controller_artifact")
+        .expect("required role was checked");
+    if controller_artifact.sha256 != r.paired_input_bindings.controller_artifact_sha256 {
+        return Err("controller artifact inventory digest does not match paired input binding".into());
+    }
+    let resource_policy = r.artifact_inventory.iter().find(|a| a.role == "resource_policy")
+        .expect("required role was checked");
+    let expected_resource_payload = format!(
+        "{{\\"cpu_time_ms\\":{},\\"observation_count\\":{},\\"peak_memory_bytes\\":{},\\"simulator_calls\\":{},\\"wall_time_ms\\":{}}}",
+        r.resource_limits.cpu_time_ms,
+        r.resource_limits.observation_count,
+        r.resource_limits.peak_memory_bytes,
+        r.resource_limits.simulator_calls,
+        r.resource_limits.wall_time_ms
+    );
+    if resource_policy.sha256 != r.resource_limits_sha256
+        || resource_policy.payload.as_deref() != Some(expected_resource_payload.as_str())
+    {
+        return Err("resource policy artifact must match canonical numeric resource limits and digest".into());
     }
 
     if r.claim_policy.synthetic_payloads_are_execution_evidence
