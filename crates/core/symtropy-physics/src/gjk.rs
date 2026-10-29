@@ -503,7 +503,7 @@ fn closest_point_on_hull_active_set<const D: usize>(
             {
                 weights = affine_weights
                     .iter()
-                    .map(|weight| weight.max(0.0))
+                    .map(|weight| (*weight).max(0.0))
                     .collect();
                 // Do not retain zero-weight vertices in the active corral. They
                 // can spuriously appear as violating KKT points after roundoff.
