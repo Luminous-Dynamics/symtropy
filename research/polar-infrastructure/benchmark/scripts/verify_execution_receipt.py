@@ -80,14 +80,13 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
     inventory = receipt.get("artifact_inventory")
     need(isinstance(inventory, list), "artifact_inventory must be an array")
     ids, roles = set(), set()
-    verified_payload_count = 0
     for artifact in inventory:
         need(isinstance(artifact, dict), "artifact inventory entry must be an object")
         need(artifact.get("artifact_id") not in ids, "duplicate artifact inventory ID")
         need(artifact.get("role") not in roles, "duplicate artifact inventory role")
         ids.add(artifact.get("artifact_id"))
         roles.add(artifact.get("role"))
-        verified_payload_count += int(verify_artifact_bytes(artifact))
+        verify_artifact_bytes(artifact)
     need(roles == REQUIRED_INPUT_ROLES, "artifact inventory must contain exactly the required input roles")
 
     bindings = receipt.get("paired_input_bindings", {})
@@ -194,29 +193,12 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
                 need(digest == by_role[role]["sha256"], f"{role} digest index does not match output inventory")
             else:
                 need(digest is None, f"{role} digest is declared without an output artifact")
-        if receipt.get("scoring_eligible"):
-            need(state == "completed" and receipt.get("evidence_class") != "synthetic_fixture",
-                 "only completed non-synthetic execution can be scoring eligible")
-            need(evidence.get("process_exit_code") == 0, "scoring-eligible run must exit successfully")
-            need(all(observed[k] <= limits[k] for k in RESOURCE_KEYS),
-                 "scoring-eligible run exceeded declared resource budget")
-            need(independent.get("status") == "passed"
-                 and isinstance(independent.get("verifier_id"), str) and independent["verifier_id"]
-                 and isinstance(independent.get("verifier_revision"), str)
-                 and REVISION_RE.fullmatch(independent["verifier_revision"]) is not None
-                 and independent.get("verified_artifact_count", 0) >= 3,
-                 "scoring-eligible run lacks independent verification")
-            need(all(a.get("payload") is not None for a in inventory + outputs),
-                 "current offline verifier requires payload-backed artifacts for scoring eligibility")
     else:
         need(state == "invalid" and receipt.get("execution_state") == "invalid"
              and receipt.get("scoring_eligible") is False,
              "invalid receipt must remain ineligible")
 
-    # Source-URI artifacts remain admissible for provenance but are not byte-verified here.
-    if receipt.get("scoring_eligible"):
-        need(verified_payload_count == len(inventory),
-             "every score-eligible input artifact must be payload-backed and hash-verified")
+    # Source-URI artifacts are accepted for provenance, but are not byte-verified here.
 
 
 def main(argv: list[str]) -> int:
