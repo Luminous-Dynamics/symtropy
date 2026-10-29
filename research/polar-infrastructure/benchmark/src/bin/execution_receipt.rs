@@ -547,4 +547,22 @@ mod tests {
         r.artifact_inventory.pop();
         assert!(validate(&r).unwrap_err().contains("exactly one"));
     }
+
+    #[test]
+    fn rejects_controller_artifact_inventory_digest_drift() {
+        let mut r = load();
+        let artifact = r.artifact_inventory.iter_mut()
+            .find(|a| a.role == "controller_artifact").unwrap();
+        artifact.sha256 = "a".repeat(64);
+        assert!(validate(&r).unwrap_err().contains("controller artifact inventory digest"));
+    }
+
+    #[test]
+    fn rejects_resource_policy_payload_that_differs_from_numeric_limits() {
+        let mut r = load();
+        let artifact = r.artifact_inventory.iter_mut()
+            .find(|a| a.role == "resource_policy").unwrap();
+        artifact.payload = Some("{\\"wall_time_ms\\":1}".into());
+        assert!(validate(&r).unwrap_err().contains("canonical numeric resource limits"));
+    }
 }
