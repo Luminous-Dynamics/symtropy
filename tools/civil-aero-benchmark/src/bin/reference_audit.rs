@@ -17,14 +17,10 @@ fn run() -> Result<(), String> {
     let gregory_pressure = read("CP_Gregory_expdata.dat")?;
 
     let force = parse_ladson_force_data(&force)?;
-    let ladson_pressure = parse_pressure_data(
-        &ladson_pressure,
-        "NASA-TMR-NACA0012-LADSON-PRESSURE",
-    )?;
-    let gregory_pressure = parse_pressure_data(
-        &gregory_pressure,
-        "NASA-TMR-NACA0012-GREGORY-PRESSURE",
-    )?;
+    let ladson_pressure =
+        parse_pressure_data(&ladson_pressure, "NASA-TMR-NACA0012-LADSON-PRESSURE")?;
+    let gregory_pressure =
+        parse_pressure_data(&gregory_pressure, "NASA-TMR-NACA0012-GREGORY-PRESSURE")?;
 
     print_summary(
         force.dataset_id,
