@@ -488,4 +488,12 @@ mod tests {
         input.cases[1].controller_artifact_sha256 = "a".repeat(64);
         assert!(validate(&input).unwrap_err().contains("digest/ID binding"));
     }
+
+    #[test]
+    fn rejects_initial_state_id_with_multiple_digests() {
+        let mut input = load();
+        input.trajectory_artifacts[1].initial_state_id =
+            input.trajectory_artifacts[0].initial_state_id.clone();
+        assert!(validate(&input).unwrap_err().contains("references multiple payload digests"));
+    }
 }
