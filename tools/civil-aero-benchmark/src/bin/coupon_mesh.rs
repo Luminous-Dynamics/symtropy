@@ -5,7 +5,7 @@ use std::{
     process,
 };
 
-use civil_aero_benchmark::coupon::{generate_coupon, CouponSpec};
+use civil_aero_benchmark::coupon::{CouponSpec, generate_coupon};
 
 fn main() {
     if let Err(error) = run() {
@@ -99,10 +99,7 @@ fn run() -> Result<(), String> {
     Ok(())
 }
 
-fn required<'a>(
-    options: &'a BTreeMap<String, String>,
-    name: &str,
-) -> Result<&'a str, String> {
+fn required<'a>(options: &'a BTreeMap<String, String>, name: &str) -> Result<&'a str, String> {
     options
         .get(name)
         .map(String::as_str)
