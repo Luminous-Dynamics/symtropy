@@ -1,0 +1,120 @@
+name: GLASS-ANYTIME-QUALIFICATION Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/glass-silicon-contract-audit/**"
+      - "docs/tech/glass-anytime-qualification-*.schema.json"
+      - "docs/tech/GLASS_ANYTIME_QUALIFICATION_V0_1.md"
+      - ".github/workflows/glass-anytime-qualification.yml"
+  push:
+    branches:
+      - "research/glass-anytime-qualification-v0.1"
+    paths:
+      - "tools/glass-silicon-contract-audit/**"
+      - "docs/tech/glass-anytime-qualification-*.schema.json"
+      - "docs/tech/GLASS_ANYTIME_QUALIFICATION_V0_1.md"
+      - ".github/workflows/glass-anytime-qualification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  anytime-qualification:
+    name: Anytime alpha spending, known answers, and event replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Validate frozen schemas and synthetic event trace
+        shell: bash
+        run: |
+          set -euo pipefail
+          task_schema="docs/tech/glass-anytime-qualification-task-v0.1.schema.json"
+          oracle_schema="docs/tech/glass-anytime-qualification-oracle-v0.1.schema.json"
+          report_schema="docs/tech/glass-anytime-qualification-report-v0.1.schema.json"
+          task="tools/glass-silicon-contract-audit/fixtures/glass-anytime-qualification-task.synthetic.json"
+          oracle="tools/glass-silicon-contract-audit/fixtures/glass-anytime-qualification-oracle.synthetic.json"
+
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.benchmark_id.const == "glass-anytime-qualification-synthetic-v0-1" and
+            .properties.target_success_probability.const == 0.95 and
+            .properties.familywise_alpha.const == 0.05 and
+            .properties.registration_rule.const == "append_only_one_based_registration_order" and
+            .additionalProperties == false
+          ' "$task_schema" > /dev/null
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.evidence_class.const == "synthetic_evaluator_only" and
+            .properties.outcomes.maxItems == 100 and
+            .additionalProperties == false
+          ' "$oracle_schema" > /dev/null
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.audit_kind.const == "synthetic_anytime_valid_sequential_qualification" and
+            .properties.allocation.const == "alpha/[2*i*(i+1)*t*(t+1)] per candidate-time-tail" and
+            .additionalProperties == false
+          ' "$report_schema" > /dev/null
+          jq -e '
+            .schema_version == 1 and
+            .benchmark_id == "glass-anytime-qualification-synthetic-v0-1" and
+            .target_success_probability == 0.95 and
+            .familywise_alpha == 0.05 and
+            (.events | length) == 933 and
+            ([.events[] | select(.kind == "register_candidate")] | length) == 5 and
+            ([.events[] | select(.kind == "observe_trial")] | length) == 928
+          ' "$task" > /dev/null
+          jq -e '
+            .schema_version == 1 and
+            .evidence_class == "synthetic_evaluator_only" and
+            ([.outcomes[] | {id:.candidate_id,n:(.trial_results|length),s:([.trial_results[]|select(.)]|length)}] ==
+              [{"id":"lot-alpha","n":350,"s":350},{"id":"lot-beta","n":334,"s":334},{"id":"lot-gamma","n":204,"s":173},{"id":"lot-delta","n":80,"s":76},{"id":"lot-epsilon","n":0,"s":0}])
+          ' "$oracle" > /dev/null
+          echo "Anytime qualification schemas and event trace: PASS"
+
+      - name: Run sequential qualification and mutation tests
+        run: cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-anytime
+
+      - name: Execute campaign and replay exact bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          task="tools/glass-silicon-contract-audit/fixtures/glass-anytime-qualification-task.synthetic.json"
+          oracle="tools/glass-silicon-contract-audit/fixtures/glass-anytime-qualification-oracle.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-anytime -- "$task" "$oracle" > glass-anytime-qualification-report.json
+          task_digest="$(sha256sum "$task" | awk '{print $1}')"
+          oracle_digest="$(sha256sum "$oracle" | awk '{print $1}')"
+          jq -e --arg task_digest "$task_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_anytime_valid_sequential_qualification" and
+            .input_sha256 == $task_digest and
+            .oracle_sha256 == $oracle_digest and
+            .events_checked == 933 and
+            .candidate_count == 5 and
+            .findings == [] and
+            ([.decisions[] | select(.candidate_id == "lot-alpha")][0] | .disposition == "QUALIFIED" and .trials_observed == 310) and
+            ([.decisions[] | select(.candidate_id == "lot-beta")][0] | .disposition == "QUALIFIED" and .trials_observed == 334) and
+            ([.decisions[] | select(.candidate_id == "lot-gamma")][0] | .disposition == "NOT_QUALIFIED" and .trials_observed == 204) and
+            ([.decisions[] | select(.candidate_id == "lot-delta")][0] | .disposition == "UNRESOLVED" and .trials_observed == 80) and
+            ([.decisions[] | select(.candidate_id == "lot-epsilon")][0] | .disposition == "UNRESOLVED" and .trials_observed == 0) and
+            ([.events[] | select(.candidate_id == "lot-alpha" and .kind == "observe_trial" and .decision == "QUALIFIED")] | length) == 1
+          ' glass-anytime-qualification-report.json
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-anytime -- \
+            --replay glass-anytime-qualification-report.json "$task" "$oracle" > glass-anytime-qualification-replay.json
+          jq -e --arg task_digest "$task_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_anytime_qualification_replay" and
+            .input_sha256 == $task_digest and
+            .oracle_sha256 == $oracle_digest and
+            .findings == []
+          ' glass-anytime-qualification-replay.json
+          echo "Anytime-valid qualification and deterministic replay: PASS"
