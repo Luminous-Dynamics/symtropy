@@ -14,7 +14,8 @@ from pathlib import Path
 from typing import Any
 
 from verify_execution_receipt import _verify_receipt_validated
-from verify_paired_comparison_v0_4 import validate_input as validate_paired_input
+from verify_paired_comparison_v0_4 import validate_input as validate_paired_input_v04
+from verify_paired_comparison import validate_input as validate_paired_input_v05
 
 SHARED_GLOBAL_ROLES = {
     "plant_model", "executable", "runtime_environment", "observation_policy", "resource_policy",
@@ -35,7 +36,12 @@ def verify_receipt_set(paired: dict[str, Any], receipts: list[dict[str, Any]]) -
     # Validate the v0.4 pair input once, including rehashing every trajectory,
     # initial-state, and controller payload. Reuse indexes for every receipt
     # instead of repeating full-fixture validation N times.
-    validate_paired_input(paired)
+    if paired.get("schema_version") == "0.4.0":
+        validate_paired_input_v04(paired)
+    elif paired.get("schema_version") == "0.5.0":
+        validate_paired_input_v05(paired)
+    else:
+        raise ValueError("unsupported paired-input version for execution receipt set")
     expected_cases = {case["case_id"]: case for case in paired.get("cases", [])}
     controllers = set(paired.get("controllers", []))
     trajectories = {artifact["trajectory_id"]: artifact for artifact in paired.get("trajectory_artifacts", [])}
@@ -78,6 +84,7 @@ def verify_receipt_set(paired: dict[str, Any], receipts: list[dict[str, Any]]) -
             binding["trajectory_sha256"],
             binding["initial_state_id"],
             binding["initial_state_sha256"],
+            binding.get("observation_trace_sha256"),
         )
         previous_signature = trajectory_artifact_by_id.get(trajectory_id)
         need(previous_signature is None or previous_signature == trajectory_signature,
@@ -90,6 +97,9 @@ def verify_receipt_set(paired: dict[str, Any], receipts: list[dict[str, Any]]) -
              f"controller artifact changes between trajectories: {controller_id}")
         controller_artifact_by_controller[controller_id] = current_controller_digest
 
+        if paired.get("schema_version") == "0.5.0":
+            need(binding.get("information_budget_sha256") == paired["information_budget_sha256"],
+                 f"receipt has a different information-budget digest: {case_id}")
         resource_limits_by_case[case_id] = receipt["resource_limits"]
         roles = inventory_by_role(receipt)
         need(roles["controller_artifact"]["sha256"] == binding["controller_artifact_sha256"],
