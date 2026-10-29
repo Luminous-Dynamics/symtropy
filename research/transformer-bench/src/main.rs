@@ -377,17 +377,18 @@ mod tests {
 
     #[test]
     fn scenario_weights_and_annual_hours_are_validated() {
-        let path = "/tmp/transformer-bench-scenarios-test.csv";
+        let path = std::env::temp_dir().join("transformer-bench-scenarios-test.csv");
+        let path = path.to_string_lossy().into_owned();
         let valid = "scenario_id,weight,interval_id,hours,load_pu,price_per_kwh\na,0.7,all,8760,0.5,2\nb,0.3,all,8760,1.0,3\n";
-        fs::write(path, valid).unwrap();
-        assert_eq!(read_scenarios(path).unwrap().len(), 2);
+        fs::write(&path, valid).unwrap();
+        assert_eq!(read_scenarios(&path).unwrap().len(), 2);
         let bad_hours = "scenario_id,weight,interval_id,hours,load_pu,price_per_kwh\na,1.0,part,8000,0.5,2\n";
-        fs::write(path, bad_hours).unwrap();
-        assert!(read_scenarios(path).is_err());
+        fs::write(&path, bad_hours).unwrap();
+        assert!(read_scenarios(&path).is_err());
         let bad_weights = "scenario_id,weight,interval_id,hours,load_pu,price_per_kwh\na,0.8,all,8760,0.5,2\nb,0.3,all,8760,1.0,3\n";
-        fs::write(path, bad_weights).unwrap();
-        assert!(read_scenarios(path).is_err());
-        let _ = fs::remove_file(path);
+        fs::write(&path, bad_weights).unwrap();
+        assert!(read_scenarios(&path).is_err());
+        let _ = fs::remove_file(&path);
     }
 
     #[test]
