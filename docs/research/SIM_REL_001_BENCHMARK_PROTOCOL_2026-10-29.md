@@ -182,7 +182,7 @@ Reuse [Symtropy ENG-SYNTH #1172](https://github.com/Luminous-Dynamics/symtropy/i
 4. Add candidate C only through an explicit interface and frozen grammar profile.
 5. Add controlled active-probe policy bake-off.
 6. Run synthetic null, mutation, and leakage controls.
-7. Execute on an exact commit SHA and store canonical machine-readable receipts.
+7. Execute on an exact commit SHA from a clean checkout; the runner must reject tracked modifications and non-ignored untracked files before emitting a receipt, then store canonical machine-readable outputs. Record the toolchain/environment separately from the Git source identity.
 8. Inspect failure cases, run ablations, then expand to RC and thermal networks only if v1 provides a useful signal.
 9. Require a separately operated replication before any public claim of superiority.
 
