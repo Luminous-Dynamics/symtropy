@@ -66,6 +66,7 @@ struct CaseReceipt {
     id: String,
     split: String,
     steps: usize,
+    observation_stride: usize,
     observations: usize,
     max_abs_delta: f64,
     rmse: f64,
@@ -321,20 +322,38 @@ fn simulate(scenario: &Scenario, solver: Solver) -> Vec<f64> {
 fn compare_solvers(scenario: &Scenario) -> CaseReceipt {
     let edgewise = simulate(scenario, Solver::Edgewise);
     let matrix = simulate(scenario, Solver::StiffnessMatrix);
+    let width = scenario.masses.len() * 2;
     let mut max_abs_delta: f64 = 0.0;
-    let mut squared_sum = 0.0;
     for (a, b) in edgewise.iter().zip(matrix.iter()) {
-        let delta = (a - b).abs();
-        max_abs_delta = max_abs_delta.max(delta);
-        squared_sum += delta * delta;
+        max_abs_delta = max_abs_delta.max((a - b).abs());
     }
-    let rmse = (squared_sum / edgewise.len() as f64).sqrt();
+    let mut squared_sum = 0.0;
+    let mut sampled_values = 0usize;
+    for state_index in 0..=scenario.steps {
+        let sampled = state_index == 0
+            || state_index % scenario.observation_stride == 0
+            || state_index == scenario.steps;
+        if !sampled {
+            continue;
+        }
+        let start = state_index * width;
+        for index in start..(start + width) {
+            let delta = edgewise[index] - matrix[index];
+            squared_sum += delta * delta;
+            sampled_values += 1;
+        }
+    }
+    let rmse = (squared_sum / sampled_values as f64).sqrt();
+    let observations = scenario.steps / scenario.observation_stride
+        + 1
+        + usize::from(scenario.steps % scenario.observation_stride != 0);
     let status = if max_abs_delta <= 1.0e-10 { "PASS" } else { "FAIL" };
     CaseReceipt {
         id: scenario.id.clone(),
         split: scenario.split.clone(),
         steps: scenario.steps,
-        observations: scenario.steps + 1,
+        observation_stride: scenario.observation_stride,
+        observations,
         max_abs_delta,
         rmse,
         status,
@@ -430,10 +449,11 @@ fn render_report(head: &str, corpus_sha: &str, cases: &[CaseReceipt]) -> String 
     );
     for (i, case) in cases.iter().enumerate() {
         out.push_str(&format!(
-            "    {{\"id\":\"{}\",\"split\":\"{}\",\"steps\":{},\"recorded_states\":{},\"max_abs_delta\":{:.17e},\"rmse\":{:.17e},\"status\":\"{}\"}}{}\n",
+            "    {{\"id\":\"{}\",\"split\":\"{}\",\"steps\":{},\"observation_stride\":{},\"recorded_states\":{},\"max_abs_delta\":{:.17e},\"rmse\":{:.17e},\"status\":\"{}\"}}{}\n",
             json_escape(&case.id),
             json_escape(&case.split),
             case.steps,
+            case.observation_stride,
             case.observations,
             case.max_abs_delta,
             case.rmse,
