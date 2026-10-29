@@ -123,9 +123,9 @@ printf '%s\n' 'LC_ALL=C' 'LANG=C' 'PATH=/usr/bin:/bin' > "$OUT_DIR/child-environ
 [[ "$(sha256 "$RTRACE")" == "$RTRACE_SHA" && "$(sha256 "$PARSER")" == "$PARSER_SHA" ]] || report_failure invalid_input staged_tool_changed_before_execution "staged tool bytes changed before run."
 START_NS=$(date +%s%N); INVOCATION_ATTEMPTED=true
 set +e
-LC_ALL=C timeout --verbose --foreground --signal=TERM --kill-after=2s "%%TIMEOUT_SECONDSs" \
+LC_ALL=C timeout --verbose --foreground --signal=TERM --kill-after=2s "${TIMEOUT_SECONDS}s" \
   /bin/sh -c 'errfile=$1; shift; exec "$@" 2>"$errfile"' _ "$OUT_DIR/stderr.raw" \
-  /usr/bin/env -i LC_ALL=C LANG=C PATH=/usr/bin:/bin "$RTRACE" "%%SETTINGS_ARGS[@]" -h- -I+ -ov -cs 3 -x 1 "$OUT_DIR/scene.oct" \
+  /usr/bin/env -i LC_ALL=C LANG=C PATH=/usr/bin:/bin "$RTRACE" "${SETTINGS_ARGS[@]" -h- -I+ -ov -cs 3 -x 1 "$OUT_DIR/scene.oct" \
   < "$OUT_DIR/rtrace-input.txt" > "$OUT_DIR/stdout.raw" 2> "$OUT_DIR/supervisor.stderr"
 EXIT_CODE=$?; set -e
 END_NS=$(date +%s%N); DURATION_MS=$(((END_NS-START_NS)/1000000))
