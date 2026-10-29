@@ -122,6 +122,12 @@ fn print_work_summary<const D: usize>(
 ) {
     let mut support_evaluations = Vec::with_capacity(corpus.len());
     let mut iterations = Vec::with_capacity(corpus.len());
+    let mut active_set_major_steps = Vec::with_capacity(corpus.len());
+    let mut active_set_minor_steps = Vec::with_capacity(corpus.len());
+    let mut affine_qr_solves = Vec::with_capacity(corpus.len());
+    let mut exhaustive_fallbacks_total = 0usize;
+    let mut exhaustive_faces_examined_total = 0usize;
+    let mut work_counter_mismatches = 0usize;
     let mut terminal_counts = BTreeMap::<String, usize>::new();
     let mut indeterminate_reasons = BTreeMap::<String, usize>::new();
 
@@ -129,8 +135,17 @@ fn print_work_summary<const D: usize>(
         let counted_a = CountingSupportMap::new(a);
         let counted_b = CountingSupportMap::new(b);
         let result = intersects_support_maps(&counted_a, &counted_b);
-        support_evaluations.push(counted_a.support_calls.get() + counted_b.support_calls.get());
+        let observed_support_calls = counted_a.support_calls.get() + counted_b.support_calls.get();
+        support_evaluations.push(observed_support_calls);
         iterations.push(result.iterations);
+        active_set_major_steps.push(result.work.active_set_major_steps);
+        active_set_minor_steps.push(result.work.active_set_minor_steps);
+        affine_qr_solves.push(result.work.affine_qr_solves);
+        exhaustive_fallbacks_total += result.work.exhaustive_fallbacks;
+        exhaustive_faces_examined_total += result.work.exhaustive_faces_examined;
+        if D >= 5 && result.work.support_map_evaluations != observed_support_calls {
+            work_counter_mismatches += 1;
+        }
 
         let terminal = match result.termination {
             GjkTermination::Intersecting => "Intersecting".to_owned(),
@@ -149,6 +164,15 @@ fn print_work_summary<const D: usize>(
     let iterations_p50 = quantile(&mut iterations, 0.50);
     let iterations_p95 = quantile(&mut iterations, 0.95);
     let iterations_p99 = quantile(&mut iterations, 0.99);
+    let major_p50 = quantile(&mut active_set_major_steps, 0.50);
+    let major_p95 = quantile(&mut active_set_major_steps, 0.95);
+    let major_p99 = quantile(&mut active_set_major_steps, 0.99);
+    let minor_p50 = quantile(&mut active_set_minor_steps, 0.50);
+    let minor_p95 = quantile(&mut active_set_minor_steps, 0.95);
+    let minor_p99 = quantile(&mut active_set_minor_steps, 0.99);
+    let qr_p50 = quantile(&mut affine_qr_solves, 0.50);
+    let qr_p95 = quantile(&mut affine_qr_solves, 0.95);
+    let qr_p99 = quantile(&mut affine_qr_solves, 0.99);
 
     let terminal_fields = terminal_counts
         .iter()
@@ -164,7 +188,7 @@ fn print_work_summary<const D: usize>(
     // Versioned, whitespace-free key/value records are easy to archive and
     // compare in CI without scraping Rust Debug formatting.
     eprintln!(
-        "GJK_WORK,v1,dimension={D},scenario={label},corpus={},support_map_evaluations_p50={support_p50},support_map_evaluations_p95={support_p95},support_map_evaluations_p99={support_p99},iterations_p50={iterations_p50},iterations_p95={iterations_p95},iterations_p99={iterations_p99},terminal_counts={terminal_fields},indeterminate_reasons={reason_fields}",
+        "GJK_WORK,v2,dimension={D},scenario={label},corpus={},support_map_evaluations_p50={support_p50},support_map_evaluations_p95={support_p95},support_map_evaluations_p99={support_p99},iterations_p50={iterations_p50},iterations_p95={iterations_p95},iterations_p99={iterations_p99},active_set_major_steps_p50={major_p50},active_set_major_steps_p95={major_p95},active_set_major_steps_p99={major_p99},active_set_minor_steps_p50={minor_p50},active_set_minor_steps_p95={minor_p95},active_set_minor_steps_p99={minor_p99},affine_qr_solves_p50={qr_p50},affine_qr_solves_p95={qr_p95},affine_qr_solves_p99={qr_p99},exhaustive_fallbacks_total={exhaustive_fallbacks_total},exhaustive_faces_examined_total={exhaustive_faces_examined_total},support_counter_mismatches={work_counter_mismatches},terminal_counts={terminal_fields},indeterminate_reasons={reason_fields}",
         corpus.len()
     );
 }
