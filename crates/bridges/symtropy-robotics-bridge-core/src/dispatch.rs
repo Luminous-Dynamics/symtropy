@@ -76,14 +76,25 @@ pub struct ControllerReceipt {
     pub ticket: String,
 }
 
+/// Full provenance handed to the controller sink. Passing the original leased
+/// request (instead of only its semantic intent) preserves identity and expiry
+/// so the adapter can recheck the deadline immediately before enqueue/application.
+#[derive(Debug, Clone, Copy)]
+pub struct ControllerDispatchContext<'a> {
+    pub session_id: u64,
+    pub sequence: u64,
+    pub request: &'a ControlRequest,
+}
+
 /// The only controller-facing interface exposed by this boundary.
 /// Implementations translate semantic intents into a platform-native local
 /// controller request; they must not interpret these intents as motor vectors.
+/// A sink should recheck request expiry against its own monotonic clock directly
+/// before enqueue/application; an admission timestamp can become stale.
 pub trait ControllerSink {
     fn submit(
         &mut self,
-        request_id: u64,
-        intent: &EmbodiedIntent,
+        dispatch: &ControllerDispatchContext<'_>,
     ) -> Result<ControllerReceipt, ControllerSubmitError>;
 }
 
@@ -206,7 +217,12 @@ where
             };
         }
 
-        match self.controller.submit(request.request_id, &request.intent) {
+        let dispatch_context = ControllerDispatchContext {
+            session_id,
+            sequence,
+            request,
+        };
+        match self.controller.submit(&dispatch_context) {
             Ok(receipt) if !receipt.ticket.trim().is_empty() => DispatchReceipt {
                 request_id: request.request_id,
                 session_id: Some(session_id),
@@ -293,6 +309,7 @@ mod tests {
     #[derive(Debug, Default)]
     struct RecordingController {
         calls: Vec<u64>,
+        contexts: Vec<(u64, u64, u64, f64)>,
         fail: bool,
         empty_ticket: bool,
     }
@@ -300,10 +317,16 @@ mod tests {
     impl ControllerSink for RecordingController {
         fn submit(
             &mut self,
-            request_id: u64,
-            _intent: &EmbodiedIntent,
+            dispatch: &ControllerDispatchContext<'_>,
         ) -> Result<ControllerReceipt, ControllerSubmitError> {
+            let request_id = dispatch.request.request_id;
             self.calls.push(request_id);
+            self.contexts.push((
+                dispatch.session_id,
+                dispatch.sequence,
+                request_id,
+                dispatch.request.expires_at_s,
+            ));
             if self.fail {
                 return Err(ControllerSubmitError::ControllerUnavailable);
             }
@@ -395,6 +418,7 @@ mod tests {
         assert_eq!(receipt.status, DispatchStatus::Submitted);
         assert_eq!(receipt.controller_ticket.as_deref(), Some("controller-101"));
         assert_eq!(boundary.controller().calls, vec![101]);
+        assert_eq!(boundary.controller().contexts, vec![(7, 1, 101, 11.0)]);
     }
 
     #[test]
