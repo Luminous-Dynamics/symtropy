@@ -351,7 +351,7 @@
             "const": true
           },
           "observed_resources": {
-            "$ref": "#/$defs/resources"
+            "$ref": "#/$defs/observedResources"
           },
           "execution_evidence": {
             "properties": {
@@ -379,6 +379,13 @@
                 "minItems": 3
               }
             }
+          },
+          "evidence_class": {
+            "enum": [
+              "simulator",
+              "hardware_in_loop",
+              "field_observation"
+            ]
           }
         }
       }
@@ -403,7 +410,14 @@
             "const": false
           },
           "observed_resources": {
-            "$ref": "#/$defs/resources"
+            "$ref": "#/$defs/observedResources"
+          },
+          "evidence_class": {
+            "enum": [
+              "simulator",
+              "hardware_in_loop",
+              "field_observation"
+            ]
           }
         }
       }
@@ -679,6 +693,39 @@
         },
         "observation_count": {
           "type": "null"
+        }
+      }
+    },
+    "observedResources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wall_time_ms",
+        "cpu_time_ms",
+        "peak_memory_bytes",
+        "simulator_calls",
+        "observation_count"
+      ],
+      "properties": {
+        "wall_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cpu_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "peak_memory_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simulator_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observation_count": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     }
