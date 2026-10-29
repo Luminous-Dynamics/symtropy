@@ -1459,10 +1459,7 @@ mod tests {
         store.insert_state(&graph, state()).unwrap();
         let mut transition_request = request(109);
         transition_request.interface_id = InterfaceId(16);
-        let receipt = match store
-            .transition(&graph, transition_request)
-            .unwrap()
-        {
+        let receipt = match store.transition(&graph, transition_request).unwrap() {
             TransitionOutcome::Committed(receipt) => receipt,
             _ => panic!("first transition must commit"),
         };
