@@ -447,7 +447,23 @@
     "locked_holdout_not_created": true,
     "all_admission_gates_false": true,
     "performance_claim": "none",
-    "synthetic_oracle_is_physical_evidence": false
+    "synthetic_oracle_is_physical_evidence": false,
+    "analytic_known_answer_smoke_track": {
+      "status": "smoke_implementation_committed",
+      "binary_path": "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs",
+      "golden_fixture_path": "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json",
+      "fixture_schema_path": "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json",
+      "report_schema_path": "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json",
+      "protocol_path": "research/COUNTEREXAMPLE_SEARCH_BENCHMARK_PROTOCOL_2026.md",
+      "arm_count": 4,
+      "search_calls_per_arm": 38,
+      "replay_calls_per_arm": 2,
+      "total_oracle_invocations_per_arm": 40,
+      "evidence_class": "synthetic_known_answer",
+      "physical_evidence": false,
+      "controller_superiority_claim": false,
+      "industry_sota_claim": false
+    }
   },
   "causal_ablation_extension": {
     "status": "proposed_not_executed",
