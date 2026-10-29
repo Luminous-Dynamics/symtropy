@@ -235,6 +235,15 @@ fn periodic_sphere_ccd_all_images_matches_direct_shift_oracle() {
         )
         .unwrap_or_else(|error| panic!("case={case} periodic CCD error: {error}"));
 
+        assert!(
+            actual_hits.windows(2).all(|pair| {
+                pair[0].toi_seconds < pair[1].toi_seconds
+                    || (pair[0].toi_seconds == pair[1].toi_seconds
+                        && pair[0].image_offset.periods <= pair[1].image_offset.periods)
+            }),
+            "CCD results are not deterministically ordered at case {case}"
+        );
+
         let actual: BTreeMap<[i64; 2], f64> = actual_hits
             .into_iter()
             .map(|hit| (hit.image_offset.periods, hit.toi_seconds))
@@ -269,14 +278,6 @@ fn periodic_sphere_ccd_all_images_matches_direct_shift_oracle() {
         for (image, oracle_toi) in oracle {
             close(actual[&image], oracle_toi, 1e-10);
         }
-        assert!(
-            actual_hits.windows(2).all(|pair| {
-                pair[0].toi_seconds < pair[1].toi_seconds
-                    || (pair[0].toi_seconds == pair[1].toi_seconds
-                        && pair[0].image_offset.periods <= pair[1].image_offset.periods)
-            }),
-            "CCD results are not deterministically ordered at case {case}"
-        );
     }
 }
 
