@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -5,6 +6,26 @@ const SEARCH_BUDGET: usize = 38;
 const REPLAY_BUDGET: usize = 2;
 const TOTAL_BUDGET: usize = SEARCH_BUDGET + REPLAY_BUDGET;
 const FAILURE_FAMILIES: [&str; 2] = ["critical_energy", "communications_partition"];
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct KnownAnswerFixture {
+    schema_version: String,
+    artifact_kind: String,
+    evidence_class: String,
+    status: String,
+    oracle_id: String,
+    cases: Vec<KnownAnswerCase>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct KnownAnswerCase {
+    case_id: String,
+    x: f64,
+    y: f64,
+    expected_failure_families: Vec<String>,
+}
 
 #[derive(Clone, Copy, Debug)]
 struct Point {
@@ -43,6 +64,48 @@ fn valid_point(point: Point) -> bool {
         && point.y.is_finite()
         && (0.0..=1.0).contains(&point.x)
         && (0.0..=1.0).contains(&point.y)
+}
+
+fn verify_known_answer_fixture() -> Result<usize, String> {
+    let fixture: KnownAnswerFixture = serde_json::from_str(include_str!(
+        "../../fixtures/analytic-counterexample-known-answer-2026.json"
+    )).map_err(|err| format!("known-answer fixture JSON invalid: {err}"))?;
+    if fixture.schema_version != "0.1.0"
+        || fixture.artifact_kind != "analytic-counterexample-known-answer-fixture"
+        || fixture.evidence_class != "synthetic_known_answer"
+        || fixture.status != "design_only_not_physical_evidence"
+        || fixture.oracle_id != "two_gate_analytic_oracle_v0"
+    {
+        return Err("unsupported analytic known-answer fixture header".into());
+    }
+    if fixture.cases.is_empty() {
+        return Err("known-answer fixture must contain at least one case".into());
+    }
+    let mut case_ids = BTreeSet::new();
+    for case in &fixture.cases {
+        if case.case_id.trim().is_empty() || !case_ids.insert(case.case_id.clone()) {
+            return Err("known-answer fixture has an empty or duplicate case ID".into());
+        }
+        let point = Point { x: case.x, y: case.y };
+        if !valid_point(point) {
+            return Err(format!("known-answer point is outside the declared domain: {}", case.case_id));
+        }
+        let allowed: BTreeSet<&str> = FAILURE_FAMILIES.iter().copied().collect();
+        let expected: Vec<&str> = case.expected_failure_families.iter().map(String::as_str).collect();
+        if expected.iter().any(|family| !allowed.contains(family))
+            || expected.iter().copied().collect::<BTreeSet<_>>().len() != expected.len()
+        {
+            return Err(format!("unknown or duplicate expected failure family: {}", case.case_id));
+        }
+        let actual = oracle(point).failure_families;
+        if actual != expected {
+            return Err(format!(
+                "analytic oracle disagrees with independent known-answer fixture for {}: actual={actual:?}, expected={expected:?}",
+                case.case_id
+            ));
+        }
+    }
+    Ok(fixture.cases.len())
 }
 
 struct XorShift64 {
@@ -195,6 +258,8 @@ fn execute_arm(arm_id: &str, role: &str, proposals: Vec<Point>) -> Value {
 }
 
 fn build_report() -> Value {
+    let known_answer_case_count = verify_known_answer_fixture()
+        .expect("analytic known-answer fixture must pass before emitting the smoke report");
     let arms = vec![
         execute_arm("uniform_random_seeded", "simple_baseline", uniform_random(0xA11CE, SEARCH_BUDGET)),
         execute_arm("halton_space_filling", "simple_baseline", space_filling(0, SEARCH_BUDGET)),
@@ -214,6 +279,12 @@ fn build_report() -> Value {
             ],
             "boundary_equalities_are_passes": true,
             "deterministic": true
+        },
+        "known_answer_fixture_validation": {
+            "status": "passed",
+            "fixture_path": "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json",
+            "case_count": known_answer_case_count,
+            "searcher_sampling_not_used_for_expected_labels": true
         },
         "budget_contract": {
             "search_queries_per_arm": SEARCH_BUDGET,
@@ -240,6 +311,11 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn independent_known_answer_fixture_matches_the_analytic_oracle() {
+        assert_eq!(verify_known_answer_fixture().unwrap(), 7);
+    }
 
     #[test]
     fn analytic_boundaries_have_known_gate_semantics() {
