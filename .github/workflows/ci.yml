@@ -4,7 +4,8 @@ on:
   push:
     branches: [ "main", "stabilize/*" ]
   pull_request:
-    branches: [ "main" ]
+    # Also run exact-head conformance for the stacked robotics adapter series.
+    branches: [ "main", "research/robotics-explicit-legacy-motor-opt-in-v0-1" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
