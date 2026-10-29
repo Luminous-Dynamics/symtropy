@@ -14,7 +14,9 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-template-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs"
       - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py"
+      - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_verifier.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
       - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
       - ".github/workflows/environment-trace-contract.yml"
       - ".github/workflows/polar-resilience-paired-comparison.yml"
@@ -31,7 +33,9 @@ on:
       - "research/polar-infrastructure/benchmark/fixtures/controller-execution-receipt-template-2026.json"
       - "research/polar-infrastructure/benchmark/src/bin/execution_receipt.rs"
       - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py"
+      - "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_verifier.py"
+      - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
       - "research/polar-infrastructure/benchmark/fixtures/resilience-benchmark-contract-2026.json"
       - ".github/workflows/environment-trace-contract.yml"
       - ".github/workflows/polar-resilience-paired-comparison.yml"
@@ -140,6 +144,7 @@ jobs:
             .additionalProperties == false and
             (.required | index("paired_input_bindings") != null) and
             (.required | index("resource_limits") != null) and
+            (.required | index("resource_limits_sha256") != null) and
             (.required | index("independent_verification") != null) and
             (.properties.independent_verification.properties.status.enum | index("passed") != null)
           ' "$schema"
@@ -154,12 +159,19 @@ jobs:
             .independent_verification.status == "not_run" and
             all(.observed_resources[]; . == null) and
             (.artifact_inventory | length == 7) and
+            (.resource_limits_sha256 | test("^[a-f0-9]{64}$")) and
             (.execution_evidence.output_artifacts | length == 0)
           ' "$receipt"
           cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin execution_receipt
           cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin execution_receipt -- "$receipt" > /tmp/execution-receipt-report.json
           jq -e '.contract_valid == true and .execution_performed == false and .scoring_eligible == false and .candidate_for_performance_claim == false' /tmp/execution-receipt-report.json
           python3 research/polar-infrastructure/benchmark/scripts/verify_execution_receipt.py "$receipt" research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json
+          python3 -m unittest discover \
+            -s research/polar-infrastructure/benchmark/scripts/tests \
+            -p 'test_execution_receipt_verifier.py' -v
+          python3 -m unittest discover \
+            -s research/polar-infrastructure/benchmark/scripts/tests \
+            -p 'test_execution_receipt_set_verifier.py' -v
 
       - name: Run independent verifier mutation tests
         shell: bash
