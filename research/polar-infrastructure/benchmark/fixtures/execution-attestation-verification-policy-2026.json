@@ -1,0 +1,60 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "symtropy-execution-attestation-verification-policy",
+  "status": "design_only_not_enabled",
+  "evidence_class": "policy_design_only",
+  "scoring_authorized": false,
+  "attestation_scheme": "sigstore_signed_blob",
+  "signed_subject": "exact UTF-8 bytes of the immutable controller execution receipt",
+  "bundle_format": {
+    "format_id": "sigstore_standardized_bundle_v0_3",
+    "media_type": "application/vnd.dev.sigstore.bundle.v0.3+json",
+    "legacy_bundle_allowed": false
+  },
+  "cosign": {
+    "version_policy": "exact_reviewed_release",
+    "version": "v3.1.4",
+    "verify_command": "verify-blob",
+    "certificate_identity": "https://github.com/Luminous-Dynamics/symtropy/.github/workflows/controller-execution-attestation.yml@refs/heads/main",
+    "certificate_oidc_issuer": "https://token.actions.githubusercontent.com",
+    "skip_transparency_log_allowed": false,
+    "insecure_ignore_sct_allowed": false,
+    "mutable_identity_regex_allowed": false
+  },
+  "trust_boundary": {
+    "signing_workflow_must_be_on_protected_default_branch": true,
+    "signing_workflow_must_not_execute_untrusted_pull_request_code_as_attester": true,
+    "policy_digest_must_be_pinned_out_of_band": true,
+    "receipt_must_be_generated_by_the_trusted_execution_job": true,
+    "untrusted_external_receipt_must_not_be_signed_just_because_it_is_well_formed": true
+  },
+  "verification_requirements": [
+    "verify exact receipt bytes against a standardized Sigstore bundle",
+    "require the exact configured certificate identity, not a wildcard",
+    "require the exact OIDC issuer",
+    "require transparency-log/timestamp verification",
+    "reject legacy bundle format",
+    "verify receipt schema and independent artifact SHA-256 checks after signature validation",
+    "cross-check run receipt against the paired case and complete receipt set",
+    "enforce equal plant, executable, runtime, observation-policy and resource-policy identity across arms",
+    "require numeric resource-limit equality and recorded resource usage within the declared budget",
+    "keep scoring disabled until implementation, negative controls and an independently produced test attestation pass"
+  ],
+  "claim_boundary": {
+    "valid_signature_proves": "the configured signer identity signed these exact receipt bytes under the configured Sigstore trust policy",
+    "valid_signature_does_not_prove": [
+      "the simulator's physical model is valid",
+      "the reported controller behaved safely outside tested cases",
+      "the declared resources were measured honestly unless the trusted runner measures them",
+      "the signing workflow itself is uncompromised"
+    ],
+    "scoring_authorized": false
+  },
+  "references": [
+    "https://github.com/sigstore/cosign/releases",
+    "https://github.com/sigstore/cosign/security/advisories/GHSA-fx35-mq7g-6g98",
+    "https://github.com/sigstore/cosign/security/advisories/GHSA-w6c6-c85g-mmv6",
+    "https://docs.sigstore.dev/about/bundle/",
+    "https://docs.sigstore.dev/cosign/verifying/attestation/"
+  ]
+}
