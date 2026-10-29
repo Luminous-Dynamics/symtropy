@@ -11,8 +11,8 @@
 //! authenticate the source, stop physical motion, or provide atomic
 //! multi-process fencing.
 
-use crate::control::{ControlOutcome, ControlOutcomeStatus};
-use crate::dispatch::{DispatchReceipt, DispatchStatus};
+use crate::control::ControlOutcome;
+use crate::dispatch::DispatchReceipt;
 use crate::outcome_ledger::{ControlOutcomeLedger, OutcomeIngestReceipt, OutcomeLedgerError};
 use std::collections::BTreeMap;
 
@@ -252,7 +252,7 @@ impl EpochFencedOutcomeLedger {
 mod tests {
     use super::*;
     use crate::control::ControlOutcomeStatus;
-    use crate::dispatch::DispatchRejection;
+    use crate::dispatch::{DispatchRejection, DispatchStatus};
 
     fn epoch(generation: u64) -> ControllerEpoch {
         ControllerEpoch::new(generation).unwrap()
