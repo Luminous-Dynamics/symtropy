@@ -34,6 +34,10 @@ def build_receipt_set(template, paired):
             "initial_state_sha256": trajectory["initial_state_sha256"],
             "controller_artifact_sha256": controller["controller_sha256"],
         }
+        controller_entry = next(a for a in receipt["artifact_inventory"] if a["role"] == "controller_artifact")
+        controller_entry["artifact_id"] = "controller-artifact-" + case["controller_id"]
+        controller_entry["payload"] = controller["controller_payload"]
+        controller_entry["sha256"] = controller["controller_sha256"]
         receipts.append(receipt)
     return receipts
 
@@ -73,7 +77,7 @@ class ExecutionReceiptSetTests(unittest.TestCase):
         entry = next(a for a in receipts[0]["artifact_inventory"] if a["role"] == "resource_policy")
         entry["payload"] += ":different-budget"
         entry["sha256"] = hashlib.sha256(entry["payload"].encode("utf-8")).hexdigest()
-        with self.assertRaisesRegex(ValueError, "same resource_policy artifact digest"):
+        with self.assertRaisesRegex(ValueError, "resource policy artifact must match canonical numeric resource limits and digest"):
             self.verify(receipts)
 
     def test_rejects_different_observation_policy_digest(self):
