@@ -188,6 +188,8 @@ pub struct RecoveryArmSummary {
     pub outcome_integrity_violations: u64,
     pub stale_epoch_event_acceptances: u64,
     pub stale_epoch_command_admission_acceptances: u64,
+    pub stale_epoch_command_application_acceptances: u64,
+    pub expired_command_application_acceptances: u64,
     pub epoch_authority_fail_open_acceptances: u64,
     pub unresolved_lifecycles: u64,
     pub controller_deadline_misses: u64,
