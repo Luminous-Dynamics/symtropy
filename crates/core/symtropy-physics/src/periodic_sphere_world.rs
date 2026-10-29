@@ -609,6 +609,27 @@ mod tests {
     }
 
     #[test]
+    fn long_step_rechecks_later_periodic_images_of_same_pair() {
+        let mut world = world(8);
+        world.add_body(body(1, [5.0, 0.0], [0.0, 0.0], 1.0, 1.0)).unwrap();
+        world.add_body(body(2, [0.0, 0.0], [30.0, 0.0], 1.0, 1.0)).unwrap();
+
+        let report = world.step(1.0).unwrap();
+        assert!(report.events.len() >= 3, "events={}", report.events.len());
+        assert!(
+            report
+                .events
+                .windows(2)
+                .all(|pair| pair[0].event_time_fraction <= pair[1].event_time_fraction)
+        );
+        close(report.momentum_after[0], report.momentum_before[0], 1e-10);
+        close(report.kinetic_energy_after, report.kinetic_energy_before, 1e-9);
+        // Physical positions remain unwrapped even after several torus images
+        // have participated in the event sequence.
+        assert!(world.bodies().iter().any(|body| body.position[0] > 10.0));
+    }
+
+    #[test]
     fn event_budget_exhaustion_is_transactional() {
         let mut world = world(1);
         world.add_body(body(1, [0.5, 0.0], [0.0, 0.0], 1.0, 0.0)).unwrap();
