@@ -32,6 +32,8 @@ pub struct MeshAudit {
     pub signed_volume_mm3: f64,
     pub watertight_two_manifold: bool,
     pub orientation_consistent: bool,
+    pub bounding_box_mm: [[f64; 2]; 3],
+    pub maximum_thickness_mm: f64,
 }
 
 impl CouponSpec {
@@ -203,6 +205,19 @@ impl TriangleMesh {
         let edge_two_manifold = edge_uses.values().all(|uses| *uses == 2);
         let orientation_consistent = edge_orientation.values().all(|balance| *balance == 0);
         let watertight_two_manifold = edge_two_manifold && orientation_consistent;
+
+        let mut min = [f64::INFINITY; 3];
+        let mut max = [f64::NEG_INFINITY; 3];
+        for point in &self.vertices_mm {
+            min[0] = min[0].min(point[0]);
+            min[1] = min[1].min(point[1]);
+            min[2] = min[2].min(point[2]);
+            max[0] = max[0].max(point[0]);
+            max[1] = max[1].max(point[1]);
+            max[2] = max[2].max(point[2]);
+        }
+        let bounding_box_mm = [[min[0], max[0]], [min[1], max[1]], [min[2], max[2]]];
+        let maximum_thickness_mm = max[2] - min[2];
         let signed_volume_mm3 = self.signed_volume_mm3();
         Ok(MeshAudit {
             vertex_count: self.vertices_mm.len(),
@@ -211,6 +226,8 @@ impl TriangleMesh {
             signed_volume_mm3,
             watertight_two_manifold,
             orientation_consistent,
+            bounding_box_mm,
+            maximum_thickness_mm,
         })
     }
 
@@ -296,6 +313,9 @@ impl TriangleMesh {
                 "  \"unique_edge_count\": {},\n",
                 "  \"watertight_two_manifold\": {},\n",
                 "  \"orientation_consistent\": {},\n",
+                "  \"bounding_box_mm\": {{\"x\":[{:.9},{:.9}],\"y\":[{:.9},{:.9}],\"z\":[{:.9},{:.9}]}},\n",
+                "  \"maximum_thickness_in_mesh_mm\": {:.9},\n",
+                "  \"geometry_measurement_basis\": \"computed from in-memory mesh coordinates before STL decimal serialization\",\n",
                 "  \"signed_volume_mm3\": {:.9},\n",
                 "  \"output_file\": \"{}\",\n",
                 "  \"output_sha256\": null,\n",
@@ -317,6 +337,13 @@ impl TriangleMesh {
             audit.unique_edge_count,
             audit.watertight_two_manifold,
             audit.orientation_consistent,
+            audit.bounding_box_mm[0][0],
+            audit.bounding_box_mm[0][1],
+            audit.bounding_box_mm[1][0],
+            audit.bounding_box_mm[1][1],
+            audit.bounding_box_mm[2][0],
+            audit.bounding_box_mm[2][1],
+            audit.maximum_thickness_mm,
             audit.signed_volume_mm3,
             escaped_output
         ))
@@ -400,6 +427,11 @@ mod tests {
         let audit = mesh.audit().expect("mesh audit");
         assert!(audit.watertight_two_manifold);
         assert!(audit.orientation_consistent);
+        assert_eq!(audit.bounding_box_mm[0], [0.0, 100.0]);
+        assert_eq!(audit.bounding_box_mm[1], [0.0, 80.0]);
+        assert!(audit.bounding_box_mm[2][0] < 0.0);
+        assert!(audit.bounding_box_mm[2][1] > 0.0);
+        assert!((audit.maximum_thickness_mm - 11.89129).abs() < 1e-4);
         assert!(audit.signed_volume_mm3 > 0.0);
         assert!(audit.triangle_count > 100);
         assert!(audit.unique_edge_count > 100);
@@ -459,6 +491,8 @@ mod tests {
             .expect("manifest");
         assert!(manifest.contains("\"units\": \"millimetres; STL itself does not encode units\""));
         assert!(manifest.contains("\"orientation_consistent\": true"));
+        assert!(manifest.contains("\"maximum_thickness_in_mesh_mm\": 11.891"));
+        assert!(manifest.contains("\"geometry_measurement_basis\":"));
         assert!(manifest.contains("\"manufacturing_release\": \"not_authorized\""));
         assert!(manifest.contains("\"output_sha256\": null"));
     }
