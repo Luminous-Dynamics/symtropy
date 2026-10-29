@@ -376,6 +376,12 @@
     "transparency_log_bypass_allowed": false,
     "signing_workflow_on_protected_main_required": true,
     "attestation_implementation_status": "not_implemented_for_scoring",
-    "scoring_eligible_for_any_receipt": false
+    "scoring_eligible_for_any_receipt": false,
+    "attestation_profile_path": "research/EXECUTION_ATTESTATION_PROFILE_2026.md",
+    "attestation_policy_test_status": "wrapper_negative_controls_only_no_real_signature_test",
+    "cosign_version_tested_in_policy": "v3.1.4",
+    "actual_cosign_signature_tested": false,
+    "trusted_attestation_workflow_implemented": false,
+    "signed_receipt_verification_authorizes_scoring": false
   }
 }
