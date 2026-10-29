@@ -63,10 +63,9 @@ impl RecoveryScenarioClass {
             family_id,
             severity_id,
         } = self
+            && (family_id.trim().is_empty() || severity_id.trim().is_empty())
         {
-            if family_id.trim().is_empty() || severity_id.trim().is_empty() {
-                return Err(RecoveryBenchmarkError::InvalidScenarioClass);
-            }
+            return Err(RecoveryBenchmarkError::InvalidScenarioClass);
         }
         Ok(())
     }
