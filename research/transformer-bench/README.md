@@ -73,7 +73,7 @@ Unit tests cover the arithmetic, second-moment inequality, mean-vs-mean-square l
 
 ## Surrogate evaluation CLI
 
-A second binary evaluates a frozen reference/prediction table and reports metrics for the overall set, each geometry family, and each material.
+A second binary evaluates a frozen reference/prediction table and reports error metrics for the overall set, plus geometry-family, material, frequency, excitation-class and exact operating-domain strata. Candidate-ranking metrics are only reported where every row has the same frequency and excitation class; ranking designs across incomparable operating domains is suppressed.
 
 Example:
 
@@ -85,13 +85,15 @@ cargo run --release --manifest-path research/transformer-bench/Cargo.toml --bin 
 
 Exact input header:
 
-`candidate_id,geometry_family,material_id,reference_core_loss_w,predicted_core_loss_w,prediction_lower_w,prediction_upper_w,model_fea_queries`
+`candidate_id,geometry_family,material_id,frequency_hz,excitation_class,reference_core_loss_w,predicted_core_loss_w,prediction_lower_w,prediction_upper_w,model_fea_queries`
 
 The row-level `model_fea_queries` value must be constant: it is the total costly FE calls attributed to that model/search run, including training, shortlist checks, failed/retried jobs and mesh refinements. The third CLI argument is the candidate-universe size. The fourth is `full_pool_fea_queries`: the total calls required to evaluate every candidate with the same pinned solver and convergence/mesh-refinement protocol. The reported FEA-call reduction is `1 - model_fea_queries / full_pool_fea_queries`, not `1 - shortlist_size / candidate_count`. This baseline must include comparable full-pool retries/refinements, and the model count must include training, calibration, shortlist verification, failed/retried jobs and mesh refinements. The reported values are still a caller-declared ledger, not cryptographically audited accounting; exact solver receipts and query logs remain required. Held-out reference values may be produced by an evaluator's independent oracle and are not counted as model-initiated calls.
 
-Metrics include mean/median/P95/maximum absolute relative error, Spearman rank correlation, top-k recall of the lowest-loss candidates, regret of the predicted best candidate against the best reference candidate, prediction-interval coverage, and mean interval width relative to reference loss. The evaluator rejects duplicate candidate IDs, inconsistent query counts, non-finite or physically nonsensical inputs, invalid prediction intervals, and derived non-finite metrics. Reports are stratified by geometry family and material to expose transfer failures hidden by aggregate scores.
+Metrics include mean/median/P95/maximum absolute relative error, Spearman rank correlation, top-k recall of the lowest-loss candidates, regret of the predicted best candidate against the best reference candidate, prediction-interval coverage, and mean interval width relative to reference loss. The accepted excitation classes are SINUSOIDAL, DISTORTED and OTHER_DECLARED; frequency must be a finite positive number in Hz. The evaluator rejects duplicate candidate IDs, inconsistent query counts, non-finite or physically nonsensical inputs, invalid prediction intervals, and derived non-finite metrics. Results are stratified by geometry family, material, frequency, excitation class and their combined operating domain to expose transfer failures hidden by aggregate scores.
 
-`fixtures/surrogate_predictions_synthetic.csv` is deliberately synthetic and tests the metric implementation only. Its values do not replicate the published paper, do not represent FEA output, and must never be cited as a model result. The evaluator assumes the split and source rows were frozen before model tuning; it cannot infer or authenticate data leakage from a CSV alone.
+`fixtures/surrogate_predictions_synthetic.csv` is deliberately synthetic and tests the metric implementation only. `fixtures/surrogate_predictions_domains_synthetic.csv` tests pooling safeguards across 50 Hz sinusoidal, 60 Hz sinusoidal and 50 Hz distorted-excitation domains. Neither fixture replicates the published paper, represents FEA output, or may be cited as a model result. The evaluator assumes the split and source rows were frozen before model tuning; it cannot infer or authenticate data leakage from a CSV alone.
+
+Global deployment contract: see [GLOBAL_APPLICABILITY.md](GLOBAL_APPLICABILITY.md) and [PWR-TX-GLOBAL-001 #2872](https://github.com/Luminous-Dynamics/symtropy/issues/2872). This is a global architecture/schema plan; no regional profile is yet certified.
 
 ## State-of-the-art comparator (not a result from this repository)
 
