@@ -196,6 +196,8 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
                               and math.isfinite(record[field]), f"invalid measurement field: {field}")
                     _need(record["observed_at_s"] <= decision_time,
                           "look-ahead leak: measurement observed after decision time")
+                    _need(record["available_at_s"] >= record["observed_at_s"],
+                          "causality violation: measurement available before observation time")
                 else:
                     _need(set(record) == {"kind", "signal_id", "issued_at_s", "available_at_s", "valid_time_s", "value"},
                           "forecast record keys invalid")
@@ -204,6 +206,8 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
                               and math.isfinite(record[field]), f"invalid forecast field: {field}")
                     _need(record["issued_at_s"] <= decision_time,
                           "look-ahead leak: forecast issued after decision time")
+                    _need(record["available_at_s"] >= record["issued_at_s"],
+                          "causality violation: forecast available before issue time")
                     _need(record["valid_time_s"] >= decision_time
                           and record["valid_time_s"] - decision_time <= budget["max_forecast_lookahead_s"],
                           "forecast valid time exceeds the declared forecast horizon")
