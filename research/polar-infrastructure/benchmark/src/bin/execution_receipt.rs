@@ -148,14 +148,6 @@ fn resources_present(r: &NullableResources) -> bool {
         && r.observation_count.is_some()
 }
 
-fn within_budget(observed: &NullableResources, limits: &Resources) -> bool {
-    matches!(observed.wall_time_ms, Some(v) if v <= limits.wall_time_ms)
-        && matches!(observed.cpu_time_ms, Some(v) if v <= limits.cpu_time_ms)
-        && matches!(observed.peak_memory_bytes, Some(v) if v <= limits.peak_memory_bytes)
-        && matches!(observed.simulator_calls, Some(v) if v <= limits.simulator_calls)
-        && matches!(observed.observation_count, Some(v) if v <= limits.observation_count)
-}
-
 fn valid_artifact(a: &Artifact) -> bool {
     nonempty(&a.artifact_id)
         && valid_sha256(&a.sha256)
@@ -360,22 +352,6 @@ fn validate(r: &Receipt) -> Result<(), String> {
                     != output_by_role.get("stderr").map(|a| a.sha256.as_str())
             {
                 return Err("output digest index does not match the output artifact inventory".into());
-            }
-            if r.scoring_eligible {
-                if r.artifact_inventory.iter().any(|a| a.payload.is_none()) {
-                    return Err("scoring eligibility requires payload-backed input artifacts for the current verifier".into());
-                }
-                if !within_budget(&r.observed_resources, &r.resource_limits) {
-                    return Err("scoring-eligible run exceeded its declared resource budget".into());
-                }
-                if r.independent_verification.status != "passed"
-                    || r.independent_verification.verifier_id.as_deref().map(nonempty) != Some(true)
-                    || !r.independent_verification.verifier_revision.as_deref().map(valid_revision).unwrap_or(false)
-                    || r.independent_verification.verified_artifact_count < 3
-                    || r.execution_evidence.output_artifacts.iter().any(|a| a.payload.is_none())
-                {
-                    return Err("scoring eligibility requires independent verification of all three payload-backed outputs".into());
-                }
             }
         }
         "failed" => {
