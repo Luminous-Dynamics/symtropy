@@ -1,0 +1,2 @@
+artifact_id,role,relative_path,sha256
+sample-payload,synthetic-test-payload,evidence/sample-payload.txt,ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
