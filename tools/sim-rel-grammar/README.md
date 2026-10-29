@@ -38,6 +38,8 @@ cargo run --locked --manifest-path tools/sim-rel-grammar/Cargo.toml --bin sim-re
 
 Use `--out -` for JSON on stdout. Any edited or untracked non-ignored file in the checkout intentionally causes the clean-checkout gate to fail.
 
+The dedicated [SIM-REL-002 workflow](../../../actions/workflows/sim-rel-grammar.yml) validates the receipt and uploads it as a 30-day artifact named `sim-rel-002-receipt-<exact-head-sha>`. This makes the machine-readable receipt inspectable after the runner finishes; a green workflow check without the matching receipt artifact is not sufficient qualification evidence.
+
 ## Scope and qualification
 
 This is a finite, synthetic truth-table experiment. It is **not** a physical-system grammar learner, not a direct comparison to published benchmark scores, not proof of a shared grammar across worlds, and not validation of Chain Theory. Current source has not been compiled/run in the current authoring environment because a Rust toolchain is not installed. The test suite is authored, not passing evidence, until a Rust-enabled exact-head run produces and inspects a receipt.
