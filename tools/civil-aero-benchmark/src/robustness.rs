@@ -360,6 +360,7 @@ mod tests {
         assert!(!report.robust_screen_pass);
         assert!(report.energy_failure_count > 0);
         assert_eq!(report.worst_energy_scenario, "combined_adverse");
+        assert_eq!(report.worst_energy_margin_scenario, "combined_adverse");
     }
 
     #[test]
