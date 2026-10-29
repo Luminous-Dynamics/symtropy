@@ -177,7 +177,9 @@ fn validate(input: &Input) -> Result<(), String> {
             return Err(format!("duplicate controller artifact: {}", artifact.controller_id));
         }
     }
-    if trajectory_artifact_ids != input.cases.iter().map(|c| c.trajectory_id.clone()).collect()
+    let declared_trajectory_ids: BTreeSet<String> =
+        input.cases.iter().map(|c| c.trajectory_id.clone()).collect();
+    if trajectory_artifact_ids != declared_trajectory_ids
         || controller_artifact_ids != declared_controllers
     {
         return Err("artifact inventories must exactly match the declared trajectories and controllers".into());
@@ -288,6 +290,17 @@ fn validate(input: &Input) -> Result<(), String> {
 fn analyze(input: &Input) -> Value {
     let mut coverage = Vec::new();
     let mut comparisons = Vec::new();
+    let trajectory_digests: BTreeMap<String, Value> = input.trajectory_artifacts.iter().map(|a| (
+        a.trajectory_id.clone(),
+        json!({
+            "trajectory_sha256": a.trajectory_sha256,
+            "initial_state_id": a.initial_state_id,
+            "initial_state_sha256": a.initial_state_sha256
+        })
+    )).collect();
+    let controller_digests: BTreeMap<String, String> = input.controller_artifacts.iter().map(|a| (
+        a.controller_id.clone(), a.controller_sha256.clone()
+    )).collect();
 
     for controller in &input.controllers {
         for gate in &input.gate_ids {
@@ -370,7 +383,7 @@ fn analyze(input: &Input) -> Value {
     }
 
     json!({
-        "schema_version": "0.3.0",
+        "schema_version": "0.4.0",
         "report_kind": "paired-resilience-comparison-report",
         "evidence_class": "synthetic_fixture",
         "status": "synthetic_only",
@@ -378,6 +391,11 @@ fn analyze(input: &Input) -> Value {
         "trajectory_count": trajectories.len(),
         "case_count": input.cases.len(),
         "gate_margin_contracts": input.gate_margin_contracts,
+        "content_bindings": {
+            "trajectory_digests": trajectory_digests,
+            "controller_digests": controller_digests,
+            "payload_sha256_verification": "delegated_to_independent_verifier"
+        },
         "coverage": coverage,
         "paired_gate_comparisons": comparisons,
         "performance_claim": false,
