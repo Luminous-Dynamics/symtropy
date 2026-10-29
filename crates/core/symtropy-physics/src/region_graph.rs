@@ -410,16 +410,24 @@ impl<const D: usize> AffineRegionMap<D> {
             return Err(RegionGraphError::InvalidDimension);
         }
         if !self.linear.iter().all(|value| value.is_finite()) {
-            return Err(RegionGraphError::InvalidMap { field: "linear matrix" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "linear matrix",
+            });
         }
         if !self.translation.iter().all(|value| value.is_finite()) {
-            return Err(RegionGraphError::InvalidMap { field: "translation" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "translation",
+            });
         }
         if !self.time_scale.is_finite() || self.time_scale <= 0.0 {
-            return Err(RegionGraphError::InvalidMap { field: "time_scale" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "time_scale",
+            });
         }
         if !self.time_offset.is_finite() {
-            return Err(RegionGraphError::InvalidMap { field: "time_offset" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "time_offset",
+            });
         }
         Ok(())
     }
@@ -746,10 +754,20 @@ pub enum TransitionOutcome<const D: usize> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RegionTransitionError {
     Graph(RegionGraphError),
-    DuplicateBody { body_id: u64 },
-    UnknownBody { body_id: u64 },
-    StaleStateRevision { expected: u64, actual: u64 },
-    StaleInterfaceRevision { expected: u64, actual: u64 },
+    DuplicateBody {
+        body_id: u64,
+    },
+    UnknownBody {
+        body_id: u64,
+    },
+    StaleStateRevision {
+        expected: u64,
+        actual: u64,
+    },
+    StaleInterfaceRevision {
+        expected: u64,
+        actual: u64,
+    },
     StaleRegionModelRevision {
         region: RegionId,
         expected: u64,
@@ -1120,8 +1138,8 @@ impl<const D: usize> RegionStateStore<D> {
                 }
             }
             QuantityPolicy::Exchange => {
-                let mapped_momentum = interface.map.linear * momentum_before
-                    / interface.map.time_scale;
+                let mapped_momentum =
+                    interface.map.linear * momentum_before / interface.map.time_scale;
                 let expected = mapped_momentum + request.momentum_exchange;
                 if !vector_close(&momentum_after, &expected, request.tolerance) {
                     return Err(RegionTransitionError::ConservationResidual {
@@ -1408,8 +1426,12 @@ mod tests {
     #[test]
     fn preserve_policy_allows_time_origin_shift_with_same_clock_rate() {
         let mut graph = RegionGraph::<2>::new().unwrap();
-        graph.add_region(region(1, [-1.0, -1.0], [0.0, 1.0])).unwrap();
-        graph.add_region(region(2, [0.0, -1.0], [1.0, 1.0])).unwrap();
+        graph
+            .add_region(region(1, [-1.0, -1.0], [0.0, 1.0]))
+            .unwrap();
+        graph
+            .add_region(region(2, [0.0, -1.0], [1.0, 1.0]))
+            .unwrap();
 
         let map =
             AffineRegionMap::new(SMatrix::<f64, 2, 2>::identity(), SVector::zeros(), 1.0, 5.0)
@@ -1447,8 +1469,12 @@ mod tests {
     #[test]
     fn preserve_policy_rejects_non_isometric_map() {
         let mut graph = RegionGraph::<2>::new().unwrap();
-        graph.add_region(region(1, [-1.0, -1.0], [0.0, 1.0])).unwrap();
-        graph.add_region(region(2, [0.0, -1.0], [2.0, 1.0])).unwrap();
+        graph
+            .add_region(region(1, [-1.0, -1.0], [0.0, 1.0]))
+            .unwrap();
+        graph
+            .add_region(region(2, [0.0, -1.0], [2.0, 1.0]))
+            .unwrap();
 
         let scale = SMatrix::<f64, 2, 2>::from_diagonal(&SVector::from([2.0, 1.0]));
         let map = AffineRegionMap::new(scale, SVector::zeros(), 1.0, 0.0).unwrap();
@@ -1478,8 +1504,12 @@ mod tests {
     #[test]
     fn invalid_target_boundary_fails_without_partial_authority_transfer() {
         let mut graph = RegionGraph::<2>::new().unwrap();
-        graph.add_region(region(1, [-1.0, -1.0], [0.0, 1.0])).unwrap();
-        graph.add_region(region(2, [0.0, -1.0], [1.0, 1.0])).unwrap();
+        graph
+            .add_region(region(1, [-1.0, -1.0], [0.0, 1.0]))
+            .unwrap();
+        graph
+            .add_region(region(2, [0.0, -1.0], [1.0, 1.0]))
+            .unwrap();
         let mut translated = SVector::zeros();
         translated[0] = 0.25;
         let map = AffineRegionMap::new(SMatrix::identity(), translated, 1.0, 0.0).unwrap();
@@ -1518,8 +1548,12 @@ mod tests {
     #[test]
     fn momentum_and_energy_exchange_must_close_the_same_transition() {
         let mut graph = RegionGraph::<2>::new().unwrap();
-        graph.add_region(region(1, [-1.0, -1.0], [0.0, 1.0])).unwrap();
-        graph.add_region(region(2, [0.0, -1.0], [1.0, 1.0])).unwrap();
+        graph
+            .add_region(region(1, [-1.0, -1.0], [0.0, 1.0]))
+            .unwrap();
+        graph
+            .add_region(region(2, [0.0, -1.0], [1.0, 1.0]))
+            .unwrap();
         let map = AffineRegionMap::<2>::identity();
         let interface = RegionInterface::new(
             InterfaceId(13),
