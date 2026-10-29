@@ -85,7 +85,9 @@ All policies receive the same candidate models, initial observations and availab
 
 The 24-task candidate fixture contains 6 train, 6 validation and 12 held-out tasks. Two held-out negative controls contain hypotheses with identical observable signatures; a correctly cautious policy must stop with ambiguity rather than invent a distinction. Metrics include exact model identification, ambiguity/abstention, truth-retention (false elimination), intervention count, median and p90 query count, with results by split and policy.
 
-Run on the exact checked-out repository head:
+Run on the exact checked-out repository head. Both binaries now fail closed unless the checkout's HEAD equals `--expected-head` **and** `git status --porcelain=v1 --untracked-files=all` is empty. This prevents uncommitted tracked changes or non-ignored untracked files from being executed under a receipt that names only the old commit. Write receipts to `/tmp` (or another location outside the repository) so the output itself does not dirty the checkout.
+
+The active-discovery summary uses the arithmetic median (including half-integer medians for even sample counts) and the nearest-rank p90, (x_{\lceil 0.9n\rceil}), computed over sorted intervention counts. This is a metric-definition correction, not a performance result.
 
 ```bash
 cargo fmt --manifest-path tools/sim-rel-benchmark/Cargo.toml -- --check
