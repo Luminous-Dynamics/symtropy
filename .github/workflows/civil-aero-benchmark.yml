@@ -41,3 +41,21 @@ jobs:
           test "$(wc -l < /tmp/aero-report-a.csv)" -eq 4
           grep -q "screening_only" /tmp/aero-report-a.csv
           sha256sum /tmp/aero-report-a.csv
+      - name: Validate evidence manifest without promoting pending sources
+        shell: bash
+        run: |
+          jq -e '
+            .manifest_schema == "civil-aero-evidence-manifest/0.1.0" and
+            .status == "source_discovery_only" and
+            (.sources | length >= 6) and
+            all(.sources[];
+              (.source_id | type == "string" and length > 0) and
+              (.admission_status | type == "string" and length > 0) and
+              (if .data_sha256 == null
+               then (.admission_status | test("pending|catalog_only"))
+               else
+                 (.data_sha256 | type == "string" and test("^[0-9a-fA-F]{64}$")) and
+                 (.byte_length | type == "number" and . > 0)
+               end)
+            )
+          ' tools/civil-aero-benchmark/data/source_manifest.v0.1.json
