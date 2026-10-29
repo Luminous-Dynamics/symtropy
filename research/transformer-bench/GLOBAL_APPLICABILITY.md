@@ -118,3 +118,11 @@ For every deployment, confirm applicable current national adoption, utility proc
 4. Continue from the executable UTC annual-trace validator: audit local-time/DST conversion, add a versioned IANA timezone policy where supported, verify currency registry membership, and bind source measurements and tariff artifacts before admitting field traces.
 5. Add a separately reviewed regional profile catalog with evidence-bound editions and explicit qualification statuses.
 6. Acquire a named incumbent with traceable loss-test data; then qualify the analytical and FE baselines before training or judging surrogates.
+
+## Executable split-integrity gate
+
+The `split-audit` binary turns the minimum data-leakage check into a runnable contract. It checks the declared split policy against the stated geometry-family, manufacturer, material-lot, or measurement-campaign IDs and rejects held-out groups that also appear in training or validation. It rejects duplicate observation IDs within an experiment/policy ledger and requires all three partitions. Random row splits are retained as a labeled baseline, never as evidence of transfer.
+
+Command and schema are documented in [README.md](README.md); the synthetic contract fixture is `fixtures/split-audit-synthetic.csv`. This remains a first integrity layer: IDs and lineage are caller-declared, and no near-duplicate geometry detection, source-hash authentication, or scientific independence proof is provided. Future evidence receipts should bind normalized geometry/material hashes, the original data artifact digest, preprocessing version, split-manifest digest, evaluator revision, and output digest.
+
+For research claims, report random-row metrics and group-held-out metrics separately. A candidate should not be described as globally generalizable because it passes a random split or because the aggregate score is low. It must be evaluated on the intended transfer axis and abstain when its operating domain or evidence level is unsupported.
