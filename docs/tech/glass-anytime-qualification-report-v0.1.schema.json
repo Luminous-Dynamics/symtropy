@@ -1,0 +1,312 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/glass-anytime-qualification-report-v0.1.schema.json",
+  "title": "Glass anytime qualification report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "audit_kind",
+    "benchmark_id",
+    "input_sha256",
+    "oracle_sha256",
+    "target_success_probability",
+    "familywise_alpha",
+    "allocation",
+    "events_checked",
+    "candidate_count",
+    "events",
+    "decisions",
+    "findings",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "audit_kind": {
+      "const": "synthetic_anytime_valid_sequential_qualification"
+    },
+    "benchmark_id": {
+      "const": "glass-anytime-qualification-synthetic-v0-1"
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "oracle_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "target_success_probability": {
+      "const": 0.95
+    },
+    "familywise_alpha": {
+      "const": 0.05
+    },
+    "allocation": {
+      "const": "alpha/[2*i*(i+1)*t*(t+1)] per candidate-time-tail"
+    },
+    "events_checked": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100000
+    },
+    "candidate_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 100000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_seq",
+          "kind",
+          "candidate_id"
+        ],
+        "properties": {
+          "event_seq": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "kind": {
+            "enum": [
+              "register_candidate",
+              "observe_trial"
+            ]
+          },
+          "candidate_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "registration_index": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "look_index": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "trial_passed": {
+            "type": "boolean"
+          },
+          "successes_so_far": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "per_tail_alpha_budget": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 0.0125
+          },
+          "upper_tail_p_value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "log_upper_tail_p_value": {
+            "type": "number",
+            "maximum": 0
+          },
+          "lower_tail_p_value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "log_lower_tail_p_value": {
+            "type": "number",
+            "maximum": 0
+          },
+          "decision": {
+            "enum": [
+              "QUALIFIED",
+              "NOT_QUALIFIED",
+              "UNRESOLVED"
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "register_candidate"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "required": [
+                "registration_index"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "look_index"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "trial_passed"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "decision"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "observe_trial"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "required": [
+                "registration_index",
+                "look_index",
+                "trial_passed",
+                "successes_so_far",
+                "per_tail_alpha_budget",
+                "upper_tail_p_value",
+                "log_upper_tail_p_value",
+                "lower_tail_p_value",
+                "log_lower_tail_p_value",
+                "decision"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidate_id",
+          "registration_index",
+          "trials_observed",
+          "successes_observed",
+          "empirical_success_rate",
+          "disposition",
+          "terminal_event_seq",
+          "last_upper_tail_p_value",
+          "last_lower_tail_p_value"
+        ],
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "registration_index": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "trials_observed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "successes_observed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "empirical_success_rate": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "disposition": {
+            "enum": [
+              "QUALIFIED",
+              "NOT_QUALIFIED",
+              "UNRESOLVED"
+            ]
+          },
+          "terminal_event_seq": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "last_upper_tail_p_value": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "last_lower_tail_p_value": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "detail"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "const": "Synthetic anytime-valid sequential qualification mechanics only; no real-material, plant-yield, independence, adaptive-ledger-integrity, or industrial-performance claim is validated."
+    }
+  }
+}
