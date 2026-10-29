@@ -143,7 +143,7 @@ fn print_work_summary<const D: usize>(
         affine_qr_solves.push(result.work.affine_qr_solves);
         exhaustive_fallbacks_total += result.work.exhaustive_fallbacks;
         exhaustive_faces_examined_total += result.work.exhaustive_faces_examined;
-        if D >= 5 && result.work.support_map_evaluations != observed_support_calls {
+        if (D == 1 || D >= 5) && result.work.support_map_evaluations != observed_support_calls {
             work_counter_mismatches += 1;
         }
 
