@@ -301,6 +301,6 @@ mod tests {
                 supplied_generation: 1,
             })
         );
-        assert_eq!(guard.into_inner().unwrap().calls, vec![21]);
+        assert_eq!(guard.inner.calls, vec![21]);
     }
 }
