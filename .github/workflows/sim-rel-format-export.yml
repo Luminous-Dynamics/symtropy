@@ -1,0 +1,28 @@
+name: SIM-REL-002 Format Export
+
+on:
+  push:
+    branches: ["research/sim-rel-002-bounded-grammar"]
+    paths:
+      - "tools/sim-rel-grammar/src/main.rs"
+      - ".github/workflows/sim-rel-format-export.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export-formatted-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Format source with pinned rustfmt
+        run: |
+          cargo fmt --manifest-path tools/sim-rel-grammar/Cargo.toml
+          echo SIMREL_FORMAT_EXPORT_BEGIN
+          base64 -w0 tools/sim-rel-grammar/src/main.rs | fold -w 100 | sed 's/^/SIMREL_FMT_CHUNK:/'
+          echo SIMREL_FORMAT_EXPORT_END
