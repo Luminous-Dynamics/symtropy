@@ -70,7 +70,7 @@ Benchmark the same immutable scenarios against:
 1. a direct brute-force lattice-image oracle;
 2. the production range-formula AABB enumerator;
 3. one-image/minimum-image optimization only for scenarios where the size/cutoff precondition is proven;
-4. the event-driven sphere reference world and the Euclidean non-periodic baseline.
+4. the event-driven sphere reference world and the Euclidean non-periodic baseline. Sphere-world fixtures must satisfy the pairwise radius envelope r_A + r_B < L/2 for every active periodic length L.
 
 Sweep dimensions 2 and 3 for the initial sphere world, and separate geometry-only tests if a higher dimension is supported; 0, 1, 2 or 3 periodic axes; body count 16, 64, 256, 1,024 and 4,096; radius/period or support/period ratios including values close to the strict half-period envelope; bodies near seams versus interior-only bodies; short sweeps versus many-box-length sweeps; low/high density; mostly separated, mostly colliding and adversarial stacked cases; image budget including intentionally exhausted configurations.
 
