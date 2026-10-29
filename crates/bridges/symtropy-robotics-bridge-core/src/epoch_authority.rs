@@ -15,6 +15,7 @@
 //! preflight read alone cannot eliminate a check/use race.
 
 use crate::epoch_fence::ControllerEpoch;
+use std::sync::Arc;
 
 /// Stable failures returned by a controller-generation store.
 ///
