@@ -496,6 +496,14 @@ mod tests {
     }
 
     #[test]
+    fn safety_veto_can_terminate_an_executing_request() {
+        let previous = outcome(ControlOutcomeStatus::Executing, 10.0, 1);
+        let veto = outcome(ControlOutcomeStatus::Vetoed, 10.1, 2);
+        assert_eq!(veto.validate_successor_of(&previous), Ok(()));
+        assert!(veto.status.is_terminal());
+    }
+
+    #[test]
     fn terminal_outcome_cannot_be_reopened() {
         let previous = outcome(ControlOutcomeStatus::Completed, 10.0, 3);
         let next = outcome(ControlOutcomeStatus::Executing, 10.1, 4);
