@@ -668,6 +668,8 @@ pub struct TransitionRequest<const D: usize> {
     pub expected_state_revision: u64,
     pub interface_id: InterfaceId,
     pub expected_interface_revision: u64,
+    pub expected_source_model_revision: u64,
+    pub expected_target_model_revision: u64,
     pub direction: CrossingDirection,
     /// Exchange impulse expressed as target-region momentum coordinates.
     pub momentum_exchange: SVector<f64, D>,
@@ -708,6 +710,11 @@ pub enum RegionTransitionError {
     UnknownBody { body_id: u64 },
     StaleStateRevision { expected: u64, actual: u64 },
     StaleInterfaceRevision { expected: u64, actual: u64 },
+    StaleRegionModelRevision {
+        region: RegionId,
+        expected: u64,
+        actual: u64,
+    },
     WrongSourceRegion,
     CrossingDirectionRejected,
     DirectionVelocityMismatch,
@@ -734,6 +741,11 @@ impl fmt::Display for RegionTransitionError {
             Self::StaleInterfaceRevision { expected, actual } => {
                 write!(f, "stale interface revision: expected {expected}, actual {actual}")
             }
+            Self::StaleRegionModelRevision { region, expected, actual } => write!(
+                f,
+                "stale model revision for region {}: expected {expected}, actual {actual}",
+                region.0
+            ),
             Self::WrongSourceRegion => write!(f, "body is not authoritative in the interface source region"),
             Self::CrossingDirectionRejected => write!(f, "crossing direction is not allowed by interface"),
             Self::DirectionVelocityMismatch => write!(f, "source velocity does not agree with the declared crossing direction"),
@@ -916,6 +928,18 @@ impl<const D: usize> RegionStateStore<D> {
         let target_region = graph
             .region(interface.target)
             .ok_or(RegionGraphError::UnknownRegion { id: interface.target })?;
+        for (region, expected) in [
+            (source_region, request.expected_source_model_revision),
+            (target_region, request.expected_target_model_revision),
+        ] {
+            if region.model_revision != expected {
+                return Err(RegionTransitionError::StaleRegionModelRevision {
+                    region: region.id,
+                    expected,
+                    actual: region.model_revision,
+                });
+            }
+        }
         let mapped_position = interface.map.map_position(&before.position)?;
         let mut mapped_velocity = interface.map.map_velocity(&before.velocity)?;
         let mapped_time = interface.map.map_time(before.local_time)?;
@@ -1145,6 +1169,8 @@ mod tests {
             expected_state_revision: 7,
             interface_id: InterfaceId(10),
             expected_interface_revision: 1,
+            expected_source_model_revision: 1,
+            expected_target_model_revision: 1,
             direction: CrossingDirection::NegativeToPositive,
             momentum_exchange: SVector::zeros(),
             energy_exchange: 0.0,
@@ -1221,6 +1247,47 @@ mod tests {
             })
         );
         assert_eq!(store.state(99).unwrap().revision, 7);
+        assert_eq!(store.receipts().count(), 0);
+    }
+
+    #[test]
+    fn stale_target_model_revision_fails_before_state_mutation() {
+        let original = graph_identity();
+        let mut changed = RegionGraph::<2>::new().unwrap();
+        changed.add_region(region(1, [-1.0, -1.0], [0.0, 1.0])).unwrap();
+        let mut target = region(2, [0.0, -1.0], [1.0, 1.0]);
+        target.model_revision = 2;
+        changed.add_region(target).unwrap();
+
+        let map = AffineRegionMap::<2>::identity();
+        let inverse = map.inverse().unwrap();
+        changed.add_interface(RegionInterface::new(
+            InterfaceId(10),
+            RegionId(1),
+            RegionId(2),
+            1,
+            boundary_x0(),
+            boundary_x0(),
+            map,
+            Some(inverse),
+            true,
+            CrossingDirection::NegativeToPositive,
+            QuantityPolicy::Preserve,
+            QuantityPolicy::Preserve,
+            None,
+        ).unwrap()).unwrap();
+
+        let mut store = RegionStateStore::new().unwrap();
+        store.insert_state(&original, state()).unwrap();
+        assert_eq!(
+            store.transition(&changed, request(110)),
+            Err(RegionTransitionError::StaleRegionModelRevision {
+                region: RegionId(2),
+                expected: 1,
+                actual: 2,
+            })
+        );
+        assert_eq!(store.state(99).unwrap(), &state());
         assert_eq!(store.receipts().count(), 0);
     }
 
