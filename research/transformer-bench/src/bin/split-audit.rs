@@ -399,6 +399,30 @@ mod tests {
     }
 
     #[test]
+    fn checked_in_fixture_audits_all_declared_split_policies() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures/split-audit-synthetic.csv");
+        let rows = read_rows(path.to_str().unwrap()).unwrap();
+        assert_eq!(rows.len(), 20);
+        let summaries = audit(&rows).unwrap();
+        assert_eq!(summaries.len(), 5);
+        assert_eq!(
+            summaries
+                .iter()
+                .filter(|summary| summary.interpretation.starts_with("HELD_OUT_GROUP_DISJOINT:"))
+                .count(),
+            4
+        );
+        assert_eq!(
+            summaries
+                .iter()
+                .filter(|summary| summary.interpretation == "RANDOM_ROW_BASELINE_ONLY_NOT_TRANSFER_EVIDENCE")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
     fn parser_rejects_unknown_policy_and_quoted_fields() {
         let path = env::temp_dir().join("transformer-split-audit-test.csv");
         let path = path.to_string_lossy().into_owned();
