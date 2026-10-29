@@ -67,9 +67,20 @@ For the selected symmetric kernel and pair evaluation, the pairwise pressure int
 
 ### Viscosity is its own numerical claim
 
-Do not fill the viscosity accumulator with a generic smoothing term and call it Newtonian viscosity. Choose either (a) a published physical-viscosity SPH discretization with its units and boundary conditions stated, or (b) a clearly labelled artificial-viscosity stabilization model. These have different meanings and must not share one ambiguous configuration field.
+Do not fill the viscosity accumulator with a generic smoothing term and call it Newtonian viscosity. Physical viscosity and artificial shock-stabilization viscosity have different meanings and must not share one ambiguous configuration field.
 
-For physical viscosity, start from a referenced operator (for example the standard SPH viscous term documented by PySPH / Monaghan or a documented Laplacian approximation), derive the sign and dimensions for the implemented kernel, and test it using Couette/Poiseuille or a manufactured shear solution where the selected boundary discretization supports a valid comparison. Measure the decay of a shear mode and verify dissipative behavior; do not infer it from a visually smoother result. Keep artificial viscosity as a separate named option for compressive/high-Mach stabilization if needed.
+The first code profile now uses a **Morris-style regularized pair operator** with a spatially uniform dynamic viscosity μ:
+
+\[
+\mathbf a_i^{\nu} = \sum_j m_j \frac{\mu_i+\mu_j}{\rho_i\rho_j}
+\frac{\mathbf r_{ij}\cdot\nabla_i W_{ij}}{\lVert\mathbf r_{ij}\rVert^2 + \eta^2 h^2}
+(\mathbf v_i-\mathbf v_j),
+\qquad \mathbf r_{ij}=\mathbf x_i-\mathbf x_j.
+\]
+
+With a uniform μ, the code uses μᵢ + μⱼ = 2μ; the regularizer is η²h² with η = 0.01. For the selected Poly6 kernel, r·∇W is non-positive inside support, so the pair term damps relative velocity. The code’s dynamic-viscosity units must not be conflated with a reference implementation whose parameter is supplied as kinematic viscosity. PySPH’s [Morris viscosity implementation](https://github.com/pypr/pysph/blob/main/pysph/sph/surface_tension.py#L2507-L2530) is a structural reference for the regularized pairwise form; comparisons must establish unit conventions at the API boundary.
+
+The pair form, coefficient, sign, units, numerical regularization, and boundary assumptions still require independent shear-flow verification. Test it using Couette/Poiseuille flow or a manufactured shear solution where the chosen boundary discretization supports a valid comparison. Measure the decay of a shear mode and verify dissipative behavior; do not infer correctness from a visually smoother result. Keep artificial viscosity as a separate named option for compressive/high-Mach stabilization if needed.
 
 ### Forces, boundary conditions, integrator, and timestep
 
