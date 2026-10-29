@@ -106,5 +106,6 @@
     "verifier_id": null,
     "verifier_revision": null,
     "verified_artifact_count": 0
-  }
+  },
+  "resource_limits_sha256": "d10e74e821251468931e6a264633745c354aa81fb2b2f2e9ec79756dc26deb3c"
 }
