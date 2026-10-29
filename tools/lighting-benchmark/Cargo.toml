@@ -19,4 +19,8 @@ path = "src/main.rs"
 name = "lighting-stress-matrix"
 path = "src/stress_main.rs"
 
+[[bin]]
+name = "lighting-rtrace-parse"
+path = "src/radiance_parse.rs"
+
 [workspace]

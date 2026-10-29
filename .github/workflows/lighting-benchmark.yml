@@ -7,6 +7,9 @@ on:
       - "docs/research/LIGHTING_SYSTEMS_DESIGN_BENCHMARK_V0_1.md"
       - "docs/research/LIGHTING_ROBUST_SEARCH_AND_MEASUREMENT_V0_1.md"
       - "docs/research/RADIANCE_RTRACE_PROFILE_V0_1.md"
+      - "docs/research/RADIANCE_RUNNER_V0_2.md"
+      - "docs/research/RADIANCE_CONVERGENCE_SWEEP_PROTOCOL_V0_1.md"
+      - "docs/research/LIGHTING_BENCHMARK_COMPARISON_PROTOCOL_V0_2.md"
       - "docs/research/lighting-benchmark-case.schema.json"
       - "docs/research/lighting-run-receipt.schema.json"
       - "docs/research/lighting-failure-receipt.schema.json"
@@ -32,6 +35,8 @@ permissions:
 jobs:
   evaluator:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_DIR: target
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.96.0
@@ -55,6 +60,12 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check "jsonschema==4.26.0"
       - name: Validate failure receipt JSON Schemas and negative controls
         run: python3 tools/lighting-benchmark/tests/validate_failure_receipts.py
+      - name: Build strict Radiance parser CLI
+        run: cargo build --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-rtrace-parse
+      - name: Smoke-test Radiance runner with mock parser
+        run: bash tools/lighting-benchmark/tests/radiance-runner-smoke.sh
+      - name: Smoke-test Radiance runner with strict Rust parser
+        run: LIGHTING_RTRACE_PARSER=target/debug/lighting-rtrace-parse bash tools/lighting-benchmark/tests/radiance-runner-smoke.sh
       - name: Run synthetic demonstration
         run: cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-benchmark-demo
       - name: Emit and count stress corpus

@@ -2,8 +2,8 @@
 //!
 //! This module does not launch Radiance, build an octree, validate a source model,
 //! or certify photometric accuracy. It only accepts the explicit six-number
-//! `rtrace -I -h -opv -cs 3` output profile:
-//! reported measurement point (x, y, z) followed by RGB irradiance (R, G, B).
+//! `rtrace -h- -I+ -ov -cs 3 -x 1` output profile:
+//! echoed input origin (x, y, z) followed by RGB irradiance (R, G, B).
 //! RGB-to-lux conversion is versioned because spectral output requires a distinct
 //! conversion path and calibration evidence.
 
@@ -26,13 +26,13 @@ pub struct MeasurementPoint {
 }
 
 /// One complete decoded line from the explicit legacy-RGB `rtrace` output profile.
-/// Both expected and solver-reported coordinates are retained; they are never
+/// Both expected and echoed input-origin coordinates are retained; they are never
 /// silently replaced by one another.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RadianceGridSample {
     pub grid_index: usize,
     pub expected_position_m: [f64; 3],
-    pub reported_position_m: [f64; 3],
+    pub echoed_origin_m: [f64; 3],
     pub irradiance_rgb: [f64; 3],
     pub illuminance_lx: f64,
     pub conversion_id: &'static str,
@@ -67,7 +67,7 @@ impl RtraceParseError {
             Self::InvalidNumber => "rtrace_output_invalid_number",
             Self::NonFiniteOutputValue => "rtrace_output_non_finite_value",
             Self::NegativeIrradianceChannel => "rtrace_negative_irradiance_channel",
-            Self::CoordinateMismatch => "rtrace_reported_coordinate_mismatch",
+            Self::CoordinateMismatch => "rtrace_echoed_origin_coordinate_mismatch",
             Self::NonFiniteIlluminance => "rtrace_derived_illuminance_non_finite",
         }
     }
@@ -117,9 +117,9 @@ pub fn render_rtrace_irradiance_input(
     Ok(input)
 }
 
-/// Parse all records from `rtrace -I -h -opv -cs 3` output.
+/// Parse all records from `rtrace -h- -I+ -ov -cs 3 -x 1` output.
 ///
-/// The `-opv` output profile is six finite numbers per line: reported point xyz
+/// The `-ov` output profile is six finite numbers per line: echoed input-origin xyz
 /// then RGB irradiance. Lines are mapped to the frozen grid by their exact order,
 /// and coordinates are checked before any sample is returned. Headers, blank
 /// records, reordered points, partial output and extra output are errors. The
@@ -161,9 +161,9 @@ pub fn parse_rtrace_legacy_rgb_irradiance(
             }
         }
 
-        let reported_position_m = [values[0], values[1], values[2]];
+        let echoed_origin_m = [values[0], values[1], values[2]];
         let expected_position_m = [point.x_m, point.y_m, point.z_m];
-        if reported_position_m
+        if echoed_origin_m
             .iter()
             .zip(expected_position_m.iter())
             .any(|(actual, wanted)| (actual - wanted).abs() > coordinate_tolerance_m)
@@ -187,7 +187,7 @@ pub fn parse_rtrace_legacy_rgb_irradiance(
         samples.push(RadianceGridSample {
             grid_index: point.grid_index,
             expected_position_m,
-            reported_position_m,
+            echoed_origin_m,
             irradiance_rgb,
             illuminance_lx,
             conversion_id: LEGACY_RGB_LUX_CONVERSION_ID,
