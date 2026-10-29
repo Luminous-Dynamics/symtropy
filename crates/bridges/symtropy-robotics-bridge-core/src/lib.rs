@@ -34,7 +34,8 @@ pub use differential_drive::{
     DifferentialDriveConfigError, DifferentialDriveLocalController,
 };
 pub use epoch_command_queue::{
-    EpochCommandQueue, EpochCommandQueueError, EpochCommandQueueStats, EpochQueuedCommand,
+    EpochCommandApplication, EpochCommandQueue, EpochCommandQueueError, EpochCommandQueueStats,
+    EpochQueuedCommand,
 };
 pub use epoch_authority::{
     ControllerEpochAuthority, ControllerEpochStore, EpochAuthorityError,
