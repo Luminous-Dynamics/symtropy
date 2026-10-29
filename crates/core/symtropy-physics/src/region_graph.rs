@@ -1606,18 +1606,22 @@ mod tests {
     #[test]
     fn affine_inverse_roundtrips_position_and_velocity() {
         let linear = SMatrix::<f64, 2, 2>::new(0.0, -1.0, 1.0, 0.0);
-        let map = AffineRegionMap::new(linear, SVector::from([3.0, -2.0]), 1.0, 0.0).unwrap();
+        let map = AffineRegionMap::new(linear, SVector::from([3.0, -2.0]), 2.0, 5.0).unwrap();
         let inverse = map.inverse().unwrap();
         map.validate_inverse(&inverse, 1e-12).unwrap();
 
         let position = SVector::from([4.0, 5.0]);
         let velocity = SVector::from([2.0, -1.0]);
+        let local_time = 12.0;
         let mapped_position = map.map_position(&position).unwrap();
         let mapped_velocity = map.map_velocity(&velocity).unwrap();
+        let mapped_time = map.map_time(local_time).unwrap();
         let restored_position = inverse.map_position(&mapped_position).unwrap();
         let restored_velocity = inverse.map_velocity(&mapped_velocity).unwrap();
+        let restored_time = inverse.map_time(mapped_time).unwrap();
         assert!((restored_position - position).norm() < 1e-12);
         assert!((restored_velocity - velocity).norm() < 1e-12);
+        assert!((restored_time - local_time).abs() < 1e-12);
     }
 
     #[test]
