@@ -16,12 +16,15 @@ Dimensions 3 and 4 are specialized-path controls. Dimensions 5, 6, 8, and 16 exe
 - rotated_overlap: independently oriented boxes whose centres are close enough to guarantee overlap from their inscribed-ball lower bound.
 - rotated_separated: boxes with a large centre offset that guarantees separation.
 
+
+The `GjkWorkCounters` on `GjkResult` are populated by the experimental D=1 and D>=5 active-set path. The specialized D=2/3 and exhaustive D=4 path currently leave those internal work counters at zero; support-map counts from the wrapper remain comparable across all measured dimensions. The bounded exhaustive fallback is invoked only after active-set degeneracy/iteration failure and only for candidate simplexes of at most eight points (D<=6). Its invocation and face counts are included in `GJK_WORK,v2` so a correct result rescued by more work is visible.
+
 ## Required interpretation
 
 - Benchmark only after conformance correctness passes; report indeterminate outcomes as uncertainty, not as successful separation.
 - Compare the same shape pairs and semantics across implementations.
 - Report per-dimension measurements rather than pooling them into one average.
-- The benchmark emits deterministic, whitespace-free `GJK_WORK,v1` key/value records with p50/p95/p99 support-map evaluations, p50/p95/p99 GJK iterations, terminal-result counts, and indeterminate reasons. These counters use wrapping support maps outside the timed loop; the actual Criterion timed queries use the unwrapped support maps. Preserve the records verbatim alongside the Criterion output and source SHA.
+- The benchmark emits deterministic, whitespace-free `GJK_WORK,v2` key/value records with p50/p95/p99 support-map evaluations, GJK iterations, active-set major/minor steps and affine QR solves; it also records total exhaustive-fallback calls/faces, result counts, indeterminate reasons, and mismatches between the N-D result's support counter and the counting wrapper. These counters use wrapping support maps outside the timed loop; the actual Criterion timed queries use the unwrapped support maps. Preserve the records verbatim alongside the Criterion output and source SHA.
 - Criterion separately records timed query latency for each fixed corpus. Do not infer per-query p95/p99 latency from an average or pooled across dimensions.
 - Active-set pivot counts, allocation counts, peak memory, and machine-readable per-query latency samples remain follow-on instrumentation tasks. Criterion's summary alone is not a substitute for those per-query metrics.
 - Industry comparisons should use matched 3D workloads against Rapier/Parry and Jolt, with pinned versions, identical inputs, release builds, same hardware, and the same timing boundary. Report the N-D experiments separately because mainstream 3D physics-engine results do not validate higher-dimensional semantics.
