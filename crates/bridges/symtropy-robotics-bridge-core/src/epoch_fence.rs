@@ -72,7 +72,7 @@ pub enum EpochFenceError {
 /// effective ticket identity: `(epoch, ticket)`. Every epoch's ledger and
 /// tombstones remain present until the object is externally retired, and the
 /// configured capacity is global across all epochs.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct EpochFencedOutcomeLedger {
     max_records: usize,
     current_epoch: ControllerEpoch,
@@ -471,6 +471,18 @@ mod tests {
         fence
             .register_submission(epoch(2), &submission(12, "reused-native-ticket"))
             .unwrap();
+        assert_eq!(
+            fence.ingest(
+                epoch(2),
+                "reused-native-ticket",
+                outcome(11, ControlOutcomeStatus::Completed, 2.1, 1),
+            ),
+            Err(EpochFenceError::RequestFromPriorEpoch {
+                request_id: 11,
+                request_epoch: 1,
+                current_epoch: 2,
+            })
+        );
         fence
             .ingest(
                 epoch(2),
