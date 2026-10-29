@@ -133,6 +133,10 @@ def _verify_receipt_validated(
          and case["initial_state_sha256"] == bindings.get("initial_state_sha256")
          and case["controller_artifact_sha256"] == bindings.get("controller_artifact_sha256"),
          "receipt input bindings disagree with the paired case row")
+    if receipt_version == "0.2.0":
+        need(case["information_budget_sha256"] == bindings["information_budget_sha256"]
+             and bindings["information_budget_sha256"] == paired["information_budget_sha256"],
+             "receipt information-budget binding disagrees with the v0.5 paired input")
     trajectory_index = trajectory_artifacts_by_id or {
         a["trajectory_id"]: a for a in paired.get("trajectory_artifacts", [])
     }
