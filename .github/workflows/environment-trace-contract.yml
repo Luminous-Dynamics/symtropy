@@ -413,6 +413,26 @@ jobs:
             .execution_receipt_extension.v02_extension.execution_attestation_verifier_implemented == false and
             .execution_receipt_extension.v02_extension.scoring_authorized == false and
             .execution_receipt_extension.v02_extension.performance_claim == "none" and
+            .causal_ablation_extension.status == "proposed_not_executed" and
+            .causal_ablation_extension.evidence_class == "test_design_only" and
+            .causal_ablation_extension.protocol_path == "research/PAIRED_MARGIN_BENCHMARK_PROTOCOL.md" and
+            .causal_ablation_extension.benchmark_targets_path == "research/polar-infrastructure/benchmark/BENCHMARK_TARGETS.md" and
+            .causal_ablation_extension.one_factor_ablation_required == true and
+            .causal_ablation_extension.identical_paired_disturbances_required == true and
+            .causal_ablation_extension.content_bound_model_controller_and_input_artifacts_required == true and
+            .causal_ablation_extension.shared_information_and_resource_budget_required == true and
+            .causal_ablation_extension.randomized_execution_order_required == true and
+            .causal_ablation_extension.deterministic_no_op_placebo_required == true and
+            .causal_ablation_extension.deterministic_no_op_divergence_above_declared_tolerance_allowed == false and
+            .causal_ablation_extension.stale_or_shuffled_forecast_negative_control_required == true and
+            .causal_ablation_extension.feature_computed_but_not_consumed_negative_control_required == true and
+            .causal_ablation_extension.blocked_episode_or_site_year_analysis_required == true and
+            .causal_ablation_extension.stochastic_placebo_nominal_false_positive_level == 0.05 and
+            .causal_ablation_extension.false_positive_uncertainty_must_be_reported == true and
+            .causal_ablation_extension.sensitivity_to_model_and_scenario_uncertainty_required == true and
+            .causal_ablation_extension.resource_adjusted_effects_required == true and
+            .causal_ablation_extension.physical_or_field_causal_claim == "none" and
+            .causal_ablation_extension.performance_claim == "none" and
             .counterexample_search_extension.status == "proposed_not_executed" and
             .counterexample_search_extension.evidence_class == "test_design_only" and
             .counterexample_search_extension.contract_path == "research/polar-infrastructure/benchmark/fixtures/counterexample-search-benchmark-contract-2026.json" and
