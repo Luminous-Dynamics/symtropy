@@ -538,6 +538,28 @@ mod tests {
     }
 
     #[test]
+    fn rejects_gap_between_utc_intervals() {
+        let header = HEADER.join(",");
+        let text = format!(
+            "{header}\n\
+             broken,1.0,2025-01-01T00:00:00Z,2026-01-01T00:00:00Z,UTC,a,2025-01-01T00:00:00Z,2025-07-01T00:00:00Z,0.5,0.25,1.0,USD,2026,REAL\n\
+             broken,1.0,2025-01-01T00:00:00Z,2026-01-01T00:00:00Z,UTC,b,2025-07-02T00:00:00Z,2026-01-01T00:00:00Z,0.5,0.25,1.0,USD,2026,REAL\n"
+        );
+        assert!(parse_trace(&text, "gap").unwrap_err().contains("gap"));
+    }
+
+    #[test]
+    fn rejects_currency_basis_or_year_changes_within_a_scenario() {
+        let header = HEADER.join(",");
+        let text = format!(
+            "{header}\n\
+             mixed,1.0,2025-01-01T00:00:00Z,2026-01-01T00:00:00Z,UTC,a,2025-01-01T00:00:00Z,2025-07-01T00:00:00Z,0.5,0.25,1.0,USD,2026,REAL\n\
+             mixed,1.0,2025-01-01T00:00:00Z,2026-01-01T00:00:00Z,UTC,b,2025-07-01T00:00:00Z,2026-01-01T00:00:00Z,0.5,0.25,1.0,ZAR,2026,REAL\n"
+        );
+        assert!(parse_trace(&text, "mixed_currency").unwrap_err().contains("metadata"));
+    }
+
+    #[test]
     fn rejects_currency_basis_and_moment_errors() {
         let header = HEADER.join(",");
         let bad_currency = format!(
