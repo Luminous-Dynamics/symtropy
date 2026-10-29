@@ -465,6 +465,9 @@ impl<const D: usize> RegionInterface<D> {
         if source == target {
             return Err(RegionGraphError::SelfInterface);
         }
+        source_boundary.validate()?;
+        target_boundary.validate()?;
+        map.validate()?;
         if reversible && inverse_map.is_none() {
             return Err(RegionGraphError::InverseRequired);
         }
