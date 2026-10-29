@@ -1,0 +1,4676 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "glass-anytime-qualification-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic anytime-valid sequential qualification mechanics only; no real-material, plant-yield, independence, adaptive-ledger-integrity, or industrial-performance claim is validated.",
+  "target_success_probability": 0.95,
+  "familywise_alpha": 0.05,
+  "registration_rule": "append_only_one_based_registration_order",
+  "events": [
+    {
+      "event_seq": 1,
+      "kind": "register_candidate",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 2,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 3,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 4,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 5,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 6,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 7,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 8,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 9,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 10,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 11,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 12,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 13,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 14,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 15,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 16,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 17,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 18,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 19,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 20,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 21,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 22,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 23,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 24,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 25,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 26,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 27,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 28,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 29,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 30,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 31,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 32,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 33,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 34,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 35,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 36,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 37,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 38,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 39,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 40,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 41,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 42,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 43,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 44,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 45,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 46,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 47,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 48,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 49,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 50,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 51,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 52,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 53,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 54,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 55,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 56,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 57,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 58,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 59,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 60,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 61,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 62,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 63,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 64,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 65,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 66,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 67,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 68,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 69,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 70,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 71,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 72,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 73,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 74,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 75,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 76,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 77,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 78,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 79,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 80,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 81,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 82,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 83,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 84,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 85,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 86,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 87,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 88,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 89,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 90,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 91,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 92,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 93,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 94,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 95,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 96,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 97,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 98,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 99,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 100,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 101,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 102,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 103,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 104,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 105,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 106,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 107,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 108,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 109,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 110,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 111,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 112,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 113,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 114,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 115,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 116,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 117,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 118,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 119,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 120,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 121,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 122,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 123,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 124,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 125,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 126,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 127,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 128,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 129,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 130,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 131,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 132,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 133,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 134,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 135,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 136,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 137,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 138,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 139,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 140,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 141,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 142,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 143,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 144,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 145,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 146,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 147,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 148,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 149,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 150,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 151,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 152,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 153,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 154,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 155,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 156,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 157,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 158,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 159,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 160,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 161,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 162,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 163,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 164,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 165,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 166,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 167,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 168,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 169,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 170,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 171,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 172,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 173,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 174,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 175,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 176,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 177,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 178,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 179,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 180,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 181,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 182,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 183,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 184,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 185,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 186,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 187,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 188,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 189,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 190,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 191,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 192,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 193,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 194,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 195,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 196,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 197,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 198,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 199,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 200,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 201,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 202,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 203,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 204,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 205,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 206,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 207,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 208,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 209,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 210,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 211,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 212,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 213,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 214,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 215,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 216,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 217,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 218,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 219,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 220,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 221,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 222,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 223,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 224,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 225,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 226,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 227,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 228,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 229,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 230,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 231,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 232,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 233,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 234,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 235,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 236,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 237,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 238,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 239,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 240,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 241,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 242,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 243,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 244,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 245,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 246,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 247,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 248,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 249,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 250,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 251,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 252,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 253,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 254,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 255,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 256,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 257,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 258,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 259,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 260,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 261,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 262,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 263,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 264,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 265,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 266,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 267,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 268,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 269,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 270,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 271,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 272,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 273,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 274,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 275,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 276,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 277,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 278,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 279,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 280,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 281,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 282,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 283,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 284,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 285,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 286,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 287,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 288,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 289,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 290,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 291,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 292,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 293,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 294,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 295,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 296,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 297,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 298,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 299,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 300,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 301,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 302,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 303,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 304,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 305,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 306,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 307,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 308,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 309,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 310,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 311,
+      "kind": "observe_trial",
+      "candidate_id": "lot-alpha"
+    },
+    {
+      "event_seq": 312,
+      "kind": "register_candidate",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 313,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 314,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 315,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 316,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 317,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 318,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 319,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 320,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 321,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 322,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 323,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 324,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 325,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 326,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 327,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 328,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 329,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 330,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 331,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 332,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 333,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 334,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 335,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 336,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 337,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 338,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 339,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 340,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 341,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 342,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 343,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 344,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 345,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 346,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 347,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 348,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 349,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 350,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 351,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 352,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 353,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 354,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 355,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 356,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 357,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 358,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 359,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 360,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 361,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 362,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 363,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 364,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 365,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 366,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 367,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 368,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 369,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 370,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 371,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 372,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 373,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 374,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 375,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 376,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 377,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 378,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 379,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 380,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 381,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 382,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 383,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 384,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 385,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 386,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 387,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 388,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 389,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 390,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 391,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 392,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 393,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 394,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 395,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 396,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 397,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 398,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 399,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 400,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 401,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 402,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 403,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 404,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 405,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 406,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 407,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 408,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 409,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 410,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 411,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 412,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 413,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 414,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 415,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 416,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 417,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 418,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 419,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 420,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 421,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 422,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 423,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 424,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 425,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 426,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 427,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 428,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 429,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 430,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 431,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 432,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 433,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 434,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 435,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 436,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 437,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 438,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 439,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 440,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 441,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 442,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 443,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 444,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 445,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 446,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 447,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 448,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 449,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 450,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 451,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 452,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 453,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 454,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 455,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 456,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 457,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 458,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 459,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 460,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 461,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 462,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 463,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 464,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 465,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 466,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 467,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 468,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 469,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 470,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 471,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 472,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 473,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 474,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 475,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 476,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 477,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 478,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 479,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 480,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 481,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 482,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 483,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 484,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 485,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 486,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 487,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 488,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 489,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 490,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 491,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 492,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 493,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 494,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 495,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 496,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 497,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 498,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 499,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 500,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 501,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 502,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 503,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 504,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 505,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 506,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 507,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 508,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 509,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 510,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 511,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 512,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 513,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 514,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 515,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 516,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 517,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 518,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 519,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 520,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 521,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 522,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 523,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 524,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 525,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 526,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 527,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 528,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 529,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 530,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 531,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 532,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 533,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 534,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 535,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 536,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 537,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 538,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 539,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 540,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 541,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 542,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 543,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 544,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 545,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 546,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 547,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 548,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 549,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 550,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 551,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 552,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 553,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 554,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 555,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 556,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 557,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 558,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 559,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 560,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 561,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 562,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 563,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 564,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 565,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 566,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 567,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 568,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 569,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 570,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 571,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 572,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 573,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 574,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 575,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 576,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 577,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 578,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 579,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 580,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 581,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 582,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 583,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 584,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 585,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 586,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 587,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 588,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 589,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 590,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 591,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 592,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 593,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 594,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 595,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 596,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 597,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 598,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 599,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 600,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 601,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 602,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 603,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 604,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 605,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 606,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 607,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 608,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 609,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 610,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 611,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 612,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 613,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 614,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 615,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 616,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 617,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 618,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 619,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 620,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 621,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 622,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 623,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 624,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 625,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 626,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 627,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 628,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 629,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 630,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 631,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 632,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 633,
+      "kind": "register_candidate",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 634,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 635,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 636,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 637,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 638,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 639,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 640,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 641,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 642,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 643,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 644,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 645,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 646,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 647,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 648,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 649,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 650,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 651,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 652,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 653,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 654,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 655,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 656,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 657,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 658,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 659,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 660,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 661,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 662,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 663,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 664,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 665,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 666,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 667,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 668,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 669,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 670,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 671,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 672,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 673,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 674,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 675,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 676,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 677,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 678,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 679,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 680,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 681,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 682,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 683,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 684,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 685,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 686,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 687,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 688,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 689,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 690,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 691,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 692,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 693,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 694,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 695,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 696,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 697,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 698,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 699,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 700,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 701,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 702,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 703,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 704,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 705,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 706,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 707,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 708,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 709,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 710,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 711,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 712,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 713,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 714,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 715,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 716,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 717,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 718,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 719,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 720,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 721,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 722,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 723,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 724,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 725,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 726,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 727,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 728,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 729,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 730,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 731,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 732,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 733,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 734,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 735,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 736,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 737,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 738,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 739,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 740,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 741,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 742,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 743,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 744,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 745,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 746,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 747,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 748,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 749,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 750,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 751,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 752,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 753,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 754,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 755,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 756,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 757,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 758,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 759,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 760,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 761,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 762,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 763,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 764,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 765,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 766,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 767,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 768,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 769,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 770,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 771,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 772,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 773,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 774,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 775,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 776,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 777,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 778,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 779,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 780,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 781,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 782,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 783,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 784,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 785,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 786,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 787,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 788,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 789,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 790,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 791,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 792,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 793,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 794,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 795,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 796,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 797,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 798,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 799,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 800,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 801,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 802,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 803,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 804,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 805,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 806,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 807,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 808,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 809,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 810,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 811,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 812,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 813,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 814,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 815,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 816,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 817,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 818,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 819,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 820,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 821,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 822,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 823,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 824,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 825,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 826,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 827,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 828,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 829,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 830,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 831,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 832,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 833,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 834,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 835,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 836,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 837,
+      "kind": "observe_trial",
+      "candidate_id": "lot-gamma"
+    },
+    {
+      "event_seq": 838,
+      "kind": "register_candidate",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 839,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 840,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 841,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 842,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 843,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 844,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 845,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 846,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 847,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 848,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 849,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 850,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 851,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 852,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 853,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 854,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 855,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 856,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 857,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 858,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 859,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 860,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 861,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 862,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 863,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 864,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 865,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 866,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 867,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 868,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 869,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 870,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 871,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 872,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 873,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 874,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 875,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 876,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 877,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 878,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 879,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 880,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 881,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 882,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 883,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 884,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 885,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 886,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 887,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 888,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 889,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 890,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 891,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 892,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 893,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 894,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 895,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 896,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 897,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 898,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 899,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 900,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 901,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 902,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 903,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 904,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 905,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 906,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 907,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 908,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 909,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 910,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 911,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 912,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 913,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 914,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 915,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 916,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 917,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 918,
+      "kind": "observe_trial",
+      "candidate_id": "lot-delta"
+    },
+    {
+      "event_seq": 919,
+      "kind": "register_candidate",
+      "candidate_id": "lot-epsilon"
+    },
+    {
+      "event_seq": 920,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 921,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 922,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 923,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 924,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 925,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 926,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 927,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 928,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 929,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 930,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 931,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 932,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    },
+    {
+      "event_seq": 933,
+      "kind": "observe_trial",
+      "candidate_id": "lot-beta"
+    }
+  ]
+}
