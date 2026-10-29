@@ -464,8 +464,7 @@ fn intersects_support_maps_with_active_set<const D: usize>(
                 return indeterminate_with_work(
                     simplex,
                     iteration,
-                    GjkFailureReason::NonFiniteArithmetic,
-                , work);
+                    GjkFailureReason::NonFiniteArithmetic, work);
             }
             Err(reason) => return indeterminate_with_work(simplex, iteration, reason, work),
         };
@@ -482,8 +481,7 @@ fn intersects_support_maps_with_active_set<const D: usize>(
             return indeterminate_with_work(
                 simplex,
                 iteration,
-                GjkFailureReason::CoordinatePrecisionLimit,
-            , work);
+                GjkFailureReason::CoordinatePrecisionLimit, work);
         }
 
         direction = -closest;
@@ -500,8 +498,7 @@ fn intersects_support_maps_with_active_set<const D: usize>(
             return indeterminate_with_work(
                 simplex,
                 iteration,
-                GjkFailureReason::NonFiniteArithmetic,
-            , work);
+                GjkFailureReason::NonFiniteArithmetic, work);
         }
         // Dot-product error is governed by both the closest vector and the
         // new support vector, not solely by the squared distance. This avoids
@@ -532,8 +529,7 @@ fn intersects_support_maps_with_active_set<const D: usize>(
                 return indeterminate_with_work(
                     simplex,
                     iteration,
-                    GjkFailureReason::NonFiniteArithmetic,
-                , work);
+                    GjkFailureReason::NonFiniteArithmetic, work);
             }
             if delta_squared <= coordinate_tolerance_squared {
                 return indeterminate_with_work(simplex, iteration, GjkFailureReason::DuplicateSupport, work);
@@ -546,8 +542,7 @@ fn intersects_support_maps_with_active_set<const D: usize>(
             return indeterminate_with_work(
                 simplex,
                 iteration,
-                GjkFailureReason::SimplexCapacityExceeded,
-            , work);
+                GjkFailureReason::SimplexCapacityExceeded, work);
         }
         simplex.push(new_point);
         match closest_point_on_hull_active_set(&simplex, geometric_tolerance_squared, &mut work) {
@@ -587,8 +582,7 @@ fn intersects_support_maps_with_active_set<const D: usize>(
     indeterminate_with_work(
         simplex,
         MAX_ND_ITERATIONS,
-        GjkFailureReason::IterationLimit,
-    , work)
+        GjkFailureReason::IterationLimit, work)
 }
 
 /// Bounded exhaustive closest-hull fallback for a stalled low-dimensional query.
@@ -623,6 +617,7 @@ fn closest_point_on_hull_exhaustive<const D: usize>(
                 face.push(index);
             }
         }
+        work.affine_qr_solves += 1;
         let Some(mut weights) = affine_minimum_weights(points, &face) else {
             // Degenerate faces are represented by their smaller subsets.
             continue;
