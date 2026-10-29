@@ -80,5 +80,10 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
+    # Robotics runtime-assurance and controller-dispatch conformance tests are
+    # safety-relevant; a workspace cargo check does not execute these unit tests.
+    - name: Run Tests (Robotics Control Boundary)
+      run: cargo test -p symtropy-robotics-bridge-core --lib
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets

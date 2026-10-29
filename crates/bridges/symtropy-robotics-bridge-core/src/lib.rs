@@ -6,6 +6,7 @@
 pub mod agent;
 pub mod assurance;
 pub mod control;
+pub mod dispatch;
 pub mod haptic;
 pub mod motor;
 pub mod platform;
@@ -20,6 +21,11 @@ pub use assurance::{
 pub use control::{
     ControlOutcome, ControlOutcomeError, ControlOutcomeStatus, ControlRequest, ControlRequestError,
     EmbodiedIntent, IntentValidationError, ManipulationOperation, Pose3,
+};
+pub use dispatch::{
+    AuthenticatedSession, ControllerDispatchContext, ControllerReceipt, ControllerSink, ControllerSubmitError,
+    DispatchBoundary, DispatchReceipt, DispatchRejection, DispatchStatus, SessionAuthenticationError,
+    SessionAuthenticator,
 };
 pub use haptic::{HapticAttestation, HapticOracle};
 pub use motor::{MotorPlanner, UniformGainPlanner};

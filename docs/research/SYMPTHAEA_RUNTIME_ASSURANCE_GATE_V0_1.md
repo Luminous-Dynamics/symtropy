@@ -12,6 +12,8 @@ Symthaea cognition (beliefs, goals, planning, skill selection)
 → leased ControlRequest / EmbodiedIntent
 → RuntimeAssuranceGate
 → per-session RequestSequenceGuard
+→ DispatchBoundary (authenticate + gate + sequence + submit)
+   passes session + sequence + full leased request to adapter
 → platform adapter and local controller
 → independent runtime safety authority
 → plant (Symtropy simulation or robot)
@@ -24,7 +26,7 @@ The runtime gate checks request freshness, supported intents, frame and target b
 
 The gate returns an admission decision only. It does not validate full trajectories, calculate collision-free paths, prove stability, monitor actuator behavior continuously, or control hardware. The local controller must recheck dynamic constraints throughout execution; the platform safety authority retains veto priority. A stop request is passed to the adapter during degraded health so that the adapter can select its platform-specific containment behavior. A gate permit is never an instruction to bypass a physical emergency stop.
 
-The sequence guard is a small in-memory ordering primitive. It is not transport authentication, cryptographic anti-replay, persistent storage, multi-process atomicity, or protection against a sender re-encoding the same semantic action with a fresh sequence. The new SequencedRuntimeAssurance wrapper checks the sequence before runtime admission and consumes the sequence even when the semantic request is rejected. The adapter must still serialize this evaluation and actual dispatch under one authority boundary, authenticate the session identity, establish a non-reused session ID after restart, and persist integrity-protected state if anti-replay must survive restart. The wrapper is not yet wired into an actual adapter dispatch path.
+The sequence guard is a small in-memory ordering primitive. It is not transport authentication, cryptographic anti-replay, persistent storage, multi-process atomicity, or protection against a sender re-encoding the same semantic action with a fresh sequence. The new SequencedRuntimeAssurance wrapper checks the sequence before runtime admission and consumes the sequence even when the semantic request is rejected. The adapter must still serialize this evaluation and actual dispatch under one authority boundary, authenticate the session identity, establish a non-reused session ID after restart, and persist integrity-protected state if anti-replay must survive restart. The DispatchBoundary prototype now composes an injected SessionAuthenticator, the sequenced evaluator, and a synchronous ControllerSink. Mock tests assert controller call counts for accepted requests, authentication failure, expired requests, stale sensors, emergency stop, workspace/frame/speed violations, duplicate/out-of-order sequences, controller failure, empty controller tickets, and concurrent duplicate attempts on one mutex-protected boundary. It has not yet been wired to the real multirotor or non-drone adapter.
 
 ## What exists in this prototype
 
@@ -70,10 +72,10 @@ Each injection is paired with a nominal control case and an explicit expected ou
 | Sequence capacity | a new session after the fixed session cap is reached | reject without evicting tracked sessions |
 | Restart / authentication | reused session ID or forged identity after restart | not solved by the in-memory guard; test at the authenticated durable adapter boundary |
 | Semantic replay | same action re-encoded under a new valid sequence | not detectable from sequence ordering alone; requires authority/intent policy and expiry context |
-| Dispatch conformance | a vetoed request reaches controller input | zero tolerated; requires adapter integration tests |
+| Dispatch conformance | a vetoed request reaches controller input | zero tolerated; mock sink call-count tests are authored, real adapter integration is still required |
 | Outcome ordering | delayed or out-of-order controller outcomes | reject or reconcile in lifecycle manager; not implemented by this sequence guard |
 
-The identity/schema checks are validated by the upstream control contract and should be tested end-to-end. The sequence rows test the helper in isolation until adapter wiring exists; do not claim end-to-end replay resistance yet.
+The identity/schema checks are validated by the upstream control contract and should be tested end-to-end. The sequence rows test both the helper and mock dispatch boundary; do not claim end-to-end replay resistance on a deployed robot yet.
 
 ### Scoreboard
 
@@ -99,6 +101,7 @@ Report every metric separately; do not collapse safety, task success and efficie
 - **p99 combined admission and sequence-check latency below 100 microseconds** on a named desktop reference build; set a separate embedded-platform budget only after measuring the intended target hardware.
 - **No regressions** in task completion, recovery, or safe-stop metrics when layered with native controller/safety.
 - **Zero capacity evictions:** when sequence tracking is full, a new session must be rejected, not admitted by evicting another session.
+- **Dispatch-boundary conformance:** accepted valid fixture reaches a recording sink exactly once; every invalid, vetoed, duplicate and out-of-order fixture reaches it zero times. Repeat the identical checks against each actual adapter.
 
 Zero failures in finite tests is not proof of safety. For independent Bernoulli trials, zero observed failures in one million trials still gives an approximate 95% upper bound of 3 per million; correlated or unrepresentative fault samples weaken that interpretation. Report confidence bounds and scenario coverage, and do not promote a synthetic result to a physical safety claim.
 
@@ -119,7 +122,8 @@ The comparison target is complementary integration, not a claim of replacing mat
 - [ROS 2 Control architecture](https://control.ros.org/master/doc/getting_started/getting_started.html): controller manager, hardware/resource interfaces, control-loop lifecycle and different update rates.
 - [PX4 Offboard mode](https://docs.px4.io/main/en/flight_modes/offboard): external setpoint control, proof-of-life requirements and configured offboard-loss failsafe.
 - [NVIDIA Isaac Lab](https://developer.nvidia.com/isaac/lab): scalable multi-embodiment learning and simulation-to-deployment workflows.
-- [RoboDojo benchmark](https://robodojo-benchmark.com/leaderboard?bench=sim): reports distinct generalization, precision, long-horizon, memory and open-task dimensions rather than one headline score.
-- [AI Index 2026, robotics section](https://hai.stanford.edu/assets/files/ai_index_report_2026.pdf): notes strong manipulation-benchmark performance while also identifying the limitations of short-horizon controlled simulation.
+- [RoboDojo benchmark](https://robodojo-benchmark.com/leaderboard?bench=sim): as seen on the 2026-10-26 simulation leaderboard, it reports separate generalization, precision, long-horizon, memory and open-task dimensions; for example, the leading listed aggregate score (GO-3 Nano Preview) was 61.90 while its listed generalization score was 36.45. Such divergence is why a single aggregate can hide weaknesses. These manipulation figures are context, not a direct score for our gate.
+- [ArmnetBench v0.1](https://www.max-robotics.com/en/research/publications/cms5wd003003zrw4su6a2bfd8): a 2026 real-world arm-farm benchmark reports seven policies over 12 tasks and 2,518 policy rollouts, with episode quality labelled successful, suboptimal or failure. Its shared low-cost hardware and labelled outcomes are a stronger model for reproducible hardware validation than reporting success alone. Our robotics work should similarly retain failures and suboptimal outcomes and freeze task/hardware/seed protocols.
+- [AI Index 2026, robotics section](https://hai.stanford.edu/assets/files/ai_index_report_2026.pdf): reports EquAct at 89.4% average success on the 18-task RLBench subset as of January 2026, while noting that these are relatively short-horizon controlled-simulation tasks. Use it only as a task-matched manipulation reference, not as a score for this gate.
 
 A fair comparison records which capabilities are already provided by the platform controller or safety system, then tests whether the Symthaea–Symtropy layer improves cross-embodiment semantics, recovery, context use, measurable task success or evidence traceability without weakening those existing protections.
