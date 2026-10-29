@@ -77,22 +77,26 @@ Freeze the initial corpus at **12 scenario families × 30 deterministic seeds = 
 
 The simulation and verifier must run offline and deterministically. A result should be reproducible from committed fixtures and a locked dependency graph without hosted CI or external services.
 
-## 5. Required adversarial scenario families
+## 5. Required end-to-end scenario families
 
-1. **Benign outage:** distinguish an equipment/service failure from a malicious event; preserve uncertainty while the cause is unknown.
-2. **Fabricated report:** inject a signed but unsupported or misattributed claim; it must not become a verified incident merely because it is authenticated.
-3. **Duplicate and reordered messages:** verify idempotency and stable event lineage when offline queues replay data.
-4. **Network partition and merge:** let each participant retain its local state; detect divergent views and reconcile only under explicit policy.
-5. **Revocation during partition:** an issuer or credential becomes revoked while a participant is offline. The old credential must not gain wider authority because currentness cannot be checked.
-6. **Conflicting signed histories:** two validly signed but incompatible statements appear for the same subject/context. Preserve the conflict; do not use last-write-wins or model preference to declare a winner.
-7. **Compromised intermediary:** a relay delays, duplicates, drops, or rewrites transport metadata. End-to-end content commitments and recipient acceptance must remain distinct from transport receipts.
-8. **Model confidently wrong:** provide a model recommendation inconsistent with ground-truth fixtures. It must remain non-authoritative, with uncertainty and source lineage visible.
-9. **Disclosure boundary:** request an output that contains fields outside the recipient's capability. The independent verifier must detect the disclosure even if the request is signed.
-10. **Common-cause dependency failure:** multiple nominally redundant services share a power, communications, supplier, or transport dependency. Count actual independent capacity, not provider/node count.
-11. **Scarce recovery resources:** compare recovery schedules under limited crews, equipment, energy, or supplies; ensure infeasible plans are not reported as successful.
-12. **Stale or corrected source:** supersede an observation or model/input snapshot. Preserve the historic record while preventing stale evidence from being represented as current.
+The federation and evidence adversarial cases are already owned by Mycelix LEX-NET-Q1 (#1057) and its referenced theorems. FDRB should import their independently qualified dispositions or run their existing frozen fixtures as prerequisites; it must not invent a competing answer for whether a credential, history, claim, or cross-sovereign authorization is valid.
 
-Every scenario needs an independently authored oracle that states the permitted state transitions, expected evidence dispositions, known ground truth, and non-negotiable safety invariants. Scenario generation code must not also serve as the only oracle.
+FDRB's novel unit of evaluation is **operational consequence and recovery quality after a qualified event/disposition enters the service model**:
+
+1. **Single service outage:** compare feasible recovery plans after one essential node becomes unavailable.
+2. **Partial degradation:** model a service below minimum capacity without incorrectly marking it fully available.
+3. **Common-cause failure:** shared power, telecom, supplier, or transport loss removes several apparently redundant alternatives.
+4. **Dependency inventory gap:** omit, stale-date, or mark a critical dependency unknown; measure false assurance and abstention.
+5. **Provider substitution:** evaluate a proposed replacement only when capacity, compatibility, time and evidence constraints support it.
+6. **Resource-constrained recovery:** allocate scarce crews, spares, transport, energy, or supplies; reject infeasible plans.
+7. **Recovery route failure:** a proposed recovery path becomes unavailable partway through the plan.
+8. **Partitioned organizations:** each participant preserves local essential functions; the global recovery plan marks cross-org prerequisites as pending rather than inventing capacity.
+9. **Safe reconnection:** after a partition, the model handles duplicated, delayed and conflicting updates using upstream Mycelix dispositions and measures reconciliation delay.
+10. **Uncertain incident severity:** compare plans under uncertain severity and cost; measure sensitivity, robustness and the quality of abstention.
+11. **Incorrect analytical recommendation:** inject a confidently wrong Symthaea proposal and verify it cannot bypass resource feasibility, upstream evidence disposition or human/local authorization.
+12. **Held-out topology and demand:** measure transfer to previously unseen dependency graphs, demand profiles and correlated disruptions without tuning on the holdout.
+
+Each operational scenario must bind an independent oracle for service state, resource conservation, feasible recovery, and expected service outcomes. It must not re-adjudicate upstream identity, legal, trust, evidence-currentness or authority semantics. Reuse the LOG-COMMONS-S0 verifier for logistics fixtures and BANK-RES-SIM-001 for critical-service scenarios where those contracts match.
 
 ## 6. Fair baselines
 
@@ -143,19 +147,20 @@ A single violation fails the candidate for that corpus revision, regardless of p
 
 Report results by scenario, severity, participant count, baseline, and seed. Never average away a critical safety failure.
 
-## 8. Provisional targets
+## 8. Provisional qualification gates
 
-These are proposed qualification gates, not measured results or universal service-level guarantees. The previously explored 30% recovery-planning and 10% latency-overhead figures are not universal acceptance criteria: benchmark-specific numeric thresholds must be chosen and preregistered with the owner of the target domain before confirmatory outcomes are observed. See Mycelix CIV-IMPACT-001 (#5046) and BANK-RES-001 (#5302). Revisit criteria only through a documented corpus/methodology revision.
+These are proposed gates, not measured results or universal service-level guarantees. The primary outcome and minimum practically meaningful improvement must be selected with the target-domain owner and preregistered before confirmatory outcomes are observed. Mycelix CIV-IMPACT-001 (#5046) owns the composed-stack incremental-value methodology, and BANK-RES-001 (#5302) explicitly requires domain-specific thresholds rather than an invented universal percentage.
 
-1. **Safety:** meet every zero-violation gate above on all 360 paired runs and their fault controls.
-2. **Correctness under uncertainty:** 100% of oracle-labelled stale, revoked, unsupported, or contradictory evidence remains non-authoritative unless a separately qualified profile explicitly permits a bounded consequence.
-3. **Local resilience:** 100% of partition tests preserve the configured local emergency functions; no network dependency may silently expand a participant's authority.
-4. **Recovery improvement:** at least 30% lower p95 verified-information-to-recovery-plan time than B0, with equivalent ground-truth coverage and no increase in safety violations.
-5. **Healthy-network overhead:** target no more than 10% additional median verified-information latency versus B1 in the no-fault control, while retaining evidence and policy properties absent from the baseline.
-6. **Analysis benefit:** at a fixed false-positive budget, C2 should improve verified incident prioritization or recovery outcomes over C1; if it does not, do not claim that adding Symthaea improves the system.
-7. **Generalization:** maintain reported results on held-out scenario seeds and at least one held-out dependency topology. No tuning on the held-out set.
+1. **Safety:** meet the applicable upstream Mycelix negative-control gates and operational invariants on every scored run. A safety violation cannot be offset by a performance improvement.
+2. **Correctness under uncertainty:** 100% of oracle-labelled stale, revoked, unsupported, or contradictory upstream evidence remains non-authoritative unless a separately qualified profile explicitly permits a bounded consequence.
+3. **Local resilience:** 100% of partition tests preserve configured local essential functions; a network dependency must not silently expand authority or make unavailable local capacity appear available.
+4. **Pre-registered practical effect:** the domain owner chooses a primary service outcome and minimum practical effect before the confirmatory phase. Do not use a universal percentage target across cyber, logistics, energy and other domains.
+5. **Fully loaded cost:** include data preparation, integration, compute, human review, failure handling and recovery—not only inference latency.
+6. **Incremental analytical benefit:** at a fixed false-positive and resource budget, the analysis-enabled arm should improve a preregistered service outcome over the same stack without Symthaea; otherwise report no demonstrated incremental benefit.
+7. **Generalization:** report held-out scenario seeds and at least one held-out dependency topology. No tuning on the held-out set.
+8. **Accounting completeness:** every scheduled run produces an explicit success, failure, invalid, or indeterminate disposition. No silent exclusion of unfavorable results.
 
-If any target proves unrealistic, publish the gap and its cause. Do not relax the safety gates to make a performance result look good.
+If any gate fails, publish the failure and its cause. Do not relax safety gates to make a performance result look good. A zero-violation result over a finite synthetic corpus is evidence only about that corpus, not proof of zero real-world risk.
 
 ## 9. Execution plan
 
