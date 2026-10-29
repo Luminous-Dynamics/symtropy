@@ -12,7 +12,7 @@ use std::error::Error;
 use std::fmt;
 
 use nalgebra::SVector;
-use symtropy_math::{LatticeOffset, PeriodicBox, PeriodicDomainError, Point, Shape, Transform};
+use symtropy_math::{LatticeOffset, PeriodicBox, PeriodicDomainError, Shape, Transform};
 
 use crate::broadphase::{support_aabb, Aabb};
 use crate::ccd;
