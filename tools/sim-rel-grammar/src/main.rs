@@ -459,6 +459,7 @@ fn run_episode(
         remaining.retain(|sig| ((sig >> a) & 1) == y);
     }
     // One post-fit falsification probe challenges a provisional singleton, if budget permits.
+    // Passing this probe is not a proof of the full rule unless every domain assignment is observed.
     let mut audit_action = None;
     if remaining.len() == 1
         && actions.len() < problem.budget
