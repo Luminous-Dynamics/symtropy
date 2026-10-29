@@ -43,10 +43,9 @@ pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use region_graph::{
-    AffineRegionMap, CrossingDirection, InterfaceId, PlaneBoundary, QuantityPolicy,
-    RegionGraph, RegionGraphError, RegionId, RegionInterface, RegionSpec, RegionState,
-    RegionStateStore, RegionTransitionError, TransitionOutcome, TransitionReceipt,
-    TransitionRequest,
+    AffineRegionMap, CrossingDirection, InterfaceId, PlaneBoundary, QuantityPolicy, RegionGraph,
+    RegionGraphError, RegionId, RegionInterface, RegionSpec, RegionState, RegionStateStore,
+    RegionTransitionError, TransitionOutcome, TransitionReceipt, TransitionRequest,
 };
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
