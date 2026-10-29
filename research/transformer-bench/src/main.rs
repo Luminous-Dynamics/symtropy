@@ -410,7 +410,7 @@ mod tests {
         let c = candidate("split", 0.0, 700.0, 3_000.0);
         let whole = Scenario {
             weight: 1.0,
-            intervals: vec![Interval { hours: 8.0, current_pu_mean: 0.6, mean_square_current_pu2: 0.34375, price_per_kwh: 2.0 }],
+            intervals: vec![Interval { hours: 8.0, current_pu_mean: 0.575, mean_square_current_pu2: 0.34375, price_per_kwh: 2.0 }],
         };
         let split = Scenario {
             weight: 1.0,
