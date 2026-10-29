@@ -375,9 +375,6 @@ fn summarize(
     let true_best = observations[true_order[0]].reference;
     let predicted_best_true_loss = observations[predicted_order[0]].reference;
     let regret_pct = (predicted_best_true_loss - true_best).max(0.0) / true_best * 100.0;
-    let query_reduction_pct =
-        (1.0 - model_fea_queries as f64 / full_pool_fea_queries as f64) * 100.0;
-
     Ok(Summary {
         scope_type: scope_type.to_string(),
         scope_id: scope_id.to_string(),
