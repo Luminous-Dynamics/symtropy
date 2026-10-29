@@ -32,10 +32,10 @@ The parser helper `render_rtrace_irradiance_input` writes each coordinate determ
 Use a command profile equivalent to:
 
 ```text
-rtrace -h -I -opv -cs 3 <fixed solver settings> scene.oct
+rtrace <fixed numeric solver settings> -h- -I+ -ov -cs 3 -x 1 scene.oct
 ```
 
-Command arguments must be passed as an argv array, not concatenated into a shell command. The exact solver settings, octree and every source input must be separately hashed. `-h` suppresses the informational header, `-I` requests irradiance at point/orientation inputs, and `-opv` requests point coordinates plus the RGB value. The parser expects **exactly six finite numeric fields per line**:
+Command arguments must be passed as an argv array, not concatenated into a shell command. The exact solver settings, octree and every source input must be separately hashed. `-h-` explicitly disables the informational header, `-I+` explicitly enables irradiance at point/orientation inputs, and `-ov` emits the input origin plus the RGB irradiance value. Radiance boolean options can be toggled by the explicit `+`/`-` suffix; do not rely on implicit defaults. `-opv` requests origin, intersection point and value, so it emits more than the six fields this parser accepts and is incorrect for the six-field profile. The parser expects **exactly six finite numeric fields per line**:
 
 ```text
 reported_x reported_y reported_z irradiance_R irradiance_G irradiance_B
@@ -46,7 +46,7 @@ This six-field output profile is grounded in the Radiance `rtrace` manual and it
 - `rtrace` manual: https://radsite.lbl.gov/radiance/man_html/rtrace.1.html
 - Workplane illuminance examples: https://radsite.lbl.gov/radiance/refer/analysis.pdf
 
-The decoder rejects header text, blank records, wrong field counts, non-numeric/non-finite values, negative irradiance channels, coordinate drift, reordered points, and both short and long output. It is all-or-nothing: no partial prefix is returned as a usable grid. Reported coordinates are retained in each decoded sample alongside expected coordinates so the verifier can inspect them independently.
+The decoder rejects header text, blank records, wrong field counts, non-numeric/non-finite values, negative irradiance channels, coordinate drift, reordered points, and both short and long output. It is all-or-nothing: no partial prefix is returned as a usable grid. The first three values echo the input ray origin; they are not a solver-computed intersection point. They are retained alongside expected coordinates so the verifier can check origin echo and row order independently.
 
 ## Legacy RGB-to-lux conversion
 
@@ -74,4 +74,4 @@ The full adapter should only produce a candidate observation if all of these hol
 
 ## Evidence boundary and next step
 
-Current status is a parser contract plus authored unit tests. No Radiance process has run through this module, no archive digest has been pinned, and no optical accuracy is established. Next implement the supervised subprocess wrapper (timeout/kill, exact argv, captured raw streams), build the frozen scene with pinned `oconv`, exercise parser negative controls against actual native output, and then compare the parsed grid with an independently measured task-light baseline. Keep process correctness, numerical photometric accuracy and physical product performance as separate evidence tiers.
+Current status is a parser contract plus authored unit tests. The corrected profile is `-h- -I+ -ov -cs 3 -x 1`; no Radiance process has run through this module, no archive digest has been pinned, and no optical accuracy is established. Next implement the supervised subprocess wrapper (timeout/kill, exact argv, captured raw streams), build the frozen scene with pinned `oconv`, exercise parser negative controls against actual native output, and then compare the parsed grid with an independently measured task-light baseline. Keep process correctness, numerical photometric accuracy and physical product performance as separate evidence tiers.
