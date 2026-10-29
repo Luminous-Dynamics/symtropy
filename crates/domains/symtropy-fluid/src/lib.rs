@@ -327,8 +327,13 @@ impl<const D: usize> FluidSimulation<D> {
                         }
                         let r_dot_gradient = displacement.dot(&gradient);
                         let denominator = r_squared + regularization;
+                        // Morris-style regularized physical-viscosity term. This
+                        // config is a uniform dynamic viscosity, so the pair
+                        // sum is mu_i + mu_j = 2 * mu. The form and sign must
+                        // remain independently verified against shear-flow
+                        // references before this profile is called validated.
                         let coefficient = self.particles[j].mass
-                            * self.config.viscosity
+                            * (2.0 * self.config.viscosity)
                             / rho_product
                             * r_dot_gradient
                             / denominator;
