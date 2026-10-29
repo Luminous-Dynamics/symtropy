@@ -370,7 +370,13 @@ fn intersects_support_maps_with_active_set<const D: usize>(
                 GjkFailureReason::NonFiniteArithmetic,
             );
         }
-        let progress_tolerance = 64.0 * f64::EPSILON * closest_squared;
+        // Dot-product error is governed by both the closest vector and the
+        // new support vector, not solely by the squared distance. This avoids
+        // demanding sub-machine-precision progress for near-contact pairs.
+        let progress_scale = closest.norm() * new_point.norm();
+        let progress_tolerance = 64.0
+            * f64::EPSILON
+            * progress_scale.max(closest_squared).max(f64::MIN_POSITIVE);
         if improvement <= progress_tolerance {
             return GjkResult {
                 intersecting: false,
