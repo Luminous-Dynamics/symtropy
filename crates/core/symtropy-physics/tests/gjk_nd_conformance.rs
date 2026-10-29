@@ -416,7 +416,27 @@ fn five_dimensional_classification_is_uniform_scale_invariant() {
         assert_eq!(
             result.termination,
             GjkTermination::Separated,
-            "D=5: scale {scale:e} changed classification"
+            "D=5: scale {scale:e} changed separated classification"
+        );
+    }
+
+    let overlap_base_b = box_at(SVector::from_element(0.5), 1.0);
+    assert!(aabb_oracle(&base_a, &overlap_base_b));
+    for scale in [1e-12, 1e-9, 1.0, 1e9, 1e12] {
+        let a = AxisAlignedBox {
+            center: base_a.center * scale,
+            half_extents: base_a.half_extents * scale,
+        };
+        let b = AxisAlignedBox {
+            center: overlap_base_b.center * scale,
+            half_extents: overlap_base_b.half_extents * scale,
+        };
+        assert!(aabb_oracle(&a, &b));
+        let result = intersects_support_maps(&a, &b);
+        assert_eq!(
+            result.termination,
+            GjkTermination::Intersecting,
+            "D=5: scale {scale:e} changed overlap classification"
         );
     }
 }
