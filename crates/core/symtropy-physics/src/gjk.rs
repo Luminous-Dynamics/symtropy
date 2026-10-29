@@ -21,6 +21,8 @@ use crate::support_map::{TransformedShape, WorldSupportMap};
 
 /// Maximum GJK iterations before giving up.
 const MAX_ITERATIONS: usize = 64;
+/// Larger bounded budget for dimension-generic active-set GJK.
+const MAX_ND_ITERATIONS: usize = 128;
 
 /// Maximum inline simplex size for the common 2D–4D paths.
 const MAX_SIMPLEX: usize = 5;
@@ -332,7 +334,7 @@ fn intersects_support_maps_with_active_set<const D: usize>(
     simplex.push(first);
     let mut closest = first;
 
-    for iteration in 0..MAX_ITERATIONS {
+    for iteration in 0..MAX_ND_ITERATIONS {
         let closest_squared = closest.norm_squared();
         if !closest_squared.is_finite() || !simplex_is_finite(&simplex) {
             return indeterminate(
@@ -421,7 +423,7 @@ fn intersects_support_maps_with_active_set<const D: usize>(
 
     indeterminate(
         simplex,
-        MAX_ITERATIONS,
+        MAX_ND_ITERATIONS,
         GjkFailureReason::IterationLimit,
     )
 }
@@ -716,7 +718,7 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
     if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
         return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
     }
-    if direction.norm_squared() < 1e-20 {
+    if direction.norm_squared() <= origin_tolerance_squared {
         direction = SVector::zeros();
         direction[0] = 1.0;
     }
