@@ -11,3 +11,7 @@ description = "Offline, std-only reference parity harness for SIM-REL-001"
 [[bin]]
 name = "sim-rel-reference"
 path = "src/main.rs"
+
+[[bin]]
+name = "sim-rel-active-discovery"
+path = "src/active_discovery.rs"
