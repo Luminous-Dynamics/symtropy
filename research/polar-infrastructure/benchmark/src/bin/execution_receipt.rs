@@ -449,7 +449,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_score_eligible_run_over_resource_budget() {
+    fn rejects_score_eligibility_before_signed_attestation() {
         let mut r = completed_receipt();
         r.scoring_eligible = true;
         r.independent_verification = IndependentVerification {
@@ -463,7 +463,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_score_eligible_run_without_independent_verification() {
+    fn rejects_self_asserted_score_eligibility_without_attestation() {
         let mut r = completed_receipt();
         r.scoring_eligible = true;
         assert!(validate(&r).unwrap_err().contains("cannot authorize scoring"));
@@ -488,6 +488,14 @@ mod tests {
     fn rejects_synthetic_score_eligibility() {
         let mut r = load();
         r.scoring_eligible = true;
+        assert!(validate(&r).unwrap_err().contains("cannot authorize scoring"));
+    }
+
+    #[test]
+    fn rejects_self_asserted_signature_attestation() {
+        let mut r = load();
+        r.execution_attestation.scheme = "sigstore_bundle".into();
+        r.execution_attestation.status = "verified".into();
         assert!(validate(&r).unwrap_err().contains("cannot authorize scoring"));
     }
 
