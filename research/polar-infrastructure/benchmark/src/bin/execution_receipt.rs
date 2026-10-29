@@ -1,0 +1,380 @@
+use serde::Deserialize;
+use std::collections::BTreeSet;
+use std::{env, error::Error, fs};
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Receipt {
+    schema_version: String,
+    artifact_kind: String,
+    evidence_class: String,
+    status: String,
+    receipt_id: String,
+    case_id: String,
+    controller_id: String,
+    execution_state: String,
+    execution_performed: bool,
+    scoring_eligible: bool,
+    provenance: Provenance,
+    paired_input_bindings: InputBindings,
+    artifact_inventory: Vec<Artifact>,
+    resource_limits: Resources,
+    observed_resources: NullableResources,
+    execution_evidence: ExecutionEvidence,
+    independent_verification: IndependentVerification,
+    claim_policy: ClaimPolicy,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Provenance {
+    receipt_producer: String,
+    producer_version: String,
+    receipt_created_at_utc: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InputBindings {
+    trajectory_id: String,
+    trajectory_sha256: String,
+    initial_state_id: String,
+    initial_state_sha256: String,
+    controller_artifact_sha256: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Artifact {
+    artifact_id: String,
+    role: String,
+    source_uri: Option<String>,
+    payload: Option<String>,
+    sha256: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Resources {
+    wall_time_ms: u64,
+    cpu_time_ms: u64,
+    peak_memory_bytes: u64,
+    simulator_calls: u64,
+    observation_count: u64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NullableResources {
+    wall_time_ms: Option<u64>,
+    cpu_time_ms: Option<u64>,
+    peak_memory_bytes: Option<u64>,
+    simulator_calls: Option<u64>,
+    observation_count: Option<u64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ExecutionEvidence {
+    started_at_utc: Option<String>,
+    ended_at_utc: Option<String>,
+    process_exit_code: Option<i64>,
+    stdout_sha256: Option<String>,
+    stderr_sha256: Option<String>,
+    output_trace_sha256: Option<String>,
+    output_artifacts: Vec<Artifact>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct IndependentVerification {
+    status: String,
+    verifier_id: Option<String>,
+    verifier_revision: Option<String>,
+    verified_artifact_count: usize,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ClaimPolicy {
+    synthetic_payloads_are_execution_evidence: bool,
+    scoring_requires_completed_execution: bool,
+    scoring_requires_independent_output_hash_verification: bool,
+    resource_limits_must_be_shared_across_comparison_arms: bool,
+}
+
+fn nonempty(s: &str) -> bool {
+    !s.trim().is_empty()
+}
+
+fn valid_sha256(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+fn valid_revision(s: &str) -> bool {
+    (s.len() == 40 || s.len() == 64)
+        && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+fn resources_empty(r: &NullableResources) -> bool {
+    r.wall_time_ms.is_none()
+        && r.cpu_time_ms.is_none()
+        && r.peak_memory_bytes.is_none()
+        && r.simulator_calls.is_none()
+        && r.observation_count.is_none()
+}
+
+fn resources_present(r: &NullableResources) -> bool {
+    r.wall_time_ms.is_some()
+        && r.cpu_time_ms.is_some()
+        && r.peak_memory_bytes.is_some()
+        && r.simulator_calls.is_some()
+        && r.observation_count.is_some()
+}
+
+fn within_budget(observed: &NullableResources, limits: &Resources) -> bool {
+    matches!(observed.wall_time_ms, Some(v) if v <= limits.wall_time_ms)
+        && matches!(observed.cpu_time_ms, Some(v) if v <= limits.cpu_time_ms)
+        && matches!(observed.peak_memory_bytes, Some(v) if v <= limits.peak_memory_bytes)
+        && matches!(observed.simulator_calls, Some(v) if v <= limits.simulator_calls)
+        && matches!(observed.observation_count, Some(v) if v <= limits.observation_count)
+}
+
+fn valid_artifact(a: &Artifact) -> bool {
+    nonempty(&a.artifact_id)
+        && valid_sha256(&a.sha256)
+        && match (&a.source_uri, &a.payload) {
+            (Some(uri), None) => nonempty(uri),
+            (None, Some(payload)) => !payload.is_empty(),
+            _ => false,
+        }
+}
+
+fn validate(r: &Receipt) -> Result<(), String> {
+    if r.schema_version != "0.1.0"
+        || r.artifact_kind != "symtropy-controller-execution-receipt"
+        || !nonempty(&r.receipt_id)
+        || !nonempty(&r.case_id)
+        || !nonempty(&r.controller_id)
+        || !nonempty(&r.provenance.receipt_producer)
+        || !nonempty(&r.provenance.producer_version)
+    {
+        return Err("receipt header or provenance is invalid".into());
+    }
+    for digest in [
+        &r.paired_input_bindings.trajectory_sha256,
+        &r.paired_input_bindings.initial_state_sha256,
+        &r.paired_input_bindings.controller_artifact_sha256,
+    ] {
+        if !valid_sha256(digest) {
+            return Err("paired input binding has invalid SHA-256 syntax".into());
+        }
+    }
+    if !nonempty(&r.paired_input_bindings.trajectory_id)
+        || !nonempty(&r.paired_input_bindings.initial_state_id)
+    {
+        return Err("paired input binding IDs cannot be empty".into());
+    }
+    if [
+        r.resource_limits.wall_time_ms,
+        r.resource_limits.cpu_time_ms,
+        r.resource_limits.peak_memory_bytes,
+        r.resource_limits.simulator_calls,
+        r.resource_limits.observation_count,
+    ].contains(&0) {
+        return Err("resource limits must all be positive".into());
+    }
+
+    let required_roles: BTreeSet<&str> = [
+        "plant_model",
+        "run_configuration",
+        "executable",
+        "runtime_environment",
+        "observation_policy",
+        "resource_policy",
+        "command",
+    ].into_iter().collect();
+    let mut inventory_ids = BTreeSet::new();
+    let mut inventory_roles = BTreeSet::new();
+    for a in &r.artifact_inventory {
+        if !valid_artifact(a) {
+            return Err(format!("invalid artifact inventory entry: {}", a.artifact_id));
+        }
+        if !inventory_ids.insert(a.artifact_id.as_str()) || !inventory_roles.insert(a.role.as_str()) {
+            return Err("artifact inventory has duplicate IDs or roles".into());
+        }
+    }
+    if inventory_roles != required_roles {
+        return Err("artifact inventory must contain exactly one of each required input role".into());
+    }
+
+    if r.claim_policy.synthetic_payloads_are_execution_evidence
+        || !r.claim_policy.scoring_requires_completed_execution
+        || !r.claim_policy.scoring_requires_independent_output_hash_verification
+        || !r.claim_policy.resource_limits_must_be_shared_across_comparison_arms
+    {
+        return Err("claim policy weakens execution, verification, or equal-resource-budget requirements".into());
+    }
+
+    match r.status.as_str() {
+        "design_only_not_executed" => {
+            if r.evidence_class != "synthetic_fixture"
+                || r.execution_state != "not_executed"
+                || r.execution_performed
+                || r.scoring_eligible
+                || r.provenance.receipt_created_at_utc.is_some()
+                || !resources_empty(&r.observed_resources)
+                || r.execution_evidence.started_at_utc.is_some()
+                || r.execution_evidence.ended_at_utc.is_some()
+                || r.execution_evidence.process_exit_code.is_some()
+                || r.execution_evidence.stdout_sha256.is_some()
+                || r.execution_evidence.stderr_sha256.is_some()
+                || r.execution_evidence.output_trace_sha256.is_some()
+                || !r.execution_evidence.output_artifacts.is_empty()
+                || r.independent_verification.status != "not_run"
+                || r.independent_verification.verifier_id.is_some()
+                || r.independent_verification.verifier_revision.is_some()
+                || r.independent_verification.verified_artifact_count != 0
+            {
+                return Err("design-only receipt must not claim execution, measurements, verification, or scoring eligibility".into());
+            }
+        }
+        "completed" => {
+            if r.evidence_class == "synthetic_fixture"
+                || r.execution_state != "completed"
+                || !r.execution_performed
+                || r.execution_evidence.started_at_utc.as_deref().map(nonempty) != Some(true)
+                || r.execution_evidence.ended_at_utc.as_deref().map(nonempty) != Some(true)
+                || r.execution_evidence.process_exit_code != Some(0)
+                || !resources_present(&r.observed_resources)
+            {
+                return Err("completed receipt is missing executed-run evidence or measurements".into());
+            }
+            for digest in [
+                r.execution_evidence.stdout_sha256.as_deref(),
+                r.execution_evidence.stderr_sha256.as_deref(),
+                r.execution_evidence.output_trace_sha256.as_deref(),
+            ] {
+                if !digest.map(valid_sha256).unwrap_or(false) {
+                    return Err("completed receipt output digests must be valid SHA-256".into());
+                }
+            }
+            let mut output_roles = BTreeSet::new();
+            let mut output_ids = BTreeSet::new();
+            for a in &r.execution_evidence.output_artifacts {
+                if !valid_artifact(a) || !output_roles.insert(a.role.as_str()) || !output_ids.insert(a.artifact_id.as_str()) {
+                    return Err("completed receipt has invalid or duplicate output artifacts".into());
+                }
+            }
+            let required_outputs: BTreeSet<&str> = ["output_trace", "stdout", "stderr"].into_iter().collect();
+            if output_roles != required_outputs {
+                return Err("completed receipt must bind output trace, stdout, and stderr artifacts".into());
+            }
+            if r.scoring_eligible {
+                if !within_budget(&r.observed_resources, &r.resource_limits) {
+                    return Err("scoring-eligible run exceeded its declared resource budget".into());
+                }
+                if r.independent_verification.status != "passed"
+                    || r.independent_verification.verifier_id.as_deref().map(nonempty) != Some(true)
+                    || !r.independent_verification.verifier_revision.as_deref().map(valid_revision).unwrap_or(false)
+                    || r.independent_verification.verified_artifact_count < 3
+                    || r.execution_evidence.output_artifacts.iter().any(|a| a.payload.is_none())
+                {
+                    return Err("scoring eligibility requires independent verification of all three payload-backed outputs".into());
+                }
+            }
+        }
+        "failed" => {
+            if r.execution_state != "failed" || !r.execution_performed || r.scoring_eligible
+                || !resources_present(&r.observed_resources)
+            {
+                return Err("failed run must record that execution occurred and cannot be score eligible".into());
+            }
+        }
+        "invalid" => {
+            if r.execution_state != "invalid" || r.scoring_eligible {
+                return Err("invalid receipt cannot be score eligible and must have invalid state".into());
+            }
+        }
+        _ => return Err("unsupported receipt status".into()),
+    }
+    Ok(())
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let path = env::args().nth(1).ok_or("usage: execution_receipt <receipt.json>")?;
+    let raw = fs::read_to_string(path)?;
+    let receipt: Receipt = serde_json::from_str(&raw)?;
+    validate(&receipt).map_err(|e| format!("execution receipt rejected: {e}"))?;
+    println!("{}", serde_json::json!({
+        "schema_version": "0.1.0",
+        "report_kind": "controller-execution-receipt-validation",
+        "contract_valid": true,
+        "status": receipt.status,
+        "execution_performed": receipt.execution_performed,
+        "scoring_eligible": receipt.scoring_eligible,
+        "independent_verification_status": receipt.independent_verification.status,
+        "candidate_for_performance_claim": false,
+        "result_scope": "receipt metadata and gate consistency only; payload hashes and paired input bindings require independent verifier"
+    }));
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn load() -> Receipt {
+        serde_json::from_str(include_str!("../../fixtures/controller-execution-receipt-template-2026.json")).unwrap()
+    }
+
+    #[test]
+    fn design_only_template_is_valid_but_not_score_eligible() {
+        let r = load();
+        validate(&r).unwrap();
+        assert!(!r.scoring_eligible);
+        assert!(!r.execution_performed);
+    }
+
+    #[test]
+    fn rejects_synthetic_execution_claim() {
+        let mut r = load();
+        r.execution_performed = true;
+        assert!(validate(&r).unwrap_err().contains("must not claim execution"));
+    }
+
+    #[test]
+    fn rejects_synthetic_score_eligibility() {
+        let mut r = load();
+        r.scoring_eligible = true;
+        assert!(validate(&r).unwrap_err().contains("must not claim execution"));
+    }
+
+    #[test]
+    fn rejects_bad_paired_input_digest() {
+        let mut r = load();
+        r.paired_input_bindings.trajectory_sha256 = "bad".into();
+        assert!(validate(&r).unwrap_err().contains("invalid SHA-256"));
+    }
+
+    #[test]
+    fn rejects_payload_digest_format_error() {
+        let mut r = load();
+        r.artifact_inventory[0].sha256 = "bad".into();
+        assert!(validate(&r).unwrap_err().contains("invalid artifact inventory"));
+    }
+
+    #[test]
+    fn rejects_weakening_claim_policy() {
+        let mut r = load();
+        r.claim_policy.resource_limits_must_be_shared_across_comparison_arms = false;
+        assert!(validate(&r).unwrap_err().contains("weakens"));
+    }
+
+    #[test]
+    fn rejects_missing_required_input_role() {
+        let mut r = load();
+        r.artifact_inventory.pop();
+        assert!(validate(&r).unwrap_err().contains("exactly one"));
+    }
+}
