@@ -346,7 +346,7 @@ fn compare_solvers(scenario: &Scenario) -> CaseReceipt {
     let rmse = (squared_sum / sampled_values as f64).sqrt();
     let observations = scenario.steps / scenario.observation_stride
         + 1
-        + usize::from(scenario.steps % scenario.observation_stride != 0);
+        + (if scenario.steps % scenario.observation_stride != 0 { 1 } else { 0 });
     let status = if max_abs_delta <= 1.0e-10 { "PASS" } else { "FAIL" };
     CaseReceipt {
         id: scenario.id.clone(),
@@ -584,7 +584,7 @@ mod tests {
         let receipt = compare_solvers(&scenario);
         let expected = scenario.steps / scenario.observation_stride
             + 1
-            + usize::from(scenario.steps % scenario.observation_stride != 0);
+            + (if scenario.steps % scenario.observation_stride != 0 { 1 } else { 0 });
         assert_eq!(receipt.observations, expected);
         assert_eq!(receipt.observation_stride, scenario.observation_stride);
     }
