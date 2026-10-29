@@ -1,7 +1,7 @@
 use std::{env, fs, process};
 
 use civil_aero_benchmark::comparison::compare_candidates;
-use civil_aero_benchmark::{parse_cases_csv, OUTPUT_HEADER};
+use civil_aero_benchmark::parse_cases_csv;
 
 const COMPARISON_HEADER: &str = "case_id,parameter_basis,evidence_level,total_mass_kg,route_energy_wh,estimated_lift_to_drag,lift_screen_pass,energy_screen_pass,pareto_member,infeasible";
 
@@ -37,8 +37,6 @@ fn main() {
         process::exit(2);
     });
 
-    // Make the CLI output header explicitly retain the evidence level.
-    let _ = OUTPUT_HEADER;
     println!("{COMPARISON_HEADER}");
     for row in &rows {
         let pareto_member = report.pareto_candidate_ids.iter().any(|id| id == &row.case.case_id);
