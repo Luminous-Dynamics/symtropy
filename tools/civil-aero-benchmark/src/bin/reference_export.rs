@@ -74,7 +74,7 @@ fn export_forces(rows: &[ForceObservation], dataset_id: &str) {
 fn export_pressure(rows: &[PressureObservation], dataset_id: &str) {
     for row in rows {
         println!(
-            "{},{},{},{},,,,,{}, {},source_parser_output_unqualified,true",
+            "{},{},{},{},,,,{},{},source_parser_output_unqualified,true",
             csv_escape(dataset_id),
             "pressure",
             csv_escape(&row.zone),
