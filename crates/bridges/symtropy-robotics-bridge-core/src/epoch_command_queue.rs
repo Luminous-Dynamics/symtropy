@@ -293,13 +293,19 @@ mod tests {
             EpochCommandQueue::<u64>::new(epoch(1), 0).err(),
             Some(EpochCommandQueueError::ZeroCapacity)
         );
-        assert!(EpochCommandQueue::<u64>::new(epoch(1), usize::MAX).unwrap().is_empty());
+        assert!(
+            EpochCommandQueue::<u64>::new(epoch(1), usize::MAX)
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
     fn current_epoch_live_command_is_applied_with_bound_identity_and_deadline() {
         let mut queue = EpochCommandQueue::new(epoch(4), 2).unwrap();
-        queue.enqueue_at(epoch(4), 71, 100, 1, "drive-forward").unwrap();
+        queue
+            .enqueue_at(epoch(4), 71, 100, 1, "drive-forward")
+            .unwrap();
         let applied = queue.apply_next_at(2, |command_epoch, request_id, deadline, command| {
             (command_epoch, request_id, deadline, *command)
         });
@@ -358,7 +364,10 @@ mod tests {
                 observed_at_ns: 10,
             })
         );
-        assert_eq!(queue.stats().expired_commands_rejected_before_application, 1);
+        assert_eq!(
+            queue.stats().expired_commands_rejected_before_application,
+            1
+        );
         assert!(queue.is_empty());
     }
 
@@ -500,7 +509,11 @@ mod tests {
         let cancelled = queue.advance_epoch(next).unwrap();
         assert!(cancelled.iter().all(|command| command.epoch < next));
         assert!(queue.is_empty());
-        assert!(applied.iter().all(|(generation, _)| *generation < next.generation()));
+        assert!(
+            applied
+                .iter()
+                .all(|(generation, _)| *generation < next.generation())
+        );
         assert!(queue.stats().stale_epoch_enqueues_rejected > 0);
     }
 }
