@@ -99,6 +99,7 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
     digest_re = re.compile(r"^[a-f0-9]{64}$")
 
     trajectory_artifacts: dict[str, dict[str, Any]] = {}
+    initial_state_digests: dict[str, str] = {}
     for artifact in doc["trajectory_artifacts"]:
         _need(set(artifact) == {"trajectory_id", "initial_state_id", "trajectory_payload",
                                 "trajectory_sha256", "initial_state_payload", "initial_state_sha256"},
@@ -115,6 +116,10 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
         _need(hashlib.sha256(initial_state_bytes).hexdigest() == artifact["initial_state_sha256"],
               f"initial-state payload SHA-256 mismatch: {artifact['trajectory_id']}")
         _need(artifact["trajectory_id"] not in trajectory_artifacts, "duplicate trajectory artifact ID")
+        previous_state_digest = initial_state_digests.get(artifact["initial_state_id"])
+        _need(previous_state_digest is None or previous_state_digest == artifact["initial_state_sha256"],
+              "one initial_state_id references multiple payload digests")
+        initial_state_digests[artifact["initial_state_id"]] = artifact["initial_state_sha256"]
         trajectory_artifacts[artifact["trajectory_id"]] = artifact
 
     controller_artifacts: dict[str, dict[str, Any]] = {}
@@ -255,6 +260,8 @@ def build_expected_report(doc: dict[str, Any]) -> dict[str, Any]:
             "mean_candidate_minus_reference_margin": sum(deltas) / len(deltas) if deltas else None,
             "minimum_candidate_minus_reference_margin": min(deltas) if deltas else None,
         })
+    trajectory_artifacts = {a["trajectory_id"]: a for a in doc["trajectory_artifacts"]}
+    controller_artifacts = {a["controller_id"]: a for a in doc["controller_artifacts"]}
     trajectory_digest_map = {
         tid: {
             "trajectory_sha256": artifact["trajectory_sha256"],
