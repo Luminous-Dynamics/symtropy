@@ -342,6 +342,71 @@ mod tests {
         serde_json::from_str(include_str!("../../fixtures/controller-execution-receipt-template-2026.json")).unwrap()
     }
 
+    fn completed_receipt() -> Receipt {
+        let mut r = load();
+        r.evidence_class = "simulator".into();
+        r.status = "completed".into();
+        r.execution_state = "completed".into();
+        r.execution_performed = true;
+        r.provenance.receipt_created_at_utc = Some("2026-10-29T00:00:00Z".into());
+        r.observed_resources = NullableResources {
+            wall_time_ms: Some(1000),
+            cpu_time_ms: Some(800),
+            peak_memory_bytes: Some(134217728),
+            simulator_calls: Some(200),
+            observation_count: Some(200),
+        };
+        r.execution_evidence = ExecutionEvidence {
+            started_at_utc: Some("2026-10-29T00:00:00Z".into()),
+            ended_at_utc: Some("2026-10-29T00:00:01Z".into()),
+            process_exit_code: Some(0),
+            stdout_sha256: Some("a".repeat(64)),
+            stderr_sha256: Some("b".repeat(64)),
+            output_trace_sha256: Some("c".repeat(64)),
+            output_artifacts: vec![
+                Artifact { artifact_id: "trace".into(), role: "output_trace".into(), source_uri: None, payload: Some("trace mock".into()), sha256: "c".repeat(64) },
+                Artifact { artifact_id: "stdout".into(), role: "stdout".into(), source_uri: None, payload: Some("stdout mock".into()), sha256: "a".repeat(64) },
+                Artifact { artifact_id: "stderr".into(), role: "stderr".into(), source_uri: None, payload: Some("stderr mock".into()), sha256: "b".repeat(64) },
+            ],
+        };
+        r
+    }
+
+    #[test]
+    fn accepts_completed_receipt_as_not_yet_score_eligible() {
+        let r = completed_receipt();
+        validate(&r).unwrap();
+        assert!(!r.scoring_eligible);
+    }
+
+    #[test]
+    fn rejects_output_index_that_disagrees_with_output_artifact() {
+        let mut r = completed_receipt();
+        r.execution_evidence.stdout_sha256 = Some("d".repeat(64));
+        assert!(validate(&r).unwrap_err().contains("output digest index"));
+    }
+
+    #[test]
+    fn rejects_score_eligible_run_over_resource_budget() {
+        let mut r = completed_receipt();
+        r.scoring_eligible = true;
+        r.independent_verification = IndependentVerification {
+            status: "passed".into(),
+            verifier_id: Some("independent-verifier".into()),
+            verifier_revision: Some("a".repeat(40)),
+            verified_artifact_count: 3,
+        };
+        r.observed_resources.wall_time_ms = Some(r.resource_limits.wall_time_ms + 1);
+        assert!(validate(&r).unwrap_err().contains("exceeded its declared resource budget"));
+    }
+
+    #[test]
+    fn rejects_score_eligible_run_without_independent_verification() {
+        let mut r = completed_receipt();
+        r.scoring_eligible = true;
+        assert!(validate(&r).unwrap_err().contains("requires independent verification"));
+    }
+
     #[test]
     fn design_only_template_is_valid_but_not_score_eligible() {
         let r = load();
