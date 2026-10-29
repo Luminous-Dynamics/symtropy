@@ -127,6 +127,8 @@ pub struct RecoveryTrialRecord {
     pub stale_epoch_command_admission_acceptances: u64,
     /// Stale-generation commands accepted/applied at the application boundary.
     pub stale_epoch_command_application_acceptances: u64,
+    /// Expired commands actually accepted/applied at the application boundary.
+    pub expired_command_application_acceptances: u64,
     /// Commands/outcomes accepted with unavailable, corrupt, or rolled-back epoch authority.
     pub epoch_authority_fail_open_acceptances: u64,
     /// Requests left without a resolved terminal or explicitly classified timeout.
@@ -349,6 +351,7 @@ pub fn score_recovery_campaign(
             .saturating_add(trial.stale_epoch_event_acceptances)
             .saturating_add(trial.stale_epoch_command_admission_acceptances)
             .saturating_add(trial.stale_epoch_command_application_acceptances)
+            .saturating_add(trial.expired_command_application_acceptances)
             .saturating_add(trial.epoch_authority_fail_open_acceptances)
             .saturating_add(trial.unresolved_lifecycles)
     });
@@ -482,6 +485,11 @@ fn summarize_arm(arm: RecoveryBenchmarkArm, trials: &[&RecoveryTrialRecord]) -> 
             trials
                 .iter()
                 .map(|trial| trial.stale_epoch_command_application_acceptances),
+        ),
+        expired_command_application_acceptances: saturating_count_sum(
+            trials
+                .iter()
+                .map(|trial| trial.expired_command_application_acceptances),
         ),
         epoch_authority_fail_open_acceptances: saturating_count_sum(
             trials.iter().map(|trial| trial.epoch_authority_fail_open_acceptances),
@@ -637,6 +645,7 @@ mod tests {
             stale_epoch_event_acceptances: 0,
             stale_epoch_command_admission_acceptances: 0,
             stale_epoch_command_application_acceptances: 0,
+            expired_command_application_acceptances: 0,
             epoch_authority_fail_open_acceptances: 0,
             unresolved_lifecycles: 0,
             controller_deadline_misses: 0,
@@ -832,6 +841,30 @@ mod tests {
         assert_eq!(b3.stale_epoch_command_application_acceptances, 1);
         assert_eq!(b3.stale_epoch_command_admission_acceptances, 0);
         assert_eq!(b3.stale_epoch_event_acceptances, 0);
+    }
+
+    #[test]
+    fn expired_command_application_blocks_hard_gate_even_if_deadline_rejection_is_measured_safely() {
+        let (expected_scenarios, mut trials) = complete_campaign();
+        let expired_application = trials
+            .iter_mut()
+            .find(|row| {
+                row.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback && row.class.is_faulted()
+            })
+            .unwrap();
+        expired_application.expired_command_application_acceptances = 1;
+        expired_application.controller_deadline_misses = 0;
+
+        let summary = score_recovery_campaign(&expected_scenarios, &trials).unwrap();
+        assert!(!summary.hard_gates_clear);
+        assert_eq!(summary.total_hard_gate_violations, 1);
+        let b3 = summary
+            .per_arm
+            .iter()
+            .find(|arm| arm.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback)
+            .unwrap();
+        assert_eq!(b3.expired_command_application_acceptances, 1);
+        assert_eq!(b3.controller_deadline_misses, 0);
     }
 
     #[test]
