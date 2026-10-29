@@ -273,6 +273,7 @@ impl QualificationReceipt {
     /// Verify a known artifact by logical name. A missing artifact is an error,
     /// never an empty/zero-valued substitute.
     pub fn verify_artifact(&self, logical_name: &str, bytes: &[u8]) -> Result<(), ReceiptError> {
+        self.verify()?;
         let artifact = self
             .payload
             .artifacts
