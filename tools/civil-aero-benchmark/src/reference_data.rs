@@ -134,7 +134,9 @@ fn parse_zone_data<T>(
                 .ok_or_else(|| format!("line {source_line}: zone label is not terminated"))?
                 + start;
             if !rest[label_end + 1..].trim().is_empty() {
-                return Err(format!("line {source_line}: unexpected text after zone label"));
+                return Err(format!(
+                    "line {source_line}: unexpected text after zone label"
+                ));
             }
             let label = rest[start..label_end].to_owned();
             if label.trim().is_empty() {
@@ -160,9 +162,9 @@ fn parse_zone_data<T>(
         let values: Vec<f64> = tokens
             .iter()
             .map(|token| {
-                token.parse::<f64>().map_err(|_| {
-                    format!("line {source_line}: invalid numeric token {token:?}")
-                })
+                token
+                    .parse::<f64>()
+                    .map_err(|_| format!("line {source_line}: invalid numeric token {token:?}"))
             })
             .collect::<Result<_, _>>()?;
         if values.iter().any(|value| !value.is_finite()) {
@@ -175,8 +177,8 @@ fn parse_zone_data<T>(
             .expect("zone counter created when zone parsed") += 1;
     }
 
-    let variables_header = variables_header
-        .ok_or_else(|| "reference file has no variables header".to_owned())?;
+    let variables_header =
+        variables_header.ok_or_else(|| "reference file has no variables header".to_owned())?;
     if zone_counts.is_empty() {
         return Err("reference file has no data zones".to_owned());
     }
@@ -205,8 +207,8 @@ mod tests {
 
     #[test]
     fn parses_all_ladson_force_zones_without_merging_roughness_records() {
-        let parsed = parse_ladson_force_data(&fixture("CLCD_Ladson_expdata.dat"))
-            .expect("valid force data");
+        let parsed =
+            parse_ladson_force_data(&fixture("CLCD_Ladson_expdata.dat")).expect("valid force data");
         assert_eq!(parsed.dataset_id, "NASA-TMR-NACA0012-LADSON-FORCES");
         assert_eq!(parsed.observations.len(), 53);
         assert_eq!(parsed.zone_counts.get("80 grit"), Some(&17));
@@ -228,15 +230,21 @@ mod tests {
         assert_eq!(parsed.observations.len(), 405);
         assert_eq!(parsed.zone_counts.len(), 9);
         assert_eq!(
-            parsed.zone_counts.get("Re=6 million, alpha=.0169, free transition"),
+            parsed
+                .zone_counts
+                .get("Re=6 million, alpha=.0169, free transition"),
             Some(&45)
         );
         assert_eq!(
-            parsed.zone_counts.get("Re=3 million, alpha=14.9994, fixed transition"),
+            parsed
+                .zone_counts
+                .get("Re=3 million, alpha=14.9994, fixed transition"),
             Some(&45)
         );
         assert_eq!(
-            parsed.zone_counts.get("Re=9 million, alpha=14.9911, fixed transition"),
+            parsed
+                .zone_counts
+                .get("Re=9 million, alpha=14.9911, fixed transition"),
             Some(&45)
         );
     }
@@ -269,10 +277,12 @@ mod tests {
         assert!(parse_pressure_data(&malformed, "bad-pressure-fixture").is_err());
         let out_of_bounds = pressure.replace("0.0023497 0.847673", "1.0023497 0.847673");
         assert!(parse_pressure_data(&out_of_bounds, "out-of-chord-fixture").is_err());
-        assert!(parse_pressure_data(
-            "variables=\"x/c\",\"cp\"\nzone, t=\"empty\"\n",
-            "empty-zone-fixture"
-        )
-        .is_err());
+        assert!(
+            parse_pressure_data(
+                "variables=\"x/c\",\"cp\"\nzone, t=\"empty\"\n",
+                "empty-zone-fixture"
+            )
+            .is_err()
+        );
     }
 }
