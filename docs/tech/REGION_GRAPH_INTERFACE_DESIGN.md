@@ -53,20 +53,20 @@ An interface is a directed map between explicit source and destination boundary 
 
 For a differentiable position map f, the velocity push-forward is J_f(x) v when the coordinate and time conventions justify that expression. If the interface maps time as well as position, velocity transformation must account for that time map. If the map is non-differentiable, singular, or undefined at the crossing, the interface must provide a separately justified state-transform rule or reject the transition. Do not guess a velocity from positions alone.
 
-An inverse map is optional in general but required for any interface profile that promises reversibility. Test round trips only on the inverse's declared domain. Position invertibility does not establish momentum, energy, or information preservation.
+An inverse map is optional in general but required for any interface profile that promises reversibility. Test round trips only on the inverse's declared domain. Position invertibility does not establish momentum, energy, or information preservation. A pure time-origin shift does not change the clock rate; conservation checks should gate on compatible clock/unit identities and the time scale, not reject a harmless offset by itself.
 
 ## 2. Crossing transaction
 
 Recommended transition lifecycle:
 
-1. Freeze source-state, interface, and region revisions.
-2. Determine the crossing event and choose an interface using deterministic tie-breaking. If the crossing is ambiguous, report unresolved or apply an explicitly configured policy.
+1. Freeze body-state, source-region, target-region, and interface revisions. The transition request must state the expected source/target model revisions as preconditions, not only record them after a commit.
+2. Determine the observed crossing direction and choose an interface using deterministic tie-breaking. The source-chart normal velocity must agree with the stated direction in the current affine reference model; tangent/zero velocity or ambiguous crossing history is unresolved rather than guessed.
 3. Check source boundary and mapping-domain membership.
 4. Evaluate candidate target state into temporary storage; do not mutate authoritative source state yet.
 5. Validate finite values, target-domain admission, supported object/profile, orientation/field transforms, optional inverse/round-trip claims, and conservation/exchange residuals.
-6. Create a receipt binding crossing ID, body ID, source/target regions, source state revision, interface revision, before/after state digests, and per-quantity balance.
+6. Create a receipt binding crossing ID, body ID, source/target regions, expected and actual source/target model revisions, source state revision, interface revision, before/after state digests, and per-quantity balance.
 7. Commit target state and retire source authority atomically. Failure leaves the source authoritative and produces no target body.
-8. Replay of the same receipt is idempotent; the same crossing ID with conflicting revisions or digests is rejected.
+8. Replay of the same request/receipt is idempotent; the same crossing ID with conflicting request data, revisions, or digests is rejected.
 
 At any point a failed validation must not duplicate or lose a body. Crossing is a state transition coordinated outside narrow-phase collision detection; GJK should not perform teleportation.
 
