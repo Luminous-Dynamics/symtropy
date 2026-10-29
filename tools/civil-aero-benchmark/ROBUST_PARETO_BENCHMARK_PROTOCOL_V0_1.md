@@ -98,6 +98,8 @@ This is deliberately not a scalar weighted score. The three-objective screen is 
 
 Next versions should add predeclared uncertainty scenarios, model discrepancy and manufacturing measurements as constraints or objectives—not bake arbitrary weights into a single score.
 
+The new v0.1 stress-screening CLI evaluates a candidate across an explicit CSV scenario set and reports maximum estimated route energy, worst energy margin, lowest lift margin and failure counts. The shipped factors are illustrative synthetic software fixtures, not measured uncertainty bounds or probability weights. Their use is to verify deterministic perturbation handling and demonstrate why nominal feasibility can be fragile. A real stress set must be preregistered from the target application's calibrated measurement uncertainty, validated model discrepancy, manufacturing variation and stated operating envelope. A scenario pass rate must never be called a reliability probability unless a justified probabilistic model and representative evidence support that interpretation.
+
 ## 7. Model-exploitation challenge suite
 
 An optimizer must fail closed or be penalized when the candidate is invalid. Add separate fixtures for:
