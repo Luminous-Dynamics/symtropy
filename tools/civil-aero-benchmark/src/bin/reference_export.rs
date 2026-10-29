@@ -1,15 +1,17 @@
 use std::{env, fs, process};
 
 use civil_aero_benchmark::reference_data::{
-    parse_ladson_force_data, parse_pressure_data, ForceObservation, PressureObservation,
+    ForceObservation, PressureObservation, parse_ladson_force_data, parse_pressure_data,
 };
 
 const SOURCE_REVISION: &str = "20a39f549dbff988a6accc421ac84dafc4487695";
 const HEADER: &str = "dataset_id,source_sha256,source_revision,observation_kind,zone,source_line,alpha_deg,cl,cd,x_over_c,cp,evidence_level,raw_source_retained";
 
 const FORCE_SHA256: &str = "78cd2f6aa4968e80f44cbf6c96f699bd9c6e45681d958ec528a10cf72ed23357";
-const LADSON_PRESSURE_SHA256: &str = "547e022634a360cd7697813543348cd447ee0038cdbc8f00a5296c7822ec7af8";
-const GREGORY_PRESSURE_SHA256: &str = "38d8474bc67661c3cef5e4cd9eeddb95d4a436d06abc1f58a8518066f510647c";
+const LADSON_PRESSURE_SHA256: &str =
+    "547e022634a360cd7697813543348cd447ee0038cdbc8f00a5296c7822ec7af8";
+const GREGORY_PRESSURE_SHA256: &str =
+    "38d8474bc67661c3cef5e4cd9eeddb95d4a436d06abc1f58a8518066f510647c";
 
 fn main() {
     if let Err(error) = run() {
