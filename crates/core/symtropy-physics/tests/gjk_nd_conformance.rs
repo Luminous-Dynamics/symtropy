@@ -386,12 +386,12 @@ fn active_set_gjk_matches_sat_on_seeded_rotated_six_dimensional_boxes() {
 }
 
 #[test]
-fn active_set_gjk_matches_sat_on_held_out_five_dimensional_boxes() {
+fn active_set_gjk_matches_sat_on_validation_five_dimensional_boxes() {
     assert_seeded_rotated_box_panel::<5>(0xA17E_5EED_5A7E_0001, 64, 4);
 }
 
 #[test]
-fn active_set_gjk_matches_sat_on_held_out_six_dimensional_boxes() {
+fn active_set_gjk_matches_sat_on_validation_six_dimensional_boxes() {
     assert_seeded_rotated_box_panel::<6>(0xA17E_5EED_6A7E_0001, 64, 4);
 }
 
