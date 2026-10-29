@@ -185,6 +185,20 @@ mod tests {
     }
 
     #[test]
+    fn comparator_does_not_trust_caller_supplied_derived_metrics() {
+        let baseline = case("baseline").evaluate().expect("baseline");
+        let mut worse = case("worse");
+        worse.cd0 = 0.040;
+        let mut forged = worse.evaluate().expect("worse candidate");
+        // Simulate a caller attempting to make a dominated candidate look best.
+        forged.route_energy_wh = 0.0;
+        forged.estimated_lift_to_drag = 1.0e9;
+        let report = compare_candidates(&[baseline, forged]).expect("same mission");
+        assert_eq!(report.pareto_candidate_ids, vec!["baseline".to_owned()]);
+        assert_eq!(report.dominated_candidate_ids, vec!["worse".to_owned()]);
+    }
+
+    #[test]
     fn duplicate_candidate_ids_are_rejected() {
         let a = case("same").evaluate().expect("candidate");
         let b = case("same").evaluate().expect("duplicate candidate");
