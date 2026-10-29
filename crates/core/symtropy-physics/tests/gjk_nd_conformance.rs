@@ -414,6 +414,10 @@ fn assert_seeded_rotated_box_panel<const D: usize>(
             exhaustive_fallbacks <= cases / 2,
             "D={D}: fallback use {exhaustive_fallbacks}/{cases} exceeded the frozen 50% diagnostic ceiling"
         );
+        assert!(
+            exhaustive_faces_examined <= exhaustive_fallbacks * 255,
+            "D={D}: bounded fallback examined more faces than its eight-point cap permits"
+        );
     }
     assert!(
         indeterminate_cases <= indeterminate_budget,
