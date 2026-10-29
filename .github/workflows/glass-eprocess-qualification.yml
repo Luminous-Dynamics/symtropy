@@ -1,0 +1,120 @@
+name: GLASS-E-PROCESS-QUALIFICATION Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/glass-silicon-contract-audit/**"
+      - "docs/tech/glass-eprocess-qualification-*.schema.json"
+      - "docs/tech/GLASS_EPROCESS_QUALIFICATION_V0_1.md"
+      - ".github/workflows/glass-eprocess-qualification.yml"
+  push:
+    branches:
+      - "research/glass-eprocess-qualification-v0.1"
+    paths:
+      - "tools/glass-silicon-contract-audit/**"
+      - "docs/tech/glass-eprocess-qualification-*.schema.json"
+      - "docs/tech/GLASS_EPROCESS_QUALIFICATION_V0_1.md"
+      - ".github/workflows/glass-eprocess-qualification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  eprocess-qualification:
+    name: Mixture e-process, known answers and replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Validate frozen schemas and synthetic fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          task_schema="docs/tech/glass-eprocess-qualification-task-v0.1.schema.json"
+          oracle_schema="docs/tech/glass-eprocess-qualification-oracle-v0.1.schema.json"
+          report_schema="docs/tech/glass-eprocess-qualification-report-v0.1.schema.json"
+          task="tools/glass-silicon-contract-audit/fixtures/glass-eprocess-qualification-task.synthetic.json"
+          oracle="tools/glass-silicon-contract-audit/fixtures/glass-eprocess-qualification-oracle.synthetic.json"
+
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.benchmark_id.const == "glass-anytime-eprocess-qualification-synthetic-v0-1" and
+            .properties.target_success_probability.const == 0.95 and
+            .properties.familywise_alpha.const == 0.05 and
+            .properties.registration_rule.const == "append_only_one_based_registration_order" and
+            .additionalProperties == false
+          ' "$task_schema" > /dev/null
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.evidence_class.const == "synthetic_evaluator_only" and
+            .properties.outcomes.maxItems == 100 and
+            .additionalProperties == false
+          ' "$oracle_schema" > /dev/null
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.audit_kind.const == "synthetic_anytime_mixture_eprocess_qualification" and
+            .properties.allocation.const == "alpha/[i*(i+1)] per candidate, split equally between two mixture e-processes" and
+            .properties.decisions.items.properties.disposition.enum == ["QUALIFIED","NOT_QUALIFIED","UNRESOLVED"] and
+            .additionalProperties == false
+          ' "$report_schema" > /dev/null
+          jq -e '
+            .schema_version == 1 and
+            .benchmark_id == "glass-anytime-eprocess-qualification-synthetic-v0-1" and
+            (.events | length) == 458 and
+            ([.events[] | select(.kind == "register_candidate")] | length) == 5 and
+            ([.events[] | select(.kind == "observe_trial")] | length) == 453 and
+            ([.events[] | select(.candidate_id == "lot-beta" and .kind == "observe_trial")] | length) == 146
+          ' "$task" > /dev/null
+          jq -e '
+            .schema_version == 1 and
+            .evidence_class == "synthetic_evaluator_only" and
+            ([.outcomes[] | {id:.candidate_id,n:(.trial_results|length),s:([.trial_results[]|select(.)]|length)}] ==
+              [{"id":"lot-alpha","n":350,"s":350},{"id":"lot-beta","n":334,"s":334},{"id":"lot-gamma","n":204,"s":173},{"id":"lot-delta","n":80,"s":76},{"id":"lot-epsilon","n":0,"s":0}])
+          ' "$oracle" > /dev/null
+          echo "Mixture e-process schemas and known-answer fixtures: PASS"
+
+      - name: Run e-process and calibration tests
+        run: cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-eprocess
+
+      - name: Execute campaign and deterministic replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          task="tools/glass-silicon-contract-audit/fixtures/glass-eprocess-qualification-task.synthetic.json"
+          oracle="tools/glass-silicon-contract-audit/fixtures/glass-eprocess-qualification-oracle.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-eprocess -- "$task" "$oracle" > glass-eprocess-qualification-report.json
+          task_digest="$(sha256sum "$task" | awk '{print $1}')"
+          oracle_digest="$(sha256sum "$oracle" | awk '{print $1}')"
+          jq -e --arg task_digest "$task_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_anytime_mixture_eprocess_qualification" and
+            .input_sha256 == $task_digest and
+            .oracle_sha256 == $oracle_digest and
+            .candidate_count == 5 and
+            .events_checked == 458 and
+            .findings == [] and
+            ([.decisions[] | select(.candidate_id == "lot-alpha")][0] | .disposition == "QUALIFIED" and .trials_observed == 121) and
+            ([.decisions[] | select(.candidate_id == "lot-beta")][0] | .disposition == "QUALIFIED" and .trials_observed == 146) and
+            ([.decisions[] | select(.candidate_id == "lot-gamma")][0] | .disposition == "NOT_QUALIFIED" and .trials_observed == 106 and .successes_observed == 89) and
+            ([.decisions[] | select(.candidate_id == "lot-delta")][0] | .disposition == "UNRESOLVED" and .trials_observed == 80) and
+            ([.decisions[] | select(.candidate_id == "lot-epsilon")][0] | .disposition == "UNRESOLVED" and .trials_observed == 0) and
+            ([.events[] | select(.candidate_id == "lot-alpha" and .kind == "observe_trial" and .decision == "QUALIFIED")] | length) == 1
+          ' glass-eprocess-qualification-report.json
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-qualification-eprocess -- \
+            --replay glass-eprocess-qualification-report.json "$task" "$oracle" > glass-eprocess-qualification-replay.json
+          jq -e --arg task_digest "$task_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_anytime_eprocess_qualification_replay" and
+            .input_sha256 == $task_digest and
+            .oracle_sha256 == $oracle_digest and
+            .findings == []
+          ' glass-eprocess-qualification-replay.json
+          echo "Mixture e-process qualification and deterministic replay: PASS"
