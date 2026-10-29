@@ -266,6 +266,13 @@ fn validate(r: &Receipt) -> Result<(), String> {
     if controller_artifact.sha256 != r.paired_input_bindings.controller_artifact_sha256 {
         return Err("controller artifact inventory digest does not match paired input binding".into());
     }
+    if r.schema_version == "0.2.0" {
+        let observation_policy = r.artifact_inventory.iter().find(|a| a.role == "observation_policy")
+            .expect("required role was checked");
+        if Some(observation_policy.sha256.as_str()) != r.paired_input_bindings.information_budget_sha256.as_deref() {
+            return Err("observation policy artifact digest does not match the paired information-budget binding".into());
+        }
+    }
     let resource_policy = r.artifact_inventory.iter().find(|a| a.role == "resource_policy")
         .expect("required role was checked");
     let expected_resource_payload = format!(
