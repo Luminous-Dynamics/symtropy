@@ -323,7 +323,13 @@ jobs:
             .execution_receipt_extension.receipt_set_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_execution_receipt_set.py" and
             .execution_receipt_extension.receipt_set_test_path == "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py" and
             .execution_receipt_extension.resource_limits_digest_path == "resource_limits_sha256" and
-            (.execution_receipt_extension.requirements | length >= 6) and
+            .execution_receipt_extension.required_input_artifact_role_count == 8 and
+            .execution_receipt_extension.controller_artifact_inventory_digest_must_match_paired_binding == true and
+            .execution_receipt_extension.resource_policy_payload_must_equal_canonical_numeric_limits == true and
+            .execution_receipt_extension.resource_policy_digest_must_match_resource_limits_sha256 == true and
+            (.execution_receipt_extension.binds | index("controller_artifact_bytes_in_inventory") != null) and
+            (.execution_receipt_extension.binds | index("canonical_resource_policy_bytes") != null) and
+            (.execution_receipt_extension.requirements | length >= 9) and
             .execution_receipt_extension.scoring_eligible_for_template == false and
             .execution_receipt_extension.signed_execution_attestation_verifier_implemented == false and
             .execution_receipt_extension.attestation_policy_path == "research/polar-infrastructure/benchmark/fixtures/execution-attestation-verification-policy-2026.json" and
