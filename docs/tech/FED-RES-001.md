@@ -2,13 +2,13 @@
 
 **Status:** design proposal for review. This branch includes the initial reference safety kernel; the full scenario corpus and performance benchmark are not implemented. No performance claim is implied.  
 **Scope:** synthetic civil-protection and critical-service resilience only.  
-**Parent/composition references:** [Mycelix CIV-RES-000 (#2006)](https://github.com/Luminous-Dynamics/mycelix/issues/2006), [Mycelix LEX-NET-021 (#1117)](https://github.com/Luminous-Dynamics/mycelix/issues/1117), [Symtropy BANK-RES-SIM-001 (#2330)](https://github.com/Luminous-Dynamics/symtropy/issues/2330), and [Symtropy QUAL-002 (#1280)](https://github.com/Luminous-Dynamics/symtropy/issues/1280).
+**Existing work to compose (not replace):** [Mycelix CIV-RES-000 (#2006)](https://github.com/Luminous-Dynamics/mycelix/issues/2006), [LEX-NET-Q1 (#1057)](https://github.com/Luminous-Dynamics/mycelix/issues/1057), [LEX-NET-021 (#1117)](https://github.com/Luminous-Dynamics/mycelix/issues/1117), [CIV-IMPACT-001 (#5046)](https://github.com/Luminous-Dynamics/mycelix/issues/5046), [BANK-RES-001 (#5302)](https://github.com/Luminous-Dynamics/mycelix/issues/5302), [LOG-COMMONS-S0-001 (#4901)](https://github.com/Luminous-Dynamics/mycelix/issues/4901), [Symtropy BANK-RES-SIM-001 (#2330)](https://github.com/Luminous-Dynamics/symtropy/issues/2330), [Sol-Atlas BANK-RES-GEO-001 (#204)](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/204), [Symthaea BANK-RES-DECISION-001 (#8206)](https://github.com/Luminous-Dynamics/symthaea/issues/8206), and [Symtropy QUAL-002 (#1280)](https://github.com/Luminous-Dynamics/symtropy/issues/1280).
 
 ## 1. Research question
 
 Can independently governed organizations coordinate verified incident response and restore essential services faster than credible baselines, while preserving local autonomy and preventing forged, stale, contradictory, or unauthorized information from becoming authoritative?
 
-The proposed **Federated Defensive Resilience Benchmark (FDRB)** tests this as a reproducible systems property, not as a claim about any one model or protocol. It is intended to qualify a civilian resilience coordination substrate across communications outages, evidence conflicts, compromised participants, resource dependencies, and recovery decisions.
+The proposed **Federated Defensive Resilience Benchmark (FDRB)** is a composition and end-to-end outcome profile over those existing workstreams, not a competing federation protocol, authority model, service simulator, or general composed-stack value benchmark. It tests whether qualified federation/evidence inputs and operational recovery plans produce better critical-service outcomes under reproducible disruptions.
 
 The candidate stack may compose:
 
@@ -16,6 +16,25 @@ The candidate stack may compose:
 - **Symthaea:** read-only analysis, competing hypotheses, anomaly prioritization, uncertainty and calibration receipts. A model output is evidence or a recommendation, never authority.
 - **Symtropy:** deterministic disruption scenarios, dependency/resource dynamics, recovery rollouts, paired baselines, and counterfactual comparison.
 - **Sol-Atlas:** source-aware asset, lifeline, location, and capacity context. It must preserve source freshness and uncertainty and must not expose protected detail outside policy.
+
+### Existing work ownership and anti-duplication boundary
+
+The repositories already contain most of the semantic and domain-specific pieces. This tranche must compose them rather than create a second owner:
+
+| Concern | Canonical work owner | FDRB role |
+|---|---|---|
+| Institutional authority, privacy planes, civic evidence and contestability | Mycelix CIV-RES-000 (#2006) and its child work | Consume only qualified, profile-bound outputs |
+| Cross-sovereign identity, recognition, revocation, policy conflict and equivocation semantics | Mycelix LEX-NET-Q1 (#1057) plus LEX-NET-021/022/024/025/031/034 | Import dispositions and replay their negative controls; do not implement a competing resolver |
+| Critical-operation pilot, dependency inventory and practical pilot gates | Mycelix BANK-RES-001 (#5302) | Provide an operational measurement profile only where the pilot applies |
+| Incremental value of the composed four-project stack, baselines and ablations | Mycelix CIV-IMPACT-001 (#5046) | Reuse paired comparisons, ablation discipline and pre-registration; do not create a second value leaderboard |
+| Offline logistics scenario kernel and independent verifier | Mycelix LOG-COMMONS-S0-001 (#4901) | Reuse it for logistics-specific fixtures rather than writing another twin |
+| Critical-service disruption/recovery simulation | Symtropy BANK-RES-SIM-001 (#2330) | Extend its existing scenario family and outcome receipts |
+| Qualified site/lifeline evidence | Sol-Atlas BANK-RES-GEO-001 (#204) | Consume source-/freshness-qualified dependency inputs |
+| Mitigation, uncertainty and abstention evaluation | Symthaea BANK-RES-DECISION-001 (#8206) | Consume model recommendations as proposals; measure incremental benefit |
+
+Issue existence and draft documentation do not imply that any cross-repository component is implemented or qualified. Before adding a new scenario, schema, oracle, or validator, review the current owner and reuse its contract wherever semantics match.
+
+The small Rust kernel in this directory is a consumer-side regression guard for decisions at the simulation boundary. It is not a replacement authority engine, an independent federation implementation, or proof that Mycelix's upstream rules have passed qualification. Once exact upstream receipts/contracts are available to the adapter, move shared semantics into conformance tests and remove divergent duplicate rules.
 
 This benchmark does not require these components to be integrated before the first synthetic fixture can be implemented. Component boundaries and adapter contracts should be tested independently before composition.
 
@@ -85,7 +104,14 @@ Run each scenario and seed against the same initial state, event stream, availab
 - **C1 — candidate federation:** explicit evidence states, policy-scoped disclosure, revocation/currentness handling, and independent verification; analytical recommendations remain non-authoritative.
 - **C2 — candidate + analysis/simulation:** add Symthaea prioritization and Symtropy/Sol-Atlas recovery context, but compare only recommendations against the same oracle and resource constraints.
 
-These are **research baselines**, not claims that any named vendor or deployed system has been reproduced. All simplifying assumptions must be published. Include a centralized baseline because decentralization is not automatically safer, faster, or more available.
+These are **candidate comparison arms**, not claims that any named vendor or deployed system has been reproduced. Align the exact arms with CIV-IMPACT-001 (#5046) and the selected pilot owner before implementation. At minimum, preserve:
+- the declared incumbent/manual workflow or simple rules/graph baseline;
+- the best qualified single-component baseline;
+- the existing federation/evidence baseline with upstream LEX-NET dispositions;
+- the same recovery simulator without Symthaea recommendations;
+- the composed stack, plus leave-one-component-out ablations where feasible.
+
+Use identical scenario inputs, information permissions, resource budgets, and decision horizons. The candidate must not see evaluator-only labels or holdout truth. Include a centralized baseline because decentralization is not automatically safer, faster, or more available.
 
 ## 7. Metrics
 
@@ -119,7 +145,7 @@ Report results by scenario, severity, participant count, baseline, and seed. Nev
 
 ## 8. Provisional targets
 
-These are proposed research gates, not measured results or universal service-level guarantees. Revisit them only through a documented corpus/methodology revision.
+These are proposed qualification gates, not measured results or universal service-level guarantees. The previously explored 30% recovery-planning and 10% latency-overhead figures are not universal acceptance criteria: benchmark-specific numeric thresholds must be chosen and preregistered with the owner of the target domain before confirmatory outcomes are observed. See Mycelix CIV-IMPACT-001 (#5046) and BANK-RES-001 (#5302). Revisit criteria only through a documented corpus/methodology revision.
 
 1. **Safety:** meet every zero-violation gate above on all 360 paired runs and their fault controls.
 2. **Correctness under uncertainty:** 100% of oracle-labelled stale, revoked, unsupported, or contradictory evidence remains non-authoritative unless a separately qualified profile explicitly permits a bounded consequence.
