@@ -514,6 +514,21 @@ mod tests {
     }
 
     #[test]
+    fn checked_in_synthetic_fixture_runs_through_the_metric_pipeline() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures/surrogate_predictions_synthetic.csv");
+        let (rows, calls) = read_observations(path.to_str().unwrap()).unwrap();
+        assert_eq!(rows.len(), 8);
+        assert_eq!(calls, 8);
+        let report = summarize("overall", "all", &rows, calls, 3000, 3000, 2).unwrap();
+        assert!(report.mean_relative_error_pct > 0.0);
+        assert_eq!(report.prediction_interval_coverage_pct, 100.0);
+        assert_eq!(report.top_k_recall_pct, 100.0);
+        let reduction = (1.0 - report.model_fea_queries as f64 / report.full_pool_fea_queries as f64) * 100.0;
+        assert!((reduction - 99.7333333333).abs() < 1.0e-8);
+    }
+
+    #[test]
     fn nearest_rank_p95_uses_upper_empirical_rank() {
         let mut x = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         x.sort_by(f64::total_cmp);
