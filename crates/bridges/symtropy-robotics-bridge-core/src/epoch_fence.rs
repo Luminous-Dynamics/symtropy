@@ -529,6 +529,57 @@ mod tests {
     }
 
     #[test]
+    fn fixed_campaign_rejects_all_240_late_events_after_fifteen_restarts() {
+        let mut fence = EpochFencedOutcomeLedger::new(epoch(1), 512).unwrap();
+        let mut issued = Vec::new();
+
+        for generation in 1..=16u64 {
+            if generation > 1 {
+                fence.advance_epoch(epoch(generation)).unwrap();
+            }
+            for index in 0..16u64 {
+                let request_id = generation * 100 + index + 1;
+                let ticket = format!("controller-ticket-{index}");
+                fence
+                    .register_submission(epoch(generation), &submission(request_id, &ticket))
+                    .unwrap();
+                issued.push((request_id, generation, ticket));
+            }
+        }
+
+        let current_generation = 16u64;
+        let mut stale_rejections = 0usize;
+        for (request_id, issued_generation, ticket) in &issued {
+            if *issued_generation == current_generation {
+                continue;
+            }
+            assert_eq!(
+                fence.ingest(
+                    epoch(*issued_generation),
+                    ticket,
+                    outcome(
+                        *request_id,
+                        ControlOutcomeStatus::Completed,
+                        current_generation as f64 + 0.5,
+                        1,
+                    ),
+                ),
+                Err(EpochFenceError::StaleControllerEpoch {
+                    current_epoch: current_generation,
+                    received_epoch: *issued_generation,
+                })
+            );
+            stale_rejections += 1;
+        }
+
+        assert_eq!(stale_rejections, 240);
+        assert_eq!(fence.tracked_requests(), 256);
+        assert_eq!(fence.prior_epoch_request_count(), 240);
+        assert_eq!(fence.unresolved_requests_from_prior_epochs(), 240);
+        assert_eq!(fence.remaining_capacity(), 256);
+    }
+
+    #[test]
     fn every_restart_advance_invalidates_all_older_epochs() {
         let mut fence = ledger();
         fence
