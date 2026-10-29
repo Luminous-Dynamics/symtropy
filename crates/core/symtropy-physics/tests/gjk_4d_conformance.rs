@@ -234,7 +234,10 @@ fn overlapping_rotated_hyperboxes_in_4d_are_detected() {
         "independent 4D SAT oracle must confirm the overlap positive control"
     );
     let result = intersects_support_maps(&a, &b);
-    assert!(result.intersecting, "both boxes contain the shared origin and therefore must intersect");
+    assert!(
+        result.intersecting,
+        "both boxes contain the shared origin and therefore must intersect"
+    );
     assert_eq!(result.termination, symtropy_physics::GjkTermination::Intersecting);
 }
 
