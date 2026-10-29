@@ -2597,3 +2597,27 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+
+#[cfg(test)]
+mod collision_query_failure_tests {
+    use super::*;
+
+    #[test]
+    fn indeterminate_query_diagnostics_are_step_scoped() {
+        let mut world = PhysicsWorld::<3>::default();
+        world.collision_query_failures.push(CollisionQueryFailure {
+            body_a: BodyHandle(10),
+            body_b: BodyHandle(11),
+            reason: crate::gjk::GjkFailureReason::IterationLimit,
+            iterations: 64,
+        });
+
+        world.step(1.0 / 60.0);
+
+        assert!(
+            world.collision_query_failures.is_empty(),
+            "failure diagnostics describe the most recent step, not stale history"
+        );
+    }
+}
