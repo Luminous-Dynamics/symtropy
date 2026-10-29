@@ -362,18 +362,18 @@ mod tests {
     #[test]
     fn scenario_csv_rejects_bad_header_duplicate_ids_and_zero_factor() {
         let csv = format!(
-            "{}\\nnominal,synthetic_stress,fixture,1,1,1,1,1,1,1,1\\n",
+            "{}\nnominal,synthetic_stress,fixture,1,1,1,1,1,1,1,1\n",
             STRESS_INPUT_HEADER
         );
         assert_eq!(parse_stress_scenarios_csv(&csv).expect("valid").len(), 1);
-        assert!(parse_stress_scenarios_csv("scenario_id,wrong\\nx,y\\n").is_err());
+        assert!(parse_stress_scenarios_csv("scenario_id,wrong\nx,y\n").is_err());
         let dup = format!(
-            "{}\\nnominal,synthetic_stress,fixture,1,1,1,1,1,1,1,1\\nnominal,synthetic_stress,fixture,1,1,1,1,1,1,1,1\\n",
+            "{}\nnominal,synthetic_stress,fixture,1,1,1,1,1,1,1,1\nnominal,synthetic_stress,fixture,1,1,1,1,1,1,1,1\n",
             STRESS_INPUT_HEADER
         );
         assert!(parse_stress_scenarios_csv(&dup).is_err());
         let zero = format!(
-            "{}\\ninvalid,synthetic_stress,fixture,0,1,1,1,1,1,1,1\\n",
+            "{}\ninvalid,synthetic_stress,fixture,0,1,1,1,1,1,1,1\n",
             STRESS_INPUT_HEADER
         );
         assert!(parse_stress_scenarios_csv(&zero).is_err());
