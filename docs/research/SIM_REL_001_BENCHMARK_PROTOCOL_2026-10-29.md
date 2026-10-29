@@ -189,3 +189,23 @@ Reuse [Symtropy ENG-SYNTH #1172](https://github.com/Luminous-Dynamics/symtropy/i
 ## 12. Claim ceiling
 
 No benchmark has been executed in this document. No candidate architecture is currently shown to outperform existing methods. The initial target is to produce a reliable matched comparison that can establish where a relational grammar helps and where it fails. Even a clear win would support the representation as a useful engineering/discovery method, not prove Chain Theory's proposed ontology or a deeper-than-information metaphysics.
+
+
+## 10. Executable active-intervention policy prototype
+
+A separate, dependency-free binary `sim-rel-active-discovery` now implements a finite synthetic intervention-selection scorecard. It is a qualification prototype, not a relational grammar learner:
+
+- Policy A greedily chooses the available intervention with the largest minority partition of remaining candidate models (balanced split / one-step disagreement heuristic).
+- Baseline B queries intervention IDs in ascending order.
+- Baseline C uses 64 seeded-random action orders per task.
+- All policies use the same candidate set, initial observations and action budget; the selector function is not given the evaluator's target label.
+- Candidate-model observations and evaluator-only target labels are split into different TSV fixtures, each separately SHA-256 bound in the emitted receipt.
+- The v1 fixture contains 24 tasks (6 train, 6 validation, 12 held-out) and two held-out alias controls with observationally identical models. The expected behavior for such controls is abstention/ambiguity, not forced identification.
+
+See [the runner README](../../tools/sim-rel-benchmark/README.md) and the companion files under `tools/sim-rel-benchmark/src/active_discovery.rs` and `tools/sim-rel-benchmark/fixtures/active-discovery-*.tsv`.
+
+### Execution state and claim ceiling
+
+The source and tests have been committed, but the binary has **not** been compiled or run in the current environment because a local Rust toolchain is unavailable; the exact-head workflow record must not be treated as a pass. The new scorecard is ready for offline qualification, not scientifically qualified. No outcome or superiority result is asserted until a receipt from the exact reviewed head has been created and inspected.
+
+Even if the greedy policy wins on this fixed toy corpus, that supports only the narrow finite-model experiment-selection mechanism. To claim relational-grammar progress, extend to model induction, hidden generative rule families, noisy/partially observed systems, heterogeneous/no-shared-grammar controls, and a sealed held-out family not hand-designed around the policy.
