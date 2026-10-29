@@ -15,7 +15,11 @@ PAIRED = HERE.parent / "fixtures" / "paired-comparison-v0.4.json"
 
 def digest_limits(receipt):
     canonical = json.dumps(receipt["resource_limits"], sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    receipt["resource_limits_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    receipt["resource_limits_sha256"] = digest
+    policy = next(a for a in receipt["artifact_inventory"] if a["role"] == "resource_policy")
+    policy["payload"] = canonical
+    policy["sha256"] = digest
 
 
 def build_receipt_set(template, paired):
