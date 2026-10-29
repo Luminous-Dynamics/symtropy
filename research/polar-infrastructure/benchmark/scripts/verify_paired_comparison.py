@@ -6,8 +6,10 @@ not import or execute the Rust scorer and does not validate physical semantics.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import math
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -15,17 +17,19 @@ from typing import Any
 TOP_KEYS = {
     "schema_version", "artifact_kind", "evidence_class", "status",
     "reference_controller_id", "candidate_controller_id", "controllers",
-    "axes", "gate_ids", "gate_margin_contracts", "cases",
+    "axes", "gate_ids", "gate_margin_contracts", "trajectory_artifacts",
+    "controller_artifacts", "cases",
 }
 CASE_KEYS = {
     "case_id", "controller_id", "trajectory_id", "comparison_group_id",
     "hazard_family", "initial_state_id", "replicate_id", "severity",
-    "gate_results", "signed_gate_margins",
+    "gate_results", "signed_gate_margins", "trajectory_sha256",
+    "initial_state_sha256", "controller_artifact_sha256",
 }
 RESULT_KEYS = {
     "schema_version", "report_kind", "evidence_class", "status",
-    "controller_count", "trajectory_count", "case_count", "gate_margin_contracts", "coverage",
-    "paired_gate_comparisons", "performance_claim", "result_scope",
+    "controller_count", "trajectory_count", "case_count", "gate_margin_contracts",
+    "content_bindings", "coverage", "paired_gate_comparisons", "performance_claim", "result_scope",
 }
 STATUSES = {"pass", "breach", "invalid", "not_evaluated"}
 
@@ -59,7 +63,7 @@ def _close(left: Any, right: Any, path: str = "$") -> None:
 
 def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]]:
     _need(set(doc) == TOP_KEYS, "input keys do not match the v0.3 contract")
-    _need(doc["schema_version"] == "0.3.0"
+    _need(doc["schema_version"] == "0.4.0"
           and doc["artifact_kind"] == "paired-resilience-comparison-input"
           and doc["evidence_class"] == "synthetic_fixture"
           and doc["status"] == "synthetic_only",
@@ -92,6 +96,42 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
     metadata: dict[str, tuple[Any, ...]] = {}
     trajectories: set[str] = set()
     expected_axes, expected_gates = set(axis_ids), set(gates)
+    digest_re = re.compile(r"^[a-f0-9]{64}$")
+
+    trajectory_artifacts: dict[str, dict[str, Any]] = {}
+    for artifact in doc["trajectory_artifacts"]:
+        _need(set(artifact) == {"trajectory_id", "initial_state_id", "trajectory_payload",
+                                "trajectory_sha256", "initial_state_payload", "initial_state_sha256"},
+              "trajectory artifact keys do not match the v0.4 contract")
+        for field in ("trajectory_id", "initial_state_id", "trajectory_payload", "initial_state_payload"):
+            _need(isinstance(artifact[field], str) and artifact[field], f"empty trajectory artifact field: {field}")
+        for field in ("trajectory_sha256", "initial_state_sha256"):
+            _need(isinstance(artifact[field], str) and digest_re.fullmatch(artifact[field]),
+                  f"invalid artifact digest: {field}")
+        trajectory_bytes = artifact["trajectory_payload"].encode("utf-8")
+        initial_state_bytes = artifact["initial_state_payload"].encode("utf-8")
+        _need(hashlib.sha256(trajectory_bytes).hexdigest() == artifact["trajectory_sha256"],
+              f"trajectory payload SHA-256 mismatch: {artifact['trajectory_id']}")
+        _need(hashlib.sha256(initial_state_bytes).hexdigest() == artifact["initial_state_sha256"],
+              f"initial-state payload SHA-256 mismatch: {artifact['trajectory_id']}")
+        _need(artifact["trajectory_id"] not in trajectory_artifacts, "duplicate trajectory artifact ID")
+        trajectory_artifacts[artifact["trajectory_id"]] = artifact
+
+    controller_artifacts: dict[str, dict[str, Any]] = {}
+    for artifact in doc["controller_artifacts"]:
+        _need(set(artifact) == {"controller_id", "controller_payload", "controller_sha256"},
+              "controller artifact keys do not match the v0.4 contract")
+        _need(isinstance(artifact["controller_id"], str) and artifact["controller_id"]
+              and isinstance(artifact["controller_payload"], str) and artifact["controller_payload"],
+              "controller artifacts require non-empty IDs and payloads")
+        digest = artifact["controller_sha256"]
+        _need(isinstance(digest, str) and digest_re.fullmatch(digest), "invalid controller artifact digest")
+        _need(hashlib.sha256(artifact["controller_payload"].encode("utf-8")).hexdigest() == digest,
+              f"controller payload SHA-256 mismatch: {artifact['controller_id']}")
+        _need(artifact["controller_id"] not in controller_artifacts, "duplicate controller artifact ID")
+        controller_artifacts[artifact["controller_id"]] = artifact
+    _need(set(controller_artifacts) == set(controllers), "controller artifacts do not match declared controllers")
+
     contracts = doc["gate_margin_contracts"]
     _need(set(contracts) == expected_gates, "gate margin contracts do not match declared gates")
     for gate, contract in contracts.items():
@@ -107,6 +147,18 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
         _need(case["case_id"] not in case_ids, "duplicate case ID")
         case_ids.add(case["case_id"])
         _need(case["controller_id"] in controllers, "undeclared controller")
+        for field in ("trajectory_sha256", "initial_state_sha256", "controller_artifact_sha256"):
+            _need(isinstance(case[field], str) and digest_re.fullmatch(case[field]),
+                  f"invalid case digest: {field}")
+        ta = trajectory_artifacts.get(case["trajectory_id"])
+        ca = controller_artifacts.get(case["controller_id"])
+        _need(ta is not None, "case references an undeclared trajectory artifact")
+        _need(ca is not None, "case references an undeclared controller artifact")
+        _need(case["trajectory_sha256"] == ta["trajectory_sha256"]
+              and case["initial_state_id"] == ta["initial_state_id"]
+              and case["initial_state_sha256"] == ta["initial_state_sha256"]
+              and case["controller_artifact_sha256"] == ca["controller_sha256"],
+              "case digest/ID binding does not match artifact registry")
         severity = case["severity"]
         _need(set(severity) == expected_axes, "severity axis set mismatch")
         for value in severity.values():
@@ -133,13 +185,15 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
         rows[key] = case
         trajectories.add(tid)
         meta = (case["comparison_group_id"], case["hazard_family"], case["initial_state_id"],
-                case["replicate_id"], json.dumps(severity, sort_keys=True))
+                case["replicate_id"], json.dumps(severity, sort_keys=True),
+                case["trajectory_sha256"], case["initial_state_sha256"])
         if tid in metadata:
             _need(metadata[tid] == meta, "paired rows differ in trajectory metadata")
         else:
             metadata[tid] = meta
 
     _need(bool(trajectories), "empty trajectory set")
+    _need(set(trajectory_artifacts) == trajectories, "trajectory artifacts do not match observed trajectory IDs")
     expected_pairs = {(controller, trajectory) for controller in controllers for trajectory in trajectories}
     _need(set(rows) == expected_pairs, "incomplete controller/trajectory matrix")
     return controllers, gates, sorted(trajectories)
@@ -201,8 +255,19 @@ def build_expected_report(doc: dict[str, Any]) -> dict[str, Any]:
             "mean_candidate_minus_reference_margin": sum(deltas) / len(deltas) if deltas else None,
             "minimum_candidate_minus_reference_margin": min(deltas) if deltas else None,
         })
+    trajectory_digest_map = {
+        tid: {
+            "trajectory_sha256": artifact["trajectory_sha256"],
+            "initial_state_id": artifact["initial_state_id"],
+            "initial_state_sha256": artifact["initial_state_sha256"],
+        }
+        for tid, artifact in sorted(trajectory_artifacts.items())
+    }
+    controller_digest_map = {
+        cid: artifact["controller_sha256"] for cid, artifact in sorted(controller_artifacts.items())
+    }
     return {
-        "schema_version": "0.3.0",
+        "schema_version": "0.4.0",
         "report_kind": "paired-resilience-comparison-report",
         "evidence_class": "synthetic_fixture",
         "status": "synthetic_only",
@@ -210,6 +275,11 @@ def build_expected_report(doc: dict[str, Any]) -> dict[str, Any]:
         "trajectory_count": len(trajectories),
         "case_count": len(doc["cases"]),
         "gate_margin_contracts": doc["gate_margin_contracts"],
+        "content_bindings": {
+            "trajectory_digests": trajectory_digest_map,
+            "controller_digests": controller_digest_map,
+            "payload_sha256_verification": "delegated_to_independent_verifier",
+        },
         "coverage": coverage,
         "paired_gate_comparisons": comparisons,
         "performance_claim": False,
@@ -234,7 +304,7 @@ def main(argv: list[str]) -> int:
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"verification failed: {exc}", file=sys.stderr)
         return 1
-    print("independent paired-comparison report verification passed (synthetic contract only)")
+    print("independent paired-comparison report and artifact SHA-256 verification passed (synthetic contract only)")
     return 0
 
 
