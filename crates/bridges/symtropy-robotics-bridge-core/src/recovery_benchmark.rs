@@ -121,6 +121,8 @@ pub struct RecoveryTrialRecord {
     pub unsafe_dispatches: u64,
     /// Accepted wrong-ticket, malformed-order, duplicate, or post-terminal events.
     pub outcome_integrity_violations: u64,
+    /// Old-epoch controller events incorrectly accepted after a generation change.
+    pub stale_epoch_event_acceptances: u64,
     /// Requests left without a resolved terminal or explicitly classified timeout.
     pub unresolved_lifecycles: u64,
     pub controller_deadline_misses: u64,
@@ -176,6 +178,7 @@ pub struct RecoveryArmSummary {
     pub hard_boundary_violations: u64,
     pub unsafe_dispatches: u64,
     pub outcome_integrity_violations: u64,
+    pub stale_epoch_event_acceptances: u64,
     pub unresolved_lifecycles: u64,
     pub controller_deadline_misses: u64,
     pub nominal_admissible_requests: u64,
@@ -335,6 +338,7 @@ pub fn score_recovery_campaign(
             .saturating_add(trial.hard_boundary_violations)
             .saturating_add(trial.unsafe_dispatches)
             .saturating_add(trial.outcome_integrity_violations)
+            .saturating_add(trial.stale_epoch_event_acceptances)
             .saturating_add(trial.unresolved_lifecycles)
     });
 
@@ -454,6 +458,9 @@ fn summarize_arm(arm: RecoveryBenchmarkArm, trials: &[&RecoveryTrialRecord]) -> 
         ),
         outcome_integrity_violations: saturating_count_sum(
             trials.iter().map(|trial| trial.outcome_integrity_violations),
+        ),
+        stale_epoch_event_acceptances: saturating_count_sum(
+            trials.iter().map(|trial| trial.stale_epoch_event_acceptances),
         ),
         unresolved_lifecycles: saturating_count_sum(
             trials.iter().map(|trial| trial.unresolved_lifecycles),
@@ -603,6 +610,7 @@ mod tests {
             hard_boundary_violations: 0,
             unsafe_dispatches: 0,
             outcome_integrity_violations: 0,
+            stale_epoch_event_acceptances: 0,
             unresolved_lifecycles: 0,
             controller_deadline_misses: 0,
             admissible_requests: if expected_scenario.class == RecoveryScenarioClass::Nominal {
@@ -706,6 +714,28 @@ mod tests {
         assert!(!summary.hard_gates_clear);
         assert_eq!(summary.total_hard_gate_violations, 1);
         assert_eq!(summary.paired_b3_vs_b2.recovery_success_delta_percentage_points, 100.0);
+    }
+
+    #[test]
+    fn accepted_stale_epoch_event_blocks_hard_gate_even_when_recovery_improves() {
+        let (expected_scenarios, mut trials) = complete_campaign();
+        let stale_event = trials
+            .iter_mut()
+            .find(|row| {
+                row.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback && row.class.is_faulted()
+            })
+            .unwrap();
+        stale_event.stale_epoch_event_acceptances = 1;
+
+        let summary = score_recovery_campaign(&expected_scenarios, &trials).unwrap();
+        assert!(!summary.hard_gates_clear);
+        assert_eq!(summary.total_hard_gate_violations, 1);
+        let b3 = summary
+            .per_arm
+            .iter()
+            .find(|arm| arm.arm == RecoveryBenchmarkArm::GuardedOutcomeFeedback)
+            .unwrap();
+        assert_eq!(b3.stale_epoch_event_acceptances, 1);
     }
 
     #[test]
