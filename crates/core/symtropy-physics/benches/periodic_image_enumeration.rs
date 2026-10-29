@@ -165,18 +165,30 @@ fn count_brute_force(corpus: &[(Aabb<2>, Aabb<2>)]) -> usize {
         .sum()
 }
 
-fn verify_oracle_inclusion(domain: &PeriodicBox<2>, corpus: &[(Aabb<2>, Aabb<2>)]) {
+fn verify_oracle_inclusion(
+    domain: &PeriodicBox<2>,
+    corpus: &[(Aabb<2>, Aabb<2>)],
+) -> (usize, usize) {
+    let mut production_count = 0_usize;
+    let mut oracle_count = 0_usize;
     for (case, (a, b)) in corpus.iter().enumerate() {
         let actual = image_offsets_for_aabb_pair(domain, a, b, MAX_CANDIDATES)
             .expect("preflight image candidates must fit the budget");
         let expected = brute_force_images(a, b);
-        for image in expected {
+        production_count += actual.len();
+        oracle_count += expected.len();
+        for image in &expected {
             assert!(
-                actual.contains(&image),
+                actual.contains(image),
                 "range formula omitted required image in case {case}: {image:?}"
             );
         }
     }
+    assert!(
+        production_count >= oracle_count,
+        "conservative candidate set cannot be smaller than the oracle set"
+    );
+    (production_count, oracle_count)
 }
 
 fn bench_periodic_image_enumeration(c: &mut Criterion) {
@@ -195,7 +207,17 @@ fn bench_periodic_image_enumeration(c: &mut Criterion) {
             FixtureKind::MultiImage,
         ] {
             let corpus = make_corpus(count, kind);
-            verify_oracle_inclusion(&domain, &corpus);
+            let (production_candidates, oracle_candidates) =
+                verify_oracle_inclusion(&domain, &corpus);
+            let extra_candidates = production_candidates - oracle_candidates;
+            eprintln!(
+                "PERIODIC_IMAGE_PREFLIGHT,v1,fixture={},pairs={},oracle_candidates={},production_candidates={},extra_candidates={}",
+                kind.label(),
+                count,
+                oracle_candidates,
+                production_candidates,
+                extra_candidates
+            );
             black_box(count_brute_force(&corpus));
             black_box(count_range_formula(&domain, &corpus));
 
