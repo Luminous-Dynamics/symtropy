@@ -98,7 +98,31 @@ Metrics include mean/median/P95/maximum absolute relative error, Spearman rank c
 
 `fixtures/surrogate_predictions_synthetic.csv` is deliberately synthetic and tests the metric implementation only. `fixtures/surrogate_predictions_domains_synthetic.csv` tests pooling safeguards across 50 Hz sinusoidal, 60 Hz sinusoidal and 50 Hz distorted-excitation domains. Neither fixture replicates the published paper, represents FEA output, or may be cited as a model result. When one file mixes frequencies or excitation classes, pooled error statistics remain descriptive but Spearman/top-k/regret fields are blank because candidate rankings across different operating domains are not like-for-like comparisons. The exact operating-domain rows provide the comparable ranking metrics. The evaluator assumes the split and source rows were frozen before model tuning; it cannot infer or authenticate data leakage from a CSV alone.
 
-Global deployment contract: see [GLOBAL_APPLICABILITY.md](GLOBAL_APPLICABILITY.md) and [PWR-TX-GLOBAL-001 #2872](https://github.com/Luminous-Dynamics/symtropy/issues/2872). The versioned profile contract is [region-profile.schema.json](profiles/region-profile.schema.json), with draft starting points for the [EU](profiles/eu-ecodesign-draft.json), [United States](profiles/us-distribution-draft.json), [India](profiles/india-distribution-draft.json), and [South Africa](profiles/south-africa-sans-utility-draft.json). All four country/region examples are explicitly DRAFT with zero reviewers; their existence is not a compliance determination. Current local editions, scope, utility clauses, amendments and source hashes must be independently verified before a profile can be promoted. UTC chronology, leap-year/DST validation and normalized tariff ingestion remain future implementation work.
+Global deployment contract: see [GLOBAL_APPLICABILITY.md](GLOBAL_APPLICABILITY.md) and [PWR-TX-GLOBAL-001 #2872](https://github.com/Luminous-Dynamics/symtropy/issues/2872). The versioned profile contract is [region-profile.schema.json](profiles/region-profile.schema.json), with draft starting points for the [EU](profiles/eu-ecodesign-draft.json), [United States](profiles/us-distribution-draft.json), [India](profiles/india-distribution-draft.json), and [South Africa](profiles/south-africa-sans-utility-draft.json). All four country/region examples are explicitly DRAFT with zero reviewers; their existence is not a compliance determination. Current local editions, scope, utility clauses, amendments and source hashes must be independently verified before a profile can be promoted. UTC annual interval continuity, leap-year accounting, explicit currency/year/price-basis and moment checks now have a standalone validator. IANA timezone/DST conversion validation and normalized tariff ingestion are still future work.
+
+## Global UTC trace validator
+
+The `global-trace-validate` binary implements a first slice of the global profile contract. It validates complete UTC calendar-year coverage (8,760 hours or 8,784 hours for leap years), requires canonical UTC timestamps, sorts intervals to detect gaps/overlaps, rejects duplicate interval IDs and inconsistent scenario metadata, checks mean-square-current consistency, and requires interval tariff currency/year/price-basis metadata.
+
+Example:
+
+```sh
+cargo run --release --manifest-path research/transformer-bench/Cargo.toml --bin global-trace-validate -- \
+  research/transformer-bench/fixtures/global-traces-common-year-synthetic.csv \
+  /tmp/global-trace-summary.csv
+
+cargo run --release --manifest-path research/transformer-bench/Cargo.toml --bin global-trace-validate -- \
+  research/transformer-bench/fixtures/global-traces-leap-year-synthetic.csv \
+  /tmp/global-trace-leap-summary.csv
+```
+
+Input header:
+
+`scenario_id,weight,period_start_utc,period_end_utc,source_timezone,interval_id,start_utc,end_utc,current_pu_mean,mean_square_current_pu2,price_per_kwh,currency_code,price_year,price_basis`
+
+Each scenario must have the same period metadata on every row, intervals that exactly cover January 1 00:00:00 UTC through the next January 1 00:00:00 UTC, and a weight consistent across its rows. Scenario weights in one file must sum to 1. The validator checks three-letter uppercase currency syntax only; it does not verify membership in the ISO 4217 registry or tariff legality. REAL/NOMINAL and price year must be explicit and consistent per scenario. The source timezone label is retained as metadata but is not checked against a timezone database. Supply UTC timestamps after any local-time/DST conversion has been performed and audited upstream.
+
+The synthetic common-year and leap-year fixtures check input integrity, not meter accuracy, source trace provenance, typical-year representativeness, tariff correctness, transformer physics or standards compliance. A valid trace is not evidence that the measurements came from the underlying metering system. The older loss-economics CLI remains a screening interface; migrate it to this trace contract only through a separately reviewed change.
 
 ## State-of-the-art comparator (not a result from this repository)
 
