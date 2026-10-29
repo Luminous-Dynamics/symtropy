@@ -225,14 +225,14 @@ fn bench_periodic_image_enumeration(c: &mut Criterion) {
 
             let case_label = format!("{}/pairs_{count}", kind.label());
             group.bench_with_input(
-                BenchmarkId::new("range_formula", &case_label),
+                BenchmarkId::new("range_formula", case_label.as_str()),
                 &corpus,
                 |b, corpus| {
                     b.iter(|| black_box(count_range_formula(&domain, black_box(corpus))))
                 },
             );
             group.bench_with_input(
-                BenchmarkId::new("brute_force_17_images", &case_label),
+                BenchmarkId::new("brute_force_17_images", case_label.as_str()),
                 &corpus,
                 |b, corpus| b.iter(|| black_box(count_brute_force(black_box(corpus)))),
             );
