@@ -24,6 +24,7 @@ symtropy-math = { version = "0.2.1", path = "../symtropy-math" }
 nalgebra = { version = "0.34", features = ["serde-serialize"] }
 serde = { version = "1.0", features = ["derive"] }
 arrayvec = "0.7"
+smallvec = "1.15"
 
 [dev-dependencies]
 proptest = "1.4"
@@ -35,4 +36,8 @@ path = "src/bin/replay_cli.rs"
 
 [[bench]]
 name = "physics_bench"
+harness = false
+
+[[bench]]
+name = "gjk_nd_bench"
 harness = false

@@ -69,6 +69,27 @@ converged GJK != validated physical model
 no indeterminate queries != physical validation
 ```
 
+## Experimental N-D GJK envelope
+
+The current GJK implementation uses different bounded simplex reducers by dimension:
+
+- D=2/3: specialized line/triangle/tetrahedron paths.
+- D=4: exhaustive closest-point reduction over at most 31 simplex faces.
+- D=1 and D>=5: dimension-generic minimum-norm active-set reduction, with reorthogonalized QR for the affine minimizer.
+
+The GJK paths return `Indeterminate(DynamicRangeLimit)` when squared-distance arithmetic underflows into the subnormal range or overflows. This explicitly rejects false contact results caused by finite coordinates whose squared norms are not reliably representable; it is a numerical range boundary, not a claim that the geometry itself is invalid.
+
+The higher-dimensional path is an **experimental GJK intersection-classification path**, not a certification that the entire physics engine is N-D. The conformance campaign currently covers analytic sphere cases in D=5, axis-aligned hyperboxes in D=1/5/6/8/16, and deterministic independently SAT-checked rotated hyperboxes in D=5/6. The frozen randomized Python screening found no false definitive classifications on the tested panels, but still found some Indeterminate outcomes; that screening is not Rust test evidence. Exact-head Rust tests and CI are required before promotion.
+
+The active-set reducer avoids exponential enumeration of all simplex faces, but it is not a proof of low cost in arbitrarily large D. It performs dense affine solves and uses O(D^2) storage for worst-case active simplex/QR work, and the current implementation can allocate on higher-dimensional queries. Report latency and uncertainty by D; do not collapse dimensions into one average or assume the 3D performance profile transfers to high dimensions.
+
+The N-D claim boundary is deliberate:
+
+- GJK can return Intersecting, Separated, or Indeterminate.
+- EPA for D>=4 may use a bounding-sphere penetration approximation when given an under-dimensional seed simplex.
+- GJK conformance does not certify N-D penetration depth, contact manifolds, friction constraints, full rigid-body response, or high-D efficiency.
+- See [PHYS-EPA-ND-001](https://github.com/Luminous-Dynamics/symtropy/issues/2865) for the separate penetration-seed/approximation work.
+
 ### Tier A — Local mathematical contract
 
 A unit or property test verifies an identity or invariant with explicit
