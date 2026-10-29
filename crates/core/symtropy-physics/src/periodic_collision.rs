@@ -208,7 +208,13 @@ pub struct PeriodicSphereCcdHit<const D: usize> {
 /// Swept AABBs enumerate every image that could collide over the interval. The
 /// earliest hit is returned; exact-time ties choose the lexicographically
 /// smaller image offset. Only one first-hit result is produced for a body pair.
-pub fn sphere_sphere_ccd_periodic<const D: usize>(
+/// Enumerate all periodic image sphere-sphere hits during a linear sweep.
+///
+/// Each image's analytic CCD result is returned separately, sorted by TOI and
+/// then lexicographically by image offset. This permits event-driven callers
+/// to suppress a just-resolved zero-time image while still considering a later
+/// collision with another periodic image of the same body pair.
+pub fn sphere_sphere_ccd_periodic_all<const D: usize>(
     domain: &PeriodicBox<D>,
     position_a: &SVector<f64, D>,
     velocity_a: &SVector<f64, D>,
@@ -218,7 +224,7 @@ pub fn sphere_sphere_ccd_periodic<const D: usize>(
     radius_b: f64,
     dt: f64,
     max_image_candidates: usize,
-) -> Result<Option<PeriodicSphereCcdHit<D>>, PeriodicCollisionError> {
+) -> Result<Vec<PeriodicSphereCcdHit<D>>, PeriodicCollisionError> {
     if D == 0 {
         return Err(PeriodicCollisionError::UnsupportedDimension { dimension: D });
     }
@@ -264,13 +270,7 @@ pub fn sphere_sphere_ccd_periodic<const D: usize>(
     let offsets =
         image_offsets_for_aabb_pair(domain, &swept_a, &swept_b, max_image_candidates)?;
     let images_tested = offsets.len();
-
-    let mut best: Option<(
-        LatticeOffset<D>,
-        f64,
-        SVector<f64, D>,
-        SVector<f64, D>,
-    )> = None;
+    let mut hits = Vec::new();
 
     for offset in offsets {
         let shift = domain.offset_vector(offset)?;
@@ -297,26 +297,54 @@ pub fn sphere_sphere_ccd_periodic<const D: usize>(
                 });
             }
 
-            let replace = match &best {
-                None => true,
-                Some((best_offset, best_toi, _, _)) => {
-                    toi < *best_toi || (toi == *best_toi && offset.periods < best_offset.periods)
-                }
-            };
-            if replace {
-                best = Some((offset, toi, hit.point, hit.normal));
-            }
+            hits.push(PeriodicSphereCcdHit {
+                image_offset: offset,
+                toi_seconds: toi,
+                toi_fraction: (toi / dt).clamp(0.0, 1.0),
+                point: hit.point,
+                normal: hit.normal,
+                images_tested,
+            });
         }
     }
 
-    Ok(best.map(|(image_offset, toi_seconds, point, normal)| PeriodicSphereCcdHit {
-        image_offset,
-        toi_seconds,
-        toi_fraction: (toi_seconds / dt).clamp(0.0, 1.0),
-        point,
-        normal,
-        images_tested,
-    }))
+    hits.sort_by(|a, b| {
+        a.toi_seconds
+            .total_cmp(&b.toi_seconds)
+            .then_with(|| a.image_offset.periods.cmp(&b.image_offset.periods))
+    });
+    Ok(hits)
+}
+
+/// First periodic sphere-sphere time of impact found by complete bounded image
+/// enumeration. This is a convenience wrapper over the all-image query.
+pub fn sphere_sphere_ccd_periodic<const D: usize>(
+    domain: &PeriodicBox<D>,
+    position_a: &SVector<f64, D>,
+    velocity_a: &SVector<f64, D>,
+    radius_a: f64,
+    position_b: &SVector<f64, D>,
+    velocity_b: &SVector<f64, D>,
+    radius_b: f64,
+    dt: f64,
+    max_image_candidates: usize,
+) -> Result<Option<PeriodicSphereCcdHit<D>>, PeriodicCollisionError> {
+    let mut hits = sphere_sphere_ccd_periodic_all(
+        domain,
+        position_a,
+        velocity_a,
+        radius_a,
+        position_b,
+        velocity_b,
+        radius_b,
+        dt,
+        max_image_candidates,
+    )?;
+    Ok(if hits.is_empty() {
+        None
+    } else {
+        Some(hits.remove(0))
+    })
 }
 
 #[cfg(test)]
@@ -394,6 +422,26 @@ mod tests {
         assert!((hit.toi_seconds - 0.25).abs() < 1e-12);
         assert!((hit.toi_fraction - 0.25).abs() < 1e-12);
         assert!(hit.images_tested >= 1);
+    }
+
+    #[test]
+    fn sphere_ccd_all_images_keeps_later_image_hits() {
+        let domain = x_periodic_domain();
+        let hits = sphere_sphere_ccd_periodic_all(
+            &domain,
+            &SVector::from([5.0, 0.0]),
+            &SVector::zeros(),
+            0.2,
+            &SVector::from([0.0, 0.0]),
+            &SVector::from([30.0, 0.0]),
+            0.2,
+            1.0,
+            8,
+        )
+        .unwrap();
+        assert!(hits.len() >= 2);
+        assert!(hits.windows(2).all(|pair| pair[0].toi_seconds <= pair[1].toi_seconds));
+        assert_ne!(hits[0].image_offset, hits[1].image_offset);
     }
 
     #[test]
