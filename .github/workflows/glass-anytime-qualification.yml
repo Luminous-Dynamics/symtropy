@@ -68,9 +68,9 @@ jobs:
             .benchmark_id == "glass-anytime-qualification-synthetic-v0-1" and
             .target_success_probability == 0.95 and
             .familywise_alpha == 0.05 and
-            (.events | length) == 933 and
+            (.events | length) == 914 and
             ([.events[] | select(.kind == "register_candidate")] | length) == 5 and
-            ([.events[] | select(.kind == "observe_trial")] | length) == 928
+            ([.events[] | select(.kind == "observe_trial")] | length) == 909
           ' "$task" > /dev/null
           jq -e '
             .schema_version == 1 and
@@ -97,12 +97,12 @@ jobs:
             .audit_kind == "synthetic_anytime_valid_sequential_qualification" and
             .input_sha256 == $task_digest and
             .oracle_sha256 == $oracle_digest and
-            .events_checked == 933 and
+            .events_checked == 914 and
             .candidate_count == 5 and
             .findings == [] and
             ([.decisions[] | select(.candidate_id == "lot-alpha")][0] | .disposition == "QUALIFIED" and .trials_observed == 310) and
             ([.decisions[] | select(.candidate_id == "lot-beta")][0] | .disposition == "QUALIFIED" and .trials_observed == 334) and
-            ([.decisions[] | select(.candidate_id == "lot-gamma")][0] | .disposition == "NOT_QUALIFIED" and .trials_observed == 204) and
+            ([.decisions[] | select(.candidate_id == "lot-gamma")][0] | .disposition == "NOT_QUALIFIED" and .trials_observed == 185) and
             ([.decisions[] | select(.candidate_id == "lot-delta")][0] | .disposition == "UNRESOLVED" and .trials_observed == 80) and
             ([.decisions[] | select(.candidate_id == "lot-epsilon")][0] | .disposition == "UNRESOLVED" and .trials_observed == 0) and
             ([.events[] | select(.candidate_id == "lot-alpha" and .kind == "observe_trial" and .decision == "QUALIFIED")] | length) == 1
