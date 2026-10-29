@@ -65,7 +65,7 @@ The operational decision is:
 - **NOT_QUALIFIED** when \(\log E_n^-\ge-\log\delta_i\).
 - **UNRESOLVED** otherwise.
 
-Each tail is computed in log space. The integral has a beta-function form; with integer successes/failures, its incomplete-beta terms reduce to binomial tails. The implementation uses stable log-sum-exp binomial tails and log-factorials, avoiding raw likelihood underflow. The test suite checks known values and the martingale identity under the null boundary across sample counts through 48.
+Each tail is computed in log space. The integral has a beta-function form; with integer successes/failures, its incomplete-beta terms reduce to binomial tails. The implementation uses stable log-sum-exp binomial tails and log-factorials, avoiding raw likelihood underflow. The test suite checks known values, the martingale identity under the null boundary through sample count 48, and supermartingale inequalities over composite-null probability grids on both sides of the boundary through sample count 32.
 
 ## Known-answer paired comparison
 
