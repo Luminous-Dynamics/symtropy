@@ -80,6 +80,8 @@ def verify_receipt_set(paired: dict[str, Any], receipts: list[dict[str, Any]]) -
 
         resource_limits_by_case[case_id] = receipt["resource_limits"]
         roles = inventory_by_role(receipt)
+        need(roles["controller_artifact"]["sha256"] == binding["controller_artifact_sha256"],
+             f"receipt controller artifact inventory is not bound to its paired input: {controller_id}")
         for role in SHARED_GLOBAL_ROLES:
             digest = roles[role]["sha256"]
             previous = global_role_digests.get(role)
