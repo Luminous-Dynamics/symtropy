@@ -48,7 +48,7 @@ pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use periodic_collision::{
     PeriodicCollisionError, PeriodicCollisionHit, PeriodicCollisionQuery,
     PeriodicCollisionStatus, PeriodicSphereCcdHit, query_periodic_convex,
-    sphere_sphere_ccd_periodic,
+    sphere_sphere_ccd_periodic, sphere_sphere_ccd_periodic_all,
 };
 pub use periodic_broadphase::{
     PeriodicBroadphaseError, image_offsets_for_aabb_pair, swept_aabb_linear, translate_aabb,
