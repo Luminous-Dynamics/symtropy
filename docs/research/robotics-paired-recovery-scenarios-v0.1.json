@@ -188,7 +188,7 @@
         "ticket_before",
         "late_old_event_schedule"
       ],
-      "expected_boundary": "Old-session/old-ticket outcomes must not be treated as current after restart. If durable epoch/rekey support is absent, report capability not implemented and fail the corresponding gate."
+      "expected_boundary": "Old-session/old-ticket outcomes must not be treated as current after restart, including when native ticket strings are reused. The integration must use an authoritative, restart-safe monotonic controller generation; missing, rolled-back, or unavailable generation evidence fails closed. If durable epoch/rekey support is absent, report capability not implemented and fail the corresponding gate."
     }
   ],
   "preregistration_rules": [

@@ -8,6 +8,7 @@ pub mod assurance;
 pub mod control;
 pub mod differential_drive;
 pub mod dispatch;
+pub mod epoch_fence;
 pub mod outcome_ledger;
 pub mod recovery_benchmark;
 pub mod haptic;
@@ -28,6 +29,9 @@ pub use control::{
 pub use differential_drive::{
     CommandProvenance, DifferentialDriveAdapter, DifferentialDriveClock, DifferentialDriveCommand,
     DifferentialDriveConfigError, DifferentialDriveLocalController,
+};
+pub use epoch_fence::{
+    ControllerEpoch, EpochFenceError, EpochFencedOutcomeLedger,
 };
 pub use dispatch::{
     AuthenticatedSession, ControllerDispatchContext, ControllerReceipt, ControllerSink,

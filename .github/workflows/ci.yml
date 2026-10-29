@@ -5,7 +5,7 @@ on:
     branches: [ "main", "stabilize/*" ]
   pull_request:
     # Also run exact-head conformance for the stacked robotics adapter series.
-    branches: [ "main", "research/robotics-explicit-legacy-motor-opt-in-v0-1", "research/differential-drive-native-adapter-v0-1", "research/outcome-lifecycle-ledger-v0-1", "research/paired-robotics-recovery-benchmark-v0-1", "research/paired-robotics-recovery-scorer-v0-1" ]
+    branches: [ "main", "research/robotics-explicit-legacy-motor-opt-in-v0-1", "research/differential-drive-native-adapter-v0-1", "research/outcome-lifecycle-ledger-v0-1", "research/paired-robotics-recovery-benchmark-v0-1", "research/paired-robotics-recovery-scorer-v0-1", "research/controller-epoch-fence-v0-1" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

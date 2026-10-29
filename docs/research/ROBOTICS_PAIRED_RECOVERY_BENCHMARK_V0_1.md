@@ -55,7 +55,7 @@ The JSON manifest names six failure classes. The runner must freeze each family'
 3. **Actuator degradation:** a bounded reduction in available drive authority, with the native controller and its limits left active.
 4. **Environment or goal change:** introduce a route obstruction or change in the feasible goal after the nominal plan begins.
 5. **Outcome-stream disorder:** delayed, duplicated, or reordered outcome events, including terminal-event replay attempts.
-6. **Controller/session interruption:** restart or session rekey at a declared lifecycle point; old-ticket/old-session outcomes must not be silently treated as current after restart.
+6. **Controller/session interruption:** restart or session rekey at a declared lifecycle point; old-ticket/old-session outcomes must not be silently treated as current after restart. The controller-generation source must be restart-safe and monotonic; reject a prior-epoch event even if the new controller reused the same ticket string. A missing, rolled-back, or unavailable authoritative generation fails closed.
 
 Severity values are relative to the pinned task/controller profile (e.g., update periods, configured freshness limits, and permitted actuator range), not universal thresholds. The task-profile must state the exact numerical injection, units, time/tick, and deterministic expected boundary behavior. Do not run scored episodes while those values remain unspecified.
 
@@ -90,6 +90,7 @@ A mock sink proves only interface behavior in that fixture. Simulation proves on
 - Dispatch sink call counts by decision class.
 - Invalid/expired/vetoed dispatch count.
 - Wrong-ticket, unknown-request, duplicate-tick, backward-time, illegal-transition, and post-terminal-event rejection counts.
+- Stale-epoch event acceptance count; any accepted event from a prior controller generation is a non-compensatory hard-gate failure, including when ticket strings are reused after restart.
 - Controller outcome coverage: registered submitted requests with terminal outcome, failed/expired lifecycle, and unresolved/time-out lifecycle.
 - Session/restart fencing outcomes and stale-event rejection.
 - False-veto rate on a frozen nominal corpus, with a declared definition and denominator.
