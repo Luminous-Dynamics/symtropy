@@ -23,6 +23,10 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
       - ".github/workflows/polar-resilience-paired-comparison.yml"
+      - "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json"
       - "research/polar-infrastructure/benchmark/schemas/long-horizon-resilience-contract-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/src/bin/long_horizon_contract.rs"
@@ -64,6 +68,10 @@ on:
       - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_v0_2_verifier.py"
       - "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
       - ".github/workflows/polar-resilience-paired-comparison.yml"
+      - "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs"
+      - "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json"
+      - "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/fixtures/long-horizon-resilience-contract-2026.json"
       - "research/polar-infrastructure/benchmark/schemas/long-horizon-resilience-contract-0.1.0.schema.json"
       - "research/polar-infrastructure/benchmark/src/bin/long_horizon_contract.rs"
@@ -451,6 +459,19 @@ jobs:
             .counterexample_search_extension.all_admission_gates_false == true and
             .counterexample_search_extension.performance_claim == "none" and
             .counterexample_search_extension.synthetic_oracle_is_physical_evidence == false and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.status == "smoke_implementation_committed" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.binary_path == "research/polar-infrastructure/benchmark/src/bin/analytic_counterexample_track.rs" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.golden_fixture_path == "research/polar-infrastructure/benchmark/fixtures/analytic-counterexample-known-answer-2026.json" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.fixture_schema_path == "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-known-answer-0.1.0.schema.json" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.report_schema_path == "research/polar-infrastructure/benchmark/schemas/analytic-counterexample-track-report-0.1.0.schema.json" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.arm_count == 4 and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.search_calls_per_arm == 38 and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.replay_calls_per_arm == 2 and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.total_oracle_invocations_per_arm == 40 and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.evidence_class == "synthetic_known_answer" and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.physical_evidence == false and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.controller_superiority_claim == false and
+            .counterexample_search_extension.analytic_known_answer_smoke_track.industry_sota_claim == false and
             .result_policy.report_kind == "preregistration_contract_only_no_performance_results"
           ' "$contract"
           test -s research/polar-infrastructure/benchmark/RESILIENCE_BENCHMARK_SCORECARD_2026.md
