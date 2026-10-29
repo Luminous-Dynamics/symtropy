@@ -138,10 +138,9 @@ fn parse_zone_data<T>(
             if label.trim().is_empty() {
                 return Err(format!("line {source_line}: zone label is empty"));
             }
-            if zone_counts.contains_key(&label) {
+            if zone_counts.insert(label.clone(), 0).is_some() {
                 return Err(format!("line {source_line}: duplicate zone label {label}"));
             }
-            zone_counts.insert(label.clone(), 0);
             zone = Some(label);
             continue;
         }
