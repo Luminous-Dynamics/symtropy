@@ -161,6 +161,12 @@ jobs:
             .execution_state == "not_executed" and
             .execution_performed == false and
             .scoring_eligible == false and
+            .execution_attestation.scheme == "none" and
+            .execution_attestation.status == "not_implemented" and
+            .execution_attestation.issuer_id == null and
+            .execution_attestation.signature_bundle_sha256 == null and
+            .claim_policy.scoring_requires_signed_execution_attestation == true and
+            .claim_policy.signed_execution_attestation_verifier_implemented == false and
             .independent_verification.status == "not_run" and
             all(.observed_resources[]; . == null) and
             (.artifact_inventory | length == 7) and
