@@ -230,6 +230,7 @@ fn bench_dimension<const D: usize>(criterion: &mut Criterion) {
 
 fn bench_gjk_nd(criterion: &mut Criterion) {
     // D=3/4 are specialized-path controls; D>=5 exercises the active set.
+    bench_dimension::<1>(criterion);
     bench_dimension::<3>(criterion);
     bench_dimension::<4>(criterion);
     bench_dimension::<5>(criterion);
