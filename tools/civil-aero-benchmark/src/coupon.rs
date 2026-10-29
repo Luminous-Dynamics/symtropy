@@ -263,7 +263,18 @@ impl TriangleMesh {
     }
 
     pub fn json_manifest(&self, spec: CouponSpec, output_file: &str) -> Result<String, String> {
+        spec.validate()?;
+        let expected = generate_coupon(spec)?;
+        if self != &expected {
+            return Err("manifest spec does not match the exact generated profile mesh".to_owned());
+        }
         let audit = self.audit()?;
+        if !audit.watertight_two_manifold
+            || !audit.orientation_consistent
+            || audit.signed_volume_mm3 <= 0.0
+        {
+            return Err("refusing to manifest a mesh that fails closed-volume/orientation checks".to_owned());
+        }
         let escaped_output = json_escape(output_file);
         Ok(format!(
             concat!(
@@ -418,6 +429,21 @@ mod tests {
         let mut bad_resolution = spec();
         bad_resolution.chordwise_panels = 8;
         assert!(generate_coupon(bad_resolution).is_err());
+    }
+
+    #[test]
+    fn refuses_manifest_when_spec_does_not_match_geometry() {
+        let mesh = generate_coupon(spec()).expect("coupon mesh");
+        let mut wrong_spec = spec();
+        wrong_spec.span_mm += 1.0;
+        assert!(mesh.json_manifest(wrong_spec, "coupon.stl").is_err());
+    }
+
+    #[test]
+    fn refuses_manifest_for_modified_mesh() {
+        let mut mesh = generate_coupon(spec()).expect("coupon mesh");
+        mesh.triangles.pop();
+        assert!(mesh.json_manifest(spec(), "coupon.stl").is_err());
     }
 
     #[test]
