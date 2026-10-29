@@ -318,6 +318,17 @@ impl<const D: usize> AffineRegionMap<D> {
         Ok(mapped)
     }
 
+    pub fn map_time(&self, time: f64) -> Result<f64, RegionGraphError> {
+        if !time.is_finite() {
+            return Err(RegionGraphError::InvalidMap { field: "input time" });
+        }
+        let mapped = self.time_scale * time + self.time_offset;
+        if !mapped.is_finite() {
+            return Err(RegionGraphError::InvalidMap { field: "mapped time" });
+        }
+        Ok(mapped)
+    }
+
     pub fn map_velocity(
         &self,
         velocity: &SVector<f64, D>,
@@ -350,6 +361,7 @@ impl<const D: usize> AffineRegionMap<D> {
         let gram = self.linear.transpose() * self.linear;
         (gram - SMatrix::<f64, D, D>::identity()).norm() <= tolerance
             && (self.time_scale - 1.0).abs() <= tolerance
+            && self.time_offset.abs() <= tolerance
     }
 
     pub fn validate(&self) -> Result<(), RegionGraphError> {
@@ -614,6 +626,8 @@ pub struct RegionState<const D: usize> {
     pub revision: u64,
     pub position: SVector<f64, D>,
     pub velocity: SVector<f64, D>,
+    /// Time in this region's declared local clock and time unit.
+    pub local_time: f64,
     pub mass: f64,
 }
 
@@ -627,6 +641,9 @@ impl<const D: usize> RegionState<D> {
         }
         if !self.velocity.iter().all(|value| value.is_finite()) {
             return Err(RegionTransitionError::InvalidState { field: "velocity" });
+        }
+        if !self.local_time.is_finite() {
+            return Err(RegionTransitionError::InvalidState { field: "local_time" });
         }
         Ok(())
     }
@@ -860,6 +877,11 @@ impl<const D: usize> RegionStateStore<D> {
         if before.region != interface.source {
             return Err(RegionTransitionError::WrongSourceRegion);
         }
+        if request.direction == CrossingDirection::Either {
+            return Err(RegionTransitionError::InvalidRequest {
+                field: "direction must identify an observed crossing direction",
+            });
+        }
         if interface.allowed_direction != CrossingDirection::Either
             && interface.allowed_direction != request.direction
         {
@@ -874,6 +896,7 @@ impl<const D: usize> RegionStateStore<D> {
             .ok_or(RegionGraphError::UnknownRegion { id: interface.target })?;
         let mapped_position = interface.map.map_position(&before.position)?;
         let mut mapped_velocity = interface.map.map_velocity(&before.velocity)?;
+        let mapped_time = interface.map.map_time(before.local_time)?;
 
         if !interface.target_boundary.contains(&mapped_position) {
             return Err(RegionTransitionError::OutsideTargetBoundary);
@@ -924,6 +947,7 @@ impl<const D: usize> RegionStateStore<D> {
             revision: target_revision,
             position: mapped_position,
             velocity: mapped_velocity,
+            local_time: mapped_time,
             mass: before.mass,
         };
         after.validate()?;
@@ -1085,6 +1109,7 @@ mod tests {
             revision: 7,
             position: SVector::from([0.0, 0.25]),
             velocity: SVector::from([1.0, 0.0]),
+            local_time: 12.0,
             mass: 2.0,
         }
     }
@@ -1234,7 +1259,7 @@ mod tests {
         let result = store.transition(&graph, {
             let mut req = request(104);
             req.interface_id = InterfaceId(12);
-            req.direction = CrossingDirection::Either;
+            req.direction = CrossingDirection::NegativeToPositive;
             req.momentum_exchange = SVector::zeros();
             req
         });
@@ -1272,7 +1297,7 @@ mod tests {
 
         let mut request_bad = request(105);
         request_bad.interface_id = InterfaceId(13);
-        request_bad.direction = CrossingDirection::Either;
+        request_bad.direction = CrossingDirection::NegativeToPositive;
         request_bad.momentum_exchange = SVector::from([2.0, 0.0]);
         request_bad.energy_exchange = 1.0; // target v=2, KE rises from 1 to 4: delta=3
         assert_eq!(
@@ -1285,7 +1310,7 @@ mod tests {
 
         let mut request_good = request(106);
         request_good.interface_id = InterfaceId(13);
-        request_good.direction = CrossingDirection::Either;
+        request_good.direction = CrossingDirection::NegativeToPositive;
         request_good.momentum_exchange = SVector::from([2.0, 0.0]);
         request_good.energy_exchange = 3.0;
         assert!(matches!(
