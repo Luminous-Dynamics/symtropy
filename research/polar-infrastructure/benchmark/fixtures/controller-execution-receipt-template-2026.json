@@ -99,7 +99,9 @@
     "synthetic_payloads_are_execution_evidence": false,
     "scoring_requires_completed_execution": true,
     "scoring_requires_independent_output_hash_verification": true,
-    "resource_limits_must_be_shared_across_comparison_arms": true
+    "resource_limits_must_be_shared_across_comparison_arms": true,
+    "scoring_requires_signed_execution_attestation": true,
+    "signed_execution_attestation_verifier_implemented": false
   },
   "independent_verification": {
     "status": "not_run",
@@ -107,5 +109,14 @@
     "verifier_revision": null,
     "verified_artifact_count": 0
   },
-  "resource_limits_sha256": "d10e74e821251468931e6a264633745c354aa81fb2b2f2e9ec79756dc26deb3c"
+  "resource_limits_sha256": "d10e74e821251468931e6a264633745c354aa81fb2b2f2e9ec79756dc26deb3c",
+  "execution_attestation": {
+    "scheme": "none",
+    "status": "not_implemented",
+    "issuer_id": null,
+    "signature_bundle_sha256": null,
+    "signed_payload_sha256": null,
+    "verifier_id": null,
+    "verifier_revision": null
+  }
 }
