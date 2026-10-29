@@ -39,8 +39,10 @@ Start with one calibrated-to-the-simulator differential-drive model and one froz
 
 The manifest defines:
 - **30 nominal seed cases**;
-- **6 fault families × 3 severities × 30 paired seeds = 540 fault cases**;
-- **570 unique scenario identities, each executed in all four arms = 2,280 episode records** before reruns.
+- five fault families with 3 severities each and one restart/authority family with 6 severities: (5 × 3 × 30) + (1 × 6 × 30) = **630 fault cases**;
+- **660 unique scenario identities**, each executed in all four arms = **2,640 arm-episode records** before reruns.
+
+The restart/authority family has more severities because it distinguishes restart position, authority-store unavailability/corruption, generation rollback/stale replica, and concurrent generation claims. The machine-readable manifest is the source of truth; campaign tooling should derive counts from each family's actual severity list rather than assume every fault family has the same size.
 
 The same scenario ID, seed, initial state, route/map, sensor input, fault injection tick, and simulation settings must be paired across all arms. Seed values are the frozen integers in `robotics-paired-recovery-scenarios-v0.1.json`; do not add or remove seeds after seeing results. A new manifest revision is a new experiment, not a silent replacement.
 
