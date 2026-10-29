@@ -684,6 +684,11 @@ fn normalize_weights(
 
 /// Compute the minimum-norm point in the affine hull of the active vertices.
 /// Returns barycentric weights, or None if the Gram system is numerically singular.
+/// Compute the minimum-norm point in the affine hull of active vertices.
+///
+/// Uses twice-reorthogonalized modified Gram–Schmidt QR instead of solving
+/// normal equations EᵀE λ = -Eᵀb. The normal equations square the condition
+/// number; that is especially harmful when an N-D simplex is nearly degenerate.
 fn affine_minimum_weights<const D: usize>(
     points: &Simplex<D>,
     active: &[usize],
@@ -700,78 +705,77 @@ fn affine_minimum_weights<const D: usize>(
     let base = points[*active.first()?];
     let edge_count = active.len() - 1;
     let mut edges: SmallVec<[SVector<f64, D>; MAX_SIMPLEX]> = SmallVec::new();
+    let mut edge_scale = 0.0_f64;
     for index in active.iter().skip(1) {
-        edges.push(points[*index] - base);
-    }
-
-    let mut matrix = vec![0.0f64; edge_count * edge_count];
-    let mut rhs = vec![0.0f64; edge_count];
-    for row in 0..edge_count {
-        rhs[row] = -edges[row].dot(&base);
-        for column in 0..edge_count {
-            matrix[row * edge_count + column] = edges[row].dot(&edges[column]);
-        }
-    }
-    let solution = solve_dense_system(&mut matrix, &mut rhs, edge_count)?;
-    let mut weights = SmallVec::<[f64; MAX_SIMPLEX]>::new();
-    let mut sum = 0.0;
-    for value in solution.iter() {
-        weights.push(*value);
-        sum += *value;
-    }
-    weights.insert(0, 1.0 - sum);
-    if weights.iter().all(|weight| weight.is_finite()) {
-        Some(weights)
-    } else {
-        None
-    }
-}
-
-/// Partial-pivoted dense solve. The matrix size is at most D.
-fn solve_dense_system(matrix: &mut [f64], rhs: &mut [f64], size: usize) -> Option<Vec<f64>> {
-    if size == 0 || matrix.len() != size * size || rhs.len() != size {
-        return None;
-    }
-    let scale = matrix
-        .iter()
-        .fold(0.0f64, |largest, value| largest.max(value.abs()));
-    if !scale.is_finite() || scale == 0.0 {
-        return None;
-    }
-    for column in 0..size {
-        let mut pivot = column;
-        for row in (column + 1)..size {
-            if matrix[row * size + column].abs() > matrix[pivot * size + column].abs() {
-                pivot = row;
-            }
-        }
-        if matrix[pivot * size + column].abs() <= scale * 64.0 * f64::EPSILON {
+        let edge = points[*index] - base;
+        let edge_norm = edge.norm();
+        if !edge_norm.is_finite() {
             return None;
         }
-        if pivot != column {
-            for entry in 0..size {
-                matrix.swap(column * size + entry, pivot * size + entry);
+        edge_scale = edge_scale.max(edge_norm);
+        edges.push(edge);
+    }
+    if edge_scale == 0.0 {
+        return None;
+    }
+
+    // Columns of E are the active edges; E = Q R. The affine minimizer solves
+    // R λ = -Qᵀ base. Each edge is reorthogonalized once to limit loss of
+    // orthogonality for skinny, high-dimensional simplexes.
+    let mut orthonormal: SmallVec<[SVector<f64, D>; MAX_SIMPLEX]> = SmallVec::new();
+    let mut upper = vec![0.0_f64; edge_count * edge_count];
+    for column in 0..edge_count {
+        let mut residual = edges[column];
+        for _ in 0..2 {
+            for row in 0..column {
+                let coefficient = orthonormal[row].dot(&residual);
+                if !coefficient.is_finite() {
+                    return None;
+                }
+                upper[row * edge_count + column] += coefficient;
+                residual -= orthonormal[row] * coefficient;
             }
-            rhs.swap(column, pivot);
         }
 
-        let diagonal = matrix[column * size + column];
-        for entry in column..size {
-            matrix[column * size + entry] /= diagonal;
+        let diagonal = residual.norm();
+        if !diagonal.is_finite()
+            || diagonal <= 64.0 * f64::EPSILON * edge_scale
+        {
+            return None;
         }
-        rhs[column] /= diagonal;
-        for row in 0..size {
-            if row == column {
-                continue;
-            }
-            let factor = matrix[row * size + column];
-            for entry in column..size {
-                matrix[row * size + entry] -= factor * matrix[column * size + entry];
-            }
-            rhs[row] -= factor * rhs[column];
+        upper[column * edge_count + column] = diagonal;
+        orthonormal.push(residual / diagonal);
+    }
+
+    let mut solution = vec![0.0_f64; edge_count];
+    for row in 0..edge_count {
+        solution[row] = -orthonormal[row].dot(&base);
+        if !solution[row].is_finite() {
+            return None;
         }
     }
-    rhs.iter().all(|value| value.is_finite()).then(|| rhs.to_vec())
+    for row in (0..edge_count).rev() {
+        for column in (row + 1)..edge_count {
+            solution[row] -= upper[row * edge_count + column] * solution[column];
+        }
+        let diagonal = upper[row * edge_count + row];
+        if !diagonal.is_finite() || diagonal == 0.0 {
+            return None;
+        }
+        solution[row] /= diagonal;
+        if !solution[row].is_finite() {
+            return None;
+        }
+    }
+
+    let mut weights = SmallVec::<[f64; MAX_SIMPLEX]>::new();
+    let mut sum = 0.0;
+    for value in solution {
+        weights.push(value);
+        sum += value;
+    }
+    weights.insert(0, 1.0 - sum);
+    weights.iter().all(|weight| weight.is_finite()).then_some(weights)
 }
 
 /// GJK path for 4D using an exhaustive closest-point reduction over simplex faces.
