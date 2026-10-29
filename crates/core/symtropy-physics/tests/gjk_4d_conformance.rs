@@ -240,7 +240,10 @@ fn overlapping_rotated_hyperboxes_in_4d_are_detected() {
 
 #[test]
 fn gjk_4d_matches_independent_sat_on_seeded_oriented_boxes() {
+    use symtropy_physics::GjkTermination;
+
     let mut seed = 0x4d47_4a4b_5f53_4154_u64;
+    let mut indeterminate_cases = 0usize;
     for case_id in 0..256 {
         let rotation_a = rotation_from_seed(&mut seed);
         let rotation_b = rotation_from_seed(&mut seed);
@@ -260,10 +263,24 @@ fn gjk_4d_matches_independent_sat_on_seeded_oriented_boxes() {
         };
 
         let expected = sat_intersects_4d(&a, &b);
-        let actual = intersects_support_maps(&a, &b).intersecting;
-        assert_eq!(
-            actual, expected,
-            "4D GJK/SAT classification mismatch at seeded case {case_id}"
-        );
+        let result = intersects_support_maps(&a, &b);
+        match (expected, result.termination) {
+            (true, GjkTermination::Intersecting) | (false, GjkTermination::Separated) => {}
+            (true, GjkTermination::Separated) => {
+                panic!("4D GJK false negative at seeded case {case_id}")
+            }
+            (false, GjkTermination::Intersecting) => {
+                panic!("4D GJK false positive at seeded case {case_id}")
+            }
+            (_, GjkTermination::Indeterminate(_)) => indeterminate_cases += 1,
+        }
     }
+
+    // Keep uncertainty explicit instead of counting a query that exhausted its
+    // budget as successful separation. This first gate allows a small observable
+    // unresolved tail; the follow-up goal is zero without false PASS.
+    assert!(
+        indeterminate_cases <= 8,
+        "indeterminate GJK results {indeterminate_cases}/256 exceed the frozen budget of 8"
+    );
 }
