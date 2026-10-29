@@ -73,7 +73,7 @@ Unit tests cover the arithmetic, second-moment inequality, mean-vs-mean-square l
 
 ## Surrogate evaluation CLI
 
-A second binary evaluates a frozen reference/prediction table and reports error metrics for the overall set, plus geometry-family, material, frequency, excitation-class and exact operating-domain strata. Candidate-ranking metrics are only reported where every row has the same frequency and excitation class; ranking designs across incomparable operating domains is suppressed.
+A second binary evaluates a frozen reference/prediction table and reports error metrics for the overall set, plus geometry-family, material, frequency, excitation-class and exact operating-domain strata. Candidate-ranking metrics are only reported where every row has the same frequency and excitation class; ranking designs across incomparable operating domains is suppressed. The model's FEA-call ledger is a run-level total repeated in each stratum, not a per-stratum allocation.
 
 Example:
 
@@ -81,6 +81,11 @@ Example:
 cargo run --release --manifest-path research/transformer-bench/Cargo.toml --bin surrogate-eval -- \
   research/transformer-bench/fixtures/surrogate_predictions_synthetic.csv \
   /tmp/transformer-surrogate-report.csv 3000 3000 2
+
+# Exercise 50 Hz sinusoidal, 60 Hz sinusoidal and 50 Hz distorted domains
+cargo run --release --manifest-path research/transformer-bench/Cargo.toml --bin surrogate-eval -- \
+  research/transformer-bench/fixtures/surrogate_predictions_domains_synthetic.csv \
+  /tmp/transformer-domain-report.csv 3000 3000 2
 ```
 
 Exact input header:
@@ -91,7 +96,7 @@ The row-level `model_fea_queries` value must be constant: it is the total costly
 
 Metrics include mean/median/P95/maximum absolute relative error, Spearman rank correlation, top-k recall of the lowest-loss candidates, regret of the predicted best candidate against the best reference candidate, prediction-interval coverage, and mean interval width relative to reference loss. The accepted excitation classes are SINUSOIDAL, DISTORTED and OTHER_DECLARED; frequency must be a finite positive number in Hz. The evaluator rejects duplicate candidate IDs, inconsistent query counts, non-finite or physically nonsensical inputs, invalid prediction intervals, and derived non-finite metrics. Results are stratified by geometry family, material, frequency, excitation class and their combined operating domain to expose transfer failures hidden by aggregate scores.
 
-`fixtures/surrogate_predictions_synthetic.csv` is deliberately synthetic and tests the metric implementation only. `fixtures/surrogate_predictions_domains_synthetic.csv` tests pooling safeguards across 50 Hz sinusoidal, 60 Hz sinusoidal and 50 Hz distorted-excitation domains. Neither fixture replicates the published paper, represents FEA output, or may be cited as a model result. The evaluator assumes the split and source rows were frozen before model tuning; it cannot infer or authenticate data leakage from a CSV alone.
+`fixtures/surrogate_predictions_synthetic.csv` is deliberately synthetic and tests the metric implementation only. `fixtures/surrogate_predictions_domains_synthetic.csv` tests pooling safeguards across 50 Hz sinusoidal, 60 Hz sinusoidal and 50 Hz distorted-excitation domains. Neither fixture replicates the published paper, represents FEA output, or may be cited as a model result. When one file mixes frequencies or excitation classes, pooled error statistics remain descriptive but Spearman/top-k/regret fields are blank because candidate rankings across different operating domains are not like-for-like comparisons. The exact operating-domain rows provide the comparable ranking metrics. The evaluator assumes the split and source rows were frozen before model tuning; it cannot infer or authenticate data leakage from a CSV alone.
 
 Global deployment contract: see [GLOBAL_APPLICABILITY.md](GLOBAL_APPLICABILITY.md) and [PWR-TX-GLOBAL-001 #2872](https://github.com/Luminous-Dynamics/symtropy/issues/2872). This is a global architecture/schema plan; no regional profile is yet certified.
 
