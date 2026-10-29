@@ -505,14 +505,14 @@ mod tests {
     fn rejects_synthetic_execution_claim() {
         let mut r = load();
         r.execution_performed = true;
-        assert!(validate(&r).unwrap_err().contains("cannot authorize scoring"));
+        assert!(validate(&r).unwrap_err().contains("must not claim execution"));
     }
 
     #[test]
     fn rejects_synthetic_score_eligibility() {
         let mut r = load();
         r.scoring_eligible = true;
-        assert!(validate(&r).unwrap_err().contains("must not claim execution"));
+        assert!(validate(&r).unwrap_err().contains("cannot authorize scoring"));
     }
 
     #[test]
