@@ -70,3 +70,34 @@ The receipt contains no timestamps, random seeds, or host-specific paths, so rep
 5. Add a truly distinct relational-grammar candidate and an explicit shared-grammar rejection path.
 6. Add the same-budget intervention-selection policy comparison.
 7. Compare against published methods under matched datasets/budgets before making any superiority claim.
+
+## Active intervention-selection prototype (new, separate scorecard)
+
+The `sim-rel-active-discovery` binary adds a first runnable *design* for the currently missing intervention-selection comparison. It is intentionally separate from the spring-mass simulator parity score.
+
+It compares three policies over finite binary candidate models:
+
+1. `active_greedy_max_split`: choose the available intervention that most evenly splits the remaining candidate models by predicted outcome.
+2. `fixed_ascending_action`: query available interventions in increasing action order.
+3. `seeded_random_action`: query in a deterministic pseudo-random order; 64 seeds per task.
+
+All policies receive the same candidate models, initial observations and available actions. Each action is one of eight binary input assignments. The policy-selection function is not passed the target label. Evaluator truth labels are stored in a separate TSV fixture and joined only by the runner for outcome scoring.
+
+The 24-task candidate fixture contains 6 train, 6 validation and 12 held-out tasks. Two held-out negative controls contain hypotheses with identical observable signatures; a correctly cautious policy must stop with ambiguity rather than invent a distinction. Metrics include exact model identification, ambiguity/abstention, truth-retention (false elimination), intervention count, median and p90 query count, with results by split and policy.
+
+Run on the exact checked-out repository head:
+
+```bash
+cargo fmt --manifest-path tools/sim-rel-benchmark/Cargo.toml -- --check
+cargo test --locked --manifest-path tools/sim-rel-benchmark/Cargo.toml --bin sim-rel-active-discovery
+EXPECTED_HEAD="<reviewed-40-hex-commit>"
+cargo run --locked --manifest-path tools/sim-rel-benchmark/Cargo.toml --bin sim-rel-active-discovery -- \
+  --problems tools/sim-rel-benchmark/fixtures/active-discovery-problems-v1.tsv \
+  --truth tools/sim-rel-benchmark/fixtures/active-discovery-truth-v1.tsv \
+  --expected-head "$EXPECTED_HEAD" \
+  --out /tmp/sim-rel-active-discovery-receipt.json
+```
+
+For a stdout receipt, use `--out -`. The receipt records the exact Git HEAD plus SHA-256 digests of both fixtures. Do not commit evaluator truth into an agent-visible problem bundle in any deployment where the agent can read the file system directly; this offline runner uses separate files and a policy function with no target-label argument, but external process isolation is still required for a real red-team evaluation.
+
+**Claim ceiling:** This is a finite synthetic causal-model discrimination and experiment-selection prototype. It does **not** implement a relational-grammar learner, does not establish that the active policy outperforms the baselines until the exact-head runner produces a receipt, is not a directly comparable NewtonBench/SRBench score, and provides no evidence for Chain Theory's physical claims. The boolean model class is deliberately small; next requirements are noisy/partial observations, graph/grammar induction, heterogeneous-world rejection, budget-matched experiment choice, and an independent corpus.
