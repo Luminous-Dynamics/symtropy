@@ -115,6 +115,12 @@ class ExecutionReceiptVerifierTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "incomplete controller/trajectory matrix|absent from paired input"):
             self.verify(paired=paired)
 
+    def test_rejects_tampered_paired_trajectory_payload(self):
+        paired = copy.deepcopy(self.paired)
+        paired["trajectory_artifacts"][0]["trajectory_payload"] += "-tampered"
+        with self.assertRaisesRegex(ValueError, "trajectory payload SHA-256 mismatch"):
+            self.verify(paired=paired)
+
 
 if __name__ == "__main__":
     unittest.main()
