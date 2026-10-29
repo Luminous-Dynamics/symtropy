@@ -73,20 +73,35 @@ impl fmt::Display for RegionGraphError {
             Self::DuplicateInterface { id } => write!(f, "duplicate interface ID {}", id.0),
             Self::UnknownInterface { id } => write!(f, "unknown interface ID {}", id.0),
             Self::SelfInterface => write!(f, "region interface must connect distinct region IDs"),
-            Self::InvalidBoundary { field } => write!(f, "invalid interface boundary field {field}"),
+            Self::InvalidBoundary { field } => {
+                write!(f, "invalid interface boundary field {field}")
+            }
             Self::InvalidMap { field } => write!(f, "invalid affine map field {field}"),
             Self::SingularMap => write!(f, "affine region map is singular"),
             Self::InverseRequired => write!(f, "reversible interface requires an inverse map"),
-            Self::InverseMismatch => write!(f, "declared inverse map does not invert the forward map"),
-            Self::MissingTransformIdentity => write!(f, "explicit transform policy requires a transform identity"),
+            Self::InverseMismatch => {
+                write!(f, "declared inverse map does not invert the forward map")
+            }
+            Self::MissingTransformIdentity => {
+                write!(f, "explicit transform policy requires a transform identity")
+            }
             Self::UnitMismatchForConservation => {
-                write!(f, "preserve/exchange policies require compatible coordinate and time units")
+                write!(
+                    f,
+                    "preserve/exchange policies require compatible coordinate and time units"
+                )
             }
             Self::NonIsometricMapForPreservation => {
-                write!(f, "preserve/exchange policy requires an isometry with unchanged time scale")
+                write!(
+                    f,
+                    "preserve/exchange policy requires an isometry with unchanged time scale"
+                )
             }
             Self::BoundaryOutsideRegion => {
-                write!(f, "interface boundary does not intersect its declared region domain")
+                write!(
+                    f,
+                    "interface boundary does not intersect its declared region domain"
+                )
             }
         }
     }
@@ -123,14 +138,10 @@ impl<const D: usize> RegionSpec<D> {
             });
         }
         if self.time_unit.trim().is_empty() {
-            return Err(RegionGraphError::InvalidRegion {
-                field: "time_unit",
-            });
+            return Err(RegionGraphError::InvalidRegion { field: "time_unit" });
         }
         if self.clock_id.trim().is_empty() {
-            return Err(RegionGraphError::InvalidRegion {
-                field: "clock_id",
-            });
+            return Err(RegionGraphError::InvalidRegion { field: "clock_id" });
         }
         for axis in 0..D {
             if !self.lower[axis].is_finite() || !self.upper[axis].is_finite() {
@@ -191,7 +202,9 @@ impl<const D: usize> PlaneBoundary<D> {
         }
         let length = normal.norm();
         if !length.is_finite() || length <= 1.0e-12 {
-            return Err(RegionGraphError::InvalidBoundary { field: "zero normal" });
+            return Err(RegionGraphError::InvalidBoundary {
+                field: "zero normal",
+            });
         }
         Ok(Self {
             normal: normal / length,
@@ -223,7 +236,9 @@ impl<const D: usize> PlaneBoundary<D> {
             || self.tolerance <= 0.0
             || !scalar_close(self.normal.norm(), 1.0, 1e-8)
         {
-            return Err(RegionGraphError::InvalidBoundary { field: "malformed plane" });
+            return Err(RegionGraphError::InvalidBoundary {
+                field: "malformed plane",
+            });
         }
         Ok(())
     }
@@ -278,16 +293,24 @@ impl<const D: usize> AffineRegionMap<D> {
             return Err(RegionGraphError::InvalidDimension);
         }
         if !linear.iter().all(|value| value.is_finite()) {
-            return Err(RegionGraphError::InvalidMap { field: "linear matrix" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "linear matrix",
+            });
         }
         if !translation.iter().all(|value| value.is_finite()) {
-            return Err(RegionGraphError::InvalidMap { field: "translation" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "translation",
+            });
         }
         if !time_scale.is_finite() || time_scale <= 0.0 {
-            return Err(RegionGraphError::InvalidMap { field: "time_scale" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "time_scale",
+            });
         }
         if !time_offset.is_finite() {
-            return Err(RegionGraphError::InvalidMap { field: "time_offset" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "time_offset",
+            });
         }
         Ok(Self {
             linear,
@@ -311,22 +334,30 @@ impl<const D: usize> AffineRegionMap<D> {
         position: &SVector<f64, D>,
     ) -> Result<SVector<f64, D>, RegionGraphError> {
         if !position.iter().all(|value| value.is_finite()) {
-            return Err(RegionGraphError::InvalidMap { field: "input position" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "input position",
+            });
         }
         let mapped = self.linear * position + self.translation;
         if !mapped.iter().all(|value| value.is_finite()) {
-            return Err(RegionGraphError::InvalidMap { field: "mapped position" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "mapped position",
+            });
         }
         Ok(mapped)
     }
 
     pub fn map_time(&self, time: f64) -> Result<f64, RegionGraphError> {
         if !time.is_finite() {
-            return Err(RegionGraphError::InvalidMap { field: "input time" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "input time",
+            });
         }
         let mapped = self.time_scale * time + self.time_offset;
         if !mapped.is_finite() {
-            return Err(RegionGraphError::InvalidMap { field: "mapped time" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "mapped time",
+            });
         }
         Ok(mapped)
     }
@@ -336,17 +367,24 @@ impl<const D: usize> AffineRegionMap<D> {
         velocity: &SVector<f64, D>,
     ) -> Result<SVector<f64, D>, RegionGraphError> {
         if !velocity.iter().all(|value| value.is_finite()) {
-            return Err(RegionGraphError::InvalidMap { field: "input velocity" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "input velocity",
+            });
         }
         let mapped = self.linear * velocity / self.time_scale;
         if !mapped.iter().all(|value| value.is_finite()) {
-            return Err(RegionGraphError::InvalidMap { field: "mapped velocity" });
+            return Err(RegionGraphError::InvalidMap {
+                field: "mapped velocity",
+            });
         }
         Ok(mapped)
     }
 
     pub fn inverse(&self) -> Result<Self, RegionGraphError> {
-        let linear = self.linear.try_inverse().ok_or(RegionGraphError::SingularMap)?;
+        let linear = self
+            .linear
+            .try_inverse()
+            .ok_or(RegionGraphError::SingularMap)?;
         let translation = -(linear * self.translation);
         Self::new(
             linear,
@@ -386,11 +424,7 @@ impl<const D: usize> AffineRegionMap<D> {
         Ok(())
     }
 
-    pub fn validate_inverse(
-        &self,
-        inverse: &Self,
-        tolerance: f64,
-    ) -> Result<(), RegionGraphError> {
+    pub fn validate_inverse(&self, inverse: &Self, tolerance: f64) -> Result<(), RegionGraphError> {
         if !tolerance.is_finite() || tolerance <= 0.0 {
             return Err(RegionGraphError::InvalidMap {
                 field: "inverse tolerance",
@@ -412,11 +446,7 @@ fn scalar_close(a: f64, b: f64, tolerance: f64) -> bool {
     (a - b).abs() <= tolerance * a.abs().max(b.abs()).max(1.0)
 }
 
-fn vector_close<const D: usize>(
-    a: &SVector<f64, D>,
-    b: &SVector<f64, D>,
-    tolerance: f64,
-) -> bool {
+fn vector_close<const D: usize>(a: &SVector<f64, D>, b: &SVector<f64, D>, tolerance: f64) -> bool {
     (a - b).norm() <= tolerance * a.norm().max(b.norm()).max(1.0)
 }
 
@@ -479,7 +509,9 @@ impl<const D: usize> RegionInterface<D> {
         }
         if (momentum_policy == QuantityPolicy::ExplicitTransform
             || energy_policy == QuantityPolicy::ExplicitTransform)
-            && transform_identity.as_ref().is_none_or(|identity| identity.trim().is_empty())
+            && transform_identity
+                .as_ref()
+                .is_none_or(|identity| identity.trim().is_empty())
         {
             return Err(RegionGraphError::MissingTransformIdentity);
         }
@@ -522,7 +554,10 @@ impl<const D: usize> RegionInterface<D> {
         }
         if (self.momentum_policy == QuantityPolicy::ExplicitTransform
             || self.energy_policy == QuantityPolicy::ExplicitTransform)
-            && self.transform_identity.as_ref().is_none_or(|identity| identity.trim().is_empty())
+            && self
+                .transform_identity
+                .as_ref()
+                .is_none_or(|identity| identity.trim().is_empty())
         {
             return Err(RegionGraphError::MissingTransformIdentity);
         }
@@ -562,22 +597,23 @@ impl<const D: usize> RegionGraph<D> {
         Ok(())
     }
 
-    pub fn add_interface(
-        &mut self,
-        interface: RegionInterface<D>,
-    ) -> Result<(), RegionGraphError> {
+    pub fn add_interface(&mut self, interface: RegionInterface<D>) -> Result<(), RegionGraphError> {
         if self.interfaces.contains_key(&interface.id) {
             return Err(RegionGraphError::DuplicateInterface { id: interface.id });
         }
         interface.validate()?;
-        let source = self
-            .regions
-            .get(&interface.source)
-            .ok_or(RegionGraphError::UnknownRegion { id: interface.source })?;
-        let target = self
-            .regions
-            .get(&interface.target)
-            .ok_or(RegionGraphError::UnknownRegion { id: interface.target })?;
+        let source =
+            self.regions
+                .get(&interface.source)
+                .ok_or(RegionGraphError::UnknownRegion {
+                    id: interface.source,
+                })?;
+        let target =
+            self.regions
+                .get(&interface.target)
+                .ok_or(RegionGraphError::UnknownRegion {
+                    id: interface.target,
+                })?;
 
         if !boundary_intersects_region(&interface.source_boundary, source)
             || !boundary_intersects_region(&interface.target_boundary, target)
@@ -649,7 +685,9 @@ impl<const D: usize> RegionState<D> {
             return Err(RegionTransitionError::InvalidState { field: "velocity" });
         }
         if !self.local_time.is_finite() {
-            return Err(RegionTransitionError::InvalidState { field: "local_time" });
+            return Err(RegionTransitionError::InvalidState {
+                field: "local_time",
+            });
         }
         Ok(())
     }
@@ -723,11 +761,21 @@ pub enum RegionTransitionError {
     OutsideSourceBoundary,
     OutsideTargetBoundary,
     OutsideTargetDomain,
-    InvalidRequest { field: &'static str },
-    InvalidState { field: &'static str },
-    PolicyRejected { quantity: &'static str },
-    ConservationResidual { quantity: &'static str },
-    CrossingIdConflict { crossing_id: u64 },
+    InvalidRequest {
+        field: &'static str,
+    },
+    InvalidState {
+        field: &'static str,
+    },
+    PolicyRejected {
+        quantity: &'static str,
+    },
+    ConservationResidual {
+        quantity: &'static str,
+    },
+    CrossingIdConflict {
+        crossing_id: u64,
+    },
     RevisionOverflow,
 }
 
@@ -738,30 +786,60 @@ impl fmt::Display for RegionTransitionError {
             Self::DuplicateBody { body_id } => write!(f, "duplicate body state {body_id}"),
             Self::UnknownBody { body_id } => write!(f, "unknown body state {body_id}"),
             Self::StaleStateRevision { expected, actual } => {
-                write!(f, "stale body state revision: expected {expected}, actual {actual}")
+                write!(
+                    f,
+                    "stale body state revision: expected {expected}, actual {actual}"
+                )
             }
             Self::StaleInterfaceRevision { expected, actual } => {
-                write!(f, "stale interface revision: expected {expected}, actual {actual}")
+                write!(
+                    f,
+                    "stale interface revision: expected {expected}, actual {actual}"
+                )
             }
-            Self::StaleRegionModelRevision { region, expected, actual } => write!(
+            Self::StaleRegionModelRevision {
+                region,
+                expected,
+                actual,
+            } => write!(
                 f,
                 "stale model revision for region {}: expected {expected}, actual {actual}",
                 region.0
             ),
-            Self::WrongSourceRegion => write!(f, "body is not authoritative in the interface source region"),
-            Self::CrossingDirectionRejected => write!(f, "crossing direction is not allowed by interface"),
-            Self::DirectionVelocityMismatch => write!(f, "source velocity does not agree with the declared crossing direction"),
-            Self::OutsideSourceBoundary => write!(f, "source state is outside interface boundary chart"),
-            Self::OutsideTargetBoundary => write!(f, "mapped state is outside target boundary chart"),
+            Self::WrongSourceRegion => write!(
+                f,
+                "body is not authoritative in the interface source region"
+            ),
+            Self::CrossingDirectionRejected => {
+                write!(f, "crossing direction is not allowed by interface")
+            }
+            Self::DirectionVelocityMismatch => write!(
+                f,
+                "source velocity does not agree with the declared crossing direction"
+            ),
+            Self::OutsideSourceBoundary => {
+                write!(f, "source state is outside interface boundary chart")
+            }
+            Self::OutsideTargetBoundary => {
+                write!(f, "mapped state is outside target boundary chart")
+            }
             Self::OutsideTargetDomain => write!(f, "mapped state is outside target region domain"),
             Self::InvalidRequest { field } => write!(f, "invalid transition request field {field}"),
             Self::InvalidState { field } => write!(f, "invalid authoritative state field {field}"),
-            Self::PolicyRejected { quantity } => write!(f, "transition policy rejects quantity {quantity}"),
+            Self::PolicyRejected { quantity } => {
+                write!(f, "transition policy rejects quantity {quantity}")
+            }
             Self::ConservationResidual { quantity } => {
-                write!(f, "transition conservation residual exceeds tolerance for {quantity}")
+                write!(
+                    f,
+                    "transition conservation residual exceeds tolerance for {quantity}"
+                )
             }
             Self::CrossingIdConflict { crossing_id } => {
-                write!(f, "crossing ID {crossing_id} was reused for a different request")
+                write!(
+                    f,
+                    "crossing ID {crossing_id} was reused for a different request"
+                )
             }
             Self::RevisionOverflow => write!(f, "body state revision overflow"),
         }
@@ -855,7 +933,11 @@ impl<const D: usize> RegionStateStore<D> {
             };
         }
 
-        if !request.momentum_exchange.iter().all(|value| value.is_finite()) {
+        if !request
+            .momentum_exchange
+            .iter()
+            .all(|value| value.is_finite())
+        {
             return Err(RegionTransitionError::InvalidRequest {
                 field: "momentum_exchange",
             });
@@ -885,11 +967,12 @@ impl<const D: usize> RegionStateStore<D> {
             });
         }
 
-        let interface = graph
-            .interface(request.interface_id)
-            .ok_or(RegionGraphError::UnknownInterface {
-                id: request.interface_id,
-            })?;
+        let interface =
+            graph
+                .interface(request.interface_id)
+                .ok_or(RegionGraphError::UnknownInterface {
+                    id: request.interface_id,
+                })?;
         if interface.revision != request.expected_interface_revision {
             return Err(RegionTransitionError::StaleInterfaceRevision {
                 expected: request.expected_interface_revision,
@@ -924,12 +1007,18 @@ impl<const D: usize> RegionStateStore<D> {
             return Err(RegionTransitionError::DirectionVelocityMismatch);
         }
 
-        let source_region = graph
-            .region(interface.source)
-            .ok_or(RegionGraphError::UnknownRegion { id: interface.source })?;
-        let target_region = graph
-            .region(interface.target)
-            .ok_or(RegionGraphError::UnknownRegion { id: interface.target })?;
+        let source_region =
+            graph
+                .region(interface.source)
+                .ok_or(RegionGraphError::UnknownRegion {
+                    id: interface.source,
+                })?;
+        let target_region =
+            graph
+                .region(interface.target)
+                .ok_or(RegionGraphError::UnknownRegion {
+                    id: interface.target,
+                })?;
         for (region, expected) in [
             (source_region, request.expected_source_model_revision),
             (target_region, request.expected_target_model_revision),
@@ -1016,8 +1105,8 @@ impl<const D: usize> RegionStateStore<D> {
 
         match interface.momentum_policy {
             QuantityPolicy::Preserve => {
-                let mapped_momentum = interface.map.linear * momentum_before
-                    / interface.map.time_scale;
+                let mapped_momentum =
+                    interface.map.linear * momentum_before / interface.map.time_scale;
                 if !vector_close(&momentum_after, &mapped_momentum, request.tolerance)
                     || !scalar_close(
                         momentum_after.norm(),
@@ -1105,11 +1194,7 @@ mod tests {
     };
     use nalgebra::{SMatrix, SVector};
 
-    fn region(
-        id: u64,
-        lower: [f64; 2],
-        upper: [f64; 2],
-    ) -> RegionSpec<2> {
+    fn region(id: u64, lower: [f64; 2], upper: [f64; 2]) -> RegionSpec<2> {
         RegionSpec {
             id: RegionId(id),
             lower: SVector::from(lower),
@@ -1128,8 +1213,12 @@ mod tests {
 
     fn graph_identity() -> RegionGraph<2> {
         let mut graph = RegionGraph::<2>::new().unwrap();
-        graph.add_region(region(1, [-1.0, -1.0], [0.0, 1.0])).unwrap();
-        graph.add_region(region(2, [0.0, -1.0], [1.0, 1.0])).unwrap();
+        graph
+            .add_region(region(1, [-1.0, -1.0], [0.0, 1.0]))
+            .unwrap();
+        graph
+            .add_region(region(2, [0.0, -1.0], [1.0, 1.0]))
+            .unwrap();
         let map = AffineRegionMap::<2>::identity();
         let inverse = map.inverse().unwrap();
         let interface = RegionInterface::new(
@@ -1256,28 +1345,35 @@ mod tests {
     fn stale_target_model_revision_fails_before_state_mutation() {
         let original = graph_identity();
         let mut changed = RegionGraph::<2>::new().unwrap();
-        changed.add_region(region(1, [-1.0, -1.0], [0.0, 1.0])).unwrap();
+        changed
+            .add_region(region(1, [-1.0, -1.0], [0.0, 1.0]))
+            .unwrap();
         let mut target = region(2, [0.0, -1.0], [1.0, 1.0]);
         target.model_revision = 2;
         changed.add_region(target).unwrap();
 
         let map = AffineRegionMap::<2>::identity();
         let inverse = map.inverse().unwrap();
-        changed.add_interface(RegionInterface::new(
-            InterfaceId(10),
-            RegionId(1),
-            RegionId(2),
-            1,
-            boundary_x0(),
-            boundary_x0(),
-            map,
-            Some(inverse),
-            true,
-            CrossingDirection::NegativeToPositive,
-            QuantityPolicy::Preserve,
-            QuantityPolicy::Preserve,
-            None,
-        ).unwrap()).unwrap();
+        changed
+            .add_interface(
+                RegionInterface::new(
+                    InterfaceId(10),
+                    RegionId(1),
+                    RegionId(2),
+                    1,
+                    boundary_x0(),
+                    boundary_x0(),
+                    map,
+                    Some(inverse),
+                    true,
+                    CrossingDirection::NegativeToPositive,
+                    QuantityPolicy::Preserve,
+                    QuantityPolicy::Preserve,
+                    None,
+                )
+                .unwrap(),
+            )
+            .unwrap();
 
         let mut store = RegionStateStore::new().unwrap();
         store.insert_state(&original, state()).unwrap();
@@ -1315,12 +1411,9 @@ mod tests {
         graph.add_region(region(1, [-1.0, -1.0], [0.0, 1.0])).unwrap();
         graph.add_region(region(2, [0.0, -1.0], [1.0, 1.0])).unwrap();
 
-        let map = AffineRegionMap::new(
-            SMatrix::<f64, 2, 2>::identity(),
-            SVector::zeros(),
-            1.0,
-            5.0,
-        ).unwrap();
+        let map =
+            AffineRegionMap::new(SMatrix::<f64, 2, 2>::identity(), SVector::zeros(), 1.0, 5.0)
+                .unwrap();
         let inverse = map.inverse().unwrap();
         let interface = RegionInterface::new(
             InterfaceId(16),
@@ -1336,7 +1429,8 @@ mod tests {
             QuantityPolicy::Preserve,
             QuantityPolicy::Preserve,
             None,
-        ).unwrap();
+        )
+        .unwrap();
         graph.add_interface(interface).unwrap();
 
         let mut store = RegionStateStore::new().unwrap();
@@ -1500,13 +1594,9 @@ mod tests {
         graph.add_region(source).unwrap();
         graph.add_region(target).unwrap();
 
-        let map = AffineRegionMap::new(
-            SMatrix::<f64, 2, 2>::identity(),
-            SVector::zeros(),
-            2.0,
-            5.0,
-        )
-        .unwrap();
+        let map =
+            AffineRegionMap::new(SMatrix::<f64, 2, 2>::identity(), SVector::zeros(), 2.0, 5.0)
+                .unwrap();
         let interface = RegionInterface::new(
             InterfaceId(15),
             RegionId(1),
