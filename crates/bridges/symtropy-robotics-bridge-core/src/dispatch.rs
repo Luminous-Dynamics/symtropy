@@ -63,9 +63,19 @@ pub trait SessionAuthenticator {
 /// Stable result categories from the controller adapter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ControllerSubmitError {
+    /// The native controller refused an otherwise well-formed goal.
     RejectedByController,
+    /// The controller or transport is unavailable and could not accept a goal.
     ControllerUnavailable,
+    /// The request lease expired before the adapter could enqueue the goal.
     DeadlineMissed,
+    /// The request or adapter input failed validation before controller submission.
+    InvalidRequest,
+    /// This embodiment adapter does not implement the requested intent.
+    UnsupportedIntent,
+    /// The target frame or requested capability exceeds the adapter contract.
+    CapabilityMismatch,
+    /// An unexpected adapter/controller failure prevented submission.
     InternalFailure,
 }
 
@@ -246,7 +256,15 @@ where
                 session_id: Some(session_id),
                 sequence,
                 observed_at_s: valid_time(now_s),
-                status: DispatchStatus::ControllerFailed,
+                status: match error {
+                    ControllerSubmitError::RejectedByController
+                    | ControllerSubmitError::DeadlineMissed
+                    | ControllerSubmitError::InvalidRequest
+                    | ControllerSubmitError::UnsupportedIntent
+                    | ControllerSubmitError::CapabilityMismatch => DispatchStatus::Rejected,
+                    ControllerSubmitError::ControllerUnavailable
+                    | ControllerSubmitError::InternalFailure => DispatchStatus::ControllerFailed,
+                },
                 rejections: vec![DispatchRejection::Controller(error)],
                 controller_ticket: None,
             },

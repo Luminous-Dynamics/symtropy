@@ -7,6 +7,7 @@ pub mod agent;
 pub mod assurance;
 pub mod control;
 pub mod dispatch;
+pub mod differential_drive;
 pub mod haptic;
 pub mod motor;
 pub mod platform;
@@ -21,6 +22,10 @@ pub use assurance::{
 pub use control::{
     ControlOutcome, ControlOutcomeError, ControlOutcomeStatus, ControlRequest, ControlRequestError,
     EmbodiedIntent, IntentValidationError, ManipulationOperation, Pose3,
+};
+pub use differential_drive::{
+    CommandProvenance, DifferentialDriveAdapter, DifferentialDriveClock,
+    DifferentialDriveCommand, DifferentialDriveConfigError, DifferentialDriveLocalController,
 };
 pub use dispatch::{
     AuthenticatedSession, ControllerDispatchContext, ControllerReceipt, ControllerSink, ControllerSubmitError,
