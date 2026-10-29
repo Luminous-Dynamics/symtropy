@@ -96,6 +96,7 @@ pub enum PeriodicSphereWorldError {
     UnsupportedDimension { dimension: usize },
     InvalidConfiguration { field: &'static str },
     DuplicateBodyId { id: u64 },
+    BodyRadiusExceedsPeriodicEnvelope { id: u64, axis: usize },
     InvalidBody { id: u64, field: &'static str },
     InvalidTimeStep,
     NonFiniteArithmetic { field: &'static str },
@@ -114,6 +115,10 @@ impl fmt::Display for PeriodicSphereWorldError {
                 write!(f, "invalid periodic sphere world configuration: {field}")
             }
             Self::DuplicateBodyId { id } => write!(f, "duplicate sphere body id {id}"),
+            Self::BodyRadiusExceedsPeriodicEnvelope { id, axis } => write!(
+                f,
+                "sphere body {id} radius must be less than half the period on periodic axis {axis}"
+            ),
             Self::InvalidBody { id, field } => {
                 write!(f, "invalid sphere body {id} field {field}")
             }
@@ -223,6 +228,20 @@ impl<const D: usize> PeriodicSphereWorld<D> {
     ) -> Result<(), PeriodicSphereWorldError> {
         if self.bodies.iter().any(|existing| existing.id == body.id) {
             return Err(PeriodicSphereWorldError::DuplicateBodyId { id: body.id });
+        }
+        // This reference world returns one earliest image hit per pair. Keep
+        // each sphere smaller than half every periodic length so a body does
+        // not overlap its own periodic images and a pair has one relevant
+        // nearest-image contact in the supported envelope.
+        for axis in 0..D {
+            if self.domain.is_periodic(axis) == Some(true)
+                && body.radius >= 0.5 * self.domain.periods()[axis]
+            {
+                return Err(PeriodicSphereWorldError::BodyRadiusExceedsPeriodicEnvelope {
+                    id: body.id,
+                    axis,
+                });
+            }
         }
         let insertion = self
             .bodies
@@ -401,7 +420,7 @@ impl<const D: usize> PeriodicSphereWorld<D> {
 }
 
 fn time_epsilon(dt: f64) -> f64 {
-    TIME_EPSILON * dt.max(1.0)
+    TIME_EPSILON * dt
 }
 
 fn candidate_precedes<const D: usize>(
@@ -589,16 +608,17 @@ mod tests {
         let mut world = world(1);
         world.add_body(body(1, [0.5, 0.0], [0.0, 0.0], 1.0, 0.0)).unwrap();
         world.add_body(body(2, [9.0, 0.0], [2.0, 0.0], 1.0, 0.0)).unwrap();
-        world.add_body(body(3, [2.5, 0.0], [0.0, 0.0], 1.0, 0.0)).unwrap();
+        world.add_body(body(3, [2.0, 0.0], [0.0, 0.0], 1.0, 0.0)).unwrap();
 
         let before = world.bodies().to_vec();
         let result = world.step(1.0);
-        // The first event is processed on the clone; if another event is
-        // required before the full interval completes, the caller gets an
-        // error and the original world is unchanged.
-        if result.is_err() {
-            assert_eq!(world.bodies(), before.as_slice());
-        }
+        assert!(matches!(
+            result,
+            Err(PeriodicSphereWorldError::EventBudgetExceeded { limit: 1 })
+        ));
+        // The first event was processed on the clone; the second event exceeds
+        // the cap. The authoritative world remains exactly unchanged.
+        assert_eq!(world.bodies(), before.as_slice());
     }
 
     #[test]
