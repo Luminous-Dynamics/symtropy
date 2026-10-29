@@ -140,7 +140,7 @@
   "benchmark_tracks": [
     {
       "track_id": "analytic_known_answer",
-      "status": "contract_only",
+      "status": "smoke_implementation_committed",
       "oracle_type": "synthetic_analytical",
       "purpose": "Test whether searchers discover known analytic failure regions under fixed budgets and whether replay/fingerprint accounting is correct.",
       "physical_evidence": false,
