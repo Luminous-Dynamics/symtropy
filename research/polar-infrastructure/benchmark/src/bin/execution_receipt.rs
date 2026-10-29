@@ -209,6 +209,17 @@ fn validate(r: &Receipt) -> Result<(), String> {
             return Err("paired input binding has invalid SHA-256 syntax".into());
         }
     }
+    if r.schema_version == "0.1.0" {
+        if r.paired_input_bindings.information_budget_sha256.is_some()
+            || r.paired_input_bindings.observation_trace_sha256.is_some()
+        {
+            return Err("v0.1 receipt must not claim v0.2 causal information bindings".into());
+        }
+    } else if !r.paired_input_bindings.information_budget_sha256.as_deref().map(valid_sha256).unwrap_or(false)
+        || !r.paired_input_bindings.observation_trace_sha256.as_deref().map(valid_sha256).unwrap_or(false)
+    {
+        return Err("v0.2 receipt requires valid information-budget and observation-trace SHA-256 bindings".into());
+    }
     if !valid_sha256(&r.resource_limits_sha256) {
         return Err("resource_limits_sha256 has invalid SHA-256 syntax".into());
     }
