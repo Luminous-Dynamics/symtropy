@@ -351,6 +351,16 @@
       "same run-configuration digest within each paired trajectory",
       "independent input and output payload hash verification before scoring"
     ],
-    "receipt_set_test_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py"
+    "receipt_set_test_path": "research/polar-infrastructure/benchmark/scripts/tests/test_execution_receipt_set_verifier.py",
+    "execution_attestation_schema_status": "not_implemented",
+    "signed_execution_attestation_verifier_implemented": false,
+    "scoring_eligible_for_any_v0_1_receipt": false,
+    "future_scoring_requires": [
+      "completed_execution",
+      "independent_input_output_hash_verification",
+      "signed_execution_attestation_verification",
+      "resource_budget_compliance",
+      "complete_equal_budget_receipt_set"
+    ]
   }
 }
