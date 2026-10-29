@@ -6,6 +6,11 @@ on:
     paths:
       - "tools/sim-rel-grammar/src/main.rs"
       - ".github/workflows/sim-rel-format-export.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/sim-rel-grammar/src/main.rs"
+      - ".github/workflows/sim-rel-format-export.yml"
   workflow_dispatch:
 
 permissions:
