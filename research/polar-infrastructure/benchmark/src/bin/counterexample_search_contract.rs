@@ -92,6 +92,11 @@ fn validate(c: &Value) -> Result<(), String> {
     keys(split, &["split_unit","development_set","validation_set","locked_holdout","holdout_frozen_before_confirmatory_run","holdout_used_for_searcher_selection_or_tuning","test_leakage_invalidates_claim","holdout_discovery_is_reported_separately"], "$.split_contract")?;
     if split["split_unit"].as_str() != Some("whole_scenario_family_episode_or_site_year") { return Err("split must preserve whole scenarios/episodes/site-years".into()); }
     for k in ["development_set","validation_set","locked_holdout"] { text(&split[k], k)?; }
+    if split["development_set"].as_str() != Some("to_be_admitted")
+        || split["validation_set"].as_str() != Some("to_be_admitted")
+        || split["locked_holdout"].as_str() != Some("not_created") {
+        return Err("development/validation must be unadmitted and the locked holdout must remain uncreated".into());
+    }
     yes(&split["holdout_frozen_before_confirmatory_run"], "holdout freeze")?;
     no(&split["holdout_used_for_searcher_selection_or_tuning"], "holdout tuning")?;
     yes(&split["test_leakage_invalidates_claim"], "test leakage policy")?;
@@ -104,6 +109,10 @@ fn validate(c: &Value) -> Result<(), String> {
         if !records.contains(k) { return Err(format!("missing required record field {k}")); }
     }
     let metrics = unique_strings(&c["required_metrics"], "$.required_metrics", 8)?;
+    let allowed_metrics: BTreeSet<&str> = ["falsification_rate_at_budget","time_to_first_replay_confirmed_counterexample","survival_curve_for_runs_not_falsified","unique_replay_confirmed_failure_families_per_100_invocations","discovery_yield_at_invocations_25_50_100_200","invalid_invocation_rate","duplicate_failure_family_rate","replay_confirmation_rate","locked_holdout_failure_family_yield","cross_seed_variance","wall_time_and_resource_use"].into_iter().collect();
+    if metrics.iter().any(|m| !allowed_metrics.contains(m.as_str())) {
+        return Err("required_metrics contains an unsupported metric ID".into());
+    }
     for k in ["falsification_rate_at_budget","time_to_first_replay_confirmed_counterexample","survival_curve_for_runs_not_falsified","unique_replay_confirmed_failure_families_per_100_invocations","invalid_invocation_rate","replay_confirmation_rate","locked_holdout_failure_family_yield","wall_time_and_resource_use"] {
         if !metrics.contains(k) { return Err(format!("missing required metric {k}")); }
     }
@@ -119,7 +128,7 @@ fn validate(c: &Value) -> Result<(), String> {
     }
 
     let tracks = arr(&c["benchmark_tracks"], "$.benchmark_tracks")?;
-    if tracks.len() < 3 { return Err("three evidence tracks required".into()); }
+    if tracks.len() != 3 { return Err("exactly three preregistered evidence tracks are required".into()); }
     let mut track_ids = BTreeSet::new();
     for (i,t) in tracks.iter().enumerate() {
         let p = format!("$.benchmark_tracks[{i}]");
@@ -193,6 +202,8 @@ mod tests {
     #[test] fn rejects_synthetic_performance_claim(){let mut c=load();c["claim_policy"]["synthetic_oracle_results_are_physical_evidence"]=json!(true);assert!(validate(&c).unwrap_err().contains("must be false"));}
     #[test] fn rejects_open_admission_gate(){let mut c=load();c["admission_gates"]["source_and_model_admission"]=json!(true);assert!(validate(&c).unwrap_err().contains("all admission gates"));}
     #[test] fn rejects_unfrozen_effect_size(){let mut c=load();c["statistical_contract"]["effect_size_target"]=json!(0.1);assert!(validate(&c).unwrap_err().contains("premature effect-size target"));}
+    #[test] fn rejects_created_holdout_before_admission(){let mut c=load();c["split_contract"]["locked_holdout"]=json!("already_used");assert!(validate(&c).unwrap_err().contains("locked holdout must remain uncreated"));}
+    #[test] fn rejects_unknown_metric(){let mut c=load();c["required_metrics"].as_array_mut().unwrap()[0]=json!("sota_score");assert!(validate(&c).unwrap_err().contains("unsupported metric ID"));}
     #[test] fn rejects_composite_score(){let mut c=load();c["statistical_contract"]["no_single_composite_score_allowed"]=json!(false);assert!(validate(&c).unwrap_err().contains("must be true"));}
     #[test] fn rejects_unknown_field(){let mut c=load();c["sota_beaten"]=json!(true);assert!(validate(&c).unwrap_err().contains("unknown or missing keys"));}
 }
