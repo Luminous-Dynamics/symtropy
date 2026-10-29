@@ -284,6 +284,41 @@ fn gjk_4d_separation_is_invariant_to_uniform_scale() {
 }
 
 #[test]
+fn large_translation_near_separation_is_indeterminate_not_intersection() {
+    use symtropy_physics::{GjkFailureReason, GjkTermination};
+
+    let identity = SMatrix::<f64, 4, 4>::identity();
+    let half_extents = SVector::from([1.0, 1.0, 1.0, 1.0]);
+    let a = OrientedBox4 {
+        rotation: identity,
+        center: SVector::from([1.0e12, 0.0, 0.0, 0.0]),
+        half_extents,
+    };
+    let b = OrientedBox4 {
+        rotation: identity,
+        center: SVector::from([1.0e12 + 2.001, 0.0, 0.0, 0.0]),
+        half_extents,
+    };
+    let representable_gap =
+        (b.center[0] - a.center[0]) - a.half_extents[0] - b.half_extents[0];
+    assert!(
+        representable_gap > 0.0,
+        "fixture must be separated at its representable world-coordinate precision"
+    );
+
+    let result = intersects_support_maps(&a, &b);
+    assert_eq!(
+        result.termination,
+        GjkTermination::Indeterminate(GjkFailureReason::CoordinatePrecisionLimit),
+        "a close pair near the world-coordinate precision floor must remain unresolved"
+    );
+    assert!(
+        !result.intersecting,
+        "world-coordinate uncertainty must not be promoted to an overlap"
+    );
+}
+
+#[test]
 fn overlapping_rotated_hyperboxes_in_4d_are_detected() {
     let (a, mut b) = fixture_boxes();
     b.center = SVector::zeros();
