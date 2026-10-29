@@ -97,6 +97,19 @@ jobs:
             .flight_use == "prohibited" and
             .airworthiness_or_structural_claim == false
           ' /tmp/civil-aero-coupon.json
+      - name: Verify byte-pinned NASA TMR source files
+        working-directory: tools/civil-aero-benchmark
+        run: sha256sum -c data/reference/nasa-tmr/SHA256SUMS
+      - name: Run strict NASA TMR parsers and zone-count oracle
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin reference_audit -- > /tmp/aero-reference-audit.txt
+          cat /tmp/aero-reference-audit.txt
+          grep -q "dataset=NASA-TMR-NACA0012-LADSON-FORCES observations=53 zones=3" /tmp/aero-reference-audit.txt
+          grep -q "dataset=NASA-TMR-NACA0012-LADSON-PRESSURE observations=405 zones=9" /tmp/aero-reference-audit.txt
+          grep -q "dataset=NASA-TMR-NACA0012-GREGORY-PRESSURE observations=73 zones=3" /tmp/aero-reference-audit.txt
+          grep -q "evidence=source_bytes_pinned_parser_output_unqualified" /tmp/aero-reference-audit.txt
       - name: Validate evidence manifest without promoting pending sources
         shell: bash
         run: |
