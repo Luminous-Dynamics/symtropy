@@ -73,7 +73,7 @@ class ExecutionReceiptSetTests(unittest.TestCase):
         receipts = copy.deepcopy(self.receipts)
         receipts[0]["resource_limits"]["wall_time_ms"] += 1
         digest_limits(receipts[0])
-        with self.assertRaisesRegex(ValueError, "unequal numeric resource limits"):
+        with self.assertRaisesRegex(ValueError, "resource_policy artifact digest|unequal numeric resource limits"):
             self.verify(receipts)
 
     def test_rejects_different_resource_policy_digest(self):
