@@ -95,6 +95,56 @@ fn assert_nd_contract<const D: usize>() {
     );
 }
 
+
+#[derive(Clone)]
+struct Ball<const D: usize> {
+    center: SVector<f64, D>,
+    radius: f64,
+}
+
+impl<const D: usize> WorldSupportMap<D> for Ball<D> {
+    fn support_world(&self, direction: &SVector<f64, D>) -> SVector<f64, D> {
+        let norm = direction.norm();
+        if norm <= f64::MIN_POSITIVE {
+            let mut axis = SVector::<f64, D>::zeros();
+            axis[0] = self.radius;
+            self.center + axis
+        } else {
+            self.center + direction * (self.radius / norm)
+        }
+    }
+
+    fn center_world(&self) -> SVector<f64, D> {
+        self.center
+    }
+
+    fn bounding_sphere_world(&self) -> (SVector<f64, D>, f64) {
+        (self.center, self.radius)
+    }
+}
+
+#[test]
+fn active_set_gjk_matches_analytic_sphere_oracle_in_five_dimensions() {
+    let a = Ball::<5> {
+        center: SVector::zeros(),
+        radius: 1.0,
+    };
+    for (distance, expected) in [(1.5, GjkTermination::Intersecting), (3.0, GjkTermination::Separated)] {
+        let b = Ball::<5> {
+            center: SVector::from([distance, 0.0, 0.0, 0.0, 0.0]),
+            radius: 1.0,
+        };
+        let analytical = distance <= a.radius + b.radius;
+        assert_eq!(analytical, expected == GjkTermination::Intersecting);
+        let result = intersects_support_maps(&a, &b);
+        assert_eq!(
+            result.termination,
+            expected,
+            "D=5: sphere distance {distance} disagrees with analytical reference"
+        );
+    }
+}
+
 #[test]
 fn active_set_gjk_handles_five_dimensions() {
     assert_nd_contract::<5>();
