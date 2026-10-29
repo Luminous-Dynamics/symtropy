@@ -229,12 +229,8 @@ impl<const D: usize> PlaneBoundary<D> {
     }
 }
 
-/// Affine coordinate and velocity map between same-dimensional local charts.
-///
-/// Position: x_dst = A x_src + b.
-/// Time: t_dst = time_scale * t_src + time_offset.
-/// Velocity: v_dst = A v_src / time_scale.
-/// time_scale means dt_dst = time_scale * dt_src and must be finite and > 0.
+/// Conservative test that the normalized interface plane intersects a
+/// region's axis-aligned bounds.
 fn boundary_intersects_region<const D: usize>(
     boundary: &PlaneBoundary<D>,
     region: &RegionSpec<D>,
@@ -257,6 +253,12 @@ fn boundary_intersects_region<const D: usize>(
         && boundary.offset <= maximum + boundary.tolerance
 }
 
+/// Affine coordinate and velocity map between same-dimensional local charts.
+///
+/// Position: x_dst = A x_src + b.
+/// Time: t_dst = time_scale * t_src + time_offset.
+/// Velocity: v_dst = A v_src / time_scale.
+/// time_scale means dt_dst = time_scale * dt_src and must be finite and > 0.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AffineRegionMap<const D: usize> {
     pub linear: SMatrix<f64, D, D>,
