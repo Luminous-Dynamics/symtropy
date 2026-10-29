@@ -503,7 +503,7 @@ fn write_report(path: &str, summaries: &[Summary]) -> Result<(), String> {
         let reduction =
             (1.0 - row.model_fea_queries as f64 / row.full_pool_fea_queries as f64) * 100.0;
         output.push_str(&format!(
-            "{},{},{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{},{},{:.6},{:.6},{:.6},{:.6}\n",
+            "{},{},{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{},{},{},{},{:.6},{:.6}\n",
             row.scope_type,
             csv_escape(&row.scope_id),
             row.n,
