@@ -297,8 +297,8 @@ jobs:
             .long_horizon_extension.performance_claim == "none" and
             .paired_comparison_extension.status == "proposed_not_executed" and
             .paired_comparison_extension.evidence_class == "synthetic_only" and
-            .paired_comparison_extension.contract_path == "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.3.json" and
-            .paired_comparison_extension.schema_path == "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.3.0.schema.json" and
+            .paired_comparison_extension.contract_path == "research/polar-infrastructure/benchmark/fixtures/paired-comparison-v0.4.json" and
+            .paired_comparison_extension.schema_path == "research/polar-infrastructure/benchmark/schemas/paired-comparison-input-0.4.0.schema.json" and
             .paired_comparison_extension.evaluator_path == "research/polar-infrastructure/benchmark/src/bin/paired_comparison.rs" and
             .paired_comparison_extension.independent_verifier_path == "research/polar-infrastructure/benchmark/scripts/verify_paired_comparison.py" and
             .paired_comparison_extension.controller_count == 2 and
@@ -308,6 +308,11 @@ jobs:
             .paired_comparison_extension.complete_controller_trajectory_matrix_required == true and
             .paired_comparison_extension.invalid_and_unevaluated_outcomes_must_remain_visible == true and
             .paired_comparison_extension.gate_specific_margin_contracts_required == true and
+            .paired_comparison_extension.content_addressed_artifacts_required == true and
+            .paired_comparison_extension.digest_algorithm == "SHA-256 over exact UTF-8 payload bytes" and
+            .paired_comparison_extension.digest_payload_verification == "independent_python_verifier_required" and
+            .paired_comparison_extension.synthetic_fixture_payloads_are_physical_evidence == false and
+            (.paired_comparison_extension.artifact_categories | sort) == (["trajectory_payload", "initial_state_payload", "controller_artifact_payload"] | sort) and
             .paired_comparison_extension.performance_claim == "none" and
             .result_policy.report_kind == "preregistration_contract_only_no_performance_results"
           ' "$contract"
