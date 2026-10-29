@@ -11,6 +11,8 @@ from verify_execution_receipt_set import verify_receipt_set  # noqa: E402
 
 RECEIPT = HERE.parent / "fixtures" / "controller-execution-receipt-template-2026.json"
 PAIRED = HERE.parent / "fixtures" / "paired-comparison-v0.4.json"
+RECEIPT_V02 = HERE.parent / "fixtures" / "controller-execution-receipt-v0.2-template-2026.json"
+PAIRED_V05 = HERE.parent / "fixtures" / "paired-comparison-v0.5.json"
 
 
 def digest_limits(receipt):
@@ -46,12 +48,41 @@ def build_receipt_set(template, paired):
     return receipts
 
 
+def build_v02_receipt_set(template, paired):
+    receipts = []
+    for case in paired["cases"]:
+        receipt = copy.deepcopy(template)
+        trajectory = next(a for a in paired["trajectory_artifacts"] if a["trajectory_id"] == case["trajectory_id"])
+        controller = next(a for a in paired["controller_artifacts"] if a["controller_id"] == case["controller_id"])
+        receipt["receipt_id"] = "receipt-v02-" + case["case_id"]
+        receipt["case_id"] = case["case_id"]
+        receipt["controller_id"] = case["controller_id"]
+        receipt["paired_input_bindings"] = {
+            "trajectory_id": trajectory["trajectory_id"],
+            "trajectory_sha256": trajectory["trajectory_sha256"],
+            "initial_state_id": trajectory["initial_state_id"],
+            "initial_state_sha256": trajectory["initial_state_sha256"],
+            "controller_artifact_sha256": controller["controller_sha256"],
+            "information_budget_sha256": paired["information_budget_sha256"],
+            "observation_trace_sha256": trajectory["observation_trace_sha256"],
+        }
+        controller_entry = next(a for a in receipt["artifact_inventory"] if a["role"] == "controller_artifact")
+        controller_entry["artifact_id"] = "controller-artifact-" + case["controller_id"]
+        controller_entry["payload"] = controller["controller_payload"]
+        controller_entry["sha256"] = controller["controller_sha256"]
+        receipts.append(receipt)
+    return receipts
+
+
 class ExecutionReceiptSetTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.template = json.loads(RECEIPT.read_text())
         cls.paired = json.loads(PAIRED.read_text())
         cls.receipts = build_receipt_set(cls.template, cls.paired)
+        cls.template_v02 = json.loads(RECEIPT_V02.read_text())
+        cls.paired_v05 = json.loads(PAIRED_V05.read_text())
+        cls.receipts_v02 = build_v02_receipt_set(cls.template_v02, cls.paired_v05)
 
     def verify(self, receipts=None):
         verify_receipt_set(copy.deepcopy(self.paired), copy.deepcopy(receipts or self.receipts))
@@ -117,6 +148,21 @@ class ExecutionReceiptSetTests(unittest.TestCase):
         receipts[0]["paired_input_bindings"]["controller_artifact_sha256"] = "a" * 64
         with self.assertRaisesRegex(ValueError, "controller artifact inventory digest does not match paired input binding"):
             self.verify(receipts)
+
+    def test_accepts_complete_v02_receipt_set_for_v05_paired_input(self):
+        verify_receipt_set(copy.deepcopy(self.paired_v05), copy.deepcopy(self.receipts_v02))
+
+    def test_rejects_v02_receipt_set_with_mismatched_budget_digest(self):
+        receipts = copy.deepcopy(self.receipts_v02)
+        receipts[0]["paired_input_bindings"]["information_budget_sha256"] = "a" * 64
+        with self.assertRaisesRegex(ValueError, "information-budget binding disagrees"):
+            verify_receipt_set(copy.deepcopy(self.paired_v05), receipts)
+
+    def test_rejects_v02_receipt_set_with_different_observation_trace(self):
+        receipts = copy.deepcopy(self.receipts_v02)
+        receipts[1]["paired_input_bindings"]["observation_trace_sha256"] = "a" * 64
+        with self.assertRaisesRegex(ValueError, "observation-trace binding disagrees"):
+            verify_receipt_set(copy.deepcopy(self.paired_v05), receipts)
 
 
 if __name__ == "__main__":
