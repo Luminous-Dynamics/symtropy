@@ -1,4 +1,4 @@
-# Paired resilience comparison protocol, v0.4
+# Paired resilience comparison protocol, v0.5
 
 **Status:** proposed synthetic contract; not an executed controller experiment.  
 **Evidence ceiling:** structural/evaluator correctness on authored fixtures. No physical model, real environmental trace, hardware-in-the-loop result, or controller superiority claim is made.
@@ -11,7 +11,7 @@ The Rust evaluator requires a complete controller-by-trajectory matrix, validate
 
 ## Content-addressed experimental identity
 
-IDs alone are insufficient evidence that two controller executions saw the same inputs. Version 0.4 therefore binds every case to three SHA-256 identities: the exogenous trajectory payload, its initial-state payload, and the exact declared controller artifact payload. The per-case digest references must agree with one artifact registry; paired rows must share trajectory and initial-state identities; all rows for a given controller must reference the same declared controller artifact.
+IDs alone are insufficient evidence that two controller executions saw the same inputs. Version 0.4 binds every case to three SHA-256 identities: the exogenous trajectory payload, its initial-state payload, and the exact declared controller artifact payload. The per-case digest references must agree with one artifact registry; paired rows must share trajectory and initial-state identities; all rows for a given controller must reference the same declared controller artifact.
 
 The fixture holds small UTF-8 **synthetic descriptor strings** so the integrity checks are deterministic and portable. They are not simulation traces or executable binaries. The independent Python verifier recomputes SHA-256 over the exact UTF-8 payload bytes; the Rust executable checks format and registry bindings but deliberately delegates byte hashing to that independent verifier. The workflow must run both, and the report says that independent verification is required. A bare hash is not source authentication: for real experiments, the same scheme must bind immutable source/model/controller artifacts, exact executable/container and configuration digests, simulator version, and a signed run receipt or independently captured output hashes. Reproducibility and source rights still require separate review.
 
@@ -62,6 +62,31 @@ The [execution-attestation profile](EXECUTION_ATTESTATION_PROFILE_2026.md) recor
 
 The version pin is based on the latest observed Cosign release at policy authoring (**v3.1.4, 20 October 2026**). Release/advisory review found the 2026 legacy-bundle verification bypass GHSA-fx35-mq7g-6g98 and malformed attestation/predicate validation issue GHSA-w6c6-c85g-mmv6. The policy rejects legacy bundle media types and will not authorize scoring merely because a cryptographic verification command returns success. A genuine score claim still requires a trusted execution job, complete paired receipts, identical plant/observation/resource constraints, an independently validated physical model and a paired locked-test study.
 
+## Causal information parity and no-look-ahead (v0.5)
+
+Version 0.5 binds every case to one shared information-budget digest and every trajectory to a content-addressed observation trace. The budget currently declares a 60-second decision interval, a maximum 300-second forecast horizon, a 1,000 ms compute budget, and 256 MB memory limit. These are **synthetic contract parameters**, not a validated plant's operating limits. Real values must be specified for the deployment class and then frozen before comparisons.
+
+The independent verifier checks these temporal rules in each observation trace:
+- Measurement observation time and availability time must be at or before the controller decision time.
+- A forecast must have been issued and made available by decision time; its valid time may be in the future only within the declared forecast horizon.
+- Decision times must advance by the declared interval; the trace must be content-addressed and bound to the exact trajectory.
+- Every controller case must reference the same information-budget digest. A modified or absent budget is a contract failure, not an unreported comparison difference.
+
+This is a substantial fairness control, but it is **not by itself proof that an executed controller never accessed hidden files, network data, or future state**. A real bake-off must also execute in an isolated environment with only declared inputs mounted, constrain network access, record the actual per-decision input bytes or digests, and capture output/artifact hashes in an execution receipt. The receipt must be independently verified. Any out-of-band access invalidates that run. Synthetic observation trace validation is not hardware-in-the-loop or field validation.
+
+### New measurable benchmark: information-efficiency frontier
+
+Do not give the candidate a richer forecast, denser telemetry, extra compute or more calls and then credit every gain to the policy architecture. Freeze the information budget and compare under the same observation schedule, forecast vintage, allowable look-ahead, sensor set, action limits and compute/memory limits. Then run a separate budget sweep—for example, forecast horizons and compute caps selected before testing—and publish the Pareto frontier of critical-service risk versus information/compute expenditure. This reveals whether a candidate is genuinely more efficient or simply consumes a larger resource budget.
+
+Required anti-leakage negative controls include: measurement sampled after decision time; delayed measurement not yet available; forecast issued after decision time; forecast beyond allowed horizon; tampered observation bytes or digest; per-case information-budget mismatch; and input from an undeclared sensor/source. Every known-answer invalid control must be rejected. The benchmark should report both the number rejected and the number of controller runs invalidated by the control harness. False rejection of legitimate forecast vintages is also a defect and requires a positive control.
+
+This control is timely, not speculative. A study published 9 October 2026 on energy forecasting reported that noncausal full-series decomposition can produce very large apparent forecasting gains; it compared causal and noncausal preprocessing under otherwise controlled conditions. Its exact findings are specific to those datasets and models, but its lesson transfers directly: the information available at the decision origin is part of the experimental input, not a cosmetic metadata field. A September 2026 systematic review of microgrid reinforcement learning also found no single method dominates simultaneously across cost, latency, resilience and deployment complexity, supporting multi-objective frontiers instead of one overall "winner."
+
+References:
+- [Leakage-controlled re-evaluation of full-series decomposition in energy forecasting](https://doi.org/10.1155/er/4433079), first published 9 October 2026.
+- [Adaptive intelligence in smart microgrids: systematic review and comparative analysis](https://link.springer.com/article/10.1007/s10462-026-11663-x), published 9 September 2026.
+- [NIST TEVV-Athlon Framework for Evaluating AI Systems](https://www.nist.gov/artificial-intelligence/ai-research/tevv-athlon-framework-evaluating-ai-systems), announced 7 August 2026.
+
 ## Industry comparison without category errors
 
 - **Microgrid control testing:** IEC TS 62898-3-5:2026 covers HIL, commissioning and periodic testing for monitoring, control and energy-management systems in grid-connected or isolated microgrids. Use its applicable licensed clauses and a reviewed clause-to-test crosswalk; this research contract is not a claim of IEC conformity.
@@ -81,4 +106,4 @@ This benchmark's potential differentiator is a versioned, fail-closed evidence a
 
 ## Current state
 
-The paired fixture is synthetic and encodes 12 result rows for two controllers across six trajectories, including valid passes, breaches, invalid runs and unevaluated outcomes. A separate receipt template and receipt-set verifier test execution provenance, budget and observation-policy equality, and artifact bindings without claiming that any simulation was run. The six trajectories are not simulated physical systems. The Python verifiers and mutation suites check the report, payload hashes and receipt-set contract; only the exact-head GitHub workflow can compile and execute the Rust implementation. Even a passing workflow validates software contracts only. The remaining prerequisites for an empirical performance claim are real admitted inputs, an independently validated plant model, a frozen baseline and holdout, and paired experiments with uncertainty reporting.
+The v0.5 paired fixture is synthetic and encodes 12 result rows for two controllers across six trajectories, including valid passes, breaches, invalid runs and unevaluated outcomes. A separate receipt template and receipt-set verifier test execution provenance, budget and observation-policy equality, and artifact bindings without claiming that any simulation was run. The six trajectories are not simulated physical systems. The Python verifiers and mutation suites check report structure, payload hashes, causal observation timing, shared information-budget identity and receipt-set contract; only the exact-head GitHub workflow can compile and execute the Rust implementation. Even a passing workflow validates software contracts only. The current observation schedule is synthetic and does not prove runtime information isolation. The remaining prerequisites for an empirical performance claim are real admitted inputs, an independently validated plant model, a frozen baseline and holdout, and paired experiments with uncertainty reporting.
