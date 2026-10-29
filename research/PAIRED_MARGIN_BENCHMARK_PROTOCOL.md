@@ -40,6 +40,22 @@ Do not call a controller resilient because a gate has no observed breach when it
 5. **Search study:** compare engineering-authored cases, seeded space-filling sampling, interaction coverage and adaptive falsification at fixed evaluation budgets. Score distinct independently replayed counterexamples per model call, time to first counterexample, replay success, novel failure-family yield and locked-holdout generalization. Search quality and controller quality are separate claims.
 6. **Model validation:** start with one narrow, validated electrical subsystem; test the plant independently before controller rankings. Emit timestamped traces and conservation/solver diagnostics through a versioned simulator adapter. Add multi-site communications partitions only after delay, loss, stale data, fallback and state reconciliation semantics are explicit.
 
+## Execution receipts and equal-resource comparison
+
+The content-bound v0.4 paired input protects static identities; it does not, by itself, prove that an execution occurred or that the measured run stayed within its declared budget. The new controller execution receipt separates these claims.
+
+Each receipt binds the paired trajectory, initial state and controller artifact, along with the plant model, run configuration, executable, runtime environment, observation policy, resource policy, command, outputs and resource ceilings. The numerical limits are themselves bound by a canonical SHA-256 digest of the sorted, compact JSON form, so changing a budget without updating its digest is rejected. The receipt template is explicitly `design_only_not_executed`, with null measurements, no output artifacts, no independent verification and `scoring_eligible=false`.
+
+The independent receipt verifier rehashes payload-backed UTF-8 artifacts and cross-checks receipt identity against the paired input row. The receipt-set verifier then requires exactly one receipt for every declared controller-by-trajectory case and enforces:
+- identical numeric resource limits, resource-policy digest, observation-policy digest, plant-model digest, executable digest and runtime-environment digest across arms;
+- identical run-configuration digest for both controllers on a given trajectory;
+- stable controller-artifact identity across every trajectory for that controller;
+- identical trajectory and initial-state content identities for all controllers paired on the same trajectory.
+
+A complete and internally consistent receipt set is a necessary integrity condition, not evidence that the physics is valid. Synthetic template receipts remain ineligible. A real run can become score-eligible only after completed execution, success exit status, resource compliance, independently verified output hashes and an admissible evidence class. This offline verifier currently requires payload-backed artifacts for score eligibility; external artifact stores need an additional verifier that reads the exact object bytes rather than trusting an operator-supplied URI/hash pair.
+
+This is consistent with the reproducibility gap highlighted by [CSBenchLab (August 2026)](https://doi.org/10.1016/j.conengprac.2026.106984): its paper notes the risks of custom-tailored experiments and under-tuned alternatives, while promoting standardized interfaces and metadata. Symtropy's proposed distinction is to make the fairness invariants executable across receipts rather than relying only on scenario-description conventions.
+
 ## Industry comparison without category errors
 
 - **Microgrid control testing:** IEC TS 62898-3-5:2026 covers HIL, commissioning and periodic testing for monitoring, control and energy-management systems in grid-connected or isolated microgrids. Use its applicable licensed clauses and a reviewed clause-to-test crosswalk; this research contract is not a claim of IEC conformity.
@@ -59,4 +75,4 @@ This benchmark's potential differentiator is a versioned, fail-closed evidence a
 
 ## Current state
 
-The fixture is synthetic and encodes 12 result rows for two controllers across six trajectories, including valid passes, breaches, invalid runs and unevaluated outcomes. The six trajectories are not simulated physical systems. The Python verifier and its mutation suite check the report contract; only the exact-head GitHub workflow can compile and execute the Rust implementation. Even a passing workflow validates software contracts only. The remaining prerequisites for an empirical performance claim are real admitted inputs, an independently validated plant model, a frozen baseline and holdout, and paired experiments with uncertainty reporting.
+The paired fixture is synthetic and encodes 12 result rows for two controllers across six trajectories, including valid passes, breaches, invalid runs and unevaluated outcomes. A separate receipt template and receipt-set verifier test execution provenance, budget and observation-policy equality, and artifact bindings without claiming that any simulation was run. The six trajectories are not simulated physical systems. The Python verifiers and mutation suites check the report, payload hashes and receipt-set contract; only the exact-head GitHub workflow can compile and execute the Rust implementation. Even a passing workflow validates software contracts only. The remaining prerequisites for an empirical performance claim are real admitted inputs, an independently validated plant model, a frozen baseline and holdout, and paired experiments with uncertainty reporting.
