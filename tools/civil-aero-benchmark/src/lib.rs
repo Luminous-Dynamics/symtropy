@@ -333,8 +333,10 @@ mod tests {
         assert!(result.required_lift_coefficient > 0.0);
         assert!(result.estimated_drag_coefficient > result.case.cd0);
         assert!(result.estimated_drag_n > 0.0);
-        assert!(result.route_energy_wh > 0.0);
+        assert!((result.route_energy_wh - 26.045_244_747_108_647).abs() < 1e-9);
+        assert!((result.estimated_lift_to_drag - 8.045_376_630_298_913).abs() < 1e-10);
         assert!(result.energy_wh_per_payload_km > 0.0);
+        assert!(result.to_csv_row().contains("screening_only"));
     }
 
     #[test]
