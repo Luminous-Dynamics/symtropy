@@ -48,7 +48,9 @@ pub fn parse_ledger_csv(input: &str) -> Result<Vec<LedgerOperation>, String> {
         .ok_or_else(|| "experiment ledger is empty".to_owned())?
         .trim_end_matches('\r');
     if header != LEDGER_INPUT_HEADER {
-        return Err(format!("unexpected ledger header; expected exactly: {LEDGER_INPUT_HEADER}"));
+        return Err(format!(
+            "unexpected ledger header; expected exactly: {LEDGER_INPUT_HEADER}"
+        ));
     }
 
     let mut operations = Vec::new();
@@ -60,7 +62,9 @@ pub fn parse_ledger_csv(input: &str) -> Result<Vec<LedgerOperation>, String> {
             continue;
         }
         if line.contains('"') {
-            return Err(format!("line {line_number}: quoted CSV fields are not supported"));
+            return Err(format!(
+                "line {line_number}: quoted CSV fields are not supported"
+            ));
         }
         let fields: Vec<&str> = line.split(',').map(str::trim).collect();
         if fields.len() != LEDGER_INPUT_HEADER.split(',').count() {
@@ -154,13 +158,19 @@ fn validate_operation(operation: &LedgerOperation, line_number: usize) -> Result
         ));
     }
     if operation.cost_units < 0.0 {
-        return Err(format!("line {line_number}: cost_units must be non-negative"));
+        return Err(format!(
+            "line {line_number}: cost_units must be non-negative"
+        ));
     }
     if operation.budget_cap_units <= 0.0 {
-        return Err(format!("line {line_number}: budget_cap_units must be greater than zero"));
+        return Err(format!(
+            "line {line_number}: budget_cap_units must be greater than zero"
+        ));
     }
     if operation.wall_seconds < 0.0 || operation.cpu_seconds < 0.0 {
-        return Err(format!("line {line_number}: time costs must be non-negative"));
+        return Err(format!(
+            "line {line_number}: time costs must be non-negative"
+        ));
     }
     if operation.success {
         if !is_sha256_hex(&operation.output_sha256) {
@@ -181,7 +191,9 @@ fn validate_operation(operation: &LedgerOperation, line_number: usize) -> Result
     Ok(())
 }
 
-pub fn summarize_matched_budget(operations: &[LedgerOperation]) -> Result<Vec<PolicyBudgetSummary>, String> {
+pub fn summarize_matched_budget(
+    operations: &[LedgerOperation],
+) -> Result<Vec<PolicyBudgetSummary>, String> {
     if operations.is_empty() {
         return Err("matched-budget audit requires at least one operation".to_owned());
     }
@@ -260,7 +272,10 @@ pub fn summarize_matched_budget(operations: &[LedgerOperation]) -> Result<Vec<Po
                 }
             })
             .collect();
-        if policy_caps.iter().any(|cap| (cap - policy_caps[0]).abs() > 1e-9) {
+        if policy_caps
+            .iter()
+            .any(|cap| (cap - policy_caps[0]).abs() > 1e-9)
+        {
             return Err(format!(
                 "policies have different budget caps for task {task_id} replicate {replicate_id}"
             ));
@@ -338,7 +353,11 @@ mod tests {
             cpu_seconds: 0.4 * cost,
             success,
             output_sha256: if success { digest('a') } else { "-".to_owned() },
-            reason_code: if success { "-".to_owned() } else { "solver_nonconverged".to_owned() },
+            reason_code: if success {
+                "-".to_owned()
+            } else {
+                "solver_nonconverged".to_owned()
+            },
         }
     }
 
@@ -351,7 +370,10 @@ mod tests {
             operation("voi", "v2", "audit", 0.5, true, 5.0),
         ];
         let summary = summarize_matched_budget(&rows).expect("valid matched budget");
-        let random = summary.iter().find(|s| s.policy_id == "random").expect("random");
+        let random = summary
+            .iter()
+            .find(|s| s.policy_id == "random")
+            .expect("random");
         let voi = summary.iter().find(|s| s.policy_id == "voi").expect("voi");
         assert!((random.total_cost_units - 2.5).abs() < 1e-12);
         assert_eq!(random.failed_operations, 1);
