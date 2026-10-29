@@ -594,6 +594,10 @@ mod tests {
         assert!(read_observations(&path).is_err());
         fs::write(&path, format!("{header}\na,g1,m1,50,SINUSOIDAL,10,2,3,1,2\n")).unwrap();
         assert!(read_observations(&path).is_err());
+        fs::write(&path, format!("{header}\na,g1,m1,0,SINUSOIDAL,10,10,9,11,2\n")).unwrap();
+        assert!(read_observations(&path).is_err());
+        fs::write(&path, format!("{header}\na,g1,m1,50,UNDECLARED_WAVEFORM,10,10,9,11,2\n")).unwrap();
+        assert!(read_observations(&path).is_err());
         fs::write(
             &path,
             format!("{header}\na,g1,m1,50,SINUSOIDAL,10,10,9,11,2\nb,g1,m1,50,SINUSOIDAL,20,20,19,21,3\n"),
