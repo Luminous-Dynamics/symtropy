@@ -188,7 +188,7 @@ pub fn intersects_support_maps<const D: usize>(
     if D == 4 {
         return intersects_support_maps_with_closest_simplex(shape_a, shape_b);
     }
-    if D > 4 {
+    if D == 1 || D > 4 {
         return intersects_support_maps_with_active_set(shape_a, shape_b);
     }
 
@@ -199,12 +199,19 @@ pub fn intersects_support_maps<const D: usize>(
         return indeterminate(simplex, 0, GjkFailureReason::NonFiniteInput);
     }
 
-    // Initial direction: from A to B.
+    let (geometric_tolerance_squared, coordinate_tolerance_squared) =
+        match scale_relative_tolerances_squared(shape_a, shape_b, &center_a, &center_b) {
+            Ok(tolerances) => tolerances,
+            Err(reason) => return indeterminate(simplex, 0, reason),
+        };
+
+    // Initial direction: from A to B. The fallback must scale with the query,
+    // rather than making all tiny geometries appear coincident.
     let mut direction = center_b - center_a;
     if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
         return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
     }
-    if direction.norm_squared() < 1e-20 {
+    if direction.norm_squared() <= geometric_tolerance_squared {
         direction = SVector::zeros();
         direction[0] = 1.0;
     }
@@ -225,7 +232,7 @@ pub fn intersects_support_maps<const D: usize>(
                 GjkFailureReason::NonFiniteArithmetic,
             );
         }
-        if direction_squared < 1e-20 {
+        if direction_squared <= geometric_tolerance_squared {
             return GjkResult {
                 intersecting: true,
                 termination: GjkTermination::Intersecting,
@@ -233,26 +240,58 @@ pub fn intersects_support_maps<const D: usize>(
                 iterations: iteration,
             };
         }
+        if direction_squared <= coordinate_tolerance_squared {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::CoordinatePrecisionLimit,
+            );
+        }
 
         let new_point = minkowski_support(shape_a, shape_b, &direction);
         if !vector_is_finite(&new_point) {
             return indeterminate(simplex, iteration, GjkFailureReason::NonFiniteSupport);
         }
         let support_projection = new_point.dot(&direction);
-        if !support_projection.is_finite() {
+        let new_point_squared = new_point.norm_squared();
+        if !support_projection.is_finite() || !new_point_squared.is_finite() {
             return indeterminate(
                 simplex,
                 iteration,
                 GjkFailureReason::NonFiniteArithmetic,
             );
         }
-        if support_projection < -1e-10 {
+        let support_projection_tolerance = 64.0
+            * f64::EPSILON
+            * direction.norm()
+            * new_point.norm();
+        if !support_projection_tolerance.is_finite() {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
+        if support_projection < -support_projection_tolerance {
             return GjkResult {
                 intersecting: false,
                 termination: GjkTermination::Separated,
                 simplex,
                 iterations: iteration,
             };
+        }
+        for point in &simplex {
+            let delta_squared = (*point - new_point).norm_squared();
+            if !delta_squared.is_finite() {
+                return indeterminate(
+                    simplex,
+                    iteration,
+                    GjkFailureReason::NonFiniteArithmetic,
+                );
+            }
+            if delta_squared <= coordinate_tolerance_squared {
+                return indeterminate(simplex, iteration, GjkFailureReason::DuplicateSupport);
+            }
         }
         if simplex.len() >= MAX_SIMPLEX {
             return indeterminate(
