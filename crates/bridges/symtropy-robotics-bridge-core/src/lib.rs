@@ -10,6 +10,7 @@ pub mod differential_drive;
 pub mod dispatch;
 pub mod epoch_authority;
 pub mod epoch_fence;
+pub mod epoch_fenced_sink;
 pub mod outcome_ledger;
 pub mod recovery_benchmark;
 pub mod haptic;
@@ -34,6 +35,9 @@ pub use differential_drive::{
 pub use epoch_authority::{
     ControllerEpochAuthority, ControllerEpochStore, EpochAuthorityError,
     EpochAuthorityStoreError,
+};
+pub use epoch_fenced_sink::{
+    EpochFencedControllerReceipt, EpochFencedControllerSink, EpochFencedSubmitError,
 };
 pub use epoch_fence::{
     ControllerEpoch, EpochFenceError, EpochFencedOutcomeLedger,
