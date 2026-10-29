@@ -16,7 +16,7 @@ From the Symtropy workspace root:
 cargo test -p symtropy-soil
 ```
 
-The initial suite covers zero flux, inflows/outflows, exact depletion, over-capacity conditions, invalid inputs, explicit unit conversion, overflow, deterministic replay, and multi-step accounting. These are synthetic software-invariant tests, not soil observations or efficacy benchmarks.
+The current suite includes 13 synthetic tests covering zero flux, inflows/outflows, exact depletion, over-capacity conditions, invalid inputs, millimeter/centimeter/liter-per-area/rate-time conversions, overflow, deterministic replay, multi-step accounting, and a fixed-seed 10,000-case conservation sweep. These are synthetic software-invariant tests, not soil observations or efficacy benchmarks.
 
 ## Accounting identity
 
