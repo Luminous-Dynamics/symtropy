@@ -175,29 +175,28 @@ pub fn verify_trace(events: &[TraceEvent]) -> Vec<Violation> {
                 });
             }
 
-            let Some(upstream) = event.upstream.as_ref() else {
+            if let Some(upstream) = event.upstream.as_ref() {
+                if !upstream.is_well_referenced() {
+                    violations.push(Violation::MissingUpstreamReferences {
+                        event_id: event.event_id,
+                    });
+                }
+
+                if upstream.decision != UpstreamDecision::Permit {
+                    violations.push(Violation::UpstreamDeniedOrIndeterminate {
+                        event_id: event.event_id,
+                    });
+                }
+
+                if required_scope(event.effect) != Some(upstream.permitted_scope)
+                    || event.requested_scope != Some(upstream.permitted_scope)
+                {
+                    violations.push(Violation::ScopeMismatch {
+                        event_id: event.event_id,
+                    });
+                }
+            } else {
                 violations.push(Violation::MissingUpstreamDisposition {
-                    event_id: event.event_id,
-                });
-                continue;
-            };
-
-            if !upstream.is_well_referenced() {
-                violations.push(Violation::MissingUpstreamReferences {
-                    event_id: event.event_id,
-                });
-            }
-
-            if upstream.decision != UpstreamDecision::Permit {
-                violations.push(Violation::UpstreamDeniedOrIndeterminate {
-                    event_id: event.event_id,
-                });
-            }
-
-            if required_scope(event.effect) != Some(upstream.permitted_scope)
-                || event.requested_scope != Some(upstream.permitted_scope)
-            {
-                violations.push(Violation::ScopeMismatch {
                     event_id: event.event_id,
                 });
             }
