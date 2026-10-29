@@ -16,6 +16,8 @@ struct Input {
     axes: Vec<Axis>,
     gate_ids: Vec<String>,
     gate_margin_contracts: BTreeMap<String, GateMarginContract>,
+    information_budget_payload: String,
+    information_budget_sha256: String,
     trajectory_artifacts: Vec<TrajectoryArtifact>,
     controller_artifacts: Vec<ControllerArtifact>,
     cases: Vec<Case>,
@@ -46,6 +48,8 @@ struct TrajectoryArtifact {
     trajectory_sha256: String,
     initial_state_payload: String,
     initial_state_sha256: String,
+    observation_trace_payload: String,
+    observation_trace_sha256: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -79,6 +83,7 @@ struct Case {
     trajectory_sha256: String,
     initial_state_sha256: String,
     controller_artifact_sha256: String,
+    information_budget_sha256: String,
     gate_results: BTreeMap<String, GateResult>,
     signed_gate_margins: BTreeMap<String, Option<f64>>,
 }
@@ -92,6 +97,7 @@ struct TrajectoryMeta {
     severity: BTreeMap<String, f64>,
     trajectory_sha256: String,
     initial_state_sha256: String,
+    observation_trace_sha256: String,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -108,7 +114,7 @@ fn valid_sha256(value: &str) -> bool {
 }
 
 fn validate(input: &Input) -> Result<(), String> {
-    if input.schema_version != "0.4.0"
+    if input.schema_version != "0.5.0"
         || input.artifact_kind != "paired-resilience-comparison-input"
         || input.evidence_class != "synthetic_fixture"
         || input.status != "synthetic_only"
@@ -141,6 +147,9 @@ fn validate(input: &Input) -> Result<(), String> {
 
     let expected_axes: BTreeSet<String> = axis_ids.into_iter().collect();
     let expected_gates: BTreeSet<String> = input.gate_ids.iter().cloned().collect();
+    if !nonempty(&input.information_budget_payload) || !valid_sha256(&input.information_budget_sha256) {
+        return Err("information budget needs a non-empty payload and lowercase SHA-256 digest".into());
+    }
     if input.gate_margin_contracts.keys().cloned().collect::<BTreeSet<_>>() != expected_gates {
         return Err("gate margin contracts must match the declared gate IDs exactly".into());
     }
@@ -159,9 +168,11 @@ fn validate(input: &Input) -> Result<(), String> {
     for artifact in &input.trajectory_artifacts {
         if !nonempty(&artifact.trajectory_id) || !nonempty(&artifact.initial_state_id)
             || artifact.trajectory_payload.is_empty() || artifact.initial_state_payload.is_empty()
+            || artifact.observation_trace_payload.is_empty()
             || !valid_sha256(&artifact.trajectory_sha256) || !valid_sha256(&artifact.initial_state_sha256)
+            || !valid_sha256(&artifact.observation_trace_sha256)
         {
-            return Err("trajectory and initial-state artifacts need non-empty payloads and lowercase SHA-256 digests".into());
+            return Err("trajectory, initial-state and observation-trace artifacts need non-empty payloads and lowercase SHA-256 digests".into());
         }
         if !trajectory_artifact_ids.insert(artifact.trajectory_id.clone()) {
             return Err(format!("duplicate trajectory artifact: {}", artifact.trajectory_id));
@@ -223,12 +234,15 @@ fn validate(input: &Input) -> Result<(), String> {
             return Err(format!("undeclared controller: {}", case.controller_id));
         }
         if !valid_sha256(&case.trajectory_sha256) || !valid_sha256(&case.initial_state_sha256)
-            || !valid_sha256(&case.controller_artifact_sha256)
+            || !valid_sha256(&case.controller_artifact_sha256) || !valid_sha256(&case.information_budget_sha256)
         {
             return Err(format!("case {} contains an invalid SHA-256 digest", case.case_id));
         }
         let trajectory_artifact = trajectory_artifacts.get(case.trajectory_id.as_str()).expect("inventory checked");
         let controller_artifact = controller_artifacts.get(case.controller_id.as_str()).expect("inventory checked");
+        if case.information_budget_sha256 != input.information_budget_sha256 {
+            return Err(format!("case {} uses a different information budget", case.case_id));
+        }
         if case.trajectory_sha256 != trajectory_artifact.trajectory_sha256
             || case.initial_state_id != trajectory_artifact.initial_state_id
             || case.initial_state_sha256 != trajectory_artifact.initial_state_sha256
@@ -266,6 +280,7 @@ fn validate(input: &Input) -> Result<(), String> {
             severity: case.severity.clone(),
             trajectory_sha256: case.trajectory_sha256.clone(),
             initial_state_sha256: case.initial_state_sha256.clone(),
+            observation_trace_sha256: trajectory_artifact.observation_trace_sha256.clone(),
         };
         if let Some(previous) = trajectory_meta.get(&case.trajectory_id) {
             if previous != &meta {
@@ -303,7 +318,8 @@ fn analyze(input: &Input) -> Value {
         json!({
             "trajectory_sha256": a.trajectory_sha256,
             "initial_state_id": a.initial_state_id,
-            "initial_state_sha256": a.initial_state_sha256
+            "initial_state_sha256": a.initial_state_sha256,
+            "observation_trace_sha256": a.observation_trace_sha256
         })
     )).collect();
     let controller_digests: BTreeMap<String, String> = input.controller_artifacts.iter().map(|a| (
@@ -391,7 +407,7 @@ fn analyze(input: &Input) -> Value {
     }
 
     json!({
-        "schema_version": "0.4.0",
+        "schema_version": "0.5.0",
         "report_kind": "paired-resilience-comparison-report",
         "evidence_class": "synthetic_fixture",
         "status": "synthetic_only",
@@ -399,6 +415,10 @@ fn analyze(input: &Input) -> Value {
         "trajectory_count": trajectories.len(),
         "case_count": input.cases.len(),
         "gate_margin_contracts": input.gate_margin_contracts,
+        "information_budget": {
+            "sha256": input.information_budget_sha256,
+            "payload_sha256_verification": "delegated_to_independent_verifier"
+        },
         "content_bindings": {
             "trajectory_digests": trajectory_digests,
             "controller_digests": controller_digests,
@@ -425,7 +445,7 @@ mod tests {
     use super::*;
 
     fn load() -> Input {
-        serde_json::from_str(include_str!("../../fixtures/paired-comparison-v0.4.json")).unwrap()
+        serde_json::from_str(include_str!("../../fixtures/paired-comparison-v0.5.json")).unwrap()
     }
 
     #[test]
@@ -495,5 +515,19 @@ mod tests {
         input.trajectory_artifacts[1].initial_state_id =
             input.trajectory_artifacts[0].initial_state_id.clone();
         assert!(validate(&input).unwrap_err().contains("references multiple payload digests"));
+    }
+
+    #[test]
+    fn rejects_case_with_unequal_information_budget() {
+        let mut input = load();
+        input.cases[1].information_budget_sha256 = "a".repeat(64);
+        assert!(validate(&input).unwrap_err().contains("different information budget"));
+    }
+
+    #[test]
+    fn rejects_observation_trace_digest_format() {
+        let mut input = load();
+        input.trajectory_artifacts[0].observation_trace_sha256 = "not-a-digest".into();
+        assert!(validate(&input).unwrap_err().contains("observation-trace artifacts"));
     }
 }
