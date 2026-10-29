@@ -201,6 +201,8 @@
         "claim_latency_ns",
         "command_epoch_before_admission",
         "command_epoch_at_application",
+        "command_application_acceptance_count",
+        "stale_epoch_command_application_acceptance_count",
         "old_command_queue_policy",
         "command_acceptance_boundary",
         "sink_invocation_count"
@@ -217,6 +219,7 @@
     "Expand every family-specific severity profile from the manifest, rather than assuming all fault families have exactly three severities.",
     "Any accepted command/outcome while the epoch authority is missing, unavailable, corrupt, or rolled back fails the hard gate.",
     "The authority-store implementation identity and durability/rollback threat model must be fixed before scored runs.",
-    "Record stale command admissions separately from stale outcome-event acceptance; both are non-compensatory hard-gate failures."
+    "Record stale command admissions separately from stale outcome-event acceptance; both are non-compensatory hard-gate failures.",
+    "Record stale command application acceptance separately from stale admission and stale outcome acceptance; missing application-boundary evidence is unobserved, not zero."
   ]
 }
