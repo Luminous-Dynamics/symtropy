@@ -60,6 +60,7 @@ pub enum RegionGraphError {
     MissingTransformIdentity,
     UnitMismatchForConservation,
     NonIsometricMapForPreservation,
+    BoundaryOutsideRegion,
 }
 
 impl fmt::Display for RegionGraphError {
@@ -84,6 +85,9 @@ impl fmt::Display for RegionGraphError {
             Self::NonIsometricMapForPreservation => {
                 write!(f, "preserve/exchange policy requires an isometry with unchanged time scale")
             }
+            Self::BoundaryOutsideRegion => {
+                write!(f, "interface boundary does not intersect its declared region domain")
+            }
         }
     }
 }
@@ -98,6 +102,8 @@ pub struct RegionSpec<const D: usize> {
     pub metric_profile: String,
     pub coordinate_unit: String,
     pub time_unit: String,
+    /// Logical clock identity; different clocks require an explicit time map.
+    pub clock_id: String,
     pub model_revision: u64,
 }
 
@@ -119,6 +125,11 @@ impl<const D: usize> RegionSpec<D> {
         if self.time_unit.trim().is_empty() {
             return Err(RegionGraphError::InvalidRegion {
                 field: "time_unit",
+            });
+        }
+        if self.clock_id.trim().is_empty() {
+            return Err(RegionGraphError::InvalidRegion {
+                field: "clock_id",
             });
         }
         for axis in 0..D {
@@ -201,11 +212,27 @@ impl<const D: usize> PlaneBoundary<D> {
         self.signed_distance(point)
             .is_some_and(|distance| distance.abs() <= self.tolerance)
     }
+
+    pub fn validate(&self) -> Result<(), RegionGraphError> {
+        if D == 0 {
+            return Err(RegionGraphError::InvalidDimension);
+        }
+        if !self.normal.iter().all(|value| value.is_finite())
+            || !self.offset.is_finite()
+            || !self.tolerance.is_finite()
+            || self.tolerance <= 0.0
+            || !scalar_close(self.normal.norm(), 1.0, 1e-8)
+        {
+            return Err(RegionGraphError::InvalidBoundary { field: "malformed plane" });
+        }
+        Ok(())
+    }
 }
 
 /// Affine coordinate and velocity map between same-dimensional local charts.
 ///
 /// Position: x_dst = A x_src + b.
+/// Time: t_dst = time_scale * t_src + time_offset.
 /// Velocity: v_dst = A v_src / time_scale.
 /// time_scale means dt_dst = time_scale * dt_src and must be finite and > 0.
 #[derive(Clone, Debug, PartialEq)]
@@ -213,6 +240,7 @@ pub struct AffineRegionMap<const D: usize> {
     pub linear: SMatrix<f64, D, D>,
     pub translation: SVector<f64, D>,
     pub time_scale: f64,
+    pub time_offset: f64,
 }
 
 impl<const D: usize> AffineRegionMap<D> {
@@ -220,6 +248,7 @@ impl<const D: usize> AffineRegionMap<D> {
         linear: SMatrix<f64, D, D>,
         translation: SVector<f64, D>,
         time_scale: f64,
+        time_offset: f64,
     ) -> Result<Self, RegionGraphError> {
         if D == 0 {
             return Err(RegionGraphError::InvalidDimension);
@@ -233,10 +262,14 @@ impl<const D: usize> AffineRegionMap<D> {
         if !time_scale.is_finite() || time_scale <= 0.0 {
             return Err(RegionGraphError::InvalidMap { field: "time_scale" });
         }
+        if !time_offset.is_finite() {
+            return Err(RegionGraphError::InvalidMap { field: "time_offset" });
+        }
         Ok(Self {
             linear,
             translation,
             time_scale,
+            time_offset,
         })
     }
 
@@ -245,6 +278,7 @@ impl<const D: usize> AffineRegionMap<D> {
             linear: SMatrix::<f64, D, D>::identity(),
             translation: SVector::<f64, D>::zeros(),
             time_scale: 1.0,
+            time_offset: 0.0,
         }
     }
 
@@ -279,7 +313,12 @@ impl<const D: usize> AffineRegionMap<D> {
     pub fn inverse(&self) -> Result<Self, RegionGraphError> {
         let linear = self.linear.try_inverse().ok_or(RegionGraphError::SingularMap)?;
         let translation = -(linear * self.translation);
-        Self::new(linear, translation, 1.0 / self.time_scale)
+        Self::new(
+            linear,
+            translation,
+            1.0 / self.time_scale,
+            -self.time_offset / self.time_scale,
+        )
     }
 
     pub fn is_isometry(&self, tolerance: f64) -> bool {
@@ -289,6 +328,25 @@ impl<const D: usize> AffineRegionMap<D> {
         let gram = self.linear.transpose() * self.linear;
         (gram - SMatrix::<f64, D, D>::identity()).norm() <= tolerance
             && (self.time_scale - 1.0).abs() <= tolerance
+    }
+
+    pub fn validate(&self) -> Result<(), RegionGraphError> {
+        if D == 0 {
+            return Err(RegionGraphError::InvalidDimension);
+        }
+        if !self.linear.iter().all(|value| value.is_finite()) {
+            return Err(RegionGraphError::InvalidMap { field: "linear matrix" });
+        }
+        if !self.translation.iter().all(|value| value.is_finite()) {
+            return Err(RegionGraphError::InvalidMap { field: "translation" });
+        }
+        if !self.time_scale.is_finite() || self.time_scale <= 0.0 {
+            return Err(RegionGraphError::InvalidMap { field: "time_scale" });
+        }
+        if !self.time_offset.is_finite() {
+            return Err(RegionGraphError::InvalidMap { field: "time_offset" });
+        }
+        Ok(())
     }
 
     pub fn validate_inverse(
@@ -305,6 +363,7 @@ impl<const D: usize> AffineRegionMap<D> {
         if !matrix_close(&expected.linear, &inverse.linear, tolerance)
             || !vector_close(&expected.translation, &inverse.translation, tolerance)
             || !scalar_close(expected.time_scale, inverse.time_scale, tolerance)
+            || !scalar_close(expected.time_offset, inverse.time_offset, tolerance)
         {
             return Err(RegionGraphError::InverseMismatch);
         }
