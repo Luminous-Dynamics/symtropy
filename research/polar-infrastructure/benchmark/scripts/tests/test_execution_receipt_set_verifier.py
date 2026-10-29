@@ -7,7 +7,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HERE))
-from verify_execution_receipt_set import verify_receipt_set  # noqa: E402
+from verify_execution_receipt_set import main as verify_receipt_set_main, verify_receipt_set  # noqa: E402
 
 RECEIPT = HERE.parent / "fixtures" / "controller-execution-receipt-template-2026.json"
 PAIRED = HERE.parent / "fixtures" / "paired-comparison-v0.4.json"
@@ -86,6 +86,18 @@ class ExecutionReceiptSetTests(unittest.TestCase):
 
     def verify(self, receipts=None):
         verify_receipt_set(copy.deepcopy(self.paired), copy.deepcopy(receipts or self.receipts))
+
+    def test_rejects_duplicate_json_keys_in_receipt_set_cli(self):
+        import tempfile
+        from contextlib import redirect_stderr
+        import io
+        with tempfile.TemporaryDirectory() as directory:
+            paired_path = Path(directory) / "paired.json"
+            receipt_path = Path(directory) / "receipt.json"
+            paired_path.write_text('{"schema_version":"invalid"}')
+            receipt_path.write_text('{"schema_version":"0.1.0","schema_version":"0.1.0"}')
+            with redirect_stderr(io.StringIO()):
+                self.assertEqual(verify_receipt_set_main(["verify_execution_receipt_set.py", str(paired_path), str(receipt_path)]), 1)
 
     def test_accepts_complete_unexecuted_contract_matrix_without_performance_claim(self):
         self.verify()
