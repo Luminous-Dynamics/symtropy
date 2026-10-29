@@ -94,6 +94,48 @@ fn simplex_is_finite<const D: usize>(simplex: &Simplex<D>) -> bool {
     simplex.iter().all(|point| vector_is_finite(point))
 }
 
+/// Squared roundoff tolerance scaled to the query's geometry and world coordinates.
+///
+/// The absolute `1e-20` origin test makes equivalent geometry change classification
+/// when uniformly rescaled. Bounding radii capture shape extent; center coordinates
+/// account for precision lost when support points are represented in world space.
+fn scale_relative_origin_tolerance_squared<const D: usize>(
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
+    center_a: &SVector<f64, D>,
+    center_b: &SVector<f64, D>,
+) -> Result<f64, GjkFailureReason> {
+    let (_, radius_a) = shape_a.bounding_sphere_world();
+    let (_, radius_b) = shape_b.bounding_sphere_world();
+    if !radius_a.is_finite() || !radius_b.is_finite() || radius_a < 0.0 || radius_b < 0.0 {
+        return Err(GjkFailureReason::NonFiniteInput);
+    }
+
+    let center_delta = center_b - center_a;
+    if !vector_is_finite(&center_delta) {
+        return Err(GjkFailureReason::NonFiniteArithmetic);
+    }
+    let coordinate_scale = center_a
+        .iter()
+        .chain(center_b.iter())
+        .fold(0.0_f64, |largest, value| largest.max(value.abs()));
+    let separation_scale = center_delta
+        .iter()
+        .fold(0.0_f64, |largest, value| largest.max(value.abs()));
+    let scale = radius_a
+        .max(radius_b)
+        .max(coordinate_scale)
+        .max(separation_scale);
+    let scale = if scale == 0.0 { 1.0 } else { scale };
+    let linear_tolerance = 64.0 * f64::EPSILON * scale;
+    let squared_tolerance = linear_tolerance * linear_tolerance;
+    if squared_tolerance.is_finite() {
+        Ok(squared_tolerance)
+    } else {
+        Err(GjkFailureReason::NonFiniteArithmetic)
+    }
+}
+
 /// Test if two translated shapes intersect using the GJK algorithm.
 ///
 /// This compatibility entry point preserves the original API. New code should
@@ -251,6 +293,13 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
         return indeterminate(simplex, 0, GjkFailureReason::NonFiniteInput);
     }
 
+    let origin_tolerance_squared = match scale_relative_origin_tolerance_squared(
+        shape_a, shape_b, &center_a, &center_b,
+    ) {
+        Ok(tolerance) => tolerance,
+        Err(reason) => return indeterminate(simplex, 0, reason),
+    };
+
     let mut direction = center_b - center_a;
     if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
         return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
@@ -276,7 +325,7 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
                 GjkFailureReason::NonFiniteArithmetic,
             );
         }
-        if closest_squared < 1e-20 {
+        if closest_squared <= origin_tolerance_squared {
             return GjkResult {
                 intersecting: true,
                 termination: GjkTermination::Intersecting,
@@ -317,7 +366,7 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
                     GjkFailureReason::NonFiniteArithmetic,
                 );
             }
-            if delta_squared < 1e-24 {
+            if delta_squared <= origin_tolerance_squared {
                 return indeterminate(simplex, iteration, GjkFailureReason::DuplicateSupport);
             }
         }
@@ -333,7 +382,9 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
         }
         simplex.push(new_point);
 
-        let Some((reduced, next_closest)) = closest_point_on_simplex(&simplex) else {
+        let Some((reduced, next_closest)) =
+            closest_point_on_simplex(&simplex, origin_tolerance_squared)
+        else {
             return indeterminate(simplex, iteration, GjkFailureReason::DegenerateSimplex);
         };
         if !vector_is_finite(&next_closest) || !simplex_is_finite(&reduced) {
@@ -346,7 +397,7 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
         simplex = reduced;
         closest = next_closest;
 
-        if closest.norm_squared() < 1e-20 {
+        if closest.norm_squared() <= origin_tolerance_squared {
             return GjkResult {
                 intersecting: true,
                 termination: GjkTermination::Intersecting,
@@ -372,6 +423,7 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
 /// subsets are considered independently.
 fn closest_point_on_simplex<const D: usize>(
     simplex: &Simplex<D>,
+    origin_tolerance_squared: f64,
 ) -> Option<(Simplex<D>, SVector<f64, D>)> {
     let count = simplex.len();
     if count == 0 || count > MAX_SIMPLEX {
@@ -450,7 +502,8 @@ fn closest_point_on_simplex<const D: usize>(
                 // If the origin is on the simplex, prefer the largest available
                 // containing face. EPA benefits from a fuller seed simplex.
                 Some((best_mask, _, best_distance))
-                    if distance_squared < 1e-20 && *best_distance < 1e-20 =>
+                    if distance_squared <= origin_tolerance_squared
+                        && *best_distance <= origin_tolerance_squared =>
                 {
                     mask.count_ones() > best_mask.count_ones()
                 }
