@@ -191,7 +191,7 @@ fn assemble(problems: Vec<Problem>, truth: BTreeMap<String, u8>) -> Result<Vec<T
     for problem in problems {
         let target_sig = *truth.get(&problem.id).ok_or("missing evaluator truth")?;
         for (a, y) in &problem.initial {
-            if (target_sig >> a) & 1 != *y {
+            if (target_sig >> *a) & 1 != *y {
                 return Err(format!("initial observation contradicts evaluator target for {}", problem.id));
             }
         }
