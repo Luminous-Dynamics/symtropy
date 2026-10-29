@@ -49,10 +49,16 @@ impl fmt::Display for SoilWaterError {
                 write!(f, "outflows exceed initial storage plus inflows")
             }
             Self::StorageExceedsCapacity => {
-                write!(f, "computed storage exceeds capacity; account for runoff/drainage")
+                write!(
+                    f,
+                    "computed storage exceeds capacity; account for runoff/drainage"
+                )
             }
             Self::NonFiniteArithmetic => {
-                write!(f, "non-finite intermediate encountered during water accounting")
+                write!(
+                    f,
+                    "non-finite intermediate encountered during water accounting"
+                )
             }
         }
     }
@@ -338,7 +344,10 @@ mod tests {
         let result = advance(state(10.0, 100.0), fluxes(5.0, 0.0, 15.0, 0.0, 0.0)).unwrap();
         close(result.state.storage_mm(), 0.0);
         let error = advance(state(10.0, 100.0), fluxes(0.0, 0.0, 10.1, 0.0, 0.0));
-        assert_eq!(error.unwrap_err(), SoilWaterError::OutflowExceedsAvailableWater);
+        assert_eq!(
+            error.unwrap_err(),
+            SoilWaterError::OutflowExceedsAvailableWater
+        );
     }
 
     #[test]
@@ -355,14 +364,26 @@ mod tests {
     fn rejects_negative_and_non_finite_depths() {
         assert_eq!(DepthMm::new(-0.1), Err(SoilWaterError::InvalidDepth));
         assert_eq!(DepthMm::new(f64::NAN), Err(SoilWaterError::InvalidDepth));
-        assert_eq!(DepthMm::new(f64::INFINITY), Err(SoilWaterError::InvalidDepth));
-        assert_eq!(WaterFluxes::new(1.0, 0.0, -1.0, 0.0, 0.0), Err(SoilWaterError::InvalidDepth));
+        assert_eq!(
+            DepthMm::new(f64::INFINITY),
+            Err(SoilWaterError::InvalidDepth)
+        );
+        assert_eq!(
+            WaterFluxes::new(1.0, 0.0, -1.0, 0.0, 0.0),
+            Err(SoilWaterError::InvalidDepth)
+        );
     }
 
     #[test]
     fn rejects_invalid_capacity_and_initial_state() {
-        assert_eq!(SoilWaterState::new(0.0, 0.0), Err(SoilWaterError::InvalidCapacity));
-        assert_eq!(SoilWaterState::new(0.0, f64::NAN), Err(SoilWaterError::InvalidCapacity));
+        assert_eq!(
+            SoilWaterState::new(0.0, 0.0),
+            Err(SoilWaterError::InvalidCapacity)
+        );
+        assert_eq!(
+            SoilWaterState::new(0.0, f64::NAN),
+            Err(SoilWaterError::InvalidCapacity)
+        );
         assert_eq!(
             SoilWaterState::new(11.0, 10.0),
             Err(SoilWaterError::InitialStorageExceedsCapacity)
@@ -374,7 +395,10 @@ mod tests {
         let from_cm = DepthMm::from_centimeters(1.0).unwrap();
         let from_mm = DepthMm::new(10.0).unwrap();
         assert_eq!(from_cm, from_mm);
-        assert_eq!(DepthMm::from_centimeters(-1.0), Err(SoilWaterError::InvalidDepth));
+        assert_eq!(
+            DepthMm::from_centimeters(-1.0),
+            Err(SoilWaterError::InvalidDepth)
+        );
     }
 
     #[test]
@@ -445,7 +469,10 @@ mod tests {
     fn large_values_that_overflow_fail_closed() {
         let initial = state(f64::MAX / 2.0, f64::MAX);
         let inflow = fluxes(f64::MAX, 0.0, 0.0, 0.0, 0.0);
-        assert_eq!(advance(initial, inflow), Err(SoilWaterError::NonFiniteArithmetic));
+        assert_eq!(
+            advance(initial, inflow),
+            Err(SoilWaterError::NonFiniteArithmetic)
+        );
     }
 
     #[test]
