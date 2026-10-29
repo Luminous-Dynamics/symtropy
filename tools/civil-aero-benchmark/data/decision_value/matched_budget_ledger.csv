@@ -1,0 +1,5 @@
+task_id,replicate_id,policy_id,operation_id,operation_kind,fidelity,cost_units,budget_cap_units,wall_seconds,cpu_seconds,success,output_sha256,reason_code
+naca-smoke,seed-1,random,r1,high_fidelity,high,1.0,5.0,0.5,0.4,true,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,-
+naca-smoke,seed-1,random,r2,high_fidelity,high,1.5,5.0,0.75,0.6,false,-,solver_nonconverged
+naca-smoke,seed-1,voi,v1,high_fidelity,high,2.0,5.0,1.0,0.8,true,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,-
+naca-smoke,seed-1,voi,v2,audit,none,0.5,5.0,0.25,0.2,true,cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,-
