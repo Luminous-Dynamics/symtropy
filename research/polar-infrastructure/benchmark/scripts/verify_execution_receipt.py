@@ -18,7 +18,7 @@ SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 REVISION_RE = re.compile(r"^([a-f0-9]{40}|[a-f0-9]{64})$")
 REQUIRED_INPUT_ROLES = {
     "plant_model", "run_configuration", "executable",
-    "runtime_environment", "observation_policy", "resource_policy", "command",
+    "runtime_environment", "observation_policy", "resource_policy", "command", "controller_artifact",
 }
 REQUIRED_OUTPUT_ROLES = {"output_trace", "stdout", "stderr"}
 RESOURCE_KEYS = {
@@ -92,6 +92,9 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
     bindings = receipt.get("paired_input_bindings", {})
     for key in ("trajectory_sha256", "initial_state_sha256", "controller_artifact_sha256"):
         need(is_sha(bindings.get(key)), f"invalid paired input binding: {key}")
+    inventory_by_role = {artifact["role"]: artifact for artifact in inventory}
+    need(inventory_by_role["controller_artifact"]["sha256"] == bindings["controller_artifact_sha256"],
+         "controller artifact inventory digest does not match paired input binding")
 
     case = next((c for c in paired.get("cases", [])
                  if c.get("case_id") == receipt.get("case_id")), None)
@@ -124,6 +127,10 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
     need(is_sha(receipt.get("resource_limits_sha256"))
          and receipt["resource_limits_sha256"] == expected_limits_digest,
          "numeric resource limits do not match their canonical SHA-256 binding")
+    resource_policy = inventory_by_role["resource_policy"]
+    need(resource_policy["sha256"] == expected_limits_digest
+         and resource_policy["payload"] == canonical_limits.decode("utf-8"),
+         "resource policy artifact must match canonical numeric resource limits and digest")
     state = receipt.get("status")
     evidence = receipt.get("execution_evidence", {})
     independent = receipt.get("independent_verification", {})
