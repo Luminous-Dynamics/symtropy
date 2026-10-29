@@ -209,19 +209,10 @@ pub struct ReceiptPayload {
     pub protocol_metadata: BTreeMap<String, String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VolatileMetadata {
     pub recorded_at_utc: Option<String>,
     pub worker_label: Option<String>,
-}
-
-impl Default for VolatileMetadata {
-    fn default() -> Self {
-        Self {
-            recorded_at_utc: None,
-            worker_label: None,
-        }
-    }
 }
 
 /// Versioned receipt envelope. receipt_sha256 commits to the payload only;
@@ -279,7 +270,7 @@ impl QualificationReceipt {
             .artifacts
             .iter()
             .find(|artifact| artifact.logical_name == logical_name)
-            .ok_or_else(|| ReceiptError::MissingArtifact {
+            .ok_or(ReceiptError::MissingArtifact {
                 logical_name: logical_name.to_string(),
             })?;
         artifact.verify_bytes(bytes)
@@ -495,7 +486,7 @@ impl ReceiptPayload {
         if !has_definitive_failure || self.execution.status == ExecutionStatus::NotStarted {
             return Err(ReceiptError::DispositionContradictsExecution);
         }
-        Ok(())
+        self.require_outcome_reason()
     }
 
     fn validate_indeterminate(&self) -> Result<(), ReceiptError> {
@@ -628,11 +619,12 @@ impl fmt::Display for ReceiptError {
 impl Error for ReceiptError {}
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
     let digest = Sha256::digest(bytes);
     let mut out = String::with_capacity(64);
     for byte in digest {
-        use std::fmt::Write as _;
-        let _ = write!(&mut out, "{byte:02x}");
+        out.push(HEX[(byte >> 4) as usize] as char);
+        out.push(HEX[(byte & 0x0f) as usize] as char);
     }
     out
 }
@@ -797,6 +789,21 @@ mod tests {
         assert_eq!(
             QualificationReceipt::new(payload, volatile("runner")).unwrap_err(),
             ReceiptError::DispositionContradictsExecution
+        );
+    }
+
+    #[test]
+    fn failed_run_requires_an_explicit_reason() {
+        let mut payload = valid_payload();
+        payload.disposition = Disposition::Fail;
+        payload.execution.status = ExecutionStatus::Failed;
+        payload.execution.exit_code = Some(1);
+        payload.execution.cases.passed = 2;
+        payload.execution.cases.failed = 1;
+        payload.execution.outcome_reason = None;
+        assert_eq!(
+            QualificationReceipt::new(payload, volatile("runner")).unwrap_err(),
+            ReceiptError::MissingOutcomeReason
         );
     }
 
