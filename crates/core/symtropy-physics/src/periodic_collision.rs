@@ -12,7 +12,7 @@ use std::error::Error;
 use std::fmt;
 
 use nalgebra::SVector;
-use symtropy_math::{LatticeOffset, PeriodicBox, Point, Shape, Transform};
+use symtropy_math::{LatticeOffset, PeriodicBox, PeriodicDomainError, Point, Shape, Transform};
 
 use crate::broadphase::{support_aabb, Aabb};
 use crate::ccd;
@@ -59,6 +59,12 @@ impl Error for PeriodicCollisionError {}
 impl From<PeriodicBroadphaseError> for PeriodicCollisionError {
     fn from(value: PeriodicBroadphaseError) -> Self {
         Self::Broadphase(value)
+    }
+}
+
+impl From<PeriodicDomainError> for PeriodicCollisionError {
+    fn from(value: PeriodicDomainError) -> Self {
+        Self::Broadphase(PeriodicBroadphaseError::from(value))
     }
 }
 
