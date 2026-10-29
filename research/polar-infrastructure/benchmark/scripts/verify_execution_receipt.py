@@ -53,8 +53,8 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
     need(set(receipt) == {
         "schema_version", "artifact_kind", "evidence_class", "status", "receipt_id", "case_id",
         "controller_id", "execution_state", "execution_performed", "scoring_eligible", "provenance",
-        "paired_input_bindings", "artifact_inventory", "resource_limits", "observed_resources",
-        "execution_evidence", "independent_verification", "claim_policy",
+        "paired_input_bindings", "artifact_inventory", "resource_limits", "resource_limits_sha256",
+        "observed_resources", "execution_evidence", "independent_verification", "claim_policy",
     }, "receipt keys do not match the strict v0.1 contract")
     need(receipt.get("schema_version") == "0.1.0"
          and receipt.get("artifact_kind") == "symtropy-controller-execution-receipt",
@@ -109,6 +109,11 @@ def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
          "resource limits/measurements have incorrect keys")
     need(all(isinstance(limits[k], int) and not isinstance(limits[k], bool) and limits[k] > 0
              for k in RESOURCE_KEYS), "resource limits must be positive integers")
+    canonical_limits = json.dumps(limits, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    expected_limits_digest = hashlib.sha256(canonical_limits).hexdigest()
+    need(is_sha(receipt.get("resource_limits_sha256"))
+         and receipt["resource_limits_sha256"] == expected_limits_digest,
+         "numeric resource limits do not match their canonical SHA-256 binding")
     state = receipt.get("status")
     evidence = receipt.get("execution_evidence", {})
     independent = receipt.get("independent_verification", {})
