@@ -4,9 +4,9 @@ This benchmark is a repeatable within-engine latency baseline for the dimension-
 
 ## Run
 
-\`\`\`sh
+```sh
 cargo bench --locked -p symtropy-physics --bench gjk_nd_bench
-\`\`\`
+```
 
 Use a release build on an otherwise idle machine. Record the full source SHA, compiler output from rustc -Vv, cargo version, target triple, CPU model, operating system/kernel, power mode, and raw Criterion output. Keep workload setup outside the timed loop. The pseudo-random generator and seed are fixed by dimension.
 
