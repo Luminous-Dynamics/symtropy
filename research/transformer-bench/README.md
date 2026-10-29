@@ -193,3 +193,16 @@ A matching digest proves only that the bytes read at verification time match the
 ## Next research frontier: thermal lifetime
 
 The next research work item is [PWR-TX-HST-001](https://github.com/Luminous-Dynamics/symtropy/issues/2899), with protocol in [THERMAL_LIFETIME_BENCHMARK.md](THERMAL_LIFETIME_BENCHMARK.md). It extends the benchmark from core-loss screening to hotspot trajectories, thermal ageing, model uncertainty and lifecycle decisions. No thermal model implementation or physical validation is claimed by the protocol alone.
+
+
+## Budgeted candidate verification policy benchmark
+
+The `acquisition-bench` binary compares six candidate-selection policies under matched query budgets: RANDOM, MIN_PREDICTED, MAX_UNCERTAINTY, LOWER_CONFIDENCE_BOUND, EXPECTED_IMPROVEMENT, and DIVERSE. Output reports per-trial best-found loss regret against the pool's oracle, top-k recall, queried candidate IDs, and prediction error on queried candidates.
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin acquisition-bench -- \
+  research/transformer-bench/fixtures/acquisition-pool-synthetic.csv \
+  /tmp/acquisition-report.csv 6 30 8
+```
+
+See [BUDGETED_VERIFICATION_BENCHMARK.md](BUDGETED_VERIFICATION_BENCHMARK.md) and [PWR-TX-ACQ-001 #2907](https://github.com/Luminous-Dynamics/symtropy/issues/2907). This is an offline policy replay on a frozen pool: it does not run FEA or retrain a surrogate, and synthetic rows are not physical evidence. Reference labels are used for post-selection scoring, and queried observations update only the incumbent used by expected improvement. Claim true active-learning improvements only after a future version retrains against a pinned expensive oracle and accounts for query, training, retry and refinement costs.
