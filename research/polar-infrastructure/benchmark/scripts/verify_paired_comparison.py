@@ -120,7 +120,7 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
     _need(hashlib.sha256(doc["information_budget_payload"].encode("utf-8")).hexdigest() == budget_digest,
           "information-budget payload SHA-256 mismatch")
     try:
-        budget = json.loads(doc["information_budget_payload"])
+        budget = strict_json_loads(doc["information_budget_payload"])
     except json.JSONDecodeError as exc:
         raise ValueError(f"information-budget payload is not valid JSON: {exc}") from exc
     budget_keys = {
@@ -166,7 +166,7 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
         _need(hashlib.sha256(trace_bytes).hexdigest() == artifact["observation_trace_sha256"],
               f"observation-trace payload SHA-256 mismatch: {artifact['trajectory_id']}")
         try:
-            trace = json.loads(artifact["observation_trace_payload"])
+            trace = strict_json_loads(artifact["observation_trace_payload"])
         except json.JSONDecodeError as exc:
             raise ValueError(f"observation trace is not valid JSON for {artifact['trajectory_id']}: {exc}") from exc
         _need(isinstance(trace, dict) and set(trace) == {"schema_version", "trajectory_id", "decisions"}
@@ -305,6 +305,9 @@ def validate_input(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]
 
 def build_expected_report(doc: dict[str, Any]) -> dict[str, Any]:
     controllers, gates, trajectories = validate_input(doc)
+    # validate_input owns validation; reparse the already-validated budget locally
+    # because build_expected_report must not depend on another function's locals.
+    budget = strict_json_loads(doc["information_budget_payload"])
     rows = {(c["controller_id"], c["trajectory_id"]): c for c in doc["cases"]}
     coverage = []
     for controller in controllers:
