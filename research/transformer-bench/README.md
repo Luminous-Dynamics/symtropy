@@ -189,3 +189,7 @@ Receipt header:
 `manifest_sha256,artifact_id,role,relative_path,expected_sha256,observed_sha256,status,detail`
 
 A matching digest proves only that the bytes read at verification time match the digest declared in the manifest. It does **not** authenticate the source, identify who produced the artifact, prove that a test or solver actually ran, or establish scientific validity. Preserve the manifest and receipt in a version-controlled or independently anchored record; where adversarial tampering is in scope, add a digital signature or transparency-log anchor and independently validate producer identity. The SHA-256 implementation has standard known-answer tests; Rust tests still need to pass on the exact PR head before this gate is relied upon.
+
+## Next research frontier: thermal lifetime
+
+The next research work item is [PWR-TX-HST-001](https://github.com/Luminous-Dynamics/symtropy/issues/2899), with protocol in [THERMAL_LIFETIME_BENCHMARK.md](THERMAL_LIFETIME_BENCHMARK.md). It extends the benchmark from core-loss screening to hotspot trajectories, thermal ageing, model uncertainty and lifecycle decisions. No thermal model implementation or physical validation is claimed by the protocol alone.
