@@ -13,9 +13,7 @@
 
 use crate::control::{ControlOutcome, ControlOutcomeStatus};
 use crate::dispatch::{DispatchReceipt, DispatchStatus};
-use crate::outcome_ledger::{
-    ControlOutcomeLedger, OutcomeIngestReceipt, OutcomeLedgerError,
-};
+use crate::outcome_ledger::{ControlOutcomeLedger, OutcomeIngestReceipt, OutcomeLedgerError};
 use std::collections::BTreeMap;
 
 /// Monotonically increasing generation assigned by the authoritative controller
@@ -114,10 +112,7 @@ impl EpochFencedOutcomeLedger {
     /// The platform must independently transition to its defined safe state
     /// during restart/reinitialization. Do not invoke this with a guessed,
     /// caller-controlled, or volatile counter value.
-    pub fn advance_epoch(
-        &mut self,
-        next_epoch: ControllerEpoch,
-    ) -> Result<(), EpochFenceError> {
+    pub fn advance_epoch(&mut self, next_epoch: ControllerEpoch) -> Result<(), EpochFenceError> {
         if next_epoch <= self.current_epoch {
             return Err(EpochFenceError::EpochDidNotAdvance {
                 current_epoch: self.current_epoch.generation(),
@@ -316,10 +311,7 @@ mod tests {
 
     #[test]
     fn epoch_must_be_nonzero_and_capacity_positive() {
-        assert_eq!(
-            ControllerEpoch::new(0),
-            Err(EpochFenceError::InvalidEpoch)
-        );
+        assert_eq!(ControllerEpoch::new(0), Err(EpochFenceError::InvalidEpoch));
         assert_eq!(
             EpochFencedOutcomeLedger::new(epoch(1), 0).err(),
             Some(EpochFenceError::InvalidCapacity)
@@ -409,12 +401,11 @@ mod tests {
             })
         );
         assert_eq!(
-            fence
-                .ingest(
-                    epoch(2),
-                    "ticket-A",
-                    outcome(11, ControlOutcomeStatus::Completed, 1.2, 2),
-                ),
+            fence.ingest(
+                epoch(2),
+                "ticket-A",
+                outcome(11, ControlOutcomeStatus::Completed, 1.2, 2),
+            ),
             Err(EpochFenceError::RequestFromPriorEpoch {
                 request_id: 11,
                 request_epoch: 1,
