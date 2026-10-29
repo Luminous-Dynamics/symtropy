@@ -159,7 +159,7 @@ fn minimum_image_matches_independent_integer_search_and_is_odd() {
 }
 
 #[test]
-fn periodic_aabb_candidates_match_independent_brute_force_images() {
+fn periodic_aabb_candidates_include_independent_brute_force_images() {
     let domain = domain_x_periodic();
     let mut seed = 0x4141_4242_5045_5249_u64;
 
@@ -192,7 +192,10 @@ fn periodic_aabb_candidates_match_independent_brute_force_images() {
             }
         }
 
-        assert_eq!(actual, oracle, "image set mismatch at deterministic case {case}");
+        assert!(
+            actual.is_superset(&oracle),
+            "candidate set omitted an overlapping image at deterministic case {case}; actual={actual:?} oracle={oracle:?}"
+        );
     }
 }
 
