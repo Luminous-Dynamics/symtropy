@@ -58,11 +58,11 @@ The fixture is an event stream rather than a single fixed-size table:
 |---|---:|---:|---|
 | `lot-alpha` | 1 | 310/310 passes | QUALIFIED |
 | `lot-beta` | 2 | 334/334 passes, interleaved with other work | QUALIFIED |
-| `lot-gamma` | 3 | 173/204 passes | NOT_QUALIFIED |
+| `lot-gamma` | 3 | 156/185 observed passes from a 173/204 sealed sequence | NOT_QUALIFIED |
 | `lot-delta` | 4 | 76/80 passes | UNRESOLVED |
 | `lot-epsilon` | 5 | No trials | UNRESOLVED |
 
-The trace first observes 320 trials for `lot-beta`, leaves it unresolved, registers and evaluates later candidates, then returns for another 14 `lot-beta` trials. It therefore exercises a resumed candidate and interleaved event sequence. The oracle contains additional outcomes for `lot-alpha` after the qualification boundary; the task trace does not request them, and the audit must stop consuming that candidate after qualification.
+The trace first observes 320 trials for `lot-beta`, leaves it unresolved, registers and evaluates later candidates, then returns for another 14 `lot-beta` trials. The sealed `lot-gamma` outcomes are interleaved across 204 trials; the public trace stops after 185 observations (156 passes) when the rejection boundary is crossed. It therefore exercises a resumed candidate and interleaved event sequence. The oracle contains additional outcomes for `lot-alpha` after the qualification boundary; the task trace does not request them, and the audit must stop consuming that candidate after qualification.
 
 Tests cover exact one-trial tail probabilities, the `lot-alpha` threshold immediately before and at its qualification boundary, total countable error allocation, interleaved registration/sampling, candidate/time budget monotonicity, pre-registration rejection, post-terminal rejection, and forged-report replay.
 
