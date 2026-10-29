@@ -56,6 +56,12 @@ A complete and internally consistent receipt set is a necessary integrity condit
 
 This is consistent with the reproducibility gap highlighted by [CSBenchLab (August 2026)](https://doi.org/10.1016/j.conengprac.2026.106984): its paper notes the risks of custom-tailored experiments and under-tuned alternatives, while promoting standardized interfaces and metadata. Symtropy's proposed distinction is to make the fairness invariants executable across receipts rather than relying only on scenario-description conventions.
 
+## Signed execution attestation: strict future trust profile
+
+The [execution-attestation profile](EXECUTION_ATTESTATION_PROFILE_2026.md) records why the benchmark cannot allow receipt metadata to authorize scoring. It proposes a detached Sigstore signature over the exact immutable receipt bytes, with an out-of-band-pinned policy, exact protected-main GitHub Actions identity and OIDC issuer, standardized bundle format only, reviewed Cosign version, and no transparency-log bypass. The current wrapper's test suite stubs Cosign, so it tests policy enforcement and failure behavior but **does not validate a real signature**. The protected-main attestation workflow and real signed fixture remain future work; receipt v0.1 score eligibility is permanently false under its current schema.
+
+The version pin is based on the latest observed Cosign release at policy authoring (**v3.1.4, 20 October 2026**). Release/advisory review found the 2026 legacy-bundle verification bypass GHSA-fx35-mq7g-6g98 and malformed attestation/predicate validation issue GHSA-w6c6-c85g-mmv6. The policy rejects legacy bundle media types and will not authorize scoring merely because a cryptographic verification command returns success. A genuine score claim still requires a trusted execution job, complete paired receipts, identical plant/observation/resource constraints, an independently validated physical model and a paired locked-test study.
+
 ## Industry comparison without category errors
 
 - **Microgrid control testing:** IEC TS 62898-3-5:2026 covers HIL, commissioning and periodic testing for monitoring, control and energy-management systems in grid-connected or isolated microgrids. Use its applicable licensed clauses and a reviewed clause-to-test crosswalk; this research contract is not a claim of IEC conformity.
