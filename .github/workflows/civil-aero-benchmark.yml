@@ -137,6 +137,22 @@ jobs:
           test "$(wc -l < /tmp/aero-reference-ladson-cp.csv)" -eq 406
           test "$(wc -l < /tmp/aero-reference-gregory-cp.csv)" -eq 74
           sha256sum /tmp/aero-reference-all-a.csv
+      - name: Audit matched-budget experiment costs
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin budget_audit -- data/decision_value/matched_budget_ledger.csv > /tmp/aero-budget-a.csv
+          cargo run --locked --bin budget_audit -- data/decision_value/matched_budget_ledger.csv > /tmp/aero-budget-b.csv
+          cmp /tmp/aero-budget-a.csv /tmp/aero-budget-b.csv
+          test "$(wc -l < /tmp/aero-budget-a.csv)" -eq 3
+          grep -q "naca-smoke,seed-1,random,5.000000,2.500000,2.500000,1.250000,1.000000,2,1,1,true,ledger_audit_only" /tmp/aero-budget-a.csv
+          grep -q "naca-smoke,seed-1,voi,5.000000,2.500000,2.500000,1.250000,1.000000,2,2,0,true,ledger_audit_only" /tmp/aero-budget-a.csv
+          if cargo run --locked --bin budget_audit -- data/decision_value/budget_overrun_negative_control.csv > /tmp/aero-budget-overrun.csv 2> /tmp/aero-budget-overrun.txt; then
+            echo "budget overrun negative control unexpectedly passed" >&2
+            exit 1
+          fi
+          grep -q "exceeded budget cap" /tmp/aero-budget-overrun.txt
+          sha256sum /tmp/aero-budget-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |
