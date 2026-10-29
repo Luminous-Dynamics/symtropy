@@ -46,6 +46,7 @@ impl Policy {
 struct Episode {
     split: String, policy: String, actions: Vec<u8>, remaining: Vec<u8>,
     status: String, target_in_grammar: bool, target_retained: Option<bool>,
+    audit_action: Option<u8>, audit_mismatch: bool,
 }
 #[derive(Clone, Debug)]
 struct Case {
@@ -228,6 +229,24 @@ fn choose_action(survivors: &[u8], available: &[u8], policy: Policy, rng: &mut u
         }
     }
 }
+/// Challenge a unique candidate with one unqueried input. This uses grammar-wide alternatives,
+/// not the evaluator target.
+fn choose_falsification_action(singleton: u8, candidates: &[Candidate], available: &[u8], policy: Policy, rng: &mut u64) -> Option<u8> {
+    match policy {
+        Policy::Fixed => available.first().copied(),
+        Policy::Random => if available.is_empty() { None } else { Some(available[(next_rng(rng) as usize) % available.len()]) },
+        Policy::Active => {
+            let mut best = None;
+            let mut best_score = 0usize;
+            for action in available {
+                let predicted = (singleton >> *action) & 1;
+                let disagreement = candidates.iter().filter(|candidate| ((candidate.sig >> *action) & 1) != predicted).count();
+                if disagreement > best_score { best_score = disagreement; best = Some(*action); }
+            }
+            best.or_else(|| available.first().copied())
+        }
+    }
+}
 fn episode_status(remaining: &[u8], obs: &[(u8, u8)]) -> &'static str {
     if remaining.is_empty() { "misspecified" }
     else if remaining.len() == 1 && obs.len() == DOMAIN { "identified_exactly" }
@@ -243,16 +262,32 @@ fn run_episode(problem: &Problem, target_sig: u8, candidates: &[Candidate], poli
     let mut rng = seed;
     while remaining.len() > 1 && actions.len() < problem.budget {
         let Some(a) = choose_action(&remaining, &available, policy, &mut rng) else { break; };
-        // The target is used only to simulate feedback, never to select the action.
+        // The target simulates the environment response; it is not a chooser input.
         let y = (target_sig >> a) & 1;
         obs.push((a, y));
         actions.push(a);
         available.retain(|v| *v != a);
         remaining.retain(|sig| ((sig >> a) & 1) == y);
     }
+    // One post-fit falsification probe challenges a provisional singleton, if budget permits.
+    let mut audit_action = None;
+    if remaining.len() == 1 && actions.len() < problem.budget && !available.is_empty() {
+        if let Some(a) = choose_falsification_action(remaining[0], candidates, &available, policy, &mut rng) {
+            let y = (target_sig >> a) & 1;
+            obs.push((a, y));
+            actions.push(a);
+            available.retain(|v| *v != a);
+            remaining.retain(|sig| ((sig >> a) & 1) == y);
+            audit_action = Some(a);
+        }
+    }
+    let audit_mismatch = audit_action.is_some() && remaining.is_empty();
     let status = episode_status(&remaining, &obs).to_owned();
     let target_retained = target_in_grammar.then(|| remaining.contains(&target_sig));
-    Episode { split: problem.split.clone(), policy: policy.name().to_owned(), actions, remaining, status, target_in_grammar, target_retained }
+    Episode {
+        split: problem.split.clone(), policy: policy.name().to_owned(), actions, remaining,
+        status, target_in_grammar, target_retained, audit_action, audit_mismatch,
+    }
 }
 
 fn sha256_hex(input: &[u8]) -> String {
@@ -313,30 +348,48 @@ fn percentile(v: &[usize], p: f64) -> usize {
     if v.is_empty() {0} else {let rank=((v.len() as f64*p).ceil() as usize).max(1);v[rank.saturating_sub(1).min(v.len()-1)]}
 }
 fn summarize(policy: &str, split: &str, eps: &[&Episode]) -> String {
-    let n=eps.len();
-    let inside:Vec<_>=eps.iter().filter(|e|e.target_in_grammar).collect();
-    let retained=inside.iter().filter(|e|e.target_retained==Some(true)).count();
-    let outside:Vec<_>=eps.iter().filter(|e|!e.target_in_grammar).collect();
-    let detected=outside.iter().filter(|e|e.status=="misspecified").count();
-    let provisional_ood=outside.iter().filter(|e|e.status=="provisional_unique").count();
-    let mut q:Vec<usize>=eps.iter().map(|e|e.actions.len()).collect();q.sort_unstable();
-    let mean=if n==0 {0.0}else{q.iter().sum::<usize>() as f64/n as f64};
-    format!("{{\"policy\":\"{}\",\"split\":\"{}\",\"episodes\":{},\"mean_queries\":{:.6},\"median_queries\":{:.2},\"p90_queries\":{},\"ambiguous\":{},\"provisional_unique\":{},\"identified_exactly\":{},\"misspecified_detected\":{},\"out_of_grammar_episodes\":{},\"out_of_grammar_detection_rate\":{:.6},\"out_of_grammar_provisional_unique\":{},\"in_grammar_episodes\":{},\"in_grammar_target_retention_rate\":{:.6}}}",
-        json_escape(policy),json_escape(split),n,mean,median(&q),percentile(&q,0.9),
-        eps.iter().filter(|e|e.status=="ambiguous").count(),eps.iter().filter(|e|e.status=="provisional_unique").count(),
-        eps.iter().filter(|e|e.status=="identified_exactly").count(),detected,outside.len(),
-        if outside.is_empty(){0.0}else{detected as f64/outside.len() as f64},provisional_ood,inside.len(),
-        if inside.is_empty(){0.0}else{retained as f64/inside.len() as f64})
+    let n = eps.len();
+    let inside: Vec<_> = eps.iter().filter(|e| e.target_in_grammar).collect();
+    let retained = inside.iter().filter(|e| e.target_retained == Some(true)).count();
+    let outside: Vec<_> = eps.iter().filter(|e| !e.target_in_grammar).collect();
+    let detected = outside.iter().filter(|e| e.status == "misspecified").count();
+    let provisional_ood = outside.iter().filter(|e| e.status == "provisional_unique").count();
+    let audit_count = eps.iter().filter(|e| e.audit_action.is_some()).count();
+    let audit_mismatch_count = eps.iter().filter(|e| e.audit_mismatch).count();
+    let mut q: Vec<usize> = eps.iter().map(|e| e.actions.len()).collect();
+    q.sort_unstable();
+    let mean = if n == 0 { 0.0 } else { q.iter().sum::<usize>() as f64 / n as f64 };
+    format!(
+        "{{\"policy\":\"{}\",\"split\":\"{}\",\"episodes\":{},\"mean_queries\":{:.6},\"median_queries\":{:.2},\"p90_queries\":{},\"ambiguous\":{},\"provisional_unique\":{},\"identified_exactly\":{},\"misspecified_detected\":{},\"out_of_grammar_episodes\":{},\"out_of_grammar_detection_rate\":{:.6},\"out_of_grammar_provisional_unique\":{},\"in_grammar_episodes\":{},\"in_grammar_target_retention_rate\":{:.6},\"audit_probes\":{},\"audit_detected_misspecifications\":{}}}",
+        json_escape(policy), json_escape(split), n, mean, median(&q), percentile(&q, 0.9),
+        eps.iter().filter(|e| e.status == "ambiguous").count(),
+        eps.iter().filter(|e| e.status == "provisional_unique").count(),
+        eps.iter().filter(|e| e.status == "identified_exactly").count(), detected, outside.len(),
+        if outside.is_empty() { 0.0 } else { detected as f64 / outside.len() as f64 },
+        provisional_ood, inside.len(),
+        if inside.is_empty() { 0.0 } else { retained as f64 / inside.len() as f64 },
+        audit_count, audit_mismatch_count
+    )
 }
+
 fn render_episode(e: &Episode, candidates: &[Candidate]) -> String {
-    let rem=e.remaining.iter().map(|sig|{
-        let c=candidates.iter().find(|c|c.sig==*sig).expect("remaining signature belongs to grammar");
-        format!("{{\"signature\":\"{}\",\"representative\":\"{}\",\"expression_aliases\":{}}}",signature_string(c.sig),json_escape(&c.representative),c.expression_aliases)
+    let rem = e.remaining.iter().map(|sig| {
+        let c = candidates.iter().find(|c| c.sig == *sig).expect("remaining signature belongs to grammar");
+        format!(
+            "{{\"signature\":\"{}\",\"representative\":\"{}\",\"expression_aliases\":{}}}",
+            signature_string(c.sig), json_escape(&c.representative), c.expression_aliases
+        )
     }).collect::<Vec<_>>().join(",");
-    let retained=e.target_retained.map(|x|x.to_string()).unwrap_or_else(||"null".into());
-    format!("{{\"status\":\"{}\",\"target_in_grammar\":{},\"target_retained_if_in_grammar\":{},\"query_count\":{},\"actions\":[{}],\"remaining_candidates\":[{}]}}",
-        e.status,e.target_in_grammar,retained,e.actions.len(),e.actions.iter().map(u8::to_string).collect::<Vec<_>>().join(","),rem)
+    let retained = e.target_retained.map(|x| x.to_string()).unwrap_or_else(|| "null".into());
+    let audit = e.audit_action.map(|x| x.to_string()).unwrap_or_else(|| "null".into());
+    format!(
+        "{{\"status\":\"{}\",\"target_in_grammar\":{},\"target_retained_if_in_grammar\":{},\"query_count\":{},\"actions\":[{}],\"audit_action\":{},\"audit_detected_misspecification\":{},\"remaining_candidates\":[{}]}}",
+        e.status, e.target_in_grammar, retained, e.actions.len(),
+        e.actions.iter().map(u8::to_string).collect::<Vec<_>>().join(","),
+        audit, e.audit_mismatch, rem
+    )
 }
+
 fn render_report(head: &str, max_depth: usize, ph: &str, th: &str, candidates: &[Candidate], cases: &[Case], episodes: &[Episode]) -> String {
     let mut summaries=Vec::new();
     for policy in [Policy::Active.name(),Policy::Fixed.name(),Policy::Random.name()] {
@@ -414,6 +467,17 @@ mod tests {
     }
     #[test] fn truth_ids_must_match_problem_ids(){
         let p=parse_problems(PROBLEMS).unwrap();let mut t=parse_truth(TRUTH).unwrap();t.remove("heldout_majority");assert!(assemble(p,t).is_err());
+    }
+    #[test] fn falsification_probe_detects_an_out_of_grammar_target(){
+        let target=parse_signature("00010111").unwrap();
+        let candidates=enumerate_grammar(2).unwrap();
+        let obs:Vec<(u8,u8)>=(0..DOMAIN as u8).filter(|a|*a!=3).map(|a|(a,(target>>a)&1)).collect();
+        let p=Problem{id:"audit_control".into(),split:"heldout".into(),initial:obs,budget:1};
+        let e=run_episode(&p,target,&candidates,Policy::Active,1);
+        assert_eq!(e.audit_action,Some(3));
+        assert!(e.audit_mismatch);
+        assert_eq!(e.status,"misspecified");
+        assert!(!e.target_in_grammar);
     }
     #[test] fn out_of_grammar_full_observation_is_misspecified(){
         let target=parse_signature("00010111").unwrap();let c=enumerate_grammar(2).unwrap();
