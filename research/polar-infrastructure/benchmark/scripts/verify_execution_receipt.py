@@ -53,17 +53,16 @@ def verify_artifact_bytes(artifact: dict[str, Any]) -> bool:
     return True
 
 
-def verify_receipt(
+def _verify_receipt_validated(
     receipt: dict[str, Any],
     paired: dict[str, Any],
     *,
-    paired_validated: bool = False,
-    paired_case_by_id: dict[str, dict[str, Any]] | None = None,
-    trajectory_artifacts_by_id: dict[str, dict[str, Any]] | None = None,
-    controller_artifacts_by_id: dict[str, dict[str, Any]] | None = None,
+    paired_case_by_id: dict[str, dict[str, Any]],
+    trajectory_artifacts_by_id: dict[str, dict[str, Any]],
+    controller_artifacts_by_id: dict[str, dict[str, Any]],
 ) -> None:
-    if not paired_validated:
-        validate_paired_input(paired)
+    # Internal fast path: callers must validate the complete paired input before
+    # entering. The public verify_receipt() function never exposes a bypass flag.
     need(set(receipt) == {
         "schema_version", "artifact_kind", "evidence_class", "status", "receipt_id", "case_id",
         "controller_id", "execution_state", "execution_performed", "scoring_eligible", "execution_attestation", "provenance",
@@ -222,6 +221,18 @@ def verify_receipt(
              "invalid receipt must remain ineligible")
 
     # Source-URI artifacts are accepted for provenance, but are not byte-verified here.
+
+
+def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
+    """Public fail-closed entry point: validate paired inputs before any receipt."""
+    validate_paired_input(paired)
+    _verify_receipt_validated(
+        receipt,
+        paired,
+        paired_case_by_id={c["case_id"]: c for c in paired["cases"]},
+        trajectory_artifacts_by_id={a["trajectory_id"]: a for a in paired["trajectory_artifacts"]},
+        controller_artifacts_by_id={a["controller_id"]: a for a in paired["controller_artifacts"]},
+    )
 
 
 def main(argv: list[str]) -> int:
