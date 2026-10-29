@@ -566,19 +566,28 @@ fn closest_point_on_hull_active_set<const D: usize>(
                     .iter()
                     .map(|weight| (*weight).max(0.0))
                     .collect();
-                // Do not retain zero-weight vertices in the active corral. They
-                // can spuriously appear as violating KKT points after roundoff.
+                normalize_weights(&mut weights)?;
+
+                // A clamped near-zero coefficient changes the active face. Drop
+                // that vertex, then recompute the affine minimizer on the reduced
+                // face before accepting it as stationary. Clamping and accepting
+                // immediately can violate KKT and manufacture false separation.
+                let mut removed_vertex = false;
                 let mut active_index = 0usize;
                 while active_index < weights.len() {
                     if weights[active_index] <= weight_tolerance && weights.len() > 1 {
                         weights.remove(active_index);
                         active.remove(active_index);
+                        removed_vertex = true;
                     } else {
                         active_index += 1;
                     }
                 }
                 normalize_weights(&mut weights)?;
                 closest = weighted_point(points, &active, &weights)?;
+                if removed_vertex {
+                    continue;
+                }
                 minor_converged = true;
                 break;
             }
