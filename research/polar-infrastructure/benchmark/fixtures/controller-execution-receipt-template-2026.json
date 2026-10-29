@@ -61,8 +61,8 @@
       "artifact_id": "resource-policy-example",
       "role": "resource_policy",
       "source_uri": null,
-      "payload": "synthetic-resource-policy-v1:wall=5000ms:cpu=4000ms:memory=1073741824bytes:calls=1000",
-      "sha256": "9534f16479a893523d9a55aab9610fbc71989ae0b42764699a0c780909b14d73"
+      "payload": "{\"cpu_time_ms\":4000,\"observation_count\":1000,\"peak_memory_bytes\":1073741824,\"simulator_calls\":1000,\"wall_time_ms\":5000}",
+      "sha256": "d10e74e821251468931e6a264633745c354aa81fb2b2f2e9ec79756dc26deb3c"
     },
     {
       "artifact_id": "command-example",
@@ -70,6 +70,13 @@
       "source_uri": null,
       "payload": "synthetic-command-v1:validator-test-only",
       "sha256": "982f56258823d2890cf4d8462a34cb69fa1922cc9b44bcae8ccebb356fb1e043"
+    },
+    {
+      "artifact_id": "controller-artifact-example",
+      "role": "controller_artifact",
+      "source_uri": null,
+      "payload": "synthetic-controller-artifact-v1:adaptive_candidate:revision=fixture-b",
+      "sha256": "9cc853b3bf2b2af72e19227665f879ab9bbbdf43b447804c52e67332c4796f59"
     }
   ],
   "resource_limits": {
