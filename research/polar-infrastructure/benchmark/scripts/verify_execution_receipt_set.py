@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from verify_execution_receipt import verify_receipt
+from verify_paired_comparison import validate_input as validate_paired_input
 
 SHARED_GLOBAL_ROLES = {
     "plant_model", "executable", "runtime_environment", "observation_policy", "resource_policy",
@@ -31,9 +32,14 @@ def inventory_by_role(receipt: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def verify_receipt_set(paired: dict[str, Any], receipts: list[dict[str, Any]]) -> None:
+    # Validate the v0.4 pair input once, including rehashing every trajectory,
+    # initial-state, and controller payload. Reuse indexes for every receipt
+    # instead of repeating full-fixture validation N times.
+    validate_paired_input(paired)
     expected_cases = {case["case_id"]: case for case in paired.get("cases", [])}
     controllers = set(paired.get("controllers", []))
     trajectories = {artifact["trajectory_id"]: artifact for artifact in paired.get("trajectory_artifacts", [])}
+    controllers_by_id = {artifact["controller_id"]: artifact for artifact in paired.get("controller_artifacts", [])}
     need(bool(expected_cases) and controllers and trajectories, "paired input declarations are incomplete")
     need(len(receipts) == len(expected_cases), "receipt set must contain one receipt per declared controller/trajectory case")
 
@@ -46,7 +52,14 @@ def verify_receipt_set(paired: dict[str, Any], receipts: list[dict[str, Any]]) -
     trajectory_role_digests: dict[tuple[str, str], str] = {}
 
     for receipt in receipts:
-        verify_receipt(receipt, paired)
+        verify_receipt(
+            receipt,
+            paired,
+            paired_validated=True,
+            paired_case_by_id=expected_cases,
+            trajectory_artifacts_by_id=trajectories,
+            controller_artifacts_by_id=controllers_by_id,
+        )
         case_id = receipt["case_id"]
         need(case_id in expected_cases, f"receipt references undeclared paired case: {case_id}")
         need(case_id not in seen_case_ids, f"duplicate receipt for case: {case_id}")
