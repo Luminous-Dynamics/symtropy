@@ -109,7 +109,7 @@ class ExecutionReceiptSetTests(unittest.TestCase):
     def test_rejects_controller_artifact_drift_between_trajectories(self):
         receipts = copy.deepcopy(self.receipts)
         receipts[0]["paired_input_bindings"]["controller_artifact_sha256"] = "a" * 64
-        with self.assertRaisesRegex(ValueError, "disagree with the paired case row"):
+        with self.assertRaisesRegex(ValueError, "controller artifact inventory digest does not match paired input binding"):
             self.verify(receipts)
 
 
