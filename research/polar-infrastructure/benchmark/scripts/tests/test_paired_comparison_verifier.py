@@ -192,6 +192,38 @@ class PairedComparisonVerifierTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "look-ahead leak: forecast issued after decision time"):
             build_expected_report(doc)
 
+    def test_rejects_measurement_available_before_observation(self):
+        import hashlib
+        doc = copy.deepcopy(self.fixture)
+        artifact = doc["trajectory_artifacts"][0]
+        trace = json.loads(artifact["observation_trace_payload"])
+        decision = trace["decisions"][0]
+        measurement = next(item for item in decision["information"] if item["kind"] == "measurement")
+        measurement["observed_at_s"] = decision["decision_time_s"]
+        measurement["available_at_s"] = decision["decision_time_s"] - 1
+        artifact["observation_trace_payload"] = json.dumps(trace, separators=(",", ":"))
+        artifact["observation_trace_sha256"] = hashlib.sha256(
+            artifact["observation_trace_payload"].encode("utf-8")
+        ).hexdigest()
+        with self.assertRaisesRegex(ValueError, "measurement available before observation time"):
+            build_expected_report(doc)
+
+    def test_rejects_forecast_available_before_issue(self):
+        import hashlib
+        doc = copy.deepcopy(self.fixture)
+        artifact = doc["trajectory_artifacts"][0]
+        trace = json.loads(artifact["observation_trace_payload"])
+        decision = trace["decisions"][0]
+        forecast = next(item for item in decision["information"] if item["kind"] == "forecast")
+        forecast["issued_at_s"] = decision["decision_time_s"]
+        forecast["available_at_s"] = decision["decision_time_s"] - 1
+        artifact["observation_trace_payload"] = json.dumps(trace, separators=(",", ":"))
+        artifact["observation_trace_sha256"] = hashlib.sha256(
+            artifact["observation_trace_payload"].encode("utf-8")
+        ).hexdigest()
+        with self.assertRaisesRegex(ValueError, "forecast available before issue time"):
+            build_expected_report(doc)
+
     def test_rejects_forecast_beyond_declared_horizon(self):
         import hashlib
         doc = copy.deepcopy(self.fixture)
