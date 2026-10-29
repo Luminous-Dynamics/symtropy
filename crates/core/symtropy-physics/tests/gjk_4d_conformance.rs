@@ -262,6 +262,25 @@ fn gjk_4d_separation_is_invariant_to_uniform_scale() {
             result.termination
         );
     }
+
+    let (overlap_base_a, mut overlap_base_b) = fixture_boxes();
+    overlap_base_b.center = SVector::zeros();
+    assert!(sat_intersects_4d(&overlap_base_a, &overlap_base_b));
+    for scale in [1e-12, 1e-9, 1.0, 1e9, 1e12] {
+        let a = scaled_box(&overlap_base_a, scale);
+        let b = scaled_box(&overlap_base_b, scale);
+        assert!(
+            sat_intersects_4d(&a, &b),
+            "SAT oracle changed overlap classification at scale {scale:e}"
+        );
+        let result = intersects_support_maps(&a, &b);
+        assert_eq!(
+            result.termination,
+            GjkTermination::Intersecting,
+            "GJK overlap classification changed at scale {scale:e}: {:?}",
+            result.termination
+        );
+    }
 }
 
 #[test]
