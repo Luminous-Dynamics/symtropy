@@ -71,6 +71,24 @@ pub enum GjkTermination {
     Indeterminate(GjkFailureReason),
 }
 
+/// Work counters for the minimum-norm/simplex subproblem. These are exact
+/// integer counters, not timing measurements.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct GjkWorkCounters {
+    /// Support-map calls performed by the GJK path.
+    pub support_map_evaluations: usize,
+    /// Major KKT checks in the active-set minimum-norm solver.
+    pub active_set_major_steps: usize,
+    /// Minor-cycle affine minimizer updates.
+    pub active_set_minor_steps: usize,
+    /// Reorthogonalized QR affine solves.
+    pub affine_qr_solves: usize,
+    /// Number of bounded exhaustive fallback invocations.
+    pub exhaustive_fallbacks: usize,
+    /// Number of candidate faces enumerated by those fallbacks.
+    pub exhaustive_faces_examined: usize,
+}
+
 /// Result of a GJK intersection test.
 ///
 /// \`intersecting\` is retained for source compatibility. New code should branch
@@ -82,8 +100,10 @@ pub struct GjkResult<const D: usize> {
     pub termination: GjkTermination,
     /// The final simplex (safe as an EPA seed only when status is Intersecting).
     pub simplex: Simplex<D>,
-    /// Number of iterations used.
+    /// Number of outer GJK iterations used.
     pub iterations: usize,
+    /// Work counters for the solver subproblem; zeroed on legacy paths.
+    pub work: GjkWorkCounters,
 }
 
 fn indeterminate<const D: usize>(
@@ -91,11 +111,21 @@ fn indeterminate<const D: usize>(
     iterations: usize,
     reason: GjkFailureReason,
 ) -> GjkResult<D> {
+    indeterminate_with_work(simplex, iterations, reason, GjkWorkCounters::default())
+}
+
+fn indeterminate_with_work<const D: usize>(
+    simplex: Simplex<D>,
+    iterations: usize,
+    reason: GjkFailureReason,
+    work: GjkWorkCounters,
+) -> GjkResult<D> {
     GjkResult {
         intersecting: false,
         termination: GjkTermination::Indeterminate(reason),
         simplex,
         iterations,
+        work,
     }
 }
 
@@ -279,6 +309,7 @@ pub fn intersects_support_maps<const D: usize>(
         };
         if direction_squared <= geometric_tolerance_squared {
             return GjkResult {
+                work: GjkWorkCounters::default(),
                 intersecting: true,
                 termination: GjkTermination::Intersecting,
                 simplex,
@@ -322,6 +353,7 @@ pub fn intersects_support_maps<const D: usize>(
         }
         if support_projection < -support_projection_tolerance {
             return GjkResult {
+                work: GjkWorkCounters::default(),
                 intersecting: false,
                 termination: GjkTermination::Separated,
                 simplex,
@@ -359,6 +391,7 @@ pub fn intersects_support_maps<const D: usize>(
                 );
             }
             return GjkResult {
+                work: GjkWorkCounters::default(),
                 intersecting: true,
                 termination: GjkTermination::Intersecting,
                 simplex,
@@ -395,29 +428,31 @@ fn intersects_support_maps_with_active_set<const D: usize>(
     let center_a = shape_a.center_world();
     let center_b = shape_b.center_world();
     let mut simplex = Simplex::<D>::new();
+    let mut work = GjkWorkCounters::default();
     if !vector_is_finite(&center_a) || !vector_is_finite(&center_b) {
-        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteInput);
+        return indeterminate_with_work(simplex, 0, GjkFailureReason::NonFiniteInput, work);
     }
 
     let (geometric_tolerance_squared, coordinate_tolerance_squared) =
         match scale_relative_tolerances_squared(shape_a, shape_b, &center_a, &center_b) {
             Ok(tolerances) => tolerances,
-            Err(reason) => return indeterminate(simplex, 0, reason),
+            Err(reason) => return indeterminate_with_work(simplex, 0, reason, work),
         };
 
     let mut direction = center_b - center_a;
     let direction_squared = match checked_norm_squared(&direction) {
         Ok(squared) => squared,
-        Err(reason) => return indeterminate(simplex, 0, reason),
+        Err(reason) => return indeterminate_with_work(simplex, 0, reason, work),
     };
     if direction_squared <= geometric_tolerance_squared {
         direction = SVector::zeros();
         direction[0] = 1.0;
     }
 
+    work.support_map_evaluations += 2;
     let first = minkowski_support(shape_a, shape_b, &direction);
     if !vector_is_finite(&first) {
-        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteSupport);
+        return indeterminate_with_work(simplex, 0, GjkFailureReason::NonFiniteSupport, work);
     }
     simplex.push(first);
     let mut closest = first;
@@ -426,16 +461,17 @@ fn intersects_support_maps_with_active_set<const D: usize>(
         let closest_squared = match checked_norm_squared(&closest) {
             Ok(squared) if simplex_is_finite(&simplex) => squared,
             Ok(_) => {
-                return indeterminate(
+                return indeterminate_with_work(
                     simplex,
                     iteration,
                     GjkFailureReason::NonFiniteArithmetic,
-                );
+                , work);
             }
-            Err(reason) => return indeterminate(simplex, iteration, reason),
+            Err(reason) => return indeterminate_with_work(simplex, iteration, reason, work),
         };
         if closest_squared <= geometric_tolerance_squared {
             return GjkResult {
+                work,
                 intersecting: true,
                 termination: GjkTermination::Intersecting,
                 simplex,
@@ -443,28 +479,29 @@ fn intersects_support_maps_with_active_set<const D: usize>(
             };
         }
         if closest_squared <= coordinate_tolerance_squared {
-            return indeterminate(
+            return indeterminate_with_work(
                 simplex,
                 iteration,
                 GjkFailureReason::CoordinatePrecisionLimit,
-            );
+            , work);
         }
 
         direction = -closest;
+        work.support_map_evaluations += 2;
         let new_point = minkowski_support(shape_a, shape_b, &direction);
         if !vector_is_finite(&new_point) {
-            return indeterminate(simplex, iteration, GjkFailureReason::NonFiniteSupport);
+            return indeterminate_with_work(simplex, iteration, GjkFailureReason::NonFiniteSupport, work);
         }
         if let Err(reason) = checked_norm_squared(&new_point) {
-            return indeterminate(simplex, iteration, reason);
+            return indeterminate_with_work(simplex, iteration, reason, work);
         }
         let improvement = (new_point - closest).dot(&direction);
         if !improvement.is_finite() {
-            return indeterminate(
+            return indeterminate_with_work(
                 simplex,
                 iteration,
                 GjkFailureReason::NonFiniteArithmetic,
-            );
+            , work);
         }
         // Dot-product error is governed by both the closest vector and the
         // new support vector, not solely by the squared distance. This avoids
@@ -477,10 +514,11 @@ fn intersects_support_maps_with_active_set<const D: usize>(
         // exact support improvement cannot be materially negative. A negative
         // value beyond roundoff indicates a broken numerical certificate.
         if improvement < -progress_tolerance {
-            return indeterminate(simplex, iteration, GjkFailureReason::DegenerateSimplex);
+            return indeterminate_with_work(simplex, iteration, GjkFailureReason::DegenerateSimplex, work);
         }
         if improvement <= progress_tolerance {
             return GjkResult {
+                work,
                 intersecting: false,
                 termination: GjkTermination::Separated,
                 simplex,
@@ -491,28 +529,28 @@ fn intersects_support_maps_with_active_set<const D: usize>(
         for point in &simplex {
             let delta_squared = (*point - new_point).norm_squared();
             if !delta_squared.is_finite() {
-                return indeterminate(
+                return indeterminate_with_work(
                     simplex,
                     iteration,
                     GjkFailureReason::NonFiniteArithmetic,
-                );
+                , work);
             }
             if delta_squared <= coordinate_tolerance_squared {
-                return indeterminate(simplex, iteration, GjkFailureReason::DuplicateSupport);
+                return indeterminate_with_work(simplex, iteration, GjkFailureReason::DuplicateSupport, work);
             }
         }
 
         // A proper D-dimensional GJK simplex has at most D+1 vertices. One
         // support point is appended before the active set reduces it again.
         if simplex.len() > D + 1 {
-            return indeterminate(
+            return indeterminate_with_work(
                 simplex,
                 iteration,
                 GjkFailureReason::SimplexCapacityExceeded,
-            );
+            , work);
         }
         simplex.push(new_point);
-        match closest_point_on_hull_active_set(&simplex, geometric_tolerance_squared) {
+        match closest_point_on_hull_active_set(&simplex, geometric_tolerance_squared, &mut work) {
             Ok((reduced, next_closest)) => {
                 simplex = reduced;
                 closest = next_closest;
@@ -527,28 +565,30 @@ fn intersects_support_maps_with_active_set<const D: usize>(
                 // path to distinguish a true degenerate query from an active-set
                 // cycling/conditioning failure. Never permit this exponential
                 // fallback to scale with unrestricted D.
+                work.exhaustive_fallbacks += 1;
                 match closest_point_on_hull_exhaustive(
                     &simplex,
                     geometric_tolerance_squared,
+                    &mut work,
                 ) {
                     Ok((reduced, next_closest)) => {
                         simplex = reduced;
                         closest = next_closest;
                     }
                     Err(fallback_reason) => {
-                        return indeterminate(simplex, iteration, fallback_reason);
+                        return indeterminate_with_work(simplex, iteration, fallback_reason, work);
                     }
                 }
             }
-            Err(reason) => return indeterminate(simplex, iteration, reason),
+            Err(reason) => return indeterminate_with_work(simplex, iteration, reason, work),
         }
     }
 
-    indeterminate(
+    indeterminate_with_work(
         simplex,
         MAX_ND_ITERATIONS,
         GjkFailureReason::IterationLimit,
-    )
+    , work)
 }
 
 /// Bounded exhaustive closest-hull fallback for a stalled low-dimensional query.
@@ -561,6 +601,7 @@ fn intersects_support_maps_with_active_set<const D: usize>(
 fn closest_point_on_hull_exhaustive<const D: usize>(
     points: &Simplex<D>,
     origin_tolerance_squared: f64,
+    work: &mut GjkWorkCounters,
 ) -> Result<(Simplex<D>, SVector<f64, D>), GjkFailureReason> {
     let count = points.len();
     if count == 0 || count > MAX_ND_EXHAUSTIVE_FALLBACK_POINTS {
@@ -570,6 +611,7 @@ fn closest_point_on_hull_exhaustive<const D: usize>(
     let weight_tolerance = 128.0 * f64::EPSILON;
     let mut best: Option<(usize, SVector<f64, D>, f64)> = None;
     for mask in 1usize..(1usize << count) {
+        work.exhaustive_faces_examined += 1;
         let face_count = mask.count_ones() as usize;
         if face_count > D + 1 {
             continue;
@@ -633,6 +675,7 @@ fn closest_point_on_hull_exhaustive<const D: usize>(
 fn closest_point_on_hull_active_set<const D: usize>(
     points: &Simplex<D>,
     origin_tolerance_squared: f64,
+    work: &mut GjkWorkCounters,
 ) -> Result<(Simplex<D>, SVector<f64, D>), GjkFailureReason> {
     if points.is_empty() || points.len() > D + 2 {
         return Err(GjkFailureReason::DegenerateSimplex);
@@ -651,6 +694,7 @@ fn closest_point_on_hull_active_set<const D: usize>(
 
     while steps < max_steps {
         steps += 1;
+        work.active_set_major_steps += 1;
         closest = weighted_point(points, &active, &weights)?;
         let closest_squared = checked_norm_squared(&closest)?;
 
@@ -722,6 +766,8 @@ fn closest_point_on_hull_active_set<const D: usize>(
         let mut minor_converged = false;
         while steps < max_steps {
             steps += 1;
+            work.active_set_minor_steps += 1;
+            work.affine_qr_solves += 1;
             let affine_weights = affine_minimum_weights(points, &active)
                 .ok_or(GjkFailureReason::DegenerateSimplex)?;
             if affine_weights
@@ -978,6 +1024,7 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
         };
         if closest_squared <= origin_tolerance_squared {
             return GjkResult {
+                work: GjkWorkCounters::default(),
                 intersecting: true,
                 termination: GjkTermination::Intersecting,
                 simplex,
@@ -1015,6 +1062,7 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
         }
         if improvement <= progress_tolerance {
             return GjkResult {
+                work: GjkWorkCounters::default(),
                 intersecting: false,
                 termination: GjkTermination::Separated,
                 simplex,
@@ -1068,6 +1116,7 @@ fn intersects_support_maps_with_closest_simplex<const D: usize>(
         };
         if closest_squared <= origin_tolerance_squared {
             return GjkResult {
+                work: GjkWorkCounters::default(),
                 intersecting: true,
                 termination: GjkTermination::Intersecting,
                 simplex,
