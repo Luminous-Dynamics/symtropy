@@ -239,10 +239,11 @@ impl<const D: usize> PeriodicSphereWorld<D> {
         if self.bodies.iter().any(|existing| existing.id == body.id) {
             return Err(PeriodicSphereWorldError::DuplicateBodyId { id: body.id });
         }
-        // This reference world returns one earliest image hit per pair. Keep
-        // each sphere smaller than half every periodic length so a body does
-        // not overlap its own periodic images and a pair has one relevant
-        // nearest-image contact in the supported envelope.
+        // Keep each sphere smaller than half every periodic length so a
+        // body cannot overlap its own periodic images, and two bodies cannot
+        // overlap two different images simultaneously. A long sweep may still
+        // hit successive images of the same pair, which the event loop handles
+        // by enumerating all per-image TOIs.
         for axis in 0..D {
             if self.domain.is_periodic(axis) == Some(true)
                 && body.radius >= 0.5 * self.domain.periods()[axis]
