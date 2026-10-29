@@ -137,6 +137,15 @@ jobs:
           test "$(wc -l < /tmp/aero-reference-ladson-cp.csv)" -eq 406
           test "$(wc -l < /tmp/aero-reference-gregory-cp.csv)" -eq 74
           sha256sum /tmp/aero-reference-all-a.csv
+      - name: Guard blank manufacturing templates against accidental evidence promotion
+        shell: bash
+        run: |
+          test "$(wc -l < tools/civil-aero-benchmark/data/manufacturing/coupon_build_traveler_template.csv)" -eq 1
+          test "$(wc -l < tools/civil-aero-benchmark/data/manufacturing/coupon_measurement_template.csv)" -eq 1
+          grep -q "stl_sha256" tools/civil-aero-benchmark/data/manufacturing/coupon_build_traveler_template.csv
+          grep -q "material_lot" tools/civil-aero-benchmark/data/manufacturing/coupon_build_traveler_template.csv
+          grep -q "expanded_uncertainty" tools/civil-aero-benchmark/data/manufacturing/coupon_measurement_template.csv
+          grep -q "calibration_status" tools/civil-aero-benchmark/data/manufacturing/coupon_measurement_template.csv
       - name: Validate evidence manifest without promoting pending sources
         shell: bash
         run: |
