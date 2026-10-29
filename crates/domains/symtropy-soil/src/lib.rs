@@ -138,6 +138,11 @@ impl DepthMm {
 }
 
 /// Water storage and a hard upper bound for a single soil control volume.
+///
+/// The capacity is a caller-supplied admissibility bound. It is **not**
+/// automatically equivalent to field capacity, saturation water content, or
+/// plant-available water; those concepts require a defined soil profile and
+/// soil-specific measurements/models.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SoilWaterState {
     storage: DepthMm,
