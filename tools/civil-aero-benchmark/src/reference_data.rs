@@ -40,7 +40,9 @@ pub fn parse_ladson_force_data(input: &str) -> Result<ParsedReference<ForceObser
         || !input.contains("Re=6 million, with transition tripped")
         || !input.contains("M=0.15")
     {
-        return Err("force reference is missing the expected Ladson source/condition headers".to_owned());
+        return Err(
+            "force reference is missing the expected Ladson source/condition headers".to_owned(),
+        );
     }
     parse_zone_data(
         input,
