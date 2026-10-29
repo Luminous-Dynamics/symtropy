@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/glass-qualification-monte-carlo-report-v0.1.schema.json",
+  "title": "Glass qualification paired Monte Carlo report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "status", "benchmark_id", "evidence_class", "claim_ceiling",
+    "configuration_sha256", "prng", "seed", "replications_per_probability",
+    "candidate_family_size", "max_trials_per_candidate", "total_candidate_attempts_per_probability",
+    "target_success_probability", "familywise_alpha", "probabilities", "notes", "scenarios"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "status": { "const": "PASS" },
+    "benchmark_id": { "const": "glass-qualification-paired-operating-characteristics-v0-1" },
+    "evidence_class": { "const": "synthetic_monte_carlo" },
+    "claim_ceiling": {
+      "const": "Synthetic IID Bernoulli simulation only; finite Monte Carlo estimates do not prove type-I error control or validate real-material, production-yield, metrology, dependence, drift, or industrial-performance claims."
+    },
+    "configuration_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "prng": { "type": "string", "minLength": 1 },
+    "seed": { "type": "integer", "minimum": 0 },
+    "replications_per_probability": { "type": "integer", "minimum": 1, "maximum": 100000 },
+    "candidate_family_size": { "const": 5 },
+    "max_trials_per_candidate": { "type": "integer", "minimum": 1, "maximum": 1000 },
+    "total_candidate_attempts_per_probability": { "type": "integer", "minimum": 5 },
+    "target_success_probability": { "const": 0.95 },
+    "familywise_alpha": { "const": 0.05 },
+    "probabilities": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        { "const": 0.9 },
+        { "const": 0.95 },
+        { "const": 0.98 },
+        { "const": 0.99 }
+      ],
+      "items": false
+    },
+    "notes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "$defs": {
+    "rate": { "type": "number", "minimum": 0, "maximum": 1 },
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lower", "upper"],
+      "properties": {
+        "lower": { "type": "number", "minimum": 0, "maximum": 1 },
+        "upper": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method", "candidate_attempts", "mean_trials_per_candidate",
+        "qualified_candidates", "not_qualified_candidates", "unresolved_candidates",
+        "candidate_qualification_rate", "candidate_rejection_rate", "candidate_unresolved_rate",
+        "families_with_any_qualification", "families_with_any_rejection",
+        "familywise_false_decision_count", "familywise_false_decision_rate",
+        "familywise_false_decision_wilson_95"
+      ],
+      "properties": {
+        "method": { "enum": ["alpha_spending", "mixture_e_process"] },
+        "candidate_attempts": { "type": "integer", "minimum": 1 },
+        "mean_trials_per_candidate": { "type": "number", "minimum": 1 },
+        "qualified_candidates": { "type": "integer", "minimum": 0 },
+        "not_qualified_candidates": { "type": "integer", "minimum": 0 },
+        "unresolved_candidates": { "type": "integer", "minimum": 0 },
+        "candidate_qualification_rate": { "$ref": "#/$defs/rate" },
+        "candidate_rejection_rate": { "$ref": "#/$defs/rate" },
+        "candidate_unresolved_rate": { "$ref": "#/$defs/rate" },
+        "families_with_any_qualification": { "type": "integer", "minimum": 0 },
+        "families_with_any_rejection": { "type": "integer", "minimum": 0 },
+        "familywise_false_decision_count": { "type": "integer", "minimum": 0 },
+        "familywise_false_decision_rate": { "$ref": "#/$defs/rate" },
+        "familywise_false_decision_wilson_95": { "$ref": "#/$defs/interval" }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "true_success_probability", "alpha_spending", "mixture_e_process",
+        "paired_mean_trials_saved_per_candidate", "paired_trial_reduction_fraction"
+      ],
+      "properties": {
+        "true_success_probability": { "enum": [0.9, 0.95, 0.98, 0.99] },
+        "alpha_spending": { "$ref": "#/$defs/method" },
+        "mixture_e_process": { "$ref": "#/$defs/method" },
+        "paired_mean_trials_saved_per_candidate": { "type": "number" },
+        "paired_trial_reduction_fraction": { "type": "number" }
+      }
+    }
+  }
+}
