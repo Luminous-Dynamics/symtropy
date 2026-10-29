@@ -359,9 +359,10 @@ impl<const D: usize> AffineRegionMap<D> {
             return false;
         }
         let gram = self.linear.transpose() * self.linear;
+        // A time-origin shift is a coordinate synchronization change, not a
+        // change in the time rate; it does not by itself break isometry.
         (gram - SMatrix::<f64, D, D>::identity()).norm() <= tolerance
             && (self.time_scale - 1.0).abs() <= tolerance
-            && self.time_offset.abs() <= tolerance
     }
 
     pub fn validate(&self) -> Result<(), RegionGraphError> {
@@ -709,6 +710,7 @@ pub enum RegionTransitionError {
     StaleInterfaceRevision { expected: u64, actual: u64 },
     WrongSourceRegion,
     CrossingDirectionRejected,
+    DirectionVelocityMismatch,
     OutsideSourceBoundary,
     OutsideTargetBoundary,
     OutsideTargetDomain,
@@ -734,6 +736,7 @@ impl fmt::Display for RegionTransitionError {
             }
             Self::WrongSourceRegion => write!(f, "body is not authoritative in the interface source region"),
             Self::CrossingDirectionRejected => write!(f, "crossing direction is not allowed by interface"),
+            Self::DirectionVelocityMismatch => write!(f, "source velocity does not agree with the declared crossing direction"),
             Self::OutsideSourceBoundary => write!(f, "source state is outside interface boundary chart"),
             Self::OutsideTargetBoundary => write!(f, "mapped state is outside target boundary chart"),
             Self::OutsideTargetDomain => write!(f, "mapped state is outside target region domain"),
@@ -894,6 +897,17 @@ impl<const D: usize> RegionStateStore<D> {
         }
         if !interface.source_boundary.contains(&before.position) {
             return Err(RegionTransitionError::OutsideSourceBoundary);
+        }
+        // Crossing direction is not merely metadata: for this reference
+        // contract, the source-chart normal velocity must point through the
+        // interface in the declared direction. Zero/tangent velocity is
+        // ambiguous and must be resolved by a caller with crossing history.
+        let normal_speed = interface.source_boundary.normal.dot(&before.velocity);
+        if !normal_speed.is_finite()
+            || (request.direction == CrossingDirection::NegativeToPositive && normal_speed <= 0.0)
+            || (request.direction == CrossingDirection::PositiveToNegative && normal_speed >= 0.0)
+        {
+            return Err(RegionTransitionError::DirectionVelocityMismatch);
         }
 
         let source_region = graph
@@ -1208,6 +1222,63 @@ mod tests {
         );
         assert_eq!(store.state(99).unwrap().revision, 7);
         assert_eq!(store.receipts().count(), 0);
+    }
+
+    #[test]
+    fn direction_must_match_velocity_through_interface() {
+        let graph = graph_identity();
+        let mut store = RegionStateStore::new().unwrap();
+        let mut moving_away = state();
+        moving_away.velocity = SVector::from([-1.0, 0.0]);
+        store.insert_state(&graph, moving_away.clone()).unwrap();
+
+        assert_eq!(
+            store.transition(&graph, request(108)),
+            Err(RegionTransitionError::DirectionVelocityMismatch)
+        );
+        assert_eq!(store.state(99).unwrap(), &moving_away);
+        assert_eq!(store.receipts().count(), 0);
+    }
+
+    #[test]
+    fn preserve_policy_allows_time_origin_shift_with_same_clock_rate() {
+        let mut graph = RegionGraph::<2>::new().unwrap();
+        graph.add_region(region(1, [-1.0, -1.0], [0.0, 1.0])).unwrap();
+        graph.add_region(region(2, [0.0, -1.0], [1.0, 1.0])).unwrap();
+
+        let map = AffineRegionMap::new(
+            SMatrix::<f64, 2, 2>::identity(),
+            SVector::zeros(),
+            1.0,
+            5.0,
+        ).unwrap();
+        let inverse = map.inverse().unwrap();
+        let interface = RegionInterface::new(
+            InterfaceId(16),
+            RegionId(1),
+            RegionId(2),
+            1,
+            boundary_x0(),
+            boundary_x0(),
+            map,
+            Some(inverse),
+            true,
+            CrossingDirection::NegativeToPositive,
+            QuantityPolicy::Preserve,
+            QuantityPolicy::Preserve,
+            None,
+        ).unwrap();
+        graph.add_interface(interface).unwrap();
+
+        let mut store = RegionStateStore::new().unwrap();
+        store.insert_state(&graph, state()).unwrap();
+        let receipt = match store.transition(&graph, request(109)).unwrap() {
+            TransitionOutcome::Committed(receipt) => receipt,
+            _ => panic!("first transition must commit"),
+        };
+        assert_eq!(receipt.after.local_time, 17.0);
+        assert_eq!(receipt.after.velocity, SVector::from([1.0, 0.0]));
+        assert!((receipt.kinetic_energy_after - receipt.kinetic_energy_before).abs() < 1e-12);
     }
 
     #[test]
