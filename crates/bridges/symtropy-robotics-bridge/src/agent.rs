@@ -49,6 +49,17 @@ pub struct RoboticJoint {
     pub motor_index: usize,
 }
 
+/// Explicit opt-in to the legacy generic LTC-output-to-torque path.
+///
+/// Without this marker on the root robot entity, `apply_motor_commands_system`
+/// will not apply `CognitiveBrain.motor_output` directly to child joints.
+/// The generic path uses one fixed torque gain and a single xy hinge plane; it
+/// is for simulation/prototyping only, not a platform controller or hardware
+/// safety mechanism. Physical embodiments should use their native controller
+/// behind an independently enforced safety boundary.
+#[derive(Component, Debug, Clone, Copy, Default)]
+pub struct LegacyDirectMotorDrive;
+
 pub struct RoboticBrainPlugin;
 
 impl Plugin for RoboticBrainPlugin {
@@ -168,28 +179,45 @@ const MOTOR_TORQUE_GAIN: f64 = 5.0;
 
 /// Translates LTC output neurons into torque applied to kinematic joints.
 ///
+/// This legacy path is disabled for any robot whose root lacks
+/// `LegacyDirectMotorDrive`. The marker is an explicit prototype-only opt-in;
+/// it does not certify safety or provide platform-specific control.
+///
 /// `RoboticJoint` doesn't currently carry per-joint rotation-axis metadata,
 /// so every joint is driven as a single-DOF hinge rotating in the physics
 /// world's xy plane (bivector components `(0, 1)`). Multi-axis joints would
 /// need an explicit axis/plane field added to `RoboticJoint`.
 fn apply_motor_commands_system(
-    brains: Query<(&CognitiveBrain, &RoboticAgentTag)>,
+    brains: Query<(
+        &CognitiveBrain,
+        &RoboticAgentTag,
+        &LegacyDirectMotorDrive,
+    )>,
     mut joints: Query<(&RoboticJoint, &mut PhysicsBody, &ChildOf)>,
     mut physics: ResMut<BevyPhysics<3>>,
 ) {
     for (joint, body, parent) in &mut joints {
-        if let Ok((brain, _agent)) = brains.get(parent.get()) {
+        if let Ok((brain, _agent, _legacy_drive)) = brains.get(parent.get()) {
             let output = &brain.motor_output;
-            if output.len() > joint.motor_index {
-                let target = output[joint.motor_index] as f64;
-                if let Some(rb) = physics.world.body_mut(body.handle) {
-                    let mut torque = Bivector::zero();
-                    torque.set(0, 1, target * MOTOR_TORQUE_GAIN);
-                    rb.apply_torque(torque);
+            if let Some(&raw_output) = output.get(joint.motor_index) {
+                if let Some(target) = normalized_motor_output(raw_output) {
+                    if let Some(rb) = physics.world.body_mut(body.handle) {
+                        let mut torque = Bivector::zero();
+                        torque.set(0, 1, target * MOTOR_TORQUE_GAIN);
+                        rb.apply_torque(torque);
+                    }
                 }
             }
         }
     }
+}
+
+
+/// Validate the LTC output contract before the legacy torque conversion.
+/// Non-finite output yields no command; finite output is bounded to [-1, 1].
+fn normalized_motor_output(output: f32) -> Option<f64> {
+    let value = output as f64;
+    value.is_finite().then(|| value.clamp(-1.0, 1.0))
 }
 
 pub fn spawn_robot(
@@ -747,4 +775,44 @@ mod consciousness_agent_tests {
             factors.attention
         );
     }
+}
+
+
+#[cfg(test)]
+mod direct_drive_authority_tests {
+    use super::*;
+
+    #[test]
+    fn raw_cognitive_torque_requires_explicit_root_marker() {
+        let mut world = World::new();
+        let robot = world
+            .spawn((
+                CognitiveBrain::new(8, "legacy-direct-drive-test"),
+                RoboticAgentTag {
+                    model_name: "test-robot".to_string(),
+                },
+            ))
+            .id();
+
+        let mut authorized_roots = world.query_filtered::<Entity, (
+            With<CognitiveBrain>,
+            With<RoboticAgentTag>,
+            With<LegacyDirectMotorDrive>,
+        )>();
+        assert!(!authorized_roots.iter(&world).any(|entity| entity == robot));
+
+        world.entity_mut(robot).insert(LegacyDirectMotorDrive);
+        assert!(authorized_roots.iter(&world).any(|entity| entity == robot));
+    }
+
+    #[test]
+    fn legacy_motor_output_rejects_non_finite_and_clamps_to_normalized_range() {
+        assert_eq!(normalized_motor_output(f32::NAN), None);
+        assert_eq!(normalized_motor_output(f32::INFINITY), None);
+        assert_eq!(normalized_motor_output(f32::NEG_INFINITY), None);
+        assert_eq!(normalized_motor_output(2.0), Some(1.0));
+        assert_eq!(normalized_motor_output(-2.0), Some(-1.0));
+        assert_eq!(normalized_motor_output(0.25), Some(0.25));
+    }
+
 }
