@@ -68,74 +68,114 @@
       "type": "array",
       "maxItems": 100000,
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "event_seq",
-          "kind",
-          "candidate_id"
-        ],
-        "properties": {
-          "event_seq": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100000
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_seq",
+              "kind",
+              "candidate_id",
+              "registration_index",
+              "candidate_spec_sha256"
+            ],
+            "properties": {
+              "event_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000
+              },
+              "kind": {
+                "const": "register_candidate"
+              },
+              "candidate_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "registration_index": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "candidate_spec_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
           },
-          "kind": {
-            "enum": [
-              "register_candidate",
-              "observe_trial"
-            ]
-          },
-          "candidate_id": {
-            "type": "string",
-            "pattern": "^[a-z][a-z0-9-]*$"
-          },
-          "registration_index": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100
-          },
-          "candidate_spec_sha256": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{64}$"
-          },
-          "look_index": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 1000
-          },
-          "trial_passed": {
-            "type": "boolean"
-          },
-          "successes_so_far": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 1000
-          },
-          "alpha_per_direction": {
-            "type": "number",
-            "exclusiveMinimum": 0,
-            "maximum": 0.0125
-          },
-          "log_e_upper": {
-            "type": "number"
-          },
-          "log_e_lower": {
-            "type": "number"
-          },
-          "log_threshold": {
-            "type": "number",
-            "minimum": 0
-          },
-          "decision": {
-            "enum": [
-              "QUALIFIED",
-              "NOT_QUALIFIED",
-              "UNRESOLVED"
-            ]
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_seq",
+              "kind",
+              "candidate_id",
+              "registration_index",
+              "look_index",
+              "trial_passed",
+              "successes_so_far",
+              "alpha_per_direction",
+              "log_e_upper",
+              "log_e_lower",
+              "log_threshold",
+              "decision"
+            ],
+            "properties": {
+              "event_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000
+              },
+              "kind": {
+                "const": "observe_trial"
+              },
+              "candidate_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "registration_index": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "look_index": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              },
+              "trial_passed": {
+                "type": "boolean"
+              },
+              "successes_so_far": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000
+              },
+              "alpha_per_direction": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 0.0125
+              },
+              "log_e_upper": {
+                "type": "number"
+              },
+              "log_e_lower": {
+                "type": "number"
+              },
+              "log_threshold": {
+                "type": "number",
+                "minimum": 0
+              },
+              "decision": {
+                "enum": [
+                  "QUALIFIED",
+                  "NOT_QUALIFIED",
+                  "UNRESOLVED"
+                ]
+              }
+            }
           }
-        }
+        ]
       }
     },
     "decisions": {
