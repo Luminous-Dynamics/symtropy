@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from verify_paired_comparison import validate_input as validate_paired_input
+
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 REVISION_RE = re.compile(r"^([a-f0-9]{40}|[a-f0-9]{64})$")
 REQUIRED_INPUT_ROLES = {
@@ -52,6 +54,7 @@ def verify_artifact_bytes(artifact: dict[str, Any]) -> bool:
 
 
 def verify_receipt(receipt: dict[str, Any], paired: dict[str, Any]) -> None:
+    validate_paired_input(paired)
     need(set(receipt) == {
         "schema_version", "artifact_kind", "evidence_class", "status", "receipt_id", "case_id",
         "controller_id", "execution_state", "execution_performed", "scoring_eligible", "execution_attestation", "provenance",
