@@ -56,7 +56,15 @@ impl WaterDepthMm {
         validate_positive("control_area_m2", area.0)?;
         validate_nonnegative("interval_depth_mm", self.0)?;
 
-        let volume = self.0 * area.0 / 1000.0;
+        // Scale the larger factor before multiplication so valid finite
+        // conversions do not overflow only in an intermediate product.
+        let volume = if self.0 >= 1000.0 {
+            (self.0 / 1000.0) * area.0
+        } else if area.0 >= 1000.0 {
+            self.0 * (area.0 / 1000.0)
+        } else {
+            (self.0 * area.0) / 1000.0
+        };
         if !volume.is_finite() {
             return Err(SoilWaterError::NonFiniteValue {
                 field: "converted_volume_m3",
@@ -114,7 +122,9 @@ impl WaterVolumeM3 {
         validate_positive("control_area_m2", area.0)?;
         validate_nonnegative("volume_m3", self.0)?;
 
-        let depth = self.0 * 1000.0 / area.0;
+        // Divide before multiplying to avoid an unnecessarily large
+        // intermediate when volume and area are both finite and large.
+        let depth = (self.0 / area.0) * 1000.0;
         if !depth.is_finite() {
             return Err(SoilWaterError::NonFiniteValue {
                 field: "converted_depth_mm",
@@ -270,13 +280,18 @@ impl SoilWaterKernel {
         }
 
         let residual_mm = state.storage.0 + inflow_mm - outflow_mm - end_storage_mm;
-        let residual_scale = (state.storage.0.abs()
-            + inflow_mm.abs()
-            + outflow_mm.abs()
-            + end_storage_mm.abs())
-        .max(1.0);
+        // Use the largest term instead of summing absolute terms; the sum
+        // itself could overflow even when every input and the balance are finite.
+        let residual_scale = state
+            .storage
+            .0
+            .abs()
+            .max(inflow_mm.abs())
+            .max(outflow_mm.abs())
+            .max(end_storage_mm.abs())
+            .max(1.0);
         let residual_tolerance_mm =
-            RESIDUAL_EPSILON_MULTIPLIER * f64::EPSILON * residual_scale;
+            RESIDUAL_EPSILON_MULTIPLIER * f64::EPSILON * residual_scale * 4.0;
         if !residual_mm.is_finite() || residual_mm.abs() > residual_tolerance_mm {
             return Err(SoilWaterError::BalanceResidualExceeded {
                 residual_mm,
@@ -515,6 +530,35 @@ mod tests {
                 )
                 .is_ok()
         );
+    }
+
+    #[test]
+    fn unit_conversions_avoid_unnecessary_intermediate_overflow() {
+        let huge_area = ControlAreaM2::new(1.0e308);
+        let huge_volume = WaterDepthMm::new(1.0e308)
+            .to_volume(ControlAreaM2::new(20.0))
+            .unwrap();
+        assert!((huge_volume.value() / 2.0e306 - 1.0).abs() < 1e-12);
+
+        let huge_depth = WaterVolumeM3::new(1.0e308)
+            .to_depth(huge_area)
+            .unwrap();
+        assert!((huge_depth.value() - 1000.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn residual_tolerance_stays_finite_for_large_finite_balance_terms() {
+        let model = kernel(1.0, 1.0, 1.5e308);
+        let report = model
+            .step(
+                SoilWaterState::new(WaterStorageMm::new(1.0e308)),
+                fluxes(0.0, 0.0, 5.0e307, 0.0, 0.0),
+            )
+            .unwrap();
+
+        assert_eq!(report.state_after.storage.value(), 5.0e307);
+        assert!(report.residual_tolerance_mm.is_finite());
+        assert!(report.residual_mm.abs() <= report.residual_tolerance_mm);
     }
 
     #[test]
