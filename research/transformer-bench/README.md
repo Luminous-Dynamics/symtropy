@@ -206,3 +206,12 @@ cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin a
 ```
 
 See [BUDGETED_VERIFICATION_BENCHMARK.md](BUDGETED_VERIFICATION_BENCHMARK.md) and [PWR-TX-ACQ-001 #2907](https://github.com/Luminous-Dynamics/symtropy/issues/2907). This is an offline policy replay on a frozen pool: it does not run FEA or retrain a surrogate, and synthetic rows are not physical evidence. Reference labels are used for post-selection scoring, and queried observations update only the incumbent used by expected improvement. Claim true active-learning improvements only after a future version retrains against a pinned expensive oracle and accounts for query, training, retry and refinement costs.
+
+Summarize raw paired trials with `acquisition-summary`:
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin acquisition-summary -- \
+  /tmp/acquisition-report.csv /tmp/acquisition-summary.csv 5000
+```
+
+This emits per-policy mean/median metrics and paired seed-level regret deltas against RANDOM, MIN_PREDICTED and DIVERSE, with bootstrap intervals. These intervals only quantify stochastic replicate variation on one candidate pool; they do not establish cross-dataset superiority. See the [full protocol](BUDGETED_VERIFICATION_BENCHMARK.md).
