@@ -270,7 +270,21 @@ fn validate(r: &Receipt) -> Result<(), String> {
             if output_roles != required_outputs {
                 return Err("completed receipt must bind output trace, stdout, and stderr artifacts".into());
             }
+            let output_by_role: std::collections::BTreeMap<&str, &Artifact> = r.execution_evidence.output_artifacts.iter()
+                .map(|a| (a.role.as_str(), a)).collect();
+            if r.execution_evidence.output_trace_sha256.as_deref()
+                    != output_by_role.get("output_trace").map(|a| a.sha256.as_str())
+                || r.execution_evidence.stdout_sha256.as_deref()
+                    != output_by_role.get("stdout").map(|a| a.sha256.as_str())
+                || r.execution_evidence.stderr_sha256.as_deref()
+                    != output_by_role.get("stderr").map(|a| a.sha256.as_str())
+            {
+                return Err("output digest index does not match the output artifact inventory".into());
+            }
             if r.scoring_eligible {
+                if r.artifact_inventory.iter().any(|a| a.payload.is_none()) {
+                    return Err("scoring eligibility requires payload-backed input artifacts for the current verifier".into());
+                }
                 if !within_budget(&r.observed_resources, &r.resource_limits) {
                     return Err("scoring-eligible run exceeded its declared resource budget".into());
                 }
