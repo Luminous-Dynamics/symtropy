@@ -442,6 +442,37 @@ mod tests {
     }
 
     #[test]
+    fn competing_authorities_leave_at_most_one_current_token() {
+        let store = TestStore::with_generation("left-wheel-controller", 100);
+        let first_store = store.clone();
+        let second_store = store.clone();
+        let first = std::thread::spawn(move || authority(first_store).claim_next_epoch());
+        let second = std::thread::spawn(move || authority(second_store).claim_next_epoch());
+        let results = [first.join().unwrap(), second.join().unwrap()];
+
+        let claimed: Vec<ControllerEpoch> = results.into_iter().filter_map(Result::ok).collect();
+        assert!(!claimed.is_empty());
+        assert!(claimed.len() <= 2);
+
+        let verifier = authority(store);
+        let current = verifier.current_epoch().unwrap();
+        assert_eq!(
+            claimed.iter().filter(|candidate| **candidate == current).count(),
+            1
+        );
+        for candidate in claimed {
+            if candidate == current {
+                assert_eq!(verifier.ensure_current(candidate), Ok(()));
+            } else {
+                assert!(matches!(
+                    verifier.ensure_current(candidate),
+                    Err(EpochAuthorityError::StaleEpoch { .. })
+                ));
+            }
+        }
+    }
+
+    #[test]
     fn generation_cannot_wrap_at_u64_max() {
         let store = TestStore::with_generation("left-wheel-controller", u64::MAX);
         let authority = authority(store.clone());
