@@ -100,20 +100,16 @@ Each operational scenario must bind an independent oracle for service state, res
 
 ## 6. Fair baselines
 
-Run each scenario and seed against the same initial state, event stream, available information, resource budget, and recovery objective.
+Run each scenario and seed against the same initial state, event stream, allowed information, resource budget, and recovery objective. The exact experimental arms are subordinate to Mycelix CIV-IMPACT-001 (#5046) and the chosen vertical's existing owner; they are not a competing value methodology.
 
-- **B0 — manual coordination proxy:** explicit notification delay, human review time, and service-desk handoff assumptions, all declared before measurement.
-- **B1 — centralized broker:** a single coordinator with conventional authenticated messaging and a shared incident record.
-- **B2 — signed federation:** peer exchange with signatures and deduplication but without the candidate's full evidence-state, conflict, currentness, and authorization semantics.
-- **C1 — candidate federation:** explicit evidence states, policy-scoped disclosure, revocation/currentness handling, and independent verification; analytical recommendations remain non-authoritative.
-- **C2 — candidate + analysis/simulation:** add Symthaea prioritization and Symtropy/Sol-Atlas recovery context, but compare only recommendations against the same oracle and resource constraints.
+- **B0 — incumbent/manual or simple rules:** the declared current workflow or strongest simple graph/rules heuristic, with human-review and handoff assumptions fixed before measurement.
+- **B1 — centralized coordination:** a centralized broker with conventional authenticated messaging and a shared incident record.
+- **B2 — upstream federation + simple recovery:** qualified Mycelix evidence/authorization dispositions (when available for the tested profile) feed a simple rules/graph recovery planner.
+- **C1 — upstream federation + Symtropy recovery:** same inputs and upstream dispositions, with Symtropy service/resource simulation and recovery planning.
+- **C2 — composed analysis arm:** C1 plus qualified Sol-Atlas infrastructure context and Symthaea non-authoritative recommendations.
+- **Ablations:** where feasible, remove one component at a time to measure incremental contribution, as required by CIV-IMPACT-001.
 
-These are **candidate comparison arms**, not claims that any named vendor or deployed system has been reproduced. Align the exact arms with CIV-IMPACT-001 (#5046) and the selected pilot owner before implementation. At minimum, preserve:
-- the declared incumbent/manual workflow or simple rules/graph baseline;
-- the best qualified single-component baseline;
-- the existing federation/evidence baseline with upstream LEX-NET dispositions;
-- the same recovery simulator without Symthaea recommendations;
-- the composed stack, plus leave-one-component-out ablations where feasible.
+These are **candidate comparison arms**, not claims that any named vendor or deployed system has been reproduced. If an upstream Mycelix disposition is not independently qualified, mark the relevant scenario as blocked/unqualified; do not synthesize a replacement authority decision inside Symtropy. Any simplifications and missing upstream results must be explicit in the report.
 
 Use identical scenario inputs, information permissions, resource budgets, and decision horizons. The candidate must not see evaluator-only labels or holdout truth. Include a centralized baseline because decentralization is not automatically safer, faster, or more available.
 
