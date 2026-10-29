@@ -7,7 +7,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HERE))
-from verify_execution_receipt import verify_receipt  # noqa: E402
+from verify_execution_receipt import main as verify_receipt_main, verify_receipt  # noqa: E402
 
 RECEIPT = HERE.parent / "fixtures" / "controller-execution-receipt-template-2026.json"
 PAIRED = HERE.parent / "fixtures" / "paired-comparison-v0.4.json"
@@ -21,6 +21,18 @@ class ExecutionReceiptVerifierTests(unittest.TestCase):
 
     def verify(self, receipt=None, paired=None):
         verify_receipt(copy.deepcopy(receipt or self.receipt), copy.deepcopy(paired or self.paired))
+
+    def test_rejects_duplicate_json_keys_before_receipt_validation(self):
+        import tempfile
+        from contextlib import redirect_stderr
+        import io
+        with tempfile.TemporaryDirectory() as directory:
+            receipt_path = Path(directory) / "receipt.json"
+            paired_path = Path(directory) / "paired.json"
+            receipt_path.write_text('{"schema_version":"0.1.0","schema_version":"0.1.0"}')
+            paired_path.write_text("{}")
+            with redirect_stderr(io.StringIO()):
+                self.assertEqual(verify_receipt_main(["verify_execution_receipt.py", str(receipt_path), str(paired_path)]), 1)
 
     def test_design_only_receipt_is_valid_but_not_executed(self):
         self.verify()
