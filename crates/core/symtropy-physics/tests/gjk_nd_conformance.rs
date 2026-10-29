@@ -5,7 +5,7 @@
 use nalgebra::SVector;
 use symtropy_physics::gjk::intersects_support_maps;
 use symtropy_physics::support_map::WorldSupportMap;
-use symtropy_physics::GjkTermination;
+use symtropy_physics::{GjkFailureReason, GjkTermination};
 
 #[derive(Clone)]
 struct AxisAlignedBox<const D: usize> {
@@ -379,6 +379,24 @@ fn active_set_gjk_matches_sat_on_seeded_rotated_five_dimensional_boxes() {
 #[test]
 fn active_set_gjk_matches_sat_on_seeded_rotated_six_dimensional_boxes() {
     assert_seeded_rotated_box_panel::<6>();
+}
+
+#[test]
+fn zero_dimensional_query_is_rejected_without_indexing() {
+    let a = AxisAlignedBox::<0> {
+        center: SVector::zeros(),
+        half_extents: SVector::zeros(),
+    };
+    let result = intersects_support_maps(&a, &a);
+    assert_eq!(
+        result.termination,
+        GjkTermination::Indeterminate(GjkFailureReason::InvalidDimension)
+    );
+}
+
+#[test]
+fn active_set_gjk_handles_sixteen_dimensions() {
+    assert_nd_contract::<16>();
 }
 
 #[test]
