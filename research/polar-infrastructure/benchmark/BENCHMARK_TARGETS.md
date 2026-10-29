@@ -9,6 +9,12 @@ The [resilience benchmark scorecard](RESILIENCE_BENCHMARK_SCORECARD_2026.md) and
 
 Industry comparisons are layer-matched: REopt/HOMER where a compatible planning or hybrid-system problem exists, OpenDSS for a compatible distribution network, and Gobabeb BSRN vs NASA POWER for environmental-input validation. Do not treat those tools as interchangeable or compare policy results across different models and information budgets. The scorecard does not claim Symtropy currently beats any of them.
 
+## New: execution receipts and cross-arm budget fairness
+
+The paired evaluator now has a [controller execution receipt schema](schemas/controller-execution-receipt-0.1.0.schema.json), [design-only template](fixtures/controller-execution-receipt-template-2026.json), Rust contract validator, independent payload verifier and [receipt-set verifier](scripts/verify_execution_receipt_set.py). The receipt records plant/model/configuration/runtime and output artifact identities, a canonical digest of the numeric resource ceilings, observed resource use, process outcome and independent-verification status.
+
+The receipt-set gate requires a complete controller-by-trajectory matrix, matched resource limits and observation-policy identity, a common plant/executable/runtime environment, and the same configuration for each paired scenario. Mutation tests exercise missing receipts, budget drift, policy drift, model drift and trajectory-binding errors. These fixtures are synthetic test objects: no execution occurred and the template is not score-eligible.
+
 ## New: paired controller comparison and independent report checking
 
 The [paired margin benchmark protocol](../../PAIRED_MARGIN_BENCHMARK_PROTOCOL.md) and [content-bound fixture](fixtures/paired-comparison-v0.4.json) now defines a content-bound v0.4 comparison contract, synthetic paired fixture, Rust evaluator, and independent Python report verifier. It requires a complete controller-by-trajectory matrix gate-specific signed-margin semantics, and exact SHA-256 bindings for trajectory payloads, initial states and controller artifacts; invalid and not-evaluated outcomes remain explicit. The independent verifier recomputes payload hashes over exact UTF-8 fixture bytes. Its exact-head workflow checks that Rust-produced report against the independent recomputation and runs mutation tests. This is a software-contract increment only: all 12 rows in the fixture are synthetic, and it supplies no measured controller advantage.
