@@ -31,7 +31,7 @@ Each request binds:
 - context-of-use and decision-rule revision;
 - upstream verification status for each evidence family.
 
-The v0.1 verifier checks internal shape, scope and time consistency. It does not verify cryptographic signatures, the truth of an MSA result or the validity of the supplied uncertainty model; production integration must verify those upstream receipts first.
+The v0.1 verifier checks internal shape, scope and time consistency. The report echoes the measurement, specification, calibration, MSA, uncertainty-budget and context-policy SHA-256 references plus all six upstream evidence states. It does not verify cryptographic signatures, the truth of an MSA result or the validity of the supplied uncertainty model; production integration must verify those upstream receipts first.
 
 ## Standards boundary
 
