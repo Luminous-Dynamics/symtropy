@@ -94,7 +94,7 @@ The first alloy/mushy-zone model is a later extension. It must not be tuned to m
 
 Use a manufactured solution and/or an exact one-dimensional conduction solution before adding phase change. Verify boundary-flux sign, source-term sign, spatial order, timestep order and integrated energy change.
 
-### Tier 2 — one-phase Neumann Stefan problem
+### Tier 2 — one-phase Stefan similarity problem
 
 Use the semi-infinite one-dimensional freezing/melting reference with a known moving interface. Compare:
 - front position at predeclared times;
