@@ -45,14 +45,13 @@ fn option_path(
     Ok(())
 }
 
-fn run() -> Result<ExitCode, String> {
-    let mut args = std::env::args_os();
-    let program = args.next().unwrap_or_default();
-    let Some(source_path) = args.next() else {
-        usage(&program);
-        return Ok(ExitCode::from(64));
-    };
-
+fn parse_options<I>(
+    args: I,
+) -> Result<(Option<PathBuf>, Option<PathBuf>), String>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let mut args = args.into_iter();
     let mut config_path = None;
     let mut mesh_path = None;
     while let Some(argument) = args.next() {
@@ -61,17 +60,29 @@ fn run() -> Result<ExitCode, String> {
                 option_path(&mut args, "--solver-config", &mut config_path)
             }
             Some("--mesh") => option_path(&mut args, "--mesh", &mut mesh_path),
-            _ => {
-                usage(&program);
-                return Ok(ExitCode::from(64));
-            }
+            _ => return Err("unknown CLI option".to_owned()),
         };
-        if let Err(error) = result {
+        result?;
+    }
+    Ok((config_path, mesh_path))
+}
+
+fn run() -> Result<ExitCode, String> {
+    let mut args = std::env::args_os();
+    let program = args.next().unwrap_or_default();
+    let Some(source_path) = args.next() else {
+        usage(&program);
+        return Ok(ExitCode::from(64));
+    };
+
+    let (config_path, mesh_path) = match parse_options(args) {
+        Ok(paths) => paths,
+        Err(error) => {
             usage(&program);
             eprintln!("{error}");
             return Ok(ExitCode::from(64));
         }
-    }
+    };
 
     let source = read_bounded(
         Path::new(&source_path),
@@ -119,5 +130,42 @@ fn main() -> ExitCode {
             eprintln!("{error}");
             ExitCode::from(66)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn args(values: &[&str]) -> impl Iterator<Item = OsString> + '_ {
+        values.iter().map(OsString::from)
+    }
+
+    #[test]
+    fn parses_each_optional_artifact_path_once() {
+        let (config, mesh) = parse_options(args(&[
+            "--solver-config", "solver.cfg", "--mesh", "grid.su2",
+        ])).expect("valid options parse");
+        assert_eq!(config, Some(PathBuf::from("solver.cfg")));
+        assert_eq!(mesh, Some(PathBuf::from("grid.su2")));
+    }
+
+    #[test]
+    fn rejects_unknown_duplicate_and_missing_option_values() {
+        assert!(parse_options(args(&["--unknown"])).is_err());
+        assert!(parse_options(args(&["--mesh"])).is_err());
+        assert!(parse_options(args(&[
+            "--mesh", "one.su2", "--mesh", "two.su2",
+        ])).is_err());
+        assert!(parse_options(args(&[
+            "--solver-config", "one.cfg", "--solver-config", "two.cfg",
+        ])).is_err());
+    }
+
+    #[test]
+    fn bounded_reader_rejects_directories_before_reading() {
+        assert!(read_bounded(Path::new("."), 1024, "test artifact")
+            .expect_err("directory is not a regular file")
+            .contains("regular file"));
     }
 }
