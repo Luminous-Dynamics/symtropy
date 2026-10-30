@@ -1,0 +1,47 @@
+name: Dependence-robust joint conformity reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-joint-conformity/joint.rs"
+      - "tools/manufacturing-joint-conformity/README.md"
+      - "tools/manufacturing-joint-conformity/expected.csv"
+      - ".github/workflows/manufacturing-joint-conformity.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-joint-conformity/joint.rs"
+      - "tools/manufacturing-joint-conformity/README.md"
+      - "tools/manufacturing-joint-conformity/expected.csv"
+      - ".github/workflows/manufacturing-joint-conformity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  joint-conformity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run dependence-bound tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/manufacturing-joint-conformity/joint.rs -o "$RUNNER_TEMP/mfg-joint-tests"
+          "$RUNNER_TEMP/mfg-joint-tests"
+      - name: Build and verify frozen joint campaign
+        run: |
+          rustc --edition=2024 -D warnings tools/manufacturing-joint-conformity/joint.rs -o "$RUNNER_TEMP/mfg-joint"
+          "$RUNNER_TEMP/mfg-joint" --verify
+      - name: Verify deterministic CSV
+        run: |
+          "$RUNNER_TEMP/mfg-joint" --csv > "$RUNNER_TEMP/joint-a.csv"
+          "$RUNNER_TEMP/mfg-joint" --csv > "$RUNNER_TEMP/joint-b.csv"
+          diff -u "$RUNNER_TEMP/joint-a.csv" "$RUNNER_TEMP/joint-b.csv"
+          diff -u tools/manufacturing-joint-conformity/expected.csv "$RUNNER_TEMP/joint-a.csv"
+          cat "$RUNNER_TEMP/joint-a.csv"
+      - name: Emit source and output digests
+        run: |
+          sha256sum tools/manufacturing-joint-conformity/joint.rs tools/manufacturing-joint-conformity/expected.csv "$RUNNER_TEMP/joint-a.csv"
