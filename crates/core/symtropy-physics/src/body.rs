@@ -223,6 +223,13 @@ impl<const D: usize> RigidBody<D> {
         let total_mass = self.mass + tool_mass;
         let com_offset = (local_transform.translation.0 * tool_mass) / total_mass;
 
+        // TODO(inertia-operator): this legacy merge path still collapses the
+        // existing inertia to a scalar mean and applies an isotropic m*|d|^2
+        // parallel-axis correction. That is not correct for asymmetric bodies.
+        // The full second-moment update is S_total = S_A + m_A*d_A*d_A^T
+        // + S_B + m_B*d_B*d_B^T about the combined center of mass; then build
+        // BivectorInertia from S_total. Do not treat this merge as validated
+        // for asymmetric mass distributions until that operator is plumbed in.
         let i_original = self.inertia.sum() / D as f64;
         // The toolhead is approximated as a uniformly-filled D-ball.
         let i_tool = (2.0 / (D as f64 + 2.0)) * tool_mass * 0.1 * 0.1;
