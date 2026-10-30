@@ -1,12 +1,11 @@
 # Engineering Scenario Compiler v0.1
 
-A standalone Rust tool that compiles the existing NACA0012 engineering scenario TOML into a deterministic typed IR and compile-obligation report.
+A standalone Rust tool that compiles the existing NACA0012 engineering scenario TOML into a deterministic typed IR and compile-obligation report. The dependency graph is committed in `Cargo.lock` and CI uses `--locked`.
 
 ## Run
 
 From this directory:
 
-    cargo generate-lockfile
     cargo test --locked
     cargo run --locked -- ../../../benchmarks/aero/naca0012-inc-rans/case.toml
 
