@@ -58,10 +58,11 @@ impl<const D: usize> BivectorInertia<D> {
 
         let scale = second_moment
             .iter()
-            .fold(1.0_f64, |m, value| m.max(value.abs()));
+            .fold(0.0_f64, |m, value| m.max(value.abs()));
+        let tolerance = 1e-12 * scale.max(f64::MIN_POSITIVE);
         for i in 0..D {
             for j in 0..D {
-                if (second_moment[(i, j)] - second_moment[(j, i)]).abs() > 1e-12 * scale {
+                if (second_moment[(i, j)] - second_moment[(j, i)]).abs() > tolerance {
                     return Err(RotationalInertiaError::NotSymmetric);
                 }
             }
@@ -72,7 +73,7 @@ impl<const D: usize> BivectorInertia<D> {
             .eigenvalues
             .iter()
             .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
-        if min_eigenvalue < -1e-12 * scale {
+        if min_eigenvalue < -tolerance {
             return Err(RotationalInertiaError::NotPositiveSemidefinite);
         }
 
@@ -289,6 +290,19 @@ mod tests {
     fn rejects_indefinite_second_moment() {
         let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([
             1.0, 1.0, -0.01,
+        ]));
+        assert_eq!(
+            BivectorInertia::<3>::from_second_moment(second_moment).unwrap_err(),
+            RotationalInertiaError::NotPositiveSemidefinite
+        );
+    }
+
+    #[test]
+    fn rejects_small_scale_indefinite_second_moment() {
+        // PSD tolerance must scale with the physical mass-moment magnitude,
+        // not with an arbitrary unit floor.
+        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([
+            1e-20, 1e-20, -1e-15,
         ]));
         assert_eq!(
             BivectorInertia::<3>::from_second_moment(second_moment).unwrap_err(),
