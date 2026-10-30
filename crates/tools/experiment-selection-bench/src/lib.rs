@@ -1460,6 +1460,28 @@ mod tests {
     }
 
     #[test]
+    fn even_trial_count_uses_midpoint_median() {
+        let results: Vec<_> = [1_u64, 2, 3, 4]
+            .into_iter()
+            .map(|seed| {
+                run_trial(
+                    SyntheticProblem::new(ProblemId::SmoothBowl),
+                    PolicyKind::Random,
+                    seed,
+                    16,
+                    8,
+                )
+            })
+            .collect();
+        let mut regrets: Vec<f64> = results.iter().map(|result| result.final_regret).collect();
+        regrets.sort_by(f64::total_cmp);
+        let expected = (regrets[1] + regrets[2]) * 0.5;
+        let summaries = summarize(&results);
+        assert_eq!(summaries.len(), 1);
+        assert!((summaries[0].median_regret - expected).abs() < 1.0e-15);
+    }
+
+    #[test]
     fn campaign_summary_covers_each_problem_and_policy() {
         let seeds = [1, 2, 3];
         let results = run_campaign(&seeds, 16, 8);
