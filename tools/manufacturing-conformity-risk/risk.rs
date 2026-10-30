@@ -122,7 +122,9 @@ struct Report {
     spec_id: String, spec_revision: String, policy_id: String, policy_revision: String,
     uncertainty_id: String, model_revision: String, posterior_sha256: String,
     spec_sha256: String, policy_sha256: String, uncertainty_sha256: String,
-    calibration_sha256: String, msa_sha256: String, measurand: String, unit: String,
+    calibration_sha256: String, msa_sha256: String, calibration_id: String, msa_study_id: String,
+    policy_owner: String, spec_lower: f64, spec_upper: f64, min_accept_pc: f64,
+    max_reject_pc: f64, decision_time_ns: i64, measurand: String, unit: String,
     outcome: Outcome, reason: &'static str, pc_model: Option<f64>,
     pc_lower: Option<f64>, pc_upper: Option<f64>, consumer_risk_upper: Option<f64>,
     producer_risk_upper: Option<f64>, tail_mass: Option<f64>, bin_count: usize,
@@ -137,8 +139,12 @@ impl Report {
             self.policy_id.clone(), self.policy_revision.clone(), self.uncertainty_id.clone(),
             self.model_revision.clone(), self.posterior_sha256.clone(), self.spec_sha256.clone(),
             self.policy_sha256.clone(), self.uncertainty_sha256.clone(),
-            self.calibration_sha256.clone(), self.msa_sha256.clone(), self.measurand.clone(),
-            self.unit.clone(), self.outcome.code().to_string(), self.reason.to_string(),
+            self.calibration_sha256.clone(), self.msa_sha256.clone(),
+            self.calibration_id.clone(), self.msa_study_id.clone(), self.policy_owner.clone(),
+            format!("{:.12e}", self.spec_lower), format!("{:.12e}", self.spec_upper),
+            format!("{:.12e}", self.min_accept_pc), format!("{:.12e}", self.max_reject_pc),
+            self.decision_time_ns.to_string(), self.measurand.clone(), self.unit.clone(),
+            self.outcome.code().to_string(), self.reason.to_string(),
             f(self.pc_model), f(self.pc_lower), f(self.pc_upper),
             f(self.consumer_risk_upper), f(self.producer_risk_upper), f(self.tail_mass),
             self.bin_count.to_string(), self.evidence.posterior.code().to_string(),
@@ -167,6 +173,11 @@ fn incomplete(r: &Request, reason: &'static str) -> Report {
         uncertainty_sha256: r.provenance.uncertainty_sha256.clone(),
         calibration_sha256: r.provenance.calibration_sha256.clone(),
         msa_sha256: r.provenance.msa_sha256.clone(),
+        calibration_id: r.posterior.calibration_id.clone(),
+        msa_study_id: r.posterior.msa_study_id.clone(), policy_owner: r.policy.owner.clone(),
+        spec_lower: r.spec.lower, spec_upper: r.spec.upper,
+        min_accept_pc: r.policy.min_accept_pc, max_reject_pc: r.policy.max_reject_pc,
+        decision_time_ns: r.decision_time_ns,
         measurand: r.posterior.measurand.clone(), unit: r.posterior.unit.clone(),
         outcome: Outcome::EvidenceIncomplete, reason, pc_model: None, pc_lower: None,
         pc_upper: None, consumer_risk_upper: None, producer_risk_upper: None,
@@ -279,6 +290,11 @@ fn classify(r: &Request) -> Report {
         uncertainty_sha256: r.provenance.uncertainty_sha256.clone(),
         calibration_sha256: r.provenance.calibration_sha256.clone(),
         msa_sha256: r.provenance.msa_sha256.clone(),
+        calibration_id: r.posterior.calibration_id.clone(),
+        msa_study_id: r.posterior.msa_study_id.clone(), policy_owner: r.policy.owner.clone(),
+        spec_lower: r.spec.lower, spec_upper: r.spec.upper,
+        min_accept_pc: r.policy.min_accept_pc, max_reject_pc: r.policy.max_reject_pc,
+        decision_time_ns: r.decision_time_ns,
         measurand: r.posterior.measurand.clone(), unit: r.posterior.unit.clone(),
         outcome, reason, pc_model: Some(lower), pc_lower: Some(lower), pc_upper: Some(upper),
         consumer_risk_upper: (outcome == Outcome::Accept).then_some(1.0 - lower),
@@ -378,7 +394,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() {
-    println!("case_id,posterior_id,measurement_id,part_id,lot_id,specification_id,spec_revision,policy_id,policy_revision,uncertainty_budget_id,model_revision,posterior_sha256,spec_sha256,policy_sha256,uncertainty_sha256,calibration_sha256,msa_sha256,measurand,unit,outcome,reason,pc_model,pc_lower,pc_upper,consumer_risk_upper,producer_risk_upper,tail_mass,bin_count,posterior_evidence,spec_evidence,calibration_evidence,msa_evidence,uncertainty_evidence,policy_evidence");
+    println!("case_id,posterior_id,measurement_id,part_id,lot_id,specification_id,spec_revision,policy_id,policy_revision,uncertainty_budget_id,model_revision,posterior_sha256,spec_sha256,policy_sha256,uncertainty_sha256,calibration_sha256,msa_sha256,calibration_id,msa_study_id,policy_owner,spec_lower,spec_upper,min_accept_pc,max_reject_pc,decision_time_ns,measurand,unit,outcome,reason,pc_model,pc_lower,pc_upper,consumer_risk_upper,producer_risk_upper,tail_mass,bin_count,posterior_evidence,spec_evidence,calibration_evidence,msa_evidence,uncertainty_evidence,policy_evidence");
     for (name, r) in campaign() { println!("{name},{}", classify(&r).csv_row()); }
 }
 
