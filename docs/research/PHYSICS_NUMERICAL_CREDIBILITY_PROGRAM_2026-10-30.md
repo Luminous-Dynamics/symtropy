@@ -265,6 +265,24 @@ Every benchmark record should include, where relevant:
 
 Never average away failures. Publish medians and tails, successful and failed runs, and the complete parameter/timestep range.
 
+### Proposed quantitative promotion targets
+
+These are **initial target gates**, not current results. Freeze exact scenarios and reference data before running them; revise a threshold only through a documented, versioned benchmark decision.
+
+| Area | Initial target | Interpretation |
+|---|---|---|
+| Closed-form kernels | Relative error ≤ 1e-12 for well-scaled float64 identity/mass-property cases | Catch formula and indexing defects before physical integration |
+| Smooth ODE convergence | Observed order within ±0.15 of the method's formal order over at least three consecutive timestep halvings | Do not promote a solver on one timestep |
+| Adaptive ODE control | Accepted-step error estimates meet configured absolute/relative tolerances; forced-minimum-step failure is explicit | No silent tolerance violation |
+| Articulated forward/inverse consistency | Normalized generalized-force residual ≤ 1e-8 on small, well-conditioned double-precision reference cases | Validate mass matrix, bias terms, constraints and sign conventions together |
+| Conservation under refinement | Residual decreases at the expected method order; finest-grid target ≤ 1e-8 only for a declared closed, well-conditioned reference problem | Avoid applying closed-system conservation tests to open/contact systems without accounting for external exchanges |
+| PDE/CFD verification | Manufactured-solution error follows expected spatial and temporal order independently | Separate mesh error from time-integration error |
+| Uncertainty calibration | Empirical 90%/95% interval coverage must be statistically compatible with nominal coverage on held-out data; report proper scores and interval width | Coverage alone cannot reward arbitrarily wide intervals |
+| Solver superiority claim | At matched accuracy, ≥20% lower median wall time or memory, with uncertainty intervals excluding no improvement; alternatively ≥2× lower error at matched cost | Narrow, repeatable superiority claim, not universal SOTA language |
+| Active experiment selection | ≥20% fewer physical experiments to reach the same predeclared predictive-uncertainty target, with held-out error and interval calibration non-inferior | A possible differentiated Symthaea research result |
+
+The normalized residual, reference-conditioning, hardware, compiler, mesh, tolerance, and sample-count definitions must be written into each benchmark manifest. The numerical thresholds above are starting hypotheses: for difficult/ill-conditioned problems, the correct acceptance criterion may be convergence to a verified reference rather than a single absolute residual.
+
 ## 5.1 Determinism comparison protocol
 
 Use Rapier's published contract precisely. Its default determinism is local to the same machine, engine version, Rust compiler, initial state, and body/collider/joint construction and insertion order. Cross-platform determinism is a separate opt-in mode with additional conditions. Symtropy should benchmark both scopes and publish a CPU/OS/compiler matrix; Q16.16 state quantization alone is not evidence of cross-architecture bit identity.
