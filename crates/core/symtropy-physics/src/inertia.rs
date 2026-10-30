@@ -91,9 +91,7 @@ impl<const D: usize> BivectorInertia<D> {
     /// Positions may be in any translated world frame; this constructor first
     /// computes the center of mass and then forms the centered second moment.
     /// It is suitable for CAD/mesh mass-lumping and point-cloud reference tests.
-    pub fn from_point_masses<I>(
-        point_masses: I,
-    ) -> Result<Self, RotationalInertiaError>
+    pub fn from_point_masses<I>(point_masses: I) -> Result<Self, RotationalInertiaError>
     where
         I: IntoIterator<Item = (SVector<f64, D>, f64)>,
     {
@@ -134,10 +132,7 @@ impl<const D: usize> BivectorInertia<D> {
     }
 
     /// Construct the centered inertia operator for a uniform solid D-ball.
-    pub fn uniform_solid_ball(
-        mass: f64,
-        radius: f64,
-    ) -> Result<Self, RotationalInertiaError> {
+    pub fn uniform_solid_ball(mass: f64, radius: f64) -> Result<Self, RotationalInertiaError> {
         if !radius.is_finite() {
             return Err(RotationalInertiaError::NonFinite);
         }
@@ -304,9 +299,7 @@ mod tests {
         assert!((origin.second_moment() - translated.second_moment()).norm() < 1e-12);
         let omega = Bivector::<3>::unit_plane(0, 1);
         let expected = 2.0;
-        assert!(
-            (translated.angular_momentum(&omega).get(0, 1) - expected).abs() < 1e-12
-        );
+        assert!((translated.angular_momentum(&omega).get(0, 1) - expected).abs() < 1e-12);
     }
 
     #[test]
@@ -321,11 +314,9 @@ mod tests {
     fn uniform_ellipsoid_recovers_analytical_three_dimensional_moments() {
         // Unit mass, semi-axes (2, 1, 0.5): S_ii = a_i^2 / 5.
         // Rotation-plane moments are sums of the corresponding S diagonal.
-        let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
-            1.0,
-            SVector::new(2.0, 1.0, 0.5),
-        )
-        .unwrap();
+        let inertia =
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+                .unwrap();
 
         let xy = Bivector::<3>::unit_plane(0, 1); // rotation about z
         let xz = Bivector::<3>::unit_plane(0, 2); // rotation about y
@@ -337,14 +328,13 @@ mod tests {
 
     #[test]
     fn asymmetric_three_dimensional_second_moments_recover_principal_inertia() {
-        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([
-            1.0, 2.0, 4.0,
-        ]));
+        let second_moment =
+            SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([1.0, 2.0, 4.0]));
         let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
 
         let mut omega = Bivector::<3>::zero();
-        omega.set(0, 1, 1.0);  // rotation about axis 2: moment 1 + 2
-        omega.set(0, 2, 2.0);  // rotation about axis 1: moment 1 + 4
+        omega.set(0, 1, 1.0); // rotation about axis 2: moment 1 + 2
+        omega.set(0, 2, 2.0); // rotation about axis 1: moment 1 + 4
         omega.set(1, 2, -1.0); // rotation about axis 0: moment 2 + 4
         let momentum = inertia.angular_momentum(&omega);
 
@@ -356,11 +346,8 @@ mod tests {
 
     #[test]
     fn off_diagonal_mass_moments_couple_rotation_planes() {
-        let second_moment = SMatrix::<f64, 3, 3>::new(
-            2.0, 0.25, 0.0,
-            0.25, 3.0, 0.0,
-            0.0, 0.0, 4.0,
-        );
+        let second_moment =
+            SMatrix::<f64, 3, 3>::new(2.0, 0.25, 0.0, 0.25, 3.0, 0.0, 0.0, 0.0, 4.0);
         let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
         let omega = Bivector::<3>::unit_plane(0, 2);
         let momentum = inertia.angular_momentum(&omega);
@@ -371,15 +358,10 @@ mod tests {
 
     #[test]
     fn rotated_inertia_is_covariant_and_preserves_kinetic_energy() {
-        let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
-            1.0,
-            SVector::new(2.0, 1.0, 0.5),
-        )
-        .unwrap();
-        let rotation = Rotor::<3>::from_plane_angle(
-            &Bivector::<3>::unit_plane(0, 2),
-            0.63,
-        );
+        let body_inertia =
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+                .unwrap();
+        let rotation = Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.63);
         let world_inertia = body_inertia.rotated_by(&rotation);
 
         let mut omega_body = Bivector::<3>::zero();
@@ -392,16 +374,12 @@ mod tests {
 
         let momentum_body = body_inertia.angular_momentum(&omega_body);
         let momentum_world = world_inertia.angular_momentum(&omega_world);
-        let expected_world_momentum = rotation.to_matrix()
-            * momentum_body.to_matrix()
-            * rotation.to_matrix().transpose();
+        let expected_world_momentum =
+            rotation.to_matrix() * momentum_body.to_matrix() * rotation.to_matrix().transpose();
 
+        assert!((momentum_world.to_matrix() - expected_world_momentum).norm() < 1e-11);
         assert!(
-            (momentum_world.to_matrix() - expected_world_momentum).norm() < 1e-11
-        );
-        assert!(
-            (body_inertia.kinetic_energy(&omega_body)
-                - world_inertia.kinetic_energy(&omega_world))
+            (body_inertia.kinetic_energy(&omega_body) - world_inertia.kinetic_energy(&omega_world))
                 .abs()
                 < 1e-11
         );
@@ -409,11 +387,8 @@ mod tests {
 
     #[test]
     fn inverse_operator_recovers_coupled_world_frame_angular_velocity() {
-        let second_moment = SMatrix::<f64, 3, 3>::new(
-            2.0, 0.25, 0.1,
-            0.25, 3.0, 0.2,
-            0.1, 0.2, 4.0,
-        );
+        let second_moment =
+            SMatrix::<f64, 3, 3>::new(2.0, 0.25, 0.1, 0.25, 3.0, 0.2, 0.1, 0.2, 4.0);
         let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
 
         let mut omega = Bivector::<3>::zero();
@@ -433,9 +408,8 @@ mod tests {
 
     #[test]
     fn inverse_operator_rejects_singular_rotation_plane() {
-        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([
-            2.0, 0.0, 0.0,
-        ]));
+        let second_moment =
+            SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([2.0, 0.0, 0.0]));
         let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
         let momentum = Bivector::<3>::unit_plane(1, 2);
         assert_eq!(
@@ -459,9 +433,8 @@ mod tests {
 
     #[test]
     fn rejects_indefinite_second_moment() {
-        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([
-            1.0, 1.0, -0.01,
-        ]));
+        let second_moment =
+            SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([1.0, 1.0, -0.01]));
         assert_eq!(
             BivectorInertia::<3>::from_second_moment(second_moment).unwrap_err(),
             RotationalInertiaError::NotPositiveSemidefinite
@@ -472,9 +445,8 @@ mod tests {
     fn rejects_small_scale_indefinite_second_moment() {
         // PSD tolerance must scale with the physical mass-moment magnitude,
         // not with an arbitrary unit floor.
-        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([
-            1e-20, 1e-20, -1e-15,
-        ]));
+        let second_moment =
+            SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([1e-20, 1e-20, -1e-15]));
         assert_eq!(
             BivectorInertia::<3>::from_second_moment(second_moment).unwrap_err(),
             RotationalInertiaError::NotPositiveSemidefinite
@@ -483,11 +455,7 @@ mod tests {
 
     #[test]
     fn rejects_non_symmetric_second_moment() {
-        let second_moment = SMatrix::<f64, 3, 3>::new(
-            1.0, 0.5, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-        );
+        let second_moment = SMatrix::<f64, 3, 3>::new(1.0, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
         assert_eq!(
             BivectorInertia::<3>::from_second_moment(second_moment).unwrap_err(),
             RotationalInertiaError::NotSymmetric
