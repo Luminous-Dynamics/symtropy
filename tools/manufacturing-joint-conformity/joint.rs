@@ -446,6 +446,23 @@ mod tests {
     }
 
     #[test]
+    fn every_nonverified_evidence_state_abstains() {
+        for state in [
+            EvidenceState::Missing,
+            EvidenceState::Stale,
+            EvidenceState::Mismatched,
+            EvidenceState::Revoked,
+            EvidenceState::NotQualified,
+        ] {
+            let mut request = campaign()[0].1.clone();
+            request.marginals[0].evidence = state;
+            let report = classify(&request);
+            assert_eq!(report.outcome, Outcome::EvidenceIncomplete);
+            assert!(report.reason != "FRECHET_LOWER_BOUND_MEETS_ACCEPT_THRESHOLD");
+        }
+    }
+
+    #[test]
     fn invalid_probabilities_and_policy_fail_closed() {
         let mut r=campaign()[0].1.clone();
         r.marginals[0].probability_lower=-0.1;
