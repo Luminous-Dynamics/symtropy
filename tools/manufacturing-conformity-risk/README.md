@@ -14,7 +14,7 @@ This reference adds the PDF path. It must receive a qualified posterior with exp
 
 ## Posterior model
 
-A posterior consists of contiguous finite bins [a_i,b_i], with probability masses p_i. Each bin is uniform within its boundaries. An explicit unknown residual tail mass tau accounts for posterior probability outside the represented support. Its probability mass is known, but its location relative to the specification is not.
+A posterior consists of contiguous finite bins [a_i,b_i], with probability masses p_i. Each bin is uniform within its boundaries. Zero-mass bins explicitly represent gaps where the posterior density is zero. An explicit unknown residual tail mass tau accounts for posterior probability outside the represented support. Its probability mass is known, but its location relative to the specification is not.
 
 Validation requires:
 
@@ -51,7 +51,7 @@ For an ACCEPT, conservative conditional consumer-risk upper bound is 1-p_c_lower
 - Skewed asymmetric posterior: p_c=[0.95,0.95], ACCEPT at p_accept=0.95.
 - Multimodal posterior: p_c=[0.50,0.50], INDETERMINATE.
 - Out-of-spec posterior: p_c=[0.02,0.02], REJECT at p_reject=0.05.
-- Unknown-tail posterior: p_c=[0.98,1.00], INDETERMINATE.
+- Unknown-tail posterior: p_c=[0.98,1.00], INDETERMINATE under a 99% acceptance threshold.
 - Uniform distribution over [-2,2] against specification [-1,2]: exact p_c=0.75.
 
 ## Build and run
