@@ -93,6 +93,16 @@ The Pareto set may grow exponentially. State and frontier caps are mandatory, an
 
 ## 5. Independent correctness gates
 
+### Hand-checkable golden fixture
+
+Use four equally weighted hypotheses h0–h3 and three actions A, B, C with costs c(A)=1, c(B)=2, c(C)=1. A is unsafe only under h3; its safe outcomes are A(h0)=0, A(h1)=0, A(h2)=1. B is safe for all hypotheses and separates {h0,h1} from {h2,h3}. C is safe for all hypotheses and separates {h0,h2} from {h1,h3}.
+
+The exact deterministic-policy frontier for this fixture must contain:
+- (expected cost 2.5, campaign hazard probability 0): choose C first; after outcome 0 use A to distinguish h0/h2, and after outcome 1 use B to distinguish h1/h3.
+- (expected cost 1.5, campaign hazard probability 0.25): choose A first; h3 incurs the hazard, h2 is identified by safe outcome 1, and safe outcome 0 is resolved by C.
+
+No other non-dominated deterministic-policy pair should remain. This fixture makes the risk budget operational: alpha=0 selects the 2.5-cost safe policy; alpha=0.25 permits the 1.5-cost policy with a 25% campaign hazard probability.
+
 - Compare the complete nondominated frontier, not just one selected action, against an independently written exhaustive policy-tree enumerator on all sealed tiny cases (4–8 hypotheses, 3–4 actions).
 - Check exact branch probability normalization: immediate hazard mass plus all safe outcome masses equals one.
 - Check exact agreement of expected cost and campaign hazard probability for every reference policy.
