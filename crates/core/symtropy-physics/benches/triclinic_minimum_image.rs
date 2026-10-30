@@ -60,35 +60,6 @@ fn brute_force<const D: usize>(
     displacement: &SVector<f64, D>,
     radius: i64,
 ) -> f64 {
-    fn visit<const D: usize>(
-        axis: usize,
-        offset: &mut [i64; D],
-        lattice: &PeriodicLattice<D>,
-        displacement: &SVector<f64, D>,
-        radius: i64,
-        best_squared: &mut f64,
-    ) {
-        if axis == D {
-            let translation = lattice
-                .offset_vector(symtropy_math::LatticeOffset::new(*offset))
-                .expect("oracle offset must be valid");
-            let residual = displacement - translation;
-            *best_squared = best_squared.min(residual.norm_squared());
-            return;
-        }
-        for value in -radius..=radius {
-            offset[axis] = value;
-            visit(
-                axis + 1,
-                offset,
-                lattice,
-                displacement,
-                radius,
-                best_squared,
-            );
-        }
-        offset[axis] = 0;
-    }
 
     let fractional = lattice.inverse_basis() * displacement;
     let center = std::array::from_fn(|axis| fractional[axis].round() as i64);
@@ -128,7 +99,6 @@ fn brute_force<const D: usize>(
         }
     }
 
-    let _ = visit::<D>;
     visit_centered(
         0,
         &center,
