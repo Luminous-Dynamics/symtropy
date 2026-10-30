@@ -272,6 +272,30 @@ fn validate_source(source: &SourceScenario) -> Result<(), String> {
             || instance.freestream_velocity_m_s[0].hypot(instance.freestream_velocity_m_s[1]) <= 0.0 {
             return Err(format!("instance {} requires finite, non-zero, planar freestream velocity", instance.id));
         }
+        let speed = instance.freestream_velocity_m_s[0]
+            .hypot(instance.freestream_velocity_m_s[1]);
+        let angle_radians = instance.angle_of_attack_deg.to_radians();
+        let expected_x = speed * angle_radians.cos();
+        let expected_y = speed * angle_radians.sin();
+        let angle_vector_error = (instance.freestream_velocity_m_s[0] - expected_x)
+            .hypot(instance.freestream_velocity_m_s[1] - expected_y);
+        if angle_vector_error > speed * 1.0e-9 {
+            return Err(format!(
+                "instance {} freestream vector disagrees with angle_of_attack_deg",
+                instance.id
+            ));
+        }
+        let derived_reynolds = flow.density_kg_m3 * speed * source.geometry.chord_m
+            / flow.dynamic_viscosity_kg_m_s;
+        let relative_reynolds_error =
+            (derived_reynolds - flow.reynolds_number_per_chord).abs()
+                / flow.reynolds_number_per_chord;
+        if !derived_reynolds.is_finite() || relative_reynolds_error > 2.0e-6 {
+            return Err(format!(
+                "instance {} velocity, geometry, density and viscosity disagree with the declared Reynolds number per chord",
+                instance.id
+            ));
+        }
     }
     for (name, oid) in [
         ("geometry.upstream_config_git_blob_sha", source.geometry.upstream_config_git_blob_sha.as_str()),
@@ -491,6 +515,21 @@ mod tests {
         let report = compile_bytes(changed.as_bytes());
         assert_eq!(report.disposition, Disposition::Unsupported);
         assert!(report.obligations.iter().any(|o| o.id == "model-profile" && o.resolution == Resolution::Unsupported));
+    }
+
+    #[test]
+    fn angle_velocity_and_reynolds_cross_constraints_are_checked() {
+        let source = std::str::from_utf8(FIXTURE).unwrap();
+        let wrong_angle = replace_once(source, "angle_of_attack_deg = 10.0", "angle_of_attack_deg = 11.0");
+        assert_eq!(compile_bytes(wrong_angle.as_bytes()).disposition, Disposition::Invalid);
+        let wrong_reynolds = replace_once(source, "reynolds_number_per_chord = 6000000.0", "reynolds_number_per_chord = 5900000.0");
+        assert_eq!(compile_bytes(wrong_reynolds.as_bytes()).disposition, Disposition::Invalid);
+    }
+
+    #[test]
+    fn toml_1_1_only_escape_is_not_accepted_by_the_toml_1_0_frontend() {
+        let toml_11_only = br#"value = "\e""#;
+        assert_eq!(compile_bytes(toml_11_only).disposition, Disposition::Invalid);
     }
 
     #[test]
