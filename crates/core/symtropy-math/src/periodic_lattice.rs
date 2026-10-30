@@ -582,19 +582,43 @@ impl<const D: usize> PeriodicLattice<D> {
                             // still contain the true minimum. This exposes
                             // Voronoi-boundary ties and near-ties instead of
                             // silently pretending the representative is unique.
-                            if candidate_distance_upper_bound
-                                < best_candidate_distance_upper_bound
-                            {
+                            let upper_is_better =
+                                candidate_distance_upper_bound < best_candidate_distance_upper_bound;
+                            if upper_is_better {
                                 best_candidate_distance_upper_bound =
                                     candidate_distance_upper_bound;
                                 let plausible_margin = DISTANCE_TIE_EPSILON_MULTIPLIER
                                     * f64::EPSILON
                                     * best_candidate_distance_upper_bound.max(1.0);
                                 plausible_image_offsets.retain(|(_, lower)| {
-                                    *lower <= best_candidate_distance_upper_bound
-                                        + plausible_margin
+                                    *lower <= best_candidate_distance_upper_bound + plausible_margin
                                 });
                             }
+
+                            let alignment_tolerance = DISTANCE_TIE_EPSILON_MULTIPLIER
+                                * f64::EPSILON
+                                * alignment.abs().max(best_alignment.abs()).max(1.0);
+                            let distance_precedes = !best_distance.is_finite()
+                                || distance < best_distance
+                                || (distance == best_distance
+                                    && (alignment > best_alignment + alignment_tolerance
+                                        || ((alignment - best_alignment).abs()
+                                            <= alignment_tolerance
+                                            && signed_offset_precedes(
+                                                &candidate,
+                                                &best_offset.periods,
+                                                orientation,
+                                            ))));
+                            if upper_is_better || (candidate_distance_upper_bound == best_candidate_distance_upper_bound
+                                && distance_precedes)
+                            {
+                                best_distance = distance;
+                                best_distance_error_bound = distance_error_bound;
+                                best_alignment = alignment;
+                                best_displacement = candidate_displacement;
+                                best_offset = candidate_offset;
+                            }
+
                             let plausible_margin = DISTANCE_TIE_EPSILON_MULTIPLIER
                                 * f64::EPSILON
                                 * best_candidate_distance_upper_bound.max(1.0);
@@ -603,33 +627,6 @@ impl<const D: usize> PeriodicLattice<D> {
                             {
                                 plausible_image_offsets
                                     .push((candidate_offset, candidate_distance_lower_bound));
-                            }
-
-                            let alignment_tolerance = DISTANCE_TIE_EPSILON_MULTIPLIER
-                                * f64::EPSILON
-                                * alignment.abs().max(best_alignment.abs()).max(1.0);
-                            // Never replace a shorter computed candidate with
-                            // a slightly longer one merely because both fall inside
-                            // a tie tolerance. Ties are resolved only for exactly
-                            // equal computed distances; the certificate margin
-                            // separately accounts for floating-point roundoff.
-                            let is_better =
-                                !best_distance.is_finite() || distance < best_distance;
-                            let is_tie =
-                                best_distance.is_finite() && distance == best_distance;
-                            let tie_precedes = alignment > best_alignment + alignment_tolerance
-                                || ((alignment - best_alignment).abs() <= alignment_tolerance
-                                    && signed_offset_precedes(
-                                        &candidate,
-                                        &best_offset.periods,
-                                        orientation,
-                                    ));
-                            if is_better || (is_tie && tie_precedes) {
-                                best_distance = distance;
-                                best_distance_error_bound = distance_error_bound;
-                                best_alignment = alignment;
-                                best_displacement = candidate_displacement;
-                                best_offset = candidate_offset;
                             }
                         }
                         Err(error) => visit_error = Some(error),
