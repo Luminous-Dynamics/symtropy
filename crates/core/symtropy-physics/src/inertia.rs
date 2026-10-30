@@ -93,8 +93,7 @@ impl<const D: usize> BivectorInertia<D> {
         // Project roundoff-sized negative eigenvalues to zero. Keep the
         // reconstructed matrix and cached principal moments identical so the
         // forward and inverse operators share exactly the same PSD model.
-        let principal_second_moments =
-            eigensystem.eigenvalues.map(|value| value.max(0.0));
+        let principal_second_moments = eigensystem.eigenvalues.map(|value| value.max(0.0));
         let principal_axes = eigensystem.eigenvectors;
         let projected_second_moment = principal_axes
             * SMatrix::<f64, D, D>::from_diagonal(&principal_second_moments)
@@ -739,10 +738,7 @@ mod tests {
     #[test]
     fn four_dimensional_coupled_inertia_roundtrips_all_six_rotation_planes() {
         let second_moment = SMatrix::<f64, 4, 4>::new(
-            2.0, 0.2, 0.0, 0.1,
-            0.2, 3.0, 0.15, 0.0,
-            0.0, 0.15, 4.0, 0.25,
-            0.1, 0.0, 0.25, 5.0,
+            2.0, 0.2, 0.0, 0.1, 0.2, 3.0, 0.15, 0.0, 0.0, 0.15, 4.0, 0.25, 0.1, 0.0, 0.25, 5.0,
         );
         let inertia = BivectorInertia::<4>::from_second_moment(second_moment).unwrap();
         let mut angular_state = Bivector::<4>::zero();
