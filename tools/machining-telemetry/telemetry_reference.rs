@@ -40,6 +40,7 @@ struct ClockMap<'a> {
 
 #[derive(Clone, Copy, Debug)]
 struct Window {
+    cycle_id: u64,
     start_ref_ns: i64,
     end_ref_ns: i64, // half-open [start, end)
 }
@@ -66,6 +67,7 @@ struct ExtractedChannel<'a> {
 
 #[derive(Debug)]
 struct Features {
+    cycle_id: u64,
     sensor_id: String,
     kind: &'static str,
     unit: String,
@@ -90,6 +92,34 @@ struct Features {
 struct PairedFeatures {
     pair_count: usize,
     pearson_r: f64,
+}
+
+#[derive(Debug)]
+struct CycleFeatureFusion {
+    cycle_id: u64,
+    window_start_ref_ns: i64,
+    window_end_ref_ns: i64,
+    reference_clock: String,
+    combined_clock_uncertainty_ns: u64,
+    vibration_sensor_id: String,
+    vibration_source_sha256: String,
+    vibration_rate_hz: f64,
+    vibration_observed_samples: usize,
+    vibration_missing_fraction: f64,
+    vibration_mean: f64,
+    vibration_rms: f64,
+    vibration_peak_to_peak: f64,
+    vibration_excess_kurtosis: f64,
+    current_sensor_id: String,
+    current_source_sha256: String,
+    current_rate_hz: f64,
+    current_observed_samples: usize,
+    current_missing_fraction: f64,
+    current_mean: f64,
+    current_rms: f64,
+    current_peak_to_peak: f64,
+    current_excess_kurtosis: f64,
+    fusion_semantics: &'static str,
 }
 
 fn is_sha256(s: &str) -> bool {
@@ -263,6 +293,7 @@ fn calculate_features(channel: &ExtractedChannel<'_>) -> Result<Features, String
     }
 
     Ok(Features {
+        cycle_id: channel.window.cycle_id,
         sensor_id: channel.meta.sensor_id.to_string(),
         kind: match channel.meta.kind { ChannelKind::Vibration => "vibration", ChannelKind::Current => "current" },
         unit: channel.meta.unit.to_string(),
@@ -281,6 +312,77 @@ fn calculate_features(channel: &ExtractedChannel<'_>) -> Result<Features, String
         unbiased_variance,
         excess_kurtosis,
         clock_uncertainty_ns: channel.clock_uncertainty_ns,
+    })
+}
+
+fn fuse_cycle_features(
+    a: &ExtractedChannel<'_>,
+    b: &ExtractedChannel<'_>,
+    fa: &Features,
+    fb: &Features,
+) -> Result<CycleFeatureFusion, String> {
+    if a.window.cycle_id != b.window.cycle_id
+        || fa.cycle_id != a.window.cycle_id
+        || fb.cycle_id != b.window.cycle_id {
+        return Err("CYCLE_ID_MISMATCH: feature rows are not from the same physical cycle".into());
+    }
+    if a.window.start_ref_ns != b.window.start_ref_ns
+        || a.window.end_ref_ns != b.window.end_ref_ns
+        || fa.window_start_ref_ns != a.window.start_ref_ns
+        || fb.window_start_ref_ns != b.window.start_ref_ns
+        || fa.window_end_ref_ns != a.window.end_ref_ns
+        || fb.window_end_ref_ns != b.window.end_ref_ns {
+        return Err("WINDOW_MISMATCH: cycle-level fusion requires identical half-open window boundaries".into());
+    }
+    if a.reference_clock != b.reference_clock {
+        return Err("INCONCLUSIVE: cycle windows do not map to the same named reference clock".into());
+    }
+    let combined_uncertainty = a.clock_uncertainty_ns.saturating_add(b.clock_uncertainty_ns);
+    if combined_uncertainty > MAX_CLOCK_UNCERTAINTY_NS {
+        return Err("INCONCLUSIVE: combined cycle-window clock uncertainty exceeds 100 us".into());
+    }
+    if a.meta.kind == b.meta.kind || a.meta.sensor_id == b.meta.sensor_id {
+        return Err("PAIR_KIND_INVALID: cycle fusion requires distinct vibration and current channels".into());
+    }
+    if fa.source_sha256 != a.source_sha256
+        || fb.source_sha256 != b.source_sha256
+        || fa.sensor_id != a.meta.sensor_id
+        || fb.sensor_id != b.meta.sensor_id {
+        return Err("FEATURE_PROVENANCE_MISMATCH: feature row does not match its raw channel".into());
+    }
+
+    let (vibration, vibration_features, current, current_features) =
+        match (a.meta.kind, b.meta.kind) {
+            (ChannelKind::Vibration, ChannelKind::Current) => (a, fa, b, fb),
+            (ChannelKind::Current, ChannelKind::Vibration) => (b, fb, a, fa),
+            _ => return Err("PAIR_KIND_INVALID: expected one vibration and one current channel".into()),
+        };
+
+    Ok(CycleFeatureFusion {
+        cycle_id: a.window.cycle_id,
+        window_start_ref_ns: a.window.start_ref_ns,
+        window_end_ref_ns: a.window.end_ref_ns,
+        reference_clock: a.reference_clock.to_string(),
+        combined_clock_uncertainty_ns: combined_uncertainty,
+        vibration_sensor_id: vibration.meta.sensor_id.to_string(),
+        vibration_source_sha256: vibration.source_sha256.to_string(),
+        vibration_rate_hz: vibration.meta.nominal_rate_hz,
+        vibration_observed_samples: vibration_features.observed_samples,
+        vibration_missing_fraction: vibration_features.missing_fraction,
+        vibration_mean: vibration_features.mean,
+        vibration_rms: vibration_features.rms,
+        vibration_peak_to_peak: vibration_features.peak_to_peak,
+        vibration_excess_kurtosis: vibration_features.excess_kurtosis,
+        current_sensor_id: current.meta.sensor_id.to_string(),
+        current_source_sha256: current.source_sha256.to_string(),
+        current_rate_hz: current.meta.nominal_rate_hz,
+        current_observed_samples: current_features.observed_samples,
+        current_missing_fraction: current_features.missing_fraction,
+        current_mean: current_features.mean,
+        current_rms: current_features.rms,
+        current_peak_to_peak: current_features.peak_to_peak,
+        current_excess_kurtosis: current_features.excess_kurtosis,
+        fusion_semantics: "cycle_level_feature_union_no_sample_resampling_or_cross_correlation",
     })
 }
 
@@ -359,7 +461,7 @@ fn emit_csv() -> Result<(), String> {
     let cur_t: Vec<i64> = (0..n_current).map(|i| i as i64 * 10_000_000).collect();
     let vib_x: Vec<f64> = (0..n_vib).map(|i| 2.0 * (std::f64::consts::TAU * 10.0 * i as f64 / 1000.0).sin()).collect();
     let cur_x: Vec<f64> = (0..n_current).map(|i| 5.0 + 0.5 * (std::f64::consts::TAU * 10.0 * i as f64 / 100.0).sin()).collect();
-    let window = Window { start_ref_ns: 0, end_ref_ns: 1_000_000_000 };
+    let window = Window { cycle_id: 42, start_ref_ns: 0, end_ref_ns: 1_000_000_000 };
     let vib_meta = SensorMeta {
         sensor_id: "fixture-vibration-01", kind: ChannelKind::Vibration, unit: "m/s^2",
         nominal_rate_hz: 1000.0, clock_domain: "vib-local", calibration_id: "cal-vib-01",
@@ -406,6 +508,57 @@ fn emit_csv() -> Result<(), String> {
     Ok(())
 }
 
+fn emit_cycle_fusion_csv() -> Result<(), String> {
+    let n_vib = 1000usize;
+    let n_current = 100usize;
+    let vib_t: Vec<i64> = (0..n_vib).map(|i| i as i64 * 1_000_000).collect();
+    let cur_t: Vec<i64> = (0..n_current).map(|i| i as i64 * 10_000_000).collect();
+    let vib_x: Vec<f64> = (0..n_vib).map(|i| 2.0 * (std::f64::consts::TAU * 10.0 * i as f64 / 1000.0).sin()).collect();
+    let cur_x: Vec<f64> = (0..n_current).map(|i| 5.0 + 0.5 * (std::f64::consts::TAU * 10.0 * i as f64 / 100.0).sin()).collect();
+    let window = Window { cycle_id: 42, start_ref_ns: 0, end_ref_ns: 1_000_000_000 };
+    let vib_meta = SensorMeta {
+        sensor_id: "fixture-vibration-01", kind: ChannelKind::Vibration, unit: "m/s^2",
+        nominal_rate_hz: 1000.0, clock_domain: "vib-local", calibration_id: "cal-vib-01",
+        calibration_valid_until_ref_ns: 2_000_000_000,
+        source_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    };
+    let current_meta = SensorMeta {
+        sensor_id: "fixture-current-01", kind: ChannelKind::Current, unit: "A",
+        nominal_rate_hz: 100.0, clock_domain: "current-local", calibration_id: "cal-current-01",
+        calibration_valid_until_ref_ns: 2_000_000_000,
+        source_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    };
+    let vib = extract(RawChannel {
+        meta: vib_meta, timestamps_local_ns: &vib_t, values: &vib_x,
+        clock_map: Some(ClockMap { clock_domain: "vib-local", reference_clock: "cycle-clock",
+            offset_ns: 0, origin_local_ns: 0, drift_ppb: 0, uncertainty_ns: 100 }),
+    }, window)?;
+    let current = extract(RawChannel {
+        meta: current_meta, timestamps_local_ns: &cur_t, values: &cur_x,
+        clock_map: Some(ClockMap { clock_domain: "current-local", reference_clock: "cycle-clock",
+            offset_ns: 0, origin_local_ns: 0, drift_ppb: 0, uncertainty_ns: 100 }),
+    }, window)?;
+    let vf = calculate_features(&vib)?;
+    let cf = calculate_features(&current)?;
+    let fused = fuse_cycle_features(&vib, &current, &vf, &cf)?;
+
+    println!("cycle_id,window_start_ref_ns,window_end_ref_ns,reference_clock,combined_clock_uncertainty_ns,vibration_sensor_id,vibration_source_sha256,vibration_rate_hz,vibration_samples,vibration_missing_fraction,vibration_mean,vibration_rms,vibration_peak_to_peak,vibration_excess_kurtosis,current_sensor_id,current_source_sha256,current_rate_hz,current_samples,current_missing_fraction,current_mean,current_rms,current_peak_to_peak,current_excess_kurtosis,fusion_semantics");
+    println!(
+        "{},{},{},{},{},{},{},{:.6},{},{:.8},{:.12e},{:.12e},{:.12e},{:.12e},{},{},{:.6},{},{:.8},{:.12e},{:.12e},{:.12e},{:.12e},{}",
+        fused.cycle_id, fused.window_start_ref_ns, fused.window_end_ref_ns,
+        fused.reference_clock, fused.combined_clock_uncertainty_ns,
+        fused.vibration_sensor_id, fused.vibration_source_sha256, fused.vibration_rate_hz,
+        fused.vibration_observed_samples, fused.vibration_missing_fraction,
+        fused.vibration_mean, fused.vibration_rms, fused.vibration_peak_to_peak,
+        fused.vibration_excess_kurtosis,
+        fused.current_sensor_id, fused.current_source_sha256, fused.current_rate_hz,
+        fused.current_observed_samples, fused.current_missing_fraction,
+        fused.current_mean, fused.current_rms, fused.current_peak_to_peak,
+        fused.current_excess_kurtosis, fused.fusion_semantics
+    );
+    Ok(())
+}
+
 fn verify() -> Result<(), String> {
     let n = 1000usize;
     let timestamps: Vec<i64> = (0..n).map(|i| i as i64 * 1_000_000).collect();
@@ -418,7 +571,7 @@ fn verify() -> Result<(), String> {
     };
     let map = ClockMap { clock_domain: "local", reference_clock: "ref", offset_ns: 0,
         origin_local_ns: 0, drift_ppb: 0, uncertainty_ns: 50 };
-    let window = Window { start_ref_ns: 0, end_ref_ns: 1_000_000_000 };
+    let window = Window { cycle_id: 42, start_ref_ns: 0, end_ref_ns: 1_000_000_000 };
     let extracted = extract(RawChannel { meta, timestamps_local_ns: &timestamps, values: &values, clock_map: Some(map) }, window)?;
     let f = calculate_features(&extracted)?;
     if f.observed_samples != 1000 || f.expected_samples != 1000 || f.missing_samples != 0 {
@@ -441,7 +594,8 @@ fn main() {
         [] => verify().map(|()| println!("MACH_TELEMETRY_OK: known-answer signal features and clock admission")),
         [a] if a == "--verify" => verify().map(|()| println!("MACH_TELEMETRY_OK: known-answer signal features and clock admission")),
         [a] if a == "--csv" => emit_csv(),
-        [a] if a == "--help" || a == "-h" => { println!("Usage: telemetry-reference [--verify|--csv|--help]"); Ok(()) },
+        [a] if a == "--cycle-fusion" => emit_cycle_fusion_csv(),
+        [a] if a == "--help" || a == "-h" => { println!("Usage: telemetry-reference [--verify|--csv|--cycle-fusion|--help]"); Ok(()) },
         _ => Err("expected --verify, --csv or --help".into())
     };
     if let Err(e) = result { eprintln!("MACH_TELEMETRY_ERROR: {e}"); std::process::exit(1); }
@@ -470,7 +624,7 @@ mod tests {
     fn missing_sample_is_reported_not_imputed() {
         let t:Vec<i64>=(0..1000).filter(|i|*i!=300).map(|i|i as i64*1_000_000).collect();
         let x:Vec<f64>=(0..1000).filter(|i|*i!=300).map(|i|2.0*(std::f64::consts::TAU*10.0*i as f64/1000.0).sin()).collect();
-        let result=extract(fixture(&t,&x),Window{start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
+        let result=extract(fixture(&t,&x),Window{cycle_id:42,start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
         let f=calculate_features(&result).unwrap();
         assert_eq!(f.observed_samples,999);
         assert_eq!(f.missing_samples,1);
@@ -481,14 +635,14 @@ mod tests {
     fn non_monotone_timestamps_reject() {
         let t=[0,1_000_000,900_000,3_000_000];
         let x=[1.0,2.0,3.0,4.0];
-        assert!(extract(fixture(&t,&x),Window{start_ref_ns:0,end_ref_ns:4_000_000}).is_err());
+        assert!(extract(fixture(&t,&x),Window{cycle_id:42,start_ref_ns:0,end_ref_ns:4_000_000}).is_err());
     }
 
     #[test]
     fn excessive_jitter_rejects() {
         let t=[0,1_300_000,2_000_000,3_000_000];
         let x=[1.0,2.0,3.0,4.0];
-        let err=extract(fixture(&t,&x),Window{start_ref_ns:0,end_ref_ns:4_000_000}).unwrap_err();
+        let err=extract(fixture(&t,&x),Window{cycle_id:42,start_ref_ns:0,end_ref_ns:4_000_000}).unwrap_err();
         assert!(err.contains("TIMESTAMP_JITTER_EXCESSIVE"));
     }
 
@@ -498,7 +652,7 @@ mod tests {
         let x=[1.0,2.0,3.0];
         let mut r=fixture(&t,&x);
         r.clock_map=None;
-        assert!(extract(r,Window{start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("INCONCLUSIVE"));
+        assert!(extract(r,Window{cycle_id:42,start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("INCONCLUSIVE"));
     }
 
     #[test]
@@ -507,10 +661,10 @@ mod tests {
         let x=[1.0,2.0,3.0];
         let mut r=fixture(&t,&x);
         r.meta.calibration_valid_until_ref_ns=1_000_000;
-        assert!(extract(r,Window{start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("CALIBRATION_STALE"));
+        assert!(extract(r,Window{cycle_id:42,start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("CALIBRATION_STALE"));
         let mut r=fixture(&t,&x);
         r.meta.unit="g";
-        assert!(extract(r,Window{start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("UNIT_INVALID"));
+        assert!(extract(r,Window{cycle_id:42,start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("UNIT_INVALID"));
     }
 
     #[test]
@@ -518,11 +672,11 @@ mod tests {
         let t=[0,1_000_000,2_000_000];
         let x=[1.0,f64::NAN,3.0];
         let mut r=fixture(&t,&x);
-        assert!(extract(r,Window{start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("SAMPLE_INVALID"));
+        assert!(extract(r,Window{cycle_id:42,start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("SAMPLE_INVALID"));
         let valid=[1.0,2.0,3.0];
         r=fixture(&t,&valid);
         r.meta.source_sha256="not-a-digest";
-        assert!(extract(r,Window{start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("SOURCE_DIGEST_INVALID"));
+        assert!(extract(r,Window{cycle_id:42,start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("SOURCE_DIGEST_INVALID"));
     }
 
     #[test]
@@ -537,8 +691,8 @@ mod tests {
         let b_meta=SensorMeta {sensor_id:"vibration",kind:ChannelKind::Vibration,unit:"m/s^2",nominal_rate_hz:1000.0,
             clock_domain:"v",calibration_id:"vv",calibration_valid_until_ref_ns:2_000_000_000,
             source_sha256:"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
-        let a=extract(RawChannel{meta:a_meta,timestamps_local_ns:&ta,values:&xa,clock_map:Some(ClockMap{clock_domain:"c",reference_clock:"ref",offset_ns:0,origin_local_ns:0,drift_ppb:0,uncertainty_ns:50})},Window{start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
-        let b=extract(RawChannel{meta:b_meta,timestamps_local_ns:&tb,values:&xb,clock_map:Some(ClockMap{clock_domain:"v",reference_clock:"ref",offset_ns:0,origin_local_ns:0,drift_ppb:0,uncertainty_ns:50})},Window{start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
+        let a=extract(RawChannel{meta:a_meta,timestamps_local_ns:&ta,values:&xa,clock_map:Some(ClockMap{clock_domain:"c",reference_clock:"ref",offset_ns:0,origin_local_ns:0,drift_ppb:0,uncertainty_ns:50})},Window{cycle_id:42,start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
+        let b=extract(RawChannel{meta:b_meta,timestamps_local_ns:&tb,values:&xb,clock_map:Some(ClockMap{clock_domain:"v",reference_clock:"ref",offset_ns:0,origin_local_ns:0,drift_ppb:0,uncertainty_ns:50})},Window{cycle_id:42,start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
         assert_eq!(a.reference_clock, b.reference_clock);
         let err=paired_exact_rate_pearson(&a,&b).unwrap_err();
         assert!(err.contains("multi-rate pairing requires a pinned anti-alias"));
@@ -550,10 +704,64 @@ mod tests {
         let b_same_meta=SensorMeta {sensor_id:"vibration-same-rate",kind:ChannelKind::Vibration,unit:"m/s^2",nominal_rate_hz:100.0,
             clock_domain:"v",calibration_id:"vv",calibration_valid_until_ref_ns:2_000_000_000,
             source_sha256:"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
-        let b_same=extract(RawChannel{meta:b_same_meta,timestamps_local_ns:&ta,values:&v_same,clock_map:Some(ClockMap{clock_domain:"v",reference_clock:"ref",offset_ns:0,origin_local_ns:0,drift_ppb:0,uncertainty_ns:50})},Window{start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
+        let b_same=extract(RawChannel{meta:b_same_meta,timestamps_local_ns:&ta,values:&v_same,clock_map:Some(ClockMap{clock_domain:"v",reference_clock:"ref",offset_ns:0,origin_local_ns:0,drift_ppb:0,uncertainty_ns:50})},Window{cycle_id:42,start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
         let p=paired_exact_rate_pearson(&a,&b_same).unwrap();
         assert_eq!(p.pair_count,100);
         assert!(p.pearson_r>0.99);
+    }
+
+    #[test]
+    fn cycle_level_feature_fusion_preserves_native_multirate_channels() {
+        let ta: Vec<i64> = (0..100).map(|i| i * 10_000_000).collect();
+        let tb: Vec<i64> = (0..1000).map(|i| i * 1_000_000).collect();
+        let xa: Vec<f64> = (0..100).map(|i| 5.0 + (std::f64::consts::TAU * 10.0 * i as f64 / 100.0).sin()).collect();
+        let xb: Vec<f64> = (0..1000).map(|i| 2.0 * (std::f64::consts::TAU * 10.0 * i as f64 / 1000.0).sin()).collect();
+        let current_meta = SensorMeta {
+            sensor_id: "current", kind: ChannelKind::Current, unit: "A", nominal_rate_hz: 100.0,
+            clock_domain: "current-clock", calibration_id: "current-cal",
+            calibration_valid_until_ref_ns: 2_000_000_000,
+            source_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        };
+        let vibration_meta = SensorMeta {
+            sensor_id: "vibration", kind: ChannelKind::Vibration, unit: "m/s^2", nominal_rate_hz: 1000.0,
+            clock_domain: "vibration-clock", calibration_id: "vibration-cal",
+            calibration_valid_until_ref_ns: 2_000_000_000,
+            source_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        };
+        let window = Window { cycle_id: 88, start_ref_ns: 0, end_ref_ns: 1_000_000_000 };
+        let current = extract(RawChannel {
+            meta: current_meta, timestamps_local_ns: &ta, values: &xa,
+            clock_map: Some(ClockMap { clock_domain: "current-clock", reference_clock: "cycle-clock",
+                offset_ns: 0, origin_local_ns: 0, drift_ppb: 0, uncertainty_ns: 50 }),
+        }, window).unwrap();
+        let vibration = extract(RawChannel {
+            meta: vibration_meta, timestamps_local_ns: &tb, values: &xb,
+            clock_map: Some(ClockMap { clock_domain: "vibration-clock", reference_clock: "cycle-clock",
+                offset_ns: 0, origin_local_ns: 0, drift_ppb: 0, uncertainty_ns: 50 }),
+        }, window).unwrap();
+        let current_features = calculate_features(&current).unwrap();
+        let vibration_features = calculate_features(&vibration).unwrap();
+        let fused = fuse_cycle_features(&current, &vibration, &current_features, &vibration_features).unwrap();
+
+        assert_eq!(fused.cycle_id, 88);
+        assert_eq!(fused.vibration_rate_hz, 1000.0);
+        assert_eq!(fused.current_rate_hz, 100.0);
+        assert_eq!(fused.vibration_observed_samples, 1000);
+        assert_eq!(fused.current_observed_samples, 100);
+        assert_eq!(fused.combined_clock_uncertainty_ns, 100);
+        assert!(fused.vibration_rms > fused.current_rms);
+        assert_eq!(fused.fusion_semantics,
+            "cycle_level_feature_union_no_sample_resampling_or_cross_correlation");
+
+        let wrong_window = Window { cycle_id: 89, ..window };
+        let wrong_current = extract(RawChannel {
+            meta: current_meta, timestamps_local_ns: &ta, values: &xa,
+            clock_map: Some(ClockMap { clock_domain: "current-clock", reference_clock: "cycle-clock",
+                offset_ns: 0, origin_local_ns: 0, drift_ppb: 0, uncertainty_ns: 50 }),
+        }, wrong_window).unwrap();
+        let wrong_features = calculate_features(&wrong_current).unwrap();
+        assert!(fuse_cycle_features(&wrong_current, &vibration, &wrong_features, &vibration_features)
+            .unwrap_err().contains("CYCLE_ID_MISMATCH"));
     }
 
     #[test]
