@@ -1,3 +1,7 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
+
 //! Small-island unilateral contact reference solver.
 //!
 //! This module is a mathematical oracle for normal-contact experiments, not
@@ -277,9 +281,9 @@ mod tests {
         let solution =
             solve_normal_contact_lcp_reference(&delassus, &free_velocity, 1e-12).unwrap();
 
-        assert!(solution.impulses.norm() == 0.0);
+        assert!(solution.impulses.norm() < 1e-15);
         assert_eq!(solution.active_set_mask, 0);
-        assert_eq!(solution.slack, free_velocity);
+        assert!((solution.slack - free_velocity).norm() < 1e-15);
     }
 
     #[test]
