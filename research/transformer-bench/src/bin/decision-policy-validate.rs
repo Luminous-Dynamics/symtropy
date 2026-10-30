@@ -72,7 +72,7 @@ fn run() -> Result<(), String> {
         "decision policy {} revision {}: status={} actions={} outcomes={} cells={} blockers={}",
         report.policy_id, report.revision, report.status, report.action_count,
         report.outcome_count, report.cell_count,
-        if report.blockers.is_empty() { "NONE" } else { &report.blockers.join(";") }
+        if report.blockers.is_empty() { "NONE".to_string() } else { report.blockers.join(";") }
     );
     Ok(())
 }
