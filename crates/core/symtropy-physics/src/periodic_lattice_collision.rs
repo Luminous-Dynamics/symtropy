@@ -73,8 +73,7 @@ impl From<PeriodicLatticeError> for PeriodicLatticeCollisionError {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PeriodicLatticeCollisionStatus {
-    /// Every conservative image candidate was definitively separated or
-    /// rejected by the Euclidean AABB/GJK narrow phase.
+    /// Every conservative image candidate was definitively separated by GJK.
     Separated,
     /// At least one lattice image produced a definitive GJK intersection.
     Intersecting,
@@ -328,7 +327,7 @@ mod tests {
         PeriodicLatticeCollisionStatus, query_triclinic_convex,
         sphere_sphere_ccd_triclinic_all,
     };
-    use crate::ccd;
+    use crate::{ccd, gjk};
     use nalgebra::{SMatrix, SVector};
     use symtropy_math::{LatticeOffset, PeriodicLattice, Point, Sphere, Transform};
 
@@ -396,6 +395,92 @@ mod tests {
         assert!(result.unresolved_offsets.is_empty());
         assert_eq!(result.image_candidates, 0);
         assert_eq!(result.gjk_calls, 0);
+    }
+
+    #[test]
+    fn randomized_triclinic_convex_image_hits_match_direct_gjk_oracle() {
+        let lattice = skewed_lattice();
+        let mut seed = 0x474a_4b54_5249_434c_u64;
+        let mut next = || {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            seed >> 11
+        };
+        let mut range = |low: f64, high: f64| {
+            low + (high - low) * (next() as f64 / ((1_u64 << 53) as f64))
+        };
+
+        for case in 0..160 {
+            let position_a = SVector::from([range(-12.0, 12.0), range(-12.0, 12.0)]);
+            let position_b = SVector::from([range(-12.0, 12.0), range(-12.0, 12.0)]);
+            let radius_a = range(0.15, 1.0);
+            let radius_b = range(0.15, 1.0);
+            let shape_a = sphere(radius_a);
+            let shape_b = sphere(radius_b);
+            let transform_a = Transform::from_translation(Point(position_a));
+            let transform_b = Transform::from_translation(Point(position_b));
+
+            let actual = query_triclinic_convex(
+                &lattice,
+                &shape_a,
+                &transform_a,
+                &shape_b,
+                &transform_b,
+                1_024,
+            )
+            .unwrap_or_else(|error| panic!("periodic GJK query failed in case {case}: {error}"));
+            let actual_hits = actual
+                .hits
+                .iter()
+                .map(|hit| hit.image_offset.periods)
+                .collect::<std::collections::BTreeSet<_>>();
+            let actual_unresolved = actual
+                .unresolved_offsets
+                .iter()
+                .map(|offset| offset.periods)
+                .collect::<std::collections::BTreeSet<_>>();
+
+            let mut oracle_hits = std::collections::BTreeSet::new();
+            let mut oracle_unresolved = std::collections::BTreeSet::new();
+            for first in -10_i64..=10 {
+                for second in -10_i64..=10 {
+                    let offset = LatticeOffset::new([first, second]);
+                    let shift = lattice.offset_vector(offset).unwrap();
+                    let mut image_transform_b = transform_b.clone();
+                    image_transform_b.translation.0 += shift;
+                    let result = gjk::intersects_transformed(
+                        &shape_a,
+                        &transform_a,
+                        &shape_b,
+                        &image_transform_b,
+                    );
+                    if result.intersecting {
+                        oracle_hits.insert([first, second]);
+                    } else if result.iterations >= 64 {
+                        oracle_unresolved.insert([first, second]);
+                    }
+                }
+            }
+
+            assert_eq!(actual_hits, oracle_hits, "GJK hit image mismatch in case {case}");
+            assert_eq!(
+                actual_unresolved,
+                oracle_unresolved,
+                "GJK unresolved image mismatch in case {case}"
+            );
+            assert_eq!(
+                actual.status(),
+                if !oracle_hits.is_empty() {
+                    PeriodicLatticeCollisionStatus::Intersecting
+                } else if !oracle_unresolved.is_empty() {
+                    PeriodicLatticeCollisionStatus::Indeterminate
+                } else {
+                    PeriodicLatticeCollisionStatus::Separated
+                },
+                "GJK aggregate status mismatch in case {case}"
+            );
+        }
     }
 
     #[test]
