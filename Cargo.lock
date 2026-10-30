@@ -9388,6 +9388,7 @@ dependencies = [
  "async-trait",
  "bevy",
  "nalgebra 0.34.2",
+ "ring",
  "serde",
  "sha2",
  "symtropy-consciousness-physics",
