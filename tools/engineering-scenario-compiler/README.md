@@ -21,6 +21,7 @@ Exit codes: 0 = PlanReady, 2 = Invalid, 3 = Blocked, 4 = Unsupported, 64 = usage
 - The parser and parser implementation are both pinned: toml_edit 0.23.10+spec-1.0.0 and toml_parser 1.0.5+spec-1.0.0. A TOML 1.1-only escape negative control is rejected, and the parser profile is included in semantic identity.
 - Supplied config/mesh bytes are checked against their Git blob SHA-1 object IDs (`blob <length> NUL <bytes>`); separate SHA-256 identities are emitted in a role-sorted artifact manifest. Duplicate roles, oversized bytes and mismatches fail closed.
 - Source SHA-256 is computed over exact input bytes. Semantic IR SHA-256 is computed over a versioned fixed-order Rust structure plus compiler and registry revisions.
+- A separate domain-separated `compilation_subject_sha256` combines exact source SHA-256, semantic IR SHA-256 and the sorted verified-artifact manifest SHA-256. The three constituent identities remain individually visible, so callers can distinguish source provenance, semantic meaning and supplied artifact bytes.
 - A frozen NACA0012 model profile is recognized, but this fixture correctly compiles to BLOCKED: a Git blob object ID is not a SHA-256 digest of the retrieved bytes; exact config/mesh bytes, reference data digests, and an identified solver executable/build are absent.
 
 ## Claim ceiling
