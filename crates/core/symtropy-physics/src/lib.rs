@@ -45,7 +45,7 @@ pub use delassus::{
 };
 pub use diagnostics::{InvariantDrift, InvariantSnapshot, InvariantStepReceipt};
 pub use epa::EpaResult;
-pub use inertia::{BivectorInertia, RotationalInertiaError};
+pub use inertia::{BivectorInertia, MassProperties, RotationalInertiaError};
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
