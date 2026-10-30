@@ -1,0 +1,52 @@
+case_id = "aero.naca0012.inc-rans.re6e6.v1"
+case_revision = 1
+status = "reference-inputs-pinned-upstream-blobs-run-not-yet-qualified"
+parent_issue = "https://github.com/Luminous-Dynamics/symtropy/issues/2960"
+runner_issue = "https://github.com/Luminous-Dynamics/symtropy/issues/2894"
+
+[geometry]
+name = "TMR NACA 0012 sharp trailing edge"
+chord_m = 1.0
+upstream_repository = "https://github.com/su2code/Tutorials"
+upstream_ref = "master"
+upstream_config_path = "incompressible_flow/Inc_Turbulent_NACA0012/turb_naca0012.cfg"
+upstream_config_git_blob_sha = "38d60d0ff09853a9fcf51559c8bd1e56a829ebe7"
+upstream_mesh_path = "incompressible_flow/Inc_Turbulent_NACA0012/n0012_897-257.su2"
+upstream_mesh_git_blob_sha = "dc088bd5a6e9897e60b17da9c744e36b2c719187"
+
+[flow]
+model = "steady 2D incompressible RANS"
+turbulence_model = "Spalart-Allmaras"
+reynolds_number_per_chord = 6000000.0
+density_kg_m3 = 2.13163
+dynamic_viscosity_kg_m_s = 1.853e-5
+mesh_normal_nodes = 897
+mesh_tangential_nodes = 257
+farfield_chords_approx = 500.0
+wall_y_plus_target = 1.0
+wall_condition = "no-slip adiabatic"
+farfield_condition = "far-field"
+convective_scheme = "FDS with MUSCL second order"
+time_integration = "implicit Euler"
+
+[[instances]]
+id = "alpha0"
+angle_of_attack_deg = 0.0
+freestream_velocity_m_s = [52.1572, 0.0, 0.0]
+
+[[instances]]
+id = "alpha10"
+angle_of_attack_deg = 10.0
+freestream_velocity_m_s = [51.36481493540834, 9.0570027322096198, 0.0]
+
+[observables]
+pressure_coefficient = "TMR experimental Cp data at alpha 0 and 10; align surface coordinates"
+skin_friction_coefficient = "CFL3D comparison only; not experimental Cf"
+lift_drag = "Use compatible tripped Re=6e6 force data; do not merge disparate experiments"
+
+[limitations]
+executable_digest = "must be captured per run"
+derived_config_digests = "must be captured per 0 and 10 degree instance"
+reference_data_digests = "must be captured before scoring"
+grid_convergence = "requires >= 3 nested grids from the TMR numerical-analysis family"
+result_status = "not run; no validation result exists"
