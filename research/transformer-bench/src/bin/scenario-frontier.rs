@@ -409,14 +409,17 @@ mod tests {
         let path = env::temp_dir().join("transformer-scenario-frontier-test.csv");
         let path = path.to_string_lossy().into_owned();
         let header = HEADER.join(",");
-        let a1 = "A,P,ZAR,normal,0.5,ZAR,2026,REAL,CB,1,1,1,1,1,1";
-        let _ = a1;
-        // Keep exact column order in the parser fixture.
         let row_a = "A,P,normal,0.5,ZAR,2026,REAL,CB,1,1,1,1,1,1";
         let row_b = "B,P,normal,0.4,ZAR,2026,REAL,CB,2,2,2,2,2,2";
         let row_c = "B,P,stress,0.6,ZAR,2026,REAL,CB,2,2,2,2,2,2";
         fs::write(&path, format!("{header}\n{row_a}\n{row_b}\n{row_c}\n")).unwrap();
         assert!(read_candidates(&path).unwrap_err().contains("scenario weight differs"));
+
+        let row_a = "A,P,normal,0.5,ZAR,2026,REAL,CB,1,1,1,1,1,1";
+        let row_b = "B,P,normal,0.5,ZAR,2026,REAL,CB,2,2,2,2,2,2";
+        let row_c = "B,P,stress,0.5,ZAR,2026,REAL,CB,2,2,2,2,2,2";
+        fs::write(&path, format!("{header}\n{row_a}\n{row_b}\n{row_c}\n")).unwrap();
+        assert!(read_candidates(&path).unwrap_err().contains("scenario set differs"));
         let _ = fs::remove_file(path);
     }
 }
