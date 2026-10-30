@@ -136,8 +136,7 @@ pub fn verify_command_evidence_receipt(
         });
     }
 
-    let rebuilt =
-        create_command_evidence_receipt(context.clone(), expected, events)?;
+    let rebuilt = create_command_evidence_receipt(context.clone(), expected, events)?;
     if &rebuilt != receipt {
         return Err(CommandEvidenceReceiptError::ReceiptMismatch);
     }
@@ -467,8 +466,7 @@ mod tests {
 
         let mut changed_context = context();
         changed_context.policy_digest = "sha256:different-policy".into();
-        let changed =
-            create_command_evidence_receipt(changed_context, &expected, &events).unwrap();
+        let changed = create_command_evidence_receipt(changed_context, &expected, &events).unwrap();
 
         assert_ne!(original.context_digest, changed.context_digest);
         assert_ne!(original.receipt_digest, changed.receipt_digest);
@@ -499,8 +497,7 @@ mod tests {
         let identity = identity(11);
         let expected = [identity.clone()];
         let events = trace(&identity, 10);
-        let mut receipt =
-            create_command_evidence_receipt(context(), &expected, &events).unwrap();
+        let mut receipt = create_command_evidence_receipt(context(), &expected, &events).unwrap();
         receipt.schema_version = 99;
 
         assert_eq!(
