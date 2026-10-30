@@ -114,12 +114,20 @@ fn component_is_resolvable(coordinate: f64, displacement: f64) -> bool {
 pub struct MinimumImage<const D: usize> {
     pub displacement: SVector<f64, D>,
     /// The selected image translation is subtracted from the input displacement.
+    /// When the nearest image is numerically ambiguous, this is a deterministic
+    /// representative; inspect the ambiguous-image list before treating it as unique.
     pub image_offset: LatticeOffset<D>,
+    /// Other images whose computed distance intervals overlap the best candidate
+    /// upper bound. A non-empty set means the nearest image is not unique at the
+    /// declared floating-point precision.
+    pub ambiguous_image_offsets: Vec<LatticeOffset<D>>,
     pub candidates_evaluated: usize,
     /// Residual-based upper bound on ||I - inverse_basis * basis||_F.
     pub inverse_residual_upper_bound: f64,
     /// Conservative roundoff allowance for the selected Cartesian distance.
     pub nearest_distance_error_bound: f64,
+    /// Minimum upper bound among all evaluated candidate-distance intervals.
+    pub best_candidate_distance_upper_bound: f64,
     /// Conservative numerical lower bound for every image outside the searched cube.
     pub unsearched_distance_lower_bound: f64,
 }
@@ -430,9 +438,11 @@ impl<const D: usize> PeriodicLattice<D> {
             return Ok(MinimumImage {
                 displacement: *displacement,
                 image_offset: LatticeOffset::zero(),
+                ambiguous_image_offsets: Vec::new(),
                 candidates_evaluated: 0,
                 inverse_residual_upper_bound: self.inverse_residual_upper_bound,
                 nearest_distance_error_bound: 0.0,
+                best_candidate_distance_upper_bound: displacement.norm(),
                 unsearched_distance_lower_bound: f64::INFINITY,
             });
         }
@@ -468,6 +478,8 @@ impl<const D: usize> PeriodicLattice<D> {
 
         let mut best_distance = f64::INFINITY;
         let mut best_distance_error_bound = f64::INFINITY;
+        let mut best_candidate_distance_upper_bound = f64::INFINITY;
+        let mut plausible_image_offsets = Vec::<(LatticeOffset<D>, f64)>::new();
         let mut best_alignment = f64::NEG_INFINITY;
         let mut best_displacement = *displacement;
         let mut best_offset = LatticeOffset::zero();
@@ -553,6 +565,46 @@ impl<const D: usize> PeriodicLattice<D> {
                                 });
                                 return;
                             }
+                            let candidate_distance_upper_bound =
+                                distance + distance_error_bound;
+                            let candidate_distance_lower_bound =
+                                (distance - distance_error_bound).max(0.0);
+                            if !candidate_distance_upper_bound.is_finite()
+                                || !candidate_distance_lower_bound.is_finite()
+                            {
+                                visit_error = Some(PeriodicLatticeError::NumericRange {
+                                    field: "minimum-image distance interval",
+                                });
+                                return;
+                            }
+
+                            // Preserve every image whose error interval can
+                            // still contain the true minimum. This exposes
+                            // Voronoi-boundary ties and near-ties instead of
+                            // silently pretending the representative is unique.
+                            if candidate_distance_upper_bound
+                                < best_candidate_distance_upper_bound
+                            {
+                                best_candidate_distance_upper_bound =
+                                    candidate_distance_upper_bound;
+                                let plausible_margin = DISTANCE_TIE_EPSILON_MULTIPLIER
+                                    * f64::EPSILON
+                                    * best_candidate_distance_upper_bound.max(1.0);
+                                plausible_image_offsets.retain(|(_, lower)| {
+                                    *lower <= best_candidate_distance_upper_bound
+                                        + plausible_margin
+                                });
+                            }
+                            let plausible_margin = DISTANCE_TIE_EPSILON_MULTIPLIER
+                                * f64::EPSILON
+                                * best_candidate_distance_upper_bound.max(1.0);
+                            if candidate_distance_lower_bound
+                                <= best_candidate_distance_upper_bound + plausible_margin
+                            {
+                                plausible_image_offsets
+                                    .push((candidate_offset, candidate_distance_lower_bound));
+                            }
+
                             let alignment_tolerance = DISTANCE_TIE_EPSILON_MULTIPLIER
                                 * f64::EPSILON
                                 * alignment.abs().max(best_alignment.abs()).max(1.0);
@@ -598,16 +650,27 @@ impl<const D: usize> PeriodicLattice<D> {
             }
             let margin = DISTANCE_TIE_EPSILON_MULTIPLIER
                 * f64::EPSILON
-                * lower_bound.max(best_distance).max(1.0);
-            let selected_distance_upper_bound =
-                best_distance + best_distance_error_bound + margin;
-            if lower_bound > selected_distance_upper_bound {
+                * lower_bound
+                    .max(best_candidate_distance_upper_bound)
+                    .max(1.0);
+            if lower_bound > best_candidate_distance_upper_bound + margin {
+                let mut ambiguous_image_offsets: Vec<_> = plausible_image_offsets
+                    .into_iter()
+                    .map(|(offset, _)| offset)
+                    .filter(|offset| *offset != best_offset)
+                    .collect();
+                ambiguous_image_offsets.sort_by(|left, right| {
+                    left.periods.cmp(&right.periods)
+                });
+                ambiguous_image_offsets.dedup();
                 return Ok(MinimumImage {
                     displacement: best_displacement,
                     image_offset: best_offset,
+                    ambiguous_image_offsets,
                     candidates_evaluated,
                     inverse_residual_upper_bound: self.inverse_residual_upper_bound,
                     nearest_distance_error_bound: best_distance_error_bound,
+                    best_candidate_distance_upper_bound,
                     unsearched_distance_lower_bound: lower_bound,
                 });
             }
