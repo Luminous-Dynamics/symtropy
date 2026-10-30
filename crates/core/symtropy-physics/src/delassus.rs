@@ -280,9 +280,6 @@ pub fn solve_frictionless_lcp(
         if residual.iter().any(|value| *value < -velocity_tolerance) {
             continue;
         }
-        let max_velocity_violation= impulses
-            .iter()
-            .fold(0.0_f64, |maximum, value| maximum.max((-*value).max(0.0)));
         let max_velocity_violation = residual
             .iter()
             .fold(0.0_f64, |maximum, value| maximum.max((-*value).max(0.0)));
