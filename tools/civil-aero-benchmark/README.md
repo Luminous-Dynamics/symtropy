@@ -208,6 +208,10 @@ The ledger requires a fixed budget cap for every policy on the same task/replica
 The committed ledger is synthetic. It charges a nonconverged high-fidelity run to the random baseline and demonstrates bookkeeping only. The CSV's cost units need a documented mapping to actual solver calls, compute, tuning, orchestration and independent-audit effort before a real ShapeBench or CFD comparison. The output label is ledger_audit_only, not aerodynamic validation or an optimizer win.
 
 
+## Civil-aerospace benchmark roadmap
+
+See [AERO_CIVIL_BENCHMARK_ROADMAP_V0_1.md](AERO_CIVIL_BENCHMARK_ROADMAP_V0_1.md) for the evidence-first validation ladder, industry baseline plan, matched-budget optimizer comparisons and proposed acceptance targets.
+
 ## DPW-8/AePW-4 Force/Moment V5 dual-view ingestion
 
 The clean-room V5 parser is in src/dpw8_submission.rs, with CLI dpw8_v5_audit. It preserves dataset/zone auxiliary metadata and source line numbers, requires the 31-column Force/Moment V5 schema, converts optional -999 values to missing values, and rejects the sentinel in required fields. It reconciles the GRID LEVEL n and ALPHA x table views by (GRID_LEVEL, ALPHA), rejects duplicate or mismatched cells, and retains both original line references.
