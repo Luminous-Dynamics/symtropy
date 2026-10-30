@@ -1,0 +1,46 @@
+name: Engineering Scenario Compiler
+
+on:
+  pull_request:
+    paths:
+      - "tools/engineering-scenario-compiler/**"
+      - "benchmarks/aero/naca0012-inc-rans/case.toml"
+      - ".github/workflows/engineering-scenario-compiler.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/engineering-scenario-compiler/**"
+      - "benchmarks/aero/naca0012-inc-rans/case.toml"
+      - ".github/workflows/engineering-scenario-compiler.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engineering-scenario-compiler-\${{ github.workflow }}-\${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compiler:
+    name: Strict offline compiler (Rust 1.96.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Format standalone compiler
+        run: cargo fmt --manifest-path tools/engineering-scenario-compiler/Cargo.toml -- --check
+
+      - name: Resolve and freeze standalone dependency graph
+        run: cargo generate-lockfile --manifest-path tools/engineering-scenario-compiler/Cargo.toml
+
+      - name: Test strict compiler and negative corpus
+        run: cargo test --manifest-path tools/engineering-scenario-compiler/Cargo.toml --locked
+
+      - name: Clippy standalone compiler
+        run: cargo clippy --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all-targets --locked -- -D warnings
