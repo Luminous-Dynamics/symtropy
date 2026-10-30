@@ -130,6 +130,14 @@ A receipt is not a certificate unless the input observation boundary and every w
 
 Industry comparisons should begin with 3D equivalents and the same material/solver settings wherever mappable. The 4D results are a distinct Symtropy research claim, not a fake cross-engine victory.
 
+### 2.5 In-tree contact load fixtures
+
+The Criterion `physics_bench` target now includes two engine-step workloads:
+- `contact_plane_1000_independent_3d`: 1,000 dynamic spheres in a grid, all contacting one static half-space; independent dynamic contact islands.
+- `contact_stack_100_single_island_3d`: 100 overlapping spheres in one vertical stack; strongly coupled contact island.
+
+Both use the same 1/120 s step, eight solver iterations, and assert the expected contact count and finite post-step state while black-boxing contact count, penetration and mechanical energy. Scene construction is outside the measured iteration. These are in-tree baselines only; results still need to be run on pinned hardware before comparison with other engines.
+
 ### 3. Performance and accuracy reporting
 
 Publish for each fixture:
