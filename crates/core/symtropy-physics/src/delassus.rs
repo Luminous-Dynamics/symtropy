@@ -260,6 +260,9 @@ pub fn solve_frictionless_lcp(
 
         let impulse_scale = impulses.norm().max(f64::MIN_POSITIVE);
         let impulse_tolerance = tolerance * impulse_scale;
+        let max_impulse_violation = impulses
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max((-*value).max(0.0)));
         if impulses.iter().any(|value| *value < -impulse_tolerance) {
             continue;
         }
@@ -277,7 +280,7 @@ pub fn solve_frictionless_lcp(
         if residual.iter().any(|value| *value < -velocity_tolerance) {
             continue;
         }
-        let max_impulse_violation = impulses
+        let max_velocity_violation= impulses
             .iter()
             .fold(0.0_f64, |maximum, value| maximum.max((-*value).max(0.0)));
         let max_velocity_violation = residual
