@@ -21,6 +21,7 @@ pub mod ccd;
 pub mod constraint;
 pub mod contact;
 pub mod diagnostics;
+pub mod discrete_contact;
 pub mod epa;
 pub mod gjk;
 pub mod integrator;
@@ -38,6 +39,10 @@ pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
+pub use discrete_contact::{
+    ContactLcpError, ContactLcpKktResidual, ContactLcpSolution,
+    contact_lcp_kkt_residual, solve_normal_contact_lcp_reference, validate_delassus,
+};
 pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
