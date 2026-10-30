@@ -510,6 +510,54 @@ mod tests {
     }
 
     #[test]
+    fn assembler_propagates_singular_rotational_plane_error() {
+        use nalgebra::SMatrix;
+        use crate::inertia::RotationalInertiaError;
+
+        let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        body_a.set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(
+                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
+            )
+            .unwrap(),
+        );
+        let body_b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let bodies = vec![body_a, body_b];
+        let rows = vec![FrictionlessContactRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a: SVector::new(0.0, 0.0, 1.0),
+            offset_b: SVector::zeros(),
+            normal: SVector::new(0.0, 1.0, 0.0),
+        }];
+
+        assert_eq!(
+            assemble_delassus(&bodies, &rows, 1e-12).unwrap_err(),
+            DelassusAssemblyError::RotationalInertia(RotationalInertiaError::SingularInertia)
+        );
+    }
+
+    #[test]
+    fn assembler_enforces_eight_row_reference_limit() {
+        let bodies = vec![
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0),
+        ];
+        let row = FrictionlessContactRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::zeros(),
+            normal: SVector::new(1.0, 0.0, 0.0),
+        };
+        let rows = vec![row; 9];
+        assert_eq!(
+            assemble_delassus(&bodies, &rows, 1e-12).unwrap_err(),
+            DelassusAssemblyError::TooManyRows
+        );
+    }
+
+    #[test]
     fn isolated_sphere_contact_has_analytic_delassus_diagonal() {
         let bodies = vec![
             RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 2.0),
