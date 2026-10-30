@@ -672,6 +672,155 @@ mod tests {
         .unwrap()
     }
 
+    #[derive(Clone, Copy, Debug)]
+    struct DoubleDouble {
+        hi: f64,
+        lo: f64,
+    }
+
+    impl DoubleDouble {
+        fn from_f64(value: f64) -> Self {
+            Self { hi: value, lo: 0.0 }
+        }
+
+        fn two_sum(a: f64, b: f64) -> (f64, f64) {
+            let sum = a + b;
+            let b_virtual = sum - a;
+            let error = (a - (sum - b_virtual)) + (b - b_virtual);
+            (sum, error)
+        }
+
+        fn add(self, other: Self) -> Self {
+            let (sum, error) = Self::two_sum(self.hi, other.hi);
+            let low = error + self.lo + other.lo;
+            let (hi, lo) = Self::two_sum(sum, low);
+            Self { hi, lo }
+        }
+
+        fn neg(self) -> Self {
+            Self {
+                hi: -self.hi,
+                lo: -self.lo,
+            }
+        }
+
+        fn sub(self, other: Self) -> Self {
+            self.add(other.neg())
+        }
+
+        fn mul(self, other: Self) -> Self {
+            let product = self.hi * other.hi;
+            let product_error = self.hi.mul_add(other.hi, -product);
+            let cross = self.hi * other.lo + self.lo * other.hi + self.lo * other.lo;
+            let (hi, lo) = Self::two_sum(product, product_error + cross);
+            Self { hi, lo }
+        }
+
+        fn cmp(self, other: Self) -> std::cmp::Ordering {
+            match self.hi.total_cmp(&other.hi) {
+                std::cmp::Ordering::Equal => self.lo.total_cmp(&other.lo),
+                ordering => ordering,
+            }
+        }
+    }
+
+    /// Independent double-double evaluation of ||d - B n||². This oracle
+    /// deliberately avoids nalgebra's f64 matrix-vector multiply and norm
+    /// used by the production candidate evaluator.
+    fn dd_squared_distance<const D: usize>(
+        basis: &SMatrix<f64, D, D>,
+        displacement: &SVector<f64, D>,
+        offset: [i64; D],
+    ) -> DoubleDouble {
+        let mut squared = DoubleDouble::from_f64(0.0);
+        for cartesian_axis in 0..D {
+            let mut translated = DoubleDouble::from_f64(0.0);
+            for lattice_axis in 0..D {
+                let term = DoubleDouble::from_f64(basis[(cartesian_axis, lattice_axis)])
+                    .mul(DoubleDouble::from_f64(offset[lattice_axis] as f64));
+                translated = translated.add(term);
+            }
+            let residual = DoubleDouble::from_f64(displacement[cartesian_axis])
+                .sub(translated);
+            squared = squared.add(residual.mul(residual));
+        }
+        squared
+    }
+
+    fn dd_closest_image<const D: usize>(
+        basis: &SMatrix<f64, D, D>,
+        displacement: &SVector<f64, D>,
+        center: [i64; D],
+        periodic_axes: [bool; D],
+        radius: i64,
+    ) -> ([i64; D], DoubleDouble) {
+        fn visit<const D: usize>(
+            axis: usize,
+            basis: &SMatrix<f64, D, D>,
+            displacement: &SVector<f64, D>,
+            center: &[i64; D],
+            periodic_axes: &[bool; D],
+            radius: i64,
+            current: &mut [i64; D],
+            best: &mut Option<([i64; D], DoubleDouble)>,
+        ) {
+            if axis == D {
+                let distance = dd_squared_distance(basis, displacement, *current);
+                let replace = best
+                    .as_ref()
+                    .is_none_or(|(_, best_distance)| {
+                        distance.cmp(*best_distance) == std::cmp::Ordering::Less
+                    });
+                if replace {
+                    *best = Some((*current, distance));
+                }
+                return;
+            }
+            if !periodic_axes[axis] {
+                current[axis] = 0;
+                visit(
+                    axis + 1,
+                    basis,
+                    displacement,
+                    center,
+                    periodic_axes,
+                    radius,
+                    current,
+                    best,
+                );
+                return;
+            }
+            for value in (center[axis] - radius)..=(center[axis] + radius) {
+                current[axis] = value;
+                visit(
+                    axis + 1,
+                    basis,
+                    displacement,
+                    center,
+                    periodic_axes,
+                    radius,
+                    current,
+                    best,
+                );
+            }
+            current[axis] = 0;
+        }
+
+        let mut current = [0_i64; D];
+        let mut best = None;
+        visit(
+            0,
+            basis,
+            displacement,
+            &center,
+            &periodic_axes,
+            radius,
+            &mut current,
+            &mut best,
+        );
+        best.expect("the independent integer-image oracle visits at least one image")
+    }
+
     #[test]
     fn orthogonal_lattice_matches_periodic_box_wrapping_and_minimum_image() {
         let lattice = orthogonal_lattice();
