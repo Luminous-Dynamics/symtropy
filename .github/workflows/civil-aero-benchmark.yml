@@ -204,9 +204,9 @@ jobs:
           cmp /tmp/aero-evsi-a.txt /tmp/aero-evsi-b.txt
           test "$(wc -l < /tmp/aero-evsi-a.csv)" -eq 5
           grep -q "prior_decision=design_a prior_expected_utility=5.000000 selected_experiment=perfect_information" /tmp/aero-evsi-a.txt
-          grep -q ""two-state-design-choice","perfect_information",1.000000,2.000000,true,"design_a",5.000000000000,10.000000000000,5.000000000000,4.000000000000,2,2,true,caller_supplied_probabilities_not_independently_calibrated" /tmp/aero-evsi-a.csv
-          grep -q ""two-state-design-choice","uninformative",0.250000,2.000000,true,"design_a",5.000000000000,5.000000000000,0.000000000000,-0.250000000000,2,0,false,caller_supplied_probabilities_not_independently_calibrated" /tmp/aero-evsi-a.csv
-          grep -q ""two-state-design-choice","too_expensive",8.000000,2.000000,false,"design_a",5.000000000000,10.000000000000,5.000000000000,-3.000000000000,2,2,false,caller_supplied_probabilities_not_independently_calibrated" /tmp/aero-evsi-a.csv
+          grep -Fq '"two-state-design-choice","perfect_information",1.000000,2.000000,true,"design_a",5.000000000000,10.000000000000,5.000000000000,4.000000000000,2,2,true,caller_supplied_probabilities_not_independently_calibrated' /tmp/aero-evsi-a.csv
+          grep -Fq '"two-state-design-choice","uninformative",0.250000,2.000000,true,"design_a",5.000000000000,5.000000000000,0.000000000000,-0.250000000000,2,0,false,caller_supplied_probabilities_not_independently_calibrated' /tmp/aero-evsi-a.csv
+          grep -Fq '"two-state-design-choice","too_expensive",8.000000,2.000000,false,"design_a",5.000000000000,10.000000000000,5.000000000000,-3.000000000000,2,2,false,caller_supplied_probabilities_not_independently_calibrated' /tmp/aero-evsi-a.csv
           python3 scripts/verify-evsi-independent.py /tmp/aero-evsi-a.csv
           sha256sum /tmp/aero-evsi-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
