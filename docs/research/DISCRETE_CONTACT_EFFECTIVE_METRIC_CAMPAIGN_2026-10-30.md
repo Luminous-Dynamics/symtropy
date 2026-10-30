@@ -93,13 +93,35 @@ Run a step-size and island-size sweep. Publish work-precision curves, not a sing
 
 ## 5. Industry comparison protocol
 
-Pin engine version, scene assets, timestep, collision margins, solver settings, friction/restitution, CCD flags, and machine/OS/compiler in each receipt.
+Pin engine version, scene assets, timestep, collision margins, solver settings, friction/restitution, CCD flags, thread count, machine/OS/compiler, and feature flags in every receipt. Compare matched physical error and equivalent workload—not default settings or raw FPS.
 
-- **MuJoCo:** use a pinned 3.16.x build. Compare the current recommended `implicitfast` baseline and the newer `discrete` integrator separately; the latter is documented as new and under active development. Its 2026 discrete path combines constraints and the implicit velocity update in a shared effective metric. Do not compare it only against Symtropy's current split sequential-impulse path and then claim a general solver victory.
-- **Rapier:** use a pinned 0.35.x build. Record solver iteration counts, internal PGS/stabilization iterations, warm-start settings, contact softness, CCD substeps, and length-unit normalization. The default solver iteration count and demanding-scene recommendations are not equivalent to the same numerical tolerance as Symtropy.
-- **Independent mathematical oracle:** for small islands, use active-set enumeration or a trusted complementarity solver; for free rigid bodies, use high-accuracy ODE integration and conservation invariants. Engines are comparison baselines, not ground truth.
+### Current baselines as of 2026-10-30
 
-Primary score: error and invariant drift versus total compute. Secondary scores: contact stability, robustness/failure rate, determinism/replay fidelity, and engineering cost. A faster result that violates physical constraints is not a win.
+- **MuJoCo 3.17.0 (2026-10-22):** the `discrete` integrator (introduced in 3.13) merges constraints and implicit velocity updates in the shared effective metric \\(\\widehat M=M+hD+h^2K\\). In 3.17 it is also used for flex bending; the 3.14 IPC experiment is frictionless and limited to 2D flexes, with contact multipliers not fully represented by saved state. MuJoCo 3.17 adds `mjbatch`: many simulations of one model share a thread pool, and results are documented as bit-identical to a serial loop at any thread count. Benchmark `implicitfast` and `discrete` separately; include batch throughput and replay fidelity. Do not describe the discrete metric as a Symtropy novelty.
+- **Rapier 0.36.1 (2026-10-10):** the current 2D/3D release includes soft bodies. The Q3 2026 engineering report describes a reworked parallel execution model with intra-island parallelism, persistent graph coloring, and parallel broad phase. Record iteration counts, internal PGS/stabilization iterations, warm starts, CCD policy, and parallelism. The documented 0.36 guide uses four default solver iterations and suggests 8–12 for demanding stacks/machinery; these are engine-specific defaults, not equivalent error tolerances.
+- **PhysX 5.8:** include TGS and PGS separately. NVIDIA documents TGS as its recommended direction, using time substeps and reporting better convergence, high-mass-ratio handling, joint-drive accuracy, and high-frequency response than PGS. Record position/velocity iteration and friction-patch settings.
+- **Newton:** include for GPU and differentiable robotics workloads. It is built on Warp/OpenUSD, developed by NVIDIA, Google DeepMind and Disney Research, and can use MuJoCo Warp. It is not a direct apples-to-apples baseline for a Rust, CPU-first, dimension-generic core; compare on matched robotics/contact workloads where the backend and precision are supported.
+- **Project Chrono 10.0.0 (2026-03-27):** use for engineering/multiphysics comparisons, not game-engine frame-time claims. Relevant capabilities include FSI, peridynamics, checkpointing, and implicit-integrator Jacobian update strategies.
+
+### Comparison methodology
+
+1. **Mathematical oracle:** for 1–8 row islands, use exhaustive active-set enumeration or an independently implemented KKT/LCP reference. For free rigid bodies, use high-accuracy ODE integration and conservation laws. Engines are comparators, not ground truth.
+2. **Matched-quality work curves:** sweep timestep, solver tolerance/iteration budget, island size and scene stiffness. Plot state/contact error, invariant drift and residual against total CPU/GPU time. Report p50/p95 latency, memory and allocation count. A faster run with larger physical error is not a win.
+3. **Reproducibility:** replay identical inputs across 1/2/4/8 threads, repeated process runs, and supported CPU architectures. First require bit-identical replay for a pinned compiler/architecture/thread-count contract; then quantify cross-architecture divergence separately. Do not conflate deterministic quantization with deterministic execution.
+4. **Scaling:** measure both many independent islands and one large coupled island. Report speedup and parallel efficiency as core count rises. This specifically tests whether Symtropy can match Rapier's intra-island scaling rather than only parallelizing disconnected stacks.
+5. **Failure reporting:** invalid/singular inertia, ill-conditioned islands, infeasible constraints, CCD misses, non-finite state and exhausted solve budgets must be explicit outcomes. Do not convert them into zero impulses or silently omit them from aggregate metrics.
+
+### Competitive hypothesis and evidence threshold
+
+The plausible Symtropy differentiation is a *dimension-generic, auditable mechanics core* with an independently checked effective-mass solve, attributable physical-work residuals, and reproducible execution. This is not yet an advantage. A credible win requires at least one of:
+
+- lower physical error at the same compute budget on a frozen target set;
+- lower compute cost at the same error and failure rate;
+- broader verified dimensional coverage without a correctness or stability regression;
+- stronger replay guarantees under the stated execution contract; or
+- a demonstrably better failure envelope on ill-conditioned and adversarial cases.
+
+Before making a general SOTA claim, require a repeatable >=20% win on a named workload family, no statistically material regression on the rest of the matched suite, and complete raw receipts. The threshold is a campaign decision rule, not a statement of current performance.
 
 ## 6. Paradigm shifts worth testing
 
