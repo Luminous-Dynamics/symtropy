@@ -18,6 +18,8 @@ The receipt is intended to travel with every scored trial. Campaign aggregation 
 - Policy, plant/model, and native-controller configuration digests.
 - Trace collector identity and evaluator/canonical-encoding version.
 
+At construction time, the context's native-controller configuration digest must also equal the controller-configuration digest in every expected command identity; a mismatch prevents receipt creation.
+
 The receipt contains the independent auditor summary and five commitments:
 
 - `context_digest`: campaign/scenario/arm/evaluator identity.
