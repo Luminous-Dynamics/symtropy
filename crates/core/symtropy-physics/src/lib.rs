@@ -27,6 +27,7 @@ pub mod island;
 pub mod joints;
 pub mod manifold_gen;
 pub mod periodic_broadphase;
+pub mod periodic_collision;
 pub mod periodic_contact;
 pub mod raycast;
 pub mod replay;
@@ -40,8 +41,14 @@ pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
+pub use gjk::{GjkResult, GjkTermination};
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
+pub use periodic_collision::{
+    PeriodicCollisionError, PeriodicCollisionHit, PeriodicCollisionQuery,
+    PeriodicCollisionStatus, PeriodicSphereCcdHit, query_periodic_convex,
+    sphere_sphere_ccd_periodic, sphere_sphere_ccd_periodic_all,
+};
 pub use periodic_broadphase::{
     PeriodicBroadphaseError, image_offsets_for_aabb_pair, swept_aabb_linear, translate_aabb,
 };
