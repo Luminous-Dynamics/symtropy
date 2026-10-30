@@ -45,3 +45,16 @@ At N=768, Nt=1152 the Rust implementation reports:
 - relative global energy residual: 1.015445146377e-12.
 
 The published Peters et al. (2025) Table 6 reports 1.961e-5 °C and 8.919e-5 m for the same named N/Nt configuration. This independent implementation therefore does **not** yet reproduce the published accuracy (about 37.3× field error and 5.4× interface error). The dedicated internal checks validate the Rust code against its own discretized equations, not the paper's MATLAB implementation. See [CASTING-PHASE-001G #2965](https://github.com/Luminous-Dynamics/symtropy/issues/2965) for the one-step reproduction audit. No superiority claim is made.
+
+
+## Grid-convention audit (separate from the canonical table run)
+
+The paper contains two statements that cannot both be literally true for endpoint-inclusive nodes:
+- Section 4.4 writes N points at x_i=(i−1)D/(N−1).
+- Table 1 says N=48, D=6m, Δx=0.125m, implying Δx=D/N and 48 intervals.
+
+The new `--grid-audit` mode executes both interpretations with the same nominal N and Nt:
+- `table_N_intervals_dx_D_over_N`: N intervals, N+1 endpoint-inclusive gridpoints, dx=D/N (the existing frozen run).
+- `section_4_4_N_endpoint_points_dx_D_over_N_minus_1`: N endpoint-inclusive gridpoints, N−1 intervals, dx=D/(N−1).
+
+The audit emits both error metrics, PDE residual, energy residual and flag-update work. It is diagnostic only and does not change the canonical `--csv` or its golden file. The values should be compared with Table 6, but they do not resolve the separate initial-boundary and printed-matrix sign ambiguities.
