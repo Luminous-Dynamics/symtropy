@@ -139,3 +139,10 @@ This is a byte-integrity gate, not provenance authentication: an unsigned manife
 The `acquisition-bench` scaffold compares seeded random, exploitation, interval-width uncertainty, lower-confidence-bound, expected-improvement, and mixed numeric/categorical diversity policies using the same budget. The current frozen-pool replay reports oracle-relative regret and top-k discovery and exists to test decision-oriented evaluation machinery. It is not yet a closed-loop active-learning system: the surrogate is not retrained and no expensive solver is invoked. See [BUDGETED_VERIFICATION_BENCHMARK.md](BUDGETED_VERIFICATION_BENCHMARK.md) and [PWR-TX-ACQ-001](https://github.com/Luminous-Dynamics/symtropy/issues/2907).
 
 Global comparisons should evaluate each frequency/excitation domain separately, use group-held-out geometry/material/manufacturer/campaign partitions, and include the same simple baselines for every region/dataset. Record local requirements and physical objectives separately. Do not report a universal policy winner based on synthetic fixtures or one region's data.
+
+
+## Uncertainty-aware design frontier
+
+The robust-frontier tool keeps lifecycle cost, no-load/load losses, maximum hotspot temperature, mass and embodied carbon as separate objectives. It requires a common regional profile, currency/price basis and carbon-boundary identifier, then distinguishes nominal midpoint Pareto dominance from conservative interval-certain dominance. Bounds are supplied ranges and are not automatically confidence intervals. Independent interval boxes can be conservative when objectives are correlated; globally comparable future runs should preserve joint scenario vectors for weather, demand, materials and tariffs rather than combine marginal intervals without provenance. See [ROBUST_PARETO_FRONTIER.md](ROBUST_PARETO_FRONTIER.md).
+
+A region-specific profile is not interchangeable with an objective vector. Candidate frontiers must be computed within a comparable profile; hard qualification constraints remain independent gates and cannot be compensated by cheaper cost, lower mass or lower carbon.
