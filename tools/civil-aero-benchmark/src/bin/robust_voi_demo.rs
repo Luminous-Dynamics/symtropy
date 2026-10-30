@@ -1,6 +1,8 @@
 use std::process;
 
-use civil_aero_benchmark::robust_voi::{DecisionModelEnsemble, evaluate_robust_evsi, report_to_csv};
+use civil_aero_benchmark::robust_voi::{
+    DecisionModelEnsemble, evaluate_robust_evsi, report_to_csv,
+};
 use civil_aero_benchmark::voi::{DecisionOption, DecisionProblem, Experiment};
 
 fn member(problem_id: &str, fragile_likelihood: Vec<Vec<f64>>) -> DecisionProblem {
@@ -47,21 +49,18 @@ fn run() -> Result<(), String> {
         ensemble_id: "two-model-ambiguity-set".to_owned(),
         remaining_budget_units: 2.0,
         members: vec![
-            member(
-                "model_perfect",
-                vec![vec![1.0, 0.0], vec![0.0, 1.0]],
-            ),
-            member(
-                "model_blind",
-                vec![vec![0.5, 0.5], vec![0.5, 0.5]],
-            ),
+            member("model_perfect", vec![vec![1.0, 0.0], vec![0.0, 1.0]]),
+            member("model_blind", vec![vec![0.5, 0.5], vec![0.5, 0.5]]),
         ],
     };
     let report = evaluate_robust_evsi(&ensemble)?;
     eprintln!(
         "synthetic_robust_evsi_known_answer_only members={} selected={} criterion=maximin_worst_case_net_evsi",
         report.member_count,
-        report.selected_experiment_id.as_deref().unwrap_or("abstain")
+        report
+            .selected_experiment_id
+            .as_deref()
+            .unwrap_or("abstain")
     );
     print!("{}", report_to_csv(&report));
     Ok(())

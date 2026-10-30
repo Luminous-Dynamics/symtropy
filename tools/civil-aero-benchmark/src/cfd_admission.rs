@@ -6,9 +6,7 @@
 
 use std::collections::HashSet;
 
-use crate::grid_convergence::{
-    GciReport, GciStudy, GridObservation, evaluate_grid_convergence,
-};
+use crate::grid_convergence::{GciReport, GciStudy, GridObservation, evaluate_grid_convergence};
 
 const MIN_HISTORY_SAMPLES: usize = 6;
 
@@ -139,7 +137,10 @@ pub fn evaluate_cfd_evidence_admission(
         || study.source_reference.trim().is_empty()
         || study.spacing_definition.trim().is_empty()
     {
-        return Err("case_id, quantity, source_reference, and spacing_definition must be non-empty".to_owned());
+        return Err(
+            "case_id, quantity, source_reference, and spacing_definition must be non-empty"
+                .to_owned(),
+        );
     }
     study.criteria.validate()?;
     if study.runs.len() < 3 {
@@ -162,7 +163,10 @@ pub fn evaluate_cfd_evidence_admission(
             return Err(format!("grid run {index}: run_id is empty or duplicated"));
         }
         if run.grid_id.trim().is_empty() || !grid_ids.insert(run.grid_id.clone()) {
-            return Err(format!("grid run {}: grid_id is empty or duplicated", run.run_id));
+            return Err(format!(
+                "grid run {}: grid_id is empty or duplicated",
+                run.run_id
+            ));
         }
         if run.grid_level == 0 || !grid_levels.insert(run.grid_level) {
             return Err(format!(
@@ -191,7 +195,10 @@ pub fn evaluate_cfd_evidence_admission(
             ));
         }
         if !run.iterative_converged {
-            return Err(format!("grid run {} is not marked iteratively converged", run.run_id));
+            return Err(format!(
+                "grid run {} is not marked iteratively converged",
+                run.run_id
+            ));
         }
 
         for (name, value) in [
@@ -242,9 +249,7 @@ pub fn evaluate_cfd_evidence_admission(
 
         let quantity_history_drift_absolute = history_drift(&run.quantity_history)
             .map_err(|error| format!("grid run {}: {error}", run.run_id))?;
-        if quantity_history_drift_absolute
-            > study.criteria.quantity_history_drift_absolute_max
-        {
+        if quantity_history_drift_absolute > study.criteria.quantity_history_drift_absolute_max {
             return Err(format!(
                 "grid run {} fails quantity-history stability: drift={quantity_history_drift_absolute}",
                 run.run_id
@@ -458,8 +463,11 @@ mod tests {
                         grid_level: u32::try_from(index + 1).expect("six fixture grids fit u32"),
                         characteristic_spacing: *spacing,
                         mesh_sha256: digest(
-                            char::from_digit(u32::try_from(index + 1).expect("six fixture grids fit u32"), 10)
-                                .expect("grid IDs use base-10 digits"),
+                            char::from_digit(
+                                u32::try_from(index + 1).expect("six fixture grids fit u32"),
+                                10,
+                            )
+                            .expect("grid IDs use base-10 digits"),
                         ),
                         solver_build_sha256: digest('a'),
                         physics_config_sha256: digest('b'),
@@ -481,77 +489,100 @@ mod tests {
     fn admits_six_grid_known_answer_only_under_explicit_criteria() {
         let report = evaluate_cfd_evidence_admission(&study())
             .expect("synthetic numerical evidence meets declared criteria");
-        assert_eq!(report.status, "numerically_admitted_under_declared_criteria_not_experimentally_validated");
+        assert_eq!(
+            report.status,
+            "numerically_admitted_under_declared_criteria_not_experimentally_validated"
+        );
         assert_eq!(report.grid_run_audits.len(), 6);
         assert_eq!(report.gci_report.triplets.len(), 4);
-        assert!(report
-            .gci_report
-            .triplets
-            .iter()
-            .all(|triplet| (triplet.observed_order - 2.0).abs() < 1.0e-10));
+        assert!(
+            report
+                .gci_report
+                .triplets
+                .iter()
+                .all(|triplet| (triplet.observed_order - 2.0).abs() < 1.0e-10)
+        );
     }
 
     #[test]
     fn rejects_solver_config_geometry_or_mesh_identity_changes() {
         let mut changed = study();
         changed.runs[2].physics_config_sha256 = digest('d');
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("mixed physics config rejected")
-            .contains("changes solver build"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("mixed physics config rejected")
+                .contains("changes solver build")
+        );
 
         let mut changed = study();
         changed.runs[2].geometry_sha256 = digest('d');
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("geometry change rejected")
-            .contains("changes solver build"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("geometry change rejected")
+                .contains("changes solver build")
+        );
 
         let mut changed = study();
         changed.runs[2].mesh_sha256 = changed.runs[1].mesh_sha256.clone();
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("mesh digest reused")
-            .contains("reuses a mesh SHA-256"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("mesh digest reused")
+                .contains("reuses a mesh SHA-256")
+        );
     }
 
     #[test]
     fn rejects_unconverged_residual_or_unstable_force_history() {
         let mut changed = study();
         changed.runs[1].iterative_converged = false;
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("unconverged run rejected")
-            .contains("not marked iteratively converged"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("unconverged run rejected")
+                .contains("not marked iteratively converged")
+        );
 
         let mut changed = study();
         changed.runs[1].residual_final = 1.0e-4;
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("residual criteria fail")
-            .contains("fails residual convergence"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("residual criteria fail")
+                .contains("fails residual convergence")
+        );
 
         let mut changed = study();
         changed.runs[1].quantity_history = vec![0.1, 0.1, 0.1, 0.2, 0.2, 0.2];
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("unstable monitor rejected")
-            .contains("quantity-history stability"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("unstable monitor rejected")
+                .contains("quantity-history stability")
+        );
     }
 
     #[test]
     fn rejects_conservation_violations_and_nonmonotonic_grid_order() {
         let mut changed = study();
         changed.runs[2].mass_imbalance_fraction = 1.0e-3;
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("mass defect rejected")
-            .contains("fails mass conservation"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("mass defect rejected")
+                .contains("fails mass conservation")
+        );
 
         let mut changed = study();
         changed.runs[2].energy_imbalance_fraction = 1.0e-3;
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("energy defect rejected")
-            .contains("fails energy conservation"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("energy defect rejected")
+                .contains("fails energy conservation")
+        );
 
         let mut changed = study();
         changed.runs[2].quantity_value = 10.0;
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("oscillatory refinement rejected")
-            .contains("non-monotonic"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("oscillatory refinement rejected")
+                .contains("non-monotonic")
+        );
     }
 
     #[test]

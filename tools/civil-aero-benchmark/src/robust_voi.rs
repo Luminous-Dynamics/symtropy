@@ -41,18 +41,14 @@ pub struct RobustEvsiReport {
     pub experiments: Vec<RobustExperimentValue>,
 }
 
-pub fn evaluate_robust_evsi(
-    ensemble: &DecisionModelEnsemble,
-) -> Result<RobustEvsiReport, String> {
+pub fn evaluate_robust_evsi(ensemble: &DecisionModelEnsemble) -> Result<RobustEvsiReport, String> {
     if ensemble.ensemble_id.trim().is_empty() {
         return Err("ensemble_id must not be empty".to_owned());
     }
     if ensemble.members.is_empty() {
         return Err("finite ambiguity set must contain at least one member".to_owned());
     }
-    if !ensemble.remaining_budget_units.is_finite()
-        || ensemble.remaining_budget_units < 0.0
-    {
+    if !ensemble.remaining_budget_units.is_finite() || ensemble.remaining_budget_units < 0.0 {
         return Err("remaining budget must be finite and non-negative".to_owned());
     }
 
@@ -133,9 +129,7 @@ pub fn evaluate_robust_evsi(
     });
     let selected_experiment_id = robust_values
         .iter()
-        .find(|value| {
-            value.affordable && value.worst_case_net_evsi > VALUE_TOLERANCE
-        })
+        .find(|value| value.affordable && value.worst_case_net_evsi > VALUE_TOLERANCE)
         .map(|value| value.experiment_id.clone());
     if let Some(selected_id) = &selected_experiment_id {
         if let Some(value) = robust_values
@@ -280,14 +274,8 @@ mod tests {
             ensemble_id: "two-model-ambiguity-set".to_owned(),
             remaining_budget_units: 2.0,
             members: vec![
-                member(
-                    "model_perfect",
-                    vec![vec![1.0, 0.0], vec![0.0, 1.0]],
-                ),
-                member(
-                    "model_blind",
-                    vec![vec![0.5, 0.5], vec![0.5, 0.5]],
-                ),
+                member("model_perfect", vec![vec![1.0, 0.0], vec![0.0, 1.0]]),
+                member("model_blind", vec![vec![0.5, 0.5], vec![0.5, 0.5]]),
             ],
         }
     }
@@ -350,34 +338,42 @@ mod tests {
         for experiment in &mut problem.members[1].experiments {
             experiment.likelihood_by_state = vec![vec![0.5, 0.5], vec![0.5, 0.5]];
         }
-        assert!(evaluate_robust_evsi(&problem)
-            .expect("valid but uninformative models")
-            .selected_experiment_id
-            .is_none());
+        assert!(
+            evaluate_robust_evsi(&problem)
+                .expect("valid but uninformative models")
+                .selected_experiment_id
+                .is_none()
+        );
     }
 
     #[test]
     fn rejects_changes_to_task_or_experiment_schema() {
         let mut changed = ensemble();
         changed.members[1].decisions[0].utility_by_state[0] = 11.0;
-        assert!(evaluate_robust_evsi(&changed)
-            .expect_err("utility mismatch rejected")
-            .contains("changes decision IDs or state utilities"));
+        assert!(
+            evaluate_robust_evsi(&changed)
+                .expect_err("utility mismatch rejected")
+                .contains("changes decision IDs or state utilities")
+        );
 
         let mut changed = ensemble();
         changed.members[1].experiments[0].cost_units = 0.9;
-        assert!(evaluate_robust_evsi(&changed)
-            .expect_err("cost mismatch rejected")
-            .contains("changes outcomes or cost"));
+        assert!(
+            evaluate_robust_evsi(&changed)
+                .expect_err("cost mismatch rejected")
+                .contains("changes outcomes or cost")
+        );
     }
 
     #[test]
     fn rejects_duplicate_member_ids_and_empty_ambiguity_sets() {
         let mut changed = ensemble();
         changed.members[1].problem_id = changed.members[0].problem_id.clone();
-        assert!(evaluate_robust_evsi(&changed)
-            .expect_err("duplicate ID rejected")
-            .contains("unique"));
+        assert!(
+            evaluate_robust_evsi(&changed)
+                .expect_err("duplicate ID rejected")
+                .contains("unique")
+        );
 
         let mut changed = ensemble();
         changed.members.clear();
