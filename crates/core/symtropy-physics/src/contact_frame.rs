@@ -332,6 +332,54 @@ impl<const D: usize> ContactFrame<D> {
         Self::from_orthonormal_parts(normal, tangent_basis)
     }
 
+    /// Parallel-transport this frame to a new contact normal using the
+    /// shortest rotation that maps the old unit normal to the new one.
+    ///
+    /// Unlike rebuilding a frame from coordinate axes, this preserves the
+    /// transported tangent/rolling/torsional basis and therefore avoids
+    /// arbitrary basis pivots during a contact's lifetime. For an exactly
+    /// antipodal normal, the first tangent basis vector defines the otherwise
+    /// non-unique half-turn plane deterministically.
+    pub fn transported_to(
+        &self,
+        new_normal: SVector<f64, D>,
+        relative_tolerance: f64,
+    ) -> Result<Self, ContactFrameError> {
+        if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 {
+            return Err(ContactFrameError::InvalidTolerance);
+        }
+        if !new_normal.iter().all(|value| value.is_finite()) {
+            return Err(ContactFrameError::NonFinite);
+        }
+        let new_norm = new_normal.norm();
+        if !new_norm.is_finite() || new_norm <= relative_tolerance {
+            return Err(ContactFrameError::InvalidNormal);
+        }
+
+        let target = new_normal / new_norm;
+        let cosine = self.normal.dot(&target).clamp(-1.0, 1.0);
+        let plane = Bivector::from_wedge(&self.normal, &target);
+        let plane_norm = plane.norm();
+
+        let rotation = if plane_norm <= relative_tolerance {
+            if cosine >= 0.0 {
+                Rotor::identity()
+            } else {
+                let antipodal_plane =
+                    Bivector::from_wedge(&self.normal, &self.tangent_basis[0]);
+                Rotor::from_plane_angle(&antipodal_plane, std::f64::consts::PI)
+            }
+        } else {
+            Rotor::from_plane_angle(&plane, cosine.acos())
+        };
+
+        let transported = self.rotated_by(&rotation);
+        if (transported.normal - target).norm() > 10.0 * relative_tolerance.max(1e-12) {
+            return Err(ContactFrameError::InvalidNormal);
+        }
+        Ok(transported)
+    }
+
     /// Decompose a bivector into rolling and torsional contact coordinates.
     ///
     /// The returned reconstruction error should be at roundoff scale because
@@ -646,6 +694,55 @@ mod tests {
             ContactWrenchFrictionLimits::new(0.5, -0.1, 0.1, 0.5, 0.25).unwrap_err(),
             ContactFrameError::InvalidFrictionCoefficient
         );
+    }
+
+    #[test]
+    fn transported_frame_tracks_normal_and_preserves_local_wrench_coordinates() {
+        let frame = ContactFrame::<4>::new(SVector::new(1.0, 0.0, 0.0, 0.0), 1e-12).unwrap();
+        let target_normal = SVector::new(0.2, 0.3, -0.4, 0.5);
+        let transported = frame.transported_to(target_normal, 1e-12).unwrap();
+        let target_unit = target_normal.normalize();
+        assert!((transported.normal() - target_unit).norm() < 1e-10);
+
+        let mut angular = Bivector::<4>::zero();
+        for i in 0..4 {
+            for j in (i + 1)..4 {
+                angular.set(i, j, (i as f64 + 1.0) * 0.3 - (j as f64 + 0.5) * 0.2);
+            }
+        }
+        let before = frame.decompose_angular(&angular).unwrap();
+        // A shortest-rotation transported frame is an orthogonal coordinate
+        // transform, so applying that rotation to the physical bivector must
+        // preserve its rolling/torsional coordinates.
+        let delta_rotation = Rotor::from_plane_angle(
+            &Bivector::from_wedge(frame.normal(), &target_unit),
+            frame.normal().dot(&target_unit).clamp(-1.0, 1.0).acos(),
+        );
+        let r = delta_rotation.to_matrix();
+        let angular_after =
+            Bivector::from_matrix(&(r * angular.to_matrix() * r.transpose()));
+        let after = transported.decompose_angular(&angular_after).unwrap();
+        for (left, right) in before
+            .rolling
+            .iter()
+            .chain(before.torsional.iter())
+            .zip(after.rolling.iter().chain(after.torsional.iter()))
+        {
+            assert!((left - right).abs() < 1e-10);
+        }
+        assert!(after.reconstruction_error < 1e-10);
+    }
+
+    #[test]
+    fn antipodal_contact_frame_transport_uses_deterministic_half_turn() {
+        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let transported = frame
+            .transported_to(SVector::new(-1.0, 0.0, 0.0), 1e-12)
+            .unwrap();
+        assert!((transported.normal() - SVector::new(-1.0, 0.0, 0.0)).norm() < 1e-12);
+        assert_eq!(transported.tangent_basis().len(), 2);
+        assert_eq!(transported.rolling_basis().len(), 2);
+        assert_eq!(transported.torsional_basis().len(), 1);
     }
 
     #[test]
