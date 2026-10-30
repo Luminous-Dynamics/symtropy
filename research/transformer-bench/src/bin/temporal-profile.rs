@@ -429,11 +429,17 @@ mod tests {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("fixtures/temporal-profile-leap-year-synthetic.csv");
         let content = fs::read_to_string(&path).unwrap();
-        let shifted = content.replacen(
-            "stress,0.2,SA-MUNI-11KV-50HZ,2024,Africa/Johannesburg,Q2,2024-04-01T00:00:00Z",
-            "stress,0.2,SA-MUNI-11KV-50HZ,2024,Africa/Johannesburg,Q2,2024-04-01T00:15:00Z",
-            1,
-        );
+        let shifted = content
+            .replacen(
+                "stress,0.2,SA-MUNI-11KV-50HZ,2024,Africa/Johannesburg,Q1,2024-01-01T00:00:00Z,2024-04-01T00:00:00Z",
+                "stress,0.2,SA-MUNI-11KV-50HZ,2024,Africa/Johannesburg,Q1,2024-01-01T00:00:00Z,2024-04-01T00:15:00Z",
+                1,
+            )
+            .replacen(
+                "stress,0.2,SA-MUNI-11KV-50HZ,2024,Africa/Johannesburg,Q2,2024-04-01T00:00:00Z",
+                "stress,0.2,SA-MUNI-11KV-50HZ,2024,Africa/Johannesburg,Q2,2024-04-01T00:15:00Z",
+                1,
+            );
         let temp = env::temp_dir().join("temporal-profile-shifted-grid.csv");
         fs::write(&temp, shifted).unwrap();
         assert!(read_scenarios(temp.to_str().unwrap()).unwrap_err().contains("different UTC interval grid"));
