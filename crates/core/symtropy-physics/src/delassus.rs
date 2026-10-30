@@ -167,6 +167,7 @@ fn impulse_response_at<const D: usize>(
     let linear_response = impulse * body.inv_mass;
     let angular_impulse = Bivector::from_wedge(impulse, impulse_offset);
     let stored_angular_response = if let Some(inertia) = &body.rotational_inertia {
+        inertia.validate_body_mass(body.mass, relative_tolerance)?;
         inertia
             .rotated_by(&body.transform.rotation)
             .angular_velocity_from_momentum(&angular_impulse, relative_tolerance)?
