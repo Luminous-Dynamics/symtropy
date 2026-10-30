@@ -149,9 +149,15 @@ Only after matching physical error and hardware:
 
 A speedup counts only if the physical error envelope, timestep, contact semantics, precision, hardware, compiler flags and scene definition are matched. If no equivalent exists, call it a capability comparison, not a performance win.
 
+## First friction reference increment
+
+The cumulative branch now includes `solve_planar_friction_cone`, an exhaustive single-contact 2D reference for Signorini normal complementarity plus maximum-dissipation Coulomb friction. It enumerates separation, sticking, positive tangential sliding and negative tangential sliding. The effective metric must be SPD; inconsistent/Painleve-like cases return an explicit no-admissible-solution error. The implementation reports a normalized normal-complementarity/friction-law residual and is benchmarked separately from the Delassus/LCP reference.
+
+This is intentionally **not** a 3D circular cone solver, multi-contact island solve, or 6D torsional/rolling friction implementation. The next acceptance gate is an independent 3D cone reference and production-to-reference contact-patch comparison.
+
 ## Immediate implementation sequence
 
-1. Keep the small-island frictionless oracle independent and correct; add the friction cone oracle as a separate module, not a premature production replacement.
+1. Keep the small-island frictionless oracle independent and correct; keep the new planar friction reference as a separate correctness module, not a premature production replacement.
 2. Define a typed island problem containing generalized mass/effective metric, Jacobian rows, normal/tangent bases, compliance and targets.
 3. Implement one-contact 2D/3D maximum-dissipation reference and compare it with production friction response.
 4. Add multi-contact cone reference fixtures with redundant rows and a clearly stated solver tolerance.
