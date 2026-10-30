@@ -1,0 +1,112 @@
+{
+  "manifest_schema": "civil-aero-dpw8-source-discovery/0.1.0",
+  "program": "AERO-DPW8-001",
+  "status": "source_discovery_only",
+  "important": "No DPW8 bytes are retained or admitted by this manifest. Entries point to NASA/AIAA landing pages and selected README/artifact URLs discovered on 2026-10-30. Hashes and byte lengths remain null until the exact resolved files are downloaded, retained and independently hashed. Public directory visibility is not a redistribution license.",
+  "discovered_utc_date": "2026-10-30",
+  "sources": [
+    {
+      "source_id": "AIAA-DPW8-AEPW4-OVERVIEW",
+      "kind": "workshop_protocol",
+      "description": "Joint 8th Drag Prediction Workshop / 4th Aeroelastic Prediction Workshop overview. AIAA identifies multidisciplinary drag prediction and aeroelasticity, with work groups including static deformation, buffet, high angle, high speed, large deflection, source of scatter and test environments.",
+      "landing_page": "https://aiaa.org/courses/aiaa-drag-prediction-workshop/",
+      "artifact_urls": ["https://www.aiaa-dpw.org/"],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "admission_status": "protocol_reference_only"
+    },
+    {
+      "source_id": "NASA-DPW8-ONERA-OAT15A-EXPERIMENTAL",
+      "kind": "experimental_pressure_or_force_data",
+      "description": "NASA DPW8 ONERA OAT15A experimental-data directory lists onera-oat15a.zip (207 KB at discovery). The archive contents, measurement quantities, conditions, units, uncertainty and applicable terms must be inspected before selecting test cases.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/Experimental_Data/",
+      "artifact_urls": [
+        "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/Experimental_Data/onera-oat15a.zip"
+      ],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "condition_review": "pending",
+      "parser_review": "pending",
+      "admission_status": "pending_source_bytes"
+    },
+    {
+      "source_id": "NASA-DPW8-ONERA-OAT15A-GRID-FAMILIES",
+      "kind": "CFD_grid_families",
+      "description": "The NASA DPW8 ONERA OAT15A directory lists Cadence, Helden, ONERA-Deck and ONERA-Rizzi grid directories. These are independent grid lineages and must not be silently mixed or assumed equivalent.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/",
+      "artifact_urls": [],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "grid_family_review": "pending",
+      "admission_status": "directory_discovered_artifacts_not_pinned"
+    },
+    {
+      "source_id": "NASA-DPW8-SCATTER-CRM-TEST-CASE-2",
+      "kind": "geometry_condition_and_grid_provenance",
+      "description": "The Test_Case_2 README associates alpha-labelled grids (2.50 to 4.25 degrees) with CRM wing deformation measured at M=0.85 in a low-dynamic-pressure ETW test condition. It states horizontal tails were removed before gridding and that farfield surfaces in source geometry were extended during grid generation. Original geometry and gridded geometry must be separately hashed and mapped.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/Scatter/Test_Case_2/",
+      "artifact_urls": [
+        "https://dpw.larc.nasa.gov/DPW8/Scatter/Test_Case_2/README.txt"
+      ],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "geometry_mapping_review": "pending",
+      "condition_review": "pending",
+      "admission_status": "readme_discovered_data_not_pinned"
+    },
+    {
+      "source_id": "NASA-DPW8-STATIC-DEFORMATION-FEM",
+      "kind": "finite_element_model_provenance",
+      "description": "The Static_Deformation Test_Case_2 FEM_Models README identifies NASA_CRM_FULLSPAN_WBT0.REV00 as sourced from the NASA Common Research Model site and NASA_CRM_HALFSPAN_FEM.REV00 as generated for DPW8/AePW4 (semispan model). The model files, revisions, units, materials, boundary conditions and coupling conventions remain uninspected.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/",
+      "artifact_urls": [
+        "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/README.txt",
+        "https://commonresearchmodel.larc.nasa.gov/fem-file/wingbodytail0-deg-configuration/"
+      ],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "structural_model_review": "pending",
+      "admission_status": "readme_discovered_model_bytes_not_pinned"
+    },
+    {
+      "source_id": "NASA-DPW8-BUFFET",
+      "kind": "unsteady_transonic_aerodynamics",
+      "description": "NASA DPW8 buffet directory lists separate Test_Case_2 and Test_Case_3 data families. Exact flow conditions, time-resolved outputs, model setup and measurement references must be extracted from the task readmes before use.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/Buffet/",
+      "artifact_urls": [],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "condition_review": "pending",
+      "unsteady_data_review": "pending",
+      "admission_status": "directory_discovered_artifacts_not_pinned"
+    },
+    {
+      "source_id": "NASA-DPW8-TEST-ENVIRONMENT",
+      "kind": "facility_and_test_environment_metadata",
+      "description": "NASA DPW8 Test_Environment directory lists Test_Case_1, Test_Case_2 and Test_Case_3. Exact facility, boundary-condition, calibration, support/tare and uncertainty artifacts must be identified before using this source family.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/Test_Environment/",
+      "artifact_urls": [],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "facility_metadata_review": "pending",
+      "admission_status": "directory_discovered_artifacts_not_pinned"
+    }
+  ],
+  "admission_gates": [
+    "Resolve each directory to exact artifact URLs and record UTC acquisition time and final resolved URI.",
+    "Retain the exact original bytes without modifying upstream files; compute SHA-256 and byte length over the retained bytes.",
+    "Review licensing, dataset use/redistribution terms, citation requirements, source owner and any embargo or participant-specific restrictions.",
+    "Extract and preserve geometry revision, units, operating point, facility, mesh/grid family, solver conditions and measurement uncertainty.",
+    "Write independent parsers and negative controls; preserve source zone/run/case labels and row identifiers.",
+    "For CFD, record mesh topology and refinement lineage, boundary conditions, turbulence/transition model, convergence criteria and solver build/config hash.",
+    "For aeroelastic cases, record structural model, materials, boundary conditions, deformation transfer/interpolation and force/load conservation.",
+    "Do not promote any entry to admitted until byte, license, applicability, parser and independent-review gates are all complete."
+  ]
+}
