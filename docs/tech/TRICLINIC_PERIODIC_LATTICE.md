@@ -17,7 +17,7 @@ The implementation is full-rank D=2/3. It deliberately does not pretend to suppo
 
 ## Current implementation
 
-PeriodicLattice stores an origin, full basis, and twice-reorthogonalized modified-Gram-Schmidt QR factorization.
+PeriodicLattice stores an origin, full basis, and twice-reorthogonalized modified-Gram-Schmidt QR factorization. A relative QR pivot below 1e-8 is rejected. Search padding scales with squared basis magnitude and the relative pivot, rather than using an absolute unit-sized tolerance. The pivot ratio remains a conditioning proxy, not a spectral condition number.
 
 For minimum-image queries:
 1. Transform the target with Q transpose.
@@ -46,7 +46,8 @@ The initial tests compare 2D and 3D closest-image results against bounded brute-
 - half-cell ties and deterministic image choice;
 - wrapping reconstruction from explicit image offsets;
 - orthogonal-lattice agreement with PeriodicBox away from tie boundaries;
-- ill-conditioned basis rejection and search-budget exhaustion.
+- ill-conditioned basis rejection and search-budget exhaustion;
+- uniform unit scaling: nearest integer image is invariant while squared distance scales quadratically.
 
 These are authored tests, not results. The brute-force oracle window must be wide enough for every fixture. The randomized tests use fixed seeds; all future failures should preserve the minimized displacement, basis, oracle window, and seed.
 
