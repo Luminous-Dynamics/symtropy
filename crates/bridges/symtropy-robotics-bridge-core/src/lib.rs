@@ -5,6 +5,7 @@
 
 pub mod agent;
 pub mod assurance;
+pub mod command_evidence;
 pub mod control;
 pub mod differential_drive;
 pub mod dispatch;
@@ -25,6 +26,11 @@ pub use agent::{RoboticAgent, spawn_robot_body};
 pub use assurance::{
     AxisAlignedWorkspace, EmbodimentEnvelope, GateDecision, IntentKind, RuntimeAssuranceGate,
     RuntimeAssurancePolicy, RuntimeSafetyState, VetoReason,
+};
+pub use command_evidence::{
+    CommandEvidenceAudit, CommandEvidenceAuditError, CommandEvidenceEvent, CommandEvidenceKind,
+    CommandEvidencePhase, CommandRejectionStage, CommandTerminalOutcome, ExpectedCommandIdentity,
+    audit_command_evidence,
 };
 pub use control::{
     ControlOutcome, ControlOutcomeError, ControlOutcomeStatus, ControlRequest, ControlRequestError,
