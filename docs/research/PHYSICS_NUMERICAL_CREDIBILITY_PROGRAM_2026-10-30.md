@@ -136,12 +136,12 @@ The kinetic-energy contract should be 1/2 ⟨ω, Iω⟩, and the equations of mo
 A first mathematical primitive now exists in `crates/core/symtropy-physics/src/inertia.rs`:
 
 - It stores the centered second-moment matrix (S = \int rr^T\,dm).
-- It maps a **physical point-velocity generator** Omega (v = Omega*r) to angular momentum with I(Omega)=Omega*S+S*Omega. In 3D, the equivalent conventional inertia tensor is J=tr(S)I-S.
+- It maps Symtropy's **stored rotor bivector** B to angular momentum with I(B)=B*S+S*B. Rotor increments are exp(-B), so physical point velocity is -B*r. In 3D, the equivalent conventional inertia tensor is J=tr(S)I-S.
 - It accepts a centered second-moment matrix, a uniform solid D-ball or D-ellipsoid, or a discrete point-mass cloud (which first computes the center of mass, making the result translation-invariant).
 - It can rotate body-space mass properties into another frame with S_world=R*S_body*R^T.
-- It can invert angular momentum back to the physical skew-matrix generator using the eigensystem of S, rejecting singular/ill-conditioned rotation planes.
+- It can invert angular momentum back to the stored rotor bivector B using the eigensystem of S, rejecting singular/ill-conditioned rotation planes.
 - It validates finiteness, symmetry, and positive semidefiniteness (with a scale-relative eigenvalue tolerance).
-- Its tests cover uniform solid balls in 2D/3D/4D, analytical 3D ellipsoid moments, translated point clouds, the 3D principal-moment correspondence, off-diagonal coupling, rotation covariance/energy invariance, inverse round trips, and invalid/singular mass-moment matrices.
+- It also computes stored-state angular acceleration using the frame-consistent Euler-Arnold equation. Tests cover solid balls, ellipsoids, point clouds, principal moments, cross-plane coupling, rotation covariance, inverse round trips, gyroscopic energy and momentum invariants, and invalid/singular mass-moment matrices.
 
 There is an essential sign convention at the Symtropy integration boundary: `Rotor::from_bivector(B)` computes exp(-B), and the integrator left-composes that increment. Thus `RigidBody.angular_velocity` stores B while the physical point-velocity generator is Omega=-B. The inertia operator's angular-momentum and inverse APIs use the physical generator Omega; negate the stored body state before passing it to those APIs.
 
