@@ -2755,4 +2755,42 @@ mod transformed_halfspace_tests {
     }
 
 
+    #[test]
+    fn try_resolve_contact_reports_singular_rotational_effective_mass() {
+        use crate::inertia::BivectorInertia;
+        use nalgebra::SMatrix;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let body_a = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body_b = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
+        world.bodies[0].set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(
+                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
+            )
+            .unwrap(),
+        );
+
+        let contact = ContactManifold::single(
+            body_a,
+            body_b,
+            SVector::new(0.0, 0.0, 1.0),
+            SVector::new(0.0, 1.0, 0.0),
+            0.2,
+        );
+        let before_a = world.bodies[0].linear_velocity.clone();
+        let before_b = world.bodies[1].linear_velocity.clone();
+        let mut callback = NoOpCallback;
+
+        let error = world
+            .try_resolve_contact(contact, 0.01, &mut callback)
+            .unwrap_err();
+        assert_eq!(
+            error,
+            crate::inertia::RotationalInertiaError::SingularInertia
+        );
+        assert_eq!(world.bodies[0].linear_velocity, before_a);
+        assert_eq!(world.bodies[1].linear_velocity, before_b);
+    }
+
+
 }
