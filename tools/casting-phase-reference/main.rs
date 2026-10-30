@@ -308,7 +308,7 @@ fn verify_reference() -> Result<(), String> {
 
 fn emit_csv() -> Result<(), String> {
     let solution = StefanSolution::new(StefanCase::reference())?;
-    println!("time_s,lambda,stefan_number,alpha_m2_s,front_m,wall_temperature_c,half_front_temperature_c,front_temperature_c,wall_heat_removed_j_m2,solid_stored_enthalpy_j_m2");
+    println!("time_s,lambda,stefan_number,alpha_m2_s,front_m,wall_temperature_c,half_front_temperature_c,front_temperature_c,wall_heat_removed_j_m2,solid_stored_enthalpy_j_m2,energy_balance_residual_j_m2");
     for time_s in [60.0, 240.0, 960.0] {
         let front = solution.front_position_m(time_s)?;
         let wall_temperature = solution.temperature_c(0.0, time_s)?;
@@ -316,8 +316,9 @@ fn emit_csv() -> Result<(), String> {
         let front_temperature = solution.temperature_c(front, time_s)?;
         let wall_heat = solution.wall_heat_removed_j_m2(time_s)?;
         let stored_enthalpy = solution.solid_stored_enthalpy_j_m2(time_s)?;
+        let energy_residual = solution.energy_balance_residual_j_m2(time_s)?;
         println!(
-            "{:.0},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e}",
+            "{:.0},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e}",
             time_s,
             solution.similarity_lambda,
             solution.stefan_number,
@@ -327,7 +328,8 @@ fn emit_csv() -> Result<(), String> {
             half_temperature,
             front_temperature,
             wall_heat,
-            stored_enthalpy
+            stored_enthalpy,
+            energy_residual
         );
     }
     Ok(())
