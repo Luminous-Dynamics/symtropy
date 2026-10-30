@@ -2897,9 +2897,9 @@ mod transformed_halfspace_tests {
         let body_a = world.add_sphere(Point::origin(), 0.5, 1.0);
         let body_b = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
         world.bodies[0].set_rotational_inertia_operator(
-            BivectorInertia::<3>::from_second_moment(
-                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
-            )
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
             .unwrap(),
         );
 
