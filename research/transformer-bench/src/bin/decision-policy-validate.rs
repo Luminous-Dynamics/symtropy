@@ -228,6 +228,12 @@ fn validate(rows: &[Row], as_of_utc: &str) -> Result<Report, String> {
     let as_of = utc_seconds(as_of_utc, "as_of_utc")?;
     let first = &rows[0];
     for row in rows {
+        if row.policy_id.trim().is_empty() || row.revision.trim().is_empty()
+            || row.decision_case.trim().is_empty() || row.source_artifact.trim().is_empty()
+            || row.approval_artifact.trim().is_empty() || row.safety_revision.trim().is_empty()
+            || !row.utility.is_finite() || !sha256(&row.source_sha256) || !sha256(&row.approval_sha256) {
+            return Err("policy row has an empty identity, non-finite utility or invalid evidence digest".into());
+        }
         if row.policy_id != first.policy_id || row.revision != first.revision
             || row.decision_case != first.decision_case || row.family != first.family
             || row.test_id != first.test_id || row.measurand != first.measurand
@@ -398,6 +404,6 @@ mod tests {
         assert!(utc_seconds("2025-02-29T00:00:00Z", "test").is_err());
         let mut rows = valid_rows();
         rows[0].approval_sha256 = "tampered".into();
-        assert!(sha256(&rows[0].approval_sha256) == false);
+        assert!(validate(&rows, "2026-10-30T00:00:00Z").unwrap_err().contains("invalid evidence digest"));
     }
 }
