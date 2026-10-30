@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 /// Current version of the canonical receipt encoding.
-pub const COMMAND_EVIDENCE_RECEIPT_SCHEMA_VERSION: u16 = 1;
+pub const COMMAND_EVIDENCE_RECEIPT_SCHEMA_VERSION: u16 = 2;
 
 /// Immutable run context supplied by the campaign orchestrator, independently
 /// of the command event stream.
@@ -27,10 +27,14 @@ pub struct CommandEvidenceReceiptContext {
     /// Digest of the exact preregistered scenario-manifest bytes.
     pub scenario_manifest_digest: String,
     pub scenario_id: String,
+    /// Digest of the exact scenario/configuration input for this row.
+    pub scenario_digest: String,
     pub arm_id: String,
     pub arm_source_revision: String,
     /// Digest identifying the policy/configuration evaluated in this arm.
     pub policy_digest: String,
+    /// Digest identifying the task profile shared by the compared trial.
+    pub task_profile_digest: String,
     /// Digest identifying the plant/model configuration.
     pub plant_digest: String,
     /// Digest identifying the native controller and safety-relevant settings.
@@ -155,9 +159,11 @@ fn validate_context(
             context.scenario_manifest_digest.as_str(),
         ),
         ("scenario_id", context.scenario_id.as_str()),
+        ("scenario_digest", context.scenario_digest.as_str()),
         ("arm_id", context.arm_id.as_str()),
         ("arm_source_revision", context.arm_source_revision.as_str()),
         ("policy_digest", context.policy_digest.as_str()),
+        ("task_profile_digest", context.task_profile_digest.as_str()),
         ("plant_digest", context.plant_digest.as_str()),
         (
             "controller_config_digest",
@@ -225,9 +231,11 @@ fn encode_context(encoder: &mut CanonicalEncoder, context: &CommandEvidenceRecei
     encoder.string(&context.campaign_revision);
     encoder.string(&context.scenario_manifest_digest);
     encoder.string(&context.scenario_id);
+    encoder.string(&context.scenario_digest);
     encoder.string(&context.arm_id);
     encoder.string(&context.arm_source_revision);
     encoder.string(&context.policy_digest);
+    encoder.string(&context.task_profile_digest);
     encoder.string(&context.plant_digest);
     encoder.string(&context.controller_config_digest);
     encoder.string(&context.trace_source_id);
@@ -349,9 +357,11 @@ mod tests {
             campaign_revision: "campaign-rev-7".into(),
             scenario_manifest_digest: "sha256:manifest".into(),
             scenario_id: "fault-network-delay-sev2-seed19".into(),
+            scenario_digest: "sha256:scenario".into(),
             arm_id: "B3_guarded_outcome_feedback".into(),
             arm_source_revision: "git:0123456789abcdef".into(),
             policy_digest: "sha256:policy".into(),
+            task_profile_digest: "sha256:profile".into(),
             plant_digest: "sha256:plant".into(),
             controller_config_digest: "sha256:controller".into(),
             trace_source_id: "sim-event-collector-v1".into(),
