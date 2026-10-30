@@ -45,6 +45,8 @@ pub enum RotationalInertiaError {
 #[derive(Clone, Debug)]
 pub struct BivectorInertia<const D: usize> {
     second_moment: SMatrix<f64, D, D>,
+    principal_second_moments: SVector<f64, D>,
+    principal_axes: SMatrix<f64, D, D>,
 }
 
 impl<const D: usize> BivectorInertia<D> {
@@ -76,7 +78,8 @@ impl<const D: usize> BivectorInertia<D> {
         }
 
         let symmetric = (second_moment + second_moment.transpose()) * 0.5;
-        let min_eigenvalue = nalgebra::linalg::SymmetricEigen::new(symmetric.clone())
+        let eigensystem = nalgebra::linalg::SymmetricEigen::new(symmetric.clone());
+        let min_eigenvalue = eigensystem
             .eigenvalues
             .iter()
             .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
@@ -86,6 +89,8 @@ impl<const D: usize> BivectorInertia<D> {
 
         Ok(Self {
             second_moment: symmetric,
+            principal_second_moments: eigensystem.eigenvalues,
+            principal_axes: eigensystem.eigenvectors,
         })
     }
 
@@ -172,6 +177,8 @@ impl<const D: usize> BivectorInertia<D> {
         let r = rotation.to_matrix();
         Self {
             second_moment: r * self.second_moment * r.transpose(),
+            principal_second_moments: self.principal_second_moments,
+            principal_axes: r * self.principal_axes,
         }
     }
 
@@ -220,21 +227,21 @@ impl<const D: usize> BivectorInertia<D> {
             return Err(RotationalInertiaError::NonFinite);
         }
 
-        let eigen = nalgebra::linalg::SymmetricEigen::new(self.second_moment.clone());
-        let largest_eigenvalue = eigen
-            .eigenvalues
+        let largest_eigenvalue = self
+            .principal_second_moments
             .iter()
             .fold(0.0_f64, |maximum, value| maximum.max(*value));
         let threshold = relative_tolerance * largest_eigenvalue.max(f64::MIN_POSITIVE);
 
-        let q = eigen.eigenvectors;
+        let q = &self.principal_axes;
         let q_t = q.transpose();
         let momentum_local = q_t * angular_momentum.to_matrix() * q;
         let mut omega_local = nalgebra::SMatrix::<f64, D, D>::zeros();
 
         for i in 0..D {
             for j in (i + 1)..D {
-                let plane_inertia = eigen.eigenvalues[i] + eigen.eigenvalues[j];
+                let plane_inertia =
+                    self.principal_second_moments[i] + self.principal_second_moments[j];
                 if !plane_inertia.is_finite() || plane_inertia <= threshold {
                     return Err(RotationalInertiaError::SingularInertia);
                 }
