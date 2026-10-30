@@ -28,6 +28,9 @@ pub struct PlanarFrictionConeSolution {
     pub impulse: SVector<f64, 2>,
     /// Post-impulse normal/tangential relative velocity, W*impulse + q.
     pub post_velocity: SVector<f64, 2>,
+    /// Signed kinetic-energy change attributable to the tangential impulse.
+    /// Maximum-dissipation friction should make this non-positive.
+    pub frictional_work_delta: f64,
     /// Absolute Coulomb-cone violation.
     pub cone_violation: f64,
     /// Normalized residual for normal complementarity and the friction law.
@@ -149,6 +152,9 @@ pub fn solve_planar_friction_cone(
     let cone_violation = (impulse[1].abs() - mu * impulse[0])
         .max(0.0)
         .max((-impulse[0]).max(0.0));
+    let tangential_pre_impulse_velocity = free_velocity[1] + matrix[(1, 0)] * impulse[0];
+    let frictional_work_delta = impulse[1]
+        * (tangential_pre_impulse_velocity + 0.5 * matrix[(1, 1)] * impulse[1]);
 
     let impulse_residual_scale = impulse_scale.max(impulse.norm()).max(f64::MIN_POSITIVE);
     let normal_complementarity = (-impulse[0] / impulse_residual_scale)
@@ -178,6 +184,7 @@ pub fn solve_planar_friction_cone(
     if !post_velocity.iter().all(|value| value.is_finite())
         || !normalized_contact_residual.is_finite()
         || !cone_violation.is_finite()
+        || !frictional_work_delta.is_finite()
     {
         return Err(FrictionConeError::NonFinite);
     }
@@ -185,6 +192,7 @@ pub fn solve_planar_friction_cone(
     Ok(PlanarFrictionConeSolution {
         impulse,
         post_velocity,
+        frictional_work_delta,
         cone_violation,
         normalized_contact_residual,
     })
@@ -221,6 +229,7 @@ mod tests {
         assert!(solution.post_velocity[1] < 0.0);
         assert!((solution.impulse[1] - 0.5 * solution.impulse[0]).abs() < 1e-12);
         assert!(solution.cone_violation < 1e-12);
+        assert!(solution.frictional_work_delta <= 1e-12);
         assert!(solution.normalized_contact_residual < 1e-12);
     }
 
