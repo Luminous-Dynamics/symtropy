@@ -69,12 +69,12 @@ const REFERENCES: [Reference; 4] = [
         scr_n_x1e4: 10.46, scr_mean_x1e5: 4.75, scr_median_x1e5: 4.32, scr_std_x1e5: 2.39,
     },
     Reference {
-        pad_width_mm: 5, turnaround_ms_hundredths: 7,
+        pad_width_mm: 5, turnaround_ms_hundredths: 75,
         tam_n_x1e5: 36.20, tam_mean_ms: 1.50, tam_median_ms: 1.50, tam_std_ms: 0.26,
         scr_n_x1e4: 39.77, scr_mean_x1e5: 1.95, scr_median_x1e5: 1.21, scr_std_x1e5: 1.84,
     },
     Reference {
-        pad_width_mm: 5, turnaround_ms_hundredths: 50,
+        pad_width_mm: 5, turnaround_ms_hundredths: 500,
         tam_n_x1e5: 36.27, tam_mean_ms: 1.20, tam_median_ms: 1.30, tam_std_ms: 0.21,
         scr_n_x1e4: 40.38, scr_mean_x1e5: 2.67, scr_median_x1e5: 1.94, scr_std_x1e5: 1.80,
     },
@@ -246,7 +246,7 @@ fn group_index(pad_width: f64, turnaround_ms: f64) -> Result<usize, String> {
     }).ok_or_else(|| "GROUP_UNSUPPORTED".into())
 }
 
-fn allowed_repeats(turnaround_ms_hundredths: u8) -> &'static [&'static str; 3] {
+fn allowed_repeats(turnaround_ms_hundredths: u16) -> &'static [&'static str; 3] {
     if turnaround_ms_hundredths == 75 { &REPEAT_IDS_075 } else { &REPEAT_IDS_500 }
 }
 
@@ -515,7 +515,7 @@ fn verify() -> Result<(), String> {
     }
     for r in reference {
         if !(r.pad_width_mm == 1 || r.pad_width_mm == 5)
-            || !(r.turnaround_ms_hundredths == 7 || r.turnaround_ms_hundredths == 50)
+            || !(r.turnaround_ms_hundredths == 75 || r.turnaround_ms_hundredths == 500)
             || r.tam_n_x1e5 <= 0.0 || r.scr_n_x1e4 <= 0.0
             || r.tam_mean_ms < TAM_MIN_SECONDS * 1.0e3
             || r.scr_mean_x1e5 <= 0.0 {
