@@ -107,7 +107,7 @@ const QIF_30_SCHEMA_ID: &str = "QIFDocument.xsd@3.0.0";
 struct OpaqueExtension {
     namespace: String,
     local_name: String,
-    raw_xml_sha256: String,
+    raw_payload_sha256: String,
     source_locator: String,
 }
 
@@ -171,7 +171,7 @@ impl SourceDocument {
             if !present(&extension.namespace)
                 || !present(&extension.local_name)
                 || !present(&extension.source_locator)
-                || !valid_sha(&extension.raw_xml_sha256)
+                || !valid_sha(&extension.raw_payload_sha256)
             {
                 return Err("OPAQUE_EXTENSION_RECEIPT_INVALID");
             }
@@ -590,7 +590,7 @@ fn map_mtconnect(
 
     let extension_manifest = source.opaque_extensions.iter().map(|extension| format!(
         "{}:{}:{}:{}",
-        extension.namespace, extension.local_name, extension.raw_xml_sha256, extension.source_locator
+        extension.namespace, extension.local_name, extension.raw_payload_sha256, extension.source_locator
     )).collect::<Vec<_>>().join(";");
 
     Ok(MappedStream {
@@ -1020,7 +1020,7 @@ fn fixture_source(standard: Standard) -> SourceDocument {
         opaque_extensions: vec![OpaqueExtension {
             namespace: "urn:vendor:extension:v1".into(),
             local_name: "VendorTrace".into(),
-            raw_xml_sha256: prefix_hash("3"),
+            raw_payload_sha256: prefix_hash("3"),
             source_locator: "/Document/Extensions/VendorTrace[1]".into(),
         }],
     }
@@ -1604,13 +1604,13 @@ mod tests {
         assert!(mapped.observations.iter().all(|o| o.source_document_sha256==mt.document_sha256));
         assert!(mapped.observations.iter().all(|o| o.extension_count==1));
         let row = mapped.csv_rows()[0].clone();
-        assert!(row.contains(&mt.opaque_extensions[0].raw_xml_sha256));
+        assert!(row.contains(&mt.opaque_extensions[0].raw_payload_sha256));
         let mut changed=mt.clone();
         changed.document_sha256=prefix_hash("9");
-        changed.opaque_extensions[0].raw_xml_sha256=prefix_hash("8");
+        changed.opaque_extensions[0].raw_payload_sha256=prefix_hash("8");
         let mapped_changed=map_mtconnect(&changed,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
         let changed_row=mapped_changed.csv_rows()[0].clone();
-        assert!(changed_row.contains(&changed.opaque_extensions[0].raw_xml_sha256));
+        assert!(changed_row.contains(&changed.opaque_extensions[0].raw_payload_sha256));
         assert_ne!(mapped_changed.observations[0].source_document_sha256,mt.document_sha256);
     }
 
