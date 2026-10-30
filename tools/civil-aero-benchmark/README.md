@@ -67,7 +67,7 @@ The demonstration's prior best expected utility is 5. Perfect information has gr
 
 ## DPW-8/AePW-4 source discovery
 
-`data/dpw8_source_discovery.v0.1.json` records the official NASA DPW8 landing pages and the selected ONERA OAT15A experimental archive, CRM scatter README, and CRM static-deformation FEM README discovered for AERO-DPW8-001. The manifest is deliberately source-discovery-only: no DPW8 bytes are retained, all hashes/byte lengths are null, and licensing, condition, geometry/grid lineage and parser reviews remain pending. Do not use it as a qualified data corpus. See [AERO-DPW8-001 issue #2918](https://github.com/Luminous-Dynamics/symtropy/issues/2918).
+The DPW-8/AePW-4 source discovery manifest records the official NASA DPW8 landing pages, ONERA OAT15A experimental archive, CRM scatter and FEM readmes, official V1a task definition and JAXA buffet catalog. The first concrete benchmark is V1a: steady RANS/grid convergence at Mach 0.73, Re_c=3e6, T_static=271 K and alpha=[1.36,1.50,2.50,3.00,3.10] degrees, using a six-member grid family (four required, six desirable). Buffet Test Case 2 (unsteady CFD on measured static-deformed geometry) and Test Case 3 (dynamic wing FSI) are separate later tasks. The manifest is deliberately source-discovery-only: no DPW8 bytes are retained, hashes/byte lengths remain null and licensing/parser reviews remain pending. Do not use it as an admitted data corpus. See [AERO-DPW8-001 issue #2918](https://github.com/Luminous-Dynamics/symtropy/issues/2918).
 
 ## Input and provenance
 
