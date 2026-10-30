@@ -474,6 +474,94 @@ mod tests {
     }
 
     #[test]
+    fn randomized_triclinic_ccd_image_sets_match_direct_euclidean_oracle() {
+        let lattice = skewed_lattice();
+        let mut seed = 0x5452_4943_4343_4421_u64;
+        let mut next = || {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            seed >> 11
+        };
+        let mut range = |low: f64, high: f64| {
+            low + (high - low) * (next() as f64 / ((1_u64 << 53) as f64))
+        };
+
+        for case in 0..300 {
+            let position_a = SVector::from([range(-15.0, 15.0), range(-15.0, 15.0)]);
+            let position_b = SVector::from([range(-15.0, 15.0), range(-15.0, 15.0)]);
+            let velocity_a = SVector::from([range(-8.0, 8.0), range(-8.0, 8.0)]);
+            let velocity_b = SVector::from([range(-8.0, 8.0), range(-8.0, 8.0)]);
+            let radius_a = range(0.1, 1.0);
+            let radius_b = range(0.1, 1.0);
+            let dt = range(0.05, 1.5);
+
+            let actual_hits = sphere_sphere_ccd_triclinic_all(
+                &lattice,
+                &position_a,
+                &velocity_a,
+                radius_a,
+                &position_b,
+                &velocity_b,
+                radius_b,
+                dt,
+                1_024,
+            )
+            .unwrap_or_else(|error| panic!("production CCD failed in case {case}: {error}"));
+
+            assert!(
+                actual_hits.windows(2).all(|pair| {
+                    pair[0].toi_seconds < pair[1].toi_seconds
+                        || (pair[0].toi_seconds == pair[1].toi_seconds
+                            && pair[0].image_offset.periods <= pair[1].image_offset.periods)
+                }),
+                "production CCD order mismatch in case {case}"
+            );
+
+            let mut actual = std::collections::BTreeMap::new();
+            for hit in actual_hits {
+                actual.insert(hit.image_offset.periods, hit.toi_seconds);
+            }
+
+            // Independent image-set oracle: enumerate a substantially wider
+            // integer cube, construct each Cartesian translation directly
+            // from the basis, and call only the nonperiodic analytic CCD.
+            let mut oracle = std::collections::BTreeMap::new();
+            for first in -12_i64..=12 {
+                for second in -12_i64..=12 {
+                    let shifted_b = position_b
+                        + lattice.basis()
+                            * SVector::from([first as f64, second as f64]);
+                    if let Some(hit) = ccd::sphere_sphere(
+                        &position_a,
+                        &velocity_a,
+                        radius_a,
+                        &shifted_b,
+                        &velocity_b,
+                        radius_b,
+                        dt,
+                    ) {
+                        oracle.insert([first, second], hit.toi);
+                    }
+                }
+            }
+
+            assert_eq!(
+                actual.keys().copied().collect::<std::collections::BTreeSet<_>>(),
+                oracle.keys().copied().collect::<std::collections::BTreeSet<_>>(),
+                "per-image CCD hit set mismatch in case {case}"
+            );
+            for (offset, oracle_toi) in oracle {
+                let actual_toi = actual[&offset];
+                assert!(
+                    (actual_toi - oracle_toi).abs() <= 1.0e-10,
+                    "TOI mismatch in case {case} offset={offset:?}: {actual_toi} vs {oracle_toi}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn triclinic_ccd_fails_closed_on_invalid_inputs_and_budget() {
         let lattice = skewed_lattice();
         let invalid = sphere_sphere_ccd_triclinic_all(
