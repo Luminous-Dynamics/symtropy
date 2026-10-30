@@ -238,7 +238,7 @@ mod tests {
             }
             let raw_weights: Vec<f64> = signatures
                 .iter()
-                .map(|signature| 1.0 + f64::from((signature * 7) % 5))
+                .map(|signature| 1.0 + f64::from((*signature * 7) % 5))
                 .collect();
             let input = hypotheses(&signatures, &raw_weights);
             let result = solve_exact(&input, &costs, 10_000).unwrap();
@@ -538,12 +538,12 @@ mod minimax_tests {
             let zero: Vec<u8> = signatures
                 .iter()
                 .copied()
-                .filter(|signature| (signature >> action) & 1 == 0)
+                .filter(|signature| (*signature >> action) & 1 == 0)
                 .collect();
             let one: Vec<u8> = signatures
                 .iter()
                 .copied()
-                .filter(|signature| (signature >> action) & 1 == 1)
+                .filter(|signature| (*signature >> action) & 1 == 1)
                 .collect();
             if zero.is_empty() || one.is_empty() {
                 continue;
@@ -563,7 +563,7 @@ mod minimax_tests {
         let Some(action) = node.action else {
             return 0;
         };
-        let child = if (signature >> action) & 1 == 1 {
+        let child = if (*signature >> action) & 1 == 1 {
             node.outcome_one.as_ref().unwrap()
         } else {
             node.outcome_zero.as_ref().unwrap()
@@ -579,7 +579,7 @@ mod minimax_tests {
                 continue;
             }
             let signatures: Vec<u8> = (0..8u8)
-                .filter(|signature| mask & (1 << signature) != 0)
+                .filter(|signature| mask & (1 << *signature) != 0)
                 .collect();
             let result = solve_minimax_exact(&signatures, &costs, 10_000).unwrap();
             assert_eq!(
@@ -649,7 +649,7 @@ mod minimax_tests {
             .iter()
             .map(|signature| Hypothesis {
                 signature: *signature,
-                prior_weight: 1.0 + f64::from((signature * 7) % 5),
+                prior_weight: 1.0 + f64::from((*signature * 7) % 5),
             })
             .collect();
         let bayes = solve_exact(&weighted, &costs, 10_000).unwrap();
