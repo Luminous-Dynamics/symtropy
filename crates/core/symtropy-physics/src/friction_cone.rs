@@ -291,4 +291,79 @@ mod tests {
             assert!(scaled.normalized_contact_residual < 1e-10);
         }
     }
+
+    fn deterministic_sample(state: &mut u64) -> f64 {
+        *state ^= *state << 13;
+        *state ^= *state >> 7;
+        *state ^= *state << 17;
+        ((*state >> 11) as f64 / ((1_u64 << 53) as f64)) * 2.0 - 1.0
+    }
+
+    #[test]
+    fn randomized_spd_contacts_obey_signorini_coulomb_and_dissipation() {
+        for seed in 1_u64..=256 {
+            let mut state = seed.wrapping_mul(0xD6E8_FEB8_6659_FD93);
+            let a = 0.5 + deterministic_sample(&mut state).abs();
+            let b = 0.5 * deterministic_sample(&mut state);
+            let c = 0.5 + deterministic_sample(&mut state).abs();
+            // AᵀA + epsilon*I is SPD while retaining off-diagonal coupling.
+            let effective_mass = Matrix2::new(
+                a * a + 0.05,
+                a * b,
+                a * b,
+                b * b + c * c + 0.05,
+            );
+            let free_velocity = SVector::new(
+                2.0 * deterministic_sample(&mut state),
+                2.0 * deterministic_sample(&mut state),
+            );
+            let mu = 2.0 * deterministic_sample(&mut state).abs();
+            let solution = solve_planar_friction_cone(
+                &effective_mass,
+                &free_velocity,
+                mu,
+                1e-11,
+            )
+            .unwrap_or_else(|error| panic!("seed={seed}, error={error:?}"));
+
+            assert!(
+                solution.impulse[0] >= -1e-10,
+                "seed={seed}: negative normal impulse"
+            );
+            assert!(
+                solution.post_velocity[0] >= -1e-10,
+                "seed={seed}: negative normal post-velocity"
+            );
+            assert!(
+                (solution.impulse[0] * solution.post_velocity[0]).abs() < 1e-8,
+                "seed={seed}: normal complementarity residual"
+            );
+            assert!(
+                solution.cone_violation < 1e-9,
+                "seed={seed}: Coulomb cone violation={}",
+                solution.cone_violation
+            );
+            assert!(
+                solution.frictional_work_delta <= 1e-9,
+                "seed={seed}: friction injected {} J",
+                solution.frictional_work_delta
+            );
+            assert!(
+                solution.normalized_contact_residual < 1e-8,
+                "seed={seed}: contact residual={}",
+                solution.normalized_contact_residual
+            );
+            if solution.impulse[0] > 1e-10 && solution.post_velocity[1].abs() > 1e-8 {
+                assert!(
+                    (solution.impulse[1]
+                        + mu * solution.impulse[0] * solution.post_velocity[1].signum())
+                    .abs()
+                        < 1e-8,
+                    "seed={seed}: sliding impulse is not maximum-dissipation"
+                );
+            }
+        }
+    }
+
+
 }
