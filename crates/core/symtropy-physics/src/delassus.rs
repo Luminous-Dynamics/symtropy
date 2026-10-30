@@ -51,7 +51,8 @@ pub enum ReferenceLcpError {
 /// A validated small-island reference LCP solution.
 ///
 /// The residual is w = W*lambda + q. Complementarity requires lambda >= 0,
-/// w >= 0, and lambda_i*w_i = 0 for every row.
+/// w >= 0, and lambda_i*w_i = 0 for every row. The reported primal violation
+/// is dimensionless, normalized separately by impulse and velocity scales.
 #[derive(Clone, Debug)]
 pub struct ReferenceLcpSolution {
     pub impulses: DVector<f64>,
@@ -257,11 +258,9 @@ pub fn solve_frictionless_lcp(
             }
         }
 
-        let feasibility_scale = (matrix_scale * impulses.norm())
-            .max(q.norm())
-            .max(f64::MIN_POSITIVE);
-        let feasibility_tolerance = tolerance * feasibility_scale;
-        if impulses.iter().any(|value| *value < -feasibility_tolerance) {
+        let impulse_scale = impulses.norm().max(f64::MIN_POSITIVE);
+        let impulse_tolerance = tolerance * impulse_scale;
+        if impulses.iter().any(|value| *value < -impulse_tolerance) {
             continue;
         }
         for value in impulses.iter_mut() {
@@ -271,27 +270,38 @@ pub fn solve_frictionless_lcp(
         }
 
         let residual = matrix * &impulses + q;
-        if residual.iter().any(|value| *value < -feasibility_tolerance) {
+        let velocity_scale = (matrix_scale * impulses.norm())
+            .max(q.norm())
+            .max(f64::MIN_POSITIVE);
+        let velocity_tolerance = tolerance * velocity_scale;
+        if residual.iter().any(|value| *value < -velocity_tolerance) {
             continue;
         }
-        let max_primal_violation = impulses
+        let max_impulse_violation = impulses
             .iter()
-            .chain(residual.iter())
             .fold(0.0_f64, |maximum, value| maximum.max((-*value).max(0.0)));
+        let max_velocity_violation = residual
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max((-*value).max(0.0)));
+        // Normalize the two primal feasibility terms separately because
+        // impulses and residual velocities have different physical units.
+        let max_primal_violation = (max_impulse_violation / impulse_scale)
+            .max(max_velocity_violation / velocity_scale);
         let max_complementarity_residual = impulses
             .iter()
             .zip(residual.iter())
             .fold(0.0_f64, |maximum, (lambda, slack)| {
                 maximum.max((lambda * slack).abs())
             });
-        if max_complementarity_residual > tolerance * feasibility_scale.powi(2) {
+        let complementarity_scale = impulse_scale * velocity_scale;
+        if max_complementarity_residual > tolerance * complementarity_scale {
             continue;
         }
 
         let active_rows = impulses
             .iter()
             .enumerate()
-            .filter_map(|(index, value)| (*value > feasibility_tolerance).then_some(index))
+            .filter_map(|(index, value)| (*value > impulse_tolerance).then_some(index))
             .collect();
         let candidate = ReferenceLcpSolution {
             impulses,
@@ -302,10 +312,15 @@ pub fn solve_frictionless_lcp(
         };
 
         let candidate_score = candidate.max_primal_violation
-            + candidate.max_complementarity_residual / feasibility_scale.max(1.0);
+            + candidate.max_complementarity_residual / complementarity_scale;
         let replace_best = best.as_ref().is_none_or(|current| {
+            let current_impulse_scale = current.impulses.norm().max(f64::MIN_POSITIVE);
+            let current_velocity_scale = (matrix_scale * current.impulses.norm())
+                .max(q.norm())
+                .max(f64::MIN_POSITIVE);
+            let current_complementarity_scale = current_impulse_scale * current_velocity_scale;
             let current_score = current.max_primal_violation
-                + current.max_complementarity_residual / feasibility_scale.max(1.0);
+                + current.max_complementarity_residual / current_complementarity_scale;
             candidate_score < current_score
         });
         if replace_best {
