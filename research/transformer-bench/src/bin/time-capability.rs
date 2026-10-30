@@ -387,8 +387,6 @@ fn evaluate(
         if sample.unit != spec.unit {
             return Err(format!("sample {:?}: unit does not match controlled specification", sample.id));
         }
-        let calibration = calibrations.get(&sample.calibration_id);
-        let _calibration_valid = calibration.is_some_and(|cal| calibration_valid(cal, sample, spec));
         let key = (
             sample.family.clone(), sample.product.clone(), sample.component.clone(),
             sample.lot.clone(), sample.station.clone(), sample.characteristic.clone(),
