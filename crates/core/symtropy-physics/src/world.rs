@@ -2741,6 +2741,30 @@ mod transformed_halfspace_tests {
         let first_force = world.bodies[0].force_accumulator.clone();
         let second_position = world.bodies[1].transform.translation.0.clone();
         let second_torque = world.bodies[1].torque_accumulator.clone();
+        let first_handle = world.bodies[0].handle;
+        let second_handle = world.bodies[1].handle;
+        let cache_point = SVector::new(0.0, 0.0, 0.0);
+
+        world.contacts.push(ContactManifold::single(
+            first_handle,
+            second_handle,
+            SVector::new(1.0, 0.0, 0.0),
+            cache_point,
+            0.1,
+        ));
+        world.collision_events.push(CollisionEvent {
+            body_a: first_handle,
+            body_b: second_handle,
+            impulse: 0.25,
+            normal: SVector::new(1.0, 0.0, 0.0),
+            depth: 0.1,
+        });
+        world.sensor_events.push(crate::contact::SensorEvent {
+            sensor: first_handle,
+            other: second_handle,
+        });
+        world.contact_cache.store(first_handle, second_handle, cache_point, 0.25, 0.0);
+        world.prev_cache.store(first_handle, second_handle, cache_point, 0.5, 0.0);
 
         let error = world.try_step(0.01).unwrap_err();
         assert_eq!(
@@ -2752,6 +2776,11 @@ mod transformed_halfspace_tests {
         assert_eq!(world.bodies[0].force_accumulator, first_force);
         assert_eq!(world.bodies[1].transform.translation.0, second_position);
         assert_eq!(world.bodies[1].torque_accumulator, second_torque);
+        assert_eq!(world.contacts.len(), 1);
+        assert_eq!(world.collision_events.len(), 1);
+        assert_eq!(world.sensor_events.len(), 1);
+        assert_eq!(world.contact_cache.lookup(first_handle, second_handle, &cache_point).unwrap().normal_impulse, 0.25);
+        assert_eq!(world.prev_cache.lookup(first_handle, second_handle, &cache_point).unwrap().normal_impulse, 0.5);
     }
 
 
