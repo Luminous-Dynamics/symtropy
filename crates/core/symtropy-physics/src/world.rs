@@ -127,7 +127,6 @@ type MeshContactFn<const D: usize> = Arc<
         + Sync,
 >;
 
-/// The physics world manages all rigid bodies and steps the simulation.
 /// Typed error returned when a physics-world step cannot be completed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PhysicsStepError {
@@ -217,6 +216,7 @@ impl<const D: usize> WorldStepSnapshot<D> {
     }
 }
 
+/// The physics world manages all rigid bodies and steps the simulation.
 pub struct PhysicsWorld<const D: usize> {
     pub bodies: Vec<RigidBody<D>>,
     pub constraints: Vec<Box<dyn Constraint<D>>>,
