@@ -72,15 +72,15 @@ pub use haptic::{HapticAttestation, HapticOracle};
 pub use motor::{MotorPlanner, UniformGainPlanner};
 pub use outcome_ledger::{ControlOutcomeLedger, OutcomeIngestReceipt, OutcomeLedgerError};
 pub use platform::PlatformType;
-pub use recovery_benchmark::{
-    ExpectedRecoveryScenario, PairedRecoveryComparison, RecoveryArmSummary, RecoveryBenchmarkArm,
-    RecoveryBenchmarkError, RecoveryBenchmarkSummary, RecoveryScenarioClass, RecoveryTrialRecord,
-    score_recovery_campaign,
-};
 pub use receipt_attestation::{
     CommandEvidenceAttestationError, EvidenceSignerRole, EvidenceTrustPolicy,
     SignedCommandEvidenceReceipt, TrustedEvidenceSigner, sign_command_evidence_receipt,
     verify_signed_command_evidence_receipt,
+};
+pub use recovery_benchmark::{
+    ExpectedRecoveryScenario, PairedRecoveryComparison, RecoveryArmSummary, RecoveryBenchmarkArm,
+    RecoveryBenchmarkError, RecoveryBenchmarkSummary, RecoveryScenarioClass, RecoveryTrialRecord,
+    score_recovery_campaign,
 };
 pub use safety::JointSafetyAuthority;
 pub use sequence_guard::{RequestSequenceGuard, SequenceGuardError, SequencedRuntimeAssurance};
