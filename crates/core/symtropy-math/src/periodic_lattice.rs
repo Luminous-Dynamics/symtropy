@@ -346,6 +346,7 @@ impl<const D: usize> PeriodicLattice<D> {
             .map_or(1.0, |value| value.signum());
 
         let mut best_distance = f64::INFINITY;
+        let mut best_alignment = f64::NEG_INFINITY;
         let mut best_displacement = *displacement;
         let mut best_offset = LatticeOffset::zero();
         let mut candidates_evaluated = 0_usize;
@@ -409,19 +410,30 @@ impl<const D: usize> PeriodicLattice<D> {
                             let tolerance = DISTANCE_TIE_EPSILON_MULTIPLIER
                                 * f64::EPSILON
                                 * distance.max(best_distance).max(1.0);
+                            let alignment = candidate_displacement.dot(displacement);
+                            if !alignment.is_finite() {
+                                visit_error = Some(PeriodicLatticeError::NumericRange {
+                                    field: "minimum-image tie alignment",
+                                });
+                                return;
+                            }
+                            let alignment_tolerance = DISTANCE_TIE_EPSILON_MULTIPLIER
+                                * f64::EPSILON
+                                * alignment.abs().max(best_alignment.abs()).max(1.0);
                             let is_better =
                                 !best_distance.is_finite() || distance + tolerance < best_distance;
                             let is_tie = best_distance.is_finite()
                                 && (distance - best_distance).abs() <= tolerance;
-                            if is_better
-                                || (is_tie
+                            let tie_precedes = alignment > best_alignment + alignment_tolerance
+                                || ((alignment - best_alignment).abs() <= alignment_tolerance
                                     && signed_offset_precedes(
                                         &candidate,
                                         &best_offset.periods,
                                         orientation,
-                                    ))
-                            {
+                                    ));
+                            if is_better || (is_tie && tie_precedes) {
                                 best_distance = distance;
+                                best_alignment = alignment;
                                 best_displacement = candidate_displacement;
                                 best_offset = candidate_offset;
                             }
@@ -582,6 +594,24 @@ mod tests {
             let lattice_minimum = lattice.minimum_image_displacement(&delta, 81).unwrap();
             let box_minimum = domain.minimum_image_displacement(&delta).unwrap();
             assert!((lattice_minimum.displacement - box_minimum).norm() < 1e-10);
+        }
+    }
+
+    #[test]
+    fn exact_half_cell_ties_preserve_reversal_oddness() {
+        let lattice = orthogonal_lattice();
+        for delta in [
+            SVector::from([5.0, -4.0]),
+            SVector::from([-5.0, 4.0]),
+            SVector::from([15.0, 12.0]),
+        ] {
+            let forward = lattice.minimum_image_displacement(&delta, 81).unwrap();
+            let reverse = lattice.minimum_image_displacement(&(-delta), 81).unwrap();
+            assert!((forward.displacement + reverse.displacement).norm() < 1e-10);
+            assert_eq!(
+                forward.image_offset.periods,
+                reverse.image_offset.periods.map(|period| -period)
+            );
         }
     }
 
