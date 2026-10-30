@@ -251,15 +251,35 @@ impl<const D: usize> RigidBody<D> {
         self.collider = Box::new(compound);
 
         let total_mass = self.mass + tool_mass;
+        if !self.mass.is_finite()
+            || !tool_mass.is_finite()
+            || !total_mass.is_finite()
+            || total_mass <= 0.0
+            || !local_transform.translation.0.iter().all(|value| value.is_finite())
+        {
+            return;
+        }
         let com_offset = (local_transform.translation.0 * tool_mass) / total_mass;
 
-        // TODO(inertia-operator): this legacy merge path still collapses the
-        // existing inertia to a scalar mean and applies an isotropic m*|d|^2
-        // parallel-axis correction. That is not correct for asymmetric bodies.
-        // The full second-moment update is S_total = S_A + m_A*d_A*d_A^T
-        // + S_B + m_B*d_B*d_B^T about the combined center of mass; then build
-        // BivectorInertia from S_total. Do not treat this merge as validated
-        // for asymmetric mass distributions until that operator is plumbed in.
+        // When both components have authoritative mass properties, preserve
+        // them with the exact second-moment parallel-axis composition.
+        let combined_rotational_inertia = self.rotational_inertia.as_ref().and_then(|body_inertia| {
+            let tool_inertia = BivectorInertia::<D>::uniform_solid_ball(tool_mass, 0.1).ok()?;
+            let body_offset = -com_offset;
+            let tool_offset = local_transform.translation.0 - com_offset;
+            BivectorInertia::combine_at_common_center(
+                self.mass,
+                body_inertia,
+                &body_offset,
+                tool_mass,
+                &tool_inertia,
+                &tool_offset,
+            )
+            .ok()
+        });
+
+        // Compatibility estimate for callers that still inspect the legacy
+        // per-axis inertia vectors. The operator above is authoritative.
         let i_original = self.inertia.sum() / D as f64;
         // The toolhead is approximated as a uniformly-filled D-ball.
         let i_tool = (2.0 / (D as f64 + 2.0)) * tool_mass * 0.1 * 0.1;
@@ -273,6 +293,7 @@ impl<const D: usize> RigidBody<D> {
         self.inv_mass = 1.0 / total_mass;
         self.inertia = SVector::from_element(i_total);
         self.inv_inertia = SVector::from_element(1.0 / i_total);
+        self.rotational_inertia = combined_rotational_inertia;
 
         self.transform.translation.0 += com_offset;
     }
@@ -296,6 +317,23 @@ mod tests {
                 "D={D} axis={axis}: inertia={value}, expected={expected}"
             );
         }
+    }
+
+    #[test]
+    fn merge_toolhead_uses_second_moment_parallel_axis_rule() {
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 2.0);
+        let tool_collider = Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1));
+        let tool_transform = Transform::from_translation(Point::new([2.0, 0.0, 0.0]));
+        body.merge_toolhead(tool_transform, tool_collider, 1.0);
+
+        let inertia = body.rotational_inertia.as_ref().unwrap();
+        let expected_xx = 0.4 + 2.0 * (4.0 / 9.0) + 0.002 + 16.0 / 9.0;
+        let expected_yy = 0.4 + 0.002;
+        assert!((inertia.second_moment()[(0, 0)] - expected_xx).abs() < 1e-12);
+        assert!((inertia.second_moment()[(1, 1)] - expected_yy).abs() < 1e-12);
+        assert!((inertia.second_moment()[(2, 2)] - expected_yy).abs() < 1e-12);
+        assert!((body.mass - 3.0).abs() < 1e-12);
+        assert!((body.position()[0] - 2.0 / 3.0).abs() < 1e-12);
     }
 
     #[test]
