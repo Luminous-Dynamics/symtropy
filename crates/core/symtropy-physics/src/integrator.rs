@@ -783,5 +783,4 @@ mod tests {
         assert_eq!(error, RotationalInertiaError::SingularInertia);
         assert_eq!(body.angular_velocity, before);
     }
-
 }
