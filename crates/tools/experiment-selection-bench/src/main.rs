@@ -71,11 +71,11 @@ fn run() -> Result<(), String> {
     );
     print!("{}", render_receipts(&source_sha, &results));
     println!(
-        "EXPERIMENT_SUMMARY,v1,problem,policy,trials,budget,mean_regret,median_regret,p90_regret,mean_cumulative_simple_regret,mean_infeasible_calls,mean_trial_runtime_ns"
+        "EXPERIMENT_SUMMARY,v1,problem,policy,trials,budget,mean_regret,median_regret,p90_regret,mean_cumulative_simple_regret,mean_infeasible_calls,mean_invalid_proposals,mean_trial_runtime_ns"
     );
     for summary in summaries {
         println!(
-            "EXPERIMENT_SUMMARY,v1,{},{},{},{},{:.12e},{:.12e},{:.12e},{:.12e},{:.6},{:.3}",
+            "EXPERIMENT_SUMMARY,v1,{},{},{},{},{:.12e},{:.12e},{:.12e},{:.12e},{:.6},{:.6},{:.3}",
             summary.problem.as_str(),
             summary.policy.as_str(),
             summary.trials,
@@ -85,6 +85,7 @@ fn run() -> Result<(), String> {
             summary.p90_regret,
             summary.mean_cumulative_simple_regret,
             summary.mean_infeasible_calls,
+            summary.mean_invalid_proposals,
             summary.mean_elapsed_nanos
         );
     }
