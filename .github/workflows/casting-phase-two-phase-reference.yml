@@ -1,0 +1,44 @@
+name: Casting two-phase Stefan analytical reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/two_phase.rs"
+      - "tools/casting-phase-reference/two-phase-README.md"
+      - ".github/workflows/casting-phase-two-phase-reference.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/two_phase.rs"
+      - "tools/casting-phase-reference/two-phase-README.md"
+      - ".github/workflows/casting-phase-two-phase-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/casting-phase-reference/two_phase.rs -o "$RUNNER_TEMP/two-phase-tests"
+          "$RUNNER_TEMP/two-phase-tests"
+      - name: Build and verify analytical reference
+        run: |
+          rustc --edition=2024 -D warnings tools/casting-phase-reference/two_phase.rs -o "$RUNNER_TEMP/two-phase-stefan"
+          "$RUNNER_TEMP/two-phase-stefan" --verify
+      - name: Check deterministic output
+        run: |
+          "$RUNNER_TEMP/two-phase-stefan" --csv > "$RUNNER_TEMP/two-phase-a.csv"
+          "$RUNNER_TEMP/two-phase-stefan" --csv > "$RUNNER_TEMP/two-phase-b.csv"
+          diff -u "$RUNNER_TEMP/two-phase-a.csv" "$RUNNER_TEMP/two-phase-b.csv"
+          cat "$RUNNER_TEMP/two-phase-a.csv"
+      - name: Emit digests
+        run: |
+          sha256sum tools/casting-phase-reference/two_phase.rs "$RUNNER_TEMP/two-phase-a.csv"
