@@ -136,6 +136,9 @@ pub struct PhysicsWorld<const D: usize> {
     pub collision_events: Vec<CollisionEvent<D>>,
     /// Sensor overlap events from the last step.
     pub sensor_events: Vec<crate::contact::SensorEvent>,
+    /// Body pairs whose GJK narrow phase reached its iteration limit during
+    /// the last step. The step is not narrow-phase complete while this is nonempty.
+    unresolved_gjk_pairs: Vec<broadphase::BroadphasePair>,
     /// Contact cache for warm-starting (previous frame's impulses).
     contact_cache: ContactCache<D>,
     /// Warm-starting from the previous frame (swapped at frame boundaries).
@@ -209,6 +212,7 @@ impl<const D: usize> PhysicsWorld<D> {
             contacts: Vec::new(),
             collision_events: Vec::new(),
             sensor_events: Vec::new(),
+            unresolved_gjk_pairs: Vec::new(),
             contact_cache: ContactCache::new(),
             prev_cache: ContactCache::new(),
             solver_iterations: 4,
@@ -275,6 +279,36 @@ impl<const D: usize> PhysicsWorld<D> {
             + 'static,
     {
         self.mesh_contact_fn = Some(Arc::new(f));
+    }
+
+    /// Whether every convex GJK query in the most recent step reached a
+    /// definitive intersection or separation result.
+    ///
+    /// A false value means at least one body pair exhausted the GJK iteration
+    /// limit. The world has not synthesized a contact for that pair; callers
+    /// should reject or roll back the incomplete step according to their policy.
+    pub fn narrowphase_complete(&self) -> bool {
+        self.unresolved_gjk_pairs.is_empty()
+    }
+
+    /// Body pairs whose GJK result was unresolved in the most recent step.
+    pub fn unresolved_gjk_pairs(&self) -> &[broadphase::BroadphasePair] {
+        &self.unresolved_gjk_pairs
+    }
+
+    fn record_gjk_termination(
+        &mut self,
+        pair: broadphase::BroadphasePair,
+        termination: gjk::GjkTermination,
+    ) -> bool {
+        match termination {
+            gjk::GjkTermination::Intersecting => true,
+            gjk::GjkTermination::Separated => false,
+            gjk::GjkTermination::IterationLimit => {
+                self.unresolved_gjk_pairs.push(pair);
+                false
+            }
+        }
     }
 
     /// Get the total number of bodies in the world.
@@ -420,6 +454,7 @@ impl<const D: usize> PhysicsWorld<D> {
         // 0. Clear events from previous step
         self.collision_events.clear();
         self.sensor_events.clear();
+        self.unresolved_gjk_pairs.clear();
         // Warm-starting: swap caches so prev_cache has last frame's impulses
         std::mem::swap(&mut self.contact_cache, &mut self.prev_cache);
         self.contact_cache.begin_frame();
@@ -572,7 +607,10 @@ impl<const D: usize> PhysicsWorld<D> {
                     &self.bodies[b].transform,
                 );
 
-                if result.intersecting {
+                if self.record_gjk_termination(
+                    broadphase::BroadphasePair(pair.0, pair.1),
+                    result.termination(),
+                ) {
                     // Sensor detection: emit event but skip collision resolution
                     if self.bodies[a].is_sensor || self.bodies[b].is_sensor {
                         let (sensor, other) = if self.bodies[a].is_sensor {
@@ -2534,6 +2572,35 @@ mod transformed_halfspace_tests {
             manifold.depth()
         );
         assert!(manifold.normal[0] > 0.999);
+    }
+
+    #[test]
+    fn physics_world_reports_and_resets_unresolved_gjk_pairs() {
+        let mut world = PhysicsWorld::<2>::default();
+        let pair = broadphase::BroadphasePair(BodyHandle(3), BodyHandle(9));
+
+        assert!(!world.record_gjk_termination(pair, gjk::GjkTermination::IterationLimit));
+        assert!(!world.narrowphase_complete());
+        assert_eq!(world.unresolved_gjk_pairs(), &[pair]);
+
+        assert!(!world.record_gjk_termination(
+            broadphase::BroadphasePair(BodyHandle(4), BodyHandle(5)),
+            gjk::GjkTermination::Separated,
+        ));
+        assert_eq!(world.unresolved_gjk_pairs(), &[pair]);
+
+        world.step(1.0 / 60.0);
+        assert!(world.narrowphase_complete());
+        assert!(world.unresolved_gjk_pairs().is_empty());
+    }
+
+    #[test]
+    fn confirmed_intersection_does_not_mark_narrowphase_unresolved() {
+        let mut world = PhysicsWorld::<2>::default();
+        let pair = broadphase::BroadphasePair(BodyHandle(1), BodyHandle(2));
+        assert!(world.record_gjk_termination(pair, gjk::GjkTermination::Intersecting));
+        assert!(world.narrowphase_complete());
+        assert!(world.unresolved_gjk_pairs().is_empty());
     }
 
     #[test]
