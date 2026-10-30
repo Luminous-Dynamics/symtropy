@@ -2,7 +2,7 @@ name: SIM-REL-003 MDL Information Gain
 
 on:
   push:
-    branches: ["main", "research/sim-rel-003-mdl-eig"]
+    branches: ["main", "research/sim-rel-003-*"]
     paths:
       - "tools/sim-rel-bayes/**"
       - "docs/research/SIM_REL_003_MDL_EIG_PROTOCOL_2026-10-30.md"
