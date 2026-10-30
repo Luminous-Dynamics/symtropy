@@ -137,7 +137,7 @@ pub struct PhysicsWorld<const D: usize> {
     /// Sensor overlap events from the last step.
     pub sensor_events: Vec<crate::contact::SensorEvent>,
     /// Body pairs whose GJK narrow phase reached its iteration limit during
-    /// the last step. The step is not narrow-phase complete while this is nonempty.
+    /// the last step. GJK classification is incomplete while this is nonempty.
     unresolved_gjk_pairs: Vec<broadphase::BroadphasePair>,
     /// Contact cache for warm-starting (previous frame's impulses).
     contact_cache: ContactCache<D>,
@@ -2581,7 +2581,7 @@ mod transformed_halfspace_tests {
         let pair = broadphase::BroadphasePair(BodyHandle(3), BodyHandle(9));
 
         assert!(!world.record_gjk_termination(pair, gjk::GjkTermination::IterationLimit));
-        assert!(!world.narrowphase_complete());
+        assert!(!world.gjk_classification_complete());
         assert_eq!(world.unresolved_gjk_pairs(), &[pair]);
 
         assert!(!world.record_gjk_termination(
@@ -2591,7 +2591,7 @@ mod transformed_halfspace_tests {
         assert_eq!(world.unresolved_gjk_pairs(), &[pair]);
 
         world.step(1.0 / 60.0);
-        assert!(world.narrowphase_complete());
+        assert!(world.gjk_classification_complete());
         assert!(world.unresolved_gjk_pairs().is_empty());
     }
 
@@ -2600,7 +2600,7 @@ mod transformed_halfspace_tests {
         let mut world = PhysicsWorld::<2>::default();
         let pair = broadphase::BroadphasePair(BodyHandle(1), BodyHandle(2));
         assert!(world.record_gjk_termination(pair, gjk::GjkTermination::Intersecting));
-        assert!(world.narrowphase_complete());
+        assert!(world.gjk_classification_complete());
         assert!(world.unresolved_gjk_pairs().is_empty());
     }
 
