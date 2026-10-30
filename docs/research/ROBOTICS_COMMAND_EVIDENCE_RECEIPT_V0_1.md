@@ -15,7 +15,7 @@ The receipt is intended to travel with every scored trial. Campaign aggregation 
 - Campaign ID and campaign revision.
 - Exact scenario-manifest digest and scenario ID.
 - Benchmark arm and exact arm source revision.
-- Policy, plant/model, and native-controller configuration digests.
+- Policy, task-profile, plant/model, and native-controller configuration digests.
 - Trace collector identity and evaluator/canonical-encoding version.
 
 At construction time, the context's native-controller configuration digest must also equal the controller-configuration digest in every expected command identity; a mismatch prevents receipt creation.
