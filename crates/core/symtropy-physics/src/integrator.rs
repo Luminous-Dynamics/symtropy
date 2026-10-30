@@ -414,6 +414,40 @@ mod tests {
     }
 
     #[test]
+    fn asymmetric_contact_effective_mass_matches_applied_angular_impulse() {
+        use crate::inertia::BivectorInertia;
+
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+        body.set_rotational_inertia_operator(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+                .unwrap(),
+        );
+        body.transform.rotation =
+            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.43);
+
+        let offset = SVector::new(0.4, -0.7, 0.9);
+        let direction = SVector::new(0.3, 0.8, -0.2).normalize();
+        let impulse_magnitude = 0.37;
+        let effective_mass =
+            rotational_inverse_effective_mass(&body, &offset, &direction);
+        let before = body.angular_velocity;
+
+        let impulse = direction * impulse_magnitude;
+        let angular_impulse = Bivector::from_wedge(&impulse, &offset);
+        apply_angular_impulse(&mut body, &angular_impulse);
+        let angular_state_delta = body.angular_velocity.add(&before.scale(-1.0));
+        let point_velocity_delta = angular_point_velocity(&angular_state_delta, &offset);
+        let measured_inverse_mass = direction.dot(&point_velocity_delta) / impulse_magnitude;
+
+        assert!(
+            (measured_inverse_mass - effective_mass).abs()
+                < 1e-11 * effective_mass.abs().max(1.0),
+            "effective mass={effective_mass:e}, measured={measured_inverse_mass:e}"
+        );
+    }
+
+    #[test]
     fn angular_impulse_produces_point_velocity_in_impulse_direction() {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         let offset = SVector::from([1.0, 0.0, 0.0]);
