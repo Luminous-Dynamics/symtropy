@@ -1,0 +1,75 @@
+name: Manufacturing Acceptance Gate
+
+on:
+  pull_request:
+    paths:
+      - "research/transformer-bench/src/bin/manufacturing-acceptance.rs"
+      - "research/transformer-bench/fixtures/manufacturing-*.csv"
+      - "research/transformer-bench/MANUFACTURING_ACCEPTANCE_GATE.md"
+      - "research/transformer-bench/Cargo.toml"
+      - ".github/workflows/manufacturing-acceptance-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manufacturing-acceptance-gate-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+      - name: Format and test the Rust benchmark workspace
+        run: |
+          cargo fmt --manifest-path research/transformer-bench/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/transformer-bench/Cargo.toml
+      - name: Positive manufacturing acceptance fixture
+        run: |
+          cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-acceptance -- \
+            research/transformer-bench/fixtures/manufacturing-ledger-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-product-route-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-route-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-test-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-calibrations-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-measurements-synthetic.csv \
+            "$RUNNER_TEMP/acceptance.csv"
+          grep -F "TX-PROD-001,TX-2026-0001,ROUTE-2026-A,true,0,0,4,4,0,0,0,0,0,true,NONE" "$RUNNER_TEMP/acceptance.csv"
+      - name: Expired calibration must block review
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-acceptance -- \
+            research/transformer-bench/fixtures/manufacturing-ledger-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-product-route-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-route-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-test-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-calibrations-expired-negative.csv \
+            research/transformer-bench/fixtures/manufacturing-measurements-synthetic.csv \
+            "$RUNNER_TEMP/expired.csv"
+          grep -F "TX-PROD-001,TX-2026-0001,ROUTE-2026-A,true,0,0,4,3,0,0,1,0,0,false,REQUIRED_MEASUREMENTS_NOT_PASSING" "$RUNNER_TEMP/expired.csv"
+      - name: Incomplete route must block review
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-acceptance -- \
+            research/transformer-bench/fixtures/manufacturing-ledger-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-product-route-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-route-plan-missing-negative.csv \
+            research/transformer-bench/fixtures/manufacturing-test-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-calibrations-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-measurements-synthetic.csv \
+            "$RUNNER_TEMP/route-missing.csv"
+          grep -F "TX-PROD-001,TX-2026-0001,ROUTE-2026-A,false,1,0,4,4,0,0,0,0,0,false,ROUTE_INCOMPLETE" "$RUNNER_TEMP/route-missing.csv"
+      - name: Guard-band overlap must remain indeterminate
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-acceptance -- \
+            research/transformer-bench/fixtures/manufacturing-ledger-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-product-route-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-route-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-test-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-calibrations-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-measurements-indeterminate-negative.csv \
+            "$RUNNER_TEMP/indeterminate.csv"
+          grep -F "TX-PROD-001,TX-2026-0001,ROUTE-2026-A,true,0,0,4,3,0,1,0,0,0,false,REQUIRED_MEASUREMENTS_NOT_PASSING" "$RUNNER_TEMP/indeterminate.csv"

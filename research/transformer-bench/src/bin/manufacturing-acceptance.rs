@@ -86,7 +86,7 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 7 {
+    if args.len() != 8 {
         return Err(format!(
             "usage: {} <events.csv> <product-routes.csv> <route-plan.csv> <test-plan.csv> <calibrations.csv> <measurements.csv> <report.csv>",
             args.first().map(String::as_str).unwrap_or("manufacturing-acceptance")
@@ -469,6 +469,18 @@ fn evaluate(
                     report.missing_measurements += 1;
                     continue;
                 };
+                let measured_epoch = parse_utc(&measurement.measured_at, "measurement timestamp")?;
+                let event_backed = product_events.iter().any(|event|
+                    event.component == component
+                    && event.operation == spec.test_id
+                    && (event.event_type == "TEST" || event.event_type == "INSPECTION")
+                    && event.disposition == "PASS"
+                    && measured_epoch >= event.start && measured_epoch <= event.end
+                );
+                if !event_backed {
+                    report.invalid += 1;
+                    continue;
+                }
                 if measurement.unit != spec.unit || measurement.uncertainty > spec.max_uncertainty {
                     report.invalid += 1;
                     continue;
