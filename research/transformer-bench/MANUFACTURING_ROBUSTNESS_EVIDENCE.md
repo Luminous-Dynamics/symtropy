@@ -14,6 +14,7 @@ Run:
 
 ```sh
 cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-robustness-evidence -- \
+  /tmp/manufacturing-acceptance-report.csv \
   research/transformer-bench/fixtures/manufacturing-robustness-evidence-synthetic.csv \
   /tmp/symthaea-robustness-candidates.csv
 ```
