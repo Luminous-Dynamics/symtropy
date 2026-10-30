@@ -22,7 +22,7 @@ The sign convention is impulse-positive: q < 0 means a row is closing, and W map
 
 Module: `crates/core/symtropy-physics/src/discrete_contact.rs`
 
-- `build_contact_jacobian<D>` assembles relative-normal rows from body indices, unit-normal directions and per-body COM offsets. Its generalized coordinate block is D translational values followed by lexicographically ordered bivector planes; angular coefficients use the physical -B*r point-velocity convention.
+- `build_contact_jacobian<D>` assembles relative-normal rows from body indices, unit-normal directions and per-body COM offsets. Its generalized coordinate block is D translational values followed by lexicographically ordered bivector planes; angular coefficients use the physical -B*r point-velocity convention. Rows must provide unit normals within 1e-10; the builder rejects rather than silently normalizing them.
 - `assemble_delassus` computes W = J M_eff^-1 J^T from that generalized row Jacobian and a symmetric PSD inverse effective-mass matrix. It validates the input metric and raw product before averaging only roundoff-sized asymmetry.
 - `validate_delassus` checks nonempty square dimensions, finite entries, scale-relative symmetry and PSD within a caller-supplied tolerance. It does not silently project an invalid operator.
 - `contact_lcp_kkt_residual` independently recomputes the minimum impulse, minimum slack and maximum complementarity product.
