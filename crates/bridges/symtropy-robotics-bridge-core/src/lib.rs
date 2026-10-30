@@ -19,6 +19,7 @@ pub mod haptic;
 pub mod motor;
 pub mod outcome_ledger;
 pub mod platform;
+pub mod receipt_attestation;
 pub mod recovery_benchmark;
 pub mod safety;
 pub mod sequence_guard;
@@ -29,8 +30,9 @@ pub use assurance::{
     RuntimeAssurancePolicy, RuntimeSafetyState, VetoReason,
 };
 pub use audit_receipt::{
-    COMMAND_EVIDENCE_RECEIPT_SCHEMA_VERSION, CommandEvidenceReceipt, CommandEvidenceReceiptContext,
-    CommandEvidenceReceiptError, create_command_evidence_receipt, verify_command_evidence_receipt,
+    CommandEvidenceReceipt, CommandEvidenceReceiptContext, CommandEvidenceReceiptError,
+    COMMAND_EVIDENCE_RECEIPT_SCHEMA_VERSION, create_command_evidence_receipt,
+    verify_command_evidence_receipt,
 };
 pub use command_evidence::{
     CommandEvidenceAudit, CommandEvidenceAuditError, CommandEvidenceEvent, CommandEvidenceKind,
@@ -70,6 +72,11 @@ pub use haptic::{HapticAttestation, HapticOracle};
 pub use motor::{MotorPlanner, UniformGainPlanner};
 pub use outcome_ledger::{ControlOutcomeLedger, OutcomeIngestReceipt, OutcomeLedgerError};
 pub use platform::PlatformType;
+pub use receipt_attestation::{
+    CommandEvidenceAttestationError, EvidenceSignerRole, EvidenceTrustPolicy,
+    SignedCommandEvidenceReceipt, TrustedEvidenceSigner, sign_command_evidence_receipt,
+    verify_signed_command_evidence_receipt,
+};
 pub use recovery_benchmark::{
     ExpectedRecoveryScenario, PairedRecoveryComparison, RecoveryArmSummary, RecoveryBenchmarkArm,
     RecoveryBenchmarkError, RecoveryBenchmarkSummary, RecoveryScenarioClass, RecoveryTrialRecord,
