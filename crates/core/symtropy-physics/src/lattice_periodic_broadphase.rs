@@ -245,6 +245,27 @@ mod tests {
         .unwrap()
     }
 
+    fn bounds3(min: [f64; 3], max: [f64; 3]) -> Aabb<3> {
+        Aabb {
+            min: SVector::from(min),
+            max: SVector::from(max),
+        }
+    }
+
+    fn skew_domain3() -> LatticePeriodicDomain<3> {
+        LatticePeriodicDomain::new(
+            SVector::zeros(),
+            SMatrix::new(
+                4.0, 1.0, 0.2,
+                0.0, 3.5, 0.7,
+                0.0, 0.0, 2.8,
+            ),
+            [true, true, true],
+            100_000,
+        )
+        .unwrap()
+    }
+
     fn brute_force<const D: usize>(
         domain: &LatticePeriodicDomain<D>,
         a: &Aabb<D>,
@@ -319,6 +340,36 @@ mod tests {
             assert!(
                 oracle.is_subset(&actual),
                 "production candidate set missed an oracle image: missing={:?}",
+                oracle.difference(&actual).collect::<Vec<_>>()
+            );
+        }
+    }
+
+    #[test]
+    fn skewed_3d_candidate_set_has_no_missed_brute_force_images() {
+        let domain = skew_domain3();
+        let fixtures = [
+            (
+                bounds3([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]),
+                bounds3([5.2, 4.2, 2.8], [6.2, 5.2, 3.8]),
+            ),
+            (
+                bounds3([-2.0, -1.0, 0.5], [2.0, 2.5, 3.0]),
+                bounds3([8.0, 7.0, -4.0], [11.0, 10.0, 1.0]),
+            ),
+        ];
+
+        for (a, b) in fixtures {
+            let actual: HashSet<_> = image_offsets_for_aabb_pair_lattice(
+                &domain, &a, &b, 100_000,
+            )
+            .unwrap()
+            .into_iter()
+            .collect();
+            let oracle = brute_force(&domain, &a, &b, 8);
+            assert!(
+                oracle.is_subset(&actual),
+                "3D production candidate set missed oracle images: missing={:?}",
                 oracle.difference(&actual).collect::<Vec<_>>()
             );
         }
