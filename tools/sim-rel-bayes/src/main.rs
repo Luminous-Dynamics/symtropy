@@ -1056,6 +1056,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             &candidates,
             Policy::UniformEig,
             stable_seed(&task.problem.id),
+            mdl_beta,
         );
         let mdl_eig = run_episode(
             &task.problem,
@@ -1063,6 +1064,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             &candidates,
             Policy::MdlEig,
             stable_seed(&task.problem.id),
+            mdl_beta,
         );
         let fixed = run_episode(
             &task.problem,
@@ -1070,6 +1072,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             &candidates,
             Policy::Fixed,
             stable_seed(&task.problem.id),
+            mdl_beta,
         );
         let mut random = Vec::new();
         for i in 0..RANDOM_REPETITIONS {
