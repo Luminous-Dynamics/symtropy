@@ -31,6 +31,7 @@ pub struct FrictionlessContactRow<const D: usize> {
 pub enum DelassusAssemblyError {
     InvalidTolerance,
     InvalidRow,
+    TooManyRows,
     MissingBody(BodyHandle),
     RotationalInertia(RotationalInertiaError),
 }
@@ -75,8 +76,11 @@ pub fn assemble_delassus<const D: usize>(
     if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 {
         return Err(DelassusAssemblyError::InvalidTolerance);
     }
-    if rows.is_empty() || rows.len() > 8 {
+    if rows.is_empty() {
         return Err(DelassusAssemblyError::InvalidRow);
+    }
+    if rows.len() > 8 {
+        return Err(DelassusAssemblyError::TooManyRows);
     }
 
     for row in rows {
@@ -412,6 +416,15 @@ mod tests {
         .eigenvalues;
         let minimum_eigenvalue = eigenvalues.iter().fold(f64::INFINITY, |min, value| min.min(*value));
         assert!(minimum_eigenvalue >= -1e-12);
+
+        // Solve a constructed impact target from the assembled operator. This
+        // closes the loop between generalized impulse response and the LCP
+        // oracle rather than testing the two pieces only in isolation.
+        let expected_impulses = DVector::from_vec(vec![0.25, 0.1]);
+        let q = -(&matrix * &expected_impulses);
+        let solution = solve_frictionless_lcp(&matrix, &q, 1e-10).unwrap();
+        assert!((solution.impulses - expected_impulses).norm() < 1e-9);
+        assert!(solution.residual.norm() < 1e-9);
     }
 
     #[test]
