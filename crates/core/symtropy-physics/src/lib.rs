@@ -25,6 +25,7 @@ pub mod epa;
 pub mod gjk;
 pub mod integrator;
 pub mod island;
+pub mod lattice_periodic_broadphase;
 pub mod joints;
 pub mod manifold_gen;
 pub mod raycast;
@@ -40,6 +41,9 @@ pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
+pub use lattice_periodic_broadphase::{
+    LatticeBroadphaseError, image_offsets_for_aabb_pair_lattice,
+};
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
