@@ -77,6 +77,8 @@ struct SchemaAdmission {
     schema_bundle_sha256: String,
     parser_id: String,
     parser_version: String,
+    validation_authority_id: String,
+    validation_receipt_sha256: String,
     xsd_validation_passed: bool,
 }
 
@@ -102,10 +104,13 @@ impl SourceDocument {
             || !present(&self.schema.namespace)
             || !present(&self.schema.parser_id)
             || !present(&self.schema.parser_version)
+            || !present(&self.schema.validation_authority_id)
         {
             return Err("SOURCE_DOCUMENT_IDENTITY_MISSING");
         }
-        if !valid_sha(&self.document_sha256) || !valid_sha(&self.schema.schema_bundle_sha256) {
+        if !valid_sha(&self.document_sha256)
+            || !valid_sha(&self.schema.schema_bundle_sha256)
+            || !valid_sha(&self.schema.validation_receipt_sha256) {
             return Err("SOURCE_DOCUMENT_DIGEST_INVALID");
         }
         if !self.schema.xsd_validation_passed {
@@ -216,7 +221,11 @@ struct MtObservation {
     data_item_id: String,
     component_id: String,
     sequence: u64,
-    timestamp_ns: i64,
+    source_timestamp_ns: i64,
+    reference_timestamp_ns: i64,
+    reference_clock_id: String,
+    clock_mapping_sha256: String,
+    clock_uncertainty_ns: u64,
     source_locator: String,
     document_order: usize,
     value: MtValue,
@@ -260,7 +269,11 @@ struct MappedObservation {
     data_item_id: String,
     component_id: String,
     sequence: u64,
+    source_timestamp_ns: i64,
     timestamp_ns: i64,
+    reference_clock_id: String,
+    clock_mapping_sha256: String,
+    clock_uncertainty_ns: u64,
     document_order: usize,
     native_kind: &'static str,
     native_unit: String,
@@ -342,8 +355,11 @@ fn map_mtconnect(
         if !present(&observation.data_item_id)
             || !present(&observation.component_id)
             || !present(&observation.source_locator)
-        {
-            return Err("MTCONNECT_OBSERVATION_IDENTITY_MISSING");
+            || !present(&observation.reference_clock_id)
+            || !valid_sha(&observation.clock_mapping_sha256)
+            || observation.clock_uncertainty_ns > 100_000 {
+        
+            return Err("MTCONNECT_OBSERVATION_OR_CLOCK_IDENTITY_INVALID");
         }
         observation.value.validate()?;
 
@@ -371,7 +387,11 @@ fn map_mtconnect(
             data_item_id: observation.data_item_id.clone(),
             component_id: observation.component_id.clone(),
             sequence: observation.sequence,
-            timestamp_ns: observation.timestamp_ns,
+            source_timestamp_ns: observation.source_timestamp_ns,
+            timestamp_ns: observation.reference_timestamp_ns,
+            reference_clock_id: observation.reference_clock_id.clone(),
+            clock_mapping_sha256: observation.clock_mapping_sha256.clone(),
+            clock_uncertainty_ns: observation.clock_uncertainty_ns,
             document_order: observation.document_order,
             native_kind: observation.value.kind_code(),
             native_unit: native_unit(&observation.value),
@@ -386,7 +406,7 @@ fn map_mtconnect(
     for pair in chronological.windows(2) {
         let previous = pair[0];
         let current = pair[1];
-        if current.timestamp_ns < previous.timestamp_ns {
+        if current.reference_timestamp_ns < previous.reference_timestamp_ns {
             diagnostics.push(StreamDiagnostic {
                 kind: StreamDiagnosticKind::TimestampRegression,
                 sequence: current.sequence,
@@ -458,7 +478,11 @@ struct QifInspectionResult {
     instrument_resource_id: String,
     actual_value: Option<f64>,
     original_unit: String,
-    measured_at_ns: i64,
+    source_measured_at_ns: i64,
+    measured_at_reference_ns: i64,
+    reference_clock_id: String,
+    clock_mapping_sha256: String,
+    clock_uncertainty_ns: u64,
     result_status: QifResultStatus,
     source_locator: String,
 }
@@ -476,6 +500,7 @@ impl QifInspectionResult {
             self.characteristic_id.as_str(), self.feature_id.as_str(), self.specification_id.as_str(),
             self.specification_revision.as_str(), self.instrument_resource_id.as_str(),
             self.original_unit.as_str(), self.source_locator.as_str(),
+            self.reference_clock_id.as_str(),
         ] {
             if !present(id) {
                 return Err("QIF_RESULT_IDENTITY_MISSING");
@@ -483,6 +508,9 @@ impl QifInspectionResult {
         }
         if self.result_status != QifResultStatus::Measured {
             return Err("QIF_RESULT_NOT_MEASURED");
+        }
+        if !valid_sha(&self.clock_mapping_sha256) || self.clock_uncertainty_ns > 100_000 {
+            return Err("QIF_CLOCK_MAPPING_INVALID");
         }
         let actual = self.actual_value.ok_or("QIF_ACTUAL_VALUE_MISSING")?;
         if !finite(actual) {
@@ -500,6 +528,9 @@ struct OperationCycle {
     operation_id: String,
     start_ns: i64,
     end_ns: i64,
+    reference_clock_id: String,
+    clock_mapping_sha256: String,
+    clock_uncertainty_ns: u64,
     mtconnect_document_sha256: String,
     device_uuid: String,
     stream_id: String,
@@ -538,6 +569,7 @@ struct AssociationReceipt {
     lot_id: String,
     operation_id: String,
     characteristic_id: String,
+    reference_clock_id: String,
     valid_from_ns: i64,
     valid_until_ns: i64,
     authority_id: String,
@@ -600,7 +632,11 @@ struct ComposedEvidence {
     actual_value: f64,
     original_unit: String,
     derived_value: Option<DerivedValue>,
+    source_measured_at_ns: i64,
     measured_at_ns: i64,
+    reference_clock_id: String,
+    clock_mapping_sha256: String,
+    combined_clock_uncertainty_ns: u64,
     mtconnect_document_sha256: String,
     qif_document_sha256: String,
     association_receipt_sha256: String,
@@ -638,7 +674,8 @@ fn join_qif_to_cycle(
     }
     if !present(&cycle.cycle_id) || !present(&cycle.part_id) || !present(&cycle.lot_id)
         || !present(&cycle.operation_id) || !present(&cycle.source_locator)
-        || cycle.start_ns >= cycle.end_ns {
+        || !present(&cycle.reference_clock_id) || !valid_sha(&cycle.clock_mapping_sha256)
+        || cycle.clock_uncertainty_ns > 100_000 || cycle.start_ns >= cycle.end_ns {
         return fail("OPERATION_CYCLE_IDENTITY_INVALID");
     }
     if let Err(_) = qif_source.validate(Standard::Qif) {
@@ -675,7 +712,12 @@ fn join_qif_to_cycle(
         || result.operation_id != cycle.operation_id {
         return fail("PART_LOT_OPERATION_IDENTITY_MISMATCH");
     }
-    if result.measured_at_ns < cycle.start_ns || result.measured_at_ns > cycle.end_ns {
+    if result.reference_clock_id != cycle.reference_clock_id
+        || association.reference_clock_id != cycle.reference_clock_id
+        || result.clock_uncertainty_ns.saturating_add(cycle.clock_uncertainty_ns) > 100_000 {
+        return fail("REFERENCE_CLOCK_ID_OR_UNCERTAINTY_MISMATCH");
+    }
+    if result.measured_at_reference_ns < cycle.start_ns || result.measured_at_reference_ns > cycle.end_ns {
         return fail("QIF_MEASUREMENT_OUTSIDE_CYCLE_WINDOW");
     }
     if !stream.observations.iter().any(|obs|
@@ -705,7 +747,11 @@ fn join_qif_to_cycle(
             actual_value,
             original_unit: result.original_unit.clone(),
             derived_value,
-            measured_at_ns: result.measured_at_ns,
+            source_measured_at_ns: result.source_measured_at_ns,
+            measured_at_ns: result.measured_at_reference_ns,
+            reference_clock_id: result.reference_clock_id.clone(),
+            clock_mapping_sha256: result.clock_mapping_sha256.clone(),
+            combined_clock_uncertainty_ns: result.clock_uncertainty_ns.saturating_add(cycle.clock_uncertainty_ns),
             mtconnect_document_sha256: stream.document_sha256.clone(),
             qif_document_sha256: qif_source.document_sha256.clone(),
             association_receipt_sha256: association.source_sha256.clone(),
@@ -733,6 +779,8 @@ fn fixture_source(standard: Standard) -> SourceDocument {
             schema_bundle_sha256: prefix_hash(if standard == Standard::MtConnect { "1" } else { "2" }),
             parser_id: "fixture-parser".into(),
             parser_version: "0.1".into(),
+            validation_authority_id: "fixture-xsd-validator".into(),
+            validation_receipt_sha256: prefix_hash("5"),
             xsd_validation_passed: true,
         },
         opaque_extensions: vec![OpaqueExtension {
@@ -771,7 +819,11 @@ fn fixture_observations(with_gap: bool) -> Vec<MtObservation> {
             data_item_id: format!("DID-{index:03}"),
             component_id: if index == 0 { "SPINDLE-01" } else { "CONTROLLER-01" }.into(),
             sequence,
-            timestamp_ns: 1_750_000_100 + index as i64 * 100,
+            source_timestamp_ns: 1_750_000_100 + index as i64 * 100,
+            reference_timestamp_ns: 1_750_000_100 + index as i64 * 100,
+            reference_clock_id: "PLANT-UTC-001".into(),
+            clock_mapping_sha256: prefix_hash("6"),
+            clock_uncertainty_ns: 100,
             source_locator: format!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[{index}]"),
             document_order: index,
             value,
@@ -787,6 +839,9 @@ fn fixture_cycle(stream: &MappedStream) -> OperationCycle {
         operation_id: "OP-MILL-10".into(),
         start_ns: 1_750_000_000,
         end_ns: 1_750_001_000,
+        reference_clock_id: "PLANT-UTC-001".into(),
+        clock_mapping_sha256: prefix_hash("6"),
+        clock_uncertainty_ns: 100,
         mtconnect_document_sha256: stream.document_sha256.clone(),
         device_uuid: stream.device_uuid.clone(),
         stream_id: stream.stream_id.clone(),
@@ -811,7 +866,11 @@ fn fixture_qif_result(source: &SourceDocument) -> QifInspectionResult {
         instrument_resource_id: "CMM-01".into(),
         actual_value: Some(15.02),
         original_unit: "mm".into(),
-        measured_at_ns: 1_750_000_500,
+        source_measured_at_ns: 1_750_000_490,
+        measured_at_reference_ns: 1_750_000_500,
+        reference_clock_id: "PLANT-UTC-001".into(),
+        clock_mapping_sha256: prefix_hash("7"),
+        clock_uncertainty_ns: 100,
         result_status: QifResultStatus::Measured,
         source_locator: "/QIFDocument/QIFResults/Results[1]".into(),
     }
@@ -830,6 +889,7 @@ fn fixture_association(stream: &MappedStream, qif: &SourceDocument) -> Associati
         lot_id: "LOT-001".into(),
         operation_id: "OP-MILL-10".into(),
         characteristic_id: "SHAFT-DIAMETER-01".into(),
+        reference_clock_id: "PLANT-UTC-001".into(),
         valid_from_ns: 1_700_000_000,
         valid_until_ns: 1_800_000_000,
         authority_id: "MES-QUALITY-LINKER-01".into(),
@@ -883,7 +943,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() {
-    println!("device_uuid,stream_id,data_item_id,component_id,sequence,timestamp_ns,document_order,native_kind,native_unit,value_text,source_document_sha256,source_locator,extension_count");
+    println!("device_uuid,stream_id,data_item_id,component_id,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_document_sha256,source_locator,extension_count");
     let source = fixture_source(Standard::MtConnect);
     let mapped = map_mtconnect(&source, "urn:uuid:machine-001", "STREAM-001", true, &fixture_observations(false))
         .expect("frozen valid MTConnect fixture");
@@ -974,10 +1034,11 @@ mod tests {
     fn timestamp_regression_is_reported_without_rewriting_source_times() {
         let source = fixture_source(Standard::MtConnect);
         let mut observations = fixture_observations(false);
-        observations[2].timestamp_ns = observations[0].timestamp_ns - 1;
+        observations[2].timestamp_ns = observations[0].reference_timestamp_ns - 1;
         let mapped = map_mtconnect(&source,"urn:uuid:machine-001","STREAM-001",false,&observations).unwrap();
         assert!(mapped.diagnostics.iter().any(|d| d.kind == StreamDiagnosticKind::TimestampRegression));
-        assert_eq!(mapped.observations[2].timestamp_ns,observations[2].timestamp_ns);
+        assert_eq!(mapped.observations[2].timestamp_ns,observations[2].reference_timestamp_ns);
+        assert_eq!(mapped.observations[2].source_timestamp_ns,observations[2].source_timestamp_ns);
     }
 
     #[test]
@@ -1030,6 +1091,26 @@ mod tests {
         let association = fixture_association(&stream,&qif);
         let join = join_qif_to_cycle(&stream,&cycle,&qif,&wrong_result,&association,1_750_000_800,None);
         assert_eq!(join.reason,"PART_LOT_OPERATION_IDENTITY_MISMATCH");
+    }
+
+    #[test]
+    fn different_or_unqualified_clock_reference_cannot_join() {
+        let mt=fixture_source(Standard::MtConnect);
+        let stream=map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
+        let qif=fixture_source(Standard::Qif);
+        let mut result=fixture_qif_result(&qif);
+        result.reference_clock_id="CMM-LOCAL-CLOCK".into();
+        let cycle=fixture_cycle(&stream);
+        let association=fixture_association(&stream,&qif);
+        let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
+        assert_eq!(join.status,"INCONCLUSIVE");
+        assert_eq!(join.reason,"REFERENCE_CLOCK_ID_OR_UNCERTAINTY_MISMATCH");
+
+        let mut cycle=fixture_cycle(&stream);
+        cycle.clock_uncertainty_ns=100_000;
+        let result=fixture_qif_result(&qif);
+        let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
+        assert_eq!(join.reason,"REFERENCE_CLOCK_ID_OR_UNCERTAINTY_MISMATCH");
     }
 
     #[test]
