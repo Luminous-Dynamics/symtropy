@@ -322,11 +322,11 @@ mod tests {
     #[test]
     fn coupled_two_row_lcp_matches_analytic_solution() {
         let matrix = DMatrix::from_row_slice(2, 2, &[2.0, 0.5, 0.5, 1.0]);
-        let q = DVector::from_vec(vec![-1.0, -0.25]);
+        let q = DVector::from_vec(vec![-1.125, -0.5]);
         let solution = solve_frictionless_lcp(&matrix, &q, 1e-12).unwrap();
 
         assert!((solution.impulses[0] - 0.5).abs() < 1e-12);
-        assert!((solution.impulses[1] - (2.0 / 7.0)).abs() < 1e-12);
+        assert!((solution.impulses[1] - 0.25).abs() < 1e-12);
         assert!(solution.residual.norm() < 1e-12);
     }
 
@@ -395,7 +395,8 @@ mod tests {
             (&matrix + matrix.transpose()) * 0.5,
         )
         .eigenvalues;
-        assert!(eigenvalues.min() >= -1e-12);
+        let minimum_eigenvalue = eigenvalues.iter().fold(f64::INFINITY, |min, value| min.min(*value));
+        assert!(minimum_eigenvalue >= -1e-12);
     }
 
     #[test]
