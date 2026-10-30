@@ -137,6 +137,37 @@ jobs:
           test "$(wc -l < /tmp/aero-reference-ladson-cp.csv)" -eq 406
           test "$(wc -l < /tmp/aero-reference-gregory-cp.csv)" -eq 74
           sha256sum /tmp/aero-reference-all-a.csv
+      - name: Audit empirical section-polar model envelope on pinned NASA force data
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin section_polar_audit -- > /tmp/section-polar-a.csv 2> /tmp/section-polar-a.txt
+          cargo run --locked --bin section_polar_audit -- > /tmp/section-polar-b.csv 2> /tmp/section-polar-b.txt
+          cmp /tmp/section-polar-a.csv /tmp/section-polar-b.csv
+          cmp /tmp/section-polar-a.txt /tmp/section-polar-b.txt
+          test "$(wc -l < /tmp/section-polar-a.csv)" -eq 4
+          awk -F, '
+            NR == 1 { if (NF != 30) exit 1; next }
+            NF != 30 { exit 1 }
+            $7 == "80 grit" {
+              seen++
+              if ($8 != 17 || $10 != 7 || $18 != 7 || $24 != 3) exit 1
+              if ($14 > 0.0003 || $20 < 0.002 || $26 < 0.1) exit 1
+            }
+            $7 == "120 grit" {
+              seen++
+              if ($8 != 18 || $10 != 8 || $18 != 7 || $24 != 3) exit 1
+              if ($14 > 0.0004 || $20 < 0.002 || $26 < 0.1) exit 1
+            }
+            $7 == "180 grit" {
+              seen++
+              if ($8 != 18 || $10 != 8 || $18 != 7 || $24 != 3) exit 1
+              if ($14 > 0.0004 || $20 < 0.002 || $26 < 0.1) exit 1
+            }
+            END { if (seen != 3) exit 1 }
+          ' /tmp/section-polar-a.csv
+          grep -q "2D section-polar diagnostic only" /tmp/section-polar-a.txt
+          sha256sum /tmp/section-polar-a.csv
       - name: Audit matched-budget experiment costs
         working-directory: tools/civil-aero-benchmark
         shell: bash
