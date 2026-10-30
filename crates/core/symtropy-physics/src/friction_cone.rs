@@ -212,6 +212,7 @@ mod tests {
         assert!((solution.impulse[0] - 0.5).abs() < 1e-12);
         assert!((solution.impulse[1] - 0.2).abs() < 1e-12);
         assert!(solution.post_velocity.norm() < 1e-12);
+        assert!(solution.frictional_work_delta <= 1e-12);
         assert!(solution.cone_violation < 1e-12);
         assert!(solution.normalized_contact_residual < 1e-12);
     }
