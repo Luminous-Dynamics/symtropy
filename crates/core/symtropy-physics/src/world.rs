@@ -2914,7 +2914,9 @@ mod transformed_halfspace_tests {
         let before_b = world.bodies[1].linear_velocity.clone();
         let mut callback = NoOpCallback;
 
-        let error = world.try_resolve_contact(contact, 0.01, &mut callback).unwrap_err();
+        let error = world
+            .try_resolve_contact(contact, 0.01, &mut callback)
+            .unwrap_err();
         assert_eq!(
             error,
             crate::inertia::RotationalInertiaError::SingularInertia
@@ -2965,12 +2967,8 @@ mod transformed_halfspace_tests {
         );
         let floor_handle = world.add_body(floor);
 
-        let mut sphere = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(1),
-            Point::new([0.49, 0.0, 0.0]),
-            0.5,
-            1.0,
-        );
+        let mut sphere =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([0.49, 0.0, 0.0]), 0.5, 1.0);
         sphere.linear_velocity = SVector::new(-0.1, 1.0, 0.0);
         sphere.friction = 0.5;
         sphere.restitution = 0.0;
@@ -3011,5 +3009,4 @@ mod transformed_halfspace_tests {
             expected_dissipation
         );
     }
-
 }
