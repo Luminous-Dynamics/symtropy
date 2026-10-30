@@ -58,3 +58,23 @@ The new `--grid-audit` mode executes both interpretations with the same nominal 
 - `section_4_4_N_endpoint_points_dx_D_over_N_minus_1`: N endpoint-inclusive gridpoints, N−1 intervals, dx=D/(N−1).
 
 The audit emits both error metrics, PDE residual, energy residual and flag-update work. It is diagnostic only and does not change the canonical `--csv` or its golden file. The values should be compared with Table 6, but they do not resolve the separate initial-boundary and printed-matrix sign ambiguities.
+
+
+### Dual grid-convention results (30 October 2026)
+
+The new exact-head `--grid-audit` mode tests the two literal readings of the article:
+
+| Nominal N | Convention | Actual points | Δx (m) | Field MAE (°C) | Interface MAE (m) |
+|---:|---|---:|---:|---:|---:|
+| 48 | Table: N intervals | 49 | 0.1250000 | 2.70345e-2 | 8.95321e-3 |
+| 48 | Section 4.4: N endpoints | 48 | 0.1276596 | 2.79532e-2 | 9.08511e-3 |
+| 96 | Table: N intervals | 97 | 0.0625000 | 1.13292e-2 | 4.42647e-3 |
+| 96 | Section 4.4: N endpoints | 96 | 0.0631579 | 1.15043e-2 | 4.47592e-3 |
+| 192 | Table: N intervals | 193 | 0.0312500 | 4.68880e-3 | 2.08298e-3 |
+| 192 | Section 4.4: N endpoints | 192 | 0.0314136 | 4.75614e-3 | 2.07923e-3 |
+| 384 | Table: N intervals | 385 | 0.0156250 | 1.86568e-3 | 9.91706e-4 |
+| 384 | Section 4.4: N endpoints | 384 | 0.0156658 | 1.84220e-3 | 9.97161e-4 |
+| 768 | Table: N intervals | 769 | 0.0078125 | 7.31033e-4 | 4.82795e-4 |
+| 768 | Section 4.4: N endpoints | 768 | 0.00782269 | 7.41154e-4 | 4.84017e-4 |
+
+The convention choice changes the finest-grid field error by about 1.4% and interface error by about 0.25%, so it does not explain the 37× field-error gap with Table 6. Both curves preserve energy and PDE residuals to roundoff. This is now a frozen golden artifact and will be byte-compared in the dedicated workflow.
