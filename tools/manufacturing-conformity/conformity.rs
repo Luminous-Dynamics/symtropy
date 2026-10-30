@@ -141,8 +141,12 @@ impl Outcome {
 struct Report {
     measurement_id: String, part_id: String, lot_id: String, specification_id: String,
     specification_revision: String, uncertainty_budget_id: String, context_id: String,
-    decision_rule_revision: String, measurand_id: String, unit: String,
-    measured_at_ns: i64, instrument_id: String, calibration_id: String, msa_study_id: String,
+    decision_rule_id: String, decision_rule_revision: String, measurand_id: String, unit: String,
+    operation_id: String, measured_at_ns: i64, instrument_id: String, calibration_id: String,
+    calibration_valid_from_ns: i64, calibration_valid_until_ns: i64,
+    specification_effective_from_ns: i64, specification_effective_until_ns: i64,
+    msa_study_id: String, msa_qualified: bool, uncertainty_revision: String,
+    uncertainty_part_scope: String, uncertainty_combination_method: String,
     measurement_sha256: String, specification_sha256: String, uncertainty_sha256: String,
     calibration_sha256: String, msa_sha256: String, context_policy_sha256: String,
     evidence: EvidenceChecks, outcome: Outcome, reason: &'static str,
@@ -155,17 +159,23 @@ struct Report {
 impl Report {
     fn csv_row(&self) -> String {
         let f = |v: Option<f64>| v.map(|x| format!("{x:.12e}")).unwrap_or_default();
+        let s = |v: &str| csv_escape(v);
         vec![
-            self.measurement_id.clone(), self.part_id.clone(), self.lot_id.clone(),
-            self.specification_id.clone(), self.specification_revision.clone(),
-            self.uncertainty_budget_id.clone(), self.context_id.clone(),
-            self.decision_rule_revision.clone(), self.outcome.code().to_string(),
-            self.reason.to_string(), f(self.value), f(self.expanded_u),
+            s(&self.measurement_id), s(&self.part_id), s(&self.lot_id),
+            s(&self.specification_id), s(&self.specification_revision),
+            s(&self.uncertainty_budget_id), s(&self.context_id),
+            s(&self.decision_rule_id), s(&self.decision_rule_revision),
+            s(self.outcome.code()), s(self.reason), f(self.value), f(self.expanded_u),
             f(self.interval_lower), f(self.interval_upper), f(self.spec_lower),
             f(self.spec_upper), f(self.acceptance_lower), f(self.acceptance_upper),
-            f(self.coverage_probability), self.measurand_id.clone(), self.unit.clone(),
-            self.measured_at_ns.to_string(), self.instrument_id.clone(),
-            self.calibration_id.clone(), self.msa_study_id.clone(),
+            f(self.coverage_probability), s(&self.measurand_id), s(&self.unit),
+            s(&self.operation_id), self.measured_at_ns.to_string(), s(&self.instrument_id),
+            s(&self.calibration_id), self.calibration_valid_from_ns.to_string(),
+            self.calibration_valid_until_ns.to_string(),
+            self.specification_effective_from_ns.to_string(),
+            self.specification_effective_until_ns.to_string(), s(&self.msa_study_id),
+            self.msa_qualified.to_string(), s(&self.uncertainty_revision),
+            s(&self.uncertainty_part_scope), s(&self.uncertainty_combination_method),
             self.measurement_sha256.clone(), self.specification_sha256.clone(),
             self.calibration_sha256.clone(), self.msa_sha256.clone(),
             self.uncertainty_sha256.clone(), self.context_policy_sha256.clone(),
@@ -177,6 +187,14 @@ impl Report {
             self.evidence.context_policy.code().to_string(),
             f(self.standard_u), f(self.coverage_factor),
         ].join(",")
+    }
+}
+
+fn csv_escape(value: &str) -> String {
+    if value.chars().any(|ch| matches!(ch, ',' | '"' | '\\r' | '\\n')) {
+        format!("\\"{}\\"", value.replace('"', "\\"\\\"\\\""))
+    } else {
+        value.to_string()
     }
 }
 
@@ -192,10 +210,19 @@ fn incomplete(r: &Request, reason: &'static str) -> Report {
         lot_id: r.measurement.lot.clone(), specification_id: r.specification.id.clone(),
         specification_revision: r.specification.revision.clone(),
         uncertainty_budget_id: r.uncertainty.id.clone(), context_id: r.context.id.clone(),
+        decision_rule_id: r.context.decision_rule.clone(),
         decision_rule_revision: r.context.revision.clone(),
         measurand_id: r.measurement.measurand.clone(), unit: r.measurement.unit.clone(),
-        measured_at_ns: r.measurement.time_ns, instrument_id: r.measurement.instrument.clone(),
-        calibration_id: r.measurement.calibration.clone(), msa_study_id: r.uncertainty.msa_study.clone(),
+        operation_id: r.measurement.operation.clone(), measured_at_ns: r.measurement.time_ns,
+        instrument_id: r.measurement.instrument.clone(), calibration_id: r.measurement.calibration.clone(),
+        calibration_valid_from_ns: r.measurement.calibration_from_ns,
+        calibration_valid_until_ns: r.measurement.calibration_until_ns,
+        specification_effective_from_ns: r.specification.effective_from_ns,
+        specification_effective_until_ns: r.specification.effective_until_ns,
+        msa_study_id: r.uncertainty.msa_study.clone(), msa_qualified: r.uncertainty.msa_qualified,
+        uncertainty_revision: r.uncertainty.revision.clone(),
+        uncertainty_part_scope: r.uncertainty.part_scope.clone(),
+        uncertainty_combination_method: r.uncertainty.combination_method.clone(),
         measurement_sha256: r.measurement.source_sha256.clone(),
         specification_sha256: r.specification.source_sha256.clone(),
         uncertainty_sha256: r.uncertainty.source_sha256.clone(),
@@ -435,7 +462,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() {
-    println!("case_id,measurement_id,part_id,lot_id,specification_id,specification_revision,uncertainty_budget_id,context_id,decision_rule_revision,outcome,reason,value,expanded_u,interval_lower,interval_upper,spec_lower,spec_upper,acceptance_lower,acceptance_upper,coverage_probability,measurand_id,unit,measured_at_ns,instrument_id,calibration_id,msa_study_id,measurement_sha256,specification_sha256,calibration_sha256,msa_sha256,uncertainty_sha256,context_policy_sha256,measurement_evidence,specification_evidence,calibration_evidence,msa_evidence,uncertainty_evidence,context_policy_evidence,standard_uncertainty,coverage_factor");
+    println!("case_id,measurement_id,part_id,lot_id,specification_id,specification_revision,uncertainty_budget_id,context_id,decision_rule_id,decision_rule_revision,outcome,reason,value,expanded_u,interval_lower,interval_upper,spec_lower,spec_upper,acceptance_lower,acceptance_upper,coverage_probability,measurand_id,unit,operation_id,measured_at_ns,instrument_id,calibration_id,calibration_valid_from_ns,calibration_valid_until_ns,specification_effective_from_ns,specification_effective_until_ns,msa_study_id,msa_qualified,uncertainty_revision,uncertainty_part_scope,uncertainty_combination_method,measurement_sha256,specification_sha256,calibration_sha256,msa_sha256,uncertainty_sha256,context_policy_sha256,measurement_evidence,specification_evidence,calibration_evidence,msa_evidence,uncertainty_evidence,context_policy_evidence,standard_uncertainty,coverage_factor");
     for (name, r) in campaign() { println!("{name},{}", classify(&r).csv_row()); }
 }
 
@@ -507,7 +534,7 @@ mod tests {
         for digest in ["a".repeat(HASH_LEN), "b".repeat(HASH_LEN),
                        "c".repeat(HASH_LEN), "d".repeat(HASH_LEN),
                        "e".repeat(HASH_LEN), "f".repeat(HASH_LEN)] {
-            assert!(row.contains(&digest));
+            assert!(row.contains(digest.as_str()));
         }
         assert!(row.contains("VERIFIED"));
         assert!(row.contains("MSA-CROSSED-01"));
