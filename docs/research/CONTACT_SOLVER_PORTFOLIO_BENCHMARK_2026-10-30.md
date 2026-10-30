@@ -136,7 +136,7 @@ The Criterion `physics_bench` target now includes two engine-step workloads:
 - `contact_plane_1000_independent_3d`: 1,000 dynamic spheres in a grid, all contacting one static half-space; independent dynamic contact islands.
 - `contact_stack_100_single_island_3d`: 100 overlapping spheres in one vertical stack; strongly coupled contact island.
 
-Both use the same 1/120 s step, eight solver iterations, and assert the expected contact count and finite post-step state while black-boxing contact count, penetration and mechanical energy. Scene construction is outside the measured iteration. These are in-tree baselines only; results still need to be run on pinned hardware before comparison with other engines.
+Both use the same 1/120 s step, eight solver iterations, and assert the expected contact count and finite post-step state while black-boxing contact count, penetration and mechanical energy. Scene construction is outside the measured iteration. These are in-tree baselines only; results still need to be run on pinned hardware before comparison with other engines. The executable `cargo run --release -p symtropy-physics --example contact_quality_campaign` emits CSV with median/p95 per-step time, final contacts, max penetration, mechanical-energy change, rotation error and health counters. Set `SYMTROPY_SOURCE_REV`, `SYMTROPY_BENCHMARK_HOST`, `SYMTROPY_BENCHMARK_CPU` and `SYMTROPY_BENCHMARK_BUILD_FLAGS` at compile time to bind each record to its source and environment.
 
 ### 3. Performance and accuracy reporting
 
