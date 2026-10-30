@@ -108,6 +108,9 @@ impl GridOperator {
 
     fn apply(&self, x: &[f64], out: &mut [f64]) -> Result<(), String> {
         self.validate()?;
+        if x.iter().any(|v| !v.is_finite()) {
+            return Err("INPUT_NONFINITE: matrix-free input contains NaN or infinity".into());
+        }
         self.apply_validated(x, out)
     }
 
@@ -115,15 +118,15 @@ impl GridOperator {
         if x.len() != self.len() || out.len() != self.len() {
             return Err("VECTOR_SIZE_MISMATCH".into());
         }
-        if x.iter().any(|v| !v.is_finite()) {
-            return Err("INPUT_NONFINITE: matrix-free input contains NaN or infinity".into());
-        }
 
         let rx = self.conductance_x();
         let ry = self.conductance_y();
         for index in 0..self.len() {
             let gamma = self.gamma[index];
             if gamma == 0.0 {
+                if !x[index].is_finite() {
+                    return Err("INPUT_NONFINITE: mixed-node vector entry is invalid".into());
+                }
                 out[index] = x[index];
                 continue;
             }
@@ -312,6 +315,9 @@ fn pcg(
         for i in 0..n {
             x[i] += alpha * direction[i];
             residual[i] -= alpha * applied_direction[i];
+            if !x[i].is_finite() || !residual[i].is_finite() {
+                return Err("PCG_ITERATE_NONFINITE".into());
+            }
             if operator.gamma[i] == 0.0 {
                 x[i] = 0.0;
                 residual[i] = 0.0;
