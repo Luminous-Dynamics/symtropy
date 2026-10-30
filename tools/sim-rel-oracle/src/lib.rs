@@ -69,7 +69,10 @@ pub fn solve_exact(
                 hypothesis.signature
             ));
         }
-        if weights.insert(hypothesis.signature, hypothesis.prior_weight).is_some() {
+        if weights
+            .insert(hypothesis.signature, hypothesis.prior_weight)
+            .is_some()
+        {
             return Err(format!(
                 "duplicate semantic signature {}",
                 hypothesis.signature
@@ -148,12 +151,10 @@ fn solve_state(
         if !expected.is_finite() {
             return Err("oracle objective became non-finite".into());
         }
-        let replace = best
-            .as_ref()
-            .is_none_or(|(best_cost, best_action, _, _)| {
-                expected.total_cmp(best_cost).is_lt()
-                    || (expected.total_cmp(best_cost).is_eq() && action < *best_action)
-            });
+        let replace = best.as_ref().is_none_or(|(best_cost, best_action, _, _)| {
+            expected.total_cmp(best_cost).is_lt()
+                || (expected.total_cmp(best_cost).is_eq() && action < *best_action)
+        });
         if replace {
             best = Some((expected, action, zero_node, one_node));
         }
@@ -192,11 +193,7 @@ mod tests {
     }
 
     /// Independent exhaustive recursion without memoization, used on tiny domains.
-    fn brute_force(
-        signatures: &[u8],
-        weights: &BTreeMap<u8, f64>,
-        costs: &[u32; ACTIONS],
-    ) -> f64 {
+    fn brute_force(signatures: &[u8], weights: &BTreeMap<u8, f64>, costs: &[u32; ACTIONS]) -> f64 {
         if signatures.len() <= 1 {
             return 0.0;
         }
@@ -297,13 +294,15 @@ mod tests {
         let a = solve_exact(
             &hypotheses(&[0, 1, 2, 3], &[1.0, 2.0, 3.0, 4.0]),
             &costs,
-            10_000
-        ).unwrap();
+            10_000,
+        )
+        .unwrap();
         let b = solve_exact(
             &hypotheses(&[0, 1, 2, 3], &[10.0, 20.0, 30.0, 40.0]),
             &costs,
-            10_000
-        ).unwrap();
+            10_000,
+        )
+        .unwrap();
         assert!((a.expected_cost - b.expected_cost).abs() < 1e-12);
         assert_eq!(a.first_action, b.first_action);
     }
@@ -314,13 +313,15 @@ mod tests {
         let a = solve_exact(
             &hypotheses(&[0, 1, 2, 3], &[1.0, 2.0, 3.0, 4.0]),
             &costs,
-            10_000
-        ).unwrap();
+            10_000,
+        )
+        .unwrap();
         let b = solve_exact(
             &hypotheses(&[3, 2, 1, 0], &[4.0, 3.0, 2.0, 1.0]),
             &costs,
-            10_000
-        ).unwrap();
+            10_000,
+        )
+        .unwrap();
         assert_eq!(a.first_action, b.first_action);
         assert!((a.expected_cost - b.expected_cost).abs() < 1e-12);
     }
@@ -360,8 +361,7 @@ mod tests {
             let v_one = solve_state(&one, &weights, &costs, 10_000, &mut memo_one)
                 .unwrap()
                 .expected_remaining_cost;
-            let value =
-                f64::from(costs[action as usize]) + p_zero * v_zero + p_one * v_one;
+            let value = f64::from(costs[action as usize]) + p_zero * v_zero + p_one * v_one;
             assert!(result.expected_cost <= value + 1e-12);
         }
     }
