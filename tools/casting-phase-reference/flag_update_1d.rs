@@ -29,17 +29,49 @@ const MAX_STEPS: usize = 10_000;
 const SOLVE_RESIDUAL_TOL: f64 = 5.0e-10;
 const ERF_MAX: f64 = 1.25;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum GridConvention {
+    TabulatedNIntervals,
+    WrittenNEndpointPoints,
+}
+
+impl GridConvention {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::TabulatedNIntervals => "table_N_intervals_dx_D_over_N",
+            Self::WrittenNEndpointPoints => "section_4_4_N_endpoint_points_dx_D_over_N_minus_1",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 struct Campaign {
     intervals: usize,
     time_steps: usize,
     domain_m: f64,
     end_time_s: f64,
+    grid_convention: GridConvention,
 }
 
 impl Campaign {
     fn published(intervals: usize, time_steps: usize) -> Self {
-        Self { intervals, time_steps, domain_m: DOMAIN, end_time_s: END_TIME }
+        Self {
+            intervals,
+            time_steps,
+            domain_m: DOMAIN,
+            end_time_s: END_TIME,
+            grid_convention: GridConvention::TabulatedNIntervals,
+        }
+    }
+
+    fn written_endpoint_points(grid_points: usize, time_steps: usize) -> Self {
+        Self {
+            intervals: grid_points.saturating_sub(1),
+            time_steps,
+            domain_m: DOMAIN,
+            end_time_s: END_TIME,
+            grid_convention: GridConvention::WrittenNEndpointPoints,
+        }
     }
 
     fn validate(self) -> Result<ValidatedCampaign, String> {
@@ -94,6 +126,8 @@ struct StepSolution {
 
 #[derive(Debug)]
 struct Summary {
+    grid_convention: &'static str,
+    nominal_n: usize,
     intervals: usize,
     grid_points: usize,
     time_steps: usize,
@@ -549,7 +583,13 @@ fn run_campaign(campaign: Campaign) -> Result<Summary, String> {
     }
 
     let count = (campaign.time_steps * nodes) as f64;
+    let nominal_n = match campaign.grid_convention {
+        GridConvention::TabulatedNIntervals => intervals,
+        GridConvention::WrittenNEndpointPoints => nodes,
+    };
     Ok(Summary {
+        grid_convention: campaign.grid_convention.as_str(),
+        nominal_n,
         intervals,
         grid_points: nodes,
         time_steps: campaign.time_steps,
@@ -576,6 +616,34 @@ fn all_summaries() -> Result<Vec<Summary>, String> {
         .into_iter()
         .map(|(n, nt)| run_campaign(Campaign::published(n, nt)))
         .collect()
+}
+
+fn grid_audit_summaries() -> Result<Vec<Summary>, String> {
+    [(48, 72), (96, 144), (192, 288), (384, 576), (768, 1152)]
+        .into_iter()
+        .flat_map(|(n, nt)| {
+            [
+                Campaign::published(n, nt),
+                Campaign::written_endpoint_points(n, nt),
+            ]
+        })
+        .map(run_campaign)
+        .collect()
+}
+
+fn emit_grid_audit_csv() -> Result<(), String> {
+    println!("grid_convention,nominal_N,grid_points,intervals,dx_m,nt,dt_s,interface_mean_abs_error_m,temperature_mean_abs_error_c,temperature_rms_error_c,energy_residual_relative,max_pde_residual_relative,mean_flag_iterations,status");
+    for s in grid_audit_summaries()? {
+        println!(
+            "{},{},{},{},{:.12e},{},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.8},PASS",
+            s.grid_convention, s.nominal_n, s.grid_points, s.intervals, s.dx_m,
+            s.time_steps, s.dt_s, s.interface_error_mean_abs_m,
+            s.temperature_mean_abs_error_c, s.temperature_rms_error_c,
+            s.energy_residual_relative, s.max_pde_residual_relative,
+            s.mean_flag_iterations
+        );
+    }
+    Ok(())
 }
 
 fn verify() -> Result<(), String> {
@@ -627,7 +695,8 @@ fn main() {
         [] => verify().map(|()| println!("FLAG_UPDATE_OK: 1D implicit flag consistency, field/interface refinement and energy closure")),
         [a] if a == "--verify" => verify().map(|()| println!("FLAG_UPDATE_OK: 1D implicit flag consistency, field/interface refinement and energy closure")),
         [a] if a == "--csv" => emit_csv(),
-        [a] if a == "--help" || a == "-h" => { println!("Usage: flag-update-1d [--verify|--csv|--help]"); Ok(()) },
+        [a] if a == "--grid-audit" => emit_grid_audit_csv(),
+        [a] if a == "--help" || a == "-h" => { println!("Usage: flag-update-1d [--verify|--csv|--grid-audit|--help]"); Ok(()) },
         _ => Err("expected --verify, --csv or --help".into()),
     };
     if let Err(e) = result { eprintln!("FLAG_UPDATE_ERROR: {e}"); std::process::exit(1); }
