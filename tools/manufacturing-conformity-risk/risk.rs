@@ -693,6 +693,8 @@ mod tests {
         let mut um = mm.clone();
         for bin in &mut um.posterior.bins { bin.lower *= 1000.0; bin.upper *= 1000.0; }
         um.posterior.unit = "um".into();
+        um.spec.lower *= 1000.0;
+        um.spec.upper *= 1000.0;
         um.spec.unit = "um".into();
         let a = probability_bounds(&mm).unwrap();
         let b = probability_bounds(&um).unwrap();
