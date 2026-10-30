@@ -173,9 +173,7 @@ fn valid_utc(value: &str) -> bool {
         return false;
     }
     if !b.iter().enumerate().all(|(i, byte)| {
-        matches!(i, 4 | 7 | 10 | 13 | 16 | 19) ||
-            matches!(i, 10, 13, 16, 19) && *byte == b'T' ||
-            byte.is_ascii_digit()
+        matches!(i, 4 | 7 | 10 | 13 | 16 | 19) || byte.is_ascii_digit()
     }) {
         return false;
     }
