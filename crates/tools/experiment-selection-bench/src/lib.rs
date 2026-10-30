@@ -1293,6 +1293,52 @@ mod tests {
     }
 
     #[test]
+    fn heteroskedastic_observations_are_paired_by_point_and_seed() {
+        let problem = SyntheticProblem::new(ProblemId::Multimodal);
+        let point = [0.25, 0.75];
+        let first = problem.observe(point, 45);
+        let second = problem.observe(point, 45);
+        assert_eq!(first, second);
+        let low_noise = problem.observe([0.0, 0.0], 45);
+        let high_noise = problem.observe([1.0, 1.0], 45);
+        assert!(high_noise.sigma > low_noise.sigma);
+    }
+
+    #[test]
+    fn non_identifiable_ridge_does_not_prefer_one_y_coordinate() {
+        let problem = SyntheticProblem::new(ProblemId::NonIdentifiableRidge);
+        let first = problem.truth([0.7, 0.0]).0;
+        let second = problem.truth([0.7, 1.0]).0;
+        assert!((first - 1.0).abs() < 1e-12);
+        assert!((second - first).abs() < 1e-12);
+    }
+
+    #[test]
+    fn external_policy_is_included_in_reporting_but_not_baseline_sweep() {
+        let problem = SyntheticProblem::new(ProblemId::SmoothBowl);
+        let external = super::run_trial_with_policy(
+            problem,
+            PolicyKind::Symthaea,
+            17,
+            16,
+            8,
+            Box::new(InvalidProposalPolicy),
+        );
+        let random = run_trial(problem, PolicyKind::Random, 17, 16, 8);
+        let sobol = run_trial(problem, PolicyKind::Sobol, 17, 16, 8);
+        let trials = vec![random, sobol, external];
+        let summaries = summarize(&trials);
+        assert!(summaries.iter().any(|summary| summary.policy == PolicyKind::Symthaea));
+        let comparisons = super::paired_comparisons(&trials);
+        assert!(comparisons.iter().any(|comparison| {
+            comparison.challenger == PolicyKind::Symthaea
+                && comparison.paired_trials == 1
+                && comparison.problem == ProblemId::SmoothBowl
+        }));
+        assert_eq!(PolicyKind::ALL.len(), 5);
+    }
+
+    #[test]
     fn receipt_rows_have_the_declared_column_counts() {
         let result = super::run_trial_with_policy(
             SyntheticProblem::new(ProblemId::SmoothBowl),
