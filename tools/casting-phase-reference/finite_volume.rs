@@ -363,6 +363,28 @@ mod tests {
     }
 
     #[test]
+    fn temporal_refinement_at_fixed_mesh_is_first_order() {
+        let mut fronts = Vec::new();
+        for cfl in [0.2, 0.1, 0.05, 0.025] {
+            let mut case = Case::reference(128);
+            case.cfl = cfl;
+            fronts.push(solve(case).expect("fixed-grid timestep refinement should run").front_m);
+        }
+
+        let differences = [
+            (fronts[0] - fronts[1]).abs(),
+            (fronts[1] - fronts[2]).abs(),
+            (fronts[2] - fronts[3]).abs(),
+        ];
+        assert!(differences[1] < differences[0]);
+        assert!(differences[2] < differences[1]);
+        let ratio_1 = differences[0] / differences[1];
+        let ratio_2 = differences[1] / differences[2];
+        assert!((1.7..=2.3).contains(&ratio_1));
+        assert!((1.7..=2.3).contains(&ratio_2));
+    }
+
+    #[test]
     fn energy_removed_matches_integrated_wall_heat() {
         for summary in refinement_summaries().expect("reference refinement should run") {
             assert!(summary.energy_residual_relative < 1.0e-11);
