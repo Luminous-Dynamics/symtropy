@@ -52,7 +52,9 @@ struct RawChannel<'a> {
     clock_map: Option<ClockMap<'a>>,
 }
 
+#[derive(Debug)]
 struct ExtractedChannel<'a> {
+    reference_clock: &'a str,
     meta: SensorMeta<'a>,
     source_sha256: &'a str,
     mapped_timestamps_ns: Vec<i64>,
@@ -163,13 +165,13 @@ fn extract(raw: RawChannel<'_>, window: Window) -> Result<ExtractedChannel<'_>, 
     let mut mapped_all = Vec::with_capacity(raw.timestamps_local_ns.len());
     for (i, &local) in raw.timestamps_local_ns.iter().enumerate() {
         if i > 0 {
-            let delta = local - raw.timestamps_local_ns[i - 1];
-            if delta <= 0 {
+            let delta_i128 = (local as i128) - (raw.timestamps_local_ns[i - 1] as i128);
+            if delta_i128 <= 0 {
                 return Err("TIMESTAMP_ORDER_INVALID: local timestamps must be strictly increasing".into());
             }
-            let multiple = ((delta as f64 / period_ns).round() as i64).max(1);
+            let multiple = ((delta_i128 as f64 / period_ns).round() as i64).max(1);
             let expected_delta = multiple as f64 * period_ns;
-            let relative_jitter = (delta as f64 - expected_delta).abs() / period_ns;
+            let relative_jitter = (delta_i128 as f64 - expected_delta).abs() / period_ns;
             if relative_jitter > MAX_RELATIVE_SAMPLE_JITTER {
                 return Err("TIMESTAMP_JITTER_EXCESSIVE: interval differs from an integer sample period by >10%".into());
             }
@@ -195,7 +197,8 @@ fn extract(raw: RawChannel<'_>, window: Window) -> Result<ExtractedChannel<'_>, 
         return Err("WINDOW_EMPTY: fewer than two observed samples in declared window".into());
     }
 
-    let expected_f = ((window.end_ref_ns - window.start_ref_ns) as f64 / period_ns).round();
+    let duration_ns = (window.end_ref_ns as i128) - (window.start_ref_ns as i128);
+    let expected_f = (duration_ns as f64 / period_ns).round();
     if !expected_f.is_finite() || expected_f < 2.0 || expected_f > usize::MAX as f64 {
         return Err("EXPECTED_SAMPLE_COUNT_INVALID: window/rate combination outside supported range".into());
     }
@@ -206,13 +209,14 @@ fn extract(raw: RawChannel<'_>, window: Window) -> Result<ExtractedChannel<'_>, 
     // boundary-aware expected-vs-observed count and never synthesizes samples.
     let mut gap_missing = 0usize;
     for pair in mapped.windows(2) {
-        let delta = (pair[1] - pair[0]) as f64;
+        let delta = ((pair[1] as i128) - (pair[0] as i128)) as f64;
         let multiple = ((delta / period_ns).round() as usize).max(1);
         gap_missing = gap_missing.saturating_add(multiple.saturating_sub(1));
     }
     let missing = missing.max(gap_missing).min(expected);
 
     Ok(ExtractedChannel {
+        reference_clock: map.reference_clock,
         meta: raw.meta,
         source_sha256: raw.meta.source_sha256,
         mapped_timestamps_ns: mapped,
@@ -291,9 +295,12 @@ fn paired_nearest_pearson(
         || anchor.window.end_ref_ns != other.window.end_ref_ns {
         return Err("WINDOW_MISMATCH: paired channels must use the same reference window".into());
     }
-    if anchor.clock_uncertainty_ns > MAX_CLOCK_UNCERTAINTY_NS
-        || other.clock_uncertainty_ns > MAX_CLOCK_UNCERTAINTY_NS {
-        return Err("INCONCLUSIVE: clock uncertainty too high for paired features".into());
+    if anchor.reference_clock != other.reference_clock {
+        return Err("INCONCLUSIVE: channels do not map to the same reference clock".into());
+    }
+    let combined_uncertainty = anchor.clock_uncertainty_ns.saturating_add(other.clock_uncertainty_ns);
+    if combined_uncertainty > MAX_CLOCK_UNCERTAINTY_NS {
+        return Err("INCONCLUSIVE: combined clock uncertainty exceeds 100 us".into());
     }
     if max_skew_ns < 0 || max_skew_ns > MAX_PAIR_SKEW_NS {
         return Err("PAIR_SKEW_INVALID: nearest-sample tolerance must be in [0,1ms]".into());
@@ -315,8 +322,8 @@ fn paired_nearest_pearson(
                 let right = (i < other.mapped_timestamps_ns.len()).then_some(i);
                 match (left, right) {
                     (Some(l), Some(r)) => {
-                        let dl = (ta - other.mapped_timestamps_ns[l]).abs();
-                        let dr = (other.mapped_timestamps_ns[r] - ta).abs();
+                        let dl = ((ta as i128) - (other.mapped_timestamps_ns[l] as i128)).unsigned_abs();
+                        let dr = ((other.mapped_timestamps_ns[r] as i128) - (ta as i128)).unsigned_abs();
                         Some(if dl <= dr { l } else { r })
                     }
                     (Some(l), None) => Some(l),
@@ -326,8 +333,9 @@ fn paired_nearest_pearson(
             }
         };
         if let Some(i) = candidate {
-            let skew = (ta - other.mapped_timestamps_ns[i]).abs();
-            if skew <= max_skew_ns {
+            let skew_u128 = ((ta as i128) - (other.mapped_timestamps_ns[i] as i128)).unsigned_abs();
+            if skew_u128 <= max_skew_ns as u128 {
+                let skew = skew_u128 as i64;
                 xs.push(xa);
                 ys.push(other.values[i]);
                 max_skew = max_skew.max(skew);
@@ -392,17 +400,16 @@ fn emit_csv() -> Result<(), String> {
     let cf = calculate_features(&current)?;
     let pair = paired_nearest_pearson(&current, &vib, 500_000)?;
 
-    println!("transform_version,sensor_id,kind,unit,source_sha256,window_start_ref_ns,window_end_ref_ns,nominal_rate_hz,observed_samples,expected_samples,missing_samples,missing_fraction,mean,rms,peak_to_peak,crest_factor,unbiased_variance,excess_kurtosis,clock_uncertainty_ns");
-    for f in [&vf, &cf] {
-        println!("{},{},{},{},{},{},{},{:.6},{},{},{},{:.8},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{}",
+    println!("transform_version,sensor_id,kind,unit,source_sha256,window_start_ref_ns,window_end_ref_ns,nominal_rate_hz,observed_samples,expected_samples,missing_samples,missing_fraction,mean,rms,peak_to_peak,crest_factor,unbiased_variance,excess_kurtosis,clock_uncertainty_ns,paired_sensor_id,paired_count,paired_pearson_r,max_nearest_skew_ns");
+    for (f, paired_id) in [(&vf, cf.sensor_id.as_str()), (&cf, vf.sensor_id.as_str())] {
+        println!("{},{},{},{},{},{},{},{:.6},{},{},{},{:.8},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{},{},{},{:.12e},{}",
             TRANSFORM_VERSION, f.sensor_id, f.kind, f.unit, f.source_sha256,
             f.window_start_ref_ns, f.window_end_ref_ns, f.nominal_rate_hz,
             f.observed_samples, f.expected_samples, f.missing_samples, f.missing_fraction,
             f.mean, f.rms, f.peak_to_peak, f.crest_factor, f.unbiased_variance,
-            f.excess_kurtosis, f.clock_uncertainty_ns);
+            f.excess_kurtosis, f.clock_uncertainty_ns, paired_id, pair.pair_count,
+            pair.pearson_r, pair.max_nearest_skew_ns);
     }
-    eprintln!("paired_feature,pearson_r,pair_count,max_nearest_skew_ns");
-    eprintln!("vibration_current,{:.12e},{},{}", pair.pearson_r, pair.pair_count, pair.max_nearest_skew_ns);
     Ok(())
 }
 
@@ -519,7 +526,8 @@ mod tests {
         let x=[1.0,f64::NAN,3.0];
         let mut r=fixture(&t,&x);
         assert!(extract(r,Window{start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("SAMPLE_INVALID"));
-        r=fixture(&t,&[1.0,2.0,3.0]);
+        let valid=[1.0,2.0,3.0];
+        r=fixture(&t,&valid);
         r.meta.source_sha256="not-a-digest";
         assert!(extract(r,Window{start_ref_ns:0,end_ref_ns:3_000_000}).unwrap_err().contains("SOURCE_DIGEST_INVALID"));
     }
