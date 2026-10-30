@@ -132,7 +132,10 @@ impl fmt::Display for RegionGraphError {
                 region.0
             ),
             Self::ComposedPathMismatch => {
-                write!(f, "composed path no longer matches its declared interface lineage")
+                write!(
+                    f,
+                    "composed path no longer matches its declared interface lineage"
+                )
             }
             Self::SelfInterface => write!(f, "region interface must connect distinct region IDs"),
             Self::InvalidBoundary { field } => {
@@ -681,10 +684,7 @@ impl<const D: usize> ComposedRegionPath<D> {
     ///
     /// A caller must still execute each interface's own boundary, direction,
     /// quantity-policy and receipt checks when performing a physical crossing.
-    pub fn validate_current(
-        &self,
-        graph: &RegionGraph<D>,
-    ) -> Result<(), RegionGraphError> {
+    pub fn validate_current(&self, graph: &RegionGraph<D>) -> Result<(), RegionGraphError> {
         if self.interface_ids.is_empty()
             || self.interface_ids.len() != self.interface_revisions.len()
             || self.region_model_revisions.len() != self.interface_ids.len() + 1
@@ -2081,9 +2081,15 @@ mod tests {
     #[test]
     fn composed_interface_path_binds_all_model_and_interface_revisions() {
         let mut graph = RegionGraph::<2>::new().unwrap();
-        graph.add_region(region(1, [-1.0, -1.0], [0.0, 1.0])).unwrap();
-        graph.add_region(region(2, [0.0, -1.0], [1.0, 1.0])).unwrap();
-        graph.add_region(region(3, [1.0, -1.0], [2.0, 1.0])).unwrap();
+        graph
+            .add_region(region(1, [-1.0, -1.0], [0.0, 1.0]))
+            .unwrap();
+        graph
+            .add_region(region(2, [0.0, -1.0], [1.0, 1.0]))
+            .unwrap();
+        graph
+            .add_region(region(3, [1.0, -1.0], [2.0, 1.0]))
+            .unwrap();
 
         let first_map = AffineRegionMap::<2>::identity();
         let second_map = AffineRegionMap::<2>::identity();
@@ -2146,20 +2152,10 @@ mod tests {
             .unwrap();
         rebuilt.add_region(changed_target).unwrap();
         rebuilt
-            .add_interface(
-                graph
-                    .interface(InterfaceId(30))
-                    .unwrap()
-                    .clone(),
-            )
+            .add_interface(graph.interface(InterfaceId(30)).unwrap().clone())
             .unwrap();
         rebuilt
-            .add_interface(
-                graph
-                    .interface(InterfaceId(31))
-                    .unwrap()
-                    .clone(),
-            )
+            .add_interface(graph.interface(InterfaceId(31)).unwrap().clone())
             .unwrap();
 
         assert_eq!(
