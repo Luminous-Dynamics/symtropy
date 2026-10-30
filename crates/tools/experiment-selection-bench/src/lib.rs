@@ -1396,9 +1396,9 @@ mod tests {
             .map(|point| problem.observe(point, 66))
             .collect();
         let mut permuted = observations.clone();
-        permuted.reverse();
-        let rewards: Vec<f64> = observations.iter().map(|item| item.objective).collect();
-        for (item, reward) in permuted.iter_mut().zip(rewards.into_iter().rev()) {
+        let mut rewards: Vec<f64> = observations.iter().map(|item| item.objective).collect();
+        rewards.rotate_left(3);
+        for (item, reward) in permuted.iter_mut().zip(rewards) {
             item.objective = reward;
         }
 
@@ -1408,10 +1408,6 @@ mod tests {
             first.propose(&observations, 0, 66),
             second.propose(&permuted, 0, 66)
         );
-        // Preserve both vectors as explicit test inputs, not mutable ambient
-        // model state shared between the two policies.
-        observations.shrink_to_fit();
-        permuted.shrink_to_fit();
     }
 
     #[test]
