@@ -843,7 +843,7 @@ mod tests {
         let minimum = one_d
             .minimum_image_displacement(&SVector::from([12.5]), 9)
             .unwrap();
-        assert!((minimum.displacement[0] - (-2.5)).abs() < 1e-12);
+        assert!((minimum.displacement[0] - 2.5).abs() < 1e-12);
 
         let nonperiodic = PeriodicLattice::new(
             SVector::from([2.0, -1.0]),
