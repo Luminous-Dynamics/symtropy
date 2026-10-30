@@ -1,4 +1,4 @@
-use std::{env, fs, io::ErrorKind, path::Path, process};
+use std::{env, fs, path::Path, process};
 
 use civil_aero_benchmark::integrity::verify_source_bytes;
 
