@@ -419,7 +419,26 @@ fn campaign() -> Vec<(&'static str, Request)> {
     ]
 }
 
+fn verify_evidence_states() -> Result<(), String> {
+    for state in [
+        EvidenceState::Missing,
+        EvidenceState::Stale,
+        EvidenceState::Mismatched,
+        EvidenceState::Revoked,
+        EvidenceState::NotQualified,
+    ] {
+        let mut request = request(15.0, 1.0);
+        request.evidence.calibration = state;
+        let report = classify(&request);
+        if report.outcome != Outcome::EvidenceIncomplete {
+            return Err(format!("EVIDENCE_STATE_DID_NOT_ABSTAIN: {}", state.code()));
+        }
+    }
+    Ok(())
+}
+
 fn verify() -> Result<(), String> {
+    verify_evidence_states()?;
     let expected = [
         Outcome::Accept, Outcome::Accept, Outcome::Accept, Outcome::Indeterminate,
         Outcome::Indeterminate, Outcome::Indeterminate, Outcome::Indeterminate,
