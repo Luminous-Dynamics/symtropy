@@ -832,7 +832,7 @@ pub fn render_receipts(source_sha: &str, results: &[TrialResult]) -> String {
             .map(|value| format!("{value:.12e}"))
             .unwrap_or_else(|| "none".to_string());
         output.push_str(&format!(
-            "EXPERIMENT_TRIAL,v1,{source_sha},{},{},{},{},{},{},{},{},{},{},{observed},{truth},{:.12e},{:.12e},{}\n",
+            "EXPERIMENT_TRIAL,v1,{source_sha},{},{},{},{},{},{},{},{},{},{observed},{truth},{:.12e},{:.12e},{}\n",
             result.problem.as_str(),
             result.policy.as_str(),
             result.policy_name,
