@@ -544,7 +544,7 @@ mod tests {
     #[test]
     fn guardband_requires_the_entire_uncertainty_interval_inside_limits() {
         assert_eq!(classify_guardband(5.0, 0.1, 2.0, 4.0, 6.0), "PASS");
-        assert_eq!(classify_guardband(6.1, 0.1, 2.0, 4.0, 6.0), "FAIL");
+        assert_eq!(classify_guardband(6.3, 0.1, 2.0, 4.0, 6.0), "FAIL");
         assert_eq!(classify_guardband(5.9, 0.1, 2.0, 4.0, 6.0), "INDETERMINATE");
     }
 
