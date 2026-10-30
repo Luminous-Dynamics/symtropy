@@ -534,6 +534,22 @@ mod tests {
     }
 
     #[test]
+    fn every_nonverified_upstream_evidence_state_abstains() {
+        for state in [
+            EvidenceState::Missing,
+            EvidenceState::Stale,
+            EvidenceState::Mismatched,
+            EvidenceState::Revoked,
+            EvidenceState::NotQualified,
+        ] {
+            let mut request = campaign()[0].1.clone();
+            request.evidence.posterior = state;
+            let report = classify(&request);
+            assert_eq!(report.outcome, Outcome::EvidenceIncomplete);
+        }
+    }
+
+    #[test]
     fn unit_conversion_preserves_probability() {
         let mm = campaign()[0].1.clone();
         let mut um = mm.clone();
