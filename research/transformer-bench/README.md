@@ -241,3 +241,32 @@ cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin s
 ```
 
 See [JOINT_SCENARIO_FRONTIER.md](JOINT_SCENARIO_FRONTIER.md) and [PWR-TX-SCEN-001 #2919](https://github.com/Luminous-Dynamics/symtropy/issues/2919). Every candidate must have every scenario with the same weights; the weights must sum to 1. CVaR95 averages the worst 5% probability mass, including partial scenario weights. Scenario-robust dominance applies only to the finite declared scenarios. This binary does not generate scenarios, run solvers or validate the real-world probability of a scenario.
+
+
+## Temporal operating-profile validator
+
+The `temporal-profile` binary validates synchronized UTC operating scenarios carrying mean/mean-square current, ambient temperature, EV/PV context, tariff and carbon-intensity inputs. It requires a complete common/leap calendar year and identical UTC interval grids across scenarios.
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin temporal-profile -- \
+  research/transformer-bench/fixtures/temporal-profile-leap-year-synthetic.csv \
+  /tmp/temporal-profile-summary.csv
+```
+
+See [TEMPORAL_OPERATING_TWIN.md](TEMPORAL_OPERATING_TWIN.md) and [PWR-TX-TEMP-001 #2934](https://github.com/Luminous-Dynamics/symtropy/issues/2934). This is input-integrity/summary tooling only; it does not convert local-time/DST traces, calculate EV/PV net load, run thermal dynamics or establish source provenance. The checked-in leap-year profile is synthetic.
+
+## Electrical equipment manufacturing digital thread
+
+The `manufacturing-ledger` binary validates component genealogy and ordered production/inspection/test events, recipe hashes, evidence references, energy and scrap fields.
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-ledger -- \
+  research/transformer-bench/fixtures/manufacturing-ledger-synthetic.csv \
+  /tmp/transformer-manufacturing-summary.csv
+
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-ledger -- \
+  research/transformer-bench/fixtures/manufacturing-ledger-multi-family-synthetic.csv \
+  /tmp/electrical-components-manufacturing-summary.csv
+```
+
+See [MANUFACTURING_DIGITAL_THREAD.md](MANUFACTURING_DIGITAL_THREAD.md) and [PWR-TX-MFG-001 #2933](https://github.com/Luminous-Dynamics/symtropy/issues/2933). Synthetic examples cover a power transformer, switchgear and a magnetic component. The ledger is not a complete route/test-plan validator or dispatch/release authority.
