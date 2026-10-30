@@ -138,12 +138,12 @@ fn read_candidates(
         }
         if !(1900..=2200).contains(&row_metadata.price_year) { return Err(format!("{path}:{line_no}: price_year must be in 1900..=2200")); }
         if !matches!(row_metadata.price_basis.as_str(), "REAL" | "NOMINAL") { return Err(format!("{path}:{line_no}: price_basis must be REAL or NOMINAL")); }
-        match &metadata {
-            None => metadata = Some(row_metadata),
-            Some(first) if first != &row_metadata => {
+        if let Some(first) = metadata.as_ref() {
+            if first != &row_metadata {
                 return Err(format!("{path}:{line_no}: profile, currency, price year/basis and carbon boundary must match across all rows"));
             }
-            _ => {}
+        } else {
+            metadata = Some(row_metadata);
         }
 
         let scenario_id = nonempty(fields[2], "scenario_id")?;
