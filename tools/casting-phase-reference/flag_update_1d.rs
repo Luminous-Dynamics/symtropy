@@ -26,7 +26,6 @@ const LAMBDA: f64 = 0.322_390_632_922_300_86;
 const SQRT_PI: f64 = 1.772_453_850_905_516_027_3;
 const MAX_FLAG_ITERATIONS: usize = 64;
 const MAX_STEPS: usize = 10_000;
-const FLAG_TOL: f64 = 2.0e-12;
 const SOLVE_RESIDUAL_TOL: f64 = 5.0e-10;
 const ERF_MAX: f64 = 1.25;
 
@@ -193,11 +192,11 @@ fn gamma_for_flag(flag: i8, alpha_s: f64, alpha_l: f64) -> Result<f64, String> {
 }
 
 #[inline]
-fn fixed_latent_for_flag(flag: i8, latent_density: f64) -> Result<f64, String> {
+fn fixed_latent_for_flag(flag: i8, latent_density: f64) -> Result<Option<f64>, String> {
     match flag {
-        -1 => Ok(0.0),
-        0 => Ok(f64::NAN), // mixed-phase latent component is the PDE unknown
-        1 => Ok(latent_density),
+        -1 => Ok(Some(0.0)),
+        0 => Ok(None), // mixed-phase latent component is the PDE unknown
+        1 => Ok(Some(latent_density)),
         _ => Err("invalid phase flag".into()),
     }
 }
@@ -283,7 +282,8 @@ fn solve_fixed_flags(
         for j in 0..len {
             let node = start + j;
             let gamma = gamma_for_flag(flags[node], alpha_s, alpha_l)?;
-            let fixed_s = fixed_latent_for_flag(flags[node], latent_density)?;
+            let fixed_s = fixed_latent_for_flag(flags[node], latent_density)?
+                .ok_or("mixed-phase node entered a non-mixed tridiagonal segment")?;
             diagonal[j] = gamma + 2.0 * r;
             rhs[j] = e_old[node] - fixed_s;
 
@@ -315,7 +315,7 @@ fn solve_fixed_flags(
                 } else {
                     r * (v[node - 1] - 2.0 * v[node] + v[node + 1])
                 };
-                s[node] = e_old[node] - lap_scaled;
+                s[node] = e_old[node] + lap_scaled;
             }
             1 => { s[node] = latent_density; }
             _ => return Err("invalid flag in latent recovery".into()),
@@ -375,10 +375,8 @@ fn solve_one_step(
             return Err("non-finite solution of flag linear system".into());
         }
         for i in 1..flags.len() {
-            if flags[i] == 0 && (s[i] < -1.0e-7 * campaign.latent_density
-                || s[i] > (1.0 + 1.0e-7) * campaign.latent_density)
-            {
-                // Do not accept an inconsistent mixed-phase solution.
+            if flags[i] == 0 && !(0.0..=campaign.latent_density).contains(&s[i]) {
+                return Err("mixed-phase latent component escaped [0, rho*L]".into());
             }
         }
 
@@ -652,8 +650,9 @@ mod tests {
         assert!((gamma_for_flag(-1, 1.0e-6, 2.0e-6).unwrap() - 1.0e6).abs() < 1e-8);
         assert_eq!(gamma_for_flag(0, 1.0e-6, 2.0e-6).unwrap(), 0.0);
         assert!((gamma_for_flag(1, 1.0e-6, 2.0e-6).unwrap() - 5.0e5).abs() < 1e-8);
-        assert_eq!(fixed_latent_for_flag(-1, 100.0).unwrap(), 0.0);
-        assert_eq!(fixed_latent_for_flag(1, 100.0).unwrap(), 100.0);
+        assert_eq!(fixed_latent_for_flag(-1, 100.0).unwrap(), Some(0.0));
+        assert_eq!(fixed_latent_for_flag(0, 100.0).unwrap(), None);
+        assert_eq!(fixed_latent_for_flag(1, 100.0).unwrap(), Some(100.0));
     }
 
     #[test]
@@ -690,10 +689,10 @@ mod tests {
             let fixed_s = fixed_latent_for_flag(flags[node], latent_density).unwrap();
             a[row][node - 1] = gamma + 2.0 * r;
             if node == 1 {
-                b[row] = e_old[node] - fixed_s + r * wall;
+                b[row] = e_old[node] - fixed_s.unwrap_or(0.0) + r * wall;
             } else {
                 a[row][node - 2] = if node == intervals { -2.0 * r } else { -r };
-                b[row] = e_old[node] - fixed_s;
+                b[row] = e_old[node] - fixed_s.unwrap_or(0.0);
             }
             if node < intervals {
                 a[row][node] = -r;
@@ -704,7 +703,7 @@ mod tests {
             match flags[node] {
                 1 | -1 => {
                     a[crow][intervals + node - 1] = 1.0;
-                    b[crow] = fixed_s;
+                    b[crow] = fixed_s.expect("solid/liquid flag has fixed latent contribution");
                 }
                 0 => {
                     a[crow][node - 1] = 1.0;
