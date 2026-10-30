@@ -17,6 +17,7 @@
 //! and generalized rigid-body Jacobians are deliberately outside this API.
 
 use nalgebra::{DMatrix, DVector, SVector};
+use symtropy_math::Bivector;
 
 /// Errors from Delassus validation or the bounded reference LCP solve.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -379,6 +380,57 @@ pub fn solve_normal_contact_lcp_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn contact_jacobian_matches_direct_relative_point_velocity() {
+        let normal = SVector::new(0.0, 0.0, 1.0);
+        let offset_a = SVector::new(0.3, -0.7, 0.2);
+        let offset_b = SVector::new(-0.4, 0.1, 0.5);
+        let row = ContactJacobianSpec {
+            body_a: 0,
+            body_b: 1,
+            normal,
+            offset_a,
+            offset_b,
+        };
+        let jacobian = build_contact_jacobian::<3>(2, &[row]).unwrap();
+
+        let velocity_a = SVector::new(0.5, -0.2, 0.1);
+        let velocity_b = SVector::new(-0.1, 0.4, 0.3);
+        let mut stored_b_a = Bivector::<3>::zero();
+        stored_b_a.set(0, 1, 0.17);
+        stored_b_a.set(0, 2, -0.23);
+        stored_b_a.set(1, 2, 0.31);
+        let mut stored_b_b = Bivector::<3>::zero();
+        stored_b_b.set(0, 1, -0.11);
+        stored_b_b.set(0, 2, 0.29);
+        stored_b_b.set(1, 2, -0.07);
+
+        let generalized_velocity = DVector::from_row_slice(&[
+            velocity_a[0],
+            velocity_a[1],
+            velocity_a[2],
+            stored_b_a.get(0, 1),
+            stored_b_a.get(0, 2),
+            stored_b_a.get(1, 2),
+            velocity_b[0],
+            velocity_b[1],
+            velocity_b[2],
+            stored_b_b.get(0, 1),
+            stored_b_b.get(0, 2),
+            stored_b_b.get(1, 2),
+        ]);
+        let row_velocity = (&jacobian * generalized_velocity)[0];
+        let point_velocity_a = velocity_a - stored_b_a.apply_to_vector(&offset_a);
+        let point_velocity_b = velocity_b - stored_b_b.apply_to_vector(&offset_b);
+        let direct_relative_normal_velocity =
+            normal.dot(&(point_velocity_b - point_velocity_a));
+
+        assert!(
+            (row_velocity - direct_relative_normal_velocity).abs() < 1e-12,
+            "J*u={row_velocity}, direct={direct_relative_normal_velocity}"
+        );
+    }
 
     #[test]
     fn three_dimensional_contact_jacobian_uses_stored_rotation_sign() {
