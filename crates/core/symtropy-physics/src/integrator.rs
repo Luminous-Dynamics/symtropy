@@ -76,7 +76,7 @@ pub fn try_integrate<const D: usize>(
         body.torque_accumulator.clone()
     } else {
         Bivector::zero()
-    }
+    };
 
     // --- Angular dynamics ---
 
@@ -100,7 +100,7 @@ pub fn try_integrate<const D: usize>(
         let inv_i_avg = body.inv_inertia.sum() / D as f64;
         // Legacy isotropic fallback: the impulse-first torque accumulator
         // enters the stored B state with a negative sign.
-        body.torque_accumulator.scale(-inv_i_avg)
+        torque_accumulator.scale(-inv_i_avg)
     };
 
     // --- Linear dynamics ---
@@ -745,9 +745,39 @@ mod tests {
         assert_eq!(body.angular_velocity, angular_before);
         assert_eq!(body.force_accumulator, force_before);
         assert_eq!(body.torque_accumulator, torque_before);
+
+        // The compatibility API rejects the whole step rather than advancing
+        // translation while silently dropping the failed angular response.
+        integrate(&mut body, &SVector::new(0.0, -9.81, 0.0), 0.01);
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, linear_before);
+        assert_eq!(body.angular_velocity, angular_before);
+        assert_eq!(body.force_accumulator.norm(), 0.0);
+        assert_eq!(body.torque_accumulator.norm(), 0.0);
     }
 
     #[test]
+    #[test]
+    fn try_rotational_inverse_effective_mass_reports_singular_inertia() {
+        use crate::inertia::{BivectorInertia, RotationalInertiaError};
+        use nalgebra::SMatrix;
+
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(9), Point::origin(), 0.5, 1.0);
+        body.set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(
+                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
+            )
+            .unwrap(),
+        );
+        let error = try_rotational_inverse_effective_mass(
+            &body,
+            &SVector::new(0.0, 1.0, 0.0),
+            &SVector::new(0.0, 0.0, 1.0),
+        )
+        .unwrap_err();
+        assert_eq!(error, RotationalInertiaError::SingularInertia);
+    }
+
     fn try_apply_angular_impulse_reports_singular_inertia() {
         use crate::inertia::{BivectorInertia, RotationalInertiaError};
         use nalgebra::SMatrix;
