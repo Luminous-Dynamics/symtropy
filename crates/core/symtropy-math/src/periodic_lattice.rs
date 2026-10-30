@@ -20,7 +20,7 @@ use nalgebra::{SMatrix, SVector};
 use crate::periodic::LatticeOffset;
 
 const MAX_EXACT_LATTICE_INDEX: f64 = 4_503_599_627_370_495.0; // 2^52 - 1
-const MIN_RELATIVE_QR_PIVOT: f64 = 1.0e-12;
+const MIN_RELATIVE_QR_PIVOT: f64 = 1.0e-8;
 const QR_ROUNDING_PAD: f64 = 64.0 * f64::EPSILON;
 
 /// Failure to construct or query a triclinic periodic lattice.
@@ -353,6 +353,7 @@ impl<const D: usize> PeriodicLattice<D> {
             &target,
             &self.basis,
             &self.r,
+            QR_ROUNDING_PAD / self.min_relative_qr_pivot,
             max_search_nodes,
             &mut search_nodes,
             &mut current_offset,
@@ -420,6 +421,7 @@ fn sphere_decode_level<const D: usize>(
     target: &SVector<f64, D>,
     basis: &SMatrix<f64, D, D>,
     r: &SMatrix<f64, D, D>,
+    search_padding: f64,
     max_search_nodes: usize,
     search_nodes: &mut usize,
     offset: &mut [i64; D],
@@ -455,7 +457,7 @@ fn sphere_decode_level<const D: usize>(
     }
     let center = (target[row] - upper_sum) / diagonal;
     let remaining = best.distance_squared - partial_distance_squared;
-    let distance_pad = QR_ROUNDING_PAD * best.distance_squared.max(1.0);
+    let distance_pad = search_padding * best.distance_squared.max(1.0);
     if remaining < -distance_pad {
         return Ok(());
     }
@@ -466,7 +468,8 @@ fn sphere_decode_level<const D: usize>(
         });
     }
 
-    let integer_rounding_pad = 8.0 * f64::EPSILON * center.abs().max(radius).max(1.0);
+    let integer_rounding_pad =
+        search_padding * center.abs().max(radius).max(1.0);
     let lower = (center - radius - integer_rounding_pad).ceil();
     let upper = (center + radius + integer_rounding_pad).floor();
     if !lower.is_finite()
@@ -494,7 +497,7 @@ fn sphere_decode_level<const D: usize>(
 
         let row_error = diagonal * (value as f64 - center);
         let next_partial = partial_distance_squared + row_error * row_error;
-        let branch_pad = QR_ROUNDING_PAD * best.distance_squared.max(1.0);
+        let branch_pad = search_padding * best.distance_squared.max(1.0);
         if next_partial <= best.distance_squared + branch_pad {
             sphere_decode_level(
                 level - 1,
@@ -503,6 +506,7 @@ fn sphere_decode_level<const D: usize>(
                 target,
                 basis,
                 r,
+                search_padding,
                 max_search_nodes,
                 search_nodes,
                 offset,
@@ -835,6 +839,27 @@ mod tests {
             lattice.minimum_image_displacement(&SVector::from([0.5, 0.0]), 1),
             Err(PeriodicLatticeError::SearchBudgetExceeded { max_nodes: 1 })
         );
+    }
+
+    #[test]
+    fn strong_but_accepted_skew_matches_brute_force_oracle() {
+        let basis = SMatrix::<f64, 2, 2>::from_row_slice(&[1.0, 0.9999, 0.0, 0.002]);
+        let lattice = lattice2(basis.clone());
+        assert!(lattice.min_relative_qr_pivot() >= 1.0e-8);
+
+        for displacement in [
+            SVector::from([0.2, 0.001]),
+            SVector::from([-0.8, 0.0015]),
+            SVector::from([2.4, -0.003]),
+        ] {
+            let actual = lattice
+                .minimum_image_displacement(&displacement, 100_000)
+                .unwrap();
+            let (distance, offset, vector) = brute_force_2d(&displacement, &basis, 2_000);
+            assert_eq!(actual.image_offset.periods, offset);
+            close(actual.distance_squared, distance, 1e-9);
+            assert!((actual.displacement - vector).norm() < 1e-9);
+        }
     }
 
     #[test]
