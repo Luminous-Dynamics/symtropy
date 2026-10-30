@@ -1,0 +1,26 @@
+{
+  "schema_version": "energy-decision-value-experiment-v0.1",
+  "benchmark_id": "decision-value-vs-forecast-error-v0.1",
+  "source_panel_path": "tools/energy-dispatch-audit/fixtures/energy-decision-value-panel-v0.1.json",
+  "source_panel_sha256": "6f7ac0fe03eed5ec0b6af168dbf16898e07868f4dc1f0bdb72746915ffa6a301",
+  "expected_coverage": {"scenarios": 4, "intervals_per_scenario": 3, "forecast_models": 2},
+  "required_known_answers": {
+    "lower_mae_tail_blind_mae": 0.25,
+    "higher_mae_critical_reserve_mae": 0.5,
+    "lower_mae_total_essential_unserved": 1,
+    "higher_mae_total_essential_unserved": 0,
+    "higher_mae_total_flexible_unserved": 2,
+    "conservative_total_flexible_unserved": 4,
+    "perfect_information_total_flexible_unserved": 1
+  },
+  "claim_ceiling": "Synthetic deterministic counterexample only; unweighted finite-panel MAE is not a probability estimate, expected error, or generalization guarantee.",
+  "required_checks": [
+    "raw_panel_sha256_matches",
+    "forecast_values_are_keyed_by_observable_context",
+    "exact_scenario_and_interval_coverage",
+    "forecast_error_and_service_results_are_separate",
+    "perfect_information_is_non_deployable",
+    "no_probability_weighted_metrics_without_probabilities",
+    "physical_dispatch_audit_remains_not_run"
+  ]
+}
