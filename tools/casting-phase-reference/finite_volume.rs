@@ -132,6 +132,7 @@ struct Summary {
     dx_m: f64,
     dt_s: f64,
     steps: usize,
+    stefan_number: f64,
     front_m: f64,
     reference_front_m: f64,
     front_abs_error_m: f64,
@@ -247,6 +248,7 @@ fn solve(case: Case) -> Result<Summary, String> {
         dx_m: validated.dx_m,
         dt_s: validated.dt_s,
         steps: validated.steps,
+        stefan_number: validated.stefan_number,
         front_m: solid_equivalent_length_m,
         reference_front_m: case.reference_front_m,
         front_abs_error_m,
@@ -299,11 +301,12 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() -> Result<(), String> {
-    println!("cells,dx_m,dt_s,steps,front_m,reference_front_m,front_abs_error_m,front_relative_error,wall_heat_removed_j_m2,enthalpy_removed_j_m2,energy_residual_j_m2,energy_residual_relative,far_boundary_solid_fraction,status");
+    println!("cells,stefan_number,dx_m,dt_s,steps,front_m,reference_front_m,front_abs_error_m,front_relative_error,wall_heat_removed_j_m2,enthalpy_removed_j_m2,energy_residual_j_m2,energy_residual_relative,far_boundary_solid_fraction,status");
     for summary in refinement_summaries()? {
         println!(
-            "{},{:.8e},{:.8e},{},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},PASS",
+            "{},{:.8e},{:.8e},{:.8e},{},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},PASS",
             summary.cells,
+            summary.stefan_number,
             summary.dx_m,
             summary.dt_s,
             summary.steps,
