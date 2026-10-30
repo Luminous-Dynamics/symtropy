@@ -4,12 +4,15 @@ Standalone Rust reference for the parser-independent typed mapping layer between
 
 ## Standards boundary
 
-- MTConnect Version 2.8 is the only admitted version in v0.1. The normative MTConnect model is SysML/XMI; official XML schemas are published separately.
-- QIF 3.0 / ISO 23952:2020 is the only admitted QIF version in v0.1.
+- MTConnect 2.7 XML Streams and Assets are admitted only with their matching 2.7 XSD validation receipts.
+- MTConnect 2.8 JSON Streams are admitted only with the official Streams JSON Schema identifier `https://schemas.mtconnect.org/schemas/MTConnectStreams_2.8.schema.json`.
+- MTConnect 2.8 JSON Assets are admitted only with the distinct Assets JSON Schema identifier `https://schemas.mtconnect.org/schemas/MTConnectAssets_2.8.schema.json`.
+- MTConnect 2.8 XML is not admitted by this v0.1 validation matrix.
+- QIF 3.0 XML / ISO 23952:2020 is admitted only with a QIF 3.0 XSD validation receipt.
 - ISO 23247-5:2026 provides digital-thread lifecycle guidance.
 - ISO 23247-6:2026 provides integrated, unified and federated digital-twin composition.
 
-This code does not parse XML or validate XSDs. An upstream parser must provide a document receipt declaring the exact version, namespace, schema bundle digest and a passed XSD-validation result. This kernel consumes that receipt and validates its structure. The project must later add a pinned maintained XML parser plus official schema bundles before claiming document conformance.
+This code does not parse XML/JSON or validate XSD/JSON Schema. An upstream parser/validator must provide a document receipt declaring the exact version, document format, document-kind-specific schema identifier, schema bundle digest, validation method, authority and successful validation receipt. The kernel checks the admitted version/format/method matrix and exact Streams-vs-Assets schema identifier. The project must later add a pinned maintained parser and official schema bundles before claiming document conformance.
 
 ## Source-preserving model
 
@@ -36,4 +39,4 @@ A unit transform emits a derived value but retains the original numerical value,
 
 ## Claim ceiling
 
-The tests validate source-preserving typed mapping and explicit join rules against synthetic records. Three frozen CSV artifacts capture the MTConnect mapped observation stream, separate top-level Asset records, and the composed QIF-to-cycle evidence receipt. Assets are not coerced into stream observations. They do not prove an upstream MTConnect or QIF parser conforms to an official schema, validate a real vendor document, authenticate the association receipt or qualify the physical measurement. The output is evidence input to separate metrology/conformity decision logic, not a product-release authorization.
+The tests validate source-preserving typed mapping and explicit join rules against synthetic records. Three frozen CSV artifacts capture the MTConnect mapped observation stream, separate top-level Asset records validated against the Assets schema, and the composed QIF-to-cycle evidence receipt. The fixture schema bundle digests and validation receipts are synthetic, not downloaded official artifact hashes. Assets are not coerced into stream observations. They do not prove an upstream MTConnect or QIF parser conforms to an official schema, validate a real vendor document, authenticate the association receipt or qualify the physical measurement. The output is evidence input to separate metrology/conformity decision logic, not a product-release authorization.
