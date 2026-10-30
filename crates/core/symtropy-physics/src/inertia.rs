@@ -7,10 +7,11 @@
 //! the familiar 3D spatial inertia tensor and naturally couples rotation planes
 //! for asymmetric mass distributions.
 //!
-//! This module provides forward and inverse inertia application, coordinate-
-//! frame rotation, and energy calculation. It is not yet wired into RigidBody
-//! integration/contact; gyroscopic evolution and CAD-derived mass-property
-//! assembly remain separate validated implementation steps.
+//! This module provides forward/inverse inertia application, coordinate-frame
+//! rotation, energy, gyroscopic acceleration, and rotational contact effective
+//! mass. It is wired into RigidBody instances carrying validated mass properties.
+//! Collider-to-mass-property extraction from general CAD/meshes and broad
+//! experimental validation remain separate implementation steps.
 
 use nalgebra::{SMatrix, SVector};
 use symtropy_math::{Bivector, Rotor};
@@ -357,7 +358,9 @@ impl<const D: usize> BivectorInertia<D> {
         if !effective_mass.is_finite() {
             return Err(RotationalInertiaError::NonFinite);
         }
-        if effective_mass < -1e-12 * point_velocity_change.norm().max(1.0) {
+        let effective_mass_tolerance =
+            1e-12 * point_velocity_change.norm().max(f64::MIN_POSITIVE);
+        if effective_mass < -effective_mass_tolerance {
             return Err(RotationalInertiaError::NotPositiveSemidefinite);
         }
         Ok(effective_mass.max(0.0))
