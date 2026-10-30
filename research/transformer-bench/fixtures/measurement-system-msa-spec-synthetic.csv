@@ -1,0 +1,4 @@
+study_id,characteristic,unit,lower_limit,upper_limit,calibration_class,min_parts,min_operators,min_repeats
+MSA-LOW-NOISE,core_stack_height,mm,99.0,101.0,LENGTH_GAUGE,10,3,3
+MSA-HIGH-GRR,core_stack_height,mm,99.0,101.0,LENGTH_GAUGE,10,3,3
+MSA-INCOMPLETE,core_stack_height,mm,99.0,101.0,LENGTH_GAUGE,10,3,3
