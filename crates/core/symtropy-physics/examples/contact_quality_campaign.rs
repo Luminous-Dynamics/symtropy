@@ -73,16 +73,15 @@ fn run_once(body_count: usize, stacked: bool) -> RunMetrics {
 
     for _ in 0..STEPS_PER_RUN {
         let start = Instant::now();
-        let receipt = world
-            .try_step_with_receipt(DT)
-            .expect("contact campaign step must commit");
+        world.try_step(DT).expect("contact campaign step must commit");
         step_ns.push(start.elapsed().as_nanos());
-        max_penetration = max_penetration.max(receipt.max_penetration_depth);
+        let snapshot = world.invariant_snapshot();
+        max_penetration = max_penetration.max(snapshot.max_penetration_depth);
         max_rotation_error = max_rotation_error
-            .max(receipt.after.max_rotation_orthogonality_error)
-            .max(receipt.after.max_rotation_determinant_error);
+            .max(snapshot.max_rotation_orthogonality_error)
+            .max(snapshot.max_rotation_determinant_error);
         assert!(
-            receipt.is_numerically_healthy(1e-8),
+            snapshot.is_numerically_healthy(1e-8),
             "contact campaign produced unhealthy post-step state"
         );
     }
@@ -115,17 +114,41 @@ fn campaign(name: &str, body_count: usize, stacked: bool) {
     median_step_ns.sort_unstable();
     p95_step_ns.sort_unstable();
 
-    let median = samples[MEASURED_RUNS / 2];
+    let mut contact_counts: Vec<_> = samples.iter().map(|row| row.final_contact_count).collect();
+    contact_counts.sort_unstable();
+    let mut energy_deltas: Vec<_> = samples
+        .iter()
+        .map(|row| row.mechanical_energy_delta)
+        .collect();
+    energy_deltas.sort_by(f64::total_cmp);
+    let max_penetration = samples
+        .iter()
+        .map(|row| row.max_penetration)
+        .fold(0.0_f64, f64::max);
+    let max_rotation_error = samples
+        .iter()
+        .map(|row| row.max_rotation_error)
+        .fold(0.0_f64, f64::max);
+    let max_non_finite = samples
+        .iter()
+        .map(|row| row.non_finite_body_count)
+        .max()
+        .unwrap_or(0);
+    let max_mass_mismatches = samples
+        .iter()
+        .map(|row| row.mass_property_mismatch_count)
+        .max()
+        .unwrap_or(0);
     println!(
         "{name},{body_count},{STEPS_PER_RUN},{DT:.9e},{},{},{},{:.9e},{:.9e},{:.9e},{},{},{}",
         median_step_ns[MEASURED_RUNS / 2],
         p95_step_ns[MEASURED_RUNS / 2],
-        median.final_contact_count,
-        median.max_penetration,
-        median.mechanical_energy_delta,
-        median.max_rotation_error,
-        median.non_finite_body_count,
-        median.mass_property_mismatch_count,
+        contact_counts[MEASURED_RUNS / 2],
+        max_penetration,
+        energy_deltas[MEASURED_RUNS / 2],
+        max_rotation_error,
+        max_non_finite,
+        max_mass_mismatches,
         MEASURED_RUNS
     );
 }
