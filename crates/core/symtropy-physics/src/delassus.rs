@@ -428,6 +428,51 @@ mod tests {
     }
 
     #[test]
+    fn production_single_contact_impulse_matches_delassus_lcp_oracle() {
+        use crate::world::PhysicsWorld;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let body_a = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body_b = world.add_sphere(Point::new([0.999, 0.0, 0.0]), 0.5, 1.0);
+        world.bodies[0].linear_velocity = SVector::new(2.0, 0.0, 0.0);
+        world.bodies[0].restitution = 0.2;
+        world.bodies[1].restitution = 0.2;
+        world.bodies[0].friction = 0.0;
+        world.bodies[1].friction = 0.0;
+
+        let relative_velocity_before =
+            (world.bodies[1].linear_velocity - world.bodies[0].linear_velocity);
+        world.try_step(0.001).unwrap();
+        assert_eq!(world.contacts.len(), 1);
+
+        let manifold = &world.contacts[0];
+        let point = manifold.primary_point();
+        let row = FrictionlessContactRow {
+            body_a,
+            body_b,
+            offset_a: point.position - world.bodies[0].position(),
+            offset_b: point.position - world.bodies[1].position(),
+            normal: manifold.normal,
+        };
+        let matrix = assemble_delassus(&world.bodies, &[row], 1e-12).unwrap();
+        let relative_normal_speed = relative_velocity_before.dot(&manifold.normal);
+        let restitution_bias = if relative_normal_speed < -1.0 {
+            -0.2 * relative_normal_speed
+        } else {
+            0.0
+        };
+        let q = DVector::from_vec(vec![relative_normal_speed - restitution_bias]);
+        let reference = solve_frictionless_lcp(&matrix, &q, 1e-10).unwrap();
+        let applied_impulse = manifold.primary_point().lambda;
+
+        assert!(
+            (applied_impulse - reference.impulses[0]).abs() < 1e-8,
+            "production impulse={applied_impulse}, oracle={}",
+            reference.impulses[0]
+        );
+    }
+
+    #[test]
     fn isolated_sphere_contact_has_analytic_delassus_diagonal() {
         let bodies = vec![
             RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 2.0),
