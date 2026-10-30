@@ -24,18 +24,6 @@ enum ReceiptState {
     NotQualified,
 }
 
-impl ReceiptState {
-    fn code(self) -> &'static str {
-        match self {
-            Self::Verified => "VERIFIED",
-            Self::Missing => "MISSING",
-            Self::Stale => "STALE",
-            Self::Mismatched => "MISMATCHED",
-            Self::Revoked => "REVOKED",
-            Self::NotQualified => "NOT_QUALIFIED",
-        }
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ScalarOutcome {
@@ -162,8 +150,9 @@ impl AggregateReport {
                 child.report_refs.join("+")
             };
             values.push(format!(
-                "{}:{}:{}:{}:{}",
+                "{}:{}:{}:{}:{}:{}",
                 child.requirement_id,
+                child.characteristic_id,
                 child.disposition,
                 child.scalar_outcome,
                 child.reason,
@@ -394,7 +383,10 @@ fn aggregate(manifest: &Manifest, reports: &[ScalarReport]) -> AggregateReport {
             .get(requirement.requirement_id.as_str())
             .cloned()
             .unwrap_or_default();
-        candidates.sort_by(|a, b| a.report_id.cmp(&b.report_id));
+        candidates.sort_by(|a, b| {
+            (&a.report_id, &a.report_sha256, &a.measurement_sha256)
+                .cmp(&(&b.report_id, &b.report_sha256, &b.measurement_sha256))
+        });
 
         let references: Vec<String> = candidates.iter().map(|r| ref_for(r)).collect();
         let outcome_codes: Vec<String> = candidates
@@ -513,7 +505,10 @@ fn aggregate(manifest: &Manifest, reports: &[ScalarReport]) -> AggregateReport {
         .iter()
         .filter(|r| !known_requirements.contains(r.requirement_id.as_str()))
         .collect();
-    extras.sort_by(|a, b| a.report_id.cmp(&b.report_id));
+    extras.sort_by(|a, b| {
+        (&a.report_id, &a.report_sha256, &a.measurement_sha256)
+            .cmp(&(&b.report_id, &b.report_sha256, &b.measurement_sha256))
+    });
     result.extra_report_count = extras.len();
     result.extras = extras.iter().map(|r| ref_for(r)).collect();
 
@@ -849,6 +844,16 @@ mod tests {
     #[test]
     fn exhaustive_three_characteristic_truth_table_passes() {
         verify().unwrap();
+    }
+
+    #[test]
+    fn duplicate_report_order_is_canonical() {
+        let mut reports = all_accept_reports();
+        reports.push(scalar_fixture("REQ-DIA", "REPORT-DIA-OLD", ScalarOutcome::Accept));
+        let forward = aggregate(&manifest_fixture(), &reports).csv_row("duplicates");
+        reports.reverse();
+        let reverse = aggregate(&manifest_fixture(), &reports).csv_row("duplicates");
+        assert_eq!(forward, reverse);
     }
 
     #[test]
