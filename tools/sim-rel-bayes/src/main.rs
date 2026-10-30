@@ -1299,9 +1299,24 @@ mod tests {
             Candidate { sig: 7, representative: "d".into(), expression_aliases: 1, mdl_bits: 1.0 },
         ];
         let survivors = candidates.iter().map(|c| c.sig).collect::<Vec<_>>();
-        let action = choose_mdl_eig_action(&survivors, &candidates, &[0, 1], &[4, 1, 1, 1, 1, 1, 1, 1]);
+        let costs = [4, 1, 1, 1, 1, 1, 1, 1];
+        let action = choose_mdl_eig_action(&survivors, &candidates, &[0, 1], &costs);
         assert_eq!(action, Some(1));
+        assert_eq!(choose_uniform_eig_action(&survivors, &[0, 1], &costs), Some(1));
     }
+    #[test]
+    fn uniform_eig_matches_max_split_when_all_costs_are_equal() {
+        let candidates = enumerate_grammar(2).unwrap();
+        let survivors = candidates.iter().map(|c| c.sig).collect::<Vec<_>>();
+        let available = (0..DOMAIN as u8).collect::<Vec<_>>();
+        let costs = [1; DOMAIN];
+        let mut seed = 1;
+        assert_eq!(
+            choose_uniform_eig_action(&survivors, &available, &costs),
+            choose_action(&survivors, &candidates, &available, &costs, Policy::Active, &mut seed)
+        );
+    }
+    #[test]
     #[test]
     fn mdl_eig_validates_costs_and_ties_deterministically() {
         let candidates = enumerate_grammar(1).unwrap();
