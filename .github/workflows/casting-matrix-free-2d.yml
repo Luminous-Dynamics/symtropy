@@ -1,0 +1,44 @@
+name: Matrix-free 2D phase-update operator reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/matrix_free_2d.rs"
+      - "tools/casting-phase-reference/matrix-free-2d-README.md"
+      - ".github/workflows/casting-matrix-free-2d.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/matrix_free_2d.rs"
+      - "tools/casting-phase-reference/matrix-free-2d-README.md"
+      - ".github/workflows/casting-matrix-free-2d.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  matrix-free-operator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run operator tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/casting-phase-reference/matrix_free_2d.rs -o "$RUNNER_TEMP/matrix-free-2d-tests"
+          "$RUNNER_TEMP/matrix-free-2d-tests"
+      - name: Build and verify matrix-free PCG
+        run: |
+          rustc --edition=2024 -D warnings tools/casting-phase-reference/matrix_free_2d.rs -o "$RUNNER_TEMP/matrix-free-2d"
+          "$RUNNER_TEMP/matrix-free-2d" --verify
+      - name: Check deterministic operator work table
+        run: |
+          "$RUNNER_TEMP/matrix-free-2d" --csv > "$RUNNER_TEMP/matrix-free-a.csv"
+          "$RUNNER_TEMP/matrix-free-2d" --csv > "$RUNNER_TEMP/matrix-free-b.csv"
+          diff -u "$RUNNER_TEMP/matrix-free-a.csv" "$RUNNER_TEMP/matrix-free-b.csv"
+          cat "$RUNNER_TEMP/matrix-free-a.csv"
+      - name: Emit source and output digests
+        run: |
+          sha256sum tools/casting-phase-reference/matrix_free_2d.rs "$RUNNER_TEMP/matrix-free-a.csv"
