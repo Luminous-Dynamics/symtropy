@@ -391,6 +391,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::needless_range_loop)]
     fn four_dimensional_contact_jacobian_covers_all_six_bivector_planes() {
         let normal = SVector::new(1.0, 2.0, 3.0, 4.0);
         let offset_a = SVector::new(2.0, 3.0, 5.0, 7.0);
@@ -455,6 +456,33 @@ mod tests {
         assert!((delassus[(0, 1)] - 1.0).abs() < 1e-12);
         assert!((delassus[(1, 0)] - 1.0).abs() < 1e-12);
         assert!((delassus[(1, 1)] - 3.0).abs() < 1e-12);
+        validate_delassus(&delassus, 1e-12).unwrap();
+    }
+
+    #[test]
+    fn nd_contact_rows_assemble_a_symmetric_psd_delassus_matrix() {
+        let rows = [
+            ContactJacobianSpec {
+                body_a: 0,
+                body_b: 1,
+                normal: SVector::new(0.0, 0.0, 1.0),
+                offset_a: SVector::new(0.0, 1.0, 0.0),
+                offset_b: SVector::new(0.0, -1.0, 0.0),
+            },
+            ContactJacobianSpec {
+                body_a: 0,
+                body_b: 1,
+                normal: SVector::new(1.0, 0.0, 0.0),
+                offset_a: SVector::new(0.0, 0.0, 1.0),
+                offset_b: SVector::new(0.0, 0.0, -1.0),
+            },
+        ];
+        let jacobian = build_contact_jacobian::<3>(2, &rows).unwrap();
+        let inverse_mass = DMatrix::identity(jacobian.ncols(), jacobian.ncols());
+        let delassus = assemble_delassus(&jacobian, &inverse_mass, 1e-12).unwrap();
+
+        assert_eq!(delassus.shape(), (2, 2));
+        assert!((delassus[(0, 1)] - delassus[(1, 0)]).abs() < 1e-12);
         validate_delassus(&delassus, 1e-12).unwrap();
     }
 
