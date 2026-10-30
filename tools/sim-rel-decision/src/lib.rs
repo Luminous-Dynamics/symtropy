@@ -153,12 +153,12 @@ pub fn solve_decision(
         &mut memo,
     )?;
 
-    let selected_decision = match tree.kind {
-        DecisionKind::Stop { decision_class } => Some(decision_class),
+    let selected_decision = match &tree.kind {
+        DecisionKind::Stop { decision_class } => Some(*decision_class),
         DecisionKind::Abstain | DecisionKind::Experiment { .. } => None,
     };
-    let first_action = match tree.kind {
-        DecisionKind::Experiment { action, .. } => Some(action),
+    let first_action = match &tree.kind {
+        DecisionKind::Experiment { action, .. } => Some(*action),
         DecisionKind::Stop { .. } | DecisionKind::Abstain => None,
     };
 
@@ -256,7 +256,7 @@ fn solve_state(
             let mut zero_weight = 0.0;
             let mut one_weight = 0.0;
             for signature in signatures {
-                let (decision_class, weight) = support.get(signature).ok_or_else(|| {
+                let (_, weight) = support.get(signature).ok_or_else(|| {
                     format!("posterior references unknown signature {signature}")
                 })?;
                 if (*signature >> action) & 1 == 1 {
@@ -266,7 +266,6 @@ fn solve_state(
                     zero.push(*signature);
                     zero_weight += weight;
                 }
-                let _ = decision_class;
             }
             if zero.is_empty() || one.is_empty() {
                 continue;
