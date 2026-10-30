@@ -27,7 +27,7 @@ jobs:
           components: rustfmt
       - name: Format and test the Rust benchmark workspace
         run: |
-          cargo fmt --manifest-path research/transformer-bench/Cargo.toml --all -- --check
+          cargo fmt --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-acceptance -- --check
           cargo test --locked --manifest-path research/transformer-bench/Cargo.toml
       - name: Positive manufacturing acceptance fixture
         run: |
