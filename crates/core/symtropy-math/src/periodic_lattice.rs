@@ -220,7 +220,8 @@ impl<const D: usize> PeriodicLattice<D> {
         &self.origin
     }
 
-    /// Basis columns are the periodic translation vectors.
+    /// Basis columns are lattice vectors; only columns marked periodic
+    /// generate allowed image translations.
     pub fn basis(&self) -> &SMatrix<f64, D, D> {
         &self.basis
     }
@@ -306,8 +307,10 @@ impl<const D: usize> PeriodicLattice<D> {
 
         for axis in 0..D {
             let coordinate = fractional[axis];
-            if !coordinate.is_finite() || coordinate.abs() > MAX_EXACT_LATTICE_INDEX {
-                return Err(PeriodicLatticeError::CoordinatePrecisionLimit { axis });
+            if !coordinate.is_finite() {
+                return Err(PeriodicLatticeError::NumericRange {
+                    field: "fractional coordinate during wrapping",
+                });
             }
             if self.periodic_axes[axis] {
                 if coordinate.abs() > MAX_EXACT_LATTICE_INDEX {
@@ -344,9 +347,8 @@ impl<const D: usize> PeriodicLattice<D> {
     }
 
     /// Find the nearest periodic representative by solving
-    /// argmin_n ||displacement + B*n||.
-    ///
-    /// Find the nearest periodic representative using bounded QR sphere decoding.
+    /// argmin_n ||displacement + B*n|| over active periodic coefficients only,
+    /// using bounded QR sphere decoding.
     ///
     /// A Babai nearest-plane point supplies an initial radius, after which the
     /// decoder enumerates every integer point inside that radius. Search-budget
