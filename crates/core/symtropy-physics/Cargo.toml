@@ -36,3 +36,6 @@ path = "src/bin/replay_cli.rs"
 [[bench]]
 name = "physics_bench"
 harness = false
+[[bench]]
+name = "triclinic_periodic_geometry"
+harness = false
