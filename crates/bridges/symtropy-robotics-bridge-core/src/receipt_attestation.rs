@@ -409,13 +409,7 @@ mod tests {
         trust.trusted_signers.clear();
 
         assert_eq!(
-            verify_signed_command_evidence_receipt(
-                &signed,
-                &context,
-                &expected,
-                &events,
-                &trust,
-            ),
+            verify_signed_command_evidence_receipt(&signed, &context, &expected, &events, &trust,),
             Err(CommandEvidenceAttestationError::UnknownSigner {
                 key_id: "independent-auditor-2026".into(),
             })
@@ -481,10 +475,12 @@ mod tests {
 
         assert_eq!(
             verify_signed_command_evidence_receipt(&signed, &context, &expected, &events, &trust),
-            Err(CommandEvidenceAttestationError::TrustPolicyRevisionMismatch {
-                receipt: "trust-policy-v1".into(),
-                trusted: "trust-policy-v2".into(),
-            })
+            Err(
+                CommandEvidenceAttestationError::TrustPolicyRevisionMismatch {
+                    receipt: "trust-policy-v1".into(),
+                    trusted: "trust-policy-v2".into(),
+                }
+            )
         );
     }
 
