@@ -425,6 +425,49 @@ mod tests {
     }
 
     #[test]
+    fn gyroscopic_acceleration_is_covariant_between_body_and_world_frames() {
+        let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            2.0,
+            SVector::new(1.5, 0.9, 0.4),
+        )
+        .unwrap();
+        let rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 2),
+            0.71,
+        );
+        let world_inertia = body_inertia.rotated_by(&rotation);
+
+        let mut b_body = Bivector::<3>::zero();
+        b_body.set(0, 1, 0.8);
+        b_body.set(0, 2, -0.3);
+        b_body.set(1, 2, 0.5);
+        let mut torque_body = Bivector::<3>::zero();
+        torque_body.set(0, 1, -0.2);
+        torque_body.set(0, 2, 0.1);
+        torque_body.set(1, 2, 0.4);
+
+        let to_world = |value: &Bivector<3>| {
+            Bivector::from_matrix(
+                &(rotation.to_matrix() * value.to_matrix() * rotation.to_matrix().transpose()),
+            )
+        };
+        let b_world = to_world(&b_body);
+        let torque_world = to_world(&torque_body);
+
+        let b_dot_body = body_inertia
+            .angular_acceleration(&b_body, &torque_body, 1e-12)
+            .unwrap();
+        let b_dot_world = world_inertia
+            .angular_acceleration(&b_world, &torque_world, 1e-12)
+            .unwrap();
+
+        assert!(
+            b_dot_world.add(&to_world(&b_dot_body).scale(-1.0)).norm() < 1e-11,
+            "body-frame and world-frame angular accelerations differ"
+        );
+    }
+
+    #[test]
     fn torque_free_angular_acceleration_preserves_energy_and_momentum_casimir() {
         let second_moment = SMatrix::<f64, 3, 3>::new(
             1.0, 0.15, 0.05,
