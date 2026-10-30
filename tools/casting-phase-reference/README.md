@@ -55,3 +55,12 @@ The verification tests cover the golden root/front, boundary and interface tempe
 ## Claim ceiling
 
 A successful run establishes only that this reference implementation reproduces the frozen analytical known-answer case and its mathematical invariants. It does not qualify a candidate thermal solver, establish alloy properties, validate a casting process, or support a production/industry/SOTA claim.
+
+
+## Energy closure check
+
+For this one-phase similarity solution, the integrated heat removed through the cold wall must equal the sum of latent heat released at the advancing front and sensible cooling stored in the solid, per unit area:
+
+`Q_wall(t) = rho * L * s(t) + rho * cp * integral_0^s [T_m - T(x,t)] dx`.
+
+The executable evaluates both sides independently from the analytical expressions, emits them in the golden CSV, and checks their residual at 60, 240 and 960 seconds. This is an analytical conservation identity for the admitted idealized model; it is not physical validation of a foundry process.
