@@ -778,6 +778,79 @@ mod tests {
     }
 
     #[test]
+    fn mass_aware_inertia_mismatch_is_rejected_before_body_mutation() {
+        use crate::inertia::{BivectorInertia, RotationalInertiaError};
+
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(10), Point::new([1.0, 2.0, 3.0]), 0.5, 1.0);
+        let original_mass_metadata = body
+            .rotational_inertia
+            .as_ref()
+            .and_then(BivectorInertia::total_mass);
+        assert_eq!(original_mass_metadata, Some(1.0));
+
+        let mismatched = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            2.0,
+            SVector::new(1.0, 0.8, 0.6),
+        )
+        .unwrap();
+        assert_eq!(
+            body.try_set_rotational_inertia_operator(mismatched.clone()),
+            Err(RotationalInertiaError::MassMismatch)
+        );
+        // The validating setter must not replace the previous valid operator.
+        assert_eq!(
+            body.rotational_inertia
+                .as_ref()
+                .and_then(BivectorInertia::total_mass),
+            Some(1.0)
+        );
+
+        // Exercise the legacy setter too: simulation entry points still have
+        // to detect mismatched metadata when callers bypass the new setter.
+        body.set_rotational_inertia_operator(mismatched);
+        body.linear_velocity = SVector::new(0.5, -0.25, 0.75);
+        body.apply_force(SVector::new(4.0, -2.0, 1.0));
+        body.apply_torque(Bivector::<3>::unit_plane(0, 2));
+
+        let position_before = body.transform.translation.0.clone();
+        let rotation_before = body.transform.rotation.clone();
+        let linear_before = body.linear_velocity.clone();
+        let angular_before = body.angular_velocity.clone();
+        let force_before = body.force_accumulator.clone();
+        let torque_before = body.torque_accumulator.clone();
+
+        assert_eq!(
+            try_integrate(&mut body, &SVector::zeros(), 0.01),
+            Err(RotationalInertiaError::MassMismatch)
+        );
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.transform.rotation.to_matrix(), rotation_before.to_matrix());
+        assert_eq!(body.linear_velocity, linear_before);
+        assert_eq!(body.angular_velocity, angular_before);
+        assert_eq!(body.force_accumulator, force_before);
+        assert_eq!(body.torque_accumulator, torque_before);
+
+        assert_eq!(
+            try_apply_angular_impulse(
+                &mut body,
+                &Bivector::<3>::unit_plane(0, 1),
+            ),
+            Err(RotationalInertiaError::MassMismatch)
+        );
+        assert_eq!(body.angular_velocity, angular_before);
+
+        assert_eq!(
+            try_rotational_inverse_effective_mass(
+                &body,
+                &SVector::new(0.0, 1.0, 0.0),
+                &SVector::new(1.0, 0.0, 0.0),
+            ),
+            Err(RotationalInertiaError::MassMismatch)
+        );
+    }
+
+    #[test]
     fn try_apply_angular_impulse_reports_singular_inertia() {
         use crate::inertia::{BivectorInertia, RotationalInertiaError};
         use nalgebra::SMatrix;
