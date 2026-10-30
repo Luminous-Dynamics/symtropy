@@ -127,16 +127,24 @@ type MeshContactFn<const D: usize> = Arc<
         + Sync,
 >;
 
-/// Typed error returned when a physics-world step cannot be completed.
+/// Phase in which a fallible physics-world step was rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PhysicsStepError {
-    RotationalInertia(crate::inertia::RotationalInertiaError),
+pub enum PhysicsStepPhase {
+    BodyIntegration,
+    ContactWarmStart,
+    ContactSolve,
 }
 
-impl From<crate::inertia::RotationalInertiaError> for PhysicsStepError {
-    fn from(error: crate::inertia::RotationalInertiaError) -> Self {
-        Self::RotationalInertia(error)
-    }
+/// Structured failure receipt from a rejected physics-world step.
+///
+/// Body handles identify the affected object(s); the phase distinguishes
+/// integration, warm-start and contact-solve failures without parsing logs.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PhysicsStepError {
+    pub phase: PhysicsStepPhase,
+    pub body_a: Option<BodyHandle>,
+    pub body_b: Option<BodyHandle>,
+    pub cause: crate::inertia::RotationalInertiaError,
 }
 
 #[derive(Clone)]
@@ -594,7 +602,14 @@ impl<const D: usize> PhysicsWorld<D> {
             if !body.sleeping {
                 body.force_accumulator =
                     callback.modulate_force(body.handle, &body.force_accumulator);
-                integrator::try_integrate(body, &self.gravity, dt)?;
+                integrator::try_integrate(body, &self.gravity, dt).map_err(|cause| {
+                    PhysicsStepError {
+                        phase: PhysicsStepPhase::BodyIntegration,
+                        body_a: Some(body.handle),
+                        body_b: None,
+                        cause,
+                    }
+                })?;
             }
         }
         #[cfg(feature = "deterministic-net")]
