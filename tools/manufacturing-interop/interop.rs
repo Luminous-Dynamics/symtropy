@@ -942,6 +942,17 @@ fn prefix_hash(value: &str) -> String {
     format!("{value}{}", "0".repeat(HASH_LEN - 1))
 }
 
+fn fixture_assets(source: &SourceDocument) -> Vec<MtAsset> {
+    vec![MtAsset {
+        device_uuid: "urn:uuid:machine-001".into(),
+        asset_type: "CuttingTool".into(),
+        asset_id: "TOOL-0001".into(),
+        source_document_sha256: source.document_sha256.clone(),
+        raw_asset_sha256: prefix_hash("e"),
+        source_locator: "/MTConnectAssets/Assets/Asset[1]".into(),
+    }]
+}
+
 fn fixture_observations(with_gap: bool) -> Vec<MtObservation> {
     let sequences = if with_gap { vec![10, 11, 13] } else { vec![10, 11, 12] };
     sequences.into_iter().enumerate().map(|(index, sequence)| {
@@ -1107,6 +1118,15 @@ fn emit_csv() {
     for row in mapped.csv_rows() { println!("{row}"); }
 }
 
+fn emit_assets_csv() -> Result<(), String> {
+    let source = fixture_source(Standard::MtConnect);
+    let assets = map_mtconnect_assets(&source, "urn:uuid:machine-001", &fixture_assets(&source))
+        .map_err(str::to_string)?;
+    println!("device_uuid,asset_type,asset_id,source_document_sha256,raw_asset_sha256,source_locator");
+    for asset in assets { println!("{}", asset.csv_row()); }
+    Ok(())
+}
+
 fn emit_joined_csv() -> Result<(), String> {
     let mt = fixture_source(Standard::MtConnect);
     let qif = fixture_source(Standard::Qif);
@@ -1133,9 +1153,10 @@ fn main() {
         [] => verify().map(|()| println!("MFG_INTEROP_OK: typed MTConnect/QIF semantic preservation and explicit join")),
         [arg] if arg == "--verify" => verify().map(|()| println!("MFG_INTEROP_OK: typed MTConnect/QIF semantic preservation and explicit join")),
         [arg] if arg == "--csv" => { emit_csv(); Ok(()) },
+        [arg] if arg == "--assets-csv" => emit_assets_csv(),
         [arg] if arg == "--joined-csv" => emit_joined_csv(),
         [arg] if arg == "--help" || arg == "-h" => {
-            println!("Usage: mfg-interop [--verify|--csv|--joined-csv|--help]");
+            println!("Usage: mfg-interop [--verify|--csv|--assets-csv|--joined-csv|--help]");
             Ok(())
         }
         _ => Err("expected --verify, --csv or --help".into()),
