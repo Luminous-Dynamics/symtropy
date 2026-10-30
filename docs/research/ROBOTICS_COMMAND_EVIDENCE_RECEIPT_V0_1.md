@@ -28,7 +28,7 @@ The receipt contains the independent auditor summary and five commitments:
 - `audit_summary_digest`: all lifecycle counts produced by the auditor.
 - `receipt_digest`: root commitment over the schema version and four component digests.
 
-All digests use SHA-256 with a versioned domain separator. Every variable-length string is length-prefixed; integers are encoded little-endian at fixed widths. Expected identities are sorted because their input slice order is not semantically meaningful. Events are **not** sorted: their original global order is part of the trace, even when per-request order is independently checked by the auditor.
+All digests use SHA-256 with a versioned domain separator. Every variable-length string is length-prefixed; integers are encoded little-endian at fixed widths. The encoder feeds fields incrementally into the hasher instead of allocating a second serialized copy of the full event stream. Expected identities are sorted because their input slice order is not semantically meaningful. Events are **not** sorted: their original global order is part of the trace, even when per-request order is independently checked by the auditor.
 
 No creation timestamp is included. Identical context, expected identities, and ordered events must yield a byte-identical receipt.
 
