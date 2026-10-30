@@ -39,15 +39,15 @@ pub struct ContactAngularCoordinates {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ContactWrenchFrictionLimits {
     /// Coulomb coefficient for tangential linear impulse.
-    pub tangential_coefficient: f64,
+    tangential_coefficient: f64,
     /// Rolling-friction coefficient; bound has units of impulse times length.
-    pub rolling_coefficient: f64,
+    rolling_coefficient: f64,
     /// Torsional-friction coefficient; bound has units of impulse times length.
-    pub torsional_coefficient: f64,
+    torsional_coefficient: f64,
     /// Declared characteristic rolling length in the same units as geometry.
-    pub rolling_radius: f64,
+    rolling_radius: f64,
     /// Declared characteristic torsional length in the same units as geometry.
-    pub torsional_radius: f64,
+    torsional_radius: f64,
 }
 
 impl ContactWrenchFrictionLimits {
@@ -82,6 +82,51 @@ impl ContactWrenchFrictionLimits {
             rolling_radius,
             torsional_radius,
         })
+    }
+
+    /// Tangential Coulomb coefficient.
+    pub fn tangential_coefficient(&self) -> f64 {
+        self.tangential_coefficient
+    }
+
+    /// Rolling-friction coefficient.
+    pub fn rolling_coefficient(&self) -> f64 {
+        self.rolling_coefficient
+    }
+
+    /// Torsional-friction coefficient.
+    pub fn torsional_coefficient(&self) -> f64 {
+        self.torsional_coefficient
+    }
+
+    /// Characteristic rolling length in geometry units.
+    pub fn rolling_radius(&self) -> f64 {
+        self.rolling_radius
+    }
+
+    /// Characteristic torsional length in geometry units.
+    pub fn torsional_radius(&self) -> f64 {
+        self.torsional_radius
+    }
+
+    fn validate_parameters(&self) -> Result<(), ContactFrameError> {
+        if !self.tangential_coefficient.is_finite()
+            || !self.rolling_coefficient.is_finite()
+            || !self.torsional_coefficient.is_finite()
+            || self.tangential_coefficient < 0.0
+            || self.rolling_coefficient < 0.0
+            || self.torsional_coefficient < 0.0
+        {
+            return Err(ContactFrameError::InvalidFrictionCoefficient);
+        }
+        if !self.rolling_radius.is_finite()
+            || !self.torsional_radius.is_finite()
+            || self.rolling_radius <= 0.0
+            || self.torsional_radius <= 0.0
+        {
+            return Err(ContactFrameError::InvalidContactRadius);
+        }
+        Ok(())
     }
 
     /// Maximum admissible tangential linear impulse magnitude.
@@ -126,6 +171,7 @@ impl<const D: usize> ContactWrenchImpulse<D> {
         if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 {
             return Err(ContactFrameError::InvalidTolerance);
         }
+        limits.validate_parameters()?;
         if !self.normal.is_finite()
             || !self.tangential.iter().all(|value| value.is_finite())
             || !self.rolling.iter().all(|value| value.is_finite())
