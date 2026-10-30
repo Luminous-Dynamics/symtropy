@@ -1,4 +1,6 @@
-use std::{env, fs, path::Path, process};
+use std::{env, fs, io::ErrorKind, path::Path, process};
+
+use civil_aero_benchmark::integrity::verify_source_bytes;
 
 use civil_aero_benchmark::reference_data::parse_ladson_force_data;
 use civil_aero_benchmark::section_polar::{
@@ -29,15 +31,23 @@ fn run() -> Result<(), String> {
         return Err(format!("usage: {program} [pinned_ladson_force_data.dat]"));
     }
 
-    let input = fs::read_to_string(&input_path)
+    let bytes = fs::read(&input_path)
         .map_err(|error| format!("cannot read {input_path}: {error}"))?;
+    verify_source_bytes(
+        &bytes,
+        "NASA TMR Ladson force reference",
+        1343,
+        "78cd2f6aa4968e80f44cbf6c96f699bd9c6e45681d958ec528a10cf72ed23357",
+    )?;
+    let input = String::from_utf8(bytes)
+        .map_err(|error| format!("reference data is not valid UTF-8: {error}"))?;
     let parsed = parse_ladson_force_data(&input)?;
     let report = audit_section_polar(
         &parsed.observations,
         SectionPolarProvenance::nasa_tmr_ladson(),
     )?;
     eprintln!(
-        "2D section-polar diagnostic only; fitted section-polar coefficient b is empirical and is not wing induced drag. High-angle bins are not physical operating limits. Verify raw bytes with the repository SHA256SUMS before treating this as the pinned source."
+        "2D section-polar diagnostic only; fitted section-polar coefficient b is empirical and is not wing induced drag. High-angle bins are not physical operating limits. Exact source byte length and SHA-256 were verified before parsing."
     );
     for zone in &report.zones {
         eprintln!(
