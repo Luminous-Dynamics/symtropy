@@ -374,8 +374,10 @@ impl<const D: usize> BivectorInertia<D> {
     ///   I(dot(B)) = [B, L] - torque_accumulator
     ///   dot(L) = -torque_accumulator
     ///
-    /// `torque_accumulator` uses the impulse-first wedge convention and is
-    /// the negative of physical torque in the angular-momentum bivector basis.
+    /// `torque_accumulator` is the physical torque's skew-matrix
+    /// representation built by the impulse-first wedge convention. Since
+    /// `L=I(B)` is the negative of physical spatial angular momentum in the
+    /// stored-B convention, its derivative enters with a negative sign.
     /// The supplied inertia, B, and torque must all be expressed in the same
     /// coordinate frame. For spatial/world-frame state, rotate body-space
     /// mass moments with `rotated_by` before evaluating this method.
