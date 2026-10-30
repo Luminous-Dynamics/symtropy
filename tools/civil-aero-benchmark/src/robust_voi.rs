@@ -7,7 +7,7 @@
 
 use std::collections::{BTreeMap, HashSet};
 
-use crate::voi::{DecisionProblem, EvsiReport, ExperimentValue, evaluate_evsi};
+use crate::voi::{DecisionProblem, ExperimentValue, evaluate_evsi};
 
 const VALUE_TOLERANCE: f64 = 1.0e-12;
 
