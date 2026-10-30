@@ -11,7 +11,7 @@ const PROBABILITY_TOLERANCE: f64 = 1.0e-9;
 const VALUE_TOLERANCE: f64 = 1.0e-12;
 
 pub const EVSI_OUTPUT_HEADER: &str =
-    "problem_id,experiment_id,cost_units,remaining_budget_units,affordable,prior_best_decision_id,prior_best_expected_utility,expected_best_utility_after_observation,gross_evsi,net_evsi,outcome_count,selected,evidence_level";
+    "problem_id,experiment_id,cost_units,remaining_budget_units,affordable,prior_best_decision_id,prior_best_expected_utility,expected_best_utility_after_observation,gross_evsi,net_evsi,outcome_count,decision_changing_outcomes,selected,evidence_level";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DecisionOption {
@@ -59,6 +59,7 @@ pub struct ExperimentValue {
     pub gross_evsi: f64,
     pub net_evsi: f64,
     pub outcome_count: usize,
+    pub decision_changing_outcomes: usize,
     pub selected: bool,
     pub outcomes: Vec<OutcomeValue>,
 }
@@ -226,7 +227,7 @@ pub fn evaluate_evsi(
                 ));
             }
 
-            if probability <= VALUE_TOLERANCE {
+            if probability <= 0.0 {
                 outcomes.push(OutcomeValue {
                     outcome_id: outcome_id.clone(),
                     probability: 0.0,
@@ -270,6 +271,14 @@ pub fn evaluate_evsi(
             ));
         }
         let gross_evsi = raw_evsi.max(0.0);
+        let decision_changing_outcomes = outcomes
+            .iter()
+            .filter(|outcome| {
+                outcome.probability > 0.0
+                    && outcome.best_decision_id.as_deref()
+                        != Some(prior_best_decision_id.as_str())
+            })
+            .count();
         let affordable = experiment.cost_units <= remaining_budget + VALUE_TOLERANCE;
         experiments.push(ExperimentValue {
             problem_id: problem.problem_id.clone(),
@@ -283,6 +292,7 @@ pub fn evaluate_evsi(
             gross_evsi,
             net_evsi: gross_evsi - experiment.cost_units,
             outcome_count: experiment.outcome_ids.len(),
+            decision_changing_outcomes,
             selected: false,
             outcomes,
         });
@@ -360,7 +370,7 @@ pub fn report_to_csv(report: &EvsiReport) -> String {
     let mut output = format!("{EVSI_OUTPUT_HEADER}\n");
     for experiment in &report.experiments {
         output.push_str(&format!(
-            "\"{}\",\"{}\",{:.6},{:.6},{},\"{}\",{:.12},{:.12},{:.12},{:.12},{},{},caller_supplied_probabilities_not_independently_calibrated\n",
+            "\"{}\",\"{}\",{:.6},{:.6},{},\"{}\",{:.12},{:.12},{:.12},{:.12},{},{},{},caller_supplied_probabilities_not_independently_calibrated\n",
             csv_escape(&report.problem_id),
             csv_escape(&experiment.experiment_id),
             experiment.cost_units,
@@ -372,6 +382,7 @@ pub fn report_to_csv(report: &EvsiReport) -> String {
             experiment.gross_evsi,
             experiment.net_evsi,
             experiment.outcome_count,
+            experiment.decision_changing_outcomes,
             experiment.selected
         ));
     }
@@ -442,6 +453,7 @@ mod tests {
             .expect("perfect experiment");
         assert!((perfect.gross_evsi - 5.0).abs() < 1e-12);
         assert!((perfect.net_evsi - 4.0).abs() < 1e-12);
+        assert_eq!(perfect.decision_changing_outcomes, 2);
         assert_eq!(perfect.outcomes[0].best_decision_id.as_deref(), Some("design_a"));
         assert_eq!(perfect.outcomes[1].best_decision_id.as_deref(), Some("design_b"));
     }
@@ -456,6 +468,7 @@ mod tests {
             .expect("uninformative experiment");
         assert!(item.gross_evsi.abs() < 1e-12);
         assert!((item.net_evsi + 0.25).abs() < 1e-12);
+        assert_eq!(item.decision_changing_outcomes, 0);
     }
 
     #[test]
