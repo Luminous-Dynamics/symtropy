@@ -427,11 +427,7 @@ mod tests {
         )
         .unwrap();
         let a = aabb([-0.2, -0.2], [0.8, 0.8]);
-        let shift = basis.column(0).into_owned();
-        let b = aabb(
-            [1.8, -0.2],
-            [2.8, 0.8],
-        );
+        let b = aabb([1.8, -0.2], [2.8, 0.8]);
         let actual = lattice_image_offsets_for_aabb_pair(&lattice, &a, &b, 64)
             .unwrap()
             .into_iter()
@@ -452,7 +448,6 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
-        let _ = shift;
     }
 
     #[test]
