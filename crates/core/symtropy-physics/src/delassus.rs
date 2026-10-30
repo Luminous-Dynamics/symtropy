@@ -457,6 +457,117 @@ mod tests {
     }
 
     #[test]
+    fn delassus_is_invariant_to_contact_permutation_and_global_rigid_rotation() {
+        let mut body_a =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        body_a.set_rotational_inertia_operator(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.0,
+                SVector::new(2.0, 1.0, 0.5),
+            )
+            .unwrap(),
+        );
+        let mut body_b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 0.5, -0.25]), 0.5, 1.5);
+        body_b.transform.rotation =
+            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(1, 2), 0.37);
+        body_b.set_rotational_inertia_operator(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.5,
+                SVector::new(0.8, 1.2, 1.7),
+            )
+            .unwrap(),
+        );
+
+        let bodies = vec![body_a, body_b];
+        let rows = vec![
+            FrictionlessContactRow {
+                body_a: BodyHandle(0),
+                body_b: BodyHandle(1),
+                offset_a: SVector::new(0.2, -0.1, 0.3),
+                offset_b: SVector::new(-0.1, 0.25, 0.2),
+                normal: SVector::new(1.0, 0.0, 0.0),
+            },
+            FrictionlessContactRow {
+                body_a: BodyHandle(0),
+                body_b: BodyHandle(1),
+                offset_a: SVector::new(-0.15, 0.2, 0.1),
+                offset_b: SVector::new(0.3, 0.1, -0.2),
+                normal: SVector::new(0.0, 1.0, 0.0),
+            },
+            FrictionlessContactRow {
+                body_a: BodyHandle(0),
+                body_b: BodyHandle(1),
+                offset_a: SVector::new(0.1, 0.15, -0.25),
+                offset_b: SVector::new(0.2, -0.3, 0.1),
+                normal: SVector::new(0.0, 0.0, 1.0),
+            },
+        ];
+        let reference = assemble_delassus(&bodies, &rows, 1e-12).unwrap();
+
+        // Reordering contact rows must only apply the same permutation to W.
+        let permutation = [2_usize, 0, 1];
+        let permuted_rows: Vec<_> = permutation.iter().map(|index| rows[*index].clone()).collect();
+        let permuted = assemble_delassus(&bodies, &permuted_rows, 1e-12).unwrap();
+        for i in 0..permutation.len() {
+            for j in 0..permutation.len() {
+                assert!(
+                    (permuted[(i, j)] - reference[(permutation[i], permutation[j])]).abs()
+                        < 1e-10,
+                    "row permutation mismatch at ({i}, {j})"
+                );
+            }
+        }
+
+        // A common rigid rotation of every world-space quantity cannot change
+        // the scalar Delassus operator.
+        let global_rotation =
+            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.61);
+        let rotated_bodies: Vec<_> = bodies
+            .iter()
+            .map(|body| {
+                let mut rotated = RigidBody::<3>::dynamic_sphere(
+                    body.handle,
+                    Point::new(global_rotation.rotate_vector(&body.transform.translation.0)),
+                    0.5,
+                    body.mass,
+                );
+                rotated.transform.rotation =
+                    global_rotation.compose(&body.transform.rotation);
+                rotated.linear_velocity = global_rotation.rotate_vector(&body.linear_velocity);
+                rotated.angular_velocity = body.angular_velocity.clone();
+                rotated.inv_mass = body.inv_mass;
+                rotated.inv_inertia = body.inv_inertia;
+                rotated.friction = body.friction;
+                rotated.restitution = body.restitution;
+                rotated.set_rotational_inertia_operator(
+                    body.rotational_inertia
+                        .as_ref()
+                        .expect("fixture carries authoritative inertia")
+                        .clone(),
+                );
+                rotated
+            })
+            .collect();
+        let rotated_rows: Vec<_> = rows
+            .iter()
+            .map(|row| FrictionlessContactRow {
+                body_a: row.body_a,
+                body_b: row.body_b,
+                offset_a: global_rotation.rotate_vector(&row.offset_a),
+                offset_b: global_rotation.rotate_vector(&row.offset_b),
+                normal: global_rotation.rotate_vector(&row.normal),
+            })
+            .collect();
+        let rotated = assemble_delassus(&rotated_bodies, &rotated_rows, 1e-12).unwrap();
+        assert!(
+            (&rotated - &reference).norm() < 1e-10,
+            "global-rotation covariance error={}",
+            (&rotated - &reference).norm()
+        );
+    }
+
+    #[test]
     fn production_single_contact_impulse_matches_delassus_lcp_oracle() {
         use crate::world::PhysicsWorld;
 
