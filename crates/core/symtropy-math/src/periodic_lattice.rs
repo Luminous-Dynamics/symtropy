@@ -702,8 +702,11 @@ mod tests {
         let point = SVector::from([57.25, -31.75]);
         let original_wrapped = original.wrap_point(&point).unwrap();
         let changed_wrapped = changed.wrap_point(&point).unwrap();
+        let changed_representative_in_original_cell =
+            original.wrap_point(&changed_wrapped.position).unwrap();
         assert!(
-            (original_wrapped.position - changed_wrapped.position).norm() < 1e-10
+            (original_wrapped.position - changed_representative_in_original_cell.position).norm()
+                < 1e-10
         );
 
         for delta in [
