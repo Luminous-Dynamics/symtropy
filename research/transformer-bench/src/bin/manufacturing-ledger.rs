@@ -422,6 +422,21 @@ mod tests {
     }
 
     #[test]
+    fn checked_transformer_fixture_preserves_component_genealogy_and_quality_events() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures/manufacturing-ledger-synthetic.csv");
+        let products = read_ledger(path.to_str().unwrap()).unwrap();
+        let summaries = validate_and_summarize(&products).unwrap();
+        assert_eq!(summaries.len(), 1);
+        assert_eq!(summaries[0].component_count, 4);
+        assert_eq!(summaries[0].event_count, 16);
+        assert_eq!(summaries[0].failed_event_count, 1);
+        assert_eq!(summaries[0].rework_event_count, 1);
+        assert_eq!(summaries[0].test_event_count, 4);
+        assert_eq!(summaries[0].final_release_pass_event_count, 1);
+    }
+
+    #[test]
     fn valid_sha256_is_strict() {
         assert!(valid_sha256(&"a".repeat(64)));
         assert!(!valid_sha256("sha256"));
