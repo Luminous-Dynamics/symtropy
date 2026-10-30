@@ -438,6 +438,20 @@ mod tests {
     }
 
     #[test]
+    fn perfect_inspection_reaches_the_clairvoyant_decision_bound() {
+        let mut perfect = [[0.0; STATES]; STATES];
+        for state in 0..STATES {
+            perfect[state][state] = 1.0;
+        }
+        let scenario = Scenario { inspection: perfect, ..Scenario::all()[1] };
+        let evaluation = evaluate(scenario).unwrap();
+        assert!((evaluation.always_inspect_cost
+            - (INSPECTION_COST + evaluation.clairvoyant_lower_bound)).abs() < TOL);
+        assert!(evaluation.net_evsi > 0.0);
+        assert_eq!(evaluation.evsi_action, Action::Inspect);
+    }
+
+    #[test]
     fn uninformative_inspection_does_not_change_the_action() {
         let uninformative = [[0.2; STATES]; STATES];
         let scenario = Scenario { inspection: uninformative, ..Scenario::all()[1] };
