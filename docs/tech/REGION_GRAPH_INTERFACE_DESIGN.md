@@ -55,6 +55,8 @@ For a differentiable position map f, the velocity push-forward is J_f(x) v when 
 
 Affine maps compose in traversal order. If f maps A→B and g maps B→C, g∘f must transform position, velocity, local time scale and local time offset consistently; composition must be associative within numeric tolerance, and inverse(composed) must agree with inverse order reversed. The current reference code provides a same-dimension affine composition primitive with position/velocity/clock tests.
 
+`RegionGraph::compose_interface_path` accepts an explicit ordered list of interface IDs, rejects empty or disconnected paths, and returns one composed map plus the exact interface lineage and source/target region IDs. It deliberately does not run a shortest-path search or infer edges from coincident coordinates.
+
 An inverse map is optional in general but required for any interface profile that promises reversibility. Test round trips only on the inverse's declared domain. Position invertibility does not establish momentum, energy, or information preservation. A pure time-origin shift does not change the clock rate; conservation checks should gate on compatible clock/unit/metric identities and the time scale, not reject a harmless offset by itself.
 
 ## 2. Crossing transaction
