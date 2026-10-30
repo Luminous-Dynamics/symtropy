@@ -789,11 +789,9 @@ mod tests {
             .and_then(BivectorInertia::total_mass);
         assert_eq!(original_mass_metadata, Some(1.0));
 
-        let mismatched = BivectorInertia::<3>::uniform_solid_ellipsoid(
-            2.0,
-            SVector::new(1.0, 0.8, 0.6),
-        )
-        .unwrap();
+        let mismatched =
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+                .unwrap();
         assert_eq!(
             body.try_set_rotational_inertia_operator(mismatched.clone()),
             Err(RotationalInertiaError::MassMismatch)
@@ -825,17 +823,17 @@ mod tests {
             Err(RotationalInertiaError::MassMismatch)
         );
         assert_eq!(body.transform.translation.0, position_before);
-        assert_eq!(body.transform.rotation.to_matrix(), rotation_before.to_matrix());
+        assert_eq!(
+            body.transform.rotation.to_matrix(),
+            rotation_before.to_matrix()
+        );
         assert_eq!(body.linear_velocity, linear_before);
         assert_eq!(body.angular_velocity, angular_before);
         assert_eq!(body.force_accumulator, force_before);
         assert_eq!(body.torque_accumulator, torque_before);
 
         assert_eq!(
-            try_apply_angular_impulse(
-                &mut body,
-                &Bivector::<3>::unit_plane(0, 1),
-            ),
+            try_apply_angular_impulse(&mut body, &Bivector::<3>::unit_plane(0, 1),)
             Err(RotationalInertiaError::MassMismatch)
         );
         assert_eq!(body.angular_velocity, angular_before);
@@ -857,9 +855,9 @@ mod tests {
 
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(8), Point::origin(), 0.5, 1.0);
         body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::from_second_moment(
-                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
-            )
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
             .unwrap(),
         );
         let before = body.angular_velocity.clone();
