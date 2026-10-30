@@ -41,7 +41,10 @@ pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
-pub use contact_frame::{ContactAngularCoordinates, ContactFrame, ContactFrameError};
+pub use contact_frame::{
+    ContactAngularCoordinates, ContactFrame, ContactFrameError, ContactWrenchFrictionLimits,
+    ContactWrenchImpulse,
+};
 pub use delassus::{
     DelassusAssemblyError, FrictionlessContactRow, ReferenceLcpError, ReferenceLcpSolution,
     assemble_delassus, solve_frictionless_lcp,
