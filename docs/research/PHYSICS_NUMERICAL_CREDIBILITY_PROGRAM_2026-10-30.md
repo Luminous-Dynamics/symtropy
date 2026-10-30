@@ -145,13 +145,18 @@ A first mathematical primitive now exists in `crates/core/symtropy-physics/src/i
 
 There is an essential sign convention at the Symtropy integration boundary: `Rotor::from_bivector(B)` computes exp(-B), and the integrator left-composes that increment. Thus `RigidBody.angular_velocity` stores B while the physical point-velocity matrix is -B. The `BivectorInertia` angular-momentum, inverse, and angular-acceleration APIs operate directly on the stored B basis; do not negate the state before calling them. The shared `integrator::angular_point_velocity` helper applies the minus sign to obtain physical point velocity.
 
-This prototype is deliberately **not yet connected** to `RigidBody`, integration, contact effective mass, or invariant energy accounting. The legacy fields and hot paths still use mean-of-axis inertia. It is a mathematical building block, not a claim that asymmetric rigid-body dynamics are fixed.
+The primitive is now connected to the runtime path for bodies carrying an authoritative `BivectorInertia`:
 
-The compound `merge_toolhead` path also remains approximate. Its correct future mass-property update is the second-moment parallel-axis rule:
-[
-S_{total}=S_A+m_A d_A d_A^T+S_B+m_B d_B d_B^T
-]
-where both offsets are measured from the combined center of mass. The current scalar-mean merge is explicitly marked as not validated for asymmetric bodies.
+- `RigidBody` carries an optional body-space mass-moment operator. The dimension-correct solid-ball constructor populates it; other dynamic bodies can set it explicitly.
+- Free angular integration rotates the cached principal-axis basis into world coordinates and evaluates the spatial gyroscopic derivative.
+- Angular impulses and normal/friction contact effective-mass terms use the same world-frame inverse operator.
+- `RigidBody::kinetic_energy` uses the operator, so the existing world energy snapshot sees the same rotational energy.
+- The eigensystem is computed once when constructing mass properties; rotation updates the basis rather than repeating an eigendecomposition at every contact.
+- `merge_toolhead` now combines second moments using the parallel-axis theorem, rebases collider-child transforms to the new local COM, and moves the parent origin by the rotated COM offset. A geometry regression checks that the original collider remains fixed in world coordinates.
+
+The integration remains **partial rather than a general CAD mass-properties solution**. `RigidBody::new` retains a legacy fallback unless the caller supplies an operator. The toolhead model is still approximated as a uniform solid D-ball of radius 0.1. General mesh/tetrahedral mass integration, compound-body provenance, and fully articulated dynamics are not complete. Invalid/singular inverse operations are counted, but any nonzero failure counter must block promotion; the simulation must not be treated as validated merely because it continues running.
+
+A cross-path regression now checks that contact effective mass predicts the point-velocity change produced by applying the same angular impulse to a rotated asymmetric body. Separate tests cover analytical moments, energy/momentum invariants, body/world covariance, parallel-axis composition, and COM geometry rebasing. These Rust tests have not yet run in this environment.
 
 
 ### 2.7 Enforce one rotation sign and frame contract
@@ -165,7 +170,31 @@ Source inspection found a kinematic sign inconsistency:
 
 The current branch now centralizes the conversion in `integrator::angular_point_velocity`, uses it at all contact/restitution/friction call sites, subtracts angular impulse and applied-torque increments from the stored B state, and adds regression tests comparing the helper with a finite-difference rotor derivative and checking that an off-center impulse produces point velocity in the impulse direction.
 
-This resolves the sign relationship for the existing isotropic angular impulse/torque paths. It does **not** solve asymmetric rigid-body dynamics. The inertia operator now includes a frame-consistent angular-acceleration primitive in the stored B basis and a body/world covariance regression. It remains a mathematical primitive only: it is not yet wired into `RigidBody` integration, contact effective mass, or invariant energy diagnostics. The next change must use the same rotated operator across free integration, angular impulses, contact/friction and compound parallel-axis assembly.
+This corrects the stored/physical angular-velocity sign relationship and centralizes point velocity in one helper. The full inertia operator now traverses the free-integration, angular-impulse, kinetic-energy, normal-contact and friction paths for operator-backed bodies. Its frame contract is explicit: `B` is the stored world bivector, physical point velocity is `-B*r`, physical angular momentum is the negative of `I(B)`, and the impulse-first wedge accumulator is the physical torque's skew-matrix representation. The gyroscopic derivative accounts for the rotating world second-moment matrix. Remaining validation is empirical: run the full Rust suites, compare asymmetric-top trajectories and contact responses against independent references, prove failure counters remain zero on valid cases, and quantify runtime cost.
+
+### 2.8 Benchmark the unified contact/inertia contract
+
+The most important new benchmark is not a free-fall speed test. It is **cross-path physical consistency**: the inertia used by free integration, angular impulses, kinetic energy, and contact effective mass must describe the same body in the same frame.
+
+Required P0 tests:
+
+1. **Impulse/effective-mass identity.** For an arbitrary positive-definite second moment, body rotation, contact offset r, and unit direction n, the effective-mass scalar used in the contact denominator must equal n dot delta-v divided by impulse magnitude when the exact same angular impulse is applied. Target: relative discrepancy <= 1e-10 in double precision for well-conditioned inputs.
+2. **Asymmetric free top.** Compare symmetric and asymmetric tops against an independent high-accuracy reference. Track world angular-momentum drift, kinetic-energy drift, orientation error, and step-size convergence. Start with a 3D top, then exercise all six rotational degrees of freedom in 4D.
+3. **Parallel-axis and COM rebase.** Compare compound second moments against analytically constructed point clouds. Collider geometry must remain fixed in world coordinates when the COM moves. Target: relative second-moment error <= 1e-12 for analytical primitives and geometric displacement <= 1e-12 times scene scale.
+4. **Scale and conditioning.** Repeat the same geometry at 1e-9, 1, and 1e9 length scales and at large translated world origins. Record conditioning, inverse failures, and normalized errors. Do not silently accept a nonzero rotational-inertia failure counter.
+5. **Contact stability.** Measure maximum and 95th-percentile penetration, resting jitter RMS, restitution error, frictional energy dissipation, stack collapse rate, and cost per solved contact. Compare at matched scene geometry and matched error tolerance.
+
+Proposed promotion targets (not achieved results): valid-case singular/invalid operator failures = 0; impulse/effective-mass identity <= 1e-10; analytical mass-moment and COM errors <= 1e-12 relative where representable; torque-free reference drift <= 1e-6 over the short canonical run and a separately reported long-horizon drift curve; and no tunneling in the defined adversarial CCD set. Thresholds must be calibrated against reference precision and committed before measurement.
+
+### 2.9 Industry comparison: compete on matched work-precision
+
+Pin exact versions and settings in each result receipt. The current comparison baselines are materially stronger than a simple explicit-Euler reference:
+
+- **MuJoCo 3.16.0** (released 14 October 2026) documents `implicitfast` as its recommended general-purpose integrator. It includes gyroscopic treatment for standalone free bodies and supports an experimental `discrete` integrator that solves constraints and implicit velocity updates in one effective metric. Its documentation explicitly warns that the discrete integrator is new and under active development. MuJoCo's September 2026 3.14 release also introduced an experimental IPC flex-contact mode for 2D, frictionless cases. See [MuJoCo computation](https://mujoco.readthedocs.io/en/latest/computation/) and [changelog](https://mujoco.readthedocs.io/en/latest/changelog.html).
+- **Rapier 0.35.3** (28 August 2026) provides SIMD-backed code paths, island-level solver-accuracy controls, warm-started contact constraints, CCD/motion clamping, and configurable solver iterations. Its documentation gives 4 iterations as the default and suggests 8–12 for demanding stacks or stiff joints; the tradeoff is accuracy/stability versus performance. Rapier 0.35.2 also added a safeguard that re-solves a multibody velocity update with the plain mass matrix when a semi-implicit Coriolis term would inject more energy than the applied forces' work. See [Rapier changelog](https://github.com/dimforge/rapier/blob/master/CHANGELOG.md), [integration parameters](https://rapier.rs/docs/user_guides/c/integration_parameters/), and [rigid bodies/CCD](https://rapier.rs/docs/user_guides/rust/rigid_bodies/).
+- **Symtropy's defensible opportunity** is dimension-generic rotational mechanics (D(D-1)/2 bivector coordinates), a shared mass-moment operator across contact/integration, explicit physical invariants, reproducible simulation receipts, and eventually a unified discrete constraint/integration solve. These are research hypotheses, not evidence of superiority yet.
+
+Do not compare only frames per second or solver iteration count. Compare work-precision curves: error versus wall time, error versus energy/invariant drift, contact penetration versus time, and failure/tunneling probability versus computational budget. Keep interactive and high-accuracy research profiles separate.
 
 ## 3. Numerical architecture: build versus reuse
 
@@ -325,7 +354,7 @@ The first defensible "better than SOTA" claim should be narrow and decision-rele
 |---|---|---|
 | 0 | Correct scientific claims; freeze benchmark schema and scenario manifest | all advertised guarantees match the evidence |
 | 1 | Numerical-kernel benchmark harness and independent reference fixtures | Campaign A reproducible from clean checkout |
-| 2 | Replace legacy scalar means with the second-moment-backed bivector inertia operator across body state, kinetic energy, integration, contact and parallel-axis compound assembly; add 3D and N-D gyroscopic dynamics | Campaign B analytical/reference gates pass |
+| 2 | Complete promotion of the second-moment-backed bivector inertia path across body state, kinetic energy, integration, contact and compound assembly; add 3D and N-D gyroscopic dynamics | Campaign B analytical/reference gates pass and all valid-case inertia failure counters remain zero |
 | 3 | Research solver adapter and structured solver diagnostics | work-precision comparisons against diffsol/SciML |
 | 4 | Typed units, model contracts, and conservation exchange ledger | invalid models rejected before execution |
 | 5 | One finite-volume or finite-element continuum solver path | Campaign C passes manufactured-solution gates |
@@ -336,10 +365,12 @@ Avoid introducing an all-domain multiphysics framework before stages 1–4 are s
 ## 8. Immediate next engineering tasks
 
 1. Promote the initial harmonic-oscillator/free-fall regression tests into a machine-readable benchmark runner with timestep sweeps, error tables, and repeatable result receipts.
-2. Plumb the new BivectorInertia primitive through body state, rotational kinetic energy, angular impulses, contact effective mass, and compound parallel-axis mass-property assembly. Then add spherical-versus-asymmetric regression cases; do not advance the validation tier until torque-free and forced asymmetric-top benchmarks pass.
-3. Reconcile the deterministic-net feature’s claims with the cross-architecture validation status. Quantization is not, by itself, a proof of bit-identical execution.
-4. Standardize benchmark receipts and scenario hashes before adding further solver families.
-5. Prototype a diffsol adapter behind a research-solver feature, compare it to the existing Symthaea ODE methods, and retain only what the work-precision results justify.
+2. Run the connected asymmetric-inertia path through the full Rust test/Clippy/build matrix. Compare torque-free and forced asymmetric-top trajectories, angular impulse response, and contact effective mass against independent analytical and engine references.
+3. Add a discrete contact/integration experiment: solve the contact impulse and state update under one shared effective-mass metric, then compare it with the existing sequential velocity solve at matched error and wall time.
+4. Add adversarial rotating-contact and tunneling campaigns: high spin, thin geometry, simultaneous moving bodies, near-singular inertia, extreme mass ratios, and large world-coordinate offsets.
+5. Reconcile the deterministic-net feature’s claims with the cross-architecture validation status. Quantization is not, by itself, a proof of bit-identical execution.
+6. Standardize benchmark receipts and scenario hashes before adding further solver families.
+7. Prototype a diffsol adapter behind a research-solver feature, compare it to the existing Symthaea ODE methods, and retain only what the work-precision results justify.
 
 ## References and comparison baselines
 
