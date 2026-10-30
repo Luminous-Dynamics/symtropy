@@ -155,12 +155,15 @@ fn campaign(name: &str, body_count: usize, stacked: bool) {
 
 fn main() {
     println!(
-        "# package_version={},target_arch={},target_os={},rustc_version={},source_revision={}",
+        "# package_version={},target_arch={},target_os={},rustc_version={},source_revision={},benchmark_host={},benchmark_cpu={},benchmark_build_flags={}",
         env!("CARGO_PKG_VERSION"),
         std::env::consts::ARCH,
         std::env::consts::OS,
         option_env!("RUSTC_VERSION").unwrap_or("not-recorded"),
-        option_env!("SYMTROPY_SOURCE_REV").unwrap_or("not-recorded")
+        option_env!("SYMTROPY_SOURCE_REV").unwrap_or("not-recorded"),
+        option_env!("SYMTROPY_BENCHMARK_HOST").unwrap_or("not-recorded"),
+        option_env!("SYMTROPY_BENCHMARK_CPU").unwrap_or("not-recorded"),
+        option_env!("SYMTROPY_BENCHMARK_BUILD_FLAGS").unwrap_or("not-recorded")
     );
     println!(
         "scenario,bodies,steps,dt,median_step_ns,p95_step_ns,final_contacts,max_penetration,mechanical_energy_delta,max_rotation_error,non_finite_bodies,mass_mismatches,repeats"
