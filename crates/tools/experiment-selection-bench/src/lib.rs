@@ -832,7 +832,7 @@ pub fn render_receipts(source_sha: &str, results: &[TrialResult]) -> String {
             .map(|value| format!("{value:.12e}"))
             .unwrap_or_else(|| "none".to_string());
         output.push_str(&format!(
-            "EXPERIMENT_TRIAL,v1,{source_sha},{},{},{},{},{},{},{},{},{},{observed},{truth},{:.12e},{:.12e},{}\n",
+            "EXPERIMENT_TRIAL,v1,{source_sha},{},{},{},{},{},{},{},{},{},{},{observed},{truth},{:.12e},{:.12e},{}\n",
             result.problem.as_str(),
             result.policy.as_str(),
             result.policy_name,
@@ -1281,6 +1281,25 @@ mod tests {
         assert_eq!(results.len(), ProblemId::ALL.len() * seeds.len() * PolicyKind::ALL.len());
         assert_eq!(summaries.len(), ProblemId::ALL.len() * PolicyKind::ALL.len());
         assert!(summaries.iter().all(|summary| summary.trials == seeds.len()));
+    }
+
+    #[test]
+    fn receipt_rows_have_the_declared_column_counts() {
+        let result = super::run_trial_with_policy(
+            SyntheticProblem::new(ProblemId::SmoothBowl),
+            PolicyKind::Symthaea,
+            9,
+            10,
+            8,
+            Box::new(InvalidProposalPolicy),
+        );
+        let receipt = super::render_receipts("0123456789abcdef", &[result]);
+        let lines: Vec<&str> = receipt.lines().collect();
+        assert_eq!(lines[0].split(',').count(), 18);
+        assert_eq!(lines[1].split(',').count(), 15);
+        assert_eq!(lines[2].split(',').count(), 18);
+        assert_eq!(lines[3].split(',').count(), 15);
+        assert!(lines[3].contains("invalid_proposal"));
     }
 
     #[test]
