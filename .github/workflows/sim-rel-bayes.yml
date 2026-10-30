@@ -62,7 +62,7 @@ jobs:
             .exact_head == $expected
             and .unique_semantic_candidates == 109
             and (.cases | length) == 18
-            and (.policy_summaries | map(.policy) | unique | length) == 4
+            and (.policy_summaries | map(.policy) | unique | length) == 5
             and all(.policy_summaries[]; .in_grammar_target_retention_rate == 1)
             and all(.policy_summaries[]; .mean_cost >= 0)
           ' "$RUNNER_TEMP/sim-rel-003-receipt.json"
