@@ -104,11 +104,21 @@ pub struct CommandEvidenceAudit {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandEvidenceAuditError {
     EmptyExpectedSet,
-    InvalidExpectedIdentity { request_id: u64 },
-    DuplicateExpectedRequestId { request_id: u64 },
-    UnexpectedRequest { request_id: u64 },
-    MissingTrace { request_id: u64 },
-    IdentityMismatch { request_id: u64 },
+    InvalidExpectedIdentity {
+        request_id: u64,
+    },
+    DuplicateExpectedRequestId {
+        request_id: u64,
+    },
+    UnexpectedRequest {
+        request_id: u64,
+    },
+    MissingTrace {
+        request_id: u64,
+    },
+    IdentityMismatch {
+        request_id: u64,
+    },
     TimestampRegression {
         request_id: u64,
         previous_ns: u64,
@@ -149,7 +159,9 @@ pub enum CommandEvidenceAuditError {
         phase: CommandEvidencePhase,
         outcome: CommandTerminalOutcome,
     },
-    EventAfterTerminal { request_id: u64 },
+    EventAfterTerminal {
+        request_id: u64,
+    },
     MissingTerminalOutcome {
         request_id: u64,
         phase: CommandEvidencePhase,
@@ -246,9 +258,7 @@ pub fn audit_command_evidence(
                 {
                     phase = CommandEvidencePhase::Proposed;
                 }
-                CommandEvidenceKind::RuntimeAdmitted
-                    if phase == CommandEvidencePhase::Proposed =>
-                {
+                CommandEvidenceKind::RuntimeAdmitted if phase == CommandEvidencePhase::Proposed => {
                     if event.observed_at_ns >= identity.deadline_ns {
                         return Err(CommandEvidenceAuditError::ExpiredRuntimeAdmission {
                             request_id,
@@ -365,10 +375,7 @@ pub fn audit_command_evidence(
         }
 
         if phase != CommandEvidencePhase::Complete {
-            return Err(CommandEvidenceAuditError::MissingTerminalOutcome {
-                request_id,
-                phase,
-            });
+            return Err(CommandEvidenceAuditError::MissingTerminalOutcome { request_id, phase });
         }
     }
 
@@ -444,8 +451,8 @@ mod tests {
     #[test]
     fn complete_successful_trace_reports_separate_lifecycle_counts() {
         let identity = identity();
-        let report = audit_command_evidence(&[identity.clone()], &successful_trace(&identity))
-            .unwrap();
+        let report =
+            audit_command_evidence(&[identity.clone()], &successful_trace(&identity)).unwrap();
 
         assert_eq!(report.command_count, 1);
         assert_eq!(report.runtime_admissions, 1);
@@ -531,9 +538,7 @@ mod tests {
             event(
                 &identity,
                 100,
-                CommandEvidenceKind::NativeAccepted {
-                    accepted_epoch: 4,
-                },
+                CommandEvidenceKind::NativeAccepted { accepted_epoch: 4 },
             ),
         ];
 
@@ -556,9 +561,7 @@ mod tests {
             event(
                 &identity,
                 12,
-                CommandEvidenceKind::NativeAccepted {
-                    accepted_epoch: 4,
-                },
+                CommandEvidenceKind::NativeAccepted { accepted_epoch: 4 },
             ),
             event(
                 &identity,
