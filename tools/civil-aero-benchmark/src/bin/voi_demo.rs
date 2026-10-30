@@ -1,4 +1,4 @@
-use std::{process, env};
+use std::{env, process};
 
 use civil_aero_benchmark::voi::{
     DecisionOption, DecisionProblem, Experiment, evaluate_evsi, report_to_csv,
