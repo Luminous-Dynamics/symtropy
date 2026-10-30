@@ -59,6 +59,7 @@ pub enum RegionGraphError {
     InverseMismatch,
     MissingTransformIdentity,
     UnitMismatchForConservation,
+    MetricMismatchForConservation,
     NonIsometricMapForPreservation,
     BoundaryOutsideRegion,
 }
@@ -91,10 +92,16 @@ impl fmt::Display for RegionGraphError {
                     "preserve/exchange policies require compatible coordinate and time units"
                 )
             }
+            Self::MetricMismatchForConservation => {
+                write!(
+                    f,
+                    "preserve/exchange policies require a compatible metric profile"
+                )
+            }
             Self::NonIsometricMapForPreservation => {
                 write!(
                     f,
-                    "preserve/exchange policy requires an isometry with unchanged time scale"
+                    "preserve policy requires an isometry with unchanged time scale"
                 )
             }
             Self::BoundaryOutsideRegion => {
@@ -629,23 +636,34 @@ impl<const D: usize> RegionGraph<D> {
             return Err(RegionGraphError::BoundaryOutsideRegion);
         }
 
-        let any_conservation_policy = matches!(
+        let uses_quantity_ledger = matches!(
             interface.momentum_policy,
             QuantityPolicy::Preserve | QuantityPolicy::Exchange
         ) || matches!(
             interface.energy_policy,
             QuantityPolicy::Preserve | QuantityPolicy::Exchange
         );
-        if any_conservation_policy {
+        let preserves_quantity = interface.momentum_policy == QuantityPolicy::Preserve
+            || interface.energy_policy == QuantityPolicy::Preserve;
+
+        if uses_quantity_ledger {
             if source.coordinate_unit != target.coordinate_unit
                 || source.time_unit != target.time_unit
                 || source.clock_id != target.clock_id
             {
                 return Err(RegionGraphError::UnitMismatchForConservation);
             }
-            if !interface.map.is_isometry(DEFAULT_MAP_TOLERANCE) {
-                return Err(RegionGraphError::NonIsometricMapForPreservation);
+            if source.metric_profile != target.metric_profile {
+                return Err(RegionGraphError::MetricMismatchForConservation);
             }
+        }
+
+        // A non-isometric affine map can still be accepted under Exchange:
+        // the declared momentum and energy ledger must close at transition
+        // time. Preserve has no such reservoir term, so it requires an
+        // isometry and unchanged clock rate.
+        if preserves_quantity && !interface.map.is_isometry(DEFAULT_MAP_TOLERANCE) {
+            return Err(RegionGraphError::NonIsometricMapForPreservation);
         }
 
         self.interfaces.insert(interface.id, interface);
@@ -1500,6 +1518,93 @@ mod tests {
         assert_eq!(
             graph.add_interface(interface),
             Err(RegionGraphError::NonIsometricMapForPreservation)
+        );
+    }
+
+    #[test]
+    fn exchange_policy_accepts_non_isometric_map_when_ledgers_close() {
+        let mut graph = RegionGraph::<2>::new().unwrap();
+        graph
+            .add_region(region(1, [-1.0, -1.0], [0.0, 1.0]))
+            .unwrap();
+        graph
+            .add_region(region(2, [0.0, -1.0], [2.0, 1.0]))
+            .unwrap();
+
+        let scale = SMatrix::<f64, 2, 2>::from_diagonal(&SVector::from([2.0, 1.0]));
+        let map = AffineRegionMap::new(scale, SVector::zeros(), 1.0, 0.0).unwrap();
+        let interface = RegionInterface::new(
+            InterfaceId(17),
+            RegionId(1),
+            RegionId(2),
+            1,
+            boundary_x0(),
+            boundary_x0(),
+            map,
+            None,
+            false,
+            CrossingDirection::Either,
+            QuantityPolicy::Exchange,
+            QuantityPolicy::Exchange,
+            None,
+        )
+        .unwrap();
+
+        graph.add_interface(interface).unwrap();
+        let mut store = RegionStateStore::new().unwrap();
+        store.insert_state(&graph, state()).unwrap();
+
+        let mut transition_request = request(111);
+        transition_request.interface_id = InterfaceId(17);
+        transition_request.direction = CrossingDirection::NegativeToPositive;
+        transition_request.energy_exchange = 3.0;
+        let receipt = match store.transition(&graph, transition_request).unwrap() {
+            TransitionOutcome::Committed(receipt) => receipt,
+            _ => panic!("first transition must commit"),
+        };
+
+        assert_eq!(receipt.after.velocity, SVector::from([2.0, 0.0]));
+        assert_eq!(receipt.momentum_before, SVector::from([2.0, 0.0]));
+        assert_eq!(receipt.momentum_after, SVector::from([4.0, 0.0]));
+        assert!((receipt.kinetic_energy_before - 1.0).abs() < 1e-12);
+        assert!((receipt.kinetic_energy_after - 4.0).abs() < 1e-12);
+        assert!((receipt.kinetic_energy_after
+            - receipt.kinetic_energy_before
+            - 3.0)
+            .abs()
+            < 1e-12);
+    }
+
+    #[test]
+    fn conservation_ledger_rejects_metric_profile_mismatch() {
+        let mut graph = RegionGraph::<2>::new().unwrap();
+        graph
+            .add_region(region(1, [-1.0, -1.0], [0.0, 1.0]))
+            .unwrap();
+        let mut target = region(2, [0.0, -1.0], [1.0, 1.0]);
+        target.metric_profile = "different-metric".to_string();
+        graph.add_region(target).unwrap();
+
+        let map = AffineRegionMap::<2>::identity();
+        let interface = RegionInterface::new(
+            InterfaceId(18),
+            RegionId(1),
+            RegionId(2),
+            1,
+            boundary_x0(),
+            boundary_x0(),
+            map,
+            None,
+            false,
+            CrossingDirection::Either,
+            QuantityPolicy::Preserve,
+            QuantityPolicy::Preserve,
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            graph.add_interface(interface),
+            Err(RegionGraphError::MetricMismatchForConservation)
         );
     }
 
