@@ -582,6 +582,11 @@ fn sphere_decode_level<const D: usize>(
         upper_sum += r[(row, column)] * offset[column] as f64;
     }
     let center = (target[row] - upper_sum) / diagonal;
+    if !center.is_finite() {
+        return Err(PeriodicLatticeError::NumericRange {
+            field: "sphere-decoder row center",
+        });
+    }
     if !periodic_axes[row] {
         // Non-periodic lattice coefficients are fixed to zero, not searched.
         // The QR row residual is still part of the complete Cartesian norm.
@@ -594,7 +599,17 @@ fn sphere_decode_level<const D: usize>(
         *search_nodes += 1;
         let row_error = diagonal * (-center);
         let next_partial = partial_distance_squared + row_error * row_error;
+        if !row_error.is_finite() || !next_partial.is_finite() {
+            return Err(PeriodicLatticeError::NumericRange {
+                field: "fixed non-periodic QR residual",
+            });
+        }
         let branch_pad = search_padding * best.distance_squared.max(squared_basis_scale);
+        if !branch_pad.is_finite() {
+            return Err(PeriodicLatticeError::NumericRange {
+                field: "fixed non-periodic QR branch padding",
+            });
+        }
         if next_partial <= best.distance_squared + branch_pad {
             sphere_decode_level(
                 level - 1,
@@ -617,6 +632,11 @@ fn sphere_decode_level<const D: usize>(
 
     let remaining = best.distance_squared - partial_distance_squared;
     let distance_pad = search_padding * best.distance_squared.max(squared_basis_scale);
+    if !remaining.is_finite() || !distance_pad.is_finite() {
+        return Err(PeriodicLatticeError::NumericRange {
+            field: "sphere-decoder remaining distance bound",
+        });
+    }
     if remaining < -distance_pad {
         return Ok(());
     }
@@ -657,6 +677,11 @@ fn sphere_decode_level<const D: usize>(
         let row_error = diagonal * (value as f64 - center);
         let next_partial = partial_distance_squared + row_error * row_error;
         let branch_pad = search_padding * best.distance_squared.max(squared_basis_scale);
+        if !row_error.is_finite() || !next_partial.is_finite() || !branch_pad.is_finite() {
+            return Err(PeriodicLatticeError::NumericRange {
+                field: "sphere-decoder partial distance bound",
+            });
+        }
         if next_partial <= best.distance_squared + branch_pad {
             sphere_decode_level(
                 level - 1,
