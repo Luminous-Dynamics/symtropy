@@ -1056,7 +1056,7 @@ fn fixture_mtconnect_27_xml() -> SourceDocument {
 fn fixture_mtconnect_assets_source() -> SourceDocument {
     let mut source = fixture_source(Standard::MtConnect);
     source.document_id = "MT-ASSET-DOC-0001".into();
-    source.document_sha256 = prefix_hash("e");
+    source.document_sha256 = prefix_hash("d");
     source.source_uri = "fixture://MT/asset-document.json".into();
     source.schema.schema_identifier =
         "https://schemas.mtconnect.org/schemas/MTConnectAssets_2.8.schema.json".into();
