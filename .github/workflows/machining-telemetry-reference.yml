@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/machining-telemetry/telemetry_reference.rs"
       - "tools/machining-telemetry/README.md"
+      - "tools/machining-telemetry/expected.csv"
       - ".github/workflows/machining-telemetry-reference.yml"
   push:
     branches: [main]
@@ -38,7 +39,8 @@ jobs:
           "$RUNNER_TEMP/telemetry-reference" --csv > "$RUNNER_TEMP/features-a.csv"
           "$RUNNER_TEMP/telemetry-reference" --csv > "$RUNNER_TEMP/features-b.csv"
           diff -u "$RUNNER_TEMP/features-a.csv" "$RUNNER_TEMP/features-b.csv"
+          diff -u tools/machining-telemetry/expected.csv "$RUNNER_TEMP/features-a.csv"
           cat "$RUNNER_TEMP/features-a.csv"
       - name: Hash exact inputs and output
         run: |
-          sha256sum tools/machining-telemetry/telemetry_reference.rs "$RUNNER_TEMP/features-a.csv"
+          sha256sum tools/machining-telemetry/telemetry_reference.rs tools/machining-telemetry/expected.csv "$RUNNER_TEMP/features-a.csv"
