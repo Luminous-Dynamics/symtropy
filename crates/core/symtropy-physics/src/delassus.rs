@@ -201,9 +201,7 @@ pub fn solve_frictionless_lcp(
     if !tolerance.is_finite() || tolerance <= 0.0 {
         return Err(ReferenceLcpError::InvalidTolerance);
     }
-    if !matrix.iter().all(|value| value.is_finite())
-        || !q.iter().all(|value| value.is_finite())
-    {
+    if !matrix.iter().all(|value| value.is_finite()) || !q.iter().all(|value| value.is_finite()) {
         return Err(ReferenceLcpError::NonFinite);
     }
 
@@ -220,9 +218,9 @@ pub fn solve_frictionless_lcp(
 
     let symmetric = (matrix + matrix.transpose()) * 0.5;
     let eigenvalues = nalgebra::linalg::SymmetricEigen::new(symmetric).eigenvalues;
-    let min_eigenvalue = eigenvalues.iter().fold(f64::INFINITY, |minimum, value| {
-        minimum.min(*value)
-    });
+    let min_eigenvalue = eigenvalues
+        .iter()
+        .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
     if min_eigenvalue < -tolerance * matrix_scale {
         return Err(ReferenceLcpError::NotPositiveSemidefinite);
     }
@@ -237,19 +235,15 @@ pub fn solve_frictionless_lcp(
             let active_matrix = DMatrix::<f64>::from_fn(active.len(), active.len(), |i, j| {
                 matrix[(active[i], active[j])]
             });
-            let rhs = DVector::<f64>::from_iterator(
-                active.len(),
-                active.iter().map(|index| -q[*index]),
-            );
+            let rhs =
+                DVector::<f64>::from_iterator(active.len(), active.iter().map(|index| -q[*index]));
             // SVD supplies a least-norm solution for rank-deficient active
             // blocks (e.g. redundant contact rows). Feasibility and the
             // original unregularized equations are checked below; no diagonal
             // regularizer is added to conceal a singular physical system.
             let active_scale = active_matrix.norm().max(f64::MIN_POSITIVE);
             let svd_tolerance = tolerance * active_scale;
-            let Ok(active_solution) = active_matrix
-                .svd(true, true)
-                .solve(&rhs, svd_tolerance)
+            let Ok(active_solution) = active_matrix.svd(true, true).solve(&rhs, svd_tolerance)
             else {
                 continue;
             };
@@ -285,8 +279,8 @@ pub fn solve_frictionless_lcp(
             .fold(0.0_f64, |maximum, value| maximum.max((-*value).max(0.0)));
         // Normalize the two primal feasibility terms separately because
         // impulses and residual velocities have different physical units.
-        let max_primal_violation = (max_impulse_violation / impulse_scale)
-            .max(max_velocity_violation / velocity_scale);
+        let max_primal_violation =
+            (max_impulse_violation / impulse_scale).max(max_velocity_violation / velocity_scale);
         let max_complementarity_residual = impulses
             .iter()
             .zip(residual.iter())
@@ -335,7 +329,7 @@ pub fn solve_frictionless_lcp(
 mod tests {
     use super::*;
     use crate::inertia::BivectorInertia;
-    use nalgebra::{SVector, DMatrix, DVector};
+    use nalgebra::{DMatrix, DVector, SVector};
     use symtropy_math::Point;
 
     #[test]
@@ -415,17 +409,12 @@ mod tests {
 
     #[test]
     fn assembled_rows_are_symmetric_and_retain_asymmetric_rotational_coupling() {
-        let mut body_a =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         body_a.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(
-                1.0,
-                SVector::new(2.0, 1.0, 0.5),
-            )
-            .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+                .unwrap(),
         );
-        let body_b =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let body_b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         let bodies = vec![body_a, body_b];
         let rows = vec![
             FrictionlessContactRow {
@@ -446,12 +435,15 @@ mod tests {
 
         let matrix = assemble_delassus(&bodies, &rows, 1e-12).unwrap();
         assert!((matrix[(0, 1)] - matrix[(1, 0)]).abs() < 1e-12);
-        assert!(matrix[(0, 1)].abs() > 1e-6, "expected coupled off-diagonal response");
-        let eigenvalues = nalgebra::linalg::SymmetricEigen::new(
-            (&matrix + matrix.transpose()) * 0.5,
-        )
-        .eigenvalues;
-        let minimum_eigenvalue = eigenvalues.iter().fold(f64::INFINITY, |min, value| min.min(*value));
+        assert!(
+            matrix[(0, 1)].abs() > 1e-6,
+            "expected coupled off-diagonal response"
+        );
+        let eigenvalues =
+            nalgebra::linalg::SymmetricEigen::new((&matrix + matrix.transpose()) * 0.5).eigenvalues;
+        let minimum_eigenvalue = eigenvalues
+            .iter()
+            .fold(f64::INFINITY, |min, value| min.min(*value));
         assert!(minimum_eigenvalue >= -1e-12);
 
         // Solve a constructed impact target from the assembled operator. This
@@ -511,14 +503,14 @@ mod tests {
 
     #[test]
     fn assembler_propagates_singular_rotational_plane_error() {
-        use nalgebra::SMatrix;
         use crate::inertia::RotationalInertiaError;
+        use nalgebra::SMatrix;
 
         let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         body_a.set_rotational_inertia_operator(
-            BivectorInertia::<3>::from_second_moment(
-                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
-            )
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
             .unwrap(),
         );
         let body_b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
