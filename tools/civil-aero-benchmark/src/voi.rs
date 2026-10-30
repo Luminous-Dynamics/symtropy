@@ -84,7 +84,9 @@ pub fn validate_problem(problem: &DecisionProblem, remaining_budget: f64) -> Res
     }
     let state_count = problem.state_ids.len();
     if state_count == 0 || problem.prior_probabilities.len() != state_count {
-        return Err("state IDs and prior probabilities must have the same non-zero length".to_owned());
+        return Err(
+            "state IDs and prior probabilities must have the same non-zero length".to_owned(),
+        );
     }
     let mut state_ids = HashSet::new();
     for state_id in &problem.state_ids {
@@ -95,7 +97,10 @@ pub fn validate_problem(problem: &DecisionProblem, remaining_budget: f64) -> Res
     let mut prior_sum = 0.0;
     for (index, probability) in problem.prior_probabilities.iter().enumerate() {
         if !probability.is_finite() || !(0.0..=1.0).contains(probability) {
-            return Err(format!("prior probability for state {} must be finite and in [0, 1]", problem.state_ids[index]));
+            return Err(format!(
+                "prior probability for state {} must be finite and in [0, 1]",
+                problem.state_ids[index]
+            ));
         }
         prior_sum += probability;
     }
@@ -133,15 +138,24 @@ pub fn validate_problem(problem: &DecisionProblem, remaining_budget: f64) -> Res
             return Err("experiment IDs must be non-empty and unique".to_owned());
         }
         if !experiment.cost_units.is_finite() || experiment.cost_units < 0.0 {
-            return Err(format!("experiment {} cost must be finite and non-negative", experiment.experiment_id));
+            return Err(format!(
+                "experiment {} cost must be finite and non-negative",
+                experiment.experiment_id
+            ));
         }
         if experiment.outcome_ids.is_empty() {
-            return Err(format!("experiment {} must declare at least one outcome", experiment.experiment_id));
+            return Err(format!(
+                "experiment {} must declare at least one outcome",
+                experiment.experiment_id
+            ));
         }
         let mut outcome_ids = HashSet::new();
         for outcome_id in &experiment.outcome_ids {
             if outcome_id.trim().is_empty() || !outcome_ids.insert(outcome_id) {
-                return Err(format!("experiment {} outcome IDs must be non-empty and unique", experiment.experiment_id));
+                return Err(format!(
+                    "experiment {} outcome IDs must be non-empty and unique",
+                    experiment.experiment_id
+                ));
             }
         }
         if experiment.likelihood_by_state.len() != state_count {
@@ -338,17 +352,21 @@ fn best_decision(
     Ok((decision.decision_id.clone(), value))
 }
 
+fn csv_escape(value: &str) -> String {
+    value.replace('"', "\"\"")
+}
+
 pub fn report_to_csv(report: &EvsiReport) -> String {
     let mut output = format!("{EVSI_OUTPUT_HEADER}\n");
     for experiment in &report.experiments {
         output.push_str(&format!(
-            "{},{},{:.6},{:.6},{},{},{:.12},{:.12},{:.12},{:.12},{},{},caller_supplied_probabilities_not_independently_calibrated\n",
-            report.problem_id,
-            experiment.experiment_id,
+            "\"{}\",\"{}\",{:.6},{:.6},{},\"{}\",{:.12},{:.12},{:.12},{:.12},{},{},caller_supplied_probabilities_not_independently_calibrated\\n",
+            csv_escape(&report.problem_id),
+            csv_escape(&experiment.experiment_id),
             experiment.cost_units,
             experiment.remaining_budget_units,
             experiment.affordable,
-            experiment.prior_best_decision_id,
+            csv_escape(&experiment.prior_best_decision_id),
             experiment.prior_best_expected_utility,
             experiment.expected_best_utility_after_observation,
             experiment.gross_evsi,
