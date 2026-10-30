@@ -1,0 +1,119 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+use std::env;
+use std::process::ExitCode;
+
+use symtropy_experiment_selection::{
+    PolicyKind, ProblemId, paired_comparisons, render_receipts, run_campaign, summarize,
+};
+
+fn main() -> ExitCode {
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(message) => {
+            eprintln!("experiment-selection-bench: {message}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn run() -> Result<(), String> {
+    let mut source_sha: Option<String> = None;
+    let mut seed_count = 20_usize;
+    let mut budget = 32_usize;
+    let mut initial_design = 8_usize;
+
+    let mut arguments = env::args().skip(1);
+    while let Some(argument) = arguments.next() {
+        let value = arguments
+            .next()
+            .ok_or_else(|| format!("missing value after {argument}"))?;
+        match argument.as_str() {
+            "--source-sha" => source_sha = Some(value),
+            "--seed-count" => {
+                seed_count = value
+                    .parse()
+                    .map_err(|_| format!("invalid seed count: {value}"))?;
+            }
+            "--budget" => {
+                budget = value
+                    .parse()
+                    .map_err(|_| format!("invalid evaluation budget: {value}"))?;
+            }
+            "--initial-design" => {
+                initial_design = value
+                    .parse()
+                    .map_err(|_| format!("invalid initial design size: {value}"))?;
+            }
+            _ => return Err(format!("unknown argument: {argument}")),
+        }
+    }
+
+    let source_sha = source_sha.ok_or_else(|| {
+        "--source-sha is required so every receipt binds an exact source revision".to_string()
+    })?;
+    if !matches!(source_sha.len(), 40 | 64)
+        || !source_sha.chars().all(|character| character.is_ascii_hexdigit())
+    {
+        return Err("--source-sha must be a 40- or 64-character hexadecimal Git object ID".to_string());
+    }
+
+    if seed_count == 0 {
+        return Err("seed count must be positive".to_string());
+    }
+    if budget == 0 || initial_design > budget {
+        return Err("require budget > 0 and initial design <= budget".to_string());
+    }
+
+    let seeds: Vec<u64> = (0..seed_count).map(|seed| seed as u64).collect();
+    let results = run_campaign(&seeds, budget, initial_design);
+    let summaries = summarize(&results);
+
+    println!(
+        "EXPERIMENT_CAMPAIGN,v1,source_sha={source_sha},problem_set=synthetic_2d_v1,noise_model=deterministic_heteroskedastic_v1,noise_scale_milli=20,gp_noise_variance=0.000225,gp_length_scale=0.22,gp_ucb_beta=1.5,gp_candidate_count=512,problems={},policies={},seeds={},budget={},initial_design={}",
+        ProblemId::ALL.len(),
+        PolicyKind::ALL.len(),
+        seed_count,
+        budget,
+        initial_design
+    );
+    print!("{}", render_receipts(&source_sha, &results));
+    println!(
+        "EXPERIMENT_SUMMARY,v1,problem,policy,trials,budget,mean_regret,median_regret,p90_regret,mean_cumulative_simple_regret,mean_infeasible_calls,mean_invalid_proposals,mean_trial_runtime_ns"
+    );
+    for summary in summaries {
+        println!(
+            "EXPERIMENT_SUMMARY,v1,{},{},{},{},{:.12e},{:.12e},{:.12e},{:.12e},{:.6},{:.6},{:.3}",
+            summary.problem.as_str(),
+            summary.policy.as_str(),
+            summary.trials,
+            summary.evaluations_per_trial,
+            summary.mean_regret,
+            summary.median_regret,
+            summary.p90_regret,
+            summary.mean_cumulative_simple_regret,
+            summary.mean_infeasible_calls,
+            summary.mean_invalid_proposals,
+            summary.mean_elapsed_nanos
+        );
+    }
+
+    println!(
+        "EXPERIMENT_PAIRED_COMPARISON,v1,problem,baseline,challenger,paired_trials,mean_regret_delta,ci95_lower,ci95_upper"
+    );
+    for comparison in paired_comparisons(&results) {
+        println!(
+            "EXPERIMENT_PAIRED_COMPARISON,v1,{},{},{},{},{:.12e},{:.12e},{:.12e}",
+            comparison.problem.as_str(),
+            comparison.baseline.as_str(),
+            comparison.challenger.as_str(),
+            comparison.paired_trials,
+            comparison.mean_regret_delta,
+            comparison.ci95_lower,
+            comparison.ci95_upper
+        );
+    }
+
+    Ok(())
+}

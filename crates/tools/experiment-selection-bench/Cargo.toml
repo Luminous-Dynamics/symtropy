@@ -1,0 +1,14 @@
+[package]
+name = "symtropy-experiment-selection"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Deterministic, budget-matched experiment-selection benchmark harness"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "experiment-selection-bench"
+path = "src/main.rs"
