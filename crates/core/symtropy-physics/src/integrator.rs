@@ -329,14 +329,10 @@ mod tests {
     fn anisotropic_torque_free_integration_preserves_world_momentum_and_energy() {
         use crate::inertia::BivectorInertia;
 
-        let mut body =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(
-                1.0,
-                SVector::new(2.0, 1.0, 0.5),
-            )
-            .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+                .unwrap(),
         );
         body.angular_damping = 0.0;
         body.angular_velocity.set(0, 1, 0.7);
