@@ -131,7 +131,9 @@ fn validate_trace(trace: &PixelTrace) -> Result<(), String> {
         }
         if index > 0 {
             let previous = trace.samples[index - 1];
-            if sample.frame_index != previous.frame_index + 1 {
+            let expected_frame = previous.frame_index.checked_add(1)
+                .ok_or("FRAME_INDEX_OVERFLOW")?;
+            if sample.frame_index != expected_frame {
                 return Err(FRAME_GAP_REASON.into());
             }
             if sample.time_s <= previous.time_s {
@@ -592,15 +594,15 @@ mod tests {
                 sample(0,0.0,1200.0),
                 sample(1,1.0,1320.0),
                 sample(2,2.0,1400.0),
-                sample(3,3.0,1200.0),
+                sample(3,3.0,1100.0),
                 sample(4,4.0,1000.0),
             ],
         };
         let report = derive_pixel(&trace).unwrap();
         assert_eq!(report.tam_status, MetricStatus::Derived);
         assert_eq!(report.scr_status, MetricStatus::Derived);
-        let expected_t1260 = 2.0 + (1400.0 - 1260.0) / 200.0;
-        let expected_t1150 = 2.0 + (1400.0 - 1150.0) / 200.0;
+        let expected_t1260 = 2.0 + (1400.0 - 1260.0) / 300.0;
+        let expected_t1150 = 2.0 + (1400.0 - 1150.0) / 300.0;
         assert!((report.t1260_s.unwrap() - expected_t1260).abs() < 1.0e-12);
         assert!((report.t1150_s.unwrap() - expected_t1150).abs() < 1.0e-12);
         assert!(report.scr_delta_t_s.unwrap() > 0.0);
@@ -674,6 +676,23 @@ mod tests {
         let mut trace = primary_fixture();
         trace.meta.temperature_transform_sha256 = "bad".into();
         assert!(derive_pixel(&trace).unwrap_err().contains("TRACE_SOURCE_DIGEST_INVALID"));
+    }
+
+    #[test]
+    fn reheat_above_solidus_before_1150_makes_scr_inconclusive() {
+        let trace = PixelTrace {
+            meta: fixture_meta("PIXEL-REHEAT"),
+            samples: vec![
+                sample(0,0.0,1200.0), sample(1,1.0,1300.0),
+                sample(2,2.0,1400.0), sample(3,3.0,1250.0),
+                sample(4,4.0,1300.0), sample(5,5.0,1200.0),
+                sample(6,6.0,1100.0),
+            ],
+        };
+        let report = derive_pixel(&trace).unwrap();
+        assert_eq!(report.tam_status, MetricStatus::Derived);
+        assert_eq!(report.scr_status, MetricStatus::Inconclusive);
+        assert_eq!(report.scr_reason, "REHEATED_ABOVE_SOLIDUS_BEFORE_1150C");
     }
 
     #[test]
