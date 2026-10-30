@@ -417,8 +417,7 @@ mod tests {
     fn asymmetric_contact_effective_mass_matches_applied_angular_impulse() {
         use crate::inertia::BivectorInertia;
 
-        let mut body =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         body.set_rotational_inertia_operator(
             BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
                 .unwrap(),
@@ -429,8 +428,7 @@ mod tests {
         let offset = SVector::new(0.4, -0.7, 0.9);
         let direction = SVector::new(0.3, 0.8, -0.2).normalize();
         let impulse_magnitude = 0.37;
-        let effective_mass =
-            rotational_inverse_effective_mass(&body, &offset, &direction);
+        let effective_mass = rotational_inverse_effective_mass(&body, &offset, &direction);
         let before = body.angular_velocity;
 
         let impulse = direction * impulse_magnitude;
