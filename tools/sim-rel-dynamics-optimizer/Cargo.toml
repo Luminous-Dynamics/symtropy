@@ -1,0 +1,15 @@
+[package]
+name = "sim-rel-dynamics-optimizer"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Exact finite-horizon stateful adaptive experiment risk-cost-abstention optimizer"
+
+[workspace]
+
+[dependencies]
+sim-rel-dynamics-evaluator = { path = "../sim-rel-dynamics-evaluator" }
+
+[lib]
+path = "src/lib.rs"
