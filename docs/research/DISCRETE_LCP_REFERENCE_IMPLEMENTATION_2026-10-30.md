@@ -36,18 +36,19 @@ The tests cover:
 
 1. 3D contact-row translation and bivector sign/index layout;
 2. all six 4D bivector plane coefficients;
-3. 3D contact rows producing a symmetric PSD Delassus matrix;
-4. a known generalized Jacobian/inverse-mass matrix assembling to the analytical Delassus matrix;
-5. rejection of an indefinite inverse effective-mass metric;
-6. one-row analytical impulse;
-7. coupled two-row analytical solution;
-8. separating rows receiving zero impulse;
-9. redundant positive-semidefinite rows solved through a nonsingular subset;
-10. asymmetric Delassus rejection;
-11. indefinite Delassus rejection;
-12. explicit rejection above eight rows;
-13. all 256 active sets for an eight-row fully active system; and
-14. no-feasible-solution handling for a closing row with zero effective mass.
+3. rejection of invalid body indices and zero-length normals;
+4. 3D contact rows producing a symmetric PSD Delassus matrix;
+5. a known generalized Jacobian/inverse-mass matrix assembling to the analytical Delassus matrix;
+6. rejection of an indefinite inverse effective-mass metric;
+7. one-row analytical impulse;
+8. coupled two-row analytical solution;
+9. separating rows receiving zero impulse;
+10. redundant positive-semidefinite rows solved through a nonsingular subset;
+11. asymmetric Delassus rejection;
+12. indefinite Delassus rejection;
+13. explicit rejection above eight rows;
+14. all 256 active sets for an eight-row fully active system; and
+15. no-feasible-solution handling for a closing row with zero effective mass.
 
 ## Explicit limits
 
