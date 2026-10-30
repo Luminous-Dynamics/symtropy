@@ -142,6 +142,20 @@ impl<const D: usize> RigidBody<D> {
         self.wake();
     }
 
+    /// Validate the mass metadata and attach an authoritative inertia operator.
+    ///
+    /// Prefer this API for mass-aware operators. The infallible compatibility
+    /// setter remains available for raw second-moment matrices whose total mass
+    /// is unknown; simulation entry points still validate known mass metadata.
+    pub fn try_set_rotational_inertia_operator(
+        &mut self,
+        inertia: BivectorInertia<D>,
+    ) -> Result<(), crate::inertia::RotationalInertiaError> {
+        inertia.validate_body_mass(self.mass, 1e-10)?;
+        self.set_rotational_inertia_operator(inertia);
+        Ok(())
+    }
+
     pub fn is_dynamic(&self) -> bool {
         matches!(self.body_type, BodyType::Dynamic)
     }
