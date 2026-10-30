@@ -159,6 +159,19 @@ pub fn separate<const D: usize>(body: &mut RigidBody<D>, correction: &SVector<f6
     }
 }
 
+/// Convert stored angular velocity to the world-space velocity at an offset.
+///
+/// Rotor integration uses exp(-B) and left-composes the incremental rotation,
+/// so the instantaneous world-space point velocity is -B*r, not B*r.
+/// Keep this sign conversion centralized for contact and friction solvers.
+#[inline]
+pub fn angular_point_velocity<const D: usize>(
+    angular_velocity: &Bivector<D>,
+    offset: &SVector<f64, D>,
+) -> SVector<f64, D> {
+    -angular_velocity.apply_to_vector(offset)
+}
+
 /// Apply an impulse to a body at its center of mass.
 pub fn apply_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &SVector<f64, D>) {
     if body.is_dynamic() {
@@ -173,7 +186,7 @@ pub fn apply_angular_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &
         // `integrate` above — see that TODO for why this is only exact for
         // spheres and what a real fix would require.
         let inv_i_avg = body.inv_inertia.sum() / D as f64;
-        body.angular_velocity = body.angular_velocity.add(&impulse.scale(inv_i_avg));
+        body.angular_velocity = body.angular_velocity.add(&impulse.scale(-inv_i_avg));
     }
 }
 
@@ -255,6 +268,49 @@ mod tests {
         let trace = mat.trace();
         // Identity has trace = 3, rotated will have trace < 3
         assert!(trace < 2.99, "trace = {trace}, body didn't rotate");
+    }
+
+    #[test]
+    fn angular_point_velocity_matches_rotor_finite_difference() {
+        let omega = Bivector::<3>::unit_plane(0, 1).scale(0.7);
+        let offset = SVector::from([1.2, -0.4, 0.3]);
+        let dt = 1e-7;
+
+        let delta = Rotor::from_bivector(&omega.scale(dt));
+        let rotated = delta.rotate_point(&Point(offset)).0;
+        let finite_difference = (rotated - offset) / dt;
+        let predicted = angular_point_velocity(&omega, &offset);
+
+        assert!(
+            (finite_difference - predicted).norm() < 1e-7,
+            "finite_difference={finite_difference:?}, predicted={predicted:?}"
+        );
+    }
+
+    #[test]
+    fn angular_impulse_produces_point_velocity_in_impulse_direction() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            1.0,
+            1.0,
+        );
+        let offset = SVector::from([1.0, 0.0, 0.0]);
+        let impulse = SVector::from([0.0, 1.0, 0.0]);
+        let torque = Bivector::from_wedge(&impulse, &offset);
+
+        apply_angular_impulse(&mut body, &torque);
+        let rotational_delta_velocity =
+            angular_point_velocity(&body.angular_velocity, &offset);
+        let inverse_inertia = body.inv_inertia.sum() / 3.0;
+        let expected = (impulse * offset.norm_squared()
+            - offset * offset.dot(&impulse))
+            * inverse_inertia;
+
+        assert!(
+            (rotational_delta_velocity - expected).norm() < 1e-12,
+            "rotational_delta_velocity={rotational_delta_velocity:?}, expected={expected:?}"
+        );
     }
 
     #[test]
