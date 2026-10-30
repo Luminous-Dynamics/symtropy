@@ -54,6 +54,14 @@ Three binary inputs; eight intervention assignments; constants 0 and 1; NOT, AND
 
 **This is the same small, hand-authored public pilot, not a new sealed held-out corpus.** Its cost profiles permit a cost-aware smoke test; they do not establish efficacy or generalization. Do not use the published 'heldout' labels from this fixture as an independent confirmatory set.
 
+### Exhaustive finite-domain corpus
+
+The branch also adds `problems-exhaustive-boolean8-v1.tsv` and its separate evaluator truth fixture. These enumerate **all 256 possible Boolean functions** over the eight assignments of three input bits. The 256 target functions are deterministically permuted before opaque IDs and task costs are assigned; action costs are generated independently from the target function. The diagnostic splits contain 154 train (66 in-grammar / 88 out-of-grammar), 51 validation (22 / 29), and 51 heldout (21 / 30).
+
+This is exhaustive over the finite three-input truth-table target space, not exhaustive over larger input spaces or physical systems. The split labels are diagnostic partitions, not a generalization test: all target functions are included in the same benchmark and the entire finite function space is now publicly known. It provides a complete finite-domain census of target retention, ambiguity, and misspecification under the declared candidate grammar.
+
+The exact-head workflow runs both the 18-case pilot and the 256-function exhaustive corpus at β={0,1,2}, generating six retained JSON receipts. The exhaustive set's primary scientific value is complete finite-domain accounting, not a claimed industry benchmark win.
+
 ## Run
 
 From the repository root, choose an exact reviewed Git SHA:
