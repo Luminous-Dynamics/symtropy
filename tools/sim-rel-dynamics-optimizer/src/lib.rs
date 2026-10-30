@@ -782,7 +782,7 @@ mod tests {
     use sim_rel_dynamics_evaluator::evaluate_shared_policy;
 
     fn order_effect_world() -> World {
-        use Transition::{Hazard, Safe};
+        use Transition::Safe;
         let h0 = sim_rel_dynamics_evaluator::HypothesisMachine {
             initial_state: 0,
             transitions: vec![
@@ -833,7 +833,6 @@ mod tests {
                 ],
             ],
         };
-        let _ = Hazard;
         World {
             name: "order-effect".into(),
             hypothesis_ids: vec!["h0".into(), "h1".into()],
@@ -1162,12 +1161,12 @@ mod tests {
         }
         let left = baseline.minimum_cost_under(zero(), zero()).unwrap();
         let right = reordered.minimum_cost_under(zero(), zero()).unwrap();
-        let left_root = match left.policy.nodes[left.policy.root] {
-            PolicyNode::Action { action, .. } => world.action_ids[action].as_str(),
+        let left_root = match &left.policy.nodes[left.policy.root] {
+            PolicyNode::Action { action, .. } => world.action_ids[*action].as_str(),
             _ => "terminal",
         };
-        let right_root = match right.policy.nodes[right.policy.root] {
-            PolicyNode::Action { action, .. } => permuted.action_ids[action].as_str(),
+        let right_root = match &right.policy.nodes[right.policy.root] {
+            PolicyNode::Action { action, .. } => permuted.action_ids[*action].as_str(),
             _ => "terminal",
         };
         assert_eq!(left_root, right_root);
