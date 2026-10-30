@@ -554,8 +554,7 @@ fn parse_numeric_row(
                 "line {line_number}: row GRID_LEVEL {grid_level} disagrees with zone {zone_title}"
             ));
         }
-        Dpw8V5ZoneKind::Alpha(expected) if (alpha_deg - expected).abs() > ALPHA_ZONE_TOLERANCE =>
-        {
+        Dpw8V5ZoneKind::Alpha(expected) if (alpha_deg - expected).abs() > ALPHA_ZONE_TOLERANCE => {
             return Err(format!(
                 "line {line_number}: row ALPHA {alpha_deg} disagrees with zone {zone_title}"
             ));

@@ -3,7 +3,9 @@ use std::{env, fs, path::Path, process};
 use civil_aero_benchmark::integrity::verify_source_bytes;
 
 use civil_aero_benchmark::reference_data::parse_ladson_force_data;
-use civil_aero_benchmark::section_polar::{SectionPolarProvenance, audit_section_polar, report_to_csv};
+use civil_aero_benchmark::section_polar::{
+    SectionPolarProvenance, audit_section_polar, report_to_csv,
+};
 
 fn main() {
     if let Err(error) = run() {
