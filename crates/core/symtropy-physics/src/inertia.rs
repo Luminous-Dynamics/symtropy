@@ -289,8 +289,7 @@ impl<const D: usize> BivectorInertia<D> {
         let momentum_scale = momentum_local
             .iter()
             .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
-        let momentum_tolerance =
-            relative_tolerance * momentum_scale.max(f64::MIN_POSITIVE);
+        let momentum_tolerance = relative_tolerance * momentum_scale.max(f64::MIN_POSITIVE);
         let mut omega_local = nalgebra::SMatrix::<f64, D, D>::zeros();
 
         for i in 0..D {
@@ -358,8 +357,7 @@ impl<const D: usize> BivectorInertia<D> {
         if !effective_mass.is_finite() {
             return Err(RotationalInertiaError::NonFinite);
         }
-        let effective_mass_tolerance =
-            1e-12 * point_velocity_change.norm().max(f64::MIN_POSITIVE);
+        let effective_mass_tolerance = 1e-12 * point_velocity_change.norm().max(f64::MIN_POSITIVE);
         if effective_mass < -effective_mass_tolerance {
             return Err(RotationalInertiaError::NotPositiveSemidefinite);
         }
@@ -592,15 +590,10 @@ mod tests {
 
     #[test]
     fn gyroscopic_acceleration_is_covariant_between_body_and_world_frames() {
-        let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
-            2.0,
-            SVector::new(1.5, 0.9, 0.4),
-        )
-        .unwrap();
-        let rotation = Rotor::<3>::from_plane_angle(
-            &Bivector::<3>::unit_plane(0, 2),
-            0.71,
-        );
+        let body_inertia =
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.5, 0.9, 0.4))
+                .unwrap();
+        let rotation = Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.71);
         let world_inertia = body_inertia.rotated_by(&rotation);
 
         let mut b_body = Bivector::<3>::zero();
@@ -646,11 +639,9 @@ mod tests {
 
     #[test]
     fn rotational_inverse_effective_mass_uses_asymmetric_plane_inertia() {
-        let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
-            1.0,
-            SVector::new(2.0, 1.0, 0.5),
-        )
-        .unwrap();
+        let inertia =
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+                .unwrap();
         let offset = SVector::new(1.0, 0.0, 0.0);
         let normal = SVector::new(0.0, 1.0, 0.0);
         let value = inertia
@@ -677,11 +668,8 @@ mod tests {
 
     #[test]
     fn torque_free_angular_acceleration_preserves_energy_and_momentum_casimir() {
-        let second_moment = SMatrix::<f64, 3, 3>::new(
-            1.0, 0.15, 0.05,
-            0.15, 2.0, 0.1,
-            0.05, 0.1, 3.0,
-        );
+        let second_moment =
+            SMatrix::<f64, 3, 3>::new(1.0, 0.15, 0.05, 0.15, 2.0, 0.1, 0.05, 0.1, 3.0);
         let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
         let mut b = Bivector::<3>::zero();
         b.set(0, 1, 0.7);
@@ -689,7 +677,9 @@ mod tests {
         b.set(1, 2, 1.1);
 
         let zero_torque = Bivector::<3>::zero();
-        let b_dot = inertia.angular_acceleration(&b, &zero_torque, 1e-12).unwrap();
+        let b_dot = inertia
+            .angular_acceleration(&b, &zero_torque, 1e-12)
+            .unwrap();
         let l = inertia.angular_momentum(&b);
         // I(dot(B)) equals the commutator correction. The actual spatial
         // momentum derivative also includes the rotation of S in world space.
@@ -714,8 +704,8 @@ mod tests {
         // The torque-free spatial angular momentum is constant, and the
         // kinetic-energy derivative is zero under this same moving-S update.
         assert!(bivector_pairing(&l, &actual_l_dot).abs() < 1e-11);
-        let energy_rate = 0.5
-            * (bivector_pairing(&b_dot, &l) + bivector_pairing(&b, &actual_l_dot));
+        let energy_rate =
+            0.5 * (bivector_pairing(&b_dot, &l) + bivector_pairing(&b, &actual_l_dot));
         assert!(energy_rate.abs() < 1e-11, "energy_rate={energy_rate}");
     }
 
@@ -756,9 +746,8 @@ mod tests {
 
     #[test]
     fn inverse_operator_uses_pseudoinverse_on_unexcited_singular_planes() {
-        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([
-            2.0, 0.0, 0.0,
-        ]));
+        let second_moment =
+            SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([2.0, 0.0, 0.0]));
         let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
         let momentum = Bivector::<3>::unit_plane(0, 1).scale(4.0);
         let recovered = inertia
