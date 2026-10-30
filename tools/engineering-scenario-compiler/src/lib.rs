@@ -129,6 +129,7 @@ pub struct CompilationReport {
     pub source_sha256: String,
     pub semantic_ir_sha256: Option<String>,
     pub artifact_manifest_sha256: Option<String>,
+    pub compilation_subject_sha256: Option<String>,
     pub disposition: Disposition,
     pub obligations: Vec<CompileObligation>,
     pub diagnostics: Vec<String>,
@@ -211,6 +212,21 @@ struct SourceLimitations {
 
 fn sha256(bytes: &[u8]) -> String { hex::encode(Sha256::digest(bytes)) }
 
+fn compilation_subject_sha256(
+    source_sha256: &str,
+    semantic_ir_sha256: &str,
+    artifact_manifest_sha256: &str,
+) -> String {
+    // Fixed-length hexadecimal digest fields plus a domain separator avoid
+    // ambiguous concatenation and bind provenance, semantic meaning, and bytes.
+    let mut hasher = Sha256::new();
+    hasher.update(b"LUMINOUS-ENGINEERING-SCENARIO-COMPILATION-SUBJECT-V1\\0");
+    hasher.update(source_sha256.as_bytes());
+    hasher.update(semantic_ir_sha256.as_bytes());
+    hasher.update(artifact_manifest_sha256.as_bytes());
+    hex::encode(hasher.finalize())
+}
+
 fn git_blob_oid(bytes: &[u8]) -> String {
     let mut hasher = Sha1::new();
     hasher.update(format!("blob {}\0", bytes.len()).as_bytes());
@@ -242,6 +258,7 @@ fn invalid_report(source_sha256: String, diagnostic: String) -> CompilationRepor
         source_sha256,
         semantic_ir_sha256: None,
         artifact_manifest_sha256: None,
+        compilation_subject_sha256: None,
         disposition: Disposition::Invalid,
         obligations: Vec::new(),
         diagnostics: vec![diagnostic],
@@ -511,6 +528,11 @@ pub fn compile_with_artifacts(
         Err(error) => return invalid_report(source_digest, format!("normalized typed IR serialization failed: {error}")),
     };
     let semantic_digest = sha256(&semantic_bytes);
+    let compilation_subject_digest = compilation_subject_sha256(
+        &source_digest,
+        &semantic_digest,
+        &artifact_manifest_sha256,
+    );
 
     let profile_supported = profile_is_supported(&ir.flow);
     let mut obligations = vec![CompileObligation {
@@ -562,6 +584,7 @@ pub fn compile_with_artifacts(
         source_sha256: source_digest,
         semantic_ir_sha256: Some(semantic_digest),
         artifact_manifest_sha256: Some(artifact_manifest_sha256),
+        compilation_subject_sha256: Some(compilation_subject_digest),
         disposition,
         obligations,
         diagnostics,
@@ -592,6 +615,7 @@ mod tests {
         assert_eq!(report.obligations.iter().filter(|o| o.resolution == Resolution::Blocked).count(), 3);
         assert!(report.claim_ceiling.contains("no solver execution"));
         assert!(report.artifact_manifest_sha256.is_some());
+        assert!(report.compilation_subject_sha256.is_some());
     }
 
     #[test]
@@ -708,7 +732,15 @@ mod tests {
             ],
         );
         assert_eq!(reversed.artifact_manifest_sha256, report.artifact_manifest_sha256);
+        assert_eq!(reversed.compilation_subject_sha256, report.compilation_subject_sha256);
         assert_eq!(reversed.verified_artifacts, report.verified_artifacts);
+
+        let without_artifacts = compile_bytes(source.as_bytes());
+        assert_ne!(
+            without_artifacts.compilation_subject_sha256,
+            report.compilation_subject_sha256,
+            "complete compilation identity must change when verified input bytes are supplied"
+        );
     }
 
     #[test]
