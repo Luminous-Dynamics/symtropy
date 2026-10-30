@@ -416,23 +416,43 @@ impl CandidatePolicy for GaussianProcessUcbPolicy {
             return self.candidate_pool[proposal_index % self.candidate_pool.len()];
         };
 
-        let mut best_point = self.candidate_pool[0];
-        let mut best_score = f64::NEG_INFINITY;
+        let mut best: Option<([f64; 2], f64)> = None;
+        let mut fallback: Option<([f64; 2], f64)> = None;
         for point in &self.candidate_pool {
-            if observations
+            let minimum_distance = observations
                 .iter()
-                .any(|observation| squared_distance(observation.point, *point) < 1.0e-12)
-            {
+                .filter(|observation| observation.status == ObservationStatus::Completed)
+                .map(|observation| squared_distance(observation.point, *point))
+                .fold(f64::INFINITY, f64::min);
+            if fallback.is_none_or(|(_, distance)| minimum_distance > distance) {
+                fallback = Some((*point, minimum_distance));
+            }
+            if minimum_distance < 1.0e-12 {
                 continue;
             }
-            let (mean, variance) = model.predict(*point);
+
+            let Some((mean, variance)) = model.predict(*point) else {
+                return [f64::NAN, f64::NAN];
+            };
             let score = mean + GP_UCB_BETA * variance.sqrt();
-            if score > best_score {
-                best_score = score;
-                best_point = *point;
+            if !score.is_finite() {
+                return [f64::NAN, f64::NAN];
+            }
+            if best.is_none_or(|(_, best_score)| score > best_score) {
+                best = Some((*point, score));
             }
         }
-        best_point
+        if let Some((point, _)) = best {
+            point
+        } else if let Some((point, distance)) = fallback {
+            if distance > 1.0e-12 {
+                point
+            } else {
+                [f64::NAN, f64::NAN]
+            }
+        } else {
+            [f64::NAN, f64::NAN]
+        }
     }
 }
 
@@ -945,17 +965,23 @@ impl GaussianProcess {
         })
     }
 
-    fn predict(&self, point: [f64; 2]) -> (f64, f64) {
+    fn predict(&self, point: [f64; 2]) -> Option<(f64, f64)> {
         let kernel: Vec<f64> = self
             .points
             .iter()
             .map(|training| rbf_kernel(*training, point))
             .collect();
+        if !kernel.iter().all(|value| value.is_finite()) {
+            return None;
+        }
         let mean = dot(&kernel, &self.alpha);
-        let projected = forward_substitute(&self.lower_cholesky, &kernel)
-            .unwrap_or_else(|| vec![0.0; kernel.len()]);
-        let variance = (1.0 - dot(&projected, &projected)).max(0.0);
-        (mean, variance)
+        let projected = forward_substitute(&self.lower_cholesky, &kernel)?;
+        let variance_raw = 1.0 - dot(&projected, &projected);
+        if !mean.is_finite() || !variance_raw.is_finite() {
+            return None;
+        }
+        let variance = variance_raw.max(0.0);
+        Some((mean, variance))
     }
 }
 
