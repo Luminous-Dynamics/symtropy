@@ -143,7 +143,7 @@ struct Report {
     specification_revision: String, uncertainty_budget_id: String, context_id: String,
     decision_rule_id: String, decision_rule_revision: String, measurand_id: String, unit: String,
     operation_id: String, measured_at_ns: i64, instrument_id: String, calibration_id: String,
-    calibration_valid_from_ns: i64, calibration_valid_until_ns: i64,
+    calibration_valid_from_ns: i64, calibration_until_ns: i64,
     specification_effective_from_ns: i64, specification_effective_until_ns: i64,
     msa_study_id: String, msa_qualified: bool, uncertainty_revision: String,
     uncertainty_part_scope: String, uncertainty_combination_method: String,
