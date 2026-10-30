@@ -54,6 +54,9 @@ Keep the distinction explicit:
 
 A passing formula test must never promote a knowledge model directly to engineering-ready status.
 
+A cross-repository audit also found a concrete time-alignment defect in Symthaea's generic Cash–Karp RK45 wrapper: a rejected macro-step may produce a shorter accepted substep, while the trait wrapper returns only the new state and the generic simulation loop advances time by the original macro-step. This can make trajectory state and recorded timestamps disagree. A fail-closed interval-wrapper correction and phase-sensitive harmonic-oscillator regression are proposed in [Symthaea PR #9083](https://github.com/Luminous-Dynamics/symthaea/pull/9083). It is not counted as fixed or validated until that change is reviewed and its test is run.
+
+
 ## 2. The paradigm shifts
 
 ### 2.1 From a physics catalogue to a model contract
