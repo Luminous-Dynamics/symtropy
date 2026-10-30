@@ -115,7 +115,8 @@ pub fn validate_delassus(
 /// Assemble the Delassus operator W = J * M_eff^-1 * J^T.
 ///
 /// Each row of jacobian maps generalized velocity coordinates to one scalar
-/// normal velocity. inverse_effective_mass is the symmetric positive-\n/// semidefinite inverse generalized effective-mass metric in those same
+/// normal velocity. inverse_effective_mass is the symmetric positive-
+/// semidefinite inverse generalized effective-mass metric in those same
 /// coordinates. The returned matrix is explicitly symmetrized only after the
 /// raw product passes the requested symmetry and PSD checks.
 pub fn assemble_delassus(
