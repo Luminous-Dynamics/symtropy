@@ -968,6 +968,33 @@ mod tests {
                 forward.image_offset.periods,
                 reverse.image_offset.periods.map(|period| -period)
             );
+            assert!(
+                !forward.ambiguous_image_offsets.is_empty(),
+                "exact half-cell geometry should expose its other co-nearest images"
+            );
+            let mut forward_images = vec![forward.image_offset.periods];
+            forward_images.extend(
+                forward
+                    .ambiguous_image_offsets
+                    .iter()
+                    .map(|offset| offset.periods),
+            );
+            let mut reverse_images = vec![reverse.image_offset.periods];
+            reverse_images.extend(
+                reverse
+                    .ambiguous_image_offsets
+                    .iter()
+                    .map(|offset| offset.periods),
+            );
+            forward_images.sort();
+            reverse_images.sort();
+            assert_eq!(
+                forward_images
+                    .iter()
+                    .map(|offset| offset.map(|period| -period))
+                    .collect::<Vec<_>>(),
+                reverse_images
+            );
         }
     }
 
@@ -1173,7 +1200,10 @@ mod tests {
             result.inverse_residual_upper_bound,
             lattice.inverse_residual_upper_bound()
         );
-        assert!(result.unsearched_distance_lower_bound > result.displacement.norm());
+        assert!(result.unsearched_distance_lower_bound
+            > result.best_candidate_distance_upper_bound);
+        assert!(result.best_candidate_distance_upper_bound
+            >= result.displacement.norm() - result.nearest_distance_error_bound);
     }
 
     #[test]
