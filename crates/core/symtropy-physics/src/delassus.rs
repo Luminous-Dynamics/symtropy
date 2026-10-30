@@ -557,20 +557,32 @@ mod tests {
         );
     }
 
-    #[test]
-    fn isolated_sphere_contact_has_analytic_delassus_diagonal() {
+    fn assert_isolated_sphere_delassus<const D: usize>() {
         let bodies = vec![
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 2.0),
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 2.0),
+            RigidBody::<D>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 2.0),
+            RigidBody::<D>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 2.0),
         ];
+        let mut normal = SVector::<f64, D>::zeros();
+        normal[0] = 1.0;
         let rows = vec![FrictionlessContactRow {
             body_a: BodyHandle(0),
             body_b: BodyHandle(1),
             offset_a: SVector::zeros(),
             offset_b: SVector::zeros(),
-            normal: SVector::new(1.0, 0.0, 0.0),
+            normal,
         }];
         let matrix = assemble_delassus(&bodies, &rows, 1e-12).unwrap();
-        assert!((matrix[(0, 0)] - 1.0).abs() < 1e-12);
+        assert!(
+            (matrix[(0, 0)] - 1.0).abs() < 1e-12,
+            "D={D}: diagonal={}",
+            matrix[(0, 0)]
+        );
+    }
+
+    #[test]
+    fn isolated_sphere_contact_has_analytic_delassus_diagonal_in_2d_3d_4d() {
+        assert_isolated_sphere_delassus::<2>();
+        assert_isolated_sphere_delassus::<3>();
+        assert_isolated_sphere_delassus::<4>();
     }
 }
