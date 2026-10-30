@@ -174,54 +174,49 @@ fn validate_context(
     Ok(())
 }
 
-#[derive(Default)]
 struct CanonicalEncoder {
-    bytes: Vec<u8>,
+    hasher: Sha256,
 }
 
 impl CanonicalEncoder {
     fn new(domain: &[u8]) -> Self {
-        let mut encoder = Self::default();
-        encoder.bytes.extend_from_slice(domain);
-        encoder.bytes.push(0);
-        encoder
+        let mut hasher = Sha256::new();
+        hasher.update(domain);
+        hasher.update([0]);
+        Self { hasher }
     }
 
     fn tag(&mut self, value: u8) {
-        self.bytes.push(value);
+        self.hasher.update([value]);
     }
 
     fn u16(&mut self, value: u16) {
-        self.bytes.extend_from_slice(&value.to_le_bytes());
+        self.hasher.update(value.to_le_bytes());
     }
 
     fn u64(&mut self, value: u64) {
-        self.bytes.extend_from_slice(&value.to_le_bytes());
+        self.hasher.update(value.to_le_bytes());
     }
 
     fn string(&mut self, value: &str) {
         self.u64(value.len() as u64);
-        self.bytes.extend_from_slice(value.as_bytes());
+        self.hasher.update(value.as_bytes());
     }
 
-    fn finish(self) -> Vec<u8> {
-        self.bytes
-    }
-}
-
-fn sha256_digest(bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
-    let mut encoded = String::with_capacity(7 + digest.len() * 2);
-    encoded.push_str("sha256:");
-    for byte in digest {
+    fn finish(self) -> String {
+        let digest = self.hasher.finalize();
+        let mut encoded = String::with_capacity(7 + digest.len() * 2);
+        encoded.push_str("sha256:");
         use std::fmt::Write as _;
-        let _ = write!(encoded, "{byte:02x}");
+        for byte in digest {
+            let _ = write!(encoded, "{byte:02x}");
+        }
+        encoded
     }
-    encoded
 }
 
 fn digest_encoded(encoder: CanonicalEncoder) -> String {
-    sha256_digest(&encoder.finish())
+    encoder.finish()
 }
 
 fn encode_context(encoder: &mut CanonicalEncoder, context: &CommandEvidenceReceiptContext) {
