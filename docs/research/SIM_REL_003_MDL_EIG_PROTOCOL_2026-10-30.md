@@ -21,7 +21,7 @@ A probabilistic context-free grammar is fixed before examining task outputs. At 
 
 This yields terminal code length log2(10) bits and operator-node code length 3 bits plus the sum of child code lengths. The expected number of children per generated node is 0.875, so the recursive prior is subcritical.
 
-For a semantic function h, define L(h) as the minimum derivation code length among generated expressions with the same complete truth table. The prior weight is proportional to 2^(-L(h)); weights are normalized over the finite depth-two semantic candidate set.
+For a semantic function h, define L(h) as the minimum derivation code length among generated expressions with the same complete truth table. The prior weight is proportional to 2^(-βL(h)); weights are normalized over the finite depth-two semantic candidate set. The CLI parameter β is bounded to [0,4], default 1. β=0 yields the uniform prior; increasing β sharpens the preference for shorter derivations. The dedicated workflow predeclares β={0,1,2} and retains one receipt for each exact-head run.
 
 This is an explicit shortest-derivation MDL prior, **not** a sum over all syntactic derivations, and not a claim of calibrated posterior probabilities. The shortest program approximation intentionally avoids letting a function collect extra probability simply because the enumerator generated many aliases. Prior sensitivity to the grammar and coding scheme is a required future experiment.
 
