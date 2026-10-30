@@ -400,17 +400,19 @@ mod tests {
         let mut body =
             RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([3.0, -2.0, 1.0]), 1.0, 1.0);
         body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(
-                2.0,
-                SVector::new(1.0, 0.8, 0.6),
-            )
-            .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+                .unwrap(),
         );
         let direction = SVector::new(1.0, 0.0, 0.0);
         let support_before = body.world_support(&direction);
         let position_before = body.transform.translation.0.clone();
         let mass_before = body.mass;
-        let inertia_before = body.rotational_inertia.as_ref().unwrap().second_moment().clone();
+        let inertia_before = body
+            .rotational_inertia
+            .as_ref()
+            .unwrap()
+            .second_moment()
+            .clone();
 
         let error = body
             .try_merge_toolhead(
