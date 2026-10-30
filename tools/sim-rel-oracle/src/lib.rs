@@ -129,7 +129,7 @@ fn solve_state(
         let mut zero_weight = 0.0;
         let mut one_weight = 0.0;
         for signature in signatures {
-            if (signature >> action) & 1 == 1 {
+            if (*signature >> action) & 1 == 1 {
                 one.push(*signature);
                 one_weight += weights[signature];
             } else {
@@ -204,9 +204,11 @@ mod tests {
         let mut best = f64::INFINITY;
         for action in 0..ACTIONS as u8 {
             let zero: Vec<u8> = signatures.iter().copied()
-                .filter(|sig| (sig >> action) & 1 == 0).collect();
+                .filter(|sig| (*sig >> action) & 1 == 0)
+                .collect();
             let one: Vec<u8> = signatures.iter().copied()
-                .filter(|sig| (sig >> action) & 1 == 1).collect();
+                .filter(|sig| (*sig >> action) & 1 == 1)
+                .collect();
             if zero.is_empty() || one.is_empty() {
                 continue;
             }
@@ -225,7 +227,7 @@ mod tests {
         let costs = [3, 1, 2, 4, 5, 2, 3, 1];
         for subset in 1u16..=u8::MAX as u16 {
             let signatures: Vec<u8> = (0..8u8)
-                .filter(|signature| (subset >> signature) & 1 == 1)
+                .filter(|signature| (subset >> *signature) & 1 == 1)
                 .collect();
             if signatures.len() <= 1 {
                 continue;
