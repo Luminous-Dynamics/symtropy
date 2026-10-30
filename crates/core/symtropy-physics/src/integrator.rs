@@ -422,8 +422,7 @@ mod tests {
             BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
                 .unwrap(),
         );
-        body.transform.rotation =
-            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.43);
+        body.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.43);
 
         let offset = SVector::new(0.4, -0.7, 0.9);
         let direction = SVector::new(0.3, 0.8, -0.2).normalize();
@@ -439,8 +438,7 @@ mod tests {
         let measured_inverse_mass = direction.dot(&point_velocity_delta) / impulse_magnitude;
 
         assert!(
-            (measured_inverse_mass - effective_mass).abs()
-                < 1e-11 * effective_mass.abs().max(1.0),
+            (measured_inverse_mass - effective_mass).abs() < 1e-11 * effective_mass.abs().max(1.0),
             "effective mass={effective_mass:e}, measured={measured_inverse_mass:e}"
         );
     }
