@@ -607,6 +607,111 @@ mod tests {
     }
 
     #[test]
+    fn production_asymmetric_box_plane_contact_matches_lcp_velocity_solution() {
+        use crate::body::BodyType;
+        use crate::world::PhysicsWorld;
+        use nalgebra::SMatrix;
+        use symtropy_math::{HalfSpace, HyperBox, Transform};
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 128;
+        world.compliance = 0.0;
+        world.baumgarte = 0.0;
+
+        let floor = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(SVector::new(1.0, 0.0, 0.0), 0.0)),
+        );
+        let floor_handle = world.add_body(floor);
+
+        let mut block = RigidBody::<3>::new(
+            BodyHandle(1),
+            BodyType::Dynamic,
+            Transform::from_translation(Point::new([0.499, 0.0, 0.0])),
+            Box::new(HyperBox::<3>::cube(0.5)),
+            1.0,
+            SVector::from_element(1.0),
+        );
+        block.set_rotational_inertia_operator(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.0,
+                SVector::new(1.0, 0.7, 0.4),
+            )
+            .unwrap(),
+        );
+        block.linear_velocity = SVector::new(-0.1, 0.0, 0.0);
+        block.friction = 0.0;
+        block.restitution = 0.0;
+        let block_handle = world.add_body(block);
+        world.bodies[0].friction = 0.0;
+        world.bodies[0].restitution = 0.0;
+
+        world.try_step(0.001).unwrap();
+        let manifold = world
+            .contacts
+            .iter()
+            .find(|contact| contact.body_a == floor_handle && contact.body_b == block_handle)
+            .expect("box should contact the half-space");
+        assert!(
+            manifold.points.len() >= 3,
+            "expected a multi-point face contact, got {} points",
+            manifold.points.len()
+        );
+
+        let rows: Vec<_> = manifold
+            .points
+            .iter()
+            .map(|point| FrictionlessContactRow {
+                body_a: floor_handle,
+                body_b: block_handle,
+                offset_a: point.position - world.bodies[0].position(),
+                offset_b: point.position - world.bodies[1].position(),
+                normal: manifold.normal,
+            })
+            .collect();
+        let matrix = assemble_delassus(&world.bodies, &rows, 1e-12).unwrap();
+        // Baumgarte and restitution are disabled above; q is the pre-contact
+        // normal relative velocity for every point. The row set is redundant
+        // because multiple coplanar points share only three normal-response
+        // degrees of freedom, so the LCP impulse vector need not be unique.
+        let q = DVector::from_vec(vec![-0.1; rows.len()]);
+        let reference = solve_frictionless_lcp(&matrix, &q, 1e-10).unwrap();
+        let production_impulses =
+            DVector::from_iterator(manifold.points.len(), manifold.points.iter().map(|p| p.lambda));
+        let production_residual = &matrix * &production_impulses + &q;
+
+        let min_production_residual = production_residual
+            .iter()
+            .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+        let max_production_complementarity = production_impulses
+            .iter()
+            .zip(production_residual.iter())
+            .fold(0.0_f64, |maximum, (impulse, residual)| {
+                maximum.max((impulse * residual).abs())
+            });
+
+        assert!(
+            production_impulses.iter().all(|impulse| *impulse >= -1e-12),
+            "production solver pulled at a unilateral contact"
+        );
+        assert!(
+            min_production_residual >= -1e-6,
+            "production normal residual={min_production_residual}"
+        );
+        assert!(
+            max_production_complementarity < 1e-5,
+            "production complementarity residual={max_production_complementarity}"
+        );
+        assert!(
+            (&production_residual - &reference.residual).norm() < 1e-5,
+            "production and reference velocity residuals differ: production={}, reference={}",
+            production_residual.norm(),
+            reference.residual.norm()
+        );
+    }
+
+    #[test]
     fn assembler_propagates_singular_rotational_plane_error() {
         use crate::inertia::RotationalInertiaError;
         use nalgebra::SMatrix;
