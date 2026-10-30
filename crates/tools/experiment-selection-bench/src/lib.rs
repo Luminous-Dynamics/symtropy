@@ -230,7 +230,7 @@ pub enum PolicyKind {
 }
 
 impl PolicyKind {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::Random,
         Self::Sobol,
         Self::Halton,
@@ -1534,7 +1534,7 @@ mod tests {
                 && comparison.paired_trials == 1
                 && comparison.problem == ProblemId::SmoothBowl
         }));
-        assert_eq!(PolicyKind::ALL.len(), 5);
+        assert_eq!(PolicyKind::ALL.len(), 6);
     }
 
     #[test]
