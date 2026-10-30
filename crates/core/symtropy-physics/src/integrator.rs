@@ -326,6 +326,62 @@ mod tests {
     }
 
     #[test]
+    fn anisotropic_torque_free_integration_preserves_world_momentum_and_energy() {
+        use crate::inertia::BivectorInertia;
+
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+        body.set_rotational_inertia_operator(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.0,
+                SVector::new(2.0, 1.0, 0.5),
+            )
+            .unwrap(),
+        );
+        body.angular_damping = 0.0;
+        body.angular_velocity.set(0, 1, 0.7);
+        body.angular_velocity.set(0, 2, -0.4);
+        body.angular_velocity.set(1, 2, 1.1);
+
+        let zero_gravity = SVector::<f64, 3>::zeros();
+        let initial_world_inertia = body
+            .rotational_inertia
+            .as_ref()
+            .unwrap()
+            .rotated_by(&body.transform.rotation);
+        let initial_momentum = initial_world_inertia
+            .angular_momentum(&body.angular_velocity)
+            .to_matrix();
+        let initial_energy = body.kinetic_energy();
+
+        for _ in 0..100 {
+            integrate(&mut body, &zero_gravity, 1e-4);
+        }
+
+        let final_world_inertia = body
+            .rotational_inertia
+            .as_ref()
+            .unwrap()
+            .rotated_by(&body.transform.rotation);
+        let final_momentum = final_world_inertia
+            .angular_momentum(&body.angular_velocity)
+            .to_matrix();
+        let momentum_relative_error =
+            (final_momentum - initial_momentum).norm() / initial_momentum.norm();
+        let energy_relative_error =
+            (body.kinetic_energy() - initial_energy).abs() / initial_energy.abs();
+
+        assert!(
+            momentum_relative_error < 2e-6,
+            "torque-free world angular momentum drifted by {momentum_relative_error:e}"
+        );
+        assert!(
+            energy_relative_error < 2e-6,
+            "torque-free rotational energy drifted by {energy_relative_error:e}"
+        );
+    }
+
+    #[test]
     fn applied_torque_rotates_offset_in_impulse_consistent_direction() {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         body.linear_damping = 0.0;
