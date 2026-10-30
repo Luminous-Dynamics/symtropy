@@ -45,6 +45,12 @@ jobs:
       - name: Clippy standalone compiler
         run: cargo clippy --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all-targets --locked -- -D warnings
 
+      - name: Record pinned toolchain details
+        run: rustc --version --verbose
+
+      - name: Measure deterministic compiler latency distribution
+        run: cargo bench --manifest-path tools/engineering-scenario-compiler/Cargo.toml --bench compile_latency --locked
+
       - name: Publish formatted sources and resolved lockfile for commit
         if: always()
         uses: actions/upload-artifact@v4
