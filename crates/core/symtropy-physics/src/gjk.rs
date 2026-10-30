@@ -28,14 +28,46 @@ const MAX_SIMPLEX: usize = 5;
 /// Stack-allocated simplex type. Zero heap allocation.
 type Simplex<const D: usize> = ArrayVec<SVector<f64, D>, MAX_SIMPLEX>;
 
+/// Definitive or unresolved outcome of a GJK query.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GjkTermination {
+    /// The origin was proven to be enclosed by the Minkowski simplex.
+    Intersecting,
+    /// A separating support direction was found.
+    Separated,
+    /// The iteration budget was exhausted without a definitive result.
+    IterationLimit,
+}
+
 /// Result of a GJK intersection test.
 #[derive(Clone, Debug)]
 pub struct GjkResult<const D: usize> {
+    /// True only when intersection was definitively established.
+    ///
+    /// A false value is not sufficient to conclude separation. Use
+    /// termination() to distinguish separated from iteration-limit results.
     pub intersecting: bool,
     /// The final simplex (for EPA to use if intersecting).
     pub simplex: Simplex<D>,
     /// Number of iterations used.
     pub iterations: usize,
+}
+
+impl<const D: usize> GjkResult<D> {
+    /// Return the explicit three-way outcome of this GJK query.
+    pub fn termination(&self) -> GjkTermination {
+        if self.intersecting {
+            GjkTermination::Intersecting
+        } else if self.iterations >= MAX_ITERATIONS {
+            GjkTermination::IterationLimit
+        } else {
+            GjkTermination::Separated
+        }
+    }
+
+    pub fn is_definitive(&self) -> bool {
+        self.termination() != GjkTermination::IterationLimit
+    }
 }
 
 /// Test if two translated shapes intersect using the GJK algorithm.
@@ -418,6 +450,32 @@ fn triple_cross_product<const D: usize>(
 mod tests {
     use super::*;
     use symtropy_math::{ConvexHull, Point, Sphere};
+
+    #[test]
+    fn gjk_termination_distinguishes_separation_from_iteration_exhaustion() {
+        let separated = GjkResult::<2> {
+            intersecting: false,
+            simplex: Simplex::new(),
+            iterations: MAX_ITERATIONS - 1,
+        };
+        let exhausted = GjkResult::<2> {
+            intersecting: false,
+            simplex: Simplex::new(),
+            iterations: MAX_ITERATIONS,
+        };
+        let intersecting = GjkResult::<2> {
+            intersecting: true,
+            simplex: Simplex::new(),
+            iterations: MAX_ITERATIONS,
+        };
+
+        assert_eq!(separated.termination(), GjkTermination::Separated);
+        assert_eq!(exhausted.termination(), GjkTermination::IterationLimit);
+        assert_eq!(intersecting.termination(), GjkTermination::Intersecting);
+        assert!(separated.is_definitive());
+        assert!(!exhausted.is_definitive());
+        assert!(intersecting.is_definitive());
+    }
 
     #[test]
     fn spheres_overlapping_3d() {
