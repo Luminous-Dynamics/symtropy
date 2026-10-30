@@ -80,6 +80,12 @@ E_{\mathrm{diss},t}=\max(0,-\Delta K_t).
 
 A runtime callback regression reconstructs the applied impulse from the actual post-step contact-point velocity and checks the reported joules. See [Mechanical Work Ledger](MECHANICAL_WORK_LEDGER_2026-10-30.md). This is only friction work; a complete contact/step energy ledger remains future work.
 
+## Planar friction reference
+
+The cumulative implementation also adds a separate planar, single-contact Signorini/maximum-dissipation reference in `friction_cone.rs`. It exhaustively checks separation, sticking, and both sliding directions under the scalar Coulomb bound. Its input effective-mass matrix must be SPD; it reports no-admissible-solution rather than silently regularizing a degenerate contact. Criterion now measures this reference separately.
+
+The reference is deliberately 2D and one-contact only. It does not yet solve a 3D circular friction cone, simultaneous multi-contact friction, or 6D torsional/rolling friction.
+
 ## Scope and caveats
 
 - Frictionless normal rows only. This is not a Coulomb friction cone solver.
