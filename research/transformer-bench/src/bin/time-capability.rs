@@ -559,7 +559,7 @@ mod tests {
             instrument: "DIM-1".into(), class: "LENGTH".into(),
             valid_from: "2025-01-01T00:00:00Z".into(),
             valid_to: "2027-01-01T00:00:00Z".into(), status: "CURRENT".into(),
-            certificate_id: "CERT-1".into(),
+            _certificate_id: "CERT-1".into(),
         };
         assert!(calibration_valid(&cal, &sample, &spec()));
         sample.instrument = "OTHER".into();
