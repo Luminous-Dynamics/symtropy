@@ -54,6 +54,8 @@ struct Summary {
     scenario_id: String,
     weight: f64,
     interval_count: usize,
+    unique_interval_id_count: usize,
+    unique_source_trace_count: usize,
     total_hours: f64,
     mean_current_pu: f64,
     mean_square_current_pu2: f64,
@@ -139,7 +141,7 @@ fn parse_utc(value: &str, context: &str) -> Result<i64, String> {
     }
     let digits = |range: std::ops::Range<usize>| -> Result<i32, String> {
         let slice = &bytes[range.clone()];
-        if !slice.iter().all(u8::is_ascii_digit) {
+        if !slice.iter().all(|byte| byte.is_ascii_digit()) {
             return Err(format!("{context}: timestamp contains non-digit fields"));
         }
         let text = std::str::from_utf8(slice).map_err(|_| format!("{context}: invalid timestamp"))?;
@@ -218,7 +220,7 @@ fn read_scenarios(path: &str) -> Result<(Metadata, BTreeMap<String, Scenario>), 
             price_basis: nonempty(fields[16], "price_basis")?,
         };
         if !(1900..=2199).contains(&row_metadata.trace_year) || !(1900..=2200).contains(&row_metadata.price_year) {
-            return Err(format!("{path}:{line_no}: trace_year and price_year must be in 1900..=2200"));
+            return Err(format!("{path}:{line_no}: trace_year must be in 1900..=2199 and price_year in 1900..=2200"));
         }
         if row_metadata.currency_code.len() != 3 || !row_metadata.currency_code.bytes().all(|byte| byte.is_ascii_uppercase()) {
             return Err(format!("{path}:{line_no}: currency_code must be three uppercase ASCII letters (syntax only)"));
@@ -371,6 +373,8 @@ fn summarize(scenarios: &BTreeMap<String, Scenario>) -> Result<Vec<Summary>, Str
             scenario_id: scenario_id.clone(),
             weight: scenario.weight,
             interval_count: scenario.intervals.len(),
+            unique_interval_id_count: scenario.intervals.iter().map(|interval| interval.id.as_str()).collect::<BTreeSet<_>>().len(),
+            unique_source_trace_count: scenario.intervals.iter().map(|interval| interval.source_trace_id.as_str()).collect::<BTreeSet<_>>().len(),
             total_hours,
             mean_current_pu: weighted[0] / total_hours,
             mean_square_current_pu2: weighted[1] / total_hours,
@@ -386,13 +390,14 @@ fn summarize(scenarios: &BTreeMap<String, Scenario>) -> Result<Vec<Summary>, Str
 }
 
 fn write_summary(path: &str, metadata: &Metadata, summaries: &[Summary]) -> Result<(), String> {
-    let mut output = String::from("profile_id,trace_year,source_timezone,currency_code,price_year,price_basis,scenario_id,scenario_weight,interval_count,total_hours,mean_current_pu,mean_square_current_pu2,mean_ambient_temp_c,max_ambient_temp_c,mean_ev_load_pu,mean_pv_generation_pu,mean_price_per_kwh,mean_carbon_intensity_kgco2e_per_kwh\n");
+    let mut output = String::from("profile_id,trace_year,source_timezone,currency_code,price_year,price_basis,scenario_id,scenario_weight,interval_count,unique_interval_id_count,unique_source_trace_count,total_hours,mean_current_pu,mean_square_current_pu2,mean_ambient_temp_c,max_ambient_temp_c,mean_ev_load_pu,mean_pv_generation_pu,mean_price_per_kwh,mean_carbon_intensity_kgco2e_per_kwh\n");
     for row in summaries {
         output.push_str(&format!(
-            "{},{},{},{},{},{},{},{:.9},{},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9}\n",
+            "{},{},{},{},{},{},{},{:.9},{},{},{},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9}\n",
             metadata.profile_id, metadata.trace_year, metadata.source_timezone, metadata.currency_code,
             metadata.price_year, metadata.price_basis, row.scenario_id, row.weight,
-            row.interval_count, row.total_hours, row.mean_current_pu, row.mean_square_current_pu2,
+            row.interval_count, row.unique_interval_id_count, row.unique_source_trace_count,
+            row.total_hours, row.mean_current_pu, row.mean_square_current_pu2,
             row.mean_ambient_temp_c, row.max_ambient_temp_c, row.mean_ev_load_pu,
             row.mean_pv_generation_pu, row.mean_price_per_kwh, row.mean_carbon_intensity
         ));
