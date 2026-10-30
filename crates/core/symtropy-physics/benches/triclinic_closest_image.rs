@@ -215,7 +215,7 @@ fn bench_triclinic_closest_image(c: &mut Criterion) {
     ];
 
     for (label, basis) in basis_fixtures {
-        let lattice = PeriodicLattice::new(SVector::zeros(), basis)
+        let lattice = PeriodicLattice::new(SVector::zeros(), basis.clone())
             .expect("benchmark basis must pass lattice validation");
         for count in [64_usize, 256, 1_024] {
             let corpus = make_corpus_2d(count, 0x5452_4943_4c49_4e49);
@@ -256,7 +256,7 @@ fn bench_triclinic_closest_image(c: &mut Criterion) {
         0.0, 0.0, 7.0,
     ]);
     let lattice_3d =
-        PeriodicLattice::new(SVector::zeros(), basis_3d).expect("3D benchmark basis");
+        PeriodicLattice::new(SVector::zeros(), basis_3d.clone()).expect("3D benchmark basis");
     for count in [32_usize, 64, 128] {
         let corpus = make_corpus_3d(count, 0x3344_5452_4943_4c49);
         preflight_3d(&lattice_3d, &corpus);
