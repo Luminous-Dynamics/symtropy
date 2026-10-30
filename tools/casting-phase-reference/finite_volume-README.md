@@ -29,7 +29,7 @@ Compile directly without adding the file to the Bevy workspace:
 
 ## Benchmark design
 
-The frozen 60-second reference uses the analytical front value 0.0023735493646876173 m, with 32, 64, 128 and 256 cells over a 0.01 m domain. The verifier requires decreasing front error, energy residual below 1e-11 relative, and finest-grid relative front error below 5e-5.
+The frozen 60-second reference uses the analytical front value 0.0023735493646876173 m, with 32, 64, 128 and 256 cells over a 0.01 m domain. The verifier requires decreasing front error under the 32/64/128/256 spatial ladder, energy residual below 1e-11 relative, and finest-grid relative front error below 5e-5. A separate 128-cell temporal ladder halves CFL from 0.2 to 0.025 and checks first-order contraction of successive front changes; this separates time-discretization behavior from the combined mesh/time refinement.
 
 This first candidate is deliberately explicit and low-order. It is a transparent baseline, not a claim of state-of-the-art performance. Compare against implicit enthalpy methods and the 2025 flag-update enthalpy formulation at matched front/field error and complete compute cost.
 
