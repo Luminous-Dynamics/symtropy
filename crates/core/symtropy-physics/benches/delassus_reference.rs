@@ -7,7 +7,8 @@ use nalgebra::{DVector, Matrix2, SVector};
 use symtropy_math::{Bivector, Point, Rotor};
 use symtropy_physics::{
     BivectorInertia, BodyHandle, FrictionlessContactRow, RigidBody, assemble_delassus,
-    solve_frictionless_lcp, solve_planar_friction_cone,
+    ContactFrame, ContactWrenchFrictionLimits, ContactWrenchImpulse, solve_frictionless_lcp,
+    solve_planar_friction_cone,
 };
 
 fn fixture(
@@ -121,10 +122,57 @@ fn bench_planar_friction_cone(c: &mut Criterion) {
     });
 }
 
+fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
+    let normal = SVector::<f64, 4>::new(0.2, -0.3, 0.4, 0.1);
+    let frame = ContactFrame::<4>::new(normal, 1e-12).expect("valid 4D normal");
+    let mut angular = Bivector::<4>::zero();
+    for i in 0..4 {
+        for j in (i + 1)..4 {
+            angular.set(i, j, (i as f64 + 1.0) * 0.3 - (j as f64 + 0.5) * 0.2);
+        }
+    }
+    let limits =
+        ContactWrenchFrictionLimits::new(0.5, 0.02, 0.03, 0.4, 0.2).expect("valid friction model");
+    let wrench = ContactWrenchImpulse::<4> {
+        normal: 10.0,
+        tangential: frame.tangent_basis()[0] * 5.0,
+        rolling: vec![0.06, 0.04, 0.0],
+        torsional: vec![0.04, 0.02, 0.0],
+    };
+
+    c.bench_function("contact_frame_construct_4d", |bench| {
+        bench.iter(|| {
+            black_box(
+                ContactFrame::<4>::new(black_box(normal), 1e-12)
+                    .expect("valid 4D frame construction"),
+            )
+        });
+    });
+    c.bench_function("contact_frame_decompose_bivector_4d", |bench| {
+        bench.iter(|| {
+            black_box(
+                frame
+                    .decompose_angular(black_box(&angular))
+                    .expect("complete contact frame basis"),
+            )
+        });
+    });
+    c.bench_function("contact_wrench_validate_4d", |bench| {
+        bench.iter(|| {
+            black_box(
+                wrench
+                    .validate(black_box(&frame), black_box(&limits), 1e-12)
+                    .expect("admissible 4D wrench"),
+            )
+        });
+    });
+}
+
 criterion_group!(
     benches,
     bench_delassus_assembly,
     bench_reference_lcp,
     bench_planar_friction_cone,
+    bench_nd_contact_frame_and_wrench,
 );
 criterion_main!(benches);
