@@ -253,7 +253,10 @@ fn bench_contact_plane_1000_independent(c: &mut Criterion) {
             || contact_plane_world(1000, false),
             |mut world| {
                 world.try_step(1.0 / 120.0).expect("valid contact-plane step");
-                black_box(world.contacts.len());
+                assert!(world.contacts.len() >= 1000, "expected plane contacts for the full scene");
+                let snapshot = world.invariant_snapshot();
+                assert_eq!(snapshot.non_finite_body_count, 0);
+                black_box((world.contacts.len(), snapshot.max_penetration_depth, snapshot.mechanical_energy));
             },
             criterion::BatchSize::LargeInput,
         );
@@ -266,7 +269,10 @@ fn bench_contact_stack_100_single_island(c: &mut Criterion) {
             || contact_plane_world(100, true),
             |mut world| {
                 world.try_step(1.0 / 120.0).expect("valid contact-stack step");
-                black_box(world.contacts.len());
+                assert!(world.contacts.len() >= 100, "expected a connected stack contact graph");
+                let snapshot = world.invariant_snapshot();
+                assert_eq!(snapshot.non_finite_body_count, 0);
+                black_box((world.contacts.len(), snapshot.max_penetration_depth, snapshot.mechanical_energy));
             },
             criterion::BatchSize::LargeInput,
         );
