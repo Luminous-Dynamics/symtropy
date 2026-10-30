@@ -23,30 +23,35 @@ impl EvidenceState {
         match (self, family) {
             (Self::Verified, _) => None,
             (Self::Missing, "posterior") => Some("POSTERIOR_EVIDENCE_MISSING"),
+            (Self::Missing, "predictive_calibration") => Some("POSTERIOR_CALIBRATION_EVIDENCE_MISSING"),
             (Self::Missing, "specification") => Some("SPECIFICATION_EVIDENCE_MISSING"),
             (Self::Missing, "calibration") => Some("CALIBRATION_EVIDENCE_MISSING"),
             (Self::Missing, "msa") => Some("MSA_EVIDENCE_MISSING"),
             (Self::Missing, "uncertainty") => Some("UNCERTAINTY_EVIDENCE_MISSING"),
             (Self::Missing, _) => Some("POLICY_EVIDENCE_MISSING"),
             (Self::Stale, "posterior") => Some("POSTERIOR_EVIDENCE_STALE"),
+            (Self::Stale, "predictive_calibration") => Some("POSTERIOR_CALIBRATION_EVIDENCE_STALE"),
             (Self::Stale, "specification") => Some("SPECIFICATION_EVIDENCE_STALE"),
             (Self::Stale, "calibration") => Some("CALIBRATION_EVIDENCE_STALE"),
             (Self::Stale, "msa") => Some("MSA_EVIDENCE_STALE"),
             (Self::Stale, "uncertainty") => Some("UNCERTAINTY_EVIDENCE_STALE"),
             (Self::Stale, _) => Some("POLICY_EVIDENCE_STALE"),
             (Self::Mismatched, "posterior") => Some("POSTERIOR_EVIDENCE_MISMATCHED"),
+            (Self::Mismatched, "predictive_calibration") => Some("POSTERIOR_CALIBRATION_EVIDENCE_MISMATCHED"),
             (Self::Mismatched, "specification") => Some("SPECIFICATION_EVIDENCE_MISMATCHED"),
             (Self::Mismatched, "calibration") => Some("CALIBRATION_EVIDENCE_MISMATCHED"),
             (Self::Mismatched, "msa") => Some("MSA_EVIDENCE_MISMATCHED"),
             (Self::Mismatched, "uncertainty") => Some("UNCERTAINTY_EVIDENCE_MISMATCHED"),
             (Self::Mismatched, _) => Some("POLICY_EVIDENCE_MISMATCHED"),
             (Self::Revoked, "posterior") => Some("POSTERIOR_EVIDENCE_REVOKED"),
+            (Self::Revoked, "predictive_calibration") => Some("POSTERIOR_CALIBRATION_EVIDENCE_REVOKED"),
             (Self::Revoked, "specification") => Some("SPECIFICATION_EVIDENCE_REVOKED"),
             (Self::Revoked, "calibration") => Some("CALIBRATION_EVIDENCE_REVOKED"),
             (Self::Revoked, "msa") => Some("MSA_EVIDENCE_REVOKED"),
             (Self::Revoked, "uncertainty") => Some("UNCERTAINTY_EVIDENCE_REVOKED"),
             (Self::Revoked, _) => Some("POLICY_EVIDENCE_REVOKED"),
             (Self::NotQualified, "posterior") => Some("POSTERIOR_NOT_QUALIFIED"),
+            (Self::NotQualified, "predictive_calibration") => Some("POSTERIOR_CALIBRATION_NOT_QUALIFIED"),
             (Self::NotQualified, "specification") => Some("SPECIFICATION_NOT_QUALIFIED"),
             (Self::NotQualified, "calibration") => Some("CALIBRATION_NOT_QUALIFIED"),
             (Self::NotQualified, "msa") => Some("MSA_NOT_QUALIFIED"),
@@ -58,13 +63,15 @@ impl EvidenceState {
 
 #[derive(Clone, Copy, Debug)]
 struct Evidence {
-    posterior: EvidenceState, specification: EvidenceState, calibration: EvidenceState,
+    posterior: EvidenceState, predictive_calibration: EvidenceState,
+    specification: EvidenceState, calibration: EvidenceState,
     msa: EvidenceState, uncertainty: EvidenceState, policy: EvidenceState,
 }
 impl Evidence {
     fn first_failure(self) -> Option<&'static str> {
         [
-            ("posterior", self.posterior), ("specification", self.specification),
+            ("posterior", self.posterior), ("predictive_calibration", self.predictive_calibration),
+            ("specification", self.specification),
             ("calibration", self.calibration), ("msa", self.msa),
             ("uncertainty", self.uncertainty), ("policy", self.policy),
         ].into_iter().find_map(|(name, state)| state.failure(name))
@@ -81,6 +88,19 @@ struct Posterior {
     calibration_id: String, msa_study_id: String, model_revision: String,
     sha256: String, bins: Vec<Bin>, unknown_tail_mass: f64,
 }
+#[derive(Clone, Debug)]
+struct PredictiveCalibration {
+    id: String,
+    revision: String,
+    model_revision: String,
+    cohort_manifest_sha256: String,
+    validation_report_sha256: String,
+    scope_sha256: String,
+    valid_from_ns: i64,
+    valid_until_ns: i64,
+    qualified: bool,
+}
+
 #[derive(Clone, Debug)]
 struct Specification {
     id: String, revision: String, measurand: String, unit: String,
@@ -99,7 +119,8 @@ struct Provenance {
 }
 #[derive(Clone, Debug)]
 struct Request {
-    posterior: Posterior, spec: Specification, policy: Policy,
+    posterior: Posterior, predictive_calibration: PredictiveCalibration,
+    spec: Specification, policy: Policy,
     provenance: Provenance, evidence: Evidence, decision_time_ns: i64,
 }
 
@@ -123,6 +144,9 @@ struct Report {
     uncertainty_id: String, model_revision: String, posterior_sha256: String,
     spec_sha256: String, policy_sha256: String, uncertainty_sha256: String,
     calibration_sha256: String, msa_sha256: String, calibration_id: String, msa_study_id: String,
+    predictive_calibration_id: String, predictive_calibration_revision: String,
+    predictive_cohort_sha256: String, predictive_validation_sha256: String,
+    predictive_scope_sha256: String, predictive_valid_from_ns: i64, predictive_valid_until_ns: i64,
     policy_owner: String, spec_lower: f64, spec_upper: f64, min_accept_pc: f64,
     max_reject_pc: f64, decision_time_ns: i64, measurand: String, unit: String,
     outcome: Outcome, reason: &'static str, pc_model: Option<f64>,
@@ -140,7 +164,11 @@ impl Report {
             self.model_revision.clone(), self.posterior_sha256.clone(), self.spec_sha256.clone(),
             self.policy_sha256.clone(), self.uncertainty_sha256.clone(),
             self.calibration_sha256.clone(), self.msa_sha256.clone(),
-            self.calibration_id.clone(), self.msa_study_id.clone(), self.policy_owner.clone(),
+            self.calibration_id.clone(), self.msa_study_id.clone(),
+            self.predictive_calibration_id.clone(), self.predictive_calibration_revision.clone(),
+            self.predictive_cohort_sha256.clone(), self.predictive_validation_sha256.clone(),
+            self.predictive_scope_sha256.clone(), self.predictive_valid_from_ns.to_string(),
+            self.predictive_valid_until_ns.to_string(), self.policy_owner.clone(),
             format!("{:.12e}", self.spec_lower), format!("{:.12e}", self.spec_upper),
             format!("{:.12e}", self.min_accept_pc), format!("{:.12e}", self.max_reject_pc),
             self.decision_time_ns.to_string(), self.measurand.clone(), self.unit.clone(),
@@ -174,7 +202,15 @@ fn incomplete(r: &Request, reason: &'static str) -> Report {
         calibration_sha256: r.provenance.calibration_sha256.clone(),
         msa_sha256: r.provenance.msa_sha256.clone(),
         calibration_id: r.posterior.calibration_id.clone(),
-        msa_study_id: r.posterior.msa_study_id.clone(), policy_owner: r.policy.owner.clone(),
+        msa_study_id: r.posterior.msa_study_id.clone(),
+        predictive_calibration_id: r.predictive_calibration.id.clone(),
+        predictive_calibration_revision: r.predictive_calibration.revision.clone(),
+        predictive_cohort_sha256: r.predictive_calibration.cohort_manifest_sha256.clone(),
+        predictive_validation_sha256: r.predictive_calibration.validation_report_sha256.clone(),
+        predictive_scope_sha256: r.predictive_calibration.scope_sha256.clone(),
+        predictive_valid_from_ns: r.predictive_calibration.valid_from_ns,
+        predictive_valid_until_ns: r.predictive_calibration.valid_until_ns,
+        policy_owner: r.policy.owner.clone(),
         spec_lower: r.spec.lower, spec_upper: r.spec.upper,
         min_accept_pc: r.policy.min_accept_pc, max_reject_pc: r.policy.max_reject_pc,
         decision_time_ns: r.decision_time_ns,
@@ -195,6 +231,8 @@ fn validate(r: &Request) -> Result<(), &'static str> {
         p.calibration_id.as_str(), p.msa_study_id.as_str(), p.model_revision.as_str(),
         s.id.as_str(), s.revision.as_str(), s.measurand.as_str(), s.unit.as_str(),
         q.id.as_str(), q.revision.as_str(), q.owner.as_str(), v.uncertainty_budget_id.as_str(),
+        r.predictive_calibration.id.as_str(), r.predictive_calibration.revision.as_str(),
+        r.predictive_calibration.model_revision.as_str(),
     ];
     if ids.iter().any(|x| !present(x)) { return Err("REQUIRED_IDENTITY_MISSING"); }
     if !s.lower.is_finite() || !s.upper.is_finite() || s.lower >= s.upper {
@@ -207,6 +245,17 @@ fn validate(r: &Request) -> Result<(), &'static str> {
         return Err("DECISION_THRESHOLDS_INVALID");
     }
     if !q.approved { return Err("DECISION_POLICY_NOT_APPROVED"); }
+    if !r.predictive_calibration.qualified { return Err("POSTERIOR_CALIBRATION_NOT_QUALIFIED"); }
+    if r.predictive_calibration.model_revision != p.model_revision {
+        return Err("POSTERIOR_CALIBRATION_MODEL_REVISION_MISMATCH");
+    }
+    if r.predictive_calibration.valid_from_ns > r.predictive_calibration.valid_until_ns {
+        return Err("POSTERIOR_CALIBRATION_VALIDITY_INTERVAL_INVALID");
+    }
+    if r.decision_time_ns < r.predictive_calibration.valid_from_ns
+        || r.decision_time_ns > r.predictive_calibration.valid_until_ns {
+        return Err("POSTERIOR_CALIBRATION_NOT_EFFECTIVE");
+    }
     if q.effective_from_ns > q.effective_until_ns || s.effective_from_ns > s.effective_until_ns {
         return Err("EVIDENCE_VALIDITY_INTERVAL_INVALID");
     }
@@ -221,7 +270,10 @@ fn validate(r: &Request) -> Result<(), &'static str> {
     if p.spec_revision != s.revision { return Err("SPECIFICATION_REVISION_MISMATCH"); }
     if !valid_sha(&p.sha256) || !valid_sha(&s.sha256) || !valid_sha(&q.sha256)
         || !valid_sha(&v.uncertainty_sha256) || !valid_sha(&v.calibration_sha256)
-        || !valid_sha(&v.msa_sha256) {
+        || !valid_sha(&v.msa_sha256)
+        || !valid_sha(&r.predictive_calibration.cohort_manifest_sha256)
+        || !valid_sha(&r.predictive_calibration.validation_report_sha256)
+        || !valid_sha(&r.predictive_calibration.scope_sha256) {
         return Err("SOURCE_DIGEST_INVALID");
     }
     if !present(&v.uncertainty_budget_id) { return Err("UNCERTAINTY_BUDGET_ID_MISSING"); }
@@ -291,7 +343,15 @@ fn classify(r: &Request) -> Report {
         calibration_sha256: r.provenance.calibration_sha256.clone(),
         msa_sha256: r.provenance.msa_sha256.clone(),
         calibration_id: r.posterior.calibration_id.clone(),
-        msa_study_id: r.posterior.msa_study_id.clone(), policy_owner: r.policy.owner.clone(),
+        msa_study_id: r.posterior.msa_study_id.clone(),
+        predictive_calibration_id: r.predictive_calibration.id.clone(),
+        predictive_calibration_revision: r.predictive_calibration.revision.clone(),
+        predictive_cohort_sha256: r.predictive_calibration.cohort_manifest_sha256.clone(),
+        predictive_validation_sha256: r.predictive_calibration.validation_report_sha256.clone(),
+        predictive_scope_sha256: r.predictive_calibration.scope_sha256.clone(),
+        predictive_valid_from_ns: r.predictive_calibration.valid_from_ns,
+        predictive_valid_until_ns: r.predictive_calibration.valid_until_ns,
+        policy_owner: r.policy.owner.clone(),
         spec_lower: r.spec.lower, spec_upper: r.spec.upper,
         min_accept_pc: r.policy.min_accept_pc, max_reject_pc: r.policy.max_reject_pc,
         decision_time_ns: r.decision_time_ns,
@@ -314,6 +374,17 @@ fn base(bins: Vec<Bin>, tail: f64) -> Request {
             model_revision: "POSTERIOR-MODEL-1".into(), sha256: "a".repeat(HASH_LEN),
             bins, unknown_tail_mass: tail,
         },
+        predictive_calibration: PredictiveCalibration {
+            id: "POSTERIOR-CAL-01".into(),
+            revision: "CAL-REV-2".into(),
+            model_revision: "POSTERIOR-MODEL-1".into(),
+            cohort_manifest_sha256: "7".repeat(HASH_LEN),
+            validation_report_sha256: "8".repeat(HASH_LEN),
+            scope_sha256: "9".repeat(HASH_LEN),
+            valid_from_ns: 1_600_000_000,
+            valid_until_ns: 1_900_000_000,
+            qualified: true,
+        },
         spec: Specification {
             id: "SPEC-SHAFT-01".into(), revision: "REV-7".into(),
             measurand: "shaft-diameter".into(), unit: "mm".into(), lower: -1.0, upper: 2.0,
@@ -332,7 +403,8 @@ fn base(bins: Vec<Bin>, tail: f64) -> Request {
             calibration_sha256: "e".repeat(HASH_LEN), msa_sha256: "f".repeat(HASH_LEN),
         },
         evidence: Evidence {
-            posterior: EvidenceState::Verified, specification: EvidenceState::Verified,
+            posterior: EvidenceState::Verified, predictive_calibration: EvidenceState::Verified,
+            specification: EvidenceState::Verified,
             calibration: EvidenceState::Verified, msa: EvidenceState::Verified,
             uncertainty: EvidenceState::Verified, policy: EvidenceState::Verified,
         },
@@ -394,7 +466,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() {
-    println!("case_id,posterior_id,measurement_id,part_id,lot_id,specification_id,spec_revision,policy_id,policy_revision,uncertainty_budget_id,model_revision,posterior_sha256,spec_sha256,policy_sha256,uncertainty_sha256,calibration_sha256,msa_sha256,calibration_id,msa_study_id,policy_owner,spec_lower,spec_upper,min_accept_pc,max_reject_pc,decision_time_ns,measurand,unit,outcome,reason,pc_model,pc_lower,pc_upper,consumer_risk_upper,producer_risk_upper,tail_mass,bin_count,posterior_evidence,spec_evidence,calibration_evidence,msa_evidence,uncertainty_evidence,policy_evidence");
+    println!("case_id,posterior_id,measurement_id,part_id,lot_id,specification_id,spec_revision,policy_id,policy_revision,uncertainty_budget_id,model_revision,posterior_sha256,spec_sha256,policy_sha256,uncertainty_sha256,calibration_sha256,msa_sha256,calibration_id,msa_study_id,predictive_calibration_id,predictive_calibration_revision,predictive_cohort_sha256,predictive_validation_sha256,predictive_scope_sha256,predictive_valid_from_ns,predictive_valid_until_ns,policy_owner,spec_lower,spec_upper,min_accept_pc,max_reject_pc,decision_time_ns,measurand,unit,outcome,reason,pc_model,pc_lower,pc_upper,consumer_risk_upper,producer_risk_upper,tail_mass,bin_count,posterior_evidence,predictive_calibration_evidence,spec_evidence,calibration_evidence,msa_evidence,uncertainty_evidence,policy_evidence");
     for (name, r) in campaign() { println!("{name},{}", classify(&r).csv_row()); }
 }
 
