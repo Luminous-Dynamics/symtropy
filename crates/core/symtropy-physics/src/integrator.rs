@@ -84,6 +84,10 @@ pub fn try_integrate<const D: usize>(
     // inertia operator below. Only legacy bodies without an operator fall
     // back to the isotropic mean-of-axis approximation.
     let ang_accel = if let Some(inertia) = &body.rotational_inertia {
+        if let Err(error) = inertia.validate_body_mass(body.mass, 1e-10) {
+            ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
+            return Err(error);
+        }
         let world_inertia = inertia.rotated_by(&body.transform.rotation);
         match world_inertia.angular_acceleration(&body.angular_velocity, &torque_accumulator, 1e-12)
         {
@@ -238,6 +242,10 @@ pub fn try_rotational_inverse_effective_mass<const D: usize>(
         return Err(crate::inertia::RotationalInertiaError::InvalidDirection);
     }
     if let Some(inertia) = &body.rotational_inertia {
+        if let Err(error) = inertia.validate_body_mass(body.mass, 1e-10) {
+            ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
+            return Err(error);
+        }
         let world_inertia = inertia.rotated_by(&body.transform.rotation);
         match world_inertia.rotational_inverse_effective_mass(offset, impulse_direction, 1e-12) {
             Ok(value) => Ok(value),
@@ -274,6 +282,10 @@ pub fn try_apply_angular_impulse<const D: usize>(
         return Ok(());
     }
     if let Some(inertia) = &body.rotational_inertia {
+        if let Err(error) = inertia.validate_body_mass(body.mass, 1e-10) {
+            ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
+            return Err(error);
+        }
         let world_inertia = inertia.rotated_by(&body.transform.rotation);
         match world_inertia.angular_velocity_from_momentum(impulse, 1e-12) {
             Ok(delta_state) => {
