@@ -5,7 +5,7 @@ use std::env;
 use std::process::ExitCode;
 
 use symtropy_experiment_selection::{
-    PolicyKind, ProblemId, run_campaign, render_receipts, summarize,
+    PolicyKind, ProblemId, paired_comparisons, render_receipts, run_campaign, summarize,
 };
 
 fn main() -> ExitCode {
@@ -71,11 +71,11 @@ fn run() -> Result<(), String> {
     );
     print!("{}", render_receipts(&source_sha, &results));
     println!(
-        "EXPERIMENT_SUMMARY,v1,problem,policy,trials,budget,mean_regret,median_regret,p90_regret,mean_infeasible_calls,mean_trial_runtime_ns"
+        "EXPERIMENT_SUMMARY,v1,problem,policy,trials,budget,mean_regret,median_regret,p90_regret,mean_cumulative_simple_regret,mean_infeasible_calls,mean_trial_runtime_ns"
     );
     for summary in summaries {
         println!(
-            "EXPERIMENT_SUMMARY,v1,{},{},{},{},{:.12e},{:.12e},{:.12e},{:.6},{:.3}",
+            "EXPERIMENT_SUMMARY,v1,{},{},{},{},{:.12e},{:.12e},{:.12e},{:.12e},{:.6},{:.3}",
             summary.problem.as_str(),
             summary.policy.as_str(),
             summary.trials,
@@ -83,8 +83,25 @@ fn run() -> Result<(), String> {
             summary.mean_regret,
             summary.median_regret,
             summary.p90_regret,
+            summary.mean_cumulative_simple_regret,
             summary.mean_infeasible_calls,
             summary.mean_elapsed_nanos
+        );
+    }
+
+    println!(
+        "EXPERIMENT_PAIRED_COMPARISON,v1,problem,baseline,challenger,paired_trials,mean_regret_delta,ci95_lower,ci95_upper"
+    );
+    for comparison in paired_comparisons(&results) {
+        println!(
+            "EXPERIMENT_PAIRED_COMPARISON,v1,{},{},{},{},{:.12e},{:.12e},{:.12e}",
+            comparison.problem.as_str(),
+            comparison.baseline.as_str(),
+            comparison.challenger.as_str(),
+            comparison.paired_trials,
+            comparison.mean_regret_delta,
+            comparison.ci95_lower,
+            comparison.ci95_upper
         );
     }
 
