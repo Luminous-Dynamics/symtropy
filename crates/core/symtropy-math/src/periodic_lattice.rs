@@ -899,6 +899,26 @@ mod tests {
     }
 
     #[test]
+    fn exact_voronoi_tie_is_not_representative_translation_invariant() {
+        let lattice = lattice2(SMatrix::<f64, 2, 2>::identity());
+        let positive = lattice
+            .minimum_image_displacement(&SVector::from([0.5, 0.0]), 100)
+            .unwrap();
+        // This is the same torus displacement represented one lattice unit
+        // lower, but at the half-cell Voronoi tie the oriented representative
+        // flips. The two choices are equally near and retain equal distance.
+        let translated = lattice
+            .minimum_image_displacement(&SVector::from([-0.5, 0.0]), 100)
+            .unwrap();
+        assert_eq!(positive.displacement, -translated.displacement);
+        assert_eq!(
+            positive.distance_squared,
+            translated.distance_squared
+        );
+        assert_ne!(positive.image_offset, translated.image_offset);
+    }
+
+    #[test]
     fn minimum_image_reversal_is_odd_for_skew_cells() {
         let lattice = lattice2(SMatrix::<f64, 2, 2>::from_row_slice(&[
             2.0, 1.4, 0.0, 1.5,
