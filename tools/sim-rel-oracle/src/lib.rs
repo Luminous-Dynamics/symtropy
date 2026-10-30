@@ -58,7 +58,7 @@ pub fn solve_exact(
     if hypotheses.is_empty() {
         return Err("the hypothesis set must not be empty".into());
     }
-    if action_costs.iter().any(|cost| *cost == 0) {
+    if action_costs.contains(&0) {
         return Err("all action costs must be positive integers".into());
     }
     let mut weights = BTreeMap::new();
