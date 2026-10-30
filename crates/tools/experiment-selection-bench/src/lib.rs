@@ -20,7 +20,6 @@ const GP_NOISE_VARIANCE: f64 = 0.01;
 const GP_LENGTH_SCALE: f64 = 0.22;
 const GP_UCB_BETA: f64 = 1.5;
 const GP_CANDIDATE_COUNT: usize = 512;
-const INITIAL_DESIGN_SIZE: usize = 8;
 
 /// Stable synthetic problem identifiers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1169,6 +1168,30 @@ mod tests {
             .map(|point| (point[0].to_bits(), point[1].to_bits()))
             .collect();
         assert_eq!(distinct.len(), points.len());
+    }
+
+    #[test]
+    fn low_discrepancy_continuations_respect_configured_initial_design_size() {
+        for initial_size in [0_usize, 4, 8, 12] {
+            let mut sobol = super::SobolPolicy::new(initial_size);
+            let mut halton = super::HaltonPolicy::new(initial_size);
+            let sobol_point = sobol.propose(&[], 0, 101);
+            let halton_point = halton.propose(&[], 0, 101);
+            let expected_sobol = super::sobol_point((initial_size + 1) as u64, 101);
+            assert_eq!(sobol_point, expected_sobol);
+            assert!((0.0..1.0).contains(&halton_point[0]));
+            assert!((0.0..1.0).contains(&halton_point[1]));
+        }
+
+        // The LHS candidate set must have exactly the budget remaining after
+        // the shared initial design, not after a hidden hard-coded constant.
+        for (budget, initial_size) in [(16, 4), (32, 8), (24, 12)] {
+            let lhs = super::LatinHypercubePolicy::new(
+                101,
+                budget.saturating_sub(initial_size),
+            );
+            assert_eq!(lhs.points.len(), budget - initial_size);
+        }
     }
 
     #[test]
