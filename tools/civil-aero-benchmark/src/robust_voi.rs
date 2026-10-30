@@ -131,13 +131,12 @@ pub fn evaluate_robust_evsi(ensemble: &DecisionModelEnsemble) -> Result<RobustEv
         .iter()
         .find(|value| value.affordable && value.worst_case_net_evsi > VALUE_TOLERANCE)
         .map(|value| value.experiment_id.clone());
-    if let Some(selected_id) = &selected_experiment_id {
-        if let Some(value) = robust_values
+    if let Some(selected_id) = &selected_experiment_id
+        && let Some(value) = robust_values
             .iter_mut()
             .find(|value| &value.experiment_id == selected_id)
-        {
-            value.selected = true;
-        }
+    {
+        value.selected = true;
     }
 
     Ok(RobustEvsiReport {
