@@ -149,10 +149,6 @@ enum MtValue {
         native_code: Option<String>,
         description: Option<String>,
     },
-    Asset {
-        asset_type: String,
-        asset_id: String,
-    },
 }
 
 impl MtValue {
@@ -161,7 +157,6 @@ impl MtValue {
             Self::Sample { .. } => "SAMPLE",
             Self::Event { .. } => "EVENT",
             Self::Condition { .. } => "CONDITION",
-            Self::Asset { .. } => "ASSET",
         }
     }
 
@@ -174,7 +169,6 @@ impl MtValue {
                     code.as_deref().unwrap_or(""),
                     description.as_deref().unwrap_or(""))
             }
-            Self::Asset { asset_type, asset_id } => format!("{asset_type}:{asset_id}"),
         }
     }
 
@@ -204,14 +198,64 @@ impl MtValue {
                     return Err("MTCONNECT_CONDITION_METADATA_EMPTY");
                 }
             }
-            Self::Asset { asset_type, asset_id } => {
-                if !present(asset_type) || !present(asset_id) {
-                    return Err("MTCONNECT_ASSET_IDENTITY_MISSING");
-                }
-            }
         }
         Ok(())
     }
+}
+
+#[derive(Clone, Debug)]
+struct MtAsset {
+    device_uuid: String,
+    asset_type: String,
+    asset_id: String,
+    source_document_sha256: String,
+    raw_asset_sha256: String,
+    source_locator: String,
+}
+
+#[derive(Clone, Debug)]
+struct MappedAsset {
+    device_uuid: String,
+    asset_type: String,
+    asset_id: String,
+    source_document_sha256: String,
+    raw_asset_sha256: String,
+    source_locator: String,
+}
+
+fn map_mtconnect_assets(
+    source: &SourceDocument,
+    device_uuid: &str,
+    assets: &[MtAsset],
+) -> Result<Vec<MappedAsset>, &'static str> {
+    source.validate(Standard::MtConnect)?;
+    if !present(device_uuid) {
+        return Err("MTCONNECT_ASSET_DEVICE_IDENTITY_MISSING");
+    }
+    let mut mapped = Vec::with_capacity(assets.len());
+    for asset in assets {
+        if asset.device_uuid != device_uuid || asset.source_document_sha256 != source.document_sha256 {
+            return Err("MTCONNECT_ASSET_SOURCE_SCOPE_MISMATCH");
+        }
+        if !present(&asset.asset_type) || !present(&asset.asset_id)
+            || !present(&asset.source_locator) {
+            return Err("MTCONNECT_ASSET_IDENTITY_MISSING");
+        }
+        if !valid_sha(&asset.raw_asset_sha256) {
+            return Err("MTCONNECT_ASSET_DIGEST_INVALID");
+        }
+        mapped.push(MappedAsset {
+            device_uuid: asset.device_uuid.clone(),
+            asset_type: asset.asset_type.clone(),
+            asset_id: asset.asset_id.clone(),
+            source_document_sha256: source.document_sha256.clone(),
+            raw_asset_sha256: asset.raw_asset_sha256.clone(),
+            source_locator: asset.source_locator.clone(),
+        });
+    }
+    mapped.sort_by(|a, b| (a.device_uuid.as_str(), a.asset_type.as_str(), a.asset_id.as_str())
+        .cmp(&(b.device_uuid.as_str(), b.asset_type.as_str(), b.asset_id.as_str())));
+    Ok(mapped)
 }
 
 #[derive(Clone, Debug)]
@@ -355,7 +399,6 @@ fn native_unit(value: &MtValue) -> String {
         MtValue::Sample { unit, .. } => unit.clone(),
         MtValue::Event { .. } => String::new(),
         MtValue::Condition { .. } => String::new(),
-        MtValue::Asset { .. } => String::new(),
     }
 }
 
@@ -558,6 +601,8 @@ impl QifInspectionResult {
 #[derive(Clone, Debug)]
 struct OperationCycle {
     cycle_id: String,
+    source_document_id: String,
+    source_document_sha256: String,
     part_id: String,
     lot_id: String,
     operation_id: String,
@@ -584,6 +629,7 @@ enum AssociationState {
 struct AssociationReceipt {
     receipt_id: String,
     state: AssociationState,
+    cycle_source_document_sha256: String,
     relation_type: String,
     mtconnect_document_sha256: String,
     cycle_id: String,
@@ -674,6 +720,8 @@ struct ComposedEvidence {
     qif_document_sha256: String,
     association_receipt_sha256: String,
     qif_source_locator: String,
+    cycle_source_document_id: String,
+    cycle_source_document_sha256: String,
     cycle_source_locator: String,
 }
 
@@ -696,7 +744,8 @@ impl ComposedEvidence {
             csv_escape(&self.association_receipt_id), csv_escape(&self.association_authority_id),
             self.association_valid_from_ns.to_string(), self.association_valid_until_ns.to_string(),
             self.mtconnect_document_sha256.clone(), self.qif_document_sha256.clone(),
-            self.association_receipt_sha256.clone(), csv_escape(&self.qif_source_locator),
+            self.association_receipt_sha256.clone(), csv_escape(&self.cycle_source_document_id),
+            self.cycle_source_document_sha256.clone(), csv_escape(&self.qif_source_locator),
             csv_escape(&self.cycle_source_locator), derived_value, derived_unit, transform_revision,
         ].join(",")
     }
@@ -730,7 +779,9 @@ fn join_qif_to_cycle(
     if !valid_sha(&stream.document_sha256) || !valid_sha(&cycle.mtconnect_document_sha256) {
         return fail("MTCONNECT_SOURCE_DIGEST_INVALID");
     }
-    if !present(&cycle.cycle_id) || !present(&cycle.part_id) || !present(&cycle.lot_id)
+    if !present(&cycle.cycle_id) || !present(&cycle.source_document_id)
+        || !valid_sha(&cycle.source_document_sha256)
+        || !present(&cycle.part_id) || !present(&cycle.lot_id)
         || !present(&cycle.operation_id) || !present(&cycle.source_locator)
         || !present(&cycle.reference_clock_id) || !valid_sha(&cycle.clock_mapping_sha256)
         || cycle.clock_uncertainty_ns > 100_000 || cycle.start_ns >= cycle.end_ns {
@@ -757,6 +808,7 @@ fn join_qif_to_cycle(
         return fail("ASSOCIATION_RECEIPT_EVIDENCE_INVALID");
     }
     if association.mtconnect_document_sha256 != stream.document_sha256
+        || association.cycle_source_document_sha256 != cycle.source_document_sha256
         || association.cycle_id != cycle.cycle_id
         || association.qif_document_sha256 != qif_source.document_sha256
         || association.qif_result_id != result.result_id
@@ -835,6 +887,8 @@ fn join_qif_to_cycle(
             qif_document_sha256: qif_source.document_sha256.clone(),
             association_receipt_sha256: association.source_sha256.clone(),
             qif_source_locator: result.source_locator.clone(),
+            cycle_source_document_id: cycle.source_document_id.clone(),
+            cycle_source_document_sha256: cycle.source_document_sha256.clone(),
             cycle_source_locator: cycle.source_locator.clone(),
         }),
         status: "COMPOSED",
@@ -913,6 +967,8 @@ fn fixture_observations(with_gap: bool) -> Vec<MtObservation> {
 fn fixture_cycle(stream: &MappedStream) -> OperationCycle {
     OperationCycle {
         cycle_id: "CYCLE-001".into(),
+        source_document_id: "MES-DOC-001".into(),
+        source_document_sha256: prefix_hash("9"),
         part_id: "PART-001".into(),
         lot_id: "LOT-001".into(),
         operation_id: "OP-MILL-10".into(),
@@ -959,6 +1015,7 @@ fn fixture_association(stream: &MappedStream, qif: &SourceDocument) -> Associati
     AssociationReceipt {
         receipt_id: "ASSOC-001".into(),
         state: AssociationState::Verified,
+        cycle_source_document_sha256: prefix_hash("9"),
         relation_type: "inspection_result_of_operation_cycle".into(),
         mtconnect_document_sha256: stream.document_sha256.clone(),
         cycle_id: "CYCLE-001".into(),
@@ -1051,7 +1108,7 @@ fn emit_joined_csv() -> Result<(), String> {
     let joined = join_qif_to_cycle(&stream, &cycle, &qif, &result, &association,
         1_750_000_800, Some(&transform));
     let evidence = joined.composed.ok_or(joined.reason)?;
-    println!("cycle_id,part_id,lot_id,operation_id,qif_document_uuid,qif_result_id,measurement_plan_id,characteristic_id,feature_id,instrument_resource_id,specification_id,specification_revision,actual_value,original_unit,source_measured_at_ns,measured_at_reference_ns,reference_clock_id,measurement_clock_mapping_sha256,cycle_clock_mapping_sha256,combined_clock_uncertainty_ns,association_receipt_id,association_authority_id,association_valid_from_ns,association_valid_until_ns,mtconnect_document_sha256,qif_document_sha256,association_receipt_sha256,qif_source_locator,cycle_source_locator,derived_value,derived_unit,transform_revision");
+    println!("cycle_id,part_id,lot_id,operation_id,qif_document_uuid,qif_result_id,measurement_plan_id,characteristic_id,feature_id,instrument_resource_id,specification_id,specification_revision,actual_value,original_unit,source_measured_at_ns,measured_at_reference_ns,reference_clock_id,measurement_clock_mapping_sha256,cycle_clock_mapping_sha256,combined_clock_uncertainty_ns,association_receipt_id,association_authority_id,association_valid_from_ns,association_valid_until_ns,mtconnect_document_sha256,qif_document_sha256,association_receipt_sha256,cycle_source_document_id,cycle_source_document_sha256,qif_source_locator,cycle_source_locator,derived_value,derived_unit,transform_revision");
     println!("{}", evidence.csv_row());
     Ok(())
 }
@@ -1080,27 +1137,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn mtconnect_sample_event_condition_asset_types_are_preserved() {
+    fn mtconnect_samples_events_conditions_and_assets_keep_distinct_structure() {
         let source = fixture_source(Standard::MtConnect);
-        let mut observations = fixture_observations(false);
-        observations.push(MtObservation {
-            device_uuid: "urn:uuid:machine-001".into(),
-            stream_id: "STREAM-001".into(),
-            data_item_id: "TOOL-ASSET".into(),
-            component_id: "TOOL-01".into(),
-            sequence: 13,
-            source_timestamp_ns: 1_750_000_400,
-            reference_timestamp_ns: 1_750_000_400,
-            reference_clock_id: "PLANT-UTC-001".into(),
-            clock_mapping_sha256: prefix_hash("6"),
-            clock_uncertainty_ns: 100,
-            source_locator: "/MTConnectAssets/Assets/Asset[1]".into(),
-            document_order: 3,
-            value: MtValue::Asset { asset_type: "CuttingTool".into(), asset_id: "TOOL-0001".into() },
-        });
-        let mapped = map_mtconnect(&source, "urn:uuid:machine-001", "STREAM-001", true, &observations).unwrap();
+        let mapped = map_mtconnect(&source, "urn:uuid:machine-001", "STREAM-001",
+            true, &fixture_observations(false)).unwrap();
         let kinds: Vec<_> = mapped.observations.iter().map(|o| o.native_kind).collect();
-        assert_eq!(kinds, vec!["SAMPLE", "EVENT", "CONDITION", "ASSET"]);
+        assert_eq!(kinds, vec!["SAMPLE", "EVENT", "CONDITION"]);
+
+        let assets = vec![MtAsset {
+            device_uuid: "urn:uuid:machine-001".into(),
+            asset_type: "CuttingTool".into(),
+            asset_id: "TOOL-0001".into(),
+            source_document_sha256: source.document_sha256.clone(),
+            raw_asset_sha256: prefix_hash("a"),
+            source_locator: "/MTConnectAssets/Assets/Asset[1]".into(),
+        }];
+        let mapped_assets = map_mtconnect_assets(&source, "urn:uuid:machine-001", &assets).unwrap();
+        assert_eq!(mapped_assets.len(), 1);
+        assert_eq!(mapped_assets[0].asset_type, "CuttingTool");
+        assert_eq!(mapped_assets[0].asset_id, "TOOL-0001");
+        assert_eq!(mapped_assets[0].source_locator, "/MTConnectAssets/Assets/Asset[1]");
     }
 
     #[test]
@@ -1169,6 +1225,20 @@ mod tests {
         assert_eq!(evidence.original_unit,"mm");
         assert_eq!(evidence.derived_value.unwrap().derived_unit,"um");
         assert_eq!(evidence.association_receipt_sha256,association.source_sha256);
+    }
+
+    #[test]
+    fn mes_cycle_document_digest_is_bound_to_association_receipt() {
+        let mt=fixture_source(Standard::MtConnect);
+        let stream=map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
+        let qif=fixture_source(Standard::Qif);
+        let result=fixture_qif_result(&qif);
+        let cycle=fixture_cycle(&stream);
+        let mut association=fixture_association(&stream,&qif);
+        association.cycle_source_document_sha256=prefix_hash("8");
+        let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
+        assert_eq!(join.status,"INCONCLUSIVE");
+        assert_eq!(join.reason,"ASSOCIATION_RECEIPT_SCOPE_MISMATCH");
     }
 
     #[test]
