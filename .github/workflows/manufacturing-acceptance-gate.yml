@@ -52,9 +52,9 @@ jobs:
       - name: Incomplete route must block review
         run: |
           cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-acceptance -- \
-            research/transformer-bench/fixtures/manufacturing-ledger-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-ledger-missing-route-negative.csv \
             research/transformer-bench/fixtures/manufacturing-product-route-synthetic.csv \
-            research/transformer-bench/fixtures/manufacturing-route-plan-missing-negative.csv \
+            research/transformer-bench/fixtures/manufacturing-route-plan-synthetic.csv \
             research/transformer-bench/fixtures/manufacturing-test-plan-synthetic.csv \
             research/transformer-bench/fixtures/manufacturing-calibrations-synthetic.csv \
             research/transformer-bench/fixtures/manufacturing-measurements-synthetic.csv \
