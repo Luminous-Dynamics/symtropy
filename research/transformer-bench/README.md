@@ -270,3 +270,23 @@ cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin m
 ```
 
 See [MANUFACTURING_DIGITAL_THREAD.md](MANUFACTURING_DIGITAL_THREAD.md) and [PWR-TX-MFG-001 #2933](https://github.com/Luminous-Dynamics/symtropy/issues/2933). Synthetic examples cover a power transformer, switchgear and a magnetic component. The ledger is not a complete route/test-plan validator or dispatch/release authority.
+
+
+## Manufacturing digital thread and process capability
+
+This research track adds an event/genealogy ledger, route and calibrated-measurement acceptance screen, and time-windowed process capability diagnostic. These tools are decision-support only; they do not qualify a transformer, establish statistical control, or authorize product release.
+
+- [Manufacturing digital-thread protocol](MANUFACTURING_DIGITAL_THREAD.md)
+- [Route and metrology acceptance gate](MANUFACTURING_ACCEPTANCE_GATE.md)
+- [Time-dependent process capability](TIME_DEPENDENT_PROCESS_CAPABILITY.md)
+- [Symtropy ↔ Symthaea acquisition bridge](SYTHAEA_MANUFACTURING_ACQUISITION_BRIDGE.md)
+
+Run the time-windowed diagnostic with the synthetic stable fixture:
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin time-capability -- \
+  research/transformer-bench/fixtures/time-capability-stable-synthetic.csv \
+  research/transformer-bench/fixtures/time-capability-spec-synthetic.csv \
+  research/transformer-bench/fixtures/time-capability-calibration-synthetic.csv \
+  /tmp/time-capability.csv
+```
