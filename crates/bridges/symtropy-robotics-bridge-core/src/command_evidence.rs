@@ -452,7 +452,7 @@ mod tests {
     fn complete_successful_trace_reports_separate_lifecycle_counts() {
         let identity = identity();
         let report =
-            audit_command_evidence(&[identity.clone()], &successful_trace(&identity)).unwrap();
+            audit_command_evidence(std::slice::from_ref(&identity), &successful_trace(&identity)).unwrap();
 
         assert_eq!(report.command_count, 1);
         assert_eq!(report.runtime_admissions, 1);
@@ -645,7 +645,7 @@ mod tests {
         events[3].identity.command_payload_digest = "sha256:mutated-command".into();
 
         assert_eq!(
-            audit_command_evidence(&[identity.clone()], &events),
+            audit_command_evidence(std::slice::from_ref(&identity), &events),
             Err(CommandEvidenceAuditError::IdentityMismatch { request_id: 11 })
         );
 
@@ -684,7 +684,7 @@ mod tests {
         let events = vec![event(&unexpected, 10, CommandEvidenceKind::Proposed)];
 
         assert_eq!(
-            audit_command_evidence(&[identity.clone()], &events),
+            audit_command_evidence(std::slice::from_ref(&identity), &events),
             Err(CommandEvidenceAuditError::UnexpectedRequest { request_id: 99 })
         );
         assert_eq!(
@@ -699,7 +699,7 @@ mod tests {
         let mut events = successful_trace(&identity);
         events.push(event(&identity, 15, CommandEvidenceKind::Cancelled));
         assert_eq!(
-            audit_command_evidence(&[identity.clone()], &events),
+            audit_command_evidence(std::slice::from_ref(&identity), &events),
             Err(CommandEvidenceAuditError::EventAfterTerminal { request_id: 11 })
         );
 
