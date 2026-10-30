@@ -227,3 +227,11 @@ The V5 auditor also verifies that every angle assigned to a grid level carries t
 ## CFD evidence admission gate
 
 The cfd_admission module binds each scalar CFD study to an identical solver build, physics configuration and geometry, unique mesh digests, ordered characteristic spacings, explicit iterative convergence, residual reduction, final force-history stability, and mass/energy conservation defects. It then applies the GCI study to the same scalar values using caller-declared observed-order and asymptotic-ratio intervals. Run the synthetic six-grid demonstration with cargo run --locked --bin verification_admission_demo. Passing means numerical admission under declared criteria only; it does not mean experimentally validated.
+
+## Civil-aerospace benchmark roadmap
+
+See AERO_CIVIL_BENCHMARK_ROADMAP_V0_1.md for the evidence-first validation ladder, industry baseline plan, matched-budget optimizer comparisons and proposed acceptance targets.
+
+## Grid-convergence and GCI diagnostics
+
+The grid_convergence module implements sliding three-grid observed-order, Richardson extrapolation and Grid Convergence Index estimates. Callers must supply characteristic spacing and justify its definition as well as the safety factor. It never infers spacing from node count, rejects non-monotonic and zero-difference sequences, and reports absolute/relative GCI, extrapolated values and an asymptotic consistency ratio. The grid_convergence_demo CLI and independent Python oracle use a synthetic quadratic known-answer problem; this tests arithmetic, not CFD convergence or validation. See GRID_CONVERGENCE_GCI_PROTOCOL_V0_1.md.

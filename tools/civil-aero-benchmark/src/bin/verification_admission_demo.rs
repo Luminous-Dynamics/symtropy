@@ -1,8 +1,7 @@
 use std::process;
 
 use civil_aero_benchmark::cfd_admission::{
-    AdmissionCriteria, CfdEvidenceStudy, CfdGridRun, evaluate_cfd_evidence_admission,
-    report_to_csv,
+    AdmissionCriteria, CfdEvidenceStudy, CfdGridRun, evaluate_cfd_evidence_admission, report_to_csv,
 };
 
 fn digest(byte: char) -> String {
@@ -29,8 +28,11 @@ fn run() -> Result<(), String> {
                 grid_level: u32::try_from(index + 1).expect("six fixture grids fit u32"),
                 characteristic_spacing: *spacing,
                 mesh_sha256: digest(
-                    char::from_digit(u32::try_from(index + 1).expect("six fixture grids fit u32"), 10)
-                        .expect("grid IDs use base-10 digits"),
+                    char::from_digit(
+                        u32::try_from(index + 1).expect("six fixture grids fit u32"),
+                        10,
+                    )
+                    .expect("grid IDs use base-10 digits"),
                 ),
                 solver_build_sha256: digest('a'),
                 physics_config_sha256: digest('b'),
