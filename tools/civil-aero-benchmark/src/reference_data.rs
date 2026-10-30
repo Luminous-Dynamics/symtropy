@@ -254,9 +254,12 @@ mod tests {
         )
         .expect("valid Gregory pressure data");
         assert_eq!(parsed.observations.len(), 73);
-        assert!(parsed.observations.iter().any(|observation| {
-            (observation.x_over_c - 1.0009).abs() < 1e-12
-        }));
+        assert!(
+            parsed
+                .observations
+                .iter()
+                .any(|observation| { (observation.x_over_c - 1.0009).abs() < 1e-12 })
+        );
         assert_eq!(parsed.zone_counts.get("alpha=0"), Some(&25));
         assert_eq!(parsed.zone_counts.get("alpha=10"), Some(&24));
         assert_eq!(parsed.zone_counts.get("alpha=15"), Some(&24));
@@ -278,9 +281,12 @@ mod tests {
         let extended_tap = pressure.replace("0.0023497 0.847673", "1.0023497 0.847673");
         let preserved = parse_pressure_data(&extended_tap, "extended-tap-fixture")
             .expect("finite pressure tap outside nominal chord is preserved");
-        assert!(preserved.observations.iter().any(|observation| {
-            (observation.x_over_c - 1.0023497).abs() < 1e-12
-        }));
+        assert!(
+            preserved
+                .observations
+                .iter()
+                .any(|observation| { (observation.x_over_c - 1.0023497).abs() < 1e-12 })
+        );
         assert!(
             parse_pressure_data(
                 "variables=\"x/c\",\"cp\"\nzone, t=\"empty\"\n",
