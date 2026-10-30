@@ -660,8 +660,16 @@ mod tests {
             let (v, s, _) = solve_fixed_flags(&e_old, &pattern, 0.1, 1.0, 1.0, 1.0, 100.0, -10.0).unwrap();
             let (vd, sd) = dense_flag_reference(&e_old, &pattern, 0.1, 1.0, 1.0, 1.0, 100.0, -10.0);
             for i in 0..pattern.len() {
-                assert!((v[i] - vd[i]).abs() < 1.0e-10);
-                assert!((s[i] - sd[i]).abs() < 1.0e-10);
+                assert!(
+                    (v[i] - vd[i]).abs() < 1.0e-10,
+                    "potential mismatch: flags={pattern:?}, node={i}, segment={}, dense={}, rtol={}",
+                    v[i], vd[i], (v[i] - vd[i]).abs()
+                );
+                assert!(
+                    (s[i] - sd[i]).abs() < 1.0e-10,
+                    "latent mismatch: flags={pattern:?}, node={i}, segment={}, dense={}, rtol={}",
+                    s[i], sd[i], (s[i] - sd[i]).abs()
+                );
             }
         }
     }
