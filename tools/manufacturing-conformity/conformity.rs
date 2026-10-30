@@ -522,7 +522,7 @@ mod tests {
     }
 
     #[test]
-    fn mSA_and_context_policy_failures_remain_evidence_incomplete() {
+    fn msa_and_context_policy_failures_remain_evidence_incomplete() {
         let mut r = request(15.0, 1.0);
         r.uncertainty.msa_qualified = false;
         assert_eq!(classify(&r).reason, "MSA_NOT_QUALIFIED");
@@ -613,7 +613,7 @@ mod tests {
     fn unit_scaling_and_uncertainty_monotonicity_hold() { verify().unwrap(); }
 
     #[test]
-    fn CSV_escaping_preserves_identifiers_with_delimiters() {
+    fn csv_escaping_preserves_identifiers_with_delimiters() {
         let mut r = request(15.0, 1.0);
         r.measurement.id = "MEAS,0001\nBAD".into();
         let row = classify(&r).csv_row();
