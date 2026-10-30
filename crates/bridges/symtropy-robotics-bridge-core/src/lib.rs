@@ -29,9 +29,8 @@ pub use assurance::{
     RuntimeAssurancePolicy, RuntimeSafetyState, VetoReason,
 };
 pub use audit_receipt::{
-    CommandEvidenceReceipt, CommandEvidenceReceiptContext, CommandEvidenceReceiptError,
-    COMMAND_EVIDENCE_RECEIPT_SCHEMA_VERSION, create_command_evidence_receipt,
-    verify_command_evidence_receipt,
+    COMMAND_EVIDENCE_RECEIPT_SCHEMA_VERSION, CommandEvidenceReceipt, CommandEvidenceReceiptContext,
+    CommandEvidenceReceiptError, create_command_evidence_receipt, verify_command_evidence_receipt,
 };
 pub use command_evidence::{
     CommandEvidenceAudit, CommandEvidenceAuditError, CommandEvidenceEvent, CommandEvidenceKind,
