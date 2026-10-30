@@ -17,11 +17,11 @@ The oracle radius is ±12 per periodic coordinate, enough for the frozen 2D and 
 - One quarter of queries are placed near fractional half-cell boundaries; the remainder are deterministic seeded samples spanning ±10 fractional cells.
 - Candidate budget: 729.
 
-Each preflight emits TRICLINIC_CVP_PREFLIGHT,v2 with fixture, query count, mean/max candidate count, maximum brute-force distance error, maximum selected-distance roundoff allowance, inverse-residual upper bound and oracle search radius. A preflight fails before timing if the independent oracle disagrees or the reported unsearched-image lower bound does not exceed the selected distance plus its roundoff allowance.
+Each preflight emits TRICLINIC_CVP_PREFLIGHT,v3 with fixture, query count, mean/max candidate count, maximum brute-force distance error, maximum selected-distance roundoff allowance, inverse-residual upper bound, count of numerically ambiguous queries, maximum ambiguity-set size, and oracle search radius. A preflight fails before timing if the independent oracle finds a strictly closer image outside the returned representative/ambiguity set or if the unsearched-image lower bound does not exceed the best candidate-distance upper bound.
 
 ## Reporting
 
-Record exact source SHA, Cargo.lock digest, Rust/Cargo version, CPU/platform, target triple, optimization flags, Criterion raw outputs, and all TRICLINIC_CVP_PREFLIGHT,v2 records. Report median/intervals from Criterion; p95/p99 require a separate per-query latency harness. Always report certification candidate counts, inverse residual, distance error allowance, and refusal rate beside time.
+Record exact source SHA, Cargo.lock digest, Rust/Cargo version, CPU/platform, target triple, optimization flags, Criterion raw outputs, and all TRICLINIC_CVP_PREFLIGHT,v3 records. Report median/intervals from Criterion; p95/p99 require a separate per-query latency harness. Always report certification candidate counts, inverse residual, distance error allowance, ambiguity rate/set size, and refusal rate beside time.
 
 The result is a microbenchmark of this particular basis/displacement distribution. It does not establish arbitrary-cell performance or full collision-engine speedup.
 
