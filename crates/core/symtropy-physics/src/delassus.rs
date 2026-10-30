@@ -787,4 +787,142 @@ mod tests {
         assert_isolated_sphere_delassus::<3>();
         assert_isolated_sphere_delassus::<4>();
     }
+
+    fn deterministic_sample(state: &mut u64) -> f64 {
+        *state ^= *state << 13;
+        *state ^= *state >> 7;
+        *state ^= *state << 17;
+        ((*state >> 11) as f64 / ((1_u64 << 53) as f64)) * 2.0 - 1.0
+    }
+
+    fn assert_randomized_delassus_invariants<const D: usize>() {
+        for seed in 1_u64..=12 {
+            let mut state = seed.wrapping_mul(0x9E37_79B9_7F4A_7C15);
+            let extents_a = SVector::<f64, D>::from_fn(|_, _| {
+                0.35 + deterministic_sample(&mut state).abs()
+            });
+            let extents_b = SVector::<f64, D>::from_fn(|_, _| {
+                0.4 + deterministic_sample(&mut state).abs()
+            });
+            let mut body_a =
+                RigidBody::<D>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 0.8);
+            body_a.set_rotational_inertia_operator(
+                BivectorInertia::<D>::uniform_solid_ellipsoid(0.8, extents_a).unwrap(),
+            );
+            let mut body_b = RigidBody::<D>::dynamic_sphere(
+                BodyHandle(1),
+                Point::origin(),
+                0.5,
+                1.3,
+            );
+            body_b.transform.rotation = Rotor::from_plane_angle(
+                &Bivector::<D>::unit_plane(0, 1),
+                deterministic_sample(&mut state) * 1.2,
+            );
+            body_b.set_rotational_inertia_operator(
+                BivectorInertia::<D>::uniform_solid_ellipsoid(1.3, extents_b).unwrap(),
+            );
+            let bodies = vec![body_a, body_b];
+
+            let row_count = 2 + (seed as usize % 5);
+            let mut rows = Vec::with_capacity(row_count);
+            for _ in 0..row_count {
+                let mut normal =
+                    SVector::<f64, D>::from_fn(|_, _| deterministic_sample(&mut state));
+                let norm = normal.norm();
+                if norm <= 1e-8 {
+                    normal[0] = 1.0;
+                } else {
+                    normal /= norm;
+                }
+                let offset_a =
+                    SVector::<f64, D>::from_fn(|_, _| 0.4 * deterministic_sample(&mut state));
+                let offset_b =
+                    SVector::<f64, D>::from_fn(|_, _| 0.4 * deterministic_sample(&mut state));
+                rows.push(FrictionlessContactRow {
+                    body_a: BodyHandle(0),
+                    body_b: BodyHandle(1),
+                    offset_a,
+                    offset_b,
+                    normal,
+                });
+            }
+
+            let matrix = assemble_delassus(&bodies, &rows, 1e-12)
+                .unwrap_or_else(|error| panic!("D={D}, seed={seed}: {error:?}"));
+            let matrix_scale = matrix.norm().max(f64::MIN_POSITIVE);
+            let mut symmetry_error = 0.0_f64;
+            for i in 0..row_count {
+                for j in 0..row_count {
+                    symmetry_error =
+                        symmetry_error.max((matrix[(i, j)] - matrix[(j, i)]).abs());
+                }
+            }
+            assert!(
+                symmetry_error <= 1e-10 * matrix_scale,
+                "D={D}, seed={seed}: symmetry error={symmetry_error}"
+            );
+
+            let eigenvalues = nalgebra::linalg::SymmetricEigen::new(
+                (&matrix + matrix.transpose()) * 0.5,
+            )
+            .eigenvalues;
+            let minimum_eigenvalue = eigenvalues
+                .iter()
+                .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+            assert!(
+                minimum_eigenvalue >= -1e-10 * matrix_scale,
+                "D={D}, seed={seed}: min eigenvalue={minimum_eigenvalue}"
+            );
+
+            let permutation: Vec<usize> = (0..row_count).rev().collect();
+            let permuted_rows: Vec<_> = permutation
+                .iter()
+                .map(|index| rows[*index].clone())
+                .collect();
+            let permuted = assemble_delassus(&bodies, &permuted_rows, 1e-12).unwrap();
+            for i in 0..row_count {
+                for j in 0..row_count {
+                    assert!(
+                        (permuted[(i, j)] - matrix[(permutation[i], permutation[j])]).abs()
+                            <= 1e-10 * matrix_scale,
+                        "D={D}, seed={seed}: row permutation mismatch ({i}, {j})"
+                    );
+                }
+            }
+
+            // Construct a feasible LCP from a positive impulse vector. This
+            // tests the oracle even when redundant rows make impulses
+            // non-unique: residual and complementarity, not one arbitrary
+            // impulse distribution, are the invariant.
+            let target_impulses = DVector::from_iterator(
+                row_count,
+                (0..row_count).map(|index| 0.05 + index as f64 * 0.01),
+            );
+            let q = -(&matrix * target_impulses);
+            let solution = solve_frictionless_lcp(&matrix, &q, 1e-9)
+                .unwrap_or_else(|error| panic!("D={D}, seed={seed}: {error:?}"));
+            assert!(
+                solution.impulses.iter().all(|value| *value >= -1e-9),
+                "D={D}, seed={seed}: negative reference impulse"
+            );
+            assert!(
+                solution.residual.iter().all(|value| *value >= -1e-8),
+                "D={D}, seed={seed}: negative reference slack"
+            );
+            assert!(
+                solution.max_complementarity_residual < 1e-8,
+                "D={D}, seed={seed}: complementarity={}",
+                solution.max_complementarity_residual
+            );
+        }
+    }
+
+    #[test]
+    fn randomized_delassus_invariants_hold_in_2d_3d_and_4d() {
+        assert_randomized_delassus_invariants::<2>();
+        assert_randomized_delassus_invariants::<3>();
+        assert_randomized_delassus_invariants::<4>();
+    }
+
 }
