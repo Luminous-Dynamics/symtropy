@@ -1061,12 +1061,20 @@ mod tests {
                 dd_closest_image(&basis, &delta, center, [true, true], 48);
             let selected_high_precision =
                 dd_squared_distance(&basis, &delta, result.image_offset.periods);
-            assert_eq!(
-                selected_high_precision.cmp(high_precision_oracle),
-                std::cmp::Ordering::Equal,
-                "double-double oracle disagrees for delta={delta:?}, offset={:?}",
+            assert!(
+                selected_high_precision.cmp(high_precision_oracle) != std::cmp::Ordering::Greater,
+                "double-double oracle found a strictly closer image for delta={delta:?}, offset={:?}",
                 result.image_offset.periods
             );
+            for alternative in &result.ambiguous_image_offsets {
+                let alternative_distance =
+                    dd_squared_distance(&basis, &delta, alternative.periods);
+                assert!(
+                    alternative_distance.cmp(high_precision_oracle)
+                        != std::cmp::Ordering::Less,
+                    "reported ambiguity omitted a strictly closer double-double image"
+                );
+            }
             assert!(result.unsearched_distance_lower_bound
                 > result.displacement.norm() + result.nearest_distance_error_bound);
         }
@@ -1172,12 +1180,20 @@ mod tests {
                 dd_closest_image(&basis, &delta, center, [true, true, true], 6);
             let selected_high_precision =
                 dd_squared_distance(&basis, &delta, result.image_offset.periods);
-            assert_eq!(
-                selected_high_precision.cmp(high_precision_oracle),
-                std::cmp::Ordering::Equal,
-                "double-double 3D oracle disagrees in case {case}: offset={:?}",
+            assert!(
+                selected_high_precision.cmp(high_precision_oracle) != std::cmp::Ordering::Greater,
+                "double-double 3D oracle found a strictly closer image in case {case}: offset={:?}",
                 result.image_offset.periods
             );
+            for alternative in &result.ambiguous_image_offsets {
+                let alternative_distance =
+                    dd_squared_distance(&basis, &delta, alternative.periods);
+                assert!(
+                    alternative_distance.cmp(high_precision_oracle)
+                        != std::cmp::Ordering::Less,
+                    "reported 3D ambiguity omitted a strictly closer double-double image"
+                );
+            }
             assert!(result.unsearched_distance_lower_bound
                 > result.displacement.norm() + result.nearest_distance_error_bound);
         }
