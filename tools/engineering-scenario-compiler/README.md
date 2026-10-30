@@ -6,6 +6,7 @@ A standalone Rust tool that compiles the existing NACA0012 engineering scenario 
 
 From this directory:
 
+    cargo generate-lockfile
     cargo test --locked
     cargo run --locked -- ../../../benchmarks/aero/naca0012-inc-rans/case.toml
 
@@ -15,7 +16,8 @@ Exit codes: 0 = PlanReady, 2 = Invalid, 3 = Blocked, 4 = Unsupported, 64 = usage
 
 - Offline parser and compiler only; no network calls, shell execution, solver launch, includes or plugin loading.
 - Strict Serde structs reject unknown keys; TOML parser rejects syntax and duplicate-key errors.
-- Typed quantity records preserve dimension and unit separately from the numeric value.
+- Typed quantity records preserve dimension and unit separately from the numeric value; incidence-angle/velocity vectors and Reynolds number derived from density, speed, chord and viscosity are cross-checked.
+- The parser is pinned to toml_edit 0.23.10, whose release uses the TOML 1.0 grammar; parser profile is included in semantic identity.
 - Source SHA-256 is computed over exact input bytes. Semantic IR SHA-256 is computed over a versioned fixed-order Rust structure plus compiler and registry revisions.
 - A frozen NACA0012 model profile is recognized, but this fixture correctly compiles to BLOCKED: a Git blob object ID is not a SHA-256 digest of the retrieved bytes; exact config/mesh bytes, reference data digests, and an identified solver executable/build are absent.
 
