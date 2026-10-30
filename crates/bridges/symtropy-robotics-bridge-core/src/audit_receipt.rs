@@ -62,6 +62,7 @@ pub struct CommandEvidenceReceipt {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandEvidenceReceiptError {
     EmptyContextField { field: &'static str },
+    ControllerConfigDigestMismatch { request_id: u64 },
     AuditFailed(CommandEvidenceAuditError),
     UnsupportedSchemaVersion { found: u16, supported: u16 },
     ReceiptMismatch,
@@ -87,6 +88,13 @@ pub fn create_command_evidence_receipt(
 ) -> Result<CommandEvidenceReceipt, CommandEvidenceReceiptError> {
     validate_context(&context)?;
     let audit = audit_command_evidence(expected, events)?;
+    for identity in expected {
+        if identity.controller_config_digest != context.controller_config_digest {
+            return Err(CommandEvidenceReceiptError::ControllerConfigDigestMismatch {
+                request_id: identity.request_id,
+            });
+        }
+    }
 
     let context_digest = digest_context(&context);
     let expected_identity_digest = digest_expected_identities(expected);
@@ -516,6 +524,22 @@ mod tests {
             create_command_evidence_receipt(invalid_context, &expected, &events),
             Err(CommandEvidenceReceiptError::EmptyContextField {
                 field: "trace_source_id",
+            })
+        );
+    }
+
+    #[test]
+    fn outer_controller_configuration_must_match_each_expected_identity() {
+        let identity = identity(11);
+        let expected = [identity.clone()];
+        let events = trace(&identity, 10);
+        let mut mismatched_context = context();
+        mismatched_context.controller_config_digest = "sha256:another-controller".into();
+
+        assert_eq!(
+            create_command_evidence_receipt(mismatched_context, &expected, &events),
+            Err(CommandEvidenceReceiptError::ControllerConfigDigestMismatch {
+                request_id: identity.request_id,
             })
         );
     }
