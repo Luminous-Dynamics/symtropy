@@ -3009,5 +3009,4 @@ mod transformed_halfspace_tests {
             expected_dissipation
         );
     }
-
 }
