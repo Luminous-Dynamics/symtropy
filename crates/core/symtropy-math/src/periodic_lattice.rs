@@ -855,7 +855,7 @@ mod tests {
             let actual = lattice
                 .minimum_image_displacement(&displacement, 100_000)
                 .unwrap();
-            let (distance, offset, vector) = brute_force_2d(&displacement, &basis, 2_000);
+            let (distance, offset, vector) = brute_force_2d(&displacement, &basis, 64);
             assert_eq!(actual.image_offset.periods, offset);
             close(actual.distance_squared, distance, 1e-9);
             assert!((actual.displacement - vector).norm() < 1e-9);
