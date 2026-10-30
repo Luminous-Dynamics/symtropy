@@ -133,6 +133,21 @@ For the project's dimension-generic rotation model, do not simply generalize a 3
 
 The kinetic-energy contract should be 1/2 ⟨ω, Iω⟩, and the equations of motion must include the appropriate coadjoint/gyroscopic term. This gives a principled route from the 3D asymmetric top to the existing 4D bivector rotation architecture.
 
+A first mathematical primitive now exists in `crates/core/symtropy-physics/src/inertia.rs`:
+
+- It stores the centered second-moment matrix (S = \int rr^T\,dm).
+- It maps a bivector angular velocity represented by skew matrix (Omega) to angular momentum with (mathcal I(Omega)=Omega S+SOmega).
+- It validates finiteness, symmetry, and positive semidefiniteness (with a scale-relative eigenvalue tolerance).
+- Its tests cover uniform solid balls in 2D/3D/4D, the 3D principal-moment correspondence, off-diagonal coupling between rotation planes, and invalid mass-moment matrices.
+
+This prototype is deliberately **not yet connected** to `RigidBody`, integration, contact effective mass, or invariant energy accounting. The legacy fields and hot paths still use mean-of-axis inertia. It is a mathematical building block, not a claim that asymmetric rigid-body dynamics are fixed.
+
+The compound `merge_toolhead` path also remains approximate. Its correct future mass-property update is the second-moment parallel-axis rule:
+[
+S_{total}=S_A+m_A d_A d_A^T+S_B+m_B d_B d_B^T
+]
+where both offsets are measured from the combined center of mass. The current scalar-mean merge is explicitly marked as not validated for asymmetric bodies.
+
 
 ## 3. Numerical architecture: build versus reuse
 
@@ -258,7 +273,7 @@ The first defensible "better than SOTA" claim should be narrow and decision-rele
 |---|---|---|
 | 0 | Correct scientific claims; freeze benchmark schema and scenario manifest | all advertised guarantees match the evidence |
 | 1 | Numerical-kernel benchmark harness and independent reference fixtures | Campaign A reproducible from clean checkout |
-| 2 | Full 3D inertia tensor plus dimension-correct bivector-space inertia, gyroscopic dynamics, and rotational impulse response | Campaign B analytical/reference gates pass |
+| 2 | Replace legacy scalar means with the second-moment-backed bivector inertia operator across body state, kinetic energy, integration, contact and parallel-axis compound assembly; add 3D and N-D gyroscopic dynamics | Campaign B analytical/reference gates pass |
 | 3 | Research solver adapter and structured solver diagnostics | work-precision comparisons against diffsol/SciML |
 | 4 | Typed units, model contracts, and conservation exchange ledger | invalid models rejected before execution |
 | 5 | One finite-volume or finite-element continuum solver path | Campaign C passes manufactured-solution gates |
@@ -269,7 +284,7 @@ Avoid introducing an all-domain multiphysics framework before stages 1–4 are s
 ## 8. Immediate next engineering tasks
 
 1. Promote the initial harmonic-oscillator/free-fall regression tests into a machine-readable benchmark runner with timestep sweeps, error tables, and repeatable result receipts.
-2. Add a spherical-versus-asymmetric inertia regression suite. For D=3 use the full spatial inertia tensor; for D>3 use a physically constrained inertia operator on the bivector space. The asymmetric-top test should fail until the correct representation and gyroscopic terms are implemented.
+2. Plumb the new BivectorInertia primitive through body state, rotational kinetic energy, angular impulses, contact effective mass, and compound parallel-axis mass-property assembly. Then add spherical-versus-asymmetric regression cases; do not advance the validation tier until torque-free and forced asymmetric-top benchmarks pass.
 3. Reconcile the deterministic-net feature’s claims with the cross-architecture validation status. Quantization is not, by itself, a proof of bit-identical execution.
 4. Standardize benchmark receipts and scenario hashes before adding further solver families.
 5. Prototype a diffsol adapter behind a research-solver feature, compare it to the existing Symthaea ODE methods, and retain only what the work-precision results justify.
