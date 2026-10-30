@@ -150,26 +150,28 @@ pub fn solve_planar_friction_cone(
         .max(0.0)
         .max((-impulse[0]).max(0.0));
 
-    let normal_complementarity = (-impulse[0])
+    let impulse_residual_scale = impulse_scale.max(impulse.norm()).max(f64::MIN_POSITIVE);
+    let normal_complementarity = (-impulse[0] / impulse_residual_scale)
         .max(0.0)
-        .max((-post_velocity[0]).max(0.0))
-        .max((impulse[0] * post_velocity[0]).abs() / velocity_scale);
+        .max((-post_velocity[0] / velocity_scale).max(0.0))
+        .max(
+            (impulse[0] / impulse_residual_scale * post_velocity[0] / velocity_scale).abs(),
+        );
     let tangential_residual = match mode {
-        ContactMode::Separating => impulse[1].abs(),
-        ContactMode::Sticking => post_velocity[1].abs().max(cone_violation),
+        ContactMode::Separating => impulse[1].abs() / impulse_residual_scale,
+        ContactMode::Sticking => (post_velocity[1].abs() / velocity_scale)
+            .max(cone_violation / impulse_residual_scale),
         ContactMode::SlidingPositive => {
-            (-post_velocity[1]).max(0.0).max((impulse[1] + mu * impulse[0]).abs()
-                * matrix_scale
-                / velocity_scale)
+            ((-post_velocity[1] / velocity_scale).max(0.0))
+                .max((impulse[1] + mu * impulse[0]).abs() / impulse_residual_scale)
         }
         ContactMode::SlidingNegative => {
-            post_velocity[1].max(0.0).max((impulse[1] - mu * impulse[0]).abs()
-                * matrix_scale
-                / velocity_scale)
+            (post_velocity[1] / velocity_scale).max(0.0).max(
+                (impulse[1] - mu * impulse[0]).abs() / impulse_residual_scale,
+            )
         }
     };
-    let normalized_contact_residual =
-        normal_complementarity.max(tangential_residual) / velocity_scale.max(1.0);
+    let normalized_contact_residual = normal_complementarity.max(tangential_residual);
 
     if !post_velocity.iter().all(|value| value.is_finite())
         || !normalized_contact_residual.is_finite()
