@@ -377,7 +377,7 @@ mod tests {
     }
 
     #[test]
-    fn lcp_reference_is_invariant_to_physical_unit_scaling() {
+    fn lcp_reference_is_stable_under_common_coefficient_scaling() {
         for scale in [1e-15_f64, 1.0, 1e15] {
             let matrix = DMatrix::from_element(1, 1, 2.0 * scale);
             let q = DVector::from_vec(vec![-scale]);
@@ -389,6 +389,25 @@ mod tests {
             );
             assert!(solution.residual[0].abs() <= 1e-12 * scale);
         }
+    }
+
+    #[test]
+    fn lcp_reference_preserves_impulse_under_si_to_g_cm_ms_conversion() {
+        let si_matrix = DMatrix::from_element(1, 1, 2.0);
+        let si_q = DVector::from_vec(vec![-1.0]);
+        let si_solution = solve_frictionless_lcp(&si_matrix, &si_q, 1e-12).unwrap();
+
+        // kg -> g multiplies mass by 1,000; m -> cm multiplies length by
+        // 100; s -> ms multiplies time by 1,000. Thus the numeric inverse-mass
+        // matrix scales by 1/1,000, velocity by 0.1, and impulse by 100.
+        let converted_matrix = &si_matrix * 1e-3;
+        let converted_q = &si_q * 0.1;
+        let converted_solution =
+            solve_frictionless_lcp(&converted_matrix, &converted_q, 1e-12).unwrap();
+
+        assert!((si_solution.impulses[0] - 0.5).abs() < 1e-12);
+        assert!((converted_solution.impulses[0] - 100.0 * si_solution.impulses[0]).abs() < 1e-9);
+        assert!(converted_solution.residual[0].abs() < 1e-12);
     }
 
     #[test]
