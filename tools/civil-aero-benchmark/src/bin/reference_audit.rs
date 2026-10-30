@@ -39,19 +39,19 @@ fn run() -> Result<(), String> {
         force.dataset_id,
         force.observations.len(),
         &force.zone_counts,
-        "source_bytes_pinned_parser_output_unqualified",
+        "source_bytes_sha256_verified_parser_output_unqualified",
     );
     print_summary(
         ladson_pressure.dataset_id,
         ladson_pressure.observations.len(),
         &ladson_pressure.zone_counts,
-        "source_bytes_pinned_parser_output_unqualified",
+        "source_bytes_sha256_verified_parser_output_unqualified",
     );
     print_summary(
         gregory_pressure.dataset_id,
         gregory_pressure.observations.len(),
         &gregory_pressure.zone_counts,
-        "source_bytes_pinned_parser_output_unqualified",
+        "source_bytes_sha256_verified_parser_output_unqualified",
     );
     Ok(())
 }
