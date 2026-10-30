@@ -220,7 +220,7 @@ fn compilation_subject_sha256(
     // Fixed-length hexadecimal digest fields plus a domain separator avoid
     // ambiguous concatenation and bind provenance, semantic meaning, and bytes.
     let mut hasher = Sha256::new();
-    hasher.update(b"LUMINOUS-ENGINEERING-SCENARIO-COMPILATION-SUBJECT-V1\\0");
+    hasher.update(b"LUMINOUS-ENGINEERING-SCENARIO-COMPILATION-SUBJECT-V1\0");
     hasher.update(source_sha256.as_bytes());
     hasher.update(semantic_ir_sha256.as_bytes());
     hasher.update(artifact_manifest_sha256.as_bytes());
@@ -636,6 +636,11 @@ mod tests {
         let reformatted = compile_bytes(whitespace_variant.as_bytes());
         assert_ne!(baseline.source_sha256, reformatted.source_sha256);
         assert_eq!(baseline.semantic_ir_sha256, reformatted.semantic_ir_sha256);
+        assert_ne!(
+            baseline.compilation_subject_sha256,
+            reformatted.compilation_subject_sha256,
+            "complete compilation identity must retain exact source-byte provenance"
+        );
         let semantic_variant = replace_once(original, "chord_m = 1.0", "chord_m = 1.25");
         let changed = compile_bytes(semantic_variant.as_bytes());
         assert_ne!(baseline.semantic_ir_sha256, changed.semantic_ir_sha256);
