@@ -287,6 +287,15 @@ struct MappedObservation {
 struct MappedStream {
     document_id: String,
     document_sha256: String,
+    source_uri: String,
+    schema_version: String,
+    schema_namespace: String,
+    schema_bundle_sha256: String,
+    parser_id: String,
+    parser_version: String,
+    validation_authority_id: String,
+    validation_receipt_sha256: String,
+    extension_manifest: String,
     device_uuid: String,
     stream_id: String,
     observations: Vec<MappedObservation>,
@@ -306,14 +315,25 @@ impl MappedStream {
                 csv_escape(&observation.data_item_id),
                 csv_escape(&observation.component_id),
                 observation.sequence.to_string(),
+                observation.source_timestamp_ns.to_string(),
                 observation.timestamp_ns.to_string(),
+                csv_escape(&observation.reference_clock_id),
+                observation.clock_mapping_sha256.clone(),
+                observation.clock_uncertainty_ns.to_string(),
                 observation.document_order.to_string(),
                 observation.native_kind.to_string(),
                 csv_escape(&observation.native_unit),
                 csv_escape(&observation.value_text),
                 observation.source_document_sha256.clone(),
                 csv_escape(&observation.source_locator),
-                observation.extension_count.to_string(),
+                self.schema_version.clone(),
+                csv_escape(&self.schema_namespace),
+                self.schema_bundle_sha256.clone(),
+                csv_escape(&self.parser_id),
+                csv_escape(&self.parser_version),
+                csv_escape(&self.validation_authority_id),
+                self.validation_receipt_sha256.clone(),
+                csv_escape(&self.extension_manifest),
             ].join(",")
         }).collect()
     }
@@ -432,9 +452,23 @@ fn map_mtconnect(
         b.device_uuid.as_str(), b.stream_id.as_str(), b.sequence, b.source_locator.as_str()
     )));
 
+    let extension_manifest = source.opaque_extensions.iter().map(|extension| format!(
+        "{}:{}:{}:{}",
+        extension.namespace, extension.local_name, extension.raw_xml_sha256, extension.source_locator
+    )).collect::<Vec<_>>().join(";");
+
     Ok(MappedStream {
         document_id: source.document_id.clone(),
         document_sha256: source.document_sha256.clone(),
+        source_uri: source.source_uri.clone(),
+        schema_version: source.schema.version.clone(),
+        schema_namespace: source.schema.namespace.clone(),
+        schema_bundle_sha256: source.schema.schema_bundle_sha256.clone(),
+        parser_id: source.schema.parser_id.clone(),
+        parser_version: source.schema.parser_version.clone(),
+        validation_authority_id: source.schema.validation_authority_id.clone(),
+        validation_receipt_sha256: source.schema.validation_receipt_sha256.clone(),
+        extension_manifest,
         device_uuid: device_uuid.to_string(),
         stream_id: stream_id.to_string(),
         observations: mapped,
@@ -717,14 +751,25 @@ fn join_qif_to_cycle(
         || result.clock_uncertainty_ns.saturating_add(cycle.clock_uncertainty_ns) > 100_000 {
         return fail("REFERENCE_CLOCK_ID_OR_UNCERTAINTY_MISMATCH");
     }
+    if association.valid_from_ns > result.measured_at_reference_ns
+        || association.valid_until_ns < result.measured_at_reference_ns {
+        return fail("ASSOCIATION_NOT_VALID_AT_MEASUREMENT_TIME");
+    }
+    let relevant_observations: Vec<&MappedObservation> = stream.observations.iter()
+        .filter(|obs| obs.timestamp_ns >= cycle.start_ns && obs.timestamp_ns <= cycle.end_ns)
+        .collect();
+    if relevant_observations.is_empty() {
+        return fail("NO_MACHINE_OBSERVATIONS_IN_CYCLE_WINDOW");
+    }
+    if relevant_observations.iter().any(|obs|
+        obs.reference_clock_id != cycle.reference_clock_id
+        || obs.clock_mapping_sha256 != cycle.clock_mapping_sha256
+        || obs.clock_uncertainty_ns.saturating_add(cycle.clock_uncertainty_ns) > 100_000) {
+        return fail("MACHINE_OBSERVATION_CLOCK_MAPPING_MISMATCH");
+    }
     if result.measured_at_reference_ns < cycle.start_ns || result.measured_at_reference_ns > cycle.end_ns {
         return fail("QIF_MEASUREMENT_OUTSIDE_CYCLE_WINDOW");
     }
-    if !stream.observations.iter().any(|obs|
-        obs.timestamp_ns >= cycle.start_ns && obs.timestamp_ns <= cycle.end_ns) {
-        return fail("NO_MACHINE_OBSERVATIONS_IN_CYCLE_WINDOW");
-    }
-
     let actual_value = result.actual_value.unwrap_or(f64::NAN);
     let derived_value = match transform {
         Some(spec) => match apply_unit_transform(actual_value, &result.original_unit, spec) {
@@ -943,7 +988,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() {
-    println!("device_uuid,stream_id,data_item_id,component_id,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_document_sha256,source_locator,extension_count");
+    println!("device_uuid,stream_id,data_item_id,component_id,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_document_sha256,source_locator,schema_version,schema_namespace,schema_bundle_sha256,parser_id,parser_version,validation_authority_id,validation_receipt_sha256,extension_manifest");
     let source = fixture_source(Standard::MtConnect);
     let mapped = map_mtconnect(&source, "urn:uuid:machine-001", "STREAM-001", true, &fixture_observations(false))
         .expect("frozen valid MTConnect fixture");
@@ -982,7 +1027,11 @@ mod tests {
             data_item_id: "TOOL-ASSET".into(),
             component_id: "TOOL-01".into(),
             sequence: 13,
-            timestamp_ns: 1_750_000_400,
+            source_timestamp_ns: 1_750_000_400,
+            reference_timestamp_ns: 1_750_000_400,
+            reference_clock_id: "PLANT-UTC-001".into(),
+            clock_mapping_sha256: prefix_hash("6"),
+            clock_uncertainty_ns: 100,
             source_locator: "/MTConnectAssets/Assets/Asset[1]".into(),
             document_order: 3,
             value: MtValue::Asset { asset_type: "CuttingTool".into(), asset_id: "TOOL-0001".into() },
@@ -1034,7 +1083,7 @@ mod tests {
     fn timestamp_regression_is_reported_without_rewriting_source_times() {
         let source = fixture_source(Standard::MtConnect);
         let mut observations = fixture_observations(false);
-        observations[2].timestamp_ns = observations[0].reference_timestamp_ns - 1;
+        observations[2].reference_timestamp_ns = observations[0].reference_timestamp_ns - 1;
         let mapped = map_mtconnect(&source,"urn:uuid:machine-001","STREAM-001",false,&observations).unwrap();
         assert!(mapped.diagnostics.iter().any(|d| d.kind == StreamDiagnosticKind::TimestampRegression));
         assert_eq!(mapped.observations[2].timestamp_ns,observations[2].reference_timestamp_ns);
@@ -1114,6 +1163,33 @@ mod tests {
     }
 
     #[test]
+    fn association_must_cover_measurement_time_not_only_decision_time() {
+        let mt=fixture_source(Standard::MtConnect);
+        let stream=map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
+        let qif=fixture_source(Standard::Qif);
+        let result=fixture_qif_result(&qif);
+        let cycle=fixture_cycle(&stream);
+        let mut association=fixture_association(&stream,&qif);
+        association.valid_from_ns=1_750_000_600;
+        let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
+        assert_eq!(join.reason,"ASSOCIATION_NOT_VALID_AT_MEASUREMENT_TIME");
+    }
+
+    #[test]
+    fn machine_observation_must_use_cycle_clock_mapping() {
+        let mt=fixture_source(Standard::MtConnect);
+        let mut observations=fixture_observations(false);
+        observations[0].clock_mapping_sha256=prefix_hash("8");
+        let stream=map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&observations).unwrap();
+        let qif=fixture_source(Standard::Qif);
+        let result=fixture_qif_result(&qif);
+        let cycle=fixture_cycle(&stream);
+        let association=fixture_association(&stream,&qif);
+        let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
+        assert_eq!(join.reason,"MACHINE_OBSERVATION_CLOCK_MAPPING_MISMATCH");
+    }
+
+    #[test]
     fn measurement_outside_cycle_window_cannot_join() {
         let mt=fixture_source(Standard::MtConnect);
         let stream=map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
@@ -1142,12 +1218,15 @@ mod tests {
         let mapped=map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
         assert!(mapped.observations.iter().all(|o| o.source_document_sha256==mt.document_sha256));
         assert!(mapped.observations.iter().all(|o| o.extension_count==1));
+        let row = mapped.csv_rows()[0].clone();
+        assert!(row.contains(&mt.opaque_extensions[0].raw_xml_sha256));
         let mut changed=mt.clone();
-        changed.opaque_extensions[0].raw_xml_sha256=prefix_hash("9");
+        changed.document_sha256=prefix_hash("9");
+        changed.opaque_extensions[0].raw_xml_sha256=prefix_hash("8");
         let mapped_changed=map_mtconnect(&changed,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
-        assert_eq!(mapped_changed.observations[0].source_document_sha256,mt.document_sha256);
-        assert_eq!(mapped_changed.observations[0].extension_count,1);
-        assert_ne!(changed.opaque_extensions[0].raw_xml_sha256,mt.opaque_extensions[0].raw_xml_sha256);
+        let changed_row=mapped_changed.csv_rows()[0].clone();
+        assert!(changed_row.contains(&changed.opaque_extensions[0].raw_xml_sha256));
+        assert_ne!(mapped_changed.observations[0].source_document_sha256,mt.document_sha256);
     }
 
     #[test]
