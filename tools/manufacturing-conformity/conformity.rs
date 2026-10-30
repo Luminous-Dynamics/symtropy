@@ -580,6 +580,14 @@ mod tests {
     }
 
     #[test]
+    fn mismatched_evidence_state_is_distinct_and_never_disposes_part() {
+        let mut r = request(15.0, 1.0);
+        r.evidence.measurement = EvidenceState::Mismatched;
+        assert_eq!(classify(&r).outcome, Outcome::EvidenceIncomplete);
+        assert_eq!(classify(&r).reason, "MEASUREMENT_EVIDENCE_MISMATCHED");
+    }
+
+    #[test]
     fn calibration_and_spec_must_be_current_at_measurement_time() {
         let mut r = request(15.0, 1.0);
         r.measurement.time_ns = r.measurement.calibration_until_ns + 1;
