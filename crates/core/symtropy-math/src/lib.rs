@@ -31,9 +31,8 @@ pub mod halfspace;
 pub mod hyperbox;
 pub mod hyperplane;
 pub mod periodic;
-pub mod point;
-pub mod periodic;
 pub mod periodic_lattice;
+pub mod point;
 pub mod rotor;
 pub mod shape;
 pub mod sphere;
@@ -48,7 +47,6 @@ pub use hyperbox::HyperBox;
 pub use hyperplane::Hyperplane;
 pub use periodic::{LatticeOffset, PeriodicBox, PeriodicDomainError, WrappedPoint};
 pub use point::Point;
-pub use periodic::{LatticeOffset, PeriodicBox, PeriodicDomainError, WrappedPoint};
 pub use periodic_lattice::{
     MinimumImage, TriclinicCellError, TriclinicPeriodicCell, TriclinicWrappedPoint,
 };
