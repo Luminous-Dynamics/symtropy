@@ -323,7 +323,7 @@ pub fn report_to_csv(report: &SectionPolarReport) -> String {
             report.source_dataset_id,
             report.declared_source_sha256,
             report.source_revision,
-            csv_escape(&report.source_condition),
+            csv_escape(report.source_condition),
             report.evidence_level,
             csv_escape(&zone.zone),
             zone.observation_count,
@@ -394,20 +394,20 @@ mod tests {
         let high_angle = [(17.0, 1.1), (18.0, 0.7)];
         let mut rows = Vec::new();
         // Test fixtures represent distinct zones in one source file, so line numbers stay global.
-        let first_line = if zone == "A" { 1 } else { 101 };
-        for (offset_index, (alpha, cl)) in calibration
+        let mut line = if zone == "A" { 1 } else { 101 };
+        for (alpha, cl) in calibration
             .into_iter()
             .chain(intermediate)
             .chain(high_angle)
-            .enumerate()
         {
             rows.push(observation(
                 zone,
-                first_line + offset_index,
+                line,
                 alpha,
                 cl,
                 0.01 + 0.02 * cl * cl + offset,
             ));
+            line += 1;
         }
         rows
     }

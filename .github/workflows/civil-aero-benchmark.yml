@@ -44,8 +44,9 @@ jobs:
       - name: Matched-mission Pareto and exploitation controls
         shell: bash
         run: |
-          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin pareto -- tools/civil-aero-benchmark/data/candidate_designs.csv > /tmp/aero-pareto-a.csv 2> /tmp/aero-pareto-a.txt
-          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin pareto -- tools/civil-aero-benchmark/data/candidate_designs.csv > /tmp/aero-pareto-b.csv 2> /tmp/aero-pareto-b.txt
+          cargo build --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin pareto
+          ./tools/civil-aero-benchmark/target/debug/pareto tools/civil-aero-benchmark/data/candidate_designs.csv > /tmp/aero-pareto-a.csv 2> /tmp/aero-pareto-a.txt
+          ./tools/civil-aero-benchmark/target/debug/pareto tools/civil-aero-benchmark/data/candidate_designs.csv > /tmp/aero-pareto-b.csv 2> /tmp/aero-pareto-b.txt
           cmp /tmp/aero-pareto-a.csv /tmp/aero-pareto-b.csv
           cmp /tmp/aero-pareto-a.txt /tmp/aero-pareto-b.txt
           test "$(wc -l < /tmp/aero-pareto-a.csv)" -eq 5

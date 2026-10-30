@@ -208,10 +208,6 @@ The ledger requires a fixed budget cap for every policy on the same task/replica
 The committed ledger is synthetic. It charges a nonconverged high-fidelity run to the random baseline and demonstrates bookkeeping only. The CSV's cost units need a documented mapping to actual solver calls, compute, tuning, orchestration and independent-audit effort before a real ShapeBench or CFD comparison. The output label is ledger_audit_only, not aerodynamic validation or an optimizer win.
 
 
-## Civil-aerospace benchmark roadmap
-
-See [AERO_CIVIL_BENCHMARK_ROADMAP_V0_1.md](AERO_CIVIL_BENCHMARK_ROADMAP_V0_1.md) for the evidence-first validation ladder, industry baseline plan, matched-budget optimizer comparisons and proposed acceptance targets.
-
 ## DPW-8/AePW-4 Force/Moment V5 dual-view ingestion
 
 The clean-room V5 parser is in src/dpw8_submission.rs, with CLI dpw8_v5_audit. It preserves dataset/zone auxiliary metadata and source line numbers, requires the 31-column Force/Moment V5 schema, converts optional -999 values to missing values, and rejects the sentinel in required fields. It reconciles the GRID LEVEL n and ALPHA x table views by (GRID_LEVEL, ALPHA), rejects duplicate or mismatched cells, and retains both original line references.
@@ -226,7 +222,3 @@ This parser work does not ingest or redistribute the official participant file. 
 
 
 The V5 auditor also verifies that every angle assigned to a grid level carries the same `GRID_SIZE` and `GRID_FAC`, and that a mesh size is not reused under another grid-level identifier. The CLI emits the exact input byte length and SHA-256 digest on stderr; a caller-supplied path is explicitly labelled unverified and is never upgraded to official-source status.
-
-## Grid-convergence and GCI diagnostics
-
-The src/grid_convergence.rs module implements sliding three-grid observed-order, Richardson extrapolation and Grid Convergence Index estimates. Callers must supply characteristic spacing and justify its definition as well as the GCI safety factor. The module never infers physical spacing from node count, and rejects non-monotonic, zero-difference or badly ordered grid sequences. Reports include absolute and relative GCI, extrapolated values and an asymptotic consistency ratio. The grid_convergence_demo CLI and independent Python oracle use only a synthetic quadratic known-answer problem; this demonstrates the arithmetic, not CFD convergence or validation.

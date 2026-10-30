@@ -35,8 +35,6 @@ fn run() -> Result<(), String> {
     eprintln!(
         "source_evidence={source_evidence} input_byte_length={} input_sha256={input_sha256} title={} zones={} raw_records={} grid_view_records={} alpha_view_records={} canonical_cells={}",
         input.len(),
-        dataset.title,
-        dataset.zones.len(),
         report.raw_record_count,
         report.grid_view_record_count,
         report.alpha_view_record_count,

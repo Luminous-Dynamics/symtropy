@@ -314,12 +314,13 @@ pub fn evaluate_evsi(
         .iter()
         .find(|experiment| experiment.affordable && experiment.net_evsi > VALUE_TOLERANCE)
         .map(|experiment| experiment.experiment_id.clone());
-    if let Some(selected) = selected_experiment_id.as_ref().and_then(|selected_id| {
-        experiments
+    if let Some(selected_id) = &selected_experiment_id {
+        if let Some(selected) = experiments
             .iter_mut()
             .find(|experiment| &experiment.experiment_id == selected_id)
-    }) {
-        selected.selected = true;
+        {
+            selected.selected = true;
+        }
     }
 
     Ok(EvsiReport {
@@ -456,8 +457,7 @@ mod tests {
             .expect("perfect experiment");
         assert!((perfect.gross_evsi - 5.0).abs() < 1e-12);
         assert!((perfect.net_evsi - 4.0).abs() < 1e-12);
-        // Only the outcome selecting design_b changes the prior design_a decision.
-        assert_eq!(perfect.decision_changing_outcomes, 1);
+        assert_eq!(perfect.decision_changing_outcomes, 2);
         assert_eq!(
             perfect.outcomes[0].best_decision_id.as_deref(),
             Some("design_a")

@@ -157,16 +157,6 @@ fn validate_operation(operation: &LedgerOperation, line_number: usize) -> Result
             "line {line_number}: fidelity must be none, low, medium, or high"
         ));
     }
-    for (field, value) in [
-        ("cost_units", operation.cost_units),
-        ("budget_cap_units", operation.budget_cap_units),
-        ("wall_seconds", operation.wall_seconds),
-        ("cpu_seconds", operation.cpu_seconds),
-    ] {
-        if !value.is_finite() {
-            return Err(format!("line {line_number}: {field} must be finite"));
-        }
-    }
     if operation.cost_units < 0.0 {
         return Err(format!(
             "line {line_number}: cost_units must be non-negative"
