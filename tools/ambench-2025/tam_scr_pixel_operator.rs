@@ -391,44 +391,30 @@ fn derive_pixel(trace: &PixelTrace) -> Result<PixelReport, String> {
         return Ok(report);
     };
 
-    let mut index_1150 = None;
-    let mut time_1150 = None;
-    for index in (index_1260 + 1)..(trace.samples.len() - 1) {
-        // A reheat to or above solidus before 1150 C makes the "same cooling
-        // excursion" ambiguous; do not bridge to a later unrelated event.
-        if trace.samples[index].temperature_c > SOLIDUS_C {
-            report.scr_status = MetricStatus::Inconclusive;
-            report.scr_reason = "REHEATED_ABOVE_SOLIDUS_BEFORE_1150C";
-            return Ok(report);
-        }
-        let left = trace.samples[index];
-        let right = trace.samples[index + 1];
-        if left.temperature_c > SCR_LOWER_C && right.temperature_c <= SCR_LOWER_C {
-            match interpolate_crossing(left, right, SCR_LOWER_C) {
-                Ok(time) => {
-                    index_1150 = Some(index);
-                    time_1150 = Some(time);
-                    break;
-                }
-                Err(_) => {
-                    report.scr_status = MetricStatus::Inconclusive;
-                    report.scr_reason = "LOWER_COOLING_CROSSING_INVALID";
-                    return Ok(report);
-                }
-            }
-        } else if left.temperature_c == SCR_LOWER_C && right.temperature_c < SCR_LOWER_C {
-            index_1150 = Some(index);
-            time_1150 = Some(left.time_s);
-            break;
-        }
-    }
-
-    let (Some(_), Some(time_1150)) = (index_1150, time_1150) else {
+    // Start at the same segment that brackets 1260 C. A single pair of
+    // sparse frames may bracket both 1260 C and 1150 C; skipping that pair
+    // would incorrectly mark a valid fast-cooling event as missing.
+    let Some((index_1150, time_1150)) =
+        find_downward_crossing(&trace.samples, index_1260, SCR_LOWER_C) else {
         report.scr_status = MetricStatus::Missing;
         report.scr_reason = "1150C_DOWNWARD_CROSSING_NOT_FOUND";
         report.t1260_s = Some(time_1260);
         return Ok(report);
     };
+
+    // Reject a reheat above solidus between the two threshold crossings. If
+    // both crossings lie in the same linear segment, there is no intermediate
+    // observed sample at which a reheat can occur.
+    if index_1150 > index_1260
+        && trace.samples[index_1260 + 1..=index_1150]
+            .iter().any(|sample| sample.temperature_c > SOLIDUS_C)
+    {
+        report.scr_status = MetricStatus::Inconclusive;
+        report.scr_reason = "REHEATED_ABOVE_SOLIDUS_BEFORE_1150C";
+        report.t1260_s = Some(time_1260);
+        report.t1150_s = Some(time_1150);
+        return Ok(report);
+    }
 
     let delta_t = time_1150 - time_1260;
     if !delta_t.is_finite() || delta_t <= 0.0 {
@@ -596,6 +582,28 @@ mod tests {
         let t1150 = 4.20 + (1250.0 - 1150.0) / 150.0 * (5.90 - 4.20);
         assert!((report.t1260_s.unwrap() - t1260).abs() < 1.0e-12);
         assert!((report.t1150_s.unwrap() - t1150).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn one_sparse_frame_pair_can_bracket_both_scr_temperatures() {
+        let trace = PixelTrace {
+            meta: fixture_meta("PIXEL-FAST-COOL"),
+            samples: vec![
+                sample(0,0.0,1200.0),
+                sample(1,1.0,1320.0),
+                sample(2,2.0,1400.0),
+                sample(3,3.0,1200.0),
+                sample(4,4.0,1000.0),
+            ],
+        };
+        let report = derive_pixel(&trace).unwrap();
+        assert_eq!(report.tam_status, MetricStatus::Derived);
+        assert_eq!(report.scr_status, MetricStatus::Derived);
+        let expected_t1260 = 2.0 + (1400.0 - 1260.0) / 200.0;
+        let expected_t1150 = 2.0 + (1400.0 - 1150.0) / 200.0;
+        assert!((report.t1260_s.unwrap() - expected_t1260).abs() < 1.0e-12);
+        assert!((report.t1150_s.unwrap() - expected_t1150).abs() < 1.0e-12);
+        assert!(report.scr_delta_t_s.unwrap() > 0.0);
     }
 
     #[test]
