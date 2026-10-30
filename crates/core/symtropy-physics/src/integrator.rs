@@ -772,9 +772,9 @@ mod tests {
 
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(8), Point::origin(), 0.5, 1.0);
         body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::from_second_moment(
-                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
-            )
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
             .unwrap(),
         );
         let before = body.angular_velocity.clone();
