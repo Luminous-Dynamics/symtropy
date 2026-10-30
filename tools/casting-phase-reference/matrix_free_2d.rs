@@ -233,6 +233,12 @@ fn pcg(
     {
         return Err("PCG_NONFINITE_INPUT".into());
     }
+    let rhs_scale = rhs.iter().fold(1.0_f64, |scale, value| scale.max(value.abs()));
+    for (index, gamma) in operator.gamma.iter().enumerate() {
+        if *gamma == 0.0 && rhs[index].abs() > EPSILON_SCALE * rhs_scale {
+            return Err("MIXED_ROW_RHS_NONZERO: mixed-phase rows must impose v=0".into());
+        }
+    }
     if !relative_tolerance.is_finite()
         || relative_tolerance <= 0.0
         || max_iterations == 0
@@ -291,7 +297,11 @@ fn pcg(
         operator.apply_validated(&direction, &mut applied_direction)?;
         operator_applications += 1;
         let curvature = dot(&direction, &applied_direction)?;
-        if !curvature.is_finite() || curvature <= EPSILON_SCALE * rho.abs() {
+        let curvature_scale = norm(&direction)? * norm(&applied_direction)?;
+        if !curvature.is_finite()
+            || !curvature_scale.is_finite()
+            || curvature <= EPSILON_SCALE * curvature_scale
+        {
             return Err("PCG_NOT_POSITIVE_DEFINITE: p^T A p is nonpositive or numerically unsafe".into());
         }
 
@@ -624,6 +634,17 @@ mod tests {
         x[2] = f64::NAN;
         let mut y = vec![0.0; operator.len()];
         assert!(operator.apply(&x, &mut y).is_err());
+    }
+
+    #[test]
+    fn nonzero_mixed_row_rhs_rejects() {
+        let operator = fixture(4, 4);
+        let exact = known_solution(&operator);
+        let mut rhs = vec![0.0; operator.len()];
+        operator.apply(&exact, &mut rhs).unwrap();
+        let mixed = operator.gamma.iter().position(|gamma| *gamma == 0.0).unwrap();
+        rhs[mixed] = 1.0;
+        assert!(pcg(&operator, &rhs, None, RELATIVE_TOLERANCE, MAX_ITERATIONS).is_err());
     }
 
     #[test]
