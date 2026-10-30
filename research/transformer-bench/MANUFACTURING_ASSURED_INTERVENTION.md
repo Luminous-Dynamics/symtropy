@@ -103,3 +103,25 @@ The 2026 review highlights the gap between digital-shadow/advisory twins and gov
 ## Scope boundary
 
 This specification does not implement physical control, PLC messaging, a robot driver, process write access, cryptographic identity issuance or product release. Those capabilities require separate threat modelling, hazard analysis, trusted-key management, integration testing against equipment simulators and physical interlocks, and formal operational approval.
+
+
+## Executable state-transition audit
+
+The first executable state-transition auditor is `assured-intervention-audit`:
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin assured-intervention-audit -- \
+  research/transformer-bench/fixtures/assured-intervention-positive-synthetic.csv \
+  /tmp/intervention-audit.csv
+```
+
+It checks append-only sequence numbers, prior/next-state agreement, immutable proposal ID/nonce/context digest/expiry, monotonic event timestamps, unique proposal and nonce use, model validation evidence before constraints, policy evidence before authorization, authorization before execution, proposal expiry at authorization and execution, machine receipt, and independent postcondition/instrument evidence before `CLOSED`.
+
+Synthetic CI negative controls reject:
+- `EXECUTED -> CLOSED` without a postcondition;
+- reuse of a nonce by a different action;
+- authorization issued after the proposal validity window.
+
+### Assurance limit
+
+This audit checks receipt-digest syntax and event linkage. It does **not** cryptographically verify a signature, validate the signer against a trusted role policy, authenticate the artifact bytes, query revocation status, read machine interlocks, or communicate with PLCs. The event log is supplied as input; this is not a secure append-only storage service. Those remain requirements for a future independent gateway and governed evidence store. No machine control or release authority is added.
