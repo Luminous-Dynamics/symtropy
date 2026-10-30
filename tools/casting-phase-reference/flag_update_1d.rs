@@ -204,7 +204,7 @@ fn thomas_solve(lower: &[f64], diagonal: &[f64], upper: &[f64], rhs: &[f64]) -> 
     if n == 0 || lower.len() != n || upper.len() != n || rhs.len() != n {
         return Err("invalid tridiagonal system dimensions".into());
     }
-    let mut c = upper.to_vec();
+    let c = upper.to_vec();
     let mut d = rhs.to_vec();
     let mut b = diagonal.to_vec();
     let mut scale = 1.0_f64;
@@ -463,6 +463,7 @@ fn run_campaign(campaign: Campaign) -> Result<Summary, String> {
     let mut e = vec![0.0; nodes];
     let mut flags = vec![1_i8; nodes];
     let mut latent = vec![v.latent_density; nodes];
+    let mut potential = vec![K_L * TINF; nodes];
 
     // Dirichlet wall node is solid with S=0, T=Tw, v=K_s*Tw.
     flags[0] = -1;
@@ -525,6 +526,7 @@ fn run_campaign(campaign: Campaign) -> Result<Summary, String> {
             .collect();
         flags = solution.flags;
         latent = solution.latent;
+        potential = solution.potential;
         if e.iter().any(|x| !x.is_finite()) {
             return Err("non-finite enthalpy after timestep".into());
         }
