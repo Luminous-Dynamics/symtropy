@@ -18,7 +18,7 @@ The resulting shortest-derivation code length is:
 - terminal: L = log2(10) bits;
 - operator node: L = 3 + sum(L(children)) bits.
 
-The grammar is subcritical: expected child count is 0.875 per node, so it defines a proper terminating recursive prior. The implementation assigns each **semantic truth-table class** the code length of its shortest enumerated derivation. Its unnormalized weight is 2^(-L) and the weights are normalized over the finite, depth-capped semantic candidate set.
+The grammar is subcritical: expected child count is 0.875 per node, so it defines a proper terminating recursive prior. The implementation assigns each **semantic truth-table class** the code length of its shortest enumerated derivation. Its unnormalized weight is 2^(-βL) and the weights are normalized over the finite, depth-capped semantic candidate set. The CLI exposes `--mdl-beta` in [0,4], with default β=1. At β=0, every semantic function has equal prior mass and MDL-EIG must reduce exactly to uniform-prior EIG; increasing β concentrates more prior weight on shorter descriptions. The workflow predeclares a β∈{0,1,2} sensitivity sweep and retains separate exact-head receipts.
 
 This is a shortest-program/MDL prior. It is **not** the exact marginal probability obtained by summing the probabilities of every syntactic derivation of the same semantic function. That choice is deliberate: syntactic alias multiplicity must not give a semantic function an accidental extra vote. It is also not a calibrated posterior claim; sensitivity to grammar, code lengths and priors remains an open research question.
 
@@ -67,10 +67,11 @@ cargo run --locked --manifest-path tools/sim-rel-bayes/Cargo.toml --bin sim-rel-
   --truth tools/sim-rel-bayes/fixtures/evaluator-truth-v0.tsv \
   --expected-head "$EXPECTED_HEAD" \
   --max-depth 2 \
+  --mdl-beta 1 \
   --out /tmp/sim-rel-003-receipt.json
 ~~~
 
-The runner requires an exact HEAD and a clean checkout. Write outputs outside the repository. The dedicated workflow runs formatting, tests, strict Clippy, receipt assertions and uploads the receipt artifact for inspection.
+The runner requires an exact HEAD and a clean checkout. Write outputs outside the repository. The dedicated workflow runs formatting, tests, strict Clippy, then a predeclared β={0,1,2} sweep. Each exact-head receipt is validated and uploaded for inspection.
 
 ## Limits / next gates
 
