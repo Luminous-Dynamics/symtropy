@@ -87,7 +87,7 @@ Compare candidates on the same stated mission, payload, density profile, route d
 
 ## Evidence-source manifest
 
-`data/source_manifest.v0.1.json` records the exact NASA TMR force, pressure, geometry and grid URLs discovered for the high-Re validation lineage, alongside a candidate UIUC low-Re data lineage. It is deliberately a **source-discovery manifest**, not a qualified dataset: hashes and byte lengths remain null until the exact raw artifacts are retained and independently hashed. The CI guard rejects a null hash paired with an admitted-looking status.
+`data/source_manifest.v0.1.json` is now a **partial source-ingest manifest**. The three retained NASA TMR force/pressure text files have exact upstream commit references, Git blob IDs, byte lengths and SHA-256 digests; their parser and independent-parse admission reviews are still pending. The geometry points, NASA CFD grid archive and UIUC low-Re catalog remain unpinned or catalog-only with null hashes. No source in this manifest is admitted as a qualified CFD validation dataset. The CI guard rejects a null hash paired with an admitted-looking status.
 
 Do not report a CFD validation result until raw bytes, revision, conditions, units, licensing/applicability review, parser tests, convergence evidence and independent checks have been recorded. Do not pool the NASA Re=6,000,000 case with low-Reynolds-number airfoil measurements as if they were the same regime.
 
