@@ -47,7 +47,9 @@ The draft supports square full-rank basis matrices for D=1,2,3. It does not yet 
 - changing/deforming lattices;
 - general non-Euclidean metrics or curved manifolds.
 
-The Frobenius lower bound is conservative. A highly skewed or ill-conditioned basis may require many candidates and correctly fail under a small budget. A future optimization may introduce basis reduction (for example, LLL-like preprocessing for low dimensions), but it must preserve the same certification contract and exact offset semantics.
+The inverse used by the certificate is computed in floating point, so the implementation does not simply assume that it is exact. It computes the Frobenius residual of C B - I for the stored inverse C, inflates this by an arithmetic roundoff allowance, and requires an upper bound r < 1. From B^{-1} = (I + E)^{-1} C with E = C B - I, the bound gives ||B^{-1}||_2 <= ||C||_F / (1-r), hence sigma_min(B) >= (1-r)/||C||_F. The stored lower bound is further deflated for scalar rounding. Each returned result exposes the inverse-residual bound and a roundoff allowance for its selected distance; the unsearched-image lower bound must exceed the selected distance plus that allowance. The constructor also rejects basis components that cannot be represented to within 12.5% when translated from the declared origin, preventing a finite but sub-ULP cell from masquerading as a valid domain.
+
+This is a conservative floating-point numerical certificate under the stated error model, not an exact-arithmetic or interval-arithmetic proof. The bound should be checked against higher-precision independent oracles before widening the validity envelope. A highly skewed or ill-conditioned basis may require many candidates and correctly fail under a small budget. A future optimization may introduce basis reduction (for example, LLL-like preprocessing or Fincke–Pohst/sphere-decoding enumeration for low dimensions), but it must preserve the same certificate and exact offset semantics.
 
 ## Independent correctness corpus
 
@@ -57,7 +59,7 @@ The current Rust tests include:
 - deterministic seeded comparisons against a wider brute-force integer-image oracle;
 - one-active-axis behaviour where inactive fractional coordinates do not wrap;
 - explicit refusal when the candidate budget cannot certify the nearest image;
-- singular basis, non-finite coordinate, and invalid inactive-axis offsets;
+- singular basis, non-finite coordinate, below-origin-resolution cell vectors, and invalid inactive-axis offsets;
 - exact half-cell tie reversal symmetry.
 
 Before any CI/test pass is claimed, add or retain:
