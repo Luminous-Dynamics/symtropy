@@ -191,9 +191,139 @@ fn gamma_dimension_half_plus_four<const D: usize>() -> Result<f64, SphKernelErro
     }
 }
 
+/// Compact-support Wendland C2 kernel for D=1,2,3.
+///
+/// The constructor argument is the **full support radius** R, so the kernel
+/// vanishes for |r| >= R. The radial shape is
+/// W(r,R) = C_D(R) (1-q)^4 (1+4q), q = |r|/R, 0 <= q < 1.
+///
+/// Normalizations:
+/// - D=1: C = 3/(2 R)
+/// - D=2: C = 7/(pi R^2)
+/// - D=3: C = 21/(2 pi R^3)
+///
+/// This is a standalone kernel primitive. The WCSPH reference solver still
+/// selects Poly6 until a separate matched-kernel comparison is completed.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct WendlandC2Kernel<const D: usize> {
+    support_radius: f64,
+    support_radius_squared: f64,
+    normalization: f64,
+}
+
+impl<const D: usize> WendlandC2Kernel<D> {
+    pub fn new(support_radius: f64) -> Result<Self, SphKernelError> {
+        if D == 0 {
+            return Err(SphKernelError::InvalidDimension);
+        }
+        if D > 3 {
+            return Err(SphKernelError::UnsupportedDimension);
+        }
+        if !support_radius.is_finite() || support_radius <= 0.0 {
+            return Err(SphKernelError::InvalidSmoothingLength);
+        }
+
+        let support_radius_squared = support_radius * support_radius;
+        if !support_radius_squared.is_finite() || support_radius_squared <= 0.0 {
+            return Err(SphKernelError::InvalidSmoothingLength);
+        }
+
+        let radius_power = support_radius.powi(D as i32);
+        if !radius_power.is_finite() || radius_power <= 0.0 {
+            return Err(SphKernelError::InvalidSmoothingLength);
+        }
+        let dimension_constant = match D {
+            1 => 1.5,
+            2 => 7.0 / std::f64::consts::PI,
+            3 => 21.0 / (2.0 * std::f64::consts::PI),
+            _ => return Err(SphKernelError::UnsupportedDimension),
+        };
+        let normalization = dimension_constant / radius_power;
+        if !normalization.is_finite() || normalization <= 0.0 {
+            return Err(SphKernelError::NumericRange);
+        }
+
+        Ok(Self {
+            support_radius,
+            support_radius_squared,
+            normalization,
+        })
+    }
+
+    pub fn support_radius(&self) -> f64 {
+        self.support_radius
+    }
+
+    pub fn normalization(&self) -> f64 {
+        self.normalization
+    }
+
+    /// Evaluate the normalized Wendland C2 radial weight.
+    pub fn value(&self, displacement: &SVector<f64, D>) -> Result<f64, SphKernelError> {
+        self.validate_displacement(displacement)?;
+        let radius_squared = displacement.norm_squared();
+        if !radius_squared.is_finite() {
+            return Err(SphKernelError::NumericRange);
+        }
+        if radius_squared >= self.support_radius_squared {
+            return Ok(0.0);
+        }
+
+        let q = radius_squared.sqrt() / self.support_radius;
+        let gap = 1.0 - q;
+        let value = self.normalization * gap.powi(4) * (1.0 + 4.0 * q);
+        if !value.is_finite() || value < 0.0 {
+            return Err(SphKernelError::NumericRange);
+        }
+        Ok(value)
+    }
+
+    /// Gradient with respect to the first point, using r = x_i - x_j.
+    ///
+    /// grad_i W = -20 C_D / R² * (1 - |r|/R)^3 * r inside support.
+    pub fn gradient(
+        &self,
+        displacement: &SVector<f64, D>,
+    ) -> Result<SVector<f64, D>, SphKernelError> {
+        self.validate_displacement(displacement)?;
+        let radius_squared = displacement.norm_squared();
+        if !radius_squared.is_finite() {
+            return Err(SphKernelError::NumericRange);
+        }
+        if radius_squared >= self.support_radius_squared {
+            return Ok(SVector::<f64, D>::zeros());
+        }
+
+        let q = radius_squared.sqrt() / self.support_radius;
+        let gap = 1.0 - q;
+        let factor =
+            -20.0 * self.normalization / self.support_radius_squared * gap.powi(3);
+        if !factor.is_finite() {
+            return Err(SphKernelError::NumericRange);
+        }
+        let gradient = displacement * factor;
+        if !gradient.iter().all(|component| component.is_finite()) {
+            return Err(SphKernelError::NumericRange);
+        }
+        Ok(gradient)
+    }
+
+    fn validate_displacement(
+        &self,
+        displacement: &SVector<f64, D>,
+    ) -> Result<(), SphKernelError> {
+        for axis in 0..D {
+            if !displacement[axis].is_finite() {
+                return Err(SphKernelError::NonFiniteDisplacement { axis });
+            }
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{Poly6Kernel, SphKernelError};
+    use super::{Poly6Kernel, SphKernelError, WendlandC2Kernel};
     use nalgebra::SVector;
 
     fn radial_integral<const D: usize>(unit_sphere_surface_area: f64) -> f64 {
@@ -308,6 +438,172 @@ mod tests {
         scaling_law::<1>();
         scaling_law::<2>();
         scaling_law::<3>();
+    }
+
+    fn wendland_radial_integral<const D: usize>(surface_area: f64) -> f64 {
+        let kernel = WendlandC2Kernel::<D>::new(1.7).unwrap();
+        let bins = 50_000;
+        let dr = kernel.support_radius() / bins as f64;
+        let mut integral = 0.0;
+        for bin in 0..bins {
+            let radius = (bin as f64 + 0.5) * dr;
+            let mut displacement = SVector::<f64, D>::zeros();
+            displacement[0] = radius;
+            integral += surface_area
+                * radius.powf(D as f64 - 1.0)
+                * kernel.value(&displacement).unwrap()
+                * dr;
+        }
+        integral
+    }
+
+    #[test]
+    fn wendland_c2_normalizes_in_one_two_and_three_dimensions() {
+        close(wendland_radial_integral::<1>(2.0), 1.0, 2e-8);
+        close(
+            wendland_radial_integral::<2>(2.0 * std::f64::consts::PI),
+            1.0,
+            2e-8,
+        );
+        close(
+            wendland_radial_integral::<3>(4.0 * std::f64::consts::PI),
+            1.0,
+            2e-8,
+        );
+    }
+
+    #[test]
+    fn wendland_c2_gradient_matches_central_finite_difference() {
+        let kernel = WendlandC2Kernel::<3>::new(1.4).unwrap();
+        let displacement = SVector::from([0.2, -0.3, 0.1]);
+        let analytic = kernel.gradient(&displacement).unwrap();
+        let epsilon = 1e-6;
+
+        for axis in 0..3 {
+            let mut plus = displacement;
+            let mut minus = displacement;
+            plus[axis] += epsilon;
+            minus[axis] -= epsilon;
+            let numeric =
+                (kernel.value(&plus).unwrap() - kernel.value(&minus).unwrap())
+                    / (2.0 * epsilon);
+            close(analytic[axis], numeric, 1e-8);
+        }
+    }
+
+    #[test]
+    fn wendland_c2_is_positive_monotone_and_flat_at_support_boundary() {
+        let kernel = WendlandC2Kernel::<2>::new(1.0).unwrap();
+        let mut previous = kernel.value(&SVector::zeros()).unwrap();
+        assert!(previous > 0.0);
+        for step in 1..100 {
+            let radius = step as f64 / 100.0;
+            let value = kernel
+                .value(&SVector::from([radius, 0.0]))
+                .unwrap();
+            assert!(value >= 0.0);
+            assert!(value < previous, "kernel must be strictly decreasing away from zero");
+            previous = value;
+        }
+        assert_eq!(kernel.value(&SVector::from([1.0, 0.0])).unwrap(), 0.0);
+        assert_eq!(
+            kernel.gradient(&SVector::from([1.0, 0.0])).unwrap(),
+            SVector::<f64, 2>::zeros()
+        );
+        assert_eq!(
+            kernel.gradient(&SVector::zeros()).unwrap(),
+            SVector::<f64, 2>::zeros()
+        );
+    }
+
+    fn wendland_scaling_law<const D: usize>() {
+        let base_radius = 1.7;
+        let mut displacement = SVector::<f64, D>::zeros();
+        for axis in 0..D {
+            displacement[axis] = 0.08 * (axis as f64 + 1.0);
+        }
+        let base = WendlandC2Kernel::<D>::new(base_radius).unwrap();
+        let base_value = base.value(&displacement).unwrap();
+        let base_gradient = base.gradient(&displacement).unwrap();
+
+        for scale in [0.5_f64, 2.0] {
+            let scaled = WendlandC2Kernel::<D>::new(base_radius * scale).unwrap();
+            let scaled_value = scaled.value(&(displacement * scale)).unwrap();
+            let scaled_gradient = scaled.gradient(&(displacement * scale)).unwrap();
+            close(scaled_value * scale.powi(D as i32), base_value, 2e-12);
+            for axis in 0..D {
+                close(
+                    scaled_gradient[axis] * scale.powi(D as i32 + 1),
+                    base_gradient[axis],
+                    2e-12,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn wendland_c2_obeys_dimensionally_correct_scaling() {
+        wendland_scaling_law::<1>();
+        wendland_scaling_law::<2>();
+        wendland_scaling_law::<3>();
+    }
+
+    #[test]
+    fn wendland_c2_is_isotropic_under_orthogonal_rotation() {
+        let kernel = WendlandC2Kernel::<2>::new(1.2).unwrap();
+        let angle = 0.73_f64;
+        let rotation = nalgebra::SMatrix::<f64, 2, 2>::new(
+            angle.cos(),
+            -angle.sin(),
+            angle.sin(),
+            angle.cos(),
+        );
+        let displacement = SVector::from([0.3, -0.4]);
+        let rotated = rotation * displacement;
+        close(
+            kernel.value(&displacement).unwrap(),
+            kernel.value(&rotated).unwrap(),
+            1e-14,
+        );
+        assert!(
+            (kernel.gradient(&rotated).unwrap() - rotation * kernel.gradient(&displacement).unwrap())
+                .norm() < 1e-12
+        );
+    }
+
+    #[test]
+    fn wendland_c2_uses_known_support_radius_normalizations() {
+        close(
+            WendlandC2Kernel::<1>::new(1.0).unwrap().normalization(),
+            1.5,
+            1e-14,
+        );
+        close(
+            WendlandC2Kernel::<2>::new(1.0).unwrap().normalization(),
+            7.0 / std::f64::consts::PI,
+            1e-14,
+        );
+        close(
+            WendlandC2Kernel::<3>::new(1.0).unwrap().normalization(),
+            21.0 / (2.0 * std::f64::consts::PI),
+            1e-14,
+        );
+    }
+
+    #[test]
+    fn wendland_c2_rejects_unsupported_dimensions_and_invalid_radius() {
+        assert!(matches!(
+            WendlandC2Kernel::<4>::new(1.0),
+            Err(SphKernelError::UnsupportedDimension)
+        ));
+        assert!(matches!(
+            WendlandC2Kernel::<2>::new(f64::NAN),
+            Err(SphKernelError::InvalidSmoothingLength)
+        ));
+        assert!(matches!(
+            WendlandC2Kernel::<2>::new(0.0),
+            Err(SphKernelError::InvalidSmoothingLength)
+        ));
     }
 
     #[test]
