@@ -28,6 +28,7 @@ pub mod island;
 pub mod joints;
 pub mod manifold_gen;
 pub mod periodic_lattice_broadphase;
+pub mod periodic_lattice_broadphase;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
@@ -42,6 +43,9 @@ pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
+pub use periodic_lattice_broadphase::{
+    PeriodicLatticeBroadphaseError, lattice_image_offsets_for_aabb_pair,
+};
 pub use periodic_lattice_broadphase::{
     PeriodicLatticeBroadphaseError, lattice_image_offsets_for_aabb_pair,
 };
