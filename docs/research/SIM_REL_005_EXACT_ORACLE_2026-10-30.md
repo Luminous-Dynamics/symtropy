@@ -33,7 +33,7 @@ The solver API intentionally receives no evaluator target. A caller may use the 
 
 ## Independent correctness gates
 
-The test suite compares memoized DP to an independently written non-memoized brute-force recursion on every nontrivial subset of the eight functions over three input bits (all 255 subsets, excluding the empty set and singletons). Additional tests cover exact cost on the complete 3-bit cube with uniform action costs; weighted priors and invariance to common prior scaling; input-order invariance and deterministic first actions; Bellman optimality against every admissible first action; duplicate, invalid prior and zero-cost rejection; fail-closed state-budget exhaustion; and absence of evaluator-target arguments in the API.
+The test suite compares memoized DP to an independently written non-memoized brute-force recursion on every nontrivial subset (247 subsets of size at least two) of eight selected truth-table hypotheses over three binary inputs. Additional tests cover exact cost on the complete 3-bit cube with uniform action costs and all 6,305 nonterminal partial-observation states of the full 256-function universe; weighted priors and invariance to common prior scaling; input-order invariance and deterministic first actions; Bellman optimality against every admissible first action; duplicate, invalid prior and zero-cost rejection; fail-closed state-budget exhaustion; and absence of evaluator-target arguments in the API.
 
 ## Planned integration
 
