@@ -124,7 +124,10 @@ impl Case {
             ("air_density_kg_m3", self.air_density_kg_m3),
             ("battery_energy_wh", self.battery_energy_wh),
             ("route_distance_km", self.route_distance_km),
-            ("assumed_max_lift_coefficient", self.assumed_max_lift_coefficient),
+            (
+                "assumed_max_lift_coefficient",
+                self.assumed_max_lift_coefficient,
+            ),
         ] {
             if value <= 0.0 {
                 return Err(format!("case {}: {name} must be > 0", self.case_id));
