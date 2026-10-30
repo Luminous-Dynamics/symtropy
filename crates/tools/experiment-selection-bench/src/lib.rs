@@ -32,7 +32,7 @@ pub enum ProblemId {
 }
 
 impl ProblemId {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::SmoothBowl,
         Self::Multimodal,
         Self::NarrowPeak,
@@ -224,6 +224,7 @@ pub enum PolicyKind {
     Halton,
     LatinHypercube,
     GaussianProcessUcb,
+    MaxPosteriorVariance,
     /// Reserved for an externally supplied policy through run_trial_with_policy.
     Symthaea,
 }
@@ -235,6 +236,7 @@ impl PolicyKind {
         Self::Halton,
         Self::LatinHypercube,
         Self::GaussianProcessUcb,
+        Self::MaxPosteriorVariance,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -244,6 +246,7 @@ impl PolicyKind {
             Self::Halton => "halton",
             Self::LatinHypercube => "latin_hypercube",
             Self::GaussianProcessUcb => "gp_ucb",
+            Self::MaxPosteriorVariance => "max_posterior_variance",
             Self::Symthaea => "symthaea",
         }
     }
@@ -456,6 +459,61 @@ impl CandidatePolicy for GaussianProcessUcbPolicy {
     }
 }
 
+/// Select the candidate with maximum GP posterior variance.
+///
+/// For fixed Gaussian observation noise, variance is monotonic with the
+/// one-step Gaussian entropy reduction. This is an information-gain proxy,
+/// not full hypothesis-space expected information gain.
+pub struct MaxPosteriorVariancePolicy {
+    candidate_pool: Vec<[f64; 2]>,
+}
+
+impl MaxPosteriorVariancePolicy {
+    pub fn new(seed: u64, candidate_count: usize) -> Self {
+        Self {
+            candidate_pool: GaussianProcessUcbPolicy::new(seed, candidate_count).candidate_pool,
+        }
+    }
+}
+
+impl CandidatePolicy for MaxPosteriorVariancePolicy {
+    fn name(&self) -> &'static str {
+        "max_posterior_variance"
+    }
+
+    fn propose(
+        &mut self,
+        observations: &[Observation],
+        proposal_index: usize,
+        _seed: u64,
+    ) -> [f64; 2] {
+        let Some(model) = GaussianProcess::fit(observations) else {
+            return self.candidate_pool[proposal_index % self.candidate_pool.len()];
+        };
+
+        let mut best: Option<([f64; 2], f64)> = None;
+        for point in &self.candidate_pool {
+            if observations.iter().any(|observation| {
+                observation.status == ObservationStatus::Completed
+                    && squared_distance(observation.point, *point) < 1.0e-12
+            }) {
+                continue;
+            }
+            let Some((_, variance)) = model.predict(*point) else {
+                return [f64::NAN, f64::NAN];
+            };
+            if !variance.is_finite() {
+                return [f64::NAN, f64::NAN];
+            }
+            if best.is_none_or(|(_, best_variance)| variance > best_variance) {
+                best = Some((*point, variance));
+            }
+        }
+        best.map(|(point, _)| point)
+            .unwrap_or([f64::NAN, f64::NAN])
+    }
+}
+
 pub fn make_policy(
     kind: PolicyKind,
     seed: u64,
@@ -474,6 +532,9 @@ pub fn make_policy(
         }
         PolicyKind::GaussianProcessUcb => {
             Box::new(GaussianProcessUcbPolicy::new(seed, GP_CANDIDATE_COUNT))
+        }
+        PolicyKind::MaxPosteriorVariance => {
+            Box::new(MaxPosteriorVariancePolicy::new(seed, GP_CANDIDATE_COUNT))
         }
         PolicyKind::Symthaea => {
             panic!("Symthaea policy requires a caller-supplied CandidatePolicy adapter")
@@ -790,7 +851,8 @@ fn comparison_seed(
             PolicyKind::Halton => 3,
             PolicyKind::LatinHypercube => 4,
             PolicyKind::GaussianProcessUcb => 5,
-            PolicyKind::Symthaea => 6,
+            PolicyKind::MaxPosteriorVariance => 6,
+            PolicyKind::Symthaea => 7,
         }
     }
     let problem_code = match problem {
@@ -1324,6 +1386,22 @@ mod tests {
             item.status == super::ObservationStatus::InvalidProposal
         }));
         assert!(result.regret_curve[8..].iter().all(|regret| regret.is_finite()));
+    }
+
+    #[test]
+    fn maximum_posterior_variance_selects_finite_unobserved_candidates() {
+        let problem = SyntheticProblem::new(ProblemId::SmoothBowl);
+        let observations: Vec<_> = initial_design(44, 8)
+            .into_iter()
+            .map(|point| problem.observe(point, 44))
+            .collect();
+        let mut policy = super::MaxPosteriorVariancePolicy::new(44, 128);
+        let point = policy.propose(&observations, 0, 44);
+        assert!((0.0..=1.0).contains(&point[0]));
+        assert!((0.0..=1.0).contains(&point[1]));
+        assert!(observations
+            .iter()
+            .all(|observation| super::squared_distance(observation.point, point) >= 1.0e-12));
     }
 
     #[test]
