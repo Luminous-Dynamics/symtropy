@@ -45,11 +45,31 @@ jobs:
       - name: Clippy standalone compiler
         run: cargo clippy --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all-targets --locked -- -D warnings
 
-      - name: Record pinned toolchain details
-        run: rustc --version --verbose
+      - name: Record toolchain and host provenance
+        run: |
+          mkdir -p target/engineering-scenario-compiler-benchmark
+          {
+            printf 'commit_sha=%s\\n' "$(git rev-parse HEAD)"
+            printf 'rustc='; rustc --version
+            printf 'cargo='; cargo --version
+            uname -a
+            printf 'logical_cpus=%s\\n' "$(nproc)"
+            sha256sum tools/engineering-scenario-compiler/Cargo.lock
+          } > target/engineering-scenario-compiler-benchmark/reproducibility.txt
 
       - name: Measure deterministic compiler latency distribution
-        run: cargo bench --manifest-path tools/engineering-scenario-compiler/Cargo.toml --bench compile_latency --locked
+        run: |
+          cargo bench --manifest-path tools/engineering-scenario-compiler/Cargo.toml --bench compile_latency --locked \\
+            > target/engineering-scenario-compiler-benchmark/latency.csv
+          cat target/engineering-scenario-compiler-benchmark/latency.csv
+
+      - name: Upload reproducible compiler latency measurements
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-scenario-compiler-benchmark-${{ github.sha }}
+          path: target/engineering-scenario-compiler-benchmark/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Publish formatted sources and resolved lockfile for commit
         if: always()
