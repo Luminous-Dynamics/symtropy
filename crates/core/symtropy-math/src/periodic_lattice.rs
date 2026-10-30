@@ -930,8 +930,18 @@ mod tests {
                 "closest-image mismatch for delta={delta:?}, result={:?}, oracle={best}",
                 result
             );
+            let (_, high_precision_oracle) =
+                dd_closest_image(&basis, &delta, center, [true, true], 48);
+            let selected_high_precision =
+                dd_squared_distance(&basis, &delta, result.image_offset.periods);
+            assert_eq!(
+                selected_high_precision.cmp(high_precision_oracle),
+                std::cmp::Ordering::Equal,
+                "double-double oracle disagrees for delta={delta:?}, offset={:?}",
+                result.image_offset.periods
+            );
             assert!(result.unsearched_distance_lower_bound
-            > result.displacement.norm() + result.nearest_distance_error_bound);
+                > result.displacement.norm() + result.nearest_distance_error_bound);
         }
     }
 
@@ -1030,6 +1040,16 @@ mod tests {
             assert!(
                 (result.displacement.norm() - best).abs() < 1e-9,
                 "case={case} delta={delta:?} result={result:?} oracle={best}"
+            );
+            let (_, high_precision_oracle) =
+                dd_closest_image(&basis, &delta, center, [true, true, true], 6);
+            let selected_high_precision =
+                dd_squared_distance(&basis, &delta, result.image_offset.periods);
+            assert_eq!(
+                selected_high_precision.cmp(high_precision_oracle),
+                std::cmp::Ordering::Equal,
+                "double-double 3D oracle disagrees in case {case}: offset={:?}",
+                result.image_offset.periods
             );
             assert!(result.unsearched_distance_lower_bound
                 > result.displacement.norm() + result.nearest_distance_error_bound);
