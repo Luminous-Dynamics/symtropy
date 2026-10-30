@@ -21,7 +21,6 @@ use symtropy_math::{LatticeOffset, PeriodicLattice, PeriodicLatticeError, Shape,
 use crate::broadphase::{support_aabb, Aabb};
 use crate::ccd;
 use crate::gjk;
-use crate::periodic_collision::PeriodicSphereCcdHit;
 use crate::periodic_lattice_broadphase::{
     PeriodicLatticeBroadphaseError, lattice_image_offsets_for_aabb_pair,
 };
@@ -92,12 +91,22 @@ pub struct PeriodicLatticeCollisionHit<const D: usize> {
 }
 
 #[derive(Clone, Debug)]
+pub struct PeriodicLatticeSphereCcdHit<const D: usize> {
+    pub image_offset: LatticeOffset<D>,
+    pub toi_seconds: f64,
+    pub toi_fraction: f64,
+    pub point: SVector<f64, D>,
+    pub normal: SVector<f64, D>,
+    pub images_tested: usize,
+}
+
+#[derive(Clone, Debug)]
 pub struct PeriodicLatticeCollisionQuery<const D: usize> {
     pub hits: Vec<PeriodicLatticeCollisionHit<D>>,
     pub unresolved_offsets: Vec<LatticeOffset<D>>,
     /// Number of conservative image offsets returned by the broadphase.
     pub image_candidates: usize,
-    /// Number of GJK calls actually made after exact Cartesian AABB rejection.
+    /// Number of GJK calls made for conservative image candidates.
     pub gjk_calls: usize,
 }
 
@@ -158,26 +167,10 @@ pub fn query_triclinic_convex<const D: usize>(
 
     for offset in offsets {
         let shift = lattice.offset_vector(offset)?;
-        let translated_min = bounds_b.min + shift;
-        let translated_max = bounds_b.max + shift;
-        if !translated_min.iter().all(|value| value.is_finite())
-            || !translated_max.iter().all(|value| value.is_finite())
-        {
-            return Err(PeriodicLatticeCollisionError::NumericRange {
-                field: "translated candidate AABB",
-            });
-        }
-
-        let translated_bounds = Aabb {
-            min: translated_min,
-            max: translated_max,
-        };
-        // The broadphase deliberately returns a superset; harmless extra
-        // candidates are rejected here before GJK.
-        if !bounds_a.overlaps(&translated_bounds) {
-            continue;
-        }
-
+        // The lattice broadphase deliberately returns a conservative
+        // superset and performs no floating-point AABB post-filter. We run GJK
+        // for every candidate so a near-touching image cannot be lost by a
+        // second rounded translation/overlap comparison.
         let mut image_transform_b = transform_b.clone();
         image_transform_b.translation.0 += shift;
         if !image_transform_b
@@ -228,7 +221,7 @@ pub fn sphere_sphere_ccd_triclinic_all<const D: usize>(
     radius_b: f64,
     dt: f64,
     max_image_candidates: usize,
-) -> Result<Vec<PeriodicSphereCcdHit<D>>, PeriodicLatticeCollisionError> {
+) -> Result<Vec<PeriodicLatticeSphereCcdHit<D>>, PeriodicLatticeCollisionError> {
     if D != 2 && D != 3 {
         return Err(PeriodicLatticeCollisionError::UnsupportedDimension { dimension: D });
     }
@@ -310,7 +303,7 @@ pub fn sphere_sphere_ccd_triclinic_all<const D: usize>(
                 });
             }
 
-            hits.push(PeriodicSphereCcdHit {
+            hits.push(PeriodicLatticeSphereCcdHit {
                 image_offset: offset,
                 toi_seconds: hit.toi,
                 toi_fraction: (hit.toi / dt).clamp(0.0, 1.0),
@@ -401,7 +394,8 @@ mod tests {
         assert_eq!(result.status(), PeriodicLatticeCollisionStatus::Separated);
         assert!(result.hits.is_empty());
         assert!(result.unresolved_offsets.is_empty());
-        assert!(result.image_candidates == 0 || result.gjk_calls == 0);
+        assert_eq!(result.image_candidates, 0);
+        assert_eq!(result.gjk_calls, 0);
     }
 
     #[test]
