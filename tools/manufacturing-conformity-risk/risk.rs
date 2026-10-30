@@ -453,7 +453,7 @@ mod tests {
 
     #[test]
     fn bin_refinement_preserves_piecewise_uniform_probability() {
-        let original = campaign()[0].1;
+        let original = campaign()[0].1.clone();
         let mut refined = original.clone();
         let i = refined.posterior.bins.iter()
             .position(|b| b.lower == -1.0 && b.upper == 0.0).unwrap();
@@ -469,57 +469,57 @@ mod tests {
 
     #[test]
     fn invalid_probability_mass_bin_geometry_and_gaps_reject() {
-        let mut r = campaign()[0].1;
+        let mut r = campaign()[0].1.clone();
         r.posterior.bins[0].mass = -0.1;
         assert_eq!(classify(&r).reason, "POSTERIOR_BIN_MASS_INVALID");
 
-        let mut r = campaign()[0].1;
+        let mut r = campaign()[0].1.clone();
         r.posterior.bins[2].lower = -1.1;
         assert_eq!(classify(&r).reason, "POSTERIOR_BINS_OVERLAP_OR_UNSORTED");
 
-        let mut r = campaign()[0].1;
+        let mut r = campaign()[0].1.clone();
         r.posterior.bins[2].lower = -0.9;
         assert_eq!(classify(&r).reason, "POSTERIOR_BINS_GAPPED");
 
-        let mut r = campaign()[0].1;
+        let mut r = campaign()[0].1.clone();
         r.posterior.unknown_tail_mass = 0.1;
         assert_eq!(classify(&r).reason, "POSTERIOR_MASS_NOT_NORMALIZED");
     }
 
     #[test]
     fn invalid_policy_and_unapproved_thresholds_fail_closed() {
-        let mut r = campaign()[0].1;
+        let mut r = campaign()[0].1.clone();
         r.policy.min_accept_pc = 0.01;
         r.policy.max_reject_pc = 0.05;
         assert_eq!(classify(&r).reason, "DECISION_THRESHOLDS_INVALID");
 
-        let mut r = campaign()[0].1;
+        let mut r = campaign()[0].1.clone();
         r.policy.approved = false;
         assert_eq!(classify(&r).reason, "DECISION_POLICY_NOT_APPROVED");
     }
 
     #[test]
     fn unit_spec_revision_and_effectivity_mismatches_fail_closed() {
-        let mut r = campaign()[0].1;
+        let mut r = campaign()[0].1.clone();
         r.spec.unit = "inch".into();
         assert_eq!(classify(&r).reason, "UNIT_MISMATCH");
 
-        let mut r = campaign()[0].1;
+        let mut r = campaign()[0].1.clone();
         r.posterior.spec_revision = "REV-OLD".into();
         assert_eq!(classify(&r).reason, "SPECIFICATION_REVISION_MISMATCH");
 
-        let mut r = campaign()[0].1;
+        let mut r = campaign()[0].1.clone();
         r.decision_time_ns = r.policy.effective_until_ns + 1;
         assert_eq!(classify(&r).reason, "DECISION_POLICY_NOT_EFFECTIVE");
     }
 
     #[test]
     fn stale_and_missing_evidence_never_return_product_disposition() {
-        let mut r = campaign()[0].1;
+        let mut r = campaign()[0].1.clone();
         r.evidence.msa = EvidenceState::Stale;
         assert_eq!(classify(&r).outcome, Outcome::EvidenceIncomplete);
 
-        let mut r = campaign()[2].1;
+        let mut r = campaign()[2].1.clone();
         r.evidence.posterior = EvidenceState::Missing;
         assert_eq!(classify(&r).outcome, Outcome::EvidenceIncomplete);
     }
@@ -535,7 +535,7 @@ mod tests {
 
     #[test]
     fn unit_conversion_preserves_probability() {
-        let mm = campaign()[0].1;
+        let mm = campaign()[0].1.clone();
         let mut um = mm.clone();
         for bin in &mut um.posterior.bins { bin.lower *= 1000.0; bin.upper *= 1000.0; }
         um.posterior.unit = "um".into();
