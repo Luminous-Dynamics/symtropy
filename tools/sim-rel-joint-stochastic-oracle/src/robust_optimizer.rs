@@ -303,7 +303,7 @@ pub fn optimize_robust_worlds(
         return Err("all robust solver resource caps must be positive".into());
     }
 
-    let mut initial_beliefs: BeliefVector = worlds
+    let initial_beliefs: BeliefVector = worlds
         .iter()
         .map(|world| {
             let mut belief = world.kernel.initial_belief.clone();
@@ -319,7 +319,6 @@ pub fn optimize_robust_worlds(
         memo: HashMap::new(),
     };
     let candidates = solver.solve(&initial_beliefs, config.horizon)?;
-    initial_beliefs.clear();
 
     let world_ids: Vec<String> = worlds.iter().map(|world| world.id.clone()).collect();
     let frontier = candidates
@@ -383,7 +382,10 @@ impl RobustSolver<'_> {
             .checked_add(1)
             .ok_or_else(|| "robust state-expansion counter overflow".to_string())?;
 
-        let mut candidates = terminal_candidates(beliefs, self.worlds)?;
+        let mut candidates = terminal_candidates(
+            beliefs,
+            self.worlds[0].kernel.hypothesis_ids.len(),
+        )?;
         if remaining > 0 {
             for action in 0..self.worlds[0].kernel.action_ids.len() {
                 let partitions = beliefs
@@ -549,7 +551,7 @@ impl RobustSolver<'_> {
 
 fn terminal_candidates(
     beliefs: &BeliefVector,
-    worlds: &[ModelWorld],
+    hypothesis_count: usize,
 ) -> Result<Vec<Candidate>, String> {
     let mut candidates = Vec::new();
     let abstention = beliefs
@@ -567,10 +569,12 @@ fn terminal_candidates(
         policy: PolicyPlan::Abstain,
     });
 
-    for hypothesis in 0..worlds[0].kernel.hypothesis_ids.len() {
-        let mut present_somewhere = false;
-        let mut per_world = Vec::with_capacity(worlds.len());
-        for (world_index, belief) in beliefs.iter().enumerate() {
+    // Every semantically valid terminal claim is part of the policy class,
+    // even when its posterior mass is zero. Such a claim can be dominated
+    // under strict budgets, but dropping it would make the frontier incomplete.
+    for hypothesis in 0..hypothesis_count {
+        let mut per_world = Vec::with_capacity(beliefs.len());
+        for belief in beliefs {
             match belief {
                 Some(belief) => {
                     let mut probability = Rational::zero();
@@ -578,9 +582,6 @@ fn terminal_candidates(
                         if point.hypothesis == hypothesis {
                             probability = probability.checked_add(point.mass)?;
                         }
-                    }
-                    if !probability.is_zero() {
-                        present_somewhere = true;
                     }
                     per_world.push(WorldObjectives {
                         false_identification_probability: Rational::one()
@@ -594,16 +595,11 @@ fn terminal_candidates(
                     per_world.push(WorldObjectives::zero());
                 }
             }
-            if world_index >= worlds.len() {
-                return Err("internal world/belief vector length mismatch".into());
-            }
         }
-        if present_somewhere {
-            candidates.push(Candidate {
-                per_world,
-                policy: PolicyPlan::Claim { hypothesis },
-            });
-        }
+        candidates.push(Candidate {
+            per_world,
+            policy: PolicyPlan::Claim { hypothesis },
+        });
     }
     Ok(candidates)
 }
