@@ -10,6 +10,7 @@ pub mod comparison;
 pub mod coupon;
 pub mod reference_data;
 pub mod robustness;
+pub mod section_polar;
 
 use std::collections::HashSet;
 use std::f64::consts::PI;
