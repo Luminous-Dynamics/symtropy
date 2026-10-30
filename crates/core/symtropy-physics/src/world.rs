@@ -2816,9 +2816,9 @@ mod transformed_halfspace_tests {
         world.bodies[0].linear_velocity = SVector::new(0.25, -0.5, 0.75);
         world.bodies[0].apply_force(SVector::new(3.0, 0.0, 0.0));
         world.bodies[1].set_rotational_inertia_operator(
-            BivectorInertia::<3>::from_second_moment(
-                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
-            )
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
             .unwrap(),
         );
         world.bodies[1].apply_torque(Bivector::unit_plane(1, 2));
