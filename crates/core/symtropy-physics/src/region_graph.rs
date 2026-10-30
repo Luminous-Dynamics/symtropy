@@ -66,6 +66,17 @@ pub enum RegionGraphError {
         previous_target: RegionId,
         next_source: RegionId,
     },
+    StalePathInterfaceRevision {
+        interface: InterfaceId,
+        expected: u64,
+        actual: u64,
+    },
+    StalePathRegionModelRevision {
+        region: RegionId,
+        expected: u64,
+        actual: u64,
+    },
+    ComposedPathMismatch,
     SelfInterface,
     InvalidBoundary {
         field: &'static str,
@@ -102,6 +113,27 @@ impl fmt::Display for RegionGraphError {
                 "interface path is disconnected: {} does not match {}",
                 previous_target.0, next_source.0
             ),
+            Self::StalePathInterfaceRevision {
+                interface,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "stale composed path interface {}: expected revision {expected}, actual {actual}",
+                interface.0
+            ),
+            Self::StalePathRegionModelRevision {
+                region,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "stale composed path region {}: expected model revision {expected}, actual {actual}",
+                region.0
+            ),
+            Self::ComposedPathMismatch => {
+                write!(f, "composed path no longer matches its declared interface lineage")
+            }
             Self::SelfInterface => write!(f, "region interface must connect distinct region IDs"),
             Self::InvalidBoundary { field } => {
                 write!(f, "invalid interface boundary field {field}")
@@ -629,12 +661,74 @@ impl<const D: usize> RegionInterface<D> {
 }
 
 /// Deterministic composition of an explicitly ordered interface path.
+/// A mathematically composed map for a caller-declared directed region path.
+///
+/// This object is not an authorization to skip intermediate boundary checks,
+/// crossing policies, or per-interface conservation receipts. It binds the
+/// exact interface and region-model revisions used to compose the map.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComposedRegionPath<const D: usize> {
     pub source_region: RegionId,
     pub target_region: RegionId,
     pub interface_ids: Vec<InterfaceId>,
+    pub interface_revisions: Vec<(InterfaceId, u64)>,
+    pub region_model_revisions: Vec<(RegionId, u64)>,
     pub map: AffineRegionMap<D>,
+}
+
+impl<const D: usize> ComposedRegionPath<D> {
+    /// Reject use after any interface or region model in the path has changed.
+    ///
+    /// A caller must still execute each interface's own boundary, direction,
+    /// quantity-policy and receipt checks when performing a physical crossing.
+    pub fn validate_current(
+        &self,
+        graph: &RegionGraph<D>,
+    ) -> Result<(), RegionGraphError> {
+        if self.interface_ids.is_empty()
+            || self.interface_ids.len() != self.interface_revisions.len()
+            || self.region_model_revisions.len() != self.interface_ids.len() + 1
+        {
+            return Err(RegionGraphError::ComposedPathMismatch);
+        }
+
+        for (interface_id, expected_revision) in &self.interface_revisions {
+            let interface = graph
+                .interface(*interface_id)
+                .ok_or(RegionGraphError::UnknownInterface { id: *interface_id })?;
+            if interface.revision != *expected_revision {
+                return Err(RegionGraphError::StalePathInterfaceRevision {
+                    interface: *interface_id,
+                    expected: *expected_revision,
+                    actual: interface.revision,
+                });
+            }
+        }
+
+        for (region_id, expected_revision) in &self.region_model_revisions {
+            let region = graph
+                .region(*region_id)
+                .ok_or(RegionGraphError::UnknownRegion { id: *region_id })?;
+            if region.model_revision != *expected_revision {
+                return Err(RegionGraphError::StalePathRegionModelRevision {
+                    region: *region_id,
+                    expected: *expected_revision,
+                    actual: region.model_revision,
+                });
+            }
+        }
+
+        let current = graph.compose_interface_path(&self.interface_ids)?;
+        if current.source_region != self.source_region
+            || current.target_region != self.target_region
+            || current.map != self.map
+            || current.interface_revisions != self.interface_revisions
+            || current.region_model_revisions != self.region_model_revisions
+        {
+            return Err(RegionGraphError::ComposedPathMismatch);
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -746,8 +840,17 @@ impl<const D: usize> RegionGraph<D> {
             .interface(first_id)
             .ok_or(RegionGraphError::UnknownInterface { id: first_id })?;
         let source_region = first.source;
+        let source_model = self
+            .region(source_region)
+            .ok_or(RegionGraphError::UnknownRegion { id: source_region })?;
         let mut target_region = first.target;
         let mut map = first.map.clone();
+        let mut interface_revisions = vec![(first.id, first.revision)];
+        let mut region_model_revisions = vec![(source_region, source_model.model_revision)];
+        let first_target = self
+            .region(target_region)
+            .ok_or(RegionGraphError::UnknownRegion { id: target_region })?;
+        region_model_revisions.push((target_region, first_target.model_revision));
 
         for interface_id in interface_ids.iter().copied().skip(1) {
             let next = self
@@ -761,12 +864,19 @@ impl<const D: usize> RegionGraph<D> {
             }
             map = map.then(&next.map)?;
             target_region = next.target;
+            interface_revisions.push((next.id, next.revision));
+            let target = self
+                .region(target_region)
+                .ok_or(RegionGraphError::UnknownRegion { id: target_region })?;
+            region_model_revisions.push((target_region, target.model_revision));
         }
 
         Ok(ComposedRegionPath {
             source_region,
             target_region,
             interface_ids: interface_ids.to_vec(),
+            interface_revisions,
+            region_model_revisions,
             map,
         })
     }
@@ -1964,6 +2074,101 @@ mod tests {
             Err(RegionGraphError::DisconnectedInterfacePath {
                 previous_target: RegionId(2),
                 next_source: RegionId(1),
+            })
+        );
+    }
+
+    #[test]
+    fn composed_interface_path_binds_all_model_and_interface_revisions() {
+        let mut graph = RegionGraph::<2>::new().unwrap();
+        graph.add_region(region(1, [-1.0, -1.0], [0.0, 1.0])).unwrap();
+        graph.add_region(region(2, [0.0, -1.0], [1.0, 1.0])).unwrap();
+        graph.add_region(region(3, [1.0, -1.0], [2.0, 1.0])).unwrap();
+
+        let first_map = AffineRegionMap::<2>::identity();
+        let second_map = AffineRegionMap::<2>::identity();
+        let first = RegionInterface::new(
+            InterfaceId(30),
+            RegionId(1),
+            RegionId(2),
+            4,
+            boundary_x0(),
+            boundary_x0(),
+            first_map,
+            None,
+            false,
+            CrossingDirection::Either,
+            QuantityPolicy::ExplicitTransform,
+            QuantityPolicy::ExplicitTransform,
+            Some("region-map-a".to_string()),
+        )
+        .unwrap();
+        let second = RegionInterface::new(
+            InterfaceId(31),
+            RegionId(2),
+            RegionId(3),
+            7,
+            boundary_x0(),
+            boundary_x0(),
+            second_map,
+            None,
+            false,
+            CrossingDirection::Either,
+            QuantityPolicy::ExplicitTransform,
+            QuantityPolicy::ExplicitTransform,
+            Some("region-map-b".to_string()),
+        )
+        .unwrap();
+        graph.add_interface(first).unwrap();
+        graph.add_interface(second).unwrap();
+
+        let path = graph
+            .compose_interface_path(&[InterfaceId(30), InterfaceId(31)])
+            .unwrap();
+        assert_eq!(
+            path.interface_revisions,
+            vec![(InterfaceId(30), 4), (InterfaceId(31), 7)]
+        );
+        assert_eq!(
+            path.region_model_revisions,
+            vec![(RegionId(1), 1), (RegionId(2), 1), (RegionId(3), 1)]
+        );
+        path.validate_current(&graph).unwrap();
+
+        let mut changed_graph = graph.clone();
+        let mut changed_target = region(3, [1.0, -1.0], [2.0, 1.0]);
+        changed_target.model_revision = 2;
+        let mut rebuilt = RegionGraph::<2>::new().unwrap();
+        rebuilt
+            .add_region(region(1, [-1.0, -1.0], [0.0, 1.0]))
+            .unwrap();
+        rebuilt
+            .add_region(region(2, [0.0, -1.0], [1.0, 1.0]))
+            .unwrap();
+        rebuilt.add_region(changed_target).unwrap();
+        rebuilt
+            .add_interface(
+                changed_graph
+                    .interface(InterfaceId(30))
+                    .unwrap()
+                    .clone(),
+            )
+            .unwrap();
+        rebuilt
+            .add_interface(
+                changed_graph
+                    .interface(InterfaceId(31))
+                    .unwrap()
+                    .clone(),
+            )
+            .unwrap();
+
+        assert_eq!(
+            path.validate_current(&rebuilt),
+            Err(RegionGraphError::StalePathRegionModelRevision {
+                region: RegionId(3),
+                expected: 1,
+                actual: 2,
             })
         );
     }
