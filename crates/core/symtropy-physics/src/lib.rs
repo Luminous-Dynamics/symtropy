@@ -43,7 +43,7 @@ pub use delassus::{
     DelassusAssemblyError, FrictionlessContactRow, ReferenceLcpError, ReferenceLcpSolution,
     assemble_delassus, solve_frictionless_lcp,
 };
-pub use diagnostics::{InvariantDrift, InvariantSnapshot};
+pub use diagnostics::{InvariantDrift, InvariantSnapshot, InvariantStepReceipt};
 pub use epa::EpaResult;
 pub use inertia::{BivectorInertia, RotationalInertiaError};
 pub use integrator::nan_zeroed_count;
