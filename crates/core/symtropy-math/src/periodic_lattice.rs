@@ -35,6 +35,7 @@ pub enum PeriodicLatticeError {
     CoordinatePrecisionLimit { axis: usize },
     InvalidSearchBudget,
     SearchBudgetExceeded { max_nodes: usize },
+    OffsetOnNonPeriodicAxis { axis: usize },
     NumericRange { field: &'static str },
 }
 
@@ -60,6 +61,9 @@ impl fmt::Display for PeriodicLatticeError {
             Self::InvalidSearchBudget => write!(f, "closest-image search budget must be positive"),
             Self::SearchBudgetExceeded { max_nodes } => {
                 write!(f, "closest-image search exhausted its node budget ({max_nodes})")
+            }
+            Self::OffsetOnNonPeriodicAxis { axis } => {
+                write!(f, "nonzero image offset on non-periodic lattice axis {axis}")
             }
             Self::NumericRange { field } => {
                 write!(f, "periodic lattice numeric-range failure in {field}")
@@ -89,12 +93,14 @@ pub struct ClosestLatticeImage<const D: usize> {
     pub search_nodes: usize,
 }
 
-/// A full-rank D-dimensional periodic lattice with columns of basis as
-/// independent translation vectors.
+/// A full-rank D-dimensional lattice with selectable periodic basis columns.
+/// Non-periodic fractional coordinates remain unwrapped and their image
+/// offsets must be zero.
 #[derive(Clone, Debug)]
 pub struct PeriodicLattice<const D: usize> {
     origin: SVector<f64, D>,
     basis: SMatrix<f64, D, D>,
+    periodic_axes: [bool; D],
     q: SMatrix<f64, D, D>,
     r: SMatrix<f64, D, D>,
     squared_basis_scale: f64,
@@ -109,9 +115,21 @@ impl<const D: usize> PeriodicLattice<D> {
     /// QR is computed using twice-reorthogonalized modified Gram-Schmidt. A
     /// small relative diagonal pivot is rejected rather than allowing an
     /// unstable image search to silently return a potentially wrong answer.
+    /// Construct a fully periodic, full-rank 2D or 3D lattice.
     pub fn new(
         origin: SVector<f64, D>,
         basis: SMatrix<f64, D, D>,
+    ) -> Result<Self, PeriodicLatticeError> {
+        Self::new_with_periodic_axes(origin, basis, [true; D])
+    }
+
+    /// Construct a full-rank 2D/3D lattice with an explicit periodic mask in
+    /// lattice coordinates. Active basis columns generate image translations;
+    /// inactive coefficients are fixed at zero and are never wrapped.
+    pub fn new_with_periodic_axes(
+        origin: SVector<f64, D>,
+        basis: SMatrix<f64, D, D>,
+        periodic_axes: [bool; D],
     ) -> Result<Self, PeriodicLatticeError> {
         if D == 0 {
             return Err(PeriodicLatticeError::InvalidDimension);
@@ -190,6 +208,7 @@ impl<const D: usize> PeriodicLattice<D> {
         Ok(Self {
             origin,
             basis,
+            periodic_axes,
             q,
             r,
             squared_basis_scale,
@@ -206,6 +225,14 @@ impl<const D: usize> PeriodicLattice<D> {
         &self.basis
     }
 
+    pub fn periodic_axes(&self) -> &[bool; D] {
+        &self.periodic_axes
+    }
+
+    pub fn is_periodic(&self, axis: usize) -> Option<bool> {
+        self.periodic_axes.get(axis).copied()
+    }
+
     pub fn min_relative_qr_pivot(&self) -> f64 {
         self.min_relative_qr_pivot
     }
@@ -217,6 +244,9 @@ impl<const D: usize> PeriodicLattice<D> {
     ) -> Result<SVector<f64, D>, PeriodicLatticeError> {
         let mut integer = SVector::<f64, D>::zeros();
         for axis in 0..D {
+            if !self.periodic_axes[axis] && offset.periods[axis] != 0 {
+                return Err(PeriodicLatticeError::OffsetOnNonPeriodicAxis { axis });
+            }
             let value = offset.periods[axis] as f64;
             if value.abs() > MAX_EXACT_LATTICE_INDEX {
                 return Err(PeriodicLatticeError::CoordinatePrecisionLimit { axis });
@@ -251,8 +281,9 @@ impl<const D: usize> PeriodicLattice<D> {
         Ok(translated)
     }
 
-    /// Reduce a Cartesian point into the half-open fundamental parallelepiped
-    /// origin + B*[0,1)^D. The returned offset reconstructs the input.
+    /// Reduce active fractional coordinates into [0,1). Inactive fractional
+    /// coordinates are left unchanged. The returned offset reconstructs the
+    /// input and has zero components on inactive axes.
     pub fn wrap_point(
         &self,
         point: &SVector<f64, D>,
@@ -278,18 +309,25 @@ impl<const D: usize> PeriodicLattice<D> {
             if !coordinate.is_finite() || coordinate.abs() > MAX_EXACT_LATTICE_INDEX {
                 return Err(PeriodicLatticeError::CoordinatePrecisionLimit { axis });
             }
-            let image = coordinate.floor();
-            if image < i64::MIN as f64 || image > i64::MAX as f64 {
-                return Err(PeriodicLatticeError::CoordinatePrecisionLimit { axis });
+            if self.periodic_axes[axis] {
+                if coordinate.abs() > MAX_EXACT_LATTICE_INDEX {
+                    return Err(PeriodicLatticeError::CoordinatePrecisionLimit { axis });
+                }
+                let image = coordinate.floor();
+                if image < i64::MIN as f64 || image > i64::MAX as f64 {
+                    return Err(PeriodicLatticeError::CoordinatePrecisionLimit { axis });
+                }
+                offsets[axis] = image as i64;
+                let canonical = coordinate - image;
+                if !canonical.is_finite() || !(0.0..1.0).contains(&canonical) {
+                    return Err(PeriodicLatticeError::NumericRange {
+                        field: "canonical fractional coordinate",
+                    });
+                }
+                canonical_fractional[axis] = canonical;
+            } else {
+                canonical_fractional[axis] = coordinate;
             }
-            offsets[axis] = image as i64;
-            let canonical = coordinate - image;
-            if !canonical.is_finite() || !(0.0..1.0).contains(&canonical) {
-                return Err(PeriodicLatticeError::NumericRange {
-                    field: "canonical fractional coordinate",
-                });
-            }
-            canonical_fractional[axis] = canonical;
         }
 
         let canonical_position = self.origin + self.basis * canonical_fractional;
@@ -370,6 +408,10 @@ impl<const D: usize> PeriodicLattice<D> {
         // Babai nearest-plane initial point, back-substituted through R.
         let mut initial_offset = [0_i64; D];
         for row in (0..D).rev() {
+            if !self.periodic_axes[row] {
+                initial_offset[row] = 0;
+                continue;
+            }
             let mut upper_sum = 0.0;
             for column in (row + 1)..D {
                 upper_sum += self.r[(row, column)] * initial_offset[column] as f64;
@@ -402,6 +444,7 @@ impl<const D: usize> PeriodicLattice<D> {
             &target,
             &self.basis,
             &self.r,
+            &self.periodic_axes,
             self.squared_basis_scale,
             QR_ROUNDING_PAD / self.min_relative_qr_pivot,
             max_search_nodes,
