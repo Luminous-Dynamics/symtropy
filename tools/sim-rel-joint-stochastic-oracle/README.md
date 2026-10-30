@@ -47,3 +47,12 @@ The robust module evaluates one identical public-observation policy tree against
 The report exposes exact worst-case cost and risk summaries and checks explicit worst-case hazard, false-claim, and abstention budgets. The worlds must share hypothesis, action, observation, physical-state and sensor-state semantics, plus the same action-cost contract; each world may carry its own validated initial joint belief and transition kernel.
 
 This is a robust evaluator, not a robust policy optimizer. It does not choose a minimax policy. Robustness is only over the supplied finite world family and does not establish that the true data-generating process is covered.
+
+
+## Shared-policy robust optimizer (SIM-REL-016)
+
+The robust optimizer performs finite-horizon dynamic programming over a vector of per-world joint beliefs. Each public observation updates every world under its own complete kernel. Worlds assigning zero probability to a branch are inactive on that branch, while their model identity remains fixed; no model switching or rectangularization occurs.
+
+The optimizer preserves per-world objective vectors during Pareto pruning. This is required because observation probabilities differ across worlds: pruning only by current worst-case aggregates inside a subtree can discard a globally optimal shared policy. At the root, callers can minimize worst-case expected cost or nominal expected cost subject to worst-case hazard, false-identification and abstention budgets.
+
+The implementation is bounded and exact for the supplied finite model family, prior beliefs, action costs, horizon, and policy class. It is not evidence that the real process belongs to that family.
