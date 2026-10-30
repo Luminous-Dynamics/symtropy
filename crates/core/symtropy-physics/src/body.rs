@@ -240,28 +240,45 @@ impl<const D: usize> RigidBody<D> {
         linear + angular
     }
 
+    /// Compatibility wrapper for toolhead merging.
+    ///
+    /// Invalid mass properties reject the merge without modifying the body.
+    /// New callers that need to observe the failure should use
+    /// `try_merge_toolhead`.
     pub fn merge_toolhead(
         &mut self,
         local_transform: Transform<D>,
         tool_collider: Box<dyn Shape<D>>,
         tool_mass: f64,
     ) {
+        let _ = self.try_merge_toolhead(local_transform, tool_collider, tool_mass);
+    }
+
+    /// Merge a toolhead while preserving collider geometry and authoritative
+    /// mass properties. A known component/body mass mismatch rejects the
+    /// operation before any body or collider state is changed.
+    pub fn try_merge_toolhead(
+        &mut self,
+        local_transform: Transform<D>,
+        tool_collider: Box<dyn Shape<D>>,
+        tool_mass: f64,
+    ) -> Result<(), crate::inertia::RotationalInertiaError> {
         use symtropy_math::CompoundShape;
 
         let total_mass = self.mass + tool_mass;
         if !self.mass.is_finite()
             || !tool_mass.is_finite()
-            || self.mass < 0.0
-            || tool_mass < 0.0
             || !total_mass.is_finite()
-            || total_mass <= 0.0
             || !local_transform
                 .translation
                 .0
                 .iter()
                 .all(|value| value.is_finite())
         {
-            return;
+            return Err(crate::inertia::RotationalInertiaError::NonFinite);
+        }
+        if self.mass < 0.0 || tool_mass < 0.0 || total_mass <= 0.0 {
+            return Err(crate::inertia::RotationalInertiaError::InvalidMassProperties);
         }
 
         let tool_local_translation = local_transform.translation.0;
@@ -269,21 +286,24 @@ impl<const D: usize> RigidBody<D> {
         let world_com_offset = self.transform.rotation.rotate_vector(&com_offset);
 
         // Combine authoritative mass properties around the new center of mass.
-        let combined_rotational_inertia =
-            self.rotational_inertia.as_ref().and_then(|body_inertia| {
-                let tool_inertia = BivectorInertia::<D>::uniform_solid_ball(tool_mass, 0.1).ok()?;
-                let body_offset = -com_offset;
-                let tool_offset = tool_local_translation - com_offset;
-                BivectorInertia::combine_at_common_center(
-                    self.mass,
-                    body_inertia,
-                    &body_offset,
-                    tool_mass,
-                    &tool_inertia,
-                    &tool_offset,
-                )
-                .ok()
-            });
+        // Do not silently discard a failed operator: that would preserve the
+        // collider geometry while changing the physics model underneath it.
+        let combined_rotational_inertia = if let Some(body_inertia) = &self.rotational_inertia {
+            body_inertia.validate_body_mass(self.mass, 1e-10)?;
+            let tool_inertia = BivectorInertia::<D>::uniform_solid_ball(tool_mass, 0.1)?;
+            let body_offset = -com_offset;
+            let tool_offset = tool_local_translation - com_offset;
+            Some(BivectorInertia::combine_at_common_center(
+                self.mass,
+                body_inertia,
+                &body_offset,
+                tool_mass,
+                &tool_inertia,
+                &tool_offset,
+            )?)
+        } else {
+            None
+        };
 
         // Rebase every collider child to the new local COM. The parent origin
         // will move by R*com_offset in world coordinates, so subtracting the
@@ -327,6 +347,7 @@ impl<const D: usize> RigidBody<D> {
         self.inv_inertia = SVector::from_element(1.0 / i_total);
         self.rotational_inertia = combined_rotational_inertia;
         self.transform.translation.0 += world_com_offset;
+        Ok(())
     }
 
     pub fn world_support(&self, direction: &SVector<f64, D>) -> SVector<f64, D> {
