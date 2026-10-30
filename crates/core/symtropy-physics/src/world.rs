@@ -2749,6 +2749,55 @@ mod transformed_halfspace_tests {
     }
 
     #[test]
+    fn try_step_rolls_back_when_contact_resolution_hits_singular_inertia() {
+        use crate::inertia::{BivectorInertia, RotationalInertiaError};
+        use nalgebra::SMatrix;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let floor = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(SVector::new(0.0, 1.0, 0.0), 0.0)),
+        );
+        let floor_handle = world.add_body(floor);
+
+        let mut block = RigidBody::<3>::new(
+            BodyHandle(1),
+            crate::body::BodyType::Dynamic,
+            Transform::from_translation(Point::new([0.0, 0.495, 0.0])),
+            Box::new(HyperBox::<3>::cube(0.5)),
+            1.0,
+            SVector::from_element(1.0),
+        );
+        block.set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(
+                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
+            )
+            .unwrap(),
+        );
+        block.linear_velocity = SVector::new(0.25, 0.0, 0.0);
+        block.apply_force(SVector::new(1.0, 0.0, 0.0));
+        let block_handle = world.add_body(block);
+
+        let block_position = world.bodies[1].transform.translation.0.clone();
+        let block_velocity = world.bodies[1].linear_velocity.clone();
+        let block_force = world.bodies[1].force_accumulator.clone();
+        let previous_contacts = world.contacts.clone();
+        let previous_events = world.collision_events.clone();
+
+        let error = world.try_step(0.001).unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::ContactSolve);
+        assert_eq!(error.body_a, Some(floor_handle));
+        assert_eq!(error.body_b, Some(block_handle));
+        assert_eq!(error.cause, RotationalInertiaError::SingularInertia);
+        assert_eq!(world.bodies[1].transform.translation.0, block_position);
+        assert_eq!(world.bodies[1].linear_velocity, block_velocity);
+        assert_eq!(world.bodies[1].force_accumulator, block_force);
+        assert_eq!(world.contacts.len(), previous_contacts.len());
+        assert_eq!(world.collision_events.len(), previous_events.len());
+    }
+
+    #[test]
     fn try_step_rolls_back_all_bodies_when_later_body_has_singular_inertia() {
         use crate::inertia::{BivectorInertia, RotationalInertiaError};
         use nalgebra::SMatrix;
