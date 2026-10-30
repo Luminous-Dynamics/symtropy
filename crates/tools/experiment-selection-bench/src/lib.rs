@@ -1395,7 +1395,7 @@ mod tests {
     #[test]
     fn maximum_variance_is_invariant_to_objective_value_permutation() {
         let problem = SyntheticProblem::new(ProblemId::Multimodal);
-        let mut observations: Vec<_> = initial_design(66, 10)
+        let observations: Vec<_> = initial_design(66, 10)
             .into_iter()
             .map(|point| problem.observe(point, 66))
             .collect();
