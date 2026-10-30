@@ -448,7 +448,30 @@ fn campaign() -> Vec<(&'static str, Request)> {
     ]
 }
 
+fn verify_evidence_states() -> Result<(), String> {
+    for state in [
+        EvidenceState::Missing,
+        EvidenceState::Stale,
+        EvidenceState::Mismatched,
+        EvidenceState::Revoked,
+        EvidenceState::NotQualified,
+    ] {
+        let mut request = campaign()[0].1.clone();
+        request.evidence.posterior = state;
+        if classify(&request).outcome != Outcome::EvidenceIncomplete {
+            return Err(format!("POSTERIOR_EVIDENCE_STATE_DID_NOT_ABSTAIN: {}", state.code()));
+        }
+        let mut request = campaign()[0].1.clone();
+        request.evidence.predictive_calibration = state;
+        if classify(&request).outcome != Outcome::EvidenceIncomplete {
+            return Err(format!("PREDICTIVE_CALIBRATION_STATE_DID_NOT_ABSTAIN: {}", state.code()));
+        }
+    }
+    Ok(())
+}
+
 fn verify() -> Result<(), String> {
+    verify_evidence_states()?;
     let expected = [
         (Outcome::Accept, 0.95, 0.95),
         (Outcome::Indeterminate, 0.50, 0.50),
