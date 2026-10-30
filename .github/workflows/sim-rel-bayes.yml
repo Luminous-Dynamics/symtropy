@@ -48,29 +48,35 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --locked --manifest-path tools/sim-rel-bayes/Cargo.toml --bin sim-rel-bayes -- -D warnings
 
-      - name: Generate receipt on the exact source checkout
+      - name: Generate exact-head receipts across the prior-temperature sweep
         env:
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          cargo run --locked --manifest-path tools/sim-rel-bayes/Cargo.toml --bin sim-rel-bayes -- \
-            --problems tools/sim-rel-bayes/fixtures/problems-v0.tsv \
-            --truth tools/sim-rel-bayes/fixtures/evaluator-truth-v0.tsv \
-            --expected-head "$EXPECTED_HEAD" \
-            --max-depth 2 \
-            --out "$RUNNER_TEMP/sim-rel-003-receipt.json"
-          jq -e --arg expected "$EXPECTED_HEAD" '
-            .exact_head == $expected
-            and .unique_semantic_candidates == 109
-            and (.cases | length) == 18
-            and (.policy_summaries | map(.policy) | unique | length) == 5
-            and all(.policy_summaries[]; .in_grammar_target_retention_rate == 1)
-            and all(.policy_summaries[]; .mean_cost >= 0)
-          ' "$RUNNER_TEMP/sim-rel-003-receipt.json"
+          set -euo pipefail
+          for beta in 0 1 2; do
+            receipt="$RUNNER_TEMP/sim-rel-003-beta-${beta}.json"
+            cargo run --locked --manifest-path tools/sim-rel-bayes/Cargo.toml --bin sim-rel-bayes -- \
+              --problems tools/sim-rel-bayes/fixtures/problems-v0.tsv \
+              --truth tools/sim-rel-bayes/fixtures/evaluator-truth-v0.tsv \
+              --expected-head "$EXPECTED_HEAD" \
+              --max-depth 2 \
+              --mdl-beta "$beta" \
+              --out "$receipt"
+            jq -e --arg expected "$EXPECTED_HEAD" --argjson beta "$beta" '
+              .exact_head == $expected
+              and .mdl_beta == $beta
+              and .unique_semantic_candidates == 109
+              and (.cases | length) == 18
+              and (.policy_summaries | map(.policy) | unique | length) == 5
+              and all(.policy_summaries[]; .in_grammar_target_retention_rate == 1)
+              and all(.policy_summaries[]; .mean_cost >= 0)
+            ' "$receipt"
+          done
 
-      - name: Retain exact-head receipt
+      - name: Retain exact-head prior-temperature receipts
         uses: actions/upload-artifact@v4
         with:
-          name: sim-rel-003-receipt-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/sim-rel-003-receipt.json
+          name: sim-rel-003-receipts-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/sim-rel-003-beta-*.json
           if-no-files-found: error
           retention-days: 30
