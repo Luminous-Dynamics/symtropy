@@ -656,9 +656,14 @@ pub fn paired_comparisons(results: &[TrialResult]) -> Vec<PairedComparison> {
     let mut comparisons = Vec::new();
     let baselines = [PolicyKind::Random, PolicyKind::Sobol];
 
+    let mut challengers = PolicyKind::ALL.to_vec();
+    if results.iter().any(|trial| trial.policy == PolicyKind::Symthaea) {
+        challengers.push(PolicyKind::Symthaea);
+    }
+
     for problem in ProblemId::ALL {
         for baseline in baselines {
-            for challenger in PolicyKind::ALL {
+            for challenger in challengers.iter().copied() {
                 if challenger == baseline {
                     continue;
                 }
@@ -757,8 +762,12 @@ fn comparison_seed(
 
 pub fn summarize(results: &[TrialResult]) -> Vec<SummaryStats> {
     let mut summaries = Vec::new();
+    let mut policies = PolicyKind::ALL.to_vec();
+    if results.iter().any(|trial| trial.policy == PolicyKind::Symthaea) {
+        policies.push(PolicyKind::Symthaea);
+    }
     for problem in ProblemId::ALL {
-        for policy in PolicyKind::ALL {
+        for policy in policies.iter().copied() {
             let mut group: Vec<&TrialResult> = results
                 .iter()
                 .filter(|result| result.problem == problem && result.policy == policy)
