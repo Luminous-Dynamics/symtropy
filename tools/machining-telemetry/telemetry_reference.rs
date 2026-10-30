@@ -11,7 +11,6 @@
 
 const TRANSFORM_VERSION: &str = "mach-telemetry-features-v0.1.0";
 const MAX_CLOCK_UNCERTAINTY_NS: u64 = 100_000;
-const MAX_PAIR_SKEW_NS: i64 = 1_000_000;
 const MAX_RELATIVE_SAMPLE_JITTER: f64 = 0.10;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -286,66 +285,54 @@ fn calculate_features(channel: &ExtractedChannel<'_>) -> Result<Features, String
     })
 }
 
-fn paired_nearest_pearson(
-    anchor: &ExtractedChannel<'_>,
-    other: &ExtractedChannel<'_>,
-    max_skew_ns: i64,
+fn paired_exact_rate_pearson(
+    a: &ExtractedChannel<'_>,
+    b: &ExtractedChannel<'_>,
 ) -> Result<PairedFeatures, String> {
-    if anchor.window.start_ref_ns != other.window.start_ref_ns
-        || anchor.window.end_ref_ns != other.window.end_ref_ns {
+    if a.window.start_ref_ns != b.window.start_ref_ns || a.window.end_ref_ns != b.window.end_ref_ns {
         return Err("WINDOW_MISMATCH: paired channels must use the same reference window".into());
     }
-    if anchor.reference_clock != other.reference_clock {
+    if a.reference_clock != b.reference_clock {
         return Err("INCONCLUSIVE: channels do not map to the same reference clock".into());
     }
-    let combined_uncertainty = anchor.clock_uncertainty_ns.saturating_add(other.clock_uncertainty_ns);
+    if a.meta.sensor_id == b.meta.sensor_id || a.meta.kind == b.meta.kind {
+        return Err("PAIR_KIND_INVALID: pair requires distinct vibration and current sensors".into());
+    }
+    let combined_uncertainty = a.clock_uncertainty_ns.saturating_add(b.clock_uncertainty_ns);
     if combined_uncertainty > MAX_CLOCK_UNCERTAINTY_NS {
         return Err("INCONCLUSIVE: combined clock uncertainty exceeds 100 us".into());
     }
-    if max_skew_ns < 0 || max_skew_ns > MAX_PAIR_SKEW_NS {
-        return Err("PAIR_SKEW_INVALID: nearest-sample tolerance must be in [0,1ms]".into());
+    let rate_scale = a.meta.nominal_rate_hz.abs().max(b.meta.nominal_rate_hz.abs()).max(1.0);
+    if (a.meta.nominal_rate_hz - b.meta.nominal_rate_hz).abs() / rate_scale > 1.0e-9 {
+        return Err("INCONCLUSIVE: multi-rate pairing requires a pinned anti-alias resampling transform".into());
     }
-    if other.mapped_timestamps_ns.len() < 2 || anchor.values.len() < 2 {
-        return Err("PAIR_INSUFFICIENT_SAMPLES".into());
+    if a.mapped_timestamps_ns.len() < 3 || b.mapped_timestamps_ns.len() < 3 {
+        return Err("PAIR_INSUFFICIENT_SAMPLES: require at least three samples per channel".into());
     }
 
+    // Exact timestamp intersection only. No nearest-neighbour matching or interpolation.
+    let mut i = 0usize;
+    let mut j = 0usize;
     let mut xs = Vec::new();
     let mut ys = Vec::new();
-    let mut max_skew = 0_i64;
-
-    for (&ta, &xa) in anchor.mapped_timestamps_ns.iter().zip(anchor.values.iter()) {
-        let target = other.mapped_timestamps_ns.binary_search(&ta);
-        let candidate = match target {
-            Ok(i) => Some(i),
-            Err(i) => {
-                let left = i.checked_sub(1);
-                let right = (i < other.mapped_timestamps_ns.len()).then_some(i);
-                match (left, right) {
-                    (Some(l), Some(r)) => {
-                        let dl = ((ta as i128) - (other.mapped_timestamps_ns[l] as i128)).unsigned_abs();
-                        let dr = ((other.mapped_timestamps_ns[r] as i128) - (ta as i128)).unsigned_abs();
-                        Some(if dl <= dr { l } else { r })
-                    }
-                    (Some(l), None) => Some(l),
-                    (None, Some(r)) => Some(r),
-                    (None, None) => None,
-                }
-            }
-        };
-        if let Some(i) = candidate {
-            let skew_u128 = ((ta as i128) - (other.mapped_timestamps_ns[i] as i128)).unsigned_abs();
-            if skew_u128 <= max_skew_ns as u128 {
-                let skew = skew_u128 as i64;
-                xs.push(xa);
-                ys.push(other.values[i]);
-                max_skew = max_skew.max(skew);
-            }
+    while i < a.mapped_timestamps_ns.len() && j < b.mapped_timestamps_ns.len() {
+        let ta = a.mapped_timestamps_ns[i];
+        let tb = b.mapped_timestamps_ns[j];
+        if ta == tb {
+            xs.push(a.values[i]);
+            ys.push(b.values[j]);
+            i += 1;
+            j += 1;
+        } else if ta < tb {
+            i += 1;
+        } else {
+            j += 1;
         }
     }
-
     if xs.len() < 3 {
-        return Err("INCONCLUSIVE: fewer than three nearest-time pairs satisfy skew tolerance".into());
+        return Err("INCONCLUSIVE: fewer than three exact co-timed sample pairs".into());
     }
+
     let mx = xs.iter().sum::<f64>() / xs.len() as f64;
     let my = ys.iter().sum::<f64>() / ys.len() as f64;
     let mut covariance = 0.0;
@@ -363,7 +350,7 @@ fn paired_nearest_pearson(
     }
     let r = covariance / (vx * vy).sqrt();
     if !r.is_finite() { return Err("PAIR_NONFINITE".into()); }
-    Ok(PairedFeatures { pair_count: xs.len(), pearson_r: r.clamp(-1.0, 1.0), max_nearest_skew_ns: max_skew })
+    Ok(PairedFeatures { pair_count: xs.len(), pearson_r: r.clamp(-1.0, 1.0) })
 }
 
 fn emit_csv() -> Result<(), String> {
@@ -398,17 +385,24 @@ fn emit_csv() -> Result<(), String> {
     }, window)?;
     let vf = calculate_features(&vib)?;
     let cf = calculate_features(&current)?;
-    let pair = paired_nearest_pearson(&current, &vib, 500_000)?;
+    let pair_result = paired_exact_rate_pearson(&current, &vib);
+    let pair_status = match &pair_result {
+        Ok(_) => "PAIRED_EXACT_RATE".to_string(),
+        Err(e) => e.replace(',', ";"),
+    };
+    let pair = pair_result.ok();
 
-    println!("transform_version,sensor_id,kind,unit,source_sha256,window_start_ref_ns,window_end_ref_ns,nominal_rate_hz,observed_samples,expected_samples,missing_samples,missing_fraction,mean,rms,peak_to_peak,crest_factor,unbiased_variance,excess_kurtosis,clock_uncertainty_ns,paired_sensor_id,paired_count,paired_pearson_r,max_nearest_skew_ns");
+    println!("transform_version,sensor_id,kind,unit,source_sha256,window_start_ref_ns,window_end_ref_ns,nominal_rate_hz,observed_samples,expected_samples,missing_samples,missing_fraction,mean,rms,peak_to_peak,crest_factor,unbiased_variance,excess_kurtosis,clock_uncertainty_ns,paired_sensor_id,paired_status,paired_count,paired_pearson_r");
     for (f, paired_id) in [(&vf, cf.sensor_id.as_str()), (&cf, vf.sensor_id.as_str())] {
-        println!("{},{},{},{},{},{},{},{:.6},{},{},{},{:.8},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{},{},{},{:.12e},{}",
+        let pair_count = pair.as_ref().map(|p| p.pair_count.to_string()).unwrap_or_default();
+        let pair_r = pair.as_ref().map(|p| format!("{:.12e}", p.pearson_r)).unwrap_or_default();
+        println!("{},{},{},{},{},{},{},{:.6},{},{},{},{:.8},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{},{},{},{},{}",
             TRANSFORM_VERSION, f.sensor_id, f.kind, f.unit, f.source_sha256,
             f.window_start_ref_ns, f.window_end_ref_ns, f.nominal_rate_hz,
             f.observed_samples, f.expected_samples, f.missing_samples, f.missing_fraction,
             f.mean, f.rms, f.peak_to_peak, f.crest_factor, f.unbiased_variance,
-            f.excess_kurtosis, f.clock_uncertainty_ns, paired_id, pair.pair_count,
-            pair.pearson_r, pair.max_nearest_skew_ns);
+            f.excess_kurtosis, f.clock_uncertainty_ns, paired_id, pair_status,
+            pair_count, pair_r);
     }
     Ok(())
 }
@@ -546,12 +540,20 @@ mod tests {
             source_sha256:"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
         let a=extract(RawChannel{meta:a_meta,timestamps_local_ns:&ta,values:&xa,clock_map:Some(ClockMap{clock_domain:"c",reference_clock:"ref",offset_ns:0,origin_local_ns:0,drift_ppb:0,uncertainty_ns:50})},Window{start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
         let b=extract(RawChannel{meta:b_meta,timestamps_local_ns:&tb,values:&xb,clock_map:Some(ClockMap{clock_domain:"v",reference_clock:"ref",offset_ns:0,origin_local_ns:0,drift_ppb:0,uncertainty_ns:50})},Window{start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
-        let p=paired_nearest_pearson(&a,&b,500_000).unwrap();
-        assert_eq!(p.pair_count,100);
-        assert!(p.pearson_r>0.99);
+        let err=paired_exact_rate_pearson(&a,&b).unwrap_err();
+        assert!(err.contains("multi-rate pairing requires a pinned anti-alias"));
         let mut bad=b;
         bad.clock_uncertainty_ns=MAX_CLOCK_UNCERTAINTY_NS+1;
-        assert!(paired_nearest_pearson(&a,&bad,500_000).unwrap_err().contains("INCONCLUSIVE"));
+        assert!(paired_exact_rate_pearson(&a,&bad).unwrap_err().contains("INCONCLUSIVE"));
+
+        let v_same: Vec<f64>=(0..100).map(|i|(std::f64::consts::TAU*10.0*i as f64/100.0).sin()).collect();
+        let b_same_meta=SensorMeta {sensor_id:"vibration-same-rate",kind:ChannelKind::Vibration,unit:"m/s^2",nominal_rate_hz:100.0,
+            clock_domain:"v",calibration_id:"vv",calibration_valid_until_ref_ns:2_000_000_000,
+            source_sha256:"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+        let b_same=extract(RawChannel{meta:b_same_meta,timestamps_local_ns:&ta,values:&v_same,clock_map:Some(ClockMap{clock_domain:"v",reference_clock:"ref",offset_ns:0,origin_local_ns:0,drift_ppb:0,uncertainty_ns:50})},Window{start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
+        let p=paired_exact_rate_pearson(&a,&b_same).unwrap();
+        assert_eq!(p.pair_count,100);
+        assert!(p.pearson_r>0.99);
     }
 
     #[test]
