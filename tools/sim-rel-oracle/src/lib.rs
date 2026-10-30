@@ -563,7 +563,7 @@ mod minimax_tests {
         let Some(action) = node.action else {
             return 0;
         };
-        let child = if (*signature >> action) & 1 == 1 {
+        let child = if (signature >> action) & 1 == 1 {
             node.outcome_one.as_ref().unwrap()
         } else {
             node.outcome_zero.as_ref().unwrap()
