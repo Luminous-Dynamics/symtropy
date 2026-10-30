@@ -188,6 +188,7 @@ fn validate(r: &Request) -> Result<(), &'static str> {
 fn frechet_bounds(marginals: &[Marginal]) -> Result<(f64, f64, f64), &'static str> {
     if marginals.len() < 2 { return Err("JOINT_CONFORMITY_REQUIRES_AT_LEAST_TWO_CHARACTERISTICS"); }
     let mut sum_lower = 0.0_f64;
+    let mut effective_characteristics = 0_usize;
     let mut upper = 1.0_f64;
     let mut product_midpoint = 1.0_f64;
     for m in marginals {
@@ -196,11 +197,20 @@ fn frechet_bounds(marginals: &[Marginal]) -> Result<(f64, f64, f64), &'static st
             || m.probability_lower > m.probability_upper {
             return Err("MARGINAL_PROBABILITY_INTERVAL_INVALID");
         }
-        sum_lower += m.probability_lower;
+        // A [1,1] marginal is an identity event: it must not perturb the
+        // Fréchet lower bound through floating-point add/subtract cancellation.
+        if m.probability_lower != 1.0 || m.probability_upper != 1.0 {
+            sum_lower += m.probability_lower;
+            effective_characteristics += 1;
+        }
         upper = upper.min(m.probability_upper);
         product_midpoint *= 0.5 * (m.probability_lower + m.probability_upper);
     }
-    let lower = (sum_lower - (marginals.len() - 1) as f64).max(0.0).min(upper);
+    let lower = if effective_characteristics == 0 {
+        1.0
+    } else {
+        (sum_lower - (effective_characteristics - 1) as f64).max(0.0).min(upper)
+    };
     if !lower.is_finite() || !upper.is_finite() || !product_midpoint.is_finite()
         || lower > upper + TOL {
         return Err("FRECHET_BOUND_INVALID");
