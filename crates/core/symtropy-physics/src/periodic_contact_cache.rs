@@ -191,6 +191,10 @@ fn canonical_contact_point<const D: usize>(
     image_offset_b_relative_to_a: LatticeOffset<D>,
     contact_point: &SVector<f64, D>,
 ) -> Result<SVector<f64, D>, PeriodicContactCacheError> {
+    let point_axis = contact_point.iter().position(|value| !value.is_finite());
+    if let Some(axis) = point_axis {
+        return Err(PeriodicContactCacheError::NonFiniteContactPoint { axis });
+    }
     // Validate the full lattice offset even when the point is already in the
     // canonical body ordering. Non-periodic axes must never carry image shifts.
     let shift = domain.offset_vector(image_offset_b_relative_to_a)?;
@@ -452,27 +456,31 @@ mod tests {
         let lower = BodyHandle(2);
         let upper = BodyHandle(7);
 
-        let point_ab = SVector::from([0.0, 0.0]);
+        // Store with the higher-ID body first. The tangent vector is the
+        // impulse applied to the actual second body (the lower-ID body).
+        let point_ba = SVector::from([10.0, 0.0]);
         cache
             .store(
-                &domain,
-                lower,
-                upper,
-                LatticeOffset::new([-1, 0]),
-                &point_ab,
-                4.0,
-                &SVector::from([0.0, -0.5]),
-            )
-            .unwrap();
-
-        let point_ba = SVector::from([10.0, 0.0]);
-        let cached = cache
-            .lookup(
                 &domain,
                 upper,
                 lower,
                 LatticeOffset::new([1, 0]),
                 &point_ba,
+                4.0,
+                &SVector::from([0.0, 0.5]),
+            )
+            .unwrap();
+
+        // Query in canonical order. The cached tangent vector is now expressed
+        // as the impulse applied to canonical body_b (the higher-ID body).
+        let point_ab = SVector::from([0.0, 0.0]);
+        let cached = cache
+            .lookup(
+                &domain,
+                lower,
+                upper,
+                LatticeOffset::new([-1, 0]),
+                &point_ab,
             )
             .unwrap()
             .unwrap();
@@ -570,6 +578,18 @@ mod tests {
                 &SVector::zeros(),
             ),
             Err(PeriodicContactCacheError::NonFiniteImpulse)
+        ));
+        assert!(matches!(
+            cache.store(
+                &domain,
+                BodyHandle(2),
+                BodyHandle(7),
+                LatticeOffset::zero(),
+                &SVector::zeros(),
+                -1.0,
+                &SVector::zeros(),
+            ),
+            Err(PeriodicContactCacheError::InvalidNormalImpulse)
         ));
     }
 
