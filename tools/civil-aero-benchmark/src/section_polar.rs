@@ -323,7 +323,7 @@ pub fn report_to_csv(report: &SectionPolarReport) -> String {
             report.source_dataset_id,
             report.declared_source_sha256,
             report.source_revision,
-            csv_escape(report.source_condition),
+            csv_escape(&report.source_condition),
             report.evidence_level,
             csv_escape(&zone.zone),
             zone.observation_count,
