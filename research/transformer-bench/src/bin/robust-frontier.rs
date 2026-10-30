@@ -282,6 +282,36 @@ mod tests {
     }
 
     #[test]
+    fn possible_dominance_can_hold_without_certain_dominance() {
+        let baseline = a();
+        let overlapping = candidate(
+            "D",
+            [(950.0,1150.0),(950.0,1150.0),(4800.0,5400.0),(88.0,92.0),(480.0,520.0),(1900.0,2100.0)],
+        );
+        assert!(possibly_dominates(&baseline, &overlapping));
+        assert!(!certainly_dominates(&baseline, &overlapping));
+    }
+
+    #[test]
+    fn classification_is_invariant_to_candidate_input_order() {
+        let candidates = vec![a(), c(), candidate(
+            "B",
+            [(1190.0,1210.0),(690.0,710.0),(3900.0,4100.0),(84.0,86.0),(515.0,525.0),(2080.0,2120.0)],
+        )];
+        let forward: BTreeSet<(String, bool, bool, Vec<String>, Vec<String>)> = classify(&candidates)
+            .into_iter()
+            .map(|row| (row.candidate_id, row.nominal_pareto, row.robust_pareto, row.nominal_dominators, row.certain_dominators))
+            .collect();
+        let mut reversed = candidates;
+        reversed.reverse();
+        let backward: BTreeSet<(String, bool, bool, Vec<String>, Vec<String>)> = classify(&reversed)
+            .into_iter()
+            .map(|row| (row.candidate_id, row.nominal_pareto, row.robust_pareto, row.nominal_dominators, row.certain_dominators))
+            .collect();
+        assert_eq!(forward, backward);
+    }
+
+    #[test]
     fn parser_rejects_mixed_currency_and_reversed_bounds() {
         let path = env::temp_dir().join("transformer-robust-frontier-test.csv");
         let path = path.to_string_lossy().into_owned();
