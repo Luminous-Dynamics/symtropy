@@ -46,7 +46,7 @@ const REPEAT_IDS_500: [&str; 3] = [
 #[derive(Clone, Copy, Debug)]
 struct Reference {
     pad_width_mm: u8,
-    turnaround_ms_tenths: u8,
+    turnaround_ms_hundredths: u16,
     tam_n_x1e5: f64,
     tam_mean_ms: f64,
     tam_median_ms: f64,
@@ -59,22 +59,22 @@ struct Reference {
 
 const REFERENCES: [Reference; 4] = [
     Reference {
-        pad_width_mm: 1, turnaround_ms_tenths: 7,
+        pad_width_mm: 1, turnaround_ms_hundredths: 75,
         tam_n_x1e5: 6.59, tam_mean_ms: 2.00, tam_median_ms: 1.80, tam_std_ms: 1.00,
         scr_n_x1e4: 10.11, scr_mean_x1e5: 3.86, scr_median_x1e5: 3.61, scr_std_x1e5: 2.79,
     },
     Reference {
-        pad_width_mm: 1, turnaround_ms_tenths: 50,
+        pad_width_mm: 1, turnaround_ms_hundredths: 500,
         tam_n_x1e5: 5.95, tam_mean_ms: 0.87, tam_median_ms: 0.87, tam_std_ms: 0.20,
         scr_n_x1e4: 10.46, scr_mean_x1e5: 4.75, scr_median_x1e5: 4.32, scr_std_x1e5: 2.39,
     },
     Reference {
-        pad_width_mm: 5, turnaround_ms_tenths: 7,
+        pad_width_mm: 5, turnaround_ms_hundredths: 7,
         tam_n_x1e5: 36.20, tam_mean_ms: 1.50, tam_median_ms: 1.50, tam_std_ms: 0.26,
         scr_n_x1e4: 39.77, scr_mean_x1e5: 1.95, scr_median_x1e5: 1.21, scr_std_x1e5: 1.84,
     },
     Reference {
-        pad_width_mm: 5, turnaround_ms_tenths: 50,
+        pad_width_mm: 5, turnaround_ms_hundredths: 50,
         tam_n_x1e5: 36.27, tam_mean_ms: 1.20, tam_median_ms: 1.30, tam_std_ms: 0.21,
         scr_n_x1e4: 40.38, scr_mean_x1e5: 2.67, scr_median_x1e5: 1.94, scr_std_x1e5: 1.80,
     },
@@ -238,16 +238,16 @@ fn group_index(pad_width: f64, turnaround_ms: f64) -> Result<usize, String> {
     let pad = if (pad_width - 1.0).abs() < 1.0e-9 { 1_u8 }
         else if (pad_width - 5.0).abs() < 1.0e-9 { 5_u8 }
         else { return Err("PAD_WIDTH_UNSUPPORTED".into()); };
-    let turnaround = if (turnaround_ms - 0.75).abs() < 1.0e-9 { 7_u8 }
-        else if (turnaround_ms - 5.0).abs() < 1.0e-9 { 50_u8 }
+    let turnaround = if (turnaround_ms - 0.75).abs() < 1.0e-9 { 75_u16 }
+        else if (turnaround_ms - 5.0).abs() < 1.0e-9 { 500_u16 }
         else { return Err("TURNAROUND_UNSUPPORTED".into()); };
     REFERENCES.iter().position(|r| {
-        r.pad_width_mm == pad && r.turnaround_ms_tenths == turnaround
+        r.pad_width_mm == pad && r.turnaround_ms_hundredths == turnaround
     }).ok_or_else(|| "GROUP_UNSUPPORTED".into())
 }
 
-fn allowed_repeats(turnaround_ms_tenths: u8) -> &'static [&'static str; 3] {
-    if turnaround_ms_tenths == 7 { &REPEAT_IDS_075 } else { &REPEAT_IDS_500 }
+fn allowed_repeats(turnaround_ms_hundredths: u8) -> &'static [&'static str; 3] {
+    if turnaround_ms_hundredths == 75 { &REPEAT_IDS_075 } else { &REPEAT_IDS_500 }
 }
 
 fn within_published_rounding(actual: f64, reference: f64) -> bool {
@@ -302,7 +302,7 @@ fn parse_csv<R: BufRead>(reader: R, source_sha256: String) -> Result<Campaign, S
         let turnaround = fields[3].parse::<f64>()
             .map_err(|_| format!("TURNAROUND_PARSE_LINE_{}", line_index + 2))?;
         let index = group_index(pad_width, turnaround)?;
-        let expected_repeats = allowed_repeats(REFERENCES[index].turnaround_ms_tenths);
+        let expected_repeats = allowed_repeats(REFERENCES[index].turnaround_ms_hundredths);
         if !expected_repeats.contains(&repeat_id) {
             return Err(format!("REPEAT_ID_INVALID_FOR_GROUP_LINE_{}", line_index + 2));
         }
@@ -317,15 +317,14 @@ fn parse_csv<R: BufRead>(reader: R, source_sha256: String) -> Result<Campaign, S
     if total_rows == 0 { return Err("CSV_HAS_NO_SAMPLE_ROWS".into()); }
 
     let mut scored = Vec::with_capacity(4);
-    let mut all_groups_complete = true;
+    
     let mut all_summaries_match = true;
 
     for group in groups {
         if group.seen_repeats.len() != 3 {
-            all_groups_complete = false;
             return Err(format!(
-                "GROUP_MISSING_REPEAT: pad={} turnaround_tenths={}",
-                group.reference.pad_width_mm, group.reference.turnaround_ms_tenths
+                "GROUP_MISSING_REPEAT: pad={} turnaround_hundredths={}",
+                group.reference.pad_width_mm, group.reference.turnaround_ms_hundredths
             ));
         }
         let tam = Stats::from_values(&group.tam_values)?;
@@ -361,7 +360,6 @@ fn parse_csv<R: BufRead>(reader: R, source_sha256: String) -> Result<Campaign, S
         });
     }
 
-    if !all_groups_complete { return Err("CAMPAIGN_INCOMPLETE".into()); }
     let status = if all_summaries_match { "MATCHES_PUBLISHED_SUMMARY" }
         else { "DOES_NOT_MATCH_PUBLISHED_SUMMARY" };
     Ok(Campaign {
@@ -377,7 +375,7 @@ fn emit_reference_csv() {
     println!("pad_width_mm,turnaround_ms,tam_n_x1e5,tam_mean_ms,tam_median_ms,tam_std_ms,scr_n_x1e4,scr_mean_x1e5,scr_median_x1e5,scr_std_x1e5");
     for r in REFERENCES {
         println!("{},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2}",
-            r.pad_width_mm, r.turnaround_ms_tenths as f64 / 10.0,
+            r.pad_width_mm, r.turnaround_ms_hundredths as f64 / 100.0,
             r.tam_n_x1e5, r.tam_mean_ms, r.tam_median_ms, r.tam_std_ms,
             r.scr_n_x1e4, r.scr_mean_x1e5, r.scr_median_x1e5, r.scr_std_x1e5);
     }
@@ -387,7 +385,7 @@ fn report_csv(campaign: &Campaign) {
     println!("pad_width_mm,turnaround_ms,total_rows,tam_pre_filter,tam_missing,tam_below_0_5ms,tam_n,tam_mean_ms,tam_median_ms,tam_population_std_ms,tam_q05_ms,tam_q25_ms,tam_q75_ms,tam_q95_ms,tam_ref_mean_ms,tam_abs_mean_error_ms,tam_ref_median_ms,tam_abs_median_error_ms,tam_ref_std_ms,tam_abs_std_error_ms,tam_summary_match,scr_pre_filter,scr_missing,scr_above_1e6,scr_n,scr_mean_x1e5_c_per_s,scr_median_x1e5_c_per_s,scr_population_std_x1e5_c_per_s,scr_q05_x1e5,scr_q25_x1e5,scr_q75_x1e5,scr_q95_x1e5,scr_ref_mean_x1e5,scr_abs_mean_error_x1e5,scr_ref_median_x1e5,scr_abs_median_error_x1e5,scr_ref_std_x1e5,scr_abs_std_error_x1e5,scr_summary_match,source_sha256,filter_sha256,campaign_status");
     for g in &campaign.groups {
         let r = g.reference;
-        let turnaround = r.turnaround_ms_tenths as f64 / 10.0;
+        let turnaround = r.turnaround_ms_hundredths as f64 / 100.0;
         println!(
             "{},{:.2},{},{},{},{},{},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{},{},{},{},{},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{:.8},{},{},{},{}",
             r.pad_width_mm, turnaround, campaign.total_rows,
@@ -517,7 +515,7 @@ fn verify() -> Result<(), String> {
     }
     for r in reference {
         if !(r.pad_width_mm == 1 || r.pad_width_mm == 5)
-            || !(r.turnaround_ms_tenths == 7 || r.turnaround_ms_tenths == 50)
+            || !(r.turnaround_ms_hundredths == 7 || r.turnaround_ms_hundredths == 50)
             || r.tam_n_x1e5 <= 0.0 || r.scr_n_x1e4 <= 0.0
             || r.tam_mean_ms < TAM_MIN_SECONDS * 1.0e3
             || r.scr_mean_x1e5 <= 0.0 {
@@ -620,11 +618,11 @@ mod tests {
     fn campaign_requires_all_three_repeat_ids_in_all_four_groups() {
         let mut source = format!("{HEADER}\n");
         for r in REFERENCES {
-            let repeats = allowed_repeats(r.turnaround_ms_tenths);
+            let repeats = allowed_repeats(r.turnaround_ms_hundredths);
             for repeat in repeats.iter().take(2) {
                 source.push_str(&format!("{}-{repeat},{repeat},{},{:.2},0.001,500000\n",
                     r.pad_width_mm, r.pad_width_mm, r.pad_width_mm,
-                    r.turnaround_ms_tenths as f64 / 10.0));
+                    r.turnaround_ms_hundredths as f64 / 10.0));
             }
         }
         let result = parse_csv(BufReader::new(source.as_bytes()), "a".repeat(64));
