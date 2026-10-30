@@ -201,7 +201,7 @@ jobs:
         run: |
           jq -e '
             .manifest_schema == "civil-aero-evidence-manifest/0.1.0" and
-            .status == "source_discovery_only" and
+            .status == "partial_source_bytes_pinned_not_admitted" and
             (.sources | length >= 6) and
             all(.sources[];
               (.source_id | type == "string" and length > 0) and
