@@ -118,8 +118,13 @@ pub fn image_offsets_for_aabb_pair<const D: usize>(
             return Err(PeriodicBroadphaseError::CoordinatePrecisionLimit { axis });
         }
 
-        let lower = low_ratio.ceil();
-        let upper = high_ratio.floor();
+        // Bias the integer interval outward by a small ratio-scaled margin.
+        // The narrow phase removes harmless extra candidates; under-enumerating
+        // a boundary-touching image would be a false negative.
+        let ratio_scale = low_ratio.abs().max(high_ratio.abs()).max(1.0);
+        let rounding_pad = 8.0 * f64::EPSILON * ratio_scale;
+        let lower = (low_ratio - rounding_pad).ceil();
+        let upper = (high_ratio + rounding_pad).floor();
         if lower > upper {
             return Ok(Vec::new());
         }
