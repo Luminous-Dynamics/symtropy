@@ -30,6 +30,7 @@ pub mod convex_hull;
 pub mod halfspace;
 pub mod hyperbox;
 pub mod hyperplane;
+pub mod lattice_periodic;
 pub mod periodic;
 pub mod point;
 pub mod rotor;
@@ -44,6 +45,9 @@ pub use convex_hull::ConvexHull;
 pub use halfspace::HalfSpace;
 pub use hyperbox::HyperBox;
 pub use hyperplane::Hyperplane;
+pub use lattice_periodic::{
+    LatticeDomainError, LatticePeriodicDomain, LatticeWrappedPoint, MinimumImage,
+};
 pub use periodic::{LatticeOffset, PeriodicBox, PeriodicDomainError, WrappedPoint};
 pub use point::Point;
 pub use rotor::Rotor;
