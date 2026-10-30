@@ -568,6 +568,95 @@ mod tests {
         assert!(!calibration_valid(&cal, &sample, &spec()));
     }
 
+    fn synthetic_calibration(status: &str) -> Calibration {
+        Calibration {
+            instrument: "DIM-1".into(),
+            class: "LENGTH_GAUGE".into(),
+            valid_from: "2025-01-01T00:00:00Z".into(),
+            valid_to: "2027-12-31T23:59:59Z".into(),
+            status: status.into(),
+            _certificate_id: "CERT-1".into(),
+        }
+    }
+
+    fn synthetic_window_samples(windows: &[(&str, &[f64])]) -> Vec<Sample> {
+        let mut output = Vec::new();
+        let mut index = 0usize;
+        for (window_index, (window_id, values)) in windows.iter().enumerate() {
+            for (sample_index, value) in values.iter().enumerate() {
+                index += 1;
+                let mut item = sample(*value);
+                item.window = (*window_id).to_string();
+                item.id = format!("S-{index}");
+                item.measured_at = format!(
+                    "2026-02-{:02}T{:02}:00:00Z",
+                    window_index + 1,
+                    7 + sample_index
+                );
+                output.push(item);
+            }
+        }
+        output
+    }
+
+    #[test]
+    fn windowed_diagnostic_detects_mean_drift_that_pooled_cpk_could_hide() {
+        let samples = synthetic_window_samples(&[
+            ("W1", &[99.88, 99.89, 99.87, 99.88]),
+            ("W2", &[99.99, 100.00, 100.01, 100.00]),
+            ("W3", &[100.10, 100.11, 100.12, 100.10]),
+        ]);
+        let reports = evaluate(
+            &samples,
+            &[spec()],
+            &BTreeMap::from([("CAL-1".to_string(), synthetic_calibration("CURRENT"))]),
+        )
+        .unwrap();
+        assert_eq!(reports.len(), 1);
+        assert_eq!(reports[0].windows, 3);
+        assert_eq!(reports[0].valid_samples, 12);
+        assert!(reports[0].drift_warning);
+        assert_eq!(reports[0].diagnostic, "TIME_DEPENDENT_DRIFT_OR_VARIANCE_WARNING");
+        assert!(reports[0].pooled_cpk.is_some());
+        assert!(reports[0].worst_window_cpk.is_some());
+    }
+
+    #[test]
+    fn windowed_diagnostic_detects_variance_shift_even_when_window_means_match() {
+        let samples = synthetic_window_samples(&[
+            ("W1", &[99.995, 100.000, 100.005, 100.000]),
+            ("W2", &[99.950, 100.000, 100.050, 100.000]),
+            ("W3", &[99.800, 100.000, 100.200, 100.000]),
+        ]);
+        let reports = evaluate(
+            &samples,
+            &[spec()],
+            &BTreeMap::from([("CAL-1".to_string(), synthetic_calibration("CURRENT"))]),
+        )
+        .unwrap();
+        assert!(!reports[0].drift_warning);
+        assert!(reports[0].variance_shift_warning);
+        assert!(reports[0].sigma_ratio.unwrap() > 3.0);
+    }
+
+    #[test]
+    fn expired_calibration_blocks_time_window_statistics() {
+        let samples = synthetic_window_samples(&[
+            ("W1", &[100.00, 100.01, 99.99, 100.00]),
+            ("W2", &[100.01, 100.00, 99.99, 100.02]),
+            ("W3", &[99.99, 100.00, 100.01, 100.00]),
+        ]);
+        let reports = evaluate(
+            &samples,
+            &[spec()],
+            &BTreeMap::from([("CAL-1".to_string(), synthetic_calibration("EXPIRED"))]),
+        )
+        .unwrap();
+        assert_eq!(reports[0].valid_samples, 0);
+        assert_eq!(reports[0].invalid_metrology_records, 12);
+        assert_eq!(reports[0].diagnostic, "BLOCKED_INVALID_METROLOGY");
+    }
+
     #[test]
     fn mean_and_sample_standard_deviation_are_hand_checkable() {
         let values = [1.0, 2.0, 3.0];
