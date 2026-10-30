@@ -18,7 +18,6 @@ use symtropy_math::{Point, Shape, Transform};
 
 use crate::support_map::{TransformedShape, WorldSupportMap};
 
-/// Maximum GJK iterations before giving up.
 /// Maximum support iterations before a GJK query terminates unresolved.
 pub(crate) const MAX_ITERATIONS: usize = 64;
 
