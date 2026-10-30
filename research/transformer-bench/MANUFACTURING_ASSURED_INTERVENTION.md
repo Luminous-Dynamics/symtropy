@@ -1,6 +1,6 @@
 # Assured Manufacturing Intervention Chain
 
-**Status:** research contract only. No actuator, PLC, robot, transformer test-bench or factory control interface is added.
+**Status:** research contract only. Tracks [Symtropy issue #2976](https://github.com/Luminous-Dynamics/symtropy/issues/2976). No actuator, PLC, robot, transformer test-bench or factory control interface is added.
 
 ## Why this is a separate capability
 
