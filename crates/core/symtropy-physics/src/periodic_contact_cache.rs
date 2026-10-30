@@ -19,7 +19,6 @@ use nalgebra::SVector;
 use symtropy_math::{LatticeOffset, PeriodicBox, PeriodicDomainError};
 
 use crate::body::BodyHandle;
-use crate::contact::CachedImpulse;
 use crate::periodic_contact::{PeriodicContactKey, PeriodicContactKeyError};
 
 /// Validated contact-frame data for one actual pair ordering.
@@ -41,6 +40,16 @@ pub struct PeriodicContactGeometry<const D: usize> {
     pub image_translation: SVector<f64, D>,
 }
 
+/// Warm-start impulse stored in canonical body order. The tangent impulse is
+/// a world-space vector applied to the canonical higher-ID body, not a scalar
+/// tied to whichever tangent basis the narrow phase happened to choose.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PeriodicCachedImpulse<const D: usize> {
+    pub normal_impulse: f64,
+    pub tangent_impulse: SVector<f64, D>,
+    pub point: SVector<f64, D>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PeriodicContactCacheError {
     Key(PeriodicContactKeyError),
@@ -48,6 +57,7 @@ pub enum PeriodicContactCacheError {
     NonFiniteContactPoint { axis: usize },
     NonFiniteBodyCentre { body: &'static str, axis: usize },
     NonFiniteImpulse,
+    InvalidNormalImpulse,
     NonFiniteDistance,
     InvalidMatchThreshold,
 }
@@ -64,6 +74,9 @@ impl fmt::Display for PeriodicContactCacheError {
                 write!(f, "non-finite centre of body {body} on axis {axis}")
             }
             Self::NonFiniteImpulse => write!(f, "periodic cached impulse must be finite"),
+            Self::InvalidNormalImpulse => {
+                write!(f, "periodic cached normal impulse must be non-negative")
+            }
             Self::NonFiniteDistance => write!(f, "periodic contact matching distance is non-finite"),
             Self::InvalidMatchThreshold => {
                 write!(f, "periodic contact cache match threshold must be finite and positive")
@@ -202,7 +215,7 @@ fn canonical_contact_point<const D: usize>(
 /// Deterministic warm-start cache keyed by canonical body pair and periodic
 /// image. It deliberately remains separate from the Euclidean ContactCache.
 pub struct PeriodicContactCache<const D: usize> {
-    entries: BTreeMap<(BodyHandle, BodyHandle, [i64; D]), Vec<CachedImpulse<D>>>,
+    entries: BTreeMap<(BodyHandle, BodyHandle, [i64; D]), Vec<PeriodicCachedImpulse<D>>>,
     /// Proximity threshold for matching canonical contact points.
     pub match_threshold: f64,
 }
@@ -226,11 +239,14 @@ impl<const D: usize> PeriodicContactCache<D> {
         image_offset_b_relative_to_a: LatticeOffset<D>,
         point: &SVector<f64, D>,
         normal_impulse: f64,
-        tangent_impulse: f64,
+        tangent_impulse: &SVector<f64, D>,
     ) -> Result<(), PeriodicContactCacheError> {
         self.validate_threshold()?;
-        if !normal_impulse.is_finite() || !tangent_impulse.is_finite() {
+        if !normal_impulse.is_finite() || !tangent_impulse.iter().all(|value| value.is_finite()) {
             return Err(PeriodicContactCacheError::NonFiniteImpulse);
+        }
+        if normal_impulse < 0.0 {
+            return Err(PeriodicContactCacheError::InvalidNormalImpulse);
         }
 
         let key = PeriodicContactKey::canonical(
@@ -245,13 +261,18 @@ impl<const D: usize> PeriodicContactCache<D> {
             image_offset_b_relative_to_a,
             point,
         )?;
+        let canonical_tangent_impulse = if body_a < body_b {
+            *tangent_impulse
+        } else {
+            -*tangent_impulse
+        };
 
         self.entries
             .entry((key.body_a, key.body_b, key.image_offset.periods))
             .or_default()
-            .push(CachedImpulse {
+            .push(PeriodicCachedImpulse {
                 normal_impulse,
-                tangent_impulse,
+                tangent_impulse: canonical_tangent_impulse,
                 point: canonical_point,
             });
         Ok(())
@@ -266,7 +287,7 @@ impl<const D: usize> PeriodicContactCache<D> {
         body_b: BodyHandle,
         image_offset_b_relative_to_a: LatticeOffset<D>,
         point: &SVector<f64, D>,
-    ) -> Result<Option<&CachedImpulse<D>>, PeriodicContactCacheError> {
+    ) -> Result<Option<&PeriodicCachedImpulse<D>>, PeriodicContactCacheError> {
         self.validate_threshold()?;
         let axis = point.iter().position(|value| !value.is_finite());
         if let Some(axis) = axis {
@@ -377,7 +398,7 @@ mod tests {
                 LatticeOffset::new([-1, 0]),
                 &point,
                 3.0,
-                0.25,
+                &SVector::from([0.0, 0.25]),
             )
             .unwrap();
         cache
@@ -388,7 +409,7 @@ mod tests {
                 LatticeOffset::zero(),
                 &point,
                 7.0,
-                0.75,
+                &SVector::from([0.0, 0.75]),
             )
             .unwrap();
 
@@ -440,7 +461,7 @@ mod tests {
                 LatticeOffset::new([-1, 0]),
                 &point_ab,
                 4.0,
-                -0.5,
+                &SVector::from([0.0, -0.5]),
             )
             .unwrap();
 
@@ -457,7 +478,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(cached.normal_impulse, 4.0);
-        assert_eq!(cached.tangent_impulse, -0.5);
+        assert_eq!(cached.tangent_impulse, SVector::from([0.0, -0.5]));
         assert_eq!(cached.point, point_ab);
     }
 
@@ -535,10 +556,10 @@ mod tests {
                 &SVector::zeros(),
             ),
             Err(PeriodicContactCacheError::InvalidMatchThreshold)
-        );
+        ));
 
         cache.match_threshold = 2.0;
-        assert_eq!(
+        assert!(matches!(
             cache.store(
                 &domain,
                 BodyHandle(2),
@@ -546,10 +567,10 @@ mod tests {
                 LatticeOffset::zero(),
                 &SVector::zeros(),
                 f64::INFINITY,
-                0.0,
+                &SVector::zeros(),
             ),
             Err(PeriodicContactCacheError::NonFiniteImpulse)
-        );
+        ));
     }
 
     #[test]
@@ -564,7 +585,7 @@ mod tests {
                 LatticeOffset::new([-1, 0]),
                 &SVector::zeros(),
                 1.0,
-                0.0,
+                &SVector::zeros(),
             )
             .unwrap();
         cache.begin_frame();
