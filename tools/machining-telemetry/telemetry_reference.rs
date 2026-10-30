@@ -749,7 +749,9 @@ mod tests {
         assert_eq!(fused.vibration_observed_samples, 1000);
         assert_eq!(fused.current_observed_samples, 100);
         assert_eq!(fused.combined_clock_uncertainty_ns, 100);
-        assert!(fused.vibration_rms > fused.current_rms);
+        assert!((fused.vibration_rms - 2.0_f64 / 2.0_f64.sqrt()).abs() < 1.0e-12);
+        assert!((fused.current_rms - 25.5_f64.sqrt()).abs() < 1.0e-12);
+        assert!(fused.current_rms > fused.vibration_rms);
         assert_eq!(fused.fusion_semantics,
             "cycle_level_feature_union_no_sample_resampling_or_cross_correlation");
 
