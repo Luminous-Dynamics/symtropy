@@ -201,6 +201,8 @@ Pin exact versions and settings in each result receipt. These are different work
 
 **The strategic correction:** do not assume a single global Delassus LCP is the final production solver. The plausible Symtropy differentiator is a *dimension-generic, auditable solver portfolio*: a small-island exact LCP oracle and coupled fallback; an optional decoupled dual-cone/impedance fast path for contact-rich workloads; residual- and coupling-triggered escalation between them; an attributable physical-work ledger; and deterministic, replayable receipts. This is a research hypothesis, not a demonstrated advantage.
 
+The first executable reference layer is now in [PR #2998](https://github.com/Luminous-Dynamics/symtropy/pull/2998): an N-dimensional Delassus assembler plus an exhaustive 1–8 row frictionless LCP oracle, including asymmetric-inertia coupling, rank-deficient rows and a production TGS impulse cross-check. It is a validation oracle, not the selected production fast path.
+
 Benchmark all approaches at matched physical error:
 1. **Scale regimes:** 10k/100k/500k rigid bodies; 256/512/1k/4k parallel environments; and one large coupled island. Report disconnected-island throughput and intra-island speedup/parallel efficiency separately.
 2. **Contact fidelity:** penetration p50/p95/max, jitter RMS, cone violations, sliding/sticking transitions, torsional/rolling friction, restitution, contact work and energy drift across timestep/stiffness sweeps.
