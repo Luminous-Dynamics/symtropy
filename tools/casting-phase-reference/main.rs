@@ -127,6 +127,50 @@ impl StefanSolution {
         }
         Ok(temperature)
     }
+
+    /// Integrated heat removed at the cold wall per unit area, in J/m².
+    ///
+    /// This is the time integral of k * dT/dx at x=0 for the exact
+    /// similarity profile.
+    fn wall_heat_removed_j_m2(self, time_s: f64) -> Result<f64, String> {
+        self.front_position_m(time_s)?;
+        let erf_lambda = erf_series(self.similarity_lambda)?;
+        let temperature_drop = self.case.melting_temperature_c - self.case.wall_temperature_c;
+        let heat = 2.0 * self.case.solid_conductivity_w_m_k * temperature_drop
+            * time_s.sqrt()
+            / (erf_lambda * SQRT_PI * self.diffusivity_m2_s.sqrt());
+        if heat.is_finite() && heat >= 0.0 {
+            Ok(heat)
+        } else {
+            Err("integrated wall heat is invalid".into())
+        }
+    }
+
+    /// Latent heat released plus sensible cooling stored in the solid,
+    /// per unit area, in J/m².
+    fn solid_stored_enthalpy_j_m2(self, time_s: f64) -> Result<f64, String> {
+        let front = self.front_position_m(time_s)?;
+        let erf_lambda = erf_series(self.similarity_lambda)?;
+        let similarity_integral = 2.0 * (self.diffusivity_m2_s * time_s).sqrt()
+            * (self.similarity_lambda * erf_lambda
+                + ((-self.similarity_lambda * self.similarity_lambda).exp() - 1.0) / SQRT_PI);
+        let temperature_drop = self.case.melting_temperature_c - self.case.wall_temperature_c;
+        let sensible_cooling_length = temperature_drop
+            * (front - similarity_integral / erf_lambda);
+        let stored = self.case.density_kg_m3 * self.case.latent_heat_j_kg * front
+            + self.case.density_kg_m3
+                * self.case.solid_heat_capacity_j_kg_k
+                * sensible_cooling_length;
+        if stored.is_finite() && stored >= 0.0 {
+            Ok(stored)
+        } else {
+            Err("solid latent-plus-sensible enthalpy is invalid".into())
+        }
+    }
+
+    fn energy_balance_residual_j_m2(self, time_s: f64) -> Result<f64, String> {
+        Ok(self.wall_heat_removed_j_m2(time_s)? - self.solid_stored_enthalpy_j_m2(time_s)?)
+    }
 }
 
 /// Error function by its power series. Its use is restricted to |x| <= 1.
@@ -247,6 +291,16 @@ fn verify_reference() -> Result<(), String> {
         if (front - expected_front).abs() > 8.0e-15 {
             return Err(format!("front-position scale check failed at {time_s} s"));
         }
+        let wall_heat = solution.wall_heat_removed_j_m2(time_s)?;
+        let stored = solution.solid_stored_enthalpy_j_m2(time_s)?;
+        if (wall_heat - stored).abs() > 2.0e-9 * wall_heat {
+            return Err(format!("energy closure failed at {time_s} s"));
+        }
+    }
+
+    let expected_heat_at_60_s = 521_442.721_035_330_706;
+    if (solution.wall_heat_removed_j_m2(60.0)? - expected_heat_at_60_s).abs() > 1.0e-6 {
+        return Err("known-answer integrated wall heat mismatch".into());
     }
 
     Ok(())
@@ -254,14 +308,16 @@ fn verify_reference() -> Result<(), String> {
 
 fn emit_csv() -> Result<(), String> {
     let solution = StefanSolution::new(StefanCase::reference())?;
-    println!("time_s,lambda,stefan_number,alpha_m2_s,front_m,wall_temperature_c,half_front_temperature_c,front_temperature_c");
+    println!("time_s,lambda,stefan_number,alpha_m2_s,front_m,wall_temperature_c,half_front_temperature_c,front_temperature_c,wall_heat_removed_j_m2,solid_stored_enthalpy_j_m2");
     for time_s in [60.0, 240.0, 960.0] {
         let front = solution.front_position_m(time_s)?;
         let wall_temperature = solution.temperature_c(0.0, time_s)?;
         let half_temperature = solution.temperature_c(0.5 * front, time_s)?;
         let front_temperature = solution.temperature_c(front, time_s)?;
+        let wall_heat = solution.wall_heat_removed_j_m2(time_s)?;
+        let stored_enthalpy = solution.solid_stored_enthalpy_j_m2(time_s)?;
         println!(
-            "{:.0},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e}",
+            "{:.0},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e}",
             time_s,
             solution.similarity_lambda,
             solution.stefan_number,
@@ -269,7 +325,9 @@ fn emit_csv() -> Result<(), String> {
             front,
             wall_temperature,
             half_temperature,
-            front_temperature
+            front_temperature,
+            wall_heat,
+            stored_enthalpy
         );
     }
     Ok(())
@@ -344,6 +402,21 @@ mod tests {
         let s960 = solution.front_position_m(960.0).unwrap();
         assert!((s240 / s60 - 2.0).abs() < 1.0e-14);
         assert!((s960 / s60 - 4.0).abs() < 1.0e-14);
+    }
+
+    #[test]
+    fn wall_heat_equals_latent_plus_sensible_enthalpy() {
+        let solution = reference();
+        let q60 = solution.wall_heat_removed_j_m2(60.0).unwrap();
+        let e60 = solution.solid_stored_enthalpy_j_m2(60.0).unwrap();
+        assert!((q60 - 521_442.721_035_330_706).abs() < 1.0e-6);
+        assert!((q60 - e60).abs() < 2.0e-9 * q60);
+
+        let q240 = solution.wall_heat_removed_j_m2(240.0).unwrap();
+        let q960 = solution.wall_heat_removed_j_m2(960.0).unwrap();
+        assert!((q240 / q60 - 2.0).abs() < 1.0e-12);
+        assert!((q960 / q60 - 4.0).abs() < 1.0e-12);
+        assert!(solution.energy_balance_residual_j_m2(60.0).unwrap().abs() < 2.0e-9 * q60);
     }
 
     #[test]
