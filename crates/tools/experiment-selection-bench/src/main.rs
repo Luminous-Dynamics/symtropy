@@ -19,7 +19,7 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<(), String> {
-    let mut source_sha = String::from("UNBOUND");
+    let mut source_sha: Option<String> = None;
     let mut seed_count = 20_usize;
     let mut budget = 32_usize;
     let mut initial_design = 8_usize;
@@ -30,7 +30,7 @@ fn run() -> Result<(), String> {
             .next()
             .ok_or_else(|| format!("missing value after {argument}"))?;
         match argument.as_str() {
-            "--source-sha" => source_sha = value,
+            "--source-sha" => source_sha = Some(value),
             "--seed-count" => {
                 seed_count = value
                     .parse()
@@ -48,6 +48,15 @@ fn run() -> Result<(), String> {
             }
             _ => return Err(format!("unknown argument: {argument}")),
         }
+    }
+
+    let source_sha = source_sha.ok_or_else(|| {
+        "--source-sha is required so every receipt binds an exact source revision".to_string()
+    })?;
+    if !matches!(source_sha.len(), 40 | 64)
+        || !source_sha.chars().all(|character| character.is_ascii_hexdigit())
+    {
+        return Err("--source-sha must be a 40- or 64-character hexadecimal Git object ID".to_string());
     }
 
     if seed_count == 0 {
