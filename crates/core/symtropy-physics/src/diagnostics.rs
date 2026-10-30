@@ -297,7 +297,10 @@ mod tests {
         assert_eq!(receipt.dynamic_body_count, 1);
         assert_eq!(receipt.contact_count, 0);
         assert!(receipt.is_numerically_healthy(1e-12));
-        assert!((receipt.after.center_of_mass[0] - receipt.before.center_of_mass[0] - 0.02).abs() < 1e-12);
+        assert!(
+            (receipt.after.center_of_mass[0] - receipt.before.center_of_mass[0] - 0.02).abs()
+                < 1e-12
+        );
         assert!(receipt.mechanical_energy_delta().abs() < 1e-12);
         assert!(receipt.drift.linear_momentum_error_norm() < 1e-12);
     }
