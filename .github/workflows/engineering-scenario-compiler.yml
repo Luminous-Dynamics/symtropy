@@ -36,8 +36,8 @@ jobs:
       - name: Apply pinned rustfmt to standalone compiler sources
         run: cargo fmt --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all
 
-      - name: Resolve and freeze standalone dependency graph
-        run: cargo generate-lockfile --manifest-path tools/engineering-scenario-compiler/Cargo.toml
+      - name: Verify committed standalone dependency lock
+        run: cargo metadata --manifest-path tools/engineering-scenario-compiler/Cargo.toml --format-version 1 --locked > /dev/null
 
       - name: Test strict compiler and negative corpus
         run: cargo test --manifest-path tools/engineering-scenario-compiler/Cargo.toml --locked
