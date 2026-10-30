@@ -1867,8 +1867,14 @@ mod tests {
         let right = a.then(&b.then(&c).unwrap()).unwrap();
         let position = SVector::from([0.25, -7.0]);
         let velocity = SVector::from([-1.0, 2.0]);
-        assert!((left.map_position(&position).unwrap() - right.map_position(&position).unwrap()).norm() < 1e-12);
-        assert!((left.map_velocity(&velocity).unwrap() - right.map_velocity(&velocity).unwrap()).norm() < 1e-12);
+        assert!(
+            (left.map_position(&position).unwrap() - right.map_position(&position).unwrap()).norm()
+                < 1e-12
+        );
+        assert!(
+            (left.map_velocity(&velocity).unwrap() - right.map_velocity(&velocity).unwrap()).norm()
+                < 1e-12
+        );
         assert!((left.map_time(19.0).unwrap() - right.map_time(19.0).unwrap()).abs() < 1e-12);
     }
 
