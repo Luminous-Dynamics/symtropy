@@ -1,10 +1,11 @@
 //! Rotational inertia on the N-dimensional bivector rotation space.
 //!
-//! The centered second-moment matrix is S = integral r r^T dm. For a physical
-//! point-velocity generator Omega (v = Omega*r) represented by a skew matrix,
-//! the angular-momentum bivector is I(Omega) = Omega*S + S*Omega. This is the
-//! dimension-generic form of the familiar 3D spatial inertia tensor, and it
-//! naturally couples rotation planes for asymmetric mass distributions.
+//! The centered second-moment matrix is S = integral r r^T dm. Symtropy stores
+//! the rotor generator B, whose increment is exp(-B); its physical point
+//! velocity is therefore -B*r. In the library's stored-bivector convention,
+//! angular momentum is I(B) = B*S + S*B. This is the dimension-generic form of
+//! the familiar 3D spatial inertia tensor and naturally couples rotation planes
+//! for asymmetric mass distributions.
 //!
 //! This module provides forward and inverse inertia application, coordinate-
 //! frame rotation, and energy calculation. It is not yet wired into RigidBody
@@ -177,30 +178,30 @@ impl<const D: usize> BivectorInertia<D> {
         &self.second_moment
     }
 
-    /// Map a physical skew-matrix point-velocity generator to angular momentum:
-    /// L = Omega*S + S*Omega, where point velocity is v = Omega*r.
+    /// Map Symtropy's stored angular state B to angular momentum:
+    /// L = B*S + S*B. Rotor::from_bivector(B) integrates exp(-B), so the
+    /// associated physical point velocity is -B*r.
     ///
     /// The output uses the same lexicographic (i,j), i<j plane ordering as
     /// Bivector<D>. This map is symmetric and positive semidefinite when S
-    /// is a physically valid centered mass second-moment matrix. Important:
-    /// RigidBody stores B with Rotor's exp(-B) convention, so pass -B when
-    /// converting its stored angular state into physical angular momentum.
+    /// is a physically valid centered mass second-moment matrix. Pass the
+    /// stored RigidBody.angular_velocity directly; do not negate it here.
     pub fn angular_momentum(&self, angular_velocity: &Bivector<D>) -> Bivector<D> {
         let omega = angular_velocity.to_matrix();
         let momentum = omega * self.second_moment + self.second_moment * omega;
         Bivector::from_matrix(&momentum)
     }
 
-    /// Invert physical angular momentum to its skew-matrix point-velocity generator.
+    /// Invert angular momentum to recover Symtropy's stored angular state B.
     ///
     /// The symmetric eigendecomposition S = Q*Lambda*Q^T diagonalizes the
     /// inertia operator on bivectors: in principal coordinates each plane
     /// (i,j) has eigenvalue lambda_i + lambda_j. This avoids constructing a
     /// dense D(D-1)/2 square matrix and preserves coupling in the world frame.
     ///
-    /// The returned value is the physical generator Omega in v = Omega*r.
-    /// Negate it before writing to RigidBody.angular_velocity, whose Rotor
-    /// integration convention is exp(-B).
+    /// The returned value is the stored B consumed by Rotor::from_bivector,
+    /// which advances orientation with exp(-B). Physical point velocity is
+    /// obtained separately with -B*r.
     ///
     /// The relative tolerance is applied to the largest eigenvalue of S. If any
     /// rotation plane is singular or too ill-conditioned at this threshold,
@@ -254,7 +255,7 @@ impl<const D: usize> BivectorInertia<D> {
         }
     }
 
-    /// Rotational kinetic energy, 1/2 <omega, I(omega)> in the bivector inner product.
+    /// Rotational kinetic energy, 1/2 <B, I(B)> in the stored-bivector convention.
     pub fn kinetic_energy(&self, angular_velocity: &Bivector<D>) -> f64 {
         let momentum = self.angular_momentum(angular_velocity);
         let mut pairing = 0.0;
