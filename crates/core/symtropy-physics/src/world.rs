@@ -45,8 +45,10 @@ const MAX_BIAS_VELOCITY: f64 = 10.0;
 
 /// Quantize a float to Q16.16 fixed-point (range ±32768, resolution 1/65536).
 ///
-/// Used by the `deterministic-net` feature to guarantee bit-identical simulation
-/// across heterogeneous hardware for P2P multiplayer and replay files.
+/// Used by the `deterministic-net` feature to quantize selected state at step
+/// boundaries. This can reduce replay drift, but does not by itself guarantee
+/// bit-identical results across heterogeneous hardware; that remains an
+/// explicit, separately validated property.
 #[cfg(feature = "deterministic-net")]
 #[inline]
 fn quantize_q16_16(v: f64) -> f64 {
