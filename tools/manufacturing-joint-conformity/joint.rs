@@ -108,7 +108,6 @@ fn present(v: &str) -> bool { !v.trim().is_empty() }
 fn valid_sha(v: &str) -> bool {
     v.len() == HASH_LEN && v.bytes().all(|b| b.is_ascii_hexdigit())
 }
-fn finite(v: f64) -> Option<f64> { v.is_finite().then_some(v) }
 
 fn marginal_receipts(r: &Request) -> Vec<String> {
     let mut receipts: Vec<String> = r.marginals.iter().map(|m| format!(
