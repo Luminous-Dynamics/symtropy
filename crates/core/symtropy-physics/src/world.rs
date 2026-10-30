@@ -78,8 +78,8 @@ pub trait PhysicsCallback<const D: usize> {
     /// physical impacts (e.g., calculating trauma, adjusting internal state).
     fn on_collision(&mut self, event: &CollisionEvent<D>);
 
-    /// Called after each physics step to record energy dissipated.
-    fn record_dissipation(&mut self, energy: f64);
+    /// Record frictional kinetic energy dissipated, in joules, by the resolved contacts.
+    fn record_dissipation(&mut self, energy_joules: f64);
 
     /// Record mechanical work performed (or energy recovered) by an actuator.
     /// Positive work = energy consumed (motor driving motion).
@@ -1386,7 +1386,13 @@ impl<const D: usize> PhysicsWorld<D> {
                     integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
                     integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
 
-                    total_friction_dissipation += j_t.abs() * 0.1;
+                    // Exact kinetic-energy change for this impulse in the
+                    // current rigid-body effective-mass model:
+                    // ΔK = j_t * (v_t + 0.5 * W_t * j_t).
+                    // A correctly clamped Coulomb impulse is opposite slip and
+                    // cannot increase kinetic energy through this contact row.
+                    let friction_work = j_t * (v_t_mag + 0.5 * denom_t * j_t);
+                    total_friction_dissipation += (-friction_work).max(0.0);
                 }
             }
         }
