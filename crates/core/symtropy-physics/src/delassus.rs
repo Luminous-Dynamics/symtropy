@@ -236,7 +236,11 @@ pub fn solve_frictionless_lcp(
                 active.len(),
                 active.iter().map(|index| -q[*index]),
             );
-            let Some(active_solution) = active_matrix.lu().solve(&rhs) else {
+            // SVD supplies a least-norm solution for rank-deficient active
+            // blocks (e.g. redundant contact rows). Feasibility and the
+            // original unregularized equations are checked below; no diagonal
+            // regularizer is added to conceal a singular physical system.
+            let Ok(active_solution) = active_matrix.svd(true, true).solve(&rhs, tolerance) else {
                 continue;
             };
             for (local_index, global_index) in active.iter().enumerate() {
@@ -339,6 +343,17 @@ mod tests {
         assert!((solution.impulses[0] - 0.5).abs() < 1e-12);
         assert_eq!(solution.impulses[1], 0.0);
         assert!((solution.residual[1] - 0.5).abs() < 1e-12);
+    }
+
+    #[test]
+    fn redundant_contact_rows_are_solved_without_regularization() {
+        let matrix = DMatrix::from_row_slice(2, 2, &[1.0, 1.0, 1.0, 1.0]);
+        let q = DVector::from_vec(vec![-1.0, -1.0]);
+        let solution = solve_frictionless_lcp(&matrix, &q, 1e-12).unwrap();
+
+        assert!((matrix * &solution.impulses + &q).norm() < 1e-10);
+        assert!(solution.impulses.iter().all(|value| *value >= 0.0));
+        assert!(solution.max_complementarity_residual < 1e-10);
     }
 
     #[test]
