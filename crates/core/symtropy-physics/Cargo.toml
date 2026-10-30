@@ -14,9 +14,10 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-## Snap all body forces and velocities to Q16.16 fixed-point before and after
-## each integration step, ensuring bit-identical simulation across machines for
-## peer-to-peer multiplayer and deterministic replay files.
+## Quantize selected body state to Q16.16 at integration boundaries to reduce
+## numerical drift in network/replay experiments. This is not a guarantee of
+## bit-identical cross-architecture simulation; that property requires a separate
+## deterministic execution contract and validation campaign.
 deterministic-net = []
 
 [dependencies]
