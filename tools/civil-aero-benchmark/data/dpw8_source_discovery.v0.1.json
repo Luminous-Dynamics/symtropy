@@ -151,6 +151,31 @@
       "license_review": "pending",
       "geometry_and_condition_review": "pending",
       "admission_status": "catalog_discovered_artifacts_not_pinned"
+    },
+    {
+      "source_id": "AIAA-DPW8-AEPW4-POSTPROCESSING-SUBMISSION-TEMPLATES",
+      "kind": "benchmark_output_schema",
+      "description": "Official DPW8/AePW4 postprocessing page specifies Tecplot-readable ASCII submissions with dataset-identifying auxiliary metadata. Templates include convergence v5, forces/moments v5, surface cuts v5, unsteady time series v5, spectra v6, grid metrics v5, plus contour, spanwise load, boundary-layer and bending/twist outputs.",
+      "landing_page": "https://www.aiaa-dpw.org/postprocessing.html",
+      "artifact_urls": [
+        "https://www.aiaa-dpw.org/Forms/DPW8-AePW4_Convergence_v5.dat",
+        "https://www.aiaa-dpw.org/Forms/DPW8-AePW4_ForceMoment_v5.dat",
+        "https://www.aiaa-dpw.org/Forms/DPW8-AePW4_SectionalCuts_v5.dat",
+        "https://www.aiaa-dpw.org/Forms/DPW8-AePW4_UnsteadyProbe_v5.dat"
+      ],
+      "schema_versions": {
+        "convergence": "v5 (2024-10-16)",
+        "forces_moments": "v5 (2024-10-16)",
+        "surface_cuts": "v5 (2024-10-16)",
+        "unsteady_probe": "v5 (2024-10-16)",
+        "spectra": "v6 (2025-02-10)",
+        "grid_metrics": "v5 (2024-10-15)"
+      },
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "parser_review": "pending",
+      "admission_status": "schema_discovered_template_bytes_not_pinned"
     }
   ],
   "admission_gates": [
@@ -163,6 +188,8 @@
     "For aeroelastic cases, record structural model, materials, boundary conditions, deformation transfer/interpolation and force/load conservation.",
     "Do not promote any entry to admitted until byte, license, applicability, parser and independent-review gates are all complete.",
     "Freeze the official ONERA OAT15A V1a conditions before solver comparisons: Mach 0.73, Re_c=3e6, T_static=271 K, alpha=[1.36,1.50,2.50,3.00,3.10] degrees, six grid levels with at least four required; keep all grid families and refinement levels traceable.",
-    "Keep DPW8 V1a steady RANS, buffet Test Case 2 static-deformed unsteady CFD, and buffet Test Case 3 dynamic-wing FSI as separate physics tasks and evidence classes."
+    "Keep DPW8 V1a steady RANS, buffet Test Case 2 static-deformed unsteady CFD, and buffet Test Case 3 dynamic-wing FSI as separate physics tasks and evidence classes.",
+    "Pin the official DPW8/AePW4 submission-template versions and produce compatible Tecplot-readable ASCII exports for convergence, integrated forces/moments, pressure cuts, unsteady time series/spectra, grid metrics and bending/twist when applicable.",
+    "Preserve every template's auxiliary dataset metadata, participant/run IDs, units and optional missing-value conventions; never map a missing value sentinel to a physical zero."
   ]
 }
