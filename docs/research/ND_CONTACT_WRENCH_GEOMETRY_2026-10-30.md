@@ -116,6 +116,20 @@ The same geometric contact frame can support different constitutive/solver model
 
 They are not mathematically interchangeable. Every benchmark must declare which model is being tested, its compliance, cone approximation/facet count, and whether strict complementarity or maximum dissipation is expected.
 
+## Implemented geometry/API increment
+
+The branch now contains a first reference implementation in `symtropy-physics::contact_frame`:
+
+- `ContactFrame<D>` builds a deterministic orthonormal tangent basis by reorthogonalized modified Gram-Schmidt with largest-residual pivoting.
+- It constructs rolling `n∧T` and torsional `Λ²T` bivector bases, and decomposes/reconstructs arbitrary bivectors.
+- `rotated_by` transforms the complete frame. `transported_to` uses the shortest normal-to-normal rotation to preserve local coordinates over time; exact antipodal transitions use a deterministic half-turn axis from the prior tangent basis.
+- `ContactWrenchFrictionLimits` records separate tangential, rolling and torsional coefficients with explicit rolling/torsional characteristic lengths. Its fields are private and validated by the constructor and again at use.
+- `ContactWrenchImpulse<D>` checks normal non-attraction, tangent orthogonality, dimensions, and each separate friction bound; it can reconstruct the angular impulse bivector from rolling and torsional coordinates.
+
+Source-level tests cover dimensions 2/3/4/5, all independent bivector coordinates, orthogonality and reconstruction, coordinate-axis/near-axis normals, common rotations, transported-frame coordinate continuity, antipodal transport, 3D/4D wrench bounds, negative controls and SI-to-centimetre length-unit conversion. This is a geometric/feasibility layer, not a contact solver: it does not compute the impulse, couple wrench coordinates through the Delassus metric, enforce maximum dissipation, or integrate the contact into production.
+
+Frame transport is important for warm-started impulses. A canonical frame rebuilt independently at every normal may jump when its deterministic pivot changes; transporting the previous frame avoids that arbitrary change except at the unavoidable antipodal ambiguity, where the implementation chooses a documented deterministic half-turn.
+
 ## Research sequence
 
 1. Implement a (D)-generic orthonormal tangent frame with deterministic pivoting and rotation-covariance tests.
