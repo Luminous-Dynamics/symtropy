@@ -8,7 +8,11 @@ NIST's published AMB2025-06/07 results describe the challenge outputs and report
 - time above melt (TAM), defined as time above the midpoint between solidus and liquidus;
 - solid cooling rate (SCR), immediately following complete solidification below solidus.
 
-The challenge results describe an average effective emissivity of 0.642 for converting radiant temperature to emissivity-corrected temperature. The scorer assumes that any supplied TAM/SCR input values have already been calculated with the correct NIST measurement operator and calibration; it does not derive temperatures from radiance.
+There is an important calibration-source discrepancy that must remain explicit:
+- The detailed AMB2025-06/07 measurement/challenge description §3.1 states effective emissivity ε≈0.5 (derived from earlier AMB2022-03 measurements), and §3.1.1 explicitly instructs using ε=0.5 to convert the thermal video to temperature before extracting TAM.
+- The later AMB2025-06/07 challenge-results document §2.3 reports an average effective emissivity ε=0.642 derived from single-line laser tracks for converting radiant temperature to emissivity-corrected temperature.
+
+These are both official NIST documents. The scorer does not choose between them: its CSV accepts already-derived TAM/SCR values and does not derive temperature from radiance. Any raw-pixel implementation must pin the dataset/measurement revision and exact temperature-transform receipt and resolve which emissivity applies before it can claim measurement reproduction.
 
 NIST reports that TAM values below 0.5 ms were excluded, while SCR values above 1e6 °C/s were excluded due to spatter/vapor-plume artefacts. TAM is described as fairly normally distributed; SCR is non-normal and poorly summarized by mean/std alone. Therefore this reference keeps q05/q25/q75/q95 as well as mean, median and population standard deviation. It never clamps outliers and never converts missing measurements to zero.
 
