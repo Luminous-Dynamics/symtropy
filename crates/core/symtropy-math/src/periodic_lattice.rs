@@ -635,6 +635,23 @@ mod tests {
     }
 
     #[test]
+    fn partial_periodic_closest_image_holds_non_periodic_fractional_axis_fixed() {
+        let cell = TriclinicPeriodicCell::new(
+            SVector::zeros(),
+            SMatrix::<f64, 2, 2>::new(2.0, 0.4, 0.0, 1.0),
+            [true, false],
+        )
+        .unwrap();
+        let displacement = *cell.basis() * SVector::from([0.6, 0.4]);
+        let result = cell.minimum_image(&displacement, 32).unwrap();
+
+        assert_eq!(result.image_offset, LatticeOffset::new([-1, 0]));
+        let fractional_result = cell.inverse_basis * result.displacement;
+        close(fractional_result[0], -0.4, 1e-12);
+        close(fractional_result[1], 0.4, 1e-12);
+    }
+
+    #[test]
     fn candidate_budget_exhaustion_is_an_explicit_failure() {
         let cell = TriclinicPeriodicCell::new(
             SVector::zeros(),
