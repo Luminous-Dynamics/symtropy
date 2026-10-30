@@ -1543,7 +1543,8 @@ mod tests {
                 &available,
                 &costs,
                 Policy::Active,
-                &mut seed
+                &mut seed,
+                1.0
             )
         );
     }
