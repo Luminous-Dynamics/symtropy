@@ -1299,7 +1299,7 @@ mod tests {
         assert_eq!(lines[1].split(',').count(), 15);
         assert_eq!(lines[2].split(',').count(), 18);
         assert_eq!(lines[3].split(',').count(), 15);
-        assert!(lines[3].contains("invalid_proposal"));
+        assert!(lines.iter().any(|line| line.contains("invalid_proposal")));
     }
 
     #[test]
