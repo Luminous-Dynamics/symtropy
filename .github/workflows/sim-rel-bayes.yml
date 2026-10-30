@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Isolate Cargo build output from the exact-head checkout
         run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/sim-rel-003-cargo-target" >> "$GITHUB_ENV"
@@ -50,7 +50,7 @@ jobs:
 
       - name: Generate receipt on the exact source checkout
         env:
-          EXPECTED_HEAD: \${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           cargo run --locked --manifest-path tools/sim-rel-bayes/Cargo.toml --bin sim-rel-bayes -- \
             --problems tools/sim-rel-bayes/fixtures/problems-v0.tsv \
@@ -70,7 +70,7 @@ jobs:
       - name: Retain exact-head receipt
         uses: actions/upload-artifact@v4
         with:
-          name: sim-rel-003-receipt-\${{ github.event.pull_request.head.sha || github.sha }}
-          path: \${{ runner.temp }}/sim-rel-003-receipt.json
+          name: sim-rel-003-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/sim-rel-003-receipt.json
           if-no-files-found: error
           retention-days: 30
