@@ -83,6 +83,22 @@ Official starting points:
 This is the meaningful bridge from the current 2D coupon/airfoil software smoke test to an industry-relevant 3D flow-and-structure validation program.
 
 
+
+### Interoperable DPW-8/AePW-4 reporting
+
+Do not invent an internal-only output format for the 3D comparison. DPW-8/AePW-4's official postprocessing page specifies Tecplot-readable ASCII submissions with dataset-identifying auxiliary metadata. It publishes templates for convergence, integrated forces and moments, surface cuts/pressure, unsteady time series, spectra, grid metrics, and bending/twist deformation.
+
+The adapter should preserve the official template version and produce schema-compatible exports where each task requires them. Keep Symtropy's richer internal evidence ledger, but make the conversion deterministic and test both directions where a template parser is introduced. Preserve auxiliary run/participant/dataset identity, coordinates, units, and missing-data sentinel conventions; in particular, never turn an optional -999 sentinel into a physical zero.
+
+Pinned template sources (hashes/byte lengths remain pending in the source-discovery manifest):
+- https://www.aiaa-dpw.org/postprocessing.html
+- https://www.aiaa-dpw.org/Forms/DPW8-AePW4_Convergence_v5.dat
+- https://www.aiaa-dpw.org/Forms/DPW8-AePW4_ForceMoment_v5.dat
+- https://www.aiaa-dpw.org/Forms/DPW8-AePW4_SectionalCuts_v5.dat
+- https://www.aiaa-dpw.org/Forms/DPW8-AePW4_UnsteadyProbe_v5.dat
+
+This is an interoperability requirement, not an assertion that the current screening CSV is already workshop-submission compatible.
+
 ### B7 entry point: DPW-8 V1a ONERA OAT15A
 
 The first 3D industrial benchmark is the official DPW-8 V1a verification task, not an unspecified CRM optimization case. The official test matrix specifies a steady CFD/RANS grid-convergence study and polar at Mach 0.73, chord Reynolds number 3×10^6, static temperature 271 K, and alpha = [1.36°, 1.50°, 2.50°, 3.00°, 3.10°]. The committee specifies a six-member grid family: four levels required, six desirable. Use the committee-supplied grids where applicable; if another grid lineage is used, identify it separately and preserve exact mesh provenance.
