@@ -245,3 +245,20 @@ The robust_voi module evaluates a finite, compatible ensemble of prior/likelihoo
 
 
 The CFD admission CSV is a per-triplet evidence receipt: each coarse/medium/fine member is joined to its run ID, grid level, characteristic spacing, mesh SHA-256, scalar output, residual and conservation diagnostics; the global solver/config/geometry identity and declared criteria are carried alongside. A missing run-to-triplet join fails export.
+
+
+## Byte-bound CFD run artifact manifests
+
+The run_artifacts module verifies actual on-disk file bytes under a caller-selected artifact root. Each grid run requires eight artifact roles: solver build, physics configuration, geometry, mesh, run log, residual history, force history and field output. Paths must be root-relative, traversal-free and remain inside the canonical artifact root; symlink escapes are rejected. The verifier recomputes byte length and SHA-256 from the opened file, and binds the four principal artifact digests back to the numerical run summary.
+
+The run_artifact_audit CLI accepts a strict manifest CSV with header:
+
+    run_id,artifact_role,relative_path,byte_length,sha256
+
+Example invocation:
+
+    cargo run --locked --bin run_artifact_audit -- artifacts/ manifest.csv
+
+The CLI emits a canonical manifest digest over normalized role/path/length/SHA-256 records. This is not a hash of a serialized manifest file, and it is not a digital signature. The current manifest format is supplied by the caller in memory / CSV; source-author identity, execution attestation and chain of custody are not established. A passing artifact audit proves only that the on-disk bytes match the supplied manifest and that the designated build/config/geometry/mesh digests agree with the numerical receipt. It does not prove the solver is correct or the output is experimentally valid.
+
+CI exercises a synthetic eight-role bundle with a separate Python verifier, including same-length byte mutation, path traversal and missing-role negative controls. These fixtures are not CFD results. See CFD_ARTIFACT_MANIFEST_PROTOCOL_V0_1.md.
