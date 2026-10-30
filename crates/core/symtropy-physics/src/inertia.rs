@@ -68,7 +68,7 @@ impl<const D: usize> BivectorInertia<D> {
         }
 
         let symmetric = (second_moment + second_moment.transpose()) * 0.5;
-        let min_eigenvalue = nalgebra::linalg::SymmetricEigen::new(symmetric)
+        let min_eigenvalue = nalgebra::linalg::SymmetricEigen::new(symmetric.clone())
             .eigenvalues
             .iter()
             .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
