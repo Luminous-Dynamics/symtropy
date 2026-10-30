@@ -226,3 +226,7 @@ This parser work does not ingest or redistribute the official participant file. 
 
 
 The V5 auditor also verifies that every angle assigned to a grid level carries the same `GRID_SIZE` and `GRID_FAC`, and that a mesh size is not reused under another grid-level identifier. The CLI emits the exact input byte length and SHA-256 digest on stderr; a caller-supplied path is explicitly labelled unverified and is never upgraded to official-source status.
+
+## Grid-convergence and GCI diagnostics
+
+The src/grid_convergence.rs module implements sliding three-grid observed-order, Richardson extrapolation and Grid Convergence Index estimates. Callers must supply characteristic spacing and justify its definition as well as the GCI safety factor. The module never infers physical spacing from node count, and rejects non-monotonic, zero-difference or badly ordered grid sequences. Reports include absolute and relative GCI, extrapolated values and an asymptotic consistency ratio. The grid_convergence_demo CLI and independent Python oracle use only a synthetic quadratic known-answer problem; this demonstrates the arithmetic, not CFD convergence or validation.

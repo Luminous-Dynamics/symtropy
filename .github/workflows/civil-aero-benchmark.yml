@@ -237,6 +237,17 @@ jobs:
           fi
           grep -q "cross-view mismatch" /tmp/dpw8-v5-tampered.txt
           python3 scripts/verify-dpw8-v5-independent.py /tmp/dpw8-v5-tampered.dat /tmp/dpw8-v5-tampered.csv --expect-reject
+      - name: Verify grid-convergence order, Richardson limit, and GCI with independent oracle
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin grid_convergence_demo > /tmp/gci-a.csv 2> /tmp/gci-a.txt
+          cargo run --locked --bin grid_convergence_demo > /tmp/gci-b.csv 2> /tmp/gci-b.txt
+          cmp /tmp/gci-a.csv /tmp/gci-b.csv
+          cmp /tmp/gci-a.txt /tmp/gci-b.txt
+          test "$(wc -l < /tmp/gci-a.csv)" -eq 5
+          grep -q "synthetic_gci_known_answer_only grids=6 triplets=4 expected_order=2.0 expected_limit=2.0" /tmp/gci-a.txt
+          python3 scripts/verify-gci-independent.py /tmp/gci-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |
