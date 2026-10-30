@@ -35,6 +35,7 @@ The caller supplies a node budget. Exhaustion returns SearchBudgetExceeded; the 
 - A wrapped point plus its explicit lattice offset reconstructs the original Cartesian point within floating-point tolerance.
 - The closest-image convention minimizes Euclidean Cartesian distance over active integer offsets only, not fractional-coordinate distance.
 - Exact-distance ties use a reversal-odd convention: orient the first nonzero Cartesian displacement component positive before lexicographic tie selection, then negate the result/offset for the reverse input. Thus minimum_image(-d) = -minimum_image(d), including on Voronoi facets. A nearest image is geometrically non-unique at such a tie; the API chooses a deterministic oriented representative.
+- At a tie where the equivalence class is its own negative, reversal-odd selection and invariance of the selected vector under every change of unwrapped representative cannot both be guaranteed. Translating the raw displacement by a lattice vector can select the opposite, equally near representative; the Cartesian distance and periodic equivalence class remain unchanged. Pairwise contact systems must resolve such identity with stable body ordering and an explicit image-key policy.
 - Non-finite values, out-of-envelope integer image indices, degenerate basis pivots and exhausted search budgets are typed failures.
 
 ## Independent correctness corpus
@@ -79,4 +80,4 @@ The claim to test is narrow: a bounded, fail-closed 2D/3D closest-lattice-image 
 - Neither query layer is integrated into PhysicsWorld or the production contact solver.
 - This is a declared periodic simulation cell, not evidence of compact extra dimensions or pocket universes.
 
-Next gates: exact-head Rust tests, randomized 3D oracle expansion, randomized unimodular basis transformations, a closest-image benchmark, then conservative skew-cell broadphase. Physics integration remains blocked until each geometry/collision gate has independent no-miss evidence.
+Next gates: exact-head Rust tests, high-tail adversarial search cases and basis-reduction comparison under [CVP-OPT-001 #3032](https://github.com/Luminous-Dynamics/symtropy/issues/3032), then production PhysicsWorld integration. The conservative skew-cell broadphase is in [PR #3013](https://github.com/Luminous-Dynamics/symtropy/pull/3013), and the triclinic convex/sphere query layer is in [PR #3029](https://github.com/Luminous-Dynamics/symtropy/pull/3029). Physics integration remains blocked until each geometry/collision gate has independent no-miss evidence.
