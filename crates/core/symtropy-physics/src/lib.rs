@@ -55,8 +55,8 @@ pub use periodic_broadphase::{
 };
 pub use periodic_contact::{PeriodicContactKey, PeriodicContactKeyError};
 pub use periodic_contact_cache::{
-    PeriodicContactCache, PeriodicContactCacheError, PeriodicContactGeometry,
-    periodic_contact_geometry,
+    PeriodicCachedImpulse, PeriodicContactCache, PeriodicContactCacheError,
+    PeriodicContactGeometry, periodic_contact_geometry,
 };
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
