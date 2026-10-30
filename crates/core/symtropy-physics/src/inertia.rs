@@ -27,6 +27,10 @@ pub enum RotationalInertiaError {
     NotPositiveSemidefinite,
     /// Uniform-ball mass or radius is negative.
     InvalidMassProperties,
+    /// A requested inverse is undefined because at least one rotation plane has zero inertia.
+    SingularInertia,
+    /// An inverse-operation tolerance is non-finite or non-positive.
+    InvalidTolerance,
 }
 
 /// Rotational inertia acting on Lambda^2(R^D), the bivector space of rotations.
@@ -176,6 +180,65 @@ impl<const D: usize> BivectorInertia<D> {
         Bivector::from_matrix(&momentum)
     }
 
+    /// Invert angular momentum to angular velocity on the nonsingular rotation subspace.
+    ///
+    /// The symmetric eigendecomposition S = Q*Lambda*Q^T diagonalizes the
+    /// inertia operator on bivectors: in principal coordinates each plane
+    /// (i,j) has eigenvalue lambda_i + lambda_j. This avoids constructing a
+    /// dense D(D-1)/2 square matrix and preserves coupling in the world frame.
+    ///
+    /// The relative tolerance is applied to the largest eigenvalue of S. If any
+    /// rotation plane is singular or too ill-conditioned at this threshold,
+    /// the operation fails rather than amplifying noise.
+    pub fn angular_velocity_from_momentum(
+        &self,
+        angular_momentum: &Bivector<D>,
+        relative_tolerance: f64,
+    ) -> Result<Bivector<D>, RotationalInertiaError> {
+        if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 {
+            return Err(RotationalInertiaError::InvalidTolerance);
+        }
+        if !angular_momentum.is_finite() {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+
+        let eigen = nalgebra::linalg::SymmetricEigen::new(self.second_moment.clone());
+        let largest_eigenvalue = eigen
+            .eigenvalues
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(*value));
+        let threshold = relative_tolerance * largest_eigenvalue.max(f64::MIN_POSITIVE);
+
+        let q = eigen.eigenvectors;
+        let q_t = q.transpose();
+        let momentum_local = q_t * angular_momentum.to_matrix() * q;
+        let mut omega_local = nalgebra::SMatrix::<f64, D, D>::zeros();
+
+        for i in 0..D {
+            for j in (i + 1)..D {
+                let plane_inertia = eigen.eigenvalues[i] + eigen.eigenvalues[j];
+                if !plane_inertia.is_finite() || plane_inertia <= threshold {
+                    return Err(RotationalInertiaError::SingularInertia);
+                }
+
+                let value = momentum_local[(i, j)] / plane_inertia;
+                if !value.is_finite() {
+                    return Err(RotationalInertiaError::NonFinite);
+                }
+                omega_local[(i, j)] = value;
+                omega_local[(j, i)] = -value;
+            }
+        }
+
+        let omega_world = q * omega_local * q_t;
+        let result = Bivector::from_matrix(&omega_world);
+        if result.is_finite() {
+            Ok(result)
+        } else {
+            Err(RotationalInertiaError::NonFinite)
+        }
+    }
+
     /// Rotational kinetic energy, 1/2 <omega, I(omega)> in the bivector inner product.
     pub fn kinetic_energy(&self, angular_velocity: &Bivector<D>) -> f64 {
         let momentum = self.angular_momentum(angular_velocity);
@@ -284,6 +347,56 @@ mod tests {
 
         assert!((momentum.get(0, 2) - 6.0).abs() < 1e-12);
         assert!((momentum.get(1, 2) - 0.25).abs() < 1e-12);
+    }
+
+    #[test]
+    fn inverse_operator_recovers_coupled_world_frame_angular_velocity() {
+        let second_moment = SMatrix::<f64, 3, 3>::new(
+            2.0, 0.25, 0.1,
+            0.25, 3.0, 0.2,
+            0.1, 0.2, 4.0,
+        );
+        let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
+
+        let mut omega = Bivector::<3>::zero();
+        omega.set(0, 1, 0.7);
+        omega.set(0, 2, -1.2);
+        omega.set(1, 2, 0.35);
+
+        let momentum = inertia.angular_momentum(&omega);
+        let recovered = inertia
+            .angular_velocity_from_momentum(&momentum, 1e-12)
+            .unwrap();
+        assert!(
+            recovered.add(&omega.scale(-1.0)).norm() < 1e-11,
+            "recovered={recovered:?}, expected={omega:?}"
+        );
+    }
+
+    #[test]
+    fn inverse_operator_rejects_singular_rotation_plane() {
+        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([
+            2.0, 0.0, 0.0,
+        ]));
+        let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
+        let momentum = Bivector::<3>::unit_plane(1, 2);
+        assert_eq!(
+            inertia
+                .angular_velocity_from_momentum(&momentum, 1e-12)
+                .unwrap_err(),
+            RotationalInertiaError::SingularInertia
+        );
+    }
+
+    #[test]
+    fn inverse_operator_rejects_invalid_tolerance() {
+        let inertia = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
+        assert_eq!(
+            inertia
+                .angular_velocity_from_momentum(&Bivector::zero(), 0.0)
+                .unwrap_err(),
+            RotationalInertiaError::InvalidTolerance
+        );
     }
 
     #[test]
