@@ -143,6 +143,25 @@ def main() -> int:
         require(record["declared_source_sha256"] == EXPECTED_SHA256, f"{zone}: source digest mismatch")
         require(record["source_revision"] == SOURCE_REVISION, f"{zone}: source revision mismatch")
         require(record["evidence_level"] == "reference_data_diagnostic_not_3d_validation", f"{zone}: evidence label mismatch")
+        require(
+            record["source_condition"]
+            == "Ladson NASA TM 4074 (1988); Re=6 million; M=0.15; transition tripped",
+            f"{zone}: source condition mismatch",
+        )
+        require(record["calibration_split"] == "|alpha_deg| <= 8.5", f"{zone}: calibration split mismatch")
+        require(
+            record["intermediate_split"] == "8.5 < |alpha_deg| <= 16.5",
+            f"{zone}: intermediate split mismatch",
+        )
+        require(record["high_angle_split"] == "|alpha_deg| > 16.5", f"{zone}: high-angle split mismatch")
+        require(
+            record["min_source_line"] == str(min(int(row["line"]) for row in rows)),
+            f"{zone}: minimum source line mismatch",
+        )
+        require(
+            record["max_source_line"] == str(max(int(row["line"]) for row in rows)),
+            f"{zone}: maximum source line mismatch",
+        )
         require(record["observation_count"] == str(counts[0]), f"{zone}: observation count mismatch")
         require(record["calibration_n"] == str(counts[1]), f"{zone}: calibration count mismatch")
         require(record["intermediate_n"] == str(counts[2]), f"{zone}: intermediate count mismatch")
