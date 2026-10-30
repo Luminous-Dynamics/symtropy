@@ -100,6 +100,13 @@ fn valid_id(s: &str) -> bool {
         && s.bytes()
             .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
 }
+fn validate_mdl_beta(beta: f64) -> Result<f64, String> {
+    if !beta.is_finite() || !(0.0..=4.0).contains(&beta) {
+        return Err("MDL beta must be finite and in the range 0..=4".into());
+    }
+    Ok(beta)
+}
+
 fn parse_signature(s: &str) -> Result<u8, String> {
     if s.len() != DOMAIN || !s.bytes().all(|b| b == b'0' || b == b'1') {
         return Err(format!(
@@ -1021,9 +1028,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let tp = tp.ok_or("--truth required")?;
     let expected = expected.ok_or("--expected-head required")?;
     let output = output.ok_or("--out required")?;
-    if !mdl_beta.is_finite() || !(0.0..=4.0).contains(&mdl_beta) {
-        return Err("--mdl-beta must be finite and in the range 0..=4".into());
-    }
+    mdl_beta = validate_mdl_beta(mdl_beta)
+        .map_err(|error| format!("--mdl-beta: {error}"))?;
     let head = git_head().map_err(|e| format!("identity gate: {e}"))?;
     if head != expected {
         return Err(format!("exact-head mismatch: expected {expected}, got {head}").into());
@@ -1388,11 +1394,11 @@ mod tests {
     }
     #[test]
     fn mdl_temperature_validation_rejects_nonfinite_and_out_of_range() {
-        assert!(0.0f64.is_finite() && (0.0..=4.0).contains(&0.0));
-        assert!(4.0f64.is_finite() && (0.0..=4.0).contains(&4.0));
-        assert!(!(0.0..=4.0).contains(&5.0));
-        assert!(!f64::NAN.is_finite());
-        assert!(!f64::INFINITY.is_finite());
+        assert_eq!(validate_mdl_beta(0.0).unwrap(), 0.0);
+        assert_eq!(validate_mdl_beta(4.0).unwrap(), 4.0);
+        assert!(validate_mdl_beta(5.0).is_err());
+        assert!(validate_mdl_beta(f64::NAN).is_err());
+        assert!(validate_mdl_beta(f64::INFINITY).is_err());
     }
     #[test]
     fn uniform_eig_matches_max_split_when_all_costs_are_equal() {
