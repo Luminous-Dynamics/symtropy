@@ -54,6 +54,8 @@ Keep the distinction explicit:
 
 A passing formula test must never promote a knowledge model directly to engineering-ready status.
 
+Symthaea's current Cash–Karp RK45 also uses a single absolute max-norm tolerance, not a component-scaled absolute/relative error norm. That is acceptable as a small pedagogical integrator but is insufficient as the only error controller for mixed-scale engineering state vectors. The proposed interval-alignment fix is necessary but not the end-state solver architecture. Prefer diffsol's explicit absolute/relative tolerance model for research-grade integration, and retain the in-tree integrators for simple baselines and specialized low-dimensional dynamics.
+
 A cross-repository audit also found a concrete time-alignment defect in Symthaea's generic Cash–Karp RK45 wrapper: a rejected macro-step may produce a shorter accepted substep, while the trait wrapper returns only the new state and the generic simulation loop advances time by the original macro-step. This can make trajectory state and recorded timestamps disagree. A fail-closed interval-wrapper correction and phase-sensitive harmonic-oscillator regression are proposed in [Symthaea PR #9083](https://github.com/Luminous-Dynamics/symthaea/pull/9083). It is not counted as fixed or validated until that change is reviewed and its test is run.
 
 
@@ -138,13 +140,15 @@ Do not write a broad sparse linear algebra package, automatic differentiation sy
 
 First evaluate:
 
-- **diffsol:** Rust ODE solvers including variable-order BDF, SDIRK/ESDIRK, and explicit Runge–Kutta; supports mass matrices, adaptive tolerances, events, and forward/adjoint sensitivities.
-- **faer:** Rust dense and sparse matrix factorizations, including sparse LLᵀ, LU, and QR paths.
+- **diffsol 0.17.1:** Rust ODE solvers including variable-order BDF (including singular mass matrices), SDIRK/ESDIRK, and variable-order explicit TSIT45. Its current API documents relative and absolute tolerances, optional mass matrices, dense output, event handling, quadrature, forward sensitivities and backward/adjoint sensitivities. It supports nalgebra and faer matrix types, including sparse faer LU.
+- **faer:** Rust dense and sparse matrix factorizations, including sparse LLᵀ, LDLᵀ-style LBLᵀ, LU, and QR paths. Keep nalgebra for small fixed-size mechanics vectors/matrices; faer is aimed at medium/large matrix workloads and is not a reason to replace nalgebra in the low-dimensional collision/rigid-body hot path.
 - **SciML / OrdinaryDiffEq:** a solver-selection and performance reference across non-stiff, stiff, symplectic, exponential, and implicit methods.
 - **PETSc:** reference for scalable Krylov linear solvers, nonlinear solvers, time stepping, and optimization.
 - **MOOSE / FEniCSx / OpenFOAM:** independent reference ecosystems for coupled finite-element, finite-volume, and CFD problems.
 
-An initial Rust-facing solver trait should return more than a state vector. It should expose a structured report containing accepted/rejected steps, local error estimates, nonlinear iterations, linear iterations, Jacobian evaluations, factorization counts, event hits, termination reason, and invariant diagnostics.
+A caveat matters for sparse solver integration: diffsol can attempt to infer Jacobian sparsity through NaN propagation, but its documentation explicitly notes that this is not foolproof when Jacobian code contains value-dependent control flow. For serious production models, supply and test explicit sparsity patterns or Jacobians rather than relying on inference.
+
+An initial Rust-facing solver trait should return more than a state vector. It should expose a structured report containing accepted/rejected steps, local error estimates, nonlinear iterations, linear iterations, Jacobian evaluations, factorization counts, event hits, termination reason, and invariant diagnostics. It should preserve the backend's dense-output and sensitivity capabilities where required.
 
 Prefer a thin adapter to a mature library where it is reliable and license-compatible. Build a native backend only when a benchmark demonstrates a meaningful gap in portability, integration, reproducibility, latency, or accuracy.
 
@@ -167,7 +171,7 @@ Initial comparison set: current Symthaea RK4/RK45/Verlet where applicable, diffs
 
 **Promotion gate:** expected convergence order is demonstrated on smooth problems; error responds monotonically to tighter tolerances within the reference envelope; unstable or failed cases remain in the report; non-finite values and solver termination reasons are explicit.
 
-An initial unit-test slice has been added to integrator.rs in this branch: constant-acceleration first-order convergence across four timesteps, plus a harmonic-oscillator check contrasting a resolved step with a step beyond the semi-implicit Euler stability interval. These tests are a starting regression, not yet a machine-readable campaign or a solver-performance result; they have not been run in this environment.
+An initial executable CSV campaign has been added at [examples/numerical_convergence.rs](../../crates/core/symtropy-physics/examples/numerical_convergence.rs). Run it with `cargo run --release -p symtropy-physics --example numerical_convergence`. It reports free-fall and harmonic-oscillator state error, mechanical-energy drift, observed convergence order across four step sizes, elapsed time, and target architecture. The unit tests in integrator.rs additionally check constant-acceleration first-order convergence and a harmonic-oscillator timestep stability boundary. These are initial regression/measurement tools, not yet a full machine-readable campaign with pinned solver references, scenario hashes, compiler metadata, or statistical repeat runs; they have not been run in this environment.
 
 ### Campaign B — Rigid and articulated dynamics (P0/P1)
 
