@@ -10,6 +10,17 @@ const HASH_LEN: usize = 64;
 enum EvidenceState { Verified, Missing, Stale, Mismatched, Revoked, NotQualified }
 
 impl EvidenceState {
+    fn code(self) -> &'static str {
+        match self {
+            Self::Verified => "VERIFIED",
+            Self::Missing => "MISSING",
+            Self::Stale => "STALE",
+            Self::Mismatched => "MISMATCHED",
+            Self::Revoked => "REVOKED",
+            Self::NotQualified => "NOT_QUALIFIED",
+        }
+    }
+
     fn failure_code(self, family: &'static str) -> Option<&'static str> {
         match (self, family) {
             (Self::Verified, _) => None,
@@ -99,9 +110,17 @@ struct Context {
 }
 
 #[derive(Clone, Debug)]
+struct Provenance {
+    calibration_sha256: String,
+    msa_sha256: String,
+    context_policy_sha256: String,
+}
+
+#[derive(Clone, Debug)]
 struct Request {
     measurement: Measurement, specification: Specification,
-    uncertainty: UncertaintyBudget, context: Context, evidence: EvidenceChecks,
+    uncertainty: UncertaintyBudget, context: Context,
+    provenance: Provenance, evidence: EvidenceChecks,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -122,22 +141,42 @@ impl Outcome {
 struct Report {
     measurement_id: String, part_id: String, lot_id: String, specification_id: String,
     specification_revision: String, uncertainty_budget_id: String, context_id: String,
-    decision_rule_revision: String, outcome: Outcome, reason: &'static str,
-    value: Option<f64>, expanded_u: Option<f64>, interval_lower: Option<f64>,
-    interval_upper: Option<f64>, spec_lower: Option<f64>, spec_upper: Option<f64>,
+    decision_rule_revision: String, measurand_id: String, unit: String,
+    measured_at_ns: i64, instrument_id: String, calibration_id: String, msa_study_id: String,
+    measurement_sha256: String, specification_sha256: String, uncertainty_sha256: String,
+    calibration_sha256: String, msa_sha256: String, context_policy_sha256: String,
+    evidence: EvidenceChecks, outcome: Outcome, reason: &'static str,
+    value: Option<f64>, standard_u: Option<f64>, coverage_factor: Option<f64>,
+    expanded_u: Option<f64>, interval_lower: Option<f64>, interval_upper: Option<f64>,
+    spec_lower: Option<f64>, spec_upper: Option<f64>,
     acceptance_lower: Option<f64>, acceptance_upper: Option<f64>, coverage_probability: Option<f64>,
 }
 
 impl Report {
     fn csv_row(&self) -> String {
         let f = |v: Option<f64>| v.map(|x| format!("{x:.12e}")).unwrap_or_default();
-        format!("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
-            self.measurement_id, self.part_id, self.lot_id, self.specification_id,
-            self.specification_revision, self.uncertainty_budget_id, self.context_id,
-            self.decision_rule_revision, self.outcome.code(), self.reason,
-            f(self.value), f(self.expanded_u), f(self.interval_lower), f(self.interval_upper),
-            f(self.spec_lower), f(self.spec_upper), f(self.acceptance_lower),
-            f(self.acceptance_upper), f(self.coverage_probability))
+        vec![
+            self.measurement_id.clone(), self.part_id.clone(), self.lot_id.clone(),
+            self.specification_id.clone(), self.specification_revision.clone(),
+            self.uncertainty_budget_id.clone(), self.context_id.clone(),
+            self.decision_rule_revision.clone(), self.outcome.code().to_string(),
+            self.reason.to_string(), f(self.value), f(self.expanded_u),
+            f(self.interval_lower), f(self.interval_upper), f(self.spec_lower),
+            f(self.spec_upper), f(self.acceptance_lower), f(self.acceptance_upper),
+            f(self.coverage_probability), self.measurand_id.clone(), self.unit.clone(),
+            self.measured_at_ns.to_string(), self.instrument_id.clone(),
+            self.calibration_id.clone(), self.msa_study_id.clone(),
+            self.measurement_sha256.clone(), self.specification_sha256.clone(),
+            self.calibration_sha256.clone(), self.msa_sha256.clone(),
+            self.uncertainty_sha256.clone(), self.context_policy_sha256.clone(),
+            self.evidence.measurement.code().to_string(),
+            self.evidence.specification.code().to_string(),
+            self.evidence.calibration.code().to_string(),
+            self.evidence.msa.code().to_string(),
+            self.evidence.uncertainty.code().to_string(),
+            self.evidence.context_policy.code().to_string(),
+            f(self.standard_u), f(self.coverage_factor),
+        ].join(",")
     }
 }
 
@@ -154,13 +193,27 @@ fn incomplete(r: &Request, reason: &'static str) -> Report {
         specification_revision: r.specification.revision.clone(),
         uncertainty_budget_id: r.uncertainty.id.clone(), context_id: r.context.id.clone(),
         decision_rule_revision: r.context.revision.clone(),
+        measurand_id: r.measurement.measurand.clone(), unit: r.measurement.unit.clone(),
+        measured_at_ns: r.measurement.time_ns, instrument_id: r.measurement.instrument.clone(),
+        calibration_id: r.measurement.calibration.clone(), msa_study_id: r.uncertainty.msa_study.clone(),
+        measurement_sha256: r.measurement.source_sha256.clone(),
+        specification_sha256: r.specification.source_sha256.clone(),
+        uncertainty_sha256: r.uncertainty.source_sha256.clone(),
+        calibration_sha256: r.provenance.calibration_sha256.clone(),
+        msa_sha256: r.provenance.msa_sha256.clone(),
+        context_policy_sha256: r.provenance.context_policy_sha256.clone(),
+        evidence: r.evidence,
         outcome: Outcome::EvidenceIncomplete, reason,
-        value: finite(r.measurement.value), expanded_u: finite(r.uncertainty.expanded_uncertainty),
+        value: finite(r.measurement.value),
+        standard_u: finite(r.uncertainty.standard_uncertainty),
+        coverage_factor: finite(r.uncertainty.coverage_factor),
+        expanded_u: finite(r.uncertainty.expanded_uncertainty),
         interval_lower: None, interval_upper: None,
         spec_lower: finite(r.specification.lower), spec_upper: finite(r.specification.upper),
         acceptance_lower: None, acceptance_upper: None,
         coverage_probability: finite(r.uncertainty.coverage_probability),
     }
+}
 }
 
 fn validate(r: &Request) -> Result<(), &'static str> {
@@ -188,7 +241,10 @@ fn validate(r: &Request) -> Result<(), &'static str> {
         return Err("UNCERTAINTY_PARAMETERS_INVALID");
     }
     if !u.msa_qualified { return Err("MSA_NOT_QUALIFIED"); }
-    if !valid_sha(&m.source_sha256) || !valid_sha(&s.source_sha256) || !valid_sha(&u.source_sha256) {
+    if !valid_sha(&m.source_sha256) || !valid_sha(&s.source_sha256) || !valid_sha(&u.source_sha256)
+        || !valid_sha(&r.provenance.calibration_sha256)
+        || !valid_sha(&r.provenance.msa_sha256)
+        || !valid_sha(&r.provenance.context_policy_sha256) {
         return Err("SOURCE_DIGEST_INVALID");
     }
     if m.measurand != s.measurand || m.measurand != u.measurand {
@@ -239,8 +295,18 @@ fn classify(r: &Request) -> Report {
         measurement_id: m.id.clone(), part_id: m.part.clone(), lot_id: m.lot.clone(),
         specification_id: s.id.clone(), specification_revision: s.revision.clone(),
         uncertainty_budget_id: u.id.clone(), context_id: r.context.id.clone(),
-        decision_rule_revision: r.context.revision.clone(), outcome, reason,
-        value: Some(m.value), expanded_u: Some(u.expanded_uncertainty),
+        decision_rule_revision: r.context.revision.clone(),
+        measurand_id: m.measurand.clone(), unit: m.unit.clone(),
+        measured_at_ns: m.time_ns, instrument_id: m.instrument.clone(),
+        calibration_id: m.calibration.clone(), msa_study_id: u.msa_study.clone(),
+        measurement_sha256: m.source_sha256.clone(), specification_sha256: s.source_sha256.clone(),
+        uncertainty_sha256: u.source_sha256.clone(),
+        calibration_sha256: r.provenance.calibration_sha256.clone(),
+        msa_sha256: r.provenance.msa_sha256.clone(),
+        context_policy_sha256: r.provenance.context_policy_sha256.clone(),
+        evidence: r.evidence, outcome, reason,
+        value: Some(m.value), standard_u: Some(u.standard_uncertainty),
+        coverage_factor: Some(u.coverage_factor), expanded_u: Some(u.expanded_uncertainty),
         interval_lower: Some(lo), interval_upper: Some(hi),
         spec_lower: Some(s.lower), spec_upper: Some(s.upper),
         acceptance_lower: Some(accept_lo), acceptance_upper: Some(accept_hi),
@@ -276,6 +342,11 @@ fn request(value: f64, expanded_u: f64) -> Request {
             id: "COU-SHAFT-FINAL-INSPECTION".into(), decision_rule: "ISO14253-1-GUARDED-INTERVAL".into(),
             revision: "RULE-1.0".into(), expected_part: "PART-0001".into(),
             expected_lot: "LOT-0001".into(), expected_operation: "OP-FINISH-01".into(),
+        },
+        provenance: Provenance {
+            calibration_sha256: "d".repeat(HASH_LEN),
+            msa_sha256: "e".repeat(HASH_LEN),
+            context_policy_sha256: "f".repeat(HASH_LEN),
         },
         evidence: EvidenceChecks {
             measurement: EvidenceState::Verified, specification: EvidenceState::Verified,
@@ -365,7 +436,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() {
-    println!("case_id,measurement_id,part_id,lot_id,specification_id,specification_revision,uncertainty_budget_id,context_id,decision_rule_revision,outcome,reason,value,expanded_u,interval_lower,interval_upper,spec_lower,spec_upper,acceptance_lower,acceptance_upper,coverage_probability");
+    println!("case_id,measurement_id,part_id,lot_id,specification_id,specification_revision,uncertainty_budget_id,context_id,decision_rule_revision,outcome,reason,value,expanded_u,interval_lower,interval_upper,spec_lower,spec_upper,acceptance_lower,acceptance_upper,coverage_probability,measurand_id,unit,measured_at_ns,instrument_id,calibration_id,msa_study_id,measurement_sha256,specification_sha256,calibration_sha256,msa_sha256,uncertainty_sha256,context_policy_sha256,measurement_evidence,specification_evidence,calibration_evidence,msa_evidence,uncertainty_evidence,context_policy_evidence,standard_uncertainty,coverage_factor");
     for (name, r) in campaign() { println!("{name},{}", classify(&r).csv_row()); }
 }
 
