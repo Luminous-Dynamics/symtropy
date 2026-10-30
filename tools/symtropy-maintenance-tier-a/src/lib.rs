@@ -88,6 +88,7 @@ pub enum ValidationError {
     EmptyScheduleId,
     InvalidHorizon,
     InvalidProductionRate,
+    InvalidRenewalParameters,
     EmptyEventId,
     DuplicateEventId,
     NonFiniteEventTime,
@@ -280,7 +281,7 @@ pub fn renewal_reward_availability(
     let mtbf = mean_operating_time_between_failures_hours;
     let mttr = deterministic_repair_time_hours;
     if !mtbf.is_finite() || mtbf <= 0.0 || !mttr.is_finite() || mttr <= 0.0 {
-        return Err(ValidationError::InvalidHorizon);
+        return Err(ValidationError::InvalidRenewalParameters);
     }
     let denominator = mtbf + mttr;
     if !denominator.is_finite() {
@@ -486,6 +487,22 @@ mod tests {
     fn renewal_reward_formula_matches_hand_calculation() {
         let expected = 100.0 / 104.0;
         assert_eq!(renewal_reward_availability(100.0, 4.0).unwrap(), expected);
+    }
+
+    #[test]
+    fn renewal_reward_parameters_must_be_positive_and_finite() {
+        assert_eq!(
+            renewal_reward_availability(0.0, 4.0),
+            Err(ValidationError::InvalidRenewalParameters)
+        );
+        assert_eq!(
+            renewal_reward_availability(100.0, 0.0),
+            Err(ValidationError::InvalidRenewalParameters)
+        );
+        assert_eq!(
+            renewal_reward_availability(f64::INFINITY, 4.0),
+            Err(ValidationError::InvalidRenewalParameters)
+        );
     }
 
     #[test]
