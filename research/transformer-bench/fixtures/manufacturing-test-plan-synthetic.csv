@@ -1,0 +1,5 @@
+product_family,route_revision,test_id,component_type,measurand,unit,lower_limit,upper_limit,coverage_factor,max_standard_uncertainty,calibration_class,required
+POWER_TRANSFORMER,ROUTE-2026-A,CORE_DIMENSION_INSPECTION,MAGNETIC_CORE,stack_height,mm,999.0,1001.0,2.0,0.10,LENGTH_GAUGE,true
+POWER_TRANSFORMER,ROUTE-2026-A,WINDING_RESISTANCE,HV_WINDING,resistance,ohm,0.010,0.020,2.0,0.0005,OHMMETER,true
+POWER_TRANSFORMER,ROUTE-2026-A,TANK_LEAK_TEST,TANK_ASSEMBLY,leak_rate,mL_per_min,0.0,1.0,2.0,0.10,PRESSURE_GAUGE,true
+POWER_TRANSFORMER,ROUTE-2026-A,ROUTINE_ELECTRICAL_TESTS,POWER_TRANSFORMER,no_load_loss,W,0.0,1500.0,2.0,50.0,POWER_ANALYZER,true

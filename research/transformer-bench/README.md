@@ -1,0 +1,301 @@
+# TransformerBench v0.1 — lifecycle loss screening
+
+**Status:** research starter / analytic screening only. Not a transformer design tool, standards checker, digital-twin qualification, or safety approval.
+
+This standalone Rust binary compares declared candidate loss data against explicit full-year operating scenarios. It is intentionally outside Symtropy's product workspace until the experiment has been independently reviewed and qualified.
+
+## Scope and physics boundary
+
+For each interval, the harness uses the first-order screening approximation:
+
+P_loss = P0 + Pk × mean_square_current_pu2
+
+P0 is declared no-load loss in watts, Pk is declared rated-load loss in watts, and `mean_square_current_pu2` is the time-average of squared per-unit current over that interval, measured relative to the reference rated current. It is **not** the square of the arithmetic mean current. Because E[I²] ≥ E[I]², reducing a varying interval to its mean current and then squaring can understate load losses and can change candidate rankings. The input contract therefore requires both `current_pu_mean` and `mean_square_current_pu2`; constant-current intervals set the latter to the former squared. The harness checks the moment inequality but cannot reconstruct or verify the underlying current trace. Interval energy is P_loss × hours / 1000 kWh. Interval loss cost multiplies that energy by the supplied tariff. It calculates expected values over declared scenario weights and a worst-case value across those scenarios. Lifetime loss cost is the NPV of repeating each scenario's annual tariff/current profile for the configured life with a constant real discount rate.
+
+This is a screening approximation only. It does not model temperature-dependent resistance, harmonics, stray losses, saturation, inrush, frequency/voltage variation, insulation fields, partial discharge, hot spots, oil flow, short-circuit forces, tank behavior, sound, ageing, fault probability, or manufacturing tolerances. It cannot establish IEC/SANS compliance. Declared P0 and Pk must have a named/versioned source and matching reference conditions before engineering use.
+
+## Run
+
+No third-party Rust crates are required. From this directory, run:
+
+cargo test --locked
+
+cargo run --release -- fixtures/candidates.csv fixtures/scenario_profiles.csv fixtures/required_gates.csv fixtures/gate_records.csv /tmp/transformer-report.csv 30 0.08
+
+Optional arguments are lifetime years (default 30) and real discount rate (default 0.08). Candidate capital cost and tariff must use the same currency unit. The tariff must be stated in the same real-price basis as the discount rate.
+
+Fixtures are synthetic and are not based on any commercial transformer. The gate-record fixture contains no passing evidence, so candidates intentionally remain INCOMPLETE and none appears on the manifest-complete frontier. That is expected fail-closed behavior.
+
+## Input contracts
+
+### candidates.csv
+
+Exact header: candidate_id,capex,p0_w,pk_w. Numeric values must be finite and non-negative; candidate IDs must be unique. P0 and Pk are declared inputs, not independently verified outcomes by virtue of being accepted by this binary.
+
+### scenario_profiles.csv
+
+Exact header: scenario_id,weight,interval_id,hours,current_pu_mean,mean_square_current_pu2,price_per_kwh. Each scenario must cover 8,760 hours, scenario weights must be consistent per scenario and sum to 1, and interval IDs must be unique within each scenario. Weights are in (0,1]; durations are positive; current moments and price are non-negative and finite; the second moment must be at least the squared mean within a declared numerical tolerance. This verifies only row-level IDs, moments and annual duration totals. It does not verify timestamp coverage, interval overlap, daylight-saving-time handling, meter quality, calibration, or representativeness of the tariff/profile. Mean current alone is insufficient: provide `mean_square_current_pu2` from the underlying trace before aggregation; do not fill it with the square of a varying interval's average unless the interval truly has constant current.
+
+### required_gates.csv
+
+Exact header: gate_id. Every listed gate is required for a candidate to enter the manifest-complete frontier. The applicable gate set must be selected for the exact transformer/application; the binary does not define applicable standards.
+
+### gate_records.csv
+
+Exact header: candidate_id,gate_id,status,evidence_sha256. Status is exactly PASS, FAIL, or UNKNOWN. A PASS counts toward manifest completeness only if its digest is exactly 64 hexadecimal characters. Missing records and UNKNOWN remain incomplete. Any required FAIL produces REJECTED. Duplicate records, unknown candidates/gates, and malformed non-empty digests are errors.
+
+**Critical limitation:** the program checks only manifest shape and digest syntax. It does not read or hash the referenced artifact, authenticate its producer, prove a test ran, inspect the underlying report, or establish that PASS is justified. MANIFEST_COMPLETE means only that declared gate rows meet this input contract; it does not mean safe, qualified, certified, or ready to manufacture.
+
+## Report semantics
+
+- economic_pareto: nondominated on capital cost, expected NPV loss cost, and worst-case NPV loss cost, considering all candidates regardless of gate status. This is economics-only diagnostic output.
+- manifest_complete_pareto: nondominated on the same objectives among candidates whose required-gate manifest is complete. This is not an independently verified feasible set or engineering approval.
+- expected_lifecycle_cost: capital cost plus weighted expected NPV loss cost.
+- worst_case_lifecycle_cost: capital cost plus the maximum NPV loss cost among the declared scenarios.
+
+Report rows are sorted by candidate ID. Pareto decisions use full-precision values before six-decimal formatting. Record input/profile/report hashes, exact arguments, Rust toolchain, and source revision externally for each run (for example with sha256sum).
+
+## Hand-checkable equation
+
+For P0 = 1,000 W, Pk = 4,000 W, mean current = 0.5 pu, mean-square current = 0.25 pu², and 8,760 hours: P_loss = 1,000 + 4,000 × 0.25 = 2,000 W, so annual loss energy is 17,520 kWh. A 50/50 current trace at 0 and 1.0 pu has the same mean current but mean-square current 0.5 pu²; in the P0 = 0 case it has 17,520 kWh of load loss versus 8,760 kWh for constant 0.5 pu current. This fixture is a model-arithmetic example, not field evidence.
+
+Unit tests cover the arithmetic, second-moment inequality, mean-vs-mean-square loss underestimation, interval splitting invariance, scenario weights and annual coverage, malformed CSV, non-finite values, missing/failed gates, digest syntax, Pareto dominance, and exclusion of incomplete manifests from the eligible frontier.
+
+## Next qualification steps
+
+1. Replace synthetic fixtures with a named incumbent transformer and traceable loss data including test conditions; preserve source evidence immutably and hash it.
+2. Add timestamp-aware profile verification, temperature/harmonic-adjusted losses, and uncertainty only after reference models/test cases are defined.
+3. Reuse Symtropy's existing thermal primitives; add FEM baselines with pinned solver versions and mesh/convergence checks rather than cloning another thermal model.
+4. Expand the loss model to temperature-corrected load losses, harmonic/stray-loss components and transformer thermal dynamics only after their reference data and verification oracles are defined.
+5. Implement separate independent receipt validators. The candidate generator and report must never certify their own evidence.
+6. Benchmark manual/incumbent design, deterministic grid or space-filling sweep, conventional constrained multi-objective optimization, and Symthaea-guided search under the same candidate budget and frozen holdouts.
+7. Only after held-out manufacturer/lab data qualify prediction error should results nominate a prototype for competent manufacture and formal testing.
+
+## Surrogate evaluation CLI
+
+A second binary evaluates a frozen reference/prediction table and reports error metrics for the overall set, plus geometry-family, material, frequency, excitation-class and exact operating-domain strata. Candidate-ranking metrics are only reported where every row has the same frequency and excitation class; ranking designs across incomparable operating domains is suppressed. The model's FEA-call ledger is a run-level total repeated in each stratum, not a per-stratum allocation.
+
+Example:
+
+```sh
+cargo run --release --manifest-path research/transformer-bench/Cargo.toml --bin surrogate-eval -- \
+  research/transformer-bench/fixtures/surrogate_predictions_synthetic.csv \
+  /tmp/transformer-surrogate-report.csv 3000 3000 2
+
+# Exercise 50 Hz sinusoidal, 60 Hz sinusoidal and 50 Hz distorted domains
+cargo run --release --manifest-path research/transformer-bench/Cargo.toml --bin surrogate-eval -- \
+  research/transformer-bench/fixtures/surrogate_predictions_domains_synthetic.csv \
+  /tmp/transformer-domain-report.csv 3000 3000 2
+```
+
+Exact input header:
+
+`candidate_id,geometry_family,material_id,frequency_hz,excitation_class,reference_core_loss_w,predicted_core_loss_w,prediction_lower_w,prediction_upper_w,model_fea_queries`
+
+The row-level `model_fea_queries` value must be constant: it is the total costly FE calls attributed to that model/search run, including training, shortlist checks, failed/retried jobs and mesh refinements. The third CLI argument is the candidate-universe size. The fourth is `full_pool_fea_queries`: the total calls required to evaluate every candidate with the same pinned solver and convergence/mesh-refinement protocol. The reported FEA-call reduction is `1 - model_fea_queries / full_pool_fea_queries`, not `1 - shortlist_size / candidate_count`. This baseline must include comparable full-pool retries/refinements, and the model count must include training, calibration, shortlist verification, failed/retried jobs and mesh refinements. The reported values are still a caller-declared ledger, not cryptographically audited accounting; exact solver receipts and query logs remain required. Held-out reference values may be produced by an evaluator's independent oracle and are not counted as model-initiated calls.
+
+Metrics include mean/median/P95/maximum absolute relative error, Spearman rank correlation, top-k recall of the lowest-loss candidates, regret of the predicted best candidate against the best reference candidate, prediction-interval coverage, and mean interval width relative to reference loss. The accepted excitation classes are SINUSOIDAL, DISTORTED and OTHER_DECLARED; frequency must be a finite positive number in Hz. The evaluator rejects duplicate candidate IDs, inconsistent query counts, non-finite or physically nonsensical inputs, invalid prediction intervals, and derived non-finite metrics. Results are stratified by geometry family, material, frequency, excitation class and their combined operating domain to expose transfer failures hidden by aggregate scores.
+
+`fixtures/surrogate_predictions_synthetic.csv` is deliberately synthetic and tests the metric implementation only. `fixtures/surrogate_predictions_domains_synthetic.csv` tests pooling safeguards across 50 Hz sinusoidal, 60 Hz sinusoidal and 50 Hz distorted-excitation domains. Neither fixture replicates the published paper, represents FEA output, or may be cited as a model result. When one file mixes frequencies or excitation classes, pooled error statistics remain descriptive but Spearman/top-k/regret fields are blank because candidate rankings across different operating domains are not like-for-like comparisons. The exact operating-domain rows provide the comparable ranking metrics. The evaluator assumes the split and source rows were frozen before model tuning; it cannot infer or authenticate data leakage from a CSV alone.
+
+Global deployment contract: see [GLOBAL_APPLICABILITY.md](GLOBAL_APPLICABILITY.md) and [PWR-TX-GLOBAL-001 #2872](https://github.com/Luminous-Dynamics/symtropy/issues/2872). The versioned profile contract is [region-profile.schema.json](profiles/region-profile.schema.json), with draft starting points for the [EU](profiles/eu-ecodesign-draft.json), [United States](profiles/us-distribution-draft.json), [India](profiles/india-distribution-draft.json), and [South Africa](profiles/south-africa-sans-utility-draft.json). All four country/region examples are explicitly DRAFT with zero reviewers; their existence is not a compliance determination. Current local editions, scope, utility clauses, amendments and source hashes must be independently verified before a profile can be promoted. UTC annual interval continuity, leap-year accounting, explicit currency/year/price-basis and moment checks now have a standalone validator. IANA timezone/DST conversion validation and normalized tariff ingestion are still future work.
+
+## Global UTC trace validator
+
+The `global-trace-validate` binary implements a first slice of the global profile contract. It validates complete UTC calendar-year coverage (8,760 hours or 8,784 hours for leap years), requires canonical UTC timestamps, sorts intervals to detect gaps/overlaps, rejects duplicate interval IDs and inconsistent scenario metadata, checks mean-square-current consistency, and requires interval tariff currency/year/price-basis metadata.
+
+Example:
+
+```sh
+cargo run --release --manifest-path research/transformer-bench/Cargo.toml --bin global-trace-validate -- \
+  research/transformer-bench/fixtures/global-traces-common-year-synthetic.csv \
+  /tmp/global-trace-summary.csv
+
+cargo run --release --manifest-path research/transformer-bench/Cargo.toml --bin global-trace-validate -- \
+  research/transformer-bench/fixtures/global-traces-leap-year-synthetic.csv \
+  /tmp/global-trace-leap-summary.csv
+```
+
+Input header:
+
+`scenario_id,weight,period_start_utc,period_end_utc,source_timezone,interval_id,start_utc,end_utc,current_pu_mean,mean_square_current_pu2,price_per_kwh,currency_code,price_year,price_basis`
+
+Each scenario must have the same period metadata on every row, intervals that exactly cover January 1 00:00:00 UTC through the next January 1 00:00:00 UTC, and a weight consistent across its rows. Scenario weights in one file must sum to 1. This first implementation requires a canonical UTC calendar year; a source-local calendar year whose boundaries map to different UTC instants is not accepted as-is and must be re-bounded/resampled by an audited upstream step. The validator checks three-letter uppercase currency syntax only; it does not verify membership in the ISO 4217 registry or tariff legality. REAL/NOMINAL and price year must be explicit and consistent per scenario. The source timezone label is retained as metadata but is not checked against a timezone database. Supply UTC timestamps after any local-time/DST conversion has been performed and audited upstream.
+
+The synthetic common-year and leap-year fixtures check input integrity, not meter accuracy, source trace provenance, typical-year representativeness, tariff correctness, transformer physics or standards compliance. A valid trace is not evidence that the measurements came from the underlying metering system. The older loss-economics CLI remains a screening interface; migrate it to this trace contract only through a separately reviewed change.
+
+## State-of-the-art comparator (not a result from this repository)
+
+Zou et al., “A geometry-aware surrogate model for fast transformer core loss prediction and design optimization,” Electric Power Systems Research, DOI [10.1016/j.epsr.2026.113713](https://doi.org/10.1016/j.epsr.2026.113713), report one screening case that compressed 3,000 candidate schemes to 8 FE-verified schemes and reports a 99.7% reduction in FE calls, with 2.6% mean and 4.6% maximum relative error on shortlisted schemes. The simple 8/3,000 ratio is about 99.73% candidate compression, but our reproduction must match the paper's FEA-call accounting and separately expose training, calibration, shortlist verification, retries, failed runs and mesh refinements instead of assuming the shortlist ratio alone establishes total cost savings. Their stated scope is GOES, 50 Hz sinusoidal steady state, and a three-phase three-limb transformer. Their results also report that comparative gains are conditional on material and validation split; random-split performance must not be treated as proof of transfer to unseen geometry families. Source: https://www.sciencedirect.com/science/article/abs/pii/S0378779626010060.
+
+Follow-on benchmark specification: [PWR-TX-SOTA-001 #2859](https://github.com/Luminous-Dynamics/symtropy/issues/2859). Its 3% mean / 5% maximum screening targets and 99% FE-call reduction target are aspirational replication/extension gates, not this harness's results. A faithful reproduction requires compatible public candidate data, FEA settings, and geometry/material splits. Substitute synthetic examples cannot reproduce or validate the published result.
+
+## References
+
+- Li et al. (2025), “A Review of Data-Driven Models for Electromagnetic Devices Design and Analysis,” IEEE Access 13, 142161–142185, DOI 10.1109/ACCESS.2025.3591965. Covers data-driven models for electromagnetic devices including transformers and FEA acceleration; it does not validate this harness.
+- IEC 60076-1 — General: https://webstore.iec.ch/en/publication/588
+- IEC 60076-2 — Temperature rise for liquid-immersed transformers: https://webstore.iec.ch/en/publication/599
+- IEC 60076-3 — Insulation levels and dielectric tests: https://webstore.iec.ch/en/publication/601
+- IEC 60076-5 — Ability to withstand short circuit: https://webstore.iec.ch/en/publication/603
+- SANS 780:2019 catalogue copy: https://irp.cdn-website.com/4e0aecb6/files/uploaded/SANS780_2019_Ed5.pdf. Confirm the actual current edition and exact utility/customer specification for any deployment; old tender documents do not prove current applicability.
+
+## License
+
+MIT OR Apache-2.0.
+
+## Held-out split leakage audit
+
+The `split-audit` binary audits whether benchmark partitions support the declared generalization claim. It is intentionally separate from prediction metrics: good accuracy cannot repair data leakage.
+
+Run the synthetic contract fixture:
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin split-audit -- \
+  research/transformer-bench/fixtures/split-audit-synthetic.csv \
+  /tmp/transformer-split-audit.csv
+```
+
+Exact input header:
+
+`experiment_id,observation_id,geometry_family,material_id,material_lot_id,manufacturer_id,measurement_campaign_id,split_policy,partition`
+
+Supported policies are `RANDOM_ROW`, `HELD_OUT_GEOMETRY`, `HELD_OUT_MANUFACTURER`, `HELD_OUT_MATERIAL_LOT`, and `HELD_OUT_CAMPAIGN`. Every experiment/policy group must contain non-empty `TRAIN`, `VALIDATION`, and `TEST` partitions. Observation IDs must be unique within an experiment/policy ledger. For a held-out policy, the declared group dimension must be disjoint across TRAIN, VALIDATION, and TEST: validation groups cannot appear in training, and test groups cannot appear in either earlier partition. Any overlap rejects the audit and returns a non-zero exit code. Random row splitting is allowed only as a baseline and is explicitly labeled `RANDOM_ROW_BASELINE_ONLY_NOT_TRANSFER_EVIDENCE`.
+
+The fixture is synthetic and exists only to exercise input semantics. This audit validates declared keys and split assignment; it does not establish that source IDs are truthful, verify source-data digests, detect near-duplicate geometries, prove measurement independence, or authenticate measurement provenance. A stronger future gate should bind canonical geometry/property hashes, artifact digests, preprocessing versions and data-lineage receipts. Split disjointness is necessary but not sufficient for scientific validity.
+
+This gate turns one recommendation from the global benchmark contract into an executable check. For any claimed transfer to new geometry, manufacturer, material lot, or measurement campaign, publish the matching held-out policy's results separately from random-split scores. Use independent test values and freeze split assignments before model selection.
+
+## Artifact-bound evidence receipt
+
+The `evidence-receipt` binary verifies that every artifact listed in a manifest exists beneath a declared root and has exactly the expected SHA-256 digest. It writes a deterministic receipt bound to the manifest's own digest. It rejects absolute paths, parent traversal, platform-ambiguous path separators, duplicate artifact IDs/paths, malformed hashes, and symlinks resolving outside the artifact root. A missing or modified artifact produces a FAIL row and a non-zero exit status after writing the receipt.
+
+Run the synthetic contract fixture:
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin evidence-receipt -- \
+  research/transformer-bench/fixtures \
+  research/transformer-bench/fixtures/evidence-manifest-synthetic.csv \
+  /tmp/evidence-receipt.csv
+```
+
+Manifest header:
+
+`artifact_id,role,relative_path,sha256`
+
+The checked-in synthetic manifest binds `evidence/sample-payload.txt` whose exact bytes are `abc`; its SHA-256 value is a standard test vector. It verifies the plumbing only and is not an engineering artifact.
+
+Receipt header:
+
+`manifest_sha256,artifact_id,role,relative_path,expected_sha256,observed_sha256,status,detail`
+
+A matching digest proves only that the bytes read at verification time match the digest declared in the manifest. It does **not** authenticate the source, identify who produced the artifact, prove that a test or solver actually ran, or establish scientific validity. Preserve the manifest and receipt in a version-controlled or independently anchored record; where adversarial tampering is in scope, add a digital signature or transparency-log anchor and independently validate producer identity. The SHA-256 implementation has standard known-answer tests; Rust tests still need to pass on the exact PR head before this gate is relied upon.
+
+## Next research frontier: thermal lifetime
+
+The next research work item is [PWR-TX-HST-001](https://github.com/Luminous-Dynamics/symtropy/issues/2899), with protocol in [THERMAL_LIFETIME_BENCHMARK.md](THERMAL_LIFETIME_BENCHMARK.md). It extends the benchmark from core-loss screening to hotspot trajectories, thermal ageing, model uncertainty and lifecycle decisions. No thermal model implementation or physical validation is claimed by the protocol alone.
+
+
+## Budgeted candidate verification policy benchmark
+
+The `acquisition-bench` binary compares six candidate-selection policies under matched query budgets: RANDOM, MIN_PREDICTED, MAX_UNCERTAINTY, LOWER_CONFIDENCE_BOUND, EXPECTED_IMPROVEMENT, and DIVERSE. Output reports per-trial best-found loss regret against the pool's oracle, top-k recall, queried candidate IDs, and prediction error on queried candidates.
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin acquisition-bench -- \
+  research/transformer-bench/fixtures/acquisition-pool-synthetic.csv \
+  /tmp/acquisition-report.csv 6 30 8
+```
+
+See [BUDGETED_VERIFICATION_BENCHMARK.md](BUDGETED_VERIFICATION_BENCHMARK.md) and [PWR-TX-ACQ-001 #2907](https://github.com/Luminous-Dynamics/symtropy/issues/2907). This is an offline policy replay on a frozen pool: it does not run FEA or retrain a surrogate, and synthetic rows are not physical evidence. Reference labels are used for post-selection scoring, and queried observations update only the incumbent used by expected improvement. Claim true active-learning improvements only after a future version retrains against a pinned expensive oracle and accounts for query, training, retry and refinement costs.
+
+Summarize raw paired trials with `acquisition-summary`:
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin acquisition-summary -- \
+  /tmp/acquisition-report.csv /tmp/acquisition-summary.csv 5000
+```
+
+This emits per-policy mean/median metrics and paired seed-level regret deltas against RANDOM, MIN_PREDICTED and DIVERSE, with bootstrap intervals. These intervals only quantify stochastic replicate variation on one candidate pool; they do not establish cross-dataset superiority. See the [full protocol](BUDGETED_VERIFICATION_BENCHMARK.md).
+
+
+## Uncertainty-aware robust Pareto frontier
+
+The `robust-frontier` binary distinguishes midpoint Pareto dominance from conservative interval-robust dominance across six minimized objectives: lifecycle cost, no-load loss, load loss, maximum hotspot temperature, active-part mass and embodied carbon.
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin robust-frontier -- \
+  research/transformer-bench/fixtures/robust-frontier-synthetic.csv \
+  /tmp/robust-frontier.csv
+```
+
+See [ROBUST_PARETO_FRONTIER.md](ROBUST_PARETO_FRONTIER.md) and [PWR-TX-RPF-001 #2917](https://github.com/Luminous-Dynamics/symtropy/issues/2917). Bounds are caller-declared ranges, not calibrated confidence intervals. The current tool is a multi-objective screening primitive, not a solver or qualification gate. Its rectangular interval model conservatively preserves candidates where bounds overlap; joint scenario/correlation-aware uncertainty remains future work.
+
+
+## Joint-scenario robust Pareto frontier
+
+The `scenario-frontier` binary keeps objective values paired by named scenario and computes expected, CVaR95 and worst-case Pareto fronts, plus scenario-wise robust dominance across the same finite scenario ensemble.
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin scenario-frontier -- \
+  research/transformer-bench/fixtures/scenario-frontier-synthetic.csv \
+  /tmp/scenario-frontier.csv
+```
+
+See [JOINT_SCENARIO_FRONTIER.md](JOINT_SCENARIO_FRONTIER.md) and [PWR-TX-SCEN-001 #2919](https://github.com/Luminous-Dynamics/symtropy/issues/2919). Every candidate must have every scenario with the same weights; the weights must sum to 1. CVaR95 averages the worst 5% probability mass, including partial scenario weights. Scenario-robust dominance applies only to the finite declared scenarios. This binary does not generate scenarios, run solvers or validate the real-world probability of a scenario.
+
+
+## Temporal operating-profile validator
+
+The `temporal-profile` binary validates synchronized UTC operating scenarios carrying mean/mean-square current, ambient temperature, EV/PV context, tariff and carbon-intensity inputs. It requires a complete common/leap calendar year and identical UTC interval grids across scenarios.
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin temporal-profile -- \
+  research/transformer-bench/fixtures/temporal-profile-leap-year-synthetic.csv \
+  /tmp/temporal-profile-summary.csv
+```
+
+See [TEMPORAL_OPERATING_TWIN.md](TEMPORAL_OPERATING_TWIN.md) and [PWR-TX-TEMP-001 #2934](https://github.com/Luminous-Dynamics/symtropy/issues/2934). This is input-integrity/summary tooling only; it does not convert local-time/DST traces, calculate EV/PV net load, run thermal dynamics or establish source provenance. The checked-in leap-year profile is synthetic.
+
+## Electrical equipment manufacturing digital thread
+
+The `manufacturing-ledger` binary validates component genealogy and ordered production/inspection/test events, recipe hashes, evidence references, energy and scrap fields.
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-ledger -- \
+  research/transformer-bench/fixtures/manufacturing-ledger-synthetic.csv \
+  /tmp/transformer-manufacturing-summary.csv
+
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-ledger -- \
+  research/transformer-bench/fixtures/manufacturing-ledger-multi-family-synthetic.csv \
+  /tmp/electrical-components-manufacturing-summary.csv
+```
+
+See [MANUFACTURING_DIGITAL_THREAD.md](MANUFACTURING_DIGITAL_THREAD.md) and [PWR-TX-MFG-001 #2933](https://github.com/Luminous-Dynamics/symtropy/issues/2933). Synthetic examples cover a power transformer, switchgear and a magnetic component. The ledger is not a complete route/test-plan validator or dispatch/release authority.
+
+
+## Manufacturing digital thread and process capability
+
+This research track adds an event/genealogy ledger, route and calibrated-measurement acceptance screen, and time-windowed process capability diagnostic. These tools are decision-support only; they do not qualify a transformer, establish statistical control, or authorize product release.
+
+- [Manufacturing digital-thread protocol](MANUFACTURING_DIGITAL_THREAD.md)
+- [Route and metrology acceptance gate](MANUFACTURING_ACCEPTANCE_GATE.md)
+- [Time-dependent process capability](TIME_DEPENDENT_PROCESS_CAPABILITY.md)
+- [Symtropy ↔ Symthaea acquisition bridge](SYTHAEA_MANUFACTURING_ACQUISITION_BRIDGE.md)
+
+Run the time-windowed diagnostic with the synthetic stable fixture:
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin time-capability -- \
+  research/transformer-bench/fixtures/time-capability-stable-synthetic.csv \
+  research/transformer-bench/fixtures/time-capability-spec-synthetic.csv \
+  research/transformer-bench/fixtures/time-capability-calibration-synthetic.csv \
+  /tmp/time-capability.csv
+```
+
+
+## Measurement-system analysis (Gage R&R)
+
+A new balanced crossed-ANOVA diagnostic estimates repeatability, part×operator interaction, operator reproducibility, part-to-part variation, total Gage R&R, %Study Variation, %Tolerance and NDC. It checks that the part/operator/repeat grid is complete and that every record has a current matching calibration. The resulting noise estimate is only a candidate input to Symthaea after independent study and quality review; the tool does not create production eligibility or release authority.
+
+- [Crossed measurement-system analysis protocol](MEASUREMENT_SYSTEM_ANALYSIS.md)
+- Synthetic designs: low-GRR, high-GRR/operator-shift, incomplete-grid and expired-calibration fixtures under fixtures/measurement-system-msa-*.csv.
+
