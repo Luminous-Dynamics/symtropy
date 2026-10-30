@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/casting-phase-reference/two_phase_fv.rs"
       - "tools/casting-phase-reference/two-phase-fv-README.md"
+      - "tools/casting-phase-reference/two-phase-fv-expected.csv"
       - ".github/workflows/casting-phase-two-phase-fv.yml"
   push:
     branches: [main]
@@ -38,6 +39,7 @@ jobs:
           "$RUNNER_TEMP/two-phase-fv" --csv > "$RUNNER_TEMP/two-phase-fv-a.csv"
           "$RUNNER_TEMP/two-phase-fv" --csv > "$RUNNER_TEMP/two-phase-fv-b.csv"
           diff -u "$RUNNER_TEMP/two-phase-fv-a.csv" "$RUNNER_TEMP/two-phase-fv-b.csv"
+          diff -u tools/casting-phase-reference/two-phase-fv-expected.csv "$RUNNER_TEMP/two-phase-fv-a.csv"
           cat "$RUNNER_TEMP/two-phase-fv-a.csv"
       - name: Emit source and output digests
         run: |
