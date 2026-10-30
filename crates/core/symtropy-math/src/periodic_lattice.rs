@@ -407,9 +407,6 @@ impl<const D: usize> PeriodicLattice<D> {
                                 return;
                             }
 
-                            let tolerance = DISTANCE_TIE_EPSILON_MULTIPLIER
-                                * f64::EPSILON
-                                * distance.max(best_distance).max(1.0);
                             let alignment = candidate_displacement.dot(displacement);
                             if !alignment.is_finite() {
                                 visit_error = Some(PeriodicLatticeError::NumericRange {
@@ -420,10 +417,15 @@ impl<const D: usize> PeriodicLattice<D> {
                             let alignment_tolerance = DISTANCE_TIE_EPSILON_MULTIPLIER
                                 * f64::EPSILON
                                 * alignment.abs().max(best_alignment.abs()).max(1.0);
+                            // Never replace a shorter computed candidate with
+                            // a slightly longer one merely because both fall inside
+                            // a tie tolerance. Ties are resolved only for exactly
+                            // equal computed distances; the certificate margin
+                            // separately accounts for floating-point roundoff.
                             let is_better =
-                                !best_distance.is_finite() || distance + tolerance < best_distance;
-                            let is_tie = best_distance.is_finite()
-                                && (distance - best_distance).abs() <= tolerance;
+                                !best_distance.is_finite() || distance < best_distance;
+                            let is_tie =
+                                best_distance.is_finite() && distance == best_distance;
                             let tie_precedes = alignment > best_alignment + alignment_tolerance
                                 || ((alignment - best_alignment).abs() <= alignment_tolerance
                                     && signed_offset_precedes(
