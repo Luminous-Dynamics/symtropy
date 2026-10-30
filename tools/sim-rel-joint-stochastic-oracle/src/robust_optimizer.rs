@@ -789,6 +789,14 @@ mod tests {
         Rational::new(1, 2).unwrap()
     }
 
+    fn quarter() -> Rational {
+        Rational::new(1, 4).unwrap()
+    }
+
+    fn three_quarters() -> Rational {
+        Rational::new(3, 4).unwrap()
+    }
+
     fn make_world(id: &str, reverse_nominal_action: bool) -> ModelWorld {
         let mut rows = Vec::new();
         for hypothesis in 0..2 {
@@ -840,6 +848,92 @@ mod tests {
                 rows,
             },
         }
+    }
+
+    fn stochastic_world(
+        id: &str,
+        h0_observation_zero: Rational,
+        h1_observation_zero: Rational,
+    ) -> ModelWorld {
+        let mut rows = Vec::new();
+        for (hypothesis, p_zero) in [
+            (0, h0_observation_zero),
+            (1, h1_observation_zero),
+        ] {
+            rows.push(KernelRow {
+                hypothesis,
+                physical_state: 0,
+                sensor_state: 0,
+                action: 0,
+                outcomes: vec![
+                    JointOutcome {
+                        probability: p_zero,
+                        next_physical_state: 0,
+                        next_sensor_state: 0,
+                        observation: Some(0),
+                    },
+                    JointOutcome {
+                        probability: Rational::one().checked_sub(p_zero).unwrap(),
+                        next_physical_state: 0,
+                        next_sensor_state: 0,
+                        observation: Some(1),
+                    },
+                ],
+            });
+        }
+        ModelWorld {
+            id: id.to_string(),
+            kernel: JointKernel {
+                hypothesis_ids: vec!["h0".into(), "h1".into()],
+                physical_state_count: 1,
+                sensor_state_count: 1,
+                action_ids: vec!["stochastic-read".into()],
+                observation_ids: vec!["zero".into(), "one".into()],
+                action_costs: vec![1],
+                initial_belief: vec![
+                    JointMass {
+                        hypothesis: 0,
+                        physical_state: 0,
+                        sensor_state: 0,
+                        mass: half(),
+                    },
+                    JointMass {
+                        hypothesis: 1,
+                        physical_state: 0,
+                        sensor_state: 0,
+                        mass: half(),
+                    },
+                ],
+                rows,
+            },
+        }
+    }
+
+    fn brute_one_action_policies() -> Vec<PolicyPlan> {
+        let terminals = vec![
+            PolicyPlan::Abstain,
+            PolicyPlan::Claim { hypothesis: 0 },
+            PolicyPlan::Claim { hypothesis: 1 },
+        ];
+        let mut policies = terminals.clone();
+        for on_zero in &terminals {
+            for on_one in &terminals {
+                policies.push(PolicyPlan::Action {
+                    action: 0,
+                    branches: vec![
+                        PolicyBranch {
+                            observation: 0,
+                            plan: Box::new(on_zero.clone()),
+                        },
+                        PolicyBranch {
+                            observation: 1,
+                            plan: Box::new(on_one.clone()),
+                        },
+                    ],
+                });
+            }
+        }
+        policies
     }
 
     fn objective_key(
@@ -1044,6 +1138,73 @@ mod tests {
         optimized_keys.dedup();
         brute_keys.dedup();
         assert_eq!(optimized_keys, brute_keys);
+    }
+
+    #[test]
+    fn dynamic_program_matches_exhaustive_multiworld_stochastic_policies_with_different_branch_masses() {
+        let worlds = vec![
+            stochastic_world("world-a", three_quarters(), quarter()),
+            stochastic_world("world-b", quarter(), quarter()),
+        ];
+        let optimized = optimize_robust_worlds(
+            &worlds,
+            "world-a",
+            &RobustSolverConfig {
+                horizon: 1,
+                ..RobustSolverConfig::default()
+            },
+        )
+        .unwrap();
+        let enumerated = brute_one_action_policies()
+            .iter()
+            .map(|policy| {
+                let report = evaluate_policy_across_worlds(&worlds, "world-a", policy, 1)
+                    .unwrap();
+                RobustFrontierPoint {
+                    per_world: report.per_world,
+                    policy: policy.clone(),
+                }
+            })
+            .collect();
+        let brute = brute_frontier(enumerated);
+        let mut optimized_keys: Vec<_> = optimized.frontier.iter().map(objective_key).collect();
+        let mut brute_keys: Vec<_> = brute.iter().map(objective_key).collect();
+        optimized_keys.sort();
+        brute_keys.sort();
+        optimized_keys.dedup();
+        brute_keys.dedup();
+        assert_eq!(optimized_keys, brute_keys);
+
+        let policy = PolicyPlan::Action {
+            action: 0,
+            branches: vec![
+                PolicyBranch {
+                    observation: 0,
+                    plan: Box::new(PolicyPlan::Claim { hypothesis: 0 }),
+                },
+                PolicyBranch {
+                    observation: 1,
+                    plan: Box::new(PolicyPlan::Claim { hypothesis: 1 }),
+                },
+            ],
+        };
+        let report = evaluate_policy_across_worlds(&worlds, "world-a", &policy, 1).unwrap();
+        assert_eq!(
+            report.per_world[0].correct_identification_probability,
+            three_quarters()
+        );
+        assert_eq!(
+            report.per_world[1].correct_identification_probability,
+            half()
+        );
+        assert_eq!(
+            report.per_world[0].expected_cost,
+            Rational::one()
+        );
+        assert_eq!(
+            report.per_world[1].expected_cost,
+            Rational::one()
+        );
     }
 
     #[test]
