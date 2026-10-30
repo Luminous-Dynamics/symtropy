@@ -34,7 +34,6 @@ struct Observation {
 
 #[derive(Clone, Debug)]
 struct Spec {
-    study: String,
     characteristic: String,
     unit: String,
     lower: f64,
@@ -244,7 +243,6 @@ fn read_specs(path: &str) -> Result<BTreeMap<String, Spec>, String> {
             return Err(format!("{path}: invalid limits or minimum balanced study dimensions"));
         }
         let spec = Spec {
-            study: study.clone(),
             characteristic: required(&f[1], "characteristic")?,
             unit: required(&f[2], "unit")?,
             lower, upper,
@@ -560,6 +558,30 @@ mod tests {
         let part = comps.part.sqrt();
         assert!(grr > 0.0);
         assert!(part > grr);
+    }
+
+    #[test]
+    fn crossed_anova_separates_large_operator_reproducibility_shift() {
+        let mut rows = Vec::new();
+        for part in 0..10 {
+            for operator in 0..3 {
+                let part_base = part as f64 * 0.1;
+                let operator_bias = (operator as f64 - 1.0) * 0.12;
+                rows.push((
+                    format!("P{part}"),
+                    format!("O{operator}"),
+                    vec![
+                        100.0 + part_base + operator_bias - 0.002,
+                        100.0 + part_base + operator_bias + 0.002,
+                        100.0 + part_base + operator_bias,
+                    ],
+                ));
+            }
+        }
+        let components = analyze_crossed(&cells_from_rows(rows)).unwrap();
+        assert!(components.operator.sqrt() > 0.1);
+        assert!(components.repeatability.sqrt() < 0.01);
+        assert!(components.grr >= components.operator);
     }
 
     #[test]
