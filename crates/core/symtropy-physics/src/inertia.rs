@@ -236,9 +236,10 @@ impl<const D: usize> BivectorInertia<D> {
         &self.second_moment
     }
 
-    /// Map Symtropy's stored angular state B to angular momentum:
-    /// L = B*S + S*B. Rotor::from_bivector(B) integrates exp(-B), so the
-    /// associated physical point velocity is -B*r.
+    /// Map Symtropy's stored angular state B to the stored-sign angular
+    /// momentum L = B*S + S*B = -H_phys. Rotor::from_bivector(B) integrates
+    /// exp(-B), so the associated physical point velocity is -B*r and the
+    /// physical spatial angular momentum is H_phys = -L.
     ///
     /// The output uses the same lexicographic (i,j), i<j plane ordering as
     /// Bivector<D>. This map is symmetric and positive semidefinite when S
@@ -250,7 +251,7 @@ impl<const D: usize> BivectorInertia<D> {
         Bivector::from_matrix(&momentum)
     }
 
-    /// Invert angular momentum to recover Symtropy's stored angular state B.
+    /// Invert stored-sign angular momentum L=I(B) to recover stored state B.
     ///
     /// The symmetric eigendecomposition S = Q*Lambda*Q^T diagonalizes the
     /// inertia operator on bivectors: in principal coordinates each plane
