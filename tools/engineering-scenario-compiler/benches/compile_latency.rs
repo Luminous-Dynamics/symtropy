@@ -26,11 +26,11 @@ fn padded_fixture(target_bytes: usize) -> Vec<u8> {
 
 fn main() {
     eprintln!(
-        "compiler={} rustc={} target={}-{} samples={} warmup={} scope=parse+typed-validation+IR+digests",
+        "compiler={} target={}-{} logical_cpus={} samples={} warmup={} scope=parse+typed-validation+IR+digests",
         COMPILER_VERSION,
-        option_env!("RUSTC_VERSION").unwrap_or("not-recorded-by-build"),
         std::env::consts::ARCH,
         std::env::consts::OS,
+        std::thread::available_parallelism().map_or(1, usize::from),
         SAMPLE_COUNT,
         WARMUP_COUNT
     );
