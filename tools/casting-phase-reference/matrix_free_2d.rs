@@ -434,8 +434,7 @@ fn emit_csv() -> Result<(), String> {
         let report = pcg(&operator, &rhs, None, RELATIVE_TOLERANCE, MAX_ITERATIONS)?;
         let cells = operator.len();
         // gamma + rhs + x + r + z + p + q + diagonal: eight f64 arrays.
-        let field_bytes = cells * 8 * std::mem::size_of::<f64>()
-            + cells * std::mem::size_of::<u8>();
+        let field_bytes = cells * 8 * std::mem::size_of::<f64>();
         println!(
             "{},{},{},{},{},{},{},{},{:.12e},PASS",
             nx,
