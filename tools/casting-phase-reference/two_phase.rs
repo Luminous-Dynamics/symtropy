@@ -13,8 +13,6 @@
 //! Model: initially liquid at T_infinity > T_m, cold Dirichlet wall T_w < T_m
 //! at x=0, semi-infinite domain, no advection, no volumetric heat source.
 
-use std::f64::consts::PI;
-
 const SQRT_PI: f64 = 1.772_453_850_905_516_027_3;
 const ERF_MAX_X: f64 = 1.0;
 const ROOT_MAX_ITERATIONS: usize = 160;
@@ -212,7 +210,7 @@ fn solve_lambda(stefan_solid: f64, stefan_liquid: f64) -> Result<f64, String> {
 
     let mut lower = 1.0e-10;
     let mut upper = 1.0;
-    let mut lower_residual = lambda_residual(lower, stefan_solid, stefan_liquid)?;
+    let lower_residual = lambda_residual(lower, stefan_solid, stefan_liquid)?;
     let upper_residual = lambda_residual(upper, stefan_solid, stefan_liquid)?;
     if !(lower_residual < 0.0 && upper_residual > 0.0) {
         return Err("failed to bracket the positive two-phase similarity root".into());
@@ -223,7 +221,6 @@ fn solve_lambda(stefan_solid: f64, stefan_liquid: f64) -> Result<f64, String> {
         let residual = lambda_residual(midpoint, stefan_solid, stefan_liquid)?;
         if residual < 0.0 {
             lower = midpoint;
-            lower_residual = residual;
         } else {
             upper = midpoint;
         }
@@ -236,7 +233,6 @@ fn solve_lambda(stefan_solid: f64, stefan_liquid: f64) -> Result<f64, String> {
             return Ok(root);
         }
     }
-    let _ = lower_residual;
     Err("two-phase similarity root did not converge within the iteration budget".into())
 }
 
