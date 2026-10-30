@@ -311,7 +311,41 @@ impl<const D: usize> PeriodicLattice<D> {
     /// bounded QR sphere decoder enumerates every integer point inside that
     /// radius. Search-budget exhaustion is an error; the current best point is
     /// never returned as though it were proven globally nearest.
+    /// Find the nearest periodic representative under the canonical tie rule.
+    ///
+    /// The input is oriented so its first nonzero Cartesian component is
+    /// positive before the search. This makes the exact-distance tie rule
+    /// reversal-odd: minimum_image(-d) = -minimum_image(d), including at
+    /// Voronoi facets. Returned offsets are always expressed in the original
+    /// caller's lattice orientation.
     pub fn minimum_image_displacement(
+        &self,
+        displacement: &SVector<f64, D>,
+        max_search_nodes: usize,
+    ) -> Result<ClosestLatticeImage<D>, PeriodicLatticeError> {
+        let reverse = displacement
+            .iter()
+            .find(|component| **component != 0.0)
+            .is_some_and(|component| *component < 0.0);
+        let canonical_displacement = if reverse {
+            -*displacement
+        } else {
+            *displacement
+        };
+        let mut result =
+            self.minimum_image_displacement_oriented(&canonical_displacement, max_search_nodes)?;
+        if reverse {
+            for component in &mut result.image_offset.periods {
+                *component = component.checked_neg().ok_or(
+                    PeriodicLatticeError::CoordinatePrecisionLimit { axis: 0 },
+                )?;
+            }
+            result.displacement = -result.displacement;
+        }
+        Ok(result)
+    }
+
+    fn minimum_image_displacement_oriented(
         &self,
         displacement: &SVector<f64, D>,
         max_search_nodes: usize,
@@ -728,13 +762,54 @@ mod tests {
     }
 
     #[test]
-    fn exact_half_cell_tie_uses_lexicographically_smallest_image() {
+    fn exact_half_cell_tie_is_deterministic_and_reversal_odd() {
         let lattice = lattice2(SMatrix::<f64, 2, 2>::identity());
-        let actual = lattice
+        let positive = lattice
             .minimum_image_displacement(&SVector::from([0.5, 0.0]), 100)
             .unwrap();
-        assert_eq!(actual.image_offset.periods, [-1, 0]);
-        assert_eq!(actual.displacement, SVector::from([-0.5, 0.0]));
+        let negative = lattice
+            .minimum_image_displacement(&SVector::from([-0.5, 0.0]), 100)
+            .unwrap();
+        assert_eq!(positive.image_offset.periods, [-1, 0]);
+        assert_eq!(positive.displacement, SVector::from([-0.5, 0.0]));
+        assert_eq!(negative.image_offset.periods, [1, 0]);
+        assert_eq!(negative.displacement, SVector::from([0.5, 0.0]));
+    }
+
+    #[test]
+    fn minimum_image_reversal_is_odd_for_skew_cells() {
+        let lattice = lattice2(SMatrix::<f64, 2, 2>::from_row_slice(&[
+            2.0, 1.4, 0.0, 1.5,
+        ]));
+        let mut seed = 0x5245_5645_5253_414c_u64;
+        for case in 0..2_000 {
+            let displacement = SVector::from([
+                random_range(&mut seed, -20.0, 20.0),
+                random_range(&mut seed, -20.0, 20.0),
+            ]);
+            let forward = lattice
+                .minimum_image_displacement(&displacement, 30_000)
+                .unwrap_or_else(|error| panic!("forward case={case}: {error}"));
+            let reverse = lattice
+                .minimum_image_displacement(&(-displacement), 30_000)
+                .unwrap_or_else(|error| panic!("reverse case={case}: {error}"));
+            assert_eq!(
+                reverse.image_offset.periods,
+                [
+                    -forward.image_offset.periods[0],
+                    -forward.image_offset.periods[1],
+                ],
+                "image reversal mismatch at case {case}"
+            );
+            assert!(
+                (reverse.displacement + forward.displacement).norm() < 2e-11,
+                "displacement reversal mismatch at case {case}"
+            );
+            assert!(
+                (reverse.distance_squared - forward.distance_squared).abs() < 2e-11,
+                "distance mismatch at case {case}"
+            );
+        }
     }
 
     #[test]
