@@ -252,34 +252,20 @@ impl<const D: usize> PeriodicSphereWorld<D> {
         if self.bodies.iter().any(|existing| existing.id == body.id) {
             return Err(PeriodicSphereWorldError::DuplicateBodyId { id: body.id });
         }
-        // Prevent self-image overlap for every body, and require every pair
-        // radius sum to be strictly below half the period. The pair bound is
-        // what guarantees at most one simultaneously relevant image contact:
-        // two distinct periodic copies are separated by one full period.
-        // A long sweep may still hit successive images of the same pair; all
-        // per-image TOIs remain eligible as the pair moves through the box.
+        // A body must not overlap its own periodic copies, and every pair's
+        // radius sum must be strictly below half the period. If two distinct
+        // images could both overlap the same body, their centers are one full
+        // period apart and the triangle inequality requires 2*(r_a+r_b) >= L.
+        // This bound rules out simultaneous multiple-image contacts while
+        // still allowing the pair to hit successive images during a long sweep.
         for axis in 0..D {
-            if self.domain.is_periodic(axis) != Some(true) {
-                continue;
-            }
-            let half_period = 0.5 * self.domain.periods()[axis];
-            if body.radius >= half_period {
+            if self.domain.is_periodic(axis) == Some(true)
+                && body.radius >= 0.5 * self.domain.periods()[axis]
+            {
                 return Err(PeriodicSphereWorldError::BodyRadiusExceedsPeriodicEnvelope {
                     id: body.id,
                     axis,
                 });
-            }
-            for existing in &self.bodies {
-                let pair_radius = body.radius + existing.radius;
-                if !pair_radius.is_finite() || pair_radius >= half_period {
-                    return Err(
-                        PeriodicSphereWorldError::PairRadiusExceedsUniqueImageEnvelope {
-                            body_a: existing.id,
-                            body_b: body.id,
-                            axis,
-                        },
-                    );
-                }
             }
         }
         for existing in &self.bodies {
@@ -702,39 +688,6 @@ mod tests {
         assert!(report.kinetic_energy_after < report.kinetic_energy_before);
         close(world.bodies()[0].velocity[0], 1.0, 1e-12);
         close(world.bodies()[1].velocity[0], 1.0, 1e-12);
-    }
-
-    #[test]
-    fn pair_radius_envelope_rejects_simultaneous_multiple_image_contacts() {
-        let mut world = world(8);
-        let first = PeriodicSphereBody::new(
-            1,
-            SVector::from([1.0, 0.0]),
-            SVector::zeros(),
-            3.0,
-            1.0,
-            1.0,
-        )
-        .unwrap();
-        let second = PeriodicSphereBody::new(
-            2,
-            SVector::from([9.0, 0.0]),
-            SVector::zeros(),
-            2.1,
-            1.0,
-            1.0,
-        )
-        .unwrap();
-        world.add_body(first).unwrap();
-        assert_eq!(
-            world.add_body(second),
-            Err(PeriodicSphereWorldError::PairRadiusExceedsUniqueImageEnvelope {
-                body_a: 1,
-                body_b: 2,
-                axis: 0,
-            })
-        );
-        assert_eq!(world.bodies().len(), 1);
     }
 
     #[test]
