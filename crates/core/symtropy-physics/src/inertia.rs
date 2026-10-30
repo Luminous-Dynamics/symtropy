@@ -727,6 +727,34 @@ mod tests {
     }
 
     #[test]
+    fn four_dimensional_coupled_inertia_roundtrips_all_six_rotation_planes() {
+        let second_moment = SMatrix::<f64, 4, 4>::new(
+            2.0, 0.2, 0.0, 0.1,
+            0.2, 3.0, 0.15, 0.0,
+            0.0, 0.15, 4.0, 0.25,
+            0.1, 0.0, 0.25, 5.0,
+        );
+        let inertia = BivectorInertia::<4>::from_second_moment(second_moment).unwrap();
+        let mut angular_state = Bivector::<4>::zero();
+        angular_state.set(0, 1, 0.7);
+        angular_state.set(0, 2, -0.4);
+        angular_state.set(0, 3, 0.2);
+        angular_state.set(1, 2, 1.1);
+        angular_state.set(1, 3, -0.8);
+        angular_state.set(2, 3, 0.35);
+
+        let momentum = inertia.angular_momentum(&angular_state);
+        let recovered = inertia
+            .angular_velocity_from_momentum(&momentum, 1e-12)
+            .unwrap();
+        assert!(
+            recovered.add(&angular_state.scale(-1.0)).norm() < 1e-11,
+            "four-dimensional inverse failed: recovered={recovered:?}, expected={angular_state:?}"
+        );
+        assert!(inertia.kinetic_energy(&angular_state) > 0.0);
+    }
+
+    #[test]
     fn inverse_operator_recovers_coupled_world_frame_angular_velocity() {
         let second_moment =
             SMatrix::<f64, 3, 3>::new(2.0, 0.25, 0.1, 0.25, 3.0, 0.2, 0.1, 0.2, 4.0);
