@@ -163,7 +163,6 @@ impl<const D: usize> PhysicsWorld<D> {
         })
     }
 
-
     /// Capture physical invariants and numerical-health metrics.
     ///
     /// The snapshot is deterministic for a fixed world state and contains no
@@ -278,13 +277,13 @@ mod tests {
 
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
-        world.body_mut(handle).unwrap().set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(
-                2.0,
-                SVector::new(1.0, 0.8, 0.6),
-            )
-            .unwrap(),
-        );
+        world
+            .body_mut(handle)
+            .unwrap()
+            .set_rotational_inertia_operator(
+                BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+                    .unwrap(),
+            );
 
         let snapshot = world.invariant_snapshot();
         assert_eq!(snapshot.mass_property_mismatch_count, 1);
@@ -341,6 +340,4 @@ mod tests {
         assert!(receipt.mechanical_energy_delta().abs() < 1e-12);
         assert!(receipt.drift.linear_momentum_error_norm() < 1e-12);
     }
-
-
 }
