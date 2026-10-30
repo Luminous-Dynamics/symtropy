@@ -798,7 +798,14 @@ impl<const D: usize> PhysicsWorld<D> {
         //     (The old code accidentally applied warm-starting N times per frame.)
         for &ci in &active_contact_indices {
             if ci < self.contacts.len() {
-                self.try_warm_start_contact(ci)?;
+                let body_a = self.contacts[ci].body_a;
+                let body_b = self.contacts[ci].body_b;
+                self.try_warm_start_contact(ci).map_err(|cause| PhysicsStepError {
+                    phase: PhysicsStepPhase::ContactWarmStart,
+                    body_a: Some(body_a),
+                    body_b: Some(body_b),
+                    cause,
+                })?;
             }
         }
 
@@ -808,7 +815,16 @@ impl<const D: usize> PhysicsWorld<D> {
             for &ci in &active_contact_indices {
                 if ci < self.contacts.len() {
                     let contact = self.contacts[ci].clone();
-                    let updated = self.try_resolve_contact(contact, dt, callback)?;
+                    let body_a = contact.body_a;
+                    let body_b = contact.body_b;
+                    let updated = self
+                        .try_resolve_contact(contact, dt, callback)
+                        .map_err(|cause| PhysicsStepError {
+                            phase: PhysicsStepPhase::ContactSolve,
+                            body_a: Some(body_a),
+                            body_b: Some(body_b),
+                            cause,
+                        })?;
                     self.contacts[ci] = updated;
                 }
             }
@@ -2782,10 +2798,10 @@ mod transformed_halfspace_tests {
         world.prev_cache.store(first_handle, second_handle, cache_point, 0.5, 0.0);
 
         let error = world.try_step(0.01).unwrap_err();
-        assert_eq!(
-            error,
-            PhysicsStepError::RotationalInertia(RotationalInertiaError::SingularInertia)
-        );
+        assert_eq!(error.phase, PhysicsStepPhase::BodyIntegration);
+        assert_eq!(error.body_a, Some(second_handle));
+        assert_eq!(error.body_b, None);
+        assert_eq!(error.cause, RotationalInertiaError::SingularInertia);
         assert_eq!(world.bodies[0].transform.translation.0, first_position);
         assert_eq!(world.bodies[0].linear_velocity, first_velocity);
         assert_eq!(world.bodies[0].force_accumulator, first_force);
