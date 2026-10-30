@@ -330,7 +330,7 @@ mod tests {
     use super::*;
     use crate::inertia::BivectorInertia;
     use nalgebra::{DMatrix, DVector, SVector};
-    use symtropy_math::Point;
+    use symtropy_math::{Point, Rotor};
 
     #[test]
     fn one_row_lcp_matches_analytic_impulse() {
@@ -458,25 +458,21 @@ mod tests {
 
     #[test]
     fn delassus_is_invariant_to_contact_permutation_and_global_rigid_rotation() {
-        let mut body_a =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         body_a.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(
-                1.0,
-                SVector::new(2.0, 1.0, 0.5),
-            )
-            .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+                .unwrap(),
         );
-        let mut body_b =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 0.5, -0.25]), 0.5, 1.5);
-        body_b.transform.rotation =
-            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(1, 2), 0.37);
+        let mut body_b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::new([1.0, 0.5, -0.25]),
+            0.5,
+            1.5,
+        );
+        body_b.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(1, 2), 0.37);
         body_b.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(
-                1.5,
-                SVector::new(0.8, 1.2, 1.7),
-            )
-            .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.5, SVector::new(0.8, 1.2, 1.7))
+                .unwrap(),
         );
 
         let bodies = vec![body_a, body_b];
@@ -521,8 +517,7 @@ mod tests {
 
         // A common rigid rotation of every world-space quantity cannot change
         // the scalar Delassus operator.
-        let global_rotation =
-            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.61);
+        let global_rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.61);
         let rotated_bodies: Vec<_> = bodies
             .iter()
             .map(|body| {
@@ -532,8 +527,7 @@ mod tests {
                     0.5,
                     body.mass,
                 );
-                rotated.transform.rotation =
-                    global_rotation.compose(&body.transform.rotation);
+                rotated.transform.rotation = global_rotation.compose(&body.transform.rotation);
                 rotated.linear_velocity = global_rotation.rotate_vector(&body.linear_velocity);
                 rotated.angular_velocity = body.angular_velocity.clone();
                 rotated.inv_mass = body.inv_mass;
