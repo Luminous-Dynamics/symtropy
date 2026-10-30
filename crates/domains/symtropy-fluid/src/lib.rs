@@ -19,6 +19,7 @@ use std::fmt;
 
 const ACOUSTIC_CFL: f64 = 0.25;
 const VISCOSITY_CFL: f64 = 0.125;
+/// Dimensionless epsilon in r² + epsilon*h² (Morris/PySPH convention).
 const VISCOSITY_REGULARIZATION: f64 = 0.01;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -308,7 +309,7 @@ impl<const D: usize> FluidSimulation<D> {
         let mut forces = vec![SVector::<f64, D>::zeros(); count];
         let h = self.config.smoothing_radius;
         let h_squared = h * h;
-        let regularization = VISCOSITY_REGULARIZATION * VISCOSITY_REGULARIZATION * h_squared;
+        let regularization = VISCOSITY_REGULARIZATION * h_squared;
 
         for i in 0..count {
             let mut pressure_acceleration = SVector::<f64, D>::zeros();
@@ -354,11 +355,11 @@ impl<const D: usize> FluidSimulation<D> {
                         }
                         let r_dot_gradient = displacement.dot(&gradient);
                         let denominator = r_squared + regularization;
-                        // Morris-style regularized physical-viscosity term. This
-                        // config is a uniform dynamic viscosity, so the pair
-                        // sum is mu_i + mu_j = 2 * mu. The form and sign must
-                        // remain independently verified against shear-flow
-                        // references before this profile is called validated.
+                        // Morris-style regularized physical-viscosity term.
+                        // This config is a uniform dynamic viscosity, so the
+                        // pair sum is mu_i + mu_j = 2 * mu. The denominator uses
+                        // r² + epsilon*h² (epsilon=0.01), not r² + (epsilon*h)².
+                        // The form and sign still require shear-flow validation.
                         let coefficient = self.particles[j].mass * (2.0 * self.config.viscosity)
                             / rho_product
                             * r_dot_gradient
@@ -551,7 +552,7 @@ fn max_speed<const D: usize>(particles: &[FluidParticle<D>]) -> Result<f64, SphE
 
 #[cfg(test)]
 mod tests {
-    use super::{FluidParticle, FluidSimulation, SphConfig, SphError};
+    use super::{FluidParticle, FluidSimulation, Poly6Kernel, SphConfig, SphError};
     use nalgebra::SVector;
 
     fn config(viscosity: f64, rest_density: f64) -> SphConfig {
@@ -601,6 +602,120 @@ mod tests {
         assert!(report.momentum_after.norm() < 1e-10);
         assert!((sim.particles[0].force[0] + sim.particles[1].force[0]).abs() < 1e-10);
         assert!((sim.particles[0].force[1] + sim.particles[1].force[1]).abs() < 1e-10);
+    }
+
+    #[test]
+    fn internal_pair_forces_conserve_momentum_for_unequal_masses() {
+        let mut sim = FluidSimulation::<2>::new(config(0.25, 0.1));
+        sim.add_particle(particle([-0.6, 0.0], [0.7, 0.2], 0.7))
+            .unwrap();
+        sim.add_particle(particle([0.3, 0.1], [-0.1, 0.6], 1.3))
+            .unwrap();
+        sim.add_particle(particle([0.9, -0.2], [-0.4, -0.3], 2.1))
+            .unwrap();
+
+        let report = sim.step(1e-6, &SVector::zeros()).unwrap();
+        assert!(
+            (report.momentum_after - report.momentum_before).norm() < 1e-10,
+            "momentum drift: {:?}",
+            report.momentum_after - report.momentum_before
+        );
+        let net_internal_force = sim
+            .particles
+            .iter()
+            .fold(SVector::<f64, 2>::zeros(), |sum, particle| sum + particle.force);
+        assert!(net_internal_force.norm() < 1e-10);
+    }
+
+    #[test]
+    fn laminar_viscosity_uses_epsilon_times_h_squared() {
+        let h = 2.0;
+        let mass = 1.0;
+        let viscosity = 0.5;
+        let separation = SVector::from([0.5, 0.0]);
+        let kernel = Poly6Kernel::<2>::new(h).unwrap();
+        let density = mass * kernel.value(&SVector::zeros()).unwrap()
+            + mass * kernel.value(&separation).unwrap();
+
+        let mut sim = FluidSimulation::<2>::new(SphConfig {
+            smoothing_radius: h,
+            rest_density: density,
+            pressure_stiffness: 1.0,
+            viscosity,
+        });
+        sim.add_particle(particle([0.0, 0.0], [0.0, 1.0], mass))
+            .unwrap();
+        sim.add_particle(particle([0.5, 0.0], [0.0, -1.0], mass))
+            .unwrap();
+
+        let displacement = sim.particles[0].position - sim.particles[1].position;
+        let gradient = kernel.gradient(&displacement).unwrap();
+        let r_dot_gradient = displacement.dot(&gradient);
+        let expected_denominator =
+            displacement.norm_squared() + 0.01 * h * h;
+        let coefficient = mass * (2.0 * viscosity) / (density * density)
+            * r_dot_gradient
+            / expected_denominator;
+        let expected_force_y = mass * (2.0 * coefficient);
+
+        let kinetic_energy_before = sim
+            .particles
+            .iter()
+            .map(|particle| 0.5 * particle.mass * particle.velocity.norm_squared())
+            .sum::<f64>();
+        let report = sim.step(1e-4, &SVector::zeros()).unwrap();
+        let kinetic_energy_after = sim
+            .particles
+            .iter()
+            .map(|particle| 0.5 * particle.mass * particle.velocity.norm_squared())
+            .sum::<f64>();
+
+        assert!(sim.particles.iter().all(|particle| particle.pressure.abs() < 1e-12));
+        assert!((sim.particles[0].force[1] - expected_force_y).abs() < 1e-10);
+        assert!((sim.particles[1].force[1] + expected_force_y).abs() < 1e-10);
+        assert!((report.momentum_after - report.momentum_before).norm() < 1e-10);
+        assert!(
+            kinetic_energy_after < kinetic_energy_before,
+            "viscosity must dissipate kinetic energy"
+        );
+    }
+
+    #[test]
+    fn wc_sph_step_is_galilean_invariant_under_uniform_velocity_boost() {
+        let boost = SVector::from([1.25, -0.75]);
+        let mut base = FluidSimulation::<2>::new(config(0.15, 0.1));
+        let mut boosted = FluidSimulation::<2>::new(config(0.15, 0.1));
+        let fixtures = [
+            ([-0.5, 0.0], [0.2, 0.7], 0.7),
+            ([0.4, 0.1], [-0.3, 0.1], 1.3),
+            ([0.9, -0.2], [0.5, -0.2], 2.1),
+        ];
+        for (position, velocity, mass) in fixtures {
+            let velocity = SVector::from(velocity);
+            base.add_particle(particle(position, velocity.into(), mass))
+                .unwrap();
+            boosted
+                .add_particle(particle(position, (velocity + boost).into(), mass))
+                .unwrap();
+        }
+
+        let dt = 1e-6;
+        base.step(dt, &SVector::zeros()).unwrap();
+        boosted.step(dt, &SVector::zeros()).unwrap();
+
+        for (base_particle, boosted_particle) in
+            base.particles.iter().zip(&boosted.particles)
+        {
+            assert!((base_particle.force - boosted_particle.force).norm() < 1e-10);
+            assert!((base_particle.density - boosted_particle.density).abs() < 1e-12);
+            assert!((base_particle.pressure - boosted_particle.pressure).abs() < 1e-12);
+            assert!(
+                (boosted_particle.velocity - base_particle.velocity - boost).norm() < 1e-10
+            );
+            assert!(
+                (boosted_particle.position - base_particle.position - boost * dt).norm() < 1e-10
+            );
+        }
     }
 
     #[test]
