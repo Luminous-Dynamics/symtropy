@@ -97,7 +97,7 @@ fn public_closest_image_matches_independent_integer_enumeration() {
 #[test]
 fn explicit_lattice_offsets_reconstruct_and_are_translation_invariant() {
     let cell = skew_cell();
-    let point = cell.origin() + *cell.basis() * SVector::from([0.25, 0.75]);
+    let point = *cell.origin() + *cell.basis() * SVector::from([0.25, 0.75]);
     let wrapped = cell.wrap_point(&point).unwrap();
     let reconstructed = cell
         .apply_offset(&wrapped.position, wrapped.image_offset)
