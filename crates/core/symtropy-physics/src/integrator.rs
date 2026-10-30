@@ -20,6 +20,14 @@ use symtropy_math::{Bivector, Point, Rotor};
 /// detect silent data corruption — a non-zero value always indicates a
 /// physics or force accumulator bug upstream.
 pub static NAN_ZEROED_COUNT: AtomicU64 = AtomicU64::new(0);
+/// Count of failures applying validated bivector rotational inertia.
+pub static ROTATIONAL_INERTIA_FAILURE_COUNT: AtomicU64 = AtomicU64::new(0);
+
+/// Return the number of singular/invalid rotational-inertia operations.
+#[inline]
+pub fn rotational_inertia_failure_count() -> u64 {
+    ROTATIONAL_INERTIA_FAILURE_COUNT.load(Ordering::Relaxed)
+}
 
 /// Return the total number of NaN/Inf zeroing events since program start.
 #[inline]
@@ -94,11 +102,25 @@ pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64,
     // tracked as the body rotates, i.e. no world-space inertia tensor
     // update). That's a larger data-layout change to `body.rs` than is safe
     // to make alongside the contact-solver fixes in this change; deferred.
-    let inv_i_avg = body.inv_inertia.sum() / D as f64;
-    // Rotor::from_bivector integrates exp(-B), while torque accumulators use
-    // the impulse-first wedge convention. Convert physical torque to the
-    // stored angular-velocity sign exactly once here.
-    let ang_accel = body.torque_accumulator.scale(-inv_i_avg);
+    let ang_accel = if let Some(inertia) = &body.rotational_inertia {
+        let world_inertia = inertia.rotated_by(&body.transform.rotation);
+        match world_inertia.angular_acceleration(
+            &body.angular_velocity,
+            &body.torque_accumulator,
+            1e-12,
+        ) {
+            Ok(acceleration) => acceleration,
+            Err(_) => {
+                ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
+                Bivector::zero()
+            }
+        }
+    } else {
+        let inv_i_avg = body.inv_inertia.sum() / D as f64;
+        // Legacy isotropic fallback: the impulse-first torque accumulator
+        // enters the stored B state with a negative sign.
+        body.torque_accumulator.scale(-inv_i_avg)
+    };
 
     // Update angular velocity
     body.angular_velocity = body.angular_velocity.add(&ang_accel.scale(dt));
@@ -182,17 +204,59 @@ pub fn apply_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &SVector<
     }
 }
 
+/// Rotational contribution to the inverse effective mass at a contact.
+///
+/// Uses the authoritative world-frame inertia operator when available. Legacy
+/// bodies retain the scalar-mean approximation. Failed/singular operator
+/// solves are fail-closed: the rotational contribution is zeroed and counted.
+pub fn rotational_inverse_effective_mass<const D: usize>(
+    body: &RigidBody<D>,
+    offset: &SVector<f64, D>,
+    impulse_direction: &SVector<f64, D>,
+) -> f64 {
+    if !body.is_dynamic() {
+        return 0.0;
+    }
+    if let Some(inertia) = &body.rotational_inertia {
+        let world_inertia = inertia.rotated_by(&body.transform.rotation);
+        match world_inertia.rotational_inverse_effective_mass(offset, impulse_direction, 1e-12) {
+            Ok(value) => value,
+            Err(_) => {
+                ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
+                0.0
+            }
+        }
+    } else {
+        let direction_norm = impulse_direction.norm();
+        if !direction_norm.is_finite() || direction_norm <= 1e-15 {
+            return 0.0;
+        }
+        let direction = impulse_direction / direction_norm;
+        let inv_i_avg = body.inv_inertia.sum() / D as f64;
+        inv_i_avg * (offset.norm_squared() - offset.dot(&direction).powi(2)).max(0.0)
+    }
+}
+
 /// Apply an angular impulse in the impulse-first bivector convention.
 ///
 /// The stored angular state advances through Rotor::from_bivector's exp(-B)
 /// map, so a positive physical angular impulse subtracts from the stored B.
 pub fn apply_angular_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &Bivector<D>) {
     if body.is_dynamic() {
-        // TODO(isotropic-inertia): same scalar-mean-inertia limitation as in
-        // `integrate` above — see that TODO for why this is only exact for
-        // spheres and what a real fix would require.
-        let inv_i_avg = body.inv_inertia.sum() / D as f64;
-        body.angular_velocity = body.angular_velocity.add(&impulse.scale(-inv_i_avg));
+        if let Some(inertia) = &body.rotational_inertia {
+            let world_inertia = inertia.rotated_by(&body.transform.rotation);
+            match world_inertia.angular_velocity_from_momentum(impulse, 1e-12) {
+                Ok(delta_state) => {
+                    body.angular_velocity = body.angular_velocity.add(&delta_state.scale(-1.0));
+                }
+                Err(_) => {
+                    ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
+                }
+            }
+        } else {
+            let inv_i_avg = body.inv_inertia.sum() / D as f64;
+            body.angular_velocity = body.angular_velocity.add(&impulse.scale(-inv_i_avg));
+        }
     }
 }
 
