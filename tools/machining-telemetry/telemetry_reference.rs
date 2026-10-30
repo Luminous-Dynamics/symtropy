@@ -540,6 +540,7 @@ mod tests {
             source_sha256:"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
         let a=extract(RawChannel{meta:a_meta,timestamps_local_ns:&ta,values:&xa,clock_map:Some(ClockMap{clock_domain:"c",reference_clock:"ref",offset_ns:0,origin_local_ns:0,drift_ppb:0,uncertainty_ns:50})},Window{start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
         let b=extract(RawChannel{meta:b_meta,timestamps_local_ns:&tb,values:&xb,clock_map:Some(ClockMap{clock_domain:"v",reference_clock:"ref",offset_ns:0,origin_local_ns:0,drift_ppb:0,uncertainty_ns:50})},Window{start_ref_ns:0,end_ref_ns:1_000_000_000}).unwrap();
+        assert_eq!(a.reference_clock, b.reference_clock);
         let err=paired_exact_rate_pearson(&a,&b).unwrap_err();
         assert!(err.contains("multi-rate pairing requires a pinned anti-alias"));
         let mut bad=b;
