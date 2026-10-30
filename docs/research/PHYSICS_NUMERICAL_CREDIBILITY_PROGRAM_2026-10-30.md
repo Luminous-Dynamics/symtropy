@@ -118,6 +118,17 @@ Symthaea should propose the next experiment by expected information gain, detect
 
 Every proposed improvement is then tested by Symtropy and an independent verifier. HDC similarity, confidence, or a generated explanation is never numerical validation.
 
+### 2.6 Treat rotational inertia as an operator on the rotation algebra
+
+The current body state stores one inertia value per spatial axis, while integration, angular impulse application, contact response, and kinetic-energy accounting collapse those values to a scalar mean. That is only physically exact for isotropic mass distributions.
+
+For 3D bodies, implement the full symmetric positive-definite body-space inertia tensor, transform it correctly into world space, and use the gyroscopic term in Euler's rigid-body equations. Contact impulses must use the same mass/inertia model as free integration.
+
+For the project's dimension-generic rotation model, do not simply generalize a 3D tensor into a D-element vector. Angular velocity lives in the bivector space Λ²(R^D), whose dimension is D(D−1)/2. The general rotational inertia is a linear operator on that space (with the physical constraints induced by the body's mass distribution). In 4D this is a 6-component angular-velocity state and a corresponding operator, not a 4-vector of axis inertias.
+
+The kinetic-energy contract should be 1/2 ⟨ω, Iω⟩, and the equations of motion must include the appropriate coadjoint/gyroscopic term. This gives a principled route from the 3D asymmetric top to the existing 4D bivector rotation architecture.
+
+
 ## 3. Numerical architecture: build versus reuse
 
 Do not write a broad sparse linear algebra package, automatic differentiation system, or stiff ODE solver from scratch before benchmarking existing Rust capabilities.
@@ -236,7 +247,7 @@ The first defensible "better than SOTA" claim should be narrow and decision-rele
 |---|---|---|
 | 0 | Correct scientific claims; freeze benchmark schema and scenario manifest | all advertised guarantees match the evidence |
 | 1 | Numerical-kernel benchmark harness and independent reference fixtures | Campaign A reproducible from clean checkout |
-| 2 | Full 3D inertia tensor, gyroscopic dynamics, and rotational impulse response | Campaign B analytical/reference gates pass |
+| 2 | Full 3D inertia tensor plus dimension-correct bivector-space inertia, gyroscopic dynamics, and rotational impulse response | Campaign B analytical/reference gates pass |
 | 3 | Research solver adapter and structured solver diagnostics | work-precision comparisons against diffsol/SciML |
 | 4 | Typed units, model contracts, and conservation exchange ledger | invalid models rejected before execution |
 | 5 | One finite-volume or finite-element continuum solver path | Campaign C passes manufactured-solution gates |
@@ -247,7 +258,7 @@ Avoid introducing an all-domain multiphysics framework before stages 1–4 are s
 ## 8. Immediate next engineering tasks
 
 1. Add a harmonic-oscillator stability/convergence campaign for the existing semi-implicit Euler integrator. Explicitly demonstrate that symplecticity does not mean unconditional stability.
-2. Add a spherical-versus-asymmetric inertia regression suite. The asymmetric-top test should fail until the full inertia representation is implemented.
+2. Add a spherical-versus-asymmetric inertia regression suite. For D=3 use the full spatial inertia tensor; for D>3 use a physically constrained inertia operator on the bivector space. The asymmetric-top test should fail until the correct representation and gyroscopic terms are implemented.
 3. Reconcile the deterministic-net feature’s claims with the cross-architecture validation status. Quantization is not, by itself, a proof of bit-identical execution.
 4. Standardize benchmark receipts and scenario hashes before adding further solver families.
 5. Prototype a diffsol adapter behind a research-solver feature, compare it to the existing Symthaea ODE methods, and retain only what the work-precision results justify.
