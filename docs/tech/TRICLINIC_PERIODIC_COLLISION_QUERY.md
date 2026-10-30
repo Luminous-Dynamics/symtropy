@@ -52,12 +52,26 @@ The new unit tests include:
 
 The randomized tests use deterministic generator state in the source. Their counts are authored cases, not observed pass results.
 
+## Query performance benchmark
+
+The Criterion benchmark at crates/core/symtropy-physics/benches/triclinic_periodic_queries.rs compares:
+- reciprocal-projection candidate enumeration followed by transformed GJK; and
+- direct transformed GJK over a fixed wider 13x13 lattice-image cube.
+
+It uses deterministic pair corpora of 32, 128 and 512 sphere pairs, split into interior, first-basis seam, skew-basis seam and separated fixtures. Before timing, every pair's hit and unresolved image sets must agree exactly between both paths. The benchmark emits TRICLINIC_QUERY_PREFLIGHT,v1 records with fixture, pair count, candidate-image count, production GJK calls and oracle GJK calls.
+
+Run:
+- cargo bench -p symtropy-physics --bench triclinic_periodic_queries
+
+The brute-force cube is sufficient for the fixed benchmark corpus only; it is not a universal lattice enumeration. Preserve benchmark output, exact commit/toolchain/hardware identity and all preflight rows. No performance claim is made until the benchmark executes.
+
 ## Exact-head qualification
 
 Run on the exact branch head:
 
 - cargo fmt --check
 - cargo test -p symtropy-physics periodic_lattice_collision
+- cargo bench -p symtropy-physics --bench triclinic_periodic_queries
 - cargo test -p symtropy-physics periodic_lattice_broadphase
 - cargo test -p symtropy-math periodic_lattice
 - cargo test -p symtropy-math
