@@ -11,6 +11,7 @@ name = "compile_latency"
 harness = false
 
 [dependencies]
+toml_parser = "=1.0.5"
 sha1 = "=0.10.6"
 hex = "=0.4.3"
 serde = { version = "=1.0.228", features = ["derive"] }
