@@ -228,3 +228,16 @@ cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin r
 ```
 
 See [ROBUST_PARETO_FRONTIER.md](ROBUST_PARETO_FRONTIER.md) and [PWR-TX-RPF-001 #2917](https://github.com/Luminous-Dynamics/symtropy/issues/2917). Bounds are caller-declared ranges, not calibrated confidence intervals. The current tool is a multi-objective screening primitive, not a solver or qualification gate. Its rectangular interval model conservatively preserves candidates where bounds overlap; joint scenario/correlation-aware uncertainty remains future work.
+
+
+## Joint-scenario robust Pareto frontier
+
+The `scenario-frontier` binary keeps objective values paired by named scenario and computes expected, CVaR95 and worst-case Pareto fronts, plus scenario-wise robust dominance across the same finite scenario ensemble.
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin scenario-frontier -- \
+  research/transformer-bench/fixtures/scenario-frontier-synthetic.csv \
+  /tmp/scenario-frontier.csv
+```
+
+See [JOINT_SCENARIO_FRONTIER.md](JOINT_SCENARIO_FRONTIER.md) and [PWR-TX-SCEN-001 #2919](https://github.com/Luminous-Dynamics/symtropy/issues/2919). Every candidate must have every scenario with the same weights; the weights must sum to 1. CVaR95 averages the worst 5% probability mass, including partial scenario weights. Scenario-robust dominance applies only to the finite declared scenarios. This binary does not generate scenarios, run solvers or validate the real-world probability of a scenario.
