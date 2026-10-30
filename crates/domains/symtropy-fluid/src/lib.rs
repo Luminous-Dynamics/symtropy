@@ -691,11 +691,13 @@ mod tests {
             ([0.9, -0.2], [0.5, -0.2], 2.1),
         ];
         for (position, velocity, mass) in fixtures {
-            let velocity = SVector::from(velocity);
-            base.add_particle(particle(position, velocity.into(), mass))
-                .unwrap();
+            let boosted_velocity = [
+                velocity[0] + boost[0],
+                velocity[1] + boost[1],
+            ];
+            base.add_particle(particle(position, velocity, mass)).unwrap();
             boosted
-                .add_particle(particle(position, (velocity + boost).into(), mass))
+                .add_particle(particle(position, boosted_velocity, mass))
                 .unwrap();
         }
 
