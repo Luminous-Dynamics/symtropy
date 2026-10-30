@@ -136,10 +136,14 @@ The kinetic-energy contract should be 1/2 ⟨ω, Iω⟩, and the equations of mo
 A first mathematical primitive now exists in `crates/core/symtropy-physics/src/inertia.rs`:
 
 - It stores the centered second-moment matrix (S = \int rr^T\,dm).
-- It maps a bivector angular velocity represented by skew matrix (Omega) to angular momentum with (mathcal I(Omega)=Omega S+SOmega). In 3D, the equivalent conventional inertia tensor is (J=\mathrm{tr}(S)I-S).
+- It maps a **physical point-velocity generator** Omega (v = Omega*r) to angular momentum with I(Omega)=Omega*S+S*Omega. In 3D, the equivalent conventional inertia tensor is J=tr(S)I-S.
 - It accepts a centered second-moment matrix, a uniform solid D-ball or D-ellipsoid, or a discrete point-mass cloud (which first computes the center of mass, making the result translation-invariant).
+- It can rotate body-space mass properties into another frame with S_world=R*S_body*R^T.
+- It can invert angular momentum back to the physical skew-matrix generator using the eigensystem of S, rejecting singular/ill-conditioned rotation planes.
 - It validates finiteness, symmetry, and positive semidefiniteness (with a scale-relative eigenvalue tolerance).
-- Its tests cover uniform solid balls in 2D/3D/4D, analytical 3D ellipsoid moments, translated point clouds, the 3D principal-moment correspondence, off-diagonal coupling between rotation planes, and invalid mass-moment matrices.
+- Its tests cover uniform solid balls in 2D/3D/4D, analytical 3D ellipsoid moments, translated point clouds, the 3D principal-moment correspondence, off-diagonal coupling, rotation covariance/energy invariance, inverse round trips, and invalid/singular mass-moment matrices.
+
+There is an essential sign convention at the Symtropy integration boundary: `Rotor::from_bivector(B)` computes exp(-B), and the integrator left-composes that increment. Thus `RigidBody.angular_velocity` stores B while the physical point-velocity generator is Omega=-B. The inertia operator's angular-momentum and inverse APIs use the physical generator Omega; negate the stored body state before passing it to those APIs.
 
 This prototype is deliberately **not yet connected** to `RigidBody`, integration, contact effective mass, or invariant energy accounting. The legacy fields and hot paths still use mean-of-axis inertia. It is a mathematical building block, not a claim that asymmetric rigid-body dynamics are fixed.
 
@@ -149,6 +153,19 @@ S_{total}=S_A+m_A d_A d_A^T+S_B+m_B d_B d_B^T
 ]
 where both offsets are measured from the combined center of mass. The current scalar-mean merge is explicitly marked as not validated for asymmetric bodies.
 
+
+### 2.7 Enforce one rotation sign and frame contract
+
+Source inspection found a kinematic sign inconsistency:
+
+- `Rotor::from_bivector(B)` evaluates exp(-B).
+- `integrator::integrate` left-composes that rotor increment, so for a world-space offset r the actual point velocity is -B*r.
+- Contact, friction, and restitution had been using +B*r.
+- The torque accumulator is constructed with the impulse-first wedge convention, so its update into the stored B state must be negative to produce the expected physical point velocity.
+
+The current branch now centralizes the conversion in `integrator::angular_point_velocity`, uses it at all contact/restitution/friction call sites, subtracts angular impulse and applied-torque increments from the stored B state, and adds regression tests comparing the helper with a finite-difference rotor derivative and checking that an off-center impulse produces point velocity in the impulse direction.
+
+This resolves the sign relationship for the existing isotropic angular impulse/torque paths. It does **not** solve asymmetric rigid-body dynamics. The inertia operator remains separate; before wiring it into `RigidBody`, the implementation must rotate body-space mass moments into the world frame and preserve the distinction between stored B and physical Omega=-B. The gyroscopic equations must be derived for the chosen body/world frame rather than copied across conventions.
 
 ## 3. Numerical architecture: build versus reuse
 
@@ -195,7 +212,8 @@ An initial executable CSV campaign has been added at [examples/numerical_converg
 
 1. Exact free fall and constant acceleration.
 2. Harmonic oscillator and simple pendulum over a timestep sweep.
-3. Torque-free spherical, symmetric, and asymmetric tops.
+3. Rotor finite-difference point-velocity consistency and off-center angular-impulse direction.
+4. Torque-free spherical, symmetric, and asymmetric tops.
 4. Gyroscopic precession and angular momentum conservation.
 5. Rolling without slipping with correct inertia.
 6. Two-body and multi-body impact, persistent contact, stacks, and restitution.
