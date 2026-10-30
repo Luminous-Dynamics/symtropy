@@ -791,6 +791,101 @@ mod tests {
     }
 
     #[test]
+    fn orthogonal_coordinate_rotation_preserves_offsets_and_rotates_results() {
+        let basis = SMatrix::<f64, 2, 2>::new(10.0, 4.0, 0.0, 8.0);
+        let origin = SVector::from([1.5, -2.0]);
+        let lattice = PeriodicLattice::new(origin, basis, [true, true]).unwrap();
+
+        let angle: f64 = 0.73;
+        let rotation = SMatrix::<f64, 2, 2>::new(
+            angle.cos(),
+            -angle.sin(),
+            angle.sin(),
+            angle.cos(),
+        );
+        let rotated_lattice = PeriodicLattice::new(
+            rotation * origin,
+            rotation * basis,
+            [true, true],
+        )
+        .unwrap();
+
+        let point = origin + basis * SVector::from([3.25, -4.75]);
+        let rotated_point = rotation * point;
+        let wrapped = lattice.wrap_point(&point).unwrap();
+        let rotated_wrapped = rotated_lattice.wrap_point(&rotated_point).unwrap();
+        assert_eq!(wrapped.image_offset, rotated_wrapped.image_offset);
+        assert!(
+            (rotation * wrapped.position - rotated_wrapped.position).norm() < 1e-10
+        );
+
+        let displacement = basis * SVector::from([5.25, -3.75]);
+        let result = lattice.minimum_image_displacement(&displacement, 729).unwrap();
+        let rotated_result = rotated_lattice
+            .minimum_image_displacement(&(rotation * displacement), 729)
+            .unwrap();
+        assert_eq!(result.image_offset, rotated_result.image_offset);
+        assert!((rotation * result.displacement - rotated_result.displacement).norm() < 1e-9);
+    }
+
+    #[test]
+    fn one_dimensional_and_nonperiodic_lattice_edges_are_explicit() {
+        let one_d = PeriodicLattice::new(
+            SVector::from([3.0]),
+            SMatrix::<f64, 1, 1>::new(5.0),
+            [true],
+        )
+        .unwrap();
+        let point = SVector::from([19.5]);
+        let wrapped = one_d.wrap_point(&point).unwrap();
+        assert_eq!(wrapped.image_offset, LatticeOffset::new([3]));
+        assert!((wrapped.position[0] - 4.5).abs() < 1e-12);
+        let minimum = one_d
+            .minimum_image_displacement(&SVector::from([12.5]), 9)
+            .unwrap();
+        assert!((minimum.displacement[0] - (-2.5)).abs() < 1e-12);
+
+        let nonperiodic = PeriodicLattice::new(
+            SVector::from([2.0, -1.0]),
+            SMatrix::<f64, 2, 2>::new(3.0, 0.5, 0.0, 4.0),
+            [false, false],
+        )
+        .unwrap();
+        let unchanged_point = SVector::from([8.0, 7.0]);
+        let unchanged = nonperiodic.wrap_point(&unchanged_point).unwrap();
+        assert_eq!(unchanged.position, unchanged_point);
+        assert_eq!(unchanged.image_offset, LatticeOffset::zero());
+
+        let displacement = SVector::from([12.0, -9.0]);
+        let unchanged_minimum = nonperiodic
+            .minimum_image_displacement(&displacement, 1)
+            .unwrap();
+        assert_eq!(unchanged_minimum.displacement, displacement);
+        assert_eq!(unchanged_minimum.candidates_evaluated, 0);
+    }
+
+    #[test]
+    fn lattice_offset_translation_is_additive_and_odd() {
+        let lattice = PeriodicLattice::new(
+            SVector::zeros(),
+            SMatrix::<f64, 2, 2>::new(10.0, 4.0, 0.0, 8.0),
+            [true, true],
+        )
+        .unwrap();
+        let offset_a = LatticeOffset::new([3, -2]);
+        let offset_b = LatticeOffset::new([-1, 4]);
+        let combined = LatticeOffset::new([2, 2]);
+
+        let a = lattice.offset_vector(offset_a).unwrap();
+        let b = lattice.offset_vector(offset_b).unwrap();
+        let sum = lattice.offset_vector(combined).unwrap();
+        let negative = lattice.offset_vector(LatticeOffset::new([-3, 2])).unwrap();
+
+        assert!((a + b - sum).norm() < 1e-12);
+        assert!((a + negative).norm() < 1e-12);
+    }
+
+    #[test]
     fn singular_basis_and_nonfinite_inputs_are_rejected() {
         let singular = SMatrix::<f64, 2, 2>::new(1.0, 2.0, 2.0, 4.0);
         assert!(matches!(
