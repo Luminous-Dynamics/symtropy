@@ -274,6 +274,42 @@ mod tests {
         ));
     }
 
+    fn scaling_law<const D: usize>() {
+        let base_h = 1.3;
+        let mut displacement = SVector::<f64, D>::zeros();
+        for axis in 0..D {
+            displacement[axis] = 0.08 * (axis as f64 + 1.0);
+        }
+        let base = Poly6Kernel::<D>::new(base_h).unwrap();
+        let base_value = base.value(&displacement).unwrap();
+        let base_gradient = base.gradient(&displacement).unwrap();
+
+        for scale in [0.5_f64, 2.0] {
+            let scaled = Poly6Kernel::<D>::new(base_h * scale).unwrap();
+            let scaled_value = scaled.value(&(displacement * scale)).unwrap();
+            let scaled_gradient = scaled.gradient(&(displacement * scale)).unwrap();
+            close(
+                scaled_value * scale.powi(D as i32),
+                base_value,
+                2e-12,
+            );
+            for axis in 0..D {
+                close(
+                    scaled_gradient[axis] * scale.powi(D as i32 + 1),
+                    base_gradient[axis],
+                    2e-12,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn poly6_obeys_dimensionally_correct_smoothing_length_scaling() {
+        scaling_law::<1>();
+        scaling_law::<2>();
+        scaling_law::<3>();
+    }
+
     #[test]
     fn kernel_normalization_matches_known_three_dimensional_poly6() {
         let kernel = Poly6Kernel::<3>::new(1.0).unwrap();
