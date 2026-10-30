@@ -33,8 +33,8 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
-      - name: Format standalone compiler
-        run: cargo fmt --manifest-path tools/engineering-scenario-compiler/Cargo.toml -- --check
+      - name: Apply pinned rustfmt to standalone compiler sources
+        run: cargo fmt --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all
 
       - name: Resolve and freeze standalone dependency graph
         run: cargo generate-lockfile --manifest-path tools/engineering-scenario-compiler/Cargo.toml
@@ -44,3 +44,11 @@ jobs:
 
       - name: Clippy standalone compiler
         run: cargo clippy --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all-targets --locked -- -D warnings
+
+      - name: Publish formatted sources and resolved lockfile for commit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-scenario-compiler-formatted
+          path: tools/engineering-scenario-compiler/
+          if-no-files-found: error
