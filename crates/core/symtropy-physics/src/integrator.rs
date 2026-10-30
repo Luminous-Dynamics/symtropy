@@ -213,13 +213,9 @@ pub fn apply_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &SVector<
 
 /// Rotational contribution to the inverse effective mass at a contact.
 ///
-/// Uses the authoritative world-frame inertia operator when available. Legacy
-/// bodies retain the scalar-mean approximation. Failed/singular operator
-/// solves are fail-closed: the rotational contribution is zeroed and counted.
-/// Compatibility helper: an invalid rotational solve returns zero.
-///
-/// New solver code should call `try_rotational_inverse_effective_mass` so a
-/// singular or invalid inertia cannot be confused with a valid zero response.
+/// Compatibility helper using authoritative world-frame inertia when present.
+/// Singular/invalid operator failures map to zero and are counted; new solver
+/// paths must use the fallible `try_rotational_inverse_effective_mass` API.
 pub fn rotational_inverse_effective_mass<const D: usize>(
     body: &RigidBody<D>,
     offset: &SVector<f64, D>,
@@ -757,7 +753,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn try_rotational_inverse_effective_mass_reports_singular_inertia() {
         use crate::inertia::{BivectorInertia, RotationalInertiaError};
         use nalgebra::SMatrix;
@@ -778,6 +773,7 @@ mod tests {
         assert_eq!(error, RotationalInertiaError::SingularInertia);
     }
 
+    #[test]
     fn try_apply_angular_impulse_reports_singular_inertia() {
         use crate::inertia::{BivectorInertia, RotationalInertiaError};
         use nalgebra::SMatrix;
