@@ -6,8 +6,9 @@
 //! Candidate bounds are derived from the reciprocal-coordinate projections of
 //! the Minkowski difference A-B. Every overlapping translated image must have
 //! its integer lattice coordinate inside every projected interval. Projection
-//! intervals are independent, so their Cartesian product can over-generate;
-//! exact translated-AABB overlap removes those false positives.
+//! intervals are independent, so their Cartesian product deliberately
+//! over-generates. This module returns that conservative superset without a
+//! floating-point narrow filter; callers must reject extra images downstream.
 //!
 //! This is a query primitive only. It does not replace the existing orthogonal
 //! PeriodicBox broadphase and is not wired into PhysicsWorld.
@@ -64,11 +65,13 @@ impl From<PeriodicLatticeError> for PeriodicLatticeBroadphaseError {
     }
 }
 
-/// Return all lattice offsets n for which the translated B+n image may overlap
-/// A, with exact AABB filtering after a conservative reciprocal-space bound.
+/// Return a conservative superset of lattice offsets n for which translated
+/// B+n may overlap A.
 ///
-/// The budget applies to the Cartesian product of integer coordinate ranges
-/// before exact overlap filtering. Exhaustion is an error, never truncation.
+/// The budget applies to the full Cartesian product of reciprocal-space
+/// integer coordinate ranges. No translated-AABB overlap filter is applied
+/// here: a floating-point false negative at a touching face would be worse
+/// than harmless over-generation. Exhaustion is an error, never truncation.
 pub fn lattice_image_offsets_for_aabb_pair<const D: usize>(
     lattice: &PeriodicLattice<D>,
     bounds_a: &Aabb<D>,
@@ -164,17 +167,40 @@ pub fn lattice_image_offsets_for_aabb_pair<const D: usize>(
         }
     }
 
-    let mut output = Vec::new();
-    let mut image = [0_i64; D];
-    enumerate_and_filter(
-        0,
-        &ranges,
-        lattice,
-        bounds_a,
-        bounds_b,
-        &mut image,
-        &mut output,
-    )?;
+    let mut output = Vec::with_capacity(total_candidates);
+    let mut images = vec![LatticeOffset::zero()];
+    for axis in 0..D {
+        let (lower, upper) = ranges[axis];
+        let width = usize::try_from(upper - lower)
+            .ok()
+            .and_then(|difference| difference.checked_add(1))
+            .ok_or(PeriodicLatticeBroadphaseError::NumericRange {
+                field: "integer image interval width",
+            })?;
+        let next_capacity = images
+            .len()
+            .checked_mul(width)
+            .ok_or(PeriodicLatticeBroadphaseError::CandidateBudgetExceeded {
+                max_candidates,
+            })?;
+        let mut next = Vec::with_capacity(next_capacity);
+        for existing in images {
+            let mut value = lower;
+            loop {
+                let mut offset = existing.periods;
+                offset[axis] = value;
+                next.push(LatticeOffset::new(offset));
+                if value == upper {
+                    break;
+                }
+                value = value.checked_add(1).ok_or(
+                    PeriodicLatticeBroadphaseError::CoordinatePrecisionLimit { axis },
+                )?;
+            }
+        }
+        images = next;
+    }
+    output.extend(images);
     Ok(output)
 }
 
@@ -193,58 +219,6 @@ fn validate_aabb<const D: usize>(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-fn enumerate_and_filter<const D: usize>(
-    axis: usize,
-    ranges: &[(i64, i64); D],
-    lattice: &PeriodicLattice<D>,
-    bounds_a: &Aabb<D>,
-    bounds_b: &Aabb<D>,
-    image: &mut [i64; D],
-    output: &mut Vec<LatticeOffset<D>>,
-) -> Result<(), PeriodicLatticeBroadphaseError> {
-    if axis == D {
-        let offset = LatticeOffset::new(*image);
-        let translation = lattice.offset_vector(offset)?;
-        let translated_b = Aabb {
-            min: bounds_b.min + translation,
-            max: bounds_b.max + translation,
-        };
-        if !translated_b.min.iter().all(|value| value.is_finite())
-            || !translated_b.max.iter().all(|value| value.is_finite())
-        {
-            return Err(PeriodicLatticeBroadphaseError::NumericRange {
-                field: "translated AABB",
-            });
-        }
-        if bounds_a.overlaps(&translated_b) {
-            output.push(offset);
-        }
-        return Ok(());
-    }
-
-    let (lower, upper) = ranges[axis];
-    let mut value = lower;
-    loop {
-        image[axis] = value;
-        enumerate_and_filter(
-            axis + 1,
-            ranges,
-            lattice,
-            bounds_a,
-            bounds_b,
-            image,
-            output,
-        )?;
-        if value == upper {
-            break;
-        }
-        value = value.checked_add(1).ok_or(
-            PeriodicLatticeBroadphaseError::CoordinatePrecisionLimit { axis },
-        )?;
-    }
-    Ok(())
-}
 
 #[cfg(test)]
 mod tests {
@@ -303,7 +277,7 @@ mod tests {
     }
 
     #[test]
-    fn skewed_2d_candidate_set_matches_direct_integer_image_oracle() {
+    fn skewed_2d_candidate_set_contains_direct_integer_image_oracle() {
         let basis = SMatrix::<f64, 2, 2>::from_row_slice(&[3.0, 1.4, 0.0, 2.0]);
         let lattice = PeriodicLattice::new(SVector::zeros(), basis).unwrap();
         let a = aabb([-0.3, -0.2], [0.7, 0.8]);
@@ -316,7 +290,10 @@ mod tests {
             .collect::<BTreeSet<_>>();
         let expected = direct_oracle_2d(&a, &b, &basis, 12);
 
-        assert_eq!(actual, expected);
+        assert!(
+            actual.is_superset(&expected),
+            "conservative lattice candidates omitted an overlapping image: actual={actual:?} expected={expected:?}"
+        );
     }
 
     #[test]
