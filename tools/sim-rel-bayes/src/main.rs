@@ -1130,6 +1130,19 @@ mod tests {
         .unwrap()
     }
 
+    const EXHAUSTIVE_PROBLEMS: &str =
+        include_str!("../fixtures/problems-exhaustive-boolean8-v1.tsv");
+    const EXHAUSTIVE_TRUTH: &str =
+        include_str!("../fixtures/evaluator-truth-exhaustive-boolean8-v1.tsv");
+
+    fn exhaustive_tasks() -> Vec<Task> {
+        assemble(
+            parse_problems(EXHAUSTIVE_PROBLEMS).unwrap(),
+            parse_truth(EXHAUSTIVE_TRUTH).unwrap(),
+        )
+        .unwrap()
+    }
+
     #[test]
     fn sha256_known_vector() {
         assert_eq!(
@@ -1311,6 +1324,53 @@ mod tests {
         assert_eq!(action, Some(1));
         assert_eq!(choose_uniform_eig_action(&survivors, &[0, 1], &costs), Some(1));
     }
+    #[test]
+    fn exhaustive_corpus_covers_all_256_boolean_functions_once() {
+        let tasks = exhaustive_tasks();
+        assert_eq!(tasks.len(), 256);
+        let signatures = tasks.iter().map(|task| task.target_sig).collect::<BTreeSet<_>>();
+        assert_eq!(signatures.len(), 256);
+        assert_eq!(signatures, (0u16..=255).map(|value| value as u8).collect());
+        let counts = ["train", "validation", "heldout"]
+            .map(|split| tasks.iter().filter(|task| task.problem.split == split).count());
+        assert_eq!(counts, [154, 51, 51]);
+        let candidates = enumerate_grammar(2).unwrap();
+        assert_eq!(candidates.len(), 109);
+        let in_grammar = tasks
+            .iter()
+            .filter(|task| candidates.iter().any(|candidate| candidate.sig == task.target_sig))
+            .count();
+        assert_eq!(in_grammar, 109);
+        assert_eq!(tasks.len() - in_grammar, 147);
+    }
+
+    #[test]
+    fn exhaustive_in_grammar_targets_are_retained_by_all_five_policies() {
+        let tasks = exhaustive_tasks();
+        let candidates = enumerate_grammar(2).unwrap();
+        for task in tasks
+            .iter()
+            .filter(|task| candidates.iter().any(|candidate| candidate.sig == task.target_sig))
+        {
+            for policy in [
+                Policy::Active,
+                Policy::UniformEig,
+                Policy::MdlEig,
+                Policy::Fixed,
+                Policy::Random,
+            ] {
+                let episode = run_episode(&task.problem, task.target_sig, &candidates, policy, 23, 1.0);
+                assert_eq!(
+                    episode.target_retained,
+                    Some(true),
+                    "{} / {}",
+                    task.problem.id,
+                    policy.name()
+                );
+            }
+        }
+    }
+
     #[test]
     fn zero_mdl_temperature_reduces_to_uniform_prior_eig() {
         let candidates = enumerate_grammar(2).unwrap();
