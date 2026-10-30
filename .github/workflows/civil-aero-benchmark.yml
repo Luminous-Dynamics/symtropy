@@ -118,7 +118,7 @@ jobs:
           grep -q "dataset=NASA-TMR-NACA0012-LADSON-FORCES observations=53 zones=3" /tmp/aero-reference-audit.txt
           grep -q "dataset=NASA-TMR-NACA0012-LADSON-PRESSURE observations=405 zones=9" /tmp/aero-reference-audit.txt
           grep -q "dataset=NASA-TMR-NACA0012-GREGORY-PRESSURE observations=73 zones=3" /tmp/aero-reference-audit.txt
-          grep -q "evidence=source_bytes_pinned_parser_output_unqualified" /tmp/aero-reference-audit.txt
+          grep -q "evidence=source_bytes_sha256_verified_parser_output_unqualified" /tmp/aero-reference-audit.txt
       - name: Export normalized reference observations with source provenance
         working-directory: tools/civil-aero-benchmark
         shell: bash
@@ -128,7 +128,7 @@ jobs:
           cmp /tmp/aero-reference-all-a.csv /tmp/aero-reference-all-b.csv
           test "$(wc -l < /tmp/aero-reference-all-a.csv)" -eq 532
           test "$(grep -c '^dataset_id,' /tmp/aero-reference-all-a.csv)" -eq 1
-          grep -q '"NASA-TMR-NACA0012-LADSON-FORCES",78cd2f6aa4968e80f44cbf6c96f699bd9c6e45681d958ec528a10cf72ed23357,20a39f549dbff988a6accc421ac84dafc4487695,"force","80 grit",6,-4.04,-0.4417,0.00871,,,source_parser_output_unqualified,true' /tmp/aero-reference-all-a.csv
+          grep -q '"NASA-TMR-NACA0012-LADSON-FORCES",78cd2f6aa4968e80f44cbf6c96f699bd9c6e45681d958ec528a10cf72ed23357,20a39f549dbff988a6accc421ac84dafc4487695,"force","80 grit",6,-4.04,-0.4417,0.00871,,,source_bytes_sha256_verified_parser_output_unqualified,true' /tmp/aero-reference-all-a.csv
           grep -q '"NASA-TMR-NACA0012-LADSON-PRESSURE",547e022634a360cd7697813543348cd447ee0038cdbc8f00a5296c7822ec7af8,20a39f549dbff988a6accc421ac84dafc4487695,"pressure","Re=6 million, alpha=.0169, free transition"' /tmp/aero-reference-all-a.csv
           cargo run --locked --bin reference_export -- forces > /tmp/aero-reference-forces.csv
           cargo run --locked --bin reference_export -- ladson-pressure > /tmp/aero-reference-ladson-cp.csv
