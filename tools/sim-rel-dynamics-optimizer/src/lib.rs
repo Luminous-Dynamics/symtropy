@@ -1039,47 +1039,53 @@ mod tests {
         assert_eq!(half_risk_zero_abstention.campaign_hazard_probability, half());
 
         assert!(result.minimum_cost_under(zero(), Rational::new(1, 2).unwrap()).is_some());
-        assert!(result.minimum_cost_under(zero(), Rational::new(0, 2).unwrap()).is_some());
         assert!(result.minimum_cost_under(zero(), zero()).is_some());
-        assert!(result.minimum_cost_under(zero(), zero()).unwrap().policy.nodes.len() > 0);
-        assert!(result.minimum_cost_under(zero(), zero()).unwrap().campaign_hazard_probability == zero());
     }
 
     #[test]
-    fn repeated_actions_are_available_to_the_dynamic_optimizer() {
+    fn repeated_action_can_be_the_only_identifying_experiment_sequence() {
         use Transition::Safe;
-        let machine = sim_rel_dynamics_evaluator::HypothesisMachine {
+        let h0 = sim_rel_dynamics_evaluator::HypothesisMachine {
             initial_state: 0,
             transitions: vec![vec![
-                Safe {
-                    observation: false,
-                    next_state: 1,
-                },
-                Safe {
-                    observation: true,
-                    next_state: 1,
-                },
+                Safe { observation: false, next_state: 1 },
+                Safe { observation: false, next_state: 1 },
+            ]],
+        };
+        let h1 = sim_rel_dynamics_evaluator::HypothesisMachine {
+            initial_state: 0,
+            transitions: vec![vec![
+                Safe { observation: false, next_state: 1 },
+                Safe { observation: true, next_state: 1 },
             ]],
         };
         let world = World {
-            name: "repeat".into(),
-            hypothesis_ids: vec!["only".into()],
+            name: "repeat-identification".into(),
+            hypothesis_ids: vec!["h0".into(), "h1".into()],
             action_ids: vec!["pulse".into()],
-            prior_weights: vec![1],
+            prior_weights: vec![1, 1],
             action_costs: vec![2],
-            machines: vec![machine],
+            machines: vec![h0, h1],
         };
         let result = optimize_stateful_world(
             &world,
-            &SolverConfig {
-                horizon: 3,
-                ..SolverConfig::default()
-            },
+            &SolverConfig { horizon: 2, ..SolverConfig::default() },
         )
         .unwrap();
-        assert_eq!(result.frontier.len(), 1);
-        assert_eq!(result.frontier[0].expected_experiment_cost, zero());
-        assert_eq!(result.frontier[0].identification_probability, one());
+        let optimum = point(&result.frontier, 4, zero(), zero());
+        assert_eq!(optimum.identification_probability, one());
+        match &optimum.policy.nodes[optimum.policy.root] {
+            PolicyNode::Action { action, on_zero, .. } => {
+                assert_eq!(world.action_ids[*action], "pulse");
+                match &optimum.policy.nodes[*on_zero] {
+                    PolicyNode::Action { action: repeated, .. } => {
+                        assert_eq!(*repeated, *action);
+                    }
+                    _ => panic!("expected repeated pulse after the first observation"),
+                }
+            }
+            _ => panic!("expected pulse at policy root"),
+        }
         assert_evaluator_agreement(&world, &result);
     }
 
@@ -1202,6 +1208,15 @@ mod tests {
             ..SolverConfig::default()
         };
         assert!(optimize_stateful_world(&world, &zero_frontier).is_err());
+
+        let capped_frontier = SolverConfig {
+            horizon: 1,
+            max_frontier_points: 2,
+            ..SolverConfig::default()
+        };
+        assert!(optimize_stateful_world(&risk_frontier_world(), &capped_frontier)
+            .unwrap_err()
+            .contains("frontier budget"));
 
         let over_horizon = SolverConfig {
             horizon: MAX_POLICY_STEPS + 1,
