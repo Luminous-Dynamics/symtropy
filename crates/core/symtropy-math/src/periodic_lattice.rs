@@ -970,7 +970,7 @@ mod tests {
         assert_eq!(wrapped.image_offset, LatticeOffset::new([3]));
         assert!((wrapped.position[0] - 4.5).abs() < 1e-12);
         let minimum = one_d
-            .minimum_image_displacement(&SVector::from([12.5]), 9)
+            .minimum_image_displacement(&SVector::from([12.5]), 81)
             .unwrap();
         assert!((minimum.displacement[0] - 2.5).abs() < 1e-12);
 
