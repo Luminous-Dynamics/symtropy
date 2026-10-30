@@ -240,10 +240,6 @@ fn validate_campaign_policy(
             return Err(AttestedRecoveryCampaignError::EmptyPolicyField { field });
         }
     }
-    if trust_policy_revision_is_empty_placeholder(policy) {
-        // Kept as a separate helper so the policy validation contract remains
-        // explicit without conflating campaign policy with attestor key policy.
-    }
     for arm in RecoveryBenchmarkArm::ALL {
         let digest = policy
             .policy_digest_by_arm
@@ -256,9 +252,6 @@ fn validate_campaign_policy(
     Ok(())
 }
 
-fn trust_policy_revision_is_empty_placeholder(_policy: &RecoveryCampaignEvidencePolicy) -> bool {
-    false
-}
 
 fn expected_receipt_context(
     policy: &RecoveryCampaignEvidencePolicy,
