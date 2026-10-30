@@ -41,11 +41,11 @@ impl Case {
         if fo > self.cfl * (1.0 + 64.0 * f64::EPSILON) {
             return Err("effective Fourier number exceeds stability bound".into());
         }
-        Ok(Validated { case: self, alpha, dx, dt, steps, fo })
+        Ok(Validated { dx, dt, steps, fo })
     }
 }
 
-struct Validated { case: Case, alpha: f64, dx: f64, dt: f64, steps: usize, fo: f64 }
+struct Validated { dx: f64, dt: f64, steps: usize, fo: f64 }
 
 struct Summary {
     n: usize, dx: f64, dt: f64, steps: usize, observations: usize, fo: f64,
@@ -289,8 +289,9 @@ mod tests {
 
     #[test]
     fn exact_reference_parameters_and_front() {
-        let c=Case::published(48).validate().unwrap();
-        assert!((c.alpha-8.0e-7).abs()<1e-20);
+        let _=Case::published(48).validate().unwrap();
+        let alpha=K/(RHO*CP);
+        assert!((alpha-8.0e-7).abs()<1e-20);
         assert!((exact_front(END_TIME)-0.5872254890905362).abs()<2e-13);
     }
 
@@ -312,7 +313,7 @@ mod tests {
         assert!(tl>TM && fl==0.0);
         assert!(tm==TM && (fm-0.5).abs()<f64::EPSILON);
         assert!(ts<TM && fs==1.0);
-        assert!(c.initial_enthalpy>0.0);
+        assert!(RHO*CP*(TINF-TM)>0.0);
     }
 
     #[test]
