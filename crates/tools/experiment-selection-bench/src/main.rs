@@ -71,7 +71,7 @@ fn run() -> Result<(), String> {
     let summaries = summarize(&results);
 
     println!(
-        "EXPERIMENT_CAMPAIGN,v1,source_sha={source_sha},problem_set=synthetic_2d_v1,noise_model=deterministic_heteroskedastic_v1,noise_scale_milli=20,gp_noise_variance=0.01,gp_length_scale=0.22,gp_ucb_beta=1.5,gp_candidate_count=512,problems={},policies={},seeds={},budget={},initial_design={}",
+        "EXPERIMENT_CAMPAIGN,v1,source_sha={source_sha},problem_set=synthetic_2d_v1,noise_model=deterministic_heteroskedastic_v1,noise_scale_milli=20,gp_noise_variance=0.000225,gp_length_scale=0.22,gp_ucb_beta=1.5,gp_candidate_count=512,problems={},policies={},seeds={},budget={},initial_design={}",
         ProblemId::ALL.len(),
         PolicyKind::ALL.len(),
         seed_count,
