@@ -189,7 +189,7 @@ mod tests {
     fn make_world(id: &str, reverse: bool) -> ModelWorld {
         let mut rows = Vec::new();
         for hypothesis in 0..2 {
-            let observation = usize::from((hypothesis == 0) == reverse);
+            let observation = if (hypothesis == 0) == reverse { 1 } else { 0 };
             rows.push(KernelRow {
                 hypothesis,
                 physical_state: 0,
