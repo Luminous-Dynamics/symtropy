@@ -538,6 +538,125 @@ pub struct SummaryStats {
     pub mean_elapsed_nanos: f64,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct PairedComparison {
+    pub problem: ProblemId,
+    pub baseline: PolicyKind,
+    pub challenger: PolicyKind,
+    pub paired_trials: usize,
+    /// Negative values favor the challenger (lower final regret).
+    pub mean_regret_delta: f64,
+    pub ci95_lower: f64,
+    pub ci95_upper: f64,
+}
+
+/// Paired percentile-bootstrap comparisons on exactly matched seeds, budgets
+/// and initial designs. The deterministic bootstrap seed is fixed per
+/// problem/baseline/challenger tuple. Multiple-comparison correction remains
+/// a campaign-level preregistration requirement.
+pub fn paired_comparisons(results: &[TrialResult]) -> Vec<PairedComparison> {
+    const BOOTSTRAP_SAMPLES: usize = 2_000;
+    let mut comparisons = Vec::new();
+    let baselines = [PolicyKind::Random, PolicyKind::Sobol];
+
+    for problem in ProblemId::ALL {
+        for baseline in baselines {
+            for challenger in PolicyKind::ALL {
+                if challenger == baseline {
+                    continue;
+                }
+                let baseline_trials: Vec<&TrialResult> = results
+                    .iter()
+                    .filter(|trial| trial.problem == problem && trial.policy == baseline)
+                    .collect();
+                let mut deltas = Vec::new();
+                for baseline_trial in baseline_trials {
+                    if let Some(challenger_trial) = results.iter().find(|trial| {
+                        trial.problem == problem
+                            && trial.policy == challenger
+                            && trial.seed == baseline_trial.seed
+                            && trial.budget == baseline_trial.budget
+                            && trial.initial_design_size == baseline_trial.initial_design_size
+                    }) {
+                        deltas.push(challenger_trial.final_regret - baseline_trial.final_regret);
+                    }
+                }
+                if deltas.is_empty() {
+                    continue;
+                }
+
+                let mean_regret_delta = deltas.iter().sum::<f64>() / deltas.len() as f64;
+                let (ci95_lower, ci95_upper) = bootstrap_mean_interval(
+                    &deltas,
+                    BOOTSTRAP_SAMPLES,
+                    comparison_seed(problem, baseline, challenger),
+                );
+                comparisons.push(PairedComparison {
+                    problem,
+                    baseline,
+                    challenger,
+                    paired_trials: deltas.len(),
+                    mean_regret_delta,
+                    ci95_lower,
+                    ci95_upper,
+                });
+            }
+        }
+    }
+    comparisons
+}
+
+fn bootstrap_mean_interval(
+    values: &[f64],
+    samples: usize,
+    seed: u64,
+) -> (f64, f64) {
+    if values.len() <= 1 || samples == 0 {
+        let mean = values.first().copied().unwrap_or(0.0);
+        return (mean, mean);
+    }
+    let mut rng = SplitMix64::new(seed);
+    let mut means = Vec::with_capacity(samples);
+    for _ in 0..samples {
+        let mut sum = 0.0;
+        for _ in 0..values.len() {
+            let index = rng.range(values.len());
+            sum += values[index];
+        }
+        means.push(sum / values.len() as f64);
+    }
+    means.sort_by(f64::total_cmp);
+    let lower = ((samples as f64 * 0.025).floor() as usize).min(samples - 1);
+    let upper = ((samples as f64 * 0.975).ceil() as usize)
+        .saturating_sub(1)
+        .min(samples - 1);
+    (means[lower], means[upper])
+}
+
+fn comparison_seed(
+    problem: ProblemId,
+    baseline: PolicyKind,
+    challenger: PolicyKind,
+) -> u64 {
+    fn code(policy: PolicyKind) -> u64 {
+        match policy {
+            PolicyKind::Random => 1,
+            PolicyKind::Sobol => 2,
+            PolicyKind::Halton => 3,
+            PolicyKind::LatinHypercube => 4,
+            PolicyKind::GaussianProcessUcb => 5,
+        }
+    }
+    let problem_code = match problem {
+        ProblemId::SmoothBowl => 11,
+        ProblemId::Multimodal => 13,
+        ProblemId::NarrowPeak => 17,
+        ProblemId::ConstrainedBowl => 19,
+        ProblemId::NonIdentifiableRidge => 23,
+    };
+    (problem_code << 32) ^ (code(baseline) << 16) ^ code(challenger)
+}
+
 pub fn summarize(results: &[TrialResult]) -> Vec<SummaryStats> {
     let mut summaries = Vec::new();
     for problem in ProblemId::ALL {
@@ -985,6 +1104,20 @@ mod tests {
             assert!((0.0..=1.0).contains(&point[0]));
             assert!((0.0..=1.0).contains(&point[1]));
         }
+    }
+
+    #[test]
+    fn paired_comparisons_use_only_matched_trials_and_emit_intervals() {
+        let results = run_campaign(&[1, 2, 3, 4], 16, 8);
+        let comparisons = super::paired_comparisons(&results);
+        assert_eq!(comparisons.len(), ProblemId::ALL.len() * 2 * (PolicyKind::ALL.len() - 1));
+        assert!(comparisons.iter().all(|comparison| {
+            comparison.paired_trials == 4
+                && comparison.ci95_lower.is_finite()
+                && comparison.ci95_upper.is_finite()
+                && comparison.ci95_lower <= comparison.ci95_upper
+                && comparison.mean_regret_delta.is_finite()
+        }));
     }
 
     #[test]
