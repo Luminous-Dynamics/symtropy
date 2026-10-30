@@ -110,8 +110,8 @@ impl<const D: usize> BivectorInertia<D> {
             if *mass < 0.0 {
                 return Err(RotationalInertiaError::InvalidMassProperties);
             }
-            total_mass += mass;
-            weighted_position += position * *mass;
+            total_mass += *mass;
+            weighted_position += *position * *mass;
         }
 
         if !total_mass.is_finite() || total_mass <= 0.0 {
