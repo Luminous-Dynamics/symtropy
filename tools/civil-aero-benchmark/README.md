@@ -207,3 +207,15 @@ The ledger requires a fixed budget cap for every policy on the same task/replica
 
 The committed ledger is synthetic. It charges a nonconverged high-fidelity run to the random baseline and demonstrates bookkeeping only. The CSV's cost units need a documented mapping to actual solver calls, compute, tuning, orchestration and independent-audit effort before a real ShapeBench or CFD comparison. The output label is ledger_audit_only, not aerodynamic validation or an optimizer win.
 
+
+## DPW-8/AePW-4 Force/Moment V5 dual-view ingestion
+
+The clean-room V5 parser is in src/dpw8_submission.rs, with CLI dpw8_v5_audit. It preserves dataset/zone auxiliary metadata and source line numbers, requires the 31-column Force/Moment V5 schema, converts optional -999 values to missing values, and rejects the sentinel in required fields. It reconciles the GRID LEVEL n and ALPHA x table views by (GRID_LEVEL, ALPHA), rejects duplicate or mismatched cells, and retains both original line references.
+
+Run the synthetic fixture from this package directory:
+
+    cargo run --locked --bin dpw8_v5_audit
+
+The committed fixture has 40 rows across two table presentations and must produce 20 canonical cells. A one-value cross-view mutation is a required negative control. A synthetic coefficient pattern is flagged for review but its values are not changed or removed. A separate stdlib Python parser independently recomputes the reconciliation and checks the Rust CSV output.
+
+This parser work does not ingest or redistribute the official participant file. Its upstream repository revision has no identified root-level license at the pinned revision; terms remain unresolved. The synthetic fixture is not a participant result, experiment, CFD validation result, or evidence that Symtropy beats SU2. See DPW8_V5_PARSER_PROTOCOL_V0_1.md and issue #2936.

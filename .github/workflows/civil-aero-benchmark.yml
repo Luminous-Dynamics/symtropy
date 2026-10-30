@@ -209,6 +209,34 @@ jobs:
           grep -Fq '"two-state-design-choice","too_expensive",8.000000,2.000000,false,"design_a",5.000000000000,10.000000000000,5.000000000000,-3.000000000000,2,2,false,caller_supplied_probabilities_not_independently_calibrated' /tmp/aero-evsi-a.csv
           python3 scripts/verify-evsi-independent.py /tmp/aero-evsi-a.csv
           sha256sum /tmp/aero-evsi-a.csv
+      - name: Reconcile DPW-8 V5 grid and angle views on synthetic fixture
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin dpw8_v5_audit > /tmp/dpw8-v5-a.csv 2> /tmp/dpw8-v5-a.txt
+          cargo run --locked --bin dpw8_v5_audit > /tmp/dpw8-v5-b.csv 2> /tmp/dpw8-v5-b.txt
+          cmp /tmp/dpw8-v5-a.csv /tmp/dpw8-v5-b.csv
+          cmp /tmp/dpw8-v5-a.txt /tmp/dpw8-v5-b.txt
+          test "$(wc -l < /tmp/dpw8-v5-a.csv)" -eq 21
+          grep -q "source_evidence=synthetic_fixture_only" /tmp/dpw8-v5-a.txt
+          grep -q "raw_records=40 grid_view_records=20 alpha_view_records=20 canonical_cells=20" /tmp/dpw8-v5-a.txt
+          awk -F, 'NR > 1 && $12 == "true" { found++ } END { if (found != 1) exit 1 }' /tmp/dpw8-v5-a.csv
+          python3 scripts/verify-dpw8-v5-independent.py data/dpw8/synthetic_two_view_fixture_v0.1.dat /tmp/dpw8-v5-a.csv
+          cp data/dpw8/synthetic_two_view_fixture_v0.1.dat /tmp/dpw8-v5-tampered.dat
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("/tmp/dpw8-v5-tampered.dat")
+          content = path.read_text()
+          original = "0.70000000 0.01200000"
+          assert content.count(original) == 2
+          path.write_text(content.replace(original, "0.70010000 0.01200000", 1))
+          PY
+          if cargo run --locked --bin dpw8_v5_audit -- /tmp/dpw8-v5-tampered.dat > /tmp/dpw8-v5-tampered.csv 2> /tmp/dpw8-v5-tampered.txt; then
+            echo "single-value cross-view mutation unexpectedly passed Rust parser" >&2
+            exit 1
+          fi
+          grep -q "cross-view mismatch" /tmp/dpw8-v5-tampered.txt
+          python3 scripts/verify-dpw8-v5-independent.py /tmp/dpw8-v5-tampered.dat /tmp/dpw8-v5-tampered.csv --expect-reject
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |

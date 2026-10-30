@@ -106,7 +106,9 @@ pub fn validate_problem(problem: &DecisionProblem, remaining_budget: f64) -> Res
         prior_sum += probability;
     }
     if (prior_sum - 1.0).abs() > PROBABILITY_TOLERANCE {
-        return Err(format!("prior probabilities must sum to 1; got {prior_sum}"));
+        return Err(format!(
+            "prior probabilities must sum to 1; got {prior_sum}"
+        ));
     }
 
     if problem.decisions.is_empty() {
@@ -123,8 +125,15 @@ pub fn validate_problem(problem: &DecisionProblem, remaining_budget: f64) -> Res
                 decision.decision_id
             ));
         }
-        if decision.utility_by_state.iter().any(|value| !value.is_finite()) {
-            return Err(format!("decision {} contains a non-finite utility", decision.decision_id));
+        if decision
+            .utility_by_state
+            .iter()
+            .any(|value| !value.is_finite())
+        {
+            return Err(format!(
+                "decision {} contains a non-finite utility",
+                decision.decision_id
+            ));
         }
     }
 
@@ -242,8 +251,7 @@ pub fn evaluate_evsi(
                 .iter()
                 .enumerate()
                 .map(|(state_index, prior)| {
-                    prior * experiment.likelihood_by_state[state_index][outcome_index]
-                        / probability
+                    prior * experiment.likelihood_by_state[state_index][outcome_index] / probability
                 })
                 .collect();
             let (best_decision_id, best_posterior_expected_utility) =
@@ -275,8 +283,7 @@ pub fn evaluate_evsi(
             .iter()
             .filter(|outcome| {
                 outcome.probability > 0.0
-                    && outcome.best_decision_id.as_deref()
-                        != Some(prior_best_decision_id.as_str())
+                    && outcome.best_decision_id.as_deref() != Some(prior_best_decision_id.as_str())
             })
             .count();
         let affordable = experiment.cost_units <= remaining_budget + VALUE_TOLERANCE;
@@ -306,9 +313,7 @@ pub fn evaluate_evsi(
     });
     let selected_experiment_id = experiments
         .iter()
-        .find(|experiment| {
-            experiment.affordable && experiment.net_evsi > VALUE_TOLERANCE
-        })
+        .find(|experiment| experiment.affordable && experiment.net_evsi > VALUE_TOLERANCE)
         .map(|experiment| experiment.experiment_id.clone());
     if let Some(selected_id) = &selected_experiment_id {
         if let Some(selected) = experiments
@@ -454,8 +459,14 @@ mod tests {
         assert!((perfect.gross_evsi - 5.0).abs() < 1e-12);
         assert!((perfect.net_evsi - 4.0).abs() < 1e-12);
         assert_eq!(perfect.decision_changing_outcomes, 2);
-        assert_eq!(perfect.outcomes[0].best_decision_id.as_deref(), Some("design_a"));
-        assert_eq!(perfect.outcomes[1].best_decision_id.as_deref(), Some("design_b"));
+        assert_eq!(
+            perfect.outcomes[0].best_decision_id.as_deref(),
+            Some("design_a")
+        );
+        assert_eq!(
+            perfect.outcomes[1].best_decision_id.as_deref(),
+            Some("design_b")
+        );
     }
 
     #[test]
@@ -529,7 +540,9 @@ mod tests {
     fn zero_probability_outcome_is_not_divided_by_zero() {
         let mut problem = synthetic_problem();
         problem.experiments.truncate(1);
-        problem.experiments[0].outcome_ids.push("impossible".to_owned());
+        problem.experiments[0]
+            .outcome_ids
+            .push("impossible".to_owned());
         for row in &mut problem.experiments[0].likelihood_by_state {
             row.push(0.0);
         }
