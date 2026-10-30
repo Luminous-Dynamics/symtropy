@@ -21,6 +21,7 @@ pub mod ccd;
 pub mod constraint;
 pub mod contact;
 pub mod diagnostics;
+pub mod delassus;
 pub mod epa;
 pub mod gjk;
 pub mod inertia;
@@ -38,6 +39,10 @@ pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
+pub use delassus::{
+    DelassusAssemblyError, FrictionlessContactRow, ReferenceLcpError, ReferenceLcpSolution,
+    assemble_delassus, solve_frictionless_lcp,
+};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use inertia::{BivectorInertia, RotationalInertiaError};
