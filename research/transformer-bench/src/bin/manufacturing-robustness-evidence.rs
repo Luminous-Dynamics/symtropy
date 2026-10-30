@@ -325,8 +325,11 @@ mod tests {
     }
 
     fn parse_from_content(content: &str) -> Vec<Row> {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static NEXT_FILE: AtomicUsize = AtomicUsize::new(0);
+        let nonce = NEXT_FILE.fetch_add(1, Ordering::Relaxed);
         let mut path = std::env::temp_dir();
-        path.push(format!("robustness-evidence-content-{}.csv", std::process::id()));
+        path.push(format!("robustness-evidence-content-{}-{nonce}.csv", std::process::id()));
         fs::write(&path, content).unwrap();
         let parsed = parse(path.to_str().unwrap()).unwrap();
         let _ = fs::remove_file(path);
