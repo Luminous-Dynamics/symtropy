@@ -972,15 +972,19 @@ fn render_episode(e: &Episode, candidates: &[Candidate]) -> String {
     )
 }
 
-fn render_report(
-    head: &str,
+struct ReportMetadata<'a> {
+    head: &'a str,
     max_depth: usize,
-    ph: &str,
-    th: &str,
+    problem_fixture_sha256: &'a str,
+    evaluator_truth_fixture_sha256: &'a str,
+    mdl_beta: f64,
+}
+
+fn render_report(
+    metadata: ReportMetadata<'_>,
     candidates: &[Candidate],
     cases: &[Case],
     episodes: &[Episode],
-    mdl_beta: f64,
 ) -> String {
     let mut summaries = Vec::new();
     for policy in [
@@ -1033,13 +1037,13 @@ fn render_report(
         .join(",\n    ");
     format!(
         "{{\n  \"schema_version\":1,\n  \"benchmark_id\":\"SIM-REL-003-MDL-EIG-v0\",\n  \"synthetic_only\":true,\n  \"exact_head\":\"{}\",\n  \"max_expression_depth\":{},\n  \"unique_semantic_candidates\":{},\n  \"problem_fixture_sha256\":\"{}\",\n  \"evaluator_truth_fixture_sha256\":\"{}\",\n  \"random_repetitions_per_task\":{},\n  \"mdl_beta\":{},\n  \"prior_definition\":\"PCFG shortest-derivation code length; terminal bits log2(10), operator bits 3 plus child code lengths; one prior per semantic equivalence class\",\n  \"selection_objective\":\"deterministic-observation entropy in bits divided by positive integer action cost\",\n  \"grammar_candidates\":[\n    {}\n  ],\n  \"policy_summaries\":[\n    {}\n  ],\n  \"cases\":[\n    {}\n  ],\n  \"claim_ceiling\":\"bounded three-input Boolean grammar induction with MDL-prior expected information gain per cost; no physical discovery or SOTA superiority claim\"\n}}\n",
-        json_escape(head),
-        max_depth,
+        json_escape(metadata.head),
+        metadata.max_depth,
         candidates.len(),
-        ph,
-        th,
+        metadata.problem_fixture_sha256,
+        metadata.evaluator_truth_fixture_sha256,
         RANDOM_REPETITIONS,
-        mdl_beta,
+        metadata.mdl_beta,
         catalog,
         summaries.join(",\n    "),
         rows
@@ -1153,14 +1157,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
     let report = render_report(
-        &head,
-        max_depth,
-        &ph,
-        &th,
+        ReportMetadata {
+            head: &head,
+            max_depth,
+            problem_fixture_sha256: &ph,
+            evaluator_truth_fixture_sha256: &th,
+            mdl_beta,
+        },
         &candidates,
         &cases,
         &all,
-        mdl_beta,
     );
     if output == "-" {
         print!("{report}");
