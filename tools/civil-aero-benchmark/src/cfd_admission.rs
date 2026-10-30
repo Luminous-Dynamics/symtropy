@@ -654,7 +654,10 @@ mod tests {
     fn csv_output_is_deterministic_and_keeps_nonvalidation_label() {
         let report = evaluate_cfd_evidence_admission(&study()).expect("valid synthetic study");
         let first = report_to_csv(&report).expect("complete provenance joins");
-        assert_eq!(first, report_to_csv(&report).expect("complete provenance joins"));
+        assert_eq!(
+            first,
+            report_to_csv(&report).expect("complete provenance joins")
+        );
         assert_eq!(first.lines().count(), 5);
         assert!(first.contains("not_experimentally_validated"));
         assert!(first.contains("coarse_mesh_sha256"));
