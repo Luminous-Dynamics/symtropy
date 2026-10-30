@@ -48,35 +48,46 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --locked --manifest-path tools/sim-rel-bayes/Cargo.toml --bin sim-rel-bayes -- -D warnings
 
-      - name: Generate exact-head receipts across the prior-temperature sweep
+      - name: Generate exact-head pilot and exhaustive receipts across prior temperatures
         env:
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           for beta in 0 1 2; do
-            receipt="$RUNNER_TEMP/sim-rel-003-beta-${beta}.json"
-            cargo run --locked --manifest-path tools/sim-rel-bayes/Cargo.toml --bin sim-rel-bayes -- \
-              --problems tools/sim-rel-bayes/fixtures/problems-v0.tsv \
-              --truth tools/sim-rel-bayes/fixtures/evaluator-truth-v0.tsv \
-              --expected-head "$EXPECTED_HEAD" \
-              --max-depth 2 \
-              --mdl-beta "$beta" \
-              --out "$receipt"
-            jq -e --arg expected "$EXPECTED_HEAD" --argjson beta "$beta" '
-              .exact_head == $expected
-              and .mdl_beta == $beta
-              and .unique_semantic_candidates == 109
-              and (.cases | length) == 18
-              and (.policy_summaries | map(.policy) | unique | length) == 5
-              and all(.policy_summaries[]; .in_grammar_target_retention_rate == 1)
-              and all(.policy_summaries[]; .mean_cost >= 0)
-            ' "$receipt"
+            for corpus in pilot exhaustive; do
+              if [[ "$corpus" == pilot ]]; then
+                problems="tools/sim-rel-bayes/fixtures/problems-v0.tsv"
+                truth="tools/sim-rel-bayes/fixtures/evaluator-truth-v0.tsv"
+                expected_cases=18
+              else
+                problems="tools/sim-rel-bayes/fixtures/problems-exhaustive-boolean8-v1.tsv"
+                truth="tools/sim-rel-bayes/fixtures/evaluator-truth-exhaustive-boolean8-v1.tsv"
+                expected_cases=256
+              fi
+              receipt="$RUNNER_TEMP/sim-rel-003-${corpus}-beta-${beta}.json"
+              cargo run --locked --manifest-path tools/sim-rel-bayes/Cargo.toml --bin sim-rel-bayes -- \
+                --problems "$problems" \
+                --truth "$truth" \
+                --expected-head "$EXPECTED_HEAD" \
+                --max-depth 2 \
+                --mdl-beta "$beta" \
+                --out "$receipt"
+              jq -e --arg expected "$EXPECTED_HEAD" --argjson beta "$beta" --argjson cases "$expected_cases" '
+                .exact_head == $expected
+                and .mdl_beta == $beta
+                and .unique_semantic_candidates == 109
+                and (.cases | length) == $cases
+                and (.policy_summaries | map(.policy) | unique | length) == 5
+                and all(.policy_summaries[]; .in_grammar_episodes > 0)
+                and all(.policy_summaries[]; .in_grammar_target_retention_rate == 1)
+                and all(.policy_summaries[]; .mean_cost >= 0)
+              ' "$receipt"
+            done
           done
-
       - name: Retain exact-head prior-temperature receipts
         uses: actions/upload-artifact@v4
         with:
           name: sim-rel-003-receipts-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/sim-rel-003-beta-*.json
+          path: ${{ runner.temp }}/sim-rel-003-*.json
           if-no-files-found: error
           retention-days: 30
