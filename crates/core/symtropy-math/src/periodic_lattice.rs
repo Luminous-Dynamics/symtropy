@@ -426,7 +426,10 @@ fn sphere_decode_level<const D: usize>(
     best: &mut SearchBest<D>,
 ) -> Result<(), PeriodicLatticeError> {
     if level < 0 {
-        let integer = SVector::<f64, D>::from_iterator(offset.iter().map(|value| *value as f64));
+        let mut integer = SVector::<f64, D>::zeros();
+        for axis in 0..D {
+            integer[axis] = offset[axis] as f64;
+        }
         let candidate_displacement = original_displacement + basis * integer;
         let candidate_distance_squared = candidate_displacement.norm_squared();
         if !candidate_distance_squared.is_finite() {
@@ -609,6 +612,84 @@ mod tests {
         assert_eq!(actual.image_offset.periods, expected.1);
         close(actual.distance_squared, expected.0, 1e-12);
         assert!((actual.displacement - expected.2).norm() < 1e-12);
+    }
+
+    fn next_random(state: &mut u64) -> u64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        *state
+    }
+
+    fn random_range(state: &mut u64, lower: f64, upper: f64) -> f64 {
+        let bits = next_random(state) >> 11;
+        lower + (upper - lower) * (bits as f64 / ((1_u64 << 53) as f64))
+    }
+
+    #[test]
+    fn randomized_2d_closest_image_matches_brute_force_oracle() {
+        let basis = SMatrix::<f64, 2, 2>::from_row_slice(&[2.0, 1.4, 0.0, 1.5]);
+        let lattice = lattice2(basis);
+        let mut seed = 0x5452_4943_4c49_4e49_u64;
+
+        for case in 0..2_000 {
+            let displacement = SVector::from([
+                random_range(&mut seed, -12.0, 12.0),
+                random_range(&mut seed, -12.0, 12.0),
+            ]);
+            let actual = lattice
+                .minimum_image_displacement(&displacement, 20_000)
+                .unwrap_or_else(|error| panic!("case={case} closest-image error: {error}"));
+            let (distance, offset, vector) = brute_force_2d(&displacement, &basis, 12);
+            assert_eq!(actual.image_offset.periods, offset, "case={case}");
+            close(actual.distance_squared, distance, 2e-11);
+            assert!((actual.displacement - vector).norm() < 2e-11, "case={case}");
+        }
+    }
+
+    #[test]
+    fn randomized_3d_closest_image_matches_brute_force_oracle() {
+        let basis = SMatrix::<f64, 3, 3>::from_row_slice(&[
+            2.0, 0.8, 0.2,
+            0.0, 1.7, 0.6,
+            0.0, 0.0, 1.4,
+        ]);
+        let lattice = PeriodicLattice::new(SVector::zeros(), basis).unwrap();
+        let mut seed = 0x3344_5452_4943_4c49_u64;
+
+        for case in 0..160 {
+            let displacement = SVector::from([
+                random_range(&mut seed, -8.0, 8.0),
+                random_range(&mut seed, -8.0, 8.0),
+                random_range(&mut seed, -8.0, 8.0),
+            ]);
+            let actual = lattice
+                .minimum_image_displacement(&displacement, 50_000)
+                .unwrap_or_else(|error| panic!("case={case} closest-image error: {error}"));
+
+            let mut best: Option<(f64, [i64; 3], SVector<f64, 3>)> = None;
+            for x in -8_i64..=8 {
+                for y in -8_i64..=8 {
+                    for z in -8_i64..=8 {
+                        let offset = [x, y, z];
+                        let integer = SVector::from([x as f64, y as f64, z as f64]);
+                        let candidate = displacement + basis * integer;
+                        let distance_squared = candidate.norm_squared();
+                        let replace = best.as_ref().is_none_or(|current| {
+                            distance_squared < current.0
+                                || (distance_squared == current.0 && offset < current.1)
+                        });
+                        if replace {
+                            best = Some((distance_squared, offset, candidate));
+                        }
+                    }
+                }
+            }
+            let expected = best.unwrap();
+            assert_eq!(actual.image_offset.periods, expected.1, "case={case}");
+            close(actual.distance_squared, expected.0, 2e-11);
+            assert!((actual.displacement - expected.2).norm() < 2e-11, "case={case}");
+        }
     }
 
     #[test]
