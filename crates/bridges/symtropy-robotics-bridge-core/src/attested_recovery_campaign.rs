@@ -16,7 +16,7 @@ use crate::receipt_attestation::{
 };
 use crate::recovery_benchmark::{
     ExpectedRecoveryScenario, RecoveryBenchmarkArm, RecoveryBenchmarkError,
-    RecoveryBenchmarkSummary, RecoveryTrialRecord, score_recovery_campaign,
+    RecoveryBenchmarkSummary, RecoveryScenarioClass, RecoveryTrialRecord, score_recovery_campaign,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -34,6 +34,8 @@ pub struct RecoveryCampaignEvidencePolicy {
     pub trace_source_id: String,
     pub evaluator_version: String,
     pub policy_digest_by_arm: BTreeMap<RecoveryBenchmarkArm, String>,
+    /// Exact source revision preregistered for each benchmark arm.
+    pub arm_source_revision_by_arm: BTreeMap<RecoveryBenchmarkArm, String>,
 }
 
 /// One recovery trial plus the raw command evidence and its signed receipt.
@@ -64,6 +66,14 @@ pub enum AttestedRecoveryCampaignError {
     EmptyPolicyField { field: &'static str },
     MissingArmPolicyDigest { arm: RecoveryBenchmarkArm },
     EmptyArmPolicyDigest { arm: RecoveryBenchmarkArm },
+    MissingArmSourceRevision { arm: RecoveryBenchmarkArm },
+    EmptyArmSourceRevision { arm: RecoveryBenchmarkArm },
+    ArmSourceRevisionMismatch {
+        scenario_id: String,
+        seed: u64,
+        arm: RecoveryBenchmarkArm,
+    },
+    ScenarioManifestDigestMismatch { expected: String, computed: String },
     DuplicateExpectedScenario,
     MissingTrialEvidence {
         scenario_id: String,
@@ -133,6 +143,13 @@ pub fn score_attested_recovery_campaign(
             return Err(AttestedRecoveryCampaignError::DuplicateExpectedScenario);
         }
     }
+    let computed_manifest_digest = digest_expected_scenario_manifest(expected);
+    if computed_manifest_digest != campaign_policy.scenario_manifest_digest {
+        return Err(AttestedRecoveryCampaignError::ScenarioManifestDigestMismatch {
+            expected: campaign_policy.scenario_manifest_digest.clone(),
+            computed: computed_manifest_digest,
+        });
+    }
 
     let mut evidence_by_key: BTreeMap<TrialEvidenceKey, &AttestedRecoveryTrialRecord> =
         BTreeMap::new();
@@ -156,11 +173,25 @@ pub fn score_attested_recovery_campaign(
             });
         }
 
+        let expected_source_revision = campaign_policy
+            .arm_source_revision_by_arm
+            .get(&trial.arm)
+            .ok_or(AttestedRecoveryCampaignError::MissingArmSourceRevision {
+                arm: trial.arm,
+            })?;
+        if trial.arm_source_revision != *expected_source_revision {
+            return Err(AttestedRecoveryCampaignError::ArmSourceRevisionMismatch {
+                scenario_id: trial.scenario_id.clone(),
+                seed: trial.seed,
+                arm: trial.arm,
+            });
+        }
+
         let expected_context = expected_receipt_context(
             campaign_policy,
             scenario,
             trial,
-        );
+        )?;
         if let Some(field) = context_mismatch_field(
             &expected_context,
             &attested.signed_receipt.receipt.context,
@@ -248,6 +279,13 @@ fn validate_campaign_policy(
         if digest.trim().is_empty() {
             return Err(AttestedRecoveryCampaignError::EmptyArmPolicyDigest { arm });
         }
+        let source_revision = policy
+            .arm_source_revision_by_arm
+            .get(&arm)
+            .ok_or(AttestedRecoveryCampaignError::MissingArmSourceRevision { arm })?;
+        if source_revision.trim().is_empty() {
+            return Err(AttestedRecoveryCampaignError::EmptyArmSourceRevision { arm });
+        }
     }
     Ok(())
 }
@@ -257,26 +295,34 @@ fn expected_receipt_context(
     policy: &RecoveryCampaignEvidencePolicy,
     scenario: &ExpectedRecoveryScenario,
     trial: &RecoveryTrialRecord,
-) -> CommandEvidenceReceiptContext {
-    CommandEvidenceReceiptContext {
+) -> Result<CommandEvidenceReceiptContext, AttestedRecoveryCampaignError> {
+    let policy_digest = policy
+        .policy_digest_by_arm
+        .get(&trial.arm)
+        .ok_or(AttestedRecoveryCampaignError::MissingArmPolicyDigest {
+            arm: trial.arm,
+        })?;
+    let arm_source_revision = policy
+        .arm_source_revision_by_arm
+        .get(&trial.arm)
+        .ok_or(AttestedRecoveryCampaignError::MissingArmSourceRevision {
+            arm: trial.arm,
+        })?;
+    Ok(CommandEvidenceReceiptContext {
         campaign_id: policy.campaign_id.clone(),
         campaign_revision: policy.campaign_revision.clone(),
         scenario_manifest_digest: policy.scenario_manifest_digest.clone(),
         scenario_id: scenario.scenario_id.clone(),
         scenario_digest: scenario.scenario_digest.clone(),
         arm_id: trial.arm.id().to_owned(),
-        arm_source_revision: trial.arm_source_revision.clone(),
-        policy_digest: policy
-            .policy_digest_by_arm
-            .get(&trial.arm)
-            .cloned()
-            .unwrap_or_default(),
+        arm_source_revision: arm_source_revision.clone(),
+        policy_digest: policy_digest.clone(),
         task_profile_digest: trial.profile_digest.clone(),
         plant_digest: trial.plant_digest.clone(),
         controller_config_digest: trial.native_controller_digest.clone(),
         trace_source_id: policy.trace_source_id.clone(),
         evaluator_version: policy.evaluator_version.clone(),
-    }
+    })
 }
 
 fn context_mismatch_field(
@@ -312,6 +358,42 @@ fn context_mismatch_field(
     } else {
         None
     }
+}
+
+fn digest_expected_scenario_manifest(expected: &[ExpectedRecoveryScenario]) -> String {
+    let mut sorted = expected.iter().collect::<Vec<_>>();
+    sorted.sort_by(|left, right| {
+        left.scenario_id
+            .cmp(&right.scenario_id)
+            .then_with(|| left.seed.cmp(&right.seed))
+    });
+
+    let mut hasher = Sha256::new();
+    hasher.update(b"symtropy.recovery-scenario-manifest.v1");
+    hasher.update([0]);
+    hasher.update((sorted.len() as u64).to_le_bytes());
+    for scenario in sorted {
+        hash_string(&mut hasher, &scenario.scenario_id);
+        hasher.update(scenario.seed.to_le_bytes());
+        match &scenario.class {
+            RecoveryScenarioClass::Nominal => hasher.update([0]),
+            RecoveryScenarioClass::Faulted { family_id, severity_id } => {
+                hasher.update([1]);
+                hash_string(&mut hasher, family_id);
+                hash_string(&mut hasher, severity_id);
+            }
+        }
+        hash_string(&mut hasher, &scenario.scenario_digest);
+    }
+
+    let digest = hasher.finalize();
+    let mut encoded = String::with_capacity(7 + digest.len() * 2);
+    encoded.push_str("sha256:");
+    use std::fmt::Write as _;
+    for byte in digest {
+        let _ = write!(encoded, "{byte:02x}");
+    }
+    encoded
 }
 
 fn digest_campaign_evidence(
@@ -451,18 +533,23 @@ mod tests {
         }
     }
 
-    fn campaign_policy() -> RecoveryCampaignEvidencePolicy {
+    fn campaign_policy(expected: &[ExpectedRecoveryScenario]) -> RecoveryCampaignEvidencePolicy {
         let policy_digest_by_arm = RecoveryBenchmarkArm::ALL
             .into_iter()
             .map(|arm| (arm, format!("sha256:policy-{}", arm.id())))
             .collect();
+        let arm_source_revision_by_arm = RecoveryBenchmarkArm::ALL
+            .into_iter()
+            .map(|arm| (arm, format!("revision-{}", arm.id())))
+            .collect();
         RecoveryCampaignEvidencePolicy {
             campaign_id: "campaign-robotics-1".into(),
             campaign_revision: "campaign-rev-1".into(),
-            scenario_manifest_digest: "sha256:manifest".into(),
+            scenario_manifest_digest: digest_expected_scenario_manifest(expected),
             trace_source_id: "trace-collector-v1".into(),
             evaluator_version: "command-evidence-auditor-v0.1".into(),
             policy_digest_by_arm,
+            arm_source_revision_by_arm,
         }
     }
 
@@ -557,7 +644,7 @@ mod tests {
             scenario("nominal-a", 11, nominal_class()),
             scenario("fault-a", 11, faulted_class()),
         ];
-        let policy = campaign_policy();
+        let policy = campaign_policy(&expected);
         let pair = key_pair();
         let trust = trust_policy(&pair);
         let trials = expected
