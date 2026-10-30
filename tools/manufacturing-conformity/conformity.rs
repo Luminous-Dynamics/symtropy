@@ -51,7 +51,7 @@ impl EvidenceState {
             (Self::NotQualified, "measurement") => Some("MEASUREMENT_NOT_QUALIFIED"),
             (Self::NotQualified, "specification") => Some("SPECIFICATION_NOT_QUALIFIED"),
             (Self::NotQualified, "calibration") => Some("CALIBRATION_NOT_QUALIFIED"),
-            (Self::NotQualified, "msa") => Some("MSA_NOT_QUALIFIED"),
+            (Self::NotQualified, "msa") => Some("MSA_EVIDENCE_NOT_QUALIFIED"),
             (Self::NotQualified, "uncertainty") => Some("UNCERTAINTY_BUDGET_NOT_QUALIFIED"),
             (Self::NotQualified, _) => Some("CONTEXT_POLICY_NOT_QUALIFIED"),
         }
