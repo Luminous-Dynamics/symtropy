@@ -420,9 +420,9 @@ fn evaluate(
             windows.entry(sample.window.clone()).or_default().push(sample);
         }
 
-        let total_windows = windows.len();
+        let total_windows = group.iter().map(|sample| sample.window.as_str()).collect::<BTreeSet<_>>().len();
         let mut window_stats = Vec::new();
-        let mut insufficient_windows = 0usize;
+        let mut insufficient_windows = total_windows.saturating_sub(windows.len());
         for (_window_id, mut window) in windows {
             window.sort_by(|a, b| a.measured_at.cmp(&b.measured_at));
             let values: Vec<f64> = window.iter().map(|s| s.value).collect();
