@@ -403,6 +403,9 @@ pub struct TrialResult {
     pub best_feasible_observed: Option<f64>,
     pub best_feasible_truth: Option<f64>,
     pub final_regret: f64,
+    /// Simple regret after each completed evaluation; never uses noisy scores.
+    pub regret_curve: Vec<f64>,
+    pub cumulative_simple_regret: f64,
     pub infeasible_calls: usize,
     pub elapsed_nanos: u128,
 }
@@ -458,6 +461,23 @@ pub fn run_trial(
     let final_regret = best_feasible_truth
         .map(|best| (problem.optimum_value() - best).max(0.0))
         .unwrap_or(problem.optimum_value());
+    let mut best_so_far_truth: Option<f64> = None;
+    let mut regret_curve = Vec::with_capacity(observations.len());
+    for observation in &observations {
+        if observation.feasible {
+            let truth = problem.truth(observation.point).0;
+            best_so_far_truth = Some(
+                best_so_far_truth.map_or(truth, |previous| previous.max(truth))
+            );
+        }
+        regret_curve.push(
+            best_so_far_truth
+                .map(|best| (problem.optimum_value() - best).max(0.0))
+                .unwrap_or(problem.optimum_value())
+        );
+    }
+    let cumulative_simple_regret = regret_curve.iter().sum::<f64>();
+
     let infeasible_calls = observations
         .iter()
         .filter(|observation| !observation.feasible)
@@ -473,6 +493,8 @@ pub fn run_trial(
         best_feasible_observed,
         best_feasible_truth,
         final_regret,
+        regret_curve,
+        cumulative_simple_regret,
         infeasible_calls,
         elapsed_nanos: started.elapsed().as_nanos(),
     }
@@ -511,6 +533,7 @@ pub struct SummaryStats {
     pub mean_regret: f64,
     pub median_regret: f64,
     pub p90_regret: f64,
+    pub mean_cumulative_simple_regret: f64,
     pub mean_infeasible_calls: f64,
     pub mean_elapsed_nanos: f64,
 }
@@ -530,6 +553,11 @@ pub fn summarize(results: &[TrialResult]) -> Vec<SummaryStats> {
             let count = group.len();
             let mean_regret =
                 group.iter().map(|result| result.final_regret).sum::<f64>() / count as f64;
+            let mean_cumulative_simple_regret = group
+                .iter()
+                .map(|result| result.cumulative_simple_regret)
+                .sum::<f64>()
+                / count as f64;
             let mean_infeasible_calls = group
                 .iter()
                 .map(|result| result.infeasible_calls as f64)
@@ -552,6 +580,7 @@ pub fn summarize(results: &[TrialResult]) -> Vec<SummaryStats> {
                 mean_regret,
                 median_regret,
                 p90_regret: group[p90_index].final_regret,
+                mean_cumulative_simple_regret,
                 mean_infeasible_calls,
                 mean_elapsed_nanos,
             });
@@ -565,7 +594,10 @@ pub fn summarize(results: &[TrialResult]) -> Vec<SummaryStats> {
 pub fn render_receipts(source_sha: &str, results: &[TrialResult]) -> String {
     let mut output = String::new();
     output.push_str(
-        "EXPERIMENT_RECEIPT,v1,source_sha,problem,policy,seed,budget,initial_design,calls,best_feasible_observed,best_feasible_truth,regret,infeasible_calls,elapsed_nanos\n",
+        "EXPERIMENT_TRIAL,v1,source_sha,problem,policy,seed,budget,initial_design,calls,best_feasible_observed,best_feasible_truth,final_regret,cumulative_simple_regret,infeasible_calls,elapsed_nanos\n",
+    );
+    output.push_str(
+        "EXPERIMENT_OBSERVATION,v1,source_sha,problem,policy,seed,index,x,y,objective,feasible,violation,sigma,simple_regret\n",
     );
     for result in results {
         let observed = result
@@ -577,7 +609,7 @@ pub fn render_receipts(source_sha: &str, results: &[TrialResult]) -> String {
             .map(|value| format!("{value:.12e}"))
             .unwrap_or_else(|| "none".to_string());
         output.push_str(&format!(
-            "EXPERIMENT_RECEIPT,v1,{source_sha},{},{},{},{},{},{},{observed},{truth},{:.12e},{},{}\n",
+            "EXPERIMENT_TRIAL,v1,{source_sha},{},{},{},{},{},{},{observed},{truth},{:.12e},{:.12e},{},{}\n",
             result.problem.as_str(),
             result.policy.as_str(),
             result.seed,
@@ -585,9 +617,31 @@ pub fn render_receipts(source_sha: &str, results: &[TrialResult]) -> String {
             result.initial_design_size,
             result.high_fidelity_calls(),
             result.final_regret,
+            result.cumulative_simple_regret,
             result.infeasible_calls,
             result.elapsed_nanos
         ));
+        for (index, (observation, simple_regret)) in result
+            .observations
+            .iter()
+            .zip(&result.regret_curve)
+            .enumerate()
+        {
+            output.push_str(&format!(
+                "EXPERIMENT_OBSERVATION,v1,{source_sha},{},{},{},{},{:.12e},{:.12e},{:.12e},{},{:.12e},{:.12e},{:.12e}\n",
+                result.problem.as_str(),
+                result.policy.as_str(),
+                result.seed,
+                index,
+                observation.point[0],
+                observation.point[1],
+                observation.objective,
+                observation.feasible,
+                observation.constraint_violation,
+                observation.sigma,
+                simple_regret
+            ));
+        }
     }
     output
 }
