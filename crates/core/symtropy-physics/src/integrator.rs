@@ -182,7 +182,10 @@ pub fn apply_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &SVector<
     }
 }
 
-/// Apply an angular impulse (as a bivector) to a body.
+/// Apply an angular impulse in the impulse-first bivector convention.
+///
+/// The stored angular state advances through Rotor::from_bivector's exp(-B)
+/// map, so a positive physical angular impulse subtracts from the stored B.
 pub fn apply_angular_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &Bivector<D>) {
     if body.is_dynamic() {
         // TODO(isotropic-inertia): same scalar-mean-inertia limitation as in
