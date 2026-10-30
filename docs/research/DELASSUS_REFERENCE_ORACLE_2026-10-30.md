@@ -69,6 +69,17 @@ cargo bench -p symtropy-physics --bench delassus_reference
 
 It measures Delassus assembly and exhaustive LCP solve independently at 1, 2, 4 and 8 rows for a fixed asymmetric 3D two-body fixture. The timing output must be accompanied by host/compiler metadata and the exact source SHA. These are microbenchmarks for the reference layer, not engine-level throughput comparisons. No measurements are claimed until the benchmark is actually run.
 
+## Mechanical evidence increment
+
+The runtime contact solver now records frictional dissipation using the kinetic-energy change implied by the actual tangential impulse and the same effective-mass denominator used to apply it:
+
+\[
+\Delta K_t=j_t\left(v_t+\frac12d_tj_t\right),\qquad
+E_{\mathrm{diss},t}=\max(0,-\Delta K_t).
+\]
+
+A runtime callback regression reconstructs the applied impulse from the actual post-step contact-point velocity and checks the reported joules. See [Mechanical Work Ledger](MECHANICAL_WORK_LEDGER_2026-10-30.md). This is only friction work; a complete contact/step energy ledger remains future work.
+
 ## Scope and caveats
 
 - Frictionless normal rows only. This is not a Coulomb friction cone solver.
