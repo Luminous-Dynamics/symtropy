@@ -16,12 +16,15 @@ use std::collections::BTreeSet;
 const MAX_POLICY_NODES: usize = 8_192;
 const MAX_POLICY_STEPS: usize = 128;
 const MAX_ACTIONS: usize = 64;
+const MAX_HYPOTHESES: usize = 4_096;
+const MAX_WORLDS: usize = 256;
+const MAX_MACHINE_STATES: usize = 4_096;
 
 /// A reduced non-negative rational number.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Fraction {
-    pub numerator: u128,
-    pub denominator: u128,
+    numerator: u128,
+    denominator: u128,
 }
 
 impl Fraction {
@@ -34,6 +37,14 @@ impl Fraction {
             numerator: numerator / divisor,
             denominator: denominator / divisor,
         })
+    }
+
+    pub const fn numerator(self) -> u128 {
+        self.numerator
+    }
+
+    pub const fn denominator(self) -> u128 {
+        self.denominator
     }
 }
 
@@ -219,7 +230,10 @@ impl World {
 
         let hypothesis_count = self.hypothesis_ids.len();
         let action_count = self.action_ids.len();
-        if hypothesis_count == 0 || self.prior_weights.len() != hypothesis_count {
+        if hypothesis_count == 0
+            || hypothesis_count > MAX_HYPOTHESES
+            || self.prior_weights.len() != hypothesis_count
+        {
             return Err(format!(
                 "world {} has an empty or inconsistent hypothesis identity/prior table",
                 self.name
@@ -267,7 +281,10 @@ impl World {
                 .first()
                 .map(Vec::len)
                 .ok_or_else(|| format!("world {} has no state rows", self.name))?;
-            if state_count == 0 || machine.initial_state >= state_count {
+            if state_count == 0
+                || state_count > MAX_MACHINE_STATES
+                || machine.initial_state >= state_count
+            {
                 return Err(format!(
                     "world {} hypothesis {hypothesis} has an invalid state space or initial state",
                     self.name
@@ -455,8 +472,10 @@ pub fn evaluate_shared_policy(
     worlds: &[World],
     nominal_world_index: usize,
 ) -> Result<EvaluationReport, String> {
-    if worlds.is_empty() {
-        return Err("at least one complete world is required".into());
+    if worlds.is_empty() || worlds.len() > MAX_WORLDS {
+        return Err(format!(
+            "world family must contain between 1 and {MAX_WORLDS} complete worlds"
+        ));
     }
     if nominal_world_index >= worlds.len() {
         return Err("nominal world index is out of range".into());
