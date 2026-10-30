@@ -60,6 +60,7 @@ pub enum RegionGraphError {
     MissingTransformIdentity,
     UnitMismatchForConservation,
     MetricMismatchForConservation,
+    UnsupportedMetricForConservation,
     NonIsometricMapForPreservation,
     BoundaryOutsideRegion,
 }
@@ -96,6 +97,12 @@ impl fmt::Display for RegionGraphError {
                 write!(
                     f,
                     "preserve/exchange policies require a compatible metric profile"
+                )
+            }
+            Self::UnsupportedMetricForConservation => {
+                write!(
+                    f,
+                    "the reference conservation ledger supports only the Euclidean metric profile"
                 )
             }
             Self::NonIsometricMapForPreservation => {
@@ -387,6 +394,19 @@ impl<const D: usize> AffineRegionMap<D> {
         Ok(mapped)
     }
 
+    /// Compose this source-to-intermediate map with an intermediate-to-
+    /// destination map. The returned map is equivalent to applying this map
+    /// first and the next map second, including the local-clock transform.
+    pub fn then(&self, next: &Self) -> Result<Self, RegionGraphError> {
+        self.validate()?;
+        next.validate()?;
+        let linear = next.linear * self.linear;
+        let translation = next.linear * self.translation + next.translation;
+        let time_scale = next.time_scale * self.time_scale;
+        let time_offset = next.time_scale * self.time_offset + next.time_offset;
+        Self::new(linear, translation, time_scale, time_offset)
+    }
+
     pub fn inverse(&self) -> Result<Self, RegionGraphError> {
         let linear = self
             .linear
@@ -655,6 +675,9 @@ impl<const D: usize> RegionGraph<D> {
             }
             if source.metric_profile != target.metric_profile {
                 return Err(RegionGraphError::MetricMismatchForConservation);
+            }
+            if source.metric_profile != "euclidean" {
+                return Err(RegionGraphError::UnsupportedMetricForConservation);
             }
         }
 
@@ -1779,6 +1802,106 @@ mod tests {
         );
         assert!((receipt.kinetic_energy_before - 1.0).abs() < 1e-12);
         assert!((receipt.kinetic_energy_after - 0.25).abs() < 1e-12);
+    }
+
+    #[test]
+    fn affine_map_composition_matches_sequential_position_velocity_and_clock() {
+        let first_linear = SMatrix::<f64, 2, 2>::new(2.0, 0.0, 0.0, 1.0);
+        let first = AffineRegionMap::new(
+            first_linear,
+            SVector::from([1.0, -2.0]),
+            2.0,
+            3.0,
+        )
+        .unwrap();
+        let second_linear = SMatrix::<f64, 2, 2>::new(0.0, -1.0, 1.0, 0.0);
+        let second = AffineRegionMap::new(
+            second_linear,
+            SVector::from([4.0, 5.0]),
+            0.5,
+            -1.0,
+        )
+        .unwrap();
+
+        let composed = first.then(&second).unwrap();
+        let position = SVector::from([3.0, 4.0]);
+        let velocity = SVector::from([2.0, -3.0]);
+        let time = 11.0;
+
+        let sequential_position =
+            second.map_position(&first.map_position(&position).unwrap()).unwrap();
+        let sequential_velocity =
+            second.map_velocity(&first.map_velocity(&velocity).unwrap()).unwrap();
+        let sequential_time = second.map_time(first.map_time(time).unwrap()).unwrap();
+
+        assert!((composed.map_position(&position).unwrap() - sequential_position).norm() < 1e-12);
+        assert!((composed.map_velocity(&velocity).unwrap() - sequential_velocity).norm() < 1e-12);
+        assert!((composed.map_time(time).unwrap() - sequential_time).abs() < 1e-12);
+    }
+
+    #[test]
+    fn affine_map_composition_is_associative_with_clock_offsets() {
+        let a = AffineRegionMap::new(
+            SMatrix::<f64, 2, 2>::new(1.0, 0.25, 0.0, 2.0),
+            SVector::from([1.0, -1.0]),
+            2.0,
+            3.0,
+        )
+        .unwrap();
+        let b = AffineRegionMap::new(
+            SMatrix::<f64, 2, 2>::new(0.0, -1.0, 1.0, 0.0),
+            SVector::from([2.0, 4.0]),
+            0.5,
+            -2.0,
+        )
+        .unwrap();
+        let c = AffineRegionMap::new(
+            SMatrix::<f64, 2, 2>::new(1.5, 0.0, 0.0, 0.75),
+            SVector::from([-3.0, 1.0]),
+            1.25,
+            0.5,
+        )
+        .unwrap();
+
+        let left = a.then(&b).unwrap().then(&c).unwrap();
+        let right = a.then(&b.then(&c).unwrap()).unwrap();
+        let position = SVector::from([0.25, -7.0]);
+        let velocity = SVector::from([-1.0, 2.0]);
+        assert!((left.map_position(&position).unwrap() - right.map_position(&position).unwrap()).norm() < 1e-12);
+        assert!((left.map_velocity(&velocity).unwrap() - right.map_velocity(&velocity).unwrap()).norm() < 1e-12);
+        assert!((left.map_time(19.0).unwrap() - right.map_time(19.0).unwrap()).abs() < 1e-12);
+    }
+
+    #[test]
+    fn conservation_ledger_rejects_unsupported_same_named_metric_profile() {
+        let mut graph = RegionGraph::<2>::new().unwrap();
+        let mut source = region(1, [-1.0, -1.0], [0.0, 1.0]);
+        let mut target = region(2, [0.0, -1.0], [1.0, 1.0]);
+        source.metric_profile = "hyperbolic-v1".to_string();
+        target.metric_profile = "hyperbolic-v1".to_string();
+        graph.add_region(source).unwrap();
+        graph.add_region(target).unwrap();
+        let map = AffineRegionMap::<2>::identity();
+        let interface = RegionInterface::new(
+            InterfaceId(19),
+            RegionId(1),
+            RegionId(2),
+            1,
+            boundary_x0(),
+            boundary_x0(),
+            map,
+            None,
+            false,
+            CrossingDirection::Either,
+            QuantityPolicy::Exchange,
+            QuantityPolicy::Exchange,
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            graph.add_interface(interface),
+            Err(RegionGraphError::UnsupportedMetricForConservation)
+        );
     }
 
     #[test]
