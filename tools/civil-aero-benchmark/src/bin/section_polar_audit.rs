@@ -30,7 +30,7 @@ fn run() -> Result<(), String> {
         SectionPolarProvenance::nasa_tmr_ladson(),
     )?;
     eprintln!(
-        "2D section-polar diagnostic only; fitted Cd^2 coefficient is empirical and is not wing induced drag. High-angle bins are not physical operating limits. Verify raw bytes with the repository SHA256SUMS before treating this as the pinned source."
+        "2D section-polar diagnostic only; fitted section-polar coefficient b is empirical and is not wing induced drag. High-angle bins are not physical operating limits. Verify raw bytes with the repository SHA256SUMS before treating this as the pinned source."
     );
     for zone in &report.zones {
         eprintln!(
