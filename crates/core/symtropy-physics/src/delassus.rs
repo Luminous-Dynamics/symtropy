@@ -206,7 +206,7 @@ pub fn solve_frictionless_lcp(
         return Err(ReferenceLcpError::NonFinite);
     }
 
-    let matrix_scale = matrix.norm().max(1.0);
+    let matrix_scale = matrix.norm().max(f64::MIN_POSITIVE);
     let mut symmetry_error = 0.0_f64;
     for i in 0..n {
         for j in 0..n {
@@ -244,7 +244,12 @@ pub fn solve_frictionless_lcp(
             // blocks (e.g. redundant contact rows). Feasibility and the
             // original unregularized equations are checked below; no diagonal
             // regularizer is added to conceal a singular physical system.
-            let Ok(active_solution) = active_matrix.svd(true, true).solve(&rhs, tolerance) else {
+            let active_scale = active_matrix.norm().max(f64::MIN_POSITIVE);
+            let svd_tolerance = tolerance * active_scale;
+            let Ok(active_solution) = active_matrix
+                .svd(true, true)
+                .solve(&rhs, svd_tolerance)
+            else {
                 continue;
             };
             for (local_index, global_index) in active.iter().enumerate() {
@@ -252,7 +257,9 @@ pub fn solve_frictionless_lcp(
             }
         }
 
-        let feasibility_scale = 1.0 + matrix_scale * impulses.norm() + q.norm();
+        let feasibility_scale = (matrix_scale * impulses.norm())
+            .max(q.norm())
+            .max(f64::MIN_POSITIVE);
         let feasibility_tolerance = tolerance * feasibility_scale;
         if impulses.iter().any(|value| *value < -feasibility_tolerance) {
             continue;
@@ -358,6 +365,21 @@ mod tests {
         assert!((matrix * &solution.impulses + &q).norm() < 1e-10);
         assert!(solution.impulses.iter().all(|value| *value >= 0.0));
         assert!(solution.max_complementarity_residual < 1e-10);
+    }
+
+    #[test]
+    fn lcp_reference_is_invariant_to_physical_unit_scaling() {
+        for scale in [1e-15_f64, 1.0, 1e15] {
+            let matrix = DMatrix::from_element(1, 1, 2.0 * scale);
+            let q = DVector::from_vec(vec![-scale]);
+            let solution = solve_frictionless_lcp(&matrix, &q, 1e-12).unwrap();
+            assert!(
+                (solution.impulses[0] - 0.5).abs() < 1e-12,
+                "scale={scale:e}, impulse={}",
+                solution.impulses[0]
+            );
+            assert!(solution.residual[0].abs() <= 1e-12 * scale);
+        }
     }
 
     #[test]
