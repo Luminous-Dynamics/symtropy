@@ -19,6 +19,7 @@ pub mod haptic;
 pub mod motor;
 pub mod outcome_ledger;
 pub mod platform;
+pub mod receipt_attestation;
 pub mod recovery_benchmark;
 pub mod safety;
 pub mod sequence_guard;
@@ -75,6 +76,11 @@ pub use recovery_benchmark::{
     ExpectedRecoveryScenario, PairedRecoveryComparison, RecoveryArmSummary, RecoveryBenchmarkArm,
     RecoveryBenchmarkError, RecoveryBenchmarkSummary, RecoveryScenarioClass, RecoveryTrialRecord,
     score_recovery_campaign,
+};
+pub use receipt_attestation::{
+    CommandEvidenceAttestationError, EvidenceSignerRole, EvidenceTrustPolicy,
+    SignedCommandEvidenceReceipt, TrustedEvidenceSigner, sign_command_evidence_receipt,
+    verify_signed_command_evidence_receipt,
 };
 pub use safety::JointSafetyAuthority;
 pub use sequence_guard::{RequestSequenceGuard, SequenceGuardError, SequencedRuntimeAssurance};
