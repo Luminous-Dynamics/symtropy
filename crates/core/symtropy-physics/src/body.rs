@@ -260,7 +260,7 @@ mod tests {
         );
         for (axis, value) in body.inertia.iter().enumerate() {
             assert!(
-                (value - expected).abs() < 1e-12,
+                (*value - expected).abs() < 1e-12,
                 "D={D} axis={axis}: inertia={value}, expected={expected}"
             );
         }
