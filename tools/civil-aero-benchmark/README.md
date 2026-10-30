@@ -43,6 +43,9 @@ Run it from the repository root with:
 cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin section_polar_audit
 ```
 
+
+A test-only, stdlib-only independent Python oracle (`scripts/verify-section-polar-independent.py`) separately parses the raw file, checks its SHA-256 and byte length, refits each zone, recomputes every error metric and verifies that perturbing held-out observations cannot affect calibration coefficients. Production remains Rust; the Python script is only a second implementation used by CI to reduce common-mode test errors.
+
 The strategic next gate is to require a calibrated model's uncertainty and demonstrated domain to travel with every candidate. An optimizer that leaves the verified domain must request a higher-fidelity evaluation or return an abstention—not quietly extrapolate a nominal score.
 
 ## Input and provenance
