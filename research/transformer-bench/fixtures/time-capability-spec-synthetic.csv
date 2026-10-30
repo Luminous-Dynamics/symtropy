@@ -1,0 +1,2 @@
+product_family,characteristic,unit,lower_limit,upper_limit,coverage_factor,max_standard_uncertainty,calibration_class,min_samples_per_window,max_window_mean_range_fraction,max_window_sigma_ratio
+POWER_TRANSFORMER,stack_height,mm,99.0,101.0,2.0,0.02,LENGTH_GAUGE,4,0.10,3.0
