@@ -1253,7 +1253,7 @@ mod tests {
             budget: 0,
             costs: [1; DOMAIN],
         };
-        let e = run_episode(&p, target, &c, Policy::Active, 1);
+        let e = run_episode(&p, target, &c, Policy::Active, 1, 1.0);
         assert_ne!(e.status, "identified_exactly");
     }
     #[test]
@@ -1307,7 +1307,7 @@ mod tests {
         ];
         let survivors = candidates.iter().map(|c| c.sig).collect::<Vec<_>>();
         let costs = [4, 1, 1, 1, 1, 1, 1, 1];
-        let action = choose_mdl_eig_action(&survivors, &candidates, &[0, 1], &costs);
+        let action = choose_mdl_eig_action(&survivors, &candidates, &[0, 1], &costs, 1.0);
         assert_eq!(action, Some(1));
         assert_eq!(choose_uniform_eig_action(&survivors, &[0, 1], &costs), Some(1));
     }
@@ -1353,7 +1353,7 @@ mod tests {
         let costs = [1; DOMAIN];
         assert_eq!(
             choose_mdl_eig_action(&survivors, &candidates, &[0, 1, 2], &costs, 1.0),
-            choose_mdl_eig_action(&survivors, &candidates, &[0, 1, 2], &costs)
+            choose_mdl_eig_action(&survivors, &candidates, &[0, 1, 2], &costs, 1.0)
         );
         assert!(parse_costs("1,1,1").is_err());
         assert!(parse_costs("1,1,1,1,1,1,1,0").is_err());
@@ -1364,7 +1364,7 @@ mod tests {
         let c = enumerate_grammar(2).unwrap();
         let t = tasks().remove(0);
         let a = run_episode(&t.problem, t.target_sig, &c, Policy::Random, 1234, 1.0);
-        let b = run_episode(&t.problem, t.target_sig, &c, Policy::Random, 1234);
+        let b = run_episode(&t.problem, t.target_sig, &c, Policy::Random, 1234, 1.0);
         assert_eq!(a.actions, b.actions);
         assert_eq!(a.remaining, b.remaining);
     }
