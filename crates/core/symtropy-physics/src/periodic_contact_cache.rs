@@ -313,7 +313,7 @@ impl<const D: usize> PeriodicContactCache<D> {
             return Ok(None);
         };
 
-        let mut nearest: Option<(&CachedImpulse<D>, f64)> = None;
+        let mut nearest: Option<(&PeriodicCachedImpulse<D>, f64)> = None;
         for cached in entries {
             let distance = (cached.point - canonical_point).norm();
             if !distance.is_finite() {
@@ -547,7 +547,7 @@ mod tests {
         let domain = domain();
         let mut cache = PeriodicContactCache::<2>::new();
         cache.match_threshold = f64::NAN;
-        assert_eq!(
+        assert!(matches!(
             cache.lookup(
                 &domain,
                 BodyHandle(2),
