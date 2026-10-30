@@ -95,6 +95,8 @@ Relevant methodological baselines:
 - [EurekaBench (2026)](https://arxiv.org/abs/2610.00492): emphasizes whether discovered mechanisms support expert-verified scientific insights, beyond predictive accuracy alone.
 - [Automated Scientific Discovery survey (2025)](https://link.springer.com/article/10.1007/s10994-025-06955-2): surveys equation discovery, experiment selection and autonomous discovery environments, including expected information gain as an evaluation dimension.
 - [SRBench 2025](https://doi.org/10.1145/3712255.3734309): emphasizes reproducible comparisons across diverse symbolic-regression tasks.
+- [GOLLuM, Nature Machine Intelligence (published 28 August 2026)](https://www.nature.com/articles/s42256-026-01283-z): couples a Gaussian-process marginal-likelihood objective to an LLM representation for uncertainty-calibrated experimental optimization. It evaluates 23 cross-domain tasks, reports 36.3% top-5% coverage at a 50-experiment budget, and reaches the traditional GP baseline after a median 41% fewer iterations. This is a strong future comparison for physical experimental design, not a directly comparable Boolean truth-table result.
+- [2026 symbolic-regression survey](https://link.springer.com/article/10.1007/s11831-026-10681-w): reviews 300+ methods and identifies physics-informed validity, multi-objective optimization, semantic awareness and hybrid search as converging themes; it also notes combinatorial and high-dimensional scaling limitations.
 
 The long-term comparison is a shared experiment-design benchmark against uniform max-split, MDL priors, Bayesian information gain, fixed/random baselines, and later established symbolic-regression or scientific-agent systems on exactly matched action spaces and costs.
 
