@@ -219,3 +219,6 @@ Run the synthetic fixture from this package directory:
 The committed fixture has 40 rows across two table presentations and must produce 20 canonical cells. A one-value cross-view mutation is a required negative control. A synthetic coefficient pattern is flagged for review but its values are not changed or removed. A separate stdlib Python parser independently recomputes the reconciliation and checks the Rust CSV output.
 
 This parser work does not ingest or redistribute the official participant file. Its upstream repository revision has no identified root-level license at the pinned revision; terms remain unresolved. The synthetic fixture is not a participant result, experiment, CFD validation result, or evidence that Symtropy beats SU2. See DPW8_V5_PARSER_PROTOCOL_V0_1.md and issue #2936.
+
+
+The V5 auditor also verifies that every angle assigned to a grid level carries the same `GRID_SIZE` and `GRID_FAC`, and that a mesh size is not reused under another grid-level identifier. The CLI emits the exact input byte length and SHA-256 digest on stderr; a caller-supplied path is explicitly labelled unverified and is never upgraded to official-source status.

@@ -21,7 +21,7 @@ The pinned participant result that motivated this adapter is referenced in issue
 7. Reconcile the grid-level and angle-level views by (GRID_LEVEL, ALPHA).
 8. Reject duplicate keys in either view, missing counterpart cells, a different key set, or any field mismatch.
 9. Emit one canonical row per pair with both source line references.
-10. Flag suspicious coefficient patterns as warnings only. Never average, correct, remove, or silently exclude flagged rows.
+10. Require one stable mesh identity (GRID_SIZE and GRID_FAC) per GRID_LEVEL and reject reuse of a GRID_SIZE under multiple levels.\n11. Flag suspicious coefficient patterns as warnings only. Never average, correct, remove, or silently exclude flagged rows.
 
 ## Synthetic known-answer and negative controls
 
@@ -29,7 +29,7 @@ The committed data/dpw8/synthetic_two_view_fixture_v0.1.dat contains four grid l
 
 Rust unit tests and the stdlib Python oracle independently verify:
 - 40 -> 20 cardinality, full two-view equality and deterministic canonical order;
-- exact preservation of both line IDs and dataset/zone metadata;
+- exact preservation of both line IDs and dataset/zone metadata;\n- stable mesh identity across all angles belonging to one grid level;
 - missing-sentinel semantics;
 - suspicious-result detection without mutation;
 - one-field paired-view mutation rejection;
@@ -73,3 +73,6 @@ Optimizer targets are decision quality per total cost, not raw candidate iterati
 - NASA DPW grid archive: https://dpw.larc.nasa.gov/DPW8/
 - ShapeBench benchmark paper: https://arxiv.org/abs/2605.20763
 - SU2 source and release lineage: https://github.com/su2code/SU2
+
+
+Every invocation reports the exact input byte length and SHA-256 digest. The digest identifies the bytes processed; it does not authenticate who supplied them or make an unverified participant file official. Passing a path is always caller-supplied and unverified, even if its name matches the repository fixture.

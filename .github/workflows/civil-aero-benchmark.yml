@@ -218,7 +218,7 @@ jobs:
           cmp /tmp/dpw8-v5-a.csv /tmp/dpw8-v5-b.csv
           cmp /tmp/dpw8-v5-a.txt /tmp/dpw8-v5-b.txt
           test "$(wc -l < /tmp/dpw8-v5-a.csv)" -eq 21
-          grep -q "source_evidence=synthetic_fixture_only" /tmp/dpw8-v5-a.txt
+          grep -q "source_evidence=repository_default_synthetic_fixture" /tmp/dpw8-v5-a.txt
           grep -q "raw_records=40 grid_view_records=20 alpha_view_records=20 canonical_cells=20" /tmp/dpw8-v5-a.txt
           awk -F, 'NR > 1 && $12 == "true" { found++ } END { if (found != 1) exit 1 }' /tmp/dpw8-v5-a.csv
           python3 scripts/verify-dpw8-v5-independent.py data/dpw8/synthetic_two_view_fixture_v0.1.dat /tmp/dpw8-v5-a.csv
