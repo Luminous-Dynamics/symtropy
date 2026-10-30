@@ -425,16 +425,23 @@ fn campaign() -> Vec<(&'static str, Request)> {
         ], 0.0)),
         ("multimodal_indeterminate", base(vec![
             Bin { lower: -3.0, upper: -2.0, mass: 0.25 },
+            Bin { lower: -2.0, upper: -0.5, mass: 0.0 },
             Bin { lower: -0.5, upper: 0.5, mass: 0.50 },
+            Bin { lower: 0.5, upper: 2.0, mass: 0.0 },
             Bin { lower: 2.0, upper: 3.0, mass: 0.25 },
         ], 0.0)),
         ("out_of_spec_reject", base(vec![
             Bin { lower: 0.0, upper: 1.0, mass: 0.02 },
+            Bin { lower: 1.0, upper: 2.0, mass: 0.0 },
             Bin { lower: 2.0, upper: 3.0, mass: 0.98 },
         ], 0.0)),
-        ("unknown_tail_abstains", base(vec![
-            Bin { lower: -1.0, upper: 1.0, mass: 0.98 },
-        ], 0.02)),
+        ("unknown_tail_abstains", {
+            let mut request = base(vec![
+                Bin { lower: -1.0, upper: 1.0, mass: 0.98 },
+            ], 0.02);
+            request.policy.min_accept_pc = 0.99;
+            request
+        }),
         ("uniform_half_inside", base(vec![
             Bin { lower: -2.0, upper: 2.0, mass: 1.0 },
         ], 0.0)),
@@ -582,6 +589,7 @@ mod tests {
         assert_eq!(classify(&r).reason, "SPECIFICATION_REVISION_MISMATCH");
 
         let mut r = campaign()[0].1.clone();
+        r.predictive_calibration.valid_until_ns = r.policy.effective_until_ns + 10;
         r.decision_time_ns = r.policy.effective_until_ns + 1;
         assert_eq!(classify(&r).reason, "DECISION_POLICY_NOT_EFFECTIVE");
     }
