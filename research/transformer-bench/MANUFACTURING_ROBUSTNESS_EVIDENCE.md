@@ -26,9 +26,9 @@ The validator requires:
 - a frozen discrepancy-scenario set, amplification method/score/audit digest and at least five independent holdout lots;
 - different model version identifiers for acquisition and amplification audit;
 - positive measurement standard uncertainty and comparable cost units within the input file;
-- an explicit eligibility state and a decision-receipt digest.
+- an explicit eligibility state and a decision-receipt digest, cross-checked against the manufacturing-acceptance report for the same product ID.
 
-It emits candidate ID, representativeness, amplification risk, measurement standard uncertainty, acquisition cost, cost unit, and the hard eligibility state for a Symthaea adapter. Only ELIGIBLE maps to `eligible=true`; INELIGIBLE and UNKNOWN remain blocked.
+It emits candidate ID, representativeness, amplification risk, measurement standard uncertainty, acquisition cost, cost unit, and the hard eligibility state for a Symthaea adapter. It reads the `manufacturing-acceptance` output and rejects an ELIGIBLE claim when that product is blocked or absent from the report. Only an independently accepted product with an ELIGIBLE candidate state maps to `eligible=true`; INELIGIBLE and UNKNOWN remain blocked.
 
 ## Important limits
 
