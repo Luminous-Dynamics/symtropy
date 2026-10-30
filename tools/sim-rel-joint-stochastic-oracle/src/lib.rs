@@ -23,6 +23,9 @@ const MAX_INITIAL_BELIEF_TUPLES: usize = 65_536;
 const MAX_HORIZON: usize = 12;
 const MAX_POLICY_NODES: usize = 65_536;
 
+type JointTupleKey = (usize, usize, usize);
+type ObservationMassMap = BTreeMap<usize, BTreeMap<JointTupleKey, Rational>>;
+
 /// A normalized non-negative rational with checked arithmetic.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct Rational {
@@ -722,10 +725,7 @@ impl Solver<'_> {
         action: usize,
     ) -> Result<(Rational, Vec<ObservationBranch>), String> {
         let mut hazard_probability = Rational::zero();
-        let mut by_observation: BTreeMap<
-            usize,
-            BTreeMap<(usize, usize, usize), Rational>,
-        > = BTreeMap::new();
+        let mut by_observation: ObservationMassMap = BTreeMap::new();
 
         for point in belief {
             let row_index = self.kernel.row_index(
@@ -748,7 +748,7 @@ impl Solver<'_> {
                             outcome.next_sensor_state,
                         );
                         let states = by_observation.entry(observation).or_default();
-                        let previous = states.get(&key).copied().unwrap_or_else(Rational::zero);
+                        let previous = states.get(&key).copied().unwrap_or(Rational::zero());
                         states.insert(key, previous.checked_add(path_mass)?);
                     }
                 }
@@ -1035,6 +1035,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn base_kernel(
         hypothesis_count: usize,
         physical_count: usize,
@@ -1306,7 +1307,7 @@ mod tests {
         belief: &[JointMass],
         action: usize,
     ) -> Vec<(usize, Vec<JointMass>)> {
-        let mut groups: BTreeMap<usize, BTreeMap<(usize, usize, usize), Rational>> = BTreeMap::new();
+        let mut groups: ObservationMassMap = BTreeMap::new();
         for point in belief {
             let index = (((point.hypothesis * kernel.physical_state_count
                 + point.physical_state)
@@ -1319,7 +1320,7 @@ mod tests {
                     let weighted = point.mass.checked_mul(outcome.probability).unwrap();
                     let key = (point.hypothesis, outcome.next_physical_state, outcome.next_sensor_state);
                     let row = groups.entry(observation).or_default();
-                    let old = row.get(&key).copied().unwrap_or_else(Rational::zero);
+                    let old = row.get(&key).copied().unwrap_or(Rational::zero());
                     row.insert(key, old.checked_add(weighted).unwrap());
                 }
             }
@@ -1425,7 +1426,9 @@ mod tests {
         frontier
     }
 
-    fn objective_keys(points: &[FrontierPoint]) -> Vec<(Rational, Rational, Rational, Rational, Rational)> {
+    type ObjectiveKey = (Rational, Rational, Rational, Rational, Rational);
+
+    fn objective_keys(points: &[FrontierPoint]) -> Vec<ObjectiveKey> {
         let mut keys: Vec<_> = points
             .iter()
             .map(|point| (
