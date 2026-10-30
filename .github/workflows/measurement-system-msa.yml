@@ -1,0 +1,61 @@
+name: Crossed Measurement System Analysis
+
+on:
+  pull_request:
+    paths:
+      - "research/transformer-bench/src/bin/measurement-system-msa.rs"
+      - "research/transformer-bench/fixtures/measurement-system-msa-*.csv"
+      - "research/transformer-bench/MEASUREMENT_SYSTEM_ANALYSIS.md"
+      - "research/transformer-bench/Cargo.toml"
+      - ".github/workflows/measurement-system-msa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: measurement-system-msa-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  msa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+      - name: Compile and test crossed ANOVA implementation
+        run: cargo test --locked --manifest-path research/transformer-bench/Cargo.toml --bin measurement-system-msa
+      - name: Low-GRR crossed study is reportable
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin measurement-system-msa -- \
+            research/transformer-bench/fixtures/measurement-system-msa-low-noise-synthetic.csv \
+            research/transformer-bench/fixtures/measurement-system-msa-spec-synthetic.csv \
+            research/transformer-bench/fixtures/measurement-system-msa-calibration-synthetic.csv \
+            "$RUNNER_TEMP/msa-low.csv"
+          grep -F "GUIDANCE_LT_10_PERCENT,NDC_AT_LEAST_5,MEASUREMENT_SYSTEM_ANALYZED" "$RUNNER_TEMP/msa-low.csv"
+      - name: High-GRR shifted measurement system is flagged
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin measurement-system-msa -- \
+            research/transformer-bench/fixtures/measurement-system-msa-high-grr-synthetic.csv \
+            research/transformer-bench/fixtures/measurement-system-msa-spec-synthetic.csv \
+            research/transformer-bench/fixtures/measurement-system-msa-calibration-synthetic.csv \
+            "$RUNNER_TEMP/msa-high.csv"
+          grep -F "GUIDANCE_GT_30_PERCENT,NDC_BELOW_5,MEASUREMENT_SYSTEM_ANALYZED" "$RUNNER_TEMP/msa-high.csv"
+      - name: Incomplete crossed grid must fail closed
+        run: |
+          if cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin measurement-system-msa -- \
+            research/transformer-bench/fixtures/measurement-system-msa-incomplete-negative.csv \
+            research/transformer-bench/fixtures/measurement-system-msa-spec-synthetic.csv \
+            research/transformer-bench/fixtures/measurement-system-msa-calibration-synthetic.csv \
+            "$RUNNER_TEMP/msa-incomplete.csv"; then
+            echo "incomplete crossed grid unexpectedly succeeded"
+            exit 1
+          fi
+      - name: Expired calibration must block MSA noise estimate
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin measurement-system-msa -- \
+            research/transformer-bench/fixtures/measurement-system-msa-observations-expired-negative.csv \
+            research/transformer-bench/fixtures/measurement-system-msa-spec-expired-negative.csv \
+            research/transformer-bench/fixtures/measurement-system-msa-calibration-expired-negative.csv \
+            "$RUNNER_TEMP/msa-expired.csv"
+          grep -F "BLOCKED_INVALID_METROLOGY" "$RUNNER_TEMP/msa-expired.csv"
