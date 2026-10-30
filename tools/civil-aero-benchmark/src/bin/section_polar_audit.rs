@@ -1,7 +1,9 @@
 use std::{env, fs, process};
 
 use civil_aero_benchmark::reference_data::parse_ladson_force_data;
-use civil_aero_benchmark::section_polar::{audit_section_polar, report_to_csv};
+use civil_aero_benchmark::section_polar::{
+    audit_section_polar, report_to_csv, SectionPolarProvenance,
+};
 
 fn main() {
     if let Err(error) = run() {
@@ -23,7 +25,10 @@ fn run() -> Result<(), String> {
     let input = fs::read_to_string(&input_path)
         .map_err(|error| format!("cannot read {input_path}: {error}"))?;
     let parsed = parse_ladson_force_data(&input)?;
-    let report = audit_section_polar(&parsed.observations)?;
+    let report = audit_section_polar(
+        &parsed.observations,
+        SectionPolarProvenance::nasa_tmr_ladson(),
+    )?;
     eprintln!(
         "2D section-polar diagnostic only; fitted Cd^2 coefficient is empirical and is not wing induced drag. High-angle bins are not physical operating limits. Verify raw bytes with the repository SHA256SUMS before treating this as the pinned source."
     );
