@@ -80,7 +80,6 @@ fn make_corpus(count: usize, kind: FixtureKind) -> Vec<PairFixture> {
     let mut state = kind.seed();
     let cell = lattice();
     let skew_vector = cell.basis().column(1).into_owned();
-    let first_vector = cell.basis().column(0).into_owned();
     let mut corpus = Vec::with_capacity(count);
 
     for _ in 0..count {
@@ -129,9 +128,6 @@ fn make_corpus(count: usize, kind: FixtureKind) -> Vec<PairFixture> {
             }
         };
 
-        // Consume a deterministic value from both basis vectors to bind the
-        // fixtures to the named lattice geometry and avoid unused helpers.
-        let _basis_scale = first_vector.norm() * 0.0;
         corpus.push(PairFixture {
             transform_a: Transform::from_translation(Point(a)),
             transform_b: Transform::from_translation(Point(b)),
