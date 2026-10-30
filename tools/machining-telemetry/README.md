@@ -11,7 +11,7 @@ This first tranche qualifies measurement admission and deterministic features on
 - v0.1 supports only vibration in m/s² and current in A; other units fail closed rather than being silently converted.
 - Calibration must remain valid through the entire window.
 - Per-channel features: mean, RMS, peak-to-peak, crest factor, unbiased sample variance and population excess kurtosis.
-- The cross-channel diagnostic is nearest-sample Pearson correlation, with no interpolation and a maximum nearest skew of 1 ms. It is allowed only when both clock maps are within 100 μs uncertainty. This diagnostic is not a causal or physical coupling model.
+- Cross-channel Pearson correlation is available only for distinct vibration/current sensors on the same reference clock, with combined clock uncertainty <=100 μs, identical nominal sample rates and at least three exact co-timed samples. No nearest-neighbour matching or interpolation is allowed. Unequal-rate fusion returns INCONCLUSIVE until a versioned anti-alias resampling/filter and phase-delay contract is implemented. This avoids silently down-sampling 25 kHz vibration into 500 Hz current and producing an aliased but plausible correlation. Even exact-rate Pearson is a descriptive diagnostic, not a causal or physical coupling model.
 
 The source digest is supplied by the upstream admission layer and carried through the feature row; this program does not pretend to compute a digest over unknown raw source bytes. The workflow separately SHA-256 hashes the checked-in source and exact output bytes.
 
