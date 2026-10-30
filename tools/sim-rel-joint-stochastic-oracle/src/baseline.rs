@@ -1,7 +1,6 @@
 //! Matched information-gain baselines for the exact joint stochastic model.
 
 use super::{JointKernel, JointMass, Rational};
-use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// One-step expected information gain about the mechanism hypothesis.
@@ -157,7 +156,3 @@ fn to_f64(value: Rational) -> f64 {
     value.numerator() as f64 / value.denominator() as f64
 }
 
-#[allow(dead_code)]
-fn _ordering_is_total(left: f64, right: f64) -> Ordering {
-    left.total_cmp(&right)
-}
