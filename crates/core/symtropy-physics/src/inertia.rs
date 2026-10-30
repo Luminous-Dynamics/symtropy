@@ -29,6 +29,8 @@ pub enum RotationalInertiaError {
     NotPositiveSemidefinite,
     /// Uniform-ball mass or radius is negative.
     InvalidMassProperties,
+    /// The body mass disagrees with the mass used to construct the inertia.
+    MassMismatch,
     /// A requested inverse is undefined because at least one rotation plane has zero inertia.
     SingularInertia,
     /// An inverse-operation tolerance is non-finite or non-positive.
@@ -48,6 +50,8 @@ pub enum RotationalInertiaError {
 #[derive(Clone, Debug)]
 pub struct BivectorInertia<const D: usize> {
     second_moment: SMatrix<f64, D, D>,
+    /// Total mass when supplied by a mass-aware constructor; None for a raw S matrix.
+    total_mass: Option<f64>,
     principal_second_moments: SVector<f64, D>,
     principal_axes: SMatrix<f64, D, D>,
 }
@@ -101,9 +105,64 @@ impl<const D: usize> BivectorInertia<D> {
 
         Ok(Self {
             second_moment: projected_second_moment,
+            total_mass: None,
             principal_second_moments,
             principal_axes,
         })
+    }
+
+    /// Construct from a centered second-moment matrix and its total mass.
+    ///
+    /// Unlike `from_second_moment`, this retains the mass metadata so a
+    /// `RigidBody` can reject an operator built for a different translational
+    /// mass. The matrix remains the caller's authoritative centered moment.
+    pub fn from_second_moment_with_mass(
+        total_mass: f64,
+        second_moment: SMatrix<f64, D, D>,
+    ) -> Result<Self, RotationalInertiaError> {
+        if !total_mass.is_finite() || total_mass < 0.0 {
+            return Err(RotationalInertiaError::InvalidMassProperties);
+        }
+        let mut inertia = Self::from_second_moment(second_moment)?;
+        inertia.total_mass = Some(total_mass);
+        Ok(inertia)
+    }
+
+    /// Return the constructor's total-mass metadata, if known.
+    ///
+    /// Raw second-moment matrices intentionally return None because mass
+    /// cannot be recovered uniquely from S without an additional geometric or
+    /// density model.
+    pub fn total_mass(&self) -> Option<f64> {
+        self.total_mass
+    }
+
+    /// Validate this operator against the rigid body's translational mass.
+    ///
+    /// Raw operators created by `from_second_moment` have unknown mass and
+    /// remain accepted for compatibility. Mass-aware constructors fail
+    /// closed when attached to a body with inconsistent mass.
+    pub fn validate_body_mass(
+        &self,
+        body_mass: f64,
+        relative_tolerance: f64,
+    ) -> Result<(), RotationalInertiaError> {
+        if !body_mass.is_finite() || body_mass < 0.0 {
+            return Err(RotationalInertiaError::InvalidMassProperties);
+        }
+        if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 {
+            return Err(RotationalInertiaError::InvalidTolerance);
+        }
+        if let Some(inertia_mass) = self.total_mass {
+            let scale = body_mass
+                .abs()
+                .max(inertia_mass.abs())
+                .max(f64::MIN_POSITIVE);
+            if (body_mass - inertia_mass).abs() > relative_tolerance * scale {
+                return Err(RotationalInertiaError::MassMismatch);
+            }
+        }
+        Ok(())
     }
 
     /// Combine two inertia operators whose component centers are expressed
@@ -133,6 +192,9 @@ impl<const D: usize> BivectorInertia<D> {
             return Err(RotationalInertiaError::InvalidMassProperties);
         }
 
+        inertia_a.validate_body_mass(mass_a, 1e-10)?;
+        inertia_b.validate_body_mass(mass_b, 1e-10)?;
+
         let total_mass = mass_a + mass_b;
         let center_residual = offset_a * mass_a + offset_b * mass_b;
         let offset_scale = offset_a.norm().max(offset_b.norm()).max(f64::MIN_POSITIVE);
@@ -144,7 +206,7 @@ impl<const D: usize> BivectorInertia<D> {
             + (offset_a * offset_a.transpose()) * mass_a
             + inertia_b.second_moment
             + (offset_b * offset_b.transpose()) * mass_b;
-        Self::from_second_moment(second_moment)
+        Self::from_second_moment_with_mass(total_mass, second_moment)
     }
 
     /// Construct from a discrete set of point masses.
@@ -194,7 +256,7 @@ impl<const D: usize> BivectorInertia<D> {
             second_moment += (offset * offset.transpose()) * mass;
         }
 
-        Self::from_second_moment(second_moment)
+        Self::from_second_moment_with_mass(total_mass, second_moment)
     }
 
     /// Construct the centered inertia operator for a uniform solid D-ball.
@@ -222,7 +284,10 @@ impl<const D: usize> BivectorInertia<D> {
         }
 
         let second_moments = semi_axes.map(|axis| mass * axis * axis / (D as f64 + 2.0));
-        Self::from_second_moment(SMatrix::<f64, D, D>::from_diagonal(&second_moments))
+        Self::from_second_moment_with_mass(
+            mass,
+            SMatrix::<f64, D, D>::from_diagonal(&second_moments),
+        )
     }
 
     /// Rotate the mass distribution into another coordinate frame.
@@ -235,6 +300,7 @@ impl<const D: usize> BivectorInertia<D> {
         let r = rotation.to_matrix();
         Self {
             second_moment: r * self.second_moment * r.transpose(),
+            total_mass: self.total_mass,
             principal_second_moments: self.principal_second_moments,
             principal_axes: r * self.principal_axes,
         }
