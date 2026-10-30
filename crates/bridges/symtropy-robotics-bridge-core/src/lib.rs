@@ -5,6 +5,7 @@
 
 pub mod agent;
 pub mod assurance;
+pub mod attested_recovery_campaign;
 pub mod audit_receipt;
 pub mod command_evidence;
 pub mod control;
@@ -27,6 +28,10 @@ pub use agent::{RoboticAgent, spawn_robot_body};
 pub use assurance::{
     AxisAlignedWorkspace, EmbodimentEnvelope, GateDecision, IntentKind, RuntimeAssuranceGate,
     RuntimeAssurancePolicy, RuntimeSafetyState, VetoReason,
+};
+pub use attested_recovery_campaign::{
+    AttestedRecoveryCampaignError, AttestedRecoveryCampaignSummary, AttestedRecoveryTrialRecord,
+    RecoveryCampaignEvidencePolicy, score_attested_recovery_campaign,
 };
 pub use audit_receipt::{
     COMMAND_EVIDENCE_RECEIPT_SCHEMA_VERSION, CommandEvidenceReceipt, CommandEvidenceReceiptContext,
