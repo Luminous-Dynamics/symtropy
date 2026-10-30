@@ -8,6 +8,8 @@ For closed specification [LSL, USL], measured value y and qualified expanded unc
 
     [y-U, y+U]
 
+The lower and upper measurement bounds use one-sided, error-free `TwoSum` residual checks: only when round-to-nearest would move a bound inward is the result advanced by one representable float outward. Exact arithmetic cases such as 11-1=10 retain the exact boundary, so a legitimate closed-boundary touch is not needlessly widened. The acceptance thresholds reported in the receipt use the corresponding outward direction.
+
 The default guard-band classification is:
 
 - ACCEPT iff y-U >= LSL and y+U <= USL.
