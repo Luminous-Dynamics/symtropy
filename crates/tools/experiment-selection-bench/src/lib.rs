@@ -216,6 +216,8 @@ pub enum PolicyKind {
     Halton,
     LatinHypercube,
     GaussianProcessUcb,
+    /// Reserved for an externally supplied policy through run_trial_with_policy.
+    Symthaea,
 }
 
 impl PolicyKind {
@@ -234,6 +236,7 @@ impl PolicyKind {
             Self::Halton => "halton",
             Self::LatinHypercube => "latin_hypercube",
             Self::GaussianProcessUcb => "gp_ucb",
+            Self::Symthaea => "symthaea",
         }
     }
 }
@@ -420,6 +423,9 @@ pub fn make_policy(kind: PolicyKind, seed: u64, budget: usize) -> Box<dyn Candid
         PolicyKind::GaussianProcessUcb => {
             Box::new(GaussianProcessUcbPolicy::new(seed, GP_CANDIDATE_COUNT))
         }
+        PolicyKind::Symthaea => {
+            panic!("Symthaea policy requires a caller-supplied CandidatePolicy adapter")
+        }
     }
 }
 
@@ -431,6 +437,9 @@ pub struct TrialResult {
     pub budget: usize,
     pub initial_design_size: usize,
     pub observations: Vec<Observation>,
+    pub proposal_attempts: usize,
+    pub completed_evaluations: usize,
+    pub invalid_proposals: usize,
     pub best_feasible_observed: Option<f64>,
     pub best_feasible_truth: Option<f64>,
     pub final_regret: f64,
@@ -443,7 +452,7 @@ pub struct TrialResult {
 
 impl TrialResult {
     pub fn high_fidelity_calls(&self) -> usize {
-        self.observations.len()
+        self.completed_evaluations
     }
 }
 
@@ -458,33 +467,61 @@ pub fn run_trial(
     budget: usize,
     initial_design_size: usize,
 ) -> TrialResult {
-    assert!(budget > 0, "evaluation budget must be positive");
+    let policy = make_policy(policy_kind, seed, budget);
+    run_trial_with_policy(
+        problem,
+        policy_kind,
+        seed,
+        budget,
+        initial_design_size,
+        policy,
+    )
+}
+
+/// Run one trial using an externally supplied policy adapter. This is the
+/// integration point for Symthaea; the policy sees only prior observations and
+/// never receives the true objective or optimum.
+pub fn run_trial_with_policy(
+    problem: SyntheticProblem,
+    policy_kind: PolicyKind,
+    seed: u64,
+    budget: usize,
+    initial_design_size: usize,
+    mut policy: Box<dyn CandidatePolicy>,
+) -> TrialResult {
+    assert!(budget > 0, "proposal budget must be positive");
     assert!(
         initial_design_size <= budget,
         "initial design cannot exceed the total budget"
     );
+    assert!(!policy.name().trim().is_empty(), "policy name must be non-empty");
 
     let started = Instant::now();
     let design = initial_design(seed, initial_design_size);
     let mut observations: Vec<Observation> = design
         .into_iter()
-        .map(|point| problem.observe(point, seed))
+        .map(|point| evaluate_candidate(problem, point, seed))
         .collect();
-    let mut policy = make_policy(policy_kind, seed, budget);
 
     while observations.len() < budget {
         let proposal_index = observations.len() - initial_design_size;
         let point = policy.propose(&observations, proposal_index, seed);
-        let observation = problem.observe(point, seed);
+        // Invalid proposals consume one proposal slot but are not run through
+        // the objective and are never admitted to the GP training set.
+        let observation = evaluate_candidate(problem, point, seed);
         observations.push(observation);
     }
 
-    let best_feasible_observed = observations
+    let completed: Vec<&Observation> = observations
+        .iter()
+        .filter(|observation| observation.status == ObservationStatus::Completed)
+        .collect();
+    let best_feasible_observed = completed
         .iter()
         .filter(|observation| observation.feasible)
         .map(|observation| observation.objective)
         .reduce(f64::max);
-    let best_feasible_truth = observations
+    let best_feasible_truth = completed
         .iter()
         .filter(|observation| observation.feasible)
         .map(|observation| problem.truth(observation.point).0)
@@ -492,26 +529,33 @@ pub fn run_trial(
     let final_regret = best_feasible_truth
         .map(|best| (problem.optimum_value() - best).max(0.0))
         .unwrap_or(problem.optimum_value());
+
     let mut best_so_far_truth: Option<f64> = None;
     let mut regret_curve = Vec::with_capacity(observations.len());
     for observation in &observations {
-        if observation.feasible {
+        if observation.status == ObservationStatus::Completed && observation.feasible {
             let truth = problem.truth(observation.point).0;
-            best_so_far_truth = Some(
-                best_so_far_truth.map_or(truth, |previous| previous.max(truth))
-            );
+            best_so_far_truth =
+                Some(best_so_far_truth.map_or(truth, |previous| previous.max(truth)));
         }
         regret_curve.push(
             best_so_far_truth
                 .map(|best| (problem.optimum_value() - best).max(0.0))
-                .unwrap_or(problem.optimum_value())
+                .unwrap_or(problem.optimum_value()),
         );
     }
     let cumulative_simple_regret = regret_curve.iter().sum::<f64>();
 
+    let completed_evaluations = completed.len();
+    let invalid_proposals = observations
+        .iter()
+        .filter(|observation| observation.status == ObservationStatus::InvalidProposal)
+        .count();
     let infeasible_calls = observations
         .iter()
-        .filter(|observation| !observation.feasible)
+        .filter(|observation| {
+            observation.status == ObservationStatus::Completed && !observation.feasible
+        })
         .count();
 
     TrialResult {
@@ -520,6 +564,9 @@ pub fn run_trial(
         seed,
         budget,
         initial_design_size,
+        proposal_attempts: observations.len(),
+        completed_evaluations,
+        invalid_proposals,
         observations,
         best_feasible_observed,
         best_feasible_truth,
@@ -807,8 +854,15 @@ impl GaussianProcess {
         if observations.len() < 2 {
             return None;
         }
-        let points: Vec<[f64; 2]> = observations.iter().map(|item| item.point).collect();
-        let values: Vec<f64> = observations
+        let valid_observations: Vec<&Observation> = observations
+            .iter()
+            .filter(|item| item.status == ObservationStatus::Completed)
+            .collect();
+        if valid_observations.len() < 2 {
+            return None;
+        }
+        let points: Vec<[f64; 2]> = valid_observations.iter().map(|item| item.point).collect();
+        let values: Vec<f64> = valid_observations
             .iter()
             .map(|item| item.penalized_reward())
             .collect();
@@ -1120,6 +1174,44 @@ mod tests {
             );
             assert_eq!(&result.observations[..8], &random.observations[..8]);
         }
+    }
+
+    struct InvalidProposalPolicy;
+
+    impl CandidatePolicy for InvalidProposalPolicy {
+        fn name(&self) -> &'static str {
+            "invalid_control"
+        }
+
+        fn propose(
+            &mut self,
+            _observations: &[super::Observation],
+            _proposal_index: usize,
+            _seed: u64,
+        ) -> [f64; 2] {
+            [f64::NAN, 2.0]
+        }
+    }
+
+    #[test]
+    fn invalid_external_proposals_are_charged_but_not_evaluated() {
+        let result = super::run_trial_with_policy(
+            SyntheticProblem::new(ProblemId::SmoothBowl),
+            PolicyKind::Symthaea,
+            9,
+            16,
+            8,
+            Box::new(InvalidProposalPolicy),
+        );
+        assert_eq!(result.proposal_attempts, 16);
+        assert_eq!(result.invalid_proposals, 8);
+        assert_eq!(result.completed_evaluations, 8);
+        assert_eq!(result.high_fidelity_calls(), 8);
+        assert_eq!(result.observations.len(), 16);
+        assert!(result.observations[8..].iter().all(|item| {
+            item.status == super::ObservationStatus::InvalidProposal
+        }));
+        assert!(result.regret_curve[8..].iter().all(|regret| regret.is_finite()));
     }
 
     #[test]
