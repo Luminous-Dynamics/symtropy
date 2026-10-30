@@ -11,10 +11,10 @@ const SAMPLE_HEADER: [&str; 14] = [
     "characteristic", "unit", "window_id", "sample_id", "measured_utc",
     "observed_value", "standard_uncertainty", "instrument_id", "calibration_id",
 ];
-const SPEC_HEADER: [&str; 10] = [
+const SPEC_HEADER: [&str; 11] = [
     "product_family", "characteristic", "unit", "lower_limit", "upper_limit",
     "coverage_factor", "max_standard_uncertainty", "calibration_class",
-    "min_samples_per_window", "max_window_mean_range_fraction",
+    "min_samples_per_window", "max_window_mean_range_fraction", "max_window_sigma_ratio",
 ];
 const CALIBRATION_HEADER: [&str; 8] = [
     "calibration_id", "instrument_id", "calibration_class", "valid_from_utc",
@@ -50,6 +50,7 @@ struct Spec {
     calibration_class: String,
     min_samples: usize,
     max_mean_range_fraction: f64,
+    max_window_sigma_ratio: f64,
 }
 #[derive(Clone, Debug)]
 struct Calibration {
@@ -62,9 +63,7 @@ struct Calibration {
 }
 #[derive(Clone, Debug)]
 struct WindowStats {
-    id: String,
     start: String,
-    count: usize,
     mean: f64,
     standard_deviation: f64,
     guarded_cpk: f64,
@@ -90,6 +89,7 @@ struct Report {
     min_window_sigma: Option<f64>,
     variance_ratio: Option<f64>,
     drift_warning: bool,
+    variance_shift_warning: bool,
     diagnostic: String,
 }
 
@@ -289,8 +289,10 @@ fn read_specs(path: &str) -> Result<Vec<Spec>, String> {
         let max_uncertainty = number(&f[6], "max_standard_uncertainty")?;
         let min_samples: usize = f[8].parse().map_err(|_| format!("{path}: min_samples_per_window invalid"))?;
         let max_mean_range_fraction = number(&f[9], "max_window_mean_range_fraction")?;
+        let max_window_sigma_ratio = number(&f[10], "max_window_sigma_ratio")?;
         if lower >= upper || coverage <= 0.0 || max_uncertainty <= 0.0
-            || min_samples < 2 || !(0.0..=1.0).contains(&max_mean_range_fraction) {
+            || min_samples < 2 || !(0.0..=1.0).contains(&max_mean_range_fraction)
+            || max_window_sigma_ratio < 1.0 {
             return Err(format!("{path}: invalid limits, uncertainty, sample minimum, or drift threshold"));
         }
         output.push(Spec {
@@ -304,6 +306,7 @@ fn read_specs(path: &str) -> Result<Vec<Spec>, String> {
             calibration_class: required(&f[7], "calibration_class")?,
             min_samples,
             max_mean_range_fraction,
+            max_window_sigma_ratio,
         });
     }
     Ok(output)
@@ -419,9 +422,10 @@ fn evaluate(
             windows.entry(sample.window.clone()).or_default().push(sample);
         }
 
+        let total_windows = windows.len();
         let mut window_stats = Vec::new();
         let mut insufficient_windows = 0usize;
-        for (window_id, mut window) in windows {
+        for (_window_id, mut window) in windows {
             window.sort_by(|a, b| a.measured_at.cmp(&b.measured_at));
             let values: Vec<f64> = window.iter().map(|s| s.value).collect();
             if values.len() < spec.min_samples {
@@ -438,9 +442,7 @@ fn evaluate(
                 continue;
             };
             window_stats.push(WindowStats {
-                id: window_id,
                 start: window.first().map(|s| s.measured_at.clone()).unwrap_or_default(),
-                count: values.len(),
                 mean: center,
                 standard_deviation: sd,
                 guarded_cpk: cpk,
@@ -466,6 +468,7 @@ fn evaluate(
             _ => None,
         };
         let drift_warning = window_mean_range_fraction.is_some_and(|v| v > spec.max_mean_range_fraction);
+        let variance_shift_warning = variance_ratio.is_some_and(|v| v > spec.max_window_sigma_ratio);
 
         let diagnostic = if invalid_calibrations > 0 {
             "BLOCKED_INVALID_METROLOGY"
@@ -473,17 +476,17 @@ fn evaluate(
             "INSUFFICIENT_WINDOW_DATA"
         } else if guarded_exceptions > 0 {
             "GUARDED_MEASUREMENT_EXCEPTIONS"
-        } else if drift_warning {
-            "TIME_DEPENDENT_DRIFT_WARNING"
+        } else if drift_warning || variance_shift_warning {
+            "TIME_DEPENDENT_DRIFT_OR_VARIANCE_WARNING"
         } else {
             "REVIEW_REQUIRED_PROCESS_STABILITY_NOT_ESTABLISHED"
         };
         reports.push(Report {
             family, product, component, lot, station, characteristic, unit: spec.unit.clone(),
-            windows: window_stats.len(), valid_samples: seen_calibrated, invalid_calibrations,
+            windows: total_windows, valid_samples: seen_calibrated, invalid_calibrations,
             guarded_exceptions, insufficient_windows, pooled_cpk, worst_window_cpk,
             window_mean_range_fraction, max_window_sigma, min_window_sigma, variance_ratio,
-            drift_warning, diagnostic: diagnostic.to_string(),
+            drift_warning, variance_shift_warning, diagnostic: diagnostic.to_string(),
         });
     }
     Ok(reports)
@@ -495,17 +498,17 @@ fn format_optional(value: Option<f64>) -> String {
 
 fn write_report(path: &str, reports: &[Report]) -> Result<(), String> {
     let mut out = String::from(
-        "product_family,product_id,component_id,component_lot_id,station_id,characteristic,unit,windows,valid_samples,invalid_calibrations,guarded_exceptions,insufficient_windows,pooled_guarded_cpk,worst_window_guarded_cpk,window_mean_range_fraction,max_window_sigma,min_window_sigma,variance_ratio,drift_warning,diagnostic\n"
+        "product_family,product_id,component_id,component_lot_id,station_id,characteristic,unit,windows,valid_samples,invalid_calibrations,guarded_exceptions,insufficient_windows,pooled_guarded_cpk,worst_window_guarded_cpk,window_mean_range_fraction,max_window_sigma,min_window_sigma,variance_ratio,drift_warning,variance_shift_warning,diagnostic\n"
     );
     for r in reports {
         out.push_str(&format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
             r.family, r.product, r.component, r.lot, r.station, r.characteristic, r.unit,
             r.windows, r.valid_samples, r.invalid_calibrations, r.guarded_exceptions,
             r.insufficient_windows, format_optional(r.pooled_cpk), format_optional(r.worst_window_cpk),
             format_optional(r.window_mean_range_fraction), format_optional(r.max_window_sigma),
             format_optional(r.min_window_sigma), format_optional(r.variance_ratio),
-            r.drift_warning, r.diagnostic
+            r.drift_warning, r.variance_shift_warning, r.diagnostic
         ));
     }
     fs::write(path, out).map_err(|e| format!("cannot write {path}: {e}"))
@@ -530,7 +533,7 @@ mod tests {
             family: "POWER_TRANSFORMER".into(), characteristic: "stack_height".into(),
             unit: "mm".into(), lower: 99.0, upper: 101.0, coverage: 2.0,
             max_uncertainty: 0.02, calibration_class: "LENGTH".into(),
-            min_samples: 4, max_mean_range_fraction: 0.1,
+            min_samples: 4, max_mean_range_fraction: 0.1, max_window_sigma_ratio: 3.0,
         }
     }
 
