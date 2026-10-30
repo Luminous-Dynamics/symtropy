@@ -695,6 +695,44 @@ mod tests {
             obligation.id == "solver-executable-identity"
                 && obligation.resolution == Resolution::Blocked
         }));
+        let reversed = compile_with_artifacts(
+            source.as_bytes(),
+            &[
+                SuppliedArtifact { role: ArtifactRole::Mesh, bytes: mesh },
+                SuppliedArtifact { role: ArtifactRole::SolverConfig, bytes: config },
+            ],
+        );
+        assert_eq!(reversed.artifact_manifest_sha256, report.artifact_manifest_sha256);
+        assert_eq!(reversed.verified_artifacts, report.verified_artifacts);
+    }
+
+    #[test]
+    fn duplicate_or_oversized_artifacts_fail_closed() {
+        let original = std::str::from_utf8(FIXTURE).unwrap();
+        let config = b"frozen config bytes";
+        let config_oid = git_blob_oid(config);
+        let source = replace_once(
+            original,
+            "38d60d0ff09853a9fcf51559c8bd1e56a829ebe7",
+            &config_oid,
+        );
+        let duplicate = compile_with_artifacts(
+            source.as_bytes(),
+            &[
+                SuppliedArtifact { role: ArtifactRole::SolverConfig, bytes: config },
+                SuppliedArtifact { role: ArtifactRole::SolverConfig, bytes: config },
+            ],
+        );
+        assert_eq!(duplicate.disposition, Disposition::Invalid);
+        assert!(duplicate.diagnostics.iter().any(|message| message.contains("duplicate supplied artifact role")));
+
+        let oversized = vec![0_u8; MAX_UPSTREAM_CONFIG_BYTES + 1];
+        let too_large = compile_with_artifacts(
+            source.as_bytes(),
+            &[SuppliedArtifact { role: ArtifactRole::SolverConfig, bytes: &oversized }],
+        );
+        assert_eq!(too_large.disposition, Disposition::Invalid);
+        assert!(too_large.diagnostics.iter().any(|message| message.contains("exceeds the")));
     }
 
     #[test]
