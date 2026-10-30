@@ -30,7 +30,9 @@ pub fn nan_zeroed_count() -> u64 {
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+/// Symplecticity improves long-term geometric behavior for suitable Hamiltonian systems,
+/// but it does not imply unconditional stability: the timestep must still resolve
+/// the system's fastest relevant timescale.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
