@@ -224,7 +224,7 @@ fn solve(case:Case)->Result<Summary,String> {
 
     let count=(obs*n) as f64;
     Ok(Summary {
-        n,dx_m:dx,dt_s:v.dt,steps:v.steps,observations:obs,fo:v.fo,
+        n,dx,dt:v.dt,steps:v.steps,observations:obs,fo:v.fo,
         front_exact:exact_front(case.end_time),
         front_half_mean_error:front_abs/obs as f64,
         front_half_final:front_final,
