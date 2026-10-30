@@ -354,7 +354,7 @@ mod tests {
 
     fn atom_marginals(atoms:&[f64], n:usize)->Vec<f64> {
         (0..n).map(|i| atoms.iter().enumerate()
-            .filter(|(mask,_)| mask & (1usize<<i)!=0).map(|(_,mass)|*mass).sum()).collect()
+            .filter(|(mask,_)| *mask & (1usize<<i)!=0).map(|(_,mass)|*mass).sum()).collect()
     }
 
     fn all_event_probability(atoms:&[f64], n:usize)->f64 { atoms[(1usize<<n)-1] }
