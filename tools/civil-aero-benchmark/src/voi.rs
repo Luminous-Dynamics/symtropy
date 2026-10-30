@@ -485,6 +485,16 @@ mod tests {
     }
 
     #[test]
+    fn selector_abstains_when_no_affordable_experiment_has_positive_net_evsi() {
+        let mut problem = synthetic_problem();
+        problem.experiments[0].cost_units = 5.0;
+        problem.experiments[1].cost_units = 5.0;
+        let report = evaluate_evsi(&problem, 6.0).expect("valid problem");
+        assert!(report.selected_experiment_id.is_none());
+        assert!(report.experiments.iter().all(|item| !item.selected));
+    }
+
+    #[test]
     fn zero_probability_outcome_is_not_divided_by_zero() {
         let mut problem = synthetic_problem();
         problem.experiments.truncate(1);
