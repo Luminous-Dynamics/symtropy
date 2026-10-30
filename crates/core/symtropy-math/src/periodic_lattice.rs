@@ -398,6 +398,21 @@ impl<const D: usize> PeriodicLattice<D> {
             });
         }
 
+        if !self.periodic_axes.iter().any(|active| *active) {
+            let distance_squared = displacement.norm_squared();
+            if !distance_squared.is_finite() {
+                return Err(PeriodicLatticeError::NumericRange {
+                    field: "non-periodic displacement distance",
+                });
+            }
+            return Ok(ClosestLatticeImage {
+                image_offset: LatticeOffset::zero(),
+                displacement: *displacement,
+                distance_squared,
+                search_nodes: 0,
+            });
+        }
+
         let target = -(self.q.transpose() * displacement);
         if !target.iter().all(|value| value.is_finite()) {
             return Err(PeriodicLatticeError::NumericRange {
@@ -528,6 +543,7 @@ fn sphere_decode_level<const D: usize>(
     target: &SVector<f64, D>,
     basis: &SMatrix<f64, D, D>,
     r: &SMatrix<f64, D, D>,
+    periodic_axes: &[bool; D],
     squared_basis_scale: f64,
     search_padding: f64,
     max_search_nodes: usize,
@@ -564,6 +580,39 @@ fn sphere_decode_level<const D: usize>(
         upper_sum += r[(row, column)] * offset[column] as f64;
     }
     let center = (target[row] - upper_sum) / diagonal;
+    if !periodic_axes[row] {
+        // Non-periodic lattice coefficients are fixed to zero, not searched.
+        // The QR row residual is still part of the complete Cartesian norm.
+        offset[row] = 0;
+        if *search_nodes >= max_search_nodes {
+            return Err(PeriodicLatticeError::SearchBudgetExceeded {
+                max_nodes: max_search_nodes,
+            });
+        }
+        *search_nodes += 1;
+        let row_error = diagonal * (-center);
+        let next_partial = partial_distance_squared + row_error * row_error;
+        let branch_pad = search_padding * best.distance_squared.max(squared_basis_scale);
+        if next_partial <= best.distance_squared + branch_pad {
+            sphere_decode_level(
+                level - 1,
+                next_partial,
+                original_displacement,
+                target,
+                basis,
+                r,
+                periodic_axes,
+                squared_basis_scale,
+                search_padding,
+                max_search_nodes,
+                search_nodes,
+                offset,
+                best,
+            )?;
+        }
+        return Ok(());
+    }
+
     let remaining = best.distance_squared - partial_distance_squared;
     let distance_pad = search_padding * best.distance_squared.max(squared_basis_scale);
     if remaining < -distance_pad {
@@ -614,6 +663,7 @@ fn sphere_decode_level<const D: usize>(
                 target,
                 basis,
                 r,
+                periodic_axes,
                 squared_basis_scale,
                 search_padding,
                 max_search_nodes,
