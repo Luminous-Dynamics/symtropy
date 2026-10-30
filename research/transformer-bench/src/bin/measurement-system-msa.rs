@@ -375,6 +375,23 @@ fn analyze_crossed(cells: &BTreeMap<(String, String), Vec<f64>>) -> Result<Varia
     })
 }
 
+fn guidance_band(study_variation_pct: Option<f64>) -> &'static str {
+    match study_variation_pct {
+        Some(value) if value.is_finite() && value < 10.0 => "GUIDANCE_LT_10_PERCENT",
+        Some(value) if value.is_finite() && value <= 30.0 => "GUIDANCE_10_TO_30_PERCENT",
+        Some(value) if value.is_finite() => "GUIDANCE_GT_30_PERCENT",
+        _ => "NOT_ESTIMABLE",
+    }
+}
+
+fn ndc_guidance(ndc: Option<usize>) -> &'static str {
+    match ndc {
+        Some(value) if value >= 5 => "NDC_AT_LEAST_5",
+        Some(_) => "NDC_BELOW_5",
+        None => "NDC_NOT_ESTIMABLE",
+    }
+}
+
 fn evaluate(
     observations: &[Observation],
     specs: &BTreeMap<String, Spec>,
@@ -458,17 +475,8 @@ fn evaluate(
                 let study_pct = if total_sd > 0.0 { Some(100.0 * grr_sd / total_sd) } else { None };
                 let tolerance_pct = Some(100.0 * 6.0 * grr_sd / (spec.upper - spec.lower));
                 let ndc = if grr_sd > 0.0 { Some((1.41 * part_sd / grr_sd).floor() as usize) } else { None };
-                let band = match study_pct {
-                    Some(pct) if pct < 10.0 => "GUIDANCE_LT_10_PERCENT",
-                    Some(pct) if pct <= 30.0 => "GUIDANCE_10_TO_30_PERCENT",
-                    Some(_) => "GUIDANCE_GT_30_PERCENT",
-                    None => "NOT_ESTIMABLE",
-                };
-                let ndc_band = match ndc {
-                    Some(v) if v >= 5 => "NDC_AT_LEAST_5",
-                    Some(_) => "NDC_BELOW_5",
-                    None => "NDC_NOT_ESTIMABLE",
-                };
+                let band = guidance_band(study_pct);
+                let ndc_band = ndc_guidance(ndc);
                 (Some(repeatability_sd), Some(interaction_sd), Some(operator_sd),
                  Some(reproducibility_sd), Some(part_sd), Some(grr_sd), study_pct,
                  tolerance_pct, ndc, band.to_string(), ndc_band.to_string())
@@ -572,11 +580,23 @@ mod tests {
     }
 
     #[test]
-    fn ndc_and_guidance_bands_are_not_collapsed_into_a_release_verdict() {
-        let ndc_good = (1.41_f64 * 0.4 / 0.02).floor() as usize;
-        let ndc_bad = (1.41_f64 * 0.05 / 0.2).floor() as usize;
-        assert!(ndc_good >= 5);
-        assert!(ndc_bad < 5);
-        assert!(10.0_f64 <= 30.0);
+    fn guidance_bands_and_ndc_are_reported_separately_without_release_authority() {
+        assert_eq!(guidance_band(Some(9.99)), "GUIDANCE_LT_10_PERCENT");
+        assert_eq!(guidance_band(Some(10.0)), "GUIDANCE_10_TO_30_PERCENT");
+        assert_eq!(guidance_band(Some(30.0)), "GUIDANCE_10_TO_30_PERCENT");
+        assert_eq!(guidance_band(Some(30.01)), "GUIDANCE_GT_30_PERCENT");
+        assert_eq!(guidance_band(None), "NOT_ESTIMABLE");
+        assert_eq!(ndc_guidance(Some(5)), "NDC_AT_LEAST_5");
+        assert_eq!(ndc_guidance(Some(4)), "NDC_BELOW_5");
+        assert_eq!(ndc_guidance(None), "NDC_NOT_ESTIMABLE");
+    }
+
+    #[test]
+    fn strict_utc_parser_rejects_bad_dates_offsets_and_leap_day_errors() {
+        assert!(valid_utc("2024-02-29T23:59:59Z"));
+        assert!(!valid_utc("2025-02-29T23:59:59Z"));
+        assert!(!valid_utc("2026-13-01T00:00:00Z"));
+        assert!(!valid_utc("2026-01-01T00:00:00+02:00"));
+        assert!(!valid_utc("2026-01-01T00:00:60Z"));
     }
 }
