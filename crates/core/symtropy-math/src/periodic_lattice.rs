@@ -88,6 +88,8 @@ pub struct MinimumImage<const D: usize> {
     pub candidates_evaluated: usize,
     /// Residual-based upper bound on ||I - inverse_basis * basis||_F.
     pub inverse_residual_upper_bound: f64,
+    /// Conservative roundoff allowance for the selected Cartesian distance.
+    pub nearest_distance_error_bound: f64,
     /// Conservative numerical lower bound for every image outside the searched cube.
     pub unsearched_distance_lower_bound: f64,
 }
@@ -354,6 +356,7 @@ impl<const D: usize> PeriodicLattice<D> {
                 image_offset: LatticeOffset::zero(),
                 candidates_evaluated: 0,
                 inverse_residual_upper_bound: self.inverse_residual_upper_bound,
+                nearest_distance_error_bound: 0.0,
                 unsearched_distance_lower_bound: f64::INFINITY,
             });
         }
@@ -388,6 +391,7 @@ impl<const D: usize> PeriodicLattice<D> {
             .map_or(1.0, |value| value.signum());
 
         let mut best_distance = f64::INFINITY;
+        let mut best_distance_error_bound = f64::INFINITY;
         let mut best_alignment = f64::NEG_INFINITY;
         let mut best_displacement = *displacement;
         let mut best_offset = LatticeOffset::zero();
@@ -456,6 +460,23 @@ impl<const D: usize> PeriodicLattice<D> {
                                 });
                                 return;
                             }
+                            // Inflate the candidate norm for the matrix-vector
+                            // product, subtraction, and norm evaluation. This
+                            // is especially important when large coordinates
+                            // nearly cancel to a small nearest-image residual.
+                            let distance_error_bound = 64.0
+                                * (D as f64 + 1.0)
+                                * f64::EPSILON
+                                * (displacement.norm()
+                                    + translation.norm()
+                                    + candidate_displacement.norm()
+                                    + 1.0);
+                            if !distance_error_bound.is_finite() {
+                                visit_error = Some(PeriodicLatticeError::NumericRange {
+                                    field: "minimum-image distance error bound",
+                                });
+                                return;
+                            }
                             let alignment_tolerance = DISTANCE_TIE_EPSILON_MULTIPLIER
                                 * f64::EPSILON
                                 * alignment.abs().max(best_alignment.abs()).max(1.0);
@@ -477,6 +498,7 @@ impl<const D: usize> PeriodicLattice<D> {
                                     ));
                             if is_better || (is_tie && tie_precedes) {
                                 best_distance = distance;
+                                best_distance_error_bound = distance_error_bound;
                                 best_alignment = alignment;
                                 best_displacement = candidate_displacement;
                                 best_offset = candidate_offset;
@@ -501,12 +523,15 @@ impl<const D: usize> PeriodicLattice<D> {
             let margin = DISTANCE_TIE_EPSILON_MULTIPLIER
                 * f64::EPSILON
                 * lower_bound.max(best_distance).max(1.0);
-            if lower_bound > best_distance + margin {
+            let selected_distance_upper_bound =
+                best_distance + best_distance_error_bound + margin;
+            if lower_bound > selected_distance_upper_bound {
                 return Ok(MinimumImage {
                     displacement: best_displacement,
                     image_offset: best_offset,
                     candidates_evaluated,
                     inverse_residual_upper_bound: self.inverse_residual_upper_bound,
+                    nearest_distance_error_bound: best_distance_error_bound,
                     unsearched_distance_lower_bound: lower_bound,
                 });
             }
@@ -720,7 +745,8 @@ mod tests {
                 "closest-image mismatch for delta={delta:?}, result={:?}, oracle={best}",
                 result
             );
-            assert!(result.unsearched_distance_lower_bound > result.displacement.norm());
+            assert!(result.unsearched_distance_lower_bound
+            > result.displacement.norm() + result.nearest_distance_error_bound);
         }
     }
 
@@ -820,7 +846,8 @@ mod tests {
                 (result.displacement.norm() - best).abs() < 1e-9,
                 "case={case} delta={delta:?} result={result:?} oracle={best}"
             );
-            assert!(result.unsearched_distance_lower_bound > result.displacement.norm());
+            assert!(result.unsearched_distance_lower_bound
+                > result.displacement.norm() + result.nearest_distance_error_bound);
         }
     }
 
