@@ -21,7 +21,12 @@ pub struct ExpectedCommandIdentity {
     pub request_id: u64,
     pub session_id: u64,
     pub sequence: u64,
+    pub controller_id: String,
     pub controller_epoch: u64,
+    /// Digest of the canonical semantic/native command payload.
+    pub command_payload_digest: String,
+    /// Digest of the controller and safety-relevant configuration.
+    pub controller_config_digest: String,
     pub deadline_ns: u64,
     pub clock_domain_id: String,
 }
@@ -170,6 +175,9 @@ pub fn audit_command_evidence(
             || identity.session_id == 0
             || identity.sequence == 0
             || identity.controller_epoch == 0
+            || identity.controller_id.trim().is_empty()
+            || identity.command_payload_digest.trim().is_empty()
+            || identity.controller_config_digest.trim().is_empty()
             || identity.clock_domain_id.trim().is_empty()
         {
             return Err(CommandEvidenceAuditError::InvalidExpectedIdentity {
@@ -376,7 +384,10 @@ mod tests {
             request_id: 11,
             session_id: 7,
             sequence: 3,
+            controller_id: "mobile-base-01".into(),
             controller_epoch: 4,
+            command_payload_digest: "sha256:command-fixture".into(),
+            controller_config_digest: "sha256:controller-config-fixture".into(),
             deadline_ns: 100,
             clock_domain_id: "robot-monotonic-0".into(),
         }
@@ -620,6 +631,25 @@ mod tests {
         let mut events = successful_trace(&identity);
         events[2].identity.clock_domain_id = "wall-clock".into();
 
+        assert_eq!(
+            audit_command_evidence(&[identity], &events),
+            Err(CommandEvidenceAuditError::IdentityMismatch { request_id: 11 })
+        );
+    }
+
+    #[test]
+    fn command_or_controller_configuration_digest_drift_fails_closed() {
+        let identity = identity();
+        let mut events = successful_trace(&identity);
+        events[3].identity.command_payload_digest = "sha256:mutated-command".into();
+
+        assert_eq!(
+            audit_command_evidence(&[identity.clone()], &events),
+            Err(CommandEvidenceAuditError::IdentityMismatch { request_id: 11 })
+        );
+
+        let mut events = successful_trace(&identity);
+        events[3].identity.controller_config_digest = "sha256:mutated-config".into();
         assert_eq!(
             audit_command_evidence(&[identity], &events),
             Err(CommandEvidenceAuditError::IdentityMismatch { request_id: 11 })
