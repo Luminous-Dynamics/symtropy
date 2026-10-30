@@ -82,6 +82,30 @@ Official starting points:
 
 This is the meaningful bridge from the current 2D coupon/airfoil software smoke test to an industry-relevant 3D flow-and-structure validation program.
 
+
+### B7 entry point: DPW-8 V1a ONERA OAT15A
+
+The first 3D industrial benchmark is the official DPW-8 V1a verification task, not an unspecified CRM optimization case. The official test matrix specifies a steady CFD/RANS grid-convergence study and polar at Mach 0.73, chord Reynolds number 3×10^6, static temperature 271 K, and alpha = [1.36°, 1.50°, 2.50°, 3.00°, 3.10°]. The committee specifies a six-member grid family: four levels required, six desirable. Use the committee-supplied grids where applicable; if another grid lineage is used, identify it separately and preserve exact mesh provenance.
+
+The first comparison should be **solver verification before optimizer comparison**:
+- pin one exact geometry and every grid level;
+- run all five prescribed angles across at least four grid levels;
+- report CL, CD, CM, Cp distribution, iterative residual/convergence status and resource cost;
+- report observed convergence trends and uncertainty rather than selecting only the finest-grid number;
+- compare methods only after boundary conditions, turbulence model, transition assumptions, mesh family and convergence rules are identical.
+
+The official NASA/AIAA DPW-8 data tree lists the ONERA OAT15A experimental-data ZIP as 207 KB in its directory listing (last modified 2026-06-25); this directory metadata is not a raw byte count or a digest. The archive is not admitted until downloaded, independently hashed, inspected, and its applicable data terms and condition metadata reviewed.
+
+For the CFD baseline, use the current official SU2 release as a pinned reference rather than inventing a solver: SU2 v8.5.0 "Harrier" (release page identifies 2026-04-27). Its release notes describe significant multigrid improvements, a DES grey-area mitigation strategy, fully functional thermoelasticity coupling and adjoint thermoelasticity. These are useful capabilities but do **not** by themselves prove that a particular DPW-8 aeroelastic coupling case is validated or ready. Resolve the release tag to an immutable commit, record build/compiler flags and test the exact task interface. The older SU2 static-FSI tutorial demonstrates a partitioned flow/elasticity approach; revalidate it on the pinned release before using it as a DPW-8 baseline.
+
+Official references:
+- DPW-8 test matrix: https://www.aiaa-dpw.org/TestCases/testcases.html
+- NASA DPW8 data directory: https://dpw.larc.nasa.gov/DPW8/
+- SU2 v8.5.0 release: https://github.com/su2code/SU2/releases
+- SU2 static FSI tutorial: https://su2code.github.io/tutorials/Static_FSI/
+
+Keep buffet Test Case 2 and 3 separate: JAXA describes Case 2 as unsteady CFD on rigid/static structural geometry using measured deformed wings and experimental data; Case 3 adds dynamic wing response/fluid-structure interaction. A steady V1a polar cannot validate either task.
+
 ## 3. Fair baseline ladder
 
 All solver-dependent comparisons must pin the same geometry, units, boundary conditions, mesh family or documented mesh mapping, turbulence/transition assumptions, convergence criteria and objective definitions.
