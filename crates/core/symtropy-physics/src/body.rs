@@ -5,7 +5,7 @@
 use crate::inertia::BivectorInertia;
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
-use symtropy_math::{Bivector, Point, Shape, Transform};
+use symtropy_math::{Bivector, Point, Rotor, Shape, Transform};
 
 /// Unique identifier for a body handle.
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
