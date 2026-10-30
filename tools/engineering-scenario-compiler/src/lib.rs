@@ -4,6 +4,7 @@
 //! evidence that a numerical model describes the physical system.
 
 use serde::{Deserialize, Serialize};
+use sha1::Sha1;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
@@ -13,6 +14,8 @@ pub const SCHEMA_VERSION: &str = "engineering-scenario-v0.1";
 pub const REGISTRY_REVISION: &str = "naca0012-inc-rans-profile-registry-v0.1";
 pub const MAX_SOURCE_BYTES: usize = 1_048_576;
 pub const MAX_INSTANCES: usize = 128;
+pub const MAX_UPSTREAM_CONFIG_BYTES: usize = 4 * 1024 * 1024;
+pub const MAX_UPSTREAM_MESH_BYTES: usize = 64 * 1024 * 1024;
 // Allows for the published decimal precision of the pinned NACA0012 fixture.
 const REYNOLDS_RELATIVE_TOLERANCE: f64 = 2.0e-6;
 const TOML_PARSER_PROFILE: &str = "toml-1.0/toml_edit-0.23.10+spec-1.0.0";
@@ -24,6 +27,26 @@ pub enum Disposition { Invalid, Blocked, Unsupported, PlanReady }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Resolution { SupportedExact, SupportedApproximation, Blocked, Unsupported }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ArtifactRole {
+    SolverConfig,
+    Mesh,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct SuppliedArtifact<'a> {
+    pub role: ArtifactRole,
+    pub bytes: &'a [u8],
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct VerifiedArtifact {
+    pub role: String,
+    pub git_blob_oid: String,
+    pub sha256: String,
+    pub byte_length: usize,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct CompileObligation { pub id: String, pub resolution: Resolution, pub detail: String }
@@ -108,6 +131,7 @@ pub struct CompilationReport {
     pub disposition: Disposition,
     pub obligations: Vec<CompileObligation>,
     pub diagnostics: Vec<String>,
+    pub verified_artifacts: Vec<VerifiedArtifact>,
     pub scenario_ir: Option<ScenarioIr>,
     pub claim_ceiling: String,
 }
@@ -186,6 +210,14 @@ struct SourceLimitations {
 
 fn sha256(bytes: &[u8]) -> String { hex::encode(Sha256::digest(bytes)) }
 
+fn git_blob_oid(bytes: &[u8]) -> String {
+    let mut hasher = Sha1::new();
+    hasher.update(format!("blob {}\\0", bytes.len()).as_bytes());
+    hasher.update(bytes);
+    hex::encode(hasher.finalize())
+}
+
+
 fn quantity(value: f64, dimension: &str, unit: &str) -> TypedQuantity {
     TypedQuantity { value, dimension: dimension.to_owned(), unit: unit.to_owned() }
 }
@@ -211,6 +243,7 @@ fn invalid_report(source_sha256: String, diagnostic: String) -> CompilationRepor
         disposition: Disposition::Invalid,
         obligations: Vec::new(),
         diagnostics: vec![diagnostic],
+        verified_artifacts: Vec::new(),
         scenario_ir: None,
         claim_ceiling: claim_ceiling(),
     }
@@ -393,6 +426,16 @@ struct SemanticEnvelope<'a> {
 /// Compile one exact source byte sequence. This function never opens files,
 /// resolves network references, launches tools, or executes a simulation.
 pub fn compile_bytes(bytes: &[u8]) -> CompilationReport {
+    compile_with_artifacts(bytes, &[])
+}
+
+/// Compile source with caller-supplied artifact bytes. No path, URL, or remote
+/// ref is opened: the caller controls acquisition, while this function checks
+/// the exact Git blob object identity locally and records a separate SHA-256.
+pub fn compile_with_artifacts(
+    bytes: &[u8],
+    supplied_artifacts: &[SuppliedArtifact<'_>],
+) -> CompilationReport {
     let source_digest = sha256(bytes);
     if bytes.len() > MAX_SOURCE_BYTES {
         return invalid_report(source_digest, format!("source exceeds the {} byte limit", MAX_SOURCE_BYTES));
@@ -402,6 +445,46 @@ pub fn compile_bytes(bytes: &[u8]) -> CompilationReport {
         Err(error) => return invalid_report(source_digest, format!("strict TOML parse or typed field validation failed: {error}")),
     };
     if let Err(error) = validate_source(&source) { return invalid_report(source_digest, error); }
+
+    let mut verified_artifacts = Vec::new();
+    let mut seen_roles = BTreeSet::new();
+    for artifact in supplied_artifacts {
+        let (role, expected_oid, max_bytes) = match artifact.role {
+            ArtifactRole::SolverConfig => (
+                "solver_config",
+                source.geometry.upstream_config_git_blob_sha.as_str(),
+                MAX_UPSTREAM_CONFIG_BYTES,
+            ),
+            ArtifactRole::Mesh => (
+                "mesh",
+                source.geometry.upstream_mesh_git_blob_sha.as_str(),
+                MAX_UPSTREAM_MESH_BYTES,
+            ),
+        };
+        if !seen_roles.insert(role) {
+            return invalid_report(source_digest, format!("duplicate supplied artifact role: {role}"));
+        }
+        if artifact.bytes.len() > max_bytes {
+            return invalid_report(
+                source_digest,
+                format!("{role} artifact exceeds the {max_bytes} byte limit"),
+            );
+        }
+        let actual_oid = git_blob_oid(artifact.bytes);
+        if actual_oid != expected_oid {
+            return invalid_report(
+                source_digest,
+                format!("{role} Git blob OID mismatch: expected {expected_oid}, got {actual_oid}"),
+            );
+        }
+        verified_artifacts.push(VerifiedArtifact {
+            role: role.to_owned(),
+            git_blob_oid: actual_oid,
+            sha256: sha256(artifact.bytes),
+            byte_length: artifact.bytes.len(),
+        });
+    }
+    verified_artifacts.sort_by(|left, right| left.role.cmp(&right.role));
 
     let ir = build_ir(source);
     let envelope = SemanticEnvelope {
@@ -427,10 +510,19 @@ pub fn compile_bytes(bytes: &[u8]) -> CompilationReport {
             "requested model feature combination is not present in the frozen local capability registry".to_owned()
         },
     }];
+    let required_artifacts_present = verified_artifacts.len() == 2;
     obligations.push(CompileObligation {
         id: "input-artifact-bytes".to_owned(),
-        resolution: Resolution::Blocked,
-        detail: "upstream config/mesh object IDs are recorded, but exact retrieved bytes and independent SHA-256 content digests are not supplied to this offline compiler".to_owned(),
+        resolution: if required_artifacts_present {
+            Resolution::SupportedExact
+        } else {
+            Resolution::Blocked
+        },
+        detail: if required_artifacts_present {
+            "exact solver configuration and mesh bytes match their recorded Git blob object IDs; independent SHA-256 digests are included in the report".to_owned()
+        } else {
+            "exact solver configuration and mesh bytes must be supplied and match their recorded Git blob object IDs".to_owned()
+        },
     });
     obligations.push(CompileObligation {
         id: "solver-executable-identity".to_owned(),
@@ -460,6 +552,7 @@ pub fn compile_bytes(bytes: &[u8]) -> CompilationReport {
         disposition,
         obligations,
         diagnostics,
+        verified_artifacts,
         scenario_ir: Some(ir),
         claim_ceiling: claim_ceiling(),
     }
@@ -543,6 +636,67 @@ mod tests {
     fn toml_1_1_only_escape_is_not_accepted_by_the_toml_1_0_frontend() {
         let toml_11_only = br#"value = "\e""#;
         assert_eq!(compile_bytes(toml_11_only).disposition, Disposition::Invalid);
+    }
+
+    #[test]
+    fn git_blob_digest_matches_empty_git_object_known_answer() {
+        assert_eq!(
+            git_blob_oid(b""),
+            "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        );
+    }
+
+    #[test]
+    fn supplied_artifacts_are_verified_against_git_blob_and_sha256_identities() {
+        let original = std::str::from_utf8(FIXTURE).unwrap();
+        let config = b"frozen config bytes";
+        let mesh = b"frozen mesh bytes";
+        let config_oid = git_blob_oid(config);
+        let mesh_oid = git_blob_oid(mesh);
+        let source = replace_once(
+            &replace_once(
+                original,
+                "38d60d0ff09853a9fcf51559c8bd1e56a829ebe7",
+                &config_oid,
+            ),
+            "dc088bd5a6e9897e60b17da9c744e36b2c719187",
+            &mesh_oid,
+        );
+        let report = compile_with_artifacts(
+            source.as_bytes(),
+            &[
+                SuppliedArtifact { role: ArtifactRole::SolverConfig, bytes: config },
+                SuppliedArtifact { role: ArtifactRole::Mesh, bytes: mesh },
+            ],
+        );
+        assert_eq!(report.disposition, Disposition::Blocked);
+        assert_eq!(report.verified_artifacts.len(), 2);
+        assert!(report.verified_artifacts.iter().all(|artifact| artifact.sha256.len() == 64));
+        assert!(report.obligations.iter().any(|obligation| {
+            obligation.id == "input-artifact-bytes"
+                && obligation.resolution == Resolution::SupportedExact
+        }));
+        assert!(report.obligations.iter().any(|obligation| {
+            obligation.id == "solver-executable-identity"
+                && obligation.resolution == Resolution::Blocked
+        }));
+    }
+
+    #[test]
+    fn supplied_artifact_oid_mismatch_is_invalid_not_blocked() {
+        let original = std::str::from_utf8(FIXTURE).unwrap();
+        let fake_config_oid = git_blob_oid(b"expected config");
+        let source = replace_once(
+            original,
+            "38d60d0ff09853a9fcf51559c8bd1e56a829ebe7",
+            &fake_config_oid,
+        );
+        let report = compile_with_artifacts(
+            source.as_bytes(),
+            &[SuppliedArtifact { role: ArtifactRole::SolverConfig, bytes: b"tampered config" }],
+        );
+        assert_eq!(report.disposition, Disposition::Invalid);
+        assert!(report.diagnostics.iter().any(|message| message.contains("Git blob OID mismatch")));
     }
 
     #[test]
