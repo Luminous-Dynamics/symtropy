@@ -249,6 +249,18 @@ jobs:
           test "$(wc -l < /tmp/gci-a.csv)" -eq 5
           grep -q "synthetic_gci_known_answer_only grids=6 triplets=4 expected_order=2.0 expected_limit=2.0" /tmp/gci-a.txt
           python3 scripts/verify-gci-independent.py /tmp/gci-a.csv
+      - name: Verify CFD evidence admission gate on six-grid synthetic study
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo build --locked --bin verification_admission_demo
+          ./target/debug/verification_admission_demo > /tmp/cfd-admission-a.csv 2> /tmp/cfd-admission-a.txt
+          ./target/debug/verification_admission_demo > /tmp/cfd-admission-b.csv 2> /tmp/cfd-admission-b.txt
+          cmp /tmp/cfd-admission-a.csv /tmp/cfd-admission-b.csv
+          cmp /tmp/cfd-admission-a.txt /tmp/cfd-admission-b.txt
+          test "$(wc -l < /tmp/cfd-admission-a.csv)" -eq 5
+          grep -q "synthetic_cfd_admission_known_answer_only status=numerically_admitted_under_declared_criteria_not_experimentally_validated grids=6 triplets=4" /tmp/cfd-admission-a.txt
+          grep -q "not_experimentally_validated" /tmp/cfd-admission-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |

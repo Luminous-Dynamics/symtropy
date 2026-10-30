@@ -222,3 +222,8 @@ This parser work does not ingest or redistribute the official participant file. 
 
 
 The V5 auditor also verifies that every angle assigned to a grid level carries the same `GRID_SIZE` and `GRID_FAC`, and that a mesh size is not reused under another grid-level identifier. The CLI emits the exact input byte length and SHA-256 digest on stderr; a caller-supplied path is explicitly labelled unverified and is never upgraded to official-source status.
+
+
+## CFD evidence admission gate
+
+The cfd_admission module binds each scalar CFD study to an identical solver build, physics configuration and geometry, unique mesh digests, ordered characteristic spacings, explicit iterative convergence, residual reduction, final force-history stability, and mass/energy conservation defects. It then applies the GCI study to the same scalar values using caller-declared observed-order and asymptotic-ratio intervals. Run the synthetic six-grid demonstration with cargo run --locked --bin verification_admission_demo. Passing means numerical admission under declared criteria only; it does not mean experimentally validated.
