@@ -7,6 +7,7 @@ on:
       - "tools/manufacturing-interop/interop.rs"
       - "tools/manufacturing-interop/README.md"
       - "tools/manufacturing-interop/expected.csv"
+      - "tools/manufacturing-interop/joined-expected.csv"
       - ".github/workflows/manufacturing-interop.yml"
   push:
     branches: [main]
@@ -41,7 +42,12 @@ jobs:
           "$RUNNER_TEMP/mfg-interop" --csv > "$RUNNER_TEMP/mfg-interop-b.csv"
           diff -u "$RUNNER_TEMP/mfg-interop-a.csv" "$RUNNER_TEMP/mfg-interop-b.csv"
           diff -u tools/manufacturing-interop/expected.csv "$RUNNER_TEMP/mfg-interop-a.csv"
+          "$RUNNER_TEMP/mfg-interop" --joined-csv > "$RUNNER_TEMP/mfg-interop-joined-a.csv"
+          "$RUNNER_TEMP/mfg-interop" --joined-csv > "$RUNNER_TEMP/mfg-interop-joined-b.csv"
+          diff -u "$RUNNER_TEMP/mfg-interop-joined-a.csv" "$RUNNER_TEMP/mfg-interop-joined-b.csv"
+          diff -u tools/manufacturing-interop/joined-expected.csv "$RUNNER_TEMP/mfg-interop-joined-a.csv"
           cat "$RUNNER_TEMP/mfg-interop-a.csv"
+          cat "$RUNNER_TEMP/mfg-interop-joined-a.csv"
       - name: Emit source and output digests
         run: |
-          sha256sum tools/manufacturing-interop/interop.rs tools/manufacturing-interop/expected.csv "$RUNNER_TEMP/mfg-interop-a.csv"
+          sha256sum tools/manufacturing-interop/interop.rs tools/manufacturing-interop/expected.csv tools/manufacturing-interop/joined-expected.csv "$RUNNER_TEMP/mfg-interop-a.csv" "$RUNNER_TEMP/mfg-interop-joined-a.csv"
