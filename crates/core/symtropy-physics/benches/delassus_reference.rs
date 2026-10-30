@@ -3,11 +3,11 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use nalgebra::{DVector, SVector};
+use nalgebra::{DVector, Matrix2, SVector};
 use symtropy_math::{Bivector, Point, Rotor};
 use symtropy_physics::{
     BivectorInertia, BodyHandle, FrictionlessContactRow, RigidBody, assemble_delassus,
-    solve_frictionless_lcp,
+    solve_frictionless_lcp, solve_planar_friction_cone,
 };
 
 fn fixture(
@@ -103,5 +103,28 @@ fn bench_reference_lcp(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_delassus_assembly, bench_reference_lcp);
+fn bench_planar_friction_cone(c: &mut Criterion) {
+    let effective_mass = Matrix2::new(2.0, 0.25, 0.25, 1.5);
+    let free_velocity = SVector::new(-1.0, -0.8);
+    c.bench_function("planar_coulomb_reference_single_contact", |bench| {
+        bench.iter(|| {
+            black_box(
+                solve_planar_friction_cone(
+                    black_box(&effective_mass),
+                    black_box(&free_velocity),
+                    0.5,
+                    1e-12,
+                )
+                .expect("valid planar contact fixture"),
+            )
+        });
+    });
+}
+
+criterion_group!(
+    benches,
+    bench_delassus_assembly,
+    bench_reference_lcp,
+    bench_planar_friction_cone,
+);
 criterion_main!(benches);
