@@ -219,7 +219,10 @@ fn canonical_contact_point<const D: usize>(
 /// Deterministic warm-start cache keyed by canonical body pair and periodic
 /// image. It deliberately remains separate from the Euclidean ContactCache.
 pub struct PeriodicContactCache<const D: usize> {
+    /// Impulses produced by the frame currently being simulated.
     entries: BTreeMap<(BodyHandle, BodyHandle, [i64; D]), Vec<PeriodicCachedImpulse<D>>>,
+    /// Immutable lookup view promoted from the preceding frame.
+    previous_entries: BTreeMap<(BodyHandle, BodyHandle, [i64; D]), Vec<PeriodicCachedImpulse<D>>>,
     /// Proximity threshold for matching canonical contact points.
     pub match_threshold: f64,
 }
@@ -228,6 +231,7 @@ impl<const D: usize> PeriodicContactCache<D> {
     pub fn new() -> Self {
         Self {
             entries: BTreeMap::new(),
+            previous_entries: BTreeMap::new(),
             match_threshold: 2.0,
         }
     }
@@ -311,7 +315,7 @@ impl<const D: usize> PeriodicContactCache<D> {
             point,
         )?;
         let Some(entries) = self
-            .entries
+            .previous_entries
             .get(&(key.body_a, key.body_b, key.image_offset.periods))
         else {
             return Ok(None);
@@ -333,18 +337,30 @@ impl<const D: usize> PeriodicContactCache<D> {
         Ok(nearest.map(|(cached, _)| cached))
     }
 
+    /// Promote the just-completed frame's writes to the lookup view and start
+    /// a new empty write set. Call once before processing contacts for a frame.
     pub fn begin_frame(&mut self) {
-        self.entries.clear();
+        self.previous_entries = std::mem::take(&mut self.entries);
     }
 
-    /// Number of distinct body-pair/image identities cached.
+    /// Number of distinct body-pair/image identities written for this frame.
     pub fn image_pair_count(&self) -> usize {
         self.entries.len()
     }
 
-    /// Number of individual cached contact witnesses.
+    /// Number of contact witnesses written for this frame.
     pub fn contact_count(&self) -> usize {
         self.entries.values().map(Vec::len).sum()
+    }
+
+    /// Number of image-specific identities available for warm-start lookup.
+    pub fn previous_image_pair_count(&self) -> usize {
+        self.previous_entries.len()
+    }
+
+    /// Number of previous-frame contact witnesses available for warm starting.
+    pub fn previous_contact_count(&self) -> usize {
+        self.previous_entries.values().map(Vec::len).sum()
     }
 
     fn validate_threshold(&self) -> Result<(), PeriodicContactCacheError> {
@@ -419,6 +435,10 @@ mod tests {
 
         assert_eq!(cache.image_pair_count(), 2);
         assert_eq!(cache.contact_count(), 2);
+        cache.begin_frame();
+        assert_eq!(cache.previous_image_pair_count(), 2);
+        assert_eq!(cache.previous_contact_count(), 2);
+        assert_eq!(cache.image_pair_count(), 0);
         assert_eq!(
             cache
                 .lookup(
@@ -473,6 +493,7 @@ mod tests {
 
         // Query in canonical order. The cached tangent vector is now expressed
         // as the impulse applied to canonical body_b (the higher-ID body).
+        cache.begin_frame();
         let point_ab = SVector::from([0.0, 0.0]);
         let cached = cache
             .lookup(
@@ -567,6 +588,7 @@ mod tests {
         ));
 
         cache.match_threshold = 2.0;
+        cache.begin_frame();
         assert!(matches!(
             cache.store(
                 &domain,
@@ -609,7 +631,36 @@ mod tests {
             )
             .unwrap();
         cache.begin_frame();
+        assert_eq!(cache.previous_image_pair_count(), 1);
+        assert_eq!(cache.previous_contact_count(), 1);
         assert_eq!(cache.image_pair_count(), 0);
         assert_eq!(cache.contact_count(), 0);
+        assert!(
+            cache
+                .lookup(
+                    &domain,
+                    BodyHandle(2),
+                    BodyHandle(7),
+                    LatticeOffset::new([-1, 0]),
+                    &SVector::zeros(),
+                )
+                .unwrap()
+                .is_some()
+        );
+
+        // An empty frame replaces the previous lookup view, so stale impulses
+        // do not survive missed contacts.
+        cache.begin_frame();
+        assert_eq!(cache.previous_image_pair_count(), 0);
+        assert!(cache
+            .lookup(
+                &domain,
+                BodyHandle(2),
+                BodyHandle(7),
+                LatticeOffset::new([-1, 0]),
+                &SVector::zeros(),
+            )
+            .unwrap()
+            .is_none());
     }
 }
