@@ -318,7 +318,7 @@ mod tests {
         let n = marginals.len();
         let mut intervals: Vec<Vec<(f64,f64)>> = vec![Vec::new();n];
         if minimize_intersection {
-            let mut offset=0.0;
+            let mut offset: f64=0.0;
             for (i,p) in marginals.iter().enumerate() {
                 let q=1.0-p;
                 intervals[i]=split_circle_interval(offset.rem_euclid(1.0),q);
@@ -363,7 +363,7 @@ mod tests {
 
     #[test]
     fn independence_product_is_diagnostic_not_the_decision_bound() {
-        let r=campaign()[1].1;
+        let r=campaign()[1].1.clone();
         let report=classify(&r);
         assert!((report.independence_product_midpoint.unwrap()-0.59049).abs()<TOL);
         assert_eq!(report.outcome,Outcome::Indeterminate);
@@ -400,7 +400,7 @@ mod tests {
 
     #[test]
     fn unknown_marginal_widens_result_and_cannot_be_omitted() {
-        let r=campaign()[3].1;
+        let r=campaign()[3].1.clone();
         let report=classify(&r);
         assert_eq!(report.outcome,Outcome::Indeterminate);
         assert_eq!(report.joint_lower,Some(0.0));
@@ -427,37 +427,37 @@ mod tests {
 
     #[test]
     fn duplicate_or_missing_required_characteristics_fail_closed() {
-        let mut r=campaign()[0].1;
+        let mut r=campaign()[0].1.clone();
         r.marginals[1].characteristic_id=r.marginals[0].characteristic_id.clone();
         assert_eq!(classify(&r).reason,"DUPLICATE_CHARACTERISTIC_ID");
-        let mut r=campaign()[0].1;
+        let mut r=campaign()[0].1.clone();
         r.required_characteristics.pop();
         assert_eq!(classify(&r).reason,"REQUIRED_CHARACTERISTIC_SET_INCOMPLETE");
     }
 
     #[test]
     fn mismatched_manifest_and_stale_evidence_fail_closed() {
-        let mut r=campaign()[0].1;
+        let mut r=campaign()[0].1.clone();
         r.required_characteristics[0]="NOT-IN-PRESENT-MARGINALS".into();
         assert_eq!(classify(&r).reason,"REQUIRED_CHARACTERISTIC_SET_MISMATCH");
-        let mut r=campaign()[0].1;
+        let mut r=campaign()[0].1.clone();
         r.marginals[0].evidence=EvidenceState::Stale;
         assert_eq!(classify(&r).outcome,Outcome::EvidenceIncomplete);
     }
 
     #[test]
     fn invalid_probabilities_and_policy_fail_closed() {
-        let mut r=campaign()[0].1;
+        let mut r=campaign()[0].1.clone();
         r.marginals[0].probability_lower=-0.1;
         assert_eq!(classify(&r).reason,"MARGINAL_PROBABILITY_INTERVAL_INVALID");
-        let mut r=campaign()[0].1;
+        let mut r=campaign()[0].1.clone();
         r.max_reject_joint_pc=0.9;
         assert_eq!(classify(&r).reason,"DECISION_THRESHOLDS_INVALID");
     }
 
     #[test]
     fn permutation_does_not_change_bounds_or_outcome() {
-        let mut r=campaign()[1].1;
+        let mut r=campaign()[1].1.clone();
         let a=classify(&r);
         r.marginals.reverse();
         r.required_characteristics.reverse();
