@@ -774,7 +774,7 @@ mod tests {
 
     #[test]
     fn arm_source_revision_must_match_preregistered_policy() {
-        let (expected, mut trials, mut policy, trust) = complete_campaign();
+        let (expected, trials, mut policy, trust) = complete_campaign();
         let arm = RecoveryBenchmarkArm::GuardedOutcomeFeedback;
         policy
             .arm_source_revision_by_arm
@@ -785,7 +785,6 @@ mod tests {
                 if found == arm
         ));
 
-        trials.retain(|trial| trial.trial.arm != arm);
     }
 
     #[test]
