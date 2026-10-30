@@ -18,6 +18,7 @@ This is more than metadata hygiene: it changes angular acceleration, impulse res
 - `from_second_moment_with_mass` is available when the caller knows both S and total mass.
 - `validate_body_mass` compares known inertia mass with body translational mass using a relative tolerance.
 - `RigidBody::try_set_rotational_inertia_operator` validates before replacing the operator. The legacy setter remains for compatibility.
+- `RigidBody::try_merge_toolhead` validates existing and component mass properties before changing collider geometry, COM, mass or inertia. The legacy void merge wrapper is a no-op on invalid input rather than dropping an authoritative inertia operator.
 - Fallible free integration, angular impulse, rotational effective mass, and reference Delassus assembly reject a known mass mismatch.
 - `InvariantSnapshot` and `InvariantDrift` report the number of known body/inertia mass mismatches. Such a state is not numerically healthy.
 
@@ -40,6 +41,7 @@ The branch adds:
 - raw-S unknown-mass compatibility;
 - parallel-axis combination rejection when component mass arguments disagree with known operator mass;
 - setter rejection without replacing the previous valid operator;
+- toolhead-merge rejection without changing collider support, COM, mass or inertia;
 - transactional integration rejection before body mutation;
 - angular-impulse and rotational-effective-mass mismatch rejection;
 - Delassus reference rejection for mismatched bodies;
