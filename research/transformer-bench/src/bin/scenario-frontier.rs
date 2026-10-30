@@ -206,7 +206,7 @@ fn read_candidates(
 
 fn aggregate(candidate: &Candidate) -> Result<Aggregate, String> {
     let mut expected = [0.0; OBJECTIVE_COUNT];
-    let mut worst = [0.0; OBJECTIVE_COUNT];
+    let mut worst = [0.0_f64; OBJECTIVE_COUNT];
     let mut cvar95 = [0.0; OBJECTIVE_COUNT];
 
     for value in candidate.scenarios.values() {
