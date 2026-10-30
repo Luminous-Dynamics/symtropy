@@ -577,13 +577,13 @@ mod tests {
         let wrench = ContactWrenchImpulse::<4> {
             normal: 10.0,
             tangential: frame.tangent_basis()[0] * 5.0,
-            rolling: vec![0.08, 0.04, 0.0],
+            rolling: vec![0.06, 0.04, 0.0],
             torsional: vec![0.04, 0.02, 0.0],
         };
         assert!(wrench.validate(&frame, &limits, 1e-12).is_ok());
         let angular = wrench.angular_impulse(&frame).unwrap();
         let expected_norm =
-            (0.08_f64.powi(2) + 0.04_f64.powi(2) + 0.04_f64.powi(2) + 0.02_f64.powi(2))
+            (0.06_f64.powi(2) + 0.04_f64.powi(2) + 0.04_f64.powi(2) + 0.02_f64.powi(2))
                 .sqrt();
         assert!((angular.norm() - expected_norm).abs() < 1e-12);
     }
