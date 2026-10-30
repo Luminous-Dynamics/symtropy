@@ -1,8 +1,8 @@
 //! Rotational inertia on the N-dimensional bivector rotation space.
 //!
-//! The centered second-moment matrix is S = integral r r^T dm. For an angular-
-//! velocity bivector represented by a skew matrix Omega, the corresponding
-//! angular-momentum bivector is I(Omega) = Omega*S + S*Omega. This is the
+//! The centered second-moment matrix is S = integral r r^T dm. For a physical
+//! point-velocity generator Omega (v = Omega*r) represented by a skew matrix,
+//! the angular-momentum bivector is I(Omega) = Omega*S + S*Omega. This is the
 //! dimension-generic form of the familiar 3D spatial inertia tensor, and it
 //! naturally couples rotation planes for asymmetric mass distributions.
 //!
@@ -182,23 +182,30 @@ impl<const D: usize> BivectorInertia<D> {
         &self.second_moment
     }
 
-    /// Map angular velocity to angular momentum: L = Omega*S + S*Omega.
+    /// Map a physical skew-matrix point-velocity generator to angular momentum:
+    /// L = Omega*S + S*Omega, where point velocity is v = Omega*r.
     ///
     /// The output uses the same lexicographic (i,j), i<j plane ordering as
     /// Bivector<D>. This map is symmetric and positive semidefinite when S
-    /// is a physically valid centered mass second-moment matrix.
+    /// is a physically valid centered mass second-moment matrix. Important:
+    /// RigidBody stores B with Rotor's exp(-B) convention, so pass -B when
+    /// converting its stored angular state into physical angular momentum.
     pub fn angular_momentum(&self, angular_velocity: &Bivector<D>) -> Bivector<D> {
         let omega = angular_velocity.to_matrix();
         let momentum = omega * self.second_moment + self.second_moment * omega;
         Bivector::from_matrix(&momentum)
     }
 
-    /// Invert angular momentum to angular velocity on the nonsingular rotation subspace.
+    /// Invert physical angular momentum to its skew-matrix point-velocity generator.
     ///
     /// The symmetric eigendecomposition S = Q*Lambda*Q^T diagonalizes the
     /// inertia operator on bivectors: in principal coordinates each plane
     /// (i,j) has eigenvalue lambda_i + lambda_j. This avoids constructing a
     /// dense D(D-1)/2 square matrix and preserves coupling in the world frame.
+    ///
+    /// The returned value is the physical generator Omega in v = Omega*r.
+    /// Negate it before writing to RigidBody.angular_velocity, whose Rotor
+    /// integration convention is exp(-B).
     ///
     /// The relative tolerance is applied to the largest eigenvalue of S. If any
     /// rotation plane is singular or too ill-conditioned at this threshold,
