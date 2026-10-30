@@ -259,10 +259,15 @@ jobs:
           cmp /tmp/cfd-admission-a.csv /tmp/cfd-admission-b.csv
           cmp /tmp/cfd-admission-a.txt /tmp/cfd-admission-b.txt
           test "$(wc -l < /tmp/cfd-admission-a.csv)" -eq 5
-          grep -q "synthetic_cfd_admission_known_answer_only status=numerically_admitted_under_declared_criteria_not_experimentally_validated grids=6 triplets=4" /tmp/cfd-admission-a.txt
+          grep -q "synthetic_cfd_admission_known_answer_only status=numerically_admitted_under_declared_criteria_caller_hashes_unverified_not_experimentally_validated grids=6 triplets=4" /tmp/cfd-admission-a.txt
           grep -q "not_experimentally_validated" /tmp/cfd-admission-a.csv
           grep -q "coarse_mesh_sha256" /tmp/cfd-admission-a.csv
           grep -q "fine_mesh_sha256" /tmp/cfd-admission-a.csv
+          grep -q "study_total_cpu_core_hours" /tmp/cfd-admission-a.csv
+          grep -q "study_total_gpu_hours_measured" /tmp/cfd-admission-a.csv
+          grep -q "study_total_wall_clock_seconds" /tmp/cfd-admission-a.csv
+          grep -q "study_total_energy_joules_measured" /tmp/cfd-admission-a.csv
+          grep -q "coarse_solver_exit_code" /tmp/cfd-admission-a.csv
           grep -q "observed_order_min,observed_order_max" /tmp/cfd-admission-a.csv || grep -q "observed_order_max" /tmp/cfd-admission-a.csv
       - name: Verify robust maximin EVSI over finite model ambiguity set
         working-directory: tools/civil-aero-benchmark

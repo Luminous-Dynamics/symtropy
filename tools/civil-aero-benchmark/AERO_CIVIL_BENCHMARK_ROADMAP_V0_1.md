@@ -75,7 +75,7 @@ Use at least one established open solver baseline (SU2) and, when licensed and a
 For every solver run retain:
 - geometry and mesh digests, cell/node counts, mesh quality and refinement lineage;
 - solver version/build, turbulence/transition model, wall treatment, boundary conditions and discretization options;
-- residual history, force/moment history, mass/energy consistency and stopping criteria;
+- per-equation residual history, force/moment history, mass/energy consistency and stopping criteria;
 - CPU/GPU hours, core-hours, wall time, memory peak, energy use, failed/non-converged runs and analyst setup time;
 - CL, CD, CM, Cp, sectional/spanwise loads and unsteady outputs where required;
 - observed grid/time order, extrapolated solution, GCI and measurement/model uncertainty.
@@ -128,7 +128,11 @@ The optimizer stretch target is intentionally a decision-efficiency target rathe
 5. Add a decision-value benchmark in which EVSI is evaluated against realized reduction in expensive solves and final validated design quality, not merely synthetic arithmetic.
 6. Only then advance candidates to physical coupons and calibrated test facilities.
 
-## 7. Evidence policy
+## 7. Next evidence-integrity gap
+
+The current CFD admission receipt is a summary-level contract: solver exit code, iteration count, one aggregate initial/final residual pair, a six-sample scalar monitor tail, conservation defects and resource totals. Its SHA-256 fields are caller-supplied strings whose syntax is checked, not hashes recomputed over actual binary/config/mesh/output files. The next step is to bind actual artifacts (solver executable/build, configuration, geometry, mesh, raw output, residual history and force history) by exact byte length and digest, preserve per-equation residuals and execution metadata, then independently verify the artifact bundle. Until then, a numerical admission pass is not an authenticated solver receipt.
+
+## 8. Evidence policy
 
 - A queued or running workflow is not a pass.
 - A synthetic fixture proves code-path behaviour, not aerodynamic physics.

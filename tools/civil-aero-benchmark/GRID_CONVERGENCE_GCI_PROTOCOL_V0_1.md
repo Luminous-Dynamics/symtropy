@@ -4,7 +4,7 @@
 
 This protocol adds a numerical verification diagnostic for a scalar output on a systematically refined grid family. It implements an observed-order estimate, Richardson extrapolation and the Grid Convergence Index (GCI) on sliding triples of grids. The output is a numerical uncertainty estimate under the method's assumptions. It does not authenticate the solver, prove that the mesh family is systematically refined, estimate model-form error, validate against an experiment or establish aircraft safety.
 
-The caller must provide ordered coarse-to-fine mesh identifiers, a positive characteristic spacing for each grid in consistent units, a disclosed method for deriving that spacing, one solution value for a named scalar quantity on each grid, and a safety factor with an explicit justification. Node count alone is not characteristic spacing. Do not infer h from GRID_SIZE without a documented mesh-family geometry and a valid spacing definition.
+The caller must provide ordered coarse-to-fine mesh identifiers, a positive characteristic spacing for each grid in consistent units, a disclosed method for deriving that spacing, one solution value for a named scalar quantity on each grid, and a safety factor with an explicit justification. For three-or-more-grid studies this implementation requires F_s >= 1.25, consistent with NASA's published recommendation; the factor remains recorded in every report. Node count alone is not characteristic spacing. Do not infer h from GRID_SIZE without a documented mesh-family geometry and a valid spacing definition.
 
 ## Method
 
@@ -58,3 +58,6 @@ Before a DPW8 V1a result can use this method:
 - NASA CFD verification and validation guidance: https://www.grc.nasa.gov/www/wind/valid/tutorial/verassess.html
 - NIST IR 8298, Industrial Verification, Validation, and Uncertainty Quantification: https://nvlpubs.nist.gov/nistpubs/ir/2020/NIST.IR.8298.pdf
 - Official AIAA DPW-8/AePW-4 test cases: https://www.aiaa-dpw.org/TestCases/testcases.html
+
+
+NASA's spatial-convergence guidance recommends a safety factor F_s=1.25 for studies with three or more grids (and 3.0 for comparisons of only two grids). This implementation requires at least three grids and therefore fails closed for F_s<1.25. See https://www.grc.nasa.gov/www/wind/valid/tutorial/spatconv.html.

@@ -226,7 +226,9 @@ The V5 auditor also verifies that every angle assigned to a grid level carries t
 
 ## CFD evidence admission gate
 
-The cfd_admission module binds each scalar CFD study to an identical solver build, physics configuration and geometry, unique mesh digests, ordered characteristic spacings, explicit iterative convergence, residual reduction, final force-history stability, and mass/energy conservation defects. It then applies the GCI study to the same scalar values using caller-declared observed-order and asymptotic-ratio intervals. Run the synthetic six-grid demonstration with cargo run --locked --bin verification_admission_demo. Passing means numerical admission under declared criteria only; it does not mean experimentally validated.
+The cfd_admission module requires a zero solver exit code, positive iteration and mesh-node counts, residual reduction, a stable six-sample coefficient-monitor tail, and caller-declared mass/energy conservation limits. Each run records CPU core-hours, wall time and peak memory. GPU time and energy are optional only when not measured; missing values remain blank and study totals include measured-run counts. The gate binds runs to common caller-supplied solver/build/configuration/geometry digests, unique mesh digests and ordered characteristic spacings, then applies GCI to sliding three-grid triplets.
+
+Run the synthetic six-grid demonstration with cargo run --locked --bin verification_admission_demo. Its status explicitly says caller-supplied hashes are not independently authenticated and the data are not experimentally validated. This v0.2 receipt still consumes caller-supplied summary residuals rather than complete per-equation residual histories; the next integrity step is to bind raw run artifacts and residual/force histories to bytes and independently verify their digests. See CFD_RUN_RECEIPT_PROTOCOL_V0_2.md.
 
 ## Civil-aerospace benchmark roadmap
 

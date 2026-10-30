@@ -20,7 +20,17 @@ pub struct CfdGridRun {
     pub solver_build_sha256: String,
     pub physics_config_sha256: String,
     pub geometry_sha256: String,
-    pub iterative_converged: bool,
+    /// Process status from the solver execution record; zero is required.
+    pub solver_exit_code: i32,
+    pub iterations_completed: u64,
+    pub mesh_node_count: u64,
+    pub cpu_core_hours: f64,
+    /// None means not measured; it must not be reported as zero.
+    pub gpu_hours: Option<f64>,
+    pub wall_clock_seconds: f64,
+    pub peak_memory_bytes: u64,
+    /// None means not measured; it must not be reported as zero.
+    pub energy_consumed_joules: Option<f64>,
     pub residual_initial: f64,
     pub residual_final: f64,
     /// Last steady-monitor samples for the audited coefficient.
@@ -66,12 +76,20 @@ pub struct CfdGridRunAudit {
     pub grid_level: u32,
     pub characteristic_spacing: f64,
     pub mesh_sha256: String,
+    pub mesh_node_count: u64,
+    pub solver_exit_code: i32,
+    pub iterations_completed: u64,
     pub quantity_value: f64,
     pub residual_final: f64,
     pub residual_reduction_ratio: f64,
     pub quantity_history_drift_absolute: f64,
     pub mass_imbalance_fraction: f64,
     pub energy_imbalance_fraction: f64,
+    pub cpu_core_hours: f64,
+    pub gpu_hours: Option<f64>,
+    pub wall_clock_seconds: f64,
+    pub peak_memory_bytes: u64,
+    pub energy_consumed_joules: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -87,6 +105,13 @@ pub struct CfdEvidenceAdmissionReport {
     pub criteria: AdmissionCriteria,
     pub status: &'static str,
     pub grid_run_audits: Vec<CfdGridRunAudit>,
+    pub total_cpu_core_hours: f64,
+    pub total_gpu_hours_measured: Option<f64>,
+    pub gpu_measured_run_count: usize,
+    pub total_wall_clock_seconds: f64,
+    pub peak_memory_bytes: u64,
+    pub total_energy_joules_measured: Option<f64>,
+    pub energy_measured_run_count: usize,
     pub gci_report: GciReport,
 }
 
@@ -198,9 +223,15 @@ pub fn evaluate_cfd_evidence_admission(
                 run.run_id
             ));
         }
-        if !run.iterative_converged {
+        if run.solver_exit_code != 0 {
             return Err(format!(
-                "grid run {} is not marked iteratively converged",
+                "grid run {} has non-zero solver exit code {}",
+                run.run_id, run.solver_exit_code
+            ));
+        }
+        if run.iterations_completed == 0 || run.mesh_node_count == 0 || run.peak_memory_bytes == 0 {
+            return Err(format!(
+                "grid run {} is missing positive iteration, mesh-node, or peak-memory evidence",
                 run.run_id
             ));
         }
@@ -212,21 +243,36 @@ pub fn evaluate_cfd_evidence_admission(
             ("mass_imbalance_fraction", run.mass_imbalance_fraction),
             ("energy_imbalance_fraction", run.energy_imbalance_fraction),
             ("quantity_value", run.quantity_value),
+            ("cpu_core_hours", run.cpu_core_hours),
+            ("wall_clock_seconds", run.wall_clock_seconds),
         ] {
             if !value.is_finite() {
                 return Err(format!("grid run {}: {name} is non-finite", run.run_id));
             }
         }
         if run.characteristic_spacing <= 0.0
+            || run.cpu_core_hours <= 0.0
+            || run.wall_clock_seconds <= 0.0
             || run.residual_initial <= 0.0
             || run.residual_final <= 0.0
             || run.mass_imbalance_fraction < 0.0
             || run.energy_imbalance_fraction < 0.0
         {
             return Err(format!(
-                "grid run {}: spacing/residuals must be positive and conservation defects non-negative",
+                "grid run {}: spacing, resource times, and residuals must be positive and conservation defects non-negative",
                 run.run_id
             ));
+        }
+        for (name, value) in [
+            ("gpu_hours", run.gpu_hours),
+            ("energy_consumed_joules", run.energy_consumed_joules),
+        ] {
+            if value.is_some_and(|number| !number.is_finite() || number < 0.0) {
+                return Err(format!(
+                    "grid run {}: {name} must be finite and non-negative when present",
+                    run.run_id
+                ));
+            }
         }
         if index > 0 {
             let previous = &study.runs[index - 1];
@@ -284,6 +330,11 @@ pub fn evaluate_cfd_evidence_admission(
             quantity_history_drift_absolute,
             mass_imbalance_fraction: run.mass_imbalance_fraction,
             energy_imbalance_fraction: run.energy_imbalance_fraction,
+            cpu_core_hours: run.cpu_core_hours,
+            gpu_hours: run.gpu_hours,
+            wall_clock_seconds: run.wall_clock_seconds,
+            peak_memory_bytes: run.peak_memory_bytes,
+            energy_consumed_joules: run.energy_consumed_joules,
         });
     }
 
@@ -327,6 +378,50 @@ pub fn evaluate_cfd_evidence_admission(
         }
     }
 
+    let total_cpu_core_hours = study
+        .runs
+        .iter()
+        .map(|run| run.cpu_core_hours)
+        .sum::<f64>();
+    let total_wall_clock_seconds = study
+        .runs
+        .iter()
+        .map(|run| run.wall_clock_seconds)
+        .sum::<f64>();
+    let peak_memory_bytes = study
+        .runs
+        .iter()
+        .map(|run| run.peak_memory_bytes)
+        .max()
+        .unwrap_or_default();
+    let gpu_values = study
+        .runs
+        .iter()
+        .filter_map(|run| run.gpu_hours)
+        .collect::<Vec<_>>();
+    let energy_values = study
+        .runs
+        .iter()
+        .filter_map(|run| run.energy_consumed_joules)
+        .collect::<Vec<_>>();
+    let total_gpu_hours_measured = if gpu_values.is_empty() {
+        None
+    } else {
+        Some(gpu_values.iter().sum::<f64>())
+    };
+    let total_energy_joules_measured = if energy_values.is_empty() {
+        None
+    } else {
+        Some(energy_values.iter().sum::<f64>())
+    };
+    if !total_cpu_core_hours.is_finite()
+        || !total_wall_clock_seconds.is_finite()
+        || total_gpu_hours_measured.is_some_and(|value| !value.is_finite())
+        || total_energy_joules_measured.is_some_and(|value| !value.is_finite())
+    {
+        return Err("study resource totals overflowed to non-finite values".to_owned());
+    }
+
     Ok(CfdEvidenceAdmissionReport {
         case_id: study.case_id.clone(),
         quantity: study.quantity.clone(),
@@ -337,8 +432,15 @@ pub fn evaluate_cfd_evidence_admission(
         geometry_sha256: first.geometry_sha256.clone(),
         safety_factor: study.safety_factor,
         criteria: study.criteria.clone(),
-        status: "numerically_admitted_under_declared_criteria_not_experimentally_validated",
+        status: "numerically_admitted_under_declared_criteria_caller_hashes_unverified_not_experimentally_validated",
         grid_run_audits: run_audits,
+        total_cpu_core_hours,
+        total_gpu_hours_measured,
+        gpu_measured_run_count: gpu_values.len(),
+        total_wall_clock_seconds,
+        peak_memory_bytes,
+        total_energy_joules_measured,
+        energy_measured_run_count: energy_values.len(),
         gci_report,
     })
 }
@@ -373,7 +475,13 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const ADMISSION_CSV_HEADER: &str = "case_id,quantity,status,source_reference,spacing_definition,solver_build_sha256,physics_config_sha256,geometry_sha256,safety_factor,coarse_run_id,coarse_grid_id,coarse_grid_level,coarse_spacing,coarse_mesh_sha256,coarse_quantity_value,coarse_residual_final,coarse_residual_reduction_ratio,coarse_quantity_history_drift_absolute,coarse_mass_imbalance_fraction,coarse_energy_imbalance_fraction,medium_run_id,medium_grid_id,medium_grid_level,medium_spacing,medium_mesh_sha256,medium_quantity_value,medium_residual_final,medium_residual_reduction_ratio,medium_quantity_history_drift_absolute,medium_mass_imbalance_fraction,medium_energy_imbalance_fraction,fine_run_id,fine_grid_id,fine_grid_level,fine_spacing,fine_mesh_sha256,fine_quantity_value,fine_residual_final,fine_residual_reduction_ratio,fine_quantity_history_drift_absolute,fine_mass_imbalance_fraction,fine_energy_imbalance_fraction,refinement_ratio_coarse_medium,refinement_ratio_medium_fine,observed_order,extrapolated_value,medium_gci_absolute,medium_gci_relative_percent,fine_gci_absolute,fine_gci_relative_percent,asymptotic_ratio,residual_final_max,residual_reduction_ratio_max,quantity_history_drift_absolute_max,mass_imbalance_fraction_max,energy_imbalance_fraction_max,observed_order_min,observed_order_max,asymptotic_ratio_min,asymptotic_ratio_max";
+fn optional_decimal(value: Option<f64>) -> String {
+    value
+        .map(|number| format!("{number:.12}"))
+        .unwrap_or_default()
+}
+
+pub const ADMISSION_CSV_HEADER: &str = "case_id,quantity,status,source_reference,spacing_definition,solver_build_sha256,physics_config_sha256,geometry_sha256,safety_factor,coarse_run_id,coarse_grid_id,coarse_grid_level,coarse_spacing,coarse_mesh_sha256,coarse_mesh_node_count,coarse_solver_exit_code,coarse_iterations_completed,coarse_cpu_core_hours,coarse_gpu_hours,coarse_wall_clock_seconds,coarse_peak_memory_bytes,coarse_energy_consumed_joules,coarse_quantity_value,coarse_residual_final,coarse_residual_reduction_ratio,coarse_quantity_history_drift_absolute,coarse_mass_imbalance_fraction,coarse_energy_imbalance_fraction,medium_run_id,medium_grid_id,medium_grid_level,medium_spacing,medium_mesh_sha256,medium_mesh_node_count,medium_solver_exit_code,medium_iterations_completed,medium_cpu_core_hours,medium_gpu_hours,medium_wall_clock_seconds,medium_peak_memory_bytes,medium_energy_consumed_joules,medium_quantity_value,medium_residual_final,medium_residual_reduction_ratio,medium_quantity_history_drift_absolute,medium_mass_imbalance_fraction,medium_energy_imbalance_fraction,fine_run_id,fine_grid_id,fine_grid_level,fine_spacing,fine_mesh_sha256,fine_mesh_node_count,fine_solver_exit_code,fine_iterations_completed,fine_cpu_core_hours,fine_gpu_hours,fine_wall_clock_seconds,fine_peak_memory_bytes,fine_energy_consumed_joules,fine_quantity_value,fine_residual_final,fine_residual_reduction_ratio,fine_quantity_history_drift_absolute,fine_mass_imbalance_fraction,fine_energy_imbalance_fraction,refinement_ratio_coarse_medium,refinement_ratio_medium_fine,observed_order,extrapolated_value,medium_gci_absolute,medium_gci_relative_percent,fine_gci_absolute,fine_gci_relative_percent,asymptotic_ratio,residual_final_max,residual_reduction_ratio_max,quantity_history_drift_absolute_max,mass_imbalance_fraction_max,energy_imbalance_fraction_max,observed_order_min,observed_order_max,asymptotic_ratio_min,asymptotic_ratio_max,study_total_cpu_core_hours,study_total_gpu_hours_measured,gpu_measured_run_count,study_total_wall_clock_seconds,study_peak_memory_bytes,study_total_energy_joules_measured,energy_measured_run_count";
 
 pub fn report_to_csv(report: &CfdEvidenceAdmissionReport) -> Result<String, String> {
     let max_residual_final = report
@@ -438,6 +546,14 @@ pub fn report_to_csv(report: &CfdEvidenceAdmissionReport) -> Result<String, Stri
                 audit.grid_level.to_string(),
                 format!("{:.12}", audit.characteristic_spacing),
                 audit.mesh_sha256.clone(),
+                audit.mesh_node_count.to_string(),
+                audit.solver_exit_code.to_string(),
+                audit.iterations_completed.to_string(),
+                format!("{:.12}", audit.cpu_core_hours),
+                optional_decimal(audit.gpu_hours),
+                format!("{:.12}", audit.wall_clock_seconds),
+                audit.peak_memory_bytes.to_string(),
+                optional_decimal(audit.energy_consumed_joules),
                 format!("{:.12}", audit.quantity_value),
                 format!("{:.12}", audit.residual_final),
                 format!("{:.12}", audit.residual_reduction_ratio),
@@ -471,6 +587,13 @@ pub fn report_to_csv(report: &CfdEvidenceAdmissionReport) -> Result<String, Stri
             format!("{:.12}", report.criteria.observed_order_max),
             format!("{:.12}", report.criteria.asymptotic_ratio_min),
             format!("{:.12}", report.criteria.asymptotic_ratio_max),
+            format!("{:.12}", report.total_cpu_core_hours),
+            optional_decimal(report.total_gpu_hours_measured),
+            report.gpu_measured_run_count.to_string(),
+            format!("{:.12}", report.total_wall_clock_seconds),
+            report.peak_memory_bytes.to_string(),
+            optional_decimal(report.total_energy_joules_measured),
+            report.energy_measured_run_count.to_string(),
         ]);
         output.push_str(&columns.join(","));
         output.push('\n');
@@ -510,6 +633,9 @@ mod tests {
                 .enumerate()
                 .map(|(index, spacing)| {
                     let value = 2.0 + 0.8 * spacing.powi(2);
+                    let run_number = f64::from(
+                        u32::try_from(index + 1).expect("six fixture grids fit u32"),
+                    );
                     CfdGridRun {
                         run_id: format!("run-{}", index + 1),
                         grid_id: format!("grid-{}", index + 1),
@@ -525,7 +651,14 @@ mod tests {
                         solver_build_sha256: digest('a'),
                         physics_config_sha256: digest('b'),
                         geometry_sha256: digest('c'),
-                        iterative_converged: true,
+                        solver_exit_code: 0,
+                        iterations_completed: 5000 + u64::try_from(index).expect("index fits u64"),
+                        mesh_node_count: 10_000 * u64::try_from(index + 1).expect("index fits u64"),
+                        cpu_core_hours: 0.25 * run_number,
+                        gpu_hours: if index % 2 == 0 { Some(0.5) } else { None },
+                        wall_clock_seconds: 120.0 * run_number,
+                        peak_memory_bytes: 1024 * u64::try_from(index + 1).expect("index fits u64"),
+                        energy_consumed_joules: if index < 4 { Some(1000.0 * run_number) } else { None },
                         residual_initial: 1.0e-1,
                         residual_final: 1.0e-10,
                         quantity_history: vec![value; 6],
@@ -544,7 +677,7 @@ mod tests {
             .expect("synthetic numerical evidence meets declared criteria");
         assert_eq!(
             report.status,
-            "numerically_admitted_under_declared_criteria_not_experimentally_validated"
+            "numerically_admitted_under_declared_criteria_caller_hashes_unverified_not_experimentally_validated"
         );
         assert_eq!(report.grid_run_audits.len(), 6);
         assert_eq!(report.gci_report.triplets.len(), 4);
@@ -587,11 +720,11 @@ mod tests {
     #[test]
     fn rejects_unconverged_residual_or_unstable_force_history() {
         let mut changed = study();
-        changed.runs[1].iterative_converged = false;
+        changed.runs[1].solver_exit_code = 17;
         assert!(
             evaluate_cfd_evidence_admission(&changed)
-                .expect_err("unconverged run rejected")
-                .contains("not marked iteratively converged")
+                .expect_err("non-zero solver exit rejected")
+                .contains("non-zero solver exit code")
         );
 
         let mut changed = study();
@@ -651,6 +784,64 @@ mod tests {
     }
 
     #[test]
+    fn rejects_missing_measurement_resources_and_nonzero_execution_state() {
+        let mut changed = study();
+        changed.runs[2].cpu_core_hours = 0.0;
+        assert!(evaluate_cfd_evidence_admission(&changed)
+            .expect_err("missing CPU cost rejected")
+            .contains("resource times"));
+
+        let mut changed = study();
+        changed.runs[2].iterations_completed = 0;
+        assert!(evaluate_cfd_evidence_admission(&changed)
+            .expect_err("missing iteration count rejected")
+            .contains("iteration, mesh-node, or peak-memory"));
+
+        let mut changed = study();
+        changed.runs[2].mesh_node_count = 0;
+        assert!(evaluate_cfd_evidence_admission(&changed).is_err());
+
+        let mut changed = study();
+        changed.runs[2].gpu_hours = Some(f64::NAN);
+        assert!(evaluate_cfd_evidence_admission(&changed)
+            .expect_err("non-finite GPU measurement rejected")
+            .contains("gpu_hours"));
+    }
+
+    #[test]
+    fn unmeasured_gpu_and_energy_are_blank_and_counted_as_missing() {
+        let report = evaluate_cfd_evidence_admission(&study()).expect("valid synthetic study");
+        assert_eq!(report.gpu_measured_run_count, 3);
+        assert_eq!(report.energy_measured_run_count, 4);
+        let csv = report_to_csv(&report).expect("CSV export");
+        let headers = ADMISSION_CSV_HEADER.split(',').collect::<Vec<_>>();
+        let first_row = csv
+            .lines()
+            .nth(1)
+            .expect("first triplet row")
+            .split(',')
+            .collect::<Vec<_>>();
+        let medium_gpu_index = headers
+            .iter()
+            .position(|name| *name == "medium_gpu_hours")
+            .expect("medium GPU column");
+        assert_eq!(first_row[medium_gpu_index], "");
+        let fourth_row = csv
+            .lines()
+            .nth(4)
+            .expect("fourth triplet row")
+            .split(',')
+            .collect::<Vec<_>>();
+        let fine_energy_index = headers
+            .iter()
+            .position(|name| *name == "fine_energy_consumed_joules")
+            .expect("fine energy column");
+        assert_eq!(fourth_row[fine_energy_index], "");
+        assert!(csv.contains("study_total_gpu_hours_measured"));
+        assert!(csv.contains("study_total_energy_joules_measured"));
+    }
+
+    #[test]
     fn csv_output_is_deterministic_and_keeps_nonvalidation_label() {
         let report = evaluate_cfd_evidence_admission(&study()).expect("valid synthetic study");
         let first = report_to_csv(&report).expect("complete provenance joins");
@@ -661,6 +852,14 @@ mod tests {
         assert_eq!(first.lines().count(), 5);
         assert!(first.contains("not_experimentally_validated"));
         assert!(first.contains("coarse_mesh_sha256"));
+        assert!(first.contains("coarse_cpu_core_hours"));
+        assert!(first.contains("study_total_cpu_core_hours"));
+        assert!(first.contains(",5.250000000000,0.150000000000,3,2520.000000000000,6144,10000.000000000000,4"));
+        assert_eq!(report.total_cpu_core_hours, 5.25);
+        assert_eq!(report.gpu_measured_run_count, 3);
+        assert_eq!(report.total_gpu_hours_measured, Some(1.5));
+        assert_eq!(report.energy_measured_run_count, 4);
+        assert_eq!(report.total_energy_joules_measured, Some(10_000.0));
         let coarse_mesh_digest = digest('1');
         let fine_mesh_digest = digest('6');
         assert!(first.contains(coarse_mesh_digest.as_str()));

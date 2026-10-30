@@ -22,6 +22,9 @@ fn run() -> Result<(), String> {
         .enumerate()
         .map(|(index, spacing)| {
             let value = 2.0 + 0.8 * spacing.powi(2);
+            let run_number = f64::from(
+                u32::try_from(index + 1).expect("six fixture grids fit u32"),
+            );
             CfdGridRun {
                 run_id: format!("run-{}", index + 1),
                 grid_id: format!("grid-{}", index + 1),
@@ -37,7 +40,14 @@ fn run() -> Result<(), String> {
                 solver_build_sha256: digest('a'),
                 physics_config_sha256: digest('b'),
                 geometry_sha256: digest('c'),
-                iterative_converged: true,
+                solver_exit_code: 0,
+                iterations_completed: 5000 + u64::try_from(index).expect("index fits u64"),
+                mesh_node_count: 10_000 * u64::try_from(index + 1).expect("index fits u64"),
+                cpu_core_hours: 0.25 * run_number,
+                gpu_hours: if index % 2 == 0 { Some(0.5) } else { None },
+                wall_clock_seconds: 120.0 * run_number,
+                peak_memory_bytes: 1024 * u64::try_from(index + 1).expect("index fits u64"),
+                energy_consumed_joules: if index < 4 { Some(1000.0 * run_number) } else { None },
                 residual_initial: 1.0e-1,
                 residual_final: 1.0e-10,
                 quantity_history: vec![value; 6],
@@ -70,10 +80,13 @@ fn run() -> Result<(), String> {
 
     let report = evaluate_cfd_evidence_admission(&study)?;
     eprintln!(
-        "synthetic_cfd_admission_known_answer_only status={} grids={} triplets={}",
+        "synthetic_cfd_admission_known_answer_only status={} grids={} triplets={} cpu_core_hours={:.6} gpu_hours_measured={} wall_seconds={:.3}",
         report.status,
         report.grid_run_audits.len(),
-        report.gci_report.triplets.len()
+        report.gci_report.triplets.len(),
+        report.total_cpu_core_hours,
+        report.gpu_measured_run_count,
+        report.total_wall_clock_seconds
     );
     print!("{}", report_to_csv(&report)?);
     Ok(())

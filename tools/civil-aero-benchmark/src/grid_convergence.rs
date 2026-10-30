@@ -72,8 +72,8 @@ pub fn evaluate_grid_convergence(study: &GciStudy) -> Result<GciReport, String> 
             "quantity, source_reference, and spacing_definition must be non-empty".to_owned(),
         );
     }
-    if !study.safety_factor.is_finite() || study.safety_factor < 1.0 {
-        return Err("safety_factor must be finite and >= 1".to_owned());
+    if !study.safety_factor.is_finite() || study.safety_factor < 1.25 {
+        return Err("safety_factor must be finite and >= 1.25 for three-or-more-grid studies".to_owned());
     }
     if study.observations.len() < 3 {
         return Err("at least three systematically refined grids are required".to_owned());
@@ -447,6 +447,12 @@ mod tests {
         let mut study = quadratic_six_grid_study();
         study.safety_factor = f64::NAN;
         assert!(evaluate_grid_convergence(&study).is_err());
+
+        let mut study = quadratic_six_grid_study();
+        study.safety_factor = 1.0;
+        assert!(evaluate_grid_convergence(&study)
+            .expect_err("three-grid GCI safety factor below the NASA recommendation rejected")
+            .contains(">= 1.25"));
     }
 
     #[test]
