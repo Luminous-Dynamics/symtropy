@@ -396,6 +396,40 @@ mod tests {
     }
 
     #[test]
+    fn try_merge_toolhead_rejects_mass_mismatch_without_mutating_body() {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([3.0, -2.0, 1.0]), 1.0, 1.0);
+        body.set_rotational_inertia_operator(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                2.0,
+                SVector::new(1.0, 0.8, 0.6),
+            )
+            .unwrap(),
+        );
+        let direction = SVector::new(1.0, 0.0, 0.0);
+        let support_before = body.world_support(&direction);
+        let position_before = body.transform.translation.0.clone();
+        let mass_before = body.mass;
+        let inertia_before = body.rotational_inertia.as_ref().unwrap().second_moment().clone();
+
+        let error = body
+            .try_merge_toolhead(
+                Transform::from_translation(Point::new([2.0, 0.0, 0.0])),
+                Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+                1.0,
+            )
+            .unwrap_err();
+        assert_eq!(error, crate::inertia::RotationalInertiaError::MassMismatch);
+        assert_eq!(body.mass, mass_before);
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(
+            body.rotational_inertia.as_ref().unwrap().second_moment(),
+            &inertia_before
+        );
+        assert_eq!(body.world_support(&direction), support_before);
+    }
+
+    #[test]
     fn merge_toolhead_uses_second_moment_parallel_axis_rule() {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 2.0);
         let tool_collider = Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1));
@@ -403,6 +437,7 @@ mod tests {
         body.merge_toolhead(tool_transform, tool_collider, 1.0);
 
         let inertia = body.rotational_inertia.as_ref().unwrap();
+        assert_eq!(inertia.total_mass(), Some(3.0));
         let expected_xx = 0.4 + 2.0 * (4.0 / 9.0) + 0.002 + 16.0 / 9.0;
         let expected_yy = 0.4 + 0.002;
         assert!((inertia.second_moment()[(0, 0)] - expected_xx).abs() < 1e-12);
