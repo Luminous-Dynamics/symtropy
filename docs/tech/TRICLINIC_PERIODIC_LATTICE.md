@@ -13,7 +13,7 @@ Two operations that must not be conflated:
 - Canonical reduction maps a point into the fundamental parallelepiped origin + B[0,1)^D. Fractional-coordinate floor is suitable for this representative choice.
 - Minimum-image displacement solves argmin over integer n of ||d + Bn||. Rounding each fractional coordinate independently is not generally correct for a skewed basis.
 
-The implementation is full-rank D=2/3. It deliberately does not pretend to support mixed periodic rank embedded in a nonperiodic complement; that requires an explicit subspace/metric contract.
+The implementation uses a full-rank D=2/3 basis and an explicit periodic-axis mask. Active basis columns generate lattice images; inactive fractional coefficients remain unwrapped and their image offsets are fixed to zero. This supports a periodic sublattice in the declared basis coordinates (for example, periodic x/y with nonperiodic z). The current API does not claim arbitrary curved or Riemannian subspaces.
 
 ## Current implementation
 
@@ -31,15 +31,15 @@ The caller supplies a node budget. Exhaustion returns SearchBudgetExceeded; the 
 
 ## Deterministic semantics
 
-- The canonical fractional interval is half-open [0,1) on every full-rank lattice coordinate.
+- Active periodic fractional coordinates are canonicalized into the half-open interval [0,1); inactive fractional coordinates are left unchanged.
 - A wrapped point plus its explicit lattice offset reconstructs the original Cartesian point within floating-point tolerance.
-- The closest-image convention minimizes Euclidean Cartesian distance, not fractional-coordinate distance.
+- The closest-image convention minimizes Euclidean Cartesian distance over active integer offsets only, not fractional-coordinate distance.
 - Exactly equal computed distances choose the lexicographically smallest integer image offset.
 - Non-finite values, out-of-envelope integer image indices, degenerate basis pivots and exhausted search budgets are typed failures.
 
 ## Independent correctness corpus
 
-The initial tests compare 2D and 3D closest-image results against bounded brute-force integer-offset enumeration. Metamorphic controls cover:
+The initial tests compare 2D and 3D closest-image results against bounded brute-force integer-offset enumeration. Mixed-rank cases restrict the oracle to active integer coordinates and explicitly assert that inactive image offsets remain zero. Metamorphic controls cover:
 - lattice translation invariance;
 - unimodular basis change (same lattice, different basis coordinates);
 - Cartesian rotation/isometry;
