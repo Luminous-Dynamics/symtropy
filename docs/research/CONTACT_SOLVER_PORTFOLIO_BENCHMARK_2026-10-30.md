@@ -24,6 +24,7 @@ This is a comparison map, not a single leaderboard. The systems solve overlappin
 |---|---|---|
 | MuJoCo 3.16.0 | The current release is dated 2026-10-14. Its discrete integrator combines constraint solve and time integration in an effective metric \(\widehat M=M+hD+h^2K\), so the solve and velocity update share the same inertia. | Benchmark a shared effective-metric formulation; do not claim novelty merely for assembling a Delassus matrix. |
 | Rapier 0.35.3 | SIMD-batched contact processing is always enabled. The October 2026 Dimforge report describes a reworked parallelism model with intra-island parallelism, persistent graph coloring and parallel broad phase. | Rapier is the mandatory Rust CPU baseline. Comparing only independent-island parallelism would be outdated. |
+| Dimforge Nexus 0.7.0 | Rust-authored GPU multiphysics engine; the Q3 2026 report states 505,000 rigid bodies at about 14 ms/frame on an RTX 5080, with Soft-TGS and twist-friction (and no sleeping-island optimization at that point). | A serious Rust/GPU scaling baseline. Reproduce exact scene, hardware and accuracy envelope; the vendor-reported figure is not independently verified. |
 | NVIDIA PhysX 5.8 | Provides PGS and TGS, with TGS generally recommended; NVIDIA documents improvements in convergence, high-mass-ratio handling, drive accuracy and high-frequency effects. | Include dense stacks, high mass ratios and stiff drives; compare both time-to-residual and runtime. |
 | NVIDIA Newton | Open, GPU-accelerated, differentiable simulator built on Warp/OpenUSD; developed with Google DeepMind and Disney Research and managed by the Linux Foundation. | Use as an accelerated/differentiable robotics baseline; separate GPU and CPU comparisons. |
 | ComFree-Sim (2026 preprint) | Proposes analytical complementarity-free contact using a dual-cone impedance-style prediction/correction; includes a unified 6D friction model and reports near-linear scaling and 2–3× throughput vs MuJoCo Warp in its dense-contact experiments. | This is a serious alternative to iterative complementarity for dense contact. Reproduce matched cases; treat its reported speedup as an author result, not independently established fact. |
@@ -33,10 +34,27 @@ Primary reading:
 - MuJoCo release history: https://github.com/google-deepmind/mujoco/releases
 - MuJoCo computation and discrete integrator: https://mujoco.readthedocs.io/en/latest/computation/
 - Rapier 0.35.3 package/docs: https://docs.rs/rapier3d/0.35.3
-- Dimforge Q3 2026 report: https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/
+- Dimforge Q3 2026 report (Nexus 0.7.0, 505K rigid bodies in ~14 ms/frame on RTX 5080, Rapier intra-island parallelism): https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/
 - PhysX 5.8 simulation docs: https://nvidia-omniverse.github.io/PhysX/physx/5.8.0/docs/Simulation.html
 - NVIDIA Newton: https://developer.nvidia.com/newton-physics
 - ComFree-Sim paper: https://arxiv.org/abs/2603.12185
+
+## Contact-law semantics: do not mix unlike models
+
+A solver comparison is meaningful only after the contact law is stated. These are distinct model families, not interchangeable implementations of one exact law:
+
+| Contact model | Mathematical contract | Typical trade-off |
+|---|---|---|
+| Signorini + maximum-dissipation Coulomb | Unilateral normal complementarity; tangential impulse lies in a Coulomb disk/cone and maximally dissipates slip. The new planar oracle covers a single 2D contact. | Strong hard-contact reference, but non-smooth and costly as coupled contact count grows. |
+| Convex/compliant soft contact | Soft penetration/impedance objective; strict complementarity may be relaxed. MuJoCo documents that normal force and separating normal velocity can both be positive in this model, and friction need not be maximally dissipative. | Smoothness, optimization and practical soft-contact behavior; not a like-for-like reference to hard Signorini-Coulomb. |
+| Complementarity-free dual-cone impedance | Predict smooth velocity, then correct violations of dual-cone contact constraints with stiffness/damping-like impedance; polyhedral facets approximate circular cones. ComFree-Sim extends this to tangential, torsional and rolling friction. | Contact-pair/facet parallelism and GPU throughput; fidelity depends on facet resolution, impedance and compliance settings. |
+| Temporal Gauss-Seidel / substepping | Solve constraints over temporal substeps with updated geometry/velocity. | More stable penetration correction and convergence at higher per-iteration cost. |
+
+Therefore every cross-engine campaign needs two tracks:
+1. **Matched-law comparisons**, where the engine can be configured to approximate the same hard or compliant law.
+2. **Best-native-model comparisons**, where each engine uses its preferred contact formulation and all physical metrics are reported without pretending the models are identical.
+
+The planar reference is not an oracle for MuJoCo's soft convex model or ComFree-Sim's impedance model. Instead, create dedicated expected envelopes for each law and measure the trade-offs explicitly.
 
 ## What would actually differentiate Symtropy
 
