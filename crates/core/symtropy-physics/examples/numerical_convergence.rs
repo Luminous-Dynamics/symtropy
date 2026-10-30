@@ -28,7 +28,7 @@ struct ResultRow {
 
 fn run_free_fall(dt: f64) -> ResultRow {
     let mut body =
-        RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.01, 1.0);
+        RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([0.0, 1.0, 0.0]), 0.01, 1.0);
     body.linear_damping = 0.0;
     body.angular_damping = 0.0;
 
@@ -42,15 +42,19 @@ fn run_free_fall(dt: f64) -> ResultRow {
     }
     let elapsed_ns = start.elapsed().as_nanos();
 
-    let exact_y = -0.5 * GRAVITY;
+    let exact_y = 1.0 - 0.5 * GRAVITY;
     let exact_vy = -GRAVITY;
     let state_error = (body.position()[1] - exact_y).hypot(body.linear_velocity[1] - exact_vy);
+    let final_energy = 0.5 * body.mass * body.linear_velocity.norm_squared()
+        + body.mass * GRAVITY * body.position()[1];
+    let initial_energy = body.mass * GRAVITY;
+    let energy_drift = (final_energy - initial_energy).abs() / initial_energy;
 
     ResultRow {
         dt,
         steps,
         state_error,
-        energy_drift: 0.0,
+        energy_drift,
         elapsed_ns,
     }
 }
