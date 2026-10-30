@@ -295,6 +295,7 @@ struct MappedStream {
     parser_version: String,
     validation_authority_id: String,
     validation_receipt_sha256: String,
+    standard: Standard,
     extension_manifest: String,
     device_uuid: String,
     stream_id: String,
@@ -320,6 +321,7 @@ impl MappedStream {
                 csv_escape(&observation.stream_id),
                 csv_escape(&observation.data_item_id),
                 csv_escape(&observation.component_id),
+                self.standard.code().to_string(),
                 self.document_id.clone(),
                 self.document_sha256.clone(),
                 csv_escape(&self.source_uri),
@@ -343,9 +345,7 @@ impl MappedStream {
                 csv_escape(&self.validation_authority_id),
                 self.validation_receipt_sha256.clone(),
                 csv_escape(&self.extension_manifest),
-                self.diagnostics.iter().map(|d| format!("{}:{}:{}:{}",
-                    d.kind.code(), d.sequence, d.source_locator, d.detail
-                )).collect::<Vec<_>>().join(";"),
+                self.diagnostic_manifest(),
             ].into_iter().map(|field| csv_escape(&field)).collect::<Vec<_>>().join(",")
         }).collect()
     }
@@ -480,6 +480,7 @@ fn map_mtconnect(
         parser_version: source.schema.parser_version.clone(),
         validation_authority_id: source.schema.validation_authority_id.clone(),
         validation_receipt_sha256: source.schema.validation_receipt_sha256.clone(),
+        standard: source.schema.standard,
         extension_manifest,
         device_uuid: device_uuid.to_string(),
         stream_id: stream_id.to_string(),
@@ -649,8 +650,12 @@ struct ComposedEvidence {
     part_id: String,
     lot_id: String,
     operation_id: String,
+    qif_document_uuid: String,
     qif_result_id: String,
+    measurement_plan_id: String,
     characteristic_id: String,
+    feature_id: String,
+    instrument_resource_id: String,
     specification_id: String,
     specification_revision: String,
     actual_value: f64,
@@ -660,12 +665,43 @@ struct ComposedEvidence {
     measured_at_ns: i64,
     reference_clock_id: String,
     clock_mapping_sha256: String,
+    cycle_clock_mapping_sha256: String,
+    qif_clock_mapping_sha256: String,
     combined_clock_uncertainty_ns: u64,
+    association_receipt_id: String,
+    association_authority_id: String,
+    association_valid_from_ns: i64,
+    association_valid_until_ns: i64,
     mtconnect_document_sha256: String,
     qif_document_sha256: String,
     association_receipt_sha256: String,
     qif_source_locator: String,
     cycle_source_locator: String,
+}
+
+impl ComposedEvidence {
+    fn csv_row(&self) -> String {
+        let (derived_value, derived_unit, transform_revision) = self.derived_value.as_ref()
+            .map(|v| (format!("{:.17e}", v.derived_value), v.derived_unit.clone(), v.transform_revision.clone()))
+            .unwrap_or_default();
+        [
+            csv_escape(&self.cycle_id), csv_escape(&self.part_id), csv_escape(&self.lot_id),
+            csv_escape(&self.operation_id), csv_escape(&self.qif_document_uuid),
+            csv_escape(&self.qif_result_id), csv_escape(&self.measurement_plan_id),
+            csv_escape(&self.characteristic_id), csv_escape(&self.feature_id),
+            csv_escape(&self.instrument_resource_id), csv_escape(&self.specification_id),
+            csv_escape(&self.specification_revision), format!("{:.17e}", self.actual_value),
+            csv_escape(&self.original_unit), format!("{:.17e}", self.source_measured_at_ns as f64),
+            self.measured_at_ns.to_string(), csv_escape(&self.reference_clock_id),
+            self.clock_mapping_sha256.clone(), self.cycle_clock_mapping_sha256.clone(),
+            self.qif_clock_mapping_sha256.clone(), self.combined_clock_uncertainty_ns.to_string(),
+            csv_escape(&self.association_receipt_id), csv_escape(&self.association_authority_id),
+            self.association_valid_from_ns.to_string(), self.association_valid_until_ns.to_string(),
+            self.mtconnect_document_sha256.clone(), self.qif_document_sha256.clone(),
+            self.association_receipt_sha256.clone(), csv_escape(&self.qif_source_locator),
+            csv_escape(&self.cycle_source_locator), derived_value, derived_unit, transform_revision,
+        ].join(",")
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -775,8 +811,12 @@ fn join_qif_to_cycle(
             part_id: cycle.part_id.clone(),
             lot_id: cycle.lot_id.clone(),
             operation_id: cycle.operation_id.clone(),
+            qif_document_uuid: result.qif_document_uuid.clone(),
             qif_result_id: result.result_id.clone(),
+            measurement_plan_id: result.measurement_plan_id.clone(),
             characteristic_id: result.characteristic_id.clone(),
+            feature_id: result.feature_id.clone(),
+            instrument_resource_id: result.instrument_resource_id.clone(),
             specification_id: result.specification_id.clone(),
             specification_revision: result.specification_revision.clone(),
             actual_value,
@@ -786,7 +826,13 @@ fn join_qif_to_cycle(
             measured_at_ns: result.measured_at_reference_ns,
             reference_clock_id: result.reference_clock_id.clone(),
             clock_mapping_sha256: result.clock_mapping_sha256.clone(),
+            cycle_clock_mapping_sha256: cycle.clock_mapping_sha256.clone(),
+            qif_clock_mapping_sha256: result.clock_mapping_sha256.clone(),
             combined_clock_uncertainty_ns: result.clock_uncertainty_ns.saturating_add(cycle.clock_uncertainty_ns),
+            association_receipt_id: association.receipt_id.clone(),
+            association_authority_id: association.authority_id.clone(),
+            association_valid_from_ns: association.valid_from_ns,
+            association_valid_until_ns: association.valid_until_ns,
             mtconnect_document_sha256: stream.document_sha256.clone(),
             qif_document_sha256: qif_source.document_sha256.clone(),
             association_receipt_sha256: association.source_sha256.clone(),
@@ -962,6 +1008,13 @@ fn verify() -> Result<(), String> {
         || (composed.derived_value.as_ref().ok_or("DERIVED_VALUE_MISSING")?.derived_value - 15020.0).abs() > 1.0e-9 {
         return Err("QIF_MTCONNECT_JOIN_KNOWN_ANSWER_FAILED".into());
     }
+    let composed_row = composed.csv_row();
+    for expected in ["QIF-UUID-001", "PLAN-001", "FEATURE-CYLINDER-01", "CMM-01",
+        "ASSOC-001", "MES-QUALITY-LINKER-01", &mt.document_sha256, &qif.document_sha256] {
+        if !composed_row.contains(expected) {
+            return Err("COMPOSED_EVIDENCE_RECEIPT_INCOMPLETE".into());
+        }
+    }
 
     let gap_stream = map_mtconnect(&mt, "urn:uuid:machine-001", "STREAM-001", true, &fixture_observations(true))
         .map_err(str::to_string)?;
@@ -978,11 +1031,31 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() {
-    println!("device_uuid,stream_id,data_item_id,component_id,source_document_id,source_document_sha256,source_uri,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_locator,schema_version,schema_namespace,schema_bundle_sha256,parser_id,parser_version,validation_authority_id,validation_receipt_sha256,extension_manifest,diagnostic_manifest");
+    println!("standard,device_uuid,stream_id,data_item_id,component_id,source_document_id,source_document_sha256,source_uri,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_locator,schema_version,schema_namespace,schema_bundle_sha256,parser_id,parser_version,validation_authority_id,validation_receipt_sha256,extension_manifest,diagnostic_manifest");
     let source = fixture_source(Standard::MtConnect);
     let mapped = map_mtconnect(&source, "urn:uuid:machine-001", "STREAM-001", true, &fixture_observations(false))
         .expect("frozen valid MTConnect fixture");
     for row in mapped.csv_rows() { println!("{row}"); }
+}
+
+fn emit_joined_csv() -> Result<(), String> {
+    let mt = fixture_source(Standard::MtConnect);
+    let qif = fixture_source(Standard::Qif);
+    let stream = map_mtconnect(&mt, "urn:uuid:machine-001", "STREAM-001", true,
+        &fixture_observations(false)).map_err(str::to_string)?;
+    let cycle = fixture_cycle(&stream);
+    let result = fixture_qif_result(&qif);
+    let association = fixture_association(&stream, &qif);
+    let transform = UnitTransform {
+        source_unit: "mm".into(), target_unit: "um".into(),
+        scale: 1000.0, offset: 0.0, revision: "UNIT-MAP-1".into(),
+    };
+    let joined = join_qif_to_cycle(&stream, &cycle, &qif, &result, &association,
+        1_750_000_800, Some(&transform));
+    let evidence = joined.composed.ok_or(joined.reason)?;
+    println!("cycle_id,part_id,lot_id,operation_id,qif_document_uuid,qif_result_id,measurement_plan_id,characteristic_id,feature_id,instrument_resource_id,specification_id,specification_revision,actual_value,original_unit,source_measured_at_ns,measured_at_reference_ns,reference_clock_id,qif_clock_mapping_sha256,cycle_clock_mapping_sha256,qif_clock_mapping_sha256_repeat,combined_clock_uncertainty_ns,association_receipt_id,association_authority_id,association_valid_from_ns,association_valid_until_ns,mtconnect_document_sha256,qif_document_sha256,association_receipt_sha256,qif_source_locator,cycle_source_locator,derived_value,derived_unit,transform_revision");
+    println!("{}", evidence.csv_row());
+    Ok(())
 }
 
 fn main() {
@@ -991,8 +1064,9 @@ fn main() {
         [] => verify().map(|()| println!("MFG_INTEROP_OK: typed MTConnect/QIF semantic preservation and explicit join")),
         [arg] if arg == "--verify" => verify().map(|()| println!("MFG_INTEROP_OK: typed MTConnect/QIF semantic preservation and explicit join")),
         [arg] if arg == "--csv" => { emit_csv(); Ok(()) },
+        [arg] if arg == "--joined-csv" => emit_joined_csv(),
         [arg] if arg == "--help" || arg == "-h" => {
-            println!("Usage: mfg-interop [--verify|--csv|--help]");
+            println!("Usage: mfg-interop [--verify|--csv|--joined-csv|--help]");
             Ok(())
         }
         _ => Err("expected --verify, --csv or --help".into()),
