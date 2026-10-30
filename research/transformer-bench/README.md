@@ -290,3 +290,12 @@ cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin t
   research/transformer-bench/fixtures/time-capability-calibration-synthetic.csv \
   /tmp/time-capability.csv
 ```
+
+
+## Measurement-system analysis (Gage R&R)
+
+A new balanced crossed-ANOVA diagnostic estimates repeatability, part×operator interaction, operator reproducibility, part-to-part variation, total Gage R&R, %Study Variation, %Tolerance and NDC. It checks that the part/operator/repeat grid is complete and that every record has a current matching calibration. The resulting noise estimate is only a candidate input to Symthaea after independent study and quality review; the tool does not create production eligibility or release authority.
+
+- [Crossed measurement-system analysis protocol](MEASUREMENT_SYSTEM_ANALYSIS.md)
+- Synthetic designs: low-GRR, high-GRR/operator-shift, incomplete-grid and expired-calibration fixtures under fixtures/measurement-system-msa-*.csv.
+
