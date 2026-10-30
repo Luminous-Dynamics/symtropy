@@ -28,6 +28,7 @@ pub mod island;
 pub mod joints;
 pub mod manifold_gen;
 pub mod periodic_lattice_broadphase;
+pub mod periodic_lattice_collision;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
@@ -44,6 +45,12 @@ pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use periodic_lattice_broadphase::{
     PeriodicLatticeBroadphaseError, lattice_image_offsets_for_aabb_pair,
+};
+pub use periodic_lattice_collision::{
+    PeriodicLatticeCollisionError, PeriodicLatticeCollisionHit,
+    PeriodicLatticeCollisionQuery, PeriodicLatticeCollisionStatus,
+    PeriodicLatticeSphereCcdHit, query_triclinic_convex,
+    sphere_sphere_ccd_triclinic_all,
 };
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
