@@ -50,5 +50,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: engineering-scenario-compiler-formatted
-          path: tools/engineering-scenario-compiler/
+          path: |
+            tools/engineering-scenario-compiler/Cargo.toml
+            tools/engineering-scenario-compiler/Cargo.lock
+            tools/engineering-scenario-compiler/README.md
+            tools/engineering-scenario-compiler/src/lib.rs
+            tools/engineering-scenario-compiler/src/main.rs
           if-no-files-found: error
