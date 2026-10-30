@@ -96,6 +96,7 @@ pub struct PeriodicLattice<const D: usize> {
     basis: SMatrix<f64, D, D>,
     q: SMatrix<f64, D, D>,
     r: SMatrix<f64, D, D>,
+    squared_basis_scale: f64,
     /// Conservative diagonal-pivot ratio from the reorthogonalized QR factor.
     /// This is a rejection/diagnostic proxy, not a spectral condition number.
     min_relative_qr_pivot: f64,
@@ -133,6 +134,12 @@ impl<const D: usize> PeriodicLattice<D> {
         let basis_scale = basis.norm();
         if !basis_scale.is_finite() || basis_scale <= 0.0 {
             return Err(PeriodicLatticeError::DegenerateBasis { column: 0 });
+        }
+        let squared_basis_scale = basis_scale * basis_scale;
+        if !squared_basis_scale.is_finite() || squared_basis_scale <= 0.0 {
+            return Err(PeriodicLatticeError::NumericRange {
+                field: "squared lattice basis scale",
+            });
         }
 
         let mut q = SMatrix::<f64, D, D>::zeros();
@@ -178,6 +185,7 @@ impl<const D: usize> PeriodicLattice<D> {
             basis,
             q,
             r,
+            squared_basis_scale,
             min_relative_qr_pivot: minimum_pivot_ratio,
         })
     }
@@ -353,6 +361,7 @@ impl<const D: usize> PeriodicLattice<D> {
             &target,
             &self.basis,
             &self.r,
+            self.squared_basis_scale,
             QR_ROUNDING_PAD / self.min_relative_qr_pivot,
             max_search_nodes,
             &mut search_nodes,
@@ -421,6 +430,7 @@ fn sphere_decode_level<const D: usize>(
     target: &SVector<f64, D>,
     basis: &SMatrix<f64, D, D>,
     r: &SMatrix<f64, D, D>,
+    squared_basis_scale: f64,
     search_padding: f64,
     max_search_nodes: usize,
     search_nodes: &mut usize,
@@ -457,7 +467,7 @@ fn sphere_decode_level<const D: usize>(
     }
     let center = (target[row] - upper_sum) / diagonal;
     let remaining = best.distance_squared - partial_distance_squared;
-    let distance_pad = search_padding * best.distance_squared.max(1.0);
+    let distance_pad = search_padding * best.distance_squared.max(squared_basis_scale);
     if remaining < -distance_pad {
         return Ok(());
     }
@@ -497,7 +507,7 @@ fn sphere_decode_level<const D: usize>(
 
         let row_error = diagonal * (value as f64 - center);
         let next_partial = partial_distance_squared + row_error * row_error;
-        let branch_pad = search_padding * best.distance_squared.max(1.0);
+        let branch_pad = search_padding * best.distance_squared.max(squared_basis_scale);
         if next_partial <= best.distance_squared + branch_pad {
             sphere_decode_level(
                 level - 1,
@@ -506,6 +516,7 @@ fn sphere_decode_level<const D: usize>(
                 target,
                 basis,
                 r,
+                squared_basis_scale,
                 search_padding,
                 max_search_nodes,
                 search_nodes,
@@ -869,6 +880,31 @@ mod tests {
             PeriodicLattice::new(SVector::zeros(), basis).unwrap_err(),
             PeriodicLatticeError::DegenerateBasis { column: 1 }
         );
+    }
+
+    #[test]
+    fn closest_image_is_invariant_under_uniform_unit_scaling() {
+        let basis = SMatrix::<f64, 2, 2>::from_row_slice(&[2.0, 1.4, 0.0, 1.5]);
+        let displacement = SVector::from([1.31, 0.66]);
+        let reference = lattice2(basis.clone())
+            .minimum_image_displacement(&displacement, 10_000)
+            .unwrap();
+
+        for scale in [1.0e-6_f64, 1.0e6] {
+            let scaled_basis = basis * scale;
+            let scaled_displacement = displacement * scale;
+            let scaled = lattice2(scaled_basis)
+                .minimum_image_displacement(&scaled_displacement, 10_000)
+                .unwrap();
+
+            assert_eq!(scaled.image_offset, reference.image_offset);
+            assert!((scaled.displacement / scale - reference.displacement).norm() < 1e-9);
+            close(
+                scaled.distance_squared / (scale * scale),
+                reference.distance_squared,
+                1e-9,
+            );
+        }
     }
 
     #[test]
