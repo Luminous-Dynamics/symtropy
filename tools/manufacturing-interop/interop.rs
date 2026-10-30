@@ -307,6 +307,12 @@ impl MappedStream {
         self.diagnostics.iter().all(|d| !d.kind.invalidates_composition())
     }
 
+    fn diagnostic_manifest(&self) -> String {
+        self.diagnostics.iter().map(|d| format!("{}:{}:{}:{}",
+            d.kind.code(), d.sequence, d.source_locator, d.detail
+        )).collect::<Vec<_>>().join(";")
+    }
+
     fn csv_rows(&self) -> Vec<String> {
         self.observations.iter().map(|observation| {
             [
@@ -314,6 +320,9 @@ impl MappedStream {
                 csv_escape(&observation.stream_id),
                 csv_escape(&observation.data_item_id),
                 csv_escape(&observation.component_id),
+                self.document_id.clone(),
+                self.document_sha256.clone(),
+                csv_escape(&self.source_uri),
                 observation.sequence.to_string(),
                 observation.source_timestamp_ns.to_string(),
                 observation.timestamp_ns.to_string(),
@@ -334,7 +343,10 @@ impl MappedStream {
                 csv_escape(&self.validation_authority_id),
                 self.validation_receipt_sha256.clone(),
                 csv_escape(&self.extension_manifest),
-            ].join(",")
+                self.diagnostics.iter().map(|d| format!("{}:{}:{}:{}",
+                    d.kind.code(), d.sequence, d.source_locator, d.detail
+                )).collect::<Vec<_>>().join(";"),
+            ].into_iter().map(|field| csv_escape(&field)).collect::<Vec<_>>().join(",")
         }).collect()
     }
 }
@@ -387,7 +399,7 @@ fn map_mtconnect(
             let kind = if previous.value == observation.value
                 && previous.data_item_id == observation.data_item_id
                 && previous.component_id == observation.component_id
-                && previous.timestamp_ns == observation.timestamp_ns
+                && previous.reference_timestamp_ns == observation.reference_timestamp_ns
             {
                 StreamDiagnosticKind::DuplicateSequence
             } else {
@@ -484,17 +496,6 @@ enum QifResultStatus {
     Failed,
 }
 
-impl QifResultStatus {
-    fn code(self) -> &'static str {
-        match self {
-            Self::Measured => "MEASURED",
-            Self::NominalOnly => "NOMINAL_ONLY",
-            Self::NotMeasured => "NOT_MEASURED",
-            Self::Failed => "FAILED",
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 struct QifInspectionResult {
     source_document_id: String,
@@ -577,17 +578,6 @@ enum AssociationState {
     Missing,
     Unverified,
     Revoked,
-}
-
-impl AssociationState {
-    fn code(self) -> &'static str {
-        match self {
-            Self::Verified => "VERIFIED",
-            Self::Missing => "MISSING",
-            Self::Unverified => "UNVERIFIED",
-            Self::Revoked => "REVOKED",
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -988,7 +978,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() {
-    println!("device_uuid,stream_id,data_item_id,component_id,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_document_sha256,source_locator,schema_version,schema_namespace,schema_bundle_sha256,parser_id,parser_version,validation_authority_id,validation_receipt_sha256,extension_manifest");
+    println!("device_uuid,stream_id,data_item_id,component_id,source_document_id,source_document_sha256,source_uri,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_locator,schema_version,schema_namespace,schema_bundle_sha256,parser_id,parser_version,validation_authority_id,validation_receipt_sha256,extension_manifest,diagnostic_manifest");
     let source = fixture_source(Standard::MtConnect);
     let mapped = map_mtconnect(&source, "urn:uuid:machine-001", "STREAM-001", true, &fixture_observations(false))
         .expect("frozen valid MTConnect fixture");
