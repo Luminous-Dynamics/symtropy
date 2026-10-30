@@ -214,7 +214,6 @@ fn incomplete(r: &Request, reason: &'static str) -> Report {
         coverage_probability: finite(r.uncertainty.coverage_probability),
     }
 }
-}
 
 fn validate(r: &Request) -> Result<(), &'static str> {
     if let Some(reason) = r.evidence.first_failure() { return Err(reason); }
