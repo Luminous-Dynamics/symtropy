@@ -35,6 +35,24 @@ ROS 2 Control exposes controller/hardware lifecycle and error/fallback behavior 
 - ROS 2 Control controller manager: https://control.ros.org/kilted/doc/ros2_control/controller_manager/doc/userdoc.html
 - NIST Performance of Emergency Response Robots: https://www.nist.gov/programs-projects/performance-emergency-response-robots
 
+## Evaluation protocol
+
+Freeze an adversarial mutation matrix before scoring:
+
+- Valid complete success, native rejection, application rejection, cancellation, and safe deadline rejection traces.
+- Request/session/sequence/controller identity substitution.
+- Controller epoch, accepted epoch, applied epoch, deadline, clock-domain, command-payload digest, and controller-configuration digest mutation.
+- Timestamp regression, reordered stages, duplicate proposal, duplicate terminal, outcome/disposition contradiction, missing event, missing terminal, and unexpected request.
+- Empty expected set and missing entire expected request identities.
+
+Target 100% detection of seeded hard-gate mutations and 0 false rejection of valid complete traces. Report denominators by mutation class, not just a single aggregate. Scale the verifier over 1,000; 10,000; 100,000; and 1,000,000 events, reporting events/second, p50/p95 audit latency, peak memory, and bytes per event. The auditor is out-of-band: its added latency to the real-time controller loop must be exactly zero by architecture, not a best-effort target.
+
+## Industry benchmark positioning
+
+RoboDojo reports 42 simulation tasks and 18 real-world tasks across three embodiments, with generalization, memory, precision, long-horizon, and open-vocabulary capability dimensions. Its reproducible, seed-controlled evaluation is a useful model for task-level benchmarking; its manipulation success scores are not directly comparable to this mobile-base command-integrity auditor. Freeze benchmark assets, evaluator versions, and seeds when integrating cross-benchmark task evaluation.
+
+NIST's response-robot program develops repeatable elemental capability tests and leaves mission-specific pass thresholds to the deploying community. Pair those capability measurements with this command-lifecycle audit, rather than collapsing both into one reward.
+
 ## Acceptance target
 
 On a frozen conformance corpus, require 100% detection of injected identity, epoch, deadline, order, missing-trace, missing-terminal, and contradictory-outcome faults, with zero false rejection of valid complete traces. This is a test target only; it is not yet a measured result. The next step is to bind the auditor to the campaign runner and emit a digest-bound receipt for each audited run.
