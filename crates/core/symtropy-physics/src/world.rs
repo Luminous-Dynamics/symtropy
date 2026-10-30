@@ -800,12 +800,13 @@ impl<const D: usize> PhysicsWorld<D> {
             if ci < self.contacts.len() {
                 let body_a = self.contacts[ci].body_a;
                 let body_b = self.contacts[ci].body_b;
-                self.try_warm_start_contact(ci).map_err(|cause| PhysicsStepError {
-                    phase: PhysicsStepPhase::ContactWarmStart,
-                    body_a: Some(body_a),
-                    body_b: Some(body_b),
-                    cause,
-                })?;
+                self.try_warm_start_contact(ci)
+                    .map_err(|cause| PhysicsStepError {
+                        phase: PhysicsStepPhase::ContactWarmStart,
+                        body_a: Some(body_a),
+                        body_b: Some(body_b),
+                        cause,
+                    })?;
             }
         }
 
@@ -817,14 +818,14 @@ impl<const D: usize> PhysicsWorld<D> {
                     let contact = self.contacts[ci].clone();
                     let body_a = contact.body_a;
                     let body_b = contact.body_b;
-                    let updated = self
-                        .try_resolve_contact(contact, dt, callback)
-                        .map_err(|cause| PhysicsStepError {
-                            phase: PhysicsStepPhase::ContactSolve,
-                            body_a: Some(body_a),
-                            body_b: Some(body_b),
-                            cause,
-                        })?;
+                    let updated =
+                        self.try_resolve_contact(contact, dt, callback)
+                            .map_err(|cause| PhysicsStepError {
+                                phase: PhysicsStepPhase::ContactSolve,
+                                body_a: Some(body_a),
+                                body_b: Some(body_b),
+                                cause,
+                            })?;
                     self.contacts[ci] = updated;
                 }
             }
@@ -2770,9 +2771,9 @@ mod transformed_halfspace_tests {
             SVector::from_element(1.0),
         );
         block.set_rotational_inertia_operator(
-            BivectorInertia::<3>::from_second_moment(
-                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
-            )
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
             .unwrap(),
         );
         block.linear_velocity = SVector::new(0.25, 0.0, 0.0);
@@ -2843,8 +2844,12 @@ mod transformed_halfspace_tests {
             sensor: first_handle,
             other: second_handle,
         });
-        world.contact_cache.store(first_handle, second_handle, cache_point, 0.25, 0.0);
-        world.prev_cache.store(first_handle, second_handle, cache_point, 0.5, 0.0);
+        world
+            .contact_cache
+            .store(first_handle, second_handle, cache_point, 0.25, 0.0);
+        world
+            .prev_cache
+            .store(first_handle, second_handle, cache_point, 0.5, 0.0);
 
         let error = world.try_step(0.01).unwrap_err();
         assert_eq!(error.phase, PhysicsStepPhase::BodyIntegration);
@@ -2859,10 +2864,23 @@ mod transformed_halfspace_tests {
         assert_eq!(world.contacts.len(), 1);
         assert_eq!(world.collision_events.len(), 1);
         assert_eq!(world.sensor_events.len(), 1);
-        assert_eq!(world.contact_cache.lookup(first_handle, second_handle, &cache_point).unwrap().normal_impulse, 0.25);
-        assert_eq!(world.prev_cache.lookup(first_handle, second_handle, &cache_point).unwrap().normal_impulse, 0.5);
+        assert_eq!(
+            world
+                .contact_cache
+                .lookup(first_handle, second_handle, &cache_point)
+                .unwrap()
+                .normal_impulse,
+            0.25
+        );
+        assert_eq!(
+            world
+                .prev_cache
+                .lookup(first_handle, second_handle, &cache_point)
+                .unwrap()
+                .normal_impulse,
+            0.5
+        );
     }
-
 
     #[test]
     fn try_resolve_contact_reports_singular_rotational_effective_mass() {
@@ -2890,9 +2908,7 @@ mod transformed_halfspace_tests {
         let before_b = world.bodies[1].linear_velocity.clone();
         let mut callback = NoOpCallback;
 
-        let error = world
-            .try_resolve_contact(contact, 0.01, &mut callback)
-            .unwrap_err();
+        let error = world.try_resolve_contact(contact, 0.01, &mut callback).unwrap_err();
         assert_eq!(
             error,
             crate::inertia::RotationalInertiaError::SingularInertia
@@ -2900,6 +2916,4 @@ mod transformed_halfspace_tests {
         assert_eq!(world.bodies[0].linear_velocity, before_a);
         assert_eq!(world.bodies[1].linear_velocity, before_b);
     }
-
-
 }
