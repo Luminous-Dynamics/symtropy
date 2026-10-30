@@ -13,7 +13,9 @@
 //! Collider-to-mass-property extraction from general CAD/meshes and broad
 //! experimental validation remain separate implementation steps.
 
-use nalgebra::{SMatrix, SVector};
+use std::collections::{BTreeMap, VecDeque};
+
+use nalgebra::{DMatrix, SMatrix, SVector};
 use symtropy_math::{Bivector, Rotor};
 
 /// Construction errors for a rotational inertia operator.
@@ -39,6 +41,18 @@ pub enum RotationalInertiaError {
     InvalidDirection,
     /// Component offsets do not place the combined center of mass at the origin.
     OffsetsNotCentered,
+    /// The supplied simplicial boundary is combinatorially invalid.
+    InvalidSimplicialBoundary,
+    /// A boundary ridge does not occur in exactly two facets.
+    OpenOrNonManifoldBoundary,
+    /// Adjacent facets induce inconsistent orientations on a shared ridge.
+    InconsistentBoundaryOrientation,
+    /// The boundary contains more than one connected component.
+    DisconnectedBoundary,
+    /// A boundary facet has zero or numerically degenerate measure.
+    DegenerateFacet,
+    /// The signed boundary integration encloses zero volume.
+    ZeroVolume,
 }
 
 /// Rotational inertia acting on Lambda^2(R^D), the bivector space of rotations.
@@ -54,6 +68,19 @@ pub struct BivectorInertia<const D: usize> {
     total_mass: Option<f64>,
     principal_second_moments: SVector<f64, D>,
     principal_axes: SMatrix<f64, D, D>,
+}
+
+/// Uniform-density mass properties integrated from a closed simplicial boundary.
+#[derive(Clone, Debug)]
+pub struct MassProperties<const D: usize> {
+    /// Positive enclosed D-dimensional volume, in length units to the Dth power.
+    pub volume: f64,
+    /// Total mass in the caller's physical mass units.
+    pub total_mass: f64,
+    /// Center of mass expressed in the same frame as the input vertices.
+    pub center_of_mass: SVector<f64, D>,
+    /// Centered rotational second-moment operator.
+    pub inertia: BivectorInertia<D>,
 }
 
 impl<const D: usize> BivectorInertia<D> {
@@ -108,6 +135,220 @@ impl<const D: usize> BivectorInertia<D> {
             total_mass: None,
             principal_second_moments,
             principal_axes,
+        })
+    }
+
+    /// Integrate mass properties from one closed, oriented simplicial boundary.
+    ///
+    /// Each boundary facet contains exactly D vertex indices and represents an
+    /// oriented (D-1)-simplex. The boundary must be a connected, consistently
+    /// oriented, closed manifold without self-intersections. This routine
+    /// validates index uniqueness, ridge incidence/orientation, connectedness
+    /// and facet degeneracy; it does not perform geometric self-intersection
+    /// detection or repair invalid input.
+    ///
+    /// The method triangulates each boundary facet with a nearby reference
+    /// vertex and accumulates signed D-simplex integrals for volume, first
+    /// moment and second moment. Working relative to the first input vertex
+    /// improves conditioning for meshes far from the world origin. The final
+    /// second moment is shifted to the computed center of mass.
+    ///
+    /// This is dimension-generic: in 2D facets are edges, in 3D triangles, and
+    /// in 4D tetrahedral boundary cells. Curved boundaries must first be
+    /// tessellated or use the analytic constructors above.
+    pub fn from_oriented_closed_simplicial_boundary(
+        vertices: &[SVector<f64, D>],
+        facets: &[[usize; D]],
+        density: f64,
+        relative_tolerance: f64,
+    ) -> Result<MassProperties<D>, RotationalInertiaError> {
+        if D < 2 {
+            return Err(RotationalInertiaError::InvalidDimension);
+        }
+        if vertices.is_empty() || facets.is_empty() {
+            return Err(RotationalInertiaError::InvalidSimplicialBoundary);
+        }
+        if !density.is_finite() || density <= 0.0 {
+            return Err(RotationalInertiaError::InvalidMassProperties);
+        }
+        if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 {
+            return Err(RotationalInertiaError::InvalidTolerance);
+        }
+        if vertices
+            .iter()
+            .any(|vertex| !vertex.iter().all(|value| value.is_finite()))
+        {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+
+        let facet_count = facets.len();
+        let mut ridges: BTreeMap<Vec<usize>, Vec<(usize, i8)>> = BTreeMap::new();
+        let mut adjacency = vec![Vec::<usize>::new(); facet_count];
+
+        // A shared (D-2)-simplex must be induced with opposite orientations
+        // by its two incident facets. The parity calculation is relative to
+        // the sorted ridge key and includes the alternating boundary sign.
+        for (facet_index, facet) in facets.iter().enumerate() {
+            let mut unique = facet.to_vec();
+            unique.sort_unstable();
+            unique.dedup();
+            if unique.len() != D || facet.iter().any(|index| *index >= vertices.len()) {
+                return Err(RotationalInertiaError::InvalidSimplicialBoundary);
+            }
+
+            for omitted in 0..D {
+                let mut ridge: Vec<usize> = facet
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, vertex)| (index != omitted).then_some(*vertex))
+                    .collect();
+                let mut inversions = 0_usize;
+                for i in 0..ridge.len() {
+                    for j in (i + 1)..ridge.len() {
+                        if ridge[i] > ridge[j] {
+                            inversions += 1;
+                        }
+                    }
+                }
+                let permutation_sign = if inversions % 2 == 0 { 1_i8 } else { -1_i8 };
+                let boundary_sign = if omitted % 2 == 0 { 1_i8 } else { -1_i8 };
+                let induced_sign = permutation_sign * boundary_sign;
+                ridge.sort_unstable();
+                ridges
+                    .entry(ridge)
+                    .or_default()
+                    .push((facet_index, induced_sign));
+            }
+        }
+
+        for incidences in ridges.values() {
+            if incidences.len() != 2 {
+                return Err(RotationalInertiaError::OpenOrNonManifoldBoundary);
+            }
+            if incidences[0].1 + incidences[1].1 != 0 {
+                return Err(RotationalInertiaError::InconsistentBoundaryOrientation);
+            }
+            adjacency[incidences[0].0].push(incidences[1].0);
+            adjacency[incidences[1].0].push(incidences[0].0);
+        }
+
+        // The first version deliberately handles one connected boundary.
+        // Multiple disconnected solids/cavities need an explicit component
+        // nesting/orientation contract and are not silently combined.
+        let mut visited = vec![false; facet_count];
+        let mut queue = VecDeque::new();
+        queue.push_back(0_usize);
+        visited[0] = true;
+        let mut visited_count = 0_usize;
+        while let Some(facet_index) = queue.pop_front() {
+            visited_count += 1;
+            for neighbor in &adjacency[facet_index] {
+                if !visited[*neighbor] {
+                    visited[*neighbor] = true;
+                    queue.push_back(*neighbor);
+                }
+            }
+        }
+        if visited_count != facet_count {
+            return Err(RotationalInertiaError::DisconnectedBoundary);
+        }
+
+        let reference = vertices[0];
+        let mut length_scale = 0.0_f64;
+        for vertex in vertices {
+            length_scale = length_scale.max((vertex - reference).norm());
+        }
+        if !length_scale.is_finite() || length_scale <= f64::MIN_POSITIVE {
+            return Err(RotationalInertiaError::ZeroVolume);
+        }
+
+        let mut signed_volume = 0.0_f64;
+        let mut first_moment = SVector::<f64, D>::zeros();
+        let mut second_moment_about_reference = SMatrix::<f64, D, D>::zeros();
+        let factorial = (2..=D).fold(1.0_f64, |value, factor| value * factor as f64);
+        let first_denominator = D as f64 + 1.0;
+        let second_denominator = first_denominator * (D as f64 + 2.0);
+
+        for facet in facets {
+            let local_vertices: Vec<SVector<f64, D>> = facet
+                .iter()
+                .map(|index| vertices[*index] - reference)
+                .collect();
+
+            // Reject geometrically degenerate boundary simplices using the
+            // Gram determinant of their D-1 independent edge vectors.
+            let edge_vectors: Vec<SVector<f64, D>> = (1..D)
+                .map(|index| local_vertices[index] - local_vertices[0])
+                .collect();
+            let gram = DMatrix::<f64>::from_fn(D - 1, D - 1, |i, j| {
+                edge_vectors[i].dot(&edge_vectors[j])
+            });
+            let gram_determinant = gram.determinant();
+            let facet_scale = edge_vectors
+                .iter()
+                .fold(0.0_f64, |maximum, edge| maximum.max(edge.norm()));
+            let gram_scale = facet_scale.powi((2 * (D - 1)) as i32);
+            if !gram_determinant.is_finite()
+                || gram_scale <= f64::MIN_POSITIVE
+                || gram_determinant <= relative_tolerance.powi(2) * gram_scale
+            {
+                return Err(RotationalInertiaError::DegenerateFacet);
+            }
+
+            let simplex_matrix =
+                DMatrix::<f64>::from_fn(D, D, |row, column| local_vertices[column][row]);
+            let simplex_volume = simplex_matrix.determinant() / factorial;
+            if !simplex_volume.is_finite() {
+                return Err(RotationalInertiaError::NonFinite);
+            }
+
+            let vertex_sum = local_vertices
+                .iter()
+                .fold(SVector::<f64, D>::zeros(), |sum, vertex| sum + vertex);
+            let sum_of_vertex_outer_products = local_vertices.iter().fold(
+                SMatrix::<f64, D, D>::zeros(),
+                |sum, vertex| sum + vertex * vertex.transpose(),
+            );
+
+            signed_volume += simplex_volume;
+            first_moment += vertex_sum * (simplex_volume / first_denominator);
+            second_moment_about_reference +=
+                (vertex_sum * vertex_sum.transpose() + sum_of_vertex_outer_products)
+                    * (simplex_volume / second_denominator);
+        }
+
+        if !signed_volume.is_finite()
+            || !first_moment.iter().all(|value| value.is_finite())
+            || !second_moment_about_reference
+                .iter()
+                .all(|value| value.is_finite())
+        {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+
+        let volume = signed_volume.abs();
+        let volume_scale = length_scale.powi(D as i32);
+        if volume <= relative_tolerance * volume_scale.max(f64::MIN_POSITIVE) {
+            return Err(RotationalInertiaError::ZeroVolume);
+        }
+
+        // The entire oriented boundary may be globally inward or outward.
+        // Flip all integrated moments together, keeping local orientation
+        // consistency mandatory and the resulting physical volume positive.
+        let orientation_sign = signed_volume.signum();
+        let center_relative = first_moment * (orientation_sign / volume);
+        let raw_second_moment =
+            second_moment_about_reference * (orientation_sign * density);
+        let mass = density * volume;
+        let centered_second_moment =
+            raw_second_moment - (center_relative * center_relative.transpose()) * mass;
+        let inertia = Self::from_second_moment_with_mass(mass, centered_second_moment)?;
+
+        Ok(MassProperties {
+            volume,
+            total_mass: mass,
+            center_of_mass: reference + center_relative,
+            inertia,
         })
     }
 
