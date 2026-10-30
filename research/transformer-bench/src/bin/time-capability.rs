@@ -66,7 +66,7 @@ struct WindowStats {
     start: String,
     mean: f64,
     standard_deviation: f64,
-    guarded_cpk: f64,
+    guarded_index_3sigma: f64,
 }
 #[derive(Clone, Debug)]
 struct Report {
@@ -82,8 +82,8 @@ struct Report {
     invalid_metrology_records: usize,
     guarded_exceptions: usize,
     insufficient_windows: usize,
-    pooled_cpk: Option<f64>,
-    worst_window_cpk: Option<f64>,
+    pooled_guarded_index_3sigma: Option<f64>,
+    worst_window_guarded_index_3sigma: Option<f64>,
     window_mean_range_fraction: Option<f64>,
     max_window_sigma: Option<f64>,
     min_window_sigma: Option<f64>,
@@ -115,12 +115,12 @@ fn run() -> Result<(), String> {
     write_report(&args[4], &reports)?;
     for report in &reports {
         eprintln!(
-            "product={} characteristic={} windows={} n={} worst_window_guarded_cpk={} drift_warning={} diagnostic={}",
+            "product={} characteristic={} windows={} n={} worst_window_guarded_index_3sigma={} drift_warning={} diagnostic={}",
             report.product,
             report.characteristic,
             report.windows,
             report.valid_samples,
-            format_optional(report.worst_window_cpk),
+            format_optional(report.worst_window_guarded_index_3sigma),
             report.drift_warning,
             report.diagnostic
         );
@@ -363,7 +363,7 @@ fn sample_standard_deviation(values: &[f64], center: f64) -> Option<f64> {
     Some((sum_squares / (values.len() - 1) as f64).sqrt())
 }
 
-fn guarded_cpk(values: &[f64], spec: &Spec) -> Option<f64> {
+fn guarded_index_3sigma(values: &[f64], spec: &Spec) -> Option<f64> {
     let center = mean(values);
     let sigma = sample_standard_deviation(values, center)?;
     let guard = spec.coverage * spec.max_uncertainty;
@@ -435,7 +435,7 @@ fn evaluate(
                 insufficient_windows += 1;
                 continue;
             };
-            let Some(cpk) = guarded_cpk(&values, spec) else {
+            let Some(cpk) = guarded_index_3sigma(&values, spec) else {
                 insufficient_windows += 1;
                 continue;
             };
@@ -443,13 +443,13 @@ fn evaluate(
                 start: window.first().map(|s| s.measured_at.clone()).unwrap_or_default(),
                 mean: center,
                 standard_deviation: sd,
-                guarded_cpk: cpk,
+                guarded_index_3sigma: cpk,
             });
         }
         window_stats.sort_by(|a, b| a.start.cmp(&b.start));
 
-        let pooled_cpk = guarded_cpk(&valid_samples, spec);
-        let worst_window_cpk = window_stats.iter().map(|w| w.guarded_cpk).reduce(f64::min);
+        let pooled_guarded_index_3sigma = guarded_index_3sigma(&valid_samples, spec);
+        let worst_window_guarded_index_3sigma = window_stats.iter().map(|w| w.guarded_index_3sigma).reduce(f64::min);
         let means: Vec<f64> = window_stats.iter().map(|w| w.mean).collect();
         let window_mean_range_fraction = if means.len() >= 2 {
             Some((means.iter().copied().fold(f64::NEG_INFINITY, f64::max)
@@ -482,7 +482,7 @@ fn evaluate(
         reports.push(Report {
             family, product, component, lot, station, characteristic, unit: spec.unit.clone(),
             windows: total_windows, valid_samples: seen_calibrated, invalid_metrology_records,
-            guarded_exceptions, insufficient_windows, pooled_cpk, worst_window_cpk,
+            guarded_exceptions, insufficient_windows, pooled_guarded_index_3sigma, worst_window_guarded_index_3sigma,
             window_mean_range_fraction, max_window_sigma, min_window_sigma, sigma_ratio,
             drift_warning, variance_shift_warning, diagnostic: diagnostic.to_string(),
         });
@@ -496,14 +496,14 @@ fn format_optional(value: Option<f64>) -> String {
 
 fn write_report(path: &str, reports: &[Report]) -> Result<(), String> {
     let mut out = String::from(
-        "product_family,product_id,component_id,component_lot_id,station_id,characteristic,unit,windows,valid_samples,invalid_metrology_records,guarded_exceptions,insufficient_windows,pooled_guarded_cpk,worst_window_guarded_cpk,window_mean_range_fraction,max_window_sigma,min_window_sigma,max_min_window_sigma_ratio,drift_warning,variance_shift_warning,diagnostic\n"
+        "product_family,product_id,component_id,component_lot_id,station_id,characteristic,unit,windows,valid_samples,invalid_metrology_records,guarded_exceptions,insufficient_windows,pooled_guarded_index_3sigma,worst_window_guarded_index_3sigma,window_mean_range_fraction,max_window_sigma,min_window_sigma,max_min_window_sigma_ratio,drift_warning,variance_shift_warning,diagnostic\n"
     );
     for r in reports {
         out.push_str(&format!(
             "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
             r.family, r.product, r.component, r.lot, r.station, r.characteristic, r.unit,
             r.windows, r.valid_samples, r.invalid_metrology_records, r.guarded_exceptions,
-            r.insufficient_windows, format_optional(r.pooled_cpk), format_optional(r.worst_window_cpk),
+            r.insufficient_windows, format_optional(r.pooled_guarded_index_3sigma), format_optional(r.worst_window_guarded_index_3sigma),
             format_optional(r.window_mean_range_fraction), format_optional(r.max_window_sigma),
             format_optional(r.min_window_sigma), format_optional(r.sigma_ratio),
             r.drift_warning, r.variance_shift_warning, r.diagnostic
@@ -539,10 +539,10 @@ mod tests {
     fn guarded_capability_uses_worst_window_and_conservative_total_variation() {
         let spec = spec();
         let values = [100.0, 100.02, 99.98, 100.01];
-        let cpk = guarded_cpk(&values, &spec).unwrap();
+        let cpk = guarded_index_3sigma(&values, &spec).unwrap();
         assert!(cpk > 1.33);
         assert!(cpk.is_finite());
-        assert_eq!(guarded_cpk(&[100.0, 100.0, 100.0], &spec), None);
+        assert_eq!(guarded_index_3sigma(&[100.0, 100.0, 100.0], &spec), None);
     }
 
     #[test]
@@ -598,7 +598,7 @@ mod tests {
     }
 
     #[test]
-    fn windowed_diagnostic_detects_mean_drift_that_pooled_cpk_could_hide() {
+    fn windowed_diagnostic_detects_mean_drift_that_pooled_guarded_index_3sigma_could_hide() {
         let samples = synthetic_window_samples(&[
             ("W1", &[99.88, 99.89, 99.87, 99.88]),
             ("W2", &[99.99, 100.00, 100.01, 100.00]),
@@ -615,8 +615,8 @@ mod tests {
         assert_eq!(reports[0].valid_samples, 12);
         assert!(reports[0].drift_warning);
         assert_eq!(reports[0].diagnostic, "TIME_DEPENDENT_DRIFT_OR_VARIANCE_WARNING");
-        assert!(reports[0].pooled_cpk.is_some());
-        assert!(reports[0].worst_window_cpk.is_some());
+        assert!(reports[0].pooled_guarded_index_3sigma.is_some());
+        assert!(reports[0].worst_window_guarded_index_3sigma.is_some());
     }
 
     #[test]
