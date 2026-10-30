@@ -167,6 +167,9 @@ jobs:
             END { if (seen != 3) exit 1 }
           ' /tmp/section-polar-a.csv
           grep -q "2D section-polar diagnostic only" /tmp/section-polar-a.txt
+          python3 scripts/verify-section-polar-independent.py \
+            data/reference/nasa-tmr/CLCD_Ladson_expdata.dat \
+            /tmp/section-polar-a.csv
           sha256sum /tmp/section-polar-a.csv
       - name: Audit matched-budget experiment costs
         working-directory: tools/civil-aero-benchmark
