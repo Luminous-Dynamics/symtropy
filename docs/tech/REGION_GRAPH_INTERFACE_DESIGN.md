@@ -59,7 +59,21 @@ Affine maps compose in traversal order. If f maps A→B and g maps B→C, g∘f 
 
 An inverse map is optional in general but required for any interface profile that promises reversibility. Test round trips only on the inverse's declared domain. Position invertibility does not establish momentum, energy, or information preservation. A pure time-origin shift does not change the clock rate; conservation checks should gate on compatible clock/unit/metric identities and the time scale, not reject a harmless offset by itself.
 
-## 2. Crossing transaction
+## 2. Declared path composition
+
+A caller may compose a declared directed sequence of interface maps for planning, coordinate conversion, or offline analysis. Composition is algebraic and includes both the affine coordinate map and the local-clock scale/offset.
+
+A composed path must bind:
+- ordered interface IDs and each interface revision;
+- ordered region IDs and each region-model revision, including intermediate regions;
+- source and destination region identities;
+- the resulting composed affine map.
+
+The path is stale if any bound interface or region-model revision changes. A current-path validation must verify all revision bindings and recompute the composition from the same declared interface sequence.
+
+Crucially, a composed map is **not** a crossing authorization and does not permit a simulation to skip intermediate interface semantics. Physical movement must still execute every edge's source/target boundary checks, observed-direction policy, mapping validity, quantity ledger, failure-atomic commit, and receipt. A one-way edge remains one-way even if its affine map is mathematically invertible. Composition must not silently convert a route through N interfaces into an unreviewed teleport.
+
+## 3. Crossing transaction
 
 Recommended transition lifecycle:
 
