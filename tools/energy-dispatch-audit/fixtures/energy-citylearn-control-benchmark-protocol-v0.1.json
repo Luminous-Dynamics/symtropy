@@ -1,0 +1,120 @@
+{
+  "schema_version": "energy-citylearn-control-benchmark-protocol-v0.1",
+  "benchmark_id": "energy-citylearn-pinned-baseline-panel-v0.1",
+  "claim_ceiling": "Exploratory, simulated baseline comparison on a single pinned CityLearn dataset. No real-grid, field-reliability, or SOTA claim.",
+  "source": {
+    "repository": "https://github.com/citylearn-project/CityLearn",
+    "release_tag": "v3.0.2",
+    "commit": "834575c1a0194c8ae9d648ae858376a94dfceb78",
+    "dataset_id": "citylearn_challenge_2022_phase_all_plus_evs",
+    "dataset_path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs",
+    "schema_path": "data/datasets/citylearn_challenge_2022_phase_all_plus_evs/schema.json",
+    "schema_git_blob_sha1": "5d58d31fd75e4845d73d319c69df34d64223f533",
+    "expected_schema_bytes": 27644,
+    "time_steps": 8760,
+    "seconds_per_time_step": 3600,
+    "start_date": "2024-08-01",
+    "buildings": 17,
+    "random_seed": 2022,
+    "raw_sha256_receipt_required": true,
+    "dataset_terms_review_required_before_simulation": true,
+    "source_dataset_csvs_must_not_be_committed_to_symtropy": true
+  },
+  "environment": {
+    "interface": "flat",
+    "central_agent": false,
+    "render_mode": "none",
+    "offline": true,
+    "disable_all_forecast_named_observations": true,
+    "forbidden_observation_name_patterns": [
+      "*_predicted_*"
+    ],
+    "require_no_forbidden_observations_reach_policy": true,
+    "no_tuning_during_this_baseline_panel": true,
+    "fresh_environment_for_each_controller_and_split": true,
+    "initial_state_policy": "Use CityLearn's documented environment reset/default asset initial states consistently. Do not carry state across independent split runs.",
+    "service_metric_boundary": "Do not score essential-service prevention for loads CityLearn satisfies independently of agent actions."
+  },
+  "splits": [
+    {
+      "split_id": "train",
+      "start_inclusive": 0,
+      "end_inclusive": 5255,
+      "steps": 5256,
+      "role": "train_only_never_used_to_tune_this_panel"
+    },
+    {
+      "split_id": "validation",
+      "start_inclusive": 5256,
+      "end_inclusive": 6131,
+      "steps": 876,
+      "role": "validation_only_never_used_to_tune_this_panel"
+    },
+    {
+      "split_id": "test",
+      "start_inclusive": 6132,
+      "end_inclusive": 8759,
+      "steps": 2628,
+      "role": "held_out_once_for_final_comparison"
+    }
+  ],
+  "controllers": [
+    {
+      "controller_id": "passive_no_control",
+      "python_class": "citylearn.agents.base.BaselineAgent",
+      "kind": "official_passive_reference",
+      "learned": false,
+      "uses_prediction_features": false,
+      "notes": "Disables active actions; not the same as operational business-as-usual."
+    },
+    {
+      "controller_id": "business_as_usual",
+      "python_class": "citylearn.agents.baseline.BusinessAsUsualAgent",
+      "kind": "official_operational_reference",
+      "learned": false,
+      "uses_prediction_features": false,
+      "notes": "Operational reference: EV service charging, deferrable start behavior, simple PV self-consumption."
+    },
+    {
+      "controller_id": "basic_rbc",
+      "python_class": "citylearn.agents.rbc.BasicRBC",
+      "kind": "official_rule_based_reference",
+      "learned": false,
+      "uses_prediction_features": false,
+      "notes": "Published fixed hour-of-use action map."
+    },
+    {
+      "controller_id": "optimized_rbc",
+      "python_class": "citylearn.agents.rbc.OptimizedRBC",
+      "kind": "official_optimized_rule_based_reference",
+      "learned": false,
+      "uses_prediction_features": false,
+      "notes": "Published fixed action map documented by CityLearn as search-grid optimized. Treat as off-the-shelf; do not call it train-free SOTA or re-tune on the test block."
+    }
+  ],
+  "metrics": {
+    "native_kpi_method": "CityLearnEnv.evaluate_v2(include_business_as_usual=False)",
+    "report_raw_native_kpi_rows": true,
+    "controller_latency_percentiles": [
+      50,
+      95,
+      99
+    ],
+    "report_episode_wall_time_ms": true,
+    "report_peak_process_rss_kib": true,
+    "report_per_step_action_trace_sha256": true,
+    "keep_building_and_district_kpis_distinct": true,
+    "keep_metric_vector_non_compensatory": true,
+    "exclude_unserved_essential_load_claims_if_simulator_guarantees_service": true,
+    "no_aggregate_single_score_as_only_result": true
+  },
+  "promotions": {
+    "source_terms_must_be_reviewed_before_control_run": true,
+    "raw_source_sha256_receipts_must_be_generated_before_control_run": true,
+    "all_predicted_observations_must_be_disabled_and_verified": true,
+    "exact_source_commit_and_schema_blob_must_match": true,
+    "all_four_controllers_must_complete_each_of_three_splits": true,
+    "no_controller_may_tune_on_test": true,
+    "this_run_is_not_a_sota_comparison": true
+  }
+}
