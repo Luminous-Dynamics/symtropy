@@ -171,6 +171,13 @@ jobs:
             data/reference/nasa-tmr/CLCD_Ladson_expdata.dat \
             /tmp/section-polar-a.csv
           sha256sum /tmp/section-polar-a.csv
+          cp data/reference/nasa-tmr/CLCD_Ladson_expdata.dat /tmp/section-polar-tampered.dat
+          python3 -c 'from pathlib import Path; p=Path("/tmp/section-polar-tampered.dat"); b=bytearray(p.read_bytes()); b[0] = ord("X"); p.write_bytes(b)'
+          if cargo run --locked --bin section_polar_audit -- /tmp/section-polar-tampered.dat > /tmp/section-polar-tampered.csv 2> /tmp/section-polar-tampered.txt; then
+            echo "modified reference bytes unexpectedly received NASA provenance" >&2
+            exit 1
+          fi
+          grep -q "SHA-256 mismatch" /tmp/section-polar-tampered.txt
       - name: Audit matched-budget experiment costs
         working-directory: tools/civil-aero-benchmark
         shell: bash
