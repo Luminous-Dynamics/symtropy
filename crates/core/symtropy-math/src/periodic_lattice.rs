@@ -392,7 +392,18 @@ impl<const D: usize> PeriodicLattice<D> {
         let translation = self.offset_vector(offset)?;
         let reconstructed = canonical + translation;
         let residual = (reconstructed - point).norm();
-        let scale = point.norm().max(canonical.norm()).max(translation.norm()).max(1.0);
+        let point_norm = point.norm();
+        let canonical_norm = canonical.norm();
+        let translation_norm = translation.norm();
+        if !point_norm.is_finite()
+            || !canonical_norm.is_finite()
+            || !translation_norm.is_finite()
+        {
+            return Err(PeriodicLatticeError::NumericRange {
+                field: "point reconstruction scale",
+            });
+        }
+        let scale = point_norm.max(canonical_norm).max(translation_norm).max(1.0);
         let tolerance = RECONSTRUCTION_EPSILON_MULTIPLIER * f64::EPSILON * scale;
         if !residual.is_finite() || residual > tolerance {
             return Err(PeriodicLatticeError::CoordinatePrecisionLimit { axis: 0 });
@@ -437,6 +448,12 @@ impl<const D: usize> PeriodicLattice<D> {
             }
         }
         if !self.periodic_axes.iter().any(|active| *active) {
+            let distance = displacement.norm();
+            if !distance.is_finite() {
+                return Err(PeriodicLatticeError::NumericRange {
+                    field: "non-periodic displacement norm",
+                });
+            }
             return Ok(MinimumImage {
                 displacement: *displacement,
                 image_offset: LatticeOffset::zero(),
@@ -444,7 +461,7 @@ impl<const D: usize> PeriodicLattice<D> {
                 candidates_evaluated: 0,
                 inverse_residual_upper_bound: self.inverse_residual_upper_bound,
                 nearest_distance_error_bound: 0.0,
-                best_candidate_distance_upper_bound: displacement.norm(),
+                best_candidate_distance_upper_bound: distance,
                 unsearched_distance_lower_bound: f64::INFINITY,
             });
         }
@@ -1372,6 +1389,25 @@ mod tests {
             lattice.wrap_point(&SVector::from([f64::NAN, 0.0])),
             Err(PeriodicLatticeError::NonFiniteCoordinate)
         );
+    }
+
+    #[test]
+    fn nonperiodic_huge_finite_displacement_rejects_overflowed_norm() {
+        let lattice = PeriodicLattice::new(
+            SVector::zeros(),
+            SMatrix::<f64, 2, 2>::identity(),
+            [false, false],
+        )
+        .unwrap();
+        assert!(matches!(
+            lattice.minimum_image_displacement(
+                &SVector::from([1.0e308, 1.0e308]),
+                1
+            ),
+            Err(PeriodicLatticeError::NumericRange {
+                field: "non-periodic displacement norm"
+            })
+        ));
     }
 
     #[test]
