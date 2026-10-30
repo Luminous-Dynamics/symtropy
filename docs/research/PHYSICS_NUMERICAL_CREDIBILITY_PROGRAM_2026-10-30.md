@@ -164,6 +164,8 @@ Initial comparison set: current Symthaea RK4/RK45/Verlet where applicable, diffs
 
 **Promotion gate:** expected convergence order is demonstrated on smooth problems; error responds monotonically to tighter tolerances within the reference envelope; unstable or failed cases remain in the report; non-finite values and solver termination reasons are explicit.
 
+An initial unit-test slice has been added to integrator.rs in this branch: constant-acceleration first-order convergence across four timesteps, plus a harmonic-oscillator check contrasting a resolved step with a step beyond the semi-implicit Euler stability interval. These tests are a starting regression, not yet a machine-readable campaign or a solver-performance result; they have not been run in this environment.
+
 ### Campaign B — Rigid and articulated dynamics (P0/P1)
 
 1. Exact free fall and constant acceleration.
@@ -257,7 +259,7 @@ Avoid introducing an all-domain multiphysics framework before stages 1–4 are s
 
 ## 8. Immediate next engineering tasks
 
-1. Add a harmonic-oscillator stability/convergence campaign for the existing semi-implicit Euler integrator. Explicitly demonstrate that symplecticity does not mean unconditional stability.
+1. Promote the initial harmonic-oscillator/free-fall regression tests into a machine-readable benchmark runner with timestep sweeps, error tables, and repeatable result receipts.
 2. Add a spherical-versus-asymmetric inertia regression suite. For D=3 use the full spatial inertia tensor; for D>3 use a physically constrained inertia operator on the bivector space. The asymmetric-top test should fail until the correct representation and gyroscopic terms are implemented.
 3. Reconcile the deterministic-net feature’s claims with the cross-architecture validation status. Quantization is not, by itself, a proof of bit-identical execution.
 4. Standardize benchmark receipts and scenario hashes before adding further solver families.
