@@ -151,7 +151,11 @@ fn parse_utc(value: &str, context: &str) -> Result<i64, String> {
         return Err(format!("{context}: invalid calendar/time"));
     }
     let mut days = 0_i64;
-    for y in 1970..year { days += if y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) { 366 } else { 365 }; }
+    if year >= 1970 {
+        for y in 1970..year { days += if y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) { 366 } else { 365 }; }
+    } else {
+        for y in year..1970 { days -= if y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) { 366 } else { 365 }; }
+    }
     for m in 1..month {
         days += match m {
             1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
@@ -428,12 +432,13 @@ mod tests {
         let products = read_ledger(path.to_str().unwrap()).unwrap();
         let summaries = validate_and_summarize(&products).unwrap();
         assert_eq!(summaries.len(), 1);
-        assert_eq!(summaries[0].component_count, 4);
-        assert_eq!(summaries[0].event_count, 16);
-        assert_eq!(summaries[0].failed_event_count, 1);
-        assert_eq!(summaries[0].rework_event_count, 1);
-        assert_eq!(summaries[0].test_event_count, 4);
-        assert_eq!(summaries[0].final_release_pass_event_count, 1);
+        let transformer = summaries.iter().find(|row| row.product_family == "POWER_TRANSFORMER").unwrap();
+        assert_eq!(transformer.component_count, 4);
+        assert_eq!(transformer.event_count, 16);
+        assert_eq!(transformer.failed_event_count, 1);
+        assert_eq!(transformer.rework_event_count, 1);
+        assert_eq!(transformer.test_event_count, 4);
+        assert_eq!(transformer.final_release_pass_event_count, 1);
     }
 
     #[test]
