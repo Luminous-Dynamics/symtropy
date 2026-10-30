@@ -278,12 +278,7 @@ mod tests {
 
     #[test]
     fn applied_torque_rotates_offset_in_impulse_consistent_direction() {
-        let mut body = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(0),
-            Point::origin(),
-            1.0,
-            1.0,
-        );
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         body.linear_damping = 0.0;
         body.angular_damping = 0.0;
 
@@ -330,12 +325,10 @@ mod tests {
         let torque = Bivector::from_wedge(&impulse, &offset);
 
         apply_angular_impulse(&mut body, &torque);
-        let rotational_delta_velocity =
-            angular_point_velocity(&body.angular_velocity, &offset);
+        let rotational_delta_velocity = angular_point_velocity(&body.angular_velocity, &offset);
         let inverse_inertia = body.inv_inertia.sum() / 3.0;
-        let expected = (impulse * offset.norm_squared()
-            - offset * offset.dot(&impulse))
-            * inverse_inertia;
+        let expected =
+            (impulse * offset.norm_squared() - offset * offset.dot(&impulse)) * inverse_inertia;
 
         assert!(
             (rotational_delta_velocity - expected).norm() < 1e-12,
@@ -389,8 +382,7 @@ mod tests {
         let mut errors = Vec::with_capacity(timesteps.len());
 
         for dt in timesteps {
-            let mut body =
-                RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+            let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
             let steps = (1.0 / dt).round() as usize;
             for _ in 0..steps {
                 integrate(&mut body, &gravity, dt);
@@ -413,12 +405,8 @@ mod tests {
         // Symplecticity does not make this method unconditionally stable.
         let zero_gravity = SVector::<f64, 3>::zeros();
 
-        let mut stable = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(0),
-            Point::new([1.0, 0.0, 0.0]),
-            0.1,
-            1.0,
-        );
+        let mut stable =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([1.0, 0.0, 0.0]), 0.1, 1.0);
         stable.linear_damping = 0.0;
         let stable_dt = 0.25;
         let mut max_energy = 0.0_f64;
@@ -426,8 +414,8 @@ mod tests {
             let x = stable.position()[0];
             stable.apply_force(SVector::from([-x, 0.0, 0.0]));
             integrate(&mut stable, &zero_gravity, stable_dt);
-            let energy = 0.5 * stable.linear_velocity.norm_squared()
-                + 0.5 * stable.position()[0].powi(2);
+            let energy =
+                0.5 * stable.linear_velocity.norm_squared() + 0.5 * stable.position()[0].powi(2);
             max_energy = max_energy.max(energy);
         }
         assert!(
@@ -435,12 +423,8 @@ mod tests {
             "resolved oscillator should have bounded energy, max={max_energy}"
         );
 
-        let mut unstable = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(1),
-            Point::new([1.0, 0.0, 0.0]),
-            0.1,
-            1.0,
-        );
+        let mut unstable =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 0.0, 0.0]), 0.1, 1.0);
         unstable.linear_damping = 0.0;
         let unstable_dt = 2.1; // dt * omega > 2
         for _ in 0..8 {
