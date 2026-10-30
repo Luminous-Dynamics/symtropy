@@ -138,7 +138,7 @@ mod tests {
     use super::*;
 
     fn args<'a, 'b>(values: &'a [&'b str]) -> impl Iterator<Item = OsString> + 'a {
-        values.iter().map(OsString::from)
+        values.iter().map(|value| OsString::from(*value))
     }
 
     #[test]
