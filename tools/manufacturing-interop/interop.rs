@@ -16,8 +16,6 @@
 use std::collections::BTreeMap;
 
 const HASH_LEN: usize = 64;
-const MTCONNECT_VERSION: &str = "2.8";
-const QIF_VERSION: &str = "3.0";
 
 fn valid_sha(value: &str) -> bool {
     value.len() == HASH_LEN && value.bytes().all(|b| b.is_ascii_hexdigit())
@@ -1522,7 +1520,6 @@ mod tests {
 
     #[test]
     fn unsupported_schema_and_missing_xsd_validation_reject() {
-        let mut mt=fixture_source(Standard::MtConnect);
         let mut mt=fixture_source(Standard::MtConnect);
         mt.schema.version="2.8".into();
         mt.schema.document_format=DocumentFormat::Xml;
