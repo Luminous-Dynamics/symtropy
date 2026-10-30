@@ -90,7 +90,7 @@ fn csv_escape(value: &str) -> String {
 fn export_forces(rows: &[ForceObservation], dataset_id: &str, source_sha256: &str) {
     for row in rows {
         println!(
-            "{},{},{},{},{},{},{},{},{},,,source_parser_output_unqualified,true",
+            "{},{},{},{},{},{},{},{},{},,,source_bytes_sha256_verified_parser_output_unqualified,true",
             csv_escape(dataset_id),
             source_sha256,
             SOURCE_REVISION,
@@ -107,7 +107,7 @@ fn export_forces(rows: &[ForceObservation], dataset_id: &str, source_sha256: &st
 fn export_pressure(rows: &[PressureObservation], dataset_id: &str, source_sha256: &str) {
     for row in rows {
         println!(
-            "{},{},{},{},{},{},,,,{},{},source_parser_output_unqualified,true",
+            "{},{},{},{},{},{},,,,{},{},source_bytes_sha256_verified_parser_output_unqualified,true",
             csv_escape(dataset_id),
             source_sha256,
             SOURCE_REVISION,
