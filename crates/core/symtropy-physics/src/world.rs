@@ -2922,4 +2922,94 @@ mod transformed_halfspace_tests {
         assert_eq!(world.bodies[0].linear_velocity, before_a);
         assert_eq!(world.bodies[1].linear_velocity, before_b);
     }
+
+    struct DissipationRecorder {
+        energy_joules: f64,
+    }
+
+    impl PhysicsCallback<3> for DissipationRecorder {
+        fn modulate_force(&self, _: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
+            *force
+        }
+
+        fn modulate_impulse(&self, impulse: f64, _: &SVector<f64, 3>) -> f64 {
+            impulse
+        }
+
+        fn friction_multiplier(&self, _: &SVector<f64, 3>, _: BodyHandle) -> f64 {
+            1.0
+        }
+
+        fn on_collision(&mut self, _: &CollisionEvent<3>) {}
+
+        fn record_dissipation(&mut self, energy_joules: f64) {
+            self.energy_joules += energy_joules;
+        }
+
+        fn record_work(&mut self, _: BodyHandle, _: f64) {}
+
+        fn apply_trauma(&mut self, _: &CollisionEvent<3>) {}
+    }
+
+    #[test]
+    fn friction_dissipation_callback_receives_kinetic_energy_in_joules() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 1;
+        world.baumgarte = 0.0;
+        world.compliance = 0.0;
+
+        let floor = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(SVector::new(1.0, 0.0, 0.0), 0.0)),
+        );
+        let floor_handle = world.add_body(floor);
+
+        let mut sphere = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::new([0.49, 0.0, 0.0]),
+            0.5,
+            1.0,
+        );
+        sphere.linear_velocity = SVector::new(-0.1, 1.0, 0.0);
+        sphere.friction = 0.5;
+        sphere.restitution = 0.0;
+        let sphere_handle = world.add_body(sphere);
+        world.bodies[0].friction = 0.5;
+        world.bodies[0].restitution = 0.0;
+
+        let mut callback = DissipationRecorder { energy_joules: 0.0 };
+        world
+            .try_step_with_callback(0.001, &mut callback)
+            .expect("valid sphere/plane friction step");
+
+        let contact = world
+            .contacts
+            .iter()
+            .find(|contact| contact.body_a == floor_handle && contact.body_b == sphere_handle)
+            .expect("sphere should contact the half-space");
+        let point = contact.primary_point();
+        let body = &world.bodies[1];
+        let offset = point.position - body.position();
+        let tangent = SVector::new(0.0, 1.0, 0.0);
+        let tangential_speed_after = (body.linear_velocity
+            + integrator::angular_point_velocity(&body.angular_velocity, &offset))
+        .dot(&tangent);
+        let inverse_effective_mass = body.inv_mass
+            + integrator::try_rotational_inverse_effective_mass(body, &offset, &tangent)
+                .expect("valid rotational effective mass");
+        let friction_impulse = (tangential_speed_after - 1.0) / inverse_effective_mass;
+        let expected_dissipation =
+            -(friction_impulse * (1.0 + 0.5 * inverse_effective_mass * friction_impulse));
+
+        assert!(friction_impulse < 0.0);
+        assert!(callback.energy_joules > 0.0);
+        assert!(
+            (callback.energy_joules - expected_dissipation).abs() < 1e-9,
+            "recorded={} J, work-derived={} J",
+            callback.energy_joules,
+            expected_dissipation
+        );
+    }
+
 }
