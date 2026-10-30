@@ -85,7 +85,7 @@ fn validate_aabb<const D: usize>(bounds: &Aabb<D>) -> Result<(), LatticeBroadpha
 /// AABB filter could discard a true near-boundary image.
 ///
 /// Non-periodic basis axes are fixed to zero. The search budget applies to the
-/// conservative integer product before exact AABB filtering; therefore a
+/// conservative integer product before any narrow-phase filtering; therefore a
 /// highly skewed cell may fail closed even when few final overlaps exist.
 pub fn image_offsets_for_aabb_pair_lattice<const D: usize>(
     domain: &LatticePeriodicDomain<D>,
@@ -370,6 +370,41 @@ mod tests {
             assert!(
                 oracle.is_subset(&actual),
                 "3D production candidate set missed oracle images: missing={:?}",
+                oracle.difference(&actual).collect::<Vec<_>>()
+            );
+        }
+    }
+
+    #[test]
+    fn randomized_skew_2d_aabb_ranges_never_miss_bounded_oracle_images() {
+        let domain = skew_domain();
+        let mut seed = 0xA33F_19D2_u64;
+
+        for _case in 0..512 {
+            let mut next = || {
+                seed ^= seed << 13;
+                seed ^= seed >> 7;
+                seed ^= seed << 17;
+                let unit = (seed as f64) / (u64::MAX as f64);
+                unit
+            };
+            let amin = [next() * 16.0 - 8.0, next() * 16.0 - 8.0];
+            let asize = [next() * 2.5 + 0.1, next() * 2.5 + 0.1];
+            let bmin = [next() * 16.0 - 8.0, next() * 16.0 - 8.0];
+            let bsize = [next() * 2.5 + 0.1, next() * 2.5 + 0.1];
+            let a = bounds(amin, [amin[0] + asize[0], amin[1] + asize[1]]);
+            let b = bounds(bmin, [bmin[0] + bsize[0], bmin[1] + bsize[1]]);
+
+            let actual: HashSet<_> = image_offsets_for_aabb_pair_lattice(
+                &domain, &a, &b, 8192,
+            )
+            .unwrap()
+            .into_iter()
+            .collect();
+            let oracle = brute_force(&domain, &a, &b, 8);
+            assert!(
+                oracle.is_subset(&actual),
+                "randomized 2D candidate miss at case {_case}: missing={:?}",
                 oracle.difference(&actual).collect::<Vec<_>>()
             );
         }
