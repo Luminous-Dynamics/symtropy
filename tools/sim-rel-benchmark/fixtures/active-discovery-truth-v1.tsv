@@ -1,0 +1,26 @@
+# SIM-REL active-discovery evaluator-only truth labels v1; do not expose to candidate-selection policy
+# task_id|hidden_target_model_id
+train_a_x|X
+train_a_y|Y
+train_a_z|Z
+train_a_xor|XOR_XY
+train_a_and|AND_XY
+train_a_or|OR_XZ
+validation_b_x|X
+validation_b_y|Y
+validation_b_z|Z
+validation_b_xory|XOR_YZ
+validation_b_andxz|AND_XZ
+validation_b_orxy|OR_XY
+heldout_c_xorxy|XOR_XY
+heldout_c_xoryz|XOR_YZ
+heldout_c_andxy|AND_XY
+heldout_c_andxz|AND_XZ
+heldout_c_orxz|OR_XZ
+heldout_c_oryz|OR_YZ
+heldout_d_x|X
+heldout_d_xorxz|XOR_XZ
+heldout_e_andyz|AND_YZ
+heldout_f_xory|OR_XY
+control_alias_x|X_ALIAS
+control_alias_xor|XOR_XY_ALIAS
