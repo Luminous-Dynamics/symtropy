@@ -564,7 +564,7 @@ mod tests {
     #[test]
     fn skewed_2d_closest_image_matches_independent_integer_enumeration() {
         let basis = SMatrix::<f64, 2, 2>::from_row_slice(&[2.0, 1.4, 0.0, 1.5]);
-        let lattice = lattice2(basis);
+        let lattice = lattice2(basis.clone());
         let displacement = SVector::from([1.71, 1.08]);
         let actual = lattice
             .minimum_image_displacement(&displacement, 10_000)
@@ -584,7 +584,7 @@ mod tests {
             0.0, 1.7, 0.6,
             0.0, 0.0, 1.4,
         ]);
-        let lattice = PeriodicLattice::new(SVector::zeros(), basis).unwrap();
+        let lattice = PeriodicLattice::new(SVector::zeros(), basis.clone()).unwrap();
         let displacement = SVector::from([1.2, 0.95, 0.82]);
         let actual = lattice
             .minimum_image_displacement(&displacement, 100_000)
@@ -752,6 +752,47 @@ mod tests {
     }
 
     #[test]
+    fn randomized_unimodular_shear_preserves_closest_cartesian_image() {
+        let basis = SMatrix::<f64, 2, 2>::from_row_slice(&[2.0, 1.4, 0.0, 1.5]);
+        let original_lattice = lattice2(basis.clone());
+        let mut seed = 0x554e_494d_4f44_554c_u64;
+
+        for case in 0..256 {
+            let shear = (next_random(&mut seed) % 9) as i32 - 4;
+            let transform = SMatrix::<f64, 2, 2>::from_row_slice(&[
+                1.0,
+                shear as f64,
+                0.0,
+                1.0,
+            ]);
+            let changed_lattice = lattice2(basis.clone() * transform);
+            let displacement = SVector::from([
+                random_range(&mut seed, -7.0, 7.0),
+                random_range(&mut seed, -7.0, 7.0),
+            ]);
+
+            let original = original_lattice
+                .minimum_image_displacement(&displacement, 30_000)
+                .unwrap_or_else(|error| panic!("original case={case}: {error}"));
+            let changed = changed_lattice
+                .minimum_image_displacement(&displacement, 30_000)
+                .unwrap_or_else(|error| panic!("changed case={case}, shear={shear}: {error}"));
+
+            assert!((changed.displacement - original.displacement).norm() < 2e-10);
+            close(changed.distance_squared, original.distance_squared, 2e-10);
+            let transformed_offset = [
+                changed.image_offset.periods[0] + shear as i64 * changed.image_offset.periods[1],
+                changed.image_offset.periods[1],
+            ];
+            assert_eq!(
+                transformed_offset,
+                original.image_offset.periods,
+                "case={case}, shear={shear}"
+            );
+        }
+    }
+
+    #[test]
     fn wrapping_reconstructs_cartesian_input_through_integer_lattice_offset() {
         let basis = SMatrix::<f64, 2, 2>::from_row_slice(&[2.0, 1.4, 0.0, 1.5]);
         let lattice = lattice2(basis);
@@ -772,7 +813,7 @@ mod tests {
     fn rotated_lattice_and_displacement_rotate_the_answer() {
         let basis = SMatrix::<f64, 2, 2>::from_row_slice(&[2.0, 1.4, 0.0, 1.5]);
         let rotation = SMatrix::<f64, 2, 2>::new(0.0, -1.0, 1.0, 0.0);
-        let lattice = lattice2(basis);
+        let lattice = lattice2(basis.clone());
         let rotated_lattice = lattice2(rotation * basis);
         let displacement = SVector::from([1.31, 0.66]);
         let original = lattice
