@@ -1121,6 +1121,114 @@ mod tests {
     }
 
     #[test]
+    fn mixed_periodic_mask_wraps_only_active_fractional_coordinates() {
+        let basis =
+            SMatrix::<f64, 2, 2>::from_row_slice(&[2.0, 1.4, 0.0, 1.5]);
+        let origin = SVector::from([3.0, -2.0]);
+        let lattice =
+            PeriodicLattice::new_with_periodic_axes(origin, basis, [true, false]).unwrap();
+        let original_fractional = SVector::from([2.25, -1.3]);
+        let point = origin + lattice.basis() * original_fractional;
+        let wrapped = lattice.wrap_point(&point).unwrap();
+
+        assert_eq!(wrapped.image_offset.periods, [2, 0]);
+        let canonical_fractional = lattice
+            .to_fractional_coordinates(&(wrapped.position - origin))
+            .unwrap();
+        assert!((canonical_fractional[0] - 0.25).abs() < 1e-12);
+        assert!((canonical_fractional[1] + 1.3).abs() < 1e-12);
+        let restored = lattice
+            .apply_offset(&wrapped.position, wrapped.image_offset)
+            .unwrap();
+        assert!((restored - point).norm() < 1e-11);
+        assert!(matches!(
+            lattice.offset_vector(LatticeOffset::new([0, 1])),
+            Err(PeriodicLatticeError::OffsetOnNonPeriodicAxis { axis: 1 })
+        ));
+    }
+
+    #[test]
+    fn mixed_periodic_mask_minimum_image_matches_active_rank_brute_force() {
+        let basis =
+            SMatrix::<f64, 2, 2>::from_row_slice(&[2.0, 1.4, 0.0, 1.5]);
+        let lattice =
+            PeriodicLattice::new_with_periodic_axes(SVector::zeros(), basis, [true, false])
+                .unwrap();
+        let fixtures = [
+            SVector::from([5.7, 0.3]),
+            SVector::from([-8.1, 1.2]),
+            SVector::from([0.6, -4.5]),
+        ];
+
+        for displacement in fixtures {
+            let actual = lattice
+                .minimum_image_displacement(&displacement, 10_000)
+                .unwrap();
+            let mut best: Option<(f64, i64, SVector<f64, 2>)> = None;
+            for image in -16_i64..=16 {
+                let candidate =
+                    displacement + lattice.basis().column(0).into_owned() * image as f64;
+                let distance_squared = candidate.norm_squared();
+                if best.is_none_or(|(distance, _, _)| distance_squared < distance) {
+                    best = Some((distance_squared, image, candidate));
+                }
+            }
+            let (distance_squared, image, vector) = best.unwrap();
+            assert_eq!(actual.image_offset.periods, [image, 0]);
+            assert!((actual.displacement - vector).norm() < 1e-11);
+            assert!((actual.distance_squared - distance_squared).abs() < 1e-11);
+        }
+    }
+
+    #[test]
+    fn no_periodic_axes_returns_identity_image_without_wrapping() {
+        let basis =
+            SMatrix::<f64, 2, 2>::from_row_slice(&[2.0, 1.4, 0.0, 1.5]);
+        let lattice =
+            PeriodicLattice::new_with_periodic_axes(SVector::zeros(), basis, [false, false])
+                .unwrap();
+        let point = SVector::from([12.5, -7.25]);
+        let wrapped = lattice.wrap_point(&point).unwrap();
+        assert_eq!(wrapped.position, point);
+        assert_eq!(wrapped.image_offset, LatticeOffset::zero());
+
+        let displacement = SVector::from([18.0, 2.5]);
+        let closest = lattice
+            .minimum_image_displacement(&displacement, 1)
+            .unwrap();
+        assert_eq!(closest.displacement, displacement);
+        assert_eq!(closest.image_offset, LatticeOffset::zero());
+        assert_eq!(closest.distance_squared, displacement.norm_squared());
+    }
+
+    #[test]
+    fn mixed_periodic_mask_with_last_axis_active_finds_only_that_image() {
+        let basis =
+            SMatrix::<f64, 2, 2>::from_row_slice(&[2.0, 1.4, 0.0, 1.5]);
+        let lattice =
+            PeriodicLattice::new_with_periodic_axes(SVector::zeros(), basis.clone(), [false, true])
+                .unwrap();
+        let displacement = SVector::from([3.9, 4.4]);
+        let actual = lattice
+            .minimum_image_displacement(&displacement, 10_000)
+            .unwrap();
+
+        let mut best: Option<(f64, i64, SVector<f64, 2>)> = None;
+        for image in -16_i64..=16 {
+            let candidate =
+                displacement + basis.column(1).into_owned() * image as f64;
+            let distance_squared = candidate.norm_squared();
+            if best.is_none_or(|(distance, _, _)| distance_squared < distance) {
+                best = Some((distance_squared, image, candidate));
+            }
+        }
+        let (distance_squared, image, vector) = best.unwrap();
+        assert_eq!(actual.image_offset.periods, [0, image]);
+        assert!((actual.displacement - vector).norm() < 1e-11);
+        assert!((actual.distance_squared - distance_squared).abs() < 1e-11);
+    }
+
+    #[test]
     fn rejects_non_finite_inputs_and_zero_search_budget() {
         let lattice = lattice2(SMatrix::<f64, 2, 2>::identity());
         assert_eq!(
