@@ -34,7 +34,7 @@ The initial pinned-data run is expected to expose a sharp validity gap: calibrat
 Important distinctions:
 - The fitted coefficient `b` is only an empirical **2D section** coefficient. It is not the aircraft's induced-drag factor `1/(pi e AR)`, and it must not be used to infer Oswald efficiency.
 - Roughness zones are kept separate; they are not pooled as IID samples.
-- Every report carries the expected source digest and upstream revision, but the workflow independently verifies the exact raw bytes with `sha256sum -c` before running the diagnostic. The CLI does not itself compute SHA-256.
+- The section-polar CLI, reference-data audit and normalized reference exporter verify the exact in-memory bytes (byte length and SHA-256) before parsing or attaching NASA provenance. They use the system `sha256sum` or `shasum -a 256` command through stdin; the Rust crate itself has no external Cargo dependencies. CI also runs `sha256sum -c` on the retained source files before the benchmark steps.
 - A successful report is a model-discrepancy diagnostic, not solver validation, aerodynamic certification, or a physical flight envelope.
 
 Run it from the repository root with:
@@ -47,6 +47,23 @@ cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin s
 A test-only, stdlib-only independent Python oracle (`scripts/verify-section-polar-independent.py`) separately parses the raw file, checks its SHA-256 and byte length, refits each zone, recomputes every error metric and verifies that perturbing held-out observations cannot affect calibration coefficients. Production remains Rust; the Python script is only a second implementation used by CI to reduce common-mode test errors.
 
 The strategic next gate is to require a calibrated model's uncertainty and demonstrated domain to travel with every candidate. An optimizer that leaves the verified domain must request a higher-fidelity evaluation or return an abstention—not quietly extrapolate a nominal score.
+
+
+## Exact-byte source identity gate
+
+The integrity module provides a dependency-free Rust boundary that hashes the exact byte buffer subsequently parsed. The section-polar audit, reference-data audit and normalized reference exporter now reject source files whose byte count or SHA-256 differs from the pinned manifest. They use the installed sha256sum or shasum -a 256 executable via stdin; if neither is available, the tool fails closed. The CI suite mutates one byte without changing file length and verifies that the section-polar CLI refuses to emit NASA-labelled output.
+
+This closes an important provenance gap: a file with plausible headers or numerically valid observations is not thereby the pinned NASA artifact. The parsers remain reusable for synthetic unit fixtures, but the NASA-labelled command-line outputs require exact-byte verification.
+
+## Finite-state decision-value experiment selector
+
+The voi module implements a transparent one-step expected value of sample information calculation over caller-supplied finite states, prior probabilities, decision utilities, experiment costs and P(outcome | state) matrices. It reports gross EVSI, net EVSI, affordability and the posterior-optimal decision for each outcome. It selects the highest positive-net-value affordable experiment, or abstains when none qualifies.
+
+Run the fixed synthetic known-answer example from the crate directory:
+
+    cargo run --locked --bin voi_demo
+
+The demonstration's prior best expected utility is 5. Perfect information has gross EVSI 5 and net EVSI 4 at cost 1; noisy information has gross EVSI 3 and net EVSI 2; an uninformative measurement has zero gross EVSI; and an over-budget experiment is not selected. These are analytic synthetic results, not an aerodynamic experiment and not evidence that a learned acquisition policy is calibrated. CSV output explicitly states that caller-supplied probabilities have not been independently calibrated. The method is one-step greedy and does not claim globally optimal sequential experiment design.
 
 ## DPW-8/AePW-4 source discovery
 
