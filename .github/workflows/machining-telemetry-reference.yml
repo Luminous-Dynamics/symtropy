@@ -1,0 +1,47 @@
+name: CNC multi-rate telemetry reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/machining-telemetry/telemetry_reference.rs"
+      - "tools/machining-telemetry/README.md"
+      - "tools/machining-telemetry/expected.csv"
+      - ".github/workflows/machining-telemetry-reference.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/machining-telemetry/telemetry_reference.rs"
+      - "tools/machining-telemetry/README.md"
+      - "tools/machining-telemetry/expected.csv"
+      - ".github/workflows/machining-telemetry-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  telemetry-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run synthetic tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/machining-telemetry/telemetry_reference.rs -o "$RUNNER_TEMP/telemetry-tests"
+          "$RUNNER_TEMP/telemetry-tests"
+      - name: Build and verify synthetic known answers
+        run: |
+          rustc --edition=2024 -D warnings tools/machining-telemetry/telemetry_reference.rs -o "$RUNNER_TEMP/telemetry-reference"
+          "$RUNNER_TEMP/telemetry-reference" --verify
+      - name: Compare deterministic feature output
+        run: |
+          "$RUNNER_TEMP/telemetry-reference" --csv > "$RUNNER_TEMP/features-a.csv"
+          "$RUNNER_TEMP/telemetry-reference" --csv > "$RUNNER_TEMP/features-b.csv"
+          diff -u "$RUNNER_TEMP/features-a.csv" "$RUNNER_TEMP/features-b.csv"
+          diff -u tools/machining-telemetry/expected.csv "$RUNNER_TEMP/features-a.csv"
+          cat "$RUNNER_TEMP/features-a.csv"
+      - name: Hash exact inputs and output
+        run: |
+          sha256sum tools/machining-telemetry/telemetry_reference.rs tools/machining-telemetry/expected.csv "$RUNNER_TEMP/features-a.csv"
