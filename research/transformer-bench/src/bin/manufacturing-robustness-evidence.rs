@@ -288,7 +288,7 @@ mod tests {
 
     fn acceptance_report(eligible: bool) -> String {
         format!(
-            "{}\\nTX-001,SERIAL-001,ROUTE-A,true,0,0,4,4,0,0,0,0,0,{},NONE",
+            "{}\nTX-001,SERIAL-001,ROUTE-A,true,0,0,4,4,0,0,0,0,0,{},NONE",
             ACCEPTANCE_REPORT_HEADER, eligible
         )
     }
@@ -314,7 +314,9 @@ mod tests {
     fn export_preserves_hard_eligibility_state() {
         let mut path = std::env::temp_dir();
         path.push(format!("robustness-evidence-export-{}.csv", std::process::id()));
-        let row = parse_from_content(&fixture());
+        let mut row = parse_from_content(&fixture());
+        let accepted = std::collections::BTreeMap::from([("TX-001".to_string(), true)]);
+        validate_eligibility(&mut row, &accepted).unwrap();
         let output = path.to_str().unwrap();
         write_adapter(output, &row).unwrap();
         let text = fs::read_to_string(output).unwrap();
