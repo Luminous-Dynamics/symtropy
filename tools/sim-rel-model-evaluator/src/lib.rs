@@ -10,7 +10,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeSet;
 
 const MAX_POLICY_NODES: usize = 4_096;
-const MAX_ACTIONS: usize = u64::BITS as usize;
+const MAX_ACTIONS: usize = 64;
 
 /// An exact non-negative rational number with a reduced numerator and denominator.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -202,10 +202,10 @@ impl World {
                 self.name
             ));
         }
-        for action in 0..action_count {
-            if self.outcomes[action].len() != hypothesis_count
-                || self.hazards[action].len() != hypothesis_count
-            {
+        for (action, (outcomes, hazards)) in
+            self.outcomes.iter().zip(self.hazards.iter()).enumerate()
+        {
+            if outcomes.len() != hypothesis_count || hazards.len() != hypothesis_count {
                 return Err(format!(
                     "world {} action {action} has an invalid hypothesis-column count",
                     self.name
