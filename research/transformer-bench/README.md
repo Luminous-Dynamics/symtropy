@@ -215,3 +215,16 @@ cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin a
 ```
 
 This emits per-policy mean/median metrics and paired seed-level regret deltas against RANDOM, MIN_PREDICTED and DIVERSE, with bootstrap intervals. These intervals only quantify stochastic replicate variation on one candidate pool; they do not establish cross-dataset superiority. See the [full protocol](BUDGETED_VERIFICATION_BENCHMARK.md).
+
+
+## Uncertainty-aware robust Pareto frontier
+
+The `robust-frontier` binary distinguishes midpoint Pareto dominance from conservative interval-robust dominance across six minimized objectives: lifecycle cost, no-load loss, load loss, maximum hotspot temperature, active-part mass and embodied carbon.
+
+```sh
+cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin robust-frontier -- \
+  research/transformer-bench/fixtures/robust-frontier-synthetic.csv \
+  /tmp/robust-frontier.csv
+```
+
+See [ROBUST_PARETO_FRONTIER.md](ROBUST_PARETO_FRONTIER.md) and [PWR-TX-RPF-001 #2917](https://github.com/Luminous-Dynamics/symtropy/issues/2917). Bounds are caller-declared ranges, not calibrated confidence intervals. The current tool is a multi-objective screening primitive, not a solver or qualification gate. Its rectangular interval model conservatively preserves candidates where bounds overlap; joint scenario/correlation-aware uncertainty remains future work.
