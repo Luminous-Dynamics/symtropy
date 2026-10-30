@@ -16,7 +16,7 @@
 //! Tangential friction, restitution target construction, compliance assembly,
 //! and generalized rigid-body Jacobians are deliberately outside this API.
 
-use nalgebra::{DMatrix, DVector};
+use nalgebra::{DMatrix, DVector, SVector};
 
 /// Errors from Delassus validation or the bounded reference LCP solve.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -35,6 +35,12 @@ pub enum ContactLcpError {
     NotPositiveSemidefinite,
     /// No enumerated active set satisfies the unilateral KKT conditions.
     NoFeasibleActiveSet,
+    /// Contact Jacobian construction requires at least two spatial dimensions.
+    InvalidDimension,
+    /// A contact row references an invalid or identical body pair.
+    InvalidContactRow,
+    /// A body index is outside the supplied generalized-coordinate layout.
+    InvalidBodyIndex,
 }
 
 /// Maximum KKT violations for a candidate unilateral contact solution.
@@ -110,6 +116,93 @@ pub fn validate_delassus(
     }
 
     Ok(())
+}
+
+/// One contact row in the generalized rigid-body velocity coordinates.
+///
+/// Body indices refer to fixed-size generalized-velocity blocks. Each block
+/// stores D linear coordinates followed by the D*(D-1)/2 independent
+/// bivector coefficients in lexicographic plane order (01, 02, ..., D-2,D-1).
+#[derive(Clone, Debug)]
+pub struct ContactJacobianSpec<const D: usize> {
+    pub body_a: usize,
+    pub body_b: usize,
+    /// Contact normal pointing from body A toward body B.
+    pub normal: SVector<f64, D>,
+    /// World-space lever arm from body A's center of mass to the contact point.
+    pub offset_a: SVector<f64, D>,
+    /// World-space lever arm from body B's center of mass to the contact point.
+    pub offset_b: SVector<f64, D>,
+}
+
+/// Build the generalized contact Jacobian for N-dimensional stored velocities.
+///
+/// The row maps concatenated generalized velocity blocks (v, B) to the
+/// relative normal point velocity n dot (v_b - v_a - B_b*r_b + B_a*r_a).
+/// The angular coefficients follow Rotor's exp(-B) convention and therefore
+/// use the physical point velocity -B*r. No mass metric is applied here.
+#[allow(clippy::needless_range_loop)]
+pub fn build_contact_jacobian<const D: usize>(
+    body_count: usize,
+    rows: &[ContactJacobianSpec<D>],
+) -> Result<DMatrix<f64>, ContactLcpError> {
+    if D < 2 {
+        return Err(ContactLcpError::InvalidDimension);
+    }
+    if body_count == 0 || rows.is_empty() {
+        return Err(ContactLcpError::DimensionMismatch);
+    }
+
+    let rotational_dofs = D * (D - 1) / 2;
+    let dofs_per_body = D + rotational_dofs;
+    let total_dofs = body_count
+        .checked_mul(dofs_per_body)
+        .ok_or(ContactLcpError::DimensionMismatch)?;
+    let mut jacobian = DMatrix::zeros(rows.len(), total_dofs);
+
+    for (row_index, row) in rows.iter().enumerate() {
+        if row.body_a >= body_count || row.body_b >= body_count {
+            return Err(ContactLcpError::InvalidBodyIndex);
+        }
+        if row.body_a == row.body_b {
+            return Err(ContactLcpError::InvalidContactRow);
+        }
+        if !row.normal.iter().all(|value| value.is_finite())
+            || !row.offset_a.iter().all(|value| value.is_finite())
+            || !row.offset_b.iter().all(|value| value.is_finite())
+        {
+            return Err(ContactLcpError::NonFinite);
+        }
+        if row.normal.norm() <= 1e-15 {
+            return Err(ContactLcpError::InvalidContactRow);
+        }
+
+        let base_a = row.body_a * dofs_per_body;
+        let base_b = row.body_b * dofs_per_body;
+        for axis in 0..D {
+            jacobian[(row_index, base_a + axis)] = -row.normal[axis];
+            jacobian[(row_index, base_b + axis)] = row.normal[axis];
+        }
+
+        let mut plane_index = 0;
+        for i in 0..D {
+            for j in (i + 1)..D {
+                // For unit stored bivector B_ij, n dot (-B*r) is
+                // n_j*r_i - n_i*r_j. Body A enters with a minus sign in the
+                // relative velocity; body B enters with a plus sign.
+                let angular_a =
+                    row.normal[j] * row.offset_a[i] - row.normal[i] * row.offset_a[j];
+                let angular_b =
+                    row.normal[j] * row.offset_b[i] - row.normal[i] * row.offset_b[j];
+                let column = D + plane_index;
+                jacobian[(row_index, base_a + column)] = -angular_a;
+                jacobian[(row_index, base_b + column)] = angular_b;
+                plane_index += 1;
+            }
+        }
+    }
+
+    Ok(jacobian)
 }
 
 /// Assemble the Delassus operator W = J * M_eff^-1 * J^T.
@@ -275,6 +368,82 @@ pub fn solve_normal_contact_lcp_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn three_dimensional_contact_jacobian_uses_stored_rotation_sign() {
+        let row = ContactJacobianSpec {
+            body_a: 0,
+            body_b: 1,
+            normal: SVector::new(0.0, 0.0, 1.0),
+            offset_a: SVector::new(0.0, 1.0, 0.0),
+            offset_b: SVector::new(0.0, -1.0, 0.0),
+        };
+        let jacobian = build_contact_jacobian::<3>(2, &[row]).unwrap();
+
+        assert_eq!(jacobian.shape(), (1, 12));
+        // Translation columns: -n for A, +n for B.
+        assert_eq!(jacobian[(0, 2)], -1.0);
+        assert_eq!(jacobian[(0, 8)], 1.0);
+        // Bivector plane order is (01, 02, 12); both angular terms are -1
+        // for the opposed lever arms selected above.
+        assert_eq!(jacobian[(0, 5)], -1.0);
+        assert_eq!(jacobian[(0, 11)], -1.0);
+    }
+
+    #[test]
+    fn four_dimensional_contact_jacobian_covers_all_six_bivector_planes() {
+        let normal = SVector::new(1.0, 2.0, 3.0, 4.0);
+        let offset_a = SVector::new(2.0, 3.0, 5.0, 7.0);
+        let offset_b = SVector::new(-1.0, 4.0, -2.0, 6.0);
+        let row = ContactJacobianSpec {
+            body_a: 0,
+            body_b: 1,
+            normal,
+            offset_a,
+            offset_b,
+        };
+        let jacobian = build_contact_jacobian::<4>(2, &[row]).unwrap();
+
+        assert_eq!(jacobian.shape(), (1, 20));
+        let mut plane_index = 0;
+        for i in 0..4 {
+            for j in (i + 1)..4 {
+                let expected_a = -(normal[j] * offset_a[i] - normal[i] * offset_a[j]);
+                let expected_b = normal[j] * offset_b[i] - normal[i] * offset_b[j];
+                assert!((jacobian[(0, 4 + plane_index)] - expected_a).abs() < 1e-12);
+                assert!((jacobian[(0, 10 + 4 + plane_index)] - expected_b).abs() < 1e-12);
+                plane_index += 1;
+            }
+        }
+        assert_eq!(plane_index, 6);
+    }
+
+    #[test]
+    fn contact_jacobian_rejects_invalid_body_indices_and_zero_normals() {
+        let invalid_index = ContactJacobianSpec {
+            body_a: 0,
+            body_b: 2,
+            normal: SVector::new(1.0, 0.0, 0.0),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::zeros(),
+        };
+        assert_eq!(
+            build_contact_jacobian::<3>(2, &[invalid_index]),
+            Err(ContactLcpError::InvalidBodyIndex)
+        );
+
+        let zero_normal = ContactJacobianSpec {
+            body_a: 0,
+            body_b: 1,
+            normal: SVector::zeros(),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::zeros(),
+        };
+        assert_eq!(
+            build_contact_jacobian::<3>(2, &[zero_normal]),
+            Err(ContactLcpError::InvalidContactRow)
+        );
+    }
 
     #[test]
     fn assembles_delassus_from_generalized_jacobian_and_mass_metric() {
