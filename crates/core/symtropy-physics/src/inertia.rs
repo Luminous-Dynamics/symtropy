@@ -32,6 +32,8 @@ pub enum RotationalInertiaError {
     SingularInertia,
     /// An inverse-operation tolerance is non-finite or non-positive.
     InvalidTolerance,
+    /// A contact/impulse direction is zero or non-finite.
+    InvalidDirection,
 }
 
 /// Rotational inertia acting on Lambda^2(R^D), the bivector space of rotations.
@@ -255,6 +257,44 @@ impl<const D: usize> BivectorInertia<D> {
         }
     }
 
+    /// Rotational contribution to the inverse effective mass at a contact point.
+    ///
+    /// For unit impulse direction n and center-of-mass offset r, the
+    /// impulse-first torque accumulator is n wedge r. The induced physical
+    /// point-velocity change is I^(-1)(n wedge r) applied to r, because the
+    /// stored rotor state changes by the negative of that angular response.
+    /// The returned scalar is n dot delta_v and is non-negative for a
+    /// nonsingular, physically valid mass distribution.
+    pub fn rotational_inverse_effective_mass(
+        &self,
+        offset: &SVector<f64, D>,
+        impulse_direction: &SVector<f64, D>,
+        relative_tolerance: f64,
+    ) -> Result<f64, RotationalInertiaError> {
+        if !offset.iter().all(|value| value.is_finite())
+            || !impulse_direction.iter().all(|value| value.is_finite())
+        {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        let direction_norm = impulse_direction.norm();
+        if !direction_norm.is_finite() || direction_norm <= 1e-15 {
+            return Err(RotationalInertiaError::InvalidDirection);
+        }
+        let direction = impulse_direction / direction_norm;
+        let torque_accumulator = Bivector::from_wedge(&direction, offset);
+        let angular_response =
+            self.angular_velocity_from_momentum(&torque_accumulator, relative_tolerance)?;
+        let point_velocity_change = angular_response.apply_to_vector(offset);
+        let effective_mass = direction.dot(&point_velocity_change);
+        if !effective_mass.is_finite() {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        if effective_mass < -1e-12 * point_velocity_change.norm().max(1.0) {
+            return Err(RotationalInertiaError::NotPositiveSemidefinite);
+        }
+        Ok(effective_mass.max(0.0))
+    }
+
     /// Compute the derivative of Symtropy's stored angular state B.
     ///
     /// In this convention:
@@ -464,6 +504,48 @@ mod tests {
         assert!(
             b_dot_world.add(&to_world(&b_dot_body).scale(-1.0)).norm() < 1e-11,
             "body-frame and world-frame angular accelerations differ"
+        );
+    }
+
+    #[test]
+    fn rotational_inverse_effective_mass_matches_isotropic_lever_arm() {
+        let inertia = BivectorInertia::<3>::uniform_solid_ball(3.0, 2.0).unwrap();
+        let offset = SVector::new(1.0, 0.0, 0.0);
+        let normal = SVector::new(0.0, 1.0, 0.0);
+        let value = inertia
+            .rotational_inverse_effective_mass(&offset, &normal, 1e-12)
+            .unwrap();
+        assert!((value - 1.0 / 4.8).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rotational_inverse_effective_mass_uses_asymmetric_plane_inertia() {
+        let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            1.0,
+            SVector::new(2.0, 1.0, 0.5),
+        )
+        .unwrap();
+        let offset = SVector::new(1.0, 0.0, 0.0);
+        let normal = SVector::new(0.0, 1.0, 0.0);
+        let value = inertia
+            .rotational_inverse_effective_mass(&offset, &normal, 1e-12)
+            .unwrap();
+        // XY plane moment is S_xx + S_yy = 0.8 + 0.2 = 1.0.
+        assert!((value - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rotational_inverse_effective_mass_rejects_zero_direction() {
+        let inertia = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
+        assert_eq!(
+            inertia
+                .rotational_inverse_effective_mass(
+                    &SVector::new(1.0, 0.0, 0.0),
+                    &SVector::zeros(),
+                    1e-12,
+                )
+                .unwrap_err(),
+            RotationalInertiaError::InvalidDirection
         );
     }
 
