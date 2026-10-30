@@ -203,10 +203,14 @@ mod tests {
         let total: f64 = signatures.iter().map(|sig| weights[sig]).sum();
         let mut best = f64::INFINITY;
         for action in 0..ACTIONS as u8 {
-            let zero: Vec<u8> = signatures.iter().copied()
+            let zero: Vec<u8> = signatures
+                .iter()
+                .copied()
                 .filter(|sig| (*sig >> action) & 1 == 0)
                 .collect();
-            let one: Vec<u8> = signatures.iter().copied()
+            let one: Vec<u8> = signatures
+                .iter()
+                .copied()
                 .filter(|sig| (*sig >> action) & 1 == 1)
                 .collect();
             if zero.is_empty() || one.is_empty() {
@@ -232,12 +236,16 @@ mod tests {
             if signatures.len() <= 1 {
                 continue;
             }
-            let raw_weights: Vec<f64> = signatures.iter()
-                .map(|signature| 1.0 + f64::from((signature * 7) % 5)).collect();
+            let raw_weights: Vec<f64> = signatures
+                .iter()
+                .map(|signature| 1.0 + f64::from((signature * 7) % 5))
+                .collect();
             let input = hypotheses(&signatures, &raw_weights);
             let result = solve_exact(&input, &costs, 10_000).unwrap();
-            let weights: BTreeMap<u8, f64> = input.iter()
-                .map(|h| (h.signature, h.prior_weight)).collect();
+            let weights: BTreeMap<u8, f64> = input
+                .iter()
+                .map(|h| (h.signature, h.prior_weight))
+                .collect();
             let expected = brute_force(&signatures, &weights, &costs);
             assert!(
                 (result.expected_cost - expected).abs() < 1e-10,
@@ -266,7 +274,10 @@ mod tests {
         let costs = [8, 7, 6, 5, 4, 3, 2, 1];
         let result = solve_exact(&input, &costs, 10_000).unwrap();
         assert_eq!(result.memoized_states, 3usize.pow(8) - 2usize.pow(8));
-        assert_eq!(result.expected_cost, costs.iter().map(|cost| f64::from(*cost)).sum::<f64>());
+        assert_eq!(
+            result.expected_cost,
+            costs.iter().map(|cost| f64::from(*cost)).sum::<f64>()
+        );
         assert_eq!(result.first_action, Some(0));
     }
 
@@ -284,10 +295,14 @@ mod tests {
     fn prior_scaling_does_not_change_expected_cost_or_tree() {
         let costs = [2, 4, 1, 5, 3, 2, 1, 4];
         let a = solve_exact(
-            &hypotheses(&[0, 1, 2, 3], &[1.0, 2.0, 3.0, 4.0]), &costs, 10_000
+            &hypotheses(&[0, 1, 2, 3], &[1.0, 2.0, 3.0, 4.0]),
+            &costs,
+            10_000
         ).unwrap();
         let b = solve_exact(
-            &hypotheses(&[0, 1, 2, 3], &[10.0, 20.0, 30.0, 40.0]), &costs, 10_000
+            &hypotheses(&[0, 1, 2, 3], &[10.0, 20.0, 30.0, 40.0]),
+            &costs,
+            10_000
         ).unwrap();
         assert!((a.expected_cost - b.expected_cost).abs() < 1e-12);
         assert_eq!(a.first_action, b.first_action);
@@ -297,10 +312,14 @@ mod tests {
     fn results_are_independent_of_input_hypothesis_order() {
         let costs = [3, 1, 2, 4, 5, 2, 3, 1];
         let a = solve_exact(
-            &hypotheses(&[0, 1, 2, 3], &[1.0, 2.0, 3.0, 4.0]), &costs, 10_000
+            &hypotheses(&[0, 1, 2, 3], &[1.0, 2.0, 3.0, 4.0]),
+            &costs,
+            10_000
         ).unwrap();
         let b = solve_exact(
-            &hypotheses(&[3, 2, 1, 0], &[4.0, 3.0, 2.0, 1.0]), &costs, 10_000
+            &hypotheses(&[3, 2, 1, 0], &[4.0, 3.0, 2.0, 1.0]),
+            &costs,
+            10_000
         ).unwrap();
         assert_eq!(a.first_action, b.first_action);
         assert!((a.expected_cost - b.expected_cost).abs() < 1e-12);
@@ -311,15 +330,23 @@ mod tests {
         let input = hypotheses(&[0, 1, 2, 3, 4, 5], &[1.0, 2.0, 1.5, 4.0, 3.0, 2.5]);
         let costs = [4, 2, 1, 5, 3, 2, 4, 1];
         let result = solve_exact(&input, &costs, 10_000).unwrap();
-        let weights: BTreeMap<u8, f64> = input.iter()
-            .map(|h| (h.signature, h.prior_weight)).collect();
+        let weights: BTreeMap<u8, f64> = input
+            .iter()
+            .map(|h| (h.signature, h.prior_weight))
+            .collect();
         let signatures: Vec<u8> = weights.keys().copied().collect();
         let total: f64 = signatures.iter().map(|sig| weights[sig]).sum();
         for action in 0..ACTIONS as u8 {
-            let zero: Vec<u8> = signatures.iter().copied()
-                .filter(|sig| (sig >> action) & 1 == 0).collect();
-            let one: Vec<u8> = signatures.iter().copied()
-                .filter(|sig| (sig >> action) & 1 == 1).collect();
+            let zero: Vec<u8> = signatures
+                .iter()
+                .copied()
+                .filter(|sig| (*sig >> action) & 1 == 0)
+                .collect();
+            let one: Vec<u8> = signatures
+                .iter()
+                .copied()
+                .filter(|sig| (*sig >> action) & 1 == 1)
+                .collect();
             if zero.is_empty() || one.is_empty() {
                 continue;
             }
@@ -327,11 +354,14 @@ mod tests {
             let p_one: f64 = one.iter().map(|sig| weights[sig]).sum::<f64>() / total;
             let mut memo_zero = HashMap::new();
             let v_zero = solve_state(&zero, &weights, &costs, 10_000, &mut memo_zero)
-                .unwrap().expected_remaining_cost;
+                .unwrap()
+                .expected_remaining_cost;
             let mut memo_one = HashMap::new();
             let v_one = solve_state(&one, &weights, &costs, 10_000, &mut memo_one)
-                .unwrap().expected_remaining_cost;
-            let value = f64::from(costs[action as usize]) + p_zero * v_zero + p_one * v_one;
+                .unwrap()
+                .expected_remaining_cost;
+            let value =
+                f64::from(costs[action as usize]) + p_zero * v_zero + p_one * v_one;
             assert!(result.expected_cost <= value + 1e-12);
         }
     }
