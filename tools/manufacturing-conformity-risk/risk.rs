@@ -176,6 +176,7 @@ impl Report {
             f(self.pc_model), f(self.pc_lower), f(self.pc_upper),
             f(self.consumer_risk_upper), f(self.producer_risk_upper), f(self.tail_mass),
             self.bin_count.to_string(), self.evidence.posterior.code().to_string(),
+            self.evidence.predictive_calibration.code().to_string(),
             self.evidence.specification.code().to_string(), self.evidence.calibration.code().to_string(),
             self.evidence.msa.code().to_string(), self.evidence.uncertainty.code().to_string(),
             self.evidence.policy.code().to_string(),
@@ -603,6 +604,40 @@ mod tests {
         changed_request.posterior.sha256 = "9".repeat(HASH_LEN);
         let changed = classify(&changed_request).csv_row();
         assert_ne!(original.as_bytes(), changed.as_bytes());
+    }
+
+    #[test]
+    fn statistical_posterior_calibration_is_distinct_from_instrument_calibration() {
+        let mut r = campaign()[0].1.clone();
+        r.predictive_calibration.qualified = false;
+        assert_eq!(classify(&r).reason, "POSTERIOR_CALIBRATION_NOT_QUALIFIED");
+
+        let mut r = campaign()[0].1.clone();
+        r.predictive_calibration.model_revision = "ANOTHER-MODEL".into();
+        assert_eq!(classify(&r).reason, "POSTERIOR_CALIBRATION_MODEL_REVISION_MISMATCH");
+
+        let mut r = campaign()[0].1.clone();
+        r.decision_time_ns = r.predictive_calibration.valid_until_ns + 1;
+        assert_eq!(classify(&r).reason, "POSTERIOR_CALIBRATION_NOT_EFFECTIVE");
+
+        let mut r = campaign()[0].1.clone();
+        r.predictive_calibration.validation_report_sha256 = "bad".into();
+        assert_eq!(classify(&r).reason, "SOURCE_DIGEST_INVALID");
+    }
+
+    #[test]
+    fn every_predictive_calibration_evidence_state_is_enforced() {
+        for state in [
+            EvidenceState::Missing,
+            EvidenceState::Stale,
+            EvidenceState::Mismatched,
+            EvidenceState::Revoked,
+            EvidenceState::NotQualified,
+        ] {
+            let mut r = campaign()[0].1.clone();
+            r.evidence.predictive_calibration = state;
+            assert_eq!(classify(&r).outcome, Outcome::EvidenceIncomplete);
+        }
     }
 
     #[test]
