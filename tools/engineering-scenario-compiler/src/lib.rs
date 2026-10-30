@@ -18,7 +18,7 @@ pub const MAX_UPSTREAM_CONFIG_BYTES: usize = 4 * 1024 * 1024;
 pub const MAX_UPSTREAM_MESH_BYTES: usize = 64 * 1024 * 1024;
 // Allows for the published decimal precision of the pinned NACA0012 fixture.
 const REYNOLDS_RELATIVE_TOLERANCE: f64 = 2.0e-6;
-const TOML_PARSER_PROFILE: &str = "toml-1.0/toml_edit-0.23.10+spec-1.0.0";
+const TOML_PARSER_PROFILE: &str = "toml-1.0/toml_edit-0.23.10+spec-1.0.0/toml_parser-1.0.5+spec-1.0.0";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -648,8 +648,13 @@ mod tests {
 
     #[test]
     fn toml_1_1_only_escape_is_not_accepted_by_the_toml_1_0_frontend() {
-        let toml_11_only = br#"value = "\e""#;
-        assert_eq!(compile_bytes(toml_11_only).disposition, Disposition::Invalid);
+        let original = std::str::from_utf8(FIXTURE).unwrap();
+        let toml_11_only = replace_once(
+            original,
+            "name = \\"TMR NACA 0012 sharp trailing edge\\"",
+            r#"name = "\e""#,
+        );
+        assert_eq!(compile_bytes(toml_11_only.as_bytes()).disposition, Disposition::Invalid);
     }
 
     #[test]
