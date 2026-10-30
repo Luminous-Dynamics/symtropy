@@ -9,6 +9,9 @@ use std::process::ExitCode;
 fn read_bounded(path: &Path, maximum: usize, role: &str) -> Result<Vec<u8>, String> {
     let metadata = std::fs::metadata(path)
         .map_err(|error| format!("could not inspect {role} path: {error}"))?;
+    if !metadata.file_type().is_file() {
+        return Err(format!("{role} path must identify a regular file"));
+    }
     if metadata.len() > maximum as u64 {
         return Err(format!("{role} exceeds the {maximum} byte CLI limit"));
     }
@@ -53,13 +56,20 @@ fn run() -> Result<ExitCode, String> {
     let mut config_path = None;
     let mut mesh_path = None;
     while let Some(argument) = args.next() {
-        match argument.to_str() {
-            Some("--solver-config") => option_path(&mut args, "--solver-config", &mut config_path)?,
-            Some("--mesh") => option_path(&mut args, "--mesh", &mut mesh_path)?,
+        let result = match argument.to_str() {
+            Some("--solver-config") => {
+                option_path(&mut args, "--solver-config", &mut config_path)
+            }
+            Some("--mesh") => option_path(&mut args, "--mesh", &mut mesh_path),
             _ => {
                 usage(&program);
                 return Ok(ExitCode::from(64));
             }
+        };
+        if let Err(error) = result {
+            usage(&program);
+            eprintln!("{error}");
+            return Ok(ExitCode::from(64));
         }
     }
 
