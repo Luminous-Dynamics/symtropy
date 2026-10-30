@@ -266,24 +266,24 @@ impl PolicyTree {
         reachable.insert(index);
         stack.push(index);
 
-        let result = match self.nodes[index] {
+        let result = match &self.nodes[index] {
             PolicyNode::Action {
                 action,
                 on_zero,
                 on_one,
             } => {
-                if action >= action_count {
+                if *action >= action_count {
                     Err(format!("policy references missing action {action}"))
                 } else {
                     let bit = 1_u64
-                        .checked_shl(action as u32)
+                        .checked_shl(*action as u32)
                         .ok_or_else(|| "action mask shift overflowed".to_string())?;
                     if used_actions & bit != 0 {
                         Err(format!("policy repeats action {action} on one path"))
                     } else {
                         let next_used = used_actions | bit;
                         self.validate_node(
-                            on_zero,
+                            *on_zero,
                             next_used,
                             hypothesis_count,
                             action_count,
@@ -291,7 +291,7 @@ impl PolicyTree {
                             reachable,
                         )?;
                         self.validate_node(
-                            on_one,
+                            *on_one,
                             next_used,
                             hypothesis_count,
                             action_count,
@@ -302,7 +302,7 @@ impl PolicyTree {
                 }
             }
             PolicyNode::Claim { hypothesis } => {
-                if hypothesis >= hypothesis_count {
+                if *hypothesis >= hypothesis_count {
                     Err(format!("policy claims missing hypothesis {hypothesis}"))
                 } else {
                     Ok(())
@@ -339,7 +339,7 @@ pub fn evaluate_shared_policy(
     let mut names = BTreeSet::new();
     for world in worlds {
         let count = world.validate()?;
-        if count != hypothesis_count || world.action_costs != *action_costs {
+        if count != hypothesis_count || world.action_costs.as_slice() != action_costs.as_slice() {
             return Err("all worlds must share hypothesis IDs and action costs".into());
         }
         if !names.insert(world.name.as_str()) {
