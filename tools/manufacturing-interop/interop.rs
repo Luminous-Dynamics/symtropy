@@ -13,7 +13,7 @@
 //!   /tmp/mfg-interop --verify
 //!   /tmp/mfg-interop --csv
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 const HASH_LEN: usize = 64;
 const MTCONNECT_VERSION: &str = "2.8";
@@ -317,11 +317,11 @@ impl MappedStream {
     fn csv_rows(&self) -> Vec<String> {
         self.observations.iter().map(|observation| {
             [
+                self.standard.code().to_string(),
                 csv_escape(&observation.device_uuid),
                 csv_escape(&observation.stream_id),
                 csv_escape(&observation.data_item_id),
                 csv_escape(&observation.component_id),
-                self.standard.code().to_string(),
                 self.document_id.clone(),
                 self.document_sha256.clone(),
                 csv_escape(&self.source_uri),
@@ -1172,6 +1172,38 @@ mod tests {
     }
 
     #[test]
+    fn qif_nominal_not_measured_and_failed_records_never_compose() {
+        let mt=fixture_source(Standard::MtConnect);
+        let stream=map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
+        let qif=fixture_source(Standard::Qif);
+        let cycle=fixture_cycle(&stream);
+        let association=fixture_association(&stream,&qif);
+        for status in [QifResultStatus::NominalOnly,QifResultStatus::NotMeasured,QifResultStatus::Failed] {
+            let mut result=fixture_qif_result(&qif);
+            result.result_status=status;
+            let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
+            assert_eq!(join.status,"INCONCLUSIVE");
+            assert_eq!(join.reason,"QIF_RESULT_NOT_ADMITTED");
+        }
+    }
+
+    #[test]
+    fn missing_and_revoked_association_states_never_compose() {
+        let mt=fixture_source(Standard::MtConnect);
+        let stream=map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
+        let qif=fixture_source(Standard::Qif);
+        let result=fixture_qif_result(&qif);
+        let cycle=fixture_cycle(&stream);
+        for state in [AssociationState::Missing,AssociationState::Revoked] {
+            let mut association=fixture_association(&stream,&qif);
+            association.state=state;
+            let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
+            assert_eq!(join.status,"INCONCLUSIVE");
+            assert_eq!(join.reason,"ASSOCIATION_RECEIPT_NOT_VERIFIED");
+        }
+    }
+
+    #[test]
     fn missing_or_unverified_association_never_joins() {
         let mt = fixture_source(Standard::MtConnect);
         let stream = map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
@@ -1289,6 +1321,32 @@ mod tests {
         let changed_row=mapped_changed.csv_rows()[0].clone();
         assert!(changed_row.contains(&changed.opaque_extensions[0].raw_xml_sha256));
         assert_ne!(mapped_changed.observations[0].source_document_sha256,mt.document_sha256);
+    }
+
+    #[test]
+    fn observation_csv_header_and_rows_have_identical_column_counts() {
+        let source=fixture_source(Standard::MtConnect);
+        let mapped=map_mtconnect(&source,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
+        let header="standard,device_uuid,stream_id,data_item_id,component_id,source_document_id,source_document_sha256,source_uri,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_locator,schema_version,schema_namespace,schema_bundle_sha256,parser_id,parser_version,validation_authority_id,validation_receipt_sha256,extension_manifest,diagnostic_manifest";
+        let expected_columns=header.split(',').count();
+        assert!(mapped.csv_rows().iter().all(|row| row.split(',').count()==expected_columns));
+        assert!(mapped.csv_rows()[0].starts_with("MTCONNECT,"));
+    }
+
+    #[test]
+    fn joined_evidence_csv_has_stable_complete_column_count() {
+        let mt=fixture_source(Standard::MtConnect);
+        let qif=fixture_source(Standard::Qif);
+        let stream=map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
+        let cycle=fixture_cycle(&stream);
+        let result=fixture_qif_result(&qif);
+        let association=fixture_association(&stream,&qif);
+        let transform=UnitTransform { source_unit:"mm".into(),target_unit:"um".into(),scale:1000.0,offset:0.0,revision:"UNIT-MAP-1".into() };
+        let joined=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,Some(&transform));
+        let row=joined.composed.unwrap().csv_row();
+        assert_eq!(row.split(',').count(),32);
+        assert!(row.contains("QIF-UUID-001"));
+        assert!(row.contains("MES-QUALITY-LINKER-01"));
     }
 
     #[test]
