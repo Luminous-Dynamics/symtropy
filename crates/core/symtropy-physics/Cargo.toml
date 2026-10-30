@@ -40,3 +40,7 @@ harness = false
 [[bench]]
 name = "triclinic_closest_image"
 harness = false
+
+[[bench]]
+name = "triclinic_aabb_candidates"
+harness = false
