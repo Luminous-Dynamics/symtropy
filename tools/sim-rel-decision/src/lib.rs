@@ -185,6 +185,22 @@ fn solve_state(
     if signatures.is_empty() {
         return Err("an empty posterior support is invalid".into());
     }
+    if signatures.len() == 1 {
+        let (decision_class, _) = support
+            .get(&signatures[0])
+            .ok_or_else(|| format!("posterior references unknown signature {}", signatures[0]))?;
+        return Ok(Arc::new(DecisionNode {
+            expected_total_loss: 0.0,
+            expected_experiment_cost: 0.0,
+            expected_decision_error: 0.0,
+            expected_abstention_loss: 0.0,
+            abstain_probability: 0.0,
+            remaining_horizon: horizon,
+            kind: DecisionKind::Stop {
+                decision_class: *decision_class,
+            },
+        }));
+    }
 
     let key = (signatures.to_vec(), horizon);
     if let Some(node) = memo.get(&key) {
@@ -204,8 +220,8 @@ fn solve_state(
         let (decision_class, weight) = support
             .get(signature)
             .ok_or_else(|| format!("posterior references unknown signature {signature}"))?;
-        total_weight += weight;
-        *class_weights.entry(*decision_class).or_insert(0.0) += weight;
+        total_weight += *weight;
+        *class_weights.entry(*decision_class).or_insert(0.0) += *weight;
     }
     if !total_weight.is_finite() || total_weight <= 0.0 {
         return Err("posterior mass must remain finite and positive".into());
@@ -261,10 +277,10 @@ fn solve_state(
                     .ok_or_else(|| format!("posterior references unknown signature {signature}"))?;
                 if (*signature >> action) & 1 == 1 {
                     one.push(*signature);
-                    one_weight += weight;
+                    one_weight += *weight;
                 } else {
                     zero.push(*signature);
-                    zero_weight += weight;
+                    zero_weight += *weight;
                 }
             }
             if zero.is_empty() || one.is_empty() {
@@ -357,7 +373,7 @@ mod tests {
         assert_eq!(result.first_action, Some(0));
         assert!((result.expected_total_loss - 0.1).abs() < 1e-12);
         assert!((result.expected_experiment_cost - 0.1).abs() < 1e-12);
-        assert!((result.expected_decision_error).abs() < 1e-12);
+        assert!(result.expected_decision_error.abs() < 1e-12);
         assert!((result.abstain_probability).abs() < 1e-12);
     }
 
@@ -403,7 +419,7 @@ mod tests {
         let result = solve_decision(&hypotheses, &options(0.01, 0.5, 4)).unwrap();
         assert_eq!(result.selected_decision, Some(7));
         assert_eq!(result.first_action, None);
-        assert!((result.expected_total_loss).abs() < 1e-12);
+        assert!(result.expected_total_loss.abs() < 1e-12);
     }
 
     #[test]
