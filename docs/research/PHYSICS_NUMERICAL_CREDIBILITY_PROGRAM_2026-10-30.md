@@ -165,7 +165,7 @@ Source inspection found a kinematic sign inconsistency:
 
 The current branch now centralizes the conversion in `integrator::angular_point_velocity`, uses it at all contact/restitution/friction call sites, subtracts angular impulse and applied-torque increments from the stored B state, and adds regression tests comparing the helper with a finite-difference rotor derivative and checking that an off-center impulse produces point velocity in the impulse direction.
 
-This resolves the sign relationship for the existing isotropic angular impulse/torque paths. It does **not** solve asymmetric rigid-body dynamics. The inertia operator remains separate; before wiring it into `RigidBody`, the implementation must rotate body-space mass moments into the world frame and preserve the distinction between stored B and physical Omega=-B. The gyroscopic equations must be derived for the chosen body/world frame rather than copied across conventions.
+This resolves the sign relationship for the existing isotropic angular impulse/torque paths. It does **not** solve asymmetric rigid-body dynamics. The inertia operator now includes a frame-consistent angular-acceleration primitive in the stored B basis and a body/world covariance regression. It remains a mathematical primitive only: it is not yet wired into `RigidBody` integration, contact effective mass, or invariant energy diagnostics. The next change must use the same rotated operator across free integration, angular impulses, contact/friction and compound parallel-axis assembly.
 
 ## 3. Numerical architecture: build versus reuse
 
