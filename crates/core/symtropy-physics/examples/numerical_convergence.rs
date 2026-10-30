@@ -12,9 +12,9 @@ use std::time::Instant;
 
 use nalgebra::SVector;
 use symtropy_math::Point;
+use symtropy_physics::RigidBody;
 use symtropy_physics::body::BodyHandle;
 use symtropy_physics::integrator::integrate;
-use symtropy_physics::RigidBody;
 
 const GRAVITY: f64 = 9.81;
 const STEP_SIZES: [f64; 4] = [0.1, 0.05, 0.025, 0.0125];
@@ -53,8 +53,7 @@ fn run_free_fall(dt: f64) -> ResultRow {
 
         let exact_y = 1.0 - 0.5 * GRAVITY;
         let exact_vy = -GRAVITY;
-        state_error =
-            (body.position()[1] - exact_y).hypot(body.linear_velocity[1] - exact_vy);
+        state_error = (body.position()[1] - exact_y).hypot(body.linear_velocity[1] - exact_vy);
         let final_energy = 0.5 * body.mass * body.linear_velocity.norm_squared()
             + body.mass * GRAVITY * body.position()[1];
         let initial_energy = body.mass * GRAVITY;
@@ -102,8 +101,7 @@ fn run_harmonic_oscillator(dt: f64) -> ResultRow {
 
         let exact_x = 1.0_f64.cos();
         let exact_vx = -1.0_f64.sin();
-        state_error =
-            (body.position()[0] - exact_x).hypot(body.linear_velocity[0] - exact_vx);
+        state_error = (body.position()[0] - exact_x).hypot(body.linear_velocity[0] - exact_vx);
         let final_energy =
             0.5 * body.linear_velocity.norm_squared() + 0.5 * body.position()[0].powi(2);
         energy_drift = (final_energy - initial_energy).abs() / initial_energy;
@@ -127,9 +125,12 @@ fn scenario_hash(name: &str, dt: f64, steps: usize) -> u64 {
     // Stable FNV-1a identifier for this exact benchmark scenario.
     // This is not a cryptographic digest; source revision is recorded separately.
     let canonical = format!("{name}|dt={dt:.17e}|steps={steps}|duration_s=1.0");
-    canonical.as_bytes().iter().fold(0xcbf29ce484222325_u64, |hash, byte| {
-        (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
-    })
+    canonical
+        .as_bytes()
+        .iter()
+        .fold(0xcbf29ce484222325_u64, |hash, byte| {
+            (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
+        })
 }
 
 fn emit_campaign(name: &str, rows: &[ResultRow]) {
