@@ -1355,6 +1355,8 @@ mod tests {
         let asset_row=mapped_assets[0].csv_row();
         assert!(asset_row.contains(&asset_source.document_sha256));
         assert!(asset_row.contains(&assets[0].raw_asset_sha256));
+        assert!(asset_row.contains(&asset_source.schema.validation_receipt_sha256));
+        assert_eq!(asset_row.split(',').count(),12);
     }
 
     #[test]
