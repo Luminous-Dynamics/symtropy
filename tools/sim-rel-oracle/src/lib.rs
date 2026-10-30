@@ -145,7 +145,7 @@ fn solve_state(
         }
         let zero_node = solve_state(&zero, weights, costs, max_states, memo)?;
         let one_node = solve_state(&one, weights, costs, max_states, memo)?;
-        let expected = f64::from(costs[action])
+        let expected = f64::from(costs[action as usize])
             + (zero_weight / total_weight) * zero_node.expected_remaining_cost
             + (one_weight / total_weight) * one_node.expected_remaining_cost;
         if !expected.is_finite() {
