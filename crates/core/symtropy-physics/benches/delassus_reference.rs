@@ -70,7 +70,7 @@ fn fixture(
 
     let matrix = assemble_delassus(&bodies, &rows, 1e-12)
         .expect("well-conditioned benchmark contact rows");
-    let target_impulses = DVector::from_element(row_count, 0.1);
+    let target_impulses = DVector::from_vec(vec![0.1; row_count]);
     let q = -(&matrix * target_impulses);
     (bodies, rows, matrix, q)
 }
