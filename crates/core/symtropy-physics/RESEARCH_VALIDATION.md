@@ -47,7 +47,27 @@ Research papers and public benchmark reports must not imply certification of a
 capability in the second list merely because a related type or experimental
 module exists.
 
-## Validation tiers
+## Collision-query termination contract
+
+GJK outcomes are categorical and must not be inferred from the legacy Boolean alone:
+
+- `Intersecting`: the algorithm found an enclosing/zero-distance simplex under the implementation's declared tolerance.
+- `Separated`: the algorithm reached a separation/convergence condition.
+- `Indeterminate(reason)`: non-finite data or arithmetic, duplicate support before convergence, degenerate simplex reduction, fixed-capacity guard, or iteration exhaustion prevented a definitive classification.
+
+The legacy `GjkResult::intersecting` field remains a convenience Boolean for existing callers, but a false value is not sufficient evidence of separation. New research, validation, and engineering code must inspect `termination`.
+
+The 4D closest-point path replaces fixed absolute origin/duplicate thresholds with scale-relative geometric and coordinate-roundoff bands. The geometric contact band scales with bounding radii and relative center separation; a separate world-coordinate precision band returns `Indeterminate(CoordinatePrecisionLimit)` rather than widening the overlap/contact band. The conformance suite checks separated and overlapping fixtures under uniform scales from `1e-12` through `1e12`, and includes a close separated pair translated to `1e12` world coordinates. The oriented-box oracle uses a scale-relative tolerance. This qualifies only the tested 4D fixtures; it does not certify 2D/3D scale robustness or arbitrary convex support maps.
+
+`PhysicsWorld` records indeterminate pair queries in `collision_query_failures` for the most recent step. An indeterminate pair is **not** sent to EPA using an unqualified simplex. The gameplay step can continue, but a research/engineering result must be rejected or explicitly narrowed whenever a required collision pair is indeterminate. This diagnostic vector is step-scoped rather than a persistent audit log; callers that need a full trace must record it in their run receipt.
+
+This distinction separates numerical termination from physical validity:
+
+```text
+false Boolean != proven separation
+converged GJK != validated physical model
+no indeterminate queries != physical validation
+```
 
 ### Tier A — Local mathematical contract
 

@@ -125,6 +125,17 @@ type MeshContactFn<const D: usize> = Arc<
         + Sync,
 >;
 
+/// One narrowphase pair whose GJK query could not classify the geometry.
+///
+/// The world records this rather than silently treating it as a separated pair.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CollisionQueryFailure {
+    pub body_a: BodyHandle,
+    pub body_b: BodyHandle,
+    pub reason: crate::gjk::GjkFailureReason,
+    pub iterations: usize,
+}
+
 /// The physics world manages all rigid bodies and steps the simulation.
 pub struct PhysicsWorld<const D: usize> {
     pub bodies: Vec<RigidBody<D>>,
@@ -136,6 +147,12 @@ pub struct PhysicsWorld<const D: usize> {
     pub collision_events: Vec<CollisionEvent<D>>,
     /// Sensor overlap events from the last step.
     pub sensor_events: Vec<crate::contact::SensorEvent>,
+    /// GJK queries that could not establish either intersection or separation.
+    ///
+    /// These are observable runtime anomalies, not proof of contact or separation.
+    /// Research/engineering callers should reject or explicitly qualify a step
+    /// whose required collision queries are indeterminate.
+    pub collision_query_failures: Vec<CollisionQueryFailure>,
     /// Contact cache for warm-starting (previous frame's impulses).
     contact_cache: ContactCache<D>,
     /// Warm-starting from the previous frame (swapped at frame boundaries).
@@ -209,6 +226,7 @@ impl<const D: usize> PhysicsWorld<D> {
             contacts: Vec::new(),
             collision_events: Vec::new(),
             sensor_events: Vec::new(),
+            collision_query_failures: Vec::new(),
             contact_cache: ContactCache::new(),
             prev_cache: ContactCache::new(),
             solver_iterations: 4,
@@ -420,6 +438,7 @@ impl<const D: usize> PhysicsWorld<D> {
         // 0. Clear events from previous step
         self.collision_events.clear();
         self.sensor_events.clear();
+        self.collision_query_failures.clear();
         // Warm-starting: swap caches so prev_cache has last frame's impulses
         std::mem::swap(&mut self.contact_cache, &mut self.prev_cache);
         self.contact_cache.begin_frame();
@@ -572,7 +591,24 @@ impl<const D: usize> PhysicsWorld<D> {
                     &self.bodies[b].transform,
                 );
 
-                if result.intersecting {
+                match result.termination {
+                    crate::gjk::GjkTermination::Indeterminate(reason) => {
+                        self.collision_query_failures.push(CollisionQueryFailure {
+                            body_a: pair.0,
+                            body_b: pair.1,
+                            reason,
+                            iterations: result.iterations,
+                        });
+                        // Do not send a potentially invalid simplex to EPA. The
+                        // step remains usable for gameplay, but the anomaly is
+                        // externally visible so research runs can fail closed.
+                        continue;
+                    }
+                    crate::gjk::GjkTermination::Separated => continue,
+                    crate::gjk::GjkTermination::Intersecting => {}
+                }
+
+                if result.termination == crate::gjk::GjkTermination::Intersecting {
                     // Sensor detection: emit event but skip collision resolution
                     if self.bodies[a].is_sensor || self.bodies[b].is_sensor {
                         let (sensor, other) = if self.bodies[a].is_sensor {
@@ -2559,5 +2595,29 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+
+#[cfg(test)]
+mod collision_query_failure_tests {
+    use super::*;
+
+    #[test]
+    fn indeterminate_query_diagnostics_are_step_scoped() {
+        let mut world = PhysicsWorld::<3>::default();
+        world.collision_query_failures.push(CollisionQueryFailure {
+            body_a: BodyHandle(10),
+            body_b: BodyHandle(11),
+            reason: crate::gjk::GjkFailureReason::IterationLimit,
+            iterations: 64,
+        });
+
+        world.step(1.0 / 60.0);
+
+        assert!(
+            world.collision_query_failures.is_empty(),
+            "failure diagnostics describe the most recent step, not stale history"
+        );
     }
 }

@@ -27,14 +27,121 @@ const MAX_SIMPLEX: usize = 5;
 /// Stack-allocated simplex type. Zero heap allocation.
 type Simplex<const D: usize> = ArrayVec<SVector<f64, D>, MAX_SIMPLEX>;
 
+/// Why a GJK query did not produce a definitive geometric classification.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GjkFailureReason {
+    /// The support-map center or another authored query input was non-finite.
+    NonFiniteInput,
+    /// A support map returned a non-finite support point.
+    NonFiniteSupport,
+    /// Finite inputs produced non-finite intermediate arithmetic.
+    NonFiniteArithmetic,
+    /// The solver repeated a support point before establishing convergence.
+    DuplicateSupport,
+    /// No usable closest point could be computed for the current simplex.
+    DegenerateSimplex,
+    /// The simplex exceeded the algorithm's fixed storage capacity.
+    SimplexCapacityExceeded,
+    /// The iteration budget was exhausted without a definitive result.
+    IterationLimit,
+    /// World-coordinate roundoff is too large for a safe geometric classification.
+    CoordinatePrecisionLimit,
+}
+
+/// Termination outcome for a GJK query.
+///
+/// Separated is reserved for a converged separation conclusion. A failed or
+/// exhausted numerical path must return Indeterminate, never a false negative.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GjkTermination {
+    Intersecting,
+    Separated,
+    Indeterminate(GjkFailureReason),
+}
+
 /// Result of a GJK intersection test.
+///
+/// \`intersecting\` is retained for source compatibility. New code should branch
+/// on \`termination\`; \`false\` alone is not proof that the shapes are separated.
 #[derive(Clone, Debug)]
 pub struct GjkResult<const D: usize> {
     pub intersecting: bool,
-    /// The final simplex (for EPA to use if intersecting).
+    /// Categorical solver result; the authoritative status field.
+    pub termination: GjkTermination,
+    /// The final simplex (safe as an EPA seed only when status is Intersecting).
     pub simplex: Simplex<D>,
     /// Number of iterations used.
     pub iterations: usize,
+}
+
+fn indeterminate<const D: usize>(
+    simplex: Simplex<D>,
+    iterations: usize,
+    reason: GjkFailureReason,
+) -> GjkResult<D> {
+    GjkResult {
+        intersecting: false,
+        termination: GjkTermination::Indeterminate(reason),
+        simplex,
+        iterations,
+    }
+}
+
+#[inline]
+fn vector_is_finite<const D: usize>(vector: &SVector<f64, D>) -> bool {
+    vector.iter().all(|value| value.is_finite())
+}
+
+fn simplex_is_finite<const D: usize>(simplex: &Simplex<D>) -> bool {
+    simplex.iter().all(|point| vector_is_finite(point))
+}
+
+/// Separate geometric zero tolerance from world-coordinate roundoff.
+///
+/// The geometric tolerance scales with the bodies and their relative separation,
+/// so a common translation cannot widen the contact band. A second tolerance
+/// accounts for precision lost when support points are represented far from the
+/// origin. Points inside only that larger band are indeterminate, never promoted
+/// to an intersection merely because world coordinates are large.
+fn scale_relative_tolerances_squared<const D: usize>(
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
+    center_a: &SVector<f64, D>,
+    center_b: &SVector<f64, D>,
+) -> Result<(f64, f64), GjkFailureReason> {
+    let (_, radius_a) = shape_a.bounding_sphere_world();
+    let (_, radius_b) = shape_b.bounding_sphere_world();
+    if !radius_a.is_finite() || !radius_b.is_finite() || radius_a < 0.0 || radius_b < 0.0 {
+        return Err(GjkFailureReason::NonFiniteInput);
+    }
+
+    let center_delta = center_b - center_a;
+    if !vector_is_finite(&center_delta) {
+        return Err(GjkFailureReason::NonFiniteArithmetic);
+    }
+    let relative_scale = center_delta
+        .iter()
+        .fold(0.0_f64, |largest, value| largest.max(value.abs()));
+    let geometric_scale = radius_a.max(radius_b).max(relative_scale);
+    let geometric_scale = if geometric_scale == 0.0 {
+        1.0
+    } else {
+        geometric_scale
+    };
+    let coordinate_scale = center_a
+        .iter()
+        .chain(center_b.iter())
+        .fold(geometric_scale, |largest, value| largest.max(value.abs()));
+
+    let geometric_tolerance = 64.0 * f64::EPSILON * geometric_scale;
+    let coordinate_tolerance = 64.0 * f64::EPSILON * coordinate_scale;
+    let geometric_squared = geometric_tolerance * geometric_tolerance;
+    let coordinate_squared = coordinate_tolerance * coordinate_tolerance;
+    if geometric_squared.is_finite() && coordinate_squared.is_finite() {
+        Ok((geometric_squared, coordinate_squared))
+    } else {
+        Err(GjkFailureReason::NonFiniteArithmetic)
+    }
 }
 
 /// Test if two translated shapes intersect using the GJK algorithm.
@@ -70,50 +177,417 @@ pub fn intersects_support_maps<const D: usize>(
     shape_a: &dyn WorldSupportMap<D>,
     shape_b: &dyn WorldSupportMap<D>,
 ) -> GjkResult<D> {
+    // Four dimensions need a five-vertex simplex. The 3D tetrahedron reducer
+    // is not a valid facet test for a 4D simplex.
+    if D == 4 {
+        return intersects_support_maps_with_closest_simplex(shape_a, shape_b);
+    }
+
+    let center_a = shape_a.center_world();
+    let center_b = shape_b.center_world();
+    let mut simplex = Simplex::<D>::new();
+    if !vector_is_finite(&center_a) || !vector_is_finite(&center_b) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteInput);
+    }
+
     // Initial direction: from A to B.
-    let mut direction = shape_b.center_world() - shape_a.center_world();
+    let mut direction = center_b - center_a;
+    if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
+    }
     if direction.norm_squared() < 1e-20 {
         direction = SVector::zeros();
         direction[0] = 1.0;
     }
 
     let first = minkowski_support(shape_a, shape_b, &direction);
-    let mut simplex = Simplex::new();
+    if !vector_is_finite(&first) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteSupport);
+    }
     simplex.push(first);
     direction = -first;
 
     for iteration in 0..MAX_ITERATIONS {
-        if direction.norm_squared() < 1e-20 {
+        let direction_squared = direction.norm_squared();
+        if !direction_squared.is_finite() || !simplex_is_finite(&simplex) {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
+        if direction_squared < 1e-20 {
             return GjkResult {
                 intersecting: true,
+                termination: GjkTermination::Intersecting,
                 simplex,
                 iterations: iteration,
             };
         }
 
         let new_point = minkowski_support(shape_a, shape_b, &direction);
-        if new_point.dot(&direction) < -1e-10 {
+        if !vector_is_finite(&new_point) {
+            return indeterminate(simplex, iteration, GjkFailureReason::NonFiniteSupport);
+        }
+        let support_projection = new_point.dot(&direction);
+        if !support_projection.is_finite() {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
+        if support_projection < -1e-10 {
             return GjkResult {
                 intersecting: false,
+                termination: GjkTermination::Separated,
+                simplex,
+                iterations: iteration,
+            };
+        }
+        if simplex.len() >= MAX_SIMPLEX {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::SimplexCapacityExceeded,
+            );
+        }
+
+        simplex.push(new_point);
+        if do_simplex(&mut simplex, &mut direction) {
+            if !simplex_is_finite(&simplex) {
+                return indeterminate(
+                    simplex,
+                    iteration,
+                    GjkFailureReason::NonFiniteArithmetic,
+                );
+            }
+            return GjkResult {
+                intersecting: true,
+                termination: GjkTermination::Intersecting,
+                simplex,
+                iterations: iteration,
+            };
+        }
+        if !vector_is_finite(&direction) || !simplex_is_finite(&simplex) {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
+    }
+
+    indeterminate(
+        simplex,
+        MAX_ITERATIONS,
+        GjkFailureReason::IterationLimit,
+    )
+}
+
+/// GJK path for 4D using an exhaustive closest-point reduction over simplex faces.
+///
+/// A 4D simplex has at most five vertices, so enumerating its non-empty subsets
+/// costs at most 31 small systems. This is intentionally bounded and stack-only.
+/// It avoids applying the 3D tetrahedron facet test to a 4D simplex.
+fn intersects_support_maps_with_closest_simplex<const D: usize>(
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
+) -> GjkResult<D> {
+    let center_a = shape_a.center_world();
+    let center_b = shape_b.center_world();
+    let mut simplex = Simplex::<D>::new();
+    if !vector_is_finite(&center_a) || !vector_is_finite(&center_b) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteInput);
+    }
+
+    let (origin_tolerance_squared, coordinate_tolerance_squared) =
+        match scale_relative_tolerances_squared(shape_a, shape_b, &center_a, &center_b) {
+            Ok(tolerances) => tolerances,
+            Err(reason) => return indeterminate(simplex, 0, reason),
+        };
+
+    let mut direction = center_b - center_a;
+    if !vector_is_finite(&direction) || !direction.norm_squared().is_finite() {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteArithmetic);
+    }
+    if direction.norm_squared() < 1e-20 {
+        direction = SVector::zeros();
+        direction[0] = 1.0;
+    }
+
+    let first = minkowski_support(shape_a, shape_b, &direction);
+    if !vector_is_finite(&first) {
+        return indeterminate(simplex, 0, GjkFailureReason::NonFiniteSupport);
+    }
+    simplex.push(first);
+    let mut closest = first;
+
+    for iteration in 0..MAX_ITERATIONS {
+        let closest_squared = closest.norm_squared();
+        if !closest_squared.is_finite() {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
+        if closest_squared <= origin_tolerance_squared {
+            return GjkResult {
+                intersecting: true,
+                termination: GjkTermination::Intersecting,
+                simplex,
+                iterations: iteration,
+            };
+        }
+        if closest_squared <= coordinate_tolerance_squared {
+            return indeterminate(simplex, iteration, GjkFailureReason::CoordinatePrecisionLimit);
+        }
+
+        direction = -closest;
+        let new_point = minkowski_support(shape_a, shape_b, &direction);
+        if !vector_is_finite(&new_point) {
+            return indeterminate(simplex, iteration, GjkFailureReason::NonFiniteSupport);
+        }
+        let improvement = (new_point - closest).dot(&direction);
+        if !improvement.is_finite() {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
+        let progress_tolerance = 64.0 * f64::EPSILON * closest_squared;
+        if improvement <= progress_tolerance {
+            return GjkResult {
+                intersecting: false,
+                termination: GjkTermination::Separated,
                 simplex,
                 iterations: iteration,
             };
         }
 
+        for point in &simplex {
+            let delta_squared = (*point - new_point).norm_squared();
+            if !delta_squared.is_finite() {
+                return indeterminate(
+                    simplex,
+                    iteration,
+                    GjkFailureReason::NonFiniteArithmetic,
+                );
+            }
+            if delta_squared <= coordinate_tolerance_squared {
+                return indeterminate(simplex, iteration, GjkFailureReason::DuplicateSupport);
+            }
+        }
+
+        // A full 4D simplex contains five points. Reaching this guard means
+        // reduction failed to leave capacity for the next support point.
+        if simplex.len() >= MAX_SIMPLEX {
+            return indeterminate(
+                simplex,
+                iteration,
+                GjkFailureReason::SimplexCapacityExceeded,
+            );
+        }
         simplex.push(new_point);
-        if do_simplex(&mut simplex, &mut direction) {
+
+        let Some((reduced, next_closest)) =
+            closest_point_on_simplex(&simplex, origin_tolerance_squared)
+        else {
+            return indeterminate(simplex, iteration, GjkFailureReason::DegenerateSimplex);
+        };
+        if !vector_is_finite(&next_closest) || !simplex_is_finite(&reduced) {
+            return indeterminate(
+                reduced,
+                iteration,
+                GjkFailureReason::NonFiniteArithmetic,
+            );
+        }
+        simplex = reduced;
+        closest = next_closest;
+
+        if closest.norm_squared() <= origin_tolerance_squared {
             return GjkResult {
                 intersecting: true,
+                termination: GjkTermination::Intersecting,
                 simplex,
                 iterations: iteration,
             };
         }
     }
 
-    GjkResult {
-        intersecting: false,
+    indeterminate(
         simplex,
-        iterations: MAX_ITERATIONS,
+        MAX_ITERATIONS,
+        GjkFailureReason::IterationLimit,
+    )
+}
+
+/// Return the closest point to the origin on a simplex and the active face.
+///
+/// Every closest point on a convex simplex belongs to the relative interior of
+/// one of its faces. Enumerating at most 2^5 - 1 subsets lets us solve each
+/// candidate face with a small Gram system and retain only non-negative
+/// barycentric coordinates. Degenerate faces are skipped; their lower-dimensional
+/// subsets are considered independently.
+fn closest_point_on_simplex<const D: usize>(
+    simplex: &Simplex<D>,
+    origin_tolerance_squared: f64,
+) -> Option<(Simplex<D>, SVector<f64, D>)> {
+    let count = simplex.len();
+    if count == 0 || count > MAX_SIMPLEX {
+        return None;
+    }
+
+    let mut best: Option<(usize, SVector<f64, D>, f64)> = None;
+    for mask in 1usize..(1usize << count) {
+        let mut indices = [0usize; MAX_SIMPLEX];
+        let mut face_count = 0usize;
+        for index in 0..count {
+            if mask & (1usize << index) != 0 {
+                indices[face_count] = index;
+                face_count += 1;
+            }
+        }
+
+        let origin = simplex[indices[0]];
+        let edge_count = face_count - 1;
+        let mut weights = [0.0f64; MAX_SIMPLEX];
+        weights[0] = 1.0;
+        let candidate = if edge_count == 0 {
+            origin
+        } else {
+            let mut edges: ArrayVec<SVector<f64, D>, MAX_SIMPLEX> = ArrayVec::new();
+            for i in 1..face_count {
+                edges.push(simplex[indices[i]] - origin);
+            }
+
+            let mut gram = [[0.0f64; MAX_SIMPLEX]; MAX_SIMPLEX];
+            let mut rhs = [0.0f64; MAX_SIMPLEX];
+            for i in 0..edge_count {
+                rhs[i] = -edges[i].dot(&origin);
+                for j in 0..edge_count {
+                    gram[i][j] = edges[i].dot(&edges[j]);
+                }
+            }
+
+            let Some(solution) = solve_small_system(gram, rhs, edge_count) else {
+                continue;
+            };
+            let mut sum = 0.0;
+            for i in 0..edge_count {
+                weights[i + 1] = solution[i];
+                sum += solution[i];
+            }
+            weights[0] = 1.0 - sum;
+
+            if weights[..face_count]
+                .iter()
+                .any(|weight| !weight.is_finite() || *weight < -1e-9)
+            {
+                continue;
+            }
+
+            // Project tiny negative round-off back onto the simplex face.
+            let weight_sum: f64 = weights[..face_count]
+                .iter()
+                .map(|weight| (*weight).max(0.0))
+                .sum();
+            if weight_sum <= f64::MIN_POSITIVE {
+                continue;
+            }
+            let mut point = SVector::<f64, D>::zeros();
+            for i in 0..face_count {
+                point += simplex[indices[i]] * (weights[i].max(0.0) / weight_sum);
+            }
+            point
+        };
+
+        let distance_squared = candidate.norm_squared();
+        let replace = if !distance_squared.is_finite() {
+            false
+        } else {
+            match best.as_ref() {
+                // If the origin is on the simplex, prefer the largest available
+                // containing face. EPA benefits from a fuller seed simplex.
+                Some((best_mask, _, best_distance))
+                    if distance_squared <= origin_tolerance_squared
+                        && *best_distance <= origin_tolerance_squared =>
+                {
+                    mask.count_ones() > best_mask.count_ones()
+                }
+                Some((_, _, best_distance)) => distance_squared < *best_distance,
+                None => true,
+            }
+        };
+        if replace {
+            best = Some((mask, candidate, distance_squared));
+        }
+    }
+
+    let (mask, point, _) = best?;
+    let mut reduced = Simplex::<D>::new();
+    for index in 0..count {
+        if mask & (1usize << index) != 0 {
+            reduced.push(simplex[index]);
+        }
+    }
+    Some((reduced, point))
+}
+
+/// Solve a dense system of at most four equations with partial pivoting.
+fn solve_small_system(
+    mut matrix: [[f64; MAX_SIMPLEX]; MAX_SIMPLEX],
+    mut rhs: [f64; MAX_SIMPLEX],
+    size: usize,
+) -> Option<[f64; MAX_SIMPLEX]> {
+    if size == 0 || size >= MAX_SIMPLEX {
+        return None;
+    }
+    let scale = matrix[..size]
+        .iter()
+        .flat_map(|row| row[..size].iter())
+        .fold(0.0_f64, |largest, value| largest.max(value.abs()));
+    if !scale.is_finite() || scale == 0.0 {
+        return None;
+    }
+
+    for column in 0..size {
+        let mut pivot_row = column;
+        for row in (column + 1)..size {
+            if matrix[row][column].abs() > matrix[pivot_row][column].abs() {
+                pivot_row = row;
+            }
+        }
+        if matrix[pivot_row][column].abs() <= scale * 64.0 * f64::EPSILON {
+            return None;
+        }
+        matrix.swap(column, pivot_row);
+        rhs.swap(column, pivot_row);
+
+        let diagonal = matrix[column][column];
+        for entry in 0..size {
+            matrix[column][entry] /= diagonal;
+        }
+        rhs[column] /= diagonal;
+
+        for row in 0..size {
+            if row == column {
+                continue;
+            }
+            let factor = matrix[row][column];
+            for entry in 0..size {
+                matrix[row][entry] -= factor * matrix[column][entry];
+            }
+            rhs[row] -= factor * rhs[column];
+        }
+    }
+
+    if rhs[..size].iter().all(|value| value.is_finite()) {
+        Some(rhs)
+    } else {
+        None
     }
 }
 
@@ -544,7 +1018,7 @@ mod tests {
 mod proptests {
     use super::*;
     use proptest::prelude::*;
-    use symtropy_math::{Point, Sphere};
+    use symtropy_math::Sphere;
 
     proptest! {
         /// Two spheres at the same position always intersect.
@@ -668,5 +1142,98 @@ mod proptests {
 
         let result = intersects_transformed(&box_shape, &box_transform, &sphere, &sphere_transform);
         assert!(!result.intersecting);
+    }
+}
+
+#[cfg(test)]
+mod termination_status_tests {
+    use super::*;
+    use crate::support_map::WorldSupportMap;
+    use symtropy_math::Sphere;
+
+    struct NonFiniteSupportMap;
+
+    impl WorldSupportMap<3> for NonFiniteSupportMap {
+        fn support_world(&self, _direction: &SVector<f64, 3>) -> SVector<f64, 3> {
+            SVector::from([f64::NAN, 0.0, 0.0])
+        }
+
+        fn center_world(&self) -> SVector<f64, 3> {
+            SVector::zeros()
+        }
+
+        fn bounding_sphere_world(&self) -> (SVector<f64, 3>, f64) {
+            (SVector::zeros(), 1.0)
+        }
+    }
+
+    #[test]
+    fn converged_separation_has_explicit_separated_status() {
+        let a = Sphere::<3>::unit();
+        let b = Sphere::<3>::unit();
+        let result = intersects(
+            &a,
+            &SVector::zeros(),
+            &b,
+            &SVector::from([4.0, 0.0, 0.0]),
+        );
+
+        assert!(!result.intersecting);
+        assert_eq!(result.termination, GjkTermination::Separated);
+    }
+
+    #[test]
+    fn overlapping_pair_has_explicit_intersecting_status() {
+        let a = Sphere::<3>::unit();
+        let b = Sphere::<3>::unit();
+        let result = intersects(
+            &a,
+            &SVector::zeros(),
+            &b,
+            &SVector::from([1.0, 0.0, 0.0]),
+        );
+
+        assert!(result.intersecting);
+        assert_eq!(result.termination, GjkTermination::Intersecting);
+    }
+
+    #[test]
+    fn non_finite_support_is_indeterminate_not_separated() {
+        let invalid = NonFiniteSupportMap;
+        let ordinary = Sphere::<3>::unit();
+        let result = intersects_support_maps(&invalid, &ordinary);
+
+        assert!(!result.intersecting);
+        assert_eq!(
+            result.termination,
+            GjkTermination::Indeterminate(GjkFailureReason::NonFiniteSupport)
+        );
+    }
+
+    #[test]
+    fn non_finite_query_center_is_indeterminate() {
+        struct NonFiniteCenterMap;
+        impl WorldSupportMap<3> for NonFiniteCenterMap {
+            fn support_world(&self, direction: &SVector<f64, 3>) -> SVector<f64, 3> {
+                *direction
+            }
+
+            fn center_world(&self) -> SVector<f64, 3> {
+                SVector::from([0.0, f64::INFINITY, 0.0])
+            }
+
+            fn bounding_sphere_world(&self) -> (SVector<f64, 3>, f64) {
+                (self.center_world(), 1.0)
+            }
+        }
+
+        let invalid = NonFiniteCenterMap;
+        let ordinary = Sphere::<3>::unit();
+        let result = intersects_support_maps(&invalid, &ordinary);
+
+        assert_eq!(
+            result.termination,
+            GjkTermination::Indeterminate(GjkFailureReason::NonFiniteInput)
+        );
     }
 }
