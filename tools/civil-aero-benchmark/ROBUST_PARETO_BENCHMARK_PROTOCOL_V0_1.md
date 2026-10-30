@@ -60,6 +60,28 @@ Targets are aspirational gates, not achieved results: no false-feasible out-of-d
 
 A system is a stronger engineering method when it is more accurate **and** more calibrated, more reproducible, less expensive at matched quality, explicit about unsupported regions, and physically repeatable. Winning only a nominal simulation objective is not sufficient.
 
+
+## 3B. Industry-facing 3D drag/aeroelastic validation ladder (AERO-DPW8-001)
+
+The next external target should be the 2026 AIAA Drag Prediction Workshop 8 / Aeroelastic Prediction Workshop 4 (DPW-8/AePW-4), not an invented proprietary-style leaderboard. AIAA describes a joint drag-prediction/aeroelasticity program with working groups spanning static deformation, buffet, high angle, high speed, source of scatter and test environments. NASA's public DPW grid tree now exposes a DPW8 resource directory containing separate Buffet, ONERA_OAT15A, Scatter, Static_Deformation and Test_Environment branches. Treat them as distinct tasks and source families.
+
+A useful staged sequence:
+1. **ONERA OAT15A** — retrieve the experimental-data archive and compare surface pressure/force quantities only after condition metadata, units, transitions and applicable license/terms are pinned. Use multiple independently supplied grid families (Cadence, Helden, ONERA-Deck/Rizzi) as cross-code/grid sensitivity, not as interchangeable mesh files.
+2. **Scatter / CRM** — use the DPW-8 Test_Case_2 README as a concrete provenance example: its configurations are tied to wing deformation measured at M=0.85 in a low-dynamic-pressure ETW test, with alpha labels from 2.50 to 4.25 degrees. It warns that source geometry included horizontal tails that were removed before gridding and that the farfield geometry was extended during gridding. Therefore geometry provenance and mesh mapping must be explicit; silently mixing the original geometry and gridded geometry invalidates comparison.
+3. **Static deformation / FEM** — pair the aerodynamic solution with the exact CRM finite-element model and deformation mapping. NASA's DPW-8 README identifies the full-span wing-body-tail model as coming from the Common Research Model resource and a separate semispan FEM generated for DPW-8/AePW-4. Compare rigid vs deformed loads/shape with interpolation and load-transfer error accounted for.
+4. **Buffet / high-angle / high-speed** — keep separate follow-on tasks. These require unsteady or transonic physics and cannot be represented by the current steady level-flight screen or by an isolated 2D polar regression.
+5. **Test-environment and scatter accounting** — record facility, balance/pressure system, calibration, support/tare corrections, tunnel state, repeat runs and exclusions. A measured spread across facilities is not simply optimizer noise.
+
+No DPW8 dataset is admitted to the repository by this protocol insertion. Before importing any artifact, pin the exact URL and file bytes, hash, geometry revision, condition/units, dataset ownership and redistribution terms. Workshop use or public visibility is not by itself a redistribution license.
+
+Official starting points:
+- AIAA DPW-8/AePW-4 overview: https://aiaa.org/courses/aiaa-drag-prediction-workshop/
+- NASA DPW8 data tree: https://dpw.larc.nasa.gov/DPW8/
+- DPW8 Scatter Test_Case_2 README: https://dpw.larc.nasa.gov/DPW8/Scatter/Test_Case_2/README.txt
+- DPW8 Static_Deformation FEM README: https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/README.txt
+
+This is the meaningful bridge from the current 2D coupon/airfoil software smoke test to an industry-relevant 3D flow-and-structure validation program.
+
 ## 3. Fair baseline ladder
 
 All solver-dependent comparisons must pin the same geometry, units, boundary conditions, mesh family or documented mesh mapping, turbulence/transition assumptions, convergence criteria and objective definitions.
@@ -73,6 +95,7 @@ All solver-dependent comparisons must pin the same geometry, units, boundary con
 | B4 | Official ShapeBench task/API and its reproducible baselines | Broad matched-budget comparison across geometry classes/objectives |
 | B5 | Decision-aware experiment-selection policy under the same frozen ShapeBench tasks and total cost | Proposed method; no assumed advantage |
 | B6 | High-fidelity CFD replay and independent physical-data/coupon validation | Check whether the apparent optimizer win survives a higher-fidelity or physical boundary |
+| B7 | AIAA DPW-8/AePW-4 benchmark tasks: ONERA OAT15A, CRM scatter, static deformation, then buffet/high-angle/high-speed | 3D drag prediction, aeroelastic coupling, data scatter and facility effects |
 
 ShapeBench (2026) is a crucial benchmark addition, not something this project should attempt to recreate. Its preprint describes 103 tasks across eight shape categories and baselines including adjoint, L-BFGS-B, PSO, CMA-ES, Bayesian optimization, OpenEvolve, ShinkaEvolve and ShapeEvolve where applicable. It reports optimizer rankings that vary strongly by task and budget (mean pairwise Spearman rho reported as 0.013), illustrating why one easy airfoil result cannot establish general superiority. Exact code/data revisions, task licences, APIs, environments and cost rules must be reviewed and pinned before integration:
 - ShapeBench paper: https://arxiv.org/abs/2605.20763
