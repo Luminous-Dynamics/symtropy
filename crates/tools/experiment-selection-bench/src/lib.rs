@@ -284,7 +284,15 @@ impl CandidatePolicy for RandomPolicy {
     }
 }
 
-pub struct SobolPolicy;
+pub struct SobolPolicy {
+    initial_design_size: usize,
+}
+
+impl SobolPolicy {
+    pub fn new(initial_design_size: usize) -> Self {
+        Self { initial_design_size }
+    }
+}
 
 impl CandidatePolicy for SobolPolicy {
     fn name(&self) -> &'static str {
@@ -297,11 +305,19 @@ impl CandidatePolicy for SobolPolicy {
         proposal_index: usize,
         seed: u64,
     ) -> [f64; 2] {
-        sobol_point((proposal_index + INITIAL_DESIGN_SIZE + 1) as u64, seed)
+        sobol_point((proposal_index + self.initial_design_size + 1) as u64, seed)
     }
 }
 
-pub struct HaltonPolicy;
+pub struct HaltonPolicy {
+    initial_design_size: usize,
+}
+
+impl HaltonPolicy {
+    pub fn new(initial_design_size: usize) -> Self {
+        Self { initial_design_size }
+    }
+}
 
 impl CandidatePolicy for HaltonPolicy {
     fn name(&self) -> &'static str {
@@ -317,10 +333,10 @@ impl CandidatePolicy for HaltonPolicy {
         let shift_x = unit_from_seed(seed ^ 0xa409_3822_299f_31d0);
         let shift_y = unit_from_seed(seed ^ 0x082e_fa98_ec4e_6c89);
         [
-            (radical_inverse((proposal_index + INITIAL_DESIGN_SIZE + 1) as u64, 2)
+            (radical_inverse((proposal_index + self.initial_design_size + 1) as u64, 2)
                 + shift_x)
                 .fract(),
-            (radical_inverse((proposal_index + INITIAL_DESIGN_SIZE + 1) as u64, 3)
+            (radical_inverse((proposal_index + self.initial_design_size + 1) as u64, 3)
                 + shift_y)
                 .fract(),
         ]
@@ -421,13 +437,21 @@ impl CandidatePolicy for GaussianProcessUcbPolicy {
     }
 }
 
-pub fn make_policy(kind: PolicyKind, seed: u64, budget: usize) -> Box<dyn CandidatePolicy> {
+pub fn make_policy(
+    kind: PolicyKind,
+    seed: u64,
+    budget: usize,
+    initial_design_size: usize,
+) -> Box<dyn CandidatePolicy> {
     match kind {
         PolicyKind::Random => Box::new(RandomPolicy::new(seed ^ 0x9e37_79b9_7f4a_7c15)),
-        PolicyKind::Sobol => Box::new(SobolPolicy),
-        PolicyKind::Halton => Box::new(HaltonPolicy),
+        PolicyKind::Sobol => Box::new(SobolPolicy::new(initial_design_size)),
+        PolicyKind::Halton => Box::new(HaltonPolicy::new(initial_design_size)),
         PolicyKind::LatinHypercube => {
-            Box::new(LatinHypercubePolicy::new(seed, budget.saturating_sub(INITIAL_DESIGN_SIZE)))
+            Box::new(LatinHypercubePolicy::new(
+                seed,
+                budget.saturating_sub(initial_design_size),
+            ))
         }
         PolicyKind::GaussianProcessUcb => {
             Box::new(GaussianProcessUcbPolicy::new(seed, GP_CANDIDATE_COUNT))
@@ -477,7 +501,7 @@ pub fn run_trial(
     budget: usize,
     initial_design_size: usize,
 ) -> TrialResult {
-    let policy = make_policy(policy_kind, seed, budget);
+    let policy = make_policy(policy_kind, seed, budget, initial_design_size);
     run_trial_with_policy(
         problem,
         policy_kind,
@@ -1133,7 +1157,7 @@ mod tests {
 
     #[test]
     fn sobol_policy_generates_distinct_in_domain_points() {
-        let mut policy = super::SobolPolicy;
+        let mut policy = super::SobolPolicy::new(8);
         let points: Vec<_> = (0..32)
             .map(|index| policy.propose(&[], index, 77))
             .collect();
@@ -1360,7 +1384,7 @@ mod tests {
     #[test]
     fn factory_exposes_the_named_conventional_baselines() {
         for kind in PolicyKind::ALL {
-            let policy = make_policy(kind, 1, 16);
+            let policy = make_policy(kind, 1, 16, 8);
             assert_eq!(policy.name(), kind.as_str());
         }
     }
