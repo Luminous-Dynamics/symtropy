@@ -42,6 +42,8 @@ pub struct InvariantSnapshot<const D: usize> {
     pub max_penetration_depth: f64,
     /// Number of bodies whose state contains a NaN or infinity.
     pub non_finite_body_count: usize,
+    /// Number of bodies whose known inertia mass disagrees with translational mass.
+    pub mass_property_mismatch_count: usize,
 }
 
 impl<const D: usize> InvariantSnapshot<D> {
@@ -49,6 +51,7 @@ impl<const D: usize> InvariantSnapshot<D> {
     /// supplied proper-rotation tolerance.
     pub fn is_numerically_healthy(&self, rotation_tolerance: f64) -> bool {
         self.non_finite_body_count == 0
+            && self.mass_property_mismatch_count == 0
             && self.max_rotation_orthogonality_error <= rotation_tolerance
             && self.max_rotation_determinant_error <= rotation_tolerance
     }
@@ -65,6 +68,7 @@ impl<const D: usize> InvariantSnapshot<D> {
             max_rotation_orthogonality_error: later.max_rotation_orthogonality_error,
             max_rotation_determinant_error: later.max_rotation_determinant_error,
             non_finite_body_count: later.non_finite_body_count,
+            mass_property_mismatch_count: later.mass_property_mismatch_count,
         }
     }
 }
@@ -171,6 +175,7 @@ impl<const D: usize> PhysicsWorld<D> {
         let mut max_rotation_orthogonality_error = 0.0_f64;
         let mut max_rotation_determinant_error = 0.0_f64;
         let mut non_finite_body_count = 0;
+        let mut mass_property_mismatch_count = 0;
 
         for body in &self.bodies {
             let position = body.transform.translation.0;
@@ -180,6 +185,14 @@ impl<const D: usize> PhysicsWorld<D> {
                 max_rotation_orthogonality_error.max(rotation_orthogonality_error);
             max_rotation_determinant_error =
                 max_rotation_determinant_error.max(rotation_determinant_error);
+
+            if body
+                .rotational_inertia
+                .as_ref()
+                .is_some_and(|inertia| inertia.validate_body_mass(body.mass, 1e-10).is_err())
+            {
+                mass_property_mismatch_count += 1;
+            }
 
             let finite = position.iter().all(|value| value.is_finite())
                 && body.linear_velocity.iter().all(|value| value.is_finite())
@@ -228,6 +241,7 @@ impl<const D: usize> PhysicsWorld<D> {
             max_rotation_determinant_error,
             max_penetration_depth,
             non_finite_body_count,
+            mass_property_mismatch_count,
         }
     }
 }
@@ -252,6 +266,25 @@ mod tests {
         assert!((snapshot.center_of_mass[0] - 1.0 / 3.0).abs() < 1e-12);
         assert!((snapshot.linear_momentum[0] - 3.0).abs() < 1e-12);
         assert!(snapshot.is_numerically_healthy(1e-12));
+    }
+
+    #[test]
+    fn snapshot_detects_known_rotational_inertia_mass_mismatch() {
+        use crate::inertia::BivectorInertia;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.body_mut(handle).unwrap().set_rotational_inertia_operator(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                2.0,
+                SVector::new(1.0, 0.8, 0.6),
+            )
+            .unwrap(),
+        );
+
+        let snapshot = world.invariant_snapshot();
+        assert_eq!(snapshot.mass_property_mismatch_count, 1);
+        assert!(!snapshot.is_numerically_healthy(1e-12));
     }
 
     #[test]
