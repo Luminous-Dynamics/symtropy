@@ -294,10 +294,14 @@ mod tests {
             }
         }
 
-        let angular = Bivector::<D>::from_wedge(
-            &SVector::<f64, D>::from_fn(|i, _| (i as f64 + 0.5) * 0.37),
-            &SVector::<f64, D>::from_fn(|i, _| (i as f64 + 1.0) * -0.21),
-        );
+        // Exercise a generic bivector with independent values in every
+        // rotation plane, not only a simple wedge (rank-two) bivector.
+        let mut angular = Bivector::<D>::zero();
+        for i in 0..D {
+            for j in (i + 1)..D {
+                angular.set(i, j, ((i + 1) as f64 * 0.37) - ((j + 2) as f64 * 0.21));
+            }
+        }
         let coordinates = frame.decompose_angular(&angular).unwrap();
         let reconstructed = frame.reconstruct_angular(&coordinates).unwrap();
         assert!(coordinates.reconstruction_error < 1e-10);
@@ -326,6 +330,52 @@ mod tests {
     }
 
     #[test]
+    fn tangent_projector_is_symmetric_idempotent_and_annihilates_normal() {
+        let frame = ContactFrame::<5>::new(
+            SVector::new(0.2, -0.3, 0.4, 0.1, -0.5),
+            1e-12,
+        )
+        .unwrap();
+        let projector = frame.tangent_projector();
+        assert!((projector - projector.transpose()).norm() < 1e-12);
+        assert!((projector * projector - projector).norm() < 1e-12);
+        assert!((projector * frame.normal()).norm() < 1e-12);
+        assert!((projector.trace() - 4.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rolling_and_torsional_bivector_bases_are_mutually_orthonormal() {
+        for dimension in [3_usize, 4, 5] {
+            match dimension {
+                3 => assert_bivector_basis_orthonormal::<3>(),
+                4 => assert_bivector_basis_orthonormal::<4>(),
+                5 => assert_bivector_basis_orthonormal::<5>(),
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    fn assert_bivector_basis_orthonormal<const D: usize>() {
+        let normal = SVector::<f64, D>::from_fn(|i, _| (i as f64 + 1.0) * 0.31 - 0.7);
+        let frame = ContactFrame::<D>::new(normal, 1e-12).unwrap();
+        let basis: Vec<_> = frame
+            .rolling_basis()
+            .iter()
+            .chain(frame.torsional_basis().iter())
+            .collect();
+        assert_eq!(basis.len(), D * (D - 1) / 2);
+        for i in 0..basis.len() {
+            for j in 0..basis.len() {
+                let expected = if i == j { 1.0 } else { 0.0 };
+                assert!(
+                    (bivector_inner_product(basis[i], basis[j]) - expected).abs() < 1e-12,
+                    "D={D}, basis ({i},{j}) is not orthonormal"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn rotating_contact_frame_preserves_decomposition_and_orthogonality() {
         let frame = ContactFrame::<4>::new(SVector::new(0.2, 0.4, -0.1, 0.3), 1e-12).unwrap();
         let angular = Bivector::<4>::from_wedge(
@@ -338,13 +388,32 @@ mod tests {
             &rotation.rotate_vector(&SVector::new(0.2, 0.4, 0.6, 0.8)),
             &rotation.rotate_vector(&SVector::new(-0.3, 0.1, 0.5, -0.2)),
         );
-        let coordinates = rotated_frame.decompose_angular(&rotated_angular).unwrap();
-        let reconstructed = rotated_frame.reconstruct_angular(&coordinates).unwrap();
-        assert!(coordinates.reconstruction_error < 1e-10);
-        assert!(bivector_norm(&rotated_angular.add(&reconstructed.scale(-1.0))) < 1e-10);
-        assert!(
-            (rotated_frame.normal.norm() - 1.0).abs() < 1e-12
+        let coordinates = frame.decompose_angular(&angular).unwrap();
+        let rotated_coordinates = rotated_frame.decompose_angular(&rotated_angular).unwrap();
+        assert_eq!(coordinates.rolling.len(), rotated_coordinates.rolling.len());
+        assert_eq!(
+            coordinates.torsional.len(),
+            rotated_coordinates.torsional.len()
         );
+        for (before, after) in coordinates
+            .rolling
+            .iter()
+            .chain(coordinates.torsional.iter())
+            .zip(
+                rotated_coordinates
+                    .rolling
+                    .iter()
+                    .chain(rotated_coordinates.torsional.iter()),
+            )
+        {
+            assert!((before - after).abs() < 1e-10);
+        }
+        let reconstructed = rotated_frame
+            .reconstruct_angular(&rotated_coordinates)
+            .unwrap();
+        assert!(rotated_coordinates.reconstruction_error < 1e-10);
+        assert!(bivector_norm(&rotated_angular.add(&reconstructed.scale(-1.0))) < 1e-10);
+        assert!((rotated_frame.normal.norm() - 1.0).abs() < 1e-12);
     }
 
     #[test]
