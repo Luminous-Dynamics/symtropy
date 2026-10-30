@@ -253,6 +253,8 @@ impl<const D: usize> RigidBody<D> {
         let total_mass = self.mass + tool_mass;
         if !self.mass.is_finite()
             || !tool_mass.is_finite()
+            || self.mass < 0.0
+            || tool_mass < 0.0
             || !total_mass.is_finite()
             || total_mass <= 0.0
             || !local_transform.translation.0.iter().all(|value| value.is_finite())
@@ -279,7 +281,8 @@ impl<const D: usize> RigidBody<D> {
         });
 
         // Compatibility estimate for callers that still inspect the legacy
-        // per-axis inertia vectors. The operator above is authoritative.
+        // per-axis inertia vectors. The operator above is authoritative when
+        // both component mass-property operators were available.
         let i_original = self.inertia.sum() / D as f64;
         // The toolhead is approximated as a uniformly-filled D-ball.
         let i_tool = (2.0 / (D as f64 + 2.0)) * tool_mass * 0.1 * 0.1;
