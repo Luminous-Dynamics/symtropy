@@ -123,7 +123,6 @@ impl AggregateOutcome {
 struct ChildDisposition {
     requirement_id: String,
     characteristic_id: String,
-    mandatory: bool,
     disposition: String,
     scalar_outcome: String,
     reason: String,
@@ -268,7 +267,7 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), &'static str> {
         if !characteristic_ids.insert(requirement.characteristic_id.as_str()) {
             return Err("DUPLICATE_CHARACTERISTIC_ID");
         }
-        mandatory_count += usize::from(requirement.mandatory);
+        if requirement.mandatory { mandatory_count += 1; }
     }
     if mandatory_count == 0 {
         return Err("MANIFEST_HAS_NO_MANDATORY_CHARACTERISTICS");
@@ -412,7 +411,6 @@ fn aggregate(manifest: &Manifest, reports: &[ScalarReport]) -> AggregateReport {
             result.children.push(ChildDisposition {
                 requirement_id: requirement.requirement_id.clone(),
                 characteristic_id: requirement.characteristic_id.clone(),
-                mandatory: false,
                 disposition: disposition.to_string(),
                 scalar_outcome: outcome_codes.join("+"),
                 reason: "OPTIONAL_REQUIREMENT_DOES_NOT_GATE_ACCEPTANCE".into(),
@@ -428,7 +426,6 @@ fn aggregate(manifest: &Manifest, reports: &[ScalarReport]) -> AggregateReport {
             result.children.push(ChildDisposition {
                 requirement_id: requirement.requirement_id.clone(),
                 characteristic_id: requirement.characteristic_id.clone(),
-                mandatory: true,
                 disposition: "MISSING".into(),
                 scalar_outcome: "NONE".into(),
                 reason: "REQUIRED_CHARACTERISTIC_REPORT_MISSING".into(),
@@ -444,7 +441,6 @@ fn aggregate(manifest: &Manifest, reports: &[ScalarReport]) -> AggregateReport {
             result.children.push(ChildDisposition {
                 requirement_id: requirement.requirement_id.clone(),
                 characteristic_id: requirement.characteristic_id.clone(),
-                mandatory: true,
                 disposition: "DUPLICATE".into(),
                 scalar_outcome: outcome_codes.join("+"),
                 reason: "MULTIPLE_REPORTS_REQUIRE_EXPLICIT_SUCCESSOR_BINDING".into(),
@@ -462,7 +458,6 @@ fn aggregate(manifest: &Manifest, reports: &[ScalarReport]) -> AggregateReport {
             result.children.push(ChildDisposition {
                 requirement_id: requirement.requirement_id.clone(),
                 characteristic_id: requirement.characteristic_id.clone(),
-                mandatory: true,
                 disposition: "INDETERMINATE".into(),
                 scalar_outcome: report.outcome.code().into(),
                 reason: if duplicate_id {
@@ -481,7 +476,6 @@ fn aggregate(manifest: &Manifest, reports: &[ScalarReport]) -> AggregateReport {
                 result.children.push(ChildDisposition {
                     requirement_id: requirement.requirement_id.clone(),
                     characteristic_id: requirement.characteristic_id.clone(),
-                    mandatory: true,
                     disposition: "ACCEPTED".into(),
                     scalar_outcome: report.outcome.code().into(),
                     reason: report.reason_code.clone(),
@@ -494,7 +488,6 @@ fn aggregate(manifest: &Manifest, reports: &[ScalarReport]) -> AggregateReport {
                 result.children.push(ChildDisposition {
                     requirement_id: requirement.requirement_id.clone(),
                     characteristic_id: requirement.characteristic_id.clone(),
-                    mandatory: true,
                     disposition: "REJECTED".into(),
                     scalar_outcome: report.outcome.code().into(),
                     reason: report.reason_code.clone(),
@@ -507,7 +500,6 @@ fn aggregate(manifest: &Manifest, reports: &[ScalarReport]) -> AggregateReport {
                 result.children.push(ChildDisposition {
                     requirement_id: requirement.requirement_id.clone(),
                     characteristic_id: requirement.characteristic_id.clone(),
-                    mandatory: true,
                     disposition: "INDETERMINATE".into(),
                     scalar_outcome: report.outcome.code().into(),
                     reason: report.reason_code.clone(),
@@ -620,7 +612,7 @@ struct Scenario {
 }
 
 fn scenarios() -> Vec<Scenario> {
-    let mut all_accept = all_accept_reports();
+    let all_accept = all_accept_reports();
 
     let mut one_reject = all_accept_reports();
     one_reject[1].outcome = ScalarOutcome::RejectNonconforming;
@@ -634,13 +626,13 @@ fn scenarios() -> Vec<Scenario> {
     let mut duplicate = all_accept_reports();
     duplicate.push(scalar_fixture("REQ-DIA", "REPORT-DIA-OLD", ScalarOutcome::Accept));
 
-    let mut optional_missing = all_accept_reports();
+    let optional_missing = all_accept_reports();
 
     let mut optional_reject = all_accept_reports();
     optional_reject.push(scalar_fixture("REQ-COAT", "REPORT-COAT", ScalarOutcome::RejectNonconforming));
 
     let mut extra = all_accept_reports();
-    let mut unknown = scalar_fixture("REQ-UNKNOWN", "REPORT-EXTRA", ScalarOutcome::RejectNonconforming);
+    let mut unknown = scalar_fixture("REQ-DIA", "REPORT-EXTRA", ScalarOutcome::RejectNonconforming);
     unknown.requirement_id = "REQ-UNKNOWN".into();
     extra.push(unknown);
 
@@ -725,7 +717,7 @@ fn verify() -> Result<(), String> {
     }
 
     // Input report order must not change the canonical receipt.
-    let mut forward = all_accept_reports();
+    let forward = all_accept_reports();
     let mut reverse = forward.clone();
     reverse.reverse();
     let a = aggregate(&manifest_fixture(), &forward).csv_row("order_test");
@@ -861,7 +853,7 @@ mod tests {
 
     #[test]
     fn report_input_order_does_not_change_canonical_receipt() {
-        let mut forward = all_accept_reports();
+        let forward = all_accept_reports();
         let mut reverse = forward.clone();
         reverse.reverse();
         assert_eq!(
