@@ -53,6 +53,8 @@ An interface is a directed map between explicit source and destination boundary 
 
 For a differentiable position map f, the velocity push-forward is J_f(x) v when the coordinate and time conventions justify that expression. If the interface maps time as well as position, velocity transformation must account for that time map. If the map is non-differentiable, singular, or undefined at the crossing, the interface must provide a separately justified state-transform rule or reject the transition. Do not guess a velocity from positions alone.
 
+Affine maps compose in traversal order. If f maps A→B and g maps B→C, g∘f must transform position, velocity, local time scale and local time offset consistently; composition must be associative within numeric tolerance, and inverse(composed) must agree with inverse order reversed. The current reference code provides a same-dimension affine composition primitive with position/velocity/clock tests.
+
 An inverse map is optional in general but required for any interface profile that promises reversibility. Test round trips only on the inverse's declared domain. Position invertibility does not establish momentum, energy, or information preservation. A pure time-origin shift does not change the clock rate; conservation checks should gate on compatible clock/unit/metric identities and the time scale, not reject a harmless offset by itself.
 
 ## 2. Crossing transaction
@@ -74,7 +76,7 @@ At any point a failed validation must not duplicate or lose a body. Crossing is 
 
 Every transported quantity needs a declared policy:
 
-- **Preserve:** the quantity is expected to remain invariant within a stated tolerance. The affine map must be an isometry with unchanged clock rate; coordinate/time units, clock identity, and metric profile must match.
+- **Preserve:** the quantity is expected to remain invariant within a stated tolerance. The affine map must be an isometry with unchanged clock rate; coordinate/time units, clock identity, and metric profile must match. The current executable reference ledger supports only the Euclidean metric profile.
 - **Transform:** a named transform is required; the reference prototype records its identity but does not claim a conservation law for that quantity.
 - **Exchange:** the interface declares a momentum/energy ledger delta, and the before/after receipt must close it. A non-isometric affine map is allowed under Exchange, but coordinate/time units, clock identity, and metric profile must still match because the prototype evaluates both sides with the same Euclidean quantity definitions.
 - **Unsupported:** the transition is rejected.
