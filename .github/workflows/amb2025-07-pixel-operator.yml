@@ -1,0 +1,41 @@
+name: AMB2025-07 pixel-level TAM/SCR operator
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/ambench-2025/tam_scr_pixel_operator.rs"
+      - "tools/ambench-2025/tam-scr-pixel-README.md"
+      - ".github/workflows/amb2025-07-pixel-operator.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ambench-2025/tam_scr_pixel_operator.rs"
+      - "tools/ambench-2025/tam-scr-pixel-README.md"
+      - ".github/workflows/amb2025-07-pixel-operator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pixel-operator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run pixel operator tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/ambench-2025/tam_scr_pixel_operator.rs -o "$RUNNER_TEMP/amb07-pixel-tests"
+          "$RUNNER_TEMP/amb07-pixel-tests"
+      - name: Build and verify frozen synthetic thermal trace
+        run: |
+          rustc --edition=2024 -D warnings tools/ambench-2025/tam_scr_pixel_operator.rs -o "$RUNNER_TEMP/amb07-pixel"
+          "$RUNNER_TEMP/amb07-pixel" --verify
+          "$RUNNER_TEMP/amb07-pixel" --reference > "$RUNNER_TEMP/pixel-reference.csv"
+          diff -u tools/ambench-2025/tam-scr-pixel-expected.csv "$RUNNER_TEMP/pixel-reference.csv"
+          cat "$RUNNER_TEMP/pixel-reference.csv"
+      - name: Emit source and output digests
+        run: |
+          sha256sum tools/ambench-2025/tam_scr_pixel_operator.rs tools/ambench-2025/tam-scr-pixel-expected.csv "$RUNNER_TEMP/pixel-reference.csv"
