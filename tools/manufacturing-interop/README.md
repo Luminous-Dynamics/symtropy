@@ -31,8 +31,9 @@ A unit transform emits a derived value but retains the original numerical value,
     rustc --edition=2024 -D warnings tools/manufacturing-interop/interop.rs -o /tmp/mfg-interop
     /tmp/mfg-interop --verify
     /tmp/mfg-interop --csv
+    /tmp/mfg-interop --assets-csv
     /tmp/mfg-interop --joined-csv
 
 ## Claim ceiling
 
-The tests validate source-preserving typed mapping and explicit join rules against synthetic records. Two frozen CSV artifacts capture the MTConnect mapped observation stream and the composed QIF-to-cycle evidence receipt separately. They do not prove an upstream MTConnect or QIF parser conforms to an official schema, validate a real vendor document, authenticate the association receipt or qualify the physical measurement. The output is evidence input to separate metrology/conformity decision logic, not a product-release authorization.
+The tests validate source-preserving typed mapping and explicit join rules against synthetic records. Three frozen CSV artifacts capture the MTConnect mapped observation stream, separate top-level Asset records, and the composed QIF-to-cycle evidence receipt. Assets are not coerced into stream observations. They do not prove an upstream MTConnect or QIF parser conforms to an official schema, validate a real vendor document, authenticate the association receipt or qualify the physical measurement. The output is evidence input to separate metrology/conformity decision logic, not a product-release authorization.
