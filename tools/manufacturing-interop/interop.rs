@@ -223,6 +223,19 @@ struct MappedAsset {
     source_locator: String,
 }
 
+impl MappedAsset {
+    fn csv_row(&self) -> String {
+        [
+            csv_escape(&self.device_uuid),
+            csv_escape(&self.asset_type),
+            csv_escape(&self.asset_id),
+            self.source_document_sha256.clone(),
+            self.raw_asset_sha256.clone(),
+            csv_escape(&self.source_locator),
+        ].join(",")
+    }
+}
+
 fn map_mtconnect_assets(
     source: &SourceDocument,
     device_uuid: &str,
@@ -1065,7 +1078,8 @@ fn verify() -> Result<(), String> {
     }
     let composed_row = composed.csv_row();
     for expected in ["QIF-UUID-001", "PLAN-001", "FEATURE-CYLINDER-01", "CMM-01",
-        "ASSOC-001", "MES-QUALITY-LINKER-01", &mt.document_sha256, &qif.document_sha256] {
+        "ASSOC-001", "MES-QUALITY-LINKER-01", "MES-DOC-001", &cycle.source_document_sha256,
+        &mt.document_sha256, &qif.document_sha256] {
         if !composed_row.contains(expected) {
             return Err("COMPOSED_EVIDENCE_RECEIPT_INCOMPLETE".into());
         }
@@ -1157,6 +1171,9 @@ mod tests {
         assert_eq!(mapped_assets[0].asset_type, "CuttingTool");
         assert_eq!(mapped_assets[0].asset_id, "TOOL-0001");
         assert_eq!(mapped_assets[0].source_locator, "/MTConnectAssets/Assets/Asset[1]");
+        let asset_row=mapped_assets[0].csv_row();
+        assert!(asset_row.contains(&source.document_sha256));
+        assert!(asset_row.contains(&assets[0].raw_asset_sha256));
     }
 
     #[test]
@@ -1428,7 +1445,7 @@ mod tests {
         let transform=UnitTransform { source_unit:"mm".into(),target_unit:"um".into(),scale:1000.0,offset:0.0,revision:"UNIT-MAP-1".into() };
         let joined=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,Some(&transform));
         let row=joined.composed.unwrap().csv_row();
-        assert_eq!(row.split(',').count(),32);
+        assert_eq!(row.split(',').count(),34);
         assert!(row.contains("QIF-UUID-001"));
         assert!(row.contains("MES-QUALITY-LINKER-01"));
     }
