@@ -85,6 +85,24 @@ impl ValidationMethod {
     }
 }
 
+fn expected_mtconnect_stream_schema_id(version: &str, format: DocumentFormat) -> Option<&'static str> {
+    match (version, format) {
+        ("2.7", DocumentFormat::Xml) => Some("MTConnectStreams_2.7.xsd"),
+        ("2.8", DocumentFormat::Json) => Some("https://schemas.mtconnect.org/schemas/MTConnectStreams_2.8.schema.json"),
+        _ => None,
+    }
+}
+
+fn expected_mtconnect_assets_schema_id(version: &str, format: DocumentFormat) -> Option<&'static str> {
+    match (version, format) {
+        ("2.7", DocumentFormat::Xml) => Some("MTConnectAssets_2.7.xsd"),
+        ("2.8", DocumentFormat::Json) => Some("https://schemas.mtconnect.org/schemas/MTConnectAssets_2.8.schema.json"),
+        _ => None,
+    }
+}
+
+const QIF_30_SCHEMA_ID: &str = "QIFDocument.xsd@3.0.0";
+
 #[derive(Clone, Debug)]
 struct OpaqueExtension {
     namespace: String,
@@ -275,6 +293,12 @@ fn map_mtconnect_assets(
     assets: &[MtAsset],
 ) -> Result<Vec<MappedAsset>, &'static str> {
     source.validate(Standard::MtConnect)?;
+    let expected_schema = expected_mtconnect_assets_schema_id(
+        &source.schema.version, source.schema.document_format
+    ).ok_or("MTCONNECT_ASSET_SCHEMA_UNSUPPORTED")?;
+    if source.schema.schema_identifier != expected_schema {
+        return Err("MTCONNECT_ASSET_SCHEMA_ID_MISMATCH");
+    }
     if !present(device_uuid) {
         return Err("MTCONNECT_ASSET_DEVICE_IDENTITY_MISSING");
     }
@@ -462,6 +486,12 @@ fn map_mtconnect(
     observations: &[MtObservation],
 ) -> Result<MappedStream, &'static str> {
     source.validate(Standard::MtConnect)?;
+    let expected_schema = expected_mtconnect_stream_schema_id(
+        &source.schema.version, source.schema.document_format
+    ).ok_or("MTCONNECT_STREAM_SCHEMA_UNSUPPORTED")?;
+    if source.schema.schema_identifier != expected_schema {
+        return Err("MTCONNECT_STREAM_SCHEMA_ID_MISMATCH");
+    }
     if !present(device_uuid) || !present(stream_id) {
         return Err("MTCONNECT_STREAM_IDENTITY_MISSING");
     }
@@ -623,6 +653,9 @@ struct QifInspectionResult {
 impl QifInspectionResult {
     fn validate(&self, source: &SourceDocument) -> Result<(), &'static str> {
         source.validate(Standard::Qif)?;
+        if source.schema.schema_identifier != QIF_30_SCHEMA_ID {
+            return Err("QIF_SCHEMA_ID_MISMATCH");
+        }
         if self.source_document_id != source.document_id
             || self.source_document_sha256 != source.document_sha256 {
             return Err("QIF_RESULT_SOURCE_DOCUMENT_MISMATCH");
@@ -1020,6 +1053,16 @@ fn fixture_mtconnect_27_xml() -> SourceDocument {
     }
 }
 
+fn fixture_mtconnect_assets_source() -> SourceDocument {
+    let mut source = fixture_source(Standard::MtConnect);
+    source.document_id = "MT-ASSET-DOC-0001".into();
+    source.document_sha256 = prefix_hash("e");
+    source.source_uri = "fixture://MT/asset-document.json".into();
+    source.schema.schema_identifier =
+        "https://schemas.mtconnect.org/schemas/MTConnectAssets_2.8.schema.json".into();
+    source
+}
+
 fn fixture_assets(source: &SourceDocument) -> Vec<MtAsset> {
     vec![MtAsset {
         device_uuid: "urn:uuid:machine-001".into(),
@@ -1197,7 +1240,7 @@ fn emit_csv() {
 }
 
 fn emit_assets_csv() -> Result<(), String> {
-    let source = fixture_source(Standard::MtConnect);
+    let source = fixture_mtconnect_assets_source();
     let assets = map_mtconnect_assets(&source, "urn:uuid:machine-001", &fixture_assets(&source))
         .map_err(str::to_string)?;
     println!("device_uuid,asset_type,asset_id,source_document_sha256,raw_asset_sha256,source_locator");
@@ -1257,21 +1300,22 @@ mod tests {
         let kinds: Vec<_> = mapped.observations.iter().map(|o| o.native_kind).collect();
         assert_eq!(kinds, vec!["SAMPLE", "EVENT", "CONDITION"]);
 
+        let asset_source = fixture_mtconnect_assets_source();
         let assets = vec![MtAsset {
             device_uuid: "urn:uuid:machine-001".into(),
             asset_type: "CuttingTool".into(),
             asset_id: "TOOL-0001".into(),
-            source_document_sha256: source.document_sha256.clone(),
+            source_document_sha256: asset_source.document_sha256.clone(),
             raw_asset_sha256: prefix_hash("a"),
             source_locator: "/MTConnectAssets/Assets/Asset[1]".into(),
         }];
-        let mapped_assets = map_mtconnect_assets(&source, "urn:uuid:machine-001", &assets).unwrap();
+        let mapped_assets = map_mtconnect_assets(&asset_source, "urn:uuid:machine-001", &assets).unwrap();
         assert_eq!(mapped_assets.len(), 1);
         assert_eq!(mapped_assets[0].asset_type, "CuttingTool");
         assert_eq!(mapped_assets[0].asset_id, "TOOL-0001");
         assert_eq!(mapped_assets[0].source_locator, "/MTConnectAssets/Assets/Asset[1]");
         let asset_row=mapped_assets[0].csv_row();
-        assert!(asset_row.contains(&source.document_sha256));
+        assert!(asset_row.contains(&asset_source.document_sha256));
         assert!(asset_row.contains(&assets[0].raw_asset_sha256));
     }
 
@@ -1355,6 +1399,14 @@ mod tests {
         let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
         assert_eq!(join.status,"INCONCLUSIVE");
         assert_eq!(join.reason,"ASSOCIATION_RECEIPT_SCOPE_MISMATCH");
+    }
+
+    #[test]
+    fn qif_requires_the_exact_qif_30_schema_identifier() {
+        let mut qif=fixture_source(Standard::Qif);
+        qif.schema.schema_identifier="QIFDocument.xsd@2.1".into();
+        let result=fixture_qif_result(&qif);
+        assert_eq!(result.validate(&qif).unwrap_err(),"QIF_SCHEMA_ID_MISMATCH");
     }
 
     #[test]
@@ -1494,6 +1546,21 @@ mod tests {
         let association=fixture_association(&stream,&qif);
         let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
         assert_eq!(join.reason,"QIF_MEASUREMENT_OUTSIDE_CYCLE_WINDOW");
+    }
+
+    #[test]
+    fn mtconnect_stream_and_asset_documents_require_their_own_schema_artifacts() {
+        let mut wrong_stream = fixture_source(Standard::MtConnect);
+        wrong_stream.schema.schema_identifier =
+            "https://schemas.mtconnect.org/schemas/MTConnectAssets_2.8.schema.json".into();
+        assert_eq!(map_mtconnect(&wrong_stream,"urn:uuid:machine-001","STREAM-001",true,
+            &fixture_observations(false)).unwrap_err(),"MTCONNECT_STREAM_SCHEMA_ID_MISMATCH");
+
+        let mut wrong_asset = fixture_mtconnect_assets_source();
+        wrong_asset.schema.schema_identifier =
+            "https://schemas.mtconnect.org/schemas/MTConnectStreams_2.8.schema.json".into();
+        assert_eq!(map_mtconnect_assets(&wrong_asset,"urn:uuid:machine-001",
+            &fixture_assets(&wrong_asset)).unwrap_err(),"MTCONNECT_ASSET_SCHEMA_ID_MISMATCH");
     }
 
     #[test]
