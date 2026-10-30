@@ -616,11 +616,11 @@ mod tests {
 
     #[test]
     fn campaign_requires_all_three_repeat_ids_in_all_four_groups() {
-        let mut source = format!("{HEADER}\\n");
+        let mut source = format!("{HEADER}\n");
         for r in REFERENCES {
             let repeats = allowed_repeats(r.turnaround_ms_hundredths);
             for repeat in repeats.iter().take(2) {
-                source.push_str(&format!("{}-{}-{repeat},{repeat},{},{:.2},0.001,500000\\n",
+                source.push_str(&format!("{}-{}-{repeat},{repeat},{},{:.2},0.001,500000\n",
                     r.pad_width_mm, r.turnaround_ms_hundredths,
                     r.pad_width_mm, r.turnaround_ms_hundredths as f64 / 100.0));
             }
