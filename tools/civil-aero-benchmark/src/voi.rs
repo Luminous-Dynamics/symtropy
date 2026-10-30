@@ -360,7 +360,7 @@ pub fn report_to_csv(report: &EvsiReport) -> String {
     let mut output = format!("{EVSI_OUTPUT_HEADER}\n");
     for experiment in &report.experiments {
         output.push_str(&format!(
-            "\"{}\",\"{}\",{:.6},{:.6},{},\"{}\",{:.12},{:.12},{:.12},{:.12},{},{},caller_supplied_probabilities_not_independently_calibrated\\n",
+            "\"{}\",\"{}\",{:.6},{:.6},{},\"{}\",{:.12},{:.12},{:.12},{:.12},{},{},caller_supplied_probabilities_not_independently_calibrated\n",
             csv_escape(&report.problem_id),
             csv_escape(&experiment.experiment_id),
             experiment.cost_units,
