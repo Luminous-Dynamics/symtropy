@@ -24,6 +24,27 @@ The screen flags only whether the estimated cruise lift coefficient is below a c
 
 The model omits climb, takeoff, landing, turns, gusts, wind, control authority, stability, dynamic response, propeller operating maps, motor/controller thermal limits, battery sag and aging, aeroelasticity, structural sizing, fabrication tolerances, manufacturing yield, uncertainty propagation and regulations. Do not use it to authorize flight or manufacture a flight-critical part.
 
+
+## Measured section-polar discrepancy diagnostic
+
+The `section_polar_audit` binary performs a separate two-dimensional diagnostic using the pinned NASA TMR Ladson NACA 0012 force observations. It fits the empirical relation `Cd_section = a + b * Cl^2` independently within each of the 80, 120 and 180 grit zones using only `|alpha| <= 8.5 deg`. It reports MAE, RMSE, maximum absolute error and mean signed error for the calibration rows, an intermediate held-out band (`8.5 < |alpha| <= 16.5 deg`) and a high-angle extrapolation band (`|alpha| > 16.5 deg`). These boundaries are benchmark splits only, not safe operating limits or stall declarations.
+
+The initial pinned-data run is expected to expose a sharp validity gap: calibration RMSE is approximately 0.00022–0.00026, intermediate held-out RMSE approximately 0.00319–0.00413, and high-angle extrapolation RMSE approximately 0.182–0.284 in the three zones. These values are data-specific diagnostics, not universal error guarantees. The NASA TMR source warns that high-angle experimental measurements may no longer be effectively two-dimensional near stall and that transition/tripping materially affects drag.
+
+Important distinctions:
+- The fitted coefficient `b` is only an empirical **2D section** coefficient. It is not the aircraft's induced-drag factor `1/(pi e AR)`, and it must not be used to infer Oswald efficiency.
+- Roughness zones are kept separate; they are not pooled as IID samples.
+- Every report carries the expected source digest and upstream revision, but the workflow independently verifies the exact raw bytes with `sha256sum -c` before running the diagnostic. The CLI does not itself compute SHA-256.
+- A successful report is a model-discrepancy diagnostic, not solver validation, aerodynamic certification, or a physical flight envelope.
+
+Run it from the repository root with:
+
+```bash
+cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin section_polar_audit
+```
+
+The strategic next gate is to require a calibrated model's uncertainty and demonstrated domain to travel with every candidate. An optimizer that leaves the verified domain must request a higher-fidelity evaluation or return an abstention—not quietly extrapolate a nominal score.
+
 ## Input and provenance
 
 The first CSV line must match the documented header exactly. This deliberately small parser rejects quoted fields and comma-containing values. parameter_basis is synthetic, estimate, or measured. Non-synthetic rows must provide a 64-character hexadecimal source_sha256 and non-empty source_ref.
