@@ -393,7 +393,8 @@ mod tests {
     fn recovers_known_empirical_section_polar_without_pooling_zones() {
         let mut rows = synthetic_zone("A", 0.0);
         rows.extend(synthetic_zone("B", 0.003));
-        let report = audit_section_polar(&rows, synthetic_provenance()).expect("valid synthetic zones");
+        let report =
+            audit_section_polar(&rows, synthetic_provenance()).expect("valid synthetic zones");
         assert_eq!(report.zones.len(), 2);
         assert_eq!(report.zones[0].zone, "A");
         assert_eq!(report.zones[1].zone, "B");
