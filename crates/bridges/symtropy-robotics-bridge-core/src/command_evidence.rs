@@ -98,6 +98,7 @@ pub struct CommandEvidenceAudit {
 /// Fail-closed errors. Incomplete evidence is not treated as a successful zero.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandEvidenceAuditError {
+    EmptyExpectedSet,
     InvalidExpectedIdentity { request_id: u64 },
     DuplicateExpectedRequestId { request_id: u64 },
     UnexpectedRequest { request_id: u64 },
@@ -159,6 +160,10 @@ pub fn audit_command_evidence(
     expected: &[ExpectedCommandIdentity],
     events: &[CommandEvidenceEvent],
 ) -> Result<CommandEvidenceAudit, CommandEvidenceAuditError> {
+    if expected.is_empty() {
+        return Err(CommandEvidenceAuditError::EmptyExpectedSet);
+    }
+
     let mut expected_by_id = BTreeMap::new();
     for identity in expected {
         if identity.request_id == 0
@@ -415,6 +420,14 @@ mod tests {
                 },
             ),
         ]
+    }
+
+    #[test]
+    fn empty_expected_set_is_not_reported_as_a_zero_violation_audit() {
+        assert_eq!(
+            audit_command_evidence(&[], &[]),
+            Err(CommandEvidenceAuditError::EmptyExpectedSet)
+        );
     }
 
     #[test]
