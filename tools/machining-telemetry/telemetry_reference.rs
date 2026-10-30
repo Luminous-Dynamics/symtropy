@@ -90,7 +90,6 @@ struct Features {
 struct PairedFeatures {
     pair_count: usize,
     pearson_r: f64,
-    max_nearest_skew_ns: i64,
 }
 
 fn is_sha256(s: &str) -> bool {
