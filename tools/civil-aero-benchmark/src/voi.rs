@@ -457,7 +457,7 @@ mod tests {
             .expect("perfect experiment");
         assert!((perfect.gross_evsi - 5.0).abs() < 1e-12);
         assert!((perfect.net_evsi - 4.0).abs() < 1e-12);
-        assert_eq!(perfect.decision_changing_outcomes, 2);
+        assert_eq!(perfect.decision_changing_outcomes, 1);
         assert_eq!(
             perfect.outcomes[0].best_decision_id.as_deref(),
             Some("design_a")

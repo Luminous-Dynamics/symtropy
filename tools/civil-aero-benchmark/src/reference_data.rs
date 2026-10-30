@@ -78,13 +78,10 @@ pub fn parse_pressure_data(
     if !input.contains("variables=\"x/c\",\"cp\"") {
         return Err("pressure reference must declare variables=\"x/c\",\"cp\"".to_owned());
     }
-    parse_zone_data(input, dataset_id, "x/c", 2, |zone, values, source_line| {
-        if !(0.0..=1.0).contains(&values[0]) {
-            return Err(format!(
-                "line {source_line}: x/c must be in [0, 1], got {}",
-                values[0]
-            ));
-        }
+    // Preserve measured tap locations exactly. Experimental taps can lie slightly
+    // outside the nominal geometric chord interval near the trailing edge.
+    // The shared parser already rejects non-finite coordinates.
+    parse_zone_data(input, dataset_id, "x/c", 2, |zone, values, _source_line| {
         Ok(PressureObservation {
             zone: zone.to_owned(),
             x_over_c: values[0],
@@ -257,13 +254,16 @@ mod tests {
         )
         .expect("valid Gregory pressure data");
         assert_eq!(parsed.observations.len(), 73);
+        assert!(parsed.observations.iter().any(|observation| {
+            (observation.x_over_c - 1.0009).abs() < 1e-12
+        }));
         assert_eq!(parsed.zone_counts.get("alpha=0"), Some(&25));
         assert_eq!(parsed.zone_counts.get("alpha=10"), Some(&24));
         assert_eq!(parsed.zone_counts.get("alpha=15"), Some(&24));
     }
 
     #[test]
-    fn rejects_missing_condition_header_duplicate_header_malformed_rows_and_bad_x() {
+    fn rejects_missing_condition_header_duplicate_header_and_malformed_rows() {
         let forces = fixture("CLCD_Ladson_expdata.dat");
         assert!(parse_ladson_force_data(&forces.replace("M=0.15", "M=unknown")).is_err());
         let duplicate_header = forces.replace(
@@ -275,8 +275,12 @@ mod tests {
         let pressure = fixture("CP_Gregory_expdata.dat");
         let malformed = pressure.replace("0.0023497 0.847673", "0.0023497 not-a-number");
         assert!(parse_pressure_data(&malformed, "bad-pressure-fixture").is_err());
-        let out_of_bounds = pressure.replace("0.0023497 0.847673", "1.0023497 0.847673");
-        assert!(parse_pressure_data(&out_of_bounds, "out-of-chord-fixture").is_err());
+        let extended_tap = pressure.replace("0.0023497 0.847673", "1.0023497 0.847673");
+        let preserved = parse_pressure_data(&extended_tap, "extended-tap-fixture")
+            .expect("finite pressure tap outside nominal chord is preserved");
+        assert!(preserved.observations.iter().any(|observation| {
+            (observation.x_over_c - 1.0023497).abs() < 1e-12
+        }));
         assert!(
             parse_pressure_data(
                 "variables=\"x/c\",\"cp\"\nzone, t=\"empty\"\n",
