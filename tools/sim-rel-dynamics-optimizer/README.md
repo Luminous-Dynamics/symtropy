@@ -38,7 +38,7 @@ The output is a policy tree using the evaluator's public-observation policy form
 
 ## Golden fixtures and tests
 
-Nine authored Rust tests currently cover:
+Eleven authored Rust tests currently cover:
 - exact rational arithmetic and overflow-safe comparison;
 - non-commutative condition-then-measure sequence discovery;
 - exact three-point (cost, hazard, abstention) frontier;
@@ -46,7 +46,7 @@ Nine authored Rust tests currently cover:
 - repeated action availability;
 - memoryless control;
 - action/hypothesis input-order invariance;
-- malformed worlds and fail-closed solver caps;
+- infeasible and invalid risk budgets, malformed worlds and fail-closed state/frontier/combination caps;
 - horizon-zero abstention.
 
 The tests are definitions, not a hosted passing result. Qualification is performed by the dedicated workflow.
