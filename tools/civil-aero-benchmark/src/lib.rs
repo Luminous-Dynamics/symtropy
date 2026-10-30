@@ -12,6 +12,7 @@ pub mod integrity;
 pub mod reference_data;
 pub mod robustness;
 pub mod section_polar;
+pub mod voi;
 
 use std::collections::HashSet;
 use std::f64::consts::PI;
