@@ -140,13 +140,15 @@ Do not write a broad sparse linear algebra package, automatic differentiation sy
 
 First evaluate:
 
-- **diffsol 0.17.1:** Rust ODE solvers including variable-order BDF (including singular mass matrices), SDIRK/ESDIRK, and variable-order explicit TSIT45. Its current API documents relative and absolute tolerances, optional mass matrices, dense output, event handling, quadrature, forward sensitivities and backward/adjoint sensitivities. It supports nalgebra and faer matrix types, including sparse faer LU.
+- **diffsol 0.18.0 (published 2026-10-20):** Rust ODE and semi-explicit DAE solvers including variable-order BDF (including singular mass matrices), SDIRK/ESDIRK, and variable-order explicit TSIT45. Its API documents relative and absolute tolerances, optional mass matrices, dense output, event/root handling, quadrature, checkpointing, forward sensitivities and backward/adjoint sensitivities. It supports nalgebra and faer matrix types, including sparse faer solvers; optional features include SuiteSparse KLU and DiffSL JIT backends. The crate is MIT-licensed.
 - **faer:** Rust dense and sparse matrix factorizations, including sparse LLᵀ, LDLᵀ-style LBLᵀ, LU, and QR paths. Keep nalgebra for small fixed-size mechanics vectors/matrices; faer is aimed at medium/large matrix workloads and is not a reason to replace nalgebra in the low-dimensional collision/rigid-body hot path.
 - **SciML / OrdinaryDiffEq:** a solver-selection and performance reference across non-stiff, stiff, symplectic, exponential, and implicit methods.
 - **PETSc:** reference for scalable Krylov linear solvers, nonlinear solvers, time stepping, and optimization.
 - **MOOSE / FEniCSx / OpenFOAM:** independent reference ecosystems for coupled finite-element, finite-volume, and CFD problems.
 
 A caveat matters for sparse solver integration: diffsol can attempt to infer Jacobian sparsity through NaN propagation, but its documentation explicitly notes that this is not foolproof when Jacobian code contains value-dependent control flow. For serious production models, supply and test explicit sparsity patterns or Jacobians rather than relying on inference.
+
+The current diffsol README also reports a 2026 Journal of Open Source Software paper (JOSS 11(117), 9384). Treat the library as an implementation candidate to benchmark and independently verify, not as an unquestioned oracle. Pin the exact crate version and backend in every result receipt.
 
 An initial Rust-facing solver trait should return more than a state vector. It should expose a structured report containing accepted/rejected steps, local error estimates, nonlinear iterations, linear iterations, Jacobian evaluations, factorization counts, event hits, termination reason, and invariant diagnostics. It should preserve the backend's dense-output and sensitivity capabilities where required.
 
