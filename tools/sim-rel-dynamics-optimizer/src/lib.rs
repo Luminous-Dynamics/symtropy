@@ -220,6 +220,8 @@ impl SolverConfig {
 }
 
 /// Exact objective values for one deterministic adaptive policy.
+type MetricKey = (Rational, Rational, Rational, Rational);
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FrontierPoint {
     pub expected_experiment_cost: Rational,
@@ -1132,7 +1134,7 @@ mod tests {
                 candidate.abstention_probability,
             );
             match unique.get(&key) {
-                Some(existing) if existing.plan <= candidate.plan => {}
+                Some(existing) if existing.plan.cmp(&candidate.plan) != Ordering::Greater => {}
                 _ => {
                     unique.insert(key, candidate);
                 }
@@ -1173,7 +1175,7 @@ mod tests {
         frontier
     }
 
-    fn metric_keys(frontier: &[Candidate]) -> Vec<(Rational, Rational, Rational, Rational)> {
+    fn metric_keys(frontier: &[Candidate]) -> Vec<MetricKey> {
         frontier
             .iter()
             .map(|point| {
