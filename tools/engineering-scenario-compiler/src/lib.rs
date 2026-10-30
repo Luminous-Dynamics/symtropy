@@ -753,6 +753,53 @@ mod tests {
     }
 
     #[test]
+    fn strict_unknown_field_mutation_corpus_rejects_1000_variants() {
+        let original = std::str::from_utf8(FIXTURE).unwrap();
+        for mutation in 0..1_000_u32 {
+            let mutant = format!("{original}\\nunknown_mutation_{mutation} = {mutation}\\n");
+            let report = compile_bytes(mutant.as_bytes());
+            assert_eq!(
+                report.disposition,
+                Disposition::Invalid,
+                "unknown-field mutation {mutation} was not rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn strict_type_mutation_corpus_rejects_1000_variants() {
+        let original = std::str::from_utf8(FIXTURE).unwrap();
+        for mutation in 0..1_000_u32 {
+            let wrong_type = format!("case_revision = \"not-a-revision-{mutation}\"");
+            let mutant = replace_once(original, "case_revision = 1", &wrong_type);
+            let report = compile_bytes(mutant.as_bytes());
+            assert_eq!(
+                report.disposition,
+                Disposition::Invalid,
+                "typed-field mutation {mutation} was not rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn whitespace_comment_metamorphic_corpus_preserves_semantic_identity() {
+        let original = std::str::from_utf8(FIXTURE).unwrap();
+        let baseline = compile_bytes(FIXTURE);
+        let baseline_semantic = baseline
+            .semantic_ir_sha256
+            .expect("valid fixture has semantic identity");
+        let mut observed_source_digests = BTreeSet::new();
+        for mutation in 0..1_000_u32 {
+            let variant = format!("# lexical mutation {mutation}\\n{original}");
+            let report = compile_bytes(variant.as_bytes());
+            assert_eq!(report.disposition, Disposition::Blocked);
+            assert_eq!(report.semantic_ir_sha256.as_deref(), Some(baseline_semantic.as_str()));
+            observed_source_digests.insert(report.source_sha256);
+        }
+        assert_eq!(observed_source_digests.len(), 1_000);
+    }
+
+    #[test]
     fn resource_limit_is_checked_before_parsing() {
         let oversized = vec![b' '; MAX_SOURCE_BYTES + 1];
         assert_eq!(compile_bytes(&oversized).disposition, Disposition::Invalid);
