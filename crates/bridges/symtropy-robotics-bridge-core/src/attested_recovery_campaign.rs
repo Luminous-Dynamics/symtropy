@@ -139,8 +139,13 @@ pub fn score_attested_recovery_campaign(
     let mut expected_by_key: BTreeMap<ScenarioKey, &ExpectedRecoveryScenario> = BTreeMap::new();
     for scenario in expected {
         let key = (scenario.scenario_id.clone(), scenario.seed);
-        if expected_by_key.insert(key, scenario).is_some() {
-            return Err(AttestedRecoveryCampaignError::DuplicateExpectedScenario);
+        match expected_by_key.entry(key) {
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                entry.insert(scenario);
+            }
+            std::collections::btree_map::Entry::Occupied(_) => {
+                return Err(AttestedRecoveryCampaignError::DuplicateExpectedScenario);
+            }
         }
     }
     let computed_manifest_digest = digest_expected_scenario_manifest(expected);
@@ -165,12 +170,17 @@ pub fn score_attested_recovery_campaign(
         };
 
         let key = (trial.scenario_id.clone(), trial.seed, trial.arm);
-        if evidence_by_key.insert(key, attested).is_some() {
-            return Err(AttestedRecoveryCampaignError::DuplicateTrialEvidence {
-                scenario_id: trial.scenario_id.clone(),
-                seed: trial.seed,
-                arm: trial.arm,
-            });
+        match evidence_by_key.entry(key) {
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                entry.insert(attested);
+            }
+            std::collections::btree_map::Entry::Occupied(_) => {
+                return Err(AttestedRecoveryCampaignError::DuplicateTrialEvidence {
+                    scenario_id: trial.scenario_id.clone(),
+                    seed: trial.seed,
+                    arm: trial.arm,
+                });
+            }
         }
 
         let expected_source_revision = campaign_policy
@@ -187,11 +197,7 @@ pub fn score_attested_recovery_campaign(
             });
         }
 
-        let expected_context = expected_receipt_context(
-            campaign_policy,
-            scenario,
-            trial,
-        )?;
+        let expected_context = expected_receipt_context(campaign_policy, scenario, trial)?;
         if let Some(field) = context_mismatch_field(
             &expected_context,
             &attested.signed_receipt.receipt.context,
@@ -415,6 +421,11 @@ fn digest_campaign_evidence(
     for (arm, digest) in &policy.policy_digest_by_arm {
         hash_string(&mut hasher, arm.id());
         hash_string(&mut hasher, digest);
+    }
+    hasher.update((policy.arm_source_revision_by_arm.len() as u64).to_le_bytes());
+    for (arm, revision) in &policy.arm_source_revision_by_arm {
+        hash_string(&mut hasher, arm.id());
+        hash_string(&mut hasher, revision);
     }
 
     let mut signers = trust_policy.trusted_signers.iter().collect::<Vec<_>>();
@@ -784,7 +795,6 @@ mod tests {
             Err(AttestedRecoveryCampaignError::ArmSourceRevisionMismatch { arm: found, .. })
                 if found == arm
         ));
-
     }
 
     #[test]
