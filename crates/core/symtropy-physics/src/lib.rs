@@ -40,7 +40,8 @@ pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use discrete_contact::{
-    ContactLcpError, ContactLcpKktResidual, ContactLcpSolution, assemble_delassus,
+    ContactJacobianSpec, ContactLcpError, ContactLcpKktResidual, ContactLcpSolution,
+    assemble_delassus, build_contact_jacobian,
     contact_lcp_kkt_residual, solve_normal_contact_lcp_reference, validate_delassus,
 };
 pub use epa::EpaResult;
