@@ -234,22 +234,6 @@ impl<const D: usize> RigidBody<D> {
     ) {
         use symtropy_math::CompoundShape;
 
-        let mut compound =
-            if let Some(existing) = self.collider.as_any().downcast_ref::<CompoundShape<D>>() {
-                let mut new_c = CompoundShape::<D>::new();
-                for (tf, s) in existing.children() {
-                    new_c.add_child(tf.clone(), s.clone_box());
-                }
-                new_c
-            } else {
-                let mut new_c = CompoundShape::<D>::new();
-                new_c.add_child(Transform::identity(), self.collider.as_ref().clone_box());
-                new_c
-            };
-
-        compound.add_child(local_transform.clone(), tool_collider);
-        self.collider = Box::new(compound);
-
         let total_mass = self.mass + tool_mass;
         if !self.mass.is_finite()
             || !tool_mass.is_finite()
@@ -261,14 +245,16 @@ impl<const D: usize> RigidBody<D> {
         {
             return;
         }
-        let com_offset = (local_transform.translation.0 * tool_mass) / total_mass;
 
-        // When both components have authoritative mass properties, preserve
-        // them with the exact second-moment parallel-axis composition.
+        let tool_local_translation = local_transform.translation.0;
+        let com_offset = (tool_local_translation * tool_mass) / total_mass;
+        let world_com_offset = self.transform.rotation.rotate_vector(&com_offset);
+
+        // Combine authoritative mass properties around the new center of mass.
         let combined_rotational_inertia = self.rotational_inertia.as_ref().and_then(|body_inertia| {
             let tool_inertia = BivectorInertia::<D>::uniform_solid_ball(tool_mass, 0.1).ok()?;
             let body_offset = -com_offset;
-            let tool_offset = local_transform.translation.0 - com_offset;
+            let tool_offset = tool_local_translation - com_offset;
             BivectorInertia::combine_at_common_center(
                 self.mass,
                 body_inertia,
@@ -280,15 +266,39 @@ impl<const D: usize> RigidBody<D> {
             .ok()
         });
 
-        // Compatibility estimate for callers that still inspect the legacy
-        // per-axis inertia vectors. The operator above is authoritative when
-        // both component mass-property operators were available.
-        let i_original = self.inertia.sum() / D as f64;
-        // The toolhead is approximated as a uniformly-filled D-ball.
-        let i_tool = (2.0 / (D as f64 + 2.0)) * tool_mass * 0.1 * 0.1;
+        // Rebase every collider child to the new local COM. The parent origin
+        // will move by R*com_offset in world coordinates, so subtracting the
+        // same local offset from each child leaves all world-space geometry
+        // exactly where it was before the mass-property merge.
+        let mut compound =
+            if let Some(existing) = self.collider.as_any().downcast_ref::<CompoundShape<D>>() {
+                let mut new_c = CompoundShape::<D>::new();
+                for (transform, shape) in existing.children() {
+                    let mut shifted = transform.clone();
+                    shifted.translation.0 -= com_offset;
+                    new_c.add_child(shifted, shape.clone_box());
+                }
+                new_c
+            } else {
+                let mut new_c = CompoundShape::<D>::new();
+                let mut existing_transform = Transform::identity();
+                existing_transform.translation.0 = -com_offset;
+                new_c.add_child(existing_transform, self.collider.as_ref().clone_box());
+                new_c
+            };
 
+        let mut shifted_tool_transform = local_transform;
+        shifted_tool_transform.translation.0 -= com_offset;
+        compound.add_child(shifted_tool_transform, tool_collider);
+        self.collider = Box::new(compound);
+
+        // Keep legacy per-axis fields as a compatibility approximation. The
+        // second-moment operator is authoritative whenever both components
+        // supplied validated mass properties.
+        let i_original = self.inertia.sum() / D as f64;
+        let i_tool = (2.0 / (D as f64 + 2.0)) * tool_mass * 0.1 * 0.1;
         let d_original = com_offset.norm();
-        let d_tool = (local_transform.translation.0 - com_offset).norm();
+        let d_tool = (tool_local_translation - com_offset).norm();
         let i_total = (i_original + self.mass * d_original * d_original)
             + (i_tool + tool_mass * d_tool * d_tool);
 
@@ -297,8 +307,7 @@ impl<const D: usize> RigidBody<D> {
         self.inertia = SVector::from_element(i_total);
         self.inv_inertia = SVector::from_element(1.0 / i_total);
         self.rotational_inertia = combined_rotational_inertia;
-
-        self.transform.translation.0 += com_offset;
+        self.transform.translation.0 += world_com_offset;
     }
 
     pub fn world_support(&self, direction: &SVector<f64, D>) -> SVector<f64, D> {
@@ -320,6 +329,34 @@ mod tests {
                 "D={D} axis={axis}: inertia={value}, expected={expected}"
             );
         }
+    }
+
+    #[test]
+    fn merge_toolhead_preserves_world_geometry_under_parent_rotation() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([3.0, -2.0, 1.0]),
+            1.0,
+            2.0,
+        );
+        body.transform.rotation = Rotor::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 1),
+            0.73,
+        );
+
+        let local_negative_x = SVector::new(-1.0, 0.0, 0.0);
+        let world_direction = body.transform.rotation.rotate_vector(&local_negative_x);
+        let before = body.world_support(&world_direction);
+
+        let tool_collider = Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1));
+        let tool_transform = Transform::from_translation(Point::new([2.0, 0.0, 0.0]));
+        body.merge_toolhead(tool_transform, tool_collider, 1.0);
+
+        let after = body.world_support(&world_direction);
+        assert!(
+            (after - before).norm() < 1e-12,
+            "merge changed the original body's world-space support point: before={before:?}, after={after:?}"
+        );
     }
 
     #[test]
