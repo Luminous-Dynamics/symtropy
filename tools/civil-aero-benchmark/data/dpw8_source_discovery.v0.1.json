@@ -10,7 +10,9 @@
       "kind": "workshop_protocol",
       "description": "Joint 8th Drag Prediction Workshop / 4th Aeroelastic Prediction Workshop overview. AIAA identifies multidisciplinary drag prediction and aeroelasticity, with work groups including static deformation, buffet, high angle, high speed, large deflection, source of scatter and test environments.",
       "landing_page": "https://aiaa.org/courses/aiaa-drag-prediction-workshop/",
-      "artifact_urls": ["https://www.aiaa-dpw.org/"],
+      "artifact_urls": [
+        "https://www.aiaa-dpw.org/"
+      ],
       "data_sha256": null,
       "byte_length": null,
       "license_review": "pending",
@@ -19,7 +21,7 @@
     {
       "source_id": "NASA-DPW8-ONERA-OAT15A-EXPERIMENTAL",
       "kind": "experimental_pressure_or_force_data",
-      "description": "NASA DPW8 ONERA OAT15A experimental-data directory lists onera-oat15a.zip (207 KB at discovery). The archive contents, measurement quantities, conditions, units, uncertainty and applicable terms must be inspected before selecting test cases.",
+      "description": "NASA DPW8 ONERA OAT15A experimental-data directory lists onera-oat15a.zip (207 KB in the directory listing, last modified 2026-06-25 at 16:26:56 UTC as observed 2026-10-30). The archive contents, measurements, conditions, units, uncertainties and applicable terms must be inspected before selecting test cases.",
       "landing_page": "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/Experimental_Data/",
       "artifact_urls": [
         "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/Experimental_Data/onera-oat15a.zip"
@@ -29,7 +31,13 @@
       "license_review": "pending",
       "condition_review": "pending",
       "parser_review": "pending",
-      "admission_status": "pending_source_bytes"
+      "admission_status": "pending_source_bytes",
+      "artifact_metadata": {
+        "directory_reported_size": "207 KB",
+        "directory_modified_utc": "2026-06-25T16:26:56",
+        "observation_date_utc": "2026-10-30",
+        "notes": "Directory metadata only; not a byte length or checksum."
+      }
     },
     {
       "source_id": "NASA-DPW8-ONERA-OAT15A-GRID-FAMILIES",
@@ -97,6 +105,52 @@
       "license_review": "pending",
       "facility_metadata_review": "pending",
       "admission_status": "directory_discovered_artifacts_not_pinned"
+    },
+    {
+      "source_id": "AIAA-DPW8-V1A-ONERA-OAT15A-TEST-DEFINITION",
+      "kind": "benchmark_task_protocol",
+      "description": "Official DPW8 verification activity defines V1a ONERA OAT15A grid convergence and polar as a required steady CFD/RANS task. A six-member grid family is defined (four required, six desirable). Conditions: Mach 0.73, chord Reynolds number 3e6, static temperature 271 K; alpha values 1.36, 1.50, 2.50, 3.00 and 3.10 degrees.",
+      "landing_page": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "artifact_urls": [
+        "https://www.aiaa-dpw.org/TestCases/testcases.html"
+      ],
+      "flow_conditions": {
+        "mach": 0.73,
+        "reynolds_number_per_chord": 3000000,
+        "static_temperature_kelvin": 271,
+        "angle_of_attack_deg": [
+          1.36,
+          1.5,
+          2.5,
+          3,
+          3.1
+        ]
+      },
+      "grid_family": {
+        "members": 6,
+        "required_levels": 4,
+        "desirable_levels": 6
+      },
+      "solver_class": "steady CFD (e.g. RANS)",
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "protocol_parse_review": "pending",
+      "admission_status": "task_protocol_discovered_not_data_admitted"
+    },
+    {
+      "source_id": "NASA-AEPW4-WG3-BUFFET-JAXA-DATABASE",
+      "kind": "unsteady_aeroelastic_benchmark_data_catalog",
+      "description": "JAXA's joint DPW-AePW database describes Test Case 2 as unsteady CFD on a rigid/static wing using in-tunnel measured deformed geometries and experimental data; Test Case 3 is unsteady CFD with dynamic wing structural response/fluid-structure interaction. The exact geometry/data files, conditions, units and terms remain unpinned.",
+      "landing_page": "https://cfdws.chofu.jaxa.jp/apc/dpw/",
+      "artifact_urls": [
+        "https://cfdws.chofu.jaxa.jp/apc/dpw/"
+      ],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "geometry_and_condition_review": "pending",
+      "admission_status": "catalog_discovered_artifacts_not_pinned"
     }
   ],
   "admission_gates": [
@@ -107,6 +161,8 @@
     "Write independent parsers and negative controls; preserve source zone/run/case labels and row identifiers.",
     "For CFD, record mesh topology and refinement lineage, boundary conditions, turbulence/transition model, convergence criteria and solver build/config hash.",
     "For aeroelastic cases, record structural model, materials, boundary conditions, deformation transfer/interpolation and force/load conservation.",
-    "Do not promote any entry to admitted until byte, license, applicability, parser and independent-review gates are all complete."
+    "Do not promote any entry to admitted until byte, license, applicability, parser and independent-review gates are all complete.",
+    "Freeze the official ONERA OAT15A V1a conditions before solver comparisons: Mach 0.73, Re_c=3e6, T_static=271 K, alpha=[1.36,1.50,2.50,3.00,3.10] degrees, six grid levels with at least four required; keep all grid families and refinement levels traceable.",
+    "Keep DPW8 V1a steady RANS, buffet Test Case 2 static-deformed unsteady CFD, and buffet Test Case 3 dynamic-wing FSI as separate physics tasks and evidence classes."
   ]
 }
