@@ -1,0 +1,47 @@
+name: Manufacturing multi-characteristic conformity aggregation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-conformity/part_aggregate.rs"
+      - "tools/manufacturing-conformity/part-aggregate-README.md"
+      - "tools/manufacturing-conformity/part-aggregate-expected.csv"
+      - ".github/workflows/manufacturing-part-aggregate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-conformity/part_aggregate.rs"
+      - "tools/manufacturing-conformity/part-aggregate-README.md"
+      - "tools/manufacturing-conformity/part-aggregate-expected.csv"
+      - ".github/workflows/manufacturing-part-aggregate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  part-aggregate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run multi-characteristic truth-table tests
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/manufacturing-conformity/part_aggregate.rs -o "$RUNNER_TEMP/part-aggregate-tests"
+          "$RUNNER_TEMP/part-aggregate-tests"
+      - name: Build and verify aggregation
+        run: |
+          rustc --edition=2024 -D warnings tools/manufacturing-conformity/part_aggregate.rs -o "$RUNNER_TEMP/part-aggregate"
+          "$RUNNER_TEMP/part-aggregate" --verify
+      - name: Verify deterministic output and frozen expected table
+        run: |
+          "$RUNNER_TEMP/part-aggregate" --csv > "$RUNNER_TEMP/aggregate-a.csv"
+          "$RUNNER_TEMP/part-aggregate" --csv > "$RUNNER_TEMP/aggregate-b.csv"
+          diff -u "$RUNNER_TEMP/aggregate-a.csv" "$RUNNER_TEMP/aggregate-b.csv"
+          diff -u tools/manufacturing-conformity/part-aggregate-expected.csv "$RUNNER_TEMP/aggregate-a.csv"
+          cat "$RUNNER_TEMP/aggregate-a.csv"
+      - name: Emit source and output digests
+        run: |
+          sha256sum tools/manufacturing-conformity/part_aggregate.rs tools/manufacturing-conformity/part-aggregate-expected.csv "$RUNNER_TEMP/aggregate-a.csv"
