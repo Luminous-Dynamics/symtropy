@@ -22,10 +22,6 @@ use crate::periodic_broadphase::{
 };
 use crate::support_map::TransformedShape;
 
-/// Kept in sync with the legacy private GJK iteration limit. Replace this
-/// duplicated constant once GJK exposes a typed termination reason.
-const LEGACY_GJK_ITERATION_LIMIT: usize = 64;
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PeriodicCollisionError {
     UnsupportedDimension { dimension: usize },
@@ -184,7 +180,7 @@ pub fn query_periodic_convex<const D: usize>(
                 image_offset: offset,
                 gjk_iterations: collision.iterations,
             });
-        } else if collision.iterations >= LEGACY_GJK_ITERATION_LIMIT {
+        } else if collision.iterations >= gjk::MAX_ITERATIONS {
             result.unresolved_offsets.push(offset);
         }
     }
