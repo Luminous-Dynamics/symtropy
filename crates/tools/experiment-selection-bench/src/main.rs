@@ -71,7 +71,7 @@ fn run() -> Result<(), String> {
     );
     print!("{}", render_receipts(&source_sha, &results));
     println!(
-        "EXPERIMENT_SUMMARY,v1,problem,policy,trials,budget,mean_regret,median_regret,p90_regret,mean_infeasible_calls,mean_policy_overhead_ns"
+        "EXPERIMENT_SUMMARY,v1,problem,policy,trials,budget,mean_regret,median_regret,p90_regret,mean_infeasible_calls,mean_trial_runtime_ns"
     );
     for summary in summaries {
         println!(
