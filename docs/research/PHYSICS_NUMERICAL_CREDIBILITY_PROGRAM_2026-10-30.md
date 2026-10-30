@@ -140,8 +140,8 @@ A first mathematical primitive now exists in `crates/core/symtropy-physics/src/i
 - It accepts a centered second-moment matrix, a uniform solid D-ball or D-ellipsoid, or a discrete point-mass cloud (which first computes the center of mass, making the result translation-invariant).
 - It can rotate body-space mass properties into another frame with S_world=R*S_body*R^T.
 - It can invert angular momentum back to the stored rotor bivector B using the eigensystem of S, rejecting singular/ill-conditioned rotation planes.
-- It validates finiteness, symmetry, and positive semidefiniteness (with a scale-relative eigenvalue tolerance).
-- It also computes stored-state angular acceleration using the frame-consistent Euler-Arnold equation. Tests cover solid balls, ellipsoids, point clouds, principal moments, cross-plane coupling, rotation covariance, inverse round trips, gyroscopic energy and momentum invariants, and invalid/singular mass-moment matrices.
+- It validates finiteness, symmetry, and positive semidefiniteness (with a scale-relative eigenvalue tolerance), projecting roundoff-sized negative eigenvalues onto the PSD boundary so the forward and cached inverse operators use the same matrix.
+- It also computes stored-state angular acceleration using the frame-consistent Euler-Arnold equation. Tests cover solid balls, ellipsoids, point clouds, principal moments, cross-plane coupling, rotation covariance, inverse round trips including all six coupled 4D rotation planes, gyroscopic energy and momentum invariants, and invalid/singular mass-moment matrices.
 
 There is an essential sign convention at the Symtropy integration boundary: `Rotor::from_bivector(B)` computes exp(-B), and the integrator left-composes that increment. Thus `RigidBody.angular_velocity` stores B while the physical point-velocity matrix is -B. The `BivectorInertia` angular-momentum, inverse, and angular-acceleration APIs operate directly on the stored B basis; do not negate the state before calling them. The shared `integrator::angular_point_velocity` helper applies the minus sign to obtain physical point velocity.
 
