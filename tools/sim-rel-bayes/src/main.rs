@@ -384,14 +384,14 @@ fn stable_seed(s: &str) -> u64 {
 }
 
 /// This policy sees only the surviving semantic hypotheses and available experiments.
-fn posterior_weights(survivors: &[u8], candidates: &[Candidate]) -> Vec<(u8, f64)> {
+fn posterior_weights(survivors: &[u8], candidates: &[Candidate], beta: f64) -> Vec<(u8, f64)> {
     let mut weighted: Vec<(u8, f64)> = survivors
         .iter()
         .filter_map(|sig| {
             candidates
                 .iter()
                 .find(|candidate| candidate.sig == *sig)
-                .map(|candidate| (*sig, 2.0f64.powf(-candidate.mdl_bits)))
+                .map(|candidate| (*sig, 2.0f64.powf(-beta * candidate.mdl_bits)))
         })
         .collect();
     let normalizer: f64 = weighted.iter().map(|(_, weight)| *weight).sum();
@@ -402,6 +402,7 @@ fn posterior_weights(survivors: &[u8], candidates: &[Candidate]) -> Vec<(u8, f64
     }
     weighted
 }
+
 fn binary_entropy_bits(p_one: f64) -> f64 {
     let p = p_one.clamp(0.0, 1.0);
     let term = |x: f64| if x <= 0.0 { 0.0 } else { -x * x.log2() };
@@ -470,8 +471,9 @@ fn choose_mdl_eig_action(
     candidates: &[Candidate],
     available: &[u8],
     costs: &[u32; DOMAIN],
+    beta: f64,
 ) -> Option<u8> {
-    let posterior = posterior_weights(survivors, candidates);
+    let posterior = posterior_weights(survivors, candidates, beta);
     let mut best = None;
     let mut best_score = -1.0f64;
     for action in available {
@@ -488,9 +490,10 @@ fn choose_mdl_falsification_action(
     candidates: &[Candidate],
     available: &[u8],
     costs: &[u32; DOMAIN],
+    beta: f64,
 ) -> Option<u8> {
     let all: Vec<u8> = candidates.iter().map(|candidate| candidate.sig).collect();
-    let prior = posterior_weights(&all, candidates);
+    let prior = posterior_weights(&all, candidates, beta);
     let mut best = None;
     let mut best_score = -1.0f64;
     for action in available {
@@ -508,6 +511,7 @@ fn choose_mdl_falsification_action(
     }
     best.or_else(|| available.first().copied())
 }
+
 fn choose_action(
     survivors: &[u8],
     candidates: &[Candidate],
@@ -515,15 +519,12 @@ fn choose_action(
     costs: &[u32; DOMAIN],
     policy: Policy,
     rng: &mut u64,
+    mdl_beta: f64,
 ) -> Option<u8> {
     match policy {
         Policy::Fixed => available.first().copied(),
         Policy::Random => {
-            if available.is_empty() {
-                None
-            } else {
-                Some(available[(next_rng(rng) as usize) % available.len()])
-            }
+            if available.is_empty() { None } else { Some(available[(next_rng(rng) as usize) % available.len()]) }
         }
         Policy::Active => {
             let mut best = None;
@@ -531,19 +532,15 @@ fn choose_action(
             for action in available {
                 let ones = survivors.iter().filter(|sig| (**sig >> *action) & 1 == 1).count();
                 let score = ones.min(survivors.len() - ones);
-                if score > best_score {
-                    best_score = score;
-                    best = Some(*action);
-                }
+                if score > best_score { best_score = score; best = Some(*action); }
             }
             best.or_else(|| available.first().copied())
         }
         Policy::UniformEig => choose_uniform_eig_action(survivors, available, costs),
-        Policy::MdlEig => choose_mdl_eig_action(survivors, candidates, available, costs),
+        Policy::MdlEig => choose_mdl_eig_action(survivors, candidates, available, costs, mdl_beta),
     }
 }
-/// Challenge a unique candidate with one unqueried input. This uses grammar-wide alternatives,
-/// not the evaluator target.
+
 fn choose_falsification_action(
     singleton: u8,
     candidates: &[Candidate],
@@ -551,36 +548,28 @@ fn choose_falsification_action(
     costs: &[u32; DOMAIN],
     policy: Policy,
     rng: &mut u64,
+    mdl_beta: f64,
 ) -> Option<u8> {
     match policy {
         Policy::Fixed => available.first().copied(),
         Policy::Random => {
-            if available.is_empty() {
-                None
-            } else {
-                Some(available[(next_rng(rng) as usize) % available.len()])
-            }
+            if available.is_empty() { None } else { Some(available[(next_rng(rng) as usize) % available.len()]) }
         }
         Policy::Active => {
             let mut best = None;
             let mut best_score = 0usize;
             for action in available {
                 let predicted = (singleton >> *action) & 1;
-                let disagreement = candidates
-                    .iter()
-                    .filter(|candidate| ((candidate.sig >> *action) & 1) != predicted)
-                    .count();
-                if disagreement > best_score {
-                    best_score = disagreement;
-                    best = Some(*action);
-                }
+                let disagreement = candidates.iter().filter(|candidate| ((candidate.sig >> *action) & 1) != predicted).count();
+                if disagreement > best_score { best_score = disagreement; best = Some(*action); }
             }
             best.or_else(|| available.first().copied())
         }
         Policy::UniformEig => choose_uniform_falsification_action(singleton, candidates, available, costs),
-        Policy::MdlEig => choose_mdl_falsification_action(singleton, candidates, available, costs),
+        Policy::MdlEig => choose_mdl_falsification_action(singleton, candidates, available, costs, mdl_beta),
     }
 }
+
 fn episode_status(remaining: &[u8], obs: &[(u8, u8)]) -> &'static str {
     if remaining.is_empty() {
         "misspecified"
@@ -598,6 +587,7 @@ fn run_episode(
     candidates: &[Candidate],
     policy: Policy,
     seed: u64,
+    mdl_beta: f64,
 ) -> Episode {
     let target_in_grammar = candidates.iter().any(|c| c.sig == target_sig);
     let mut obs = problem.initial.clone();
@@ -616,6 +606,7 @@ fn run_episode(
             &problem.costs,
             policy,
             &mut rng,
+            mdl_beta,
         ) else {
             break;
         };
@@ -641,6 +632,7 @@ fn run_episode(
                 &problem.costs,
                 policy,
                 &mut rng,
+                mdl_beta,
             )
     {
         let y = (target_sig >> a) & 1;
@@ -934,6 +926,7 @@ fn render_report(
     candidates: &[Candidate],
     cases: &[Case],
     episodes: &[Episode],
+    mdl_beta: f64,
 ) -> String {
     let mut summaries = Vec::new();
     for policy in [
@@ -985,13 +978,14 @@ fn render_report(
         .collect::<Vec<_>>()
         .join(",\n    ");
     format!(
-        "{{\n  \"schema_version\":1,\n  \"benchmark_id\":\"SIM-REL-003-MDL-EIG-v0\",\n  \"synthetic_only\":true,\n  \"exact_head\":\"{}\",\n  \"max_expression_depth\":{},\n  \"unique_semantic_candidates\":{},\n  \"problem_fixture_sha256\":\"{}\",\n  \"evaluator_truth_fixture_sha256\":\"{}\",\n  \"random_repetitions_per_task\":{},\n  \"prior_definition\":\"PCFG shortest-derivation code length; terminal bits log2(10), operator bits 3 plus child code lengths; one prior per semantic equivalence class\",\n  \"selection_objective\":\"deterministic-observation entropy in bits divided by positive integer action cost\",\n  \"grammar_candidates\":[\n    {}\n  ],\n  \"policy_summaries\":[\n    {}\n  ],\n  \"cases\":[\n    {}\n  ],\n  \"claim_ceiling\":\"bounded three-input Boolean grammar induction with MDL-prior expected information gain per cost; no physical discovery or SOTA superiority claim\"\n}}\n",
+        "{{\n  \"schema_version\":1,\n  \"benchmark_id\":\"SIM-REL-003-MDL-EIG-v0\",\n  \"synthetic_only\":true,\n  \"exact_head\":\"{}\",\n  \"max_expression_depth\":{},\n  \"unique_semantic_candidates\":{},\n  \"problem_fixture_sha256\":\"{}\",\n  \"evaluator_truth_fixture_sha256\":\"{}\",\n  \"random_repetitions_per_task\":{},\n  \"mdl_beta\":{},\n  \"prior_definition\":\"PCFG shortest-derivation code length; terminal bits log2(10), operator bits 3 plus child code lengths; one prior per semantic equivalence class\",\n  \"selection_objective\":\"deterministic-observation entropy in bits divided by positive integer action cost\",\n  \"grammar_candidates\":[\n    {}\n  ],\n  \"policy_summaries\":[\n    {}\n  ],\n  \"cases\":[\n    {}\n  ],\n  \"claim_ceiling\":\"bounded three-input Boolean grammar induction with MDL-prior expected information gain per cost; no physical discovery or SOTA superiority claim\"\n}}\n",
         json_escape(head),
         max_depth,
         candidates.len(),
         ph,
         th,
         RANDOM_REPETITIONS,
+        mdl_beta,
         catalog,
         summaries.join(",\n    "),
         rows
@@ -1000,6 +994,7 @@ fn render_report(
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let (mut pp, mut tp, mut expected, mut output) = (None, None, None, None);
     let mut max_depth = 2usize;
+    let mut mdl_beta = 1.0f64;
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -1010,9 +1005,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             "--max-depth" => {
                 max_depth = args.next().ok_or("--max-depth requires value")?.parse()?
             }
+            "--mdl-beta" => {
+                mdl_beta = args.next().ok_or("--mdl-beta requires value")?.parse()?
+            }
             "--help" | "-h" => {
                 println!(
-                    "sim-rel-bayes --problems PATH --truth PATH --expected-head SHA --out PATH [--max-depth 0..2]"
+                    "sim-rel-bayes --problems PATH --truth PATH --expected-head SHA --out PATH [--max-depth 0..2] [--mdl-beta 0..4]"
                 );
                 return Ok(());
             }
@@ -1023,6 +1021,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let tp = tp.ok_or("--truth required")?;
     let expected = expected.ok_or("--expected-head required")?;
     let output = output.ok_or("--out required")?;
+    if !mdl_beta.is_finite() || !(0.0..=4.0).contains(&mdl_beta) {
+        return Err("--mdl-beta must be finite and in the range 0..=4".into());
+    }
     let head = git_head().map_err(|e| format!("identity gate: {e}"))?;
     if head != expected {
         return Err(format!("exact-head mismatch: expected {expected}, got {head}").into());
@@ -1047,6 +1048,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             &candidates,
             Policy::Active,
             stable_seed(&task.problem.id),
+            mdl_beta,
         );
         let uniform_eig = run_episode(
             &task.problem,
@@ -1077,6 +1079,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 &candidates,
                 Policy::Random,
                 stable_seed(&task.problem.id) ^ ((i as u64) + 1),
+                mdl_beta,
             ));
         }
         all.push(active.clone());
@@ -1096,7 +1099,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             random,
         });
     }
-    let report = render_report(&head, max_depth, &ph, &th, &candidates, &cases, &all);
+    let report = render_report(&head, max_depth, &ph, &th, &candidates, &cases, &all, mdl_beta);
     if output == "-" {
         print!("{report}");
     } else {
@@ -1176,7 +1179,7 @@ mod tests {
             budget: 1,
             costs: [1; DOMAIN],
         };
-        let e = run_episode(&p, target, &candidates, Policy::Active, 1);
+        let e = run_episode(&p, target, &candidates, Policy::Active, 1, 1.0);
         assert_eq!(e.audit_action, Some(3));
         assert!(e.audit_mismatch);
         assert_eq!(e.status, "misspecified");
@@ -1194,7 +1197,7 @@ mod tests {
             budget: 0,
             costs: [1; DOMAIN],
         };
-        let e = run_episode(&p, target, &c, Policy::Active, 1);
+        let e = run_episode(&p, target, &c, Policy::Active, 1, 1.0);
         assert_eq!(e.status, "misspecified");
         assert!(!e.target_in_grammar);
     }
@@ -1210,7 +1213,8 @@ mod tests {
                 &(0..DOMAIN as u8).collect::<Vec<_>>(),
                 &[1; DOMAIN],
                 Policy::Active,
-                &mut seed
+                &mut seed,
+                1.0,
             )
             .is_some()
         );
@@ -1223,7 +1227,7 @@ mod tests {
             .filter(|t| c.iter().any(|x| x.sig == t.target_sig))
         {
             for policy in [Policy::Active, Policy::UniformEig, Policy::MdlEig, Policy::Fixed, Policy::Random] {
-                let e = run_episode(&task.problem, task.target_sig, &c, policy, 17);
+                let e = run_episode(&task.problem, task.target_sig, &c, policy, 17, 1.0);
                 assert_eq!(
                     e.target_retained,
                     Some(true),
@@ -1261,14 +1265,14 @@ mod tests {
         let costs = [4, 1, 1, 1, 1, 1, 1, 1];
         assert_eq!(
             choose_uniform_eig_action(&survivors, &[0, 1], &costs),
-            choose_mdl_eig_action(&survivors, &candidates, &[0, 1], &costs)
+            choose_mdl_eig_action(&survivors, &candidates, &[0, 1], &costs, 1.0)
         );
     }
     #[test]
     fn mdl_prior_is_normalized_and_alias_multiplicity_does_not_change_it() {
         let candidates = enumerate_grammar(2).unwrap();
         let signatures: Vec<u8> = candidates.iter().map(|c| c.sig).collect();
-        let posterior = posterior_weights(&signatures, &candidates);
+        let posterior = posterior_weights(&signatures, &candidates, 1.0);
         let total: f64 = posterior.iter().map(|(_, p)| *p).sum();
         assert!((total - 1.0).abs() < 1e-12);
         let x = parse_signature("00001111").unwrap();
@@ -1277,7 +1281,7 @@ mod tests {
         let before = posterior.iter().find(|(sig, _)| *sig == x).unwrap().1;
         let mut altered = candidates.clone();
         altered.iter_mut().find(|c| c.sig == x).unwrap().expression_aliases = 10_000;
-        let after = posterior_weights(&signatures, &altered)
+        let after = posterior_weights(&signatures, &altered, 1.0)
             .iter().find(|(sig, _)| *sig == x).unwrap().1;
         assert!((before - after).abs() < 1e-12);
     }
@@ -1305,6 +1309,29 @@ mod tests {
         assert_eq!(choose_uniform_eig_action(&survivors, &[0, 1], &costs), Some(1));
     }
     #[test]
+    fn zero_mdl_temperature_reduces_to_uniform_prior_eig() {
+        let candidates = enumerate_grammar(2).unwrap();
+        let signatures = candidates.iter().map(|c| c.sig).collect::<Vec<_>>();
+        let posterior = posterior_weights(&signatures, &candidates, 0.0);
+        assert!(posterior.iter().all(|(_, p)| {
+            (*p - 1.0 / candidates.len() as f64).abs() < 1e-12
+        }));
+        let available = (0..DOMAIN as u8).collect::<Vec<_>>();
+        let costs = [1, 4, 2, 1, 3, 2, 5, 1];
+        assert_eq!(
+            choose_mdl_eig_action(&signatures, &candidates, &available, &costs, 0.0),
+            choose_uniform_eig_action(&signatures, &available, &costs)
+        );
+    }
+    #[test]
+    fn mdl_temperature_validation_rejects_nonfinite_and_out_of_range() {
+        assert!(0.0f64.is_finite() && (0.0..=4.0).contains(&0.0));
+        assert!(4.0f64.is_finite() && (0.0..=4.0).contains(&4.0));
+        assert!(!(0.0..=4.0).contains(&5.0));
+        assert!(!f64::NAN.is_finite());
+        assert!(!f64::INFINITY.is_finite());
+    }
+    #[test]
     fn uniform_eig_matches_max_split_when_all_costs_are_equal() {
         let candidates = enumerate_grammar(2).unwrap();
         let survivors = candidates.iter().map(|c| c.sig).collect::<Vec<_>>();
@@ -1317,13 +1344,12 @@ mod tests {
         );
     }
     #[test]
-    #[test]
     fn mdl_eig_validates_costs_and_ties_deterministically() {
         let candidates = enumerate_grammar(1).unwrap();
         let survivors = candidates.iter().map(|c| c.sig).collect::<Vec<_>>();
         let costs = [1; DOMAIN];
         assert_eq!(
-            choose_mdl_eig_action(&survivors, &candidates, &[0, 1, 2], &costs),
+            choose_mdl_eig_action(&survivors, &candidates, &[0, 1, 2], &costs, 1.0),
             choose_mdl_eig_action(&survivors, &candidates, &[0, 1, 2], &costs)
         );
         assert!(parse_costs("1,1,1").is_err());
@@ -1334,7 +1360,7 @@ mod tests {
     fn random_policy_is_deterministic() {
         let c = enumerate_grammar(2).unwrap();
         let t = tasks().remove(0);
-        let a = run_episode(&t.problem, t.target_sig, &c, Policy::Random, 1234);
+        let a = run_episode(&t.problem, t.target_sig, &c, Policy::Random, 1234, 1.0);
         let b = run_episode(&t.problem, t.target_sig, &c, Policy::Random, 1234);
         assert_eq!(a.actions, b.actions);
         assert_eq!(a.remaining, b.remaining);
