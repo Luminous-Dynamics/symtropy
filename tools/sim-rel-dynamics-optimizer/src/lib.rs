@@ -255,8 +255,14 @@ impl OptimizationResult {
         &self,
         maximum_hazard_probability: Rational,
         maximum_abstention_probability: Rational,
-    ) -> Option<&FrontierPoint> {
-        self.frontier
+    ) -> Result<Option<&FrontierPoint>, String> {
+        if maximum_hazard_probability > Rational::one()
+            || maximum_abstention_probability > Rational::one()
+        {
+            return Err("risk and abstention budgets must lie in [0, 1]".into());
+        }
+        Ok(self
+            .frontier
             .iter()
             .filter(|point| {
                 point.campaign_hazard_probability <= maximum_hazard_probability
@@ -273,7 +279,7 @@ impl OptimizationResult {
                         left.abstention_probability
                             .cmp(&right.abstention_probability)
                     })
-            })
+            }))
     }
 }
 
@@ -1340,16 +1346,16 @@ mod tests {
         )
         .unwrap();
 
-        let zero_risk_zero_abstention = result.minimum_cost_under(zero(), zero()).unwrap();
+        let zero_risk_zero_abstention = result.minimum_cost_under(zero(), zero()).unwrap().unwrap();
         assert_eq!(zero_risk_zero_abstention.expected_experiment_cost, Rational::from_u64(3));
         assert_eq!(zero_risk_zero_abstention.identification_probability, one());
 
-        let half_risk_zero_abstention = result.minimum_cost_under(half(), zero()).unwrap();
+        let half_risk_zero_abstention = result.minimum_cost_under(half(), zero()).unwrap().unwrap();
         assert_eq!(half_risk_zero_abstention.expected_experiment_cost, Rational::from_u64(1));
         assert_eq!(half_risk_zero_abstention.campaign_hazard_probability, half());
 
-        assert!(result.minimum_cost_under(zero(), Rational::new(1, 2).unwrap()).is_some());
-        assert!(result.minimum_cost_under(zero(), zero()).is_some());
+        assert!(result.minimum_cost_under(zero(), Rational::new(1, 2).unwrap()).unwrap().is_some());
+        assert!(result.minimum_cost_under(zero(), zero()).unwrap().is_some());
     }
 
     #[test]
@@ -1499,6 +1505,32 @@ mod tests {
             _ => "terminal",
         };
         assert_eq!(left_root, right_root);
+    }
+
+    #[test]
+    fn infeasible_and_invalid_risk_budgets_are_distinguished() {
+        use Transition::Hazard;
+        let machine = |initial_state| sim_rel_dynamics_evaluator::HypothesisMachine {
+            initial_state,
+            transitions: vec![vec![Hazard]],
+        };
+        let world = World {
+            name: "all-hazard".into(),
+            hypothesis_ids: vec!["h0".into(), "h1".into()],
+            action_ids: vec!["unsafe".into()],
+            prior_weights: vec![1, 1],
+            action_costs: vec![1],
+            machines: vec![machine(0), machine(0)],
+        };
+        let result = optimize_stateful_world(
+            &world,
+            &SolverConfig { horizon: 1, ..SolverConfig::default() },
+        )
+        .unwrap();
+        assert!(result.minimum_cost_under(zero(), zero()).unwrap().is_none());
+        assert!(result
+            .minimum_cost_under(Rational::new(2, 1).unwrap(), zero())
+            .is_err());
     }
 
     #[test]
