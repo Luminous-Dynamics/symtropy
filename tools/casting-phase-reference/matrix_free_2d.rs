@@ -108,6 +108,10 @@ impl GridOperator {
 
     fn apply(&self, x: &[f64], out: &mut [f64]) -> Result<(), String> {
         self.validate()?;
+        self.apply_validated(x, out)
+    }
+
+    fn apply_validated(&self, x: &[f64], out: &mut [f64]) -> Result<(), String> {
         if x.len() != self.len() || out.len() != self.len() {
             return Err("VECTOR_SIZE_MISMATCH".into());
         }
@@ -244,7 +248,7 @@ fn pcg(
     }
 
     let mut ax = vec![0.0; n];
-    operator.apply(&x, &mut ax)?;
+    operator.apply_validated(&x, &mut ax)?;
     let mut operator_applications = 1_usize;
     let mut residual = vec![0.0; n];
     for i in 0..n {
@@ -276,14 +280,15 @@ fn pcg(
         }
     }
     let mut direction = z.clone();
+    drop(ax);
+    let mut applied_direction = vec![0.0; n];
     let mut rho = dot(&residual, &z)?;
     if !rho.is_finite() || rho <= 0.0 {
         return Err("PCG_PRECONDITIONER_BREAKDOWN: r^T M^-1 r must be positive".into());
     }
 
     for iteration in 1..=max_iterations {
-        let mut applied_direction = vec![0.0; n];
-        operator.apply(&direction, &mut applied_direction)?;
+        operator.apply_validated(&direction, &mut applied_direction)?;
         operator_applications += 1;
         let curvature = dot(&direction, &applied_direction)?;
         if !curvature.is_finite() || curvature <= EPSILON_SCALE * rho.abs() {
