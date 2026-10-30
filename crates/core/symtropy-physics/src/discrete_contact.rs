@@ -324,6 +324,19 @@ mod tests {
     }
 
     #[test]
+    fn eight_row_reference_enumerates_all_active_rows_within_bound() {
+        let delassus = DMatrix::identity(8, 8);
+        let free_velocity = DVector::from_element(8, -1.0);
+        let solution =
+            solve_normal_contact_lcp_reference(&delassus, &free_velocity, 1e-12).unwrap();
+
+        assert_eq!(solution.active_set_mask, 0xff);
+        assert_eq!(solution.enumerated_active_sets, 256);
+        assert!((solution.impulses - DVector::from_element(8, 1.0)).norm() < 1e-12);
+        assert!(solution.slack.norm() < 1e-12);
+    }
+
+    #[test]
     fn reports_infeasible_zero_effective_mass_row() {
         let delassus = DMatrix::zeros(1, 1);
         let free_velocity = DVector::from_element(1, -1.0);
