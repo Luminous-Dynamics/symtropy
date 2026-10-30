@@ -1,4 +1,4 @@
-use std::{env, fs, process};
+use std::{env, fs, path::Path, process};
 
 use civil_aero_benchmark::reference_data::parse_ladson_force_data;
 use civil_aero_benchmark::section_polar::{
@@ -16,7 +16,14 @@ fn run() -> Result<(), String> {
     let mut args = env::args();
     let program = args.next().unwrap_or_else(|| "section_polar_audit".to_owned());
     let input_path = args.next().unwrap_or_else(|| {
-        "tools/civil-aero-benchmark/data/reference/nasa-tmr/CLCD_Ladson_expdata.dat".to_owned()
+        let crate_relative = "data/reference/nasa-tmr/CLCD_Ladson_expdata.dat";
+        let repository_relative =
+            "tools/civil-aero-benchmark/data/reference/nasa-tmr/CLCD_Ladson_expdata.dat";
+        if Path::new(crate_relative).is_file() {
+            crate_relative.to_owned()
+        } else {
+            repository_relative.to_owned()
+        }
     });
     if args.next().is_some() {
         return Err(format!("usage: {program} [pinned_ladson_force_data.dat]"));
