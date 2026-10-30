@@ -85,11 +85,8 @@ pub fn try_integrate<const D: usize>(
     // back to the isotropic mean-of-axis approximation.
     let ang_accel = if let Some(inertia) = &body.rotational_inertia {
         let world_inertia = inertia.rotated_by(&body.transform.rotation);
-        match world_inertia.angular_acceleration(
-            &body.angular_velocity,
-            &torque_accumulator,
-            1e-12,
-        ) {
+        match world_inertia.angular_acceleration(&body.angular_velocity, &torque_accumulator, 1e-12)
+        {
             Ok(acceleration) => acceleration,
             Err(error) => {
                 ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
@@ -711,17 +708,13 @@ mod tests {
         use crate::inertia::{BivectorInertia, RotationalInertiaError};
         use nalgebra::SMatrix;
 
-        let mut body = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(7),
-            Point::new([1.0, 2.0, 3.0]),
-            0.5,
-            2.0,
-        );
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(7), Point::new([1.0, 2.0, 3.0]), 0.5, 2.0);
         body.linear_velocity = SVector::new(0.5, -0.25, 0.75);
         body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::from_second_moment(
-                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
-            )
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
             .unwrap(),
         );
         body.apply_force(SVector::new(4.0, -2.0, 1.0));
@@ -733,8 +726,7 @@ mod tests {
         let force_before = body.force_accumulator.clone();
         let torque_before = body.torque_accumulator.clone();
 
-        let error = try_integrate(&mut body, &SVector::new(0.0, -9.81, 0.0), 0.01)
-            .unwrap_err();
+        let error = try_integrate(&mut body, &SVector::new(0.0, -9.81, 0.0), 0.01).unwrap_err();
         assert_eq!(error, RotationalInertiaError::SingularInertia);
         assert_eq!(body.transform.translation.0, position_before);
         assert_eq!(body.linear_velocity, linear_before);
@@ -786,11 +778,8 @@ mod tests {
             .unwrap(),
         );
         let before = body.angular_velocity.clone();
-        let error = try_apply_angular_impulse(
-            &mut body,
-            &Bivector::<3>::unit_plane(1, 2),
-        )
-        .unwrap_err();
+        let error =
+            try_apply_angular_impulse(&mut body, &Bivector::<3>::unit_plane(1, 2)).unwrap_err();
         assert_eq!(error, RotationalInertiaError::SingularInertia);
         assert_eq!(body.angular_velocity, before);
     }
