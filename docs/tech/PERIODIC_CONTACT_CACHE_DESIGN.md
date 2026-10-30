@@ -56,12 +56,30 @@ Call begin_frame() once before processing contacts for a new frame. It promotes 
 
 This follows the two-phase warm-start pattern without changing the existing Euclidean ContactCache.
 
+## TGS solver adapter
+
+The current TGS normal constraint uses the contact-point relative normal velocity:
+
+(v_point_b - v_point_a) · n,
+
+with each point velocity equal to linear velocity plus angular velocity applied to its lever arm. The normal effective-mass denominator is:
+
+w_a + w_b + alpha
++ inv_I_avg_a * (|r_A|² - (r_A · n)²)
++ inv_I_avg_b * (|r_B|² - (r_B · n)²).
+
+The periodic TGS helpers compute these same quantities using the image-aware lever arms. The inverse-inertia inputs deliberately match the current solver's mean-of-axes isotropic approximation; they do not claim exact anisotropic inertia support. The normal must be unit length, all mass/inertia/compliance terms must be finite and non-negative, and non-finite results fail closed.
+
+This adapter makes a solver-level parity test possible before integration: swapping body order, reversing the image offset, swapping body properties/angular velocities, translating the witness into the canonical image frame, and negating the normal must preserve the scalar relative normal speed and effective-mass denominator.
+
+The adapter does not apply impulses or mutate bodies. PhysicsWorld still needs to consume these values consistently in restitution, TGS, friction, warm-start and torque updates.
+
 ## Independent tests
 
 The adapter tests check:
 - two lattice images for the same body pair retain independent cached impulses;
 - storing with reversed body order and offset, then querying in canonical order, returns the same canonical point and tangent-vector orientation;
-- lever arms are swapped correctly under equivalent reversed image representation and are computed against the translated B centre;
+- lever arms are swapped correctly under equivalent reversed image representation and are computed against the translated B centre; TGS normal denominator and relative normal speed are invariant under body-order/image-offset reversal;
 - non-periodic axes reject nonzero image offsets;
 - non-finite points/centres/impulses/distances, negative normal impulses and invalid match thresholds fail closed;
 - previous-frame lookup works after a frame rotation, current writes are not visible to same-frame lookup, and missed contacts expire after an empty frame.
