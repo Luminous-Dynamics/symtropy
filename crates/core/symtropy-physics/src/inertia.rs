@@ -133,14 +133,30 @@ impl<const D: usize> BivectorInertia<D> {
         mass: f64,
         radius: f64,
     ) -> Result<Self, RotationalInertiaError> {
-        if !mass.is_finite() || !radius.is_finite() {
+        if !radius.is_finite() {
             return Err(RotationalInertiaError::NonFinite);
         }
-        if mass < 0.0 || radius < 0.0 {
+        Self::uniform_solid_ellipsoid(mass, SVector::<f64, D>::from_element(radius))
+    }
+
+    /// Construct from a uniform solid D-ellipsoid with the supplied semi-axes.
+    ///
+    /// For a uniform ellipsoid, the centered second moment along axis i is
+    /// mass * a_i^2 / (D + 2). This gives a direct analytical mass-property
+    /// path for ellipsoidal CAD primitives without assuming isotropy.
+    pub fn uniform_solid_ellipsoid(
+        mass: f64,
+        semi_axes: SVector<f64, D>,
+    ) -> Result<Self, RotationalInertiaError> {
+        if !mass.is_finite() || !semi_axes.iter().all(|axis| axis.is_finite()) {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        if mass < 0.0 || semi_axes.iter().any(|axis| *axis < 0.0) {
             return Err(RotationalInertiaError::InvalidMassProperties);
         }
-        let second_moment_scale = mass * radius * radius / (D as f64 + 2.0);
-        Self::from_second_moment(SMatrix::<f64, D, D>::identity() * second_moment_scale)
+
+        let second_moments = semi_axes.map(|axis| mass * axis * axis / (D as f64 + 2.0));
+        Self::from_second_moment(SMatrix::<f64, D, D>::from_diagonal(&second_moments))
     }
 
     /// Return the centered second-moment matrix used by this operator.
@@ -215,6 +231,24 @@ mod tests {
         assert_uniform_ball_plane_moment::<2>(6.0);
         assert_uniform_ball_plane_moment::<3>(4.8);
         assert_uniform_ball_plane_moment::<4>(4.0);
+    }
+
+    #[test]
+    fn uniform_ellipsoid_recovers_analytical_three_dimensional_moments() {
+        // Unit mass, semi-axes (2, 1, 0.5): S_ii = a_i^2 / 5.
+        // Rotation-plane moments are sums of the corresponding S diagonal.
+        let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            1.0,
+            SVector::new(2.0, 1.0, 0.5),
+        )
+        .unwrap();
+
+        let xy = Bivector::<3>::unit_plane(0, 1); // rotation about z
+        let xz = Bivector::<3>::unit_plane(0, 2); // rotation about y
+        let yz = Bivector::<3>::unit_plane(1, 2); // rotation about x
+        assert!((inertia.angular_momentum(&xy).get(0, 1) - 1.0).abs() < 1e-12);
+        assert!((inertia.angular_momentum(&xz).get(0, 2) - 0.85).abs() < 1e-12);
+        assert!((inertia.angular_momentum(&yz).get(1, 2) - 0.25).abs() < 1e-12);
     }
 
     #[test]
