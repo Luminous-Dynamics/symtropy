@@ -8,10 +8,12 @@
 //! canonical fundamental cell. It is NOT used as a nearest-image solver:
 //! nearest images are found by bounded QR sphere decoding.
 //!
-//! The current reference implementation intentionally supports only full-rank
-//! 2D/3D lattices with every basis direction periodic. Mixed periodic rank and
-//! non-orthogonal embedded subspaces require a separate contract and are not
-//! silently approximated here.
+//! The current reference implementation supports full-rank D=2/3 bases with
+//! an explicit periodic-axis mask. Active fractional coordinates are wrapped
+//! and searched over integer translations; inactive coefficients stay zero
+//! for image offsets and remain unwrapped in point coordinates. This models a
+//! periodic sublattice in a declared full-rank coordinate basis, not arbitrary
+//! embedded or curved subspaces.
 
 use std::error::Error;
 use std::fmt;
@@ -110,12 +112,11 @@ pub struct PeriodicLattice<const D: usize> {
 }
 
 impl<const D: usize> PeriodicLattice<D> {
-    /// Construct a full-rank 2D or 3D lattice.
+    /// Construct a fully periodic, full-rank 2D or 3D lattice.
     ///
     /// QR is computed using twice-reorthogonalized modified Gram-Schmidt. A
     /// small relative diagonal pivot is rejected rather than allowing an
     /// unstable image search to silently return a potentially wrong answer.
-    /// Construct a fully periodic, full-rank 2D or 3D lattice.
     pub fn new(
         origin: SVector<f64, D>,
         basis: SMatrix<f64, D, D>,
