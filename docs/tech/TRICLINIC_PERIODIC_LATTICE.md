@@ -10,8 +10,8 @@ PeriodicBox represents orthogonal coordinate periods. A skewed or triclinic cell
 
 Two operations that must not be conflated:
 
-- Canonical reduction maps a point into the fundamental parallelepiped origin + B[0,1)^D. Fractional-coordinate floor is suitable for this representative choice.
-- Minimum-image displacement solves argmin over integer n of ||d + Bn||. Rounding each fractional coordinate independently is not generally correct for a skewed basis.
+- Canonical reduction wraps active fractional coordinates into [0,1) and leaves inactive fractional coordinates unchanged. The returned image offset is zero on inactive axes.
+- Minimum-image displacement solves argmin over active integer coefficients n of ||d + Bn||. Rounding each fractional coordinate independently is not generally correct for a skewed basis.
 
 The implementation uses a full-rank D=2/3 basis and an explicit periodic-axis mask. Active basis columns generate lattice images; inactive fractional coefficients remain unwrapped and their image offsets are fixed to zero. This supports a periodic sublattice in the declared basis coordinates (for example, periodic x/y with nonperiodic z). The current API does not claim arbitrary curved or Riemannian subspaces.
 
@@ -34,7 +34,7 @@ The caller supplies a node budget. Exhaustion returns SearchBudgetExceeded; the 
 - Active periodic fractional coordinates are canonicalized into the half-open interval [0,1); inactive fractional coordinates are left unchanged.
 - A wrapped point plus its explicit lattice offset reconstructs the original Cartesian point within floating-point tolerance.
 - The closest-image convention minimizes Euclidean Cartesian distance over active integer offsets only, not fractional-coordinate distance.
-- Exactly equal computed distances choose the lexicographically smallest integer image offset.
+- Exact-distance ties use a reversal-odd convention: orient the first nonzero Cartesian displacement component positive before lexicographic tie selection, then negate the result/offset for the reverse input. Thus minimum_image(-d) = -minimum_image(d), including on Voronoi facets. A nearest image is geometrically non-unique at such a tie; the API chooses a deterministic oriented representative.
 - Non-finite values, out-of-envelope integer image indices, degenerate basis pivots and exhausted search budgets are typed failures.
 
 ## Independent correctness corpus
@@ -72,11 +72,11 @@ The claim to test is narrow: a bounded, fail-closed 2D/3D closest-lattice-image 
 
 ## Limitations and follow-on work
 
-- Full-rank periodic directions only; no mixed periodic rank in a Euclidean complement yet.
-- Orthogonal Euclidean metric only; no arbitrary Riemannian metric or curved manifold.
-- QR sphere decoding can have exponential worst-case search growth as dimension/skew increases.
-- No triclinic AABB/broadphase, convex periodic GJK, CCD or contact identity yet.
-- No integration into PhysicsWorld.
+- The basis must remain full-rank even when only a subset of its columns are periodic. The active mask models a periodic sublattice in the declared full-rank coordinate basis; arbitrary embedded subspaces and nonlinear charts are not supported.
+- Orthogonal Euclidean metric only in Cartesian space; no arbitrary Riemannian metric or curved manifold.
+- QR sphere decoding can have exponential worst-case search growth as dimension/skew increases. The initial implementation does not apply LLL/BKZ basis reduction.
+- Conservative triclinic AABB candidate generation is tracked in [PR #3013](https://github.com/Luminous-Dynamics/symtropy/pull/3013); triclinic convex queries and fixed-sphere CCD are tracked in [PR #3029](https://github.com/Luminous-Dynamics/symtropy/pull/3029).
+- Neither query layer is integrated into PhysicsWorld or the production contact solver.
 - This is a declared periodic simulation cell, not evidence of compact extra dimensions or pocket universes.
 
 Next gates: exact-head Rust tests, randomized 3D oracle expansion, randomized unimodular basis transformations, a closest-image benchmark, then conservative skew-cell broadphase. Physics integration remains blocked until each geometry/collision gate has independent no-miss evidence.
