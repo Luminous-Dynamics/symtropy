@@ -120,6 +120,8 @@ fn preflight<const D: usize>(
     let mut max_candidates = 0_usize;
     let mut max_error = 0.0_f64;
     let mut max_distance_error_bound = 0.0_f64;
+    let mut ambiguous_queries = 0_usize;
+    let mut max_ambiguous_images = 0_usize;
     for (case, displacement) in corpus.iter().enumerate() {
         let result = lattice
             .minimum_image_displacement(displacement, MAX_CANDIDATES)
@@ -132,7 +134,16 @@ fn preflight<const D: usize>(
             result.displacement.norm(),
             oracle
         );
-        assert!(result.unsearched_distance_lower_bound > result.displacement.norm());
+        assert!(
+            result.unsearched_distance_lower_bound
+                > result.best_candidate_distance_upper_bound,
+            "certificate lower bound must exceed all evaluated candidate upper bounds"
+        );
+        if !result.ambiguous_image_offsets.is_empty() {
+            ambiguous_queries += 1;
+        }
+        max_ambiguous_images =
+            max_ambiguous_images.max(result.ambiguous_image_offsets.len());
         candidate_total += result.candidates_evaluated;
         max_candidates = max_candidates.max(result.candidates_evaluated);
         max_error = max_error.max(error);
@@ -141,13 +152,15 @@ fn preflight<const D: usize>(
     }
     let mean_candidates = candidate_total / corpus.len().max(1);
     eprintln!(
-        "TRICLINIC_CVP_PREFLIGHT,v2,fixture={label},queries={},mean_candidates={},max_candidates={},max_error={:.6e},max_distance_error_bound={:.6e},inverse_residual_upper_bound={:.6e},oracle_radius={ORACLE_RADIUS}",
+        "TRICLINIC_CVP_PREFLIGHT,v3,fixture={label},queries={},mean_candidates={},max_candidates={},max_error={:.6e},max_distance_error_bound={:.6e},inverse_residual_upper_bound={:.6e},ambiguous_queries={},max_ambiguous_images={},oracle_radius={ORACLE_RADIUS}",
         corpus.len(),
         mean_candidates,
         max_candidates,
         max_error,
         max_distance_error_bound,
-        lattice.inverse_residual_upper_bound()
+        lattice.inverse_residual_upper_bound(),
+        ambiguous_queries,
+        max_ambiguous_images
     );
     (mean_candidates, max_error)
 }
