@@ -81,7 +81,7 @@ impl<const D: usize> BivectorInertia<D> {
         }
 
         let symmetric = (second_moment + second_moment.transpose()) * 0.5;
-        let eigensystem = nalgebra::linalg::SymmetricEigen::new(symmetric.clone());
+        let eigensystem = nalgebra::linalg::SymmetricEigen::new(symmetric);
         let min_eigenvalue = eigensystem
             .eigenvalues
             .iter()
@@ -90,10 +90,20 @@ impl<const D: usize> BivectorInertia<D> {
             return Err(RotationalInertiaError::NotPositiveSemidefinite);
         }
 
+        // Project roundoff-sized negative eigenvalues to zero. Keep the
+        // reconstructed matrix and cached principal moments identical so the
+        // forward and inverse operators share exactly the same PSD model.
+        let principal_second_moments =
+            eigensystem.eigenvalues.map(|value| value.max(0.0));
+        let principal_axes = eigensystem.eigenvectors;
+        let projected_second_moment = principal_axes
+            * SMatrix::<f64, D, D>::from_diagonal(&principal_second_moments)
+            * principal_axes.transpose();
+
         Ok(Self {
-            second_moment: symmetric,
-            principal_second_moments: eigensystem.eigenvalues,
-            principal_axes: eigensystem.eigenvectors,
+            second_moment: projected_second_moment,
+            principal_second_moments,
+            principal_axes,
         })
     }
 
@@ -822,6 +832,21 @@ mod tests {
             BivectorInertia::<3>::from_second_moment(second_moment).unwrap_err(),
             RotationalInertiaError::NotPositiveSemidefinite
         );
+    }
+
+    #[test]
+    fn constructor_projects_roundoff_sized_negative_eigenvalue_to_psd_boundary() {
+        let second_moment =
+            SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([1.0, 1.0, -5e-13]));
+        let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
+        let minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(
+            inertia.second_moment().clone(),
+        )
+        .eigenvalues
+        .iter()
+        .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+        assert!(minimum_eigenvalue >= -1e-14);
+        assert!(inertia.second_moment()[(2, 2)].abs() < 1e-14);
     }
 
     #[test]
