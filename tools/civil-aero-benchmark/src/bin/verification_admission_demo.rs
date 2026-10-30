@@ -75,6 +75,6 @@ fn run() -> Result<(), String> {
         report.grid_run_audits.len(),
         report.gci_report.triplets.len()
     );
-    print!("{}", report_to_csv(&report));
+    print!("{}", report_to_csv(&report)?);
     Ok(())
 }

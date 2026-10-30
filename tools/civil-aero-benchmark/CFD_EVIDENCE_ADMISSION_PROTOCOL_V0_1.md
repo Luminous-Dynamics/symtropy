@@ -44,3 +44,8 @@ A passing numerical gate is only one rung before experimental validation. The ne
 ## Synthetic tests
 
 The CLI and Rust tests use an exact synthetic power law over six explicitly supplied spacings. They prove gate arithmetic and rejection behaviour only. No physical CFD data is included or implied.
+
+
+## Reproducible per-triplet export
+
+Each sliding three-grid CSV row now joins the GCI triplet back to its exact coarse, medium and fine run records. For all three grids the row includes run ID, grid ID and level, characteristic spacing, mesh SHA-256, scalar quantity value, final residual, residual reduction ratio, final-window monitor drift, and mass/energy balance defects. The row also includes common solver-build, physics-configuration and geometry digests, plus the declared admission thresholds. Missing joins are an error; they are not silently emitted as empty metadata. This is the intended handoff artifact for independent review and a future provenance receipt.

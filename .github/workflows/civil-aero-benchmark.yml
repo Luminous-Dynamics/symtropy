@@ -261,6 +261,9 @@ jobs:
           test "$(wc -l < /tmp/cfd-admission-a.csv)" -eq 5
           grep -q "synthetic_cfd_admission_known_answer_only status=numerically_admitted_under_declared_criteria_not_experimentally_validated grids=6 triplets=4" /tmp/cfd-admission-a.txt
           grep -q "not_experimentally_validated" /tmp/cfd-admission-a.csv
+          grep -q "coarse_mesh_sha256" /tmp/cfd-admission-a.csv
+          grep -q "fine_mesh_sha256" /tmp/cfd-admission-a.csv
+          grep -q "observed_order_min,observed_order_max" /tmp/cfd-admission-a.csv || grep -q "observed_order_max" /tmp/cfd-admission-a.csv
       - name: Verify robust maximin EVSI over finite model ambiguity set
         working-directory: tools/civil-aero-benchmark
         shell: bash

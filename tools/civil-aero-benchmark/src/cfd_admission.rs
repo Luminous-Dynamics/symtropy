@@ -63,6 +63,10 @@ pub struct CfdEvidenceStudy {
 pub struct CfdGridRunAudit {
     pub run_id: String,
     pub grid_id: String,
+    pub grid_level: u32,
+    pub characteristic_spacing: f64,
+    pub mesh_sha256: String,
+    pub quantity_value: f64,
     pub residual_final: f64,
     pub residual_reduction_ratio: f64,
     pub quantity_history_drift_absolute: f64,
@@ -271,6 +275,10 @@ pub fn evaluate_cfd_evidence_admission(
         run_audits.push(CfdGridRunAudit {
             run_id: run.run_id.clone(),
             grid_id: run.grid_id.clone(),
+            grid_level: run.grid_level,
+            characteristic_spacing: run.characteristic_spacing,
+            mesh_sha256: run.mesh_sha256.clone(),
+            quantity_value: run.quantity_value,
             residual_final: run.residual_final,
             residual_reduction_ratio,
             quantity_history_drift_absolute,
@@ -365,9 +373,9 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const ADMISSION_CSV_HEADER: &str = "case_id,quantity,status,source_reference,spacing_definition,solver_build_sha256,physics_config_sha256,geometry_sha256,safety_factor,coarse_grid_id,medium_grid_id,fine_grid_id,observed_order,extrapolated_value,medium_gci_absolute,fine_gci_absolute,asymptotic_ratio,max_residual_final,max_residual_reduction_ratio,max_quantity_history_drift,max_mass_imbalance_fraction,max_energy_imbalance_fraction";
+pub const ADMISSION_CSV_HEADER: &str = "case_id,quantity,status,source_reference,spacing_definition,solver_build_sha256,physics_config_sha256,geometry_sha256,safety_factor,coarse_run_id,coarse_grid_id,coarse_grid_level,coarse_spacing,coarse_mesh_sha256,coarse_quantity_value,coarse_residual_final,coarse_residual_reduction_ratio,coarse_quantity_history_drift_absolute,coarse_mass_imbalance_fraction,coarse_energy_imbalance_fraction,medium_run_id,medium_grid_id,medium_grid_level,medium_spacing,medium_mesh_sha256,medium_quantity_value,medium_residual_final,medium_residual_reduction_ratio,medium_quantity_history_drift_absolute,medium_mass_imbalance_fraction,medium_energy_imbalance_fraction,fine_run_id,fine_grid_id,fine_grid_level,fine_spacing,fine_mesh_sha256,fine_quantity_value,fine_residual_final,fine_residual_reduction_ratio,fine_quantity_history_drift_absolute,fine_mass_imbalance_fraction,fine_energy_imbalance_fraction,refinement_ratio_coarse_medium,refinement_ratio_medium_fine,observed_order,extrapolated_value,medium_gci_absolute,medium_gci_relative_percent,fine_gci_absolute,fine_gci_relative_percent,asymptotic_ratio,residual_final_max,residual_reduction_ratio_max,quantity_history_drift_absolute_max,mass_imbalance_fraction_max,energy_imbalance_fraction_max,observed_order_min,observed_order_max,asymptotic_ratio_min,asymptotic_ratio_max";
 
-pub fn report_to_csv(report: &CfdEvidenceAdmissionReport) -> String {
+pub fn report_to_csv(report: &CfdEvidenceAdmissionReport) -> Result<String, String> {
     let max_residual_final = report
         .grid_run_audits
         .iter()
@@ -396,33 +404,78 @@ pub fn report_to_csv(report: &CfdEvidenceAdmissionReport) -> String {
 
     let mut output = format!("{ADMISSION_CSV_HEADER}\n");
     for triplet in &report.gci_report.triplets {
-        output.push_str(&format!(
-            "{},{},{},{},{},{},{},{},{:.8},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12}\n",
+        let coarse = report
+            .grid_run_audits
+            .iter()
+            .find(|audit| audit.grid_id == triplet.coarse_grid_id)
+            .ok_or_else(|| format!("missing coarse run audit for {}", triplet.coarse_grid_id))?;
+        let medium = report
+            .grid_run_audits
+            .iter()
+            .find(|audit| audit.grid_id == triplet.medium_grid_id)
+            .ok_or_else(|| format!("missing medium run audit for {}", triplet.medium_grid_id))?;
+        let fine = report
+            .grid_run_audits
+            .iter()
+            .find(|audit| audit.grid_id == triplet.fine_grid_id)
+            .ok_or_else(|| format!("missing fine run audit for {}", triplet.fine_grid_id))?;
+
+        let mut columns = vec![
             csv_escape(&report.case_id),
             csv_escape(&report.quantity),
-            report.status,
+            report.status.to_owned(),
             csv_escape(&report.source_reference),
             csv_escape(&report.spacing_definition),
-            report.solver_build_sha256,
-            report.physics_config_sha256,
-            report.geometry_sha256,
-            report.safety_factor,
-            csv_escape(&triplet.coarse_grid_id),
-            csv_escape(&triplet.medium_grid_id),
-            csv_escape(&triplet.fine_grid_id),
-            triplet.observed_order,
-            triplet.extrapolated_value,
-            triplet.medium_gci_absolute,
-            triplet.fine_gci_absolute,
-            triplet.asymptotic_ratio,
-            max_residual_final,
-            max_residual_reduction_ratio,
-            max_quantity_history_drift,
-            max_mass_imbalance_fraction,
-            max_energy_imbalance_fraction,
-        ));
+            report.solver_build_sha256.clone(),
+            report.physics_config_sha256.clone(),
+            report.geometry_sha256.clone(),
+            format!("{:.8}", report.safety_factor),
+        ];
+        for audit in [coarse, medium, fine] {
+            columns.extend([
+                csv_escape(&audit.run_id),
+                csv_escape(&audit.grid_id),
+                audit.grid_level.to_string(),
+                format!("{:.12}", audit.characteristic_spacing),
+                audit.mesh_sha256.clone(),
+                format!("{:.12}", audit.quantity_value),
+                format!("{:.12}", audit.residual_final),
+                format!("{:.12}", audit.residual_reduction_ratio),
+                format!("{:.12}", audit.quantity_history_drift_absolute),
+                format!("{:.12}", audit.mass_imbalance_fraction),
+                format!("{:.12}", audit.energy_imbalance_fraction),
+            ]);
+        }
+        columns.extend([
+            format!("{:.12}", triplet.refinement_ratio_coarse_medium),
+            format!("{:.12}", triplet.refinement_ratio_medium_fine),
+            format!("{:.12}", triplet.observed_order),
+            format!("{:.12}", triplet.extrapolated_value),
+            format!("{:.12}", triplet.medium_gci_absolute),
+            triplet
+                .medium_gci_relative_percent
+                .map(|value| format!("{value:.12}"))
+                .unwrap_or_default(),
+            format!("{:.12}", triplet.fine_gci_absolute),
+            triplet
+                .fine_gci_relative_percent
+                .map(|value| format!("{value:.12}"))
+                .unwrap_or_default(),
+            format!("{:.12}", triplet.asymptotic_ratio),
+            format!("{:.12}", max_residual_final),
+            format!("{:.12}", max_residual_reduction_ratio),
+            format!("{:.12}", max_quantity_history_drift),
+            format!("{:.12}", max_mass_imbalance_fraction),
+            format!("{:.12}", max_energy_imbalance_fraction),
+            format!("{:.12}", report.criteria.observed_order_min),
+            format!("{:.12}", report.criteria.observed_order_max),
+            format!("{:.12}", report.criteria.asymptotic_ratio_min),
+            format!("{:.12}", report.criteria.asymptotic_ratio_max),
+        ]);
+        output.push_str(&columns.join(","));
+        output.push('\n');
     }
-    output
+    Ok(output)
 }
 
 #[cfg(test)]
@@ -600,9 +653,14 @@ mod tests {
     #[test]
     fn csv_output_is_deterministic_and_keeps_nonvalidation_label() {
         let report = evaluate_cfd_evidence_admission(&study()).expect("valid synthetic study");
-        let first = report_to_csv(&report);
-        assert_eq!(first, report_to_csv(&report));
+        let first = report_to_csv(&report).expect("complete provenance joins");
+        assert_eq!(first, report_to_csv(&report).expect("complete provenance joins"));
         assert_eq!(first.lines().count(), 5);
         assert!(first.contains("not_experimentally_validated"));
+        assert!(first.contains("coarse_mesh_sha256"));
+        let coarse_mesh_digest = digest('1');
+        let fine_mesh_digest = digest('6');
+        assert!(first.contains(coarse_mesh_digest.as_str()));
+        assert!(first.contains(fine_mesh_digest.as_str()));
     }
 }

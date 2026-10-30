@@ -337,8 +337,9 @@ pub fn audit_v5(dataset: &Dpw8V5Dataset) -> Result<Dpw8V5AuditReport, String> {
     }
 
     let mut canonical_cells = Vec::with_capacity(cells.len());
-    for ((grid_level, alpha_bits), (grid_row, alpha_row)) in cells {
-        let alpha_deg = f64::from_bits(alpha_bits);
+    for (key, (grid_row, alpha_row)) in cells {
+        let grid_level = key.grid_level;
+        let alpha_deg = f64::from_bits(key.alpha_bits);
         let grid_row = grid_row.ok_or_else(|| {
             format!("cell missing from grid-level view: grid_level={grid_level} alpha={alpha_deg}")
         })?;

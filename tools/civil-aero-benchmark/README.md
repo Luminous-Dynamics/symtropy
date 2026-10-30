@@ -240,3 +240,6 @@ The grid_convergence module implements sliding three-grid observed-order, Richar
 ## Robust EVSI over model uncertainty
 
 The robust_voi module evaluates a finite, compatible ensemble of prior/likelihood models and selects the experiment with the greatest worst-case net EVSI. Its average and best-case values are diagnostic only; selection is maximin and abstains when all affordable experiments have non-positive worst-case value. It does not average priors or claim probability calibration, and its guarantee applies only to the supplied finite set. Run robust_voi_demo for the two-model adversarial known-answer case.
+
+
+The CFD admission CSV is a per-triplet evidence receipt: each coarse/medium/fine member is joined to its run ID, grid level, characteristic spacing, mesh SHA-256, scalar output, residual and conservation diagnostics; the global solver/config/geometry identity and declared criteria are carried alongside. A missing run-to-triplet join fails export.
