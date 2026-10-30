@@ -13,7 +13,7 @@ All methods receive the same digitally shifted Sobol initial design and the same
 - Gaussian-process upper-confidence-bound selection (RBF kernel, fixed length scale/noise/UCB beta);
 - maximum posterior variance, a one-step Gaussian information-gain proxy under fixed observation noise.
 
-The GP-UCB and maximum-variance models are intentionally small and transparent. Maximum variance is monotonic with one-step Gaussian entropy reduction only under the fixed Gaussian-noise model; it is not full hypothesis-space expected information gain. These are reference baselines, not claims to match the strongest production Bayesian-optimization packages. The experiment-selection interface is a CandidatePolicy trait so a Symthaea adapter can be added without changing objective, oracle, accounting, or scoring code.
+The GP-UCB and maximum-variance models are intentionally small and transparent. The GP uses a fixed noise variance near the mean variance of the synthetic observations; because the observations are heteroskedastic, this is an intentional homoskedastic-surrogate stress case. Maximum variance is monotonic with one-step Gaussian entropy reduction only under the surrogate's fixed-noise assumption; it is not full hypothesis-space expected information gain. These are reference baselines, not claims to match the strongest production Bayesian-optimization packages. The experiment-selection interface is a CandidatePolicy trait so a Symthaea adapter can be added without changing objective, oracle, accounting, or scoring code.
 
 ## Synthetic problem families
 
