@@ -19,6 +19,7 @@ const MAX_ACTIONS: usize = 64;
 const MAX_HYPOTHESES: usize = 4_096;
 const MAX_WORLDS: usize = 256;
 const MAX_MACHINE_STATES: usize = 4_096;
+const MAX_TRANSITION_ENTRIES_PER_WORLD: usize = 1_000_000;
 
 /// A reduced non-negative rational number.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -269,6 +270,7 @@ impl World {
             return Err(format!("world {} has zero total prior mass", self.name));
         }
 
+        let mut total_transition_entries = 0_usize;
         for (hypothesis, machine) in self.machines.iter().enumerate() {
             if machine.transitions.len() != action_count {
                 return Err(format!(
@@ -287,6 +289,19 @@ impl World {
             {
                 return Err(format!(
                     "world {} hypothesis {hypothesis} has an invalid state space or initial state",
+                    self.name
+                ));
+            }
+
+            let machine_entries = state_count
+                .checked_mul(action_count)
+                .ok_or_else(|| "machine transition-entry count overflowed".to_string())?;
+            total_transition_entries = total_transition_entries
+                .checked_add(machine_entries)
+                .ok_or_else(|| "world transition-entry count overflowed".to_string())?;
+            if total_transition_entries > MAX_TRANSITION_ENTRIES_PER_WORLD {
+                return Err(format!(
+                    "world {} exceeds the {MAX_TRANSITION_ENTRIES_PER_WORLD} transition-entry limit",
                     self.name
                 ));
             }
