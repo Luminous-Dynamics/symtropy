@@ -78,10 +78,7 @@ pub fn verify_source_bytes(
             bytes.len()
         ));
     }
-    if expected_sha256.len() != 64
-        || !expected_sha256
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit())
+    if expected_sha256.len() != 64 || !expected_sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
     {
         return Err(format!("{source_name}: expected SHA-256 is malformed"));
     }

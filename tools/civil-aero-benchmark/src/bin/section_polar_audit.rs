@@ -3,9 +3,7 @@ use std::{env, fs, path::Path, process};
 use civil_aero_benchmark::integrity::verify_source_bytes;
 
 use civil_aero_benchmark::reference_data::parse_ladson_force_data;
-use civil_aero_benchmark::section_polar::{
-    audit_section_polar, report_to_csv, SectionPolarProvenance,
-};
+use civil_aero_benchmark::section_polar::{SectionPolarProvenance, audit_section_polar, report_to_csv};
 
 fn main() {
     if let Err(error) = run() {
@@ -16,7 +14,9 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let mut args = env::args();
-    let program = args.next().unwrap_or_else(|| "section_polar_audit".to_owned());
+    let program = args
+        .next()
+        .unwrap_or_else(|| "section_polar_audit".to_owned());
     let input_path = args.next().unwrap_or_else(|| {
         let crate_relative = "data/reference/nasa-tmr/CLCD_Ladson_expdata.dat";
         let repository_relative =
@@ -31,8 +31,8 @@ fn run() -> Result<(), String> {
         return Err(format!("usage: {program} [pinned_ladson_force_data.dat]"));
     }
 
-    let bytes = fs::read(&input_path)
-        .map_err(|error| format!("cannot read {input_path}: {error}"))?;
+    let bytes =
+        fs::read(&input_path).map_err(|error| format!("cannot read {input_path}: {error}"))?;
     verify_source_bytes(
         &bytes,
         "NASA TMR Ladson force reference",

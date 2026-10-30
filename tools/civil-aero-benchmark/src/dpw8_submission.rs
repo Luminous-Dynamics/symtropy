@@ -8,11 +8,37 @@
 use std::collections::{BTreeMap, HashSet};
 
 pub const V5_COLUMNS: [&str; 31] = [
-    "GRID_LEVEL", "GRID_SIZE", "GRID_FAC", "MACH", "REY", "ALPHA", "CL_TOT",
-    "CD_TOT", "CM_TOT", "CL_WING", "CD_WING", "CM_WING", "CD_PR", "CD_SF",
-    "CL_TAIL", "CD_TAIL", "CM_TAIL", "CL_FUS", "CD_FUS", "CM_FUS", "CL_NAC",
-    "CD_NAC", "CM_NAC", "CL_PY", "CD_PY", "CM_PY", "CPU_Hours", "DELTAT",
-    "CTUSTART", "CTUAVG", "Q/E",
+    "GRID_LEVEL",
+    "GRID_SIZE",
+    "GRID_FAC",
+    "MACH",
+    "REY",
+    "ALPHA",
+    "CL_TOT",
+    "CD_TOT",
+    "CM_TOT",
+    "CL_WING",
+    "CD_WING",
+    "CM_WING",
+    "CD_PR",
+    "CD_SF",
+    "CL_TAIL",
+    "CD_TAIL",
+    "CM_TAIL",
+    "CL_FUS",
+    "CD_FUS",
+    "CM_FUS",
+    "CL_NAC",
+    "CD_NAC",
+    "CM_NAC",
+    "CL_PY",
+    "CD_PY",
+    "CM_PY",
+    "CPU_Hours",
+    "DELTAT",
+    "CTUSTART",
+    "CTUAVG",
+    "Q/E",
 ];
 
 pub const V5_CSV_HEADER: &str = "grid_level,grid_size,alpha_deg,cl_total,cd_total,cm_total,grid_view_source_line,alpha_view_source_line,missing_optional_count,duplicate_cl_cd_at_other_alpha,adjacent_grid_discontinuity,anomaly_warning";
@@ -140,7 +166,9 @@ pub fn parse_v5(input: &str) -> Result<Dpw8V5Dataset, String> {
 
         if line.starts_with("VARIABLES") {
             if variables.is_some() || !zones.is_empty() {
-                return Err(format!("line {line_number}: duplicate or misplaced VARIABLES"));
+                return Err(format!(
+                    "line {line_number}: duplicate or misplaced VARIABLES"
+                ));
             }
             variables = Some(parse_variables(line, line_number)?);
             continue;
@@ -181,10 +209,13 @@ pub fn parse_v5(input: &str) -> Result<Dpw8V5Dataset, String> {
                 ));
             }
             if !zone_titles.insert(zone_title.clone()) {
-                return Err(format!("line {line_number}: duplicate zone title {zone_title}"));
+                return Err(format!(
+                    "line {line_number}: duplicate zone title {zone_title}"
+                ));
             }
-            let kind = parse_zone_kind(&zone_title)
-                .ok_or_else(|| format!("line {line_number}: unsupported V5 zone title {zone_title}"))?;
+            let kind = parse_zone_kind(&zone_title).ok_or_else(|| {
+                format!("line {line_number}: unsupported V5 zone title {zone_title}")
+            })?;
             zones.push(Dpw8V5Zone {
                 title: zone_title,
                 kind,
@@ -216,7 +247,13 @@ pub fn parse_v5(input: &str) -> Result<Dpw8V5Dataset, String> {
         let variable_names = variables
             .as_ref()
             .ok_or_else(|| format!("line {line_number}: VARIABLES header is missing"))?;
-        let row = parse_numeric_row(line, variable_names.len(), &zone.title, zone.kind, line_number)?;
+        let row = parse_numeric_row(
+            line,
+            variable_names.len(),
+            &zone.title,
+            zone.kind,
+            line_number,
+        )?;
         zones[zone_index].rows.push(row);
     }
 
@@ -262,8 +299,7 @@ pub fn parse_v5(input: &str) -> Result<Dpw8V5Dataset, String> {
 
 /// Reconcile both V5 table views. A mismatch or duplicate in either view is fatal.
 pub fn audit_v5(dataset: &Dpw8V5Dataset) -> Result<Dpw8V5AuditReport, String> {
-    let mut cells: BTreeMap<RowKey, (Option<Dpw8V5RawRow>, Option<Dpw8V5RawRow>)> =
-        BTreeMap::new();
+    let mut cells: BTreeMap<RowKey, (Option<Dpw8V5RawRow>, Option<Dpw8V5RawRow>)> = BTreeMap::new();
     let mut raw_record_count = 0;
     let mut grid_view_record_count = 0;
     let mut alpha_view_record_count = 0;
@@ -340,10 +376,8 @@ pub fn audit_v5(dataset: &Dpw8V5Dataset) -> Result<Dpw8V5AuditReport, String> {
         let duplicate_signature = canonical_cells.iter().any(|other| {
             other.row.grid_level == row.grid_level
                 && (other.row.alpha_deg - row.alpha_deg).abs() > 0.25
-                && (other.row.cl_total() - row.cl_total()).abs()
-                    <= DUPLICATE_SIGNATURE_TOLERANCE
-                && (other.row.cd_total() - row.cd_total()).abs()
-                    <= DUPLICATE_SIGNATURE_TOLERANCE
+                && (other.row.cl_total() - row.cl_total()).abs() <= DUPLICATE_SIGNATURE_TOLERANCE
+                && (other.row.cd_total() - row.cd_total()).abs() <= DUPLICATE_SIGNATURE_TOLERANCE
         });
         let adjacent_jump = canonical_cells.iter().any(|other| {
             other.row.alpha_deg.to_bits() == row.alpha_deg.to_bits()
@@ -427,7 +461,9 @@ fn parse_variables(line: &str, line_number: usize) -> Result<Vec<String>, String
             break;
         }
         if !remainder.trim_start().starts_with('"') {
-            return Err(format!("line {line_number}: unexpected text after VARIABLES"));
+            return Err(format!(
+                "line {line_number}: unexpected text after VARIABLES"
+            ));
         }
     }
     let mut unique = HashSet::new();
@@ -440,7 +476,10 @@ fn parse_variables(line: &str, line_number: usize) -> Result<Vec<String>, String
 fn parse_zone_kind(title: &str) -> Option<Dpw8V5ZoneKind> {
     let upper = title.to_ascii_uppercase();
     if let Some(index) = upper.rfind("GRID LEVEL ") {
-        let value = title[index + "GRID LEVEL ".len()..].trim().parse::<u32>().ok()?;
+        let value = title[index + "GRID LEVEL ".len()..]
+            .trim()
+            .parse::<u32>()
+            .ok()?;
         return (value > 0).then_some(Dpw8V5ZoneKind::GridLevel(value));
     }
     if let Some(index) = upper.rfind("ALPHA ") {
@@ -467,7 +506,10 @@ fn parse_numeric_row(
     let mut values = Vec::with_capacity(column_count);
     for (index, field) in fields.iter().enumerate() {
         let value = field.parse::<f64>().map_err(|error| {
-            format!("line {line_number}: column {} is not numeric: {error}", index + 1)
+            format!(
+                "line {line_number}: column {} is not numeric: {error}",
+                index + 1
+            )
         })?;
         if !value.is_finite() {
             return Err(format!(
@@ -495,11 +537,7 @@ fn parse_numeric_row(
     )?;
     let grid_level = u32::try_from(grid_level_value)
         .map_err(|_| format!("line {line_number}: GRID_LEVEL exceeds u32"))?;
-    let grid_size = integral_value(
-        values[1].expect("required field"),
-        "GRID_SIZE",
-        line_number,
-    )?;
+    let grid_size = integral_value(values[1].expect("required field"), "GRID_SIZE", line_number)?;
     if values[2].expect("required field") <= 0.0 {
         return Err(format!("line {line_number}: GRID_FAC must be positive"));
     }
@@ -516,8 +554,7 @@ fn parse_numeric_row(
                 "line {line_number}: row GRID_LEVEL {grid_level} disagrees with zone {zone_title}"
             ));
         }
-        Dpw8V5ZoneKind::Alpha(expected)
-            if (alpha_deg - expected).abs() > ALPHA_ZONE_TOLERANCE =>
+        Dpw8V5ZoneKind::Alpha(expected) if (alpha_deg - expected).abs() > ALPHA_ZONE_TOLERANCE =>
         {
             return Err(format!(
                 "line {line_number}: row ALPHA {alpha_deg} disagrees with zone {zone_title}"
@@ -558,12 +595,12 @@ fn insert_unique(
     line_number: usize,
 ) -> Result<(), String> {
     if key.trim().is_empty() {
-        return Err(format!("line {line_number}: {description} must not be empty"));
+        return Err(format!(
+            "line {line_number}: {description} must not be empty"
+        ));
     }
     if target.insert(key.clone(), value).is_some() {
-        return Err(format!(
-            "line {line_number}: duplicate {description} {key}"
-        ));
+        return Err(format!("line {line_number}: duplicate {description} {key}"));
     }
     Ok(())
 }
@@ -595,9 +632,12 @@ mod tests {
             dataset.dataset_auxiliary.get("DatasetStatus"),
             Some(&"synthetic_fixture_not_official".to_owned())
         );
-        assert!(dataset.zones.iter().all(|zone| {
-            zone.auxiliary.get("FixtureOnly") == Some(&"true".to_owned())
-        }));
+        assert!(
+            dataset
+                .zones
+                .iter()
+                .all(|zone| { zone.auxiliary.get("FixtureOnly") == Some(&"true".to_owned()) })
+        );
     }
 
     #[test]
@@ -605,7 +645,11 @@ mod tests {
         let dataset = parse_v5(FIXTURE).expect("valid fixture");
         let report = audit_v5(&dataset).expect("views reconcile");
         assert!(report.canonical_cells.iter().all(|cell| {
-            cell.row.values[9..].iter().filter(|value| value.is_none()).count() == 19
+            cell.row.values[9..]
+                .iter()
+                .filter(|value| value.is_none())
+                .count()
+                == 19
                 && cell.row.values[9..].iter().all(|value| *value != Some(0.0))
         }));
     }
@@ -637,11 +681,7 @@ mod tests {
 
     #[test]
     fn one_value_cross_view_mutation_is_rejected() {
-        let tampered = replace_first(
-            FIXTURE,
-            "0.70000000 0.01200000",
-            "0.70010000 0.01200000",
-        );
+        let tampered = replace_first(FIXTURE, "0.70000000 0.01200000", "0.70010000 0.01200000");
         let dataset = parse_v5(&tampered).expect("mutated file remains syntactically valid");
         let error = audit_v5(&dataset).expect_err("cross-view mismatch must fail");
         assert!(error.contains("cross-view mismatch"));
@@ -662,11 +702,7 @@ mod tests {
 
     #[test]
     fn zone_label_must_agree_with_each_row() {
-        let tampered = replace_first(
-            FIXTURE,
-            "SYNTHETIC GRID LEVEL 1",
-            "SYNTHETIC GRID LEVEL 2",
-        );
+        let tampered = replace_first(FIXTURE, "SYNTHETIC GRID LEVEL 1", "SYNTHETIC GRID LEVEL 2");
         let error = parse_v5(&tampered).expect_err("mislabelled zone must fail");
         assert!(error.contains("disagrees with zone"));
     }

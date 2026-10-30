@@ -7,8 +7,8 @@
 
 pub mod budget;
 pub mod comparison;
-pub mod dpw8_submission;
 pub mod coupon;
+pub mod dpw8_submission;
 pub mod integrity;
 pub mod reference_data;
 pub mod robustness;

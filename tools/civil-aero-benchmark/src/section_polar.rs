@@ -55,8 +55,7 @@ impl SectionPolarProvenance {
             source_revision: NASA_TMR_SOURCE_REVISION.to_owned(),
             declared_source_sha256: NASA_TMR_FORCE_SHA256_EXPECTED.to_owned(),
             source_condition:
-                "Ladson NASA TM 4074 (1988); Re=6 million; M=0.15; transition tripped"
-                    .to_owned(),
+                "Ladson NASA TM 4074 (1988); Re=6 million; M=0.15; transition tripped".to_owned(),
             evidence_level: "reference_data_diagnostic_not_3d_validation".to_owned(),
         }
     }
@@ -270,14 +269,18 @@ fn calculate_metrics(
     zone: &str,
 ) -> Result<ErrorMetrics, String> {
     if rows.is_empty() {
-        return Err(format!("zone {zone}: cannot calculate metrics for an empty partition"));
+        return Err(format!(
+            "zone {zone}: cannot calculate metrics for an empty partition"
+        ));
     }
     let errors: Vec<f64> = rows
         .iter()
         .map(|row| row.cd - fit.predict(row.cl))
         .collect();
     if errors.iter().any(|error| !error.is_finite()) {
-        return Err(format!("zone {zone}: residual calculation produced a non-finite value"));
+        return Err(format!(
+            "zone {zone}: residual calculation produced a non-finite value"
+        ));
     }
     let count = errors.len() as f64;
     let sum_abs = errors.iter().map(|error| error.abs()).sum::<f64>();
@@ -287,10 +290,7 @@ fn calculate_metrics(
         sample_count: errors.len(),
         mean_absolute_error: sum_abs / count,
         root_mean_square_error: (sum_square / count).sqrt(),
-        maximum_absolute_error: errors
-            .iter()
-            .map(|error| error.abs())
-            .fold(0.0, f64::max),
+        maximum_absolute_error: errors.iter().map(|error| error.abs()).fold(0.0, f64::max),
         mean_signed_error: sum_signed / count,
     };
     if [
@@ -302,13 +302,14 @@ fn calculate_metrics(
     .iter()
     .any(|value| !value.is_finite())
     {
-        return Err(format!("zone {zone}: summary metrics overflowed to a non-finite value"));
+        return Err(format!(
+            "zone {zone}: summary metrics overflowed to a non-finite value"
+        ));
     }
     Ok(metrics)
 }
 
-pub const SECTION_POLAR_CSV_HEADER: &str =
-    "model_version,dataset_id,declared_source_sha256,source_revision,source_condition,evidence_level,zone,observation_count,calibration_split,calibration_n,fit_cd0_section,fit_cd2_section_coefficient,calibration_mae,calibration_rmse,calibration_max_abs_error,calibration_mean_signed_error,intermediate_split,intermediate_n,intermediate_mae,intermediate_rmse,intermediate_max_abs_error,intermediate_mean_signed_error,high_angle_split,high_angle_n,high_angle_mae,high_angle_rmse,high_angle_max_abs_error,high_angle_mean_signed_error,min_source_line,max_source_line";
+pub const SECTION_POLAR_CSV_HEADER: &str = "model_version,dataset_id,declared_source_sha256,source_revision,source_condition,evidence_level,zone,observation_count,calibration_split,calibration_n,fit_cd0_section,fit_cd2_section_coefficient,calibration_mae,calibration_rmse,calibration_max_abs_error,calibration_mean_signed_error,intermediate_split,intermediate_n,intermediate_mae,intermediate_rmse,intermediate_max_abs_error,intermediate_mean_signed_error,high_angle_split,high_angle_n,high_angle_mae,high_angle_rmse,high_angle_max_abs_error,high_angle_mean_signed_error,min_source_line,max_source_line";
 
 pub fn report_to_csv(report: &SectionPolarReport) -> String {
     let mut output = format!("{SECTION_POLAR_CSV_HEADER}\n");
@@ -461,9 +462,7 @@ mod tests {
         let mut other_zone = synthetic_zone("B", 0.0);
         other_zone[0].source_line = duplicate_across_zones[0].source_line;
         duplicate_across_zones.extend(other_zone);
-        assert!(
-            audit_section_polar(&duplicate_across_zones, synthetic_provenance()).is_err()
-        );
+        assert!(audit_section_polar(&duplicate_across_zones, synthetic_provenance()).is_err());
 
         let mut nonfinite = synthetic_zone("A", 0.0);
         nonfinite[0].cd = f64::NAN;
@@ -500,8 +499,12 @@ mod tests {
             changed.zones[0].fitted_cd2_section_coefficient
         );
         assert_ne!(
-            baseline.zones[0].high_angle_extrapolation.root_mean_square_error,
-            changed.zones[0].high_angle_extrapolation.root_mean_square_error
+            baseline.zones[0]
+                .high_angle_extrapolation
+                .root_mean_square_error,
+            changed.zones[0]
+                .high_angle_extrapolation
+                .root_mean_square_error
         );
     }
 

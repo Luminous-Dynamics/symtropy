@@ -10,8 +10,7 @@ use std::collections::HashSet;
 const PROBABILITY_TOLERANCE: f64 = 1.0e-9;
 const VALUE_TOLERANCE: f64 = 1.0e-12;
 
-pub const EVSI_OUTPUT_HEADER: &str =
-    "problem_id,experiment_id,cost_units,remaining_budget_units,affordable,prior_best_decision_id,prior_best_expected_utility,expected_best_utility_after_observation,gross_evsi,net_evsi,outcome_count,decision_changing_outcomes,selected,evidence_level";
+pub const EVSI_OUTPUT_HEADER: &str = "problem_id,experiment_id,cost_units,remaining_budget_units,affordable,prior_best_decision_id,prior_best_expected_utility,expected_best_utility_after_observation,gross_evsi,net_evsi,outcome_count,decision_changing_outcomes,selected,evidence_level";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DecisionOption {

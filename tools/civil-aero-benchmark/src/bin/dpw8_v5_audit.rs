@@ -1,6 +1,6 @@
 use std::{env, fs, process};
 
-use civil_aero_benchmark::dpw8_submission::{audit_v5, parse_v5, V5_CSV_HEADER};
+use civil_aero_benchmark::dpw8_submission::{V5_CSV_HEADER, audit_v5, parse_v5};
 
 const DEFAULT_FIXTURE: &str = "data/dpw8/synthetic_two_view_fixture_v0.1.dat";
 
@@ -20,8 +20,7 @@ fn run() -> Result<(), String> {
         .first()
         .map(String::as_str)
         .unwrap_or(DEFAULT_FIXTURE);
-    let input = fs::read_to_string(path)
-        .map_err(|error| format!("cannot read {path}: {error}"))?;
+    let input = fs::read_to_string(path).map_err(|error| format!("cannot read {path}: {error}"))?;
     let dataset = parse_v5(&input)?;
     let report = audit_v5(&dataset)?;
     let source_evidence = if path == DEFAULT_FIXTURE {

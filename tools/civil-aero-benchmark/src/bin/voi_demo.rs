@@ -66,7 +66,10 @@ fn run() -> Result<(), String> {
         "prior_decision={} prior_expected_utility={:.6} selected_experiment={}",
         report.prior_best_decision_id,
         report.prior_best_expected_utility,
-        report.selected_experiment_id.as_deref().unwrap_or("abstain")
+        report
+            .selected_experiment_id
+            .as_deref()
+            .unwrap_or("abstain")
     );
     print!("{}", report_to_csv(&report));
     Ok(())

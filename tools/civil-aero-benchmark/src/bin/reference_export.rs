@@ -37,20 +37,12 @@ fn run() -> Result<(), String> {
 
     println!("{HEADER}");
     if dataset == "all" || dataset == "forces" {
-        let input = read(
-            "CLCD_Ladson_expdata.dat",
-            1343,
-            FORCE_SHA256,
-        )?;
+        let input = read("CLCD_Ladson_expdata.dat", 1343, FORCE_SHA256)?;
         let parsed = parse_ladson_force_data(&input)?;
         export_forces(&parsed.observations, parsed.dataset_id, FORCE_SHA256);
     }
     if dataset == "all" || dataset == "ladson-pressure" {
-        let input = read(
-            "CP_Ladson.dat",
-            6331,
-            LADSON_PRESSURE_SHA256,
-        )?;
+        let input = read("CP_Ladson.dat", 6331, LADSON_PRESSURE_SHA256)?;
         let parsed = parse_pressure_data(&input, "NASA-TMR-NACA0012-LADSON-PRESSURE")?;
         export_pressure(
             &parsed.observations,
@@ -59,11 +51,7 @@ fn run() -> Result<(), String> {
         );
     }
     if dataset == "all" || dataset == "gregory-pressure" {
-        let input = read(
-            "CP_Gregory_expdata.dat",
-            1608,
-            GREGORY_PRESSURE_SHA256,
-        )?;
+        let input = read("CP_Gregory_expdata.dat", 1608, GREGORY_PRESSURE_SHA256)?;
         let parsed = parse_pressure_data(&input, "NASA-TMR-NACA0012-GREGORY-PRESSURE")?;
         export_pressure(
             &parsed.observations,
