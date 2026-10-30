@@ -119,6 +119,7 @@ fn preflight<const D: usize>(
     let mut candidate_total = 0_usize;
     let mut max_candidates = 0_usize;
     let mut max_error = 0.0_f64;
+    let mut max_distance_error_bound = 0.0_f64;
     for (case, displacement) in corpus.iter().enumerate() {
         let result = lattice
             .minimum_image_displacement(displacement, MAX_CANDIDATES)
@@ -135,14 +136,18 @@ fn preflight<const D: usize>(
         candidate_total += result.candidates_evaluated;
         max_candidates = max_candidates.max(result.candidates_evaluated);
         max_error = max_error.max(error);
+        max_distance_error_bound =
+            max_distance_error_bound.max(result.nearest_distance_error_bound);
     }
     let mean_candidates = candidate_total / corpus.len().max(1);
     eprintln!(
-        "TRICLINIC_CVP_PREFLIGHT,v1,fixture={label},queries={},mean_candidates={},max_candidates={},max_error={:.6e},oracle_radius={ORACLE_RADIUS}",
+        "TRICLINIC_CVP_PREFLIGHT,v2,fixture={label},queries={},mean_candidates={},max_candidates={},max_error={:.6e},max_distance_error_bound={:.6e},inverse_residual_upper_bound={:.6e},oracle_radius={ORACLE_RADIUS}",
         corpus.len(),
         mean_candidates,
         max_candidates,
-        max_error
+        max_error,
+        max_distance_error_bound,
+        lattice.inverse_residual_upper_bound()
     );
     (mean_candidates, max_error)
 }
