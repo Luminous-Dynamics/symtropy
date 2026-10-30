@@ -19,8 +19,8 @@ use symtropy_math::{Point, Shape, Transform};
 use crate::support_map::{TransformedShape, WorldSupportMap};
 
 /// Maximum GJK iterations before giving up.
-/// Maximum number of support iterations before a GJK query terminates unresolved.
-pub const MAX_ITERATIONS: usize = 64;
+/// Maximum support iterations before a GJK query terminates unresolved.
+pub(crate) const MAX_ITERATIONS: usize = 64;
 
 /// Maximum simplex size: D+1 vertices. Cap at 5 (D=4).
 const MAX_SIMPLEX: usize = 5;
