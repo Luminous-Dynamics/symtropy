@@ -6,10 +6,10 @@
 //! dimension-generic form of the familiar 3D spatial inertia tensor, and it
 //! naturally couples rotation planes for asymmetric mass distributions.
 //!
-//! This module currently provides the forward inertia operator and energy
-//! calculation. It is not yet wired into RigidBody integration/contact; inverse
-//! application, gyroscopic evolution, and CAD-derived mass-property assembly
-//! remain separate validated implementation steps.
+//! This module provides forward and inverse inertia application, coordinate-
+//! frame rotation, and energy calculation. It is not yet wired into RigidBody
+//! integration/contact; gyroscopic evolution and CAD-derived mass-property
+//! assembly remain separate validated implementation steps.
 
 use nalgebra::{SMatrix, SVector};
 use symtropy_math::{Bivector, Rotor};
