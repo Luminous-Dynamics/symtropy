@@ -191,8 +191,8 @@ impl Report {
 }
 
 fn csv_escape(value: &str) -> String {
-    if value.chars().any(|ch| matches!(ch, ',' | '"' | '\\r' | '\\n')) {
-        format!("\\"{}\\"", value.replace('"', "\\"\\\"\\\""))
+    if value.chars().any(|ch| matches!(ch, ',' | '"' | '\r' | '\n')) {
+        format!("\"{}\"", value.replace('"', "\"\""))
     } else {
         value.to_string()
     }
@@ -321,10 +321,18 @@ fn classify(r: &Request) -> Report {
         measurement_id: m.id.clone(), part_id: m.part.clone(), lot_id: m.lot.clone(),
         specification_id: s.id.clone(), specification_revision: s.revision.clone(),
         uncertainty_budget_id: u.id.clone(), context_id: r.context.id.clone(),
+        decision_rule_id: r.context.decision_rule.clone(),
         decision_rule_revision: r.context.revision.clone(),
         measurand_id: m.measurand.clone(), unit: m.unit.clone(),
-        measured_at_ns: m.time_ns, instrument_id: m.instrument.clone(),
-        calibration_id: m.calibration.clone(), msa_study_id: u.msa_study.clone(),
+        operation_id: m.operation.clone(), measured_at_ns: m.time_ns,
+        instrument_id: m.instrument.clone(), calibration_id: m.calibration.clone(),
+        calibration_valid_from_ns: m.calibration_from_ns,
+        calibration_valid_until_ns: m.calibration_until_ns,
+        specification_effective_from_ns: s.effective_from_ns,
+        specification_effective_until_ns: s.effective_until_ns,
+        msa_study_id: u.msa_study.clone(), msa_qualified: u.msa_qualified,
+        uncertainty_revision: u.revision.clone(), uncertainty_part_scope: u.part_scope.clone(),
+        uncertainty_combination_method: u.combination_method.clone(),
         measurement_sha256: m.source_sha256.clone(), specification_sha256: s.source_sha256.clone(),
         uncertainty_sha256: u.source_sha256.clone(),
         calibration_sha256: r.provenance.calibration_sha256.clone(),
@@ -603,6 +611,14 @@ mod tests {
 
     #[test]
     fn unit_scaling_and_uncertainty_monotonicity_hold() { verify().unwrap(); }
+
+    #[test]
+    fn CSV_escaping_preserves_identifiers_with_delimiters() {
+        let mut r = request(15.0, 1.0);
+        r.measurement.id = "MEAS,0001\nBAD".into();
+        let row = classify(&r).csv_row();
+        assert!(row.starts_with("\"MEAS,0001\nBAD\",PART-0001,LOT-0001"));
+    }
 
     #[test]
     fn deterministic_report_bytes() {
