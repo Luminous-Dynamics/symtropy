@@ -68,6 +68,8 @@ C*(alpha) = min { C : (C,R) is on the frontier and R <= alpha }.
 
 If no frontier point satisfies alpha, return an explicit infeasible result. Never silently relax alpha. Publishing the whole frontier is required; a single selected operating point is not enough to understand the trade-off.
 
+The v1 frontier enumerates deterministic, non-randomized adaptive policies. This restriction must be explicit: under an expected-risk constraint, ex-ante randomization among complete policy trees can convexify the deterministic frontier and may change the optimum for a given alpha. Report the deterministic frontier as the primary exact reference; if randomized mixtures are added, report the convexified frontier separately with its own policy and execution semantics. Do not silently mix the two policy classes.
+
 This objective uses the Bayesian prior in the declared model. SIM-REL-007's prior-free worst-case comparator remains separate; a future robust risk frontier can optimize over a set of priors or hazard maps.
 
 ## 4. State and algorithm requirements
