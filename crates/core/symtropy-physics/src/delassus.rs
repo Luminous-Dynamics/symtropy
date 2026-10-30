@@ -760,6 +760,36 @@ mod tests {
     }
 
     #[test]
+    fn delassus_reference_rejects_body_inertia_mass_mismatch() {
+        let mut body_a =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        body_a.set_rotational_inertia_operator(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                2.0,
+                SVector::new(1.0, 0.8, 0.6),
+            )
+            .unwrap(),
+        );
+        let body_b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let bodies = vec![body_a, body_b];
+        let rows = vec![FrictionlessContactRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::zeros(),
+            normal: SVector::new(1.0, 0.0, 0.0),
+        }];
+
+        assert_eq!(
+            assemble_delassus(&bodies, &rows, 1e-12).unwrap_err(),
+            DelassusAssemblyError::RotationalInertia(
+                crate::inertia::RotationalInertiaError::MassMismatch
+            )
+        );
+    }
+
+    #[test]
     fn assembler_enforces_eight_row_reference_limit() {
         let bodies = vec![
             RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0),
