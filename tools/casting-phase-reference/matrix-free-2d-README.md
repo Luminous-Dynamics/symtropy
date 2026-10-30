@@ -33,7 +33,7 @@ The test-only dense builder independently enumerates the 5-point stencil and Gau
     /tmp/matrix-free-2d --verify
     /tmp/matrix-free-2d --csv
 
-The CSV storage estimate includes eight f64 fields and one byte per cell. It is a transparent working-array estimate, not measured peak RSS.
+The CSV storage estimate includes eight f64 fields (operator gamma, RHS, solution, residual, diagonal, preconditioned residual, search direction and stencil output). It excludes caller-side input storage and runtime metadata. It is a transparent working-array estimate, not measured peak RSS. The PCG workspace is reused between iterations; the validation scan is performed once before the iteration loop.
 
 ## Next steps
 
