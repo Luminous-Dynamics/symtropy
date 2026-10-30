@@ -26,7 +26,7 @@ Safe alternatives terminate with an explicit stage-specific rejection or cancell
 
 ## What this does not prove
 
-This is a **consistency auditor**, not yet a cryptographic proof of provenance. It cannot establish that logs are truthful, correctly signed, durably retained, or emitted from the actual hardware boundary. Production qualification must add authenticated event capture, append-only/digest-bound storage, an independent native application witness, restart/rollback fault injection, and hardware-in-the-loop trials. Native controller admission is not physical application evidence; missing physical application evidence must remain explicitly unobserved.
+This is a **consistency auditor**, not yet a cryptographic proof of provenance. It cannot establish that logs are truthful, correctly signed, durably retained, or emitted from the actual hardware boundary. Production qualification must define canonical payload/configuration digest generation, add authenticated event capture, append-only/digest-bound storage, an independent native application witness, restart/rollback fault injection, and hardware-in-the-loop trials. Native controller admission is not physical application evidence; missing physical application evidence must remain explicitly unobserved.
 
 ## Industry comparison and benchmark plan
 
