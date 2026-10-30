@@ -254,6 +254,21 @@ mod tests {
     }
 
     #[test]
+    fn full_256_function_universe_visits_all_partial_observation_states() {
+        let input = (0u16..=255)
+            .map(|signature| Hypothesis {
+                signature: signature as u8,
+                prior_weight: 1.0,
+            })
+            .collect::<Vec<_>>();
+        let costs = [8, 7, 6, 5, 4, 3, 2, 1];
+        let result = solve_exact(&input, &costs, 10_000).unwrap();
+        assert_eq!(result.memoized_states, 3usize.pow(8) - 2usize.pow(8));
+        assert_eq!(result.expected_cost, costs.iter().map(|cost| f64::from(*cost)).sum::<f64>());
+        assert_eq!(result.first_action, Some(0));
+    }
+
+    #[test]
     fn singleton_is_a_zero_cost_leaf() {
         let input = hypotheses(&[173], &[0.25]);
         let result = solve_exact(&input, &[1; ACTIONS], 10_000).unwrap();
