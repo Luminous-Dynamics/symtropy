@@ -30,3 +30,18 @@ The paper explicitly reports that interface error can be zero by construction wh
 ## Claim ceiling
 
 This is an independent 1D reimplementation from published equations. It is not a port or reproduction of the authors' supplementary MATLAB implementation, not physical foundry validation, not an alloy model, and not a production-qualified solver.
+
+
+## First exact-head curve and literature gap
+
+The first five-level campaign has now been frozen separately as `flag-update-1d-expected.csv` and is compared byte-for-byte in the dedicated workflow.
+
+At N=768, Nt=1152 the Rust implementation reports:
+- mean absolute temperature-field error: 7.310334766222e-4 °C;
+- RMS temperature error: 5.781491776676e-3 °C;
+- mean absolute interpolated interface error: 4.827953511591e-4 m;
+- final-time interface error: 5.890537227409e-4 m;
+- average flag iterations: 1.18663194;
+- relative global energy residual: 1.015445146377e-12.
+
+The published Peters et al. (2025) Table 6 reports 1.961e-5 °C and 8.919e-5 m for the same named N/Nt configuration. This independent implementation therefore does **not** yet reproduce the published accuracy (about 37.3× field error and 5.4× interface error). The dedicated internal checks validate the Rust code against its own discretized equations, not the paper's MATLAB implementation. See [CASTING-PHASE-001G #2965](https://github.com/Luminous-Dynamics/symtropy/issues/2965) for the one-step reproduction audit. No superiority claim is made.
