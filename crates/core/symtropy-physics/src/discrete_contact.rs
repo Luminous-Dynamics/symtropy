@@ -39,6 +39,8 @@ pub enum ContactLcpError {
     InvalidDimension,
     /// A contact row references an invalid or identical body pair.
     InvalidContactRow,
+    /// A contact row normal differs from unit length beyond 1e-10.
+    NonUnitNormal,
     /// A body index is outside the supplied generalized-coordinate layout.
     InvalidBodyIndex,
 }
@@ -127,7 +129,7 @@ pub fn validate_delassus(
 pub struct ContactJacobianSpec<const D: usize> {
     pub body_a: usize,
     pub body_b: usize,
-    /// Contact normal pointing from body A toward body B.
+    /// Unit contact normal pointing from body A toward body B.
     pub normal: SVector<f64, D>,
     /// World-space lever arm from body A's center of mass to the contact point.
     pub offset_a: SVector<f64, D>,
@@ -139,6 +141,8 @@ pub struct ContactJacobianSpec<const D: usize> {
 ///
 /// The row maps concatenated generalized velocity blocks (v, B) to the
 /// relative normal point velocity n dot (v_b - v_a - B_b*r_b + B_a*r_a).
+/// Contact normals must be unit length within 1e-10; they are never silently
+/// normalized because that would change the impulse and effective-mass units.
 /// The angular coefficients follow Rotor's exp(-B) convention and therefore
 /// use the physical point velocity -B*r. No mass metric is applied here.
 #[allow(clippy::needless_range_loop)]
@@ -173,8 +177,15 @@ pub fn build_contact_jacobian<const D: usize>(
         {
             return Err(ContactLcpError::NonFinite);
         }
-        if row.normal.norm() <= 1e-15 {
+        let normal_norm = row.normal.norm();
+        if !normal_norm.is_finite() {
+            return Err(ContactLcpError::NonFinite);
+        }
+        if normal_norm <= 1e-15 {
             return Err(ContactLcpError::InvalidContactRow);
+        }
+        if (normal_norm - 1.0).abs() > 1e-10 {
+            return Err(ContactLcpError::NonUnitNormal);
         }
 
         let base_a = row.body_a * dofs_per_body;
@@ -393,7 +404,8 @@ mod tests {
     #[test]
     #[allow(clippy::needless_range_loop)]
     fn four_dimensional_contact_jacobian_covers_all_six_bivector_planes() {
-        let normal = SVector::new(1.0, 2.0, 3.0, 4.0);
+        let raw_normal = SVector::new(1.0, 2.0, 3.0, 4.0);
+        let normal = raw_normal / raw_normal.norm();
         let offset_a = SVector::new(2.0, 3.0, 5.0, 7.0);
         let offset_b = SVector::new(-1.0, 4.0, -2.0, 6.0);
         let row = ContactJacobianSpec {
@@ -443,6 +455,18 @@ mod tests {
         assert_eq!(
             build_contact_jacobian::<3>(2, &[zero_normal]),
             Err(ContactLcpError::InvalidContactRow)
+        );
+
+        let non_unit_normal = ContactJacobianSpec {
+            body_a: 0,
+            body_b: 1,
+            normal: SVector::new(2.0, 0.0, 0.0),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::zeros(),
+        };
+        assert_eq!(
+            build_contact_jacobian::<3>(2, &[non_unit_normal]),
+            Err(ContactLcpError::NonUnitNormal)
         );
     }
 
