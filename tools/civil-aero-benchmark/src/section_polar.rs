@@ -197,9 +197,9 @@ pub fn audit_section_polar(
         }
 
         let fit = fit_polar(&calibration, &zone)?;
-        let calibration_metrics = calculate_metrics(&calibration, fit);
-        let intermediate_metrics = calculate_metrics(&intermediate, fit);
-        let high_angle_metrics = calculate_metrics(&high_angle, fit);
+        let calibration_metrics = calculate_metrics(&calibration, fit, &zone)?;
+        let intermediate_metrics = calculate_metrics(&intermediate, fit, &zone)?;
+        let high_angle_metrics = calculate_metrics(&high_angle, fit, &zone)?;
         let minimum_source_line = rows
             .iter()
             .map(|row| row.source_line)
@@ -264,16 +264,26 @@ fn fit_polar(rows: &[&ForceObservation], zone: &str) -> Result<Fit, String> {
     Ok(Fit { intercept, slope })
 }
 
-fn calculate_metrics(rows: &[&ForceObservation], fit: Fit) -> ErrorMetrics {
+fn calculate_metrics(
+    rows: &[&ForceObservation],
+    fit: Fit,
+    zone: &str,
+) -> Result<ErrorMetrics, String> {
+    if rows.is_empty() {
+        return Err(format!("zone {zone}: cannot calculate metrics for an empty partition"));
+    }
     let errors: Vec<f64> = rows
         .iter()
         .map(|row| row.cd - fit.predict(row.cl))
         .collect();
+    if errors.iter().any(|error| !error.is_finite()) {
+        return Err(format!("zone {zone}: residual calculation produced a non-finite value"));
+    }
     let count = errors.len() as f64;
     let sum_abs = errors.iter().map(|error| error.abs()).sum::<f64>();
     let sum_square = errors.iter().map(|error| error.powi(2)).sum::<f64>();
     let sum_signed = errors.iter().sum::<f64>();
-    ErrorMetrics {
+    let metrics = ErrorMetrics {
         sample_count: errors.len(),
         mean_absolute_error: sum_abs / count,
         root_mean_square_error: (sum_square / count).sqrt(),
@@ -282,7 +292,19 @@ fn calculate_metrics(rows: &[&ForceObservation], fit: Fit) -> ErrorMetrics {
             .map(|error| error.abs())
             .fold(0.0, f64::max),
         mean_signed_error: sum_signed / count,
+    };
+    if [
+        metrics.mean_absolute_error,
+        metrics.root_mean_square_error,
+        metrics.maximum_absolute_error,
+        metrics.mean_signed_error,
+    ]
+    .iter()
+    .any(|value| !value.is_finite())
+    {
+        return Err(format!("zone {zone}: summary metrics overflowed to a non-finite value"));
     }
+    Ok(metrics)
 }
 
 pub const SECTION_POLAR_CSV_HEADER: &str =
