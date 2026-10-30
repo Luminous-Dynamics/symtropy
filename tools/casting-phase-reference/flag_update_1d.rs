@@ -688,11 +688,14 @@ mod tests {
             let gamma = gamma_for_flag(flags[node], alpha_s, alpha_l).unwrap();
             let fixed_s = fixed_latent_for_flag(flags[node], latent_density).unwrap();
             a[row][node - 1] = gamma + 2.0 * r;
+            // The dense oracle retains S_i as an explicit unknown in the PDE row.
+            // Its fixed value belongs only in the separate constraint row below;
+            // subtracting it here would double-count the latent contribution.
             if node == 1 {
-                b[row] = e_old[node] - fixed_s.unwrap_or(0.0) + r * wall;
+                b[row] = e_old[node] + r * wall;
             } else {
                 a[row][node - 2] = if node == intervals { -2.0 * r } else { -r };
-                b[row] = e_old[node] - fixed_s.unwrap_or(0.0);
+                b[row] = e_old[node];
             }
             if node < intervals {
                 a[row][node] = -r;
