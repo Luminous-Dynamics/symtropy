@@ -46,19 +46,33 @@ pub enum QuantityPolicy {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RegionGraphError {
     InvalidDimension,
-    InvalidRegion { field: &'static str },
-    DuplicateRegion { id: RegionId },
-    UnknownRegion { id: RegionId },
-    DuplicateInterface { id: InterfaceId },
-    UnknownInterface { id: InterfaceId },
+    InvalidRegion {
+        field: &'static str,
+    },
+    DuplicateRegion {
+        id: RegionId,
+    },
+    UnknownRegion {
+        id: RegionId,
+    },
+    DuplicateInterface {
+        id: InterfaceId,
+    },
+    UnknownInterface {
+        id: InterfaceId,
+    },
     EmptyInterfacePath,
     DisconnectedInterfacePath {
         previous_target: RegionId,
         next_source: RegionId,
     },
     SelfInterface,
-    InvalidBoundary { field: &'static str },
-    InvalidMap { field: &'static str },
+    InvalidBoundary {
+        field: &'static str,
+    },
+    InvalidMap {
+        field: &'static str,
+    },
     SingularMap,
     InverseRequired,
     InverseMismatch,
@@ -86,8 +100,7 @@ impl fmt::Display for RegionGraphError {
             } => write!(
                 f,
                 "interface path is disconnected: {} does not match {}",
-                previous_target.0,
-                next_source.0
+                previous_target.0, next_source.0
             ),
             Self::SelfInterface => write!(f, "region interface must connect distinct region IDs"),
             Self::InvalidBoundary { field } => {
@@ -1656,11 +1669,7 @@ mod tests {
         assert_eq!(receipt.momentum_after, SVector::from([4.0, 0.0]));
         assert!((receipt.kinetic_energy_before - 1.0).abs() < 1e-12);
         assert!((receipt.kinetic_energy_after - 4.0).abs() < 1e-12);
-        assert!((receipt.kinetic_energy_after
-            - receipt.kinetic_energy_before
-            - 3.0)
-            .abs()
-            < 1e-12);
+        assert!((receipt.kinetic_energy_after - receipt.kinetic_energy_before - 3.0).abs() < 1e-12);
     }
 
     #[test]
@@ -1901,15 +1910,8 @@ mod tests {
         .unwrap();
         graph.add_interface(first).unwrap();
 
-        let second_linear =
-            SMatrix::<f64, 2, 2>::from_diagonal(&SVector::from([2.0, 1.0]));
-        let second_map = AffineRegionMap::new(
-            second_linear,
-            SVector::zeros(),
-            1.5,
-            2.0,
-        )
-        .unwrap();
+        let second_linear = SMatrix::<f64, 2, 2>::from_diagonal(&SVector::from([2.0, 1.0]));
+        let second_map = AffineRegionMap::new(second_linear, SVector::zeros(), 1.5, 2.0).unwrap();
         let second = RegionInterface::new(
             InterfaceId(21),
             RegionId(2),
@@ -1950,8 +1952,7 @@ mod tests {
                 < 1e-12
         );
         assert!(
-            (path.map.map_time(7.0).unwrap() - second_map.map_time(7.0).unwrap()).abs()
-                < 1e-12
+            (path.map.map_time(7.0).unwrap() - second_map.map_time(7.0).unwrap()).abs() < 1e-12
         );
 
         assert_eq!(
@@ -1970,31 +1971,23 @@ mod tests {
     #[test]
     fn affine_map_composition_matches_sequential_position_velocity_and_clock() {
         let first_linear = SMatrix::<f64, 2, 2>::new(2.0, 0.0, 0.0, 1.0);
-        let first = AffineRegionMap::new(
-            first_linear,
-            SVector::from([1.0, -2.0]),
-            2.0,
-            3.0,
-        )
-        .unwrap();
+        let first =
+            AffineRegionMap::new(first_linear, SVector::from([1.0, -2.0]), 2.0, 3.0).unwrap();
         let second_linear = SMatrix::<f64, 2, 2>::new(0.0, -1.0, 1.0, 0.0);
-        let second = AffineRegionMap::new(
-            second_linear,
-            SVector::from([4.0, 5.0]),
-            0.5,
-            -1.0,
-        )
-        .unwrap();
+        let second =
+            AffineRegionMap::new(second_linear, SVector::from([4.0, 5.0]), 0.5, -1.0).unwrap();
 
         let composed = first.then(&second).unwrap();
         let position = SVector::from([3.0, 4.0]);
         let velocity = SVector::from([2.0, -3.0]);
         let time = 11.0;
 
-        let sequential_position =
-            second.map_position(&first.map_position(&position).unwrap()).unwrap();
-        let sequential_velocity =
-            second.map_velocity(&first.map_velocity(&velocity).unwrap()).unwrap();
+        let sequential_position = second
+            .map_position(&first.map_position(&position).unwrap())
+            .unwrap();
+        let sequential_velocity = second
+            .map_velocity(&first.map_velocity(&velocity).unwrap())
+            .unwrap();
         let sequential_time = second.map_time(first.map_time(time).unwrap()).unwrap();
 
         assert!((composed.map_position(&position).unwrap() - sequential_position).norm() < 1e-12);
