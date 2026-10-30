@@ -98,7 +98,10 @@ Pin engine version, scene assets, timestep, collision margins, solver settings, 
 ### Current baselines as of 2026-10-30
 
 - **MuJoCo 3.17.0 (2026-10-22):** the `discrete` integrator (introduced in 3.13) merges constraints and implicit velocity updates in the shared effective metric \\(\\widehat M=M+hD+h^2K\\). In 3.17 it is also used for flex bending; the 3.14 IPC experiment is frictionless and limited to 2D flexes, with contact multipliers not fully represented by saved state. MuJoCo 3.17 adds `mjbatch`: many simulations of one model share a thread pool, and results are documented as bit-identical to a serial loop at any thread count. Benchmark `implicitfast` and `discrete` separately; include batch throughput and replay fidelity. Do not describe the discrete metric as a Symtropy novelty.
-- **Rapier 0.36.1 (2026-10-10):** the current 2D/3D release includes soft bodies. The Q3 2026 engineering report describes a reworked parallel execution model with intra-island parallelism, persistent graph coloring, and parallel broad phase. Record iteration counts, internal PGS/stabilization iterations, warm starts, CCD policy, and parallelism. The documented 0.36 guide uses four default solver iterations and suggests 8–12 for demanding stacks/machinery; these are engine-specific defaults, not equivalent error tolerances.
+- **Rapier 0.36.1 (2026-10-10):** the current 2D/3D release includes soft bodies. Q3 2026 describes intra-island parallel solving, persistent graph coloring, and parallel broad phase; Dimforge reports up to 2x single-thread and 4x multi-thread improvement over its previous Rapier version on an M4 Max with eight workers (not a cross-engine comparison). The documented 0.36 guide uses four default solver iterations and suggests 8–12 for demanding stacks/machinery. Record iteration counts, PGS/stabilization, warm starts, CCD policy, and parallelism; defaults are not equivalent error tolerances.
+- **ComFree-Sim (2026, arXiv:2603.12185):** a serious alternative to global complementarity solves. It predicts smooth velocity, then computes analytical dual-cone impedance corrections per contact and per polyhedral cone face; its 6D model includes tangential, torsional and rolling friction. On an AMD 32-core + RTX 4090 setup, its paper reports near-linear contact-count scaling, about 3x speed in a dense-contact sweep, and about 2x throughput in batched Allegro-hand environments versus MJWarp. This is a workload-specific published result, not a universal engine ranking: their contact-count benchmark uses 512 environments, 750 steps and dt=0.002 s, impedance parameters affect penetration, and the authors note the method often benefits from a smaller timestep than MJWarp. Benchmark its decoupling, polyhedral-cone and impedance choices explicitly.
+- **Dimforge Nexus 0.7 / Physmark:** Nexus is a Rust-authored GPU engine with AoSoA-style data layout and Soft-TGS. Dimforge reports a 505,000-body rigid-body pyramid at about 14 ms/frame on an RTX 5080, without sleeping-island optimization. Physmark separates large rigid-body scenes, many parallel robot environments and MPM workloads, and stores replayable video captures. Treat these as important GPU scale/workload comparators, but reproduce on matched hardware, scenes and fidelity metrics rather than comparing the 5080 result directly to CPU runs.
+- **Differentiable contact is a separate quality axis:** ICLR 2026 DiffMJX combines adaptive time integration with backward-only contacts-from-distance gradients to improve hard-contact gradient usefulness without altering the forward physical contact result. Bundled Contact Gradients uses local randomized smoothing around stiff-contact configurations and reports zero-shot transfer to a Unitree G1. Compare these on gradient accuracy/variance and policy transfer—not as substitutes for forward-contact accuracy.
 - **PhysX 5.8:** include TGS and PGS separately. NVIDIA documents TGS as its recommended direction, using time substeps and reporting better convergence, high-mass-ratio handling, joint-drive accuracy, and high-frequency response than PGS. Record position/velocity iteration and friction-patch settings.
 - **Newton:** include for GPU and differentiable robotics workloads. It is built on Warp/OpenUSD, developed by NVIDIA, Google DeepMind and Disney Research, and can use MuJoCo Warp. It is not a direct apples-to-apples baseline for a Rust, CPU-first, dimension-generic core; compare on matched robotics/contact workloads where the backend and precision are supported.
 - **Project Chrono 10.0.0 (2026-03-27):** use for engineering/multiphysics comparisons, not game-engine frame-time claims. Relevant capabilities include FSI, peridynamics, checkpointing, and implicit-integrator Jacobian update strategies.
@@ -108,12 +111,14 @@ Pin engine version, scene assets, timestep, collision margins, solver settings, 
 1. **Mathematical oracle:** for 1–8 row islands, use exhaustive active-set enumeration or an independently implemented KKT/LCP reference. For free rigid bodies, use high-accuracy ODE integration and conservation laws. Engines are comparators, not ground truth.
 2. **Matched-quality work curves:** sweep timestep, solver tolerance/iteration budget, island size and scene stiffness. Plot state/contact error, invariant drift and residual against total CPU/GPU time. Report p50/p95 latency, memory and allocation count. A faster run with larger physical error is not a win.
 3. **Reproducibility:** replay identical inputs across 1/2/4/8 threads, repeated process runs, and supported CPU architectures. First require bit-identical replay for a pinned compiler/architecture/thread-count contract; then quantify cross-architecture divergence separately. Do not conflate deterministic quantization with deterministic execution.
-4. **Scaling:** measure both many independent islands and one large coupled island. Report speedup and parallel efficiency as core count rises. This specifically tests whether Symtropy can match Rapier's intra-island scaling rather than only parallelizing disconnected stacks.
-5. **Failure reporting:** invalid/singular inertia, ill-conditioned islands, infeasible constraints, CCD misses, non-finite state and exhausted solve budgets must be explicit outcomes. Do not convert them into zero impulses or silently omit them from aggregate metrics.
+4. **Scaling:** cover three different regimes: large rigid-body worlds (10k/100k/500k bodies), many small parallel environments (256/512/1k/4k), and one large coupled island with dense contact. Measure independent-island throughput and intra-island parallel efficiency separately. Compare CPU and GPU backends on matched hardware; record memory use, allocations and synchronization overhead as well as step time.
+5. **Friction and contact fidelity:** compare penetration distributions, sliding/sticking transitions, torsional/rolling resistance, contact-work and energy drift across dt, stiffness/impedance and friction sweeps. Include ComFree-style decoupled dual-cone candidates and coupled LCP baselines; never compare throughput without matching physical tolerances.
+6. **Differentiable workloads:** only for engines exposing gradients, report finite-difference gradient error, gradient variance near contact-mode changes, useful pre-contact gradient coverage, and policy/task transfer. Keep backward estimator metrics separate from forward physical fidelity.
+7. **Failure reporting:** invalid/singular inertia, ill-conditioned islands, infeasible constraints, CCD misses, non-finite state and exhausted solve budgets must be explicit outcomes. Do not convert them into zero impulses or silently omit them from aggregate metrics.
 
 ### Competitive hypothesis and evidence threshold
 
-The plausible Symtropy differentiation is a *dimension-generic, auditable mechanics core* with an independently checked effective-mass solve, attributable physical-work residuals, and reproducible execution. This is not yet an advantage. A credible win requires at least one of:
+The plausible Symtropy differentiation is a *dimension-generic, auditable solver portfolio*: exact small-island references and coupled corrections where needed; an optional decoupled dual-cone/impedance fast path for contact-rich throughput; residual-triggered escalation between them; attributable physical-work accounting; and deterministic, replayable receipts. This is a research hypothesis, not a novelty claim or an advantage today. A credible win requires at least one of:
 
 - lower physical error at the same compute budget on a frozen target set;
 - lower compute cost at the same error and failure rate;
@@ -146,6 +151,20 @@ Use an inexpensive diagonal/block approximation to precondition a more accurate 
 
 Keep D-dimensional translational and bivector rotational mechanics in the same algebraic API. Verify D=2, 3, 4, then test randomized higher dimensions for algebraic consistency. Do not confuse generic compilation with evidence of correct or efficient high-D simulation.
 
+### 6.5 Solver portfolio: exact where coupled, analytical where decoupled
+
+Keep the small-island LCP as an oracle and a fallback for strongly coupled or ill-conditioned islands. In parallel, prototype a ComFree-inspired dual-cone impedance update that solves each contact and cone facet analytically. Do not silently substitute one for the other. The fast path must report primal friction-cone violation, penetration, contact work, energy defect, and an estimate of off-diagonal coupling between contacts. Escalate to a coupled block/LCP solve when any declared defect or coupling threshold is exceeded. Commit only after the selected path passes its independent checks.
+
+The decisive benchmark is not just speed: compare decoupled and coupled solutions against one another and a higher-precision oracle on stacks, shared-body multi-contact, redundant rows, torsional/rolling friction, high mass ratios, and contact-order permutations. Measure the error/throughput frontier and worst-case tail latency.
+
+### 6.6 Keep forward physics and backward gradients separate
+
+A physically credible forward contact solver need not provide useful gradients at contact-mode changes. Prototype backward-only estimators (distance-based straight-through gradients or local randomized smoothing) as separate modes, inspired by DiffMJX and Bundled Contact Gradients. The forward state transition remains governed by the declared physical solver. Measure finite-difference gradient error, gradient variance, pre-contact gradient coverage, and sim-to-real task transfer independently.
+
+### 6.7 Memory layout and batched execution are algorithmic concerns
+
+Benchmark AoSoA/SoA layouts, deterministic contact sorting, stable segmented reductions, and batched world stepping. Target both large single worlds and thousands of small environments. A GPU kernel that is fast for independent pairs but requires costly global synchronization can still lose on one large island; report those regimes separately.
+
 ## 7. Required receipts
 
 Each run must persist:
@@ -168,7 +187,8 @@ Do not replace the existing solver based on a clean demo. Promotion requires:
 2. cross-path impulse/effective-mass identity passes;
 3. contact and friction campaigns meet frozen physical tolerances;
 4. high-spin and CCD adversarial suite reports no misses;
-5. matched-work performance is competitive with the pinned MuJoCo/Rapier baselines;
-6. the new path does not regress legacy scenes or determinism/replay contracts.
+5. matched-work performance is competitive with pinned MuJoCo/Rapier/PhysX/Nexus and ComFree-style reference baselines; and
+6. the hybrid/portfolio switch demonstrates a repeatable accuracy-throughput win without violating its certification envelope;
+7. the new path does not regress legacy scenes or determinism/replay contracts.
 
 Until then this remains an isolated research implementation and benchmark campaign.
