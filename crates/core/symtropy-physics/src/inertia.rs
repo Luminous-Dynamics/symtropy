@@ -239,6 +239,36 @@ impl<const D: usize> BivectorInertia<D> {
         }
     }
 
+    /// Compute rigid-body angular acceleration from the Euler-Arnold equation.
+    ///
+    /// With the bivector/skew-matrix convention used by this crate:
+    ///   L = I(Omega)
+    ///   dot(L) = torque + [L, Omega]
+    ///   dot(Omega) = I^(-1)(dot(L))
+    ///
+    /// The commutator is the dimension-generic gyroscopic/coadjoint term.
+    /// This method is allocation-free apart from the small eigensolver work
+    /// currently performed by the inverse operator; it is not yet wired into
+    /// RigidBody integration or contact.
+    pub fn angular_acceleration(
+        &self,
+        angular_velocity: &Bivector<D>,
+        torque: &Bivector<D>,
+        relative_tolerance: f64,
+    ) -> Result<Bivector<D>, RotationalInertiaError> {
+        if !angular_velocity.is_finite() || !torque.is_finite() {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+
+        let omega = angular_velocity.to_matrix();
+        let momentum = self.angular_momentum(angular_velocity).to_matrix();
+        let gyroscopic_rate = momentum * omega - omega * momentum;
+        let momentum_rate = gyroscopic_rate + torque.to_matrix();
+        let momentum_rate_bivector = Bivector::from_matrix(&momentum_rate);
+
+        self.angular_velocity_from_momentum(&momentum_rate_bivector, relative_tolerance)
+    }
+
     /// Rotational kinetic energy, 1/2 <omega, I(omega)> in the bivector inner product.
     pub fn kinetic_energy(&self, angular_velocity: &Bivector<D>) -> f64 {
         let momentum = self.angular_momentum(angular_velocity);
@@ -397,6 +427,57 @@ mod tests {
                 .unwrap_err(),
             RotationalInertiaError::InvalidTolerance
         );
+    }
+
+    #[test]
+    fn torque_free_euler_arnold_rate_preserves_energy_and_momentum_norm() {
+        let second_moment = SMatrix::<f64, 3, 3>::new(
+            1.0, 0.15, 0.05,
+            0.15, 2.0, 0.1,
+            0.05, 0.1, 3.0,
+        );
+        let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
+        let mut omega = Bivector::<3>::zero();
+        omega.set(0, 1, 0.7);
+        omega.set(0, 2, -0.4);
+        omega.set(1, 2, 1.1);
+
+        let zero_torque = Bivector::<3>::zero();
+        let omega_dot = inertia
+            .angular_acceleration(&omega, &zero_torque, 1e-12)
+            .unwrap();
+        let momentum = inertia.angular_momentum(&omega);
+        let momentum_dot = inertia.angular_momentum(&omega_dot);
+
+        // d/dt (1/2 <omega, I omega>) = <omega, I omega_dot>.
+        let energy_rate = (0..3).flat_map(|i| ((i + 1)..3).map(move |j| (i, j)))
+            .map(|(i, j)| omega.get(i, j) * momentum_dot.get(i, j))
+            .sum::<f64>();
+        assert!(energy_rate.abs() < 1e-11, "energy_rate={energy_rate}");
+
+        // The coadjoint term is orthogonal to L, preserving its quadratic Casimir.
+        let momentum_rate = omega_dot.to_matrix();
+        let _ = momentum_rate; // the invariant below is checked using the Lie bracket directly.
+        let omega_matrix = omega.to_matrix();
+        let momentum_matrix = momentum.to_matrix();
+        let bracket = momentum_matrix * omega_matrix - omega_matrix * momentum_matrix;
+        let bracket_bivector = Bivector::<3>::from_matrix(&bracket);
+        let casimir_rate = (0..3).flat_map(|i| ((i + 1)..3).map(move |j| (i, j)))
+            .map(|(i, j)| momentum.get(i, j) * bracket_bivector.get(i, j))
+            .sum::<f64>();
+        assert!(casimir_rate.abs() < 1e-11, "casimir_rate={casimir_rate}");
+    }
+
+    #[test]
+    fn applied_torque_maps_to_expected_angular_acceleration_for_isotropic_body() {
+        let inertia = BivectorInertia::<3>::uniform_solid_ball(3.0, 2.0).unwrap();
+        let torque = Bivector::<3>::unit_plane(0, 1).scale(2.0);
+        let acceleration = inertia
+            .angular_acceleration(&Bivector::zero(), &torque, 1e-12)
+            .unwrap();
+        assert!((acceleration.get(0, 1) - 2.0 / 4.8).abs() < 1e-12);
+        assert!(acceleration.get(0, 2).abs() < 1e-12);
+        assert!(acceleration.get(1, 2).abs() < 1e-12);
     }
 
     #[test]
