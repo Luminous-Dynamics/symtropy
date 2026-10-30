@@ -1,5 +1,6 @@
 use std::{env, fs, process};
 
+use civil_aero_benchmark::integrity::verify_source_bytes;
 use civil_aero_benchmark::reference_data::{
     ForceObservation, PressureObservation, parse_ladson_force_data, parse_pressure_data,
 };
@@ -36,12 +37,20 @@ fn run() -> Result<(), String> {
 
     println!("{HEADER}");
     if dataset == "all" || dataset == "forces" {
-        let input = read("CLCD_Ladson_expdata.dat")?;
+        let input = read(
+            "CLCD_Ladson_expdata.dat",
+            1343,
+            FORCE_SHA256,
+        )?;
         let parsed = parse_ladson_force_data(&input)?;
         export_forces(&parsed.observations, parsed.dataset_id, FORCE_SHA256);
     }
     if dataset == "all" || dataset == "ladson-pressure" {
-        let input = read("CP_Ladson.dat")?;
+        let input = read(
+            "CP_Ladson.dat",
+            6331,
+            LADSON_PRESSURE_SHA256,
+        )?;
         let parsed = parse_pressure_data(&input, "NASA-TMR-NACA0012-LADSON-PRESSURE")?;
         export_pressure(
             &parsed.observations,
@@ -50,7 +59,11 @@ fn run() -> Result<(), String> {
         );
     }
     if dataset == "all" || dataset == "gregory-pressure" {
-        let input = read("CP_Gregory_expdata.dat")?;
+        let input = read(
+            "CP_Gregory_expdata.dat",
+            1608,
+            GREGORY_PRESSURE_SHA256,
+        )?;
         let parsed = parse_pressure_data(&input, "NASA-TMR-NACA0012-GREGORY-PRESSURE")?;
         export_pressure(
             &parsed.observations,
@@ -61,9 +74,13 @@ fn run() -> Result<(), String> {
     Ok(())
 }
 
-fn read(name: &str) -> Result<String, String> {
-    fs::read_to_string(format!("data/reference/nasa-tmr/{name}"))
-        .map_err(|error| format!("cannot read pinned reference data {name}: {error}"))
+fn read(name: &str, expected_length: usize, expected_sha256: &str) -> Result<String, String> {
+    let path = format!("data/reference/nasa-tmr/{name}");
+    let bytes = fs::read(&path)
+        .map_err(|error| format!("cannot read pinned reference data {name}: {error}"))?;
+    verify_source_bytes(&bytes, name, expected_length, expected_sha256)?;
+    String::from_utf8(bytes)
+        .map_err(|error| format!("pinned reference data {name} is not UTF-8: {error}"))
 }
 
 fn csv_escape(value: &str) -> String {
