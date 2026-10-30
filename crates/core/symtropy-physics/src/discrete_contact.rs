@@ -112,6 +112,36 @@ pub fn validate_delassus(
     Ok(())
 }
 
+/// Assemble the Delassus operator W = J * M_eff^-1 * J^T.
+///
+/// Each row of jacobian maps generalized velocity coordinates to one scalar
+/// normal velocity. inverse_effective_mass is the symmetric positive-
+//
+/// semidefinite inverse generalized effective-mass metric in those same
+/// coordinates. The returned matrix is explicitly symmetrized only after the
+/// raw product passes the requested symmetry and PSD checks.
+pub fn assemble_delassus(
+    jacobian: &DMatrix<f64>,
+    inverse_effective_mass: &DMatrix<f64>,
+    relative_tolerance: f64,
+) -> Result<DMatrix<f64>, ContactLcpError> {
+    if jacobian.nrows() == 0
+        || jacobian.ncols() == 0
+        || inverse_effective_mass.nrows() != jacobian.ncols()
+        || inverse_effective_mass.ncols() != jacobian.ncols()
+    {
+        return Err(ContactLcpError::DimensionMismatch);
+    }
+    if !jacobian.iter().all(|value| value.is_finite()) {
+        return Err(ContactLcpError::NonFinite);
+    }
+    validate_delassus(inverse_effective_mass, relative_tolerance)?;
+
+    let raw = jacobian * inverse_effective_mass * jacobian.transpose();
+    validate_delassus(&raw, relative_tolerance)?;
+    Ok((raw.clone() + raw.transpose()) * 0.5)
+}
+
 /// Recompute unilateral contact KKT residuals from a candidate impulse vector.
 ///
 /// A feasible solution requires lambda >= 0, W*lambda+q >= 0, and
@@ -246,6 +276,29 @@ pub fn solve_normal_contact_lcp_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn assembles_delassus_from_generalized_jacobian_and_mass_metric() {
+        let jacobian = DMatrix::from_row_slice(2, 2, &[1.0, 0.0, 1.0, 1.0]);
+        let inverse_mass = DMatrix::from_diagonal(&DVector::from_row_slice(&[1.0, 2.0]));
+        let delassus = assemble_delassus(&jacobian, &inverse_mass, 1e-12).unwrap();
+
+        assert!((delassus[(0, 0)] - 1.0).abs() < 1e-12);
+        assert!((delassus[(0, 1)] - 1.0).abs() < 1e-12);
+        assert!((delassus[(1, 0)] - 1.0).abs() < 1e-12);
+        assert!((delassus[(1, 1)] - 3.0).abs() < 1e-12);
+        validate_delassus(&delassus, 1e-12).unwrap();
+    }
+
+    #[test]
+    fn delassus_assembly_rejects_invalid_generalized_mass_metric() {
+        let jacobian = DMatrix::identity(2, 2);
+        let invalid_inverse_mass = DMatrix::from_row_slice(2, 2, &[1.0, 0.0, 0.0, -1.0]);
+        assert_eq!(
+            assemble_delassus(&jacobian, &invalid_inverse_mass, 1e-12),
+            Err(ContactLcpError::NotPositiveSemidefinite)
+        );
+    }
 
     #[test]
     fn one_row_contact_matches_analytical_impulse() {
