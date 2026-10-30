@@ -176,6 +176,95 @@
       "license_review": "pending",
       "parser_review": "pending",
       "admission_status": "schema_discovered_template_bytes_not_pinned"
+    },
+    {
+      "source_id": "DPW8-2025-IISc-SU2-01401-V1A-FORCEMOMENT-V5",
+      "kind": "participant_submitted_steady_aerodynamic_results",
+      "upstream_repository": "Drag-Prediction-Workshop/DPW8-Buffet",
+      "upstream_commit": "4d7582633a2bed4f4fe1fe933af9a9b6f3e2ae43",
+      "path": "TestCase1a/014_IISc/01_SU2_Symmetric_BC/DPW8-AePW4_ForceMoment_v5.dat",
+      "git_blob_sha1": "d843a46a1a286272463d79515cb810d5b7dda69b",
+      "immutable_url": "https://github.com/Drag-Prediction-Workshop/DPW8-Buffet/blob/4d7582633a2bed4f4fe1fe933af9a9b6f3e2ae43/TestCase1a/014_IISc/01_SU2_Symmetric_BC/DPW8-AePW4_ForceMoment_v5.dat",
+      "data_sha256": null,
+      "byte_length": null,
+      "terms_review": "pending; no root-level LICENSE was found at the pinned repository revision; no blanket reuse/redistribution permission inferred",
+      "admission_status": "participant_output_discovered_not_retained_terms_pending_anomaly_flagged",
+      "participant_id": "014.01",
+      "institution": "Indian Institute of Science",
+      "solver": "SU2 8.0.1 Harrier",
+      "basic_algorithm": "RANS",
+      "turbulence_model": "SA Edwards-Chandra",
+      "grid_id": "Hybrid",
+      "boundary_condition_note": "symmetric boundary condition is applied",
+      "reference_case": "ONERA OAT15A V1a",
+      "conditions": {
+        "mach": 0.73,
+        "reynolds_number_per_chord": 3000000,
+        "static_temperature_kelvin": 271,
+        "alpha_deg": [
+          1.36,
+          1.5,
+          2.5,
+          3,
+          3.1
+        ]
+      },
+      "grid_levels": [
+        {
+          "level": 1,
+          "grid_size": 47187
+        },
+        {
+          "level": 2,
+          "grid_size": 89616
+        },
+        {
+          "level": 3,
+          "grid_size": 150333
+        },
+        {
+          "level": 4,
+          "grid_size": 235491
+        }
+      ],
+      "representation_reconciliation": {
+        "raw_numeric_rows": 40,
+        "grid_level_view_rows": 20,
+        "angle_view_rows": 20,
+        "unique_grid_level_angle_cells": 20,
+        "all_20_cross_view_cells_match_exactly": true,
+        "interpretation": "The version-5 file lists the same 20 grid/angle results once grouped by grid level and once grouped by angle. Treat the two blocks as alternate views, not 40 independent observations."
+      },
+      "unresolved_anomaly": {
+        "status": "unresolved_do_not_correct_or_drop",
+        "grid_view_source_line": 134,
+        "alpha_view_source_line": 194,
+        "grid_level": 3,
+        "grid_size": 150333,
+        "alpha_deg": 3.1,
+        "cl": 0.81306463,
+        "cd": 0.01460769,
+        "cm": -0.13340253,
+        "suspicious_duplicate": {
+          "grid_view_source_line": 131,
+          "alpha_view_source_line": 164,
+          "alpha_deg": 1.5,
+          "cl": 0.81306462,
+          "cd": 0.01460768,
+          "cm": -0.13751499
+        },
+        "neighboring_alpha_3_1_results": {
+          "level_2": {
+            "cl": 0.92194924,
+            "cd": 0.0376464
+          },
+          "level_4": {
+            "cl": 0.95262443,
+            "cd": 0.03820128
+          }
+        },
+        "notes": "The alpha=3.1 grid-level-3 CL/CD pair is effectively identical to the grid-level-3 alpha=1.5 pair despite materially different angles. It is also a large discontinuity from adjacent grid levels. This is an anomaly requiring participant/workgroup adjudication; the available source does not establish its cause."
+      }
     }
   ],
   "admission_gates": [
