@@ -305,7 +305,7 @@ mod tests {
 
     #[test]
     fn shifted_enthalpy_has_liquid_mixed_and_solid_branches() {
-        let c=Case::published(48).validate().unwrap();
+        assert!(Case::published(48).validate().is_ok());
         let latent=RHO*LATENT;
         let (tl,fl)=invert(1.0e6).unwrap();
         let (tm,fm)=invert(-0.5*latent).unwrap();
