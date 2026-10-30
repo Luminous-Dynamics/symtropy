@@ -39,15 +39,63 @@ pub struct ZonePolarReport {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct SectionPolarProvenance {
+    pub dataset_id: String,
+    pub source_revision: String,
+    /// Expected digest from the source manifest. The caller must independently hash bytes.
+    pub declared_source_sha256: String,
+    pub source_condition: String,
+    pub evidence_level: String,
+}
+
+impl SectionPolarProvenance {
+    pub fn nasa_tmr_ladson() -> Self {
+        Self {
+            dataset_id: "NASA-TMR-NACA0012-LADSON-FORCES".to_owned(),
+            source_revision: NASA_TMR_SOURCE_REVISION.to_owned(),
+            declared_source_sha256: NASA_TMR_FORCE_SHA256_EXPECTED.to_owned(),
+            source_condition:
+                "Ladson NASA TM 4074 (1988); Re=6 million; M=0.15; transition tripped"
+                    .to_owned(),
+            evidence_level: "reference_data_diagnostic_not_3d_validation".to_owned(),
+        }
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        for (name, value) in [
+            ("dataset_id", self.dataset_id.as_str()),
+            ("source_revision", self.source_revision.as_str()),
+            ("source_condition", self.source_condition.as_str()),
+            ("evidence_level", self.evidence_level.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                return Err(format!("section-polar provenance {name} must not be empty"));
+            }
+        }
+        if self.declared_source_sha256.len() != 64
+            || !self
+                .declared_source_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit())
+        {
+            return Err(
+                "section-polar provenance declared_source_sha256 must be 64 hex characters"
+                    .to_owned(),
+            );
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct SectionPolarReport {
     pub model_version: &'static str,
-    pub source_dataset_id: &'static str,
-    pub source_revision: &'static str,
-    /// Expected digest from the pinned repository source manifest. The caller must run the
-    /// independent byte-check before treating the input as the pinned source artifact.
-    pub declared_source_sha256: &'static str,
-    pub source_condition: &'static str,
-    pub evidence_level: &'static str,
+    pub source_dataset_id: String,
+    pub source_revision: String,
+    /// Declared digest only. The caller must independently hash the raw file.
+    pub declared_source_sha256: String,
+    pub source_condition: String,
+    pub evidence_level: String,
     pub calibration_split: &'static str,
     pub intermediate_split: &'static str,
     pub high_angle_split: &'static str,
@@ -72,13 +120,15 @@ impl Fit {
 /// so repeated runs cannot silently tune the test set.
 pub fn audit_section_polar(
     observations: &[ForceObservation],
+    provenance: SectionPolarProvenance,
 ) -> Result<SectionPolarReport, String> {
+    provenance.validate()?;
     if observations.is_empty() {
         return Err("section-polar audit requires at least one observation".to_owned());
     }
 
     let mut zones = BTreeMap::<String, Vec<ForceObservation>>::new();
-    let mut source_keys = HashSet::<(String, usize)>::new();
+    let mut source_lines = HashSet::<usize>::new();
     for observation in observations {
         if observation.zone.trim().is_empty() {
             return Err(format!(
@@ -99,11 +149,10 @@ pub fn audit_section_polar(
         if observation.source_line == 0 {
             return Err("source line numbers must be one-based".to_owned());
         }
-        let key = (observation.zone.clone(), observation.source_line);
-        if !source_keys.insert(key) {
+        if !source_lines.insert(observation.source_line) {
             return Err(format!(
-                "duplicate source line {} within zone {}",
-                observation.source_line, observation.zone
+                "duplicate source line {} across the source file",
+                observation.source_line
             ));
         }
         zones
@@ -177,11 +226,11 @@ pub fn audit_section_polar(
 
     Ok(SectionPolarReport {
         model_version: SECTION_POLAR_MODEL_VERSION,
-        source_dataset_id: "NASA-TMR-NACA0012-LADSON-FORCES",
-        source_revision: NASA_TMR_SOURCE_REVISION,
-        declared_source_sha256: NASA_TMR_FORCE_SHA256_EXPECTED,
-        source_condition: "Ladson NASA TM 4074 (1988); Re=6 million; M=0.15; transition tripped",
-        evidence_level: "reference_data_diagnostic_not_3d_validation",
+        source_dataset_id: provenance.dataset_id,
+        source_revision: provenance.source_revision,
+        declared_source_sha256: provenance.declared_source_sha256,
+        source_condition: provenance.source_condition,
+        evidence_level: provenance.evidence_level,
         calibration_split: "|alpha_deg| <= 8.5",
         intermediate_split: "8.5 < |alpha_deg| <= 16.5",
         high_angle_split: "|alpha_deg| > 16.5",
@@ -290,6 +339,16 @@ fn csv_escape(value: &str) -> String {
 mod tests {
     use super::*;
 
+    fn synthetic_provenance() -> SectionPolarProvenance {
+        SectionPolarProvenance {
+            dataset_id: "synthetic-section-polar-fixture".to_owned(),
+            source_revision: "synthetic-fixture".to_owned(),
+            declared_source_sha256: "0".repeat(64),
+            source_condition: "synthetic unit-test observations".to_owned(),
+            evidence_level: "synthetic_fixture_not_validation".to_owned(),
+        }
+    }
+
     fn observation(zone: &str, line: usize, alpha: f64, cl: f64, cd: f64) -> ForceObservation {
         ForceObservation {
             zone: zone.to_owned(),
@@ -333,7 +392,7 @@ mod tests {
     fn recovers_known_empirical_section_polar_without_pooling_zones() {
         let mut rows = synthetic_zone("A", 0.0);
         rows.extend(synthetic_zone("B", 0.003));
-        let report = audit_section_polar(&rows).expect("valid synthetic zones");
+        let report = audit_section_polar(&rows, synthetic_provenance()).expect("valid synthetic zones");
         assert_eq!(report.zones.len(), 2);
         assert_eq!(report.zones[0].zone, "A");
         assert_eq!(report.zones[1].zone, "B");
@@ -352,7 +411,8 @@ mod tests {
             observation("A", 2, 0.0, 0.0, 0.01),
             observation("A", 3, 2.0, 0.2, 0.011),
         ];
-        assert!(audit_section_polar(&only_low).is_err());
+        assert!(audit_section_polar(&only_low, synthetic_provenance()).is_err());
+        assert!(audit_section_polar(&[], synthetic_provenance()).is_err());
     }
 
     #[test]
@@ -364,30 +424,38 @@ mod tests {
             observation("A", 4, 10.0, 0.3, 0.02),
             observation("A", 5, 17.0, 0.4, 0.03),
         ];
-        assert!(audit_section_polar(&rows).is_err());
+        assert!(audit_section_polar(&rows, synthetic_provenance()).is_err());
     }
 
     #[test]
     fn duplicate_source_line_and_nonfinite_values_are_rejected() {
         let mut duplicate = synthetic_zone("A", 0.0);
         duplicate[1].source_line = duplicate[0].source_line;
-        assert!(audit_section_polar(&duplicate).is_err());
+        assert!(audit_section_polar(&duplicate, synthetic_provenance()).is_err());
+
+        let mut duplicate_across_zones = synthetic_zone("A", 0.0);
+        let mut other_zone = synthetic_zone("B", 0.0);
+        other_zone[0].source_line = duplicate_across_zones[0].source_line;
+        duplicate_across_zones.extend(other_zone);
+        assert!(
+            audit_section_polar(&duplicate_across_zones, synthetic_provenance()).is_err()
+        );
 
         let mut nonfinite = synthetic_zone("A", 0.0);
         nonfinite[0].cd = f64::NAN;
-        assert!(audit_section_polar(&nonfinite).is_err());
+        assert!(audit_section_polar(&nonfinite, synthetic_provenance()).is_err());
     }
 
     #[test]
     fn heldout_perturbations_cannot_change_calibration_fit() {
         let mut rows = synthetic_zone("A", 0.0);
-        let baseline = audit_section_polar(&rows).expect("baseline report");
+        let baseline = audit_section_polar(&rows, synthetic_provenance()).expect("baseline report");
         let high_angle_index = rows
             .iter()
             .position(|row| row.alpha_deg > INTERMEDIATE_MAX_ABS_ALPHA_DEG)
             .expect("high angle row");
         rows[high_angle_index].cd = 0.9;
-        let changed = audit_section_polar(&rows).expect("changed holdout");
+        let changed = audit_section_polar(&rows, synthetic_provenance()).expect("changed holdout");
         assert_eq!(
             baseline.zones[0].fitted_cd0_section,
             changed.zones[0].fitted_cd0_section
@@ -403,13 +471,21 @@ mod tests {
     }
 
     #[test]
+    fn invalid_provenance_is_rejected() {
+        let rows = synthetic_zone("A", 0.0);
+        let mut provenance = synthetic_provenance();
+        provenance.declared_source_sha256 = "not-a-digest".to_owned();
+        assert!(audit_section_polar(&rows, provenance).is_err());
+    }
+
+    #[test]
     fn deterministic_csv_keeps_the_2d_evidence_boundary_explicit() {
         let rows = synthetic_zone("A", 0.0);
-        let report = audit_section_polar(&rows).expect("report");
+        let report = audit_section_polar(&rows, synthetic_provenance()).expect("report");
         let first = report_to_csv(&report);
         assert_eq!(first, report_to_csv(&report));
-        assert!(first.contains("reference_data_diagnostic_not_3d_validation"));
+        assert!(first.contains("synthetic_fixture_not_validation"));
         assert!(first.contains("declared_source_sha256"));
-        assert!(first.contains("NASA-TMR-NACA0012-LADSON-FORCES"));
+        assert!(first.contains("synthetic-section-polar-fixture"));
     }
 }
