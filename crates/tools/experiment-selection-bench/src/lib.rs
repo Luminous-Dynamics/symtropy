@@ -168,6 +168,15 @@ pub struct Observation {
     pub status: ObservationStatus,
 }
 
+impl ObservationStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Completed => "completed",
+            Self::InvalidProposal => "invalid_proposal",
+        }
+    }
+}
+
 impl Observation {
     pub fn penalized_reward(self) -> f64 {
         self.objective - 4.0 * self.constraint_violation
@@ -221,7 +230,7 @@ pub enum PolicyKind {
 }
 
 impl PolicyKind {
-    pub const ALL: [Self; 4] = [
+    pub const ALL: [Self; 5] = [
         Self::Random,
         Self::Sobol,
         Self::Halton,
@@ -433,6 +442,7 @@ pub fn make_policy(kind: PolicyKind, seed: u64, budget: usize) -> Box<dyn Candid
 pub struct TrialResult {
     pub problem: ProblemId,
     pub policy: PolicyKind,
+    pub policy_name: String,
     pub seed: u64,
     pub budget: usize,
     pub initial_design_size: usize,
@@ -495,6 +505,7 @@ pub fn run_trial_with_policy(
         "initial design cannot exceed the total budget"
     );
     assert!(!policy.name().trim().is_empty(), "policy name must be non-empty");
+    let policy_name = policy.name().to_string();
 
     let started = Instant::now();
     let design = initial_design(seed, initial_design_size);
@@ -561,6 +572,7 @@ pub fn run_trial_with_policy(
     TrialResult {
         problem: problem.id,
         policy: policy_kind,
+        policy_name,
         seed,
         budget,
         initial_design_size,
@@ -723,6 +735,7 @@ fn comparison_seed(
             PolicyKind::Halton => 3,
             PolicyKind::LatinHypercube => 4,
             PolicyKind::GaussianProcessUcb => 5,
+            PolicyKind::Symthaea => 6,
         }
     }
     let problem_code = match problem {
@@ -791,10 +804,10 @@ pub fn summarize(results: &[TrialResult]) -> Vec<SummaryStats> {
 pub fn render_receipts(source_sha: &str, results: &[TrialResult]) -> String {
     let mut output = String::new();
     output.push_str(
-        "EXPERIMENT_TRIAL,v1,source_sha,problem,policy,seed,budget,initial_design,calls,best_feasible_observed,best_feasible_truth,final_regret,cumulative_simple_regret,infeasible_calls,elapsed_nanos\n",
+        "EXPERIMENT_TRIAL,v1,source_sha,problem,policy,policy_name,seed,budget,initial_design,proposal_attempts,completed_evaluations,invalid_proposals,infeasible_calls,best_feasible_observed,best_feasible_truth,final_regret,cumulative_simple_regret,elapsed_nanos\n",
     );
     output.push_str(
-        "EXPERIMENT_OBSERVATION,v1,source_sha,problem,policy,seed,index,x,y,objective,feasible,violation,sigma,simple_regret\n",
+        "EXPERIMENT_OBSERVATION,v1,source_sha,problem,policy,seed,index,x,y,objective,status,feasible,violation,sigma,simple_regret\n",
     );
     for result in results {
         let observed = result
@@ -806,16 +819,19 @@ pub fn render_receipts(source_sha: &str, results: &[TrialResult]) -> String {
             .map(|value| format!("{value:.12e}"))
             .unwrap_or_else(|| "none".to_string());
         output.push_str(&format!(
-            "EXPERIMENT_TRIAL,v1,{source_sha},{},{},{},{},{},{},{observed},{truth},{:.12e},{:.12e},{},{}\n",
+            "EXPERIMENT_TRIAL,v1,{source_sha},{},{},{},{},{},{},{},{},{},{},{observed},{truth},{:.12e},{:.12e},{}\n",
             result.problem.as_str(),
             result.policy.as_str(),
+            result.policy_name,
             result.seed,
             result.budget,
             result.initial_design_size,
-            result.high_fidelity_calls(),
+            result.proposal_attempts,
+            result.completed_evaluations,
+            result.invalid_proposals,
+            result.infeasible_calls,
             result.final_regret,
             result.cumulative_simple_regret,
-            result.infeasible_calls,
             result.elapsed_nanos
         ));
         for (index, (observation, simple_regret)) in result
@@ -825,7 +841,7 @@ pub fn render_receipts(source_sha: &str, results: &[TrialResult]) -> String {
             .enumerate()
         {
             output.push_str(&format!(
-                "EXPERIMENT_OBSERVATION,v1,{source_sha},{},{},{},{},{:.12e},{:.12e},{:.12e},{},{:.12e},{:.12e},{:.12e}\n",
+                "EXPERIMENT_OBSERVATION,v1,{source_sha},{},{},{},{},{:.12e},{:.12e},{:.12e},{},{},{:.12e},{:.12e},{:.12e}\n",
                 result.problem.as_str(),
                 result.policy.as_str(),
                 result.seed,
@@ -833,6 +849,7 @@ pub fn render_receipts(source_sha: &str, results: &[TrialResult]) -> String {
                 observation.point[0],
                 observation.point[1],
                 observation.objective,
+                observation.status.as_str(),
                 observation.feasible,
                 observation.constraint_violation,
                 observation.sigma,
