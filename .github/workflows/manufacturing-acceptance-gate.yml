@@ -4,8 +4,10 @@ on:
   pull_request:
     paths:
       - "research/transformer-bench/src/bin/manufacturing-acceptance.rs"
+      - "research/transformer-bench/src/bin/manufacturing-robustness-evidence.rs"
       - "research/transformer-bench/fixtures/manufacturing-*.csv"
       - "research/transformer-bench/MANUFACTURING_ACCEPTANCE_GATE.md"
+      - "research/transformer-bench/MANUFACTURING_ROBUSTNESS_EVIDENCE.md"
       - "research/transformer-bench/Cargo.toml"
       - ".github/workflows/manufacturing-acceptance-gate.yml"
   workflow_dispatch:
@@ -71,3 +73,10 @@ jobs:
             research/transformer-bench/fixtures/manufacturing-measurements-indeterminate-negative.csv \
             "$RUNNER_TEMP/indeterminate.csv"
           grep -F "TX-PROD-001,TX-2026-0001,ROUTE-2026-A,true,0,0,4,3,0,1,0,0,0,false,REQUIRED_MEASUREMENTS_NOT_PASSING" "$RUNNER_TEMP/indeterminate.csv"
+      - name: Validate robust acquisition evidence envelope
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-robustness-evidence -- \
+            research/transformer-bench/fixtures/manufacturing-robustness-evidence-synthetic.csv \
+            "$RUNNER_TEMP/robustness-candidates.csv"
+          grep -F "TX-CAND-REP-001,0.95000000,0.05000000,0.00200000,125.00000000,USD_2026,true,ELIGIBLE," "$RUNNER_TEMP/robustness-candidates.csv"
+          grep -F "TX-CAND-OOD-002,0.08000000,0.91000000,0.01000000,95.00000000,USD_2026,true,ELIGIBLE," "$RUNNER_TEMP/robustness-candidates.csv"
