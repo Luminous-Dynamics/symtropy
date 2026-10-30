@@ -263,12 +263,7 @@ mod tests {
     use super::*;
 
     fn assert_uniform_ball_inertia<const D: usize>(expected: f64) {
-        let body = RigidBody::<D>::dynamic_sphere(
-            BodyHandle(0),
-            Point::origin(),
-            2.0,
-            3.0,
-        );
+        let body = RigidBody::<D>::dynamic_sphere(BodyHandle(0), Point::origin(), 2.0, 3.0);
         for (axis, value) in body.inertia.iter().enumerate() {
             assert!(
                 (*value - expected).abs() < 1e-12,
