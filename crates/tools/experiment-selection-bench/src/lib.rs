@@ -16,7 +16,7 @@
 use std::f64::consts::TAU;
 use std::time::Instant;
 
-const GP_NOISE_VARIANCE: f64 = 0.01;
+const GP_NOISE_VARIANCE: f64 = 0.000225;
 const GP_LENGTH_SCALE: f64 = 0.22;
 const GP_UCB_BETA: f64 = 1.5;
 const GP_CANDIDATE_COUNT: usize = 512;
@@ -904,7 +904,11 @@ pub fn summarize(results: &[TrialResult]) -> Vec<SummaryStats> {
                 .map(|result| result.elapsed_nanos as f64)
                 .sum::<f64>()
                 / count as f64;
-            let median_regret = group[count / 2].final_regret;
+            let median_regret = if count % 2 == 0 {
+                (group[count / 2 - 1].final_regret + group[count / 2].final_regret) * 0.5
+            } else {
+                group[count / 2].final_regret
+            };
             let p90_index = ((count as f64 * 0.9).ceil() as usize)
                 .saturating_sub(1)
                 .min(count - 1);
