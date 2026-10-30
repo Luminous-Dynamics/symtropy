@@ -38,6 +38,17 @@ The first optimizes efficiency under a predeclared reference world while requiri
 
 Report the nondominated policy set and explicit projections over (C_nominal, R_worst), (C_worst, R_worst), and identification probability. Preserve the full per-model vectors in receipts so a projection cannot hide which model is worst.
 
+The robust summaries are defined as follows for a finite set of complete worlds:
+
+- robust campaign risk: R_robust(pi) = max_m R_m(pi);
+- worst-case expected cost: C_worst(pi) = max_m C_m(pi);
+- reference-model expected cost: C_nominal(pi) = C_m0(pi), for a predeclared m0;
+- worst-case identification probability: I_worst(pi) = min_m I_m(pi).
+
+For a rational polytope Q over complete-world mixture weights q, replace the finite maximum by the support function: R_Q(pi) = max_{q in Q} sum_m q_m R_m(pi), and analogously for cost. Preserve the extreme-point or LP witness in the receipt.
+
+A correct solver state is not one averaged posterior. It is the common observable history plus the unused-action mask and a model-indexed vector of conditional hypothesis masses (including an explicit zero-likelihood marker for a model incompatible with that history). All models must apply the same selected action at that history. Each safe outcome creates a child history with model-specific conditional updates; no latent model identity is supplied to the policy. This state representation is required to prevent a hidden-model oracle and to preserve cross-world correlation.
+
 ## 3. Global versus rectangular ambiguity: two different adversaries
 
 The primary reference is **globally persistent / non-rectangular**: one complete model m governs the entire campaign. Observations may change the set of compatible models, but nature cannot switch to another physical model independently after every branch.
