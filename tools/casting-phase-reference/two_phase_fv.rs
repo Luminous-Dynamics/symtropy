@@ -330,6 +330,13 @@ mod tests {
     }
 
     #[test]
+    fn short_domain_is_rejected_by_far_boundary_adequacy_gate() {
+        let mut c=Case::published(48);
+        c.length=1.0;
+        assert!(solve(c).is_err());
+    }
+
+    #[test]
     fn invalid_physical_and_numerical_inputs_reject() {
         let mut c=Case::published(48); c.cfl=0.5; assert!(c.validate().is_err());
         let mut c=Case::published(48); c.length=0.01; assert!(c.validate().is_err());
