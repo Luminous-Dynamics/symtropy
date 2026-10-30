@@ -1,0 +1,43 @@
+name: Maintenance Tier-A reference
+
+on:
+  pull_request:
+    paths:
+      - "tools/symtropy-maintenance-tier-a/**"
+      - ".github/workflows/maintenance-tier-a.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/symtropy-maintenance-tier-a/**"
+      - ".github/workflows/maintenance-tier-a.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tier-a:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert exact source revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/symtropy-maintenance-tier-a/Cargo.toml --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/symtropy-maintenance-tier-a/Cargo.toml --all-targets --locked -- -D warnings
+
+      - name: Run deterministic Tier-A tests
+        run: cargo test --manifest-path tools/symtropy-maintenance-tier-a/Cargo.toml --locked
