@@ -805,7 +805,13 @@ struct ComposedEvidence {
     association_valid_from_ns: i64,
     association_valid_until_ns: i64,
     mtconnect_document_sha256: String,
+    mtconnect_schema_identifier: String,
+    mtconnect_schema_bundle_sha256: String,
+    mtconnect_validation_receipt_sha256: String,
     qif_document_sha256: String,
+    qif_schema_identifier: String,
+    qif_schema_bundle_sha256: String,
+    qif_validation_receipt_sha256: String,
     association_receipt_sha256: String,
     qif_source_locator: String,
     cycle_source_document_id: String,
@@ -831,7 +837,14 @@ impl ComposedEvidence {
             self.combined_clock_uncertainty_ns.to_string(),
             csv_escape(&self.association_receipt_id), csv_escape(&self.association_authority_id),
             self.association_valid_from_ns.to_string(), self.association_valid_until_ns.to_string(),
-            self.mtconnect_document_sha256.clone(), self.qif_document_sha256.clone(),
+            self.mtconnect_document_sha256.clone(),
+            csv_escape(&self.mtconnect_schema_identifier),
+            self.mtconnect_schema_bundle_sha256.clone(),
+            self.mtconnect_validation_receipt_sha256.clone(),
+            self.qif_document_sha256.clone(),
+            csv_escape(&self.qif_schema_identifier),
+            self.qif_schema_bundle_sha256.clone(),
+            self.qif_validation_receipt_sha256.clone(),
             self.association_receipt_sha256.clone(), csv_escape(&self.cycle_source_document_id),
             self.cycle_source_document_sha256.clone(), csv_escape(&self.qif_source_locator),
             csv_escape(&self.cycle_source_locator), derived_value, derived_unit, transform_revision,
@@ -972,7 +985,13 @@ fn join_qif_to_cycle(
             association_valid_from_ns: association.valid_from_ns,
             association_valid_until_ns: association.valid_until_ns,
             mtconnect_document_sha256: stream.document_sha256.clone(),
+            mtconnect_schema_identifier: stream.schema_identifier.clone(),
+            mtconnect_schema_bundle_sha256: stream.schema_bundle_sha256.clone(),
+            mtconnect_validation_receipt_sha256: stream.validation_receipt_sha256.clone(),
             qif_document_sha256: qif_source.document_sha256.clone(),
+            qif_schema_identifier: qif_source.schema.schema_identifier.clone(),
+            qif_schema_bundle_sha256: qif_source.schema.schema_bundle_sha256.clone(),
+            qif_validation_receipt_sha256: qif_source.schema.validation_receipt_sha256.clone(),
             association_receipt_sha256: association.source_sha256.clone(),
             qif_source_locator: result.source_locator.clone(),
             cycle_source_document_id: cycle.source_document_id.clone(),
@@ -1211,7 +1230,8 @@ fn verify() -> Result<(), String> {
     let composed_row = composed.csv_row();
     for expected in ["QIF-UUID-001", "PLAN-001", "FEATURE-CYLINDER-01", "CMM-01",
         "ASSOC-001", "MES-QUALITY-LINKER-01", "MES-DOC-001", &cycle.source_document_sha256,
-        &mt.document_sha256, &qif.document_sha256] {
+        &mt.document_sha256, &mt.schema.schema_bundle_sha256, &mt.schema.validation_receipt_sha256,
+        &qif.document_sha256, &qif.schema.schema_bundle_sha256, &qif.schema.validation_receipt_sha256] {
         if !composed_row.contains(expected) {
             return Err("COMPOSED_EVIDENCE_RECEIPT_INCOMPLETE".into());
         }
@@ -1263,7 +1283,7 @@ fn emit_joined_csv() -> Result<(), String> {
     let joined = join_qif_to_cycle(&stream, &cycle, &qif, &result, &association,
         1_750_000_800, Some(&transform));
     let evidence = joined.composed.ok_or(joined.reason)?;
-    println!("cycle_id,part_id,lot_id,operation_id,qif_document_uuid,qif_result_id,measurement_plan_id,characteristic_id,feature_id,instrument_resource_id,specification_id,specification_revision,actual_value,original_unit,source_measured_at_ns,measured_at_reference_ns,reference_clock_id,measurement_clock_mapping_sha256,cycle_clock_mapping_sha256,combined_clock_uncertainty_ns,association_receipt_id,association_authority_id,association_valid_from_ns,association_valid_until_ns,mtconnect_document_sha256,qif_document_sha256,association_receipt_sha256,cycle_source_document_id,cycle_source_document_sha256,qif_source_locator,cycle_source_locator,derived_value,derived_unit,transform_revision");
+    println!("cycle_id,part_id,lot_id,operation_id,qif_document_uuid,qif_result_id,measurement_plan_id,characteristic_id,feature_id,instrument_resource_id,specification_id,specification_revision,actual_value,original_unit,source_measured_at_ns,measured_at_reference_ns,reference_clock_id,measurement_clock_mapping_sha256,cycle_clock_mapping_sha256,combined_clock_uncertainty_ns,association_receipt_id,association_authority_id,association_valid_from_ns,association_valid_until_ns,mtconnect_document_sha256,mtconnect_schema_identifier,mtconnect_schema_bundle_sha256,mtconnect_validation_receipt_sha256,qif_document_sha256,qif_schema_identifier,qif_schema_bundle_sha256,qif_validation_receipt_sha256,association_receipt_sha256,cycle_source_document_id,cycle_source_document_sha256,qif_source_locator,cycle_source_locator,derived_value,derived_unit,transform_revision");
     println!("{}", evidence.csv_row());
     Ok(())
 }
@@ -1635,7 +1655,7 @@ mod tests {
         let transform=UnitTransform { source_unit:"mm".into(),target_unit:"um".into(),scale:1000.0,offset:0.0,revision:"UNIT-MAP-1".into() };
         let joined=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,Some(&transform));
         let row=joined.composed.unwrap().csv_row();
-        assert_eq!(row.split(',').count(),34);
+        assert_eq!(row.split(',').count(),40);
         assert!(row.contains("QIF-UUID-001"));
         assert!(row.contains("MES-QUALITY-LINKER-01"));
     }
