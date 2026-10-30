@@ -530,7 +530,7 @@ mod tests {
         Spec {
             family: "POWER_TRANSFORMER".into(), characteristic: "stack_height".into(),
             unit: "mm".into(), lower: 99.0, upper: 101.0, coverage: 2.0,
-            max_uncertainty: 0.02, calibration_class: "LENGTH".into(),
+            max_uncertainty: 0.02, calibration_class: "LENGTH_GAUGE".into(),
             min_samples: 4, max_mean_range_fraction: 0.1, max_window_sigma_ratio: 3.0,
         }
     }
@@ -556,7 +556,7 @@ mod tests {
     fn calibration_must_match_instrument_class_status_and_time() {
         let mut sample = sample(100.0);
         let cal = Calibration {
-            instrument: "DIM-1".into(), class: "LENGTH".into(),
+            instrument: "DIM-1".into(), class: "LENGTH_GAUGE".into(),
             valid_from: "2025-01-01T00:00:00Z".into(),
             valid_to: "2027-01-01T00:00:00Z".into(), status: "CURRENT".into(),
             _certificate_id: "CERT-1".into(),
