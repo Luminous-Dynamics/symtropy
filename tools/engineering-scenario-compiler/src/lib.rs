@@ -13,6 +13,9 @@ pub const SCHEMA_VERSION: &str = "engineering-scenario-v0.1";
 pub const REGISTRY_REVISION: &str = "naca0012-inc-rans-profile-registry-v0.1";
 pub const MAX_SOURCE_BYTES: usize = 1_048_576;
 pub const MAX_INSTANCES: usize = 128;
+// Allows for the published decimal precision of the pinned NACA0012 fixture.
+const REYNOLDS_RELATIVE_TOLERANCE: f64 = 2.0e-6;
+const TOML_PARSER_PROFILE: &str = "toml-1.0/toml_edit-0.23.10+spec-1.0.0";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -290,7 +293,7 @@ fn validate_source(source: &SourceScenario) -> Result<(), String> {
         let relative_reynolds_error =
             (derived_reynolds - flow.reynolds_number_per_chord).abs()
                 / flow.reynolds_number_per_chord;
-        if !derived_reynolds.is_finite() || relative_reynolds_error > 2.0e-6 {
+        if !derived_reynolds.is_finite() || relative_reynolds_error > REYNOLDS_RELATIVE_TOLERANCE {
             return Err(format!(
                 "instance {} velocity, geometry, density and viscosity disagree with the declared Reynolds number per chord",
                 instance.id
@@ -375,6 +378,7 @@ struct SemanticEnvelope<'a> {
     compiler_version: &'static str,
     schema_version: &'static str,
     registry_revision: &'static str,
+    parser_profile: &'static str,
     scenario: &'a ScenarioIr,
 }
 
@@ -396,6 +400,7 @@ pub fn compile_bytes(bytes: &[u8]) -> CompilationReport {
         compiler_version: COMPILER_VERSION,
         schema_version: SCHEMA_VERSION,
         registry_revision: REGISTRY_REVISION,
+        parser_profile: TOML_PARSER_PROFILE,
         scenario: &ir,
     };
     let semantic_bytes = match serde_json::to_vec(&envelope) {
