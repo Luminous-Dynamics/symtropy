@@ -34,6 +34,8 @@ pub enum RotationalInertiaError {
     InvalidTolerance,
     /// A contact/impulse direction is zero or non-finite.
     InvalidDirection,
+    /// Component offsets do not place the combined center of mass at the origin.
+    OffsetsNotCentered,
 }
 
 /// Rotational inertia acting on Lambda^2(R^D), the bivector space of rotations.
@@ -92,6 +94,47 @@ impl<const D: usize> BivectorInertia<D> {
             principal_second_moments: eigensystem.eigenvalues,
             principal_axes: eigensystem.eigenvectors,
         })
+    }
+
+    /// Combine two inertia operators whose component centers are expressed
+    /// relative to the same combined center of mass.
+    ///
+    /// The second-moment parallel-axis rule is:
+    /// S = S_a + m_a*d_a*d_a^T + S_b + m_b*d_b*d_b^T.
+    /// The offsets must satisfy m_a*d_a + m_b*d_b = 0 within a
+    /// scale-relative tolerance. This prevents accidentally combining
+    /// centered operators about an arbitrary point.
+    pub fn combine_at_common_center(
+        mass_a: f64,
+        inertia_a: &Self,
+        offset_a: &SVector<f64, D>,
+        mass_b: f64,
+        inertia_b: &Self,
+        offset_b: &SVector<f64, D>,
+    ) -> Result<Self, RotationalInertiaError> {
+        if !mass_a.is_finite()
+            || !mass_b.is_finite()
+            || !offset_a.iter().all(|value| value.is_finite())
+            || !offset_b.iter().all(|value| value.is_finite())
+        {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        if mass_a < 0.0 || mass_b < 0.0 || mass_a + mass_b <= 0.0 {
+            return Err(RotationalInertiaError::InvalidMassProperties);
+        }
+
+        let total_mass = mass_a + mass_b;
+        let center_residual = offset_a * mass_a + offset_b * mass_b;
+        let offset_scale = offset_a.norm().max(offset_b.norm()).max(f64::MIN_POSITIVE);
+        if center_residual.norm() > 1e-10 * total_mass * offset_scale {
+            return Err(RotationalInertiaError::OffsetsNotCentered);
+        }
+
+        let second_moment = inertia_a.second_moment
+            + (offset_a * offset_a.transpose()) * mass_a
+            + inertia_b.second_moment
+            + (offset_b * offset_b.transpose()) * mass_b;
+        Self::from_second_moment(second_moment)
     }
 
     /// Construct from a discrete set of point masses.
@@ -358,6 +401,44 @@ mod tests {
             (momentum.get(0, 1) - expected).abs() < 1e-12,
             "D={D}: plane inertia={}, expected={expected}",
             momentum.get(0, 1)
+        );
+    }
+
+    #[test]
+    fn parallel_axis_combination_matches_two_component_mass_moments() {
+        let body_a = BivectorInertia::<3>::uniform_solid_ball(2.0, 1.0).unwrap();
+        let body_b = BivectorInertia::<3>::uniform_solid_ball(1.0, 0.5).unwrap();
+        let offset_a = SVector::new(-1.0, 0.0, 0.0);
+        let offset_b = SVector::new(2.0, 0.0, 0.0);
+        let combined = BivectorInertia::<3>::combine_at_common_center(
+            2.0, &body_a, &offset_a, 1.0, &body_b, &offset_b,
+        )
+        .unwrap();
+
+        // S_xx = 0.4 + 2*1^2 + 0.0125 + 1*2^2 = 5.4125.
+        // S_yy = S_zz = 0.4 + 0.0125 = 0.4125.
+        assert!((combined.second_moment()[(0, 0)] - 5.4125).abs() < 1e-12);
+        assert!((combined.second_moment()[(1, 1)] - 0.4125).abs() < 1e-12);
+        assert!((combined.second_moment()[(2, 2)] - 0.4125).abs() < 1e-12);
+        let plane_xy = Bivector::<3>::unit_plane(0, 1);
+        assert!((combined.angular_momentum(&plane_xy).get(0, 1) - 5.825).abs() < 1e-12);
+    }
+
+    #[test]
+    fn parallel_axis_combination_rejects_non_centered_offsets() {
+        let body_a = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
+        let body_b = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
+        assert_eq!(
+            BivectorInertia::<3>::combine_at_common_center(
+                1.0,
+                &body_a,
+                &SVector::new(0.0, 0.0, 0.0),
+                1.0,
+                &body_b,
+                &SVector::new(1.0, 0.0, 0.0),
+            )
+            .unwrap_err(),
+            RotationalInertiaError::OffsetsNotCentered
         );
     }
 
