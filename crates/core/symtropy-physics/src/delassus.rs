@@ -482,12 +482,8 @@ mod tests {
             BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
                 .unwrap(),
         );
-        let mut body_b = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(1),
-            Point::new([1.0, 0.5, -0.25]),
-            0.5,
-            1.5,
-        );
+        let mut body_b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 0.5, -0.25]), 0.5, 1.5);
         body_b.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(1, 2), 0.37);
         body_b.set_rotational_inertia_operator(
             BivectorInertia::<3>::uniform_solid_ellipsoid(1.5, SVector::new(0.8, 1.2, 1.7))
@@ -522,13 +518,15 @@ mod tests {
 
         // Reordering contact rows must only apply the same permutation to W.
         let permutation = [2_usize, 0, 1];
-        let permuted_rows: Vec<_> = permutation.iter().map(|index| rows[*index].clone()).collect();
+        let permuted_rows: Vec<_> = permutation
+            .iter()
+            .map(|index| rows[*index].clone())
+            .collect();
         let permuted = assemble_delassus(&bodies, &permuted_rows, 1e-12).unwrap();
         for i in 0..permutation.len() {
             for j in 0..permutation.len() {
                 assert!(
-                    (permuted[(i, j)] - reference[(permutation[i], permutation[j])]).abs()
-                        < 1e-10,
+                    (permuted[(i, j)] - reference[(permutation[i], permutation[j])]).abs() < 1e-10,
                     "row permutation mismatch at ({i}, {j})"
                 );
             }
@@ -653,11 +651,8 @@ mod tests {
             SVector::from_element(1.0),
         );
         block.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(
-                1.0,
-                SVector::new(1.0, 0.7, 0.4),
-            )
-            .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(1.0, 0.7, 0.4))
+                .unwrap(),
         );
         block.linear_velocity = SVector::new(-0.1, 0.0, 0.0);
         block.friction = 0.0;
@@ -696,8 +691,10 @@ mod tests {
         // degrees of freedom, so the LCP impulse vector need not be unique.
         let q = DVector::from_vec(vec![-0.1; rows.len()]);
         let reference = solve_frictionless_lcp(&matrix, &q, 1e-10).unwrap();
-        let production_impulses =
-            DVector::from_iterator(manifold.points.len(), manifold.points.iter().map(|p| p.lambda));
+        let production_impulses = DVector::from_iterator(
+            manifold.points.len(),
+            manifold.points.iter().map(|p| p.lambda),
+        );
         let production_residual = &matrix * &production_impulses + &q;
 
         let min_production_residual = production_residual
@@ -817,23 +814,17 @@ mod tests {
     fn assert_randomized_delassus_invariants<const D: usize>() {
         for seed in 1_u64..=12 {
             let mut state = seed.wrapping_mul(0x9E37_79B9_7F4A_7C15);
-            let extents_a = SVector::<f64, D>::from_fn(|_, _| {
-                0.35 + deterministic_sample(&mut state).abs()
-            });
-            let extents_b = SVector::<f64, D>::from_fn(|_, _| {
-                0.4 + deterministic_sample(&mut state).abs()
-            });
+            let extents_a =
+                SVector::<f64, D>::from_fn(|_, _| 0.35 + deterministic_sample(&mut state).abs());
+            let extents_b =
+                SVector::<f64, D>::from_fn(|_, _| 0.4 + deterministic_sample(&mut state).abs());
             let mut body_a =
                 RigidBody::<D>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 0.8);
             body_a.set_rotational_inertia_operator(
                 BivectorInertia::<D>::uniform_solid_ellipsoid(0.8, extents_a).unwrap(),
             );
-            let mut body_b = RigidBody::<D>::dynamic_sphere(
-                BodyHandle(1),
-                Point::origin(),
-                0.5,
-                1.3,
-            );
+            let mut body_b =
+                RigidBody::<D>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.3);
             body_b.transform.rotation = Rotor::from_plane_angle(
                 &Bivector::<D>::unit_plane(0, 1),
                 deterministic_sample(&mut state) * 1.2,
@@ -873,8 +864,7 @@ mod tests {
             let mut symmetry_error = 0.0_f64;
             for i in 0..row_count {
                 for j in 0..row_count {
-                    symmetry_error =
-                        symmetry_error.max((matrix[(i, j)] - matrix[(j, i)]).abs());
+                    symmetry_error = symmetry_error.max((matrix[(i, j)] - matrix[(j, i)]).abs());
                 }
             }
             assert!(
@@ -882,10 +872,9 @@ mod tests {
                 "D={D}, seed={seed}: symmetry error={symmetry_error}"
             );
 
-            let eigenvalues = nalgebra::linalg::SymmetricEigen::new(
-                (&matrix + matrix.transpose()) * 0.5,
-            )
-            .eigenvalues;
+            let eigenvalues =
+                nalgebra::linalg::SymmetricEigen::new((&matrix + matrix.transpose()) * 0.5)
+                    .eigenvalues;
             let minimum_eigenvalue = eigenvalues
                 .iter()
                 .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
@@ -943,5 +932,4 @@ mod tests {
         assert_randomized_delassus_invariants::<3>();
         assert_randomized_delassus_invariants::<4>();
     }
-
 }
