@@ -314,12 +314,7 @@ mod tests {
 
     #[test]
     fn angular_impulse_produces_point_velocity_in_impulse_direction() {
-        let mut body = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(0),
-            Point::origin(),
-            1.0,
-            1.0,
-        );
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         let offset = SVector::from([1.0, 0.0, 0.0]);
         let impulse = SVector::from([0.0, 1.0, 0.0]);
         let torque = Bivector::from_wedge(&impulse, &offset);
