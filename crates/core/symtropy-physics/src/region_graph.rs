@@ -51,6 +51,11 @@ pub enum RegionGraphError {
     UnknownRegion { id: RegionId },
     DuplicateInterface { id: InterfaceId },
     UnknownInterface { id: InterfaceId },
+    EmptyInterfacePath,
+    DisconnectedInterfacePath {
+        previous_target: RegionId,
+        next_source: RegionId,
+    },
     SelfInterface,
     InvalidBoundary { field: &'static str },
     InvalidMap { field: &'static str },
@@ -74,6 +79,16 @@ impl fmt::Display for RegionGraphError {
             Self::UnknownRegion { id } => write!(f, "unknown region ID {}", id.0),
             Self::DuplicateInterface { id } => write!(f, "duplicate interface ID {}", id.0),
             Self::UnknownInterface { id } => write!(f, "unknown interface ID {}", id.0),
+            Self::EmptyInterfacePath => write!(f, "interface path must contain at least one edge"),
+            Self::DisconnectedInterfacePath {
+                previous_target,
+                next_source,
+            } => write!(
+                f,
+                "interface path is disconnected: {} does not match {}",
+                previous_target.0,
+                next_source.0
+            ),
             Self::SelfInterface => write!(f, "region interface must connect distinct region IDs"),
             Self::InvalidBoundary { field } => {
                 write!(f, "invalid interface boundary field {field}")
@@ -600,6 +615,15 @@ impl<const D: usize> RegionInterface<D> {
     }
 }
 
+/// Deterministic composition of an explicitly ordered interface path.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ComposedRegionPath<const D: usize> {
+    pub source_region: RegionId,
+    pub target_region: RegionId,
+    pub interface_ids: Vec<InterfaceId>,
+    pub map: AffineRegionMap<D>,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct RegionGraph<const D: usize> {
     regions: BTreeMap<RegionId, RegionSpec<D>>,
@@ -691,6 +715,47 @@ impl<const D: usize> RegionGraph<D> {
 
         self.interfaces.insert(interface.id, interface);
         Ok(())
+    }
+
+    /// Compose a caller-specified interface path in traversal order.
+    ///
+    /// This does not search for a path or infer a route from coincident local
+    /// coordinates. Every adjacent pair must share the same intermediate
+    /// RegionId. The returned interface list preserves the exact lineage.
+    pub fn compose_interface_path(
+        &self,
+        interface_ids: &[InterfaceId],
+    ) -> Result<ComposedRegionPath<D>, RegionGraphError> {
+        let Some(first_id) = interface_ids.first().copied() else {
+            return Err(RegionGraphError::EmptyInterfacePath);
+        };
+        let first = self
+            .interface(first_id)
+            .ok_or(RegionGraphError::UnknownInterface { id: first_id })?;
+        let source_region = first.source;
+        let mut target_region = first.target;
+        let mut map = first.map.clone();
+
+        for interface_id in interface_ids.iter().copied().skip(1) {
+            let next = self
+                .interface(interface_id)
+                .ok_or(RegionGraphError::UnknownInterface { id: interface_id })?;
+            if target_region != next.source {
+                return Err(RegionGraphError::DisconnectedInterfacePath {
+                    previous_target: target_region,
+                    next_source: next.source,
+                });
+            }
+            map = map.then(&next.map)?;
+            target_region = next.target;
+        }
+
+        Ok(ComposedRegionPath {
+            source_region,
+            target_region,
+            interface_ids: interface_ids.to_vec(),
+            map,
+        })
     }
 
     pub fn region(&self, id: RegionId) -> Option<&RegionSpec<D>> {
@@ -1802,6 +1867,104 @@ mod tests {
         );
         assert!((receipt.kinetic_energy_before - 1.0).abs() < 1e-12);
         assert!((receipt.kinetic_energy_after - 0.25).abs() < 1e-12);
+    }
+
+    #[test]
+    fn declared_interface_path_composes_only_contiguous_region_edges() {
+        let mut graph = RegionGraph::<2>::new().unwrap();
+        graph
+            .add_region(region(1, [-1.0, -1.0], [0.0, 1.0]))
+            .unwrap();
+        graph
+            .add_region(region(2, [0.0, -1.0], [1.0, 1.0]))
+            .unwrap();
+        graph
+            .add_region(region(3, [0.0, -2.0], [2.0, 2.0]))
+            .unwrap();
+
+        let first_map = AffineRegionMap::<2>::identity();
+        let first = RegionInterface::new(
+            InterfaceId(20),
+            RegionId(1),
+            RegionId(2),
+            1,
+            boundary_x0(),
+            boundary_x0(),
+            first_map.clone(),
+            Some(first_map.inverse().unwrap()),
+            true,
+            CrossingDirection::Either,
+            QuantityPolicy::Preserve,
+            QuantityPolicy::Preserve,
+            None,
+        )
+        .unwrap();
+        graph.add_interface(first).unwrap();
+
+        let second_linear =
+            SMatrix::<f64, 2, 2>::from_diagonal(&SVector::from([2.0, 1.0]));
+        let second_map = AffineRegionMap::new(
+            second_linear,
+            SVector::zeros(),
+            1.5,
+            2.0,
+        )
+        .unwrap();
+        let second = RegionInterface::new(
+            InterfaceId(21),
+            RegionId(2),
+            RegionId(3),
+            1,
+            boundary_x0(),
+            boundary_x0(),
+            second_map.clone(),
+            None,
+            false,
+            CrossingDirection::Either,
+            QuantityPolicy::ExplicitTransform,
+            QuantityPolicy::ExplicitTransform,
+            Some("scale-clock-v1".to_string()),
+        )
+        .unwrap();
+        graph.add_interface(second).unwrap();
+
+        let path = graph
+            .compose_interface_path(&[InterfaceId(20), InterfaceId(21)])
+            .unwrap();
+        assert_eq!(path.source_region, RegionId(1));
+        assert_eq!(path.target_region, RegionId(3));
+        assert_eq!(path.interface_ids, vec![InterfaceId(20), InterfaceId(21)]);
+
+        let position = SVector::from([0.0, 0.25]);
+        let velocity = SVector::from([1.0, -2.0]);
+        assert!(
+            (path.map.map_position(&position).unwrap()
+                - second_map.map_position(&position).unwrap())
+            .norm()
+                < 1e-12
+        );
+        assert!(
+            (path.map.map_velocity(&velocity).unwrap()
+                - second_map.map_velocity(&velocity).unwrap())
+            .norm()
+                < 1e-12
+        );
+        assert!(
+            (path.map.map_time(7.0).unwrap() - second_map.map_time(7.0).unwrap()).abs()
+                < 1e-12
+        );
+
+        assert_eq!(
+            graph.compose_interface_path(&[]),
+            Err(RegionGraphError::EmptyInterfacePath)
+        );
+        assert_eq!(
+            graph.compose_interface_path(&[InterfaceId(20), InterfaceId(20)]),
+            Err(RegionGraphError::DisconnectedInterfacePath {
+                previous_target: RegionId(2),
+                next_source: RegionId(1),
+            })
+        );
     }
 
     #[test]
