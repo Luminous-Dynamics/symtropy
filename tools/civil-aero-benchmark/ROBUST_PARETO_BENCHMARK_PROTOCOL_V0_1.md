@@ -25,6 +25,41 @@ Do not conflate four different tasks:
 
 A green CI badge answers only a subset of the first question. A converged CFD solution is not by itself empirical validation. A high-scoring optimizer candidate is not physical evidence.
 
+
+## 3A. Measured-data model-envelope diagnostic (AERO-POLAR-001)
+
+The first implementation adds a deliberately narrow reference-data diagnostic over the pinned NASA TMR Ladson NACA 0012 force observations. It fits `Cd_section = a + b Cl^2` separately for each 80/120/180 grit zone using only `|alpha| <= 8.5 deg`, then reports four error metrics over calibration, an intermediate holdout (`8.5 < |alpha| <= 16.5 deg`) and a high-angle extrapolation bin (`|alpha| > 16.5 deg`).
+
+This is a measured **2D section-model discrepancy** experiment. The fitted `b` is empirical for that section dataset and must not be interpreted as the aircraft induced-drag term or Oswald efficiency. Roughness zones are not pooled. The angle bins are frozen data splits, not operating limits or stall criteria. The NASA TMR case states Re=6 million and recommends M=0.15 for compressible codes with mostly fully turbulent boundary layers; the source also warns about high-angle experimental two-dimensionality and sensitivity of drag to transition/tripping.
+
+Exploratory values on the pinned source are:
+- 80 grit: calibration RMSE 0.000216, intermediate holdout 0.003187, high-angle extrapolation 0.182186.
+- 120 grit: calibration RMSE 0.000262, intermediate holdout 0.003657, high-angle extrapolation 0.208497.
+- 180 grit: calibration RMSE 0.000232, intermediate holdout 0.004131, high-angle extrapolation 0.283891.
+
+These results show a specific model's error can increase by orders of magnitude outside its calibration slice. They do not prove that any alternative model is more accurate. The immediate product requirement is therefore **domain-aware abstention**, not a new optimizer score.
+
+### Model-envelope benchmark gates
+
+Before claiming a new low-order or surrogate model is suitable for a design loop, measure:
+1. **In-domain error:** MAE, RMSE, maximum absolute error and signed bias by zone and condition; normalize against published measurement uncertainty where available.
+2. **Coverage and calibration:** empirical coverage of nominal 90% and 95% prediction intervals on sealed conditions, accompanied by confidence intervals and sample counts.
+3. **Out-of-domain detection:** recall/precision for preregistered domain-shift and geometry/condition excursions; zero false-feasible admissions is the safety-oriented target for the screening gate.
+4. **Abstention/escalation:** count and cost of candidates that require higher-fidelity CFD or new measurements; never count an abstention as a feasible design.
+5. **Optimizer exploitation:** compare apparent low-fidelity gain with higher-fidelity replay on the same candidates; report rank reversals and the false-improvement rate.
+6. **Reproducibility:** exact geometry/data/config hashes, solver and model versions, failed-run accounting, and byte-identical repeated reports.
+
+Targets are aspirational gates, not achieved results: no false-feasible out-of-domain admission in the deterministic negative-control suite; calibrated 95% intervals should achieve coverage compatible with 95% on a genuinely sealed, representative evaluation set; and any claimed cost advantage must beat matched-budget baselines without degrading the pre-registered accuracy, coverage or feasibility gates.
+
+### What "better than SOTA" would actually mean here
+
+- On ShapeBench, use its official tasks and reproducible baselines, not a hand-picked NACA case. Compare matched total cost (surrogate queries, CFD calls, failed solves, tuning and orchestration), report per-task wins/losses and aggregate uncertainty, and reserve an untouched final task/seed split.
+- Against SU2 adjoint and conventional optimizers, show a Pareto improvement in objective quality versus total compute/engineering cost on the tasks where the same constraints and solvers apply.
+- Against NASA/AIAA validation references, show force and pressure agreement, grid convergence, uncertainty accounting and held-out conditions. A surrogate or optimizer leaderboard does not replace CFD verification/validation.
+- In manufacturing, beat conventional processes on cost per conforming unit, first-pass yield, dimensional capability, repairability and energy per accepted part—not merely raw printing speed or CAD novelty.
+
+A system is a stronger engineering method when it is more accurate **and** more calibrated, more reproducible, less expensive at matched quality, explicit about unsupported regions, and physically repeatable. Winning only a nominal simulation objective is not sufficient.
+
 ## 3. Fair baseline ladder
 
 All solver-dependent comparisons must pin the same geometry, units, boundary conditions, mesh family or documented mesh mapping, turbulence/transition assumptions, convergence criteria and objective definitions.
