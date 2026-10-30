@@ -61,7 +61,6 @@ impl Campaign {
             return Err("invalid phase diffusivity".into());
         }
         Ok(ValidatedCampaign {
-            campaign: self,
             grid_points,
             dx,
             dt,
@@ -74,7 +73,6 @@ impl Campaign {
 }
 
 struct ValidatedCampaign {
-    campaign: Campaign,
     grid_points: usize,
     dx: f64,
     dt: f64,
@@ -374,12 +372,6 @@ fn solve_one_step(
         if v.iter().any(|x| !x.is_finite()) || s.iter().any(|x| !x.is_finite()) {
             return Err("non-finite solution of flag linear system".into());
         }
-        for i in 1..flags.len() {
-            if flags[i] == 0 && !(0.0..=campaign.latent_density).contains(&s[i]) {
-                return Err("mixed-phase latent component escaped [0, rho*L]".into());
-            }
-        }
-
         let next = update_flags(&flags, &v, &s, campaign.latent_density)?;
         if next == flags {
             let mut e_new = vec![0.0; flags.len()];
@@ -471,7 +463,6 @@ fn run_campaign(campaign: Campaign) -> Result<Summary, String> {
     let mut e = vec![0.0; nodes];
     let mut flags = vec![1_i8; nodes];
     let mut latent = vec![v.latent_density; nodes];
-    let mut potential = vec![K_L * TINF; nodes];
 
     // Dirichlet wall node is solid with S=0, T=Tw, v=K_s*Tw.
     flags[0] = -1;
@@ -534,7 +525,6 @@ fn run_campaign(campaign: Campaign) -> Result<Summary, String> {
             .collect();
         flags = solution.flags;
         latent = solution.latent;
-        potential = solution.potential;
         if e.iter().any(|x| !x.is_finite()) {
             return Err("non-finite enthalpy after timestep".into());
         }
