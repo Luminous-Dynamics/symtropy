@@ -128,6 +128,7 @@ pub struct CompilationReport {
     pub registry_revision: String,
     pub source_sha256: String,
     pub semantic_ir_sha256: Option<String>,
+    pub artifact_manifest_sha256: Option<String>,
     pub disposition: Disposition,
     pub obligations: Vec<CompileObligation>,
     pub diagnostics: Vec<String>,
@@ -240,6 +241,7 @@ fn invalid_report(source_sha256: String, diagnostic: String) -> CompilationRepor
         registry_revision: REGISTRY_REVISION.to_owned(),
         source_sha256,
         semantic_ir_sha256: None,
+        artifact_manifest_sha256: None,
         disposition: Disposition::Invalid,
         obligations: Vec::new(),
         diagnostics: vec![diagnostic],
@@ -486,6 +488,16 @@ pub fn compile_with_artifacts(
     }
     verified_artifacts.sort_by(|left, right| left.role.cmp(&right.role));
 
+    let artifact_manifest_sha256 = match serde_json::to_vec(&verified_artifacts) {
+        Ok(manifest) => sha256(&manifest),
+        Err(error) => {
+            return invalid_report(
+                source_digest,
+                format!("verified artifact manifest serialization failed: {error}"),
+            );
+        }
+    };
+
     let ir = build_ir(source);
     let envelope = SemanticEnvelope {
         compiler_version: COMPILER_VERSION,
@@ -549,6 +561,7 @@ pub fn compile_with_artifacts(
         registry_revision: REGISTRY_REVISION.to_owned(),
         source_sha256: source_digest,
         semantic_ir_sha256: Some(semantic_digest),
+        artifact_manifest_sha256: Some(artifact_manifest_sha256),
         disposition,
         obligations,
         diagnostics,
@@ -578,6 +591,7 @@ mod tests {
         assert!(report.obligations.iter().any(|o| o.id == "model-profile" && o.resolution == Resolution::SupportedExact));
         assert_eq!(report.obligations.iter().filter(|o| o.resolution == Resolution::Blocked).count(), 3);
         assert!(report.claim_ceiling.contains("no solver execution"));
+        assert!(report.artifact_manifest_sha256.is_some());
     }
 
     #[test]
@@ -671,6 +685,7 @@ mod tests {
         );
         assert_eq!(report.disposition, Disposition::Blocked);
         assert_eq!(report.verified_artifacts.len(), 2);
+        assert!(report.artifact_manifest_sha256.as_ref().is_some_and(|digest| digest.len() == 64));
         assert!(report.verified_artifacts.iter().all(|artifact| artifact.sha256.len() == 64));
         assert!(report.obligations.iter().any(|obligation| {
             obligation.id == "input-artifact-bytes"
