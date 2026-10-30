@@ -371,6 +371,35 @@ pub fn audit_v5(dataset: &Dpw8V5Dataset) -> Result<Dpw8V5AuditReport, String> {
             .then_with(|| left.row.alpha_deg.total_cmp(&right.row.alpha_deg))
     });
 
+    // Every angle in a grid level must refer to the same mesh. A grid size may not
+    // silently identify two different levels in the same submission family.
+    let mut mesh_by_level: BTreeMap<u32, (u64, u64)> = BTreeMap::new();
+    let mut level_by_mesh_size: BTreeMap<u64, u32> = BTreeMap::new();
+    for cell in &canonical_cells {
+        let level = cell.row.grid_level;
+        let size = cell.row.grid_size;
+        let grid_factor = cell.row.values[2].expect("required GRID_FAC");
+        let factor_bits = grid_factor.to_bits();
+        if let Some((expected_size, expected_factor_bits)) = mesh_by_level.get(&level) {
+            if *expected_size != size || *expected_factor_bits != factor_bits {
+                return Err(format!(
+                    "inconsistent mesh identity for grid_level={level}: GRID_SIZE or GRID_FAC changes across angles"
+                ));
+            }
+        } else {
+            mesh_by_level.insert(level, (size, factor_bits));
+        }
+        if let Some(other_level) = level_by_mesh_size.get(&size) {
+            if *other_level != level {
+                return Err(format!(
+                    "GRID_SIZE {size} is assigned to multiple grid levels: {other_level} and {level}"
+                ));
+            }
+        } else {
+            level_by_mesh_size.insert(size, level);
+        }
+    }
+
     for index in 0..canonical_cells.len() {
         let row = &canonical_cells[index].row;
         let duplicate_signature = canonical_cells.iter().any(|other| {
@@ -704,6 +733,20 @@ mod tests {
         let tampered = replace_first(FIXTURE, "SYNTHETIC GRID LEVEL 1", "SYNTHETIC GRID LEVEL 2");
         let error = parse_v5(&tampered).expect_err("mislabelled zone must fail");
         assert!(error.contains("disagrees with zone"));
+    }
+
+    #[test]
+    fn one_grid_level_cannot_change_mesh_identity_between_angles() {
+        let original = FIXTURE
+            .lines()
+            .find(|line| line.starts_with("2.0 40000.0"))
+            .expect("grid level 2 row");
+        assert_eq!(FIXTURE.matches(original).count(), 2);
+        let changed = original.replacen("40000.0", "45000.0", 1);
+        let tampered = FIXTURE.replace(original, &changed);
+        let dataset = parse_v5(&tampered).expect("both table views remain paired");
+        let error = audit_v5(&dataset).expect_err("one mesh cannot have two node counts");
+        assert!(error.contains("inconsistent mesh identity"));
     }
 
     #[test]

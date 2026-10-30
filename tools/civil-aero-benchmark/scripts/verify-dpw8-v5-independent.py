@@ -155,6 +155,24 @@ def parse(path: Path) -> tuple[dict, list[dict]]:
             "missing": sum(value is None for value in grid_row["values"][9:]),
         })
 
+    mesh_by_level: dict[int, tuple[int, float]] = {}
+    level_by_mesh_size: dict[int, int] = {}
+    for cell in canonical:
+        row = cell["grid"]
+        identity = (cell["grid_size"], row["values"][2])
+        previous = mesh_by_level.get(cell["grid_level"])
+        require(
+            previous is None or previous == identity,
+            f"inconsistent mesh identity for grid level {cell['grid_level']}",
+        )
+        mesh_by_level[cell["grid_level"]] = identity
+        other_level = level_by_mesh_size.get(cell["grid_size"])
+        require(
+            other_level is None or other_level == cell["grid_level"],
+            f"GRID_SIZE {cell['grid_size']} assigned to multiple grid levels",
+        )
+        level_by_mesh_size[cell["grid_size"]] = cell["grid_level"]
+
     for cell in canonical:
         row = cell["grid"]
         duplicate = any(

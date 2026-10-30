@@ -1,6 +1,7 @@
 use std::{env, fs, process};
 
 use civil_aero_benchmark::dpw8_submission::{V5_CSV_HEADER, audit_v5, parse_v5};
+use civil_aero_benchmark::integrity::sha256_hex;
 
 const DEFAULT_FIXTURE: &str = "data/dpw8/synthetic_two_view_fixture_v0.1.dat";
 
@@ -16,6 +17,7 @@ fn run() -> Result<(), String> {
     if arguments.len() > 1 {
         return Err("usage: dpw8_v5_audit [submission-v5.dat]".to_owned());
     }
+    let using_default_fixture = arguments.is_empty();
     let path = arguments
         .first()
         .map(String::as_str)
@@ -23,16 +25,16 @@ fn run() -> Result<(), String> {
     let input = fs::read_to_string(path).map_err(|error| format!("cannot read {path}: {error}"))?;
     let dataset = parse_v5(&input)?;
     let report = audit_v5(&dataset)?;
-    let source_evidence = if path == DEFAULT_FIXTURE {
-        "synthetic_fixture_only"
+    let source_evidence = if using_default_fixture {
+        "repository_default_synthetic_fixture"
     } else {
         "caller_supplied_unverified_not_officially_authenticated"
     };
+    let input_sha256 = sha256_hex(input.as_bytes())?;
 
     eprintln!(
-        "source_evidence={source_evidence} title={} zones={} raw_records={} grid_view_records={} alpha_view_records={} canonical_cells={}",
-        dataset.title,
-        dataset.zones.len(),
+        "source_evidence={source_evidence} input_byte_length={} input_sha256={input_sha256} title={} zones={} raw_records={} grid_view_records={} alpha_view_records={} canonical_cells={}",
+        input.len(),
         report.raw_record_count,
         report.grid_view_record_count,
         report.alpha_view_record_count,
