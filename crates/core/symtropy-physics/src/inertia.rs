@@ -746,6 +746,213 @@ mod tests {
     }
 
     #[test]
+    fn oriented_square_boundary_matches_analytic_volume_com_and_second_moment() {
+        let vertices = vec![
+            SVector::<f64, 2>::new(-1.0, -1.0),
+            SVector::<f64, 2>::new(1.0, -1.0),
+            SVector::<f64, 2>::new(1.0, 1.0),
+            SVector::<f64, 2>::new(-1.0, 1.0),
+        ];
+        let facets = vec![[0, 1], [1, 2], [2, 3], [3, 0]];
+        let properties = BivectorInertia::<2>::from_oriented_closed_simplicial_boundary(
+            &vertices,
+            &facets,
+            1.0,
+            1e-12,
+        )
+        .unwrap();
+
+        assert!((properties.volume - 4.0).abs() < 1e-12);
+        assert!((properties.total_mass - 4.0).abs() < 1e-12);
+        assert!(properties.center_of_mass.norm() < 1e-12);
+        assert!((properties.inertia.second_moment()[(0, 0)] - 4.0 / 3.0).abs() < 1e-12);
+        assert!((properties.inertia.second_moment()[(1, 1)] - 4.0 / 3.0).abs() < 1e-12);
+        assert!(properties.inertia.second_moment()[(0, 1)].abs() < 1e-12);
+
+        let reversed: Vec<[usize; 2]> = facets.iter().map(|facet| [facet[1], facet[0]]).collect();
+        let reversed_properties =
+            BivectorInertia::<2>::from_oriented_closed_simplicial_boundary(
+                &vertices,
+                &reversed,
+                1.0,
+                1e-12,
+            )
+            .unwrap();
+        assert!((reversed_properties.volume - properties.volume).abs() < 1e-12);
+        assert!(
+            (reversed_properties.inertia.second_moment() - properties.inertia.second_moment())
+                .norm()
+                < 1e-12
+        );
+    }
+
+    #[test]
+    fn oriented_cube_boundary_matches_analytic_volume_com_and_second_moment() {
+        let vertices = vec![
+            SVector::<f64, 3>::new(-1.0, -1.0, -1.0),
+            SVector::<f64, 3>::new(1.0, -1.0, -1.0),
+            SVector::<f64, 3>::new(1.0, 1.0, -1.0),
+            SVector::<f64, 3>::new(-1.0, 1.0, -1.0),
+            SVector::<f64, 3>::new(-1.0, -1.0, 1.0),
+            SVector::<f64, 3>::new(1.0, -1.0, 1.0),
+            SVector::<f64, 3>::new(1.0, 1.0, 1.0),
+            SVector::<f64, 3>::new(-1.0, 1.0, 1.0),
+        ];
+        // Two outward-oriented triangles per cube face.
+        let facets = vec![
+            [0, 2, 1],
+            [0, 3, 2],
+            [4, 5, 6],
+            [4, 6, 7],
+            [0, 1, 5],
+            [0, 5, 4],
+            [3, 7, 6],
+            [3, 6, 2],
+            [0, 4, 7],
+            [0, 7, 3],
+            [1, 2, 6],
+            [1, 6, 5],
+        ];
+        let properties = BivectorInertia::<3>::from_oriented_closed_simplicial_boundary(
+            &vertices,
+            &facets,
+            1.0,
+            1e-12,
+        )
+        .unwrap();
+
+        assert!((properties.volume - 8.0).abs() < 1e-12);
+        assert!((properties.total_mass - 8.0).abs() < 1e-12);
+        assert!(properties.center_of_mass.norm() < 1e-12);
+        for axis in 0..3 {
+            assert!(
+                (properties.inertia.second_moment()[(axis, axis)] - 8.0 / 3.0).abs() < 1e-12
+            );
+            for other in 0..3 {
+                if axis != other {
+                    assert!(properties.inertia.second_moment()[(axis, other)].abs() < 1e-12);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn oriented_four_simplex_boundary_matches_analytic_mass_properties() {
+        let mut vertices = vec![SVector::<f64, 4>::zeros()];
+        for axis in 0..4 {
+            let mut vertex = SVector::<f64, 4>::zeros();
+            vertex[axis] = 1.0;
+            vertices.push(vertex);
+        }
+        // The oriented boundary of [0,e1,e2,e3,e4]; negative facets swap
+        // their first two vertices to encode the alternating boundary sign.
+        let facets = vec![
+            [1, 2, 3, 4],
+            [2, 0, 3, 4],
+            [0, 1, 3, 4],
+            [1, 0, 2, 4],
+            [0, 1, 2, 3],
+        ];
+        let properties = BivectorInertia::<4>::from_oriented_closed_simplicial_boundary(
+            &vertices,
+            &facets,
+            3.0,
+            1e-12,
+        )
+        .unwrap();
+
+        assert!((properties.volume - 1.0 / 24.0).abs() < 1e-12);
+        assert!((properties.total_mass - 1.0 / 8.0).abs() < 1e-12);
+        for axis in 0..4 {
+            assert!((properties.center_of_mass[axis] - 0.2).abs() < 1e-12);
+        }
+    }
+
+    #[test]
+    fn oriented_boundary_rejects_open_inconsistent_disconnected_and_degenerate_input() {
+        let square = vec![
+            SVector::<f64, 2>::new(-1.0, -1.0),
+            SVector::<f64, 2>::new(1.0, -1.0),
+            SVector::<f64, 2>::new(1.0, 1.0),
+            SVector::<f64, 2>::new(-1.0, 1.0),
+        ];
+        assert_eq!(
+            BivectorInertia::<2>::from_oriented_closed_simplicial_boundary(
+                &square,
+                &[[0, 1], [1, 2], [2, 3]],
+                1.0,
+                1e-12,
+            )
+            .unwrap_err(),
+            RotationalInertiaError::OpenOrNonManifoldBoundary
+        );
+        assert_eq!(
+            BivectorInertia::<2>::from_oriented_closed_simplicial_boundary(
+                &square,
+                &[[0, 1], [2, 1], [2, 3], [3, 0]],
+                1.0,
+                1e-12,
+            )
+            .unwrap_err(),
+            RotationalInertiaError::InconsistentBoundaryOrientation
+        );
+
+        let disconnected_vertices = vec![
+            SVector::<f64, 2>::new(-1.0, -1.0),
+            SVector::<f64, 2>::new(1.0, -1.0),
+            SVector::<f64, 2>::new(1.0, 1.0),
+            SVector::<f64, 2>::new(-1.0, 1.0),
+            SVector::<f64, 2>::new(3.0, -1.0),
+            SVector::<f64, 2>::new(5.0, -1.0),
+            SVector::<f64, 2>::new(5.0, 1.0),
+            SVector::<f64, 2>::new(3.0, 1.0),
+        ];
+        let disconnected_facets = [
+            [0, 1],
+            [1, 2],
+            [2, 3],
+            [3, 0],
+            [4, 5],
+            [5, 6],
+            [6, 7],
+            [7, 4],
+        ];
+        assert_eq!(
+            BivectorInertia::<2>::from_oriented_closed_simplicial_boundary(
+                &disconnected_vertices,
+                &disconnected_facets,
+                1.0,
+                1e-12,
+            )
+            .unwrap_err(),
+            RotationalInertiaError::DisconnectedBoundary
+        );
+
+        let degenerate_tetrahedron = vec![
+            SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(2.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 0.0, 1.0),
+        ];
+        let degenerate_facets = [
+            [1, 2, 3],
+            [2, 0, 3],
+            [0, 1, 3],
+            [1, 0, 2],
+        ];
+        assert_eq!(
+            BivectorInertia::<3>::from_oriented_closed_simplicial_boundary(
+                &degenerate_tetrahedron,
+                &degenerate_facets,
+                1.0,
+                1e-12,
+            )
+            .unwrap_err(),
+            RotationalInertiaError::DegenerateFacet
+        );
+    }
+
+    #[test]
     fn parallel_axis_combination_matches_two_component_mass_moments() {
         let body_a = BivectorInertia::<3>::uniform_solid_ball(2.0, 1.0).unwrap();
         let body_b = BivectorInertia::<3>::uniform_solid_ball(1.0, 0.5).unwrap();
