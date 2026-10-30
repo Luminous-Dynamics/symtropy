@@ -55,6 +55,7 @@ enum Policy {
     Active,
     Fixed,
     Random,
+    UniformEig,
     MdlEig,
 }
 impl Policy {
@@ -63,6 +64,7 @@ impl Policy {
             Self::Active => "active_maximum_disagreement",
             Self::Fixed => "fixed_ascending_action",
             Self::Random => "seeded_random_action",
+            Self::UniformEig => "uniform_expected_information_gain_per_cost",
             Self::MdlEig => "mdl_expected_information_gain_per_cost",
         }
     }
@@ -87,6 +89,7 @@ struct Case {
     candidate_count: usize,
     initial_viable: usize,
     active: Episode,
+    uniform_eig: Episode,
     mdl_eig: Episode,
     fixed: Episode,
     random: Vec<Episode>,
@@ -416,6 +419,52 @@ fn expected_information_gain_per_cost(
         .sum();
     binary_entropy_bits(p_one) / f64::from(costs[action as usize])
 }
+fn choose_uniform_eig_action(
+    survivors: &[u8],
+    available: &[u8],
+    costs: &[u32; DOMAIN],
+) -> Option<u8> {
+    if survivors.is_empty() {
+        return available.first().copied();
+    }
+    let mut best = None;
+    let mut best_score = -1.0f64;
+    for action in available {
+        let ones = survivors.iter().filter(|sig| (**sig >> *action) & 1 == 1).count();
+        let p_one = ones as f64 / survivors.len() as f64;
+        let score = binary_entropy_bits(p_one) / f64::from(costs[*action as usize]);
+        if score > best_score {
+            best_score = score;
+            best = Some(*action);
+        }
+    }
+    best.or_else(|| available.first().copied())
+}
+fn choose_uniform_falsification_action(
+    singleton: u8,
+    candidates: &[Candidate],
+    available: &[u8],
+    costs: &[u32; DOMAIN],
+) -> Option<u8> {
+    if candidates.is_empty() {
+        return available.first().copied();
+    }
+    let mut best = None;
+    let mut best_score = -1.0f64;
+    for action in available {
+        let predicted = (singleton >> *action) & 1;
+        let disagree = candidates
+            .iter()
+            .filter(|candidate| ((candidate.sig >> *action) & 1) != predicted)
+            .count();
+        let score = disagree as f64 / candidates.len() as f64 / f64::from(costs[*action as usize]);
+        if score > best_score {
+            best_score = score;
+            best = Some(*action);
+        }
+    }
+    best.or_else(|| available.first().copied())
+}
 fn choose_mdl_eig_action(
     survivors: &[u8],
     candidates: &[Candidate],
@@ -489,6 +538,7 @@ fn choose_action(
             }
             best.or_else(|| available.first().copied())
         }
+        Policy::UniformEig => choose_uniform_eig_action(survivors, available, costs),
         Policy::MdlEig => choose_mdl_eig_action(survivors, candidates, available, costs),
     }
 }
@@ -527,6 +577,7 @@ fn choose_falsification_action(
             }
             best.or_else(|| available.first().copied())
         }
+        Policy::UniformEig => choose_uniform_falsification_action(singleton, candidates, available, costs),
         Policy::MdlEig => choose_mdl_falsification_action(singleton, candidates, available, costs),
     }
 }
@@ -887,6 +938,7 @@ fn render_report(
     let mut summaries = Vec::new();
     for policy in [
         Policy::Active.name(),
+        Policy::UniformEig.name(),
         Policy::MdlEig.name(),
         Policy::Fixed.name(),
         Policy::Random.name(),
@@ -917,12 +969,13 @@ fn render_report(
         .map(|c| {
             let rs: Vec<&Episode> = c.random.iter().collect();
             format!(
-                "{{\"task_id\":\"{}\",\"split\":\"{}\",\"candidate_count\":{},\"initial_viable_candidates\":{},\"active\":{},\"mdl_eig\":{},\"fixed\":{},\"random_repetitions\":{},\"random_summary\":{}}}",
+                "{{\"task_id\":\"{}\",\"split\":\"{}\",\"candidate_count\":{},\"initial_viable_candidates\":{},\"active\":{},\"uniform_eig\":{},\"mdl_eig\":{},\"fixed\":{},\"random_repetitions\":{},\"random_summary\":{}}}",
                 json_escape(&c.id),
                 json_escape(&c.split),
                 c.candidate_count,
                 c.initial_viable,
                 render_episode(&c.active, candidates),
+                render_episode(&c.uniform_eig, candidates),
                 render_episode(&c.mdl_eig, candidates),
                 render_episode(&c.fixed, candidates),
                 c.random.len(),
@@ -995,6 +1048,13 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             Policy::Active,
             stable_seed(&task.problem.id),
         );
+        let uniform_eig = run_episode(
+            &task.problem,
+            task.target_sig,
+            &candidates,
+            Policy::UniformEig,
+            stable_seed(&task.problem.id),
+        );
         let mdl_eig = run_episode(
             &task.problem,
             task.target_sig,
@@ -1020,6 +1080,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             ));
         }
         all.push(active.clone());
+        all.push(uniform_eig.clone());
         all.push(mdl_eig.clone());
         all.push(fixed.clone());
         all.extend(random.iter().cloned());
@@ -1029,6 +1090,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             candidate_count: candidates.len(),
             initial_viable,
             active,
+            uniform_eig,
             mdl_eig,
             fixed,
             random,
@@ -1160,7 +1222,7 @@ mod tests {
             .iter()
             .filter(|t| c.iter().any(|x| x.sig == t.target_sig))
         {
-            for policy in [Policy::Active, Policy::MdlEig, Policy::Fixed, Policy::Random] {
+            for policy in [Policy::Active, Policy::UniformEig, Policy::MdlEig, Policy::Fixed, Policy::Random] {
                 let e = run_episode(&task.problem, task.target_sig, &c, policy, 17);
                 assert_eq!(
                     e.target_retained,
@@ -1186,6 +1248,21 @@ mod tests {
         };
         let e = run_episode(&p, target, &c, Policy::Active, 1);
         assert_ne!(e.status, "identified_exactly");
+    }
+    #[test]
+    fn uniform_eig_and_mdl_eig_match_when_the_prior_is_uniform() {
+        let candidates = vec![
+            Candidate { sig: 0, representative: "a".into(), expression_aliases: 1, mdl_bits: 1.0 },
+            Candidate { sig: 4, representative: "b".into(), expression_aliases: 1, mdl_bits: 1.0 },
+            Candidate { sig: 1, representative: "c".into(), expression_aliases: 1, mdl_bits: 1.0 },
+            Candidate { sig: 7, representative: "d".into(), expression_aliases: 1, mdl_bits: 1.0 },
+        ];
+        let survivors = candidates.iter().map(|c| c.sig).collect::<Vec<_>>();
+        let costs = [4, 1, 1, 1, 1, 1, 1, 1];
+        assert_eq!(
+            choose_uniform_eig_action(&survivors, &[0, 1], &costs),
+            choose_mdl_eig_action(&survivors, &candidates, &[0, 1], &costs)
+        );
     }
     #[test]
     fn mdl_prior_is_normalized_and_alias_multiplicity_does_not_change_it() {
