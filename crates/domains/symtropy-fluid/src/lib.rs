@@ -10,7 +10,7 @@
 //! accelerated neighbor search. This is not yet a production CFD solver.
 
 pub mod kernel;
-pub use kernel::{Poly6Kernel, SphKernelError};
+pub use kernel::{KernelEvaluator, Poly6Kernel, SphKernelError, SphKernelProfile};
 
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
@@ -222,14 +222,29 @@ pub struct FluidStepReport<const D: usize> {
 pub struct FluidSimulation<const D: usize> {
     pub particles: Vec<FluidParticle<D>>,
     pub config: SphConfig,
+    kernel_profile: SphKernelProfile,
 }
 
 impl<const D: usize> FluidSimulation<D> {
+    /// Construct the reference solver with the default Poly6 profile.
     pub fn new(config: SphConfig) -> Self {
+        Self::with_kernel(config, SphKernelProfile::Poly6)
+    }
+
+    /// Construct the reference solver with an explicit radial kernel profile.
+    ///
+    /// The support-radius parameter in SphConfig is interpreted as the full
+    /// compact-support radius for both profile choices.
+    pub fn with_kernel(config: SphConfig, kernel_profile: SphKernelProfile) -> Self {
         Self {
             particles: Vec::new(),
             config,
+            kernel_profile,
         }
+    }
+
+    pub fn kernel_profile(&self) -> SphKernelProfile {
+        self.kernel_profile
     }
 
     pub fn add_particle(&mut self, particle: FluidParticle<D>) -> Result<usize, SphError> {
@@ -275,7 +290,10 @@ impl<const D: usize> FluidSimulation<D> {
             });
         }
 
-        let kernel = Poly6Kernel::<D>::new(self.config.smoothing_radius)?;
+        let kernel = KernelEvaluator::<D>::new(
+            self.kernel_profile,
+            self.config.smoothing_radius,
+        )?;
         let mut densities = vec![0.0; count];
         let mut pressures = vec![0.0; count];
 
@@ -566,6 +584,41 @@ mod tests {
 
     fn particle(position: [f64; 2], velocity: [f64; 2], mass: f64) -> FluidParticle<2> {
         FluidParticle::new(SVector::from(position), SVector::from(velocity), mass).unwrap()
+    }
+
+    #[test]
+    fn wendland_c2_profile_is_selectable_through_reference_solver() {
+        let mut sim = FluidSimulation::<2>::with_kernel(
+            config(0.0, 0.1),
+            super::SphKernelProfile::WendlandC2,
+        );
+        assert_eq!(sim.kernel_profile(), super::SphKernelProfile::WendlandC2);
+        sim.add_particle(particle([0.0, 0.0], [0.0, 0.0], 1.0))
+            .unwrap();
+        let report = sim.step(1e-5, &SVector::zeros()).unwrap();
+        assert_eq!(report.particles, 1);
+        assert!(sim.particles[0].density.is_finite());
+        assert!(sim.particles[0].force.norm() < 1e-12);
+    }
+
+    #[test]
+    fn wendland_pair_pressure_preserves_momentum_for_unequal_masses() {
+        let mut sim = FluidSimulation::<2>::with_kernel(
+            config(0.0, 0.1),
+            super::SphKernelProfile::WendlandC2,
+        );
+        sim.add_particle(particle([-0.3, 0.0], [0.0, 0.0], 0.7))
+            .unwrap();
+        sim.add_particle(particle([0.3, 0.1], [0.0, 0.0], 1.3))
+            .unwrap();
+
+        let report = sim.step(1e-7, &SVector::zeros()).unwrap();
+        assert!((report.momentum_after - report.momentum_before).norm() < 1e-10);
+        let net_force = sim
+            .particles
+            .iter()
+            .fold(SVector::<f64, 2>::zeros(), |sum, particle| sum + particle.force);
+        assert!(net_force.norm() < 1e-10);
     }
 
     #[test]
