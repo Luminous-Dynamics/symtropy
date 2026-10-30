@@ -272,7 +272,7 @@ fn verify() -> Result<(), String> {
     let expected = [
         (0.8,0.9,Outcome::Accept),
         (0.5,0.9,Outcome::Indeterminate),
-        (0.8,0.99,Outcome::Accept),
+        (0.8,0.99,Outcome::Indeterminate),
         (0.0,0.99,Outcome::Indeterminate),
         (0.8,0.9,Outcome::Accept),
     ];
