@@ -9,9 +9,8 @@
 //! proof that an event was emitted by physical hardware.
 
 use crate::command_evidence::{
-    audit_command_evidence, CommandEvidenceAudit, CommandEvidenceAuditError,
-    CommandEvidenceEvent, CommandEvidenceKind, CommandRejectionStage,
-    CommandTerminalOutcome, ExpectedCommandIdentity,
+    CommandEvidenceAudit, CommandEvidenceAuditError, CommandEvidenceEvent, CommandEvidenceKind,
+    CommandRejectionStage, CommandTerminalOutcome, ExpectedCommandIdentity, audit_command_evidence,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -90,9 +89,11 @@ pub fn create_command_evidence_receipt(
     let audit = audit_command_evidence(expected, events)?;
     for identity in expected {
         if identity.controller_config_digest != context.controller_config_digest {
-            return Err(CommandEvidenceReceiptError::ControllerConfigDigestMismatch {
-                request_id: identity.request_id,
-            });
+            return Err(
+                CommandEvidenceReceiptError::ControllerConfigDigestMismatch {
+                    request_id: identity.request_id,
+                },
+            );
         }
     }
 
@@ -530,9 +531,11 @@ mod tests {
 
         assert_eq!(
             create_command_evidence_receipt(mismatched_context, &expected, &events),
-            Err(CommandEvidenceReceiptError::ControllerConfigDigestMismatch {
-                request_id: identity.request_id,
-            })
+            Err(
+                CommandEvidenceReceiptError::ControllerConfigDigestMismatch {
+                    request_id: identity.request_id,
+                }
+            )
         );
     }
 
