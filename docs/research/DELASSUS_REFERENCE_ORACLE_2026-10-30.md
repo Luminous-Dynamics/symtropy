@@ -52,6 +52,7 @@ The module includes:
 - inactive row with exactly zero impulse;
 - rejection of asymmetric and indefinite matrices;
 - redundant rank-deficient contact rows without diagonal regularization;
+- common coefficient scaling and an explicit SI-to-g/cm/ms dimensional conversion;
 - assembled two-body rows with asymmetric rotational inertia, checking Delassus symmetry, PSD and a non-zero off-diagonal coupling;
 - an end-to-end solve in which the assembled asymmetric Delassus matrix is fed to the LCP oracle;
 - isolated sphere contact with analytic translational effective mass.
@@ -83,6 +84,7 @@ Before the reference is trusted as a promotion oracle:
 - minimum eigenvalue >= -1e-12 relative for valid unconstrained mass operators;
 - effective-mass impulse identity <= 1e-10;
 - primal and complementarity residuals <= 1e-10 on analytic and randomized small cases;
+- dimensional conversion invariance for impulse solutions across SI and g/cm/ms representations;
 - explicit singular-inertia and redundant-row negative controls;
 - oracle-versus-production-solver residual comparisons across randomized seeds and D=2,3,4.
 
