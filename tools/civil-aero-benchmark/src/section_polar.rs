@@ -471,6 +471,17 @@ mod tests {
     }
 
     #[test]
+    fn finite_input_that_overflows_metric_summaries_is_rejected() {
+        let mut rows = synthetic_zone("A", 0.0);
+        let high_angle = rows
+            .iter()
+            .position(|row| row.alpha_deg > INTERMEDIATE_MAX_ABS_ALPHA_DEG)
+            .expect("high-angle row");
+        rows[high_angle].cd = 1.0e308;
+        assert!(audit_section_polar(&rows, synthetic_provenance()).is_err());
+    }
+
+    #[test]
     fn heldout_perturbations_cannot_change_calibration_fit() {
         let mut rows = synthetic_zone("A", 0.0);
         let baseline = audit_section_polar(&rows, synthetic_provenance()).expect("baseline report");
