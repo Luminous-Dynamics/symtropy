@@ -155,7 +155,6 @@ impl<const D: usize> PhysicsWorld<D> {
         })
     }
 
-
     /// Capture physical invariants and numerical-health metrics.
     ///
     /// The snapshot is deterministic for a fixed world state and contains no
@@ -304,6 +303,4 @@ mod tests {
         assert!(receipt.mechanical_energy_delta().abs() < 1e-12);
         assert!(receipt.drift.linear_momentum_error_norm() < 1e-12);
     }
-
-
 }
