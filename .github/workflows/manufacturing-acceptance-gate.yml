@@ -76,6 +76,7 @@ jobs:
       - name: Validate robust acquisition evidence envelope
         run: |
           cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-robustness-evidence -- \
+            "$RUNNER_TEMP/acceptance.csv" \
             research/transformer-bench/fixtures/manufacturing-robustness-evidence-synthetic.csv \
             "$RUNNER_TEMP/robustness-candidates.csv"
           grep -F "TX-CAND-REP-001,0.95000000,0.05000000,0.00200000,125.00000000,USD_2026,true,ELIGIBLE," "$RUNNER_TEMP/robustness-candidates.csv"
