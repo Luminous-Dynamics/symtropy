@@ -358,18 +358,21 @@ impl<const D: usize> BivectorInertia<D> {
         Ok(effective_mass.max(0.0))
     }
 
-    /// Compute the derivative of Symtropy's stored angular state B.
+    /// Compute the derivative of Symtropy's stored spatial angular state B.
     ///
-    /// In this convention:
-    ///   L = I(B) = B*S + S*B
-    ///   dot(L) = [B, L] - torque_accumulator
-    ///   dot(B) = I^(-1)(dot(L))
+    /// The world-space second moment S rotates with the body. With Rotor's
+    /// exp(-B) update, its derivative is dot(S) = -B*S + S*B. The physical
+    /// spatial angular-momentum bivector is represented in this stored basis
+    /// by L = I(B) = B*S + S*B. Differentiating this expression gives:
+    ///
+    ///   I(dot(B)) = [B, L] - torque_accumulator
+    ///   dot(L) = -torque_accumulator
     ///
     /// `torque_accumulator` uses the impulse-first wedge convention and is
     /// the negative of physical torque in the angular-momentum bivector basis.
     /// The supplied inertia, B, and torque must all be expressed in the same
-    /// coordinate frame. For world-frame state, call `rotated_by` with the
-    /// body's current orientation before evaluating this method.
+    /// coordinate frame. For spatial/world-frame state, rotate body-space
+    /// mass moments with `rotated_by` before evaluating this method.
     pub fn angular_acceleration(
         &self,
         stored_angular_state: &Bivector<D>,
@@ -666,20 +669,32 @@ mod tests {
         let zero_torque = Bivector::<3>::zero();
         let b_dot = inertia.angular_acceleration(&b, &zero_torque, 1e-12).unwrap();
         let l = inertia.angular_momentum(&b);
-        let l_dot = inertia.angular_momentum(&b_dot);
-
-        let energy_rate = bivector_pairing(&b, &l_dot);
-        assert!(energy_rate.abs() < 1e-11, "energy_rate={energy_rate}");
-
-        // For the torque-free spatial equation, dot(L) = [B,L].
-        let expected_l_dot = Bivector::<3>::from_matrix(
+        // I(dot(B)) equals the commutator correction. The actual spatial
+        // momentum derivative also includes the rotation of S in world space.
+        let inertia_applied_to_b_dot = inertia.angular_momentum(&b_dot);
+        let commutator = Bivector::<3>::from_matrix(
             &(b.to_matrix() * l.to_matrix() - l.to_matrix() * b.to_matrix()),
         );
         assert!(
-            l_dot.add(&expected_l_dot.scale(-1.0)).norm() < 1e-11,
-            "l_dot={l_dot:?}, expected={expected_l_dot:?}"
+            inertia_applied_to_b_dot.add(&commutator.scale(-1.0)).norm() < 1e-11,
+            "I(b_dot)={inertia_applied_to_b_dot:?}, commutator={commutator:?}"
         );
-        assert!(bivector_pairing(&l, &l_dot).abs() < 1e-11);
+
+        let b_matrix = b.to_matrix();
+        let b_dot_matrix = b_dot.to_matrix();
+        let s = inertia.second_moment();
+        let s_dot = -b_matrix * s + s * b_matrix;
+        let actual_l_dot_matrix =
+            b_dot_matrix * s + s * b_dot_matrix + b_matrix * s_dot + s_dot * b_matrix;
+        let actual_l_dot = Bivector::<3>::from_matrix(&actual_l_dot_matrix);
+        assert!(actual_l_dot.norm() < 1e-11, "dot(L)={actual_l_dot:?}");
+
+        // The torque-free spatial angular momentum is constant, and the
+        // kinetic-energy derivative is zero under this same moving-S update.
+        assert!(bivector_pairing(&l, &actual_l_dot).abs() < 1e-11);
+        let energy_rate = 0.5
+            * (bivector_pairing(&b_dot, &l) + bivector_pairing(&b, &actual_l_dot));
+        assert!(energy_rate.abs() < 1e-11, "energy_rate={energy_rate}");
     }
 
     #[test]
