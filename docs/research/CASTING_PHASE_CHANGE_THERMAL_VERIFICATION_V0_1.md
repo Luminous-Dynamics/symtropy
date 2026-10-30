@@ -153,6 +153,21 @@ Compare tools only on matched geometries, material/property profiles, boundary c
 
 Where appropriate, pin and qualify an external FEM/finite-volume solver as a separate reference. Its executable identity, input deck, output semantics, convergence and failure state must be audited. Solver agreement is useful but does not replace experimental validation.
 
+## 6A. Manufacturing digital-twin standards alignment
+
+Use the current ISO 23247 catalogue as an interoperability and assurance mapping, not as a claim of conformity or certification:
+
+- [ISO 23247-5:2026](https://www.iso.org/standard/87425.html), published June 2026, addresses the digital thread across design, planning, production and testing.
+- [ISO 23247-6:2026](https://www.iso.org/standard/87426.html), published July 2026, addresses digital-twin composition, including integrated, unified and federated composition.
+- [ISO/AWI 23247-7](https://www.iso.org/standard/94859.html) is the approved work item for digital-twin commissioning. Its scope includes initialization/configuration, connection to digital threads, and verification of frequency, latency, fidelity and operational readiness. It is under development.
+- [ISO/AWI 23247-8](https://committee.iso.org/standard/94858.html) is the approved work item for manufacturing digital-twin VVUQ. It was approved and registered on 23 October 2026 and is under development.
+
+Keep the current numbering: Part 7 is commissioning; Part 8 is VVUQ. Some older project descriptions still refer to VVUQ as Part 7, but that is not the current ISO work-item mapping.
+
+[NISTIR 8620](https://doi.org/10.6028/NIST.IR.8620), published 21 July 2026, highlights interoperability, VVUQ, cybersecurity and workforce readiness as persistent manufacturing digital-twin challenges. Map Symtropy's evidence receipts, validation lifecycle, exact configuration lineage, cybersecurity controls and operator-facing readiness states against those concerns.
+
+A useful later cross-process interoperability reference is [ISO/TR 23247-101:2026](https://www.iso.org/standard/93278.html), a published robotic multilayer and multipass gas-shielded metal arc welding digital-twin use case. Use it to test whether a common digital thread can represent another process family without duplicating the casting physics model. It is a welding-specific use case, not casting evidence.
+
 ## 7. Metrics and acceptance logic
 
 Every case reports raw data and all of the following independently:
