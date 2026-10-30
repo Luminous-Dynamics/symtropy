@@ -21,6 +21,7 @@ const OUTPUT_HEADER: &str = "candidate_id,representativeness_score,amplification
 #[derive(Clone, Debug)]
 struct Row {
     candidate_id: String,
+    product_id: String,
     representative: f64,
     amplification_risk: f64,
     acquisition_cost: f64,
@@ -28,6 +29,7 @@ struct Row {
     observation_std_uncertainty: f64,
     eligibility_state: String,
     eligibility_receipt: String,
+    acceptance_eligible: bool,
 }
 
 fn main() {
@@ -39,15 +41,17 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
+    if args.len() != 4 {
         return Err(format!(
-            "usage: {} <evidence-envelope.csv> <symthaea-adapter.csv>",
+            "usage: {} <manufacturing-acceptance-report.csv> <evidence-envelope.csv> <symthaea-adapter.csv>",
             args.first().map(String::as_str).unwrap_or("manufacturing-robustness-evidence")
         ));
     }
-    let rows = parse(&args[1])?;
-    write_adapter(&args[2], &rows)?;
-    let eligible = rows.iter().filter(|r| r.eligibility_state == "ELIGIBLE").count();
+    let acceptance = read_acceptance_report(&args[1])?;
+    let mut rows = parse(&args[2])?;
+    validate_eligibility(&mut rows, &acceptance)?;
+    write_adapter(&args[3], &rows)?;
+    let eligible = rows.iter().filter(|r| r.eligibility_state == "ELIGIBLE" && r.acceptance_eligible).count();
     eprintln!(
         "robustness evidence envelope valid: candidates={}, eligible={}, blocked={}; score values were not recomputed and artifact bytes were not authenticated",
         rows.len(), eligible, rows.len() - eligible
@@ -165,6 +169,7 @@ fn parse(path: &str) -> Result<Vec<Row>, String> {
 
         rows.push(Row {
             candidate_id,
+            product_id: f[2].to_string(),
             representative,
             amplification_risk,
             acquisition_cost,
@@ -172,6 +177,7 @@ fn parse(path: &str) -> Result<Vec<Row>, String> {
             observation_std_uncertainty,
             eligibility_state,
             eligibility_receipt: f[24].to_string(),
+            acceptance_eligible: false,
         });
     }
     if rows.is_empty() {
@@ -180,10 +186,64 @@ fn parse(path: &str) -> Result<Vec<Row>, String> {
     Ok(rows)
 }
 
+fn read_acceptance_report(path: &str) -> Result<std::collections::BTreeMap<String, bool>, String> {
+    let content = fs::read_to_string(path).map_err(|e| format!("cannot read acceptance report {path}: {e}"))?;
+    let mut lines = content.lines();
+    let header = lines.next().ok_or_else(|| format!("{path}: empty acceptance report"))?.trim_end_matches('\\r');
+    if header != ACCEPTANCE_REPORT_HEADER {
+        return Err(format!("{path}: unexpected acceptance report header"));
+    }
+    let mut output = std::collections::BTreeMap::new();
+    for (index, raw) in lines.enumerate() {
+        let row_no = index + 2;
+        let line = raw.trim_end_matches('\\r');
+        if line.trim().is_empty() || line.contains('"') {
+            return Err(format!("{path}:{row_no}: blank or quoted acceptance report row"));
+        }
+        let fields: Vec<&str> = line.split(',').map(str::trim).collect();
+        if fields.len() != 15 || fields[0].is_empty() {
+            return Err(format!("{path}:{row_no}: expected 15 fields and a product_id"));
+        }
+        let eligible = match fields[13] {
+            "true" => true,
+            "false" => false,
+            _ => return Err(format!("{path}:{row_no}: malformed eligible_for_authorized_review")),
+        };
+        if output.insert(fields[0].to_string(), eligible).is_some() {
+            return Err(format!("{path}:{row_no}: duplicate product_id in acceptance report"));
+        }
+    }
+    if output.is_empty() {
+        return Err(format!("{path}: acceptance report has no product rows"));
+    }
+    Ok(output)
+}
+
+fn validate_eligibility(
+    rows: &mut [Row],
+    acceptance: &std::collections::BTreeMap<String, bool>,
+) -> Result<(), String> {
+    for row in rows {
+        let accepted = *acceptance.get(&row.product_id).ok_or_else(|| {
+            format!("candidate {:?}: product {:?} is absent from manufacturing acceptance report", row.candidate_id, row.product_id)
+        })?;
+        row.acceptance_eligible = accepted;
+        if row.eligibility_state == "ELIGIBLE" && !accepted {
+            return Err(format!(
+                "candidate {:?}: evidence envelope claims ELIGIBLE but manufacturing acceptance report blocks product {:?}",
+                row.candidate_id, row.product_id
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn write_adapter(path: &str, rows: &[Row]) -> Result<(), String> {
     let mut output = String::from(OUTPUT_HEADER);
     for row in rows {
-        let eligible = row.eligibility_state == "ELIGIBLE" && sha256(&row.eligibility_receipt);
+        let eligible = row.eligibility_state == "ELIGIBLE"
+            && row.acceptance_eligible
+            && sha256(&row.eligibility_receipt);
         output.push_str(&format!(
             "{},{:.8},{:.8},{:.8},{:.8},{},{},{},{}\n",
             row.candidate_id,
@@ -223,6 +283,30 @@ mod tests {
         assert_eq!(parsed[0].representative, 0.95);
         assert_eq!(parsed[0].amplification_risk, 0.05);
         assert_eq!(parsed[0].eligibility_state, "ELIGIBLE");
+        let _ = fs::remove_file(path);
+    }
+
+    fn acceptance_report(eligible: bool) -> String {
+        format!(
+            "{}\\nTX-001,SERIAL-001,ROUTE-A,true,0,0,4,4,0,0,0,0,0,{},NONE",
+            ACCEPTANCE_REPORT_HEADER, eligible
+        )
+    }
+
+    #[test]
+    fn eligibility_requires_the_independent_manufacturing_acceptance_report() {
+        let mut path = std::env::temp_dir();
+        path.push(format!("acceptance-report-{}.csv", std::process::id()));
+        fs::write(&path, acceptance_report(true)).unwrap();
+        let acceptance = read_acceptance_report(path.to_str().unwrap()).unwrap();
+        let mut rows = parse_from_content(&fixture());
+        validate_eligibility(&mut rows, &acceptance).unwrap();
+        assert!(rows[0].acceptance_eligible);
+
+        fs::write(&path, acceptance_report(false)).unwrap();
+        let blocked = read_acceptance_report(path.to_str().unwrap()).unwrap();
+        let mut rows = parse_from_content(&fixture());
+        assert!(validate_eligibility(&mut rows, &blocked).unwrap_err().contains("manufacturing acceptance report blocks"));
         let _ = fs::remove_file(path);
     }
 
