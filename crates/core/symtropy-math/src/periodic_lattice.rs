@@ -319,6 +319,30 @@ impl<const D: usize> TriclinicPeriodicCell<D> {
         }
         let mut best_offset = babai;
         let best_radius = best_score.sqrt();
+        let displacement_norm = displacement.norm();
+        let inverse_norm = self.inverse_basis.norm();
+        let incumbent_scale =
+            displacement_norm + babai_translation.norm() + best_radius;
+        let fractional_scale = inverse_norm * displacement_norm;
+        if !displacement_norm.is_finite()
+            || !inverse_norm.is_finite()
+            || !incumbent_scale.is_finite()
+            || !fractional_scale.is_finite()
+        {
+            return Err(TriclinicCellError::NumericRange);
+        }
+        // Inflate both the incumbent radius and the fractional-coordinate
+        // interval to account for matrix-vector and norm rounding. A poorly
+        // conditioned cell consequently searches more images or fails its
+        // budget; it must not gain a narrower, unsafe interval.
+        let radius_padding =
+            OUTWARD_ROUNDING_ULPS * f64::EPSILON * incumbent_scale.max(1.0);
+        let conservative_radius = best_radius + radius_padding;
+        let fractional_padding =
+            OUTWARD_ROUNDING_ULPS * f64::EPSILON * fractional_scale.max(1.0);
+        if !conservative_radius.is_finite() || !fractional_padding.is_finite() {
+            return Err(TriclinicCellError::NumericRange);
+        }
 
         let mut lower = [0_i64; D];
         let mut upper = [0_i64; D];
@@ -332,7 +356,7 @@ impl<const D: usize> TriclinicPeriodicCell<D> {
             }
 
             let row_norm = self.inverse_basis.row(axis).norm();
-            let radius_bound = row_norm * best_radius;
+            let radius_bound = row_norm * conservative_radius;
             if !row_norm.is_finite() || !radius_bound.is_finite() {
                 return Err(TriclinicCellError::NumericRange);
             }
@@ -340,7 +364,8 @@ impl<const D: usize> TriclinicPeriodicCell<D> {
                 .abs()
                 .max(radius_bound.abs())
                 .max(1.0);
-            let padding = OUTWARD_ROUNDING_ULPS * f64::EPSILON * magnitude;
+            let padding =
+                OUTWARD_ROUNDING_ULPS * f64::EPSILON * magnitude + fractional_padding;
             let low_real = -fractional[axis] - radius_bound - padding;
             let high_real = -fractional[axis] + radius_bound + padding;
             if !low_real.is_finite() || !high_real.is_finite() {
