@@ -235,7 +235,7 @@ mod tests {
             }
             let raw_weights: Vec<f64> = signatures
                 .iter()
-                .map(|signature| 1.0 + f64::from((signature * 7) % 5))
+                .map(|signature| 1.0 + f64::from((*signature * 7) % 5))
                 .collect();
             let input = hypotheses(&signatures, &raw_weights);
             let result = solve_exact(&input, &costs, 10_000).unwrap();
@@ -385,5 +385,282 @@ mod tests {
         let input = hypotheses(&[0, 1, 2, 3], &[1.0; 4]);
         let result = solve_exact(&input, &[1; ACTIONS], 10_000).unwrap();
         assert_eq!(result.expected_cost, 2.0);
+    }
+}
+
+/// A node in a prior-free minimax decision tree.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MinimaxDecisionNode {
+    /// Minimum worst-case remaining intervention cost from this node.
+    pub worst_case_remaining_cost: u64,
+    pub identified_hypothesis: Option<u8>,
+    pub action: Option<u8>,
+    pub outcome_zero: Option<Arc<MinimaxDecisionNode>>,
+    pub outcome_one: Option<Arc<MinimaxDecisionNode>>,
+}
+
+impl MinimaxDecisionNode {
+    pub fn is_leaf(&self) -> bool {
+        self.identified_hypothesis.is_some()
+    }
+}
+
+/// Result of the exact prior-free minimax dynamic program.
+#[derive(Clone, Debug)]
+pub struct MinimaxOracleResult {
+    pub worst_case_cost: u64,
+    pub first_action: Option<u8>,
+    pub memoized_states: usize,
+    pub tree: Arc<MinimaxDecisionNode>,
+}
+
+/// Solve the worst-case adaptive identification problem without a prior.
+///
+/// For each survivor set S, the Bellman value is
+/// min_a [ cost(a) + max(M(S0), M(S1)) ] over actions that split S.
+/// This API accepts semantic signatures only: it has no prior or evaluator-target
+/// argument. Costs are accumulated as exact u64 integers.
+pub fn solve_minimax_exact(
+    signatures: &[u8],
+    action_costs: &[u32; ACTIONS],
+    max_states: usize,
+) -> Result<MinimaxOracleResult, String> {
+    if signatures.is_empty() {
+        return Err("the hypothesis set must not be empty".into());
+    }
+    if action_costs.contains(&0) {
+        return Err("all action costs must be positive integers".into());
+    }
+
+    let mut ordered = signatures.to_vec();
+    ordered.sort_unstable();
+    if ordered.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err("duplicate semantic signature".into());
+    }
+
+    let mut memo: HashMap<Vec<u8>, Arc<MinimaxDecisionNode>> = HashMap::new();
+    let tree = solve_minimax_state(&ordered, action_costs, max_states, &mut memo)?;
+    Ok(MinimaxOracleResult {
+        worst_case_cost: tree.worst_case_remaining_cost,
+        first_action: tree.action,
+        memoized_states: memo.len(),
+        tree,
+    })
+}
+
+fn solve_minimax_state(
+    signatures: &[u8],
+    costs: &[u32; ACTIONS],
+    max_states: usize,
+    memo: &mut HashMap<Vec<u8>, Arc<MinimaxDecisionNode>>,
+) -> Result<Arc<MinimaxDecisionNode>, String> {
+    if signatures.len() == 1 {
+        return Ok(Arc::new(MinimaxDecisionNode {
+            worst_case_remaining_cost: 0,
+            identified_hypothesis: Some(signatures[0]),
+            action: None,
+            outcome_zero: None,
+            outcome_one: None,
+        }));
+    }
+    if signatures.is_empty() {
+        return Err("an empty survivor state is not a valid decision-tree node".into());
+    }
+    if let Some(node) = memo.get(signatures) {
+        return Ok(Arc::clone(node));
+    }
+    if memo.len() >= max_states {
+        return Err(format!(
+            "minimax oracle state budget exceeded: limit {max_states}, already solved {} states",
+            memo.len()
+        ));
+    }
+
+    let mut best: Option<(u64, u8, Arc<MinimaxDecisionNode>, Arc<MinimaxDecisionNode>)> = None;
+    for action in 0..ACTIONS as u8 {
+        let mut zero = Vec::new();
+        let mut one = Vec::new();
+        for signature in signatures {
+            if (*signature >> action) & 1 == 1 {
+                one.push(*signature);
+            } else {
+                zero.push(*signature);
+            }
+        }
+        if zero.is_empty() || one.is_empty() {
+            continue;
+        }
+
+        let zero_node = solve_minimax_state(&zero, costs, max_states, memo)?;
+        let one_node = solve_minimax_state(&one, costs, max_states, memo)?;
+        let worst_case = u64::from(costs[action as usize])
+            + zero_node
+                .worst_case_remaining_cost
+                .max(one_node.worst_case_remaining_cost);
+        let replace = best.as_ref().is_none_or(|(best_cost, best_action, _, _)| {
+            worst_case < *best_cost || (worst_case == *best_cost && action < *best_action)
+        });
+        if replace {
+            best = Some((worst_case, action, zero_node, one_node));
+        }
+    }
+
+    let Some((worst_case_remaining_cost, action, outcome_zero, outcome_one)) = best else {
+        return Err(format!(
+            "hypotheses cannot be separated by the {ACTIONS} available binary actions"
+        ));
+    };
+    let node = Arc::new(MinimaxDecisionNode {
+        worst_case_remaining_cost,
+        identified_hypothesis: None,
+        action: Some(action),
+        outcome_zero: Some(outcome_zero),
+        outcome_one: Some(outcome_one),
+    });
+    memo.insert(signatures.to_vec(), Arc::clone(&node));
+    Ok(node)
+}
+
+#[cfg(test)]
+mod minimax_tests {
+    use super::*;
+
+    /// Independent non-memoized minimax recursion for tiny finite supports.
+    fn brute_minimax(signatures: &[u8], costs: &[u32; ACTIONS]) -> u64 {
+        if signatures.len() <= 1 {
+            return 0;
+        }
+        let mut best = u64::MAX;
+        for action in 0..ACTIONS as u8 {
+            let zero: Vec<u8> = signatures
+                .iter()
+                .copied()
+                .filter(|signature| (*signature >> action) & 1 == 0)
+                .collect();
+            let one: Vec<u8> = signatures
+                .iter()
+                .copied()
+                .filter(|signature| (*signature >> action) & 1 == 1)
+                .collect();
+            if zero.is_empty() || one.is_empty() {
+                continue;
+            }
+            let candidate = u64::from(costs[action as usize])
+                + brute_minimax(&zero, costs).max(brute_minimax(&one, costs));
+            best = best.min(candidate);
+        }
+        best
+    }
+
+    fn path_cost(node: &MinimaxDecisionNode, signature: u8, costs: &[u32; ACTIONS]) -> u64 {
+        let Some(action) = node.action else {
+            return 0;
+        };
+        let child = if (signature >> action) & 1 == 1 {
+            node.outcome_one.as_ref().unwrap()
+        } else {
+            node.outcome_zero.as_ref().unwrap()
+        };
+        u64::from(costs[action as usize]) + path_cost(child, signature, costs)
+    }
+
+    #[test]
+    fn memoized_minimax_matches_independent_brute_force_for_all_247_subsets() {
+        let costs = [3, 1, 2, 4, 5, 2, 3, 1];
+        for mask in 1u16..=255 {
+            if mask.count_ones() < 2 {
+                continue;
+            }
+            let signatures: Vec<u8> = (0..8u8)
+                .filter(|signature| mask & (1 << *signature) != 0)
+                .collect();
+            let result = solve_minimax_exact(&signatures, &costs, 10_000).unwrap();
+            assert_eq!(
+                result.worst_case_cost,
+                brute_minimax(&signatures, &costs),
+                "subset mask {mask:#05x}"
+            );
+        }
+    }
+
+    #[test]
+    fn full_256_function_cube_requires_every_action_in_the_worst_case() {
+        let signatures: Vec<u8> = (0..=u8::MAX).collect();
+        let costs = [8, 7, 6, 5, 4, 3, 2, 1];
+        let result = solve_minimax_exact(&signatures, &costs, 10_000).unwrap();
+        assert_eq!(
+            result.worst_case_cost,
+            costs.iter().map(|cost| u64::from(*cost)).sum()
+        );
+        assert_eq!(result.first_action, Some(0));
+        assert_eq!(result.memoized_states, 6_305);
+    }
+
+    #[test]
+    fn minimax_result_is_invariant_to_signature_input_order() {
+        let costs = [3, 1, 2, 4, 5, 2, 3, 1];
+        let forward = solve_minimax_exact(&[0, 1, 2, 3, 4, 5], &costs, 10_000).unwrap();
+        let reverse = solve_minimax_exact(&[5, 4, 3, 2, 1, 0], &costs, 10_000).unwrap();
+        assert_eq!(forward.first_action, reverse.first_action);
+        assert_eq!(forward.worst_case_cost, reverse.worst_case_cost);
+    }
+
+    #[test]
+    fn exact_integer_ties_choose_the_lower_action_index() {
+        let result = solve_minimax_exact(&[0, 1], &[1; ACTIONS], 10).unwrap();
+        assert_eq!(result.worst_case_cost, 1);
+        assert_eq!(result.first_action, Some(0));
+    }
+
+    #[test]
+    fn singleton_support_is_a_zero_cost_terminal_even_with_zero_state_budget() {
+        let result = solve_minimax_exact(&[173], &[1; ACTIONS], 0).unwrap();
+        assert_eq!(result.worst_case_cost, 0);
+        assert_eq!(result.first_action, None);
+        assert_eq!(result.tree.identified_hypothesis, Some(173));
+    }
+
+    #[test]
+    fn rejects_empty_duplicate_and_invalid_cost_inputs() {
+        assert!(solve_minimax_exact(&[], &[1; ACTIONS], 10).is_err());
+        assert!(solve_minimax_exact(&[1, 1], &[1; ACTIONS], 10).is_err());
+        assert!(solve_minimax_exact(&[1, 2], &[0; ACTIONS], 10).is_err());
+    }
+
+    #[test]
+    fn state_budget_exhaustion_fails_closed() {
+        assert!(solve_minimax_exact(&(0..8).collect::<Vec<_>>(), &[1; ACTIONS], 1).is_err());
+    }
+
+    #[test]
+    fn minimax_tree_bounds_every_hypothesis_path_and_bayes_optimum() {
+        let signatures = [0, 1, 2, 3, 4, 5, 6, 7];
+        let costs = [4, 2, 1, 5, 3, 2, 4, 1];
+        let minimax = solve_minimax_exact(&signatures, &costs, 10_000).unwrap();
+        for signature in signatures {
+            assert!(path_cost(&minimax.tree, signature, &costs) <= minimax.worst_case_cost);
+        }
+
+        let weighted: Vec<Hypothesis> = signatures
+            .iter()
+            .map(|signature| Hypothesis {
+                signature: *signature,
+                prior_weight: 1.0 + f64::from((*signature * 7) % 5),
+            })
+            .collect();
+        let bayes = solve_exact(&weighted, &costs, 10_000).unwrap();
+        let minimax_policy_expected_cost: f64 = weighted
+            .iter()
+            .map(|hypothesis| {
+                hypothesis.prior_weight
+                    * path_cost(&minimax.tree, hypothesis.signature, &costs) as f64
+            })
+            .sum::<f64>()
+            / weighted
+                .iter()
+                .map(|hypothesis| hypothesis.prior_weight)
+                .sum::<f64>();
+        assert!(bayes.expected_cost <= minimax_policy_expected_cost + 1e-12);
+        assert!(minimax_policy_expected_cost <= minimax.worst_case_cost as f64 + 1e-12);
     }
 }
