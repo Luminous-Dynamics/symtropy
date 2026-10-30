@@ -269,7 +269,13 @@ struct MappedAsset {
     device_uuid: String,
     asset_type: String,
     asset_id: String,
+    source_document_id: String,
     source_document_sha256: String,
+    source_uri: String,
+    schema_version: String,
+    schema_identifier: String,
+    schema_bundle_sha256: String,
+    validation_receipt_sha256: String,
     raw_asset_sha256: String,
     source_locator: String,
 }
@@ -280,7 +286,13 @@ impl MappedAsset {
             csv_escape(&self.device_uuid),
             csv_escape(&self.asset_type),
             csv_escape(&self.asset_id),
+            csv_escape(&self.source_document_id),
             self.source_document_sha256.clone(),
+            csv_escape(&self.source_uri),
+            csv_escape(&self.schema_version),
+            csv_escape(&self.schema_identifier),
+            self.schema_bundle_sha256.clone(),
+            self.validation_receipt_sha256.clone(),
             self.raw_asset_sha256.clone(),
             csv_escape(&self.source_locator),
         ].join(",")
@@ -318,7 +330,13 @@ fn map_mtconnect_assets(
             device_uuid: asset.device_uuid.clone(),
             asset_type: asset.asset_type.clone(),
             asset_id: asset.asset_id.clone(),
+            source_document_id: source.document_id.clone(),
             source_document_sha256: source.document_sha256.clone(),
+            source_uri: source.source_uri.clone(),
+            schema_version: source.schema.version.clone(),
+            schema_identifier: source.schema.schema_identifier.clone(),
+            schema_bundle_sha256: source.schema.schema_bundle_sha256.clone(),
+            validation_receipt_sha256: source.schema.validation_receipt_sha256.clone(),
             raw_asset_sha256: asset.raw_asset_sha256.clone(),
             source_locator: asset.source_locator.clone(),
         });
@@ -1263,7 +1281,7 @@ fn emit_assets_csv() -> Result<(), String> {
     let source = fixture_mtconnect_assets_source();
     let assets = map_mtconnect_assets(&source, "urn:uuid:machine-001", &fixture_assets(&source))
         .map_err(str::to_string)?;
-    println!("device_uuid,asset_type,asset_id,source_document_sha256,raw_asset_sha256,source_locator");
+    println!("device_uuid,asset_type,asset_id,source_document_id,source_document_sha256,source_uri,schema_version,schema_identifier,schema_bundle_sha256,validation_receipt_sha256,raw_asset_sha256,source_locator");
     for asset in assets { println!("{}", asset.csv_row()); }
     Ok(())
 }
