@@ -255,9 +255,10 @@ impl<const D: usize> BivectorInertia<D> {
     /// which advances orientation with exp(-B). Physical point velocity is
     /// obtained separately with -B*r.
     ///
-    /// The relative tolerance is applied to the largest eigenvalue of S. If any
-    /// rotation plane is singular or too ill-conditioned at this threshold,
-    /// the operation fails rather than amplifying noise.
+    /// The relative tolerance is applied to the largest eigenvalue of S. The
+    /// inverse acts as a pseudoinverse on singular planes only when the supplied
+    /// momentum has no material component in that nullspace; otherwise the
+    /// operation fails rather than amplifying noise.
     pub fn angular_velocity_from_momentum(
         &self,
         angular_momentum: &Bivector<D>,
@@ -279,17 +280,29 @@ impl<const D: usize> BivectorInertia<D> {
         let q = &self.principal_axes;
         let q_t = q.transpose();
         let momentum_local = q_t * angular_momentum.to_matrix() * q;
+        let momentum_scale = momentum_local
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let momentum_tolerance =
+            relative_tolerance * momentum_scale.max(f64::MIN_POSITIVE);
         let mut omega_local = nalgebra::SMatrix::<f64, D, D>::zeros();
 
         for i in 0..D {
             for j in (i + 1)..D {
                 let plane_inertia =
                     self.principal_second_moments[i] + self.principal_second_moments[j];
-                if !plane_inertia.is_finite() || plane_inertia <= threshold {
+                let momentum_component = momentum_local[(i, j)];
+                if !plane_inertia.is_finite() {
+                    return Err(RotationalInertiaError::NonFinite);
+                }
+                if plane_inertia <= threshold {
+                    if momentum_component.abs() <= momentum_tolerance {
+                        continue;
+                    }
                     return Err(RotationalInertiaError::SingularInertia);
                 }
 
-                let value = momentum_local[(i, j)] / plane_inertia;
+                let value = momentum_component / plane_inertia;
                 if !value.is_finite() {
                     return Err(RotationalInertiaError::NonFinite);
                 }
@@ -702,6 +715,21 @@ mod tests {
             recovered.add(&omega.scale(-1.0)).norm() < 1e-11,
             "recovered={recovered:?}, expected={omega:?}"
         );
+    }
+
+    #[test]
+    fn inverse_operator_uses_pseudoinverse_on_unexcited_singular_planes() {
+        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([
+            2.0, 0.0, 0.0,
+        ]));
+        let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
+        let momentum = Bivector::<3>::unit_plane(0, 1).scale(4.0);
+        let recovered = inertia
+            .angular_velocity_from_momentum(&momentum, 1e-12)
+            .unwrap();
+        assert!((recovered.get(0, 1) - 2.0).abs() < 1e-12);
+        assert!(recovered.get(0, 2).abs() < 1e-12);
+        assert!(recovered.get(1, 2).abs() < 1e-12);
     }
 
     #[test]
