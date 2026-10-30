@@ -255,6 +255,37 @@ impl<const D: usize> BivectorInertia<D> {
         }
     }
 
+    /// Compute the derivative of Symtropy's stored angular state B.
+    ///
+    /// In this convention:
+    ///   L = I(B) = B*S + S*B
+    ///   dot(L) = [B, L] - torque_accumulator
+    ///   dot(B) = I^(-1)(dot(L))
+    ///
+    /// `torque_accumulator` uses the impulse-first wedge convention and is
+    /// the negative of physical torque in the angular-momentum bivector basis.
+    /// The supplied inertia, B, and torque must all be expressed in the same
+    /// coordinate frame. For world-frame state, call `rotated_by` with the
+    /// body's current orientation before evaluating this method.
+    pub fn angular_acceleration(
+        &self,
+        stored_angular_state: &Bivector<D>,
+        torque_accumulator: &Bivector<D>,
+        relative_tolerance: f64,
+    ) -> Result<Bivector<D>, RotationalInertiaError> {
+        if !stored_angular_state.is_finite() || !torque_accumulator.is_finite() {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+
+        let b = stored_angular_state.to_matrix();
+        let momentum = self.angular_momentum(stored_angular_state).to_matrix();
+        let coadjoint_rate = b * momentum - momentum * b;
+        let momentum_rate = coadjoint_rate - torque_accumulator.to_matrix();
+        let momentum_rate_bivector = Bivector::from_matrix(&momentum_rate);
+
+        self.angular_velocity_from_momentum(&momentum_rate_bivector, relative_tolerance)
+    }
+
     /// Rotational kinetic energy, 1/2 <B, I(B)> in the stored-bivector convention.
     pub fn kinetic_energy(&self, angular_velocity: &Bivector<D>) -> f64 {
         let momentum = self.angular_momentum(angular_velocity);
@@ -384,6 +415,59 @@ mod tests {
                 .abs()
                 < 1e-11
         );
+    }
+
+    fn bivector_pairing(a: &Bivector<3>, b: &Bivector<3>) -> f64 {
+        (0..3)
+            .flat_map(|i| ((i + 1)..3).map(move |j| (i, j)))
+            .map(|(i, j)| a.get(i, j) * b.get(i, j))
+            .sum()
+    }
+
+    #[test]
+    fn torque_free_angular_acceleration_preserves_energy_and_momentum_casimir() {
+        let second_moment = SMatrix::<f64, 3, 3>::new(
+            1.0, 0.15, 0.05,
+            0.15, 2.0, 0.1,
+            0.05, 0.1, 3.0,
+        );
+        let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
+        let mut b = Bivector::<3>::zero();
+        b.set(0, 1, 0.7);
+        b.set(0, 2, -0.4);
+        b.set(1, 2, 1.1);
+
+        let zero_torque = Bivector::<3>::zero();
+        let b_dot = inertia.angular_acceleration(&b, &zero_torque, 1e-12).unwrap();
+        let l = inertia.angular_momentum(&b);
+        let l_dot = inertia.angular_momentum(&b_dot);
+
+        let energy_rate = bivector_pairing(&b, &l_dot);
+        assert!(energy_rate.abs() < 1e-11, "energy_rate={energy_rate}");
+
+        // For the torque-free spatial equation, dot(L) = [B,L].
+        let expected_l_dot = Bivector::<3>::from_matrix(
+            &(b.to_matrix() * l.to_matrix() - l.to_matrix() * b.to_matrix()),
+        );
+        assert!(
+            l_dot.add(&expected_l_dot.scale(-1.0)).norm() < 1e-11,
+            "l_dot={l_dot:?}, expected={expected_l_dot:?}"
+        );
+        assert!(bivector_pairing(&l, &l_dot).abs() < 1e-11);
+    }
+
+    #[test]
+    fn isotropic_angular_acceleration_has_negative_stored_torque_sign() {
+        let inertia = BivectorInertia::<3>::uniform_solid_ball(3.0, 2.0).unwrap();
+        let zero_state = Bivector::<3>::zero();
+        let mut torque_accumulator = Bivector::<3>::zero();
+        torque_accumulator.set(0, 1, -2.0);
+        let acceleration = inertia
+            .angular_acceleration(&zero_state, &torque_accumulator, 1e-12)
+            .unwrap();
+        assert!((acceleration.get(0, 1) - 2.0 / 4.8).abs() < 1e-12);
+        assert!(acceleration.get(0, 2).abs() < 1e-12);
+        assert!(acceleration.get(1, 2).abs() < 1e-12);
     }
 
     #[test]
