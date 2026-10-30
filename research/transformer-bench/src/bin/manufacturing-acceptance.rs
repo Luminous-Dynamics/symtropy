@@ -525,12 +525,13 @@ fn write_report(path: &str, reports: &[ProductReport]) -> Result<(), String> {
     for r in reports {
         let route_complete = r.missing_route_steps == 0 && r.route_disposition_failures == 0;
         let eligible = r.blockers.is_empty();
+        let blocker_text = if eligible { "NONE".to_string() } else { r.blockers.join(";") };
         output.push_str(&format!(
             "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
             r.product, r.serial, r.revision, route_complete, r.missing_route_steps,
             r.route_disposition_failures, r.required_measurements, r.passing, r.failed,
             r.indeterminate, r.invalid, r.missing_measurements, r.unresolved_test_failures,
-            eligible, if eligible { "NONE" } else { &r.blockers.join(";") }
+            eligible, blocker_text
         ));
     }
     fs::write(path, output).map_err(|e| format!("cannot write {path}: {e}"))
