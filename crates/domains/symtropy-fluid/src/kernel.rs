@@ -288,11 +288,7 @@ mod tests {
             let scaled = Poly6Kernel::<D>::new(base_h * scale).unwrap();
             let scaled_value = scaled.value(&(displacement * scale)).unwrap();
             let scaled_gradient = scaled.gradient(&(displacement * scale)).unwrap();
-            close(
-                scaled_value * scale.powi(D as i32),
-                base_value,
-                2e-12,
-            );
+            close(scaled_value * scale.powi(D as i32), base_value, 2e-12);
             for axis in 0..D {
                 close(
                     scaled_gradient[axis] * scale.powi(D as i32 + 1),
