@@ -370,7 +370,8 @@ mod tests {
         let intermediate = [(10.0, 0.9), (12.0, 1.0)];
         let high_angle = [(17.0, 1.1), (18.0, 0.7)];
         let mut rows = Vec::new();
-        let mut line = 1;
+        // Test fixtures represent distinct zones in one source file, so line numbers stay global.
+        let mut line = if zone == "A" { 1 } else { 101 };
         for (alpha, cl) in calibration
             .into_iter()
             .chain(intermediate)
