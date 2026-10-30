@@ -43,6 +43,7 @@ pub struct InvariantSnapshot<const D: usize> {
     /// Number of bodies whose state contains a NaN or infinity.
     pub non_finite_body_count: usize,
     /// Number of bodies whose known inertia mass disagrees with translational mass.
+    #[serde(default)]
     pub mass_property_mismatch_count: usize,
 }
 
@@ -83,6 +84,9 @@ pub struct InvariantDrift<const D: usize> {
     pub max_rotation_orthogonality_error: f64,
     pub max_rotation_determinant_error: f64,
     pub non_finite_body_count: usize,
+    /// Number of bodies whose known inertia mass disagrees with translational mass.
+    #[serde(default)]
+    pub mass_property_mismatch_count: usize,
 }
 
 /// Deterministic observation of one successfully committed world step.
