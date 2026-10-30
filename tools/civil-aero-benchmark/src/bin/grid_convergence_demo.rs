@@ -16,7 +16,8 @@ fn run() -> Result<(), String> {
     let study = GciStudy {
         quantity: "CD".to_owned(),
         source_reference: "synthetic-known-answer-quadratic-v0.1".to_owned(),
-        spacing_definition: "synthetic h values supplied explicitly; not derived from node counts".to_owned(),
+        spacing_definition: "synthetic h values supplied explicitly; not derived from node counts"
+            .to_owned(),
         safety_factor: 1.25,
         observations: spacings
             .iter()

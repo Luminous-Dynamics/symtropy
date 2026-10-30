@@ -68,7 +68,9 @@ pub fn evaluate_grid_convergence(study: &GciStudy) -> Result<GciReport, String> 
         || study.source_reference.trim().is_empty()
         || study.spacing_definition.trim().is_empty()
     {
-        return Err("quantity, source_reference, and spacing_definition must be non-empty".to_owned());
+        return Err(
+            "quantity, source_reference, and spacing_definition must be non-empty".to_owned(),
+        );
     }
     if !study.safety_factor.is_finite() || study.safety_factor < 1.0 {
         return Err("safety_factor must be finite and >= 1".to_owned());
@@ -84,7 +86,9 @@ pub fn evaluate_grid_convergence(study: &GciStudy) -> Result<GciReport, String> 
             || observation.grid_id.contains('\n')
             || observation.grid_id.contains('\r')
         {
-            return Err(format!("grid observation {index}: grid_id must be non-empty and CSV-safe"));
+            return Err(format!(
+                "grid observation {index}: grid_id must be non-empty and CSV-safe"
+            ));
         }
         if !ids.insert(observation.grid_id.clone()) {
             return Err(format!("duplicate grid_id {}", observation.grid_id));
@@ -98,7 +102,10 @@ pub fn evaluate_grid_convergence(study: &GciStudy) -> Result<GciReport, String> 
             ));
         }
         if !observation.value.is_finite() {
-            return Err(format!("grid {}: solution value must be finite", observation.grid_id));
+            return Err(format!(
+                "grid {}: solution value must be finite",
+                observation.grid_id
+            ));
         }
         if index > 0
             && study.observations[index - 1].characteristic_spacing
@@ -400,15 +407,19 @@ mod tests {
     fn oscillatory_or_zero_difference_sequences_fail_closed() {
         let mut study = quadratic_six_grid_study();
         study.observations[1].value = 20.0;
-        assert!(evaluate_grid_convergence(&study)
-            .expect_err("oscillatory sequence rejected")
-            .contains("non-monotonic"));
+        assert!(
+            evaluate_grid_convergence(&study)
+                .expect_err("oscillatory sequence rejected")
+                .contains("non-monotonic")
+        );
 
         let mut study = quadratic_six_grid_study();
         study.observations[1].value = study.observations[0].value;
-        assert!(evaluate_grid_convergence(&study)
-            .expect_err("zero delta rejected")
-            .contains("zero-difference"));
+        assert!(
+            evaluate_grid_convergence(&study)
+                .expect_err("zero delta rejected")
+                .contains("zero-difference")
+        );
     }
 
     #[test]
@@ -419,15 +430,19 @@ mod tests {
 
         let mut study = quadratic_six_grid_study();
         study.observations[1].characteristic_spacing = 4.5;
-        assert!(evaluate_grid_convergence(&study)
-            .expect_err("misordered grids rejected")
-            .contains("coarse-to-fine"));
+        assert!(
+            evaluate_grid_convergence(&study)
+                .expect_err("misordered grids rejected")
+                .contains("coarse-to-fine")
+        );
 
         let mut study = quadratic_six_grid_study();
         study.observations[1].grid_id = study.observations[0].grid_id.clone();
-        assert!(evaluate_grid_convergence(&study)
-            .expect_err("duplicate grid id rejected")
-            .contains("duplicate grid_id"));
+        assert!(
+            evaluate_grid_convergence(&study)
+                .expect_err("duplicate grid id rejected")
+                .contains("duplicate grid_id")
+        );
 
         let mut study = quadratic_six_grid_study();
         study.safety_factor = f64::NAN;
@@ -466,11 +481,13 @@ mod tests {
 
     #[test]
     fn csv_report_is_deterministic_and_labels_evidence_ceiling() {
-        let report = evaluate_grid_convergence(&quadratic_six_grid_study())
-            .expect("valid synthetic study");
+        let report =
+            evaluate_grid_convergence(&quadratic_six_grid_study()).expect("valid synthetic study");
         let first = report_to_csv(&report);
         assert_eq!(first, report_to_csv(&report));
-        assert!(first.contains("caller_supplied_grid_convergence_estimate_not_independent_validation"));
+        assert!(
+            first.contains("caller_supplied_grid_convergence_estimate_not_independent_validation")
+        );
         assert_eq!(first.lines().count(), 5);
     }
 }
