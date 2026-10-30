@@ -42,25 +42,71 @@ pub fn nan_zeroed_count() -> u64 {
 /// but it does not imply unconditional stability: the timestep must still resolve
 /// the system's fastest relevant timescale.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
+    // Compatibility entry point. On an invalid inertia solve, the attempted
+    // step is not committed and its accumulators are discarded.
+    if try_integrate(body, gravity, dt).is_err() {
+        body.clear_accumulators();
+    }
+}
+
+/// Transactional integration entry point.
+///
+/// If a body carries an authoritative inertia operator and its rotational
+/// solve is singular or invalid, this returns the error before mutating the
+/// body's pose or velocities. The caller may decide whether to retry, reject
+/// the frame, or quarantine the body.
+pub fn try_integrate<const D: usize>(
+    body: &mut RigidBody<D>,
+    gravity: &SVector<f64, D>,
+    dt: f64,
+) -> Result<(), crate::inertia::RotationalInertiaError> {
     if !body.is_dynamic() {
         body.clear_accumulators();
-        return;
+        return Ok(());
     }
 
-    // --- NaN/Inf guards on inputs ---
-    // Sanitize force/torque accumulators: replace non-finite values with zero
-    // to prevent NaN propagation from bad external forces.
-    if !body.force_accumulator.iter().all(|v| v.is_finite()) {
-        body.force_accumulator = SVector::zeros();
+    // Sanitize into local values first. This keeps the body's state and
+    // accumulators untouched if the validated inertia solve below fails.
+    let force_accumulator = if body.force_accumulator.iter().all(|v| v.is_finite()) {
+        body.force_accumulator.clone()
+    } else {
+        SVector::zeros()
+    };
+    let torque_accumulator = if body.torque_accumulator.is_finite() {
+        body.torque_accumulator.clone()
+    } else {
+        Bivector::zero()
     }
-    if !body.torque_accumulator.is_finite() {
-        body.torque_accumulator = Bivector::zero();
-    }
+
+    // --- Angular dynamics ---
+
+    // Bodies carrying validated mass properties use the full bivector
+    // inertia operator below. Only legacy bodies without an operator fall
+    // back to the isotropic mean-of-axis approximation.
+    let ang_accel = if let Some(inertia) = &body.rotational_inertia {
+        let world_inertia = inertia.rotated_by(&body.transform.rotation);
+        match world_inertia.angular_acceleration(
+            &body.angular_velocity,
+            &torque_accumulator,
+            1e-12,
+        ) {
+            Ok(acceleration) => acceleration,
+            Err(error) => {
+                ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
+                return Err(error);
+            }
+        }
+    } else {
+        let inv_i_avg = body.inv_inertia.sum() / D as f64;
+        // Legacy isotropic fallback: the impulse-first torque accumulator
+        // enters the stored B state with a negative sign.
+        body.torque_accumulator.scale(-inv_i_avg)
+    };
 
     // --- Linear dynamics ---
 
     // Acceleration = F/m + gravity
-    let accel = body.force_accumulator * body.inv_mass + gravity;
+    let accel = force_accumulator * body.inv_mass + gravity;
 
     // Semi-implicit: velocity first
     body.linear_velocity += accel * dt;
@@ -81,31 +127,6 @@ pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64,
     // Update position
     let displacement = body.linear_velocity * dt;
     body.transform.translation = Point(body.transform.translation.0 + displacement);
-
-    // --- Angular dynamics ---
-
-    // Bodies carrying validated mass properties use the full bivector
-    // inertia operator below. Only legacy bodies without an operator fall
-    // back to the isotropic mean-of-axis approximation.
-    let ang_accel = if let Some(inertia) = &body.rotational_inertia {
-        let world_inertia = inertia.rotated_by(&body.transform.rotation);
-        match world_inertia.angular_acceleration(
-            &body.angular_velocity,
-            &body.torque_accumulator,
-            1e-12,
-        ) {
-            Ok(acceleration) => acceleration,
-            Err(_) => {
-                ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
-                Bivector::zero()
-            }
-        }
-    } else {
-        let inv_i_avg = body.inv_inertia.sum() / D as f64;
-        // Legacy isotropic fallback: the impulse-first torque accumulator
-        // enters the stored B state with a negative sign.
-        body.torque_accumulator.scale(-inv_i_avg)
-    };
 
     // Update angular velocity
     body.angular_velocity = body.angular_velocity.add(&ang_accel.scale(dt));
@@ -160,6 +181,7 @@ pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64,
 
     // Clear accumulators for next frame
     body.clear_accumulators();
+    Ok(())
 }
 
 /// Apply a position correction to separate overlapping bodies.
@@ -655,4 +677,64 @@ mod tests {
             body.transform.rotation.determinant()
         );
     }
+
+    #[test]
+    fn try_integrate_is_transactional_on_singular_rotational_inertia() {
+        use crate::inertia::{BivectorInertia, RotationalInertiaError};
+        use nalgebra::SMatrix;
+
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(7),
+            Point::new([1.0, 2.0, 3.0]),
+            0.5,
+            2.0,
+        );
+        body.linear_velocity = SVector::new(0.5, -0.25, 0.75);
+        body.set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(
+                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
+            )
+            .unwrap(),
+        );
+        body.apply_force(SVector::new(4.0, -2.0, 1.0));
+        body.apply_torque(Bivector::<3>::unit_plane(1, 2));
+
+        let position_before = body.transform.translation.0.clone();
+        let linear_before = body.linear_velocity.clone();
+        let angular_before = body.angular_velocity.clone();
+        let force_before = body.force_accumulator.clone();
+        let torque_before = body.torque_accumulator.clone();
+
+        let error = try_integrate(&mut body, &SVector::new(0.0, -9.81, 0.0), 0.01)
+            .unwrap_err();
+        assert_eq!(error, RotationalInertiaError::SingularInertia);
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, linear_before);
+        assert_eq!(body.angular_velocity, angular_before);
+        assert_eq!(body.force_accumulator, force_before);
+        assert_eq!(body.torque_accumulator, torque_before);
+    }
+
+    #[test]
+    fn try_apply_angular_impulse_reports_singular_inertia() {
+        use crate::inertia::{BivectorInertia, RotationalInertiaError};
+        use nalgebra::SMatrix;
+
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(8), Point::origin(), 0.5, 1.0);
+        body.set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(
+                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
+            )
+            .unwrap(),
+        );
+        let before = body.angular_velocity.clone();
+        let error = try_apply_angular_impulse(
+            &mut body,
+            &Bivector::<3>::unit_plane(1, 2),
+        )
+        .unwrap_err();
+        assert_eq!(error, RotationalInertiaError::SingularInertia);
+        assert_eq!(body.angular_velocity, before);
+    }
+
 }
