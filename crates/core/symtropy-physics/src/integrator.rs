@@ -95,7 +95,10 @@ pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64,
     // update). That's a larger data-layout change to `body.rs` than is safe
     // to make alongside the contact-solver fixes in this change; deferred.
     let inv_i_avg = body.inv_inertia.sum() / D as f64;
-    let ang_accel = body.torque_accumulator.scale(inv_i_avg);
+    // Rotor::from_bivector integrates exp(-B), while torque accumulators use
+    // the impulse-first wedge convention. Convert physical torque to the
+    // stored angular-velocity sign exactly once here.
+    let ang_accel = body.torque_accumulator.scale(-inv_i_avg);
 
     // Update angular velocity
     body.angular_velocity = body.angular_velocity.add(&ang_accel.scale(dt));
@@ -268,6 +271,30 @@ mod tests {
         let trace = mat.trace();
         // Identity has trace = 3, rotated will have trace < 3
         assert!(trace < 2.99, "trace = {trace}, body didn't rotate");
+    }
+
+    #[test]
+    fn applied_torque_rotates_offset_in_impulse_consistent_direction() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            1.0,
+            1.0,
+        );
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+
+        let offset = SVector::from([1.0, 0.0, 0.0]);
+        let impulse = SVector::from([0.0, 1.0, 0.0]);
+        let torque_accumulator = Bivector::from_wedge(&impulse, &offset);
+        body.apply_torque(torque_accumulator);
+        integrate(&mut body, &SVector::zeros(), 1e-4);
+
+        let point_velocity = angular_point_velocity(&body.angular_velocity, &offset);
+        assert!(
+            point_velocity[1] > 0.0,
+            "positive tangential impulse should induce positive point velocity, got {point_velocity:?}"
+        );
     }
 
     #[test]
