@@ -171,7 +171,9 @@ pub fn solve_planar_friction_cone(
             )
         }
     };
-    let normalized_contact_residual = normal_complementarity.max(tangential_residual);
+    let normalized_contact_residual = normal_complementarity
+        .max(tangential_residual)
+        .max(cone_violation / impulse_residual_scale);
 
     if !post_velocity.iter().all(|value| value.is_finite())
         || !normalized_contact_residual.is_finite()
