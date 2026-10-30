@@ -137,6 +137,10 @@ impl<const D: usize> RigidBody<D> {
         }
     }
 
+    /// Accumulate a physical torque in the impulse-first bivector convention.
+    ///
+    /// The rigid-body integrator converts this to the stored angular-state sign
+    /// required by Rotor::from_bivector's exp(-B) update.
     pub fn apply_torque(&mut self, torque: Bivector<D>) {
         if self.is_dynamic() {
             // Need to implement AddAssign for Bivector or do manually
