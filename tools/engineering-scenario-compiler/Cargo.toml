@@ -6,6 +6,10 @@ publish = false
 license = "AGPL-3.0-or-later"
 description = "Offline strict compiler for the bounded Engineering Scenario DSL"
 
+[[bench]]
+name = "compile_latency"
+harness = false
+
 [dependencies]
 sha1 = "=0.10.6"
 hex = "=0.4.3"
