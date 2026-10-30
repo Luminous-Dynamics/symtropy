@@ -27,8 +27,8 @@ A missing or invalid row makes the entire campaign incomplete. It cannot disappe
 
 For each trial, the verifier independently derives:
 - campaign ID/revision, manifest digest, trace-source ID, evaluator version from the campaign policy;
-- scenario ID and scenario digest from the preregistered expected scenario;
-- arm ID and exact source revision from the trial;
+- scenario ID and scenario digest from the preregistered expected scenario, with a recomputed canonical scenario-manifest digest checked against the campaign policy;
+- arm ID from the trial and exact source revision from the independently pinned per-arm campaign policy (the trial record must match it);
 - policy digest from the campaign policy's per-arm map;
 - task-profile digest, plant digest, and native-controller configuration digest from the trial.
 
