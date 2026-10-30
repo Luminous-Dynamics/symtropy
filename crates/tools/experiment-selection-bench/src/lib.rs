@@ -1389,6 +1389,32 @@ mod tests {
     }
 
     #[test]
+    fn maximum_variance_is_invariant_to_objective_value_permutation() {
+        let problem = SyntheticProblem::new(ProblemId::Multimodal);
+        let mut observations: Vec<_> = initial_design(66, 10)
+            .into_iter()
+            .map(|point| problem.observe(point, 66))
+            .collect();
+        let mut permuted = observations.clone();
+        permuted.reverse();
+        let rewards: Vec<f64> = observations.iter().map(|item| item.objective).collect();
+        for (item, reward) in permuted.iter_mut().zip(rewards.into_iter().rev()) {
+            item.objective = reward;
+        }
+
+        let mut first = super::MaxPosteriorVariancePolicy::new(66, 256);
+        let mut second = super::MaxPosteriorVariancePolicy::new(66, 256);
+        assert_eq!(
+            first.propose(&observations, 0, 66),
+            second.propose(&permuted, 0, 66)
+        );
+        // Preserve both vectors as explicit test inputs, not mutable ambient
+        // model state shared between the two policies.
+        observations.shrink_to_fit();
+        permuted.shrink_to_fit();
+    }
+
+    #[test]
     fn maximum_posterior_variance_selects_finite_unobserved_candidates() {
         let problem = SyntheticProblem::new(ProblemId::SmoothBowl);
         let observations: Vec<_> = initial_design(44, 8)
