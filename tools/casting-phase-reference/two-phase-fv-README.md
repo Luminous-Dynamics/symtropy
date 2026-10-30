@@ -31,3 +31,20 @@ The paper demonstrates why interface error alone is insufficient: its variable-t
 ## Claim ceiling
 
 This is an explicit 1D numerical baseline against an analytical mathematical problem. It is not an exact reproduction of the authors' MATLAB implementation, an alloy/foundry model, physical validation, or production qualification.
+
+
+## Exact-head baseline results
+
+The first GitHub Actions execution of the explicit baseline produced the following deterministic five-grid curve. The exact-head golden CSV is checked byte-for-byte by the dedicated workflow.
+
+| Cells | Explicit steps | Mean absolute temperature error (°C) | RMS temperature error (°C) | Mean absolute half-solid-front error (m) | Relative energy residual |
+|---:|---:|---:|---:|---:|---:|
+| 48 | 266 | 2.5899e-2 | 1.4184e-1 | 1.00238e-2 | 4.10e-16 |
+| 96 | 1,062 | 1.1395e-2 | 6.4899e-2 | 4.61307e-3 | 3.27e-15 |
+| 192 | 4,247 | 4.4603e-3 | 2.7579e-2 | 2.12523e-3 | 2.86e-15 |
+| 384 | 16,987 | 1.7049e-3 | 1.2039e-2 | 1.00450e-3 | 3.87e-15 |
+| 768 | 67,948 | 6.2729e-4 | 5.1098e-3 | 4.83459e-4 | 3.47e-15 |
+
+The effective Fourier number remains at or below 0.2. The insulated far-boundary cell remains liquid at approximately 1.99998 °C. These are mathematical verification results for the stated two-phase Stefan case, not foundry measurements.
+
+At the finest mesh, the mean temperature error is about 32 times the paper's Peters flag-update value at N=768 (1.961e-5 °C in Table 6), and our explicit run takes 67,948 steps versus the paper's 1,152 implicit time increments for that reported configuration. The hardware and execution protocols are not matched, so this is not a runtime comparison. It clearly identifies the next algorithmic gap: implicit methods and adaptive resolution must reduce cost per validated accuracy while preserving temperature-field, interface and energy metrics.
