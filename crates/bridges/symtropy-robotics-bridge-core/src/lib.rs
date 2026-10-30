@@ -5,8 +5,8 @@
 
 pub mod agent;
 pub mod assurance;
-pub mod control;
 pub mod command_evidence;
+pub mod control;
 pub mod differential_drive;
 pub mod dispatch;
 pub mod epoch_authority;
