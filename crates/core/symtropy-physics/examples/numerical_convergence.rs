@@ -123,6 +123,15 @@ fn run_harmonic_oscillator(dt: f64) -> ResultRow {
     }
 }
 
+fn scenario_hash(name: &str, dt: f64, steps: usize) -> u64 {
+    // Stable FNV-1a identifier for this exact benchmark scenario.
+    // This is not a cryptographic digest; source revision is recorded separately.
+    let canonical = format!("{name}|dt={dt:.17e}|steps={steps}|duration_s=1.0");
+    canonical.as_bytes().iter().fold(0xcbf29ce484222325_u64, |hash, byte| {
+        (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
+    })
+}
+
 fn emit_campaign(name: &str, rows: &[ResultRow]) {
     let mut previous: Option<ResultRow> = None;
     for row in rows {
@@ -130,7 +139,7 @@ fn emit_campaign(name: &str, rows: &[ResultRow]) {
             (coarse.state_error / row.state_error).ln() / (coarse.dt / row.dt).ln()
         });
         println!(
-            "{name},{:.8e},{},{:.8e},{:.8e},{:.4},{},{},{}",
+            "{name},{:.8e},{},{:.8e},{:.8e},{:.4},{},{},{},{:016x}",
             row.dt,
             row.steps,
             row.state_error,
@@ -138,7 +147,8 @@ fn emit_campaign(name: &str, rows: &[ResultRow]) {
             observed_order,
             MEASURED_RUNS,
             row.median_elapsed_ns,
-            std::env::consts::ARCH
+            std::env::consts::ARCH,
+            scenario_hash(name, row.dt, row.steps)
         );
         previous = Some(*row);
     }
@@ -146,7 +156,15 @@ fn emit_campaign(name: &str, rows: &[ResultRow]) {
 
 fn main() {
     println!(
-        "scenario,dt,steps,state_error,relative_energy_drift,observed_order,repeats,median_elapsed_ns,target_arch"
+        "# package_version={},target_arch={},target_os={},rustc_version={},source_revision={}",
+        env!("CARGO_PKG_VERSION"),
+        std::env::consts::ARCH,
+        std::env::consts::OS,
+        option_env!("RUSTC_VERSION").unwrap_or("not-recorded"),
+        option_env!("SYMTROPY_SOURCE_REV").unwrap_or("not-recorded")
+    );
+    println!(
+        "scenario,dt,steps,state_error,relative_energy_drift,observed_order,repeats,median_elapsed_ns,target_arch,scenario_hash_fnv1a64"
     );
 
     let free_fall: Vec<_> = STEP_SIZES.iter().copied().map(run_free_fall).collect();
