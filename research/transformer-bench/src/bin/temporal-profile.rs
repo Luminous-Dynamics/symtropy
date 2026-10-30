@@ -217,7 +217,7 @@ fn read_scenarios(path: &str) -> Result<(Metadata, BTreeMap<String, Scenario>), 
             price_year: fields[15].trim().parse().map_err(|_| format!("{path}:{line_no}: price_year must be an integer"))?,
             price_basis: nonempty(fields[16], "price_basis")?,
         };
-        if !(1900..=2200).contains(&row_metadata.trace_year) || !(1900..=2200).contains(&row_metadata.price_year) {
+        if !(1900..=2199).contains(&row_metadata.trace_year) || !(1900..=2200).contains(&row_metadata.price_year) {
             return Err(format!("{path}:{line_no}: trace_year and price_year must be in 1900..=2200"));
         }
         if row_metadata.currency_code.len() != 3 || !row_metadata.currency_code.bytes().all(|byte| byte.is_ascii_uppercase()) {
@@ -347,7 +347,9 @@ fn summarize(scenarios: &BTreeMap<String, Scenario>) -> Result<Vec<Summary>, Str
         let mut total_hours = 0.0;
         let mut weighted = [0.0; 7];
         let mut max_ambient_temp_c = f64::NEG_INFINITY;
-        for interval in &scenario.intervals {
+        let mut ordered_intervals = scenario.intervals.clone();
+        ordered_intervals.sort_by(|a, b| a.start.cmp(&b.start).then_with(|| a.end.cmp(&b.end)));
+        for interval in &ordered_intervals {
             let hours = (interval.end - interval.start) as f64 / 3_600.0;
             total_hours += hours;
             weighted[0] += interval.current_mean * hours;
@@ -420,6 +422,22 @@ mod tests {
         fs::write(&path, format!("{header}\n{row}\n")).unwrap();
         assert!(read_scenarios(&path).unwrap_err().contains("mean_square_current_pu2"));
         let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn checked_fixture_rejects_a_shifted_scenario_grid() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures/temporal-profile-leap-year-synthetic.csv");
+        let content = fs::read_to_string(&path).unwrap();
+        let shifted = content.replacen(
+            "stress,0.2,SA-MUNI-11KV-50HZ,2024,Africa/Johannesburg,Q2,2024-04-01T00:00:00Z",
+            "stress,0.2,SA-MUNI-11KV-50HZ,2024,Africa/Johannesburg,Q2,2024-04-01T00:15:00Z",
+            1,
+        );
+        let temp = env::temp_dir().join("temporal-profile-shifted-grid.csv");
+        fs::write(&temp, shifted).unwrap();
+        assert!(read_scenarios(temp.to_str().unwrap()).unwrap_err().contains("different UTC interval grid"));
+        let _ = fs::remove_file(temp);
     }
 
     #[test]
