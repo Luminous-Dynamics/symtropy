@@ -185,6 +185,33 @@ fn validate(r: &Request) -> Result<(), &'static str> {
     Ok(())
 }
 
+fn next_down(value: f64) -> f64 {
+    if value.is_nan() || value == f64::NEG_INFINITY { return value; }
+    if value == 0.0 { return -f64::from_bits(1); }
+    let bits = value.to_bits();
+    f64::from_bits(if value > 0.0 { bits - 1 } else { bits + 1 })
+}
+
+fn two_sum(a: f64, b: f64) -> (f64, f64) {
+    let sum = a + b;
+    if !sum.is_finite() { return (sum, f64::NAN); }
+    let b_virtual = sum - a;
+    let error = (a - (sum - b_virtual)) + (b - b_virtual);
+    (sum, error)
+}
+
+fn add_down(a: f64, b: f64) -> f64 {
+    let (sum, error) = two_sum(a, b);
+    if !sum.is_finite() || !error.is_finite() { return sum; }
+    if error < 0.0 { next_down(sum) } else { sum }
+}
+
+fn sub_down(a: f64, b: f64) -> f64 {
+    let (difference, error) = two_sum(a, -b);
+    if !difference.is_finite() || !error.is_finite() { return difference; }
+    if error < 0.0 { next_down(difference) } else { difference }
+}
+
 fn frechet_bounds(marginals: &[Marginal]) -> Result<(f64, f64, f64), &'static str> {
     if marginals.len() < 2 { return Err("JOINT_CONFORMITY_REQUIRES_AT_LEAST_TWO_CHARACTERISTICS"); }
     let mut sum_lower = 0.0_f64;
@@ -200,7 +227,7 @@ fn frechet_bounds(marginals: &[Marginal]) -> Result<(f64, f64, f64), &'static st
         // A [1,1] marginal is an identity event: it must not perturb the
         // Fréchet lower bound through floating-point add/subtract cancellation.
         if m.probability_lower != 1.0 || m.probability_upper != 1.0 {
-            sum_lower += m.probability_lower;
+            sum_lower = add_down(sum_lower, m.probability_lower);
             effective_characteristics += 1;
         }
         upper = upper.min(m.probability_upper);
@@ -209,7 +236,7 @@ fn frechet_bounds(marginals: &[Marginal]) -> Result<(f64, f64, f64), &'static st
     let lower = if effective_characteristics == 0 {
         1.0
     } else {
-        (sum_lower - (effective_characteristics - 1) as f64).max(0.0).min(upper)
+        sub_down(sum_lower, (effective_characteristics - 1) as f64).max(0.0).min(upper)
     };
     if !lower.is_finite() || !upper.is_finite() || !product_midpoint.is_finite()
         || lower > upper + TOL {
@@ -424,6 +451,37 @@ mod tests {
                 else { assert!((intersection-hi).abs()<1.0e-12); }
             }
         }
+    }
+
+    #[test]
+    fn lower_bound_accumulator_is_conservative_at_rounding_boundaries() {
+        let p = [0.99_f64; 20];
+        let lower = frechet_bounds(&p.iter().map(|value| Marginal {
+            characteristic_id: "x".into(),
+            measurand_id: "m".into(),
+            unit: "u".into(),
+            specification_revision: "s".into(),
+            probability_lower: *value,
+            probability_upper: *value,
+            source_sha256: "a".repeat(HASH_LEN),
+            evidence: EvidenceState::Verified,
+        }).collect::<Vec<_>>()).unwrap().0;
+        // The represented f64 inputs are slightly below exact decimal 0.99;
+        // the robust lower bound must not round upward to the nominal 0.8.
+        assert!(lower <= 0.8);
+        assert!(lower >= 0.8 - 1.0e-12);
+    }
+
+    #[test]
+    fn exact_dyadic_and_perfect_marginals_keep_exact_bounds() {
+        let a = make_request(&[(0.875,0.875),(0.875,0.875)]);
+        let (lower,upper,_) = frechet_bounds(&a.marginals).unwrap();
+        assert_eq!(lower,0.75);
+        assert_eq!(upper,0.875);
+        let b = make_request(&[(1.0,1.0),(1.0,1.0)]);
+        let (lower,upper,_) = frechet_bounds(&b.marginals).unwrap();
+        assert_eq!(lower,1.0);
+        assert_eq!(upper,1.0);
     }
 
     #[test]
