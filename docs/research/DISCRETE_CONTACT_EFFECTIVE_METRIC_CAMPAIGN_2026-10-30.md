@@ -123,6 +123,11 @@ The plausible Symtropy differentiation is a *dimension-generic, auditable mechan
 
 Before making a general SOTA claim, require a repeatable >=20% win on a named workload family, no statistically material regression on the rest of the matched suite, and complete raw receipts. The threshold is a campaign decision rule, not a statement of current performance.
 
+
+## Implementation status (2026-10-30)
+
+The first independent normal-contact reference is now implemented in [PR #2988](https://github.com/Luminous-Dynamics/symtropy/pull/2988), in `crates/core/symtropy-physics/src/discrete_contact.rs`. It validates Delassus symmetry/PSD, recomputes unilateral KKT residuals, and exhaustively enumerates active sets for up to eight rows. It is intentionally not integrated into `PhysicsWorld`, does not assemble generalized Jacobians, and does not solve friction. The intended merge/review sequence is to qualify the inertia and failure-propagation foundations first, then compare this reference against independent analytical/QP oracles before building a production island solver.
+
 ## 6. Paradigm shifts worth testing
 
 ### 6.1 Adaptive solver effort from physical defect, not fixed iteration count
