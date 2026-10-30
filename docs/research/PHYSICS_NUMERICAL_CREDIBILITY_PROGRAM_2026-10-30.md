@@ -204,6 +204,17 @@ An initial executable CSV campaign has been added at [examples/numerical_converg
 
 Compare the 3D subset against MuJoCo and Rapier using identical geometry, mass properties, initial conditions, and tolerances. Use analytical solutions wherever possible; engine agreement alone is not ground truth.
 
+For articulated-dynamics comparison, use MuJoCo's structure as a reference contract rather than comparing only endpoint trajectories:
+
+- Its equations use a joint-space mass matrix M(q), bias forces c(q,v), applied/generalized forces, and constraint forces Jᵀf.
+- It builds M(q) with a Composite Rigid-Body algorithm, computes bias forces with Recursive Newton–Euler, exploits sparsity in the articulated mass matrix, and uses sparse factorization/back-substitution.
+- Add a forward/inverse dynamics consistency metric: generalized force reconstructed from inverse dynamics should match applied plus constraint forces within a preregistered residual tolerance.
+- Compare mass-matrix symmetry, positive definiteness, factorization residuals, constraint-Jacobian residuals, and energy/momentum drift—not just joint-angle error.
+
+MuJoCo's current documentation also describes a `discrete` integrator introduced in September 2026 and still under active development, alongside implicit and implicitfast approaches. Its gyroscopic treatment for standalone free bodies is a useful reference for the fast-spinning asymmetric-top campaign. Benchmark and pin the documented versions/modes rather than assuming one integrator setting represents all of MuJoCo.
+
+For differentiable robotics, distinguish smooth dynamics from contact transitions. MuJoCo documents analytic derivatives for smooth dynamics, while contact-force onset is not differentiable under its default impedance settings. Report derivative error separately for free-flight, constrained motion, and contact-onset cases; do not publish one blanket differentiability score.
+
 **Promotion gate:** correct inertia and gyroscopic equations; bounded constraint drift with a documented solver tolerance; conservation residuals consistent with the modeled exchanges; collision error and tunneling rates reported across adversarial cases.
 
 ### Campaign C — Continuum, fluid, and thermal models (P1/P2)
@@ -253,6 +264,10 @@ Every benchmark record should include, where relevant:
 - exact source revision, compiler, features, scenario hash, and environment.
 
 Never average away failures. Publish medians and tails, successful and failed runs, and the complete parameter/timestep range.
+
+## 5.1 Determinism comparison protocol
+
+Use Rapier's published contract precisely. Its default determinism is local to the same machine, engine version, Rust compiler, initial state, and body/collider/joint construction and insertion order. Cross-platform determinism is a separate opt-in mode with additional conditions. Symtropy should benchmark both scopes and publish a CPU/OS/compiler matrix; Q16.16 state quantization alone is not evidence of cross-architecture bit identity.
 
 ## 6. Where to beat the state of the art
 
