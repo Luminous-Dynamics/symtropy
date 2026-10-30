@@ -33,8 +33,10 @@ From the repository root:
 
 The executable prints:
 - an EXPERIMENT_CAMPAIGN header;
-- one EXPERIMENT_RECEIPT row per problem/policy/seed trial;
-- one EXPERIMENT_SUMMARY row per problem/policy.
+- one EXPERIMENT_TRIAL row per problem/policy/seed;
+- one EXPERIMENT_OBSERVATION row per evaluated candidate, including coordinates, noisy objective, feasibility, constraint violation, noise scale and simple regret;
+- one EXPERIMENT_SUMMARY row per problem/policy, including cumulative simple regret;
+- paired percentile-bootstrap regret differences versus random and Sobol baselines. Negative mean deltas favor the challenger.
 
 The source SHA is supplied by the caller; use the exact committed source SHA. Runtime nanoseconds are observational and will differ across hosts/replays. Candidate coordinates and synthetic observations are deterministic for a fixed source, seed, policy and configuration.
 
@@ -42,11 +44,11 @@ The source SHA is supplied by the caller; use the exact committed source SHA. Ru
 
 Each observation consumes one unit of the synthetic high-fidelity evaluation budget, including infeasible proposals. The initial design is included in that budget. In this first rung there are no external solver failures, mesh costs, GPU costs, or expensive model-training costs. GP-UCB computation is included in per-trial elapsed wall time but is not yet charged in a separate CPU-cycle budget.
 
-Report mean, median and p90 final feasible regret; infeasible calls; and runtime. Use paired seeds and report distributions, not only best outcomes. Do not average across problem families as though an easy bowl and a narrow multimodal peak were interchangeable.
+Report mean, median and p90 final feasible regret; cumulative simple regret; infeasible calls; paired bootstrap intervals; and runtime. Use paired seeds and report distributions, not only best outcomes. The initial campaign has no multiple-comparison correction; do not treat nominal 95% bootstrap intervals across many comparisons as confirmatory evidence. Do not average across problem families as though an easy bowl and a narrow multimodal peak were interchangeable.
 
 ## Claim ceiling and follow-on
 
-This is a deterministic synthetic optimizer benchmark, not evidence of Symthaea superiority or physical-model correctness. It does not yet implement expected information gain, posterior calibration coverage, OOD abstention, confirmation-set protection, or a Symthaea candidate arm.
+This is a deterministic synthetic optimizer benchmark, not evidence of Symthaea superiority or physical-model correctness. It does not yet implement expected information gain, posterior calibration coverage, OOD abstention, confirmation-set protection, or a Symthaea candidate arm. The GP-UCB is a small fixed-hyperparameter reference baseline; it is not a substitute for a tuned BoTorch/Ax/Optuna/SMAC comparison.
 
 Next gates:
 1. exact-head Rust tests and clippy;
