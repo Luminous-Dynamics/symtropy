@@ -335,7 +335,6 @@ impl MappedStream {
                 observation.native_kind.to_string(),
                 csv_escape(&observation.native_unit),
                 csv_escape(&observation.value_text),
-                observation.source_document_sha256.clone(),
                 csv_escape(&observation.source_locator),
                 self.schema_version.clone(),
                 csv_escape(&self.schema_namespace),
@@ -789,7 +788,8 @@ fn join_qif_to_cycle(
     if relevant_observations.iter().any(|obs|
         obs.reference_clock_id != cycle.reference_clock_id
         || obs.clock_mapping_sha256 != cycle.clock_mapping_sha256
-        || obs.clock_uncertainty_ns.saturating_add(cycle.clock_uncertainty_ns) > 100_000) {
+        || obs.clock_uncertainty_ns > cycle.clock_uncertainty_ns
+        || result.clock_uncertainty_ns.saturating_add(obs.clock_uncertainty_ns) > 100_000) {
         return fail("MACHINE_OBSERVATION_CLOCK_MAPPING_MISMATCH");
     }
     if result.measured_at_reference_ns < cycle.start_ns || result.measured_at_reference_ns > cycle.end_ns {
@@ -1267,6 +1267,20 @@ mod tests {
         association.valid_from_ns=1_750_000_600;
         let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
         assert_eq!(join.reason,"ASSOCIATION_NOT_VALID_AT_MEASUREMENT_TIME");
+    }
+
+    #[test]
+    fn cycle_clock_uncertainty_must_cover_observation_clock_uncertainty() {
+        let mt=fixture_source(Standard::MtConnect);
+        let stream=map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
+        let qif=fixture_source(Standard::Qif);
+        let result=fixture_qif_result(&qif);
+        let mut cycle=fixture_cycle(&stream);
+        cycle.clock_uncertainty_ns=50;
+        let association=fixture_association(&stream,&qif);
+        let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
+        assert_eq!(join.status,"INCONCLUSIVE");
+        assert_eq!(join.reason,"MACHINE_OBSERVATION_CLOCK_MAPPING_MISMATCH");
     }
 
     #[test]
