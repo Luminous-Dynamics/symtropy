@@ -606,12 +606,12 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() -> Result<(), String> {
-    println!("intervals,grid_points,nt,dx_m,dt_s,exact_front_m,interface_final_m,interface_mean_abs_error_m,temperature_mean_abs_error_c,temperature_rms_error_c,mean_flag_iterations,max_flag_iterations,total_tridiagonal_segments,max_block_residual_relative,wall_heat_j_m2,enthalpy_drop_j_m2,energy_residual_relative,status");
+    println!("intervals,grid_points,nt,dx_m,dt_s,exact_front_m,interface_final_m,interface_final_abs_error_m,interface_mean_abs_error_m,temperature_mean_abs_error_c,temperature_rms_error_c,mean_flag_iterations,max_flag_iterations,total_tridiagonal_segments,max_block_residual_relative,wall_heat_j_m2,enthalpy_drop_j_m2,energy_residual_relative,status");
     for s in all_summaries()? {
         println!(
-            "{},{},{},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.8},{},{},{:.12e},{:.12e},{:.12e},{:.12e},PASS",
+            "{},{},{},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.8},{},{},{:.12e},{:.12e},{:.12e},{:.12e},PASS",
             s.intervals, s.grid_points, s.time_steps, s.dx_m, s.dt_s,
-            s.final_front_exact_m, s.final_interface_m, s.interface_error_mean_abs_m,
+            s.final_front_exact_m, s.final_interface_m, s.interface_final_error_m, s.interface_error_mean_abs_m,
             s.temperature_mean_abs_error_c, s.temperature_rms_error_c,
             s.mean_flag_iterations, s.max_flag_iterations, s.total_tridiagonal_segments,
             s.max_pde_residual_relative, s.wall_heat_j_m2, s.enthalpy_drop_j_m2,
