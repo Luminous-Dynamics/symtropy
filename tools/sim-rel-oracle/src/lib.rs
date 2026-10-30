@@ -388,7 +388,6 @@ mod tests {
     }
 }
 
-
 /// A node in a prior-free minimax decision tree.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MinimaxDecisionNode {
@@ -498,11 +497,9 @@ fn solve_minimax_state(
             + zero_node
                 .worst_case_remaining_cost
                 .max(one_node.worst_case_remaining_cost);
-        let replace = best
-            .as_ref()
-            .is_none_or(|(best_cost, best_action, _, _)| {
-                worst_case < *best_cost || (worst_case == *best_cost && action < *best_action)
-            });
+        let replace = best.as_ref().is_none_or(|(best_cost, best_action, _, _)| {
+            worst_case < *best_cost || (worst_case == *best_cost && action < *best_action)
+        });
         if replace {
             best = Some((worst_case, action, zero_node, one_node));
         }
@@ -555,11 +552,7 @@ mod minimax_tests {
         best
     }
 
-    fn path_cost(
-        node: &MinimaxDecisionNode,
-        signature: u8,
-        costs: &[u32; ACTIONS],
-    ) -> u64 {
+    fn path_cost(node: &MinimaxDecisionNode, signature: u8, costs: &[u32; ACTIONS]) -> u64 {
         let Some(action) = node.action else {
             return 0;
         };
@@ -595,7 +588,10 @@ mod minimax_tests {
         let signatures: Vec<u8> = (0..=u8::MAX).collect();
         let costs = [8, 7, 6, 5, 4, 3, 2, 1];
         let result = solve_minimax_exact(&signatures, &costs, 10_000).unwrap();
-        assert_eq!(result.worst_case_cost, costs.iter().map(|cost| u64::from(*cost)).sum());
+        assert_eq!(
+            result.worst_case_cost,
+            costs.iter().map(|cost| u64::from(*cost)).sum()
+        );
         assert_eq!(result.first_action, Some(0));
         assert_eq!(result.memoized_states, 6_305);
     }
@@ -660,7 +656,10 @@ mod minimax_tests {
                     * path_cost(&minimax.tree, hypothesis.signature, &costs) as f64
             })
             .sum::<f64>()
-            / weighted.iter().map(|hypothesis| hypothesis.prior_weight).sum::<f64>();
+            / weighted
+                .iter()
+                .map(|hypothesis| hypothesis.prior_weight)
+                .sum::<f64>();
         assert!(bayes.expected_cost <= minimax_policy_expected_cost + 1e-12);
         assert!(minimax_policy_expected_cost <= minimax.worst_case_cost as f64 + 1e-12);
     }
