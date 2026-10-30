@@ -623,7 +623,9 @@ mod tests {
         let net_internal_force = sim
             .particles
             .iter()
-            .fold(SVector::<f64, 2>::zeros(), |sum, particle| sum + particle.force);
+            .fold(SVector::<f64, 2>::zeros(), |sum, particle| {
+                sum + particle.force
+            });
         assert!(net_internal_force.norm() < 1e-10);
     }
 
@@ -651,11 +653,9 @@ mod tests {
         let displacement = sim.particles[0].position - sim.particles[1].position;
         let gradient = kernel.gradient(&displacement).unwrap();
         let r_dot_gradient = displacement.dot(&gradient);
-        let expected_denominator =
-            displacement.norm_squared() + 0.01 * h * h;
-        let coefficient = mass * (2.0 * viscosity) / (density * density)
-            * r_dot_gradient
-            / expected_denominator;
+        let expected_denominator = displacement.norm_squared() + 0.01 * h * h;
+        let coefficient =
+            mass * (2.0 * viscosity) / (density * density) * r_dot_gradient / expected_denominator;
         let expected_force_y = mass * (2.0 * coefficient);
 
         let kinetic_energy_before = sim
@@ -670,7 +670,11 @@ mod tests {
             .map(|particle| 0.5 * particle.mass * particle.velocity.norm_squared())
             .sum::<f64>();
 
-        assert!(sim.particles.iter().all(|particle| particle.pressure.abs() < 1e-12));
+        assert!(
+            sim.particles
+                .iter()
+                .all(|particle| particle.pressure.abs() < 1e-12)
+        );
         assert!((sim.particles[0].force[1] - expected_force_y).abs() < 1e-10);
         assert!((sim.particles[1].force[1] + expected_force_y).abs() < 1e-10);
         assert!((report.momentum_after - report.momentum_before).norm() < 1e-10);
@@ -691,11 +695,9 @@ mod tests {
             ([0.9, -0.2], [0.5, -0.2], 2.1),
         ];
         for (position, velocity, mass) in fixtures {
-            let boosted_velocity = [
-                velocity[0] + boost[0],
-                velocity[1] + boost[1],
-            ];
-            base.add_particle(particle(position, velocity, mass)).unwrap();
+            let boosted_velocity = [velocity[0] + boost[0], velocity[1] + boost[1]];
+            base.add_particle(particle(position, velocity, mass))
+                .unwrap();
             boosted
                 .add_particle(particle(position, boosted_velocity, mass))
                 .unwrap();
@@ -705,15 +707,11 @@ mod tests {
         base.step(dt, &SVector::zeros()).unwrap();
         boosted.step(dt, &SVector::zeros()).unwrap();
 
-        for (base_particle, boosted_particle) in
-            base.particles.iter().zip(&boosted.particles)
-        {
+        for (base_particle, boosted_particle) in base.particles.iter().zip(&boosted.particles) {
             assert!((base_particle.force - boosted_particle.force).norm() < 1e-10);
             assert!((base_particle.density - boosted_particle.density).abs() < 1e-12);
             assert!((base_particle.pressure - boosted_particle.pressure).abs() < 1e-12);
-            assert!(
-                (boosted_particle.velocity - base_particle.velocity - boost).norm() < 1e-10
-            );
+            assert!((boosted_particle.velocity - base_particle.velocity - boost).norm() < 1e-10);
             assert!(
                 (boosted_particle.position - base_particle.position - boost * dt).norm() < 1e-10
             );
