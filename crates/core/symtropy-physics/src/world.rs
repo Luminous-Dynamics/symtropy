@@ -128,6 +128,95 @@ type MeshContactFn<const D: usize> = Arc<
 >;
 
 /// The physics world manages all rigid bodies and steps the simulation.
+/// Typed error returned when a physics-world step cannot be completed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PhysicsStepError {
+    RotationalInertia(crate::inertia::RotationalInertiaError),
+}
+
+impl From<crate::inertia::RotationalInertiaError> for PhysicsStepError {
+    fn from(error: crate::inertia::RotationalInertiaError) -> Self {
+        Self::RotationalInertia(error)
+    }
+}
+
+#[derive(Clone)]
+struct BodyStepSnapshot<const D: usize> {
+    transform: Transform<D>,
+    linear_velocity: SVector<f64, D>,
+    angular_velocity: Bivector<D>,
+    force_accumulator: SVector<f64, D>,
+    torque_accumulator: Bivector<D>,
+    sleeping: bool,
+    sleep_timer: f32,
+    sleep_counter: u32,
+}
+
+impl<const D: usize> BodyStepSnapshot<D> {
+    fn capture(body: &RigidBody<D>) -> Self {
+        Self {
+            transform: body.transform.clone(),
+            linear_velocity: body.linear_velocity.clone(),
+            angular_velocity: body.angular_velocity.clone(),
+            force_accumulator: body.force_accumulator.clone(),
+            torque_accumulator: body.torque_accumulator.clone(),
+            sleeping: body.sleeping,
+            sleep_timer: body.sleep_timer,
+            sleep_counter: body.sleep_counter,
+        }
+    }
+
+    fn restore(self, body: &mut RigidBody<D>) {
+        body.transform = self.transform;
+        body.linear_velocity = self.linear_velocity;
+        body.angular_velocity = self.angular_velocity;
+        body.force_accumulator = self.force_accumulator;
+        body.torque_accumulator = self.torque_accumulator;
+        body.sleeping = self.sleeping;
+        body.sleep_timer = self.sleep_timer;
+        body.sleep_counter = self.sleep_counter;
+    }
+}
+
+struct WorldStepSnapshot<const D: usize> {
+    bodies: Vec<BodyStepSnapshot<D>>,
+    contacts: Vec<ContactManifold<D>>,
+    collision_events: Vec<CollisionEvent<D>>,
+    sensor_events: Vec<crate::contact::SensorEvent>,
+    contact_cache: ContactCache<D>,
+    prev_cache: ContactCache<D>,
+    static_tree_dirty: bool,
+}
+
+impl<const D: usize> WorldStepSnapshot<D> {
+    fn capture(world: &PhysicsWorld<D>) -> Self {
+        Self {
+            bodies: world.bodies.iter().map(BodyStepSnapshot::capture).collect(),
+            contacts: world.contacts.clone(),
+            collision_events: world.collision_events.clone(),
+            sensor_events: world.sensor_events.clone(),
+            contact_cache: world.contact_cache.clone(),
+            prev_cache: world.prev_cache.clone(),
+            static_tree_dirty: world.static_tree_dirty,
+        }
+    }
+
+    fn restore(self, world: &mut PhysicsWorld<D>) {
+        for (body, state) in world.bodies.iter_mut().zip(self.bodies) {
+            state.restore(body);
+        }
+        world.contacts = self.contacts;
+        world.collision_events = self.collision_events;
+        world.sensor_events = self.sensor_events;
+        world.contact_cache = self.contact_cache;
+        world.prev_cache = self.prev_cache;
+        // A broadphase rebuild during the rejected step may leave a valid
+        // cache, but restoring the dirty flag forces a rebuild if pre-step
+        // state required one.
+        world.static_tree_dirty = self.static_tree_dirty;
+    }
+}
+
 pub struct PhysicsWorld<const D: usize> {
     pub bodies: Vec<RigidBody<D>>,
     pub constraints: Vec<Box<dyn Constraint<D>>>,
@@ -407,18 +496,69 @@ impl<const D: usize> PhysicsWorld<D> {
     /// Step with consciousness-physics callback.
     ///
     /// The callback modulates forces, impulses, and friction based on
-    /// consciousness state, closing the consciousness-physics loop.
+    /// consciousness state. This compatibility API rejects a failed physics
+    /// step and clears accumulated forces/torques. Use
+    /// `try_step_with_callback` to receive the typed error.
+    ///
+    /// Callback-owned side effects are not generally rollbackable if a later
+    /// physics operation fails; use a transactional callback implementation
+    /// when that distinction matters.
     pub fn step_with_callback(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
-        self.step_internal(dt, callback);
+        if self.try_step_with_callback(dt, callback).is_err() {
+            for body in &mut self.bodies {
+                body.clear_accumulators();
+            }
+        }
     }
 
     /// Step without consciousness coupling (pure physics).
+    ///
+    /// This compatibility API rejects a failed step and clears accumulators.
+    /// Use `try_step` to receive a typed failure.
     pub fn step(&mut self, dt: f64) {
-        let mut noop = NoOpCallback;
-        self.step_internal(dt, &mut noop);
+        if self.try_step(dt).is_err() {
+            for body in &mut self.bodies {
+                body.clear_accumulators();
+            }
+        }
     }
 
-    fn step_internal(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
+    /// Fallible, rollback-capable world step using the no-op callback.
+    ///
+    /// On a rotational-inertia failure, body state, contact manifolds, events,
+    /// and warm-start caches are restored to their pre-step values. Force and
+    /// torque accumulators are preserved so the caller can inspect or retry
+    /// after applying an explicit recovery policy.
+    pub fn try_step(&mut self, dt: f64) -> Result<(), PhysicsStepError> {
+        let mut noop = NoOpCallback;
+        self.try_step_with_callback(dt, &mut noop)
+    }
+
+    /// Fallible world step with callback coupling.
+    ///
+    /// The physics-owned state is rolled back on failure. Arbitrary side
+    /// effects performed inside user callback methods cannot be rolled back
+    /// generically and must be handled by the callback owner.
+    pub fn try_step_with_callback(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+    ) -> Result<(), PhysicsStepError> {
+        let snapshot = WorldStepSnapshot::capture(self);
+        match self.step_internal(dt, callback) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                snapshot.restore(self);
+                Err(error)
+            }
+        }
+    }
+
+    fn step_internal(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+    ) -> Result<(), PhysicsStepError> {
         // 0. Clear events from previous step
         self.collision_events.clear();
         self.sensor_events.clear();
@@ -454,7 +594,7 @@ impl<const D: usize> PhysicsWorld<D> {
             if !body.sleeping {
                 body.force_accumulator =
                     callback.modulate_force(body.handle, &body.force_accumulator);
-                integrator::integrate(body, &self.gravity, dt);
+                integrator::try_integrate(body, &self.gravity, dt)?;
             }
         }
         #[cfg(feature = "deterministic-net")]
@@ -643,7 +783,7 @@ impl<const D: usize> PhysicsWorld<D> {
         //     (The old code accidentally applied warm-starting N times per frame.)
         for &ci in &active_contact_indices {
             if ci < self.contacts.len() {
-                self.warm_start_contact(ci);
+                self.try_warm_start_contact(ci)?;
             }
         }
 
@@ -653,7 +793,7 @@ impl<const D: usize> PhysicsWorld<D> {
             for &ci in &active_contact_indices {
                 if ci < self.contacts.len() {
                     let contact = self.contacts[ci].clone();
-                    let updated = self.resolve_contact(contact, dt, callback);
+                    let updated = self.try_resolve_contact(contact, dt, callback)?;
                     self.contacts[ci] = updated;
                 }
             }
@@ -734,6 +874,7 @@ impl<const D: usize> PhysicsWorld<D> {
 
         // 8. State Decay: Apply natural recovery/decay to all conscious entities.
         self.decay_state(callback, dt);
+        Ok(())
     }
 
     /// Decay the consciousness state over time.
@@ -908,11 +1049,14 @@ impl<const D: usize> PhysicsWorld<D> {
     ///
     /// Called ONCE per contact before the solver loop. Distributes the cached
     /// total impulse evenly across all contact points and initialises `lambda`.
-    fn warm_start_contact(&mut self, ci: usize) {
+    fn try_warm_start_contact(
+        &mut self,
+        ci: usize,
+    ) -> Result<(), crate::inertia::RotationalInertiaError> {
         let contact = self.contacts[ci].clone();
         let (idx_a, idx_b) = self.find_body_indices(contact.body_a, contact.body_b);
         let (Some(a), Some(b)) = (idx_a, idx_b) else {
-            return;
+            return Ok(());
         };
 
         let primary_pt = contact.primary_point().position;
@@ -946,8 +1090,8 @@ impl<const D: usize> PhysicsWorld<D> {
                 let r_b = pt.position - com_b;
                 let torque_a = Bivector::from_wedge(&(-per_pt_impulse), &r_a);
                 let torque_b = Bivector::from_wedge(&per_pt_impulse, &r_b);
-                integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
-                integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
+                integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
+                integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
             }
 
             // Seed lambda so TGS Soft starts from warm-start value
@@ -955,6 +1099,7 @@ impl<const D: usize> PhysicsWorld<D> {
                 pt.lambda = per_pt;
             }
         }
+        Ok(())
     }
 
     /// Resolve a single contact using TGS Soft (Temporal Gauss-Seidel with compliance).
@@ -978,22 +1123,22 @@ impl<const D: usize> PhysicsWorld<D> {
     /// `ContactManifold::impulse_magnitude`).
     ///
     /// Returns the updated manifold so accumulated lambdas persist across iterations.
-    fn resolve_contact(
+    fn try_resolve_contact(
         &mut self,
         mut contact: ContactManifold<D>,
         dt: f64,
         callback: &mut dyn PhysicsCallback<D>,
-    ) -> ContactManifold<D> {
+    ) -> Result<ContactManifold<D>, crate::inertia::RotationalInertiaError> {
         let (idx_a, idx_b) = self.find_body_indices(contact.body_a, contact.body_b);
         let (Some(a), Some(b)) = (idx_a, idx_b) else {
-            return contact;
+            return Ok(contact);
         };
 
         let inv_mass_a = self.bodies[a].inv_mass;
         let inv_mass_b = self.bodies[b].inv_mass;
         let total_inv_mass = inv_mass_a + inv_mass_b;
         if total_inv_mass < 1e-15 {
-            return contact;
+            return Ok(contact);
         }
 
         let com_a = self.bodies[a].position();
@@ -1073,16 +1218,16 @@ impl<const D: usize> PhysicsWorld<D> {
             // Rotational inverse effective mass uses the same body/world
             // inertia operator as angular impulse application. Bodies without
             // authoritative mass properties retain the legacy isotropic term.
-            let ang_term_a = integrator::rotational_inverse_effective_mass(
+            let ang_term_a = integrator::try_rotational_inverse_effective_mass(
                 &self.bodies[a],
                 &r_a,
                 &contact.normal,
-            );
-            let ang_term_b = integrator::rotational_inverse_effective_mass(
+            )?;
+            let ang_term_b = integrator::try_rotational_inverse_effective_mass(
                 &self.bodies[b],
                 &r_b,
                 &contact.normal,
-            );
+            )?;
 
             // TGS Soft impulse: Δλ = (-v_rel·n + bias) / (w_a + w_b + I_a + I_b + α)
             let denom = total_inv_mass + alpha + ang_term_a + ang_term_b;
@@ -1105,8 +1250,8 @@ impl<const D: usize> PhysicsWorld<D> {
                 // matters — see `Bivector::from_wedge` doc comment).
                 let torque_a = Bivector::from_wedge(&(-impulse), &r_a);
                 let torque_b = Bivector::from_wedge(&impulse, &r_b);
-                integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
-                integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
+                integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
+                integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
 
                 total_normal_impulse += modulated_delta.abs();
             }
@@ -1186,16 +1331,16 @@ impl<const D: usize> PhysicsWorld<D> {
 
                     // Use the same full rotational effective-mass operator
                     // for tangential friction as for the normal impulse.
-                    let ang_term_a_t = integrator::rotational_inverse_effective_mass(
+                    let ang_term_a_t = integrator::try_rotational_inverse_effective_mass(
                         &self.bodies[a],
                         &r_a,
                         &tangent,
-                    );
-                    let ang_term_b_t = integrator::rotational_inverse_effective_mass(
+                    )?;
+                    let ang_term_b_t = integrator::try_rotational_inverse_effective_mass(
                         &self.bodies[b],
                         &r_b,
                         &tangent,
-                    );
+                    )?;
                     let denom_t = (total_inv_mass + ang_term_a_t + ang_term_b_t).max(1e-15);
 
                     let j_t_desired = -v_t_mag / denom_t;
@@ -1206,8 +1351,8 @@ impl<const D: usize> PhysicsWorld<D> {
 
                     let torque_a = Bivector::from_wedge(&(-friction_impulse), &r_a);
                     let torque_b = Bivector::from_wedge(&friction_impulse, &r_b);
-                    integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
-                    integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
+                    integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
+                    integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
 
                     total_friction_dissipation += j_t.abs() * 0.1;
                 }
@@ -1237,7 +1382,7 @@ impl<const D: usize> PhysicsWorld<D> {
             callback.apply_trauma(&event);
         }
 
-        contact
+        Ok(contact)
     }
 
     #[inline]
