@@ -540,6 +540,35 @@ mod tests {
     }
 
     #[test]
+    fn rare_but_decision_changing_outcome_is_not_discarded() {
+        let problem = DecisionProblem {
+            problem_id: "rare-state-test".to_owned(),
+            state_ids: vec!["common".to_owned(), "rare".to_owned()],
+            prior_probabilities: vec![1.0 - 1.0e-13, 1.0e-13],
+            decisions: vec![
+                DecisionOption {
+                    decision_id: "choose_common".to_owned(),
+                    utility_by_state: vec![1.0, 0.0],
+                },
+                DecisionOption {
+                    decision_id: "choose_rare".to_owned(),
+                    utility_by_state: vec![0.0, 9.0e12],
+                },
+            ],
+            experiments: vec![Experiment {
+                experiment_id: "perfect_rare_state_test".to_owned(),
+                outcome_ids: vec!["common".to_owned(), "rare".to_owned()],
+                cost_units: 0.0,
+                likelihood_by_state: vec![vec![1.0, 0.0], vec![0.0, 1.0]],
+            }],
+        };
+        let report = evaluate_evsi(&problem, 0.0).expect("valid rare-state problem");
+        let experiment = &report.experiments[0];
+        assert!((experiment.gross_evsi - 0.9).abs() < 1e-9);
+        assert_eq!(experiment.decision_changing_outcomes, 1);
+    }
+
+    #[test]
     fn csv_output_is_deterministic_and_declares_probability_provenance_limit() {
         let report = evaluate_evsi(&synthetic_problem(), 2.0).expect("valid problem");
         let first = report_to_csv(&report);
