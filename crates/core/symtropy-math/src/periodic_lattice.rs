@@ -28,6 +28,7 @@ pub enum PeriodicLatticeError {
     NonFiniteOrigin,
     NonFiniteBasis,
     SingularBasis,
+    UnrepresentableLatticeVector { lattice_axis: usize, cartesian_axis: usize },
     IllConditionedBasis,
     NonFiniteCoordinate,
     CoordinatePrecisionLimit { axis: usize },
@@ -48,6 +49,10 @@ impl fmt::Display for PeriodicLatticeError {
             Self::NonFiniteOrigin => write!(f, "triclinic lattice origin must be finite"),
             Self::NonFiniteBasis => write!(f, "triclinic lattice basis must be finite"),
             Self::SingularBasis => write!(f, "triclinic lattice basis is singular"),
+            Self::UnrepresentableLatticeVector { lattice_axis, cartesian_axis } => write!(
+                f,
+                "basis vector {lattice_axis} is not representable on Cartesian axis {cartesian_axis} at the lattice origin"
+            ),
             Self::IllConditionedBasis => {
                 write!(f, "triclinic lattice inverse is outside the finite numeric envelope")
             }
@@ -126,6 +131,37 @@ impl<const D: usize> PeriodicLattice<D> {
         }
         if !basis.iter().all(|value| value.is_finite()) {
             return Err(PeriodicLatticeError::NonFiniteBasis);
+        }
+
+        // Validate that each nonzero basis component can actually be
+        // represented when translated from the declared origin. A finite,
+        // invertible matrix can still describe a cell smaller than the ULP of
+        // a huge origin (for example origin=1e16 and basis component=1).
+        for lattice_axis in 0..D {
+            for cartesian_axis in 0..D {
+                let component = basis[(cartesian_axis, lattice_axis)];
+                if component == 0.0 {
+                    continue;
+                }
+                let coordinate = origin[cartesian_axis];
+                let positive = coordinate + component;
+                let negative = coordinate - component;
+                let positive_error = ((positive - coordinate) - component).abs();
+                let negative_error = ((negative - coordinate) + component).abs();
+                let maximum_error = 0.125 * component.abs();
+                if !positive.is_finite()
+                    || !negative.is_finite()
+                    || positive == coordinate
+                    || negative == coordinate
+                    || positive_error > maximum_error
+                    || negative_error > maximum_error
+                {
+                    return Err(PeriodicLatticeError::UnrepresentableLatticeVector {
+                        lattice_axis,
+                        cartesian_axis,
+                    });
+                }
+            }
         }
 
         let inverse = basis
@@ -991,6 +1027,29 @@ mod tests {
             lattice.wrap_point(&SVector::from([f64::NAN, 0.0])),
             Err(PeriodicLatticeError::NonFiniteCoordinate)
         );
+    }
+
+    #[test]
+    fn rejects_cell_vectors_smaller_than_origin_resolution() {
+        let basis = SMatrix::<f64, 2, 2>::new(1.0, 0.0, 0.0, 4.0);
+        assert!(matches!(
+            PeriodicLattice::new(
+                SVector::from([1.0e16, 0.0]),
+                basis,
+                [true, true],
+            ),
+            Err(PeriodicLatticeError::UnrepresentableLatticeVector {
+                lattice_axis: 0,
+                cartesian_axis: 0,
+            })
+        ));
+
+        let representable = SMatrix::<f64, 2, 2>::new(2.0, 0.0, 0.0, 4.0);
+        assert!(PeriodicLattice::new(
+            SVector::from([1.0e16, 0.0]),
+            representable,
+            [true, true],
+        ).is_ok());
     }
 
     #[test]
