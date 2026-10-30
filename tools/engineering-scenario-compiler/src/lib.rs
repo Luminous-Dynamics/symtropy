@@ -651,7 +651,7 @@ mod tests {
         let original = std::str::from_utf8(FIXTURE).unwrap();
         let toml_11_only = replace_once(
             original,
-            "name = \\"TMR NACA 0012 sharp trailing edge\\"",
+            r#"name = "TMR NACA 0012 sharp trailing edge""#,
             r#"name = "\e""#,
         );
         assert_eq!(compile_bytes(toml_11_only.as_bytes()).disposition, Disposition::Invalid);
