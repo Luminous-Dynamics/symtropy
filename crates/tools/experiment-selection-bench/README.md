@@ -10,9 +10,10 @@ All methods receive the same digitally shifted Sobol initial design and the same
 - digitally shifted 2D Sobol;
 - 2D Halton low-discrepancy sequence;
 - randomized Latin hypercube;
-- Gaussian-process upper-confidence-bound selection (RBF kernel, fixed length scale/noise/UCB beta).
+- Gaussian-process upper-confidence-bound selection (RBF kernel, fixed length scale/noise/UCB beta);
+- maximum posterior variance, a one-step Gaussian information-gain proxy under fixed observation noise.
 
-The GP-UCB model is intentionally small and transparent. It is a reference baseline, not a claim to match the strongest production Bayesian-optimization packages. The experiment-selection interface is a CandidatePolicy trait so a Symthaea adapter can be added without changing objective, oracle, accounting, or scoring code.
+The GP-UCB and maximum-variance models are intentionally small and transparent. Maximum variance is monotonic with one-step Gaussian entropy reduction only under the fixed Gaussian-noise model; it is not full hypothesis-space expected information gain. These are reference baselines, not claims to match the strongest production Bayesian-optimization packages. The experiment-selection interface is a CandidatePolicy trait so a Symthaea adapter can be added without changing objective, oracle, accounting, or scoring code.
 
 ## Synthetic problem families
 
@@ -48,7 +49,7 @@ Report mean, median and p90 final feasible regret; cumulative simple regret; inf
 
 ## Claim ceiling and follow-on
 
-This is a deterministic synthetic optimizer benchmark, not evidence of Symthaea superiority or physical-model correctness. It does not yet implement expected information gain, posterior calibration coverage, OOD abstention, confirmation-set protection, or a Symthaea candidate arm. The GP-UCB is a small fixed-hyperparameter reference baseline; it is not a substitute for a tuned BoTorch/Ax/Optuna/SMAC comparison.
+This is a deterministic synthetic optimizer benchmark, not evidence of Symthaea superiority or physical-model correctness. It does not yet implement full hypothesis-space expected information gain, posterior calibration coverage, OOD abstention, confirmation-set protection, or a live Symthaea integration. The CandidatePolicy adapter and Symthaea trial label are present, but no Symthaea method is wired into the campaign by default. The GP-UCB is a small fixed-hyperparameter reference baseline; it is not a substitute for a tuned BoTorch/Ax/Optuna/SMAC comparison.
 
 Next gates:
 1. exact-head Rust tests and clippy;
