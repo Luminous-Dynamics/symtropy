@@ -36,6 +36,7 @@ jobs:
           rustc --edition=2024 -D warnings tools/casting-phase-reference/flag_update_1d.rs -o "$RUNNER_TEMP/flag-update"
           "$RUNNER_TEMP/flag-update" --verify
           "$RUNNER_TEMP/flag-update" --grid-audit > "$RUNNER_TEMP/grid-audit.csv"
+          diff -u tools/casting-phase-reference/flag-update-grid-audit-expected.csv "$RUNNER_TEMP/grid-audit.csv"
       - name: Check deterministic output
         run: |
           "$RUNNER_TEMP/flag-update" --csv > "$RUNNER_TEMP/flag-update-a.csv"
