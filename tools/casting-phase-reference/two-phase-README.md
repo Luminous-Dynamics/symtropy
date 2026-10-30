@@ -66,7 +66,8 @@ The independently evaluated initial-minus-final enthalpy change is 73,078,427.87
 
     rustc --edition=2024 -D warnings tools/casting-phase-reference/two_phase.rs -o /tmp/two-phase
     /tmp/two-phase --verify
-    /tmp/two-phase --csv
+    /tmp/two-phase --csv > /tmp/two-phase.csv
+    diff -u tools/casting-phase-reference/two-phase-expected.csv /tmp/two-phase.csv
 
 ## Why the benchmark requires multiple quality metrics
 
@@ -76,4 +77,4 @@ The paper's table and error definitions are reproduced in the parent benchmark m
 
 ## Claim ceiling
 
-This oracle covers only the published equal-property two-phase planar similarity problem. It does not represent alloy phase intervals, temperature-dependent properties, fluid convection, mold contact, multidimensional casting, microstructure, porosity, shrinkage, or physical production qualification.
+The temperature evaluator uses the convergent erf/erfc power series only for similarity coordinates in [0, 1]; requests outside that declared range fail explicitly. The frozen profile samples stay inside this admitted domain.\n\nThis oracle covers only the published equal-property two-phase planar similarity problem. It does not represent alloy phase intervals, temperature-dependent properties, fluid convection, mold contact, multidimensional casting, microstructure, porosity, shrinkage, or physical production qualification.
