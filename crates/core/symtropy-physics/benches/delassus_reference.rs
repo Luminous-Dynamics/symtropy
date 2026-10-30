@@ -6,7 +6,7 @@ use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_ma
 use nalgebra::{DVector, SVector};
 use symtropy_math::{Bivector, Point, Rotor};
 use symtropy_physics::{
-    BodyHandle, BivectorInertia, FrictionlessContactRow, RigidBody, assemble_delassus,
+    BivectorInertia, BodyHandle, FrictionlessContactRow, RigidBody, assemble_delassus,
     solve_frictionless_lcp,
 };
 
@@ -18,30 +18,18 @@ fn fixture(
     nalgebra::DMatrix<f64>,
     DVector<f64>,
 ) {
-    let mut body_a =
-        RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+    let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
     body_a.set_rotational_inertia_operator(
-        BivectorInertia::<3>::uniform_solid_ellipsoid(
-            1.0,
-            SVector::new(1.5, 1.0, 0.6),
-        )
-        .expect("positive ellipsoid mass properties"),
+        BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(1.5, 1.0, 0.6))
+            .expect("positive ellipsoid mass properties"),
     );
 
-    let mut body_b = RigidBody::<3>::dynamic_sphere(
-        BodyHandle(1),
-        Point::new([1.0, 0.0, 0.0]),
-        0.5,
-        1.5,
-    );
-    body_b.transform.rotation =
-        Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.31);
+    let mut body_b =
+        RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 0.0, 0.0]), 0.5, 1.5);
+    body_b.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.31);
     body_b.set_rotational_inertia_operator(
-        BivectorInertia::<3>::uniform_solid_ellipsoid(
-            1.5,
-            SVector::new(0.8, 1.2, 1.7),
-        )
-        .expect("positive ellipsoid mass properties"),
+        BivectorInertia::<3>::uniform_solid_ellipsoid(1.5, SVector::new(0.8, 1.2, 1.7))
+            .expect("positive ellipsoid mass properties"),
     );
 
     let bodies = vec![body_a, body_b];
@@ -68,8 +56,8 @@ fn fixture(
         });
     }
 
-    let matrix = assemble_delassus(&bodies, &rows, 1e-12)
-        .expect("well-conditioned benchmark contact rows");
+    let matrix =
+        assemble_delassus(&bodies, &rows, 1e-12).expect("well-conditioned benchmark contact rows");
     let target_impulses = DVector::from_vec(vec![0.1; row_count]);
     let q = -(&matrix * target_impulses);
     (bodies, rows, matrix, q)
@@ -105,12 +93,8 @@ fn bench_reference_lcp(c: &mut Criterion) {
             |bench, _| {
                 bench.iter(|| {
                     black_box(
-                        solve_frictionless_lcp(
-                            black_box(&matrix),
-                            black_box(&q),
-                            1e-10,
-                        )
-                        .expect("constructed feasible LCP"),
+                        solve_frictionless_lcp(black_box(&matrix), black_box(&q), 1e-10)
+                            .expect("constructed feasible LCP"),
                     )
                 });
             },
