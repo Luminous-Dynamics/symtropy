@@ -7,6 +7,7 @@ A standalone Rust tool that compiles the existing NACA0012 engineering scenario 
 From this directory:
 
     cargo test --locked
+    cargo bench --bench compile_latency --locked
     cargo run --locked -- ../../../benchmarks/aero/naca0012-inc-rans/case.toml
     cargo run --locked -- ../../../benchmarks/aero/naca0012-inc-rans/case.toml --solver-config ./upstream/config.cfg --mesh ./upstream/mesh.su2
 
@@ -27,3 +28,8 @@ Exit codes: 0 = PlanReady, 2 = Invalid, 3 = Blocked, 4 = Unsupported, 64 = usage
 A BLOCKED report is a successful compile of a structurally and dimensionally valid scenario with unresolved execution obligations. It is not a simulation plan admission, numerical result, model validation, evidence attestation, or physical claim.
 
 The semantic identity is deterministic within this compiler/schema/registry version and ordered IR definition. Cross-language canonicalization and digest golden vectors are still a separate qualification requirement.
+
+
+## Compiler latency benchmark
+
+The dependency-free Rust benchmark measures source parsing, typed validation, normalized IR construction and digest work at 4 KiB, 16 KiB, 64 KiB, 256 KiB and 512 KiB. It performs 50 warmups and 500 measured iterations per size, and reports p50/p95/p99 plus min/max nanoseconds and the exact source SHA-256. This is an environment-specific implementation baseline, not an industry comparison; compare against CUE or other validators only after freezing a semantically matched corpus and equivalent validation rules.
