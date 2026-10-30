@@ -303,10 +303,10 @@ fn validate(r: &Request) -> Result<(), &'static str> {
 fn classify(r: &Request) -> Report {
     if let Err(reason) = validate(r) { return incomplete(r, reason); }
     let m = &r.measurement; let s = &r.specification; let u = &r.uncertainty;
-    let lo = m.value - u.expanded_uncertainty;
-    let hi = m.value + u.expanded_uncertainty;
-    let accept_lo = s.lower + u.expanded_uncertainty;
-    let accept_hi = s.upper - u.expanded_uncertainty;
+    let lo = sub_down(m.value, u.expanded_uncertainty);
+    let hi = add_up(m.value, u.expanded_uncertainty);
+    let accept_lo = add_up(s.lower, u.expanded_uncertainty);
+    let accept_hi = sub_down(s.upper, u.expanded_uncertainty);
     if !lo.is_finite() || !hi.is_finite() || !accept_lo.is_finite() || !accept_hi.is_finite() {
         return incomplete(r, "UNCERTAINTY_INTERVAL_OVERFLOW");
     }
@@ -401,6 +401,28 @@ fn next_down(x: f64) -> f64 {
     if x == 0.0 { return -f64::from_bits(1); }
     let b = x.to_bits();
     f64::from_bits(if x > 0.0 { b - 1 } else { b + 1 })
+}
+
+fn two_sum(a: f64, b: f64) -> (f64, f64) {
+    let sum = a + b;
+    if !sum.is_finite() { return (sum, f64::NAN); }
+    let b_virtual = sum - a;
+    let error = (a - (sum - b_virtual)) + (b - b_virtual);
+    (sum, error)
+}
+
+// Conservative one-sided arithmetic: preserve exact operations such as 11-1=10,
+// but move one representable value outward when round-to-nearest was inward.
+fn add_up(a: f64, b: f64) -> f64 {
+    let (sum, error) = two_sum(a, b);
+    if !sum.is_finite() || !error.is_finite() { return sum; }
+    if error > 0.0 { next_up(sum) } else { sum }
+}
+
+fn sub_down(a: f64, b: f64) -> f64 {
+    let (difference, error) = two_sum(a, -b);
+    if !difference.is_finite() || !error.is_finite() { return difference; }
+    if error < 0.0 { next_down(difference) } else { difference }
 }
 
 fn campaign() -> Vec<(&'static str, Request)> {
@@ -526,6 +548,23 @@ mod tests {
     }
 
     #[test]
+    fn outward_rounding_prevents_sub_ulp_false_acceptance() {
+        // 1 +/- 2^-54 rounds to exactly 1.0 in ordinary f64 arithmetic.
+        // The outward interval must still expose the real overlap with LSL=1.
+        let mut r = request(1.0, 2.0_f64.powi(-54));
+        r.specification.lower = 1.0;
+        r.specification.upper = 3.0;
+        let report = classify(&r);
+        assert_eq!(report.outcome, Outcome::Indeterminate);
+        assert!(report.interval_lower.unwrap() < 1.0);
+
+        assert_eq!(add_up(1.0, f64::EPSILON / 2.0), next_up(1.0));
+        assert_eq!(sub_down(1.0, f64::EPSILON / 2.0), next_down(1.0));
+        assert_eq!(add_up(11.0, 1.0), 12.0);
+        assert_eq!(sub_down(11.0, 1.0), 10.0);
+    }
+
+    #[test]
     fn exact_nextafter_boundaries_pass() { verify().unwrap(); }
 
     #[test]
@@ -548,7 +587,7 @@ mod tests {
 
         let mut r = request(15.0, 1.0);
         r.evidence.msa = EvidenceState::NotQualified;
-        assert_eq!(classify(&r).reason, "MSA_EVIDENCE_NOT_QUALIFIED");
+        assert_eq!(classify(&r).reason, "MSA_NOT_QUALIFIED");
 
         let mut r = request(15.0, 1.0);
         r.evidence.context_policy = EvidenceState::Missing;
