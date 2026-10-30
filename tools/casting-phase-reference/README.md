@@ -30,9 +30,9 @@ The implementation uses a power series for erf only on |x| <= 1; the admitted in
 | Melting temperature | 0 °C |
 | Diffusivity | 2.5e-7 m²/s |
 | Stefan number | 0.2 |
-| Similarity root | 0.3064239053612112470964108171446327… |
+| Similarity root | 0.30642390536121121822555680708858945… |
 
-Golden front positions are approximately 2.3735493646876174 mm at 60 s, 4.7470987293752349 mm at 240 s, and 9.4941974587504697 mm at 960 s. These are synthetic analytical reference values, not properties or outcomes of a real alloy.
+Golden front positions are approximately 2.3735493646876173 mm at 60 s, 4.7470987293752346 mm at 240 s, and 9.4941974587504692 mm at 960 s. These are synthetic analytical reference values, not properties or outcomes of a real alloy.
 
 ## Build and run
 
