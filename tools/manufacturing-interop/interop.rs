@@ -954,7 +954,7 @@ fn join_qif_to_cycle(
 fn fixture_source(standard: Standard) -> SourceDocument {
     let (version, namespace, schema_identifier, document_format, validation_method, prefix, source_sha) = match standard {
         Standard::MtConnect => (
-            "2.8", "", "https://schemas.mtconnect.org/MTConnectStreams_2.8.schema.json",
+            "2.8", "", "https://schemas.mtconnect.org/schemas/MTConnectStreams_2.8.schema.json",
             DocumentFormat::Json, ValidationMethod::JsonSchema, "MT", "a"
         ),
         Standard::Qif => (
@@ -1551,7 +1551,7 @@ mod tests {
     fn observation_csv_header_and_rows_have_identical_column_counts() {
         let source=fixture_source(Standard::MtConnect);
         let mapped=map_mtconnect(&source,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
-        let header="standard,device_uuid,stream_id,data_item_id,component_id,source_document_id,source_document_sha256,source_uri,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_locator,schema_version,schema_namespace,schema_bundle_sha256,parser_id,parser_version,validation_authority_id,validation_receipt_sha256,extension_manifest,diagnostic_manifest";
+        let header="standard,device_uuid,stream_id,data_item_id,component_id,source_document_id,source_document_sha256,source_uri,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_locator,schema_version,schema_namespace,schema_identifier,document_format,validation_method,schema_bundle_sha256,parser_id,parser_version,validation_authority_id,validation_receipt_sha256,extension_manifest,diagnostic_manifest";
         let expected_columns=header.split(',').count();
         assert!(mapped.csv_rows().iter().all(|row| row.split(',').count()==expected_columns));
         assert!(mapped.csv_rows()[0].starts_with("MTCONNECT,"));
