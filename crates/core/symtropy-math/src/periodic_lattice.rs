@@ -1061,18 +1061,26 @@ mod tests {
                 dd_closest_image(&basis, &delta, center, [true, true], 48);
             let selected_high_precision =
                 dd_squared_distance(&basis, &delta, result.image_offset.periods);
+            let selected_order = selected_high_precision.cmp(high_precision_oracle);
             assert!(
-                selected_high_precision.cmp(high_precision_oracle) != std::cmp::Ordering::Greater,
-                "double-double oracle found a strictly closer image for delta={delta:?}, offset={:?}",
-                result.image_offset.periods
+                selected_order != std::cmp::Ordering::Less,
+                "bounded double-double oracle missed a closer image for delta={delta:?}"
             );
+            let mut ambiguity_contains_oracle = false;
             for alternative in &result.ambiguous_image_offsets {
                 let alternative_distance =
                     dd_squared_distance(&basis, &delta, alternative.periods);
+                let ordering = alternative_distance.cmp(high_precision_oracle);
                 assert!(
-                    alternative_distance.cmp(high_precision_oracle)
-                        != std::cmp::Ordering::Less,
-                    "reported ambiguity omitted a strictly closer double-double image"
+                    ordering != std::cmp::Ordering::Less,
+                    "reported ambiguity contains an image closer than the oracle minimum"
+                );
+                ambiguity_contains_oracle |= ordering == std::cmp::Ordering::Equal;
+            }
+            if selected_order == std::cmp::Ordering::Greater {
+                assert!(
+                    ambiguity_contains_oracle,
+                    "the double-double minimum is not the representative or an ambiguity"
                 );
             }
             assert!(result.unsearched_distance_lower_bound
@@ -1180,18 +1188,26 @@ mod tests {
                 dd_closest_image(&basis, &delta, center, [true, true, true], 6);
             let selected_high_precision =
                 dd_squared_distance(&basis, &delta, result.image_offset.periods);
+            let selected_order = selected_high_precision.cmp(high_precision_oracle);
             assert!(
-                selected_high_precision.cmp(high_precision_oracle) != std::cmp::Ordering::Greater,
-                "double-double 3D oracle found a strictly closer image in case {case}: offset={:?}",
-                result.image_offset.periods
+                selected_order != std::cmp::Ordering::Less,
+                "bounded 3D double-double oracle missed a closer image in case {case}"
             );
+            let mut ambiguity_contains_oracle = false;
             for alternative in &result.ambiguous_image_offsets {
                 let alternative_distance =
                     dd_squared_distance(&basis, &delta, alternative.periods);
+                let ordering = alternative_distance.cmp(high_precision_oracle);
                 assert!(
-                    alternative_distance.cmp(high_precision_oracle)
-                        != std::cmp::Ordering::Less,
-                    "reported 3D ambiguity omitted a strictly closer double-double image"
+                    ordering != std::cmp::Ordering::Less,
+                    "reported 3D ambiguity contains an image closer than the oracle minimum"
+                );
+                ambiguity_contains_oracle |= ordering == std::cmp::Ordering::Equal;
+            }
+            if selected_order == std::cmp::Ordering::Greater {
+                assert!(
+                    ambiguity_contains_oracle,
+                    "the double-double 3D minimum is not the representative or an ambiguity"
                 );
             }
             assert!(result.unsearched_distance_lower_bound
