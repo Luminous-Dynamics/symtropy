@@ -756,7 +756,7 @@ mod tests {
     fn strict_unknown_field_mutation_corpus_rejects_1000_variants() {
         let original = std::str::from_utf8(FIXTURE).unwrap();
         for mutation in 0..1_000_u32 {
-            let mutant = format!("{original}\\nunknown_mutation_{mutation} = {mutation}\\n");
+            let mutant = format!("{original}\nunknown_mutation_{mutation} = {mutation}\n");
             let report = compile_bytes(mutant.as_bytes());
             assert_eq!(
                 report.disposition,
@@ -790,7 +790,7 @@ mod tests {
             .expect("valid fixture has semantic identity");
         let mut observed_source_digests = BTreeSet::new();
         for mutation in 0..1_000_u32 {
-            let variant = format!("# lexical mutation {mutation}\\n{original}");
+            let variant = format!("# lexical mutation {mutation}\n{original}");
             let report = compile_bytes(variant.as_bytes());
             assert_eq!(report.disposition, Disposition::Blocked);
             assert_eq!(report.semantic_ir_sha256.as_deref(), Some(baseline_semantic.as_str()));
