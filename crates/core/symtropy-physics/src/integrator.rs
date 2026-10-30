@@ -84,24 +84,9 @@ pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64,
 
     // --- Angular dynamics ---
 
-    // Angular acceleration = torque / inertia (scalar approximation)
-    // Per-axis inertia: use mean of principal moments for each bivector plane.
-    // For spheres (isotropic), this is exact. For asymmetric bodies, it's the
-    // average inertia of the two axes spanning each rotation plane.
-    //
-    // TODO(isotropic-inertia): this scalar mean makes ALL rotation isotropic,
-    // which is only physically correct for spheres. A non-spherical body
-    // (box, capsule, compound shape) will rotate as if it had a sphere's mass
-    // distribution — e.g. a long thin rod will resist tumbling about its long
-    // axis exactly as much as about a short axis, which is wrong. Fixing this
-    // properly requires per-bivector-plane inertia (a full D×D inertia tensor
-    // or at least per-plane scalars derived from the collider's actual mass
-    // distribution) plumbed through `RigidBody`'s `inertia`/`inv_inertia`
-    // fields (currently `SVector<f64, D>`, one scalar per *axis*, then
-    // averaged pairwise here — not one scalar per *bivector plane*, and not
-    // tracked as the body rotates, i.e. no world-space inertia tensor
-    // update). That's a larger data-layout change to `body.rs` than is safe
-    // to make alongside the contact-solver fixes in this change; deferred.
+    // Bodies carrying validated mass properties use the full bivector
+    // inertia operator below. Only legacy bodies without an operator fall
+    // back to the isotropic mean-of-axis approximation.
     let ang_accel = if let Some(inertia) = &body.rotational_inertia {
         let world_inertia = inertia.rotated_by(&body.transform.rotation);
         match world_inertia.angular_acceleration(
