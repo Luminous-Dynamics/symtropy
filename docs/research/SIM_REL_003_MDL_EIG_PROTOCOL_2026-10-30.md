@@ -70,6 +70,10 @@ Do not collapse integrity, target retention or false-identification failures int
 
 V0 reuses the 18 hand-authored public SIM-REL-002 functions and adds varied synthetic action costs. It has six train, six validation and six nominally held-out cases; **the held-out labels and targets are public and are not an independent confirmatory set**. The only new variable is action cost. This pilot is useful for checking that the cost-aware objective behaves differently under different cost schedules, not for claiming generalization or SOTA performance.
 
+The workflow also evaluates an exhaustive finite-domain corpus: all 256 possible Boolean functions on three binary inputs. Targets are permuted before opaque task IDs are assigned; action costs are generated from an independent ID-derived seed. The diagnostic partitions are 154 train (66 in-grammar, 88 out-of-grammar), 51 validation (22, 29), and 51 heldout (21, 30). These are not family-heldout generalization partitions: all 256 possible functions are present and the domain is completely enumerable. The exhaustive fixture removes target-sampling uncertainty within this three-input Boolean universe, but says nothing about larger Boolean domains or physical-system transfer.
+
+The hosted workflow runs both corpora at β = 0, 1 and 2, producing six separate exact-head receipts.
+
 Qualification requires at least 100 independently generated worlds across three difficulty bands, complete generating-rule/composition family splits, sealed held-out targets, positive/negative controls, observational-equivalence controls, alias-multiplicity controls, noisy observations, non-uniform priors and prior-sensitivity sweeps.
 
 ## 7. Qualification targets (proposed, not results)
