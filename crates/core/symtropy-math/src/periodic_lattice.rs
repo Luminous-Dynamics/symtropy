@@ -383,6 +383,20 @@ impl<const D: usize> PeriodicLattice<D> {
         })
     }
 
+    /// Convert a Cartesian displacement/vector into lattice-fractional
+    /// coordinates. Unlike wrap_point, this does not subtract the cell origin.
+    pub fn to_fractional_coordinates(
+        &self,
+        cartesian_vector: &SVector<f64, D>,
+    ) -> Result<SVector<f64, D>, PeriodicLatticeError> {
+        if !cartesian_vector.iter().all(|value| value.is_finite()) {
+            return Err(PeriodicLatticeError::NumericRange {
+                field: "Cartesian vector for fractional conversion",
+            });
+        }
+        self.solve_basis_coordinates(cartesian_vector)
+    }
+
     fn solve_basis_coordinates(
         &self,
         cartesian: &SVector<f64, D>,
