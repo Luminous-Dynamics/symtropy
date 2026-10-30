@@ -81,7 +81,7 @@ pub fn parse_pressure_data(
     // Preserve measured tap locations exactly. Experimental taps can lie slightly
     // outside the nominal geometric chord interval near the trailing edge.
     // The shared parser already rejects non-finite coordinates.
-    parse_zone_data(input, dataset_id, "x/c", 2, |zone, values, _source_line| {
+    parse_zone_data(input, dataset_id, "x/c", 2, |zone, values, source_line| {
         Ok(PressureObservation {
             zone: zone.to_owned(),
             x_over_c: values[0],
