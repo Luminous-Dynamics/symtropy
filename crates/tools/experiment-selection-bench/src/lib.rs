@@ -210,12 +210,7 @@ impl PolicyKind {
 /// Paired initial design shared by every policy in a trial.
 pub fn initial_design(seed: u64, count: usize) -> Vec<[f64; 2]> {
     (0..count)
-        .map(|index| {
-            let shift_x = unit_from_seed(seed ^ 0x243f_6a88_85a3_08d3);
-            let shift_y = unit_from_seed(seed ^ 0x1319_8a2e_0370_7344);
-            let _ = (shift_x, shift_y);
-            sobol_point((index + 1) as u64, seed)
-        })
+        .map(|index| sobol_point((index + 1) as u64, seed))
         .collect()
 }
 
