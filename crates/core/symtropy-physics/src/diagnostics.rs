@@ -81,6 +81,35 @@ pub struct InvariantDrift<const D: usize> {
     pub non_finite_body_count: usize,
 }
 
+/// Deterministic observation of one successfully committed world step.
+///
+/// This records the state transition and invariant drift, but is not a
+/// conservation certificate: callers must account for applied forces,
+/// contacts, motors and other work sources before judging energy balance.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct InvariantStepReceipt<const D: usize> {
+    pub dt: f64,
+    pub total_body_count: usize,
+    pub dynamic_body_count: usize,
+    pub contact_count: usize,
+    pub max_penetration_depth: f64,
+    pub before: InvariantSnapshot<D>,
+    pub after: InvariantSnapshot<D>,
+    pub drift: InvariantDrift<D>,
+}
+
+impl<const D: usize> InvariantStepReceipt<D> {
+    /// True when the post-step state contains no non-finite bodies and all
+    /// rotations satisfy the given proper-rotation tolerance.
+    pub fn is_numerically_healthy(&self, rotation_tolerance: f64) -> bool {
+        self.after.is_numerically_healthy(rotation_tolerance)
+    }
+
+    pub fn mechanical_energy_delta(&self) -> f64 {
+        self.after.mechanical_energy - self.before.mechanical_energy
+    }
+}
+
 impl<const D: usize> InvariantDrift<D> {
     pub fn linear_momentum_error_norm(&self) -> f64 {
         self.linear_momentum_delta.norm()
@@ -92,6 +121,41 @@ impl<const D: usize> InvariantDrift<D> {
 }
 
 impl<const D: usize> PhysicsWorld<D> {
+    /// Step the world and return deterministic before/after invariant evidence.
+    ///
+    /// If the physical step fails, this returns the same typed error as
+    /// `try_step` and the world's transactional rollback remains in effect.
+    /// The receipt describes the committed state transition only; it does not
+    /// attribute every external or constraint work source.
+    pub fn try_step_with_receipt(
+        &mut self,
+        dt: f64,
+    ) -> Result<InvariantStepReceipt<D>, crate::world::PhysicsStepError> {
+        let before = self.invariant_snapshot();
+        let total_body_count = self.bodies.len();
+        let dynamic_body_count = self
+            .bodies
+            .iter()
+            .filter(|body| body.body_type == BodyType::Dynamic)
+            .count();
+
+        self.try_step(dt)?;
+
+        let after = self.invariant_snapshot();
+        let drift = before.drift_to(&after);
+        Ok(InvariantStepReceipt {
+            dt,
+            total_body_count,
+            dynamic_body_count,
+            contact_count: self.contacts.len(),
+            max_penetration_depth: after.max_penetration_depth,
+            before,
+            after,
+            drift,
+        })
+    }
+
+
     /// Capture physical invariants and numerical-health metrics.
     ///
     /// The snapshot is deterministic for a fixed world state and contains no
@@ -220,4 +284,23 @@ mod tests {
         assert_eq!(snapshot.non_finite_body_count, 1);
         assert!(!snapshot.is_numerically_healthy(1e-9));
     }
+
+    #[test]
+    fn accepted_step_receipt_captures_deterministic_invariant_transition() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.body_mut(handle).unwrap().linear_velocity = SVector::from([2.0, 0.0]);
+
+        let receipt = world.try_step_with_receipt(0.01).unwrap();
+        assert_eq!(receipt.dt, 0.01);
+        assert_eq!(receipt.total_body_count, 1);
+        assert_eq!(receipt.dynamic_body_count, 1);
+        assert_eq!(receipt.contact_count, 0);
+        assert!(receipt.is_numerically_healthy(1e-12));
+        assert!((receipt.after.center_of_mass[0] - receipt.before.center_of_mass[0] - 0.02).abs() < 1e-12);
+        assert!(receipt.mechanical_energy_delta().abs() < 1e-12);
+        assert!(receipt.drift.linear_momentum_error_norm() < 1e-12);
+    }
+
+
 }
