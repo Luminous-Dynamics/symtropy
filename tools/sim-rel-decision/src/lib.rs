@@ -256,9 +256,9 @@ fn solve_state(
             let mut zero_weight = 0.0;
             let mut one_weight = 0.0;
             for signature in signatures {
-                let (_, weight) = support.get(signature).ok_or_else(|| {
-                    format!("posterior references unknown signature {signature}")
-                })?;
+                let (_, weight) = support
+                    .get(signature)
+                    .ok_or_else(|| format!("posterior references unknown signature {signature}"))?;
                 if (*signature >> action) & 1 == 1 {
                     one.push(*signature);
                     one_weight += weight;
@@ -285,9 +285,8 @@ fn solve_state(
                 + p_one * one_node.expected_abstention_loss;
             let abstain_probability =
                 p_zero * zero_node.abstain_probability + p_one * one_node.abstain_probability;
-            let expected_total_loss = expected_experiment_cost
-                + expected_decision_error
-                + expected_abstention_loss;
+            let expected_total_loss =
+                expected_experiment_cost + expected_decision_error + expected_abstention_loss;
             if !expected_total_loss.is_finite()
                 || !expected_experiment_cost.is_finite()
                 || !expected_decision_error.is_finite()
@@ -430,7 +429,10 @@ mod tests {
     #[test]
     fn input_order_does_not_change_the_optimal_decision() {
         let forward = binary_fixture(2.0, 3.0);
-        let reverse = binary_fixture(2.0, 3.0).into_iter().rev().collect::<Vec<_>>();
+        let reverse = binary_fixture(2.0, 3.0)
+            .into_iter()
+            .rev()
+            .collect::<Vec<_>>();
         let opts = options(0.1, 0.2, 1);
         let a = solve_decision(&forward, &opts).unwrap();
         let b = solve_decision(&reverse, &opts).unwrap();
@@ -480,10 +482,8 @@ mod tests {
                 continue;
             }
             let candidate = options.action_costs[action as usize]
-                + (zero_weight / total_weight)
-                    * brute_value(&zero, support, options, horizon - 1)
-                + (one_weight / total_weight)
-                    * brute_value(&one, support, options, horizon - 1);
+                + (zero_weight / total_weight) * brute_value(&zero, support, options, horizon - 1)
+                + (one_weight / total_weight) * brute_value(&one, support, options, horizon - 1);
             best = best.min(candidate);
         }
         best
@@ -520,7 +520,9 @@ mod tests {
                 })
                 .collect();
             let signatures: Vec<u8> = support.keys().copied().collect();
-            let actual = solve_decision(&hypotheses, &opts).unwrap().expected_total_loss;
+            let actual = solve_decision(&hypotheses, &opts)
+                .unwrap()
+                .expected_total_loss;
             let expected = brute_value(&signatures, &support, &opts, opts.max_horizon);
             assert!(
                 (actual - expected).abs() < 1e-12,
@@ -550,32 +552,66 @@ mod tests {
             prior_weight: f64::NAN,
         }];
         assert!(solve_decision(&invalid_mass, &opts).is_err());
-        assert!(solve_decision(&binary_fixture(1.0, 1.0), &DecisionOptions {
-            action_costs: [0.0; ACTIONS],
-            ..opts
-        })
-        .is_err());
-        assert!(solve_decision(&binary_fixture(1.0, 1.0), &DecisionOptions {
-            max_horizon: ACTIONS + 1,
-            ..opts
-        })
-        .is_err());
-        assert!(solve_decision(&binary_fixture(1.0, 1.0), &DecisionOptions {
-            max_states: 0,
-            ..opts
-        })
-        .is_err());
+        assert!(
+            solve_decision(
+                &binary_fixture(1.0, 1.0),
+                &DecisionOptions {
+                    action_costs: [0.0; ACTIONS],
+                    ..opts
+                }
+            )
+            .is_err()
+        );
+        assert!(
+            solve_decision(
+                &binary_fixture(1.0, 1.0),
+                &DecisionOptions {
+                    max_horizon: ACTIONS + 1,
+                    ..opts
+                }
+            )
+            .is_err()
+        );
+        assert!(
+            solve_decision(
+                &binary_fixture(1.0, 1.0),
+                &DecisionOptions {
+                    max_states: 0,
+                    ..opts
+                }
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn state_budget_exhaustion_fails_closed() {
         let hypotheses = [
-            Hypothesis { signature: 0, decision_class: 0, prior_weight: 1.0 },
-            Hypothesis { signature: 1, decision_class: 1, prior_weight: 1.0 },
-            Hypothesis { signature: 2, decision_class: 0, prior_weight: 1.0 },
-            Hypothesis { signature: 3, decision_class: 1, prior_weight: 1.0 },
+            Hypothesis {
+                signature: 0,
+                decision_class: 0,
+                prior_weight: 1.0,
+            },
+            Hypothesis {
+                signature: 1,
+                decision_class: 1,
+                prior_weight: 1.0,
+            },
+            Hypothesis {
+                signature: 2,
+                decision_class: 0,
+                prior_weight: 1.0,
+            },
+            Hypothesis {
+                signature: 3,
+                decision_class: 1,
+                prior_weight: 1.0,
+            },
         ];
-        let opts = DecisionOptions { max_states: 1, ..options(0.01, 0.2, 3) };
+        let opts = DecisionOptions {
+            max_states: 1,
+            ..options(0.01, 0.2, 3)
+        };
         assert!(solve_decision(&hypotheses, &opts).is_err());
     }
 }
