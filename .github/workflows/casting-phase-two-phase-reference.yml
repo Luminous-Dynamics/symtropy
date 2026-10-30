@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/casting-phase-reference/two_phase.rs"
       - "tools/casting-phase-reference/two-phase-README.md"
+      - "tools/casting-phase-reference/two-phase-expected.csv"
       - ".github/workflows/casting-phase-two-phase-reference.yml"
   push:
     branches: [main]
@@ -38,6 +39,7 @@ jobs:
           "$RUNNER_TEMP/two-phase-stefan" --csv > "$RUNNER_TEMP/two-phase-a.csv"
           "$RUNNER_TEMP/two-phase-stefan" --csv > "$RUNNER_TEMP/two-phase-b.csv"
           diff -u "$RUNNER_TEMP/two-phase-a.csv" "$RUNNER_TEMP/two-phase-b.csv"
+          diff -u tools/casting-phase-reference/two-phase-expected.csv "$RUNNER_TEMP/two-phase-a.csv"
           cat "$RUNNER_TEMP/two-phase-a.csv"
       - name: Emit digests
         run: |
