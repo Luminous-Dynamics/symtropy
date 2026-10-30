@@ -352,10 +352,13 @@ mod tests {
         let tool_transform = Transform::from_translation(Point::new([2.0, 0.0, 0.0]));
         body.merge_toolhead(tool_transform, tool_collider, 1.0);
 
-        let after = body.world_support(&world_direction);
+        // The new body origin is the combined COM. The original sphere child
+        // is translated by -2/3 along its local x axis in the compound.
+        let original_child_point = Point::new([-1.0 - 2.0 / 3.0, 0.0, 0.0]);
+        let after = body.transform.transform_point(&original_child_point).0;
         assert!(
             (after - before).norm() < 1e-12,
-            "merge changed the original body's world-space support point: before={before:?}, after={after:?}"
+            "merge moved the original collider surface in world space: before={before:?}, after={after:?}"
         );
     }
 
