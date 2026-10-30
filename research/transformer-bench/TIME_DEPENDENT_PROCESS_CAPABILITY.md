@@ -34,20 +34,20 @@ The guarded specification limits use the declared maximum standard uncertainty (
 LSL_g = LSL + k u_{max}, qquad USL_g = USL - k u_{max}.
 ]
 
-The within-window guarded descriptive index is:
+The within-window guarded descriptive 3σ index (Cpk-like, not a formal capability result) is:
 
 [
 Cpk_{g,w} = rac{min(USL_g-ar{x}_w,; ar{x}_w-LSL_g)}{3s_w}.
 ]
 
-The pooled index uses all valid observed values, while the worst-window index is the minimum of the eligible window indices. The diagnostic separately reports the range of window means divided by specification width, and the maximum/minimum within-window standard-deviation ratio.
+The pooled descriptive index uses all valid observed values, while the worst-window descriptive index is the minimum of the eligible window indices. These are Cpk-like summaries only; the tool does not establish the assumptions needed for formal Cpk/Ppk interpretation. The diagnostic separately reports the range of window means divided by specification width, and the maximum/minimum within-window standard-deviation ratio.
 
 A window is not indexed unless it meets the controlled minimum sample count and has non-zero within-window sample standard deviation. A report without drift or variance alerts is still labelled `REVIEW_REQUIRED_PROCESS_STABILITY_NOT_ESTABLISHED`: no formal stability determination is inferred.
 
 ## Required interpretation
 
-- `pooled_guarded_cpk` is descriptive only.
-- `worst_window_guarded_cpk` is the conservative window comparison.
+- `pooled_guarded_index_3sigma` is descriptive only.
+- `worst_window_guarded_index_3sigma` is the conservative window comparison.
 - `drift_warning` identifies a window-mean range beyond the declared threshold.
 - `variance_shift_warning` identifies a window sigma ratio beyond the declared threshold.
 - `invalid_metrology_records` excludes missing/expired/suspended/revoked or mismatched calibration and measurement uncertainty above the declared ceiling.
