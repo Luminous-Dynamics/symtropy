@@ -73,7 +73,7 @@ fn run() -> Result<(), String> {
         ));
     }
     let (metadata, candidates, scenario_weights) = read_candidates(&args[1])?;
-    let rows = classify(&candidates);
+    let rows = classify(&candidates)?;
     write_report(&args[2], &metadata, scenario_weights.len(), &rows)?;
     eprintln!(
         "joint-scenario Pareto report written: candidates={}, scenarios={}, expected-frontier={}, CVaR95-frontier={}, worst-case-frontier={}, scenario-robust-frontier={}; finite declared scenario ensemble only",
@@ -204,7 +204,7 @@ fn read_candidates(
     ))
 }
 
-fn aggregate(candidate: &Candidate) -> Aggregate {
+fn aggregate(candidate: &Candidate) -> Result<Aggregate, String> {
     let mut expected = [0.0; OBJECTIVE_COUNT];
     let mut worst = [0.0; OBJECTIVE_COUNT];
     let mut cvar95 = [0.0; OBJECTIVE_COUNT];
@@ -232,7 +232,10 @@ fn aggregate(candidate: &Candidate) -> Aggregate {
         cvar95[objective_index] = weighted_tail / TAIL_MASS;
     }
 
-    Aggregate { expected, cvar95, worst }
+    if expected.iter().chain(cvar95.iter()).chain(worst.iter()).any(|value| !value.is_finite()) {
+        return Err(format!("candidate {:?}: derived scenario aggregate is non-finite", candidate.id));
+    }
+    Ok(Aggregate { expected, cvar95, worst })
 }
 
 fn dominates(left: &[f64; OBJECTIVE_COUNT], right: &[f64; OBJECTIVE_COUNT]) -> bool {
@@ -260,12 +263,12 @@ fn scenario_robustly_dominates(left: &Candidate, right: &Candidate) -> bool {
     strictly_better
 }
 
-fn classify(candidates: &BTreeMap<String, Candidate>) -> Vec<FrontierRow> {
+fn classify(candidates: &BTreeMap<String, Candidate>) -> Result<Vec<FrontierRow>, String> {
     let aggregates: BTreeMap<String, Aggregate> = candidates.iter()
-        .map(|(id, candidate)| (id.clone(), aggregate(candidate)))
-        .collect();
+        .map(|(id, candidate)| Ok((id.clone(), aggregate(candidate)?)))
+        .collect::<Result<_, String>>()?;
 
-    candidates.iter().map(|(id, candidate)| {
+    Ok(candidates.iter().map(|(id, candidate)| {
         let mut expected_dominated = false;
         let mut cvar_dominated = false;
         let mut worst_dominated = false;
@@ -290,7 +293,7 @@ fn classify(candidates: &BTreeMap<String, Candidate>) -> Vec<FrontierRow> {
             scenario_robust_pareto: scenario_robust_dominators.is_empty(),
             scenario_robust_dominators,
         }
-    }).collect()
+    }).collect())
 }
 
 fn csv_escape(value: &str) -> String {
@@ -356,7 +359,7 @@ mod tests {
             ("bad", 0.10, [20.0; OBJECTIVE_COUNT]),
             ("catastrophic", 0.02, [30.0; OBJECTIVE_COUNT]),
         ]);
-        let aggregate = aggregate(&candidate);
+        let aggregate = aggregate(&candidate).unwrap();
         assert!((aggregate.cvar95[0] - 24.0).abs() < 1.0e-12);
         assert_eq!(aggregate.worst[0], 30.0);
         assert!((aggregate.expected[0] - 11.4).abs() < 1.0e-12);
@@ -398,7 +401,7 @@ mod tests {
         assert_eq!(candidates.len(), 4);
         assert_eq!(weights.len(), 4);
         assert!(candidates.values().all(|candidate| candidate.scenarios.len() == 4));
-        let rows = classify(&candidates);
+        let rows = classify(&candidates).unwrap();
         let dominated = rows.iter().find(|row| row.candidate_id == "C").unwrap();
         assert!(dominated.scenario_robust_dominators.contains(&"A".to_string()));
         assert!(!dominated.scenario_robust_pareto);
