@@ -12,7 +12,7 @@
 //! remain separate validated implementation steps.
 
 use nalgebra::{SMatrix, SVector};
-use symtropy_math::Bivector;
+use symtropy_math::{Bivector, Rotor};
 
 /// Construction errors for a rotational inertia operator.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -162,6 +162,19 @@ impl<const D: usize> BivectorInertia<D> {
 
         let second_moments = semi_axes.map(|axis| mass * axis * axis / (D as f64 + 2.0));
         Self::from_second_moment(SMatrix::<f64, D, D>::from_diagonal(&second_moments))
+    }
+
+    /// Rotate the mass distribution into another coordinate frame.
+    ///
+    /// If the supplied proper rotation R maps body-frame vectors to world-frame
+    /// vectors, the transformed second moment is S_world = R*S_body*R^T.
+    /// This lets callers keep immutable body-space mass properties and derive
+    /// the corresponding world-space operator for contact and diagnostics.
+    pub fn rotated_by(&self, rotation: &Rotor<D>) -> Self {
+        let r = rotation.to_matrix();
+        Self {
+            second_moment: r * self.second_moment * r.transpose(),
+        }
     }
 
     /// Return the centered second-moment matrix used by this operator.
@@ -347,6 +360,44 @@ mod tests {
 
         assert!((momentum.get(0, 2) - 6.0).abs() < 1e-12);
         assert!((momentum.get(1, 2) - 0.25).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rotated_inertia_is_covariant_and_preserves_kinetic_energy() {
+        let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            1.0,
+            SVector::new(2.0, 1.0, 0.5),
+        )
+        .unwrap();
+        let rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 2),
+            0.63,
+        );
+        let world_inertia = body_inertia.rotated_by(&rotation);
+
+        let mut omega_body = Bivector::<3>::zero();
+        omega_body.set(0, 1, 0.7);
+        omega_body.set(0, 2, -0.4);
+        omega_body.set(1, 2, 1.1);
+        let omega_world_matrix =
+            rotation.to_matrix() * omega_body.to_matrix() * rotation.to_matrix().transpose();
+        let omega_world = Bivector::<3>::from_matrix(&omega_world_matrix);
+
+        let momentum_body = body_inertia.angular_momentum(&omega_body);
+        let momentum_world = world_inertia.angular_momentum(&omega_world);
+        let expected_world_momentum = rotation.to_matrix()
+            * momentum_body.to_matrix()
+            * rotation.to_matrix().transpose();
+
+        assert!(
+            (momentum_world.to_matrix() - expected_world_momentum).norm() < 1e-11
+        );
+        assert!(
+            (body_inertia.kinetic_energy(&omega_body)
+                - world_inertia.kinetic_energy(&omega_world))
+                .abs()
+                < 1e-11
+        );
     }
 
     #[test]
