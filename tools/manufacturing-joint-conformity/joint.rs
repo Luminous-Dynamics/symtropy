@@ -110,6 +110,16 @@ fn valid_sha(v: &str) -> bool {
 }
 fn finite(v: f64) -> Option<f64> { v.is_finite().then_some(v) }
 
+fn marginal_receipts(r: &Request) -> Vec<String> {
+    let mut receipts: Vec<String> = r.marginals.iter().map(|m| format!(
+        "{}:{}:{}:{}:{:.12e}:{:.12e}:{}:{}",
+        m.characteristic_id, m.measurand_id, m.unit, m.specification_revision,
+        m.probability_lower, m.probability_upper, m.source_sha256, m.evidence.code()
+    )).collect();
+    receipts.sort();
+    receipts
+}
+
 fn incomplete(r: &Request, reason: &'static str) -> Report {
     Report {
         part_id: r.part_id.clone(), lot_id: r.lot_id.clone(), operation_id: r.operation_id.clone(),
@@ -119,8 +129,7 @@ fn incomplete(r: &Request, reason: &'static str) -> Report {
         joint_lower: None, joint_upper: None, independence_product_midpoint: None,
         min_accept_joint_pc: r.min_accept_joint_pc, max_reject_joint_pc: r.max_reject_joint_pc,
         decision_time_ns: r.decision_time_ns,
-        marginal_receipts: r.marginals.iter().map(|m| format!("{}:{}",
-            m.characteristic_id, m.source_sha256)).collect(),
+        marginal_receipts: marginal_receipts(r),
     }
 }
 
@@ -222,8 +231,7 @@ fn classify(r: &Request) -> Report {
         independence_product_midpoint: Some(independence_product),
         min_accept_joint_pc: r.min_accept_joint_pc, max_reject_joint_pc: r.max_reject_joint_pc,
         decision_time_ns: r.decision_time_ns,
-        marginal_receipts: r.marginals.iter().map(|m| format!("{}:{}",
-            m.characteristic_id, m.source_sha256)).collect(),
+        marginal_receipts: marginal_receipts(r),
     }
 }
 
@@ -263,11 +271,11 @@ fn campaign() -> Vec<(&'static str, Request)> {
 
 fn verify() -> Result<(), String> {
     let expected = [
-        (0.8,0.9,Outcome::Indeterminate),
+        (0.8,0.9,Outcome::Accept),
         (0.5,0.9,Outcome::Indeterminate),
         (0.8,0.99,Outcome::Accept),
         (0.0,0.99,Outcome::Indeterminate),
-        (0.8,0.9,Outcome::Indeterminate),
+        (0.8,0.9,Outcome::Accept),
     ];
     for ((name, request), (lo,hi,outcome)) in campaign().iter().zip(expected.iter()) {
         let report = classify(request);
@@ -458,5 +466,6 @@ mod tests {
         assert!((a.joint_lower.unwrap()-b.joint_lower.unwrap()).abs()<TOL);
         assert!((a.joint_upper.unwrap()-b.joint_upper.unwrap()).abs()<TOL);
         assert_eq!(a.outcome,b.outcome);
+        assert_eq!(a.csv_row(),b.csv_row());
     }
 }
