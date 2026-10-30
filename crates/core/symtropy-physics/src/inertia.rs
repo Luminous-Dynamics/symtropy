@@ -11,7 +11,7 @@
 //! application, gyroscopic evolution, and CAD-derived mass-property assembly
 //! remain separate validated implementation steps.
 
-use nalgebra::SMatrix;
+use nalgebra::{SMatrix, SVector};
 use symtropy_math::Bivector;
 
 /// Construction errors for a rotational inertia operator.
@@ -81,6 +81,53 @@ impl<const D: usize> BivectorInertia<D> {
         })
     }
 
+    /// Construct from a discrete set of point masses.
+    ///
+    /// Positions may be in any translated world frame; this constructor first
+    /// computes the center of mass and then forms the centered second moment.
+    /// It is suitable for CAD/mesh mass-lumping and point-cloud reference tests.
+    pub fn from_point_masses<I>(
+        point_masses: I,
+    ) -> Result<Self, RotationalInertiaError>
+    where
+        I: IntoIterator<Item = (SVector<f64, D>, f64)>,
+    {
+        if D < 2 {
+            return Err(RotationalInertiaError::InvalidDimension);
+        }
+
+        let samples: Vec<_> = point_masses.into_iter().collect();
+        if samples.is_empty() {
+            return Err(RotationalInertiaError::InvalidMassProperties);
+        }
+
+        let mut total_mass = 0.0;
+        let mut weighted_position = SVector::<f64, D>::zeros();
+        for (position, mass) in &samples {
+            if !mass.is_finite() || !position.iter().all(|value| value.is_finite()) {
+                return Err(RotationalInertiaError::NonFinite);
+            }
+            if *mass < 0.0 {
+                return Err(RotationalInertiaError::InvalidMassProperties);
+            }
+            total_mass += mass;
+            weighted_position += position * *mass;
+        }
+
+        if !total_mass.is_finite() || total_mass <= 0.0 {
+            return Err(RotationalInertiaError::InvalidMassProperties);
+        }
+
+        let center_of_mass = weighted_position / total_mass;
+        let mut second_moment = SMatrix::<f64, D, D>::zeros();
+        for (position, mass) in samples {
+            let offset = position - center_of_mass;
+            second_moment += (offset * offset.transpose()) * mass;
+        }
+
+        Self::from_second_moment(second_moment)
+    }
+
     /// Construct the centered inertia operator for a uniform solid D-ball.
     pub fn uniform_solid_ball(
         mass: f64,
@@ -137,6 +184,28 @@ mod tests {
             (momentum.get(0, 1) - expected).abs() < 1e-12,
             "D={D}: plane inertia={}, expected={expected}",
             momentum.get(0, 1)
+        );
+    }
+
+    #[test]
+    fn point_mass_constructor_is_translation_invariant() {
+        let origin_cloud = [
+            (SVector::<f64, 3>::new(-1.0, 0.0, 0.0), 1.0),
+            (SVector::<f64, 3>::new(1.0, 0.0, 0.0), 1.0),
+        ];
+        let translated_cloud = [
+            (SVector::<f64, 3>::new(9.0, -4.0, 12.0), 1.0),
+            (SVector::<f64, 3>::new(11.0, -4.0, 12.0), 1.0),
+        ];
+
+        let origin = BivectorInertia::<3>::from_point_masses(origin_cloud).unwrap();
+        let translated = BivectorInertia::<3>::from_point_masses(translated_cloud).unwrap();
+
+        assert!((origin.second_moment() - translated.second_moment()).norm() < 1e-12);
+        let omega = Bivector::<3>::unit_plane(0, 1);
+        let expected = 2.0;
+        assert!(
+            (translated.angular_momentum(&omega).get(0, 1) - expected).abs() < 1e-12
         );
     }
 
