@@ -132,6 +132,18 @@ pub fn lattice_image_offsets_for_aabb_pair<const D: usize>(
             .max(fractional_max[axis].abs())
             .max(1.0);
         let padding = projection_padding * scale;
+        if lattice.is_periodic(axis) == Some(false) {
+            // A non-periodic fractional coefficient is constrained to zero.
+            // If zero is outside the conservative projection interval, no
+            // lattice image can overlap; otherwise keep that coefficient fixed.
+            if fractional_min[axis] - padding > 0.0
+                || fractional_max[axis] + padding < 0.0
+            {
+                return Ok(Vec::new());
+            }
+            ranges[axis] = (0, 0);
+            continue;
+        }
         let lower = (fractional_min[axis] - padding).ceil();
         let upper = (fractional_max[axis] + padding).floor();
 
@@ -400,6 +412,47 @@ mod tests {
                 "missed 3D lattice image in case={case}; actual={actual:?} expected={expected:?}"
             );
         }
+    }
+
+    #[test]
+    fn mixed_periodic_rank_keeps_nonperiodic_image_coefficients_zero() {
+        let basis = SMatrix::<f64, 2, 2>::from_row_slice(&[
+            2.0, 0.7,
+            0.0, 1.5,
+        ]);
+        let lattice = PeriodicLattice::new_with_periodic_axes(
+            SVector::zeros(),
+            basis.clone(),
+            [true, false],
+        )
+        .unwrap();
+        let a = aabb([-0.2, -0.2], [0.8, 0.8]);
+        let shift = basis.column(0).into_owned();
+        let b = aabb(
+            [1.8, -0.2],
+            [2.8, 0.8],
+        );
+        let actual = lattice_image_offsets_for_aabb_pair(&lattice, &a, &b, 64)
+            .unwrap()
+            .into_iter()
+            .map(|offset| offset.periods)
+            .collect::<BTreeSet<_>>();
+
+        assert!(actual.contains(&[-1, 0]));
+        assert!(actual.iter().all(|offset| offset[1] == 0));
+
+        // A purely non-periodic displacement cannot be repaired by inventing
+        // an image shift along the inactive basis direction.
+        let b_outside = Aabb {
+            min: b.min + basis.column(1).into_owned() * 3.0,
+            max: b.max + basis.column(1).into_owned() * 3.0,
+        };
+        assert!(
+            lattice_image_offsets_for_aabb_pair(&lattice, &a, &b_outside, 64)
+                .unwrap()
+                .is_empty()
+        );
+        let _ = shift;
     }
 
     #[test]
