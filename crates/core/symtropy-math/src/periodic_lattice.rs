@@ -179,6 +179,12 @@ impl<const D: usize> PeriodicLattice<D> {
                 field: "QR orthogonality residual",
             });
         }
+        let reconstruction_error = (basis - q * r).norm() / basis_scale;
+        if !reconstruction_error.is_finite() || reconstruction_error > 1.0e-9 {
+            return Err(PeriodicLatticeError::NumericRange {
+                field: "QR reconstruction residual",
+            });
+        }
 
         Ok(Self {
             origin,
