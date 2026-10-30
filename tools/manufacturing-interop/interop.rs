@@ -53,11 +53,37 @@ impl Standard {
         }
     }
 
-    fn supported_version(self) -> &'static str {
-        match self {
-            Self::MtConnect => MTCONNECT_VERSION,
-            Self::Qif => QIF_VERSION,
+    fn admits(self, version: &str, format: DocumentFormat, method: ValidationMethod) -> bool {
+        match (self, version, format, method) {
+            (Self::MtConnect, "2.7", DocumentFormat::Xml, ValidationMethod::Xsd) => true,
+            (Self::MtConnect, "2.8", DocumentFormat::Json, ValidationMethod::JsonSchema) => true,
+            (Self::Qif, "3.0", DocumentFormat::Xml, ValidationMethod::Xsd) => true,
+            _ => false,
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DocumentFormat {
+    Xml,
+    Json,
+}
+
+impl DocumentFormat {
+    fn code(self) -> &'static str {
+        match self { Self::Xml => "XML", Self::Json => "JSON" }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ValidationMethod {
+    Xsd,
+    JsonSchema,
+}
+
+impl ValidationMethod {
+    fn code(self) -> &'static str {
+        match self { Self::Xsd => "XSD", Self::JsonSchema => "JSON_SCHEMA" }
     }
 }
 
@@ -74,12 +100,15 @@ struct SchemaAdmission {
     standard: Standard,
     version: String,
     namespace: String,
+    schema_identifier: String,
+    document_format: DocumentFormat,
+    validation_method: ValidationMethod,
     schema_bundle_sha256: String,
     parser_id: String,
     parser_version: String,
     validation_authority_id: String,
     validation_receipt_sha256: String,
-    xsd_validation_passed: bool,
+    schema_validation_passed: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -96,12 +125,18 @@ impl SourceDocument {
         if self.schema.standard != expected {
             return Err("SOURCE_STANDARD_MISMATCH");
         }
-        if self.schema.version != expected.supported_version() {
-            return Err("UNSUPPORTED_SCHEMA_VERSION");
+        if !expected.admits(
+            &self.schema.version,
+            self.schema.document_format,
+            self.schema.validation_method,
+        ) {
+            return Err("UNSUPPORTED_SCHEMA_FORMAT_OR_VALIDATION_METHOD");
         }
         if !present(&self.document_id)
             || !present(&self.source_uri)
-            || !present(&self.schema.namespace)
+            || !present(&self.schema.schema_identifier)
+            || (self.schema.document_format == DocumentFormat::Xml && !present(&self.schema.namespace))
+            || (self.schema.document_format == DocumentFormat::Json && present(&self.schema.namespace))
             || !present(&self.schema.parser_id)
             || !present(&self.schema.parser_version)
             || !present(&self.schema.validation_authority_id)
@@ -113,8 +148,8 @@ impl SourceDocument {
             || !valid_sha(&self.schema.validation_receipt_sha256) {
             return Err("SOURCE_DOCUMENT_DIGEST_INVALID");
         }
-        if !self.schema.xsd_validation_passed {
-            return Err("SOURCE_XSD_VALIDATION_NOT_PASSED");
+        if !self.schema.schema_validation_passed {
+            return Err("SOURCE_SCHEMA_VALIDATION_NOT_PASSED");
         }
         for extension in &self.opaque_extensions {
             if !present(&extension.namespace)
@@ -347,6 +382,9 @@ struct MappedStream {
     source_uri: String,
     schema_version: String,
     schema_namespace: String,
+    schema_identifier: String,
+    document_format: DocumentFormat,
+    validation_method: ValidationMethod,
     schema_bundle_sha256: String,
     parser_id: String,
     parser_version: String,
@@ -395,6 +433,9 @@ impl MappedStream {
                 csv_escape(&observation.source_locator),
                 self.schema_version.clone(),
                 csv_escape(&self.schema_namespace),
+                csv_escape(&self.schema_identifier),
+                self.document_format.code().into(),
+                self.validation_method.code().into(),
                 self.schema_bundle_sha256.clone(),
                 csv_escape(&self.parser_id),
                 csv_escape(&self.parser_version),
@@ -530,6 +571,9 @@ fn map_mtconnect(
         source_uri: source.source_uri.clone(),
         schema_version: source.schema.version.clone(),
         schema_namespace: source.schema.namespace.clone(),
+        schema_identifier: source.schema.schema_identifier.clone(),
+        document_format: source.schema.document_format,
+        validation_method: source.schema.validation_method,
         schema_bundle_sha256: source.schema.schema_bundle_sha256.clone(),
         parser_id: source.schema.parser_id.clone(),
         parser_version: source.schema.parser_version.clone(),
@@ -910,24 +954,37 @@ fn join_qif_to_cycle(
 }
 
 fn fixture_source(standard: Standard) -> SourceDocument {
-    let (version, namespace, prefix, source_sha) = match standard {
-        Standard::MtConnect => ("2.8", "urn:mtconnect.org:MTConnectStreams:2.8", "MT", "a"),
-        Standard::Qif => ("3.0", "http://qifstandards.org/xsd/qif3", "QIF", "b"),
+    let (version, namespace, schema_identifier, document_format, validation_method, prefix, source_sha) = match standard {
+        Standard::MtConnect => (
+            "2.8", "", "https://schemas.mtconnect.org/MTConnectStreams_2.8.schema.json",
+            DocumentFormat::Json, ValidationMethod::JsonSchema, "MT", "a"
+        ),
+        Standard::Qif => (
+            "3.0", "http://qifstandards.org/xsd/qif3", "QIFDocument.xsd@3.0.0",
+            DocumentFormat::Xml, ValidationMethod::Xsd, "QIF", "b"
+        ),
     };
     SourceDocument {
         document_id: format!("{prefix}-DOC-0001"),
         document_sha256: prefix_hash(source_sha),
-        source_uri: format!("fixture://{prefix}/document.xml"),
+        source_uri: format!("fixture://{prefix}/document.{}", if document_format == DocumentFormat::Json { "json" } else { "xml" }),
         schema: SchemaAdmission {
             standard,
             version: version.into(),
             namespace: namespace.into(),
+            schema_identifier: schema_identifier.into(),
+            document_format,
+            validation_method,
             schema_bundle_sha256: prefix_hash(if standard == Standard::MtConnect { "1" } else { "2" }),
             parser_id: "fixture-parser".into(),
             parser_version: "0.1".into(),
-            validation_authority_id: "fixture-xsd-validator".into(),
+            validation_authority_id: if validation_method == ValidationMethod::Xsd {
+                "fixture-xsd-validator".into()
+            } else {
+                "fixture-json-schema-validator".into()
+            },
             validation_receipt_sha256: prefix_hash("5"),
-            xsd_validation_passed: true,
+            schema_validation_passed: true,
         },
         opaque_extensions: vec![OpaqueExtension {
             namespace: "urn:vendor:extension:v1".into(),
@@ -940,6 +997,29 @@ fn fixture_source(standard: Standard) -> SourceDocument {
 
 fn prefix_hash(value: &str) -> String {
     format!("{value}{}", "0".repeat(HASH_LEN - 1))
+}
+
+fn fixture_mtconnect_27_xml() -> SourceDocument {
+    SourceDocument {
+        document_id: "MT27-DOC-0001".into(),
+        document_sha256: prefix_hash("7"),
+        source_uri: "fixture://MT27/document.xml".into(),
+        schema: SchemaAdmission {
+            standard: Standard::MtConnect,
+            version: "2.7".into(),
+            namespace: "urn:mtconnect.org:MTConnectStreams:2.7".into(),
+            schema_identifier: "MTConnectStreams_2.7.xsd".into(),
+            document_format: DocumentFormat::Xml,
+            validation_method: ValidationMethod::Xsd,
+            schema_bundle_sha256: prefix_hash("8"),
+            parser_id: "fixture-xml-parser".into(),
+            parser_version: "0.1".into(),
+            validation_authority_id: "fixture-xsd-validator".into(),
+            validation_receipt_sha256: prefix_hash("9"),
+            schema_validation_passed: true,
+        },
+        opaque_extensions: Vec::new(),
+    }
 }
 
 fn fixture_assets(source: &SourceDocument) -> Vec<MtAsset> {
@@ -1111,7 +1191,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() {
-    println!("standard,device_uuid,stream_id,data_item_id,component_id,source_document_id,source_document_sha256,source_uri,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_locator,schema_version,schema_namespace,schema_bundle_sha256,parser_id,parser_version,validation_authority_id,validation_receipt_sha256,extension_manifest,diagnostic_manifest");
+    println!("standard,device_uuid,stream_id,data_item_id,component_id,source_document_id,source_document_sha256,source_uri,sequence,source_timestamp_ns,reference_timestamp_ns,reference_clock_id,clock_mapping_sha256,clock_uncertainty_ns,document_order,native_kind,native_unit,value_text,source_locator,schema_version,schema_namespace,schema_identifier,document_format,validation_method,schema_bundle_sha256,parser_id,parser_version,validation_authority_id,validation_receipt_sha256,extension_manifest,diagnostic_manifest");
     let source = fixture_source(Standard::MtConnect);
     let mapped = map_mtconnect(&source, "urn:uuid:machine-001", "STREAM-001", true, &fixture_observations(false))
         .expect("frozen valid MTConnect fixture");
@@ -1419,12 +1499,37 @@ mod tests {
     }
 
     #[test]
+    fn schema_validation_method_is_version_and_format_specific() {
+        let mt28 = fixture_source(Standard::MtConnect);
+        assert!(mt28.validate(Standard::MtConnect).is_ok());
+        assert_eq!(mt28.schema.document_format, DocumentFormat::Json);
+        assert_eq!(mt28.schema.validation_method, ValidationMethod::JsonSchema);
+
+        let mt27 = fixture_mtconnect_27_xml();
+        assert!(mt27.validate(Standard::MtConnect).is_ok());
+
+        let qif30 = fixture_source(Standard::Qif);
+        assert!(qif30.validate(Standard::Qif).is_ok());
+        assert_eq!(qif30.schema.document_format, DocumentFormat::Xml);
+        assert_eq!(qif30.schema.validation_method, ValidationMethod::Xsd);
+
+        let mut invalid = mt28.clone();
+        invalid.schema.document_format = DocumentFormat::Xml;
+        invalid.schema.validation_method = ValidationMethod::Xsd;
+        assert_eq!(invalid.validate(Standard::MtConnect).unwrap_err(),
+            "UNSUPPORTED_SCHEMA_FORMAT_OR_VALIDATION_METHOD");
+    }
+
+    #[test]
     fn unsupported_schema_and_missing_xsd_validation_reject() {
         let mut mt=fixture_source(Standard::MtConnect);
-        mt.schema.version="2.7".into();
+        let mut mt=fixture_source(Standard::MtConnect);
+        mt.schema.version="2.8".into();
+        mt.schema.document_format=DocumentFormat::Xml;
+        mt.schema.validation_method=ValidationMethod::Xsd;
         assert!(mt.validate(Standard::MtConnect).is_err());
         let mut qif=fixture_source(Standard::Qif);
-        qif.schema.xsd_validation_passed=false;
+        qif.schema.schema_validation_passed=false;
         assert!(qif.validate(Standard::Qif).is_err());
     }
 
