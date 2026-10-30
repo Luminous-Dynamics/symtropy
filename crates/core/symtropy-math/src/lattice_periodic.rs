@@ -517,7 +517,7 @@ mod tests {
         let displacement = SVector::from([0.931, 0.098]);
         let image = domain.minimum_image_displacement(&displacement).unwrap();
 
-        assert_eq!(image.image_offset, [1, 0]);
+        assert_eq!(image.image_offset, [0, 1]);
         assert!(image.is_unique);
         assert!(image.displacement.norm() < 0.13);
         assert!(image.candidates_examined > 1);
@@ -565,6 +565,70 @@ mod tests {
                 "bounded exact search lost to brute-force oracle"
             );
         }
+    }
+
+    #[test]
+    fn closest_image_matches_independent_brute_force_on_skewed_3d_corpus() {
+        let domain = LatticePeriodicDomain::new(
+            SVector::zeros(),
+            SMatrix::new(
+                4.0, 1.0, 0.2,
+                0.0, 3.5, 0.7,
+                0.0, 0.0, 2.8,
+            ),
+            [true, true, true],
+            100_000,
+        )
+        .unwrap();
+        let mut seed = 0xB471_93E5_1029_u64;
+
+        for _case in 0..128 {
+            let mut next = || {
+                seed ^= seed << 13;
+                seed ^= seed >> 7;
+                seed ^= seed << 17;
+                let unit = (seed as f64) / (u64::MAX as f64);
+                (unit * 40.0) - 20.0
+            };
+            let displacement = SVector::from([next(), next(), next()]);
+            let image = domain.minimum_image_displacement(&displacement).unwrap();
+
+            let mut oracle_distance_squared = f64::INFINITY;
+            for i in -8_i64..=8 {
+                for j in -8_i64..=8 {
+                    for k in -8_i64..=8 {
+                        let mut fractional = SVector::<f64, 3>::zeros();
+                        fractional[0] = i as f64;
+                        fractional[1] = j as f64;
+                        fractional[2] = k as f64;
+                        let shift = domain.basis() * fractional;
+                        let candidate = displacement - shift;
+                        oracle_distance_squared =
+                            oracle_distance_squared.min(candidate.norm_squared());
+                    }
+                }
+            }
+
+            close(
+                image.displacement.norm_squared(),
+                oracle_distance_squared,
+                5e-10 * oracle_distance_squared.max(1.0),
+            );
+        }
+    }
+
+    #[test]
+    fn adding_a_lattice_translation_does_not_change_minimum_image() {
+        let domain = skew_2d();
+        let displacement = SVector::from([4.1, -7.2]);
+        let translated = displacement + domain.offset_vector([13, -9]).unwrap();
+        let a = domain.minimum_image_displacement(&displacement).unwrap();
+        let b = domain.minimum_image_displacement(&translated).unwrap();
+        close((a.displacement - b.displacement).norm(), 0.0, 1e-10);
+        assert_eq!(
+            b.image_offset,
+            [a.image_offset[0] + 13, a.image_offset[1] - 9]
+        );
     }
 
     #[test]
@@ -630,6 +694,10 @@ mod tests {
             .wrap_point(&SVector::from([9.0, 6.0]))
             .unwrap();
         assert_eq!(wrapped.image_offset[1], 0);
+        let minimum = domain
+            .minimum_image_displacement(&SVector::from([8.0, 1.0]))
+            .unwrap();
+        assert_eq!(minimum.image_offset[1], 0);
 
         assert_eq!(
             domain.offset_vector([0, 1]),
