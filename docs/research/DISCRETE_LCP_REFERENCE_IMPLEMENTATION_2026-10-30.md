@@ -22,7 +22,8 @@ The sign convention is impulse-positive: q < 0 means a row is closing, and W map
 
 Module: `crates/core/symtropy-physics/src/discrete_contact.rs`
 
-- `assemble_delassus` computes W = J M_eff^-1 J^T from a generalized contact-row Jacobian and a symmetric PSD inverse effective-mass matrix. It validates the input metric and raw product before averaging only roundoff-sized asymmetry.
+- `build_contact_jacobian<D>` assembles relative-normal rows from body indices, unit-normal directions and per-body COM offsets. Its generalized coordinate block is D translational values followed by lexicographically ordered bivector planes; angular coefficients use the physical -B*r point-velocity convention.
+- `assemble_delassus` computes W = J M_eff^-1 J^T from that generalized row Jacobian and a symmetric PSD inverse effective-mass matrix. It validates the input metric and raw product before averaging only roundoff-sized asymmetry.
 - `validate_delassus` checks nonempty square dimensions, finite entries, scale-relative symmetry and PSD within a caller-supplied tolerance. It does not silently project an invalid operator.
 - `contact_lcp_kkt_residual` independently recomputes the minimum impulse, minimum slack and maximum complementarity product.
 - `solve_normal_contact_lcp_reference` enumerates active masks in deterministic ascending order, solves each nonsingular active principal submatrix, and returns the first candidate meeting the unilateral KKT tolerance.
@@ -33,17 +34,20 @@ Module: `crates/core/symtropy-physics/src/discrete_contact.rs`
 
 The tests cover:
 
-1. a known generalized Jacobian/inverse-mass matrix assembling to the analytical Delassus matrix;
-2. rejection of an indefinite inverse effective-mass metric;
-3. one-row analytical impulse;
-4. coupled two-row analytical solution;
-5. separating rows receiving zero impulse;
-6. redundant positive-semidefinite rows solved through a nonsingular subset;
-7. asymmetric Delassus rejection;
-8. indefinite Delassus rejection;
-9. explicit rejection above eight rows;
-10. all 256 active sets for an eight-row fully active system; and
-11. no-feasible-solution handling for a closing row with zero effective mass.
+1. 3D contact-row translation and bivector sign/index layout;
+2. all six 4D bivector plane coefficients;
+3. 3D contact rows producing a symmetric PSD Delassus matrix;
+4. a known generalized Jacobian/inverse-mass matrix assembling to the analytical Delassus matrix;
+5. rejection of an indefinite inverse effective-mass metric;
+6. one-row analytical impulse;
+7. coupled two-row analytical solution;
+8. separating rows receiving zero impulse;
+9. redundant positive-semidefinite rows solved through a nonsingular subset;
+10. asymmetric Delassus rejection;
+11. indefinite Delassus rejection;
+12. explicit rejection above eight rows;
+13. all 256 active sets for an eight-row fully active system; and
+14. no-feasible-solution handling for a closing row with zero effective mass.
 
 ## Explicit limits
 
