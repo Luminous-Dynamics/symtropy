@@ -13,6 +13,7 @@ on:
     paths:
       - "tools/casting-phase-reference/two_phase_fv.rs"
       - "tools/casting-phase-reference/two-phase-fv-README.md"
+      - "tools/casting-phase-reference/two-phase-fv-expected.csv"
       - ".github/workflows/casting-phase-two-phase-fv.yml"
   workflow_dispatch:
 
@@ -43,4 +44,4 @@ jobs:
           cat "$RUNNER_TEMP/two-phase-fv-a.csv"
       - name: Emit source and output digests
         run: |
-          sha256sum tools/casting-phase-reference/two_phase_fv.rs "$RUNNER_TEMP/two-phase-fv-a.csv"
+          sha256sum tools/casting-phase-reference/two_phase_fv.rs tools/casting-phase-reference/two-phase-fv-expected.csv "$RUNNER_TEMP/two-phase-fv-a.csv"
