@@ -525,6 +525,51 @@ mod tests {
     }
 
     #[test]
+    fn mass_aware_constructors_preserve_and_validate_total_mass() {
+        let ellipsoid =
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+                .unwrap();
+        assert_eq!(ellipsoid.total_mass(), Some(2.0));
+        assert!(ellipsoid.validate_body_mass(2.0, 1e-10).is_ok());
+        assert_eq!(
+            ellipsoid.validate_body_mass(1.0, 1e-10),
+            Err(RotationalInertiaError::MassMismatch)
+        );
+
+        let rotated = ellipsoid.rotated_by(&Rotor::identity());
+        assert_eq!(rotated.total_mass(), Some(2.0));
+
+        let point_cloud = BivectorInertia::<3>::from_point_masses([
+            (SVector::new(-1.0, 0.0, 0.0), 2.0),
+            (SVector::new(1.0, 0.0, 0.0), 3.0),
+        ])
+        .unwrap();
+        assert_eq!(point_cloud.total_mass(), Some(5.0));
+
+        let raw = BivectorInertia::<3>::from_second_moment(SMatrix::identity()).unwrap();
+        assert_eq!(raw.total_mass(), None);
+        assert!(raw.validate_body_mass(123.0, 1e-10).is_ok());
+    }
+
+    #[test]
+    fn parallel_axis_combination_rejects_component_mass_mismatch() {
+        let body_a = BivectorInertia::<3>::uniform_solid_ball(2.0, 1.0).unwrap();
+        let body_b = BivectorInertia::<3>::uniform_solid_ball(1.0, 0.5).unwrap();
+        assert_eq!(
+            BivectorInertia::<3>::combine_at_common_center(
+                3.0,
+                &body_a,
+                &SVector::new(-1.0, 0.0, 0.0),
+                1.0,
+                &body_b,
+                &SVector::new(3.0, 0.0, 0.0),
+            )
+            .unwrap_err(),
+            RotationalInertiaError::MassMismatch
+        );
+    }
+
+    #[test]
     fn parallel_axis_combination_rejects_non_centered_offsets() {
         let body_a = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
         let body_b = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
