@@ -787,6 +787,49 @@ mod tests {
     }
 
     #[test]
+    fn simplicial_mass_integration_is_stable_for_mesh_far_from_world_origin() {
+        let shift = SVector::<f64, 3>::new(1.0e9, -2.0e9, 3.0e9);
+        let local = [
+            SVector::<f64, 3>::new(-1.0, -1.0, -1.0),
+            SVector::<f64, 3>::new(1.0, -1.0, -1.0),
+            SVector::<f64, 3>::new(1.0, 1.0, -1.0),
+            SVector::<f64, 3>::new(-1.0, 1.0, -1.0),
+            SVector::<f64, 3>::new(-1.0, -1.0, 1.0),
+            SVector::<f64, 3>::new(1.0, -1.0, 1.0),
+            SVector::<f64, 3>::new(1.0, 1.0, 1.0),
+            SVector::<f64, 3>::new(-1.0, 1.0, 1.0),
+        ];
+        let vertices: Vec<_> = local.iter().map(|vertex| vertex + shift).collect();
+        let facets = [
+            [0, 2, 1],
+            [0, 3, 2],
+            [4, 5, 6],
+            [4, 6, 7],
+            [0, 1, 5],
+            [0, 5, 4],
+            [3, 7, 6],
+            [3, 6, 2],
+            [0, 4, 7],
+            [0, 7, 3],
+            [1, 2, 6],
+            [1, 6, 5],
+        ];
+        let properties = BivectorInertia::<3>::from_oriented_closed_simplicial_boundary(
+            &vertices,
+            &facets,
+            2.0,
+            1e-12,
+        )
+        .unwrap();
+
+        assert!((properties.volume - 8.0).abs() < 1e-6);
+        assert!((properties.total_mass - 16.0).abs() < 1e-6);
+        assert!((properties.center_of_mass - shift).norm() < 1e-6);
+        let expected = SMatrix::<f64, 3, 3>::identity() * (16.0 / 3.0);
+        assert!((properties.inertia.second_moment() - expected).norm() < 1e-6);
+    }
+
+    #[test]
     fn oriented_cube_boundary_matches_analytic_volume_com_and_second_moment() {
         let vertices = vec![
             SVector::<f64, 3>::new(-1.0, -1.0, -1.0),
