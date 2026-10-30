@@ -2716,4 +2716,43 @@ mod transformed_halfspace_tests {
 
         assert!(world.static_tree_dirty);
     }
+
+    #[test]
+    fn try_step_rolls_back_all_bodies_when_later_body_has_singular_inertia() {
+        use crate::inertia::{BivectorInertia, RotationalInertiaError};
+        use nalgebra::SMatrix;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.5, 1.0);
+
+        world.bodies[0].linear_velocity = SVector::new(0.25, -0.5, 0.75);
+        world.bodies[0].apply_force(SVector::new(3.0, 0.0, 0.0));
+        world.bodies[1].set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(
+                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
+            )
+            .unwrap(),
+        );
+        world.bodies[1].apply_torque(Bivector::unit_plane(1, 2));
+
+        let first_position = world.bodies[0].transform.translation.0.clone();
+        let first_velocity = world.bodies[0].linear_velocity.clone();
+        let first_force = world.bodies[0].force_accumulator.clone();
+        let second_position = world.bodies[1].transform.translation.0.clone();
+        let second_torque = world.bodies[1].torque_accumulator.clone();
+
+        let error = world.try_step(0.01).unwrap_err();
+        assert_eq!(
+            error,
+            PhysicsStepError::RotationalInertia(RotationalInertiaError::SingularInertia)
+        );
+        assert_eq!(world.bodies[0].transform.translation.0, first_position);
+        assert_eq!(world.bodies[0].linear_velocity, first_velocity);
+        assert_eq!(world.bodies[0].force_accumulator, first_force);
+        assert_eq!(world.bodies[1].transform.translation.0, second_position);
+        assert_eq!(world.bodies[1].torque_accumulator, second_torque);
+    }
+
+
 }
