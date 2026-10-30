@@ -338,7 +338,8 @@ mod tests {
         assert_eq!(report.zones[0].zone, "A");
         assert_eq!(report.zones[1].zone, "B");
         for zone in &report.zones {
-            assert!((zone.fitted_cd0_section - (0.01 + if zone.zone == "A" { 0.0 } else { 0.003 })).abs() < 1e-12);
+            let expected_cd0 = 0.01 + if zone.zone == "A" { 0.0 } else { 0.003 };
+            assert!((zone.fitted_cd0_section - expected_cd0).abs() < 1e-12);
             assert!((zone.fitted_cd2_section_coefficient - 0.02).abs() < 1e-12);
             assert!(zone.calibration.root_mean_square_error < 1e-12);
         }
@@ -381,7 +382,7 @@ mod tests {
     fn heldout_perturbations_cannot_change_calibration_fit() {
         let mut rows = synthetic_zone("A", 0.0);
         let baseline = audit_section_polar(&rows).expect("baseline report");
-        let mut high_angle_index = rows
+        let high_angle_index = rows
             .iter()
             .position(|row| row.alpha_deg > INTERMEDIATE_MAX_ABS_ALPHA_DEG)
             .expect("high angle row");
@@ -399,8 +400,6 @@ mod tests {
             baseline.zones[0].high_angle_extrapolation.root_mean_square_error,
             changed.zones[0].high_angle_extrapolation.root_mean_square_error
         );
-        high_angle_index += 1;
-        assert!(high_angle_index > 0);
     }
 
     #[test]
