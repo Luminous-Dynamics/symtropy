@@ -56,7 +56,7 @@ This is a conservative floating-point numerical certificate under the stated err
 The current Rust tests include:
 - diagonal-basis equivalence with PeriodicBox wrapping and minimum-image displacement;
 - skewed-cell fractional wrapping and reconstruction;
-- deterministic seeded comparisons against a wider brute-force integer-image oracle;
+- deterministic seeded comparisons against a wider brute-force integer-image oracle with independent double-double squared-distance evaluation;
 - one-active-axis behaviour where inactive fractional coordinates do not wrap;
 - explicit refusal when the candidate budget cannot certify the nearest image;
 - singular basis, non-finite coordinate, below-origin-resolution cell vectors, and invalid inactive-axis offsets;
@@ -64,7 +64,7 @@ The current Rust tests include:
 
 Before any CI/test pass is claimed, add or retain:
 - a separately implemented brute-force CVP oracle over a wider offset range;
-- random and adversarial skew matrices, including nearly dependent basis vectors;
+- random and adversarial skew matrices, including nearly dependent basis vectors, checked against the double-double oracle as well as the f64 broad oracle;
 - random rotations of a fixed lattice and unimodular basis changes, with equivalent physical results;
 - wrap/reconstruct invariance under integer lattice translations;
 - offset composition and inverse-offset identities;
