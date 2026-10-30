@@ -10,7 +10,7 @@
 //!   /tmp/matrix-free-2d --verify
 //!   /tmp/matrix-free-2d --csv
 
-const RELATIVE_TOLERANCE: f64 = 2.0e-11;
+const RELATIVE_TOLERANCE: f64 = 5.0e-11;
 const MAX_ITERATIONS: usize = 20_000;
 const EPSILON_SCALE: f64 = 64.0 * f64::EPSILON;
 
