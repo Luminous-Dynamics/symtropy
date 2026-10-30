@@ -1,0 +1,19 @@
+# task_id|split|initial observations (action:output, or none)|additional-query budget
+w_001|train|none|8
+w_002|train|none|8
+w_003|train|none|8
+w_004|train|none|8
+w_005|train|none|8
+w_006|train|none|8
+w_007|validation|none|8
+w_008|validation|none|8
+w_009|validation|none|8
+w_010|validation|none|8
+w_011|validation|none|8
+w_012|validation|none|8
+w_013|heldout|none|8
+w_014|heldout|none|8
+w_015|heldout|none|8
+w_016|heldout|none|8
+w_017|heldout|none|8
+w_018|heldout|none|8
