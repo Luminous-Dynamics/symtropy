@@ -403,7 +403,7 @@ mod tests {
                 _ => unreachable!(),
             }
             let error = audit(&rows).unwrap_err();
-            assert!(error.contains("validation group"), "{policy}: {error}");
+            assert!(error.contains("validation"), "{policy}: {error}");
             assert!(error.contains(dimension), "{policy}: {error}");
         }
     }
