@@ -23,8 +23,8 @@ pub mod contact;
 pub mod delassus;
 pub mod diagnostics;
 pub mod epa;
-pub mod gjk;
 pub mod friction_cone;
+pub mod gjk;
 pub mod inertia;
 pub mod integrator;
 pub mod island;
@@ -45,8 +45,8 @@ pub use delassus::{
     assemble_delassus, solve_frictionless_lcp,
 };
 pub use diagnostics::{InvariantDrift, InvariantSnapshot, InvariantStepReceipt};
-pub use friction_cone::{FrictionConeError, PlanarFrictionConeSolution, solve_planar_friction_cone};
 pub use epa::EpaResult;
+pub use friction_cone::{FrictionConeError, PlanarFrictionConeSolution, solve_planar_friction_cone};
 pub use inertia::{BivectorInertia, RotationalInertiaError};
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
