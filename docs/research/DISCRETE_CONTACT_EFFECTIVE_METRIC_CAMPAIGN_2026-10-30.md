@@ -63,6 +63,10 @@ Friction requires a maximum-dissipation formulation or a documented cone approxi
 
 The critical consistency requirement is that the same M_eff governs both constraint response and the committed velocity update. Do not solve constraints with one effective inertia and then advance the state with a materially different operator without measuring and reporting that splitting error.
 
+## 2.1 Reference implementation status
+
+The first executable reference layer is now being developed separately in [PR #2998 — small-island Delassus and LCP reference oracle](https://github.com/Luminous-Dynamics/symtropy/pull/2998). It assembles the frictionless contact Delassus matrix from the same translational and bivector-inertia response used by Symtropy, then exhaustively enumerates active sets for up to eight rows. It deliberately remains a validation oracle, does not assemble the bias vector, and does not replace the runtime TGS/sequential-impulse path. Its initial regressions include asymmetric off-diagonal coupling, redundant rows without regularization, and a production single-contact impulse comparison. Exact-head CI and randomized oracle-versus-runtime campaigns remain outstanding.
+
 ## 3. Architecture experiment
 
 Keep the existing sequential impulse/TGS path as the baseline. Add a separately feature-gated research path in stages:
