@@ -358,10 +358,21 @@ impl<const D: usize> TriclinicPeriodicCell<D> {
 
             lower[axis] = (low as i64).min(babai[axis]);
             upper[axis] = (high as i64).max(babai[axis]);
-            let width = (upper[axis] as i128 - lower[axis] as i128 + 1) as usize;
-            candidate_count = candidate_count
-                .checked_mul(width)
-                .unwrap_or(usize::MAX);
+            let width_i128 = upper[axis] as i128 - lower[axis] as i128 + 1;
+            if width_i128 <= 0 || width_i128 > usize::MAX as i128 {
+                return Err(TriclinicCellError::CandidateBudgetExceeded {
+                    candidates: usize::MAX,
+                    limit: max_candidates,
+                });
+            }
+            let width = width_i128 as usize;
+            let Some(next_count) = candidate_count.checked_mul(width) else {
+                return Err(TriclinicCellError::CandidateBudgetExceeded {
+                    candidates: usize::MAX,
+                    limit: max_candidates,
+                });
+            };
+            candidate_count = next_count;
             if candidate_count > max_candidates {
                 return Err(TriclinicCellError::CandidateBudgetExceeded {
                     candidates: candidate_count,
@@ -483,7 +494,7 @@ mod tests {
     fn wrapping_and_explicit_offset_reconstruct_cartesian_point() {
         let cell = skew_cell();
         let fractional = SVector::from([2.25, -1.75]);
-        let point = cell.origin() + cell.basis() * fractional;
+        let point = *cell.origin() + *cell.basis() * fractional;
         let wrapped = cell.wrap_point(&point).unwrap();
 
         assert_eq!(wrapped.image_offset, LatticeOffset::new([2, -2]));
@@ -509,13 +520,14 @@ mod tests {
                 range(&mut seed, -1.5, 1.5),
                 range(&mut seed, -1.5, 1.5),
             ]);
-            let displacement = cell.basis() * fractional;
+            let displacement = *cell.basis() * fractional;
             let actual = cell.minimum_image(&displacement, 256).unwrap();
 
             let mut best: Option<(f64, [i64; 2])> = None;
             for n0 in -8_i64..=8 {
                 for n1 in -8_i64..=8 {
-                    let candidate = displacement + cell.basis() * SVector::from([n0 as f64, n1 as f64]);
+                    let candidate =
+                        displacement + *cell.basis() * SVector::from([n0 as f64, n1 as f64]);
                     let score = candidate.norm_squared();
                     let offset = [n0, n1];
                     if best.is_none_or(|(best_score, best_offset)| {
@@ -563,12 +575,12 @@ mod tests {
             angle.cos(),
         );
         let rotated_cell = TriclinicPeriodicCell::new(
-            rotation * cell.origin(),
-            rotation * cell.basis(),
+            rotation * *cell.origin(),
+            rotation * *cell.basis(),
             [true, true],
         )
         .unwrap();
-        let displacement = cell.basis() * SVector::from([0.31, -0.42]);
+        let displacement = *cell.basis() * SVector::from([0.31, -0.42]);
 
         let original = cell.minimum_image(&displacement, 256).unwrap();
         let rotated = rotated_cell
