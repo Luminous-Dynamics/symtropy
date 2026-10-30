@@ -79,9 +79,11 @@ pub fn parse_pressure_data(
         return Err("pressure reference must declare variables=\"x/c\",\"cp\"".to_owned());
     }
     parse_zone_data(input, dataset_id, "x/c", 2, |zone, values, source_line| {
-        if !(0.0..=1.0).contains(&values[0]) {
+        // Preserve measured tap positions just beyond the nominal trailing edge.
+        // Experimental x/c is a recorded coordinate, not a geometry-clipped parameter.
+        if values[0] < 0.0 {
             return Err(format!(
-                "line {source_line}: x/c must be in [0, 1], got {}",
+                "line {source_line}: x/c must be non-negative, got {}",
                 values[0]
             ));
         }
@@ -260,6 +262,13 @@ mod tests {
         assert_eq!(parsed.zone_counts.get("alpha=0"), Some(&25));
         assert_eq!(parsed.zone_counts.get("alpha=10"), Some(&24));
         assert_eq!(parsed.zone_counts.get("alpha=15"), Some(&24));
+        assert!(
+            parsed
+                .observations
+                .iter()
+                .any(|observation| (observation.x_over_c - 1.0009).abs() < 1.0e-10),
+            "the measured x/c=1.0009 coordinate must be preserved without clipping"
+        );
     }
 
     #[test]
@@ -275,7 +284,7 @@ mod tests {
         let pressure = fixture("CP_Gregory_expdata.dat");
         let malformed = pressure.replace("0.0023497 0.847673", "0.0023497 not-a-number");
         assert!(parse_pressure_data(&malformed, "bad-pressure-fixture").is_err());
-        let out_of_bounds = pressure.replace("0.0023497 0.847673", "1.0023497 0.847673");
+        let out_of_bounds = pressure.replace("0.0023497 0.847673", "-0.0023497 0.847673");
         assert!(parse_pressure_data(&out_of_bounds, "out-of-chord-fixture").is_err());
         assert!(
             parse_pressure_data(
