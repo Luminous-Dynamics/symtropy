@@ -394,20 +394,20 @@ mod tests {
         let high_angle = [(17.0, 1.1), (18.0, 0.7)];
         let mut rows = Vec::new();
         // Test fixtures represent distinct zones in one source file, so line numbers stay global.
-        let mut line = if zone == "A" { 1 } else { 101 };
-        for (alpha, cl) in calibration
+        let first_line = if zone == "A" { 1 } else { 101 };
+        for (offset_index, (alpha, cl)) in calibration
             .into_iter()
             .chain(intermediate)
             .chain(high_angle)
+            .enumerate()
         {
             rows.push(observation(
                 zone,
-                line,
+                first_line + offset_index,
                 alpha,
                 cl,
                 0.01 + 0.02 * cl * cl + offset,
             ));
-            line += 1;
         }
         rows
     }
