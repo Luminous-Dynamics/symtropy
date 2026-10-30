@@ -1232,7 +1232,7 @@ mod tests {
             &SolverConfig { horizon: 4, ..SolverConfig::default() },
         ).unwrap();
         let selected = result.minimum_cost_under(
-            Rational::zero(), Rational::zero(), Rational::zero(),
+            Rational::zero(), Rational::zero(), Rational::one(),
         ).unwrap().unwrap();
         assert_eq!(selected.plan, PolicyPlan::Abstain);
         assert_eq!(selected.expected_cost, Rational::zero());
