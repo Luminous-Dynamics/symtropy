@@ -9,8 +9,9 @@
 //! nearest images are found by bounded QR sphere decoding.
 //!
 //! The current reference implementation intentionally supports only full-rank
-//! 2D/3D lattices. Mixed periodic rank and non-orthogonal embedded subspaces
-//! require a separate contract and are not silently approximated here.
+//! 2D/3D lattices with every basis direction periodic. Mixed periodic rank and
+//! non-orthogonal embedded subspaces require a separate contract and are not
+//! silently approximated here.
 
 use std::error::Error;
 use std::fmt;
@@ -76,7 +77,7 @@ pub struct WrappedLatticePoint<const D: usize> {
     pub image_offset: LatticeOffset<D>,
 }
 
-/// Result of an exact-within-budget closest-image query.
+/// Result of a closest-image query that completed within its search budget.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ClosestLatticeImage<const D: usize> {
     /// Integer n minimizing ||displacement + B*n|| within the bounded search.
@@ -307,17 +308,17 @@ impl<const D: usize> PeriodicLattice<D> {
     /// Find the nearest periodic representative by solving
     /// argmin_n ||displacement + B*n||.
     ///
-    /// A Babai nearest-plane point supplies an initial radius, after which a
-    /// bounded QR sphere decoder enumerates every integer point inside that
-    /// radius. Search-budget exhaustion is an error; the current best point is
-    /// never returned as though it were proven globally nearest.
-    /// Find the nearest periodic representative under the canonical tie rule.
+    /// Find the nearest periodic representative using bounded QR sphere decoding.
     ///
-    /// The input is oriented so its first nonzero Cartesian component is
-    /// positive before the search. This makes the exact-distance tie rule
-    /// reversal-odd: minimum_image(-d) = -minimum_image(d), including at
-    /// Voronoi facets. Returned offsets are always expressed in the original
-    /// caller's lattice orientation.
+    /// A Babai nearest-plane point supplies an initial radius, after which the
+    /// decoder enumerates every integer point inside that radius. Search-budget
+    /// exhaustion is an error; a best-so-far point is never returned as proven.
+    ///
+    /// For exact-distance ties, the first nonzero Cartesian component is
+    /// oriented positive before applying lexicographic image-offset selection.
+    /// This makes the result reversal-odd, including on Voronoi facets:
+    /// `minimum_image(-d) = -minimum_image(d)`. Returned offsets
+    /// remain expressed in the original caller's lattice coordinates.
     pub fn minimum_image_displacement(
         &self,
         displacement: &SVector<f64, D>,
@@ -335,10 +336,10 @@ impl<const D: usize> PeriodicLattice<D> {
         let mut result =
             self.minimum_image_displacement_oriented(&canonical_displacement, max_search_nodes)?;
         if reverse {
-            for component in &mut result.image_offset.periods {
-                *component = component.checked_neg().ok_or(
-                    PeriodicLatticeError::CoordinatePrecisionLimit { axis: 0 },
-                )?;
+            for (axis, component) in result.image_offset.periods.iter_mut().enumerate() {
+                *component = component
+                    .checked_neg()
+                    .ok_or(PeriodicLatticeError::CoordinatePrecisionLimit { axis })?;
             }
             result.displacement = -result.displacement;
         }
