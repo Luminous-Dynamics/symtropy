@@ -146,3 +146,10 @@ Global comparisons should evaluate each frequency/excitation domain separately, 
 The robust-frontier tool keeps lifecycle cost, no-load/load losses, maximum hotspot temperature, mass and embodied carbon as separate objectives. It requires a common regional profile, currency/price basis and carbon-boundary identifier, then distinguishes nominal midpoint Pareto dominance from conservative interval-certain dominance. Bounds are supplied ranges and are not automatically confidence intervals. Independent interval boxes can be conservative when objectives are correlated; globally comparable future runs should preserve joint scenario vectors for weather, demand, materials and tariffs rather than combine marginal intervals without provenance. See [ROBUST_PARETO_FRONTIER.md](ROBUST_PARETO_FRONTIER.md).
 
 A region-specific profile is not interchangeable with an objective vector. Candidate frontiers must be computed within a comparable profile; hard qualification constraints remain independent gates and cannot be compensated by cheaper cost, lower mass or lower carbon.
+
+
+## Joint-scenario uncertainty and global transfer
+
+The scenario-frontier tool complements independent interval-box screening by preserving paired objective vectors under the same named demand/weather/tariff scenarios. It computes expected, CVaR95, worst-case and finite-scenario robust Pareto summaries. This matters for regional comparisons because high temperature, EV load, PV output, tariff and demand growth can co-vary; independent marginal bounds may combine states that never co-occurred. Each candidate must be evaluated under the same scenario ensemble and weights.
+
+The scenario ensemble must carry source identities, geographic/climate and network profile, time horizon, generation method, probability/weight rationale, missing-data policy and evidence digests. Currency, price year/basis and carbon boundary must remain common within a comparison. Scenario weights are not validated by the binary; transfer claims require a frozen held-out ensemble and profile-specific results. See [JOINT_SCENARIO_FRONTIER.md](JOINT_SCENARIO_FRONTIER.md).
