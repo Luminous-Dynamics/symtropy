@@ -5,6 +5,7 @@
 
 pub mod agent;
 pub mod assurance;
+pub mod audit_receipt;
 pub mod control;
 pub mod command_evidence;
 pub mod differential_drive;
@@ -23,6 +24,11 @@ pub mod safety;
 pub mod sequence_guard;
 
 pub use agent::{RoboticAgent, spawn_robot_body};
+pub use audit_receipt::{
+    CommandEvidenceReceipt, CommandEvidenceReceiptContext, CommandEvidenceReceiptError,
+    COMMAND_EVIDENCE_RECEIPT_SCHEMA_VERSION, create_command_evidence_receipt,
+    verify_command_evidence_receipt,
+};
 pub use assurance::{
     AxisAlignedWorkspace, EmbodimentEnvelope, GateDecision, IntentKind, RuntimeAssuranceGate,
     RuntimeAssurancePolicy, RuntimeSafetyState, VetoReason,
