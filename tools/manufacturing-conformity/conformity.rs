@@ -488,6 +488,48 @@ mod tests {
     }
 
     #[test]
+    fn mSA_and_context_policy_failures_remain_evidence_incomplete() {
+        let mut r = request(15.0, 1.0);
+        r.uncertainty.msa_qualified = false;
+        assert_eq!(classify(&r).reason, "MSA_NOT_QUALIFIED");
+
+        let mut r = request(15.0, 1.0);
+        r.evidence.msa = EvidenceState::NotQualified;
+        assert_eq!(classify(&r).reason, "MSA_EVIDENCE_NOT_QUALIFIED");
+
+        let mut r = request(15.0, 1.0);
+        r.evidence.context_policy = EvidenceState::Missing;
+        assert_eq!(classify(&r).reason, "CONTEXT_POLICY_EVIDENCE_MISSING");
+    }
+
+    #[test]
+    fn emitted_receipt_preserves_all_source_digests_and_evidence_states() {
+        let row = classify(&request(15.0, 1.0)).csv_row();
+        for digest in ["a".repeat(HASH_LEN), "b".repeat(HASH_LEN),
+                       "c".repeat(HASH_LEN), "d".repeat(HASH_LEN),
+                       "e".repeat(HASH_LEN), "f".repeat(HASH_LEN)] {
+            assert!(row.contains(&digest));
+        }
+        assert!(row.contains("VERIFIED"));
+        assert!(row.contains("MSA-CROSSED-01"));
+        assert!(row.contains("CAL-CMM-01"));
+        assert!(row.contains("shaft-diameter"));
+        assert!(row.contains("COU-SHAFT-FINAL-INSPECTION"));
+    }
+
+    #[test]
+    fn numeric_overflow_in_the_coverage_interval_abstains() {
+        let mut r = request(1.0e308, 1.0e308);
+        r.specification.lower = -1.0e308;
+        r.specification.upper = 1.0e308;
+        r.uncertainty.standard_uncertainty = 5.0e307;
+        r.uncertainty.coverage_factor = 2.0;
+        let report = classify(&r);
+        assert_eq!(report.outcome, Outcome::EvidenceIncomplete);
+        assert_eq!(report.reason, "UNCERTAINTY_INTERVAL_OVERFLOW");
+    }
+
+    #[test]
     fn unit_measurand_lot_and_calibration_scope_mismatches_fail_closed() {
         let mut r = request(15.0, 1.0);
         r.measurement.unit = "inch".into();
