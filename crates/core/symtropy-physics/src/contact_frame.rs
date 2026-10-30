@@ -792,6 +792,62 @@ mod tests {
     }
 
     #[test]
+    fn contact_wrench_is_invariant_to_consistent_length_unit_conversion() {
+        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let si_limits =
+            ContactWrenchFrictionLimits::new(0.5, 0.1, 0.1, 0.5, 0.25).unwrap();
+        let si_wrench = ContactWrenchImpulse::<3> {
+            normal: 10.0,
+            tangential: SVector::new(0.0, 4.0, 0.0),
+            rolling: vec![0.3, 0.1],
+            torsional: vec![0.2],
+        };
+        assert!(si_wrench.validate(&frame, &si_limits, 1e-12).is_ok());
+
+        // m -> cm leaves linear impulse unchanged but multiplies angular
+        // impulse and every characteristic length by 100.
+        let centimetre_limits =
+            ContactWrenchFrictionLimits::new(0.5, 0.1, 0.1, 50.0, 25.0).unwrap();
+        let centimetre_wrench = ContactWrenchImpulse::<3> {
+            normal: si_wrench.normal,
+            tangential: si_wrench.tangential,
+            rolling: si_wrench.rolling.iter().map(|value| value * 100.0).collect(),
+            torsional: si_wrench
+                .torsional
+                .iter()
+                .map(|value| value * 100.0)
+                .collect(),
+        };
+        assert!(
+            centimetre_wrench
+                .validate(&frame, &centimetre_limits, 1e-12)
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn contact_wrench_validation_rechecks_model_parameters() {
+        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let invalid_limits = ContactWrenchFrictionLimits {
+            tangential_coefficient: 0.5,
+            rolling_coefficient: 0.1,
+            torsional_coefficient: 0.1,
+            rolling_radius: f64::NAN,
+            torsional_radius: 0.25,
+        };
+        let wrench = ContactWrenchImpulse::<3> {
+            normal: 1.0,
+            tangential: SVector::new(0.0, 0.0, 0.0),
+            rolling: vec![0.0, 0.0],
+            torsional: vec![0.0],
+        };
+        assert_eq!(
+            wrench.validate(&frame, &invalid_limits, 1e-12),
+            Err(ContactFrameError::InvalidContactRadius)
+        );
+    }
+
+    #[test]
     fn invalid_normals_and_coordinate_lengths_are_rejected() {
         assert_eq!(
             ContactFrame::<3>::new(SVector::zeros(), 1e-12).unwrap_err(),
