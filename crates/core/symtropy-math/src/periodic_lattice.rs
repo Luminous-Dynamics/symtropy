@@ -168,7 +168,7 @@ impl<const D: usize> TriclinicPeriodicCell<D> {
                 return Err(TriclinicCellError::NonFiniteCoordinate { axis });
             }
         }
-        let fractional = self.inverse_basis * displacement;
+        let fractional = self.inverse_basis * *displacement;
         for axis in 0..D {
             if !fractional[axis].is_finite() {
                 return Err(TriclinicCellError::CoordinatePrecisionLimit { axis });
@@ -191,7 +191,7 @@ impl<const D: usize> TriclinicPeriodicCell<D> {
             }
         }
 
-        let relative = point - self.origin;
+        let relative = *point - self.origin;
         let mut fractional = self.fractional_coordinates(&relative)?;
         let mut image = [0_i64; D];
 
@@ -266,7 +266,7 @@ impl<const D: usize> TriclinicPeriodicCell<D> {
             let axis = point.iter().position(|value| !value.is_finite()).unwrap_or(0);
             return Err(TriclinicCellError::NonFiniteCoordinate { axis });
         }
-        let translated = point + self.offset_vector(offset)?;
+        let translated = *point + self.offset_vector(offset)?;
         if !translated.iter().all(|value| value.is_finite()) {
             return Err(TriclinicCellError::NumericRange);
         }
@@ -312,7 +312,7 @@ impl<const D: usize> TriclinicPeriodicCell<D> {
 
         let babai_offset = LatticeOffset::new(babai);
         let babai_translation = self.offset_vector(babai_offset)?;
-        let babai_displacement = displacement + babai_translation;
+        let babai_displacement = *displacement + babai_translation;
         let mut best_score = babai_displacement.norm_squared();
         if !best_score.is_finite() {
             return Err(TriclinicCellError::NumericRange);
@@ -386,7 +386,7 @@ impl<const D: usize> TriclinicPeriodicCell<D> {
         loop {
             let offset = LatticeOffset::new(current);
             let translation = self.offset_vector(offset)?;
-            let candidate = displacement + translation;
+            let candidate = *displacement + translation;
             let score = candidate.norm_squared();
             if !score.is_finite() {
                 return Err(TriclinicCellError::NumericRange);
@@ -404,7 +404,7 @@ impl<const D: usize> TriclinicPeriodicCell<D> {
         }
 
         let best_translation = self.offset_vector(LatticeOffset::new(best_offset))?;
-        let nearest = displacement + best_translation;
+        let nearest = *displacement + best_translation;
         if !nearest.iter().all(|value| value.is_finite()) {
             return Err(TriclinicCellError::NumericRange);
         }
