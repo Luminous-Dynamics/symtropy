@@ -294,6 +294,82 @@ mod tests {
     }
 
     #[test]
+    fn semi_implicit_euler_free_fall_converges_at_first_order() {
+        // For constant acceleration, semi-implicit Euler has a global O(dt)
+        // position error. Halving dt should therefore halve the final error.
+        let gravity = SVector::from([0.0, -1.0, 0.0]);
+        let exact_y = -0.5_f64; // y(T=1) = 1/2 * a * T^2
+        let timesteps = [0.1_f64, 0.05, 0.025, 0.0125];
+        let mut errors = Vec::with_capacity(timesteps.len());
+
+        for dt in timesteps {
+            let mut body =
+                RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+            let steps = (1.0 / dt).round() as usize;
+            for _ in 0..steps {
+                integrate(&mut body, &gravity, dt);
+            }
+            errors.push((body.position()[1] - exact_y).abs());
+        }
+
+        for pair in errors.windows(2) {
+            let ratio = pair[0] / pair[1];
+            assert!(
+                (ratio - 2.0).abs() < 1e-8,
+                "halving dt should halve first-order error; observed ratio {ratio}, errors={errors:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn semi_implicit_euler_has_a_timestep_stability_limit() {
+        // Unit-mass, unit-stiffness oscillator: stability requires dt * omega < 2.
+        // Symplecticity does not make this method unconditionally stable.
+        let zero_gravity = SVector::<f64, 3>::zeros();
+
+        let mut stable = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([1.0, 0.0, 0.0]),
+            0.1,
+            1.0,
+        );
+        stable.linear_damping = 0.0;
+        let stable_dt = 0.25;
+        let mut max_energy = 0.0_f64;
+        for _ in 0..1_000 {
+            let x = stable.position()[0];
+            stable.apply_force(SVector::from([-x, 0.0, 0.0]));
+            integrate(&mut stable, &zero_gravity, stable_dt);
+            let energy = 0.5 * stable.linear_velocity.norm_squared()
+                + 0.5 * stable.position()[0].powi(2);
+            max_energy = max_energy.max(energy);
+        }
+        assert!(
+            max_energy < 0.6,
+            "resolved oscillator should have bounded energy, max={max_energy}"
+        );
+
+        let mut unstable = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::new([1.0, 0.0, 0.0]),
+            0.1,
+            1.0,
+        );
+        unstable.linear_damping = 0.0;
+        let unstable_dt = 2.1; // dt * omega > 2
+        for _ in 0..8 {
+            let x = unstable.position()[0];
+            unstable.apply_force(SVector::from([-x, 0.0, 0.0]));
+            integrate(&mut unstable, &zero_gravity, unstable_dt);
+        }
+        assert!(
+            unstable.position()[0].abs() > 100.0,
+            "unresolved oscillator should expose the explicit stability limit, x={}",
+            unstable.position()[0]
+        );
+    }
+
+    #[test]
     fn static_body_not_affected() {
         use symtropy_math::Sphere;
         let mut body = RigidBody::<3>::static_body(
