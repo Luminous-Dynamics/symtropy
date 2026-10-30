@@ -23,6 +23,8 @@ pub enum RotationalInertiaError {
     NonFinite,
     /// The supplied second-moment matrix is not symmetric within tolerance.
     NotSymmetric,
+    /// The supplied second-moment matrix has a materially negative eigenvalue.
+    NotPositiveSemidefinite,
     /// Uniform-ball mass or radius is negative.
     InvalidMassProperties,
 }
@@ -42,8 +44,8 @@ impl<const D: usize> BivectorInertia<D> {
     /// Construct from the centered second-moment matrix S = integral r r^T dm.
     ///
     /// Small floating-point asymmetry is removed by symmetrizing the input.
-    /// Positive semidefiniteness is a physical precondition and should be
-    /// checked by the caller when building mass properties from CAD/meshes.
+    /// The symmetric matrix is checked for positive semidefiniteness using a
+    /// scale-relative eigenvalue tolerance.
     pub fn from_second_moment(
         second_moment: SMatrix<f64, D, D>,
     ) -> Result<Self, RotationalInertiaError> {
@@ -66,6 +68,14 @@ impl<const D: usize> BivectorInertia<D> {
         }
 
         let symmetric = (second_moment + second_moment.transpose()) * 0.5;
+        let min_eigenvalue = nalgebra::linalg::SymmetricEigen::new(symmetric)
+            .eigenvalues
+            .iter()
+            .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+        if min_eigenvalue < -1e-12 * scale {
+            return Err(RotationalInertiaError::NotPositiveSemidefinite);
+        }
+
         Ok(Self {
             second_moment: symmetric,
         })
@@ -170,6 +180,17 @@ mod tests {
 
         assert!((momentum.get(0, 2) - 6.0).abs() < 1e-12);
         assert!((momentum.get(1, 2) - 0.25).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rejects_indefinite_second_moment() {
+        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([
+            1.0, 1.0, -0.01,
+        ]));
+        assert_eq!(
+            BivectorInertia::<3>::from_second_moment(second_moment).unwrap_err(),
+            RotationalInertiaError::NotPositiveSemidefinite
+        );
     }
 
     #[test]
