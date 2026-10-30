@@ -180,7 +180,7 @@ pub fn query_periodic_convex<const D: usize>(
                 image_offset: offset,
                 gjk_iterations: collision.iterations,
             });
-        } else if collision.iterations >= gjk::MAX_ITERATIONS {
+        } else if collision.termination() == gjk::GjkTermination::IterationLimit {
             result.unresolved_offsets.push(offset);
         }
     }
