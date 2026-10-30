@@ -181,6 +181,7 @@ pub trait CandidatePolicy {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PolicyKind {
     Random,
+    Sobol,
     Halton,
     LatinHypercube,
     GaussianProcessUcb,
@@ -189,6 +190,7 @@ pub enum PolicyKind {
 impl PolicyKind {
     pub const ALL: [Self; 4] = [
         Self::Random,
+        Self::Sobol,
         Self::Halton,
         Self::LatinHypercube,
         Self::GaussianProcessUcb,
@@ -197,6 +199,7 @@ impl PolicyKind {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Random => "random",
+            Self::Sobol => "sobol",
             Self::Halton => "halton",
             Self::LatinHypercube => "latin_hypercube",
             Self::GaussianProcessUcb => "gp_ucb",
@@ -210,10 +213,8 @@ pub fn initial_design(seed: u64, count: usize) -> Vec<[f64; 2]> {
         .map(|index| {
             let shift_x = unit_from_seed(seed ^ 0x243f_6a88_85a3_08d3);
             let shift_y = unit_from_seed(seed ^ 0x1319_8a2e_0370_7344);
-            [
-                (radical_inverse((index + 1) as u64, 2) + shift_x).fract(),
-                (radical_inverse((index + 1) as u64, 3) + shift_y).fract(),
-            ]
+            let _ = (shift_x, shift_y);
+            sobol_point((index + 1) as u64, seed)
         })
         .collect()
 }
@@ -242,6 +243,23 @@ impl CandidatePolicy for RandomPolicy {
         _seed: u64,
     ) -> [f64; 2] {
         [self.rng.next_f64(), self.rng.next_f64()]
+    }
+}
+
+pub struct SobolPolicy;
+
+impl CandidatePolicy for SobolPolicy {
+    fn name(&self) -> &'static str {
+        "sobol"
+    }
+
+    fn propose(
+        &mut self,
+        _observations: &[Observation],
+        proposal_index: usize,
+        seed: u64,
+    ) -> [f64; 2] {
+        sobol_point((proposal_index + INITIAL_DESIGN_SIZE + 1) as u64, seed)
     }
 }
 
@@ -368,6 +386,7 @@ impl CandidatePolicy for GaussianProcessUcbPolicy {
 pub fn make_policy(kind: PolicyKind, seed: u64, budget: usize) -> Box<dyn CandidatePolicy> {
     match kind {
         PolicyKind::Random => Box::new(RandomPolicy::new(seed ^ 0x9e37_79b9_7f4a_7c15)),
+        PolicyKind::Sobol => Box::new(SobolPolicy),
         PolicyKind::Halton => Box::new(HaltonPolicy),
         PolicyKind::LatinHypercube => {
             Box::new(LatinHypercubePolicy::new(seed, budget.saturating_sub(INITIAL_DESIGN_SIZE)))
@@ -703,6 +722,40 @@ fn squared_distance(left: [f64; 2], right: [f64; 2]) -> f64 {
     (left[0] - right[0]).powi(2) + (left[1] - right[1]).powi(2)
 }
 
+/// Two-dimensional Sobol sequence with a seeded digital XOR shift.
+/// Direction numbers use the standard first coordinate and the degree-one
+/// primitive-polynomial recurrence for the second coordinate.
+fn sobol_point(index: u64, seed: u64) -> [f64; 2] {
+    let mut second_directions = [0_u64; 64];
+    second_directions[0] = 1_u64 << 63;
+    for bit in 1..64 {
+        second_directions[bit] =
+            second_directions[bit - 1] ^ (second_directions[bit - 1] >> 1);
+    }
+
+    let mut gray = index ^ (index >> 1);
+    let mut first = 0_u64;
+    let mut second = 0_u64;
+    let mut bit = 0_usize;
+    while gray != 0 && bit < 64 {
+        if gray & 1 == 1 {
+            first ^= 1_u64 << (63 - bit);
+            second ^= second_directions[bit];
+        }
+        gray >>= 1;
+        bit += 1;
+    }
+
+    let mut scramble = SplitMix64::new(seed ^ 0xbe54_66cf_34e9_0c6c);
+    first ^= scramble.next_u64();
+    second ^= scramble.next_u64();
+    let scale = 1.0 / ((1_u64 << 53) as f64);
+    [
+        (first >> 11) as f64 * scale,
+        (second >> 11) as f64 * scale,
+    ]
+}
+
 fn radical_inverse(mut index: u64, base: u64) -> f64 {
     let inverse_base = 1.0 / base as f64;
     let mut factor = inverse_base;
@@ -784,6 +837,22 @@ mod tests {
             assert!((objective - problem.optimum_value()).abs() < 1.0e-10);
             assert!(violation <= 0.0);
         }
+    }
+
+    #[test]
+    fn sobol_policy_generates_distinct_in_domain_points() {
+        let mut policy = super::SobolPolicy;
+        let points: Vec<_> = (0..32)
+            .map(|index| policy.propose(&[], index, 77))
+            .collect();
+        assert!(points.iter().all(|point| {
+            (0.0..1.0).contains(&point[0]) && (0.0..1.0).contains(&point[1])
+        }));
+        let distinct: std::collections::BTreeSet<_> = points
+            .iter()
+            .map(|point| (point[0].to_bits(), point[1].to_bits()))
+            .collect();
+        assert_eq!(distinct.len(), points.len());
     }
 
     #[test]
