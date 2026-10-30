@@ -506,6 +506,12 @@ pub fn run_trial_with_policy(
     );
     assert!(!policy.name().trim().is_empty(), "policy name must be non-empty");
     let policy_name = policy.name().to_string();
+    assert!(
+        policy_name
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || character == '_' || character == '-'),
+        "policy name must be a stable CSV-safe identifier"
+    );
 
     let started = Instant::now();
     let design = initial_design(seed, initial_design_size);
@@ -625,6 +631,7 @@ pub struct SummaryStats {
     pub p90_regret: f64,
     pub mean_cumulative_simple_regret: f64,
     pub mean_infeasible_calls: f64,
+    pub mean_invalid_proposals: f64,
     pub mean_elapsed_nanos: f64,
 }
 
@@ -773,6 +780,11 @@ pub fn summarize(results: &[TrialResult]) -> Vec<SummaryStats> {
                 .map(|result| result.infeasible_calls as f64)
                 .sum::<f64>()
                 / count as f64;
+            let mean_invalid_proposals = group
+                .iter()
+                .map(|result| result.invalid_proposals as f64)
+                .sum::<f64>()
+                / count as f64;
             let mean_elapsed_nanos = group
                 .iter()
                 .map(|result| result.elapsed_nanos as f64)
@@ -792,6 +804,7 @@ pub fn summarize(results: &[TrialResult]) -> Vec<SummaryStats> {
                 p90_regret: group[p90_index].final_regret,
                 mean_cumulative_simple_regret,
                 mean_infeasible_calls,
+                mean_invalid_proposals,
                 mean_elapsed_nanos,
             });
         }
