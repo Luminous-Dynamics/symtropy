@@ -7,8 +7,9 @@
 //! produce overlap only if s lies in the component-wise interval
 //! [A.min - B.max, A.max - B.min]. Applying the inverse lattice basis to this
 //! interval gives conservative integer-coordinate ranges for n. The ranges
-//! are enumerated under an explicit budget and then filtered by exact
-//! translated-AABB overlap.
+//! are enumerated under an explicit budget. The result is a superset: a later
+//! narrow phase may reject extra images, but floating-point filtering here
+//! cannot accidentally remove a true image.
 //!
 //! This module is a broadphase candidate generator only. A caller must still
 //! run the intended narrow phase for every returned image. Budget exhaustion
@@ -73,11 +74,15 @@ fn validate_aabb<const D: usize>(bounds: &Aabb<D>) -> Result<(), LatticeBroadpha
     Ok(())
 }
 
-/// Enumerate every integer lattice offset whose translated B AABB overlaps A.
+/// Enumerate a conservative superset of integer lattice offsets whose
+/// translated B AABB may overlap A.
 ///
 /// The returned offset n translates B by basis*n relative to A. The output is
-/// lexicographically deterministic, includes boundary-touching cases, and is
-/// exact-filtered after conservative inverse-basis interval enumeration.
+/// lexicographically deterministic and includes every boundary-touching
+/// overlap. Some returned offsets may not overlap; callers run narrow phase
+/// and should report this over-generation as broadphase overhead. We
+/// intentionally do not exact-filter here, because a strict floating-point
+/// AABB filter could discard a true near-boundary image.
 ///
 /// Non-periodic basis axes are fixed to zero. The search budget applies to the
 /// conservative integer product before exact AABB filtering; therefore a
@@ -95,31 +100,25 @@ pub fn image_offsets_for_aabb_pair_lattice<const D: usize>(
         return Err(LatticeBroadphaseError::CandidateBudgetExceeded { limit: 0 });
     }
 
+    let mut world_lower = SVector::<f64, D>::zeros();
+    let mut world_upper = SVector::<f64, D>::zeros();
+    for world_axis in 0..D {
+        world_lower[world_axis] = a.min[world_axis] - b.max[world_axis];
+        world_upper[world_axis] = a.max[world_axis] - b.min[world_axis];
+        if !world_lower[world_axis].is_finite()
+            || !world_upper[world_axis].is_finite()
+        {
+            return Err(LatticeBroadphaseError::NumericRange { axis: world_axis });
+        }
+    }
+
     let mut fractional_ranges = [(0_i64, 0_i64); D];
     let mut total = 1_u128;
 
     for lattice_axis in 0..D {
-        if !domain.periodic_axes()[lattice_axis] {
-            continue;
-        }
-
-        // Necessary world-space translation interval for AABB overlap.
-        let mut world_lower = SVector::<f64, D>::zeros();
-        let mut world_upper = SVector::<f64, D>::zeros();
-        for world_axis in 0..D {
-            world_lower[world_axis] = a.min[world_axis] - b.max[world_axis];
-            world_upper[world_axis] = a.max[world_axis] - b.min[world_axis];
-            if !world_lower[world_axis].is_finite()
-                || !world_upper[world_axis].is_finite()
-            {
-                return Err(LatticeBroadphaseError::NumericRange { axis: world_axis });
-            }
-        }
-
         // Fractional coordinate n_i = row_i(B^-1) dot translation.
         // Interval arithmetic bounds n_i for every translation in the world
-        // AABB-difference box. This can over-generate but cannot omit a
-        // translation contained in that box (modulo the explicit float margin).
+        // AABB-difference box.
         let inverse_row = domain.inverse_basis().row(lattice_axis);
         let mut fractional_lower = 0.0;
         let mut fractional_upper = 0.0;
@@ -160,6 +159,15 @@ pub fn image_offsets_for_aabb_pair_lattice<const D: usize>(
             });
         }
 
+        if !domain.periodic_axes()[lattice_axis] {
+            // This basis coordinate cannot translate. If zero lies outside the
+            // necessary interval, no periodic image can overlap.
+            if lower_real > 0.0 || upper_real < 0.0 {
+                return Ok(Vec::new());
+            }
+            continue;
+        }
+
         let lower = lower_real.ceil() as i64;
         let upper = upper_real.floor() as i64;
         if lower > upper {
@@ -194,26 +202,20 @@ pub fn image_offsets_for_aabb_pair_lattice<const D: usize>(
         offsets = next;
     }
 
-    let mut overlapping = Vec::new();
-    for offset in offsets {
-        let shift = domain.offset_vector(offset)?;
-        let translated_min = b.min + shift;
-        let translated_max = b.max + shift;
+    // Conservative candidate superset. Do not apply a strict floating-point
+    // overlap filter here; the downstream narrow phase can reject extras.
+    for offset in &offsets {
+        let shift = domain.offset_vector(*offset)?;
         for axis in 0..D {
-            if !translated_min[axis].is_finite() || !translated_max[axis].is_finite() {
+            if !(b.min[axis] + shift[axis]).is_finite()
+                || !(b.max[axis] + shift[axis]).is_finite()
+            {
                 return Err(LatticeBroadphaseError::NumericRange { axis });
             }
         }
-        let translated = Aabb {
-            min: translated_min,
-            max: translated_max,
-        };
-        if a.overlaps(&translated) {
-            overlapping.push(offset);
-        }
     }
 
-    Ok(overlapping)
+    Ok(offsets)
 }
 
 #[cfg(test)]
@@ -314,7 +316,11 @@ mod tests {
             .into_iter()
             .collect();
             let oracle = brute_force(&domain, &a, &b, 8);
-            assert_eq!(actual, oracle);
+            assert!(
+                oracle.is_subset(&actual),
+                "production candidate set missed an oracle image: missing={:?}",
+                oracle.difference(&actual).collect::<Vec<_>>()
+            );
         }
     }
 
