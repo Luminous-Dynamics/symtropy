@@ -58,6 +58,7 @@ impl ProblemId {
         }
     }
 
+    #[cfg(test)]
     fn optimum_point(self) -> [f64; 2] {
         match self {
             Self::SmoothBowl => [0.25, 0.25],
@@ -139,6 +140,7 @@ impl SyntheticProblem {
             constraint_violation: violation.max(0.0),
             feasible: violation <= 0.0,
             sigma,
+            status: ObservationStatus::Completed,
         }
     }
 }
@@ -148,8 +150,14 @@ fn gaussian_peak(x: [f64; 2], center: [f64; 2], width: f64) -> f64 {
     (-distance_squared / (2.0 * width * width)).exp()
 }
 
-/// One high-fidelity observation. The objective is noisy; the regret oracle
-/// is private to the benchmark runner and is never passed to a policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ObservationStatus {
+    Completed,
+    InvalidProposal,
+}
+
+/// One evaluation attempt. Invalid proposals are recorded and charged to the
+/// proposal budget, but are not passed to the objective or GP training set.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Observation {
     pub point: [f64; 2],
@@ -157,12 +165,35 @@ pub struct Observation {
     pub constraint_violation: f64,
     pub feasible: bool,
     pub sigma: f64,
+    pub status: ObservationStatus,
 }
 
 impl Observation {
     pub fn penalized_reward(self) -> f64 {
         self.objective - 4.0 * self.constraint_violation
     }
+}
+
+fn evaluate_candidate(
+    problem: SyntheticProblem,
+    point: [f64; 2],
+    trial_seed: u64,
+) -> Observation {
+    if !point.iter().all(|coordinate| coordinate.is_finite())
+        || point.iter().any(|coordinate| !(0.0..=1.0).contains(coordinate))
+    {
+        return Observation {
+            point,
+            objective: 0.0,
+            constraint_violation: 1.0e6,
+            feasible: false,
+            sigma: 0.0,
+            status: ObservationStatus::InvalidProposal,
+        };
+    }
+    let mut observation = problem.observe(point, trial_seed);
+    observation.status = ObservationStatus::Completed;
+    observation
 }
 
 /// A candidate policy only proposes locations. It never receives the known
