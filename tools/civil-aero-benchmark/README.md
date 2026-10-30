@@ -71,11 +71,12 @@ Compare candidates on the same stated mission, payload, density profile, route d
 
 ## Next work
 
-- Pin and checksum the NASA TMR NACA 0012 reference files and write an independent data-admission manifest.
-- Add grid/refinement, convergence and benchmark-report ingestion without implementing a bespoke CFD solver.
-- Establish a separate low-Reynolds-number dataset relevant to small electric research airframes; do not pool different Reynolds regimes.
-- Add uncertainty propagation and a fail-closed comparator while preserving unweighted source metrics.
-- Define a manufacturable, non-flight-critical airfoil coupon and a documented measurement procedure before any full demonstrator.
+- Complete independent parser/admission review for the three byte-pinned NASA TMR text files; then pin the corrected geometry points and grid archive with separate profile/grid lineage.
+- Add SU2 grid-refinement, convergence and benchmark-report ingestion without implementing a bespoke CFD solver.
+- Select a precise, licensed low-Reynolds-number dataset relevant to small electric research aircraft; do not pool different Reynolds regimes.
+- Implement calibrated uncertainty propagation and an operational fail-closed domain gate; preserve unweighted source metrics.
+- Manufacture and measure the non-flight coupon only after the facility owner approves the actual test article, then populate the build traveler and measurement record.
+- Begin the DPW-8/AePW-4 tiers (ONERA OAT15A, CRM scatter and static deformation) after artifact/terms review.
 
 ## References
 
@@ -105,7 +106,7 @@ Objectives are estimated route energy (lower), total mass (lower), and estimated
 
 ## Robustness and industry-comparison protocol
 
-Read ROBUST_PARETO_BENCHMARK_PROTOCOL_V0_1.md for the baseline ladder and research plan. It compares the first-order screen (B0), public reference case (B1), pinned SU2 fixed-geometry solution (B2), SU2 adjoint optimization (B3), a conventional fixed-budget multi-objective baseline (B4), and the proposed Symthaea/Symtropy/SU2 pipeline (B5).
+Read ROBUST_PARETO_BENCHMARK_PROTOCOL_V0_1.md for the baseline ladder and research plan. It compares the first-order screen (B0), NASA TMR reference (B1), pinned SU2 fixed-geometry solution (B2), SU2 adjoint optimization (B3), ShapeBench task suite (B4), matched-budget experiment selector (B5), high-fidelity/physical replay (B6), and the AIAA DPW-8/AePW-4 3D drag/aeroelastic tier (B7).
 
 The intended differentiator is decision credibility per engineering cost—not a claimed aerodynamic result: useful experiments selected with a fixed expensive-evaluation budget, held-out-condition generalization, honest uncertainty and model discrepancy, independent feasibility checks, and improvement confirmed on manufactured non-flight coupons. No SOTA superiority claim is supported until the same tasks, compute budget, data splits, physical conditions and objective constraints are measured head-to-head.
 
