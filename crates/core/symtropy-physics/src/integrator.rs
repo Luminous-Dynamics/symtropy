@@ -216,31 +216,47 @@ pub fn apply_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &SVector<
 /// Uses the authoritative world-frame inertia operator when available. Legacy
 /// bodies retain the scalar-mean approximation. Failed/singular operator
 /// solves are fail-closed: the rotational contribution is zeroed and counted.
+/// Compatibility helper: an invalid rotational solve returns zero.
+///
+/// New solver code should call `try_rotational_inverse_effective_mass` so a
+/// singular or invalid inertia cannot be confused with a valid zero response.
 pub fn rotational_inverse_effective_mass<const D: usize>(
     body: &RigidBody<D>,
     offset: &SVector<f64, D>,
     impulse_direction: &SVector<f64, D>,
 ) -> f64 {
+    try_rotational_inverse_effective_mass(body, offset, impulse_direction).unwrap_or(0.0)
+}
+
+/// Fallible rotational contribution to inverse effective mass.
+///
+/// Unlike the compatibility helper, this distinguishes a valid zero response
+/// (for example, a static body) from a singular inertia operation.
+pub fn try_rotational_inverse_effective_mass<const D: usize>(
+    body: &RigidBody<D>,
+    offset: &SVector<f64, D>,
+    impulse_direction: &SVector<f64, D>,
+) -> Result<f64, crate::inertia::RotationalInertiaError> {
     if !body.is_dynamic() {
-        return 0.0;
+        return Ok(0.0);
+    }
+    let direction_norm = impulse_direction.norm();
+    if !direction_norm.is_finite() || direction_norm <= 1e-15 {
+        return Err(crate::inertia::RotationalInertiaError::InvalidDirection);
     }
     if let Some(inertia) = &body.rotational_inertia {
         let world_inertia = inertia.rotated_by(&body.transform.rotation);
         match world_inertia.rotational_inverse_effective_mass(offset, impulse_direction, 1e-12) {
-            Ok(value) => value,
-            Err(_) => {
+            Ok(value) => Ok(value),
+            Err(error) => {
                 ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
-                0.0
+                Err(error)
             }
         }
     } else {
-        let direction_norm = impulse_direction.norm();
-        if !direction_norm.is_finite() || direction_norm <= 1e-15 {
-            return 0.0;
-        }
         let direction = impulse_direction / direction_norm;
         let inv_i_avg = body.inv_inertia.sum() / D as f64;
-        inv_i_avg * (offset.norm_squared() - offset.dot(&direction).powi(2)).max(0.0)
+        Ok(inv_i_avg * (offset.norm_squared() - offset.dot(&direction).powi(2)).max(0.0))
     }
 }
 
@@ -248,22 +264,38 @@ pub fn rotational_inverse_effective_mass<const D: usize>(
 ///
 /// The stored angular state advances through Rotor::from_bivector's exp(-B)
 /// map, so a positive physical angular impulse subtracts from the stored B.
+/// This compatibility wrapper intentionally preserves the legacy void API;
+/// callers requiring an error contract should use `try_apply_angular_impulse`.
 pub fn apply_angular_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &Bivector<D>) {
-    if body.is_dynamic() {
-        if let Some(inertia) = &body.rotational_inertia {
-            let world_inertia = inertia.rotated_by(&body.transform.rotation);
-            match world_inertia.angular_velocity_from_momentum(impulse, 1e-12) {
-                Ok(delta_state) => {
-                    body.angular_velocity = body.angular_velocity.add(&delta_state.scale(-1.0));
-                }
-                Err(_) => {
-                    ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
-                }
+    let _ = try_apply_angular_impulse(body, impulse);
+}
+
+/// Fallible angular-impulse application. On a singular/invalid authoritative
+/// inertia solve, the body's angular velocity is left unchanged and the error
+/// is returned to the caller.
+pub fn try_apply_angular_impulse<const D: usize>(
+    body: &mut RigidBody<D>,
+    impulse: &Bivector<D>,
+) -> Result<(), crate::inertia::RotationalInertiaError> {
+    if !body.is_dynamic() {
+        return Ok(());
+    }
+    if let Some(inertia) = &body.rotational_inertia {
+        let world_inertia = inertia.rotated_by(&body.transform.rotation);
+        match world_inertia.angular_velocity_from_momentum(impulse, 1e-12) {
+            Ok(delta_state) => {
+                body.angular_velocity = body.angular_velocity.add(&delta_state.scale(-1.0));
+                Ok(())
             }
-        } else {
-            let inv_i_avg = body.inv_inertia.sum() / D as f64;
-            body.angular_velocity = body.angular_velocity.add(&impulse.scale(-inv_i_avg));
+            Err(error) => {
+                ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
+                Err(error)
+            }
         }
+    } else {
+        let inv_i_avg = body.inv_inertia.sum() / D as f64;
+        body.angular_velocity = body.angular_velocity.add(&impulse.scale(-inv_i_avg));
+        Ok(())
     }
 }
 
