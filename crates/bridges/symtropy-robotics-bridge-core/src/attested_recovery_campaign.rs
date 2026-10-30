@@ -616,7 +616,7 @@ mod tests {
                 },
             },
         ];
-        let context = expected_receipt_context(policy, scenario, &trial);
+        let context = expected_receipt_context(policy, scenario, &trial).unwrap();
         let receipt =
             create_command_evidence_receipt(context, &expected_commands, &events).unwrap();
         let signed_receipt = sign_command_evidence_receipt(
@@ -746,6 +746,46 @@ mod tests {
             score_attested_recovery_campaign(&expected, &trials, &policy, &trust),
             Err(AttestedRecoveryCampaignError::AttestationVerificationFailed { .. })
         ));
+    }
+
+    #[test]
+    fn changed_expected_scenario_manifest_fails_before_scoring() {
+        let (mut expected, trials, policy, trust) = complete_campaign();
+        expected[0].scenario_digest = "scenario-digest-tampered".into();
+        assert!(matches!(
+            score_attested_recovery_campaign(&expected, &trials, &policy, &trust),
+            Err(AttestedRecoveryCampaignError::ScenarioManifestDigestMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn every_arm_must_have_a_preregistered_source_revision() {
+        let (expected, trials, mut policy, trust) = complete_campaign();
+        policy
+            .arm_source_revision_by_arm
+            .remove(&RecoveryBenchmarkArm::GuardedAdapter);
+        assert_eq!(
+            score_attested_recovery_campaign(&expected, &trials, &policy, &trust),
+            Err(AttestedRecoveryCampaignError::MissingArmSourceRevision {
+                arm: RecoveryBenchmarkArm::GuardedAdapter,
+            })
+        );
+    }
+
+    #[test]
+    fn arm_source_revision_must_match_preregistered_policy() {
+        let (expected, mut trials, mut policy, trust) = complete_campaign();
+        let arm = RecoveryBenchmarkArm::GuardedOutcomeFeedback;
+        policy
+            .arm_source_revision_by_arm
+            .insert(arm, "revision-unexpected".into());
+        assert!(matches!(
+            score_attested_recovery_campaign(&expected, &trials, &policy, &trust),
+            Err(AttestedRecoveryCampaignError::ArmSourceRevisionMismatch { arm: found, .. })
+                if found == arm
+        ));
+
+        trials.retain(|trial| trial.trial.arm != arm);
     }
 
     #[test]
