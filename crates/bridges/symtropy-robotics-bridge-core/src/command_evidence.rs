@@ -451,8 +451,11 @@ mod tests {
     #[test]
     fn complete_successful_trace_reports_separate_lifecycle_counts() {
         let identity = identity();
-        let report =
-            audit_command_evidence(std::slice::from_ref(&identity), &successful_trace(&identity)).unwrap();
+        let report = audit_command_evidence(
+            std::slice::from_ref(&identity),
+            &successful_trace(&identity),
+        )
+        .unwrap();
 
         assert_eq!(report.command_count, 1);
         assert_eq!(report.runtime_admissions, 1);
