@@ -282,12 +282,13 @@ impl<const D: usize> PhysicsWorld<D> {
     }
 
     /// Whether every convex GJK query in the most recent step reached a
-    /// definitive intersection or separation result.
+    /// definitive intersection or separation result. This does not certify
+    /// EPA, mesh contact generation, or other narrow-phase subsystems.
     ///
     /// A false value means at least one body pair exhausted the GJK iteration
     /// limit. The world has not synthesized a contact for that pair; callers
     /// should reject or roll back the incomplete step according to their policy.
-    pub fn narrowphase_complete(&self) -> bool {
+    pub fn gjk_classification_complete(&self) -> bool {
         self.unresolved_gjk_pairs.is_empty()
     }
 
