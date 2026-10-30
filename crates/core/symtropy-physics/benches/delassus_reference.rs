@@ -6,7 +6,7 @@ use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_ma
 use nalgebra::{DVector, SVector};
 use symtropy_math::{Bivector, Point, Rotor};
 use symtropy_physics::{
-    BivectorInertia, FrictionlessContactRow, RigidBody, assemble_delassus,
+    BodyHandle, BivectorInertia, FrictionlessContactRow, RigidBody, assemble_delassus,
     solve_frictionless_lcp,
 };
 
