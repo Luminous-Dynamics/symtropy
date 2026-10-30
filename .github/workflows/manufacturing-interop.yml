@@ -15,6 +15,7 @@ on:
       - "tools/manufacturing-interop/interop.rs"
       - "tools/manufacturing-interop/README.md"
       - "tools/manufacturing-interop/expected.csv"
+      - "tools/manufacturing-interop/joined-expected.csv"
       - ".github/workflows/manufacturing-interop.yml"
   workflow_dispatch:
 
