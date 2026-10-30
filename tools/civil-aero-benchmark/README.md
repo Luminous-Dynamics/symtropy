@@ -48,6 +48,10 @@ A test-only, stdlib-only independent Python oracle (`scripts/verify-section-pola
 
 The strategic next gate is to require a calibrated model's uncertainty and demonstrated domain to travel with every candidate. An optimizer that leaves the verified domain must request a higher-fidelity evaluation or return an abstention—not quietly extrapolate a nominal score.
 
+## DPW-8/AePW-4 source discovery
+
+`data/dpw8_source_discovery.v0.1.json` records the official NASA DPW8 landing pages and the selected ONERA OAT15A experimental archive, CRM scatter README, and CRM static-deformation FEM README discovered for AERO-DPW8-001. The manifest is deliberately source-discovery-only: no DPW8 bytes are retained, all hashes/byte lengths are null, and licensing, condition, geometry/grid lineage and parser reviews remain pending. Do not use it as a qualified data corpus. See [AERO-DPW8-001 issue #2918](https://github.com/Luminous-Dynamics/symtropy/issues/2918).
+
 ## Input and provenance
 
 The first CSV line must match the documented header exactly. This deliberately small parser rejects quoted fields and comma-containing values. parameter_basis is synthetic, estimate, or measured. Non-synthetic rows must provide a 64-character hexadecimal source_sha256 and non-empty source_ref.
