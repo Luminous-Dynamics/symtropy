@@ -1,0 +1,50 @@
+name: Independent 1D flag-update enthalpy benchmark
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/flag_update_1d.rs"
+      - "tools/casting-phase-reference/flag-update-1d-README.md"
+      - "tools/casting-phase-reference/flag-update-1d-expected.csv"
+      - "tools/casting-phase-reference/flag-update-grid-audit-expected.csv"
+      - ".github/workflows/casting-phase-flag-update-1d.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/flag_update_1d.rs"
+      - "tools/casting-phase-reference/flag-update-1d-README.md"
+      - ".github/workflows/casting-phase-flag-update-1d.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flag-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/casting-phase-reference/flag_update_1d.rs -o "$RUNNER_TEMP/flag-update-tests"
+          "$RUNNER_TEMP/flag-update-tests"
+      - name: Build and verify published 1D campaign
+        run: |
+          rustc --edition=2024 -D warnings tools/casting-phase-reference/flag_update_1d.rs -o "$RUNNER_TEMP/flag-update"
+          "$RUNNER_TEMP/flag-update" --verify
+          "$RUNNER_TEMP/flag-update" --grid-audit > "$RUNNER_TEMP/grid-audit.csv"
+          diff -u tools/casting-phase-reference/flag-update-grid-audit-expected.csv "$RUNNER_TEMP/grid-audit.csv"
+      - name: Check deterministic output
+        run: |
+          "$RUNNER_TEMP/flag-update" --csv > "$RUNNER_TEMP/flag-update-a.csv"
+          "$RUNNER_TEMP/flag-update" --csv > "$RUNNER_TEMP/flag-update-b.csv"
+          diff -u "$RUNNER_TEMP/flag-update-a.csv" "$RUNNER_TEMP/flag-update-b.csv"
+          diff -u tools/casting-phase-reference/flag-update-1d-expected.csv "$RUNNER_TEMP/flag-update-a.csv"
+          cat "$RUNNER_TEMP/flag-update-a.csv"
+          cat "$RUNNER_TEMP/grid-audit.csv"
+      - name: Emit source and output digests
+        run: |
+          sha256sum tools/casting-phase-reference/flag_update_1d.rs tools/casting-phase-reference/flag-update-1d-expected.csv tools/casting-phase-reference/flag-update-grid-audit-expected.csv "$RUNNER_TEMP/flag-update-a.csv" "$RUNNER_TEMP/grid-audit.csv"
