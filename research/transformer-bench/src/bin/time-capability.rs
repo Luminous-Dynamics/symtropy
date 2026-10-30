@@ -59,7 +59,7 @@ struct Calibration {
     valid_from: String,
     valid_to: String,
     status: String,
-    certificate_id: String,
+    _certificate_id: String,
 }
 #[derive(Clone, Debug)]
 struct WindowStats {
@@ -79,7 +79,7 @@ struct Report {
     unit: String,
     windows: usize,
     valid_samples: usize,
-    invalid_calibrations: usize,
+    invalid_metrology_records: usize,
     guarded_exceptions: usize,
     insufficient_windows: usize,
     pooled_cpk: Option<f64>,
@@ -87,7 +87,7 @@ struct Report {
     window_mean_range_fraction: Option<f64>,
     max_window_sigma: Option<f64>,
     min_window_sigma: Option<f64>,
-    variance_ratio: Option<f64>,
+    sigma_ratio: Option<f64>,
     drift_warning: bool,
     variance_shift_warning: bool,
     diagnostic: String,
@@ -334,7 +334,7 @@ fn read_calibrations(path: &str) -> Result<BTreeMap<String, Calibration>, String
             valid_from: from,
             valid_to: to,
             status: f[5].clone(),
-            certificate_id: required(&f[6], "certificate_artifact_id")?,
+            _certificate_id: required(&f[6], "certificate_artifact_id")?,
         };
         if output.insert(id.clone(), value).is_some() {
             return Err(format!("{path}: duplicate calibration_id {id:?}"));
@@ -402,7 +402,7 @@ fn evaluate(
             .expect("spec resolved above");
         let mut windows: BTreeMap<String, Vec<&Sample>> = BTreeMap::new();
         let mut seen_calibrated = 0usize;
-        let mut invalid_calibrations = 0usize;
+        let mut invalid_metrology_records = 0usize;
         let mut guarded_exceptions = 0usize;
         let mut valid_samples = Vec::new();
 
@@ -410,7 +410,7 @@ fn evaluate(
             let valid_cal = calibrations.get(&sample.calibration_id)
                 .is_some_and(|cal| calibration_valid(cal, sample, spec));
             if !valid_cal || sample.uncertainty > spec.max_uncertainty {
-                invalid_calibrations += 1;
+                invalid_metrology_records += 1;
                 continue;
             }
             seen_calibrated += 1;
@@ -463,14 +463,14 @@ fn evaluate(
         let standard_deviations: Vec<f64> = window_stats.iter().map(|w| w.standard_deviation).collect();
         let max_window_sigma = standard_deviations.iter().copied().reduce(f64::max);
         let min_window_sigma = standard_deviations.iter().copied().reduce(f64::min);
-        let variance_ratio = match (max_window_sigma, min_window_sigma) {
+        let sigma_ratio = match (max_window_sigma, min_window_sigma) {
             (Some(max), Some(min)) if min > 0.0 => Some(max / min),
             _ => None,
         };
         let drift_warning = window_mean_range_fraction.is_some_and(|v| v > spec.max_mean_range_fraction);
-        let variance_shift_warning = variance_ratio.is_some_and(|v| v > spec.max_window_sigma_ratio);
+        let variance_shift_warning = sigma_ratio.is_some_and(|v| v > spec.max_window_sigma_ratio);
 
-        let diagnostic = if invalid_calibrations > 0 {
+        let diagnostic = if invalid_metrology_records > 0 {
             "BLOCKED_INVALID_METROLOGY"
         } else if insufficient_windows > 0 || window_stats.is_empty() {
             "INSUFFICIENT_WINDOW_DATA"
@@ -483,9 +483,9 @@ fn evaluate(
         };
         reports.push(Report {
             family, product, component, lot, station, characteristic, unit: spec.unit.clone(),
-            windows: total_windows, valid_samples: seen_calibrated, invalid_calibrations,
+            windows: total_windows, valid_samples: seen_calibrated, invalid_metrology_records,
             guarded_exceptions, insufficient_windows, pooled_cpk, worst_window_cpk,
-            window_mean_range_fraction, max_window_sigma, min_window_sigma, variance_ratio,
+            window_mean_range_fraction, max_window_sigma, min_window_sigma, sigma_ratio,
             drift_warning, variance_shift_warning, diagnostic: diagnostic.to_string(),
         });
     }
@@ -498,16 +498,16 @@ fn format_optional(value: Option<f64>) -> String {
 
 fn write_report(path: &str, reports: &[Report]) -> Result<(), String> {
     let mut out = String::from(
-        "product_family,product_id,component_id,component_lot_id,station_id,characteristic,unit,windows,valid_samples,invalid_calibrations,guarded_exceptions,insufficient_windows,pooled_guarded_cpk,worst_window_guarded_cpk,window_mean_range_fraction,max_window_sigma,min_window_sigma,variance_ratio,drift_warning,variance_shift_warning,diagnostic\n"
+        "product_family,product_id,component_id,component_lot_id,station_id,characteristic,unit,windows,valid_samples,invalid_metrology_records,guarded_exceptions,insufficient_windows,pooled_guarded_cpk,worst_window_guarded_cpk,window_mean_range_fraction,max_window_sigma,min_window_sigma,max_min_window_sigma_ratio,drift_warning,variance_shift_warning,diagnostic\n"
     );
     for r in reports {
         out.push_str(&format!(
             "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
             r.family, r.product, r.component, r.lot, r.station, r.characteristic, r.unit,
-            r.windows, r.valid_samples, r.invalid_calibrations, r.guarded_exceptions,
+            r.windows, r.valid_samples, r.invalid_metrology_records, r.guarded_exceptions,
             r.insufficient_windows, format_optional(r.pooled_cpk), format_optional(r.worst_window_cpk),
             format_optional(r.window_mean_range_fraction), format_optional(r.max_window_sigma),
-            format_optional(r.min_window_sigma), format_optional(r.variance_ratio),
+            format_optional(r.min_window_sigma), format_optional(r.sigma_ratio),
             r.drift_warning, r.variance_shift_warning, r.diagnostic
         ));
     }
