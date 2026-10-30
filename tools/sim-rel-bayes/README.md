@@ -38,7 +38,7 @@ A separate post-fit falsification step challenges a provisional singleton: the M
 
 ## Compared policies
 
-All four policies share the same generated grammar, task targets, initial observations and intervention budgets:
+All five policies share the same generated grammar, task targets, initial observations and intervention budgets:
 
 1. maximum-disagreement / maximum-minority partition (SIM-REL-002 selector);
 2. uniform-prior expected information gain per cost (isolates cost-awareness);
