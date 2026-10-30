@@ -959,7 +959,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             }
             "--help" | "-h" => {
                 println!(
-                    "sim-rel-grammar --problems PATH --truth PATH --expected-head SHA --out PATH [--max-depth 0..2]"
+                    "sim-rel-bayes --problems PATH --truth PATH --expected-head SHA --out PATH [--max-depth 0..2]"
                 );
                 return Ok(());
             }
