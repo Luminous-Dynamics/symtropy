@@ -442,6 +442,18 @@ mod tests {
     }
 
     #[test]
+    fn same_trace_contract_supports_switchgear_and_magnetic_component_families() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures/manufacturing-ledger-multi-family-synthetic.csv");
+        let products = read_ledger(path.to_str().unwrap()).unwrap();
+        let summaries = validate_and_summarize(&products).unwrap();
+        assert_eq!(summaries.len(), 2);
+        assert!(summaries.iter().any(|row| row.product_family == "SWITCHGEAR"));
+        assert!(summaries.iter().any(|row| row.product_family == "MAGNETIC_COMPONENT"));
+        assert!(summaries.iter().all(|row| row.component_count == 3));
+    }
+
+    #[test]
     fn valid_sha256_is_strict() {
         assert!(valid_sha256(&"a".repeat(64)));
         assert!(!valid_sha256("sha256"));
