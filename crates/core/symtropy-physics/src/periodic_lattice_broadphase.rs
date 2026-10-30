@@ -179,8 +179,8 @@ pub fn lattice_image_offsets_for_aabb_pair<const D: usize>(
         }
     }
 
-    let mut output = Vec::with_capacity(total_candidates);
-    let mut images = vec![LatticeOffset::zero()];
+    let mut images = Vec::with_capacity(total_candidates);
+    images.push(LatticeOffset::zero());
     for axis in 0..D {
         let (lower, upper) = ranges[axis];
         let width = usize::try_from(upper - lower)
@@ -212,8 +212,7 @@ pub fn lattice_image_offsets_for_aabb_pair<const D: usize>(
         }
         images = next;
     }
-    output.extend(images);
-    Ok(output)
+    Ok(images)
 }
 
 fn validate_aabb<const D: usize>(
