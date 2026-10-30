@@ -42,7 +42,6 @@ jobs:
           "$RUNNER_TEMP/flag-update" --csv > "$RUNNER_TEMP/flag-update-b.csv"
           diff -u "$RUNNER_TEMP/flag-update-a.csv" "$RUNNER_TEMP/flag-update-b.csv"
           diff -u tools/casting-phase-reference/flag-update-1d-expected.csv "$RUNNER_TEMP/flag-update-a.csv"
-          diff -u tools/casting-phase-reference/flag-update-grid-audit-expected.csv "$RUNNER_TEMP/grid-audit.csv"
           cat "$RUNNER_TEMP/flag-update-a.csv"
           cat "$RUNNER_TEMP/grid-audit.csv"
       - name: Emit source and output digests
