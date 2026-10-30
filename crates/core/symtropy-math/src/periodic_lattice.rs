@@ -1170,9 +1170,9 @@ mod tests {
                 fractional[2].round() as i64,
             ];
             let mut best = f64::INFINITY;
-            for i in center[0] - 6..=center[0] + 6 {
-                for j in center[1] - 6..=center[1] + 6 {
-                    for k in center[2] - 6..=center[2] + 6 {
+            for i in center[0] - 10..=center[0] + 10 {
+                for j in center[1] - 10..=center[1] + 10 {
+                    for k in center[2] - 10..=center[2] + 10 {
                         let shifted = delta
                             - lattice.basis()
                                 * SVector::from([i as f64, j as f64, k as f64]);
@@ -1185,7 +1185,7 @@ mod tests {
                 "case={case} delta={delta:?} result={result:?} oracle={best}"
             );
             let (_, high_precision_oracle) =
-                dd_closest_image(&basis, &delta, center, [true, true, true], 6);
+                dd_closest_image(&basis, &delta, center, [true, true, true], 10);
             let selected_high_precision =
                 dd_squared_distance(&basis, &delta, result.image_offset.periods);
             let selected_order = selected_high_precision.cmp(high_precision_oracle);
