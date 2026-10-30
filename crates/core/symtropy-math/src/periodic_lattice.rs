@@ -84,6 +84,31 @@ impl fmt::Display for PeriodicLatticeError {
 
 impl Error for PeriodicLatticeError {}
 
+/// Whether both directions of a displacement remain distinguishable from a
+/// coordinate at the current floating-point magnitude, with at most 12.5%
+/// relative representation error.
+fn component_is_resolvable(coordinate: f64, displacement: f64) -> bool {
+    if !coordinate.is_finite() || !displacement.is_finite() {
+        return false;
+    }
+    if displacement == 0.0 {
+        return true;
+    }
+    let positive = coordinate + displacement;
+    let negative = coordinate - displacement;
+    if !positive.is_finite()
+        || !negative.is_finite()
+        || positive == coordinate
+        || negative == coordinate
+    {
+        return false;
+    }
+    let maximum_error = 0.125 * displacement.abs();
+    let positive_error = ((positive - coordinate) - displacement).abs();
+    let negative_error = ((negative - coordinate) + displacement).abs();
+    positive_error <= maximum_error && negative_error <= maximum_error
+}
+
 /// A certified nearest-image displacement in the original Cartesian chart.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MinimumImage<const D: usize> {
@@ -144,18 +169,7 @@ impl<const D: usize> PeriodicLattice<D> {
                     continue;
                 }
                 let coordinate = origin[cartesian_axis];
-                let positive = coordinate + component;
-                let negative = coordinate - component;
-                let positive_error = ((positive - coordinate) - component).abs();
-                let negative_error = ((negative - coordinate) + component).abs();
-                let maximum_error = 0.125 * component.abs();
-                if !positive.is_finite()
-                    || !negative.is_finite()
-                    || positive == coordinate
-                    || negative == coordinate
-                    || positive_error > maximum_error
-                    || negative_error > maximum_error
-                {
+                if !component_is_resolvable(coordinate, component) {
                     return Err(PeriodicLatticeError::UnrepresentableLatticeVector {
                         lattice_axis,
                         cartesian_axis,
@@ -293,6 +307,19 @@ impl<const D: usize> PeriodicLattice<D> {
         if !point.iter().all(|value| value.is_finite()) {
             return Err(PeriodicLatticeError::NonFiniteCoordinate);
         }
+        for lattice_axis in 0..D {
+            if !self.periodic_axes[lattice_axis] {
+                continue;
+            }
+            for cartesian_axis in 0..D {
+                let component = self.basis[(cartesian_axis, lattice_axis)];
+                if !component_is_resolvable(point[cartesian_axis], component) {
+                    return Err(PeriodicLatticeError::CoordinatePrecisionLimit {
+                        axis: lattice_axis,
+                    });
+                }
+            }
+        }
         if !self.periodic_axes.iter().any(|active| *active) {
             return Ok(WrappedPoint {
                 position: *point,
@@ -385,6 +412,19 @@ impl<const D: usize> PeriodicLattice<D> {
         }
         if !displacement.iter().all(|value| value.is_finite()) {
             return Err(PeriodicLatticeError::NonFiniteCoordinate);
+        }
+        for lattice_axis in 0..D {
+            if !self.periodic_axes[lattice_axis] {
+                continue;
+            }
+            for cartesian_axis in 0..D {
+                let component = self.basis[(cartesian_axis, lattice_axis)];
+                if !component_is_resolvable(displacement[cartesian_axis], component) {
+                    return Err(PeriodicLatticeError::CoordinatePrecisionLimit {
+                        axis: lattice_axis,
+                    });
+                }
+            }
         }
         if !self.periodic_axes.iter().any(|active| *active) {
             return Ok(MinimumImage {
@@ -1196,6 +1236,28 @@ mod tests {
             lattice.wrap_point(&SVector::from([f64::NAN, 0.0])),
             Err(PeriodicLatticeError::NonFiniteCoordinate)
         );
+    }
+
+    #[test]
+    fn rejects_point_and_displacement_beyond_local_cell_resolution() {
+        let lattice = PeriodicLattice::new(
+            SVector::zeros(),
+            SMatrix::<f64, 2, 2>::from_diagonal(&SVector::from([1.0, 4.0])),
+            [true, true],
+        )
+        .unwrap();
+
+        assert!(matches!(
+            lattice.wrap_point(&SVector::from([1.0e16, 0.0])),
+            Err(PeriodicLatticeError::CoordinatePrecisionLimit { axis: 0 })
+        ));
+        assert!(matches!(
+            lattice.minimum_image_displacement(&SVector::from([1.0e16, 0.0]), 81),
+            Err(PeriodicLatticeError::CoordinatePrecisionLimit { axis: 0 })
+        ));
+        assert!(lattice
+            .minimum_image_displacement(&SVector::from([1.0e9, 0.0]), 81)
+            .is_ok());
     }
 
     #[test]
