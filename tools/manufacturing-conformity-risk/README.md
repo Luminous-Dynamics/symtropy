@@ -1,6 +1,6 @@
 # Distribution-aware manufacturing conformity reference
 
-This standalone Rust reference calculates a conservative conformity-probability enclosure from an explicitly supplied post-measurement posterior represented as a piecewise-uniform histogram.
+This standalone Rust reference calculates a conservative conformity-probability enclosure from an explicitly supplied post-measurement posterior represented as a piecewise-uniform histogram. Every posterior is separately bound to a qualified statistical posterior-calibration receipt; instrument calibration and posterior calibration are not interchangeable.
 
 It does not infer a PDF from expanded uncertainty and it does not authorize product release.
 
