@@ -10,7 +10,7 @@ The per-body fallible APIs are insufficient if the world continues to call compa
 
 ## Implemented path
 
-- `PhysicsWorld::try_step(dt)` executes the no-op-callback step and returns `Result<(), PhysicsStepError>`.
+- `PhysicsWorld::try_step(dt)` executes the no-op-callback step and returns `Result<(), PhysicsStepError>`. The error receipt includes a typed phase (`BodyIntegration`, `ContactWarmStart`, or `ContactSolve`), involved body handles, and the underlying `RotationalInertiaError`.
 - `PhysicsWorld::try_step_with_callback(dt, callback)` exposes the same typed error path when callback integration is required.
 - Free-body integration uses `integrator::try_integrate`.
 - Warm-start angular impulses use `try_apply_angular_impulse`.
@@ -45,7 +45,7 @@ Before promotion:
 1. Run formatting, Clippy, compile and physics tests at the exact head.
 2. Add contact-failure rollback fixtures (not only integration-stage failure).
 3. Add callback buffering or prepare/commit/abort semantics.
-4. Include deterministic receipts for rejected steps, including failing body/contact identifiers.
+4. Add stable step sequence numbers and deterministic receipts for rejected steps; phase and body/contact identifiers are now included, while a world/run receipt envelope remains future work.
 5. Prove the rollback contract remains valid as new fallible solver phases are introduced.
 
 No CI or numerical test pass is claimed by the source changes alone.
