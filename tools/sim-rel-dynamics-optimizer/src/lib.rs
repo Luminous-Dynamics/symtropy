@@ -1068,7 +1068,7 @@ mod tests {
             .iter()
             .map(|weight| u128::from(*weight))
             .sum();
-        let mut unique = BTreeMap::new();
+        let mut unique: BTreeMap<(Rational, Rational, Rational), Candidate> = BTreeMap::new();
 
         for plan in plans {
             let mut weighted_cost = 0_u128;
@@ -1226,6 +1226,13 @@ mod tests {
                 .unwrap(),
                 zero()
             );
+            let terminal_mass = candidate
+                .campaign_hazard_probability
+                .checked_add(candidate.abstention_probability)
+                .unwrap()
+                .checked_add(candidate.identification_probability)
+                .unwrap();
+            assert_eq!(terminal_mass, one());
         }
     }
 
@@ -1390,6 +1397,19 @@ mod tests {
             _ => panic!("expected pulse at policy root"),
         }
         assert_evaluator_agreement(&world, &result);
+        let brute = brute_force_frontier(&world, 2);
+        let optimizer_candidates: Vec<Candidate> = result
+            .frontier
+            .iter()
+            .map(|candidate| Candidate {
+                expected_experiment_cost: candidate.expected_experiment_cost,
+                campaign_hazard_probability: candidate.campaign_hazard_probability,
+                abstention_probability: candidate.abstention_probability,
+                identification_probability: candidate.identification_probability,
+                plan: PolicyPlan::Abstain,
+            })
+            .collect();
+        assert_eq!(metric_keys(&optimizer_candidates), metric_keys(&brute));
     }
 
     #[test]
