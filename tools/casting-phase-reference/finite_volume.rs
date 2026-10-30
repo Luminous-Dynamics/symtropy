@@ -106,7 +106,6 @@ impl Case {
         }
 
         Ok(ValidatedCase {
-            case: self,
             diffusivity_m2_s,
             stefan_number,
             dx_m,
@@ -118,7 +117,6 @@ impl Case {
 
 #[derive(Debug, Clone, Copy)]
 struct ValidatedCase {
-    case: Case,
     diffusivity_m2_s: f64,
     stefan_number: f64,
     dx_m: f64,
@@ -133,6 +131,7 @@ struct Summary {
     dt_s: f64,
     steps: usize,
     stefan_number: f64,
+    effective_fourier_number: f64,
     front_m: f64,
     reference_front_m: f64,
     front_abs_error_m: f64,
@@ -249,6 +248,8 @@ fn solve(case: Case) -> Result<Summary, String> {
         dt_s: validated.dt_s,
         steps: validated.steps,
         stefan_number: validated.stefan_number,
+        effective_fourier_number: validated.dt_s * validated.diffusivity_m2_s
+            / (validated.dx_m * validated.dx_m),
         front_m: solid_equivalent_length_m,
         reference_front_m: case.reference_front_m,
         front_abs_error_m,
@@ -301,15 +302,16 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() -> Result<(), String> {
-    println!("cells,stefan_number,dx_m,dt_s,steps,front_m,reference_front_m,front_abs_error_m,front_relative_error,wall_heat_removed_j_m2,enthalpy_removed_j_m2,energy_residual_j_m2,energy_residual_relative,far_boundary_solid_fraction,status");
+    println!("cells,stefan_number,dx_m,dt_s,steps,effective_fourier_number,front_m,reference_front_m,front_abs_error_m,front_relative_error,wall_heat_removed_j_m2,enthalpy_removed_j_m2,energy_residual_j_m2,energy_residual_relative,far_boundary_solid_fraction,status");
     for summary in refinement_summaries()? {
         println!(
-            "{},{:.8e},{:.8e},{:.8e},{},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},PASS",
+            "{},{:.8e},{:.8e},{:.8e},{},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},PASS",
             summary.cells,
             summary.stefan_number,
             summary.dx_m,
             summary.dt_s,
             summary.steps,
+            summary.effective_fourier_number,
             summary.front_m,
             summary.reference_front_m,
             summary.front_abs_error_m,
@@ -370,9 +372,10 @@ mod tests {
     #[test]
     fn actual_timestep_obeys_explicit_stability_bound() {
         for cells in [32, 64, 128, 256] {
-            let validated = Case::reference(cells).validate().unwrap();
+            let case = Case::reference(cells);
+            let validated = case.validate().unwrap();
             let maximum_dt =
-                validated.case.cfl * validated.dx_m * validated.dx_m / validated.diffusivity_m2_s;
+                case.cfl * validated.dx_m * validated.dx_m / validated.diffusivity_m2_s;
             assert!(validated.dt_s <= maximum_dt * (1.0 + 32.0 * f64::EPSILON));
             assert!(validated.steps > 0);
             assert!(validated.stefan_number > 0.0 && validated.stefan_number <= 1.0);
