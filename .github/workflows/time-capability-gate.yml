@@ -56,4 +56,4 @@ jobs:
             research/transformer-bench/fixtures/time-capability-spec-synthetic.csv \
             research/transformer-bench/fixtures/time-capability-calibration-expired-negative.csv \
             "$RUNNER_TEMP/expired.csv"
-          grep -F "12,0,0,0,INSUFFICIENT_WINDOW_DATA" "$RUNNER_TEMP/expired.csv"
+          grep -F "BLOCKED_INVALID_METROLOGY" "$RUNNER_TEMP/expired.csv"
