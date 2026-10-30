@@ -19,6 +19,11 @@ pub enum ContactFrameError {
     InvalidTolerance,
     NonFinite,
     CoordinateCountMismatch,
+    InvalidFrictionCoefficient,
+    InvalidContactRadius,
+    NegativeNormalImpulse,
+    TangentialImpulseNotOrthogonal,
+    FrictionLimitExceeded,
 }
 
 /// Coordinates of a bivector in the rolling/torsional contact basis.
@@ -28,6 +33,155 @@ pub struct ContactAngularCoordinates {
     pub torsional: Vec<f64>,
     /// Norm of the component not reconstructed by the contact basis.
     pub reconstruction_error: f64,
+}
+
+/// Isotropic N-dimensional contact-wrench friction limits.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ContactWrenchFrictionLimits {
+    /// Coulomb coefficient for tangential linear impulse.
+    pub tangential_coefficient: f64,
+    /// Rolling-friction coefficient; bound has units of impulse times length.
+    pub rolling_coefficient: f64,
+    /// Torsional-friction coefficient; bound has units of impulse times length.
+    pub torsional_coefficient: f64,
+    /// Declared characteristic rolling length in the same units as geometry.
+    pub rolling_radius: f64,
+    /// Declared characteristic torsional length in the same units as geometry.
+    pub torsional_radius: f64,
+}
+
+impl ContactWrenchFrictionLimits {
+    /// Create limits with explicit, positive characteristic lengths.
+    pub fn new(
+        tangential_coefficient: f64,
+        rolling_coefficient: f64,
+        torsional_coefficient: f64,
+        rolling_radius: f64,
+        torsional_radius: f64,
+    ) -> Result<Self, ContactFrameError> {
+        if !tangential_coefficient.is_finite()
+            || !rolling_coefficient.is_finite()
+            || !torsional_coefficient.is_finite()
+            || tangential_coefficient < 0.0
+            || rolling_coefficient < 0.0
+            || torsional_coefficient < 0.0
+        {
+            return Err(ContactFrameError::InvalidFrictionCoefficient);
+        }
+        if !rolling_radius.is_finite()
+            || !torsional_radius.is_finite()
+            || rolling_radius <= 0.0
+            || torsional_radius <= 0.0
+        {
+            return Err(ContactFrameError::InvalidContactRadius);
+        }
+        Ok(Self {
+            tangential_coefficient,
+            rolling_coefficient,
+            torsional_coefficient,
+            rolling_radius,
+            torsional_radius,
+        })
+    }
+
+    /// Maximum admissible tangential linear impulse magnitude.
+    pub fn tangential_bound(&self, normal_impulse: f64) -> f64 {
+        self.tangential_coefficient * normal_impulse
+    }
+
+    /// Maximum admissible rolling angular impulse magnitude.
+    pub fn rolling_bound(&self, normal_impulse: f64) -> f64 {
+        self.rolling_coefficient * self.rolling_radius * normal_impulse
+    }
+
+    /// Maximum admissible torsional angular impulse magnitude.
+    pub fn torsional_bound(&self, normal_impulse: f64) -> f64 {
+        self.torsional_coefficient * self.torsional_radius * normal_impulse
+    }
+}
+
+/// Contact impulse coordinates in the local normal/tangent/rolling/torsion frame.
+///
+/// Normal and tangential entries have units of linear impulse. Rolling and
+/// torsional entries have units of angular impulse (linear impulse times length).
+#[derive(Clone, Debug)]
+pub struct ContactWrenchImpulse<const D: usize> {
+    pub normal: f64,
+    pub tangential: SVector<f64, D>,
+    pub rolling: Vec<f64>,
+    pub torsional: Vec<f64>,
+}
+
+impl<const D: usize> ContactWrenchImpulse<D> {
+    /// Validate this wrench against the frame and isotropic friction limits.
+    ///
+    /// This validates feasibility only; it does not choose the maximum-
+    /// dissipation impulse or account for the coupled contact effective metric.
+    pub fn validate(
+        &self,
+        frame: &ContactFrame<D>,
+        limits: &ContactWrenchFrictionLimits,
+        relative_tolerance: f64,
+    ) -> Result<(), ContactFrameError> {
+        if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 {
+            return Err(ContactFrameError::InvalidTolerance);
+        }
+        if !self.normal.is_finite()
+            || !self.tangential.iter().all(|value| value.is_finite())
+            || !self.rolling.iter().all(|value| value.is_finite())
+            || !self.torsional.iter().all(|value| value.is_finite())
+        {
+            return Err(ContactFrameError::NonFinite);
+        }
+        if self.normal < -relative_tolerance {
+            return Err(ContactFrameError::NegativeNormalImpulse);
+        }
+        if self.rolling.len() != frame.rolling_basis.len()
+            || self.torsional.len() != frame.torsional_basis.len()
+        {
+            return Err(ContactFrameError::CoordinateCountMismatch);
+        }
+
+        let tangential_scale = self.tangential.norm().max(self.normal.abs()).max(1.0);
+        if frame.normal.dot(&self.tangential).abs() > relative_tolerance * tangential_scale {
+            return Err(ContactFrameError::TangentialImpulseNotOrthogonal);
+        }
+
+        let tangential_norm = self.tangential.norm();
+        let tangential_bound = limits.tangential_bound(self.normal.max(0.0));
+        if tangential_norm > tangential_bound + relative_tolerance * tangential_scale {
+            return Err(ContactFrameError::FrictionLimitExceeded);
+        }
+
+        let rolling_norm = self.rolling.iter().map(|value| value * value).sum::<f64>().sqrt();
+        let rolling_bound = limits.rolling_bound(self.normal.max(0.0));
+        let rolling_scale = rolling_norm.max(rolling_bound).max(1.0);
+        if rolling_norm > rolling_bound + relative_tolerance * rolling_scale {
+            return Err(ContactFrameError::FrictionLimitExceeded);
+        }
+
+        let torsional_norm = self
+            .torsional
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
+        let torsional_bound = limits.torsional_bound(self.normal.max(0.0));
+        let torsional_scale = torsional_norm.max(torsional_bound).max(1.0);
+        if torsional_norm > torsional_bound + relative_tolerance * torsional_scale {
+            return Err(ContactFrameError::FrictionLimitExceeded);
+        }
+
+        Ok(())
+    }
+
+    /// Reconstruct the complete angular impulse bivector.
+    pub fn angular_impulse(
+        &self,
+        frame: &ContactFrame<D>,
+    ) -> Result<Bivector<D>, ContactFrameError> {
+        frame.reconstruct_angular_components(&self.rolling, &self.torsional)
+    }
 }
 
 /// Orthonormal contact frame for a unit normal in R^D.
@@ -414,6 +568,84 @@ mod tests {
         assert!(rotated_coordinates.reconstruction_error < 1e-10);
         assert!(bivector_norm(&rotated_angular.add(&reconstructed.scale(-1.0))) < 1e-10);
         assert!((rotated_frame.normal.norm() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn contact_wrench_bounds_validate_tangential_rolling_and_torsional_impulses() {
+        let frame = ContactFrame::<4>::new(SVector::new(0.2, -0.3, 0.4, 0.1), 1e-12).unwrap();
+        let limits = ContactWrenchFrictionLimits::new(0.5, 0.02, 0.03, 0.4, 0.2).unwrap();
+        let wrench = ContactWrenchImpulse::<4> {
+            normal: 10.0,
+            tangential: frame.tangent_basis()[0] * 5.0,
+            rolling: vec![0.08, 0.04, 0.0],
+            torsional: vec![0.04, 0.02, 0.0],
+        };
+        assert!(wrench.validate(&frame, &limits, 1e-12).is_ok());
+        let angular = wrench.angular_impulse(&frame).unwrap();
+        let expected_norm =
+            (0.08_f64.powi(2) + 0.04_f64.powi(2) + 0.04_f64.powi(2) + 0.02_f64.powi(2))
+                .sqrt();
+        assert!((angular.norm() - expected_norm).abs() < 1e-12);
+    }
+
+    #[test]
+    fn contact_wrench_rejects_tangent_projection_and_each_friction_limit() {
+        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let limits = ContactWrenchFrictionLimits::new(0.5, 0.1, 0.1, 0.5, 0.25).unwrap();
+        let base = ContactWrenchImpulse::<3> {
+            normal: 2.0,
+            tangential: SVector::new(0.0, 0.5, 0.0),
+            rolling: vec![0.1, 0.0],
+            torsional: vec![0.05],
+        };
+        assert!(base.validate(&frame, &limits, 1e-12).is_ok());
+
+        let mut non_tangent = base.clone();
+        non_tangent.tangential[0] = 1e-3;
+        assert_eq!(
+            non_tangent.validate(&frame, &limits, 1e-12),
+            Err(ContactFrameError::TangentialImpulseNotOrthogonal)
+        );
+
+        let mut too_much_tangent = base.clone();
+        too_much_tangent.tangential[1] = 1.1;
+        assert_eq!(
+            too_much_tangent.validate(&frame, &limits, 1e-12),
+            Err(ContactFrameError::FrictionLimitExceeded)
+        );
+
+        let mut too_much_rolling = base.clone();
+        too_much_rolling.rolling[0] = 0.101;
+        assert_eq!(
+            too_much_rolling.validate(&frame, &limits, 1e-12),
+            Err(ContactFrameError::FrictionLimitExceeded)
+        );
+
+        let mut too_much_torsion = base.clone();
+        too_much_torsion.torsional[0] = 0.051;
+        assert_eq!(
+            too_much_torsion.validate(&frame, &limits, 1e-12),
+            Err(ContactFrameError::FrictionLimitExceeded)
+        );
+
+        let mut pulling_contact = base;
+        pulling_contact.normal = -0.1;
+        assert_eq!(
+            pulling_contact.validate(&frame, &limits, 1e-12),
+            Err(ContactFrameError::NegativeNormalImpulse)
+        );
+    }
+
+    #[test]
+    fn contact_wrench_friction_model_requires_explicit_physical_length_scales() {
+        assert_eq!(
+            ContactWrenchFrictionLimits::new(0.5, 0.1, 0.1, 0.0, 0.25).unwrap_err(),
+            ContactFrameError::InvalidContactRadius
+        );
+        assert_eq!(
+            ContactWrenchFrictionLimits::new(0.5, -0.1, 0.1, 0.5, 0.25).unwrap_err(),
+            ContactFrameError::InvalidFrictionCoefficient
+        );
     }
 
     #[test]
