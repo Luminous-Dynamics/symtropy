@@ -241,7 +241,11 @@ impl<const D: usize> RigidBody<D> {
             || tool_mass < 0.0
             || !total_mass.is_finite()
             || total_mass <= 0.0
-            || !local_transform.translation.0.iter().all(|value| value.is_finite())
+            || !local_transform
+                .translation
+                .0
+                .iter()
+                .all(|value| value.is_finite())
         {
             return;
         }
@@ -251,20 +255,21 @@ impl<const D: usize> RigidBody<D> {
         let world_com_offset = self.transform.rotation.rotate_vector(&com_offset);
 
         // Combine authoritative mass properties around the new center of mass.
-        let combined_rotational_inertia = self.rotational_inertia.as_ref().and_then(|body_inertia| {
-            let tool_inertia = BivectorInertia::<D>::uniform_solid_ball(tool_mass, 0.1).ok()?;
-            let body_offset = -com_offset;
-            let tool_offset = tool_local_translation - com_offset;
-            BivectorInertia::combine_at_common_center(
-                self.mass,
-                body_inertia,
-                &body_offset,
-                tool_mass,
-                &tool_inertia,
-                &tool_offset,
-            )
-            .ok()
-        });
+        let combined_rotational_inertia =
+            self.rotational_inertia.as_ref().and_then(|body_inertia| {
+                let tool_inertia = BivectorInertia::<D>::uniform_solid_ball(tool_mass, 0.1).ok()?;
+                let body_offset = -com_offset;
+                let tool_offset = tool_local_translation - com_offset;
+                BivectorInertia::combine_at_common_center(
+                    self.mass,
+                    body_inertia,
+                    &body_offset,
+                    tool_mass,
+                    &tool_inertia,
+                    &tool_offset,
+                )
+                .ok()
+            });
 
         // Rebase every collider child to the new local COM. The parent origin
         // will move by R*com_offset in world coordinates, so subtracting the
@@ -333,16 +338,9 @@ mod tests {
 
     #[test]
     fn merge_toolhead_preserves_world_geometry_under_parent_rotation() {
-        let mut body = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(0),
-            Point::new([3.0, -2.0, 1.0]),
-            1.0,
-            2.0,
-        );
-        body.transform.rotation = Rotor::from_plane_angle(
-            &Bivector::<3>::unit_plane(0, 1),
-            0.73,
-        );
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([3.0, -2.0, 1.0]), 1.0, 2.0);
+        body.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.73);
 
         let local_negative_x = SVector::new(-1.0, 0.0, 0.0);
         let world_direction = body.transform.rotation.rotate_vector(&local_negative_x);
