@@ -906,6 +906,281 @@ mod tests {
             .expect("expected frontier point")
     }
 
+    #[derive(Clone, Copy, Debug, Default)]
+    struct BruteTerminal {
+        cost: u128,
+        hazard: bool,
+        identified: bool,
+        abstained: bool,
+        false_claim: bool,
+    }
+
+    /// Exhaustively materialize every tiny policy tree without memoization.
+    /// This is intentionally separate from the production Bellman recursion.
+    fn enumerate_all_policy_trees(
+        world: &World,
+        entries: Vec<BeliefEntry>,
+        remaining_steps: usize,
+    ) -> Vec<PolicyPlan> {
+        if entries
+            .iter()
+            .all(|entry| entry.hypothesis_index == entries[0].hypothesis_index)
+        {
+            return vec![PolicyPlan::Claim {
+                hypothesis_id: entries[0].hypothesis_id.clone(),
+                hypothesis_index: entries[0].hypothesis_index,
+            }];
+        }
+        let mut plans = vec![PolicyPlan::Abstain];
+        if remaining_steps == 0 {
+            return plans;
+        }
+
+        for action_index in 0..world.action_ids.len() {
+            let mut zero_entries = Vec::new();
+            let mut one_entries = Vec::new();
+            for entry in &entries {
+                match &world.machines[entry.hypothesis_index].transitions[action_index]
+                    [entry.physical_state]
+                {
+                    Transition::Hazard => {}
+                    Transition::Safe {
+                        observation,
+                        next_state,
+                    } => {
+                        let next = BeliefEntry {
+                            hypothesis_id: entry.hypothesis_id.clone(),
+                            hypothesis_index: entry.hypothesis_index,
+                            physical_state: *next_state,
+                            prior_mass: entry.prior_mass,
+                        };
+                        if *observation {
+                            one_entries.push(next);
+                        } else {
+                            zero_entries.push(next);
+                        }
+                    }
+                }
+            }
+
+            let zero_plans = if zero_entries.is_empty() {
+                vec![PolicyPlan::Abstain]
+            } else {
+                enumerate_all_policy_trees(world, zero_entries, remaining_steps - 1)
+            };
+            let one_plans = if one_entries.is_empty() {
+                vec![PolicyPlan::Abstain]
+            } else {
+                enumerate_all_policy_trees(world, one_entries, remaining_steps - 1)
+            };
+
+            for zero_plan in &zero_plans {
+                for one_plan in &one_plans {
+                    plans.push(PolicyPlan::Experiment {
+                        action_id: world.action_ids[action_index].clone(),
+                        action_index,
+                        on_zero: Box::new(zero_plan.clone()),
+                        on_one: Box::new(one_plan.clone()),
+                    });
+                }
+            }
+        }
+        plans
+    }
+
+    /// Replay one fully materialized policy independently for one evaluator hypothesis.
+    fn brute_replay_one(
+        plan: &PolicyPlan,
+        world: &World,
+        hypothesis_index: usize,
+        physical_state: usize,
+    ) -> Result<BruteTerminal, String> {
+        match plan {
+            PolicyPlan::Claim {
+                hypothesis_index: claimed,
+                ..
+            } => Ok(BruteTerminal {
+                identified: *claimed == hypothesis_index,
+                false_claim: *claimed != hypothesis_index,
+                ..BruteTerminal::default()
+            }),
+            PolicyPlan::Abstain => Ok(BruteTerminal {
+                abstained: true,
+                ..BruteTerminal::default()
+            }),
+            PolicyPlan::Experiment {
+                action_index,
+                on_zero,
+                on_one,
+                ..
+            } => {
+                let action_cost = u128::from(world.action_costs[*action_index]);
+                match &world.machines[hypothesis_index].transitions[*action_index]
+                    [physical_state]
+                {
+                    Transition::Hazard => Ok(BruteTerminal {
+                        cost: action_cost,
+                        hazard: true,
+                        ..BruteTerminal::default()
+                    }),
+                    Transition::Safe {
+                        observation,
+                        next_state,
+                    } => {
+                        let child = if *observation { on_one } else { on_zero };
+                        let mut terminal = brute_replay_one(
+                            child,
+                            world,
+                            hypothesis_index,
+                            *next_state,
+                        )?;
+                        terminal.cost = terminal
+                            .cost
+                            .checked_add(action_cost)
+                            .ok_or_else(|| "brute replay cost overflowed u128".to_string())?;
+                        Ok(terminal)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Build the oracle frontier from full tree enumeration and per-hypothesis replay.
+    fn brute_force_frontier(world: &World, horizon: usize) -> Vec<Candidate> {
+        let mut entries = Vec::new();
+        for (hypothesis_index, prior_mass) in
+            world.prior_weights.iter().copied().enumerate()
+        {
+            if prior_mass > 0 {
+                entries.push(BeliefEntry {
+                    hypothesis_id: world.hypothesis_ids[hypothesis_index].clone(),
+                    hypothesis_index,
+                    physical_state: world.machines[hypothesis_index].initial_state,
+                    prior_mass,
+                });
+            }
+        }
+        entries.sort();
+
+        let plans = enumerate_all_policy_trees(world, entries, horizon);
+        let total_mass: u128 = world
+            .prior_weights
+            .iter()
+            .map(|weight| u128::from(*weight))
+            .sum();
+        let mut unique = BTreeMap::new();
+
+        for plan in plans {
+            let mut weighted_cost = 0_u128;
+            let mut hazard_mass = 0_u128;
+            let mut identification_mass = 0_u128;
+            let mut abstention_mass = 0_u128;
+            let mut false_claim_mass = 0_u128;
+
+            for (hypothesis_index, prior_mass) in
+                world.prior_weights.iter().copied().enumerate()
+            {
+                if prior_mass == 0 {
+                    continue;
+                }
+                let terminal = brute_replay_one(
+                    &plan,
+                    world,
+                    hypothesis_index,
+                    world.machines[hypothesis_index].initial_state,
+                )
+                .unwrap();
+                let weight = u128::from(prior_mass);
+                weighted_cost = weighted_cost
+                    .checked_add(weight.checked_mul(terminal.cost).unwrap())
+                    .unwrap();
+                if terminal.hazard {
+                    hazard_mass += weight;
+                }
+                if terminal.identified {
+                    identification_mass += weight;
+                }
+                if terminal.abstained {
+                    abstention_mass += weight;
+                }
+                if terminal.false_claim {
+                    false_claim_mass += weight;
+                }
+            }
+            assert_eq!(false_claim_mass, 0, "enumerator produced a false exact claim");
+
+            let candidate = Candidate {
+                expected_experiment_cost: Rational::new(weighted_cost, total_mass).unwrap(),
+                campaign_hazard_probability: Rational::new(hazard_mass, total_mass).unwrap(),
+                abstention_probability: Rational::new(abstention_mass, total_mass).unwrap(),
+                identification_probability: Rational::new(
+                    identification_mass,
+                    total_mass,
+                )
+                .unwrap(),
+                plan,
+            };
+            let key = (
+                candidate.expected_experiment_cost,
+                candidate.campaign_hazard_probability,
+                candidate.abstention_probability,
+            );
+            match unique.get(&key) {
+                Some(existing) if existing.plan <= candidate.plan => {}
+                _ => {
+                    unique.insert(key, candidate);
+                }
+            }
+        }
+
+        let all: Vec<Candidate> = unique.into_values().collect();
+        let mut frontier: Vec<Candidate> = Vec::new();
+        for (index, candidate) in all.iter().enumerate() {
+            let dominated = all.iter().enumerate().any(|(other_index, other)| {
+                other_index != index
+                    && other.expected_experiment_cost <= candidate.expected_experiment_cost
+                    && other.campaign_hazard_probability
+                        <= candidate.campaign_hazard_probability
+                    && other.abstention_probability <= candidate.abstention_probability
+                    && (other.expected_experiment_cost < candidate.expected_experiment_cost
+                        || other.campaign_hazard_probability
+                            < candidate.campaign_hazard_probability
+                        || other.abstention_probability < candidate.abstention_probability)
+            });
+            if !dominated {
+                frontier.push(candidate.clone());
+            }
+        }
+        frontier.sort_by(|left, right| {
+            left.expected_experiment_cost
+                .cmp(&right.expected_experiment_cost)
+                .then_with(|| {
+                    left.campaign_hazard_probability
+                        .cmp(&right.campaign_hazard_probability)
+                })
+                .then_with(|| {
+                    left.abstention_probability
+                        .cmp(&right.abstention_probability)
+                })
+                .then_with(|| left.plan.cmp(&right.plan))
+        });
+        frontier
+    }
+
+    fn metric_keys(frontier: &[Candidate]) -> Vec<(Rational, Rational, Rational, Rational)> {
+        frontier
+            .iter()
+            .map(|point| {
+                (
+                    point.expected_experiment_cost,
+                    point.campaign_hazard_probability,
+                    point.abstention_probability,
+                    point.identification_probability,
+                )
+            })
+            .collect()
+    }
+
     fn assert_evaluator_agreement(world: &World, result: &OptimizationResult) {
         for candidate in &result.frontier {
             let report = evaluate_shared_policy(&candidate.policy, std::slice::from_ref(world), 0)
@@ -951,6 +1226,34 @@ mod tests {
                 .unwrap(),
                 zero()
             );
+        }
+    }
+
+    #[test]
+    fn memoized_optimizer_matches_independent_exhaustive_policy_tree_frontiers() {
+        for (world, horizon) in [(order_effect_world(), 2), (risk_frontier_world(), 1)] {
+            let result = optimize_stateful_world(
+                &world,
+                &SolverConfig {
+                    horizon,
+                    ..SolverConfig::default()
+                },
+            )
+            .unwrap();
+            let brute = brute_force_frontier(&world, horizon);
+            let optimizer_candidates: Vec<Candidate> = result
+                .frontier
+                .iter()
+                .map(|point| Candidate {
+                    expected_experiment_cost: point.expected_experiment_cost,
+                    campaign_hazard_probability: point.campaign_hazard_probability,
+                    abstention_probability: point.abstention_probability,
+                    identification_probability: point.identification_probability,
+                    plan: PolicyPlan::Abstain,
+                })
+                .collect();
+            assert_eq!(metric_keys(&optimizer_candidates), metric_keys(&brute));
+            assert_evaluator_agreement(&world, &result);
         }
     }
 
