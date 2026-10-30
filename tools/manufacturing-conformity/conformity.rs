@@ -593,6 +593,8 @@ mod tests {
         r.measurement.time_ns = r.measurement.calibration_until_ns + 1;
         assert_eq!(classify(&r).reason, "CALIBRATION_NOT_VALID_AT_MEASUREMENT_TIME");
         let mut r = request(15.0, 1.0);
+        // Keep calibration valid so this assertion isolates specification effectivity.
+        r.measurement.calibration_valid_until_ns = r.specification.effective_until_ns + 10;
         r.measurement.time_ns = r.specification.effective_until_ns + 1;
         assert_eq!(classify(&r).reason, "SPECIFICATION_NOT_EFFECTIVE_AT_MEASUREMENT_TIME");
     }
