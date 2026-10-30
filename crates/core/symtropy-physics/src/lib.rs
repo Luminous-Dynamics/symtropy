@@ -29,6 +29,7 @@ pub mod manifold_gen;
 pub mod periodic_broadphase;
 pub mod periodic_collision;
 pub mod periodic_contact;
+pub mod periodic_contact_cache;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
@@ -53,5 +54,9 @@ pub use periodic_broadphase::{
     PeriodicBroadphaseError, image_offsets_for_aabb_pair, swept_aabb_linear, translate_aabb,
 };
 pub use periodic_contact::{PeriodicContactKey, PeriodicContactKeyError};
+pub use periodic_contact_cache::{
+    PeriodicContactCache, PeriodicContactCacheError, PeriodicContactGeometry,
+    periodic_contact_geometry,
+};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
