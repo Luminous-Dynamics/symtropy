@@ -691,6 +691,91 @@ mod tests {
     }
 
     #[test]
+    fn unimodular_basis_change_preserves_physical_wrapping_and_minimum_image() {
+        let basis = SMatrix::<f64, 2, 2>::new(10.0, 3.0, 0.0, 8.0);
+        let shear = SMatrix::<f64, 2, 2>::new(1.0, 1.0, 0.0, 1.0);
+        let changed_basis = basis * shear;
+        let original = PeriodicLattice::new(SVector::zeros(), basis, [true, true]).unwrap();
+        let changed =
+            PeriodicLattice::new(SVector::zeros(), changed_basis, [true, true]).unwrap();
+
+        let point = SVector::from([57.25, -31.75]);
+        let original_wrapped = original.wrap_point(&point).unwrap();
+        let changed_wrapped = changed.wrap_point(&point).unwrap();
+        assert!(
+            (original_wrapped.position - changed_wrapped.position).norm() < 1e-10
+        );
+
+        for delta in [
+            SVector::from([31.0, -17.0]),
+            SVector::from([-44.5, 29.0]),
+            SVector::from([5.0, 4.0]),
+        ] {
+            let left = original.minimum_image_displacement(&delta, 729).unwrap();
+            let right = changed.minimum_image_displacement(&delta, 729).unwrap();
+            assert!((left.displacement - right.displacement).norm() < 1e-9);
+        }
+    }
+
+    #[test]
+    fn three_dimensional_skew_lattice_wraps_and_matches_brute_force() {
+        let basis = SMatrix::<f64, 3, 3>::new(
+            10.0, 2.0, -1.0,
+            0.0, 9.0, 1.0,
+            0.0, 0.0, 8.0,
+        );
+        let lattice = PeriodicLattice::new(
+            SVector::from([1.0, -2.0, 3.0]),
+            basis,
+            [true, true, true],
+        )
+        .unwrap();
+
+        let fractional = SVector::from([2.25, -1.75, 3.5]);
+        let point = lattice.origin() + lattice.basis() * fractional;
+        let wrapped = lattice.wrap_point(&point).unwrap();
+        assert_eq!(wrapped.image_offset, LatticeOffset::new([2, -2, 3]));
+        let restored = wrapped.position + lattice.offset_vector(wrapped.image_offset).unwrap();
+        assert!((restored - point).norm() < 1e-9);
+
+        let mut seed = 0x3344_4455_6666_7777_u64;
+        for case in 0..100 {
+            let mut delta = SVector::<f64, 3>::zeros();
+            for axis in 0..3 {
+                seed = seed
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                delta[axis] =
+                    ((seed >> 11) as f64 / ((1_u64 << 53) as f64) - 0.5) * 100.0;
+            }
+
+            let result = lattice.minimum_image_displacement(&delta, 729).unwrap();
+            let fractional = lattice.inverse_basis() * delta;
+            let center = [
+                fractional[0].round() as i64,
+                fractional[1].round() as i64,
+                fractional[2].round() as i64,
+            ];
+            let mut best = f64::INFINITY;
+            for i in center[0] - 6..=center[0] + 6 {
+                for j in center[1] - 6..=center[1] + 6 {
+                    for k in center[2] - 6..=center[2] + 6 {
+                        let shifted = delta
+                            - lattice.basis()
+                                * SVector::from([i as f64, j as f64, k as f64]);
+                        best = best.min(shifted.norm());
+                    }
+                }
+            }
+            assert!(
+                (result.displacement.norm() - best).abs() < 1e-9,
+                "case={case} delta={delta:?} result={result:?} oracle={best}"
+            );
+            assert!(result.unsearched_distance_lower_bound > result.displacement.norm());
+        }
+    }
+
+    #[test]
     fn skewed_minimum_image_fails_closed_when_budget_cannot_certify() {
         let basis = SMatrix::<f64, 2, 2>::new(10.0, 9.9, 0.0, 0.2);
         let lattice = PeriodicLattice::new(SVector::zeros(), basis, [true, true]).unwrap();
