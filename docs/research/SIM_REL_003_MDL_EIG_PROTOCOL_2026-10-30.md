@@ -47,11 +47,12 @@ A contradictory result reports misspecification. A successful falsification quer
 
 ## 5. Baselines and metrics
 
-Four policies use the same grammar, target, query budget and task-specific action costs:
+Five policies use the same grammar, target, query budget and task-specific action costs:
 1. SIM-REL-002 maximum-minority / maximum-disagreement;
-2. MDL-prior expected information gain per cost;
-3. fixed ascending intervention;
-4. seeded-random intervention (32 runs per task).
+2. uniform-prior expected information gain per cost (cost-awareness control);
+3. MDL-prior expected information gain per cost;
+4. fixed ascending intervention;
+5. seeded-random intervention (32 runs per task).
 
 Report separately:
 - intervention count: mean, median, nearest-rank p90;
