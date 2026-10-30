@@ -136,9 +136,10 @@ The kinetic-energy contract should be 1/2 ⟨ω, Iω⟩, and the equations of mo
 A first mathematical primitive now exists in `crates/core/symtropy-physics/src/inertia.rs`:
 
 - It stores the centered second-moment matrix (S = \int rr^T\,dm).
-- It maps a bivector angular velocity represented by skew matrix (Omega) to angular momentum with (mathcal I(Omega)=Omega S+SOmega).
+- It maps a bivector angular velocity represented by skew matrix (Omega) to angular momentum with (mathcal I(Omega)=Omega S+SOmega). In 3D, the equivalent conventional inertia tensor is (J=\mathrm{tr}(S)I-S).
+- It accepts either a centered second-moment matrix, a uniform solid D-ball, or a discrete point-mass cloud (which first computes the center of mass, making the result translation-invariant).
 - It validates finiteness, symmetry, and positive semidefiniteness (with a scale-relative eigenvalue tolerance).
-- Its tests cover uniform solid balls in 2D/3D/4D, the 3D principal-moment correspondence, off-diagonal coupling between rotation planes, and invalid mass-moment matrices.
+- Its tests cover uniform solid balls in 2D/3D/4D, translated point clouds, the 3D principal-moment correspondence, off-diagonal coupling between rotation planes, and invalid mass-moment matrices.
 
 This prototype is deliberately **not yet connected** to `RigidBody`, integration, contact effective mass, or invariant energy accounting. The legacy fields and hot paths still use mean-of-axis inertia. It is a mathematical building block, not a claim that asymmetric rigid-body dynamics are fixed.
 
