@@ -86,7 +86,9 @@ pub struct MinimumImage<const D: usize> {
     /// The selected image translation is subtracted from the input displacement.
     pub image_offset: LatticeOffset<D>,
     pub candidates_evaluated: usize,
-    /// Conservative lower bound for every image outside the searched cube.
+    /// Residual-based upper bound on ||I - inverse_basis * basis||_F.
+    pub inverse_residual_upper_bound: f64,
+    /// Conservative numerical lower bound for every image outside the searched cube.
     pub unsearched_distance_lower_bound: f64,
 }
 
@@ -102,9 +104,10 @@ pub struct PeriodicLattice<const D: usize> {
     basis: SMatrix<f64, D, D>,
     inverse: SMatrix<f64, D, D>,
     periodic_axes: [bool; D],
-    /// A conservative lower bound on the smallest singular value:
-    /// 1 / ||basis_inverse||_F <= sigma_min(basis).
+    /// Residual-inflated lower bound on the smallest singular value.
     sigma_min_lower_bound: f64,
+    /// Residual-based upper bound on ||I - inverse_basis * basis||_F.
+    inverse_residual_upper_bound: f64,
 }
 
 impl<const D: usize> PeriodicLattice<D> {
@@ -130,10 +133,43 @@ impl<const D: usize> PeriodicLattice<D> {
             return Err(PeriodicLatticeError::IllConditionedBasis);
         }
         let inverse_frobenius = inverse.norm();
-        if !inverse_frobenius.is_finite() || inverse_frobenius <= 0.0 {
+        let basis_frobenius = basis.norm();
+        if !inverse_frobenius.is_finite()
+            || inverse_frobenius <= 0.0
+            || !basis_frobenius.is_finite()
+            || basis_frobenius <= 0.0
+        {
             return Err(PeriodicLatticeError::IllConditionedBasis);
         }
-        let sigma_min_lower_bound = 1.0 / inverse_frobenius;
+
+        // Do not assume the floating-point inverse is exact. Bound the
+        // residual of the computed near-inverse and inflate it for the
+        // matrix-product, subtraction and Frobenius-norm roundoff. If
+        // ||I - C B|| <= r < 1 for C = computed inverse, then
+        // ||B^-1||_2 <= ||C||_F / (1-r), so
+        // sigma_min(B) >= (1-r) / ||C||_F.
+        let product = inverse * basis;
+        let residual = (SMatrix::<f64, D, D>::identity() - product).norm();
+        let operations = (2 * D + 3) as f64;
+        let epsilon_product = operations * f64::EPSILON;
+        if !residual.is_finite() || epsilon_product >= 0.5 {
+            return Err(PeriodicLatticeError::IllConditionedBasis);
+        }
+        let gamma = epsilon_product / (1.0 - epsilon_product);
+        let arithmetic_scale = inverse_frobenius * basis_frobenius + (D as f64).sqrt();
+        let residual_roundoff = 8.0 * gamma * arithmetic_scale
+            + 8.0 * f64::EPSILON * (residual + (D as f64).sqrt());
+        let inverse_residual_upper_bound = residual + residual_roundoff;
+        if !inverse_residual_upper_bound.is_finite()
+            || inverse_residual_upper_bound >= 1.0
+        {
+            return Err(PeriodicLatticeError::IllConditionedBasis);
+        }
+
+        // Deflate once more to account for rounding in the scalar bound itself.
+        let sigma_min_lower_bound = (1.0 - inverse_residual_upper_bound)
+            / inverse_frobenius
+            * (1.0 - 8.0 * f64::EPSILON);
         if !sigma_min_lower_bound.is_finite() || sigma_min_lower_bound <= 0.0 {
             return Err(PeriodicLatticeError::IllConditionedBasis);
         }
@@ -144,6 +180,7 @@ impl<const D: usize> PeriodicLattice<D> {
             inverse,
             periodic_axes,
             sigma_min_lower_bound,
+            inverse_residual_upper_bound,
         })
     }
 
@@ -170,6 +207,10 @@ impl<const D: usize> PeriodicLattice<D> {
 
     pub fn sigma_min_lower_bound(&self) -> f64 {
         self.sigma_min_lower_bound
+    }
+
+    pub fn inverse_residual_upper_bound(&self) -> f64 {
+        self.inverse_residual_upper_bound
     }
 
     /// Convert a lattice image offset into its Cartesian translation.
@@ -312,6 +353,7 @@ impl<const D: usize> PeriodicLattice<D> {
                 displacement: *displacement,
                 image_offset: LatticeOffset::zero(),
                 candidates_evaluated: 0,
+                inverse_residual_upper_bound: self.inverse_residual_upper_bound,
                 unsearched_distance_lower_bound: f64::INFINITY,
             });
         }
@@ -449,7 +491,8 @@ impl<const D: usize> PeriodicLattice<D> {
             }
             candidates_evaluated = cube_count;
 
-            let lower_bound = self.sigma_min_lower_bound * (shell as f64 + 0.5);
+            let lower_bound =
+                self.sigma_min_lower_bound * (shell as f64 + 0.5) * (1.0 - 8.0 * f64::EPSILON);
             if !lower_bound.is_finite() {
                 return Err(PeriodicLatticeError::NumericRange {
                     field: "unsearched-image lower bound",
@@ -463,6 +506,7 @@ impl<const D: usize> PeriodicLattice<D> {
                     displacement: best_displacement,
                     image_offset: best_offset,
                     candidates_evaluated,
+                    inverse_residual_upper_bound: self.inverse_residual_upper_bound,
                     unsearched_distance_lower_bound: lower_bound,
                 });
             }
@@ -778,6 +822,26 @@ mod tests {
             );
             assert!(result.unsearched_distance_lower_bound > result.displacement.norm());
         }
+    }
+
+    #[test]
+    fn nearest_image_certificate_exposes_inverse_residual_bound() {
+        let lattice = orthogonal_lattice();
+        assert!(lattice.inverse_residual_upper_bound().is_finite());
+        assert!(lattice.inverse_residual_upper_bound() < 1e-12);
+        assert!(
+            lattice.sigma_min_lower_bound()
+                <= 1.0 / lattice.inverse_basis().norm()
+        );
+
+        let result = lattice
+            .minimum_image_displacement(&SVector::from([9.0, -7.0]), 81)
+            .unwrap();
+        assert_eq!(
+            result.inverse_residual_upper_bound,
+            lattice.inverse_residual_upper_bound()
+        );
+        assert!(result.unsearched_distance_lower_bound > result.displacement.norm());
     }
 
     #[test]
