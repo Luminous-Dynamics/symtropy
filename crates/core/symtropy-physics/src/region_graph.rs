@@ -2108,8 +2108,8 @@ mod tests {
             RegionId(2),
             RegionId(3),
             7,
-            boundary_x0(),
-            boundary_x0(),
+            PlaneBoundary::new(SVector::from([1.0, 0.0]), 1.0, 1e-8).unwrap(),
+            PlaneBoundary::new(SVector::from([1.0, 0.0]), 1.0, 1e-8).unwrap(),
             second_map,
             None,
             false,
@@ -2135,7 +2135,6 @@ mod tests {
         );
         path.validate_current(&graph).unwrap();
 
-        let mut changed_graph = graph.clone();
         let mut changed_target = region(3, [1.0, -1.0], [2.0, 1.0]);
         changed_target.model_revision = 2;
         let mut rebuilt = RegionGraph::<2>::new().unwrap();
@@ -2148,7 +2147,7 @@ mod tests {
         rebuilt.add_region(changed_target).unwrap();
         rebuilt
             .add_interface(
-                changed_graph
+                graph
                     .interface(InterfaceId(30))
                     .unwrap()
                     .clone(),
@@ -2156,7 +2155,7 @@ mod tests {
             .unwrap();
         rebuilt
             .add_interface(
-                changed_graph
+                graph
                     .interface(InterfaceId(31))
                     .unwrap()
                     .clone(),
