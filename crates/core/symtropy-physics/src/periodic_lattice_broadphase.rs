@@ -350,6 +350,81 @@ mod tests {
         }
     }
 
+    fn aabb3(min: [f64; 3], max: [f64; 3]) -> Aabb<3> {
+        Aabb {
+            min: SVector::from(min),
+            max: SVector::from(max),
+        }
+    }
+
+    fn direct_overlap_3d(a: &Aabb<3>, b: &Aabb<3>) -> bool {
+        (0..3).all(|axis| a.max[axis] >= b.min[axis] && a.min[axis] <= b.max[axis])
+    }
+
+    fn direct_oracle_3d(
+        a: &Aabb<3>,
+        b: &Aabb<3>,
+        basis: &SMatrix<f64, 3, 3>,
+        radius: i64,
+    ) -> BTreeSet<[i64; 3]> {
+        let mut result = BTreeSet::new();
+        for x in -radius..=radius {
+            for y in -radius..=radius {
+                for z in -radius..=radius {
+                    let offset = [x, y, z];
+                    let shift = basis * SVector::from([x as f64, y as f64, z as f64]);
+                    let translated = Aabb {
+                        min: b.min + shift,
+                        max: b.max + shift,
+                    };
+                    if direct_overlap_3d(a, &translated) {
+                        result.insert(offset);
+                    }
+                }
+            }
+        }
+        result
+    }
+
+    #[test]
+    fn randomized_3d_lattice_aabb_sets_have_no_missed_images() {
+        let basis = SMatrix::<f64, 3, 3>::from_row_slice(&[
+            2.0, 0.7, 0.2,
+            0.0, 1.6, 0.5,
+            0.0, 0.0, 1.3,
+        ]);
+        let lattice = PeriodicLattice::new(SVector::zeros(), basis.clone()).unwrap();
+        let mut seed = 0x3344_4c41_5454_4943_u64;
+
+        for case in 0..80 {
+            let ax = random_range(&mut seed, -3.0, 3.0);
+            let ay = random_range(&mut seed, -3.0, 3.0);
+            let az = random_range(&mut seed, -3.0, 3.0);
+            let bx = random_range(&mut seed, -3.0, 3.0);
+            let by = random_range(&mut seed, -3.0, 3.0);
+            let bz = random_range(&mut seed, -3.0, 3.0);
+            let aw = random_range(&mut seed, 0.0, 0.8);
+            let ah = random_range(&mut seed, 0.0, 0.8);
+            let ad = random_range(&mut seed, 0.0, 0.8);
+            let bw = random_range(&mut seed, 0.0, 0.8);
+            let bh = random_range(&mut seed, 0.0, 0.8);
+            let bd = random_range(&mut seed, 0.0, 0.8);
+            let a = aabb3([ax, ay, az], [ax + aw, ay + ah, az + ad]);
+            let b = aabb3([bx, by, bz], [bx + bw, by + bh, bz + bd]);
+
+            let actual = lattice_image_offsets_for_aabb_pair(&lattice, &a, &b, 4_096)
+                .unwrap_or_else(|error| panic!("3D case={case}: {error}"))
+                .into_iter()
+                .map(|offset| offset.periods)
+                .collect::<BTreeSet<_>>();
+            let expected = direct_oracle_3d(&a, &b, &basis, 10);
+            assert!(
+                actual.is_superset(&expected),
+                "missed 3D lattice image in case={case}; actual={actual:?} expected={expected:?}"
+            );
+        }
+    }
+
     #[test]
     fn touching_faces_are_included_and_budget_exhaustion_is_explicit() {
         let basis = SMatrix::<f64, 2, 2>::identity();
