@@ -1,8 +1,8 @@
 {
   "manifest_schema": "civil-aero-evidence-manifest/0.1.0",
   "program": "AERO-CIVIL-001",
-  "status": "source_discovery_only",
-  "important": "No source bytes have been ingested or admitted by this manifest. Null hashes are intentional. Do not use these records as qualified benchmark data until the acquisition, byte hashing, licence/applicability review, and independent parsing gates pass.",
+  "status": "partial_source_bytes_pinned_not_admitted",
+  "important": "Three NASA TMR NACA 0012 force/pressure text files are retained at exact upstream revision 20a39f549dbff988a6accc421ac84dafc4487695 with byte lengths, SHA-256 digests and source license references recorded. Their parser/independent-parse admission gates remain pending. The geometry-point file, CFD grid archive and UIUC low-Reynolds-number dataset remain unpinned or catalog-only with null hashes. No source in this manifest is yet admitted as a qualified CFD validation dataset.",
   "sources": [
     {
       "source_id": "NASA-TMR-NACA0012-LADSON-FORCES",
