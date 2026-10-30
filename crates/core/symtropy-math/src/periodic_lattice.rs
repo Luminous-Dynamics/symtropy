@@ -143,6 +143,7 @@ pub struct PeriodicLattice<const D: usize> {
     origin: SVector<f64, D>,
     basis: SMatrix<f64, D, D>,
     inverse: SMatrix<f64, D, D>,
+    basis_frobenius: f64,
     periodic_axes: [bool; D],
     /// Residual-inflated lower bound on the smallest singular value.
     sigma_min_lower_bound: f64,
@@ -238,6 +239,7 @@ impl<const D: usize> PeriodicLattice<D> {
             origin,
             basis,
             inverse,
+            basis_frobenius,
             periodic_axes,
             sigma_min_lower_bound,
             inverse_residual_upper_bound,
@@ -552,10 +554,22 @@ impl<const D: usize> PeriodicLattice<D> {
                             // product, subtraction, and norm evaluation. This
                             // is especially important when large coordinates
                             // nearly cancel to a small nearest-image residual.
+                            let offset_norm = SVector::<f64, D>::from(std::array::from_fn(
+                                |axis| candidate[axis] as f64,
+                            ))
+                            .norm();
+                            let matrix_product_scale = self.basis_frobenius * offset_norm;
+                            if !matrix_product_scale.is_finite() {
+                                visit_error = Some(PeriodicLatticeError::NumericRange {
+                                    field: "minimum-image translation error scale",
+                                });
+                                return;
+                            }
                             let distance_error_bound = 64.0
                                 * (D as f64 + 1.0)
                                 * f64::EPSILON
                                 * (displacement.norm()
+                                    + matrix_product_scale
                                     + translation.norm()
                                     + candidate_displacement.norm()
                                     + 1.0);
