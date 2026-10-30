@@ -57,13 +57,13 @@ This closes an important provenance gap: a file with plausible headers or numeri
 
 ## Finite-state decision-value experiment selector
 
-The voi module implements a transparent one-step expected value of sample information calculation over caller-supplied finite states, prior probabilities, decision utilities, experiment costs and P(outcome | state) matrices. It reports gross EVSI, net EVSI, affordability and the posterior-optimal decision for each outcome. It selects the highest positive-net-value affordable experiment, or abstains when none qualifies.
+The voi module implements a transparent one-step expected value of sample information calculation over caller-supplied finite states, prior probabilities, decision utilities, experiment costs and P(outcome | state) matrices. It reports gross EVSI, net EVSI, affordability, posterior-optimal decisions and the number of possible outcomes that change the current preferred decision. It selects the highest positive-net-value affordable experiment, or abstains when none qualifies.
 
 Run the fixed synthetic known-answer example from the crate directory:
 
     cargo run --locked --bin voi_demo
 
-The demonstration's prior best expected utility is 5. Perfect information has gross EVSI 5 and net EVSI 4 at cost 1; noisy information has gross EVSI 3 and net EVSI 2; an uninformative measurement has zero gross EVSI; and an over-budget experiment is not selected. These are analytic synthetic results, not an aerodynamic experiment and not evidence that a learned acquisition policy is calibrated. CSV output explicitly states that caller-supplied probabilities have not been independently calibrated. The method is one-step greedy and does not claim globally optimal sequential experiment design.
+The demonstration's prior best expected utility is 5. Perfect information has gross EVSI 5 and net EVSI 4 at cost 1; noisy information has gross EVSI 3 and net EVSI 2; an uninformative measurement has zero gross EVSI; and an over-budget experiment is not selected. These are analytic synthetic results, not an aerodynamic experiment and not evidence that a learned acquisition policy is calibrated. A separate stdlib Python oracle independently recomputes the posterior decisions, expected utility, EVSI, decision-change counts and selected experiment from the frozen fixture. CSV output explicitly states that caller-supplied probabilities have not been independently calibrated. The method is one-step greedy and does not claim globally optimal sequential experiment design.
 
 ## DPW-8/AePW-4 source discovery
 
