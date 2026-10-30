@@ -141,7 +141,8 @@ pub fn verify_signed_command_evidence_receipt(
             trusted: trust_policy.policy_revision.clone(),
         });
     }
-    if signed.receipt.schema_version != crate::audit_receipt::COMMAND_EVIDENCE_RECEIPT_SCHEMA_VERSION
+    if signed.receipt.schema_version
+        != crate::audit_receipt::COMMAND_EVIDENCE_RECEIPT_SCHEMA_VERSION
     {
         return Err(
             CommandEvidenceAttestationError::UnsupportedReceiptSchemaVersion {
@@ -364,7 +365,10 @@ mod tests {
         }
     }
 
-    fn sign(receipt: &CommandEvidenceReceipt, pair: &Ed25519KeyPair) -> SignedCommandEvidenceReceipt {
+    fn sign(
+        receipt: &CommandEvidenceReceipt,
+        pair: &Ed25519KeyPair,
+    ) -> SignedCommandEvidenceReceipt {
         sign_command_evidence_receipt(
             receipt,
             "independent-auditor-2026",
@@ -394,7 +398,7 @@ mod tests {
 
     #[test]
     fn unknown_signer_is_rejected() {
-        let (_, _, _, receipt) = fixture();
+        let (context, expected, events, receipt) = fixture();
         let pair = key_pair(7);
         let signed = sign(&receipt, &pair);
         let mut trust = policy(&pair);
@@ -403,9 +407,9 @@ mod tests {
         assert_eq!(
             verify_signed_command_evidence_receipt(
                 &signed,
-                &fixture().0,
-                &fixture().1,
-                &fixture().2,
+                &context,
+                &expected,
+                &events,
                 &trust,
             ),
             Err(CommandEvidenceAttestationError::UnknownSigner {
