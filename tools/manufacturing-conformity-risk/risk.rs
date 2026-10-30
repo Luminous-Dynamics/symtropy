@@ -303,7 +303,124 @@ fn validate(r: &Request) -> Result<(), &'static str> {
     Ok(())
 }
 
+fn next_down(value: f64) -> f64 {
+    if value.is_nan() || value == f64::NEG_INFINITY { return value; }
+    if value == 0.0 { return -f64::from_bits(1); }
+    let bits = value.to_bits();
+    f64::from_bits(if value > 0.0 { bits - 1 } else { bits + 1 })
+}
+
+fn next_up(value: f64) -> f64 {
+    if value.is_nan() || value == f64::INFINITY { return value; }
+    if value == 0.0 { return f64::from_bits(1); }
+    let bits = value.to_bits();
+    f64::from_bits(if value > 0.0 { bits + 1 } else { bits - 1 })
+}
+
+fn two_sum(a: f64, b: f64) -> (f64, f64) {
+    let sum = a + b;
+    if !sum.is_finite() { return (sum, f64::NAN); }
+    let b_virtual = sum - a;
+    let error = (a - (sum - b_virtual)) + (b - b_virtual);
+    (sum, error)
+}
+
+fn add_down(a: f64, b: f64) -> f64 {
+    let (sum, error) = two_sum(a, b);
+    if !sum.is_finite() || !error.is_finite() { return sum; }
+    if error < 0.0 { next_down(sum) } else { sum }
+}
+
+fn add_up(a: f64, b: f64) -> f64 {
+    let (sum, error) = two_sum(a, b);
+    if !sum.is_finite() || !error.is_finite() { return sum; }
+    if error > 0.0 { next_up(sum) } else { sum }
+}
+
+fn sub_down(a: f64, b: f64) -> f64 {
+    let (value, error) = two_sum(a, -b);
+    if !value.is_finite() || !error.is_finite() { return value; }
+    if error < 0.0 { next_down(value) } else { value }
+}
+
+fn sub_up(a: f64, b: f64) -> f64 {
+    let (value, error) = two_sum(a, -b);
+    if !value.is_finite() || !error.is_finite() { return value; }
+    if error > 0.0 { next_up(value) } else { value }
+}
+
+fn mul_down(a: f64, b: f64) -> f64 {
+    let product = a * b;
+    if !product.is_finite() { return product; }
+    let error = a.mul_add(b, -product);
+    if error < 0.0 { next_down(product) } else { product }
+}
+
+fn mul_up(a: f64, b: f64) -> f64 {
+    let product = a * b;
+    if !product.is_finite() { return product; }
+    let error = a.mul_add(b, -product);
+    if error > 0.0 { next_up(product) } else { product }
+}
+
+fn div_down(a: f64, b: f64) -> f64 {
+    if b <= 0.0 { return f64::NEG_INFINITY; }
+    let quotient = a / b;
+    if !quotient.is_finite() { return quotient; }
+    let residual = (-quotient).mul_add(b, a);
+    if residual < 0.0 { next_down(quotient) } else { quotient }
+}
+
+fn div_up(a: f64, b: f64) -> f64 {
+    if b <= 0.0 { return f64::INFINITY; }
+    let quotient = a / b;
+    if !quotient.is_finite() { return quotient; }
+    let residual = (-quotient).mul_add(b, a);
+    if residual > 0.0 { next_up(quotient) } else { quotient }
+}
+
 fn probability_bounds(r: &Request) -> Result<(f64, f64), &'static str> {
+    validate(r)?;
+    let mut represented_lower = 0.0_f64;
+    let mut represented_upper = 0.0_f64;
+    for bin in &r.posterior.bins {
+        let overlap_lower_edge = bin.lower.max(r.spec.lower);
+        let overlap_upper_edge = bin.upper.min(r.spec.upper);
+        if overlap_upper_edge <= overlap_lower_edge || bin.mass == 0.0 {
+            continue;
+        }
+
+        let overlap_lower = sub_down(overlap_upper_edge, overlap_lower_edge).max(0.0);
+        let overlap_upper = sub_up(overlap_upper_edge, overlap_lower_edge).max(0.0);
+        let width_lower = sub_down(bin.upper, bin.lower).max(0.0);
+        let width_upper = sub_up(bin.upper, bin.lower);
+        if !width_upper.is_finite() || width_upper <= 0.0 || !width_lower.is_finite() {
+            return Err("POSTERIOR_BIN_WIDTH_NUMERIC_INVALID");
+        }
+
+        let fraction_lower = div_down(overlap_lower, width_upper).clamp(0.0, 1.0);
+        let fraction_upper = if width_lower <= 0.0 {
+            1.0
+        } else {
+            div_up(overlap_upper, width_lower).clamp(0.0, 1.0)
+        };
+        let contribution_lower = mul_down(bin.mass, fraction_lower).max(0.0);
+        let contribution_upper = mul_up(bin.mass, fraction_upper).max(0.0);
+        represented_lower = add_down(represented_lower, contribution_lower).max(0.0);
+        represented_upper = add_up(represented_upper, contribution_upper).min(1.0);
+    }
+
+    if !represented_lower.is_finite() || !represented_upper.is_finite()
+        || represented_lower > represented_upper + TOL {
+        return Err("CONFORMANCE_INTEGRAL_INVALID");
+    }
+    let lower = represented_lower.clamp(0.0, 1.0);
+    let upper = add_up(represented_upper, r.posterior.unknown_tail_mass)
+        .clamp(lower, 1.0);
+    Ok((lower, upper))
+}
+
+
     validate(r)?;
     let mut represented = 0.0_f64;
     for bin in &r.posterior.bins {
@@ -685,6 +802,17 @@ mod tests {
             let report = classify(&request);
             assert_eq!(report.outcome, Outcome::EvidenceIncomplete);
         }
+    }
+
+    #[test]
+    fn probability_enclosure_rounds_outward_at_threshold_edges() {
+        let mut r = campaign()[0].1.clone();
+        r.spec.lower = -1.0;
+        r.spec.upper = 2.0;
+        let bounds = probability_bounds(&r).unwrap();
+        assert!(bounds.0 <= 0.95);
+        assert!(bounds.1 >= 0.95);
+        assert!(bounds.0.is_finite() && bounds.1.is_finite());
     }
 
     #[test]
