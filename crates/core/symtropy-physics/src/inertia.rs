@@ -155,8 +155,13 @@ impl<const D: usize> BivectorInertia<D> {
             return Err(RotationalInertiaError::InvalidMassProperties);
         }
 
+        // Work relative to a reference sample before accumulating the center
+        // of mass. Summing absolute world coordinates can lose the small
+        // geometric offsets that determine inertia for CAD located far from
+        // the world origin.
+        let reference = samples[0].0;
         let mut total_mass = 0.0;
-        let mut weighted_position = SVector::<f64, D>::zeros();
+        let mut weighted_relative_position = SVector::<f64, D>::zeros();
         for (position, mass) in &samples {
             if !mass.is_finite() || !position.iter().all(|value| value.is_finite()) {
                 return Err(RotationalInertiaError::NonFinite);
@@ -165,17 +170,17 @@ impl<const D: usize> BivectorInertia<D> {
                 return Err(RotationalInertiaError::InvalidMassProperties);
             }
             total_mass += *mass;
-            weighted_position += *position * *mass;
+            weighted_relative_position += (*position - reference) * *mass;
         }
 
         if !total_mass.is_finite() || total_mass <= 0.0 {
             return Err(RotationalInertiaError::InvalidMassProperties);
         }
 
-        let center_of_mass = weighted_position / total_mass;
+        let center_relative = weighted_relative_position / total_mass;
         let mut second_moment = SMatrix::<f64, D, D>::zeros();
         for (position, mass) in samples {
-            let offset = position - center_of_mass;
+            let offset = (position - reference) - center_relative;
             second_moment += (offset * offset.transpose()) * mass;
         }
 
@@ -476,6 +481,20 @@ mod tests {
         let omega = Bivector::<3>::unit_plane(0, 1);
         let expected = 2.0;
         assert!((translated.angular_momentum(&omega).get(0, 1) - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn point_mass_constructor_retains_small_geometry_at_large_world_offsets() {
+        let cloud = [
+            (SVector::<f64, 3>::new(1.0e12, -1.0e12, 5.0e11), 1.0),
+            (SVector::<f64, 3>::new(1.0e12 + 0.125, -1.0e12, 5.0e11), 1.0),
+        ];
+        let inertia = BivectorInertia::<3>::from_point_masses(cloud).unwrap();
+        assert!(
+            (inertia.second_moment()[(0, 0)] - 0.0078125).abs() < 1e-12,
+            "small CAD-scale inertia lost at large world offset: S={:?}",
+            inertia.second_moment()
+        );
     }
 
     #[test]
