@@ -14,7 +14,7 @@ This reference adds the PDF path. It must receive a qualified posterior with exp
 
 ## Posterior model
 
-A posterior consists of contiguous finite bins [a_i,b_i], with probability masses p_i. Each bin is uniform within its boundaries. An explicit unknown tail-mass upper bound tau accounts for posterior probability outside the represented support.
+A posterior consists of contiguous finite bins [a_i,b_i], with probability masses p_i. Each bin is uniform within its boundaries. An explicit unknown residual tail mass tau accounts for posterior probability outside the represented support. Its probability mass is known, but its location relative to the specification is not.
 
 Validation requires:
 
@@ -24,7 +24,7 @@ For tolerance interval C=[LSL,USL], represented in-spec probability is:
 
     p_model = sum_i p_i * max(0,min(b_i,USL)-max(a_i,LSL))/(b_i-a_i)
 
-Because the unknown tail could be wholly inside or wholly outside the tolerance, the evaluator reports:
+Because the unlocated residual tail mass could be wholly inside or wholly outside the tolerance, the evaluator reports:
 
     p_c_lower = p_model
     p_c_upper = min(1,p_model+tau)
