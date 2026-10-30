@@ -264,10 +264,15 @@ fn parse_initial(raw: &str) -> Result<Vec<(u8, u8)>, String> {
 fn parse_costs(raw: &str) -> Result<[u32; DOMAIN], String> {
     let values: Vec<u32> = raw
         .split(',')
-        .map(|part| part.parse::<u32>().map_err(|_| format!("invalid action cost {part:?}")))
+        .map(|part| {
+            part.parse::<u32>()
+                .map_err(|_| format!("invalid action cost {part:?}"))
+        })
         .collect::<Result<_, _>>()?;
     if values.len() != DOMAIN || values.iter().any(|cost| *cost == 0 || *cost > 10_000) {
-        return Err(format!("expected {DOMAIN} positive action costs no greater than 10000"));
+        return Err(format!(
+            "expected {DOMAIN} positive action costs no greater than 10000"
+        ));
     }
     let mut costs = [0u32; DOMAIN];
     costs.copy_from_slice(&values);
@@ -286,15 +291,23 @@ fn parse_problems(raw: &str) -> Result<Vec<Problem>, String> {
             return Err(format!("line {}: expected 5 fields", line_no + 1));
         }
         if !valid_id(f[0]) || !ids.insert(f[0].to_owned()) {
-            return Err(format!("line {}: invalid or duplicate task ID", line_no + 1));
+            return Err(format!(
+                "line {}: invalid or duplicate task ID",
+                line_no + 1
+            ));
         }
         if !matches!(f[1], "train" | "validation" | "heldout") {
             return Err(format!("line {}: invalid split", line_no + 1));
         }
         let initial = parse_initial(f[2]).map_err(|e| format!("line {}: {e}", line_no + 1))?;
-        let budget: usize = f[3].parse().map_err(|_| format!("line {}: invalid query budget", line_no + 1))?;
+        let budget: usize = f[3]
+            .parse()
+            .map_err(|_| format!("line {}: invalid query budget", line_no + 1))?;
         if budget > DOMAIN {
-            return Err(format!("line {}: budget cannot exceed {DOMAIN}", line_no + 1));
+            return Err(format!(
+                "line {}: budget cannot exceed {DOMAIN}",
+                line_no + 1
+            ));
         }
         let costs = parse_costs(f[4]).map_err(|e| format!("line {}: {e}", line_no + 1))?;
         result.push(Problem {
@@ -438,7 +451,10 @@ fn choose_uniform_eig_action(
     let mut best = None;
     let mut best_score = -1.0f64;
     for action in available {
-        let ones = survivors.iter().filter(|sig| (**sig >> *action) & 1 == 1).count();
+        let ones = survivors
+            .iter()
+            .filter(|sig| (**sig >> *action) & 1 == 1)
+            .count();
         let p_one = ones as f64 / survivors.len() as f64;
         let score = binary_entropy_bits(p_one) / f64::from(costs[*action as usize]);
         if score > best_score {
@@ -531,15 +547,25 @@ fn choose_action(
     match policy {
         Policy::Fixed => available.first().copied(),
         Policy::Random => {
-            if available.is_empty() { None } else { Some(available[(next_rng(rng) as usize) % available.len()]) }
+            if available.is_empty() {
+                None
+            } else {
+                Some(available[(next_rng(rng) as usize) % available.len()])
+            }
         }
         Policy::Active => {
             let mut best = None;
             let mut best_score = 0usize;
             for action in available {
-                let ones = survivors.iter().filter(|sig| (**sig >> *action) & 1 == 1).count();
+                let ones = survivors
+                    .iter()
+                    .filter(|sig| (**sig >> *action) & 1 == 1)
+                    .count();
                 let score = ones.min(survivors.len() - ones);
-                if score > best_score { best_score = score; best = Some(*action); }
+                if score > best_score {
+                    best_score = score;
+                    best = Some(*action);
+                }
             }
             best.or_else(|| available.first().copied())
         }
@@ -560,20 +586,34 @@ fn choose_falsification_action(
     match policy {
         Policy::Fixed => available.first().copied(),
         Policy::Random => {
-            if available.is_empty() { None } else { Some(available[(next_rng(rng) as usize) % available.len()]) }
+            if available.is_empty() {
+                None
+            } else {
+                Some(available[(next_rng(rng) as usize) % available.len()])
+            }
         }
         Policy::Active => {
             let mut best = None;
             let mut best_score = 0usize;
             for action in available {
                 let predicted = (singleton >> *action) & 1;
-                let disagreement = candidates.iter().filter(|candidate| ((candidate.sig >> *action) & 1) != predicted).count();
-                if disagreement > best_score { best_score = disagreement; best = Some(*action); }
+                let disagreement = candidates
+                    .iter()
+                    .filter(|candidate| ((candidate.sig >> *action) & 1) != predicted)
+                    .count();
+                if disagreement > best_score {
+                    best_score = disagreement;
+                    best = Some(*action);
+                }
             }
             best.or_else(|| available.first().copied())
         }
-        Policy::UniformEig => choose_uniform_falsification_action(singleton, candidates, available, costs),
-        Policy::MdlEig => choose_mdl_falsification_action(singleton, candidates, available, costs, mdl_beta),
+        Policy::UniformEig => {
+            choose_uniform_falsification_action(singleton, candidates, available, costs)
+        }
+        Policy::MdlEig => {
+            choose_mdl_falsification_action(singleton, candidates, available, costs, mdl_beta)
+        }
     }
 }
 
@@ -631,16 +671,15 @@ fn run_episode(
     if remaining.len() == 1
         && actions.len() < problem.budget
         && !available.is_empty()
-        && let Some(a) =
-            choose_falsification_action(
-                remaining[0],
-                candidates,
-                &available,
-                &problem.costs,
-                policy,
-                &mut rng,
-                mdl_beta,
-            )
+        && let Some(a) = choose_falsification_action(
+            remaining[0],
+            candidates,
+            &available,
+            &problem.costs,
+            policy,
+            &mut rng,
+            mdl_beta,
+        )
     {
         let y = (target_sig >> a) & 1;
         obs.push((a, y));
@@ -855,7 +894,11 @@ fn summarize(policy: &str, split: &str, eps: &[&Episode]) -> String {
         mean,
         median(&q),
         percentile(&q, 0.9),
-        if n == 0 { 0.0 } else { costs.iter().map(|v| f64::from(*v)).sum::<f64>() / n as f64 },
+        if n == 0 {
+            0.0
+        } else {
+            costs.iter().map(|v| f64::from(*v)).sum::<f64>() / n as f64
+        },
         median_u32(&costs),
         nearest_rank_u32(&costs, 0.9),
         eps.iter().filter(|e| e.status == "ambiguous").count(),
@@ -918,7 +961,11 @@ fn render_episode(e: &Episode, candidates: &[Candidate]) -> String {
         retained,
         e.actions.len(),
         e.total_cost,
-        e.actions.iter().map(u8::to_string).collect::<Vec<_>>().join(","),
+        e.actions
+            .iter()
+            .map(u8::to_string)
+            .collect::<Vec<_>>()
+            .join(","),
         audit,
         e.audit_mismatch,
         rem
@@ -1012,9 +1059,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             "--max-depth" => {
                 max_depth = args.next().ok_or("--max-depth requires value")?.parse()?
             }
-            "--mdl-beta" => {
-                mdl_beta = args.next().ok_or("--mdl-beta requires value")?.parse()?
-            }
+            "--mdl-beta" => mdl_beta = args.next().ok_or("--mdl-beta requires value")?.parse()?,
             "--help" | "-h" => {
                 println!(
                     "sim-rel-bayes --problems PATH --truth PATH --expected-head SHA --out PATH [--max-depth 0..2] [--mdl-beta 0..4]"
@@ -1028,8 +1073,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let tp = tp.ok_or("--truth required")?;
     let expected = expected.ok_or("--expected-head required")?;
     let output = output.ok_or("--out required")?;
-    mdl_beta = validate_mdl_beta(mdl_beta)
-        .map_err(|error| format!("--mdl-beta: {error}"))?;
+    mdl_beta = validate_mdl_beta(mdl_beta).map_err(|error| format!("--mdl-beta: {error}"))?;
     let head = git_head().map_err(|e| format!("identity gate: {e}"))?;
     if head != expected {
         return Err(format!("exact-head mismatch: expected {expected}, got {head}").into());
@@ -1108,7 +1152,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             random,
         });
     }
-    let report = render_report(&head, max_depth, &ph, &th, &candidates, &cases, &all, mdl_beta);
+    let report = render_report(
+        &head,
+        max_depth,
+        &ph,
+        &th,
+        &candidates,
+        &cases,
+        &all,
+        mdl_beta,
+    );
     if output == "-" {
         print!("{report}");
     } else {
@@ -1248,7 +1301,13 @@ mod tests {
             .iter()
             .filter(|t| c.iter().any(|x| x.sig == t.target_sig))
         {
-            for policy in [Policy::Active, Policy::UniformEig, Policy::MdlEig, Policy::Fixed, Policy::Random] {
+            for policy in [
+                Policy::Active,
+                Policy::UniformEig,
+                Policy::MdlEig,
+                Policy::Fixed,
+                Policy::Random,
+            ] {
                 let e = run_episode(&task.problem, task.target_sig, &c, policy, 17, 1.0);
                 assert_eq!(
                     e.target_retained,
@@ -1278,10 +1337,30 @@ mod tests {
     #[test]
     fn uniform_eig_and_mdl_eig_match_when_the_prior_is_uniform() {
         let candidates = vec![
-            Candidate { sig: 0, representative: "a".into(), expression_aliases: 1, mdl_bits: 1.0 },
-            Candidate { sig: 4, representative: "b".into(), expression_aliases: 1, mdl_bits: 1.0 },
-            Candidate { sig: 1, representative: "c".into(), expression_aliases: 1, mdl_bits: 1.0 },
-            Candidate { sig: 7, representative: "d".into(), expression_aliases: 1, mdl_bits: 1.0 },
+            Candidate {
+                sig: 0,
+                representative: "a".into(),
+                expression_aliases: 1,
+                mdl_bits: 1.0,
+            },
+            Candidate {
+                sig: 4,
+                representative: "b".into(),
+                expression_aliases: 1,
+                mdl_bits: 1.0,
+            },
+            Candidate {
+                sig: 1,
+                representative: "c".into(),
+                expression_aliases: 1,
+                mdl_bits: 1.0,
+            },
+            Candidate {
+                sig: 7,
+                representative: "d".into(),
+                expression_aliases: 1,
+                mdl_bits: 1.0,
+            },
         ];
         let survivors = candidates.iter().map(|c| c.sig).collect::<Vec<_>>();
         let costs = [4, 1, 1, 1, 1, 1, 1, 1];
@@ -1302,9 +1381,16 @@ mod tests {
         assert!(x_candidate.expression_aliases > 1);
         let before = posterior.iter().find(|(sig, _)| *sig == x).unwrap().1;
         let mut altered = candidates.clone();
-        altered.iter_mut().find(|c| c.sig == x).unwrap().expression_aliases = 10_000;
+        altered
+            .iter_mut()
+            .find(|c| c.sig == x)
+            .unwrap()
+            .expression_aliases = 10_000;
         let after = posterior_weights(&signatures, &altered, 1.0)
-            .iter().find(|(sig, _)| *sig == x).unwrap().1;
+            .iter()
+            .find(|(sig, _)| *sig == x)
+            .unwrap()
+            .1;
         assert!((before - after).abs() < 1e-12);
     }
     #[test]
@@ -1313,38 +1399,76 @@ mod tests {
         let x = parse_signature("00001111").unwrap();
         let xor_xy = parse_signature("00111100").unwrap();
         let x_bits = candidates.iter().find(|c| c.sig == x).unwrap().mdl_bits;
-        let xor_bits = candidates.iter().find(|c| c.sig == xor_xy).unwrap().mdl_bits;
+        let xor_bits = candidates
+            .iter()
+            .find(|c| c.sig == xor_xy)
+            .unwrap()
+            .mdl_bits;
         assert!(x_bits < xor_bits);
     }
     #[test]
     fn mdl_eig_prefers_information_per_cost_not_largest_raw_split() {
         let candidates = vec![
-            Candidate { sig: 0, representative: "a".into(), expression_aliases: 1, mdl_bits: 1.0 },
-            Candidate { sig: 4, representative: "b".into(), expression_aliases: 1, mdl_bits: 1.0 },
-            Candidate { sig: 1, representative: "c".into(), expression_aliases: 1, mdl_bits: 1.0 },
-            Candidate { sig: 7, representative: "d".into(), expression_aliases: 1, mdl_bits: 1.0 },
+            Candidate {
+                sig: 0,
+                representative: "a".into(),
+                expression_aliases: 1,
+                mdl_bits: 1.0,
+            },
+            Candidate {
+                sig: 4,
+                representative: "b".into(),
+                expression_aliases: 1,
+                mdl_bits: 1.0,
+            },
+            Candidate {
+                sig: 1,
+                representative: "c".into(),
+                expression_aliases: 1,
+                mdl_bits: 1.0,
+            },
+            Candidate {
+                sig: 7,
+                representative: "d".into(),
+                expression_aliases: 1,
+                mdl_bits: 1.0,
+            },
         ];
         let survivors = candidates.iter().map(|c| c.sig).collect::<Vec<_>>();
         let costs = [4, 1, 1, 1, 1, 1, 1, 1];
         let action = choose_mdl_eig_action(&survivors, &candidates, &[0, 1], &costs, 1.0);
         assert_eq!(action, Some(1));
-        assert_eq!(choose_uniform_eig_action(&survivors, &[0, 1], &costs), Some(1));
+        assert_eq!(
+            choose_uniform_eig_action(&survivors, &[0, 1], &costs),
+            Some(1)
+        );
     }
     #[test]
     fn exhaustive_corpus_covers_all_256_boolean_functions_once() {
         let tasks = exhaustive_tasks();
         assert_eq!(tasks.len(), 256);
-        let signatures = tasks.iter().map(|task| task.target_sig).collect::<BTreeSet<_>>();
+        let signatures = tasks
+            .iter()
+            .map(|task| task.target_sig)
+            .collect::<BTreeSet<_>>();
         assert_eq!(signatures.len(), 256);
         assert_eq!(signatures, (0u16..=255).map(|value| value as u8).collect());
-        let counts = ["train", "validation", "heldout"]
-            .map(|split| tasks.iter().filter(|task| task.problem.split == split).count());
+        let counts = ["train", "validation", "heldout"].map(|split| {
+            tasks
+                .iter()
+                .filter(|task| task.problem.split == split)
+                .count()
+        });
         assert_eq!(counts, [154, 51, 51]);
         let candidates = enumerate_grammar(2).unwrap();
         assert_eq!(candidates.len(), 109);
         let in_grammar = tasks
             .iter()
-            .filter(|task| candidates.iter().any(|candidate| candidate.sig == task.target_sig))
+            .filter(|task| {
+                candidates
+                    .iter()
+                    .any(|candidate| candidate.sig == task.target_sig)
+            })
             .count();
         assert_eq!(in_grammar, 109);
         assert_eq!(tasks.len() - in_grammar, 147);
@@ -1354,10 +1478,11 @@ mod tests {
     fn exhaustive_in_grammar_targets_are_retained_by_all_five_policies() {
         let tasks = exhaustive_tasks();
         let candidates = enumerate_grammar(2).unwrap();
-        for task in tasks
-            .iter()
-            .filter(|task| candidates.iter().any(|candidate| candidate.sig == task.target_sig))
-        {
+        for task in tasks.iter().filter(|task| {
+            candidates
+                .iter()
+                .any(|candidate| candidate.sig == task.target_sig)
+        }) {
             for policy in [
                 Policy::Active,
                 Policy::UniformEig,
@@ -1365,7 +1490,8 @@ mod tests {
                 Policy::Fixed,
                 Policy::Random,
             ] {
-                let episode = run_episode(&task.problem, task.target_sig, &candidates, policy, 23, 1.0);
+                let episode =
+                    run_episode(&task.problem, task.target_sig, &candidates, policy, 23, 1.0);
                 assert_eq!(
                     episode.target_retained,
                     Some(true),
@@ -1382,9 +1508,11 @@ mod tests {
         let candidates = enumerate_grammar(2).unwrap();
         let signatures = candidates.iter().map(|c| c.sig).collect::<Vec<_>>();
         let posterior = posterior_weights(&signatures, &candidates, 0.0);
-        assert!(posterior.iter().all(|(_, p)| {
-            (*p - 1.0 / candidates.len() as f64).abs() < 1e-12
-        }));
+        assert!(
+            posterior
+                .iter()
+                .all(|(_, p)| { (*p - 1.0 / candidates.len() as f64).abs() < 1e-12 })
+        );
         let available = (0..DOMAIN as u8).collect::<Vec<_>>();
         let costs = [1, 4, 2, 1, 3, 2, 5, 1];
         assert_eq!(
@@ -1409,7 +1537,14 @@ mod tests {
         let mut seed = 1;
         assert_eq!(
             choose_uniform_eig_action(&survivors, &available, &costs),
-            choose_action(&survivors, &candidates, &available, &costs, Policy::Active, &mut seed)
+            choose_action(
+                &survivors,
+                &candidates,
+                &available,
+                &costs,
+                Policy::Active,
+                &mut seed
+            )
         );
     }
     #[test]
@@ -1437,7 +1572,12 @@ mod tests {
     #[test]
     fn malformed_inputs_and_invalid_budget_fail_closed() {
         assert!(parse_signature("101").is_err());
-        assert!(parse_problems("same|train|none|1|1,1,1,1,1,1,1,1\nsame|heldout|none|1|1,1,1,1,1,1,1,1").is_err());
+        assert!(
+            parse_problems(
+                "same|train|none|1|1,1,1,1,1,1,1,1\nsame|heldout|none|1|1,1,1,1,1,1,1,1"
+            )
+            .is_err()
+        );
         assert!(
             parse_problems("one|train|none|9|1,1,1,1,1,1,1,1\ntwo|validation|none|1|1,1,1,1,1,1,1,1\nthree|heldout|none|1|1,1,1,1,1,1,1,1")
                 .is_err()
