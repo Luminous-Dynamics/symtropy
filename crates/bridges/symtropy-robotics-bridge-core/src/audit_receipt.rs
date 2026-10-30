@@ -339,9 +339,6 @@ fn digest_receipt(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::command_evidence::{
-        CommandEvidenceEvent, CommandEvidenceKind, CommandTerminalOutcome,
-    };
 
     fn context() -> CommandEvidenceReceiptContext {
         CommandEvidenceReceiptContext {
@@ -447,7 +444,10 @@ mod tests {
             grouped_receipt.event_stream_digest,
             interleaved_receipt.event_stream_digest
         );
-        assert_ne!(grouped_receipt.receipt_digest, interleaved_receipt.receipt_digest);
+        assert_ne!(
+            grouped_receipt.receipt_digest,
+            interleaved_receipt.receipt_digest
+        );
     }
 
     #[test]
