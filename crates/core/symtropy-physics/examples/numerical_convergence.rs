@@ -5,6 +5,8 @@
 //!
 //! This is an initial kernel benchmark, not an engineering validation claim.
 //! It emits CSV so results can be archived and compared at matched scenarios.
+//! Runtime is the median of repeated runs; correctness metrics are checked
+//! against analytical solutions after every run.
 
 use std::time::Instant;
 
@@ -16,6 +18,8 @@ use symtropy_physics::RigidBody;
 
 const GRAVITY: f64 = 9.81;
 const STEP_SIZES: [f64; 4] = [0.1, 0.05, 0.025, 0.0125];
+const WARMUP_RUNS: usize = 5;
+const MEASURED_RUNS: usize = 31;
 
 #[derive(Clone, Copy)]
 struct ResultRow {
@@ -23,75 +27,99 @@ struct ResultRow {
     steps: usize,
     state_error: f64,
     energy_drift: f64,
-    elapsed_ns: u128,
+    median_elapsed_ns: u128,
 }
 
 fn run_free_fall(dt: f64) -> ResultRow {
-    let mut body =
-        RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([0.0, 1.0, 0.0]), 0.01, 1.0);
-    body.linear_damping = 0.0;
-    body.angular_damping = 0.0;
-
-    let gravity = SVector::from([0.0, -GRAVITY, 0.0]);
     let steps = (1.0 / dt).round() as usize;
     assert!((steps as f64 * dt - 1.0).abs() < 1e-12);
 
-    let start = Instant::now();
-    for _ in 0..steps {
-        integrate(&mut body, &gravity, dt);
+    let gravity = SVector::from([0.0, -GRAVITY, 0.0]);
+    let mut timings = Vec::with_capacity(MEASURED_RUNS);
+    let mut state_error = 0.0;
+    let mut energy_drift = 0.0;
+
+    for run in 0..(WARMUP_RUNS + MEASURED_RUNS) {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([0.0, 1.0, 0.0]), 0.01, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+
+        let start = Instant::now();
+        for _ in 0..steps {
+            integrate(&mut body, &gravity, dt);
+        }
+        let elapsed_ns = start.elapsed().as_nanos();
+
+        let exact_y = 1.0 - 0.5 * GRAVITY;
+        let exact_vy = -GRAVITY;
+        state_error =
+            (body.position()[1] - exact_y).hypot(body.linear_velocity[1] - exact_vy);
+        let final_energy = 0.5 * body.mass * body.linear_velocity.norm_squared()
+            + body.mass * GRAVITY * body.position()[1];
+        let initial_energy = body.mass * GRAVITY;
+        energy_drift = (final_energy - initial_energy).abs() / initial_energy;
+
+        if run >= WARMUP_RUNS {
+            timings.push(elapsed_ns);
+        }
     }
-    let elapsed_ns = start.elapsed().as_nanos();
 
-    let exact_y = 1.0 - 0.5 * GRAVITY;
-    let exact_vy = -GRAVITY;
-    let state_error = (body.position()[1] - exact_y).hypot(body.linear_velocity[1] - exact_vy);
-    let final_energy = 0.5 * body.mass * body.linear_velocity.norm_squared()
-        + body.mass * GRAVITY * body.position()[1];
-    let initial_energy = body.mass * GRAVITY;
-    let energy_drift = (final_energy - initial_energy).abs() / initial_energy;
-
+    timings.sort_unstable();
     ResultRow {
         dt,
         steps,
         state_error,
         energy_drift,
-        elapsed_ns,
+        median_elapsed_ns: timings[MEASURED_RUNS / 2],
     }
 }
 
 fn run_harmonic_oscillator(dt: f64) -> ResultRow {
     // Unit mass, unit stiffness: x'' = -x, with x(0)=1 and v(0)=0.
-    let mut body =
-        RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([1.0, 0.0, 0.0]), 0.01, 1.0);
-    body.linear_damping = 0.0;
-    body.angular_damping = 0.0;
-
     let steps = (1.0 / dt).round() as usize;
     assert!((steps as f64 * dt - 1.0).abs() < 1e-12);
+
     let zero_gravity = SVector::<f64, 3>::zeros();
     let initial_energy = 0.5;
+    let mut timings = Vec::with_capacity(MEASURED_RUNS);
+    let mut state_error = 0.0;
+    let mut energy_drift = 0.0;
 
-    let start = Instant::now();
-    for _ in 0..steps {
-        let x = body.position()[0];
-        body.apply_force(SVector::from([-x, 0.0, 0.0]));
-        integrate(&mut body, &zero_gravity, dt);
+    for run in 0..(WARMUP_RUNS + MEASURED_RUNS) {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([1.0, 0.0, 0.0]), 0.01, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+
+        let start = Instant::now();
+        for _ in 0..steps {
+            let x = body.position()[0];
+            body.apply_force(SVector::from([-x, 0.0, 0.0]));
+            integrate(&mut body, &zero_gravity, dt);
+        }
+        let elapsed_ns = start.elapsed().as_nanos();
+
+        let exact_x = 1.0_f64.cos();
+        let exact_vx = -1.0_f64.sin();
+        state_error =
+            (body.position()[0] - exact_x).hypot(body.linear_velocity[0] - exact_vx);
+        let final_energy =
+            0.5 * body.linear_velocity.norm_squared() + 0.5 * body.position()[0].powi(2);
+        energy_drift = (final_energy - initial_energy).abs() / initial_energy;
+
+        if run >= WARMUP_RUNS {
+            timings.push(elapsed_ns);
+        }
     }
-    let elapsed_ns = start.elapsed().as_nanos();
 
-    let exact_x = 1.0_f64.cos();
-    let exact_vx = -1.0_f64.sin();
-    let state_error = (body.position()[0] - exact_x).hypot(body.linear_velocity[0] - exact_vx);
-    let final_energy =
-        0.5 * body.linear_velocity.norm_squared() + 0.5 * body.position()[0].powi(2);
-    let energy_drift = (final_energy - initial_energy).abs() / initial_energy;
-
+    timings.sort_unstable();
     ResultRow {
         dt,
         steps,
         state_error,
         energy_drift,
-        elapsed_ns,
+        median_elapsed_ns: timings[MEASURED_RUNS / 2],
     }
 }
 
@@ -102,13 +130,14 @@ fn emit_campaign(name: &str, rows: &[ResultRow]) {
             (coarse.state_error / row.state_error).ln() / (coarse.dt / row.dt).ln()
         });
         println!(
-            "{name},{:.8e},{},{:.8e},{:.8e},{:.4},{},{}",
+            "{name},{:.8e},{},{:.8e},{:.8e},{:.4},{},{},{}",
             row.dt,
             row.steps,
             row.state_error,
             row.energy_drift,
             observed_order,
-            row.elapsed_ns,
+            MEASURED_RUNS,
+            row.median_elapsed_ns,
             std::env::consts::ARCH
         );
         previous = Some(*row);
@@ -117,7 +146,7 @@ fn emit_campaign(name: &str, rows: &[ResultRow]) {
 
 fn main() {
     println!(
-        "scenario,dt,steps,state_error,relative_energy_drift,observed_order,elapsed_ns,target_arch"
+        "scenario,dt,steps,state_error,relative_energy_drift,observed_order,repeats,median_elapsed_ns,target_arch"
     );
 
     let free_fall: Vec<_> = STEP_SIZES.iter().copied().map(run_free_fall).collect();
