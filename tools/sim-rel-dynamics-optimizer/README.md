@@ -40,10 +40,13 @@ The output is a policy tree using the evaluator's public-observation policy form
 
 Eleven authored Rust tests currently cover:
 - exact rational arithmetic and overflow-safe comparison;
+- independent non-memoized exhaustive policy-tree enumeration against complete optimizer frontiers;
+- exact replay agreement with the separate SIM-REL-011 evaluator;
+- terminal probability mass conservation;
 - non-commutative condition-then-measure sequence discovery;
 - exact three-point (cost, hazard, abstention) frontier;
 - policy selection under explicit risk and abstention budgets;
-- repeated action availability;
+- repeated intervention as the only identifying sequence;
 - memoryless control;
 - action/hypothesis input-order invariance;
 - infeasible and invalid risk budgets, malformed worlds and fail-closed state/frontier/combination caps;
