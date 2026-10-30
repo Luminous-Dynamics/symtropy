@@ -235,3 +235,8 @@ See AERO_CIVIL_BENCHMARK_ROADMAP_V0_1.md for the evidence-first validation ladde
 ## Grid-convergence and GCI diagnostics
 
 The grid_convergence module implements sliding three-grid observed-order, Richardson extrapolation and Grid Convergence Index estimates. Callers must supply characteristic spacing and justify its definition as well as the safety factor. It never infers spacing from node count, rejects non-monotonic and zero-difference sequences, and reports absolute/relative GCI, extrapolated values and an asymptotic consistency ratio. The grid_convergence_demo CLI and independent Python oracle use a synthetic quadratic known-answer problem; this tests arithmetic, not CFD convergence or validation. See GRID_CONVERGENCE_GCI_PROTOCOL_V0_1.md.
+
+
+## Robust EVSI over model uncertainty
+
+The robust_voi module evaluates a finite, compatible ensemble of prior/likelihood models and selects the experiment with the greatest worst-case net EVSI. Its average and best-case values are diagnostic only; selection is maximin and abstains when all affordable experiments have non-positive worst-case value. It does not average priors or claim probability calibration, and its guarantee applies only to the supplied finite set. Run robust_voi_demo for the two-model adversarial known-answer case.
