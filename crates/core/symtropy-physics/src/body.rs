@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 
+use crate::inertia::BivectorInertia;
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
 use symtropy_math::{Bivector, Point, Shape, Transform};
@@ -33,7 +34,11 @@ pub struct RigidBody<const D: usize> {
     pub mass: f64,
     pub inv_mass: f64,
     pub inertia: SVector<f64, D>,
+    /// Legacy per-axis inertia approximation retained for API compatibility.
+    /// When `rotational_inertia` is Some, the bivector operator is authoritative.
     pub inv_inertia: SVector<f64, D>,
+    /// Optional body-space inertia operator on the full bivector rotation space.
+    pub rotational_inertia: Option<BivectorInertia<D>>,
     pub collider: Box<dyn Shape<D>>,
     pub friction: f64,
     pub restitution: f64,
@@ -72,6 +77,7 @@ impl<const D: usize> RigidBody<D> {
             inv_mass,
             inertia,
             inv_inertia,
+            rotational_inertia: None,
             collider,
             friction: 0.5,
             restitution: 0.2,
@@ -112,14 +118,28 @@ impl<const D: usize> RigidBody<D> {
     pub fn dynamic_sphere(handle: BodyHandle, position: Point<D>, radius: f64, mass: f64) -> Self {
         use symtropy_math::Sphere;
         let inertia = (2.0 / (D as f64 + 2.0)) * mass * radius * radius;
-        Self::new(
+        let mut body = Self::new(
             handle,
             BodyType::Dynamic,
             Transform::from_translation(position),
             Box::new(Sphere::new(Point::origin(), radius)),
             mass,
             SVector::from_element(inertia),
-        )
+        );
+        if mass.is_finite() && mass > 0.0 && radius.is_finite() && radius > 0.0 {
+            body.rotational_inertia = BivectorInertia::uniform_solid_ball(mass, radius).ok();
+        }
+        body
+    }
+
+    /// Set the authoritative body-space rotational inertia operator.
+    ///
+    /// The supplied mass properties must be centered at this body's center of
+    /// mass and expressed in its local body frame. Simulation and contact paths
+    /// rotate the operator into world coordinates as required.
+    pub fn set_rotational_inertia_operator(&mut self, inertia: BivectorInertia<D>) {
+        self.rotational_inertia = Some(inertia);
+        self.wake();
     }
 
     pub fn is_dynamic(&self) -> bool {
@@ -195,8 +215,14 @@ impl<const D: usize> RigidBody<D> {
             return 0.0;
         }
         let linear = 0.5 * self.mass * self.linear_velocity.norm_squared();
-        let i_avg = self.inertia.sum() / D as f64;
-        let angular = 0.5 * i_avg * self.angular_velocity.norm_squared();
+        let angular = if let Some(inertia) = &self.rotational_inertia {
+            inertia
+                .rotated_by(&self.transform.rotation)
+                .kinetic_energy(&self.angular_velocity)
+        } else {
+            let i_avg = self.inertia.sum() / D as f64;
+            0.5 * i_avg * self.angular_velocity.norm_squared()
+        };
         linear + angular
     }
 
