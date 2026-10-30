@@ -589,9 +589,7 @@ mod tests {
             event(
                 &identity,
                 92,
-                CommandEvidenceKind::NativeAccepted {
-                    accepted_epoch: 4,
-                },
+                CommandEvidenceKind::NativeAccepted { accepted_epoch: 4 },
             ),
             event(
                 &identity,
