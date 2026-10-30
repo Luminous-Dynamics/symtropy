@@ -153,3 +153,14 @@ A region-specific profile is not interchangeable with an objective vector. Candi
 The scenario-frontier tool complements independent interval-box screening by preserving paired objective vectors under the same named demand/weather/tariff scenarios. It computes expected, CVaR95, worst-case and finite-scenario robust Pareto summaries. This matters for regional comparisons because high temperature, EV load, PV output, tariff and demand growth can co-vary; independent marginal bounds may combine states that never co-occurred. Each candidate must be evaluated under the same scenario ensemble and weights.
 
 The scenario ensemble must carry source identities, geographic/climate and network profile, time horizon, generation method, probability/weight rationale, missing-data policy and evidence digests. Currency, price year/basis and carbon boundary must remain common within a comparison. Scenario weights are not validated by the binary; transfer claims require a frozen held-out ensemble and profile-specific results. See [JOINT_SCENARIO_FRONTIER.md](JOINT_SCENARIO_FRONTIER.md).
+
+
+## Temporal input contract for global operating twins
+
+The `temporal-profile` validator requires aligned UTC annual scenario grids with explicit load moments, ambient temperature, EV/PV context, tariff/currency basis and carbon intensity. It checks time coverage and current-moment semantics; it does not validate local-time/DST conversion or source authenticity. The timezone label remains provenance metadata until an IANA-backed conversion receipt is added. Scenario construction must preserve paired weather/load/tariff states across regions. See [TEMPORAL_OPERATING_TWIN.md](TEMPORAL_OPERATING_TWIN.md).
+
+## Global manufacturing digital thread
+
+The `manufacturing-ledger` envelope records product/component/lot genealogy, process recipe hashes, station events, disposition, energy/scrap and evidence references. It is reusable across product families, while route revisions, inspection plans and qualification tests remain product-, market- and customer-specific. This fits a federated digital-twin architecture better than one universal factory route. ISO 23247-5:2026 covers the manufacturing digital thread and ISO 23247-6:2026 addresses digital-twin composition. The 2026 NIST workshop report highlights interoperability, VVUQ, cybersecurity and workforce readiness as deployment challenges. See [MANUFACTURING_DIGITAL_THREAD.md](MANUFACTURING_DIGITAL_THREAD.md).
+
+Critical materials, test plans, units, calibration and evidence policies need local/regional profiles. A shared event schema does not make electrical standards universal. A ledger passing structural validation does not prove conformity, product safety, or acceptance by a local utility.
