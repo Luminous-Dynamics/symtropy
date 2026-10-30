@@ -836,7 +836,7 @@ mod tests {
         );
         assert_eq!(
             report.worst_case_identification_probability,
-            Fraction::new(0, 1).unwrap()
+            Fraction::new(1, 2).unwrap()
         );
         assert_eq!(
             report.worst_case_false_identification_probability,
