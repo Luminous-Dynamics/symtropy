@@ -47,6 +47,74 @@ impl fmt::Display for SphKernelError {
 
 impl Error for SphKernelError {}
 
+/// Selectable radial kernel profile for the WCSPH reference solver.
+///
+/// Both profiles use the same constructor convention: the supplied value is
+/// the physical support radius. Their shapes and normalization differ, so
+/// benchmark comparisons must state whether they match support radius or
+/// neighbour count.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SphKernelProfile {
+    #[default]
+    Poly6,
+    WendlandC2,
+}
+
+/// Runtime-selected kernel evaluator over compile-time spatial dimension.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum KernelEvaluator<const D: usize> {
+    Poly6(Poly6Kernel<D>),
+    WendlandC2(WendlandC2Kernel<D>),
+}
+
+impl<const D: usize> KernelEvaluator<D> {
+    pub fn new(
+        profile: SphKernelProfile,
+        support_radius: f64,
+    ) -> Result<Self, SphKernelError> {
+        match profile {
+            SphKernelProfile::Poly6 => Ok(Self::Poly6(Poly6Kernel::new(support_radius)?)),
+            SphKernelProfile::WendlandC2 => {
+                Ok(Self::WendlandC2(WendlandC2Kernel::new(support_radius)?))
+            }
+        }
+    }
+
+    pub fn profile(&self) -> SphKernelProfile {
+        match self {
+            Self::Poly6(_) => SphKernelProfile::Poly6,
+            Self::WendlandC2(_) => SphKernelProfile::WendlandC2,
+        }
+    }
+
+    pub fn support_radius(&self) -> f64 {
+        match self {
+            Self::Poly6(kernel) => kernel.smoothing_length(),
+            Self::WendlandC2(kernel) => kernel.support_radius(),
+        }
+    }
+
+    pub fn value(
+        &self,
+        displacement: &SVector<f64, D>,
+    ) -> Result<f64, SphKernelError> {
+        match self {
+            Self::Poly6(kernel) => kernel.value(displacement),
+            Self::WendlandC2(kernel) => kernel.value(displacement),
+        }
+    }
+
+    pub fn gradient(
+        &self,
+        displacement: &SVector<f64, D>,
+    ) -> Result<SVector<f64, D>, SphKernelError> {
+        match self {
+            Self::Poly6(kernel) => kernel.gradient(displacement),
+            Self::WendlandC2(kernel) => kernel.gradient(displacement),
+        }
+    }
+}
+
 /// A Poly6 kernel with cached dimension-dependent normalization.
 ///
 /// The initial implementation deliberately limits D to 128 so normalization
