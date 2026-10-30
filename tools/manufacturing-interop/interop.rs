@@ -443,8 +443,8 @@ fn map_mtconnect(
                 kind: StreamDiagnosticKind::TimestampRegression,
                 sequence: current.sequence,
                 source_locator: current.source_locator.clone(),
-                detail: format!("timestamp {} precedes sequence {} timestamp {}",
-                    current.timestamp_ns, previous.sequence, previous.timestamp_ns),
+                detail: format!("reference timestamp {} precedes sequence {} timestamp {}",
+                    current.reference_timestamp_ns, previous.sequence, previous.reference_timestamp_ns),
             });
         }
         if complete_unfiltered_stream && current.sequence > previous.sequence.saturating_add(1) {
@@ -664,9 +664,8 @@ struct ComposedEvidence {
     source_measured_at_ns: i64,
     measured_at_ns: i64,
     reference_clock_id: String,
-    clock_mapping_sha256: String,
+    measurement_clock_mapping_sha256: String,
     cycle_clock_mapping_sha256: String,
-    qif_clock_mapping_sha256: String,
     combined_clock_uncertainty_ns: u64,
     association_receipt_id: String,
     association_authority_id: String,
@@ -691,10 +690,10 @@ impl ComposedEvidence {
             csv_escape(&self.characteristic_id), csv_escape(&self.feature_id),
             csv_escape(&self.instrument_resource_id), csv_escape(&self.specification_id),
             csv_escape(&self.specification_revision), format!("{:.17e}", self.actual_value),
-            csv_escape(&self.original_unit), format!("{:.17e}", self.source_measured_at_ns as f64),
+            csv_escape(&self.original_unit), self.source_measured_at_ns.to_string(),
             self.measured_at_ns.to_string(), csv_escape(&self.reference_clock_id),
-            self.clock_mapping_sha256.clone(), self.cycle_clock_mapping_sha256.clone(),
-            self.qif_clock_mapping_sha256.clone(), self.combined_clock_uncertainty_ns.to_string(),
+            self.measurement_clock_mapping_sha256.clone(), self.cycle_clock_mapping_sha256.clone(),
+            self.combined_clock_uncertainty_ns.to_string(),
             csv_escape(&self.association_receipt_id), csv_escape(&self.association_authority_id),
             self.association_valid_from_ns.to_string(), self.association_valid_until_ns.to_string(),
             self.mtconnect_document_sha256.clone(), self.qif_document_sha256.clone(),
@@ -825,9 +824,8 @@ fn join_qif_to_cycle(
             source_measured_at_ns: result.source_measured_at_ns,
             measured_at_ns: result.measured_at_reference_ns,
             reference_clock_id: result.reference_clock_id.clone(),
-            clock_mapping_sha256: result.clock_mapping_sha256.clone(),
+            measurement_clock_mapping_sha256: result.clock_mapping_sha256.clone(),
             cycle_clock_mapping_sha256: cycle.clock_mapping_sha256.clone(),
-            qif_clock_mapping_sha256: result.clock_mapping_sha256.clone(),
             combined_clock_uncertainty_ns: result.clock_uncertainty_ns.saturating_add(cycle.clock_uncertainty_ns),
             association_receipt_id: association.receipt_id.clone(),
             association_authority_id: association.authority_id.clone(),
@@ -1053,7 +1051,7 @@ fn emit_joined_csv() -> Result<(), String> {
     let joined = join_qif_to_cycle(&stream, &cycle, &qif, &result, &association,
         1_750_000_800, Some(&transform));
     let evidence = joined.composed.ok_or(joined.reason)?;
-    println!("cycle_id,part_id,lot_id,operation_id,qif_document_uuid,qif_result_id,measurement_plan_id,characteristic_id,feature_id,instrument_resource_id,specification_id,specification_revision,actual_value,original_unit,source_measured_at_ns,measured_at_reference_ns,reference_clock_id,qif_clock_mapping_sha256,cycle_clock_mapping_sha256,qif_clock_mapping_sha256_repeat,combined_clock_uncertainty_ns,association_receipt_id,association_authority_id,association_valid_from_ns,association_valid_until_ns,mtconnect_document_sha256,qif_document_sha256,association_receipt_sha256,qif_source_locator,cycle_source_locator,derived_value,derived_unit,transform_revision");
+    println!("cycle_id,part_id,lot_id,operation_id,qif_document_uuid,qif_result_id,measurement_plan_id,characteristic_id,feature_id,instrument_resource_id,specification_id,specification_revision,actual_value,original_unit,source_measured_at_ns,measured_at_reference_ns,reference_clock_id,measurement_clock_mapping_sha256,cycle_clock_mapping_sha256,combined_clock_uncertainty_ns,association_receipt_id,association_authority_id,association_valid_from_ns,association_valid_until_ns,mtconnect_document_sha256,qif_document_sha256,association_receipt_sha256,qif_source_locator,cycle_source_locator,derived_value,derived_unit,transform_revision");
     println!("{}", evidence.csv_row());
     Ok(())
 }
