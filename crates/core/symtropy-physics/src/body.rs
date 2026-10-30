@@ -103,9 +103,15 @@ impl<const D: usize> RigidBody<D> {
         )
     }
 
+    /// Construct a dynamic body with a uniformly-filled D-dimensional ball collider.
+    ///
+    /// For a uniform solid D-ball, the moment of inertia in each independent
+    /// rotation plane is 2*m*r^2/(D+2). This reduces to the familiar 2D disk,
+    /// 3D sphere, and 4D hypersphere coefficients without applying the 3D
+    /// coefficient to every dimension.
     pub fn dynamic_sphere(handle: BodyHandle, position: Point<D>, radius: f64, mass: f64) -> Self {
         use symtropy_math::Sphere;
-        let inertia = 0.4 * mass * radius * radius;
+        let inertia = (2.0 / (D as f64 + 2.0)) * mass * radius * radius;
         Self::new(
             handle,
             BodyType::Dynamic,
@@ -218,7 +224,8 @@ impl<const D: usize> RigidBody<D> {
         let com_offset = (local_transform.translation.0 * tool_mass) / total_mass;
 
         let i_original = self.inertia.sum() / D as f64;
-        let i_tool = 0.4 * tool_mass * 0.1 * 0.1;
+        // The toolhead is approximated as a uniformly-filled D-ball.
+        let i_tool = (2.0 / (D as f64 + 2.0)) * tool_mass * 0.1 * 0.1;
 
         let d_original = com_offset.norm();
         let d_tool = (local_transform.translation.0 - com_offset).norm();
@@ -237,5 +244,33 @@ impl<const D: usize> RigidBody<D> {
         let local_dir = self.transform.rotation.reverse().rotate_vector(direction);
         let local_support = self.collider.support(&local_dir);
         self.transform.transform_point(&Point(local_support)).0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_uniform_ball_inertia<const D: usize>(expected: f64) {
+        let body = RigidBody::<D>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            2.0,
+            3.0,
+        );
+        for (axis, value) in body.inertia.iter().enumerate() {
+            assert!(
+                (value - expected).abs() < 1e-12,
+                "D={D} axis={axis}: inertia={value}, expected={expected}"
+            );
+        }
+    }
+
+    #[test]
+    fn uniform_ball_inertia_uses_the_spatial_dimension() {
+        // I_plane = 2*m*r^2/(D+2), with m=3 and r=2.
+        assert_uniform_ball_inertia::<2>(6.0);
+        assert_uniform_ball_inertia::<3>(4.8);
+        assert_uniform_ball_inertia::<4>(4.0);
     }
 }
