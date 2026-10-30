@@ -27,9 +27,10 @@ A Symthaea score must never create or override Symtropy eligibility. A failed, e
 1. `manufacturing-ledger` checks the event trace, genealogy and chronology.
 2. `manufacturing-acceptance` checks required route steps, measurement-to-event links, test-plan units/limits, calibration matching and uncertainty guard bands. Its output is only `eligible_for_authorized_review`; it is not a product release.
 3. `time-capability` reports pooled descriptive capability, worst-window guarded capability, mean drift and variance-shift flags for continuous process characteristics. An alert creates an engineering investigation, not an automatic control action. No alert does not establish process stability.
-4. A separately authorized action builder creates confirmatory measurement candidates from the approved route/test plan. Each row must carry an independent eligibility receipt, calibrated standard uncertainty and a comparable cost basis.
-5. Symthaea ranks only those candidates using candidate-noise EIG or finite-scenario worst-case EIG. The finite scenario set is frozen before evaluation; predictions must share the same measurand and units across scenarios.
-6. The selected candidate is a recommendation to an accountable engineer/quality authority. The quality system authorizes any actual measurement or process intervention.
+4. `measurement-system-msa` estimates repeatability, interaction, operator reproducibility, part-to-part variation, GRR standard deviation, %Study Variation, %Tolerance and NDC from a balanced crossed part×operator×repeat study. The v0.1 implementation requires one instrument and current matching calibration on every observation. Its guidance bands are not universal acceptance criteria, and the MSA output is not an eligibility receipt. The intended-use study must be reviewed and accepted by the quality authority. See [PWR-TX-MFG-003 #2969](https://github.com/Luminous-Dynamics/symtropy/issues/2969).
+5. A separately authorized action builder creates confirmatory measurement candidates from the approved route/test plan. Each row must carry an independent eligibility receipt, a comparable cost basis, and a candidate-specific observation standard deviation. The latter may use an approved MSA GRR estimate for the exact measurand/method, but no automatic mapping from an MSA report to production eligibility is permitted.
+6. Symthaea ranks only those candidates using candidate-noise EIG or finite-scenario worst-case EIG. The finite scenario set is frozen before evaluation; predictions must share the same measurand and units across scenarios.
+7. The selected candidate is a recommendation to an accountable engineer/quality authority. The quality system authorizes any actual measurement or process intervention.
 
 ## Candidate record contract
 
@@ -50,7 +51,7 @@ A serialized adapter should preserve at least these fields:
 | `model_version`, `hypothesis_set_id` | Symthaea/physics model | Prediction lineage |
 | `scenario_set_id`, `scenario_ids` | Jointly controlled | Frozen model-discrepancy challenge set |
 
-The present manufacturing ledger checks SHA-256 syntax and event shape; the current acceptance binary does not itself verify artifact bytes, signatures, certificate authenticity, or route-manifest authorization. Those receipts must be independently verified before a candidate may be marked eligible. The present time-capability binary accepts externally supplied measurement uncertainty and calibration rows; it does not execute Gage R&R or a complete measurement-system analysis.
+The present manufacturing ledger checks SHA-256 syntax and event shape; the current acceptance binary does not itself verify artifact bytes, signatures, certificate authenticity, or route-manifest authorization. Those receipts must be independently verified before a candidate may be marked eligible. The present time-capability binary accepts externally supplied measurement uncertainty and calibration rows; the crossed MSA binary estimates variance components for one balanced design but does not yet provide confidence intervals, nested designs, stability/bias/linearity studies, or full measurement-system qualification.
 
 ## Selection semantics
 
