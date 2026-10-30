@@ -41,9 +41,10 @@ A separate post-fit falsification step challenges a provisional singleton: the M
 All four policies share the same generated grammar, task targets, initial observations and intervention budgets:
 
 1. maximum-disagreement / maximum-minority partition (SIM-REL-002 selector);
-2. MDL-prior expected information gain per cost;
-3. fixed ascending action order;
-4. seeded-random action order (32 repetitions per task).
+2. uniform-prior expected information gain per cost (isolates cost-awareness);
+3. MDL-prior expected information gain per cost;
+4. fixed ascending action order;
+5. seeded-random action order (32 repetitions per task).
 
 Report interventions and cumulative cost separately. The primary cost metric is mean/median/p90 cumulative cost; query count is a secondary diagnostic. Also report semantic candidate counts, in-grammar target retention, ambiguous/provisional/exact/misspecified statuses, and post-fit falsification outcomes.
 
