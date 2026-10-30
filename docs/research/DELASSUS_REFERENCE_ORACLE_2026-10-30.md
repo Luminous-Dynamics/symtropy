@@ -58,6 +58,16 @@ The module includes:
 
 These tests are source-level fixtures only until the exact branch head passes Rust formatting, compilation, Clippy and tests.
 
+## Microbenchmarks
+
+The package now has a Criterion target:
+
+```sh
+cargo bench -p symtropy-physics --bench delassus_reference
+```
+
+It measures Delassus assembly and exhaustive LCP solve independently at 1, 2, 4 and 8 rows for a fixed asymmetric 3D two-body fixture. The timing output must be accompanied by host/compiler metadata and the exact source SHA. These are microbenchmarks for the reference layer, not engine-level throughput comparisons. No measurements are claimed until the benchmark is actually run.
+
 ## Scope and caveats
 
 - Frictionless normal rows only. This is not a Coulomb friction cone solver.
