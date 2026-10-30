@@ -740,6 +740,28 @@ mod tests {
     }
 
     #[test]
+    fn individual_radius_must_not_overlap_its_own_periodic_image() {
+        let mut world = world(8);
+        let body = PeriodicSphereBody::new(
+            20,
+            SVector::from([1.0, 0.0]),
+            SVector::zeros(),
+            5.0,
+            1.0,
+            1.0,
+        )
+        .unwrap();
+        assert_eq!(
+            world.add_body(body),
+            Err(PeriodicSphereWorldError::BodyRadiusExceedsPeriodicEnvelope {
+                id: 20,
+                axis: 0,
+            })
+        );
+        assert!(world.bodies().is_empty());
+    }
+
+    #[test]
     fn pairwise_radius_envelope_prevents_simultaneous_periodic_image_contacts() {
         let mut world = world(8);
         let large_a = PeriodicSphereBody::new(
