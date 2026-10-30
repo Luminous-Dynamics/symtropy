@@ -164,9 +164,7 @@ fn validate_operation(operation: &LedgerOperation, line_number: usize) -> Result
         ("cpu_seconds", operation.cpu_seconds),
     ] {
         if !value.is_finite() {
-            return Err(format!(
-                "line {line_number}: {field} must be finite"
-            ));
+            return Err(format!("line {line_number}: {field} must be finite"));
         }
     }
     if operation.cost_units < 0.0 {
