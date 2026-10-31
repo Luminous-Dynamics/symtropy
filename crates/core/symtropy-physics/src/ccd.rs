@@ -29,8 +29,13 @@ pub struct CcdHit<const D: usize> {
     pub normal: SVector<f64, D>,
 }
 
-/// Speed threshold below which CCD is not applied (optimization).
-/// Bodies moving slower than this per step won't tunnel through typical geometry.
+/// Dimensionless travel-to-feature-size ratio above which CCD is considered.
+/// A body is swept when relative travel over the step exceeds half the pair's
+/// characteristic contact thickness. This is invariant under coherent unit changes.
+pub const CCD_TRAVEL_FRACTION_THRESHOLD: f64 = 0.5;
+
+/// Legacy absolute speed threshold retained for source compatibility only.
+#[deprecated(note = "use CCD_TRAVEL_FRACTION_THRESHOLD; absolute speed is unit-dependent")]
 pub const CCD_SPEED_THRESHOLD: f64 = 5.0;
 
 /// Swept sphere vs sphere: find the earliest time of impact.
@@ -49,18 +54,38 @@ pub fn sphere_sphere<const D: usize>(
     radius_b: f64,
     dt: f64,
 ) -> Option<CcdHit<D>> {
+    if !dt.is_finite()
+        || dt <= 0.0
+        || radius_a < 0.0
+        || radius_b < 0.0
+        || !radius_a.is_finite()
+        || !radius_b.is_finite()
+        || !pos_a.iter().all(|value| value.is_finite())
+        || !pos_b.iter().all(|value| value.is_finite())
+        || !vel_a.iter().all(|value| value.is_finite())
+        || !vel_b.iter().all(|value| value.is_finite())
+    {
+        return None;
+    }
+
     let dp = pos_b - pos_a;
-    let dv = vel_b - vel_a;
-    let r = radius_a + radius_b;
+    let displacement = (vel_b - vel_a) * dt;
+    let distance = stable_norm(&dp);
+    let travel = stable_norm(&displacement);
+    let radius = radius_a + radius_b;
+    let scale = distance
+        .max(travel)
+        .max(radius)
+        .max(f64::MIN_POSITIVE);
 
-    let a = dv.dot(&dv);
-    let b = 2.0 * dp.dot(&dv);
-    let c = dp.dot(&dp) - r * r;
+    let normalized_position = dp / scale;
+    let normalized_radius = radius / scale;
 
-    // Already overlapping at t=0
+    // Already overlapping or exactly touching at t=0.
+    let c = normalized_position.norm_squared() - normalized_radius * normalized_radius;
     if c <= 0.0 {
-        let normal = if dp.norm() > 1e-15 {
-            dp.normalize()
+        let normal = if distance > 0.0 {
+            dp / distance
         } else {
             let mut n = SVector::zeros();
             n[0] = 1.0;
@@ -73,57 +98,78 @@ pub fn sphere_sphere<const D: usize>(
         });
     }
 
-    // No relative motion
-    if a < 1e-20 {
+    // Parameterize the relative segment by travelled distance rather than
+    // physical time. The quadratic's leading coefficient is exactly one and
+    // every coefficient is dimensionless:
+    //   |dp/scale + direction * s|^2 = (r/scale)^2
+    if travel <= 0.0 || !travel.is_finite() {
+        return None;
+    }
+    let travel_direction = displacement / travel;
+    let normalized_travel = travel / scale;
+    if normalized_travel <= 0.0 || !normalized_travel.is_finite() {
         return None;
     }
 
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
-        return None; // No intersection
+    let linear = 2.0 * normalized_position.dot(&travel_direction);
+    let discriminant = linear * linear - 4.0 * c;
+    if discriminant < 0.0 || !discriminant.is_finite() {
+        return None;
     }
 
-    let sqrt_disc = discriminant.sqrt();
-    let t1 = (-b - sqrt_disc) / (2.0 * a);
-
-    // We want the earliest positive t within [0, dt]
-    if t1 >= 0.0 && t1 <= dt {
-        let pos_a_t = pos_a + vel_a * t1;
-        let pos_b_t = pos_b + vel_b * t1;
-        let delta = pos_b_t - pos_a_t;
-        let normal = if delta.norm() > 1e-15 {
-            delta.normalize()
-        } else {
-            let mut n = SVector::zeros();
-            n[0] = 1.0;
-            n
-        };
-        Some(CcdHit {
-            toi: t1,
-            point: pos_a_t + normal * radius_a,
-            normal,
-        })
-    } else {
-        let t2 = (-b + sqrt_disc) / (2.0 * a);
-        if t2 >= 0.0 && t2 <= dt {
-            let pos_a_t = pos_a + vel_a * t2;
-            let pos_b_t = pos_b + vel_b * t2;
-            let delta = pos_b_t - pos_a_t;
-            let normal = if delta.norm() > 1e-15 {
-                delta.normalize()
+    let sqrt_discriminant = discriminant.sqrt();
+    // Stable quadratic roots for s^2 + linear*s + c = 0.
+    let q = -0.5
+        * (linear
+            + if linear >= 0.0 {
+                sqrt_discriminant
             } else {
-                let mut n = SVector::zeros();
-                n[0] = 1.0;
-                n
-            };
-            Some(CcdHit {
-                toi: t2,
-                point: pos_a_t + normal * radius_a,
-                normal,
-            })
-        } else {
-            None // Intersection happens outside [0, dt]
-        }
+                -sqrt_discriminant
+            });
+    let (root_a, root_b) = if q == 0.0 {
+        (-0.5 * linear, -0.5 * linear)
+    } else {
+        (q, c / q)
+    };
+    let normalized_distance = [root_a, root_b]
+        .into_iter()
+        .filter(|root| *root >= 0.0 && *root <= normalized_travel)
+        .min_by(f64::total_cmp)?;
+
+    let toi_fraction = normalized_distance / normalized_travel;
+    let toi = toi_fraction * dt;
+    if !toi.is_finite() || !(0.0..=dt).contains(&toi) {
+        return None;
+    }
+
+    let pos_a_t = pos_a + vel_a * toi;
+    let pos_b_t = pos_b + vel_b * toi;
+    let delta = pos_b_t - pos_a_t;
+    let delta_length = stable_norm(&delta);
+    let normal = if delta_length > 0.0 {
+        delta / delta_length
+    } else {
+        let mut n = SVector::zeros();
+        n[0] = 1.0;
+        n
+    };
+    Some(CcdHit {
+        toi,
+        point: pos_a_t + normal * radius_a,
+        normal,
+    })
+}
+
+/// Numerically stable Euclidean norm for vectors whose components may be
+/// extremely small or large relative to ordinary world units.
+fn stable_norm<const D: usize>(vector: &SVector<f64, D>) -> f64 {
+    let maximum = vector
+        .iter()
+        .fold(0.0_f64, |current, value| current.max(value.abs()));
+    if maximum == 0.0 {
+        0.0
+    } else {
+        maximum * (vector / maximum).norm()
     }
 }
 
@@ -139,9 +185,21 @@ pub fn sphere_halfspace<const D: usize>(
     plane_offset: f64,
     dt: f64,
 ) -> Option<CcdHit<D>> {
+    if !dt.is_finite()
+        || dt <= 0.0
+        || radius < 0.0
+        || !radius.is_finite()
+        || !plane_offset.is_finite()
+        || !pos.iter().all(|value| value.is_finite())
+        || !vel.iter().all(|value| value.is_finite())
+        || !plane_normal.iter().all(|value| value.is_finite())
+    {
+        return None;
+    }
+
     let signed_dist = plane_normal.dot(pos) - plane_offset;
 
-    // Already penetrating
+    // Already penetrating.
     if signed_dist <= radius {
         let contact = pos - plane_normal * signed_dist;
         return Some(CcdHit {
@@ -153,23 +211,39 @@ pub fn sphere_halfspace<const D: usize>(
 
     let vel_toward_plane = -plane_normal.dot(vel);
     if vel_toward_plane <= 0.0 {
-        return None; // Moving away from plane
+        return None;
     }
 
-    // Time to reach distance = radius from plane
-    let t = (signed_dist - radius) / vel_toward_plane;
-
-    if t >= 0.0 && t <= dt {
-        let pos_t = pos + vel * t;
-        let contact = pos_t - plane_normal * radius;
-        Some(CcdHit {
-            toi: t,
-            point: contact,
-            normal: *plane_normal,
-        })
-    } else {
-        None
+    // Compute a dimensionless fraction of the step. This avoids treating
+    // physically equivalent metre/millisecond and millimetre/microsecond
+    // trajectories differently through an absolute time or speed epsilon.
+    let travel_toward_plane = vel_toward_plane * dt;
+    if !travel_toward_plane.is_finite() || travel_toward_plane <= 0.0 {
+        return None;
     }
+    let scale = signed_dist
+        .abs()
+        .max(radius.abs())
+        .max(travel_toward_plane.abs())
+        .max(f64::MIN_POSITIVE);
+    let normalized_gap = signed_dist / scale - radius / scale;
+    let normalized_travel = travel_toward_plane / scale;
+    if normalized_travel <= 0.0 {
+        return None;
+    }
+    let toi_fraction = normalized_gap / normalized_travel;
+    if !(0.0..=1.0).contains(&toi_fraction) {
+        return None;
+    }
+
+    let toi = toi_fraction * dt;
+    let pos_t = pos + vel * toi;
+    let contact = pos_t - plane_normal * radius;
+    Some(CcdHit {
+        toi,
+        point: contact,
+        normal: *plane_normal,
+    })
 }
 
 #[cfg(test)]
