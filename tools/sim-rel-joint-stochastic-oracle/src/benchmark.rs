@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 const MAX_BENCHMARK_HORIZON: usize = 12;
 const MAX_POLICY_NODES: usize = 65_536;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BenchmarkConfig {
     pub horizon: usize,
     pub seed: u64,
@@ -24,6 +24,8 @@ pub struct BenchmarkConfig {
     pub max_memo_states: usize,
     pub max_generated_combinations: usize,
     pub max_frontier_points: usize,
+    /// Exact source revision supplied by the caller (40- or 64-character hex).
+    pub source_commit: Option<String>,
 }
 
 impl Default for BenchmarkConfig {
@@ -37,6 +39,7 @@ impl Default for BenchmarkConfig {
             max_memo_states: 100_000,
             max_generated_combinations: 1_000_000,
             max_frontier_points: 20_000,
+            source_commit: None,
         }
     }
 }
@@ -55,9 +58,130 @@ pub struct BenchmarkReport {
     pub nominal_world_id: String,
     pub horizon: usize,
     pub seed: u64,
+    pub max_hazard: Rational,
+    pub max_false_identification: Rational,
+    pub max_abstention: Rational,
+    pub source_commit: Option<String>,
+    /// FNV-1a 64-bit canonical fingerprint; diagnostic, not cryptographic.
+    pub model_family_fingerprint: String,
     pub exact_robust_optimal: Option<RobustFrontierPoint>,
     pub exact_robust_optimal_worst_case_cost: Option<Rational>,
     pub methods: Vec<MethodResult>,
+}
+
+/// Compute a deterministic fingerprint of a finite model family.
+///
+/// World order and the ordering of outcomes within a kernel row do not affect
+/// the fingerprint. This is an FNV-1a diagnostic fingerprint, not a cryptographic
+/// integrity digest; record the exact Git source commit separately.
+pub fn fingerprint_model_family(worlds: &[ModelWorld]) -> Result<String, String> {
+    if worlds.is_empty() || worlds.len() > 256 {
+        return Err("model family is empty or exceeds the 256-world cap".into());
+    }
+    let mut ids = std::collections::BTreeSet::new();
+    for world in worlds {
+        if world.id.trim().is_empty() || !ids.insert(world.id.as_str()) {
+            return Err("model-world IDs must be non-empty and unique".into());
+        }
+        world.kernel.validate()?;
+    }
+
+    let mut ordered: Vec<&ModelWorld> = worlds.iter().collect();
+    ordered.sort_by(|left, right| left.id.cmp(&right.id));
+    let mut hash = 0xcbf2_9ce4_8422_2325_u64;
+    feed_u64(&mut hash, ordered.len() as u64);
+    for world in ordered {
+        feed_string(&mut hash, &world.id);
+        feed_string_list(&mut hash, &world.kernel.hypothesis_ids);
+        feed_u64(&mut hash, world.kernel.physical_state_count as u64);
+        feed_u64(&mut hash, world.kernel.sensor_state_count as u64);
+        feed_string_list(&mut hash, &world.kernel.action_ids);
+        feed_string_list(&mut hash, &world.kernel.observation_ids);
+        feed_u64(&mut hash, world.kernel.action_costs.len() as u64);
+        for cost in &world.kernel.action_costs {
+            feed_u64(&mut hash, *cost);
+        }
+
+        let mut initial = world.kernel.initial_belief.clone();
+        initial.sort();
+        feed_u64(&mut hash, initial.len() as u64);
+        for point in initial {
+            feed_u64(&mut hash, point.hypothesis as u64);
+            feed_u64(&mut hash, point.physical_state as u64);
+            feed_u64(&mut hash, point.sensor_state as u64);
+            feed_rational(&mut hash, point.mass);
+        }
+
+        feed_u64(&mut hash, world.kernel.rows.len() as u64);
+        for row in &world.kernel.rows {
+            feed_u64(&mut hash, row.hypothesis as u64);
+            feed_u64(&mut hash, row.physical_state as u64);
+            feed_u64(&mut hash, row.sensor_state as u64);
+            feed_u64(&mut hash, row.action as u64);
+            let mut outcomes: Vec<_> = row.outcomes.iter().collect();
+            outcomes.sort_by_key(|outcome| (
+                outcome.probability,
+                outcome.next_physical_state,
+                outcome.next_sensor_state,
+                outcome.observation,
+            ));
+            feed_u64(&mut hash, outcomes.len() as u64);
+            for outcome in outcomes {
+                feed_rational(&mut hash, outcome.probability);
+                feed_u64(&mut hash, outcome.next_physical_state as u64);
+                feed_u64(&mut hash, outcome.next_sensor_state as u64);
+                match outcome.observation {
+                    None => feed_u64(&mut hash, 0),
+                    Some(observation) => feed_u64(&mut hash, observation as u64 + 1),
+                }
+            }
+        }
+    }
+    Ok(format!("fnv1a64-{hash:016x}"))
+}
+
+fn feed_byte(hash: &mut u64, byte: u8) {
+    *hash ^= u64::from(byte);
+    *hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+}
+
+fn feed_u64(hash: &mut u64, value: u64) {
+    for byte in value.to_le_bytes() {
+        feed_byte(hash, byte);
+    }
+}
+
+fn feed_u128(hash: &mut u64, value: u128) {
+    for byte in value.to_le_bytes() {
+        feed_byte(hash, byte);
+    }
+}
+
+fn feed_rational(hash: &mut u64, value: Rational) {
+    feed_u128(hash, value.numerator());
+    feed_u128(hash, value.denominator());
+}
+
+fn feed_string(hash: &mut u64, value: &str) {
+    feed_u64(hash, value.len() as u64);
+    for byte in value.as_bytes() {
+        feed_byte(hash, *byte);
+    }
+}
+
+fn feed_string_list(hash: &mut u64, values: &[String]) {
+    feed_u64(hash, values.len() as u64);
+    for value in values {
+        feed_string(hash, value);
+    }
+}
+
+fn validate_source_commit(value: &str) -> Result<(), String> {
+    let valid_length = value.len() == 40 || value.len() == 64;
+    if !valid_length || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err("source commit must be a 40- or 64-character hexadecimal revision".into());
+    }
+    Ok(())
 }
 
 /// Build a fixed action-sequence policy whose next action never depends on
@@ -113,6 +237,10 @@ pub fn run_benchmark_suite(
     validate_budget("hazard", config.max_hazard)?;
     validate_budget("false-identification", config.max_false_identification)?;
     validate_budget("abstention", config.max_abstention)?;
+    if let Some(source_commit) = &config.source_commit {
+        validate_source_commit(source_commit)?;
+    }
+    let model_family_fingerprint = fingerprint_model_family(worlds)?;
 
     let nominal = worlds
         .iter()
@@ -209,6 +337,11 @@ pub fn run_benchmark_suite(
         nominal_world_id: nominal_world_id.to_string(),
         horizon: config.horizon,
         seed: config.seed,
+        max_hazard: config.max_hazard,
+        max_false_identification: config.max_false_identification,
+        max_abstention: config.max_abstention,
+        source_commit: config.source_commit.clone(),
+        model_family_fingerprint,
         exact_robust_optimal: exact_selected.cloned(),
         exact_robust_optimal_worst_case_cost: exact_cost,
         methods,
@@ -509,6 +642,58 @@ mod tests {
             .unwrap();
         assert!(!greedy.satisfies_robust_budgets);
         assert_eq!(greedy.evaluation.nominal.abstention_probability, Rational::one());
+    }
+
+    #[test]
+    fn model_fingerprint_is_order_invariant_but_kernel_sensitive() {
+        let first = ModelWorld {
+            id: "nominal".into(),
+            kernel: calibration_kernel(),
+        };
+        let mut second = first.clone();
+        second.id = "alternative".into();
+        let forward = fingerprint_model_family(&[first.clone(), second.clone()]).unwrap();
+        let reversed = fingerprint_model_family(&[second.clone(), first.clone()]).unwrap();
+        assert_eq!(forward, reversed);
+
+        second.kernel.action_costs[0] = 9;
+        let changed = fingerprint_model_family(&[first, second]).unwrap();
+        assert_ne!(forward, changed);
+    }
+
+    #[test]
+    fn benchmark_receipt_records_budgets_and_validates_source_revision() {
+        let kernel = calibration_kernel();
+        let worlds = vec![ModelWorld {
+            id: "nominal".into(),
+            kernel,
+        }];
+        let report = run_benchmark_suite(
+            &worlds,
+            "nominal",
+            &BenchmarkConfig {
+                horizon: 1,
+                source_commit: Some("0123456789abcdef0123456789abcdef01234567".into()),
+                max_hazard: Rational::new(1, 10).unwrap(),
+                max_false_identification: Rational::zero(),
+                max_abstention: Rational::one(),
+                ..BenchmarkConfig::default()
+            },
+        ).unwrap();
+        assert_eq!(
+            report.source_commit.as_deref(),
+            Some("0123456789abcdef0123456789abcdef01234567")
+        );
+        assert_eq!(report.max_hazard, Rational::new(1, 10).unwrap());
+        assert_eq!(report.max_false_identification, Rational::zero());
+        assert_eq!(report.max_abstention, Rational::one());
+        assert!(report.model_family_fingerprint.starts_with("fnv1a64-"));
+
+        let invalid = BenchmarkConfig {
+            source_commit: Some("not-a-commit".into()),
+            ..BenchmarkConfig::default()
+        };
+        assert!(run_benchmark_suite(&worlds, "nominal", &invalid).is_err());
     }
 
     #[test]
