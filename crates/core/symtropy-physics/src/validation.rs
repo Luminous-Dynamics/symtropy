@@ -387,7 +387,10 @@ impl fmt::Display for TraceComparisonError {
             ),
             Self::EmptyScenarioId => write!(f, "trace scenario_id must not be empty"),
             Self::EmptyBackendIdentity { side, field } => {
-                write!(f, "{side} trace backend identity field {field} must not be empty")
+                write!(
+                    f,
+                    "{side} trace backend identity field {field} must not be empty"
+                )
             }
             Self::ScenarioMismatch => write!(f, "trace scenario_id values differ"),
             Self::SampleCountMismatch => write!(f, "trace sample counts differ"),
@@ -569,8 +572,7 @@ pub fn compare_traces_3d(
                 });
             }
             max_position_error_m = max_position_error_m.max(position_error);
-            max_linear_velocity_error_mps =
-                max_linear_velocity_error_mps.max(velocity_error);
+            max_linear_velocity_error_mps = max_linear_velocity_error_mps.max(velocity_error);
             position_error_squares.add(position_error);
             velocity_error_squares.add(velocity_error);
             finite_pairs += 1;
@@ -597,7 +599,6 @@ pub fn compare_traces_3d(
 
     Ok(metrics)
 }
-
 
 /// Explicit acceptance thresholds for a differential comparison.
 ///
@@ -660,7 +661,10 @@ impl fmt::Display for AcceptanceProfileError {
             Self::EmptyProfileId => write!(f, "acceptance profile ID must not be empty"),
             Self::NoCriteria => write!(f, "acceptance profile must select at least one metric"),
             Self::InvalidTolerance { field } => {
-                write!(f, "acceptance tolerance {field} must be finite and nonnegative")
+                write!(
+                    f,
+                    "acceptance tolerance {field} must be finite and nonnegative"
+                )
             }
         }
     }
@@ -1397,7 +1401,13 @@ mod tests {
         let report = qualify_traces_3d(&trace, &trace, &test_acceptance_profile()).unwrap();
 
         assert_eq!(report.decision, QualificationDecision3d::Pass);
-        assert!(report.metrics.as_ref().unwrap().has_complete_finite_coverage());
+        assert!(
+            report
+                .metrics
+                .as_ref()
+                .unwrap()
+                .has_complete_finite_coverage()
+        );
     }
 
     #[test]
@@ -1408,7 +1418,12 @@ mod tests {
 
         let report = qualify_traces_3d(&left, &right, &test_acceptance_profile()).unwrap();
         assert_eq!(report.decision, QualificationDecision3d::Fail);
-        assert!(report.reasons.iter().any(|reason| reason.contains("max_position_error_m")));
+        assert!(
+            report
+                .reasons
+                .iter()
+                .any(|reason| reason.contains("max_position_error_m"))
+        );
     }
 
     #[test]
