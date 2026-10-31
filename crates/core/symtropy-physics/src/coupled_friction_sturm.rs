@@ -1198,6 +1198,63 @@ impl ContactInputBox {
         })
     }
 
+    fn ordered_intervals(&self) -> Vec<ExactInterval> {
+        vec![
+            self.w00.clone(), self.w01.clone(), self.w02.clone(),
+            self.w11.clone(), self.w12.clone(), self.w22.clone(),
+            self.q0.clone(), self.q1.clone(), self.q2.clone(), self.mu.clone(),
+        ]
+    }
+
+    fn from_ordered_intervals(mut intervals: Vec<ExactInterval>) -> Result<Self, &'static str> {
+        if intervals.len() != 10 {
+            return Err("contact input interval vector must have ten entries");
+        }
+        let mut next = || intervals.remove(0);
+        Ok(Self {
+            w00: next(),
+            w01: next(),
+            w02: next(),
+            w11: next(),
+            w12: next(),
+            w22: next(),
+            q0: next(),
+            q1: next(),
+            q2: next(),
+            mu: next(),
+        })
+    }
+
+    fn split_widest_relative_interval(&self) -> Option<(Self, Self)> {
+        let intervals = self.ordered_intervals();
+        let mut selected: Option<(usize, Rational)> = None;
+        for (index, interval) in intervals.iter().enumerate() {
+            let width = interval.upper.clone() - interval.lower.clone();
+            if width.is_zero() {
+                continue;
+            }
+            let scale = Rational::one()
+                + interval.lower.abs().max(interval.upper.abs());
+            let score = width / scale;
+            if selected.as_ref().is_none_or(|(_, best)| score > *best) {
+                selected = Some((index, score));
+            }
+        }
+        let (index, _) = selected?;
+        let midpoint = intervals[index].midpoint();
+        if midpoint == intervals[index].lower || midpoint == intervals[index].upper {
+            return None;
+        }
+        let mut left = intervals.clone();
+        let mut right = intervals;
+        left[index] = ExactInterval::new(left[index].lower.clone(), midpoint.clone()).ok()?;
+        right[index] = ExactInterval::new(midpoint, right[index].upper.clone()).ok()?;
+        Some((
+            Self::from_ordered_intervals(left).ok()?,
+            Self::from_ordered_intervals(right).ok()?,
+        ))
+    }
+
     fn gershgorin_spd_lower_bound(&self) -> Rational {
         let row_0 = self.w00.lower.clone()
             - self.w01.abs_upper()
@@ -1313,6 +1370,107 @@ fn interval_discriminant_formula_matches_an_independent_exact_resultant() {
     let enclosed = quartic_discriminant_interval(&interval_coefficients).unwrap();
     assert_eq!(enclosed.lower, exact_discriminant);
     assert_eq!(enclosed.upper, exact_discriminant);
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum FamilySubdivisionStatus {
+    UniformlyCertified { finite_real_root_count: usize, certified_leaves: usize },
+    RootCountVaries { counts: Vec<usize> },
+    Inconclusive { certified_leaves: usize, unresolved_leaves: usize },
+    InvalidInput { invalid_leaves: usize },
+}
+
+#[derive(Clone, Debug)]
+struct FamilySubdivisionSummary {
+    status: FamilySubdivisionStatus,
+    visited_boxes: usize,
+}
+
+fn subdivide_contact_family(
+    input: &ContactInputBox,
+    max_depth: usize,
+    max_boxes: usize,
+) -> FamilySubdivisionSummary {
+    fn visit(
+        input: &ContactInputBox,
+        depth: usize,
+        max_depth: usize,
+        max_boxes: usize,
+        visited: &mut usize,
+        counts: &mut Vec<usize>,
+        unresolved: &mut usize,
+        invalid: &mut usize,
+    ) {
+        if *visited >= max_boxes {
+            *unresolved += 1;
+            return;
+        }
+        *visited += 1;
+        let certificate = certify_contact_input_box(input);
+        match certificate.status {
+            FamilyRootStatus::Certified { finite_real_root_count } => {
+                counts.push(finite_real_root_count);
+            }
+            FamilyRootStatus::InvalidInput(_) => {
+                *invalid += 1;
+            }
+            FamilyRootStatus::NeedsSubdivision(_) if depth < max_depth => {
+                if let Some((left, right)) = input.split_widest_relative_interval() {
+                    visit(
+                        &left, depth + 1, max_depth, max_boxes,
+                        visited, counts, unresolved, invalid,
+                    );
+                    visit(
+                        &right, depth + 1, max_depth, max_boxes,
+                        visited, counts, unresolved, invalid,
+                    );
+                } else {
+                    *unresolved += 1;
+                }
+            }
+            FamilyRootStatus::NeedsSubdivision(_) => {
+                *unresolved += 1;
+            }
+        }
+    }
+
+    let mut visited = 0;
+    let mut counts = Vec::new();
+    let mut unresolved = 0;
+    let mut invalid = 0;
+    visit(
+        input, 0, max_depth, max_boxes,
+        &mut visited, &mut counts, &mut unresolved, &mut invalid,
+    );
+    counts.sort_unstable();
+    counts.dedup();
+    let certified_leaves = counts.len();
+    let status = if invalid > 0 {
+        FamilySubdivisionStatus::InvalidInput {
+            invalid_leaves: invalid,
+        }
+    } else if unresolved > 0 {
+        FamilySubdivisionStatus::Inconclusive {
+            certified_leaves,
+            unresolved_leaves: unresolved,
+        }
+    } else if counts.len() == 1 && certified_leaves > 0 {
+        FamilySubdivisionStatus::UniformlyCertified {
+            finite_real_root_count: counts[0],
+            certified_leaves,
+        }
+    } else if counts.len() > 1 {
+        FamilySubdivisionStatus::RootCountVaries { counts }
+    } else {
+        FamilySubdivisionStatus::Inconclusive {
+            certified_leaves,
+            unresolved_leaves: 1,
+        }
+    };
+    FamilySubdivisionSummary {
+        status,
+        visited_boxes: visited,
+    }
 }
 
 #[test]
