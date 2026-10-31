@@ -79,14 +79,6 @@ fn cartesian_metrics(state: rattle::State) -> (f64, f64) {
     (position, tangent)
 }
 
-fn cartesian_energy(state: rattle::State) -> f64 {
-    let kinetic = (state.momentum[0] * state.momentum[0]
-        + state.momentum[1] * state.momentum[1])
-        / (2.0 * MASS);
-    let potential = MASS * GRAVITY * (state.position[1] + LENGTH);
-    kinetic + potential
-}
-
 fn state_error(actual: rattle::State, reference: rattle::State) -> f64 {
     let dx = actual.position[0] - reference.position[0];
     let dy = actual.position[1] - reference.position[1];
