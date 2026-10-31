@@ -146,11 +146,17 @@ pub fn welch_one_sided_psd(samples: &[f64], config: &WelchConfig) -> Result<PsdE
     }
 
     let global_mean = samples.iter().sum::<f64>() / samples.len() as f64;
+    if !global_mean.is_finite() {
+        return Err("global time-history mean overflowed".to_owned());
+    }
     let time_domain_mean_square = samples
         .iter()
         .map(|value| (value - global_mean) * (value - global_mean))
         .sum::<f64>()
         / samples.len() as f64;
+    if !time_domain_mean_square.is_finite() || time_domain_mean_square < 0.0 {
+        return Err("time-domain mean-square is invalid".to_owned());
+    }
     let time_domain_rms = time_domain_mean_square.sqrt();
     let integrated_rms = integrated_mean_square.sqrt();
     let rms_relative_difference = if time_domain_rms > 0.0 {
@@ -232,20 +238,24 @@ pub fn stationarity_report(
     let rms_min = rms_values.iter().copied().fold(f64::INFINITY, f64::min);
     let rms_max = rms_values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let mean_rms = rms_values.iter().sum::<f64>() / rms_values.len() as f64;
-    let rms_drift_fraction = if mean_rms > 0.0 {
+    let rms_drift_fraction = if mean_rms.is_finite() && mean_rms > 0.0 {
         (rms_max - rms_min) / mean_rms
-    } else if rms_max == 0.0 {
+    } else if mean_rms == 0.0 && rms_max == 0.0 {
         0.0
     } else {
         return Err("stationarity RMS normalization is invalid".to_owned());
     };
+    let mean_drift_absolute = mean_max - mean_min;
+    if !mean_drift_absolute.is_finite() || !rms_drift_fraction.is_finite() {
+        return Err("stationarity drift metric overflowed".to_owned());
+    }
 
     Ok(StationarityReport {
         window_count,
         samples_per_window,
         mean_min,
         mean_max,
-        mean_drift_absolute: mean_max - mean_min,
+        mean_drift_absolute,
         rms_min,
         rms_max,
         rms_drift_fraction,
@@ -253,8 +263,12 @@ pub fn stationarity_report(
 }
 
 pub fn dominant_frequency_hz(psd: &PsdEstimate) -> Result<f64, String> {
-    if psd.frequencies_hz.len() != psd.psd_per_hz.len() || psd.psd_per_hz.len() < 2 {
-        return Err("PSD frequency and value vectors are inconsistent".to_owned());
+    if psd.frequencies_hz.len() != psd.psd_per_hz.len()
+        || psd.psd_per_hz.len() < 2
+        || psd.frequencies_hz.iter().any(|value| !value.is_finite() || *value < 0.0)
+        || psd.psd_per_hz.iter().any(|value| !value.is_finite() || *value < 0.0)
+    {
+        return Err("PSD frequency and value vectors are inconsistent or non-finite".to_owned());
     }
     let (index, _) = psd
         .psd_per_hz
@@ -267,6 +281,13 @@ pub fn dominant_frequency_hz(psd: &PsdEstimate) -> Result<f64, String> {
 }
 
 pub fn band_power(psd: &PsdEstimate, lower_hz: f64, upper_hz: f64) -> Result<f64, String> {
+    if psd.frequencies_hz.len() != psd.psd_per_hz.len()
+        || psd.frequencies_hz.is_empty()
+        || psd.frequencies_hz.iter().any(|value| !value.is_finite() || *value < 0.0)
+        || psd.psd_per_hz.iter().any(|value| !value.is_finite() || *value < 0.0)
+    {
+        return Err("PSD frequency and value vectors are inconsistent or non-finite".to_owned());
+    }
     if !lower_hz.is_finite()
         || !upper_hz.is_finite()
         || lower_hz < 0.0
@@ -292,8 +313,12 @@ pub fn compare_spectra(
     reference: &PsdEstimate,
     candidate: &PsdEstimate,
 ) -> Result<SpectralComparison, String> {
-    if reference.frequencies_hz.len() != candidate.frequencies_hz.len()
+    if reference.frequencies_hz.len() != reference.psd_per_hz.len()
+        || candidate.frequencies_hz.len() != candidate.psd_per_hz.len()
+        || reference.frequencies_hz.len() != candidate.frequencies_hz.len()
         || reference.psd_per_hz.len() != candidate.psd_per_hz.len()
+        || reference.frequencies_hz.iter().chain(&candidate.frequencies_hz).any(|value| !value.is_finite())
+        || reference.psd_per_hz.iter().chain(&candidate.psd_per_hz).any(|value| !value.is_finite() || *value < 0.0)
         || (reference.frequency_bin_width_hz - candidate.frequency_bin_width_hz).abs() > 1.0e-12
         || reference
             .frequencies_hz
@@ -477,6 +502,25 @@ mod tests {
         samples.extend(sine_trace(2.0, 32.0, 512, 512.0, 0.0));
         let report = stationarity_report(&samples, 8).expect("finite windows");
         assert!(report.rms_drift_fraction > 0.4);
+    }
+
+    #[test]
+    fn public_spectrum_helpers_reject_malformed_vectors_and_nonfinite_values() {
+        let psd = welch_one_sided_psd(
+            &sine_trace(1.0, 32.0, 1024, 512.0, 0.0),
+            &config(),
+        )
+        .expect("known spectrum");
+
+        let mut truncated = psd.clone();
+        truncated.psd_per_hz.pop();
+        assert!(band_power(&truncated, 10.0, 20.0).is_err());
+        assert!(compare_spectra(&psd, &truncated).is_err());
+
+        let mut nonfinite = psd;
+        nonfinite.psd_per_hz[4] = f64::NAN;
+        assert!(dominant_frequency_hz(&nonfinite).is_err());
+        assert!(band_power(&nonfinite, 10.0, 20.0).is_err());
     }
 
     #[test]
