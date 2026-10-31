@@ -1,9 +1,10 @@
-//! Conditional joint-state bootstrap particle filter.
+//! Fully adapted joint-state particle filter for finite stochastic kernels.
 //!
 //! Particles retain mechanism, physical state and sensor state as one tuple.
 //! At each observed event, the filter weights particles by the exact kernel
 //! likelihood and samples next physical/sensor state conditional on that event.
-//! This is a finite-state filter baseline, not nested SMC-squared.
+//! The model kernel is borrowed immutably for the filter lifetime, preventing
+//! accidental model changes mid-campaign. This is not nested SMC-squared.
 
 use super::{JointKernel, JointMass, Rational};
 use std::collections::{BTreeMap, BTreeSet};
@@ -205,6 +206,9 @@ pub struct JointStateParticleFilter<'kernel> {
 
 impl<'kernel> JointStateParticleFilter<'kernel> {
     /// Sample the supplied exact joint prior into a weighted particle set.
+    ///
+    /// The kernel is borrowed immutably and remains the model for the entire
+    /// filter lifetime; each alternative world requires a separate filter.
     pub fn from_joint_belief(
         kernel: &'kernel JointKernel,
         initial_belief: &[JointMass],
@@ -280,7 +284,8 @@ impl<'kernel> JointStateParticleFilter<'kernel> {
             .collect()
     }
 
-    /// Apply one public observation, preserving joint physical/sensor state.
+    /// Apply one public observation under the bound immutable kernel, preserving
+    /// joint physical/sensor state.
     ///
     /// The update is atomic: an impossible observation or invalid state returns
     /// an error without changing particles, RNG state, or diagnostics.
