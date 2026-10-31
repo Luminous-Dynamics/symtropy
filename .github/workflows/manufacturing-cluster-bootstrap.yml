@@ -1,0 +1,42 @@
+name: Lot-cluster bootstrap manufacturing capability reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-capability/cluster_bootstrap.rs"
+      - "tools/manufacturing-capability/cluster-bootstrap-README.md"
+      - ".github/workflows/manufacturing-cluster-bootstrap.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-capability/cluster_bootstrap.rs"
+      - "tools/manufacturing-capability/cluster-bootstrap-README.md"
+      - ".github/workflows/manufacturing-cluster-bootstrap.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cluster-bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run cluster-unit tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/manufacturing-capability/cluster_bootstrap.rs -o "$RUNNER_TEMP/cluster-bootstrap-tests"
+          "$RUNNER_TEMP/cluster-bootstrap-tests"
+      - name: Build and verify interval comparison
+        run: |
+          rustc --edition=2024 -D warnings tools/manufacturing-capability/cluster_bootstrap.rs -o "$RUNNER_TEMP/cluster-bootstrap"
+          "$RUNNER_TEMP/cluster-bootstrap" --verify
+      - name: Emit deterministic report and source digest
+        run: |
+          "$RUNNER_TEMP/cluster-bootstrap" --csv > "$RUNNER_TEMP/cluster-bootstrap-a.csv"
+          "$RUNNER_TEMP/cluster-bootstrap" --csv > "$RUNNER_TEMP/cluster-bootstrap-b.csv"
+          diff -u "$RUNNER_TEMP/cluster-bootstrap-a.csv" "$RUNNER_TEMP/cluster-bootstrap-b.csv"
+          sha256sum tools/manufacturing-capability/cluster_bootstrap.rs "$RUNNER_TEMP/cluster-bootstrap-a.csv"
+          cat "$RUNNER_TEMP/cluster-bootstrap-a.csv"
