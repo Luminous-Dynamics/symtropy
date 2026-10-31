@@ -296,6 +296,7 @@ fn audit_campaign(csv: &str) -> Result<(), String> {
             || metrics[3] > 1.0e-10
             || metrics[4] > 1.0e-8
             || metrics[5] > 1.0e-8
+            || metrics[6] > 1.0e-8
         {
             return Err(format!("constraint or momentum residual outside envelope at line {line_number}"));
         }
@@ -324,6 +325,11 @@ mod tests {
                 assert!(csv.lines().any(|line| line.starts_with(&prefix)));
             }
         }
+    }
+
+    #[test]
+    fn campaign_replay_is_byte_identical() {
+        assert_eq!(campaign_csv(), campaign_csv());
     }
 
     #[test]
