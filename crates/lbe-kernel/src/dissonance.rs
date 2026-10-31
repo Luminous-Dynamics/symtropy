@@ -1454,7 +1454,12 @@ mod tests {
         let mut record = record(DissonanceKind::StructuralParadox);
         apply_disposition(
             &mut record,
-            DissonanceDisposition::HoldOpen { review_at: 100 },
+            DissonanceDisposition::HoldOpen {
+                owner_id: "governance:review-owner".to_owned(),
+                rationale: "Review the unresolved evidence and affected-party access.".to_owned(),
+                review_route_ref: "appeal:review-route-3".to_owned(),
+                review_at: 100,
+            },
             10,
         ).unwrap();
         assert_eq!(record.next_review_at(), Some(100));
