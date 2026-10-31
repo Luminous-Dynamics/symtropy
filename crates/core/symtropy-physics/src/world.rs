@@ -175,6 +175,7 @@ pub enum PhysicsStepPhase {
 pub enum PhysicsStepCause {
     RotationalInertia(crate::inertia::RotationalInertiaError),
     InvalidTimeStep,
+    NonFiniteWorldInput,
     NonFiniteCallbackOutput,
     ImpulseDirectionReversal,
     NegativeFrictionCoefficient,
