@@ -14,7 +14,7 @@ Do not repurpose an existing digest field. Any incompatible semantic or encoding
 
 ## 2. Parse-before-canonicalize boundary
 
-RFC 8785 JCS is defined over an I-JSON-compatible data model. Duplicate property names must not be accepted as ambiguous input; number values must fit the IEEE-754 binary64 data model; invalid non-finite values are rejected; string data is preserved without Unicode normalization. Property sorting uses UTF-16 code-unit ordering and array order is preserved.
+RFC 8785 JCS is defined over an I-JSON-compatible data model. Duplicate property names must not be accepted as ambiguous input; number values must fit the IEEE-754 binary64 data model; invalid non-finite values are rejected; strings and member names must exclude surrogate code points and Unicode noncharacters; string data is preserved without Unicode normalization. Property sorting uses UTF-16 code-unit ordering and array order is preserved.
 
 A typed serializer cannot detect every ambiguity in raw JSON bytes after a
 lossy parse. Therefore any untrusted JSON-to-JCS consumer must reject
@@ -33,7 +33,7 @@ Define one explicit boundary for invalid UTF-8 and escaped lone-surrogate behavi
 
 Valid cases include RFC 8785 shared vectors, current checked-in vectors, reordered object properties, recursively nested objects in arrays, BMP and supplementary-plane property names, composed and decomposed Unicode strings as distinct content, escaped and literal spellings that decode to the same string, zero/negative zero, subnormal values, exponent boundaries, maximum finite binary64, bounded integer values and valid typed Scenario IR envelopes.
 
-Invalid or ambiguous cases include duplicate property names at top-level and nested levels, invalid UTF-8, lone-surrogate escape attempts, NaN/infinities/exponent overflow, unsupported raw numeric values, unknown profile, duplicate artifact role, malformed digest, missing required envelope field and inconsistent source/semantic/artifact/subject digest associations.
+Invalid or ambiguous cases include duplicate property names at top-level and nested levels, invalid UTF-8, lone-surrogate escape attempts, BMP and supplementary-plane Unicode noncharacters in both property names and values, NaN/infinities/exponent overflow, unsupported raw numeric values, unknown profile, duplicate artifact role, malformed digest, missing required envelope field and inconsistent source/semantic/artifact/subject digest associations.
 
 The corpus manifest must classify each input as valid or expected-reject and name the rejection boundary. Parser errors and typed-schema errors are different outcomes.
 
