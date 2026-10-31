@@ -67,6 +67,7 @@ pub struct BenchmarkInstance {
     pub generator_version: String,
     pub family: ChallengeFamily,
     pub nominal_world_id: String,
+    pub fingerprint_hex: String,
     pub worlds: Vec<ModelWorld>,
 }
 
@@ -140,14 +141,115 @@ fn generate_instance(
         world.kernel.validate()?;
     }
 
-    Ok(BenchmarkInstance {
+    let mut instance = BenchmarkInstance {
         id: format!("{}-{:016x}", family.as_str(), seed),
         seed,
         generator_version: GENERATOR_VERSION.into(),
         family,
         nominal_world_id: "nominal".into(),
+        fingerprint_hex: String::new(),
         worlds,
-    })
+    };
+    instance.fingerprint_hex = fingerprint_instance(&instance);
+    Ok(instance)
+}
+
+/// Stable FNV-1a fingerprint of the complete benchmark manifest and kernels.
+///
+/// This is a reproducibility fingerprint, not a cryptographic commitment.
+fn fingerprint_instance(instance: &BenchmarkInstance) -> String {
+    let mut fingerprint = StableFingerprint::new();
+    fingerprint.write_string(&instance.generator_version);
+    fingerprint.write_u64(instance.seed);
+    fingerprint.write_string(instance.family.as_str());
+    fingerprint.write_string(&instance.nominal_world_id);
+    for world in &instance.worlds {
+        fingerprint.write_string(&world.id);
+        let kernel = &world.kernel;
+        fingerprint.write_string_slice(&kernel.hypothesis_ids);
+        fingerprint.write_u64(kernel.physical_state_count as u64);
+        fingerprint.write_u64(kernel.sensor_state_count as u64);
+        fingerprint.write_string_slice(&kernel.action_ids);
+        fingerprint.write_string_slice(&kernel.observation_ids);
+        fingerprint.write_u64_slice(&kernel.action_costs);
+        fingerprint.write_u64(kernel.initial_belief.len() as u64);
+        for point in &kernel.initial_belief {
+            fingerprint.write_u64(point.hypothesis as u64);
+            fingerprint.write_u64(point.physical_state as u64);
+            fingerprint.write_u64(point.sensor_state as u64);
+            fingerprint.write_u128(point.mass.numerator());
+            fingerprint.write_u128(point.mass.denominator());
+        }
+        fingerprint.write_u64(kernel.rows.len() as u64);
+        for row in &kernel.rows {
+            fingerprint.write_u64(row.hypothesis as u64);
+            fingerprint.write_u64(row.physical_state as u64);
+            fingerprint.write_u64(row.sensor_state as u64);
+            fingerprint.write_u64(row.action as u64);
+            fingerprint.write_u64(row.outcomes.len() as u64);
+            for outcome in &row.outcomes {
+                fingerprint.write_u128(outcome.probability.numerator());
+                fingerprint.write_u128(outcome.probability.denominator());
+                fingerprint.write_u64(outcome.next_physical_state as u64);
+                fingerprint.write_u64(outcome.next_sensor_state as u64);
+                match outcome.observation {
+                    None => fingerprint.write_u64(u64::MAX),
+                    Some(observation) => fingerprint.write_u64(observation as u64),
+                }
+            }
+        }
+    }
+    format!("{:016x}", fingerprint.state)
+}
+
+#[derive(Clone, Copy, Debug)]
+struct StableFingerprint {
+    state: u64,
+}
+
+impl StableFingerprint {
+    const OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
+    const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
+
+    fn new() -> Self {
+        Self {
+            state: Self::OFFSET_BASIS,
+        }
+    }
+
+    fn write_bytes(&mut self, bytes: &[u8]) {
+        for byte in bytes {
+            self.state ^= u64::from(*byte);
+            self.state = self.state.wrapping_mul(Self::FNV_PRIME);
+        }
+    }
+
+    fn write_u64(&mut self, value: u64) {
+        self.write_bytes(&value.to_le_bytes());
+    }
+
+    fn write_u128(&mut self, value: u128) {
+        self.write_bytes(&value.to_le_bytes());
+    }
+
+    fn write_string(&mut self, value: &str) {
+        self.write_u64(value.len() as u64);
+        self.write_bytes(value.as_bytes());
+    }
+
+    fn write_string_slice(&mut self, values: &[String]) {
+        self.write_u64(values.len() as u64);
+        for value in values {
+            self.write_string(value);
+        }
+    }
+
+    fn write_u64_slice(&mut self, values: &[u64]) {
+        self.write_u64(values.len() as u64);
+        for value in values {
+            self.write_u64(*value);
+        }
+    }
 }
 
 fn build_kernel(
@@ -367,6 +469,28 @@ mod tests {
                 && instance.worlds.len() == 2
                 && instance.worlds.iter().all(|world| world.kernel.validate().is_ok())
         }));
+    }
+
+    #[test]
+    fn manifest_fingerprint_is_stable_and_sensitive_to_kernel_changes() {
+        let first = generate_instance(
+            0xF1_6E_2,
+            ChallengeFamily::PersistentSensorDrift,
+        ).unwrap();
+        let same = generate_instance(
+            0xF1_6E_2,
+            ChallengeFamily::PersistentSensorDrift,
+        ).unwrap();
+        assert_eq!(first.fingerprint_hex, same.fingerprint_hex);
+        assert_eq!(first.fingerprint_hex.len(), 16);
+
+        let mut changed = first.clone();
+        changed.worlds[1].kernel.action_costs[0] += 1;
+        assert_ne!(
+            first.fingerprint_hex,
+            fingerprint_instance(&changed),
+            "manifest fingerprint must cover costs and complete kernel state"
+        );
     }
 
     #[test]
