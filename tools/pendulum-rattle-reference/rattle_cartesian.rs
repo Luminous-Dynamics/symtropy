@@ -516,7 +516,7 @@ mod tests {
             model.step(
                 State {
                     position: [0.0, -1.0],
-                    momentum: [1.0, 0.0],
+                    momentum: [0.0, 0.1],
                 },
                 0.01,
             )
