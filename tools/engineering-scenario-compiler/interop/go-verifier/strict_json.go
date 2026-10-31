@@ -56,6 +56,9 @@ func consumeJSONValue(decoder *json.Decoder) error {
 				if !ok {
 					return fmt.Errorf("object member name is not a string")
 				}
+				if err := rejectUnicodeNoncharacters(key); err != nil {
+					return fmt.Errorf("invalid object member name: %w", err)
+				}
 				if _, exists := seen[key]; exists {
 					return fmt.Errorf("duplicate object member name %q", key)
 				}
@@ -93,10 +96,24 @@ func consumeJSONValue(decoder *json.Decoder) error {
 		if !strings.ContainsAny(raw, ".eE") && math.Abs(number) > 9007199254740991 {
 			return fmt.Errorf("JSON integer %q is outside the interoperable safe-integer range", value)
 		}
-	case string, bool, nil:
+	case string:
+		if err := rejectUnicodeNoncharacters(value); err != nil {
+			return fmt.Errorf("invalid JSON string: %w", err)
+		}
+	case bool, nil:
 		// These JSON primitive types are valid in the canonicalization model.
 	default:
 		return fmt.Errorf("unsupported JSON token type %T", token)
+	}
+	return nil
+}
+
+// rejectUnicodeNoncharacters applies the I-JSON string/member-name rule.
+func rejectUnicodeNoncharacters(value string) error {
+	for _, codepoint := range value {
+		if (codepoint >= 0xFDD0 && codepoint <= 0xFDEF) || (codepoint&0xFFFE == 0xFFFE) {
+			return fmt.Errorf("Unicode noncharacter U+%04X is not permitted in I-JSON strings", codepoint)
+		}
 	}
 	return nil
 }
