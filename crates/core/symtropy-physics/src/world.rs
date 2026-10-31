@@ -2826,6 +2826,43 @@ mod transformed_halfspace_tests {
     }
 
     #[test]
+    fn world_default_integration_policy_does_not_apply_hidden_speed_caps() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = SVector::new(1500.0, 0.0, 0.0);
+        body.angular_velocity = Bivector::<3>::unit_plane(0, 1).scale(120.0);
+
+        world.try_step(1e-4).unwrap();
+
+        let body = world.body(handle).unwrap();
+        assert!((body.linear_velocity.norm() - 1500.0).abs() < 1e-10);
+        assert!((body.angular_velocity.norm() - 120.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn world_can_opt_into_explicit_unitful_speed_limits() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.set_integration_limits(
+            integrator::IntegrationLimits::with_speed_caps(Some(25.0), Some(8.0)).unwrap(),
+        );
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = SVector::new(30.0, 0.0, 0.0);
+        body.angular_velocity = Bivector::<3>::unit_plane(0, 1).scale(12.0);
+
+        world.try_step(1e-4).unwrap();
+
+        let body = world.body(handle).unwrap();
+        assert!((body.linear_velocity.norm() - 25.0).abs() < 1e-12);
+        assert!((body.angular_velocity.norm() - 8.0).abs() < 1e-12);
+    }
+
+    #[test]
     fn try_step_rolls_back_all_bodies_when_later_body_has_singular_inertia() {
         use crate::inertia::{BivectorInertia, RotationalInertiaError};
         use nalgebra::SMatrix;
