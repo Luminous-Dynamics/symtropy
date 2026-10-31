@@ -176,8 +176,11 @@ Targets are divided into exact software properties and contextual empirical meas
 - Every event has a strictly increasing sequence number, a non-decreasing host timestamp, an actor identifier, a predecessor receipt reference and a current receipt reference.
 - Every hazard-finding transition names the prior finding and a new evidence reference. Refutation does not delete the report; reopening requires a new event and evidence reference.
 - Replay of a complete, valid event stream from the same genesis positions reproduces the same state and history.
+- Experiments account for every recorded position as tested or explicitly retained.
+- Hazard-finding transitions follow a declared state graph, require new evidence references and preserve prior findings; reopening a refuted hazard is a new event.
 - Missing, duplicated, reordered, backdated or incorrectly linked events fail closed.
 - The kernel does not authenticate actors or verify receipt signatures/digests. The host adapter must bind the genesis state and canonical event payload to signed/content-addressed receipts and enforce an independently authorized, append-only store.
+- Current dispositions expose their mandatory review time; overdue review is a detectable state, not automatic resolution.
 
 ### Longitudinal evaluation
 
