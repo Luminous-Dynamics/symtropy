@@ -533,8 +533,9 @@ mod tests {
     #[test]
     fn posterior_tracks_hand_computable_binary_likelihood() {
         let world = reliable_world("nominal", Rational::new(3, 4).unwrap(), false);
+        let worlds = vec![world];
         let mut filter = JointParticleFilter::with_uniform_world_prior(
-            &[world],
+            &worlds,
             ParticleFilterConfig {
                 particle_count: 30_000,
                 seed: 1234,
@@ -575,8 +576,9 @@ mod tests {
     #[test]
     fn particle_eig_matches_analytic_binary_channel_with_sampling_error() {
         let world = reliable_world("nominal", Rational::new(3, 4).unwrap(), false);
+        let worlds = vec![world];
         let filter = JointParticleFilter::with_uniform_world_prior(
-            &[world],
+            &worlds,
             ParticleFilterConfig {
                 particle_count: 30_000,
                 seed: 2026,
@@ -584,7 +586,8 @@ mod tests {
             },
         )
         .unwrap();
-        let score = &filter.rank_actions_by_eig().unwrap()[0];
+        let scores = filter.rank_actions_by_eig().unwrap();
+        let score = &scores[0];
         let exact = std::f64::consts::LN_2
             + 0.75 * 0.75_f64.ln()
             + 0.25 * 0.25_f64.ln();
