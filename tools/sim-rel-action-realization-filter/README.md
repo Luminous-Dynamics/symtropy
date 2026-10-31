@@ -128,6 +128,41 @@ open-world model adequacy proof, continuous physical solver, or hardware safety
 certificate.
 
 
+## Deterministic model-family falsification (SIM-REL-029 precursor)
+
+The `decision_value::counterexample_search` module provides a deterministic,
+bounded attack surface against one fixed shared policy. Each
+`PerturbationSpec` names an immutable source world, a unique candidate-world
+ID and an exact mutation. Initial mutation families include measurement-label
+inversion conditioned on sensor state, readback dropout, hazard injection,
+exact probability-mass transfer between outcomes, apparatus-state degradation
+and realized-action remapping.
+
+The generator validates every mutated kernel and preserves its state, action
+and observation vocabularies, so candidates can be appended to the existing
+finite model family without silently changing the meaning of the loss table or
+public protocol. Search replays the *same fixed policy* over the expanded
+family. A newly reachable observation for which the policy has no branch is
+recorded as `PolicyInvalidated`; it is never silently normalized or discarded.
+Other witnesses distinguish hazard-budget violation, abstention-budget
+violation and increased downstream loss relative to the previous family
+worst-case. Non-violating candidates and rejected mutations are recorded
+separately.
+
+The report retains the original worlds, loss table, observation protocol,
+command costs, hazard loss, policy, horizon and risk budgets, alongside the
+exact mutation specification and candidate kernel. This makes a discovered
+counterexample replayable and allows an explicit later admission/re-plan step.
+Candidate IDs are unique within a search report, and candidate insertion is
+never performed implicitly.
+
+This is a finite, enumerated mutation-family falsifier. It is not a learned
+adversary, does not cover arbitrary unknown physics, does not establish
+statistical model adequacy and does not confer a physical safety guarantee.
+The next increment is to add calibrated search domains, provenance/split
+receipts, held-out generator families and an explicit admission ledger rather
+than to overstate finite mutation coverage.
+
 ## Shared-policy robust downstream decision planning (SIM-REL-028)
 
 The `decision_value::robust_finite_horizon` module extends the finite-horizon
