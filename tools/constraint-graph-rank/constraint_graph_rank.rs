@@ -37,8 +37,6 @@ pub enum GeometryStatus {
     FullRank,
     IllConditioned,
     RankDeficient,
-    InfeasibleGeometry,
-    NonFinite,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -926,6 +924,53 @@ mod tests {
             .unwrap_err(),
             GraphError::InvalidRankPolicy
         );
+    }
+
+    #[test]
+    fn body_storage_permutation_preserves_rank_and_condition() {
+        let base = closed_triangle(0.31, 27);
+        let baseline = base.assess_geometry().unwrap();
+        let b = *base.bodies();
+        let permuted_bodies = [b[2], b[0], b[1]];
+        let permuted = ConstraintGraph3::new(
+            28,
+            permuted_bodies,
+            base.edges().to_vec(),
+            RankPolicy::default(),
+        )
+        .unwrap()
+        .assess_geometry()
+        .unwrap();
+        assert_eq!(baseline.numerical_rank, permuted.numerical_rank);
+        assert!(
+            (baseline.reciprocal_condition_indicator
+                - permuted.reciprocal_condition_indicator)
+                .abs()
+                < 2.0e-13
+        );
+        for index in 0..3 {
+            assert!(
+                (baseline.eigenvalues[index] - permuted.eigenvalues[index]).abs()
+                    < 2.0e-12
+            );
+        }
+    }
+
+    #[test]
+    fn gram_matrix_is_symmetric_positive_semidefinite_with_per_edge_rows() {
+        let receipt = closed_triangle(0.27, 29).assess_geometry().unwrap();
+        assert_eq!(receipt.gram_matrix.len(), 3);
+        for row in 0..3 {
+            for column in 0..3 {
+                assert!(
+                    (receipt.gram_matrix[row][column]
+                        - receipt.gram_matrix[column][row])
+                        .abs()
+                        < 2.0e-14
+                );
+            }
+        }
+        assert!(receipt.eigenvalues.iter().take(3).all(|value| *value >= 0.0));
     }
 
     #[test]
