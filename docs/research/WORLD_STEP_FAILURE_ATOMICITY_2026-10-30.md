@@ -26,6 +26,10 @@ The physics-owned state can be restored, but arbitrary external side effects fro
 
 A future fully transactional callback contract should buffer callback observations and publish them only after the physics commit, or let callbacks implement prepare/commit/abort semantics. The no-op `try_step` has no external callback side effects and is the strongest current atomicity path.
 
+## Numerical rejection semantics
+
+The strict integrator now rejects non-finite gravity, force/torque accumulators, current body state, invalid timestep/parameters, and non-finite candidate state. It computes candidate position, velocities and rotation locally, committing only after all components are finite. An error leaves the body state and accumulators unchanged; the enclosing world transaction restores all other physics-owned step state. The compatibility `integrate` wrapper retains its void signature but discards the typed error and clears accumulators, so scientific callers must use `try_integrate` or the world `try_step` APIs.
+
 ## Ordering invariant
 
 All fallible inertia operations occur during free integration, warm-start, and contact solving, before the existing non-fallible joint/constraint solver phases. The current rollback contract relies on that phase ordering. Any future fallible operation added after constraint solving must either be moved before the commit boundary or cause the snapshot to include the affected constraint state.
@@ -45,7 +49,7 @@ Before promotion:
 1. Run formatting, Clippy, compile and physics tests at the exact head.
 2. Add contact-failure rollback fixtures (not only integration-stage failure).
 3. Add callback buffering or prepare/commit/abort semantics.
-4. Add stable step sequence numbers and deterministic receipts for rejected steps; phase and body/contact identifiers are now included, while a world/run receipt envelope remains future work.
+4. Every accepted or rejected attempt now receives a monotonic world-local `step_id`; rejected `PhysicsStepError` records include that ID, failure phase, body/contact identifiers and typed cause. A full run-level envelope with source/configuration hashes remains future work.
 5. Prove the rollback contract remains valid as new fallible solver phases are introduced.
 
 No CI or numerical test pass is claimed by the source changes alone.
