@@ -13,7 +13,9 @@
 use nalgebra::SVector;
 use symtropy_math::{Point, Shape, Transform};
 
-use crate::support_map::{TransformedShape, WorldSupportMap};
+use crate::support_map::{
+    NormalizedSupportMap, SupportNormalization, TransformedShape, WorldSupportMap,
+};
 
 const MAX_EPA_ITERATIONS: usize = 32;
 const EPA_TOLERANCE: f64 = 1e-6;
@@ -62,13 +64,26 @@ pub fn penetration_support_maps<const D: usize>(
     shape_b: &dyn WorldSupportMap<D>,
     simplex: &[SVector<f64, D>],
 ) -> Option<EpaResult<D>> {
-    if D == 2 {
-        epa_2d(shape_a, shape_b, simplex)
+    let normalization = SupportNormalization::for_pair(shape_a, shape_b);
+    let normalized_a: NormalizedSupportMap<'_, D> = normalization.map(shape_a);
+    let normalized_b: NormalizedSupportMap<'_, D> = normalization.map(shape_b);
+    let normalized_simplex: Vec<SVector<f64, D>> = simplex
+        .iter()
+        .map(|point| normalization.normalize_minkowski_point(point))
+        .collect();
+
+    // EPA's internal support distances, edge/face degeneracy guards and
+    // convergence tolerance are now dimensionless because the complete pair
+    // shares the same O(1) characteristic extent.
+    let mut result = if D == 2 {
+        epa_2d(&normalized_a, &normalized_b, &normalized_simplex)
     } else if D == 3 {
-        epa_3d(shape_a, shape_b, simplex)
+        epa_3d(&normalized_a, &normalized_b, &normalized_simplex)
     } else {
-        epa_nd(shape_a, shape_b, simplex)
-    }
+        epa_nd(&normalized_a, &normalized_b, &normalized_simplex)
+    }?;
+    result.depth *= normalization.scale();
+    Some(result)
 }
 
 /// Support point on the Minkowski difference.
@@ -796,6 +811,41 @@ mod tests {
             "4D EPA normal should be unit, got {}",
             normal_len
         );
+    }
+
+    fn assert_sphere_penetration_scale_invariant<const D: usize>(scale: f64) {
+        let a = Sphere::<D>::new(Point::origin(), scale);
+        let b = Sphere::<D>::new(Point::origin(), scale);
+        let pos_a = SVector::<f64, D>::zeros();
+        let mut pos_b = SVector::<f64, D>::zeros();
+        pos_b[0] = 1.5 * scale;
+        let gjk_result = crate::gjk::intersects(&a, &pos_a, &b, &pos_b);
+        assert!(gjk_result.intersecting, "D={D}, scale={scale:e}");
+        let penetration = penetration(
+            &a,
+            &pos_a,
+            &b,
+            &pos_b,
+            &gjk_result.simplex,
+        )
+        .unwrap_or_else(|| panic!("EPA failed for D={D}, scale={scale:e}"));
+        let normalized_depth = penetration.depth / scale;
+        assert!(
+            (normalized_depth - 0.5).abs() < 1e-4,
+            "D={D}, scale={scale:e}: normalized depth={normalized_depth}"
+        );
+        assert!(
+            (penetration.normal.norm() - 1.0).abs() < 1e-10,
+            "D={D}, scale={scale:e}: non-unit normal"
+        );
+    }
+
+    #[test]
+    fn epa_penetration_depth_is_invariant_under_length_unit_scaling_2d_and_3d() {
+        for scale in [1e-12, 1e-8, 1e-4, 1.0, 1e4, 1e8, 1e12] {
+            assert_sphere_penetration_scale_invariant::<2>(scale);
+            assert_sphere_penetration_scale_invariant::<3>(scale);
+        }
     }
 
     #[test]
