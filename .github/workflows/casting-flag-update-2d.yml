@@ -1,0 +1,46 @@
+name: Complete 2D implicit flag-update enthalpy reference
+
+on:
+  pull_request:
+    branches: [research/casting-matrix-free-2d-operator-20261030]
+    paths:
+      - "tools/casting-phase-reference/flag_update_2d.rs"
+      - "tools/casting-phase-reference/matrix_free_2d.rs"
+      - "tools/casting-phase-reference/flag-update-2d-README.md"
+      - ".github/workflows/casting-flag-update-2d.yml"
+  push:
+    branches: [research/casting-flag-update-2d-20261031]
+    paths:
+      - "tools/casting-phase-reference/flag_update_2d.rs"
+      - "tools/casting-phase-reference/matrix_free_2d.rs"
+      - "tools/casting-phase-reference/flag-update-2d-README.md"
+      - ".github/workflows/casting-flag-update-2d.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase-update-2d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run planar extrusion tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/casting-phase-reference/flag_update_2d.rs -o "$RUNNER_TEMP/flag-update-2d-tests"
+          "$RUNNER_TEMP/flag-update-2d-tests"
+      - name: Build and verify 2D campaign
+        run: |
+          rustc --edition=2024 -D warnings tools/casting-phase-reference/flag_update_2d.rs -o "$RUNNER_TEMP/flag-update-2d"
+          "$RUNNER_TEMP/flag-update-2d" --verify
+      - name: Check deterministic output and emit report
+        run: |
+          "$RUNNER_TEMP/flag-update-2d" --csv > "$RUNNER_TEMP/flag-update-2d-a.csv"
+          "$RUNNER_TEMP/flag-update-2d" --csv > "$RUNNER_TEMP/flag-update-2d-b.csv"
+          diff -u "$RUNNER_TEMP/flag-update-2d-a.csv" "$RUNNER_TEMP/flag-update-2d-b.csv"
+          cat "$RUNNER_TEMP/flag-update-2d-a.csv"
+      - name: Emit exact source and output digests
+        run: |
+          sha256sum tools/casting-phase-reference/flag_update_2d.rs tools/casting-phase-reference/matrix_free_2d.rs "$RUNNER_TEMP/flag-update-2d-a.csv"

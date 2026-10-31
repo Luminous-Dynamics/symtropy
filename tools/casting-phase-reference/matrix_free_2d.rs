@@ -15,14 +15,14 @@ const MAX_ITERATIONS: usize = 20_000;
 const EPSILON_SCALE: f64 = 64.0 * f64::EPSILON;
 
 #[derive(Clone, Debug)]
-struct GridOperator {
-    nx: usize,
-    ny: usize,
-    dx_m: f64,
-    dy_m: f64,
-    dt_s: f64,
+pub(super) struct GridOperator {
+    pub(super) nx: usize,
+    pub(super) ny: usize,
+    pub(super) dx_m: f64,
+    pub(super) dy_m: f64,
+    pub(super) dt_s: f64,
     // gamma > 0 means solid/liquid active; gamma == 0 means mixed (v=0).
-    gamma: Vec<f64>,
+    pub(super) gamma: Vec<f64>,
 }
 
 impl GridOperator {
@@ -189,11 +189,11 @@ impl GridOperator {
 }
 
 #[derive(Clone, Debug)]
-struct SolveReport {
-    solution: Vec<f64>,
-    iterations: usize,
-    operator_applications: usize,
-    relative_residual: f64,
+pub(super) struct SolveReport {
+    pub(super) solution: Vec<f64>,
+    pub(super) iterations: usize,
+    pub(super) operator_applications: usize,
+    pub(super) relative_residual: f64,
 }
 
 fn dot(a: &[f64], b: &[f64]) -> Result<f64, String> {
@@ -219,7 +219,7 @@ fn norm(a: &[f64]) -> Result<f64, String> {
     Ok(value.sqrt())
 }
 
-fn pcg(
+pub(super) fn pcg(
     operator: &GridOperator,
     rhs: &[f64],
     initial: Option<&[f64]>,
