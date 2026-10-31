@@ -1,0 +1,86 @@
+name: Engineering Scenario Compiler
+
+on:
+  pull_request:
+    paths:
+      - "tools/engineering-scenario-compiler/**"
+      - "benchmarks/aero/naca0012-inc-rans/case.toml"
+      - ".github/workflows/engineering-scenario-compiler.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/engineering-scenario-compiler/**"
+      - "benchmarks/aero/naca0012-inc-rans/case.toml"
+      - ".github/workflows/engineering-scenario-compiler.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engineering-scenario-compiler-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compiler:
+    name: Strict offline compiler (Rust 1.96.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Apply pinned rustfmt to standalone compiler sources
+        run: cargo fmt --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all
+
+      - name: Resolve TOML 1.0 parser and regenerate standalone lock
+        run: cargo generate-lockfile --manifest-path tools/engineering-scenario-compiler/Cargo.toml
+
+      - name: Test strict compiler and negative corpus
+        run: cargo test --manifest-path tools/engineering-scenario-compiler/Cargo.toml
+
+      - name: Clippy standalone compiler
+        run: cargo clippy --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all-targets -- -D warnings
+
+      - name: Record toolchain and host provenance
+        run: |
+          mkdir -p target/engineering-scenario-compiler-benchmark
+          {
+            printf 'commit_sha=%s\n' "$(git rev-parse HEAD)"
+            printf 'rustc='; rustc --version
+            printf 'cargo='; cargo --version
+            uname -a
+            printf 'logical_cpus=%s\n' "$(nproc)"
+            sha256sum tools/engineering-scenario-compiler/Cargo.lock
+          } > target/engineering-scenario-compiler-benchmark/reproducibility.txt
+
+      - name: Measure deterministic compiler latency distribution
+        run: |
+          cargo bench --manifest-path tools/engineering-scenario-compiler/Cargo.toml --bench compile_latency --locked \
+            > target/engineering-scenario-compiler-benchmark/latency.csv
+          cat target/engineering-scenario-compiler-benchmark/latency.csv
+
+      - name: Upload reproducible compiler latency measurements
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-scenario-compiler-benchmark-${{ github.sha }}
+          path: target/engineering-scenario-compiler-benchmark/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish formatted sources and resolved lockfile for commit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-scenario-compiler-formatted
+          path: |
+            tools/engineering-scenario-compiler/Cargo.toml
+            tools/engineering-scenario-compiler/Cargo.lock
+            tools/engineering-scenario-compiler/README.md
+            tools/engineering-scenario-compiler/src/lib.rs
+            tools/engineering-scenario-compiler/src/main.rs
+            tools/engineering-scenario-compiler/benches/compile_latency.rs
+          if-no-files-found: error
