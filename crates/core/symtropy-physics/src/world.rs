@@ -2879,6 +2879,22 @@ mod transformed_halfspace_tests {
     }
 
     #[test]
+    fn rejected_and_accepted_steps_use_unique_monotonic_ids() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let error = world.try_step(0.0).unwrap_err();
+        assert_eq!(error.step_id, 0);
+
+        let accepted = world.try_step_with_receipt(0.01).unwrap();
+        assert_eq!(accepted.step_id, 1);
+
+        let next_error = world.try_step(f64::NAN).unwrap_err();
+        assert_eq!(next_error.step_id, 2);
+        let body = world.body(handle).unwrap();
+        assert!(body.transform.translation.0.iter().all(|value| value.is_finite()));
+    }
+
+    #[test]
     fn world_rejects_invalid_dt_with_typed_failure_and_rolls_back() {
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
