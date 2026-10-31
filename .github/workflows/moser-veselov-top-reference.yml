@@ -1,0 +1,48 @@
+name: Moser-Veselov asymmetric-top reference
+
+on:
+  pull_request:
+    paths:
+      - "tools/moser-veselov-top/**"
+      - "docs/research/MOSER_VESELOV_ASYMMETRIC_TOP_2026-10-31.md"
+      - ".github/workflows/moser-veselov-top-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: Standalone reference qualification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+
+      - name: Check formatting
+        run: rustfmt --edition 2021 --check tools/moser-veselov-top/asymmetric_top.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustc --edition=2021 --test -D warnings \
+            tools/moser-veselov-top/asymmetric_top.rs \
+            -o /tmp/moser-veselov-tests
+          /tmp/moser-veselov-tests
+
+      - name: Build deterministic benchmark
+        run: |
+          RUSTC_VERSION="$(rustc --version)" \
+          SYMTROPY_SOURCE_REV="$GITHUB_SHA" \
+          rustc --edition=2021 -O -D warnings \
+            tools/moser-veselov-top/asymmetric_top.rs \
+            -o /tmp/moser-veselov-campaign
+          /tmp/moser-veselov-campaign > /tmp/moser-veselov-first.csv
+          /tmp/moser-veselov-campaign > /tmp/moser-veselov-second.csv
+          cmp /tmp/moser-veselov-first.csv /tmp/moser-veselov-second.csv
+          sha256sum /tmp/moser-veselov-first.csv
