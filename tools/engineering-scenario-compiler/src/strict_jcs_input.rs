@@ -124,9 +124,62 @@ impl<'de> Visitor<'de> for StrictJcsValueVisitor {
     }
 }
 
+fn validate_plain_integer_lexemes(input: &[u8]) -> Result<(), String> {
+    let mut index = 0usize;
+    let mut in_string = false;
+    while index < input.len() {
+        let byte = input[index];
+        if in_string {
+            match byte {
+                b'\\' => {
+                    index = (index + 2).min(input.len());
+                }
+                b'"' => {
+                    in_string = false;
+                    index += 1;
+                }
+                _ => index += 1,
+            }
+            continue;
+        }
+        if byte == b'"' {
+            in_string = true;
+            index += 1;
+            continue;
+        }
+        if byte == b'-' || byte.is_ascii_digit() {
+            let start = index;
+            index += 1;
+            while index < input.len()
+                && (input[index].is_ascii_digit()
+                    || matches!(input[index], b'.' | b'e' | b'E' | b'+' | b'-'))
+            {
+                index += 1;
+            }
+            let token = &input[start..index];
+            if !token.iter().any(|value| matches!(value, b'.' | b'e' | b'E')) {
+                let lexeme = std::str::from_utf8(token)
+                    .map_err(|_| "JSON integer token is not UTF-8".to_owned())?;
+                let integer = lexeme.parse::<i128>().map_err(|_| {
+                    format!("plain JSON integer {lexeme:?} exceeds the supported lexical range")
+                })?;
+                if integer.abs() > i128::from(MAX_SAFE_INTEGER) {
+                    return Err(format!(
+                        "plain JSON integer {lexeme:?} is outside the interoperable safe-integer range"
+                    ));
+                }
+            }
+            continue;
+        }
+        index += 1;
+    }
+    Ok(())
+}
+
 /// Parse exactly one raw JSON value. Duplicate member names are detected after
 /// escape decoding, at every nesting depth, before a map can overwrite them.
 pub fn parse_strict_jcs_input(input: &[u8]) -> Result<Value, String> {
+    validate_plain_integer_lexemes(input)?;
     let mut deserializer = serde_json::Deserializer::from_slice(input);
     let value = StrictJcsSeed
         .deserialize(&mut deserializer)
@@ -168,6 +221,9 @@ mod tests {
         assert!(parse_strict_jcs_input(b"{} {}").is_err());
         assert!(parse_strict_jcs_input(b"9007199254740992").is_err());
         assert!(parse_strict_jcs_input(b"-9007199254740992").is_err());
+        assert!(parse_strict_jcs_input(b"18446744073709551616").is_err());
+        assert!(parse_strict_jcs_input(b"-9223372036854775809").is_err());
+        assert!(parse_strict_jcs_input(b"999999999999999999999999999999999999999999").is_err());
         assert!(parse_strict_jcs_input(b"1e9999").is_err());
     }
 
