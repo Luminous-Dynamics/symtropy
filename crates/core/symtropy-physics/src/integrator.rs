@@ -921,6 +921,112 @@ mod tests {
         );
     }
 
+    fn dimensional_similarity_state(
+        length_scale: f64,
+        mass_scale: f64,
+        time_scale: f64,
+    ) -> (SVector<f64, 3>, SVector<f64, 3>, Bivector<3>, nalgebra::Matrix3<f64>, f64) {
+        let mass = 2.0 * mass_scale;
+        let extents = SVector::new(
+            0.25 * length_scale,
+            0.10 * length_scale,
+            0.20 * length_scale,
+        );
+        let point_masses: Vec<_> = (0..8)
+            .map(|mask| {
+                let point = SVector::new(
+                    if mask & 1 == 0 { -extents[0] } else { extents[0] },
+                    if mask & 2 == 0 { -extents[1] } else { extents[1] },
+                    if mask & 4 == 0 { -extents[2] } else { extents[2] },
+                );
+                (point, mass / 8.0)
+            })
+            .collect();
+        let inertia = crate::inertia::BivectorInertia::<3>::from_point_masses(point_masses)
+            .unwrap();
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(22),
+            Point::new(SVector::new(0.1, 0.2, -0.3) * length_scale),
+            0.35 * length_scale,
+            mass,
+        );
+        body.set_rotational_inertia_operator(inertia);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity =
+            SVector::new(0.4, 0.2, -0.1) * (length_scale / time_scale);
+        body.angular_velocity = Bivector::<3>::unit_plane(0, 1)
+            .scale(0.7 / time_scale)
+            .add(&Bivector::<3>::unit_plane(1, 2).scale(-0.3 / time_scale));
+
+        let gravity = SVector::new(0.0, -9.81, 0.0)
+            * (length_scale / time_scale.powi(2));
+        let dt = 0.002 * time_scale;
+        for _ in 0..100 {
+            body.apply_force(
+                SVector::new(0.2, -0.3, 0.1)
+                    * (mass_scale * length_scale / time_scale.powi(2)),
+            );
+            body.apply_torque(
+                Bivector::<3>::unit_plane(0, 2)
+                    .scale(0.05 * mass_scale * length_scale.powi(2) / time_scale.powi(2)),
+            );
+            try_integrate(&mut body, &gravity, dt).unwrap();
+        }
+
+        let normalized_position = body.transform.translation.0 / length_scale;
+        let normalized_velocity = body.linear_velocity / (length_scale / time_scale);
+        let normalized_angular_velocity = body.angular_velocity.scale(time_scale);
+        let normalized_rotation = body.transform.rotation.to_matrix();
+        let normalized_energy = body.kinetic_energy()
+            / (mass_scale * length_scale.powi(2) / time_scale.powi(2));
+        (
+            normalized_position,
+            normalized_velocity,
+            normalized_angular_velocity,
+            normalized_rotation,
+            normalized_energy,
+        )
+    }
+
+    #[test]
+    fn rigid_body_trajectory_is_invariant_under_coherent_unit_changes() {
+        let reference = dimensional_similarity_state(1.0, 1.0, 1.0);
+        for (length, mass, time) in [
+            (1e-6, 1e-3, 1e-3),
+            (1e6, 1e3, 1e3),
+            (1e-3, 1e6, 1e-2),
+            (1e3, 1e-6, 1e2),
+        ] {
+            let measured = dimensional_similarity_state(length, mass, time);
+            assert!(
+                (measured.0 - reference.0).norm() < 1e-8,
+                "position similarity failed for L={length:e}, M={mass:e}, T={time:e}: {}",
+                (measured.0 - reference.0).norm()
+            );
+            assert!(
+                (measured.1 - reference.1).norm() < 1e-8,
+                "linear-velocity similarity failed for L={length:e}, M={mass:e}, T={time:e}: {}",
+                (measured.1 - reference.1).norm()
+            );
+            assert!(
+                (measured.2 - reference.2).norm() < 1e-8,
+                "angular-velocity similarity failed for L={length:e}, M={mass:e}, T={time:e}: {}",
+                (measured.2 - reference.2).norm()
+            );
+            assert!(
+                (measured.3 - reference.3).norm() < 1e-8,
+                "rotation similarity failed for L={length:e}, M={mass:e}, T={time:e}: {}",
+                (measured.3 - reference.3).norm()
+            );
+            assert!(
+                (measured.4 - reference.4).abs() < 1e-8,
+                "energy similarity failed for L={length:e}, M={mass:e}, T={time:e}: {}",
+                (measured.4 - reference.4).abs()
+            );
+        }
+    }
+
     #[test]
     fn unbounded_integrator_preserves_speeds_above_historical_caps() {
         let mut body =
