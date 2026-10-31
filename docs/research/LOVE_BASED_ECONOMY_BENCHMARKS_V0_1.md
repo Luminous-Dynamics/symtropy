@@ -148,7 +148,7 @@ Mutual-credit systems need explicit credit limits, clearing rules, default handl
 
 The game-specific Symtropy routine in src/systems/economy.rs applies a minimum one-unit demurrage adjustment independently to every positive and negative balance while documenting that the system remains zero-sum. For the starting portfolio [+100, -50, -50], one interval can produce [+99, -49, -49], changing the total from zero to +1. Tiny balances are also adjusted by a full unit rather than by the nominal fractional rate.
 
-This is a concrete simulation accounting defect, not evidence that the separate Mycelix Finance SAP/TEND ledger has the same bug. Track and fix the game-system issue independently; add deterministic, order-independent conservation tests before using this system as an economic benchmark.
+This is a concrete source-level simulation accounting defect, not evidence that the separate Mycelix Finance SAP/TEND ledger has the same bug. In the standalone public repository, this routine is behind the mycelix feature, which is currently commented out in Cargo.toml because private integration dependencies are unavailable; the full monorepo feature composition must be checked separately. The defect is reproducible from the arithmetic, but no enabled-feature runtime test is claimed. Track and fix it independently with an isolated, testable accounting kernel and an exact feature / target / command record before using the system as an economic benchmark.
 
 ## 4. Technical architecture and division of responsibility
 
