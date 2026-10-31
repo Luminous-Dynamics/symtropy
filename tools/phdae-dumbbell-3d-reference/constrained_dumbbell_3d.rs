@@ -906,6 +906,32 @@ mod tests {
     }
 
     #[test]
+    fn small_angle_rodrigues_and_zero_spin_limit_are_stable() {
+        let vector = [0.3, -0.7, 0.2];
+        let rotation_vector = [1.0e-12, -2.0e-12, 3.0e-12];
+        let rotated = rodrigues(rotation_vector, vector);
+        assert!((norm(rotated) - norm(vector)).abs() < 2.0e-15);
+
+        let state = initial_state();
+        let center_velocity = [0.1, -0.2, 0.3];
+        let pure_translation = State {
+            q1: state.q1,
+            q2: state.q2,
+            v1: center_velocity,
+            v2: center_velocity,
+        };
+        let result = advance(pure_translation, 0.01, 100);
+        assert!(
+            norm(sub(result.q1, add(pure_translation.q1, center_velocity))) < 3.0e-12
+        );
+        assert!(
+            norm(sub(result.q2, add(pure_translation.q2, center_velocity))) < 3.0e-12
+        );
+        assert!(norm(sub(result.v1, center_velocity)) < 3.0e-12);
+        assert!(norm(sub(result.v2, center_velocity)) < 3.0e-12);
+    }
+
+    #[test]
     fn invalid_manifold_nonfinite_and_solver_inputs_fail_closed() {
         let model = model();
         let mut off_length = initial_state();
@@ -990,6 +1016,26 @@ mod tests {
                 )
                 .unwrap_err(),
             Error::InvalidSolverOptions
+        );
+        assert_eq!(
+            ConstrainedDumbbell3D::new(0.0, 1.0, 1.0).unwrap_err(),
+            Error::InvalidParameter
+        );
+        assert_eq!(
+            model
+                .step(
+                    initial_state(),
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    0.01,
+                    SolverOptions {
+                        relative_tolerance: 1.0e-30,
+                        max_iterations: 1,
+                        max_backtracks: 1,
+                    }
+                )
+                .unwrap_err(),
+            Error::NoConvergence
         );
     }
 }
