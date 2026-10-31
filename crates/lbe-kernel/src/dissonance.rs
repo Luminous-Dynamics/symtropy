@@ -65,6 +65,40 @@ pub struct Position {
     pub evidence_refs: Vec<String>,
 }
 
+/// A source-authored revision of a position. The original Position remains immutable.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PositionRevision {
+    /// Monotonic revision number for this position; the first correction is 1.
+    pub revision_number: u64,
+    /// Corrected statement.
+    pub claim: String,
+    /// Corrected rationale.
+    pub rationale: String,
+    /// Corrected references to evidence, testimony or relevant records.
+    pub evidence_refs: Vec<String>,
+}
+
+impl PositionRevision {
+    /// Construct a bounded revision payload.
+    pub fn new(
+        revision_number: u64,
+        claim: impl Into<String>,
+        rationale: impl Into<String>,
+        evidence_refs: Vec<String>,
+    ) -> Result<Self, DissonanceError> {
+        let claim = claim.into();
+        let rationale = rationale.into();
+        if revision_number == 0 || claim.trim().is_empty() || claim.len() > 4_096
+            || rationale.trim().is_empty() || rationale.len() > 8_192
+            || evidence_refs.len() > 128
+            || evidence_refs.iter().any(|item| item.trim().is_empty() || item.len() > 512)
+        {
+            return Err(DissonanceError::InvalidPositionRevision);
+        }
+        Ok(Self { revision_number, claim, rationale, evidence_refs })
+    }
+}
+
 impl Position {
     /// Construct a bounded position record.
     pub fn new(
@@ -335,6 +369,33 @@ pub enum DissonanceEventKind {
         /// The newly recorded disposition.
         disposition: DissonanceDisposition,
     },
+    /// The authenticated position source corrected its own position.
+    PositionCorrected {
+        /// Position being corrected.
+        position_id: PositionId,
+        /// Revision number before this correction (zero for the original).
+        previous_revision: u64,
+        /// New source-authored revision.
+        revision: PositionRevision,
+    },
+    /// The authenticated position source withdrew its position.
+    PositionWithdrawn {
+        /// Position being withdrawn.
+        position_id: PositionId,
+        /// Current revision at withdrawal time.
+        revision_number: u64,
+        /// Privacy-preserving reason/evidence reference.
+        reason_ref: String,
+    },
+    /// The authenticated source reinstated a previously withdrawn position.
+    PositionReinstated {
+        /// Position being reinstated.
+        position_id: PositionId,
+        /// Current revision at reinstatement time.
+        revision_number: u64,
+        /// Privacy-preserving reason/evidence reference.
+        reason_ref: String,
+    },
 }
 
 /// One append-only process event. Sequence and receipt links allow deterministic
@@ -399,6 +460,8 @@ impl DissonanceEvent {
 pub struct DissonanceRecord {
     kind: DissonanceKind,
     positions: BTreeMap<PositionId, Position>,
+    position_revisions: BTreeMap<PositionId, Vec<PositionRevision>>,
+    withdrawn_positions: BTreeSet<PositionId>,
     safeguards: ProcessSafeguards,
     hazards: BTreeMap<String, HazardReport>,
     disposition_history: Vec<DissonanceDisposition>,
@@ -459,6 +522,14 @@ pub enum DissonanceError {
     InvalidHazardTransition,
     /// An imported event must have a positive sequence number.
     InvalidEventSequence,
+    /// A position revision is empty, malformed or out of sequence.
+    InvalidPositionRevision,
+    /// Only the original source may correct, withdraw or reinstate a position.
+    UnauthorizedPositionMutation,
+    /// A position is already withdrawn.
+    PositionAlreadyWithdrawn,
+    /// A position is not currently withdrawn.
+    PositionNotWithdrawn,
 }
 
 /// Create and maintain a dissonance record with a durable history of positions.
@@ -478,6 +549,8 @@ impl DissonanceRecord {
         Ok(Self {
             kind,
             positions: stored,
+            position_revisions: BTreeMap::new(),
+            withdrawn_positions: BTreeSet::new(),
             safeguards: ProcessSafeguards::default(),
             hazards: BTreeMap::new(),
             disposition_history: Vec::new(),
