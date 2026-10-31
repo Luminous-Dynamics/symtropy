@@ -2308,6 +2308,53 @@ mod tests {
     }
 
     #[test]
+    fn tv_mass_transfer_matches_exhaustive_small_simplex_grid() {
+        let losses = [
+            Rational::zero(),
+            Rational::one(),
+            Rational::from_u64(2),
+        ];
+        let nominal = [
+            Rational::new(1, 10).unwrap(),
+            Rational::new(6, 10).unwrap(),
+            Rational::new(3, 10).unwrap(),
+        ];
+        let radius = Rational::new(1, 5).unwrap();
+        let exact = worst_case_tv_expectation(&losses, &nominal, radius).unwrap();
+
+        let mut exhaustive_max = Rational::zero();
+        for first in 0_u128..=10 {
+            for second in 0_u128..=(10 - first) {
+                let third = 10 - first - second;
+                let candidate = [
+                    Rational::new(first, 10).unwrap(),
+                    Rational::new(second, 10).unwrap(),
+                    Rational::new(third, 10).unwrap(),
+                ];
+                let mut l1 = Rational::zero();
+                let mut expected = Rational::zero();
+                for index in 0..3 {
+                    let difference = if candidate[index] >= nominal[index] {
+                        checked_sub_nonnegative(candidate[index], nominal[index]).unwrap()
+                    } else {
+                        checked_sub_nonnegative(nominal[index], candidate[index]).unwrap()
+                    };
+                    l1 = l1.checked_add(difference).unwrap();
+                    expected = expected
+                        .checked_add(candidate[index].checked_mul(losses[index]).unwrap())
+                        .unwrap();
+                }
+                let distance = l1.checked_div(Rational::from_u64(2)).unwrap();
+                if distance <= radius && expected > exhaustive_max {
+                    exhaustive_max = expected;
+                }
+            }
+        }
+        assert_eq!(exact, exhaustive_max);
+        assert_eq!(exact, Rational::new(3, 2).unwrap());
+    }
+
+    #[test]
     fn finite_support_tv_respects_zero_weight_and_single_world_edges() {
         assert_eq!(
             worst_case_tv_expectation(
