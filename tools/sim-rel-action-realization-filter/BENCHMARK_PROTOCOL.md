@@ -165,12 +165,13 @@ candidate-search success into planner accuracy.
   not a finite numeric loss.
 - Report worst supported candidate loss, hazard, abstention, false-decision
   frequency and time/candidate budget to first counterexample.
-- Include separate operator strata for outcome-probability transfers,
-  measurement-label swaps, missing readbacks, realized-action remaps,
-  safe-to-hazard promotions and persistent apparatus-state transitions. Report
-  each stratum separately and crossed combinations only as a distinct suite.
-  These generic kernel edits are synthetic stress operators until a
-  domain-specific physical-admissibility check accepts them.
+- The current bounded single-edit generator can emit strata for
+  outcome-probability transfers, measurement-label swaps, missing readbacks,
+  realized-action remaps, safe-to-hazard promotions and persistent
+  apparatus-state transitions. Report each stratum separately; crossed
+  combinations require a separate generator version and suite. These generic
+  kernel edits are synthetic stress operators until a domain-specific
+  physical-admissibility check accepts them.
 - Measure falsifier overfit by freezing the falsifier and evaluating it against
   disjoint generator families and sealed physical traces. Report both the
   proportion of known injected faults found and the proportion of held-out
