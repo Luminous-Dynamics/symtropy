@@ -112,7 +112,6 @@ fn validate_candidate(
 ) -> (f64, f64, f64) {
     let u = q + w * p;
     let lambda_1 = p[0];
-    let tangent_1 = Vector6::new(0.0, p[1], p[2], 0.0, 0.0, 0.0).fixed_rows::<2>(1).into_owned();
     let lambda_2 = p[3];
     let tangent_2_norm = (p[4] * p[4] + p[5] * p[5]).sqrt();
     let tangent_1_norm = (p[1] * p[1] + p[2] * p[2]).sqrt();
@@ -150,7 +149,7 @@ fn validate_candidate(
     let kinetic_energy_delta = p.dot(q) + 0.5 * p.dot(&(w * p));
     assert!(kinetic_energy_delta < -1.0e-2);
 
-    let cross_contact_power = p[0] * (w[(0, 3)] * p[3] + w[(0, 4)] * p[4] + w[(0, 5)] * p[5])
+    let cross_contact_energy_term = p[0] * (w[(0, 3)] * p[3] + w[(0, 4)] * p[4] + w[(0, 5)] * p[5])
         + p[1] * (w[(1, 3)] * p[3] + w[(1, 4)] * p[4] + w[(1, 5)] * p[5])
         + p[2] * (w[(2, 3)] * p[3] + w[(2, 4)] * p[4] + w[(2, 5)] * p[5])
         + p[3] * (w[(3, 0)] * p[0] + w[(3, 1)] * p[1] + w[(3, 2)] * p[2])
