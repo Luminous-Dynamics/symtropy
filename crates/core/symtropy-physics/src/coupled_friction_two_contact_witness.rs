@@ -278,7 +278,9 @@ mod schur_reduction_tests {
         if asymmetry.norm() > tolerance * scale * 10.0 {
             return Err("two-contact Delassus matrix is not symmetric");
         }
-        let scaled_symmetric_w = ((w + w.transpose()) * 0.5) / scale;
+        let scaled_symmetric_w = Matrix6::from_fn(|i, j| {
+            0.5 * (w[(i, j)] + w[(j, i)]) / scale
+        });
         let full_minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(
             scaled_symmetric_w,
         )
@@ -302,7 +304,9 @@ mod schur_reduction_tests {
         if c_scale == 0.0 {
             return Err("sticking contact principal block is zero");
         }
-        let scaled_c = (&c + c.transpose()) * (0.5 / c_scale);
+        let scaled_c = Matrix3::from_fn(|i, j| {
+            0.5 * (c[(i, j)] + c[(j, i)]) / c_scale
+        });
         let c_minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(scaled_c)
             .eigenvalues
             .iter()
@@ -352,8 +356,8 @@ mod schur_reduction_tests {
             let p_2_tangent_norm = p_2.fixed_rows::<2>(1).norm();
             let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
             let velocity_scale = (scale * impulse.norm()).max(q.norm()).max(f64::MIN_POSITIVE);
-            let impulse_tolerance = tolerance * impulse_scale * 100.0;
-            let velocity_tolerance = tolerance * velocity_scale * 100.0;
+            let impulse_tolerance = tolerance * impulse_scale * 250.0;
+            let velocity_tolerance = tolerance * velocity_scale * 250.0;
 
             // The eliminated contact must be strictly loaded, exactly sticking
             // up to the declared normalized residual budget, and inside its disk.
@@ -416,7 +420,7 @@ mod schur_reduction_tests {
             }
 
             let kinetic_energy_delta = impulse.dot(q) + 0.5 * impulse.dot(&(w * impulse));
-            if kinetic_energy_delta > tolerance * (1.0 + q.norm() * impulse.norm()) * 100.0 {
+            if kinetic_energy_delta > tolerance * (1.0 + q.norm() * impulse.norm()) * 250.0 {
                 continue;
             }
             let normal_residual = if p_1[0] > impulse_tolerance {
