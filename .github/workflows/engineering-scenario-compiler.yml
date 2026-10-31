@@ -78,6 +78,31 @@ jobs:
       - name: Clippy standalone compiler
         run: cargo clippy --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all-targets -- -D warnings
 
+      - name: Export exact typed Scenario IR preimage and Rust JCS bytes
+        run: |
+          mkdir -p target/engineering-scenario-compiler-portable-identity
+          status=0
+          cargo run --manifest-path tools/engineering-scenario-compiler/Cargo.toml -- \
+            benchmarks/aero/naca0012-inc-rans/case.toml \
+            --portable-ir-dir target/engineering-scenario-compiler-portable-identity || status=$?
+          test "$status" -eq 3
+          test -s target/engineering-scenario-compiler-portable-identity/scenario-ir-input.json
+          test -s target/engineering-scenario-compiler-portable-identity/scenario-ir.jcs
+          sha256sum target/engineering-scenario-compiler-portable-identity/scenario-ir-input.json \
+            target/engineering-scenario-compiler-portable-identity/scenario-ir.jcs \
+            > target/engineering-scenario-compiler-portable-identity/identity-sha256.txt
+
+      - name: Independently canonicalize the real typed Scenario IR with Go
+        env:
+          GO111MODULE: "off"
+          GOPATH: ${{ runner.temp }}/jcs-gopath
+        run: |
+          cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
+          go run . \
+            "$GITHUB_WORKSPACE/target/engineering-scenario-compiler-portable-identity/scenario-ir-input.json" \
+            "$GITHUB_WORKSPACE/target/engineering-scenario-compiler-portable-identity/scenario-ir.jcs" \
+            | tee "$GITHUB_WORKSPACE/target/engineering-scenario-compiler-portable-identity/go-verification.txt"
+
       - name: Record toolchain and host provenance
         run: |
           mkdir -p target/engineering-scenario-compiler-benchmark
@@ -103,7 +128,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: engineering-scenario-compiler-benchmark-${{ github.sha }}
-          path: target/engineering-scenario-compiler-benchmark/
+          path: |
+            target/engineering-scenario-compiler-benchmark/
+            target/engineering-scenario-compiler-portable-identity/
           if-no-files-found: error
           retention-days: 14
 
@@ -121,4 +148,5 @@ jobs:
             tools/engineering-scenario-compiler/benches/compile_latency.rs
             tools/engineering-scenario-compiler/interop/golden/
             tools/engineering-scenario-compiler/interop/go-verifier/
+            target/engineering-scenario-compiler-portable-identity/
           if-no-files-found: error
