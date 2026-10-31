@@ -9,6 +9,14 @@ use std::fmt;
 
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
+/// I-JSON excludes Unicode noncharacters from member names and string values.
+fn contains_unicode_noncharacter(value: &str) -> bool {
+    value.chars().any(|character| {
+        let codepoint = character as u32;
+        (0xFDD0..=0xFDEF).contains(&codepoint) || codepoint & 0xFFFE == 0xFFFE
+    })
+}
+
 /// Inspect raw JSON number tokens before serde_json converts oversized integer
 /// lexemes to f64. The Go verifier applies the same safe-integer token profile.
 fn validate_safe_integer_literals(input: &[u8]) -> Result<(), String> {
@@ -132,6 +140,9 @@ impl<'de> Visitor<'de> for StrictJcsValueVisitor {
     where
         E: de::Error,
     {
+        if contains_unicode_noncharacter(value) {
+            return Err(E::custom("Unicode noncharacters are not permitted in I-JSON strings"));
+        }
         Ok(Value::String(value.to_owned()))
     }
 
@@ -139,6 +150,9 @@ impl<'de> Visitor<'de> for StrictJcsValueVisitor {
     where
         E: de::Error,
     {
+        if contains_unicode_noncharacter(&value) {
+            return Err(E::custom("Unicode noncharacters are not permitted in I-JSON strings"));
+        }
         Ok(Value::String(value))
     }
 
@@ -173,6 +187,11 @@ impl<'de> Visitor<'de> for StrictJcsValueVisitor {
     {
         let mut values = Map::new();
         while let Some(key) = object.next_key::<String>()? {
+            if contains_unicode_noncharacter(&key) {
+                return Err(de::Error::custom(
+                    "Unicode noncharacters are not permitted in I-JSON member names",
+                ));
+            }
             if values.contains_key(&key) {
                 return Err(de::Error::custom(format!(
                     "duplicate JSON object member name {key:?}"
@@ -229,6 +248,11 @@ mod tests {
         assert!(parse_strict_jcs_input(&[0xff, b'{', b'}']).is_err());
         assert!(parse_strict_jcs_input(br#"{"bad":"\uD800"}"#).is_err());
         assert!(parse_strict_jcs_input(br#"{"bad":"\uDC00"}"#).is_err());
+        assert!(parse_strict_jcs_input(br#"{"bad":"\uFDD0"}"#).is_err());
+        assert!(parse_strict_jcs_input(br#"{"\uFFFF":1}"#).is_err());
+        assert!(parse_strict_jcs_input(br#"{"bad":"\uD83F\uDFFE"}"#).is_err());
+        let literal_noncharacter = format!(r#"{{"bad":"{}"}}"#, '\u{FDD0}');
+        assert!(parse_strict_jcs_input(literal_noncharacter.as_bytes()).is_err());
         assert!(parse_strict_jcs_input(b"{} {}").is_err());
         assert!(parse_strict_jcs_input(b"9007199254740992").is_err());
         assert!(parse_strict_jcs_input(b"-9007199254740992").is_err());
