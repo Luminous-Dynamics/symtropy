@@ -70,3 +70,8 @@ The calibration-confounding fixture is a deliberate myopia trap: greedy one-step
 ### Benchmark receipts and provenance
 
 The benchmark runner records the exact hazard, false-identification and abstention budgets used, the seed and horizon, an optional caller-supplied 40- or 64-character Git source revision, and a canonical model-family fingerprint. The fingerprint is FNV-1a 64-bit, invariant to model-world order and outcome-row order, and sensitive to kernel changes. It is a reproducibility fingerprint only, not a cryptographic integrity or provenance proof; retain the Git commit and a separately signed or cryptographically hashed evidence receipt for assurance-sensitive use.
+
+
+## Generated stateful-confounding challenge families (SIM-REL-017)
+
+The challenge module generates a six-world finite family from an explicit seed and declared rational observation-noise rate: nominal, sensor drift, physical carryover, instrument reversal, shifted hazard, and damaging calibration. Every member shares the same hypothesis/action/observation vocabulary, state dimensions, initial prior, and action costs. Each generated kernel is complete and probability-normalized exactly before it is returned. These deterministic seeds are development fixtures, not a substitute for sealed holdout seeds managed outside the public source tree.
