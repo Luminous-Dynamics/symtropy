@@ -448,7 +448,7 @@ pub fn falsify_shared_policy_against_candidates(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{BeliefMass, KernelRow, LatentState, TransitionOutcome};
+    use crate::{KernelRow, LatentState, TransitionOutcome};
 
     fn half() -> Rational {
         Rational::new(1, 2).unwrap()
