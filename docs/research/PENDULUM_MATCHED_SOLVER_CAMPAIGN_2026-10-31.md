@@ -34,6 +34,8 @@ RATTLE's energy drift is not labeled as physical dissipation. Symplectic Euler a
 
 ## Outputs
 
+The CSV is passed through a separate structural receipt auditor before the executable prints it. The auditor rejects unknown methods, missing/duplicate method-timestep pairs, wrong step counts, malformed/non-finite/negative metrics, inconsistent final-vs-maximum energy drift, constraint residuals above the declared bound, and impossible solver-iteration accounting. Negative-control tests mutate the report with NaN, duplicate rows, and missing rows. This audits report structure and declared invariants; it does not independently reproduce the physics equations.
+
 The deterministic CSV reports:
 
 - method, timestep and number of steps;
