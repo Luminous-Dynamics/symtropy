@@ -1,0 +1,31 @@
+name: Exact Sturm certificate for coupled Coulomb quartic
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/Cargo.toml"
+      - "Cargo.lock"
+      - "crates/core/symtropy-physics/src/lib.rs"
+      - "crates/core/symtropy-physics/src/coupled_friction_sturm.rs"
+      - "docs/research/COULOMB_QUARTIC_STURM_CERTIFICATE_2026-10-31.md"
+      - ".github/workflows/coulomb-quartic-sturm-certificate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-sturm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run exact Sturm root-count oracle
+        run: cargo test -p symtropy-physics --lib coupled_friction_sturm::tests --locked
+      - name: Re-run parent contact solver qualification
+        run: cargo test -p symtropy-physics --lib coupled_friction::tests --locked
