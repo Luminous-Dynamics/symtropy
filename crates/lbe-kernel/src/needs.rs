@@ -1,7 +1,7 @@
 //! Essential-need intake and deterministic allocation policies.
 //!
 //! Need intake intentionally accepts only an authenticated subject and a
-//! bounded request. It does not accept social, economic, credential, or
+//! structured request. It does not accept social, economic, credential, or
 //! contribution scores. The intake layer records a claim of need; it does not
 //! decide whether the person is morally deserving.
 //!
@@ -348,7 +348,10 @@ impl NeedIntake {
                 continue;
             }
             let case = self.cases.get_mut(&id).ok_or(NeedError::UnknownNeed)?;
-            case.fulfilled = case.fulfilled.checked_add(quantity).ok_or(NeedError::QuantityOverflow)?;
+            case.fulfilled = case
+                .fulfilled
+                .checked_add(quantity)
+                .ok_or(NeedError::QuantityOverflow)?;
             allocations.push(Allocation {
                 need_id: id,
                 quantity,
