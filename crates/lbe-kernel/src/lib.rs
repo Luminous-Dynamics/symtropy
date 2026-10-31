@@ -22,7 +22,8 @@ pub mod needs;
 
 pub use consent::{BilateralConsent, ConsentError, ConsentStatus, ProposalDigest};
 pub use dissonance::{
-    ContextAssignment, CorrosiveHazard, DissonanceAssessment, DissonanceDisposition, DissonanceError,
+    ContextAssignment, CorrosiveHazard, DissonanceAssessment, DissonanceDisposition,
+    DissonanceError,
     DissonanceKind, DissonanceRecord, DissonanceStatus, HazardFinding, HazardReport,
     Position, PositionId, ProcessSafeguards,
 };
