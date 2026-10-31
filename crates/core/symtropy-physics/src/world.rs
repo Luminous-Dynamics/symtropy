@@ -594,7 +594,9 @@ impl<const D: usize> PhysicsWorld<D> {
                 // Only publish callback-owned state after the physics state
                 // has crossed its commit boundary. If the solve rejects, the
                 // buffered events are dropped with the rollback.
-                callback.commit_step_effects(&pending_effects);
+                if !pending_effects.is_empty() {
+                    callback.commit_step_effects(&pending_effects);
+                }
                 Ok(())
             }
             Err(error) => {
@@ -2927,13 +2929,13 @@ mod transformed_halfspace_tests {
         let floor = RigidBody::<3>::static_body(
             BodyHandle(2),
             Point::origin(),
-            Box::new(HalfSpace::<3>::new(SVector::new(0.0, 1.0, 0.0), 10.0)),
+            Box::new(HalfSpace::<3>::new(SVector::new(0.0, 1.0, 0.0), -10.0)),
         );
         world.add_body(floor);
         let mut singular_block = RigidBody::<3>::new(
             BodyHandle(3),
             BodyType::Dynamic,
-            Transform::from_translation(Point::new([10.0, 10.495, 0.0])),
+            Transform::from_translation(Point::new([10.0, -9.505, 0.0])),
             Box::new(HyperBox::<3>::cube(0.5)),
             1.0,
             SVector::from_element(1.0),
@@ -2970,6 +2972,30 @@ mod transformed_halfspace_tests {
         // The world transaction also restores the physics-owned state.
         assert_eq!(world.bodies[0].transform.translation.0, before_position);
         assert_eq!(world.bodies[0].linear_velocity, before_velocity);
+
+        // The same callback receives one ordered batch when an equivalent
+        // valid contact step commits successfully.
+        let mut successful_world = PhysicsWorld::<3>::new(SVector::zeros());
+        successful_world.add_sphere(Point::origin(), 0.5, 1.0);
+        successful_world.bodies[0].linear_velocity = SVector::new(1.0, 1.0, 0.0);
+        successful_world.bodies[0].friction = 0.5;
+        successful_world.bodies[0].restitution = 0.2;
+        successful_world.add_body(RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::new([0.999, 0.0, 0.0]),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.5)),
+        ));
+        let mut success_callback = CallbackBatchRecorder::default();
+        successful_world
+            .try_step_with_callback(0.001, &mut success_callback)
+            .unwrap();
+        assert_eq!(success_callback.committed_batches, 1);
+        assert!(success_callback.observed_collisions > 0);
+        assert_eq!(
+            success_callback.observed_collisions,
+            success_callback.observed_traumas
+        );
+        assert!(success_callback.dissipated_energy_joules > 0.0);
     }
 
     #[test]
