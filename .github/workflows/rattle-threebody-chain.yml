@@ -1,0 +1,48 @@
+name: Cartesian SHAKE RATTLE three-body spatial chain
+
+on:
+  pull_request:
+    paths:
+      - "tools/rattle-threebody-chain/**"
+      - "tools/constraint-graph-rank/**"
+      - "docs/research/THREE_BODY_TWO_LINK_RATTLE_CHAIN_2026-10-31.md"
+      - ".github/workflows/rattle-threebody-chain.yml"
+  push:
+    branches:
+      - "research/rattle-threebody-spatial-chain-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  rattle-open-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: |
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/constraint-graph-rank/constraint_graph_rank.rs
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/rattle-threebody-chain/cartesian_rattle_chain.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/rattle-threebody-chain/cartesian_rattle_chain.rs \
+            -o /tmp/rattle-threebody-tests
+          /tmp/rattle-threebody-tests
+
+      - name: Compile optimized deterministic replay
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/rattle-threebody-chain/cartesian_rattle_chain.rs \
+            -o /tmp/rattle-threebody
+          /tmp/rattle-threebody > /tmp/rattle-threebody-a.csv
+          /tmp/rattle-threebody > /tmp/rattle-threebody-b.csv
+          cmp /tmp/rattle-threebody-a.csv /tmp/rattle-threebody-b.csv
+          test "$(wc -l < /tmp/rattle-threebody-a.csv)" -eq 501
+          grep -q "^500," /tmp/rattle-threebody-a.csv
