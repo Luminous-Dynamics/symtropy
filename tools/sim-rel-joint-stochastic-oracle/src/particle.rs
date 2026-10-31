@@ -37,6 +37,7 @@ pub struct ParticleFilterDiagnostics {
     pub update_count: usize,
     pub resampling_count: usize,
     pub degeneracy_count: usize,
+    pub terminated_by_hazard: bool,
     pub effective_sample_size: f64,
     pub last_pre_resample_ess: f64,
     pub minimum_pre_resample_ess: f64,
@@ -69,6 +70,7 @@ pub struct JointParticleFilter<'a> {
     rng: XorShift64,
     config: ParticleFilterConfig,
     diagnostics: ParticleFilterDiagnostics,
+    terminated: bool,
 }
 
 impl<'a> JointParticleFilter<'a> {
@@ -163,6 +165,7 @@ impl<'a> JointParticleFilter<'a> {
                 minimum_pre_resample_ess: ess,
                 ..ParticleFilterDiagnostics::default()
             },
+            terminated: false,
         })
     }
 
@@ -185,6 +188,11 @@ impl<'a> JointParticleFilter<'a> {
 
     pub fn particle_count(&self) -> usize {
         self.particles.len()
+    }
+
+    /// Whether the current campaign has ended due to an observed hazard.
+    pub fn is_terminated(&self) -> bool {
+        self.terminated
     }
 
     /// Approximate posterior over semantic mechanism hypotheses.
@@ -213,6 +221,9 @@ impl<'a> JointParticleFilter<'a> {
     /// The update is transactional: if no particle supports the observation,
     /// the prior particle cloud is retained and a degeneracy is recorded.
     pub fn update(&mut self, action: usize, observation: Option<usize>) -> Result<(), String> {
+        if self.terminated {
+            return Err("particle campaign already terminated after an observed hazard".into());
+        }
         if action >= self.worlds[0].kernel.action_ids.len() {
             return Err("particle update uses an invalid action".into());
         }
@@ -301,6 +312,10 @@ impl<'a> JointParticleFilter<'a> {
         }
         self.diagnostics.effective_sample_size = effective_sample_size(&updated);
         self.particles = updated;
+        if observation.is_none() {
+            self.terminated = true;
+            self.diagnostics.terminated_by_hazard = true;
+        }
         Ok(())
     }
 
@@ -309,6 +324,9 @@ impl<'a> JointParticleFilter<'a> {
     /// The current joint particle posterior is propagated through each world-
     /// specific joint kernel. Hazard is treated as an observed terminal event.
     pub fn rank_actions_by_eig(&self) -> Result<Vec<ParticleEigScore>, String> {
+        if self.terminated {
+            return Err("cannot rank actions after a terminal hazard observation".into());
+        }
         let kernel_reference = &self.worlds[0].kernel;
         let hypothesis_count = kernel_reference.hypothesis_ids.len();
         let mut prior = vec![0.0_f64; hypothesis_count];
@@ -635,6 +653,56 @@ mod tests {
         assert_eq!(filter.hypothesis_posterior(), before);
         assert_eq!(filter.diagnostics().degeneracy_count, 1);
         assert_eq!(filter.diagnostics().update_count, 0);
+    }
+
+    #[test]
+    fn observed_hazard_terminates_campaign_and_blocks_future_actions() {
+        let mut world = reliable_world("hazard-world", Rational::new(3, 4).unwrap(), false);
+        for row in &mut world.kernel.rows {
+            row.outcomes = vec![JointOutcome {
+                probability: Rational::one(),
+                next_physical_state: 0,
+                next_sensor_state: 0,
+                observation: None,
+            }];
+        }
+        world.kernel.validate().unwrap();
+        let worlds = vec![world];
+        let mut filter = JointParticleFilter::with_uniform_world_prior(
+            &worlds,
+            ParticleFilterConfig {
+                particle_count: 2_000,
+                seed: 19,
+                resample_ess_ratio: 0.5,
+            },
+        ).unwrap();
+
+        filter.update(0, None).unwrap();
+        assert!(filter.is_terminated());
+        assert!(filter.diagnostics().terminated_by_hazard);
+        assert_eq!(filter.diagnostics().update_count, 1);
+        assert!(filter.update(0, Some(0)).unwrap_err().contains("already terminated"));
+        assert!(filter.rank_actions_by_eig().unwrap_err().contains("after a terminal hazard"));
+    }
+
+    #[test]
+    fn impossible_hazard_observation_does_not_terminate_or_mutate_particle_cloud() {
+        let world = reliable_world("safe-world", Rational::new(3, 4).unwrap(), false);
+        let worlds = vec![world];
+        let mut filter = JointParticleFilter::with_uniform_world_prior(
+            &worlds,
+            ParticleFilterConfig {
+                particle_count: 1_000,
+                seed: 21,
+                resample_ess_ratio: 0.5,
+            },
+        ).unwrap();
+        let before = filter.hypothesis_posterior();
+        assert!(filter.update(0, None).is_err());
+        assert_eq!(filter.hypothesis_posterior(), before);
+        assert!(!filter.is_terminated());
+        assert!(!filter.diagnostics().terminated_by_hazard);
+        assert_eq!(filter.diagnostics().degeneracy_count, 1);
     }
 
     #[test]
