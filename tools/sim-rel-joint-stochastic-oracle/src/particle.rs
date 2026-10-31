@@ -508,6 +508,8 @@ mod tests {
                 hypothesis_ids: vec!["h0".into(), "h1".into()],
                 physical_state_count: 1,
                 sensor_state_count: 1,
+                physical_state_ids: vec!["specimen-state-0".into()],
+                sensor_state_ids: vec!["sensor-state-0".into()],
                 action_ids: vec!["read".into()],
                 observation_ids: vec!["zero".into(), "one".into()],
                 action_costs: vec![1],
