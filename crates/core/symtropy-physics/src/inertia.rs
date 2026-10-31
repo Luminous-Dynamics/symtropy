@@ -1,3 +1,7 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
+
 //! Rotational inertia on the N-dimensional bivector rotation space.
 //!
 //! The centered second-moment matrix is S = integral r r^T dm. Symtropy stores
