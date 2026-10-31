@@ -78,11 +78,12 @@ This is a finite discrete scenario-tree comparator, not a reproduction of COPEx'
 
 ## Joint-state particle-filter baseline (SIM-REL-019)
 
-The particle-filter module supplies a seeded fully adapted conditional filter over mechanism, physical state and sensor state. Each filter instance borrows one immutable kernel for its entire lifetime; model alternatives require separate filter instances. Each observation update weights particles by the event likelihood from the full joint kernel, samples next physical and sensor states conditional on the observed event, normalizes weights, measures ESS, and performs deterministic systematic resampling only when the configured threshold is crossed. Diagnostics also distinguish particles that lost support for an observed event from a posterior degeneracy (ESS near one), so a rare-event particle-support failure is not confused with a zero-probability model event.
+The particle-filter module supplies a seeded, fully adapted conditional filter over mechanism, physical state and sensor state. Each filter instance borrows one immutable kernel for its lifetime; alternative model worlds require separate filter instances. At each observation update, particles are weighted by the event likelihood from the full joint kernel and the next physical/sensor tuple is sampled conditional on the observed event.
 
-The exact rational function for a single Bayesian joint-belief update is provided as a reference. Tests compare particle posterior with that exact binary-channel posterior, verify deterministic resampling and ESS reporting, and ensure impossible observations fail atomically without mutating the filter.
+The filter normalizes weights, measures ESS, and performs deterministic systematic resampling only when the configured threshold is crossed. Diagnostics distinguish particles that lost support for an observed event from posterior degeneracy (ESS near one). A rare event absent from the approximate particle support is reported as a particle-support failure, not silently treated as an impossible model event. A hazard outcome is terminal and prevents further actions.
 
-This is a finite-state bootstrap particle-filter comparator. It is not nested SMC-squared, does not infer continuous parameters, and does not reproduce the convergence guarantees of BAD-PODS.
-
+The exact rational one-step posterior function is the reference. Tests compare particle posterior with that exact binary-channel posterior, verify deterministic resampling and ESS reporting, check that impossible / unsupported observations fail atomically, enforce terminal hazard behavior, and prove that calibration resets sensor state without destroying mechanism/specimen-state correlation.
 
 The particle module also exposes a paired particle-count sweep against the exact one-step joint posterior. Each record reports predictive-probability error, joint-posterior total-variation and squared error, mechanism-posterior squared error, ESS before/after resampling, support-loss fraction, resampling occurrence, and elapsed time. Runtime is descriptive; posterior metrics are seeded and deterministic for a fixed configuration.
+
+This is a finite-state fully adapted particle-filter comparator. It is not nested SMC-squared, does not infer continuous parameters, and does not reproduce BAD-PODS' theoretical convergence guarantees.
