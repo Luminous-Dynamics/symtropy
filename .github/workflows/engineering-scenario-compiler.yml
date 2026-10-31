@@ -51,20 +51,25 @@ jobs:
           ref: 32a48195b9b20fe67b1795e39e4509f14d860b45
           path: _interop/json-canonicalization
 
-      - name: Prepare isolated GOPATH for independent canonicalizer
+      - name: Prepare isolated GOPATH for independent canonicalizer and verifier
         run: |
           mkdir -p "$RUNNER_TEMP/jcs-gopath/src/webpki.org"
+          mkdir -p "$RUNNER_TEMP/jcs-gopath/src/interop"
           cp -a _interop/json-canonicalization/go/src/webpki.org/jsoncanonicalizer \
             "$RUNNER_TEMP/jcs-gopath/src/webpki.org/"
+          cp -a tools/engineering-scenario-compiler/interop/go-verifier \
+            "$RUNNER_TEMP/jcs-gopath/src/interop/"
+          cp -a tools/engineering-scenario-compiler/interop/golden \
+            "$RUNNER_TEMP/jcs-gopath/src/interop/"
 
       - name: Verify RFC 8785 golden bytes with independent Go implementation
-        working-directory: tools/engineering-scenario-compiler/interop/go-verifier
         env:
           GO111MODULE: "off"
           GOPATH: ${{ runner.temp }}/jcs-gopath
         run: |
+          cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
           go version
-          go test ./...
+          go test .
           go run . ../golden/basic-input.json ../golden/basic-output.jcs
 
       - name: Test strict compiler and negative corpus
