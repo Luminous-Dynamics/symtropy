@@ -170,7 +170,9 @@ worlds, subject to exact rational arithmetic, simplex capacity and explicit
 weight normalization. Radius zero recovers the nominal mixture objective;
 radius one recovers the maximum over supplied worlds. Hazard and abstention
 budgets remain worst-case across every supplied world, even when the loss
-objective uses a TV ambiguity set.
+objective uses a TV ambiguity set. An optional terminal-loss ceiling can
+additionally bound the loss in every single supplied world, independent of its
+nominal weight.
 
 This is finite-support distributionally robust optimization over a declared
 world list, not a Wasserstein or continuous-model ambiguity set. It does not
