@@ -96,7 +96,7 @@ pub struct StepReceipt {
     pub position_multipliers: [f64; EDGE_COUNT],
     /// RATTLE endpoint velocity projection multipliers.
     pub velocity_multipliers: [f64; EDGE_COUNT],
-    pub position_newton_residuals: [f64; EDGE_COUNT],
+    pub position_constraint_residuals: [f64; EDGE_COUNT],
     pub position_jacobian: [[f64; EDGE_COUNT]; EDGE_COUNT],
     pub position_jacobian_rcond: f64,
     pub geometric_rank: usize,
@@ -704,7 +704,7 @@ impl CartesianRattleChain {
             after,
             position_multipliers,
             velocity_multipliers,
-            position_newton_residuals: [
+            position_constraint_residuals: [
                 final_constraint_residual(&position_state, self.lengths, 0),
                 final_constraint_residual(&position_state, self.lengths, 1),
             ],
