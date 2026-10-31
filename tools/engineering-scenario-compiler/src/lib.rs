@@ -12,6 +12,9 @@ pub const COMPILER_ID: &str = "engineering-scenario-compiler";
 pub const COMPILER_VERSION: &str = "0.1.0";
 pub const SCHEMA_VERSION: &str = "engineering-scenario-v0.1";
 pub const REGISTRY_REVISION: &str = "naca0012-inc-rans-profile-registry-v0.1";
+pub const CANONICALIZATION_PROFILE: &str = "engineering-scenario-ir-jcs-rfc8785-v1";
+const COMPILATION_SUBJECT_JCS_DOMAIN: &[u8] =
+    b"LUMINOUS-DYNAMICS\\0ENGINEERING-SCENARIO-COMPILATION-SUBJECT\\0JCS-RFC8785-V1\\0";
 pub const MAX_SOURCE_BYTES: usize = 1_048_576;
 pub const MAX_INSTANCES: usize = 128;
 pub const MAX_UPSTREAM_CONFIG_BYTES: usize = 4 * 1024 * 1024;
@@ -127,9 +130,16 @@ pub struct CompilationReport {
     pub compiler_version: String,
     pub registry_revision: String,
     pub source_sha256: String,
+    /// Legacy v0.1 identity derived from Rust serde_json struct serialization.
+    /// Retained unchanged for compatibility; it is not a cross-language protocol.
     pub semantic_ir_sha256: Option<String>,
     pub artifact_manifest_sha256: Option<String>,
     pub compilation_subject_sha256: Option<String>,
+    /// Portable v1 identity derived from RFC 8785 JCS canonical bytes.
+    pub canonicalization_profile: Option<String>,
+    pub semantic_ir_jcs_sha256: Option<String>,
+    pub artifact_manifest_jcs_sha256: Option<String>,
+    pub compilation_subject_jcs_sha256: Option<String>,
     pub disposition: Disposition,
     pub obligations: Vec<CompileObligation>,
     pub diagnostics: Vec<String>,
@@ -259,6 +269,10 @@ fn invalid_report(source_sha256: String, diagnostic: String) -> CompilationRepor
         semantic_ir_sha256: None,
         artifact_manifest_sha256: None,
         compilation_subject_sha256: None,
+        canonicalization_profile: None,
+        semantic_ir_jcs_sha256: None,
+        artifact_manifest_jcs_sha256: None,
+        compilation_subject_jcs_sha256: None,
         disposition: Disposition::Invalid,
         obligations: Vec::new(),
         diagnostics: vec![diagnostic],
@@ -442,6 +456,44 @@ struct SemanticEnvelope<'a> {
     scenario: &'a ScenarioIr,
 }
 
+#[derive(Serialize)]
+struct CanonicalSemanticEnvelope<'a> {
+    identity_profile: &'static str,
+    compiler_id: &'static str,
+    compiler_version: &'static str,
+    schema_version: &'static str,
+    registry_revision: &'static str,
+    parser_profile: &'static str,
+    scenario: &'a ScenarioIr,
+}
+
+#[derive(Serialize)]
+struct PortableCompilationSubject<'a> {
+    domain: &'static str,
+    canonicalization_profile: &'static str,
+    compiler_id: &'static str,
+    compiler_version: &'static str,
+    schema_version: &'static str,
+    registry_revision: &'static str,
+    parser_profile: &'static str,
+    source_sha256: &'a str,
+    semantic_ir_sha256: &'a str,
+    artifact_manifest_sha256: &'a str,
+    disposition: Disposition,
+    obligations: &'a [CompileObligation],
+}
+
+fn portable_compilation_subject_sha256(
+    subject: &PortableCompilationSubject<'_>,
+) -> Result<String, String> {
+    let canonical_bytes = serde_jcs::to_vec(subject)
+        .map_err(|error| format!("JCS compilation-subject serialization failed: {error}"))?;
+    let mut hasher = Sha256::new();
+    hasher.update(COMPILATION_SUBJECT_JCS_DOMAIN);
+    hasher.update(canonical_bytes);
+    Ok(hex::encode(hasher.finalize()))
+}
+
 /// Compile one exact source byte sequence. This function never opens files,
 /// resolves network references, launches tools, or executes a simulation.
 pub fn compile_bytes(bytes: &[u8]) -> CompilationReport {
@@ -514,6 +566,15 @@ pub fn compile_with_artifacts(
             );
         }
     };
+    let artifact_manifest_jcs_sha256 = match serde_jcs::to_vec(&verified_artifacts) {
+        Ok(manifest) => sha256(&manifest),
+        Err(error) => {
+            return invalid_report(
+                source_digest,
+                format!("JCS artifact manifest serialization failed: {error}"),
+            );
+        }
+    };
 
     let ir = build_ir(source);
     let envelope = SemanticEnvelope {
@@ -528,11 +589,34 @@ pub fn compile_with_artifacts(
         Err(error) => return invalid_report(source_digest, format!("normalized typed IR serialization failed: {error}")),
     };
     let semantic_digest = sha256(&semantic_bytes);
+    // Keep the legacy v0.1 digest byte-for-byte unchanged. The JCS profile is a
+    // parallel portable identity and will only become authoritative after
+    // cross-language golden-vector qualification.
     let compilation_subject_digest = compilation_subject_sha256(
         &source_digest,
         &semantic_digest,
         &artifact_manifest_sha256,
     );
+
+    let canonical_envelope = CanonicalSemanticEnvelope {
+        identity_profile: CANONICALIZATION_PROFILE,
+        compiler_id: COMPILER_ID,
+        compiler_version: COMPILER_VERSION,
+        schema_version: SCHEMA_VERSION,
+        registry_revision: REGISTRY_REVISION,
+        parser_profile: TOML_PARSER_PROFILE,
+        scenario: &ir,
+    };
+    let canonical_semantic_bytes = match serde_jcs::to_vec(&canonical_envelope) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            return invalid_report(
+                source_digest,
+                format!("portable semantic IR JCS serialization failed: {error}"),
+            );
+        }
+    };
+    let semantic_ir_jcs_sha256 = sha256(&canonical_semantic_bytes);
 
     let profile_supported = profile_is_supported(&ir.flow);
     let mut obligations = vec![CompileObligation {
@@ -577,6 +661,26 @@ pub fn compile_with_artifacts(
         .map(|o| format!("{}: {}", o.id, o.detail))
         .collect();
 
+    let portable_subject = PortableCompilationSubject {
+        domain: "luminous-dynamics.engineering-scenario-compilation-subject",
+        canonicalization_profile: CANONICALIZATION_PROFILE,
+        compiler_id: COMPILER_ID,
+        compiler_version: COMPILER_VERSION,
+        schema_version: SCHEMA_VERSION,
+        registry_revision: REGISTRY_REVISION,
+        parser_profile: TOML_PARSER_PROFILE,
+        source_sha256: &source_digest,
+        semantic_ir_sha256: &semantic_ir_jcs_sha256,
+        artifact_manifest_sha256: &artifact_manifest_jcs_sha256,
+        disposition,
+        obligations: &obligations,
+    };
+    let compilation_subject_jcs_sha256 =
+        match portable_compilation_subject_sha256(&portable_subject) {
+            Ok(digest) => digest,
+            Err(error) => return invalid_report(source_digest, error),
+        };
+
     CompilationReport {
         compiler_id: COMPILER_ID.to_owned(),
         compiler_version: COMPILER_VERSION.to_owned(),
@@ -585,6 +689,10 @@ pub fn compile_with_artifacts(
         semantic_ir_sha256: Some(semantic_digest),
         artifact_manifest_sha256: Some(artifact_manifest_sha256),
         compilation_subject_sha256: Some(compilation_subject_digest),
+        canonicalization_profile: Some(CANONICALIZATION_PROFILE.to_owned()),
+        semantic_ir_jcs_sha256: Some(semantic_ir_jcs_sha256),
+        artifact_manifest_jcs_sha256: Some(artifact_manifest_jcs_sha256),
+        compilation_subject_jcs_sha256: Some(compilation_subject_jcs_sha256),
         disposition,
         obligations,
         diagnostics,
