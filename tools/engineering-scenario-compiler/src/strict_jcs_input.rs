@@ -219,7 +219,7 @@ fn validate_json_nesting_depth(input: &[u8]) -> Result<(), String> {
                 escaped = false;
                 continue;
             }
-            match byte {
+            match *byte {
                 b'\\' => escaped = true,
                 b'"' => in_string = false,
                 _ => {}
@@ -227,7 +227,7 @@ fn validate_json_nesting_depth(input: &[u8]) -> Result<(), String> {
             continue;
         }
 
-        match byte {
+        match *byte {
             b'"' => in_string = true,
             b'{' | b'[' => {
                 depth += 1;
