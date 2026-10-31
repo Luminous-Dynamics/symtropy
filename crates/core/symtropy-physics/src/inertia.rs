@@ -81,7 +81,13 @@ impl<const D: usize> BivectorInertia<D> {
         }
 
         let symmetric = (second_moment + second_moment.transpose()) * 0.5;
-        let eigensystem = nalgebra::linalg::SymmetricEigen::new(symmetric);
+
+        // nalgebra's fixed-size SymmetricEigen requires a ToTypenum bound that
+        // an unconstrained const-generic D cannot provide. Decompose through a
+        // dynamic matrix, then copy the eigenpairs back into fixed-size storage.
+        let symmetric_dynamic =
+            nalgebra::DMatrix::<f64>::from_fn(D, D, |i, j| symmetric[(i, j)]);
+        let eigensystem = nalgebra::linalg::SymmetricEigen::new(symmetric_dynamic);
         let min_eigenvalue = eigensystem
             .eigenvalues
             .iter()
@@ -93,8 +99,10 @@ impl<const D: usize> BivectorInertia<D> {
         // Project roundoff-sized negative eigenvalues to zero. Keep the
         // reconstructed matrix and cached principal moments identical so the
         // forward and inverse operators share exactly the same PSD model.
-        let principal_second_moments = eigensystem.eigenvalues.map(|value| value.max(0.0));
-        let principal_axes = eigensystem.eigenvectors;
+        let principal_second_moments = SVector::<f64, D>::from_iterator(
+            eigensystem.eigenvalues.iter().map(|value| value.max(0.0)),
+        );
+        let principal_axes = SMatrix::<f64, D, D>::from_fn(|i, j| eigensystem.eigenvectors[(i, j)]);
         let projected_second_moment = principal_axes
             * SMatrix::<f64, D, D>::from_diagonal(&principal_second_moments)
             * principal_axes.transpose();
