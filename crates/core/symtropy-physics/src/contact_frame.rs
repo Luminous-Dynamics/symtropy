@@ -829,7 +829,7 @@ mod tests {
         let limits = ContactWrenchFrictionLimits::new(0.0, 0.1, 0.1, 0.5, 0.25).unwrap();
         let wrench = ContactWrenchImpulse::<3> {
             normal: 1.0,
-            tangential: frame.tangent_basis()[0] * 1e-9,
+            tangential: frame.tangent_basis()[0] * 1e-13,
             rolling: vec![0.0, 0.0],
             torsional: vec![0.0],
         };
