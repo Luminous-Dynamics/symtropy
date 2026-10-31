@@ -96,8 +96,8 @@ pub fn verify_model_family_revision(
 ) -> Result<bool, String> {
     let original_ids: Vec<String> = original_worlds.iter().map(|world| world.id.clone()).collect();
     if receipt.original_world_ids != original_ids
-        || receipt.original_world_snapshots != original_worlds
-        || receipt.candidate_world_snapshot != *candidate
+        || receipt.original_world_snapshots.as_slice() != original_worlds
+        || &receipt.candidate_world_snapshot != candidate
         || receipt.candidate_world_id != candidate.id
         || original_worlds.iter().any(|world| world.id == candidate.id)
         || receipt.human_rationale.as_ref().is_some_and(|text| text.trim().is_empty())
