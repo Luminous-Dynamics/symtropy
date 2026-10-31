@@ -730,7 +730,7 @@ mod tests {
                 .step(
                     State {
                         position: [0.0, -1.0],
-                        velocity: [0.1, 0.0],
+                        velocity: [0.0, 0.1],
                     },
                     [0.0, 0.0],
                     0.01,
