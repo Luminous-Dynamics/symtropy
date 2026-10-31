@@ -841,6 +841,116 @@ mod tests {
         assert_eq!(observed_source_digests.len(), 1_000);
     }
 
+    fn reorder_fixture_table_keys(source: &str, seed: u32) -> String {
+        let mut sections = Vec::<(String, Vec<String>)>::new();
+        let mut current_header = String::new();
+        let mut current_assignments = Vec::<String>::new();
+
+        for line in source.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            if line.starts_with('[') && line.ends_with(']') {
+                sections.push((current_header, current_assignments));
+                current_header = line.to_owned();
+                current_assignments = Vec::new();
+            } else {
+                assert!(line.split_once('=').is_some(), "fixture assignment must be a single-line key/value");
+                current_assignments.push(line.to_owned());
+            }
+        }
+        sections.push((current_header, current_assignments));
+
+        let mut output = String::new();
+        for (section_index, (header, mut assignments)) in sections.into_iter().enumerate() {
+            assignments.sort_by_key(|assignment| {
+                let key = assignment.split_once('=').expect("validated assignment").0.trim();
+                let mut score = u64::from(seed)
+                    .wrapping_add(section_index as u64)
+                    .wrapping_add(0x9e37_79b9);
+                for byte in key.bytes() {
+                    score = score.wrapping_mul(16_777_619) ^ u64::from(byte);
+                }
+                (score, key.to_owned())
+            });
+            if !header.is_empty() {
+                output.push_str(&header);
+                output.push('\n');
+            }
+            for assignment in assignments {
+                output.push_str(&assignment);
+                output.push('\n');
+            }
+            output.push('\n');
+        }
+        output
+    }
+
+    #[test]
+    fn structural_metamorphic_corpus_preserves_semantics_but_not_provenance() {
+        let original = std::str::from_utf8(FIXTURE).expect("fixture is UTF-8");
+        let baseline = compile_bytes(FIXTURE);
+        let baseline_semantic = baseline
+            .semantic_ir_sha256
+            .as_deref()
+            .expect("valid fixture has semantic identity");
+        let baseline_artifacts = baseline
+            .artifact_manifest_sha256
+            .as_deref()
+            .expect("fixture has deterministic empty artifact manifest");
+        let baseline_subject = baseline
+            .compilation_subject_sha256
+            .as_deref()
+            .expect("valid fixture has complete compilation subject");
+        let mut structural_encodings = BTreeSet::new();
+        let mut source_digests = BTreeSet::new();
+        let mut subject_digests = BTreeSet::new();
+
+        for mutation in 0..1_000_u32 {
+            let reordered = reorder_fixture_table_keys(original, mutation);
+            structural_encodings.insert(sha256(reordered.as_bytes()));
+            let mut variant = format!("# structural metamorphic case {mutation}\r\n");
+            variant.push_str(&reordered.replace('\n', "\r\n"));
+            variant.push_str(&format!("# source provenance variant {mutation}\r\n"));
+
+            let report = compile_bytes(variant.as_bytes());
+            assert_eq!(
+                report.disposition,
+                Disposition::Blocked,
+                "lexically and structurally equivalent case {mutation} changed admission"
+            );
+            assert_eq!(
+                report.semantic_ir_sha256.as_deref(),
+                Some(baseline_semantic),
+                "key-order or CRLF mutation {mutation} changed semantic identity"
+            );
+            assert_eq!(
+                report.artifact_manifest_sha256.as_deref(),
+                Some(baseline_artifacts)
+            );
+            assert_ne!(report.source_sha256, baseline.source_sha256);
+            source_digests.insert(report.source_sha256);
+            let subject = report
+                .compilation_subject_sha256
+                .expect("valid metamorphic source has compilation subject");
+            assert_ne!(subject, baseline_subject);
+            subject_digests.insert(subject);
+        }
+
+        assert_eq!(
+            structural_encodings.len(),
+            1_000,
+            "each mutation must produce a distinct key-order encoding even before comments"
+        );
+        assert_eq!(source_digests.len(), 1_000, "each source byte sequence must be unique");
+        assert_eq!(
+            subject_digests.len(),
+            1_000,
+            "provenance-bound compilation subjects must remain unique"
+        );
+    }
+
     #[test]
     fn resource_limit_is_checked_before_parsing() {
         let oversized = vec![b' '; MAX_SOURCE_BYTES + 1];
