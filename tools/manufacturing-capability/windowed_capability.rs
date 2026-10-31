@@ -170,6 +170,14 @@ fn valid_sha256(value: &str) -> bool {
     value.len() == DIGEST_LEN && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
+fn csv_escape(value: &str) -> String {
+    if value.contains(',') || value.contains('"') || value.contains('\n') || value.contains('\r') {
+        format!("\"{}\"", value.replace('"', "\"\""))
+    } else {
+        value.to_string()
+    }
+}
+
 fn mean(values: &[f64]) -> Result<f64, String> {
     if values.is_empty() {
         return Err("SAMPLE_EMPTY".into());
@@ -490,29 +498,29 @@ impl Report {
         let mut out = String::new();
         for window in &self.windows {
             let fields = vec![
-                self.campaign_id.clone(),
-                self.part_id.clone(),
-                self.lot_id.clone(),
-                self.operation_id.clone(),
-                self.station_id.clone(),
-                self.instrument_id.clone(),
-                self.calibration_id.clone(),
-                self.calibration_source_sha256.clone(),
-                self.msa_source_sha256.clone(),
-                self.measurand_id.clone(),
-                self.unit.clone(),
-                self.specification_id.clone(),
-                self.specification_revision.clone(),
-                self.specification_source_sha256.clone(),
+                csv_escape(&self.campaign_id),
+                csv_escape(&self.part_id),
+                csv_escape(&self.lot_id),
+                csv_escape(&self.operation_id),
+                csv_escape(&self.station_id),
+                csv_escape(&self.instrument_id),
+                csv_escape(&self.calibration_id),
+                csv_escape(&self.calibration_source_sha256),
+                csv_escape(&self.msa_source_sha256),
+                csv_escape(&self.measurand_id),
+                csv_escape(&self.unit),
+                csv_escape(&self.specification_id),
+                csv_escape(&self.specification_revision),
+                csv_escape(&self.specification_source_sha256),
                 format!("{:.12e}", self.lower_specification),
                 format!("{:.12e}", self.upper_specification),
-                self.uncertainty_budget_id.clone(),
-                self.uncertainty_part_scope_id.clone(),
-                self.uncertainty_measurand_id.clone(),
-                self.uncertainty_unit.clone(),
-                self.uncertainty_source_sha256.clone(),
+                csv_escape(&self.uncertainty_budget_id),
+                csv_escape(&self.uncertainty_part_scope_id),
+                csv_escape(&self.uncertainty_measurand_id),
+                csv_escape(&self.uncertainty_unit),
+                csv_escape(&self.uncertainty_source_sha256),
                 format!("{:.12e}", self.measurement_expanded_uncertainty),
-                self.msa_study_id.clone(),
+                csv_escape(&self.msa_study_id),
                 self.window_count.to_string(),
                 self.total_sample_count.to_string(),
                 format!("{:.12e}", self.pooled_within_standard_deviation),
@@ -523,14 +531,14 @@ impl Report {
                 format!("{:.12e}", self.overall_pp),
                 format!("{:.12e}", self.overall_ppk),
                 format!("{:.12e}", self.worst_window_cpk),
-                self.worst_window_id.clone(),
+                csv_escape(&self.worst_window_id),
                 format!("{:.12e}", self.window_mean_span),
                 format!("{:.12e}", self.maximum_variance_ratio),
-                self.first_mean_shift_window.clone().unwrap_or_default(),
-                self.first_variance_shift_window.clone().unwrap_or_default(),
-                self.status.code().to_string(),
+                csv_escape(self.first_mean_shift_window.as_deref().unwrap_or(\"\")),
+                csv_escape(self.first_variance_shift_window.as_deref().unwrap_or(\"\")),
+                csv_escape(self.status.code()),
                 "NORMAL_ASSUMPTION_UNVERIFIED".to_string(),
-                window.id.clone(),
+                csv_escape(&window.id),
                 window.start_ns.to_string(),
                 window.end_ns.to_string(),
                 window.sample_count.to_string(),
@@ -854,6 +862,14 @@ mod tests {
         for token in tokens {
             assert!(csv.contains(&token), "missing receipt token: {token}");
         }
+    }
+
+    #[test]
+    fn csv_escaping_preserves_embedded_commas_quotes_and_newlines() {
+        assert_eq!(csv_escape("plain"), "plain");
+        assert_eq!(csv_escape("part,variant"), "\"part,variant\"");
+        assert_eq!(csv_escape("quote\"inside"), "\"quote\"\"inside\"");
+        assert_eq!(csv_escape("line1\\nline2"), "\"line1\\nline2\"");
     }
 
     #[test]
