@@ -1072,6 +1072,7 @@ mod tests {
 
         let (mut predicted, _) = synthetic_pair();
         predicted.profiles[1].column = 0;
+        predicted.profiles[1].x_um = 0.0;
         assert_eq!(validate_collection(&predicted), Err("DUPLICATE_PIXEL_GRID_INDEX"));
     }
 
