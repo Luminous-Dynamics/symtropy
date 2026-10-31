@@ -355,6 +355,46 @@ mod tests {
     }
 
     #[test]
+    fn rejects_invalid_timestep_input_dimension_and_non_finite_state() {
+        let system = oscillator(DMatrix::zeros(2, 0), DMatrix::zeros(2, 2));
+        let state = DVector::from_vec(vec![1.0, 0.0]);
+        let no_input = DVector::zeros(0);
+
+        assert_eq!(
+            system.step(&state, &no_input, 0.0).unwrap_err(),
+            PortHamiltonianError::InvalidTimeStep
+        );
+        assert_eq!(
+            system
+                .step(&state, &DVector::from_vec(vec![1.0]), 0.1)
+                .unwrap_err(),
+            PortHamiltonianError::InvalidDimensions
+        );
+        assert_eq!(
+            system
+                .step(&DVector::from_vec(vec![f64::NAN, 0.0]), &no_input, 0.1)
+                .unwrap_err(),
+            PortHamiltonianError::NonFiniteInput
+        );
+    }
+
+    #[test]
+    fn rejects_indefinite_energy_matrix() {
+        let invalid_energy = DMatrix::from_diagonal(&DVector::from_vec(vec![1.0, -0.1]));
+        assert_eq!(
+            QuadraticPortHamiltonian::new(
+                invalid_energy,
+                DMatrix::zeros(2, 2),
+                DMatrix::zeros(2, 2),
+                DMatrix::zeros(2, 0),
+                1e-12,
+            )
+            .unwrap_err(),
+            PortHamiltonianError::EnergyMatrixNotPositiveSemidefinite
+        );
+    }
+
+    #[test]
     fn rejects_non_skew_interconnection_and_indefinite_dissipation() {
         let energy = DMatrix::identity(2, 2);
         let invalid_j = DMatrix::from_row_slice(2, 2, &[0.0, 1.0, 0.0, 0.0]);
