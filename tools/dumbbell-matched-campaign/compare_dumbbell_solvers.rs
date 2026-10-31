@@ -315,6 +315,7 @@ fn audit_campaign(csv: &str) -> Result<(), String> {
         }
         if metrics[1] > 1.0e-8
             || metrics[2] > 1.0e-10
+            || metrics[3] > 1.0e-8
             || metrics[4] > 1.0e-8
             || metrics[5] > 1.0e-8
             || metrics[6] > 1.0e-8
