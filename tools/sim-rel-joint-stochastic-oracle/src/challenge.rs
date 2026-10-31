@@ -2,21 +2,32 @@
 //!
 //! Families vary physical carryover, sensor drift, instrument mapping and
 //! intervention damage while preserving common action/observation semantics.
-//! Seeds select a declared rational noise rate; they do not silently alter
-//! priors, vocabularies or the meaning of an action.
+//! Seeds select a declared rational tuple of observation-noise, shifted-hazard
+//! and calibration-damage rates; they do not silently alter priors, vocabularies
+//! or the meaning of an action.
 
 use super::{
     JointKernel, JointMass, JointOutcome, KernelRow, Rational,
     robust::ModelWorld,
 };
 
-const NOISE_RATES: [(u128, u128); 3] = [(1, 8), (1, 4), (1, 3)];
+const NOISE_RATES: [(u128, u128); 5] = [(1, 12), (1, 10), (1, 8), (1, 6), (1, 5)];
+const HAZARD_RATES: [(u128, u128); 5] = [(1, 10), (1, 8), (1, 6), (1, 5), (1, 4)];
+const CALIBRATION_DAMAGE_RATES: [(u128, u128); 5] = [
+    (0, 1),
+    (1, 16),
+    (1, 8),
+    (3, 16),
+    (1, 4),
+];
 
 /// A complete generated finite model family plus its nominal member.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ChallengeFamily {
     pub seed: u64,
     pub observation_noise_rate: Rational,
+    pub shifted_hazard_rate: Rational,
+    pub calibration_damage_rate: Rational,
     pub nominal_world_id: String,
     pub worlds: Vec<ModelWorld>,
 }
@@ -28,8 +39,17 @@ pub struct ChallengeFamily {
 /// action and observation vocabularies, state dimensions, priors and costs.
 pub fn generate_stateful_confounding_family(seed: u64) -> Result<ChallengeFamily, String> {
     let selection = (seed % NOISE_RATES.len() as u64) as usize;
-    let (numerator, denominator) = NOISE_RATES[selection];
-    let noise = Rational::new(numerator, denominator)?;
+    let hazard_selection = ((seed / NOISE_RATES.len() as u64)
+        % HAZARD_RATES.len() as u64) as usize;
+    let damage_selection = ((seed / (NOISE_RATES.len() as u64 * HAZARD_RATES.len() as u64))
+        % CALIBRATION_DAMAGE_RATES.len() as u64) as usize;
+    let (noise_numerator, noise_denominator) = NOISE_RATES[selection];
+    let (hazard_numerator, hazard_denominator) = HAZARD_RATES[hazard_selection];
+    let (damage_numerator, damage_denominator) = CALIBRATION_DAMAGE_RATES[damage_selection];
+    let noise = Rational::new(noise_numerator, noise_denominator)?;
+    let hazard_rate = Rational::new(hazard_numerator, hazard_denominator)?;
+    let damage_rate = Rational::new(damage_numerator, damage_denominator)?;
+
     let modes = [
         Mode::Nominal,
         Mode::SensorDrift,
@@ -40,11 +60,13 @@ pub fn generate_stateful_confounding_family(seed: u64) -> Result<ChallengeFamily
     ];
     let worlds = modes
         .into_iter()
-        .map(|mode| build_world(mode, noise))
+        .map(|mode| build_world(mode, noise, hazard_rate, damage_rate))
         .collect::<Result<Vec<_>, String>>()?;
     Ok(ChallengeFamily {
         seed,
         observation_noise_rate: noise,
+        shifted_hazard_rate: hazard_rate,
+        calibration_damage_rate: damage_rate,
         nominal_world_id: "nominal".into(),
         worlds,
     })
@@ -73,7 +95,12 @@ impl Mode {
     }
 }
 
-fn build_world(mode: Mode, noise: Rational) -> Result<ModelWorld, String> {
+fn build_world(
+    mode: Mode,
+    noise: Rational,
+    hazard_rate: Rational,
+    calibration_damage_rate: Rational,
+) -> Result<ModelWorld, String> {
     let action_ids = vec![
         "measure-combined-signal".to_string(),
         "calibrate-sensor".to_string(),
@@ -93,14 +120,16 @@ fn build_world(mode: Mode, noise: Rational) -> Result<ModelWorld, String> {
                             noise,
                             physical_state,
                             sensor_state,
+                            hazard_rate,
                         )?,
-                        1 => calibration_outcomes(mode, physical_state)?,
+                        1 => calibration_outcomes(mode, physical_state, calibration_damage_rate)?,
                         2 => reference_measurement_outcomes(physical_state)?,
                         _ => fast_nominal_measurement_outcomes(
                             mode,
                             noise,
                             physical_state,
                             sensor_state,
+                            hazard_rate,
                         )?,
                     };
                     rows.push(KernelRow {
@@ -152,6 +181,7 @@ fn measurement_outcomes(
     noise: Rational,
     physical_state: usize,
     sensor_state: usize,
+    hazard_rate: Rational,
 ) -> Result<Vec<JointOutcome>, String> {
     let reversed = mode == Mode::InstrumentReversal;
     let signal = (physical_state ^ sensor_state) ^ if reversed { 1 } else { 0 };
@@ -167,7 +197,7 @@ fn measurement_outcomes(
     };
 
     let hazard = if mode == Mode::ShiftedHazard && physical_state == 1 {
-        Rational::new(1, 4)?
+        hazard_rate
     } else {
         Rational::zero()
     };
@@ -217,6 +247,7 @@ fn fast_nominal_measurement_outcomes(
     noise: Rational,
     physical_state: usize,
     sensor_state: usize,
+    hazard_rate: Rational,
 ) -> Result<Vec<JointOutcome>, String> {
     // This cheap measurement assumes the nominal instrument orientation. It is
     // intentionally reversed in one model world and hazardous in another.
@@ -233,7 +264,7 @@ fn fast_nominal_measurement_outcomes(
         sensor_state
     };
     let hazard = if mode == Mode::ShiftedHazard && physical_state == 1 {
-        Rational::new(1, 4)?
+        hazard_rate
     } else {
         Rational::zero()
     };
@@ -269,18 +300,33 @@ fn fast_nominal_measurement_outcomes(
 fn calibration_outcomes(
     mode: Mode,
     physical_state: usize,
+    damage_rate: Rational,
 ) -> Result<Vec<JointOutcome>, String> {
-    let next_physical = if mode == Mode::DamagingCalibration {
-        physical_state ^ 1
-    } else {
-        physical_state
-    };
-    Ok(vec![JointOutcome {
-        probability: Rational::one(),
-        next_physical_state: next_physical,
+    if mode != Mode::DamagingCalibration || damage_rate.is_zero() {
+        return Ok(vec![JointOutcome {
+            probability: Rational::one(),
+            next_physical_state: physical_state,
+            next_sensor_state: 0,
+            observation: Some(0),
+        }]);
+    }
+    let no_damage = Rational::one().checked_sub(damage_rate)?;
+    let mut outcomes = Vec::with_capacity(2);
+    if !no_damage.is_zero() {
+        outcomes.push(JointOutcome {
+            probability: no_damage,
+            next_physical_state: physical_state,
+            next_sensor_state: 0,
+            observation: Some(0),
+        });
+    }
+    outcomes.push(JointOutcome {
+        probability: damage_rate,
+        next_physical_state: physical_state ^ 1,
         next_sensor_state: 0,
         observation: Some(0),
-    }])
+    });
+    Ok(outcomes)
 }
 
 #[cfg(test)]
