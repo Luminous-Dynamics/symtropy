@@ -79,6 +79,16 @@ MuJoCo's documentation describes multiple integrators with different workload-sp
 
 The current runner does not call MuJoCo or Rapier yet. No external-engine measurements, SOTA claim, engine-wide performance claim, or physical validation claim is made.
 
+### Current external-engine baselines (2026-10-31)
+
+- **MuJoCo 3.17.0** was released on 2026-10-22. Its documented integrator profiles and batch API make it a useful comparison target for both single trajectories and paired/batched runs. The release notes state that batch simulations are bit-identical to a plain loop at any thread count; that is a reproducibility result for its batch API, not a claim of cross-platform bitwise identity.
+- **Rapier 0.35.3** is the current 0.35 release line in the upstream changelog (2026-08-28). The 0.35 series includes intra-island parallelism, persistent graph coloring, and parallel broadphase; 0.35.2 includes a multibody energy-injection correction for a near-singular mass-matrix case. Symtropy's current D0/D1 Rapier bridge history pins 0.18; issue #495 owns the separately qualified upgrade to 0.35.3. Keep 0.18 results as historical evidence and version the newer comparison separately.
+- **Nexus** is a separate GPU-oriented multiphysics engine, not the same workload class as the CPU pendulum. Dimforge's Q3 2026 report describes 505K rigid bodies at about 14 ms/frame on RTX 5080 using Soft-TGS and approximate twist-friction. This is a vendor-reported throughput result; do not compare it numerically with the scalar CPU campaign.
+
+Sources: [MuJoCo 3.17.0 release notes](https://github.com/google-deepmind/mujoco/releases), [MuJoCo integrator documentation](https://mujoco.readthedocs.io/en/latest/computation/index.html), [Rapier changelog](https://github.com/dimforge/rapier/blob/master/CHANGELOG.md), and [Dimforge Q3 2026 technical report](https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/).
+
+The external evaluation protocol should pin these explicit versions and profiles, then compare equivalent models and declared solver modes. For Rapier, keep single-thread, parallel, and enhanced-determinism modes as separate evidence identities. A speedup claim is valid only on matched hardware and workloads; vendor-reported improvements are research context, not Symtropy performance evidence.
+
 ## Reproduction
 
 ~~~sh
