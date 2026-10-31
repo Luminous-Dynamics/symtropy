@@ -74,7 +74,7 @@ The matrix is admitted only if the selected damping/stiffness terms keep it symm
 
 ### B. A dual view of friction
 
-The current exact maximum-dissipation reference is planar and single-contact. The next reference is a 3D circular-cone contact with asymmetric inertia, then compare primal cone, pyramidal approximation and dual-cone/impedance formulations on matched fixtures.
+The current exact maximum-dissipation reference is planar and single-contact. A complete N-D normal/tangent/rolling/torsional Delassus matrix is now available as a separate reference assembler. The next reference is a 3D circular-cone contact with asymmetric inertia, then compare primal cone, pyramidal approximation and dual-cone/impedance formulations on matched fixtures.
 
 For a contact with normal impulse \(\lambda_n\), tangential impulse \(\lambda_t\), and coefficient \(\mu\):
 
@@ -178,6 +178,24 @@ Only after matching physical error and hardware:
 
 A speedup counts only if the physical error envelope, timestep, contact semantics, precision, hardware, compiler flags and scene definition are matched. If no equivalent exists, call it a capability comparison, not a performance win.
 
+## Full N-D contact-wrench metric increment
+
+The branch now contains a complete reference assembler for the contact-frame coordinates:
+
+\[
+d_c = D + \frac{D(D-1)}{2} = \frac{D(D+1)}{2}.
+\]
+
+For each contact it assembles normal and tangent linear rows, rolling and torsional bivector rows. Each column applies the corresponding generalized impulse to both bodies (linear impulses at the declared lever arms; angular impulses as contact torques), then measures all output coordinates. The matrix retains the cross-channel terms and contact-pair coupling; it is not forcibly symmetrized.
+
+Regression coverage now includes:
+- analytic isotropic diagonal metrics in D=2,3,4;
+- an asymmetric body with a non-zero tangent/rolling off-diagonal response;
+- matrix symmetry and positive-semidefiniteness;
+- invariance under a common global rigid rotation.
+
+This completes the *reference assembly* portion of the geometric contact-wrench programme. It does not solve the coupled maximum-dissipation problem, include joints or material stiffness, or replace the production TGS contact path. The next meaningful step is a small coupled SOC/dual-cone optimizer driven by this full matrix, with an independently checked energy/work residual.
+
 ## First friction reference increment
 
 The cumulative branch now includes `solve_planar_friction_cone`, an exhaustive single-contact 2D reference for Signorini normal complementarity plus maximum-dissipation Coulomb friction. It enumerates separation, sticking, positive tangential sliding and negative tangential sliding. The effective metric must be SPD; inconsistent/Painleve-like cases return an explicit no-admissible-solution error. The implementation reports a normalized normal-complementarity/friction-law residual and is benchmarked separately from the Delassus/LCP reference.
@@ -196,10 +214,10 @@ These increments provide geometric and single-contact references. There is still
 
 ## Immediate implementation sequence
 
-1. Keep the small-island frictionless oracle independent and correct; keep the new planar friction reference as a separate correctness module, not a premature production replacement.
-2. Define a typed island problem containing generalized mass/effective metric, Jacobian rows, normal/tangent bases, compliance and targets.
-3. Implement one-contact 2D/3D maximum-dissipation reference and compare it with production friction response.
-4. Add multi-contact cone reference fixtures with redundant rows and a clearly stated solver tolerance.
+1. Keep the small-island frictionless oracle and planar friction reference independent; neither is a production replacement.
+2. Complete the typed island problem around the current full N-D contact-wrench Delassus assembler, including velocity targets, restitution, compliance and explicit contact-law choice.
+3. Implement a 3D asymmetric maximum-dissipation circular-cone reference using the full coupled metric and compare it against primal-cone and dual-cone formulations.
+4. Add multi-contact wrench-cone fixtures with redundant rows and clear primal/dual/work residual tolerances.
 5. Instrument production TGS with work, residual and per-island timing receipts.
 6. Add adaptive iteration/substep experiments driven by residual contraction and conditioning.
 7. Only then implement production solver switching and GPU batching.
