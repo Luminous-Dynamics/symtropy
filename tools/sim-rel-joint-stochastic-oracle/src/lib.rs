@@ -237,6 +237,10 @@ pub struct JointKernel {
     pub hypothesis_ids: Vec<String>,
     pub physical_state_count: usize,
     pub sensor_state_count: usize,
+    /// Ordered semantic labels; index i in the kernel means physical_state_ids[i].
+    pub physical_state_ids: Vec<String>,
+    /// Ordered semantic labels; index i in the kernel means sensor_state_ids[i].
+    pub sensor_state_ids: Vec<String>,
     pub action_ids: Vec<String>,
     pub observation_ids: Vec<String>,
     pub action_costs: Vec<u64>,
@@ -259,6 +263,12 @@ impl JointKernel {
         if self.sensor_state_count == 0 || self.sensor_state_count > MAX_SENSOR_STATES {
             return Err(format!("sensor state count must be in 1..={MAX_SENSOR_STATES}"));
         }
+        if self.physical_state_ids.len() != self.physical_state_count {
+            return Err("physical state ID count does not match physical_state_count".into());
+        }
+        if self.sensor_state_ids.len() != self.sensor_state_count {
+            return Err("sensor state ID count does not match sensor_state_count".into());
+        }
         if action_count == 0 || action_count > MAX_ACTIONS {
             return Err(format!("action count must be in 1..={MAX_ACTIONS}"));
         }
@@ -269,6 +279,8 @@ impl JointKernel {
             return Err("every action must have one positive integer cost".into());
         }
         validate_ids(&self.hypothesis_ids, "hypothesis")?;
+        validate_ids(&self.physical_state_ids, "physical state")?;
+        validate_ids(&self.sensor_state_ids, "sensor state")?;
         validate_ids(&self.action_ids, "action")?;
         validate_ids(&self.observation_ids, "observation")?;
 
@@ -1073,6 +1085,8 @@ mod tests {
             hypothesis_ids: (0..hypothesis_count).map(|id| format!("h{id}")).collect(),
             physical_state_count: physical_count,
             sensor_state_count: sensor_count,
+            physical_state_ids: (0..physical_count).map(|id| format!("physical-{id}")).collect(),
+            sensor_state_ids: (0..sensor_count).map(|id| format!("sensor-{id}")).collect(),
             action_ids: action_ids.into_iter().map(str::to_string).collect(),
             observation_ids: observation_ids.into_iter().map(str::to_string).collect(),
             action_costs,
