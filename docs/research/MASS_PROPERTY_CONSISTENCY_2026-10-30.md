@@ -51,6 +51,8 @@ These are source-level tests only until the exact PR head completes formatting, 
 
 The toolhead path now has an explicit-mass-property variant and a documented uniform-ball compatibility approximation; see [Toolhead Mass-Property Composition](TOOLHEAD_MASS_PROPERTIES_2026-10-31.md). The mean-plane parallel-axis term is dimension-corrected to 2m|d|²/D.
 
+A direct piecewise-uniform tetrahedral volume integration path is now available for 3D solids; see [Tetrahedral Volume Mass Properties](TETRAHEDRAL_MASS_PROPERTIES_2026-10-31.md). It computes mass, global COM and the centered second moment from supplied tetrahedral cells, including per-cell density. It does not tetrahedralize or validate the input mesh decomposition.
+
 ## Further work
 
 1. Associate mass-property provenance with its source geometry, density model, units and COM frame, not just its total mass.
