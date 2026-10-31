@@ -57,6 +57,7 @@ Use a **plurality-preserving decision record** with:
 7. A hazard record with states such as reported, corroborated, substantiated, refuted and unresolved.
 8. A decision disposition, if any, with reasons, review date, reversal or stop conditions, and the preserved positions.
 9. A durable dissent record: minority arguments are not silently deleted when a decision is made.
+10. An append-only process event stream: actor, time, event type, prior receipt, current receipt and evidence references for each safeguard, hazard and disposition transition. The genesis position set must also be anchored by a host-verified receipt.
 
 The system may produce a provisional decision without claiming the underlying paradox is resolved. An unresolved tension can be a valid and deliberate state, provided the decision record specifies review and consequences.
 
@@ -120,6 +121,14 @@ Run all policy arms on matched populations, capacities, budgets, shocks, seeds a
 | DD-18 | A hazard is refuted after review | Retain audit trail without continuing automatic process blockage |
 | DD-19 | Emergency decision becomes permanent through inertia | Expiry and independent renewal required |
 | DD-20 | Provisional policy causes unexpected subgroup harm | Stop/review trigger fires; affected parties and remedy recorded |
+| DD-21 | Task disagreement escalates across short, medium and long horizons | Preserve the event trajectory; distinguish immediate process harm from long-run structural effects |
+| DD-22 | Leadership turnover attempts to remove a minority position | Replay preserves the original record, source attribution and correction lineage |
+| DD-23 | A hazard is refuted, then new evidence reopens the concern | Refutation and reopening are separate attributed events; no historical laundering |
+| DD-24 | A previously available safeguard becomes inaccessible | Record the regression; block new consequential action until the safeguard is independently restored |
+| DD-25 | A provisional decision creates delayed subgroup harm | Trigger review/rollback and record the affected group, remedy and residual uncertainty |
+| DD-26 | A resolved tension reactivates after an external shock | Reopen inquiry without deleting the prior disposition or claiming permanent resolution |
+| DD-27 | A short-term benefit transfers unpaid care or environmental cost to the future | Expose cross-horizon and subgroup incidence rather than optimizing only near-term output |
+| DD-28 | Repeatedly deferred disagreement accumulates material burden | Report the unresolved issue, age, owner, review date and burden by affected group; do not collapse into one score |
 
 ### Required metrics
 
@@ -160,6 +169,29 @@ Do not collapse these into one "dissonance score".
 ## 7. Benchmark acceptance targets
 
 Targets are divided into exact software properties and contextual empirical measures.
+
+### Append-only event and replay requirements
+
+- Every safeguard snapshot, hazard report, hazard-finding change and disposition change appends exactly one process event.
+- Every event has a strictly increasing sequence number, a non-decreasing host timestamp, an actor identifier, a predecessor receipt reference and a current receipt reference.
+- Every hazard-finding transition names the prior finding and a new evidence reference. Refutation does not delete the report; reopening requires a new event and evidence reference.
+- Replay of a complete, valid event stream from the same genesis positions reproduces the same state and history.
+- Missing, duplicated, reordered, backdated or incorrectly linked events fail closed.
+- The kernel does not authenticate actors or verify receipt signatures/digests. The host adapter must bind the genesis state and canonical event payload to signed/content-addressed receipts and enforce an independently authorized, append-only store.
+
+### Longitudinal evaluation
+
+The benchmark must evaluate micro-, meso- and macro-temporal dynamics rather than a single meeting or vote. The current research review distinguishes short (0–4 years), medium (5–24 years) and long (25+ years) horizons, and sequential, cyclical and entangled process styles. A software benchmark can stress these through simulated event sequences and staged policy shocks, but real-world effects need longitudinal pilots.
+
+Track at least:
+- time to detect escalation from task disagreement to relationship/status conflict;
+- hazard report-to-review and review-to-remedy latency;
+- retention of minority positions across leadership changes;
+- safeguard regression and restoration;
+- whether review dates are missed, renewed or silently extended;
+- short-term benefits versus delayed service, care, ecological and subgroup costs;
+- the age and distribution of unresolved disagreement burdens ("disagreement debt"), reported as a vector rather than a composite score;
+- how frequently a previously closed issue is legitimately reactivated after new evidence or changed context.
 
 ### Deterministic conformance targets
 
@@ -212,6 +244,7 @@ This benchmark does not measure a person's moral worth, consciousness, love, mat
 ## 11. Research references
 
 - Yuan, Yin & Sun (2026), [The paradox of team conflict revisited: An updated meta-analysis](https://doi.org/10.1037/apl0001315), *Journal of Applied Psychology*, 111(2), 195–224.
+- Johansen & Nielsen (2026), [A process-temporal perspective on organizational paradoxes](https://doi.org/10.1111/ijmr.70032), *International Journal of Management Reviews*, review of 81 empirical studies.
 - [Whether and when team task conflict and relationship conflict transform over time](https://doi.org/10.1108/IJCMA-09-2024-0238), *International Journal of Conflict Management* (2025); meta-analysis of 32 longitudinal studies, N=2,361.
 - Krautzberger & Tuckermann (2024), [Navigating Both/And and Either/Or Approaches in Response to Paradoxical Demands](https://doi.org/10.1177/26317877241290249).
 - Asenbaum (2026), [A multiperspectival approach to democratic theory](https://doi.org/10.1177/02633957251320041).
