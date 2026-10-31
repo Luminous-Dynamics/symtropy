@@ -14,6 +14,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 pub mod baseline;
 pub mod robust;
 pub mod robust_optimizer;
+pub mod identifiability;
 
 const MAX_HYPOTHESES: usize = 32;
 const MAX_PHYSICAL_STATES: usize = 64;
