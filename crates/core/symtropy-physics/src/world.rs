@@ -2922,6 +2922,130 @@ mod transformed_halfspace_tests {
         assert_eq!(world.collision_events.len(), previous_events.len());
     }
 
+    #[derive(Clone, Copy)]
+    enum CallbackFault {
+        NonFiniteForce,
+        ReverseNormalImpulse,
+        NegativeFriction,
+    }
+
+    struct FaultInjectingCallback {
+        fault: CallbackFault,
+    }
+
+    impl PhysicsCallback<3> for FaultInjectingCallback {
+        fn modulate_force(&self, _: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
+            match self.fault {
+                CallbackFault::NonFiniteForce => SVector::from_element(f64::NAN),
+                _ => *force,
+            }
+        }
+
+        fn modulate_impulse(&self, impulse: f64, _: &SVector<f64, 3>) -> f64 {
+            match self.fault {
+                CallbackFault::ReverseNormalImpulse => -impulse,
+                _ => impulse,
+            }
+        }
+
+        fn friction_multiplier(&self, _: &SVector<f64, 3>, _: BodyHandle) -> f64 {
+            match self.fault {
+                CallbackFault::NegativeFriction => -1.0,
+                _ => 1.0,
+            }
+        }
+
+        fn on_collision(&mut self, _: &CollisionEvent<3>) {}
+        fn record_dissipation(&mut self, _: f64) {}
+        fn record_work(&mut self, _: BodyHandle, _: f64) {}
+        fn apply_trauma(&mut self, _: &CollisionEvent<3>) {}
+    }
+
+    fn sphere_impact_world(tangential_speed: f64) -> PhysicsWorld<3> {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.bodies[0].linear_velocity = SVector::new(1.0, tangential_speed, 0.0);
+        world.bodies[0].friction = 0.5;
+        world.bodies[0].restitution = 0.2;
+        world.add_body(RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::new([0.999, 0.0, 0.0]),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.5)),
+        ));
+        world
+    }
+
+    #[test]
+    fn world_rejects_non_finite_callback_force_output_transactionally() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.bodies[0].apply_force(SVector::new(1.0, 0.0, 0.0));
+        let position_before = world.bodies[0].transform.translation.0;
+        let velocity_before = world.bodies[0].linear_velocity;
+        let force_before = world.bodies[0].force_accumulator;
+        let mut callback = FaultInjectingCallback {
+            fault: CallbackFault::NonFiniteForce,
+        };
+
+        let error = world
+            .try_step_with_callback(0.01, &mut callback)
+            .unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::BodyIntegration);
+        assert_eq!(error.body_a, Some(BodyHandle(0)));
+        assert_eq!(error.cause, PhysicsStepCause::NonFiniteCallbackOutput);
+        assert_eq!(world.bodies[0].transform.translation.0, position_before);
+        assert_eq!(world.bodies[0].linear_velocity, velocity_before);
+        assert_eq!(world.bodies[0].force_accumulator, force_before);
+    }
+
+    #[test]
+    fn world_rejects_reversed_unilateral_impulse_transactionally() {
+        let mut world = sphere_impact_world(0.0);
+        let position_before = world.bodies[0].transform.translation.0;
+        let velocity_before = world.bodies[0].linear_velocity;
+        let mut callback = FaultInjectingCallback {
+            fault: CallbackFault::ReverseNormalImpulse,
+        };
+
+        let error = world
+            .try_step_with_callback(0.001, &mut callback)
+            .unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::ContactSolve);
+        assert_eq!(error.cause, PhysicsStepCause::ImpulseDirectionReversal);
+        assert_eq!(world.bodies[0].transform.translation.0, position_before);
+        assert_eq!(world.bodies[0].linear_velocity, velocity_before);
+    }
+
+    #[test]
+    fn world_rejects_negative_friction_multiplier_without_panicking() {
+        let mut world = sphere_impact_world(1.0);
+        let position_before = world.bodies[0].transform.translation.0;
+        let velocity_before = world.bodies[0].linear_velocity;
+        let mut callback = FaultInjectingCallback {
+            fault: CallbackFault::NegativeFriction,
+        };
+
+        let error = world
+            .try_step_with_callback(0.001, &mut callback)
+            .unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::ContactSolve);
+        assert_eq!(error.cause, PhysicsStepCause::NegativeFrictionMultiplier);
+        assert_eq!(world.bodies[0].transform.translation.0, position_before);
+        assert_eq!(world.bodies[0].linear_velocity, velocity_before);
+    }
+
+    #[test]
+    fn world_rejects_non_positive_or_non_finite_timestep_without_mutation() {
+        for dt in [0.0, -0.01, f64::NAN, f64::INFINITY] {
+            let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+            world.add_sphere(Point::origin(), 0.5, 1.0);
+            let position_before = world.bodies[0].transform.translation.0;
+            let error = world.try_step(dt).unwrap_err();
+            assert_eq!(error.cause, PhysicsStepCause::InvalidTimeStep);
+            assert_eq!(world.bodies[0].transform.translation.0, position_before);
+        }
+    }
+
     #[derive(Default)]
     struct CallbackBatchRecorder {
         committed_batches: usize,
