@@ -8,6 +8,7 @@ on:
       - "tools/pendulum-rattle-reference/**"
       - "tools/pendulum-phdae-reference/**"
       - "docs/research/PENDULUM_MATCHED_SOLVER_CAMPAIGN_2026-10-31.md"
+      - "docs/research/SEMI_EXPLICIT_PHDAE_PENDULUM_REFERENCE_2026-10-31.md"
       - ".github/workflows/pendulum-matched-campaign.yml"
   push:
     branches:
