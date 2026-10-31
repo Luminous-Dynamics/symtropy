@@ -15,9 +15,11 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod consent;
 pub mod ledger;
 pub mod needs;
 
+pub use consent::{BilateralConsent, ConsentError, ConsentStatus, ProposalDigest};
 pub use ledger::{
     AccountId, AccountKind, JournalEntry, JournalKind, Ledger, LedgerError,
     RATE_DENOMINATOR_PPM,
