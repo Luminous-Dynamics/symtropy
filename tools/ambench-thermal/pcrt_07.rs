@@ -283,6 +283,9 @@ fn above_threshold_intervals(
     if times.len() != temperatures.len() || times.len() < 2 {
         return Err("PROFILE_LENGTH_INVALID");
     }
+    if temperatures[0] > threshold || *temperatures.last().unwrap() > threshold {
+        return Err("TAM_INTERVAL_OPEN_AT_PROFILE_BOUNDARY");
+    }
     let mut intervals: Vec<Interval> = Vec::new();
     for i in 0..(times.len() - 1) {
         let t0 = times[i];
@@ -585,9 +588,9 @@ fn ks_d(left: &[f64], right: &[f64]) -> Option<f64> {
     let mut maximum = 0.0_f64;
     while i < a.len() || j < b.len() {
         let next = match (a.get(i), b.get(j)) {
-            (Some(x), Some(y)) => x.min(y),
-            (Some(x), None) => x,
-            (None, Some(y)) => y,
+            (Some(x), Some(y)) => (*x).min(*y),
+            (Some(x), None) => *x,
+            (None, Some(y)) => *y,
             (None, None) => break,
         };
         while i < a.len() && a[i] <= *next { i += 1; }
@@ -830,54 +833,69 @@ fn verify() -> Result<(), String> {
 }
 
 fn csv_header() -> &'static str {
-    "row_type,collection_kind,collection_id,collection_sha256,pixel_id,row,column,x_um,y_um,tam_s,scr_c_per_s,tam_start_s,tam_end_s,selected_peak_s,tam_reason,scr_reason,profile_sha256,metric,total_count,valid_count,missing_count,mean,median,sample_sd,population_sd,tam_ks_d,scr_ks_d,paired_count,paired_mae,paired_rmse"
+    "row_type,collection_kind,collection_id,collection_sha256,pixel_id,row,column,x_um,y_um,tam_s,scr_c_per_s,tam_start_s,tam_end_s,selected_peak_s,tam_reason,scr_reason,profile_sha256,metric,total_count,valid_count,missing_count,mean,median,sample_sd,population_sd,tam_ks_d,scr_ks_d,paired_count,paired_mae,paired_rmse,paired_grid_exact"
 }
 
 fn csv_rows(report: &ComparisonReport) -> Vec<String> {
     let mut rows = Vec::new();
     for collection in [&report.predicted, &report.measured] {
         for pixel in &collection.pixels {
-            rows.push(format!(
-                "PIXEL,{},{},{},{},{},{},{:.12e},{:.12e},{},{},{},{},{},{},{},{},,,,,,,,,,,,,",
-                collection.kind.code(), collection.collection_id, collection.source_sha256,
-                pixel.pixel_id, pixel.row, pixel.column, pixel.x_um, pixel.y_um,
+            let mut cells = vec![
+                "PIXEL".to_string(), collection.kind.code().to_string(),
+                collection.collection_id.clone(), collection.source_sha256.clone(),
+                pixel.pixel_id.clone(), pixel.row.to_string(), pixel.column.to_string(),
+                format!("{:.12e}", pixel.x_um), format!("{:.12e}", pixel.y_um),
                 pixel.tam_s.map(|x| format!("{x:.12e}")).unwrap_or_default(),
                 pixel.scr_c_per_s.map(|x| format!("{x:.12e}")).unwrap_or_default(),
                 pixel.selected_tam_start_s.map(|x| format!("{x:.12e}")).unwrap_or_default(),
                 pixel.selected_tam_end_s.map(|x| format!("{x:.12e}")).unwrap_or_default(),
                 pixel.selected_peak_s.map(|x| format!("{x:.12e}")).unwrap_or_default(),
-                pixel.tam_reason, pixel.scr_reason, pixel.source_profile_sha256
-            ));
+                pixel.tam_reason.to_string(), pixel.scr_reason.to_string(),
+                pixel.source_profile_sha256.clone(),
+            ];
+            cells.resize(31, String::new());
+            rows.push(cells.join(","));
         }
         for (metric, stat) in [("TAM", collection.tam), ("SCR", collection.scr)] {
-            rows.push(format!(
-                "SUMMARY,{},{},{},".to_string() + ",,,,,,,,,,,,,{},{},{},{},{},{},{},{},,,,,,",
-                collection.kind.code(), collection.collection_id, collection.source_sha256,
-                metric, stat.total_count, stat.valid_count, stat.missing_count,
+            let mut cells = vec![
+                "SUMMARY".to_string(), collection.kind.code().to_string(),
+                collection.collection_id.clone(), collection.source_sha256.clone(),
+            ];
+            cells.resize(17, String::new());
+            cells.extend([
+                metric.to_string(), stat.total_count.to_string(), stat.valid_count.to_string(),
+                stat.missing_count.to_string(),
                 stat.mean.map(|x| format!("{x:.12e}")).unwrap_or_default(),
                 stat.median.map(|x| format!("{x:.12e}")).unwrap_or_default(),
                 stat.sample_sd.map(|x| format!("{x:.12e}")).unwrap_or_default(),
-                stat.population_sd.map(|x| format!("{x:.12e}")).unwrap_or_default()
-            ));
+                stat.population_sd.map(|x| format!("{x:.12e}")).unwrap_or_default(),
+            ]);
+            cells.resize(31, String::new());
+            rows.push(cells.join(","));
         }
     }
-    let c = report.comparison;
-    rows.push(format!(
-        "COMPARISON,,,,,,,,,,,,,,,,,,TAM_KS_D,,,,,,,,{},{},{},{},{},",
-        c.tam_ks_d.map(|x| format!("{x:.12e}")).unwrap_or_default(),
-        c.paired_tam_count,
-        c.paired_tam_mae_s.map(|x| format!("{x:.12e}")).unwrap_or_default(),
-        c.paired_tam_rmse_s.map(|x| format!("{x:.12e}")).unwrap_or_default(),
-        report.paired_grid
-    ));
-    rows.push(format!(
-        "COMPARISON,,,,,,,,,,,,,,,,,,SCR_KS_D,,,,,,,,{},{},{},{},{},",
-        c.scr_ks_d.map(|x| format!("{x:.12e}")).unwrap_or_default(),
-        c.paired_scr_count,
-        c.paired_scr_mae_c_per_s.map(|x| format!("{x:.12e}")).unwrap_or_default(),
-        c.paired_scr_rmse_c_per_s.map(|x| format!("{x:.12e}")).unwrap_or_default(),
-        report.paired_grid
-    ));
+    let comparison_rows = [
+        ("COMPARISON_TAM_KS_D", report.comparison.tam_ks_d,
+            report.comparison.paired_tam_count, report.comparison.paired_tam_mae_s,
+            report.comparison.paired_tam_rmse_s),
+        ("COMPARISON_SCR_KS_D", report.comparison.scr_ks_d,
+            report.comparison.paired_scr_count, report.comparison.paired_scr_mae_c_per_s,
+            report.comparison.paired_scr_rmse_c_per_s),
+    ];
+    for (metric, ks, paired_count, mae, rmse) in comparison_rows {
+        let mut cells = vec!["COMPARISON".to_string()];
+        cells.resize(17, String::new());
+        cells.push(metric.to_string());
+        cells.resize(25, String::new());
+        cells.push(ks.map(|x| format!("{x:.12e}")).unwrap_or_default());
+        cells.push(String::new());
+        cells.push(paired_count.to_string());
+        cells.push(mae.map(|x| format!("{x:.12e}")).unwrap_or_default());
+        cells.push(rmse.map(|x| format!("{x:.12e}")).unwrap_or_default());
+        cells.push(report.paired_grid.to_string());
+        cells.resize(31, String::new());
+        rows.push(cells.join(","));
+    }
     rows
 }
 
@@ -932,6 +950,19 @@ mod tests {
         assert_eq!(intervals.len(), 1);
         assert!((intervals[0].start_s - 0.0).abs() < 1.0e-12);
         assert!((intervals[0].end_s - 2.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn profile_open_above_threshold_at_first_or_last_frame_abstains() {
+        let times = vec![0.0, 1.0, 2.0];
+        assert_eq!(
+            above_threshold_intervals(&times, &[1300.0, 1400.0, 1000.0], TAM_THRESHOLD_C),
+            Err("TAM_INTERVAL_OPEN_AT_PROFILE_BOUNDARY")
+        );
+        assert_eq!(
+            above_threshold_intervals(&times, &[1000.0, 1400.0, 1300.0], TAM_THRESHOLD_C),
+            Err("TAM_INTERVAL_OPEN_AT_PROFILE_BOUNDARY")
+        );
     }
 
     #[test]
