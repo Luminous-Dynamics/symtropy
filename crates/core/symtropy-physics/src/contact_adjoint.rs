@@ -483,6 +483,194 @@ mod tests {
     use crate::delassus::solve_frictionless_lcp;
 
     #[test]
+    fn planar_sticking_sensitivity_matches_finite_difference() {
+        let matrix = Matrix2::new(2.0, 0.0, 0.0, 1.0);
+        let q = SVector::new(-1.0, -0.2);
+        let mu = 1.0;
+        let matrix_derivative = Matrix2::new(0.2, 0.0, 0.0, 0.1);
+        let q_derivative = SVector::new(0.1, -0.1);
+        let mu_derivative = 0.05;
+        let objective_gradient = SVector::new(1.5, -0.5);
+        let direct_gradient = 0.03;
+        let solution = solve_planar_friction_cone(&matrix, &q, mu, 1e-12).unwrap();
+        assert_eq!(solution.mode, PlanarContactMode::Sticking);
+
+        let result = differentiate_planar_friction_mode(
+            &matrix,
+            &q,
+            &solution,
+            mu,
+            &matrix_derivative,
+            &q_derivative,
+            mu_derivative,
+            &objective_gradient,
+            direct_gradient,
+            1e-8,
+            1e-8,
+            1e-8,
+            1e-12,
+        )
+        .unwrap();
+        assert!((result.impulse_sensitivity - SVector::new(-0.1, 0.08)).norm() < 1e-12);
+
+        let epsilon = 1e-6;
+        let plus = solve_planar_friction_cone(
+            &(matrix + matrix_derivative * epsilon),
+            &(q + q_derivative * epsilon),
+            mu + mu_derivative * epsilon,
+            1e-12,
+        )
+        .unwrap();
+        let minus = solve_planar_friction_cone(
+            &(matrix - matrix_derivative * epsilon),
+            &(q - q_derivative * epsilon),
+            mu - mu_derivative * epsilon,
+            1e-12,
+        )
+        .unwrap();
+        let plus_objective =
+            objective_gradient.dot(&plus.impulse) + direct_gradient * epsilon;
+        let minus_objective =
+            objective_gradient.dot(&minus.impulse) - direct_gradient * epsilon;
+        let finite_difference =
+            (plus_objective - minus_objective) / (2.0 * epsilon);
+        assert!((finite_difference - result.objective_parameter_gradient).abs() < 1e-8);
+    }
+
+    #[test]
+    fn planar_sliding_sensitivity_includes_friction_coefficient_derivative() {
+        let matrix = Matrix2::new(2.0, 0.0, 0.0, 1.0);
+        let q = SVector::new(-1.0, 1.0);
+        let mu = 0.5;
+        let matrix_derivative = Matrix2::new(0.2, 0.0, 0.0, 0.1);
+        let q_derivative = SVector::new(0.1, -0.05);
+        let mu_derivative = 0.05;
+        let objective_gradient = SVector::new(1.0, 0.7);
+        let direct_gradient = -0.02;
+        let solution = solve_planar_friction_cone(&matrix, &q, mu, 1e-12).unwrap();
+        assert_eq!(solution.mode, PlanarContactMode::SlidingPositive);
+
+        let result = differentiate_planar_friction_mode(
+            &matrix,
+            &q,
+            &solution,
+            mu,
+            &matrix_derivative,
+            &q_derivative,
+            mu_derivative,
+            &objective_gradient,
+            direct_gradient,
+            1e-8,
+            1e-8,
+            1e-8,
+            1e-12,
+        )
+        .unwrap();
+        assert!((result.impulse_sensitivity - SVector::new(-0.1, 0.025)).norm() < 1e-12);
+
+        let epsilon = 1e-6;
+        let plus = solve_planar_friction_cone(
+            &(matrix + matrix_derivative * epsilon),
+            &(q + q_derivative * epsilon),
+            mu + mu_derivative * epsilon,
+            1e-12,
+        )
+        .unwrap();
+        let minus = solve_planar_friction_cone(
+            &(matrix - matrix_derivative * epsilon),
+            &(q - q_derivative * epsilon),
+            mu - mu_derivative * epsilon,
+            1e-12,
+        )
+        .unwrap();
+        let plus_objective =
+            objective_gradient.dot(&plus.impulse) + direct_gradient * epsilon;
+        let minus_objective =
+            objective_gradient.dot(&minus.impulse) - direct_gradient * epsilon;
+        let finite_difference =
+            (plus_objective - minus_objective) / (2.0 * epsilon);
+        assert!((finite_difference - result.objective_parameter_gradient).abs() < 1e-8);
+    }
+
+    #[test]
+    fn planar_negative_sliding_sensitivity_uses_opposite_cone_edge() {
+        let matrix = Matrix2::new(2.0, 0.0, 0.0, 1.0);
+        let q = SVector::new(-1.0, -1.0);
+        let mu = 0.5;
+        let solution = solve_planar_friction_cone(&matrix, &q, mu, 1e-12).unwrap();
+        assert_eq!(solution.mode, PlanarContactMode::SlidingNegative);
+        let result = differentiate_planar_friction_mode(
+            &matrix,
+            &q,
+            &solution,
+            mu,
+            &Matrix2::zeros(),
+            &SVector::zeros(),
+            0.1,
+            &SVector::new(0.0, 1.0),
+            0.0,
+            1e-8,
+            1e-8,
+            1e-8,
+            1e-12,
+        )
+        .unwrap();
+
+        assert!((result.impulse_sensitivity - SVector::new(0.0, 0.05)).norm() < 1e-12);
+    }
+
+    #[test]
+    fn planar_friction_sensitivity_rejects_stick_slip_boundary() {
+        let matrix = Matrix2::new(2.0, 0.0, 0.0, 1.0);
+        let q = SVector::new(-1.0, -0.25);
+        let solution = solve_planar_friction_cone(&matrix, &q, 0.5, 1e-12).unwrap();
+        assert_eq!(solution.mode, PlanarContactMode::Sticking);
+        let error = differentiate_planar_friction_mode(
+            &matrix,
+            &q,
+            &solution,
+            0.5,
+            &Matrix2::zeros(),
+            &SVector::zeros(),
+            0.0,
+            &SVector::new(1.0, 0.0),
+            0.0,
+            1e-8,
+            1e-8,
+            1e-8,
+            1e-12,
+        )
+        .unwrap_err();
+        assert_eq!(error, ContactAdjointError::PlanarModeBoundary);
+    }
+
+    #[test]
+    fn planar_separating_sensitivity_is_zero_away_from_impact_boundary() {
+        let matrix = Matrix2::identity();
+        let q = SVector::new(0.1, 5.0);
+        let solution = solve_planar_friction_cone(&matrix, &q, 0.5, 1e-12).unwrap();
+        assert_eq!(solution.mode, PlanarContactMode::Separating);
+        let result = differentiate_planar_friction_mode(
+            &matrix,
+            &q,
+            &solution,
+            0.5,
+            &Matrix2::zeros(),
+            &SVector::new(1.0, 1.0),
+            0.1,
+            &SVector::new(1.0, 1.0),
+            0.25,
+            1e-8,
+            1e-8,
+            1e-8,
+            1e-12,
+        )
+        .unwrap();
+        assert_eq!(result.impulse_sensitivity, SVector::zeros());
+        assert_eq!(result.objective_parameter_gradient, 0.25);
+    }
+
+    #[test]
     fn implicit_adjoint_matches_closed_form_and_finite_difference() {
         // W(theta)=2+theta, q=-1, lambda=1/W. At theta=0,
         // d(lambda)/d(theta)=-1/4 and d(2*lambda)/d(theta)=-1/2.
