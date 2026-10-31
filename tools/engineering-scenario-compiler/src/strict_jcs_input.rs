@@ -46,9 +46,9 @@ fn validate_safe_integer_literals(input: &[u8]) -> Result<(), String> {
 
                 let token = &input[start..index];
                 let is_decimal_or_exponent =
-                    token.iter().any(|byte| matches!(byte, b'.' | b'e' | b'E'));
+                    token.iter().any(|byte| matches!(*byte, b'.' | b'e' | b'E'));
                 if !is_decimal_or_exponent {
-                    let digits = token.strip_prefix(b"-").unwrap_or(token);
+                    let digits = if token.first() == Some(&b'-') { &token[1..] } else { token };
                     let exceeds_safe_integer = digits.len() > MAX_SAFE_INTEGER_TEXT.len()
                         || (digits.len() == MAX_SAFE_INTEGER_TEXT.len()
                             && digits > MAX_SAFE_INTEGER_TEXT);
