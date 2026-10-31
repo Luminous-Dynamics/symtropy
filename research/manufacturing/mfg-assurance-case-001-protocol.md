@@ -93,28 +93,54 @@ These are proposed acceptance gates, not current results.
 
 Do not use precision/recall alone: false qualification is the dangerous error. Report false qualification, false rejection, abstention, defect localization time, and size/cost of the minimal missing-evidence cut set.
 
-## 7. How to compare with industry tools fairly
+## 7. Industry comparison and differentiation
 
-The initial commercial comparison must be a requirements/interchange comparison, not an unsupported speed or superiority ranking.
+The first research rule is to acknowledge existing tools honestly. A graph of claims/evidence, defeater nodes, or structural validation is not a novel capability by itself.
 
-Comparison lanes:
-1. Structured argument tooling that supports GSN, CAE or SACM interchange.
-2. Safety/security assurance-case authoring and evidence repositories.
-3. Requirements/ALM and PLM traceability products which link verification results to requirements but may not have executable defeater semantics.
-4. Digital-thread/twin platforms where VVUQ, authority and action-chain evidence can be attached to model releases.
+### Adelard ASCE
 
-For each product/version capture:
-- supported notation and interchange format/version;
-- whether graph relationships are typed and machine-readable;
-- whether counter-evidence/defeaters are first class;
-- whether validity intervals and scope are enforced or only documented;
-- whether artifact digests/signatures are verified;
-- whether evidence tier and authority are encoded;
-- whether changes automatically invalidate affected claims;
-- report determinism and audit export;
-- scale and reviewer workflow.
+Adelard currently documents support for GSN v3, Modular GSN, CAE schemas including ASCAD 2.0, defeater/comment management, CAE block structure validation, evidence linking, lifecycle change control, stakeholder views and reporting. This is a strong direct assurance-case authoring and management baseline.
 
-The relevant comparison is not visual diagram quality. It is whether each tool can detect the same seeded defect set and reproduce the same claim disposition. A feature mentioned in product collateral is not benchmark evidence.
+Therefore the research should not attempt to beat ASCE at graphical notation, narrative authoring, modular GSN authoring, stakeholder views or case-report generation. The proposed difference is the *executable engineering admission profile*: bind case nodes to exact Git commit, fixture, test-run, physical dataset, calibration and artifact digests; enforce cross-repository temporal validity, scope, evidence maturity, intervention action authority and downstream requalification; then independently reproduce the disposition from a stable manifest. These must be tested empirically; do not assume ASCE cannot support a custom workflow without a product evaluation.
+
+### NASA AdvoCATE
+
+The CAE Tools resource describes AdvoCATE as pursuing formal foundations and automation for argument creation/assembly, integration of formal methods, pattern instantiation, hierarchical abstraction, queries/views and argument verification. Treat it as an important academic/automation comparator. Compare graph semantics and verifier output, not superficial UI features.
+
+### Ansys medini Analyze
+
+Ansys medini Analyze documents HAZOP/HARA/FHA/FTA/FMEA/FMEDA workflows, consistency checking, architecture/requirements traceability and links to design and requirements tools. It is a strong safety analysis and traceability comparator, though it should not be assumed to be a general GSN/SACM assurance-case graph engine without testing the relevant release and integrations.
+
+### Fair seeded-defect comparison
+
+Evaluate version-pinned product releases, configurations and native data formats. Apply the *same* frozen defect panel to each workflow:
+- missing support edge;
+- cycle in argument support;
+- invalid or expired evidence;
+- mismatched scope;
+- incorrect evidence tier;
+- counter-evidence/defeater left unresolved;
+- stale source revision;
+- revoked or action-mismatched authority;
+- evidence digest changed without requalification;
+- unsupported export/import relationship.
+
+Measure:
+1. defect detection rate and false qualification rate;
+2. false rejection and abstention;
+3. localization quality (which claim, edge and artifact caused the failure);
+4. amount of manual reviewer intervention;
+5. update latency after a dependency changes;
+6. round-trip loss for native GSN/CAE/SACM representations;
+7. deterministic replay and integrity of exported reports;
+8. runtime/memory at 10k, 100k and 1M graph nodes.
+
+The comparison must preserve each tool's native strengths and configuration. A custom verifier may sit beside an authoring tool; it does not need to replace it. No vendor capability should be marked absent from documentation alone—test it in a reproducible evaluation or report “not evaluated.”
+
+### What would constitute a measurable advantage
+
+The target is not “more features” or “more rigorous-looking diagrams.” Demonstrate lower false-qualification rates, exact detection of stale/out-of-scope/under-tier evidence, reproducible report bytes, shorter change-to-requalification latency, and better witness localization at equal or lower total reviewer/compute cost. Publish raw panel manifests and tool configurations so another lab can reproduce the comparison.
+
 
 ## 8. Relationship to the existing assurance modules
 
