@@ -65,6 +65,8 @@ struct Collection {
     dataset_doi: String,
     dataset_version: String,
     source_sha256: String,
+    grid_sha256: String,
+    time_axis_sha256: String,
     conversion_receipt_sha256: Option<String>,
     emissivity: Option<f64>,
     temperature_unit: String,
@@ -135,6 +137,19 @@ struct CollectionReport {
     collection_id: String,
     kind: CollectionKind,
     source_sha256: String,
+    grid_sha256: String,
+    time_axis_sha256: String,
+    dataset_doi: String,
+    dataset_version: String,
+    conversion_receipt_sha256: Option<String>,
+    emissivity: Option<f64>,
+    temperature_unit: String,
+    time_unit: String,
+    algorithm_version: String,
+    grid: Grid,
+    frame_count: usize,
+    start_time_s: f64,
+    end_time_s: f64,
     tam: MetricStats,
     scr: MetricStats,
     pixels: Vec<PixelResult>,
@@ -177,8 +192,10 @@ fn validate_collection(collection: &Collection) -> Result<(), &'static str> {
             return Err("COLLECTION_IDENTITY_MISSING_OR_UNSAFE");
         }
     }
-    if !valid_sha256(&collection.source_sha256) {
-        return Err("COLLECTION_SOURCE_DIGEST_INVALID");
+    if !valid_sha256(&collection.source_sha256)
+        || !valid_sha256(&collection.grid_sha256)
+        || !valid_sha256(&collection.time_axis_sha256) {
+        return Err("COLLECTION_SOURCE_OR_AXIS_DIGEST_INVALID");
     }
     if collection.kind == CollectionKind::ThermographyReference {
         let receipt = collection.conversion_receipt_sha256.as_deref()
@@ -620,6 +637,19 @@ fn process_collection(collection: &Collection) -> Result<CollectionReport, &'sta
         collection_id: collection.collection_id.clone(),
         kind: collection.kind.clone(),
         source_sha256: collection.source_sha256.clone(),
+        grid_sha256: collection.grid_sha256.clone(),
+        time_axis_sha256: collection.time_axis_sha256.clone(),
+        dataset_doi: collection.dataset_doi.clone(),
+        dataset_version: collection.dataset_version.clone(),
+        conversion_receipt_sha256: collection.conversion_receipt_sha256.clone(),
+        emissivity: collection.emissivity,
+        temperature_unit: collection.temperature_unit.clone(),
+        time_unit: collection.time_unit.clone(),
+        algorithm_version: collection.algorithm_version.clone(),
+        grid: collection.grid.clone(),
+        frame_count: collection.times_s.len(),
+        start_time_s: collection.times_s[0],
+        end_time_s: *collection.times_s.last().unwrap(),
         tam: stats(&tam_values, pixels.len()),
         scr: stats(&scr_values, pixels.len()),
         pixels,
@@ -728,6 +758,8 @@ fn synthetic_collection(kind: CollectionKind, collection_id: &str, offset: f64, 
         dataset_doi: "10.18434/mds2-3707".into(),
         dataset_version: "synthetic-fixture-v1".into(),
         source_sha256: source_char.to_string().repeat(64),
+        grid_sha256: "2".repeat(64),
+        time_axis_sha256: "3".repeat(64),
         conversion_receipt_sha256: (kind == CollectionKind::ThermographyReference)
             .then(|| "d".repeat(64)),
         emissivity: (kind == CollectionKind::ThermographyReference).then_some(REQUIRED_EMISSIVITY),
@@ -833,16 +865,43 @@ fn verify() -> Result<(), String> {
 }
 
 fn csv_header() -> &'static str {
-    "row_type,collection_kind,collection_id,collection_sha256,pixel_id,row,column,x_um,y_um,tam_s,scr_c_per_s,tam_start_s,tam_end_s,selected_peak_s,tam_reason,scr_reason,profile_sha256,metric,total_count,valid_count,missing_count,mean,median,sample_sd,population_sd,tam_ks_d,scr_ks_d,paired_count,paired_mae,paired_rmse,paired_grid_exact"
+    "row_type,collection_kind,collection_id,dataset_doi,dataset_version,source_sha256,grid_sha256,time_axis_sha256,conversion_receipt_sha256,emissivity,temperature_unit,time_unit,algorithm_version,grid_rows,grid_columns,grid_origin_x_um,grid_origin_y_um,grid_spacing_x_um,grid_spacing_y_um,frame_count,start_time_s,end_time_s,pixel_id,row,column,x_um,y_um,tam_s,scr_c_per_s,tam_start_s,tam_end_s,selected_peak_s,tam_reason,scr_reason,profile_sha256,metric,total_count,valid_count,missing_count,mean,median,sample_sd,population_sd,tam_ks_d,scr_ks_d,paired_count,paired_mae,paired_rmse,paired_grid_exact"
+}
+
+fn collection_prefix(collection: &CollectionReport) -> Vec<String> {
+    vec![
+        collection.kind.code().to_string(),
+        collection.collection_id.clone(),
+        collection.dataset_doi.clone(),
+        collection.dataset_version.clone(),
+        collection.source_sha256.clone(),
+        collection.grid_sha256.clone(),
+        collection.time_axis_sha256.clone(),
+        collection.conversion_receipt_sha256.clone().unwrap_or_default(),
+        collection.emissivity.map(|x| format!("{x:.12e}")).unwrap_or_default(),
+        collection.temperature_unit.clone(),
+        collection.time_unit.clone(),
+        collection.algorithm_version.clone(),
+        collection.grid.rows.to_string(),
+        collection.grid.columns.to_string(),
+        format!("{:.12e}", collection.grid.origin_x_um),
+        format!("{:.12e}", collection.grid.origin_y_um),
+        format!("{:.12e}", collection.grid.spacing_x_um),
+        format!("{:.12e}", collection.grid.spacing_y_um),
+        collection.frame_count.to_string(),
+        format!("{:.12e}", collection.start_time_s),
+        format!("{:.12e}", collection.end_time_s),
+    ]
 }
 
 fn csv_rows(report: &ComparisonReport) -> Vec<String> {
     let mut rows = Vec::new();
     for collection in [&report.predicted, &report.measured] {
+        let prefix = collection_prefix(collection);
         for pixel in &collection.pixels {
-            let mut cells = vec![
-                "PIXEL".to_string(), collection.kind.code().to_string(),
-                collection.collection_id.clone(), collection.source_sha256.clone(),
+            let mut cells = vec!["PIXEL".to_string()];
+            cells.extend(prefix.clone());
+            cells.extend([
                 pixel.pixel_id.clone(), pixel.row.to_string(), pixel.column.to_string(),
                 format!("{:.12e}", pixel.x_um), format!("{:.12e}", pixel.y_um),
                 pixel.tam_s.map(|x| format!("{x:.12e}")).unwrap_or_default(),
@@ -852,16 +911,14 @@ fn csv_rows(report: &ComparisonReport) -> Vec<String> {
                 pixel.selected_peak_s.map(|x| format!("{x:.12e}")).unwrap_or_default(),
                 pixel.tam_reason.to_string(), pixel.scr_reason.to_string(),
                 pixel.source_profile_sha256.clone(),
-            ];
-            cells.resize(31, String::new());
+            ]);
+            cells.resize(49, String::new());
             rows.push(cells.join(","));
         }
         for (metric, stat) in [("TAM", collection.tam), ("SCR", collection.scr)] {
-            let mut cells = vec![
-                "SUMMARY".to_string(), collection.kind.code().to_string(),
-                collection.collection_id.clone(), collection.source_sha256.clone(),
-            ];
-            cells.resize(17, String::new());
+            let mut cells = vec!["SUMMARY".to_string()];
+            cells.extend(prefix.clone());
+            cells.resize(35, String::new());
             cells.extend([
                 metric.to_string(), stat.total_count.to_string(), stat.valid_count.to_string(),
                 stat.missing_count.to_string(),
@@ -870,30 +927,32 @@ fn csv_rows(report: &ComparisonReport) -> Vec<String> {
                 stat.sample_sd.map(|x| format!("{x:.12e}")).unwrap_or_default(),
                 stat.population_sd.map(|x| format!("{x:.12e}")).unwrap_or_default(),
             ]);
-            cells.resize(31, String::new());
+            cells.resize(49, String::new());
             rows.push(cells.join(","));
         }
     }
+
     let comparison_rows = [
-        ("COMPARISON_TAM_KS_D", report.comparison.tam_ks_d,
-            report.comparison.paired_tam_count, report.comparison.paired_tam_mae_s,
-            report.comparison.paired_tam_rmse_s),
-        ("COMPARISON_SCR_KS_D", report.comparison.scr_ks_d,
-            report.comparison.paired_scr_count, report.comparison.paired_scr_mae_c_per_s,
-            report.comparison.paired_scr_rmse_c_per_s),
+        ("TAM", report.comparison.tam_ks_d, report.comparison.paired_tam_count,
+            report.comparison.paired_tam_mae_s, report.comparison.paired_tam_rmse_s),
+        ("SCR", report.comparison.scr_ks_d, report.comparison.paired_scr_count,
+            report.comparison.paired_scr_mae_c_per_s, report.comparison.paired_scr_rmse_c_per_s),
     ];
     for (metric, ks, paired_count, mae, rmse) in comparison_rows {
         let mut cells = vec!["COMPARISON".to_string()];
-        cells.resize(17, String::new());
+        cells.resize(35, String::new());
         cells.push(metric.to_string());
-        cells.resize(25, String::new());
-        cells.push(ks.map(|x| format!("{x:.12e}")).unwrap_or_default());
-        cells.push(String::new());
+        cells.resize(43, String::new());
+        if metric == "TAM" {
+            cells[43] = ks.map(|x| format!("{x:.12e}")).unwrap_or_default();
+        } else {
+            cells[44] = ks.map(|x| format!("{x:.12e}")).unwrap_or_default();
+        }
         cells.push(paired_count.to_string());
         cells.push(mae.map(|x| format!("{x:.12e}")).unwrap_or_default());
         cells.push(rmse.map(|x| format!("{x:.12e}")).unwrap_or_default());
         cells.push(report.paired_grid.to_string());
-        cells.resize(31, String::new());
+        cells.resize(49, String::new());
         rows.push(cells.join(","));
     }
     rows
