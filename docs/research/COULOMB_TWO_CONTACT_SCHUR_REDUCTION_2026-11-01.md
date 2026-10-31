@@ -44,7 +44,7 @@ This is the Schur complement of the sticking contact block. It preserves the ful
 A test-only reducer:
 1. checks finite input, symmetry and SPD of the full 6x6 W;
 2. factors the sticking principal block C and refuses if it is not SPD;
-3. constructs the exact block formulas in binary64 for this numerical candidate-generation lane;
+3. evaluates the exact Schur block formulas in binary64 for this numerical candidate-generation lane;
 4. calls the existing 3x3 single-contact reference for contact 1;
 5. reconstructs contact 2's impulse from the eliminated equation;
 6. rechecks each candidate against the original, unreduced 6x6 velocity, normal complementarity, contact-2 strict sticking disk, contact-1 declared regime, and full island kinetic energy;
