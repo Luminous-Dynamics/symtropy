@@ -47,6 +47,8 @@ pub enum RotationalInertiaError {
     OffsetsNotCentered,
     /// A tetrahedron is degenerate or below the requested relative volume tolerance.
     DegenerateTetrahedron,
+    /// A simplex is degenerate or below the requested relative volume tolerance.
+    DegenerateSimplex,
 }
 
 /// Rotational inertia acting on Lambda^2(R^D), the bivector space of rotations.
@@ -597,7 +599,7 @@ impl<const D: usize> BivectorInertia<D> {
                 }
             }
             if !edge_scale.is_finite() || edge_scale <= f64::MIN_POSITIVE {
-                return Err(RotationalInertiaError::DegenerateTetrahedron);
+                return Err(RotationalInertiaError::DegenerateSimplex);
             }
 
             let edge_matrix = nalgebra::DMatrix::<f64>::from_fn(D, D, |row, column| {
@@ -618,7 +620,7 @@ impl<const D: usize> BivectorInertia<D> {
                 return Err(RotationalInertiaError::NonFinite);
             }
             if determinant <= relative_volume_tolerance * volume_scale {
-                return Err(RotationalInertiaError::DegenerateTetrahedron);
+                return Err(RotationalInertiaError::DegenerateSimplex);
             }
 
             let cell_mass = density * volume;
@@ -688,6 +690,13 @@ impl BivectorInertia<3> {
                 .map(|(vertices, density)| (vertices.into_iter().collect(), density)),
             relative_volume_tolerance,
         )
+        .map_err(|error| {
+            if error == RotationalInertiaError::DegenerateSimplex {
+                RotationalInertiaError::DegenerateTetrahedron
+            } else {
+                error
+            }
+        })
     }
 }
 
@@ -820,6 +829,63 @@ mod tests {
             (inertia.second_moment()[(0, 0)] - 0.0078125).abs() < 1e-12,
             "small CAD-scale inertia lost at large world offset: S={:?}",
             inertia.second_moment()
+        );
+    }
+
+    #[test]
+    fn triangular_simplex_mass_properties_match_analytic_two_dimensional_moments() {
+        let vertices = vec![
+            SVector::<f64, 2>::new(0.0, 0.0),
+            SVector::<f64, 2>::new(1.0, 0.0),
+            SVector::<f64, 2>::new(0.0, 1.0),
+        ];
+        let properties =
+            BivectorInertia::<2>::from_simplices([(vertices, 2.0)], 1e-12).unwrap();
+
+        assert!((properties.total_mass - 1.0).abs() < 1e-12);
+        assert!((properties.center_of_mass - SVector::repeat(1.0 / 3.0)).norm() < 1e-12);
+        let s = properties.inertia.second_moment();
+        assert!((s[(0, 0)] - 1.0 / 18.0).abs() < 1e-12);
+        assert!((s[(1, 1)] - 1.0 / 18.0).abs() < 1e-12);
+        assert!((s[(0, 1)] + 1.0 / 36.0).abs() < 1e-12);
+        assert!((s[(1, 0)] + 1.0 / 36.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn four_dimensional_simplex_mass_properties_match_analytic_moments() {
+        let vertices = vec![
+            SVector::<f64, 4>::zeros(),
+            SVector::<f64, 4>::new(1.0, 0.0, 0.0, 0.0),
+            SVector::<f64, 4>::new(0.0, 1.0, 0.0, 0.0),
+            SVector::<f64, 4>::new(0.0, 0.0, 1.0, 0.0),
+            SVector::<f64, 4>::new(0.0, 0.0, 0.0, 1.0),
+        ];
+        let properties =
+            BivectorInertia::<4>::from_simplices([(vertices, 24.0)], 1e-12).unwrap();
+
+        assert!((properties.total_mass - 1.0).abs() < 1e-12);
+        assert!((properties.center_of_mass - SVector::repeat(0.2)).norm() < 1e-12);
+        let s = properties.inertia.second_moment();
+        for i in 0..4 {
+            assert!((s[(i, i)] - 2.0 / 75.0).abs() < 1e-12);
+            for j in 0..4 {
+                if i != j {
+                    assert!((s[(i, j)] + 1.0 / 150.0).abs() < 1e-12);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn generic_simplex_constructor_rejects_wrong_vertex_count() {
+        let vertices = vec![
+            SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+        ];
+        assert_eq!(
+            BivectorInertia::<3>::from_simplices([(vertices, 1.0)], 1e-12).unwrap_err(),
+            RotationalInertiaError::InvalidMassProperties
         );
     }
 
