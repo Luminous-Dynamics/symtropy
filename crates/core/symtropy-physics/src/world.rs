@@ -2873,6 +2873,20 @@ mod transformed_halfspace_tests {
     }
 
     #[test]
+    fn empty_world_rejects_non_finite_gravity_as_world_configuration_error() {
+        let mut world = PhysicsWorld::<3>::new(SVector::new(0.0, f64::NAN, 0.0));
+        let error = world.try_step(0.01).unwrap_err();
+        assert_eq!(error.step_id, 0);
+        assert_eq!(error.phase, PhysicsStepPhase::WorldConfiguration);
+        assert_eq!(error.body_a, None);
+        assert_eq!(error.body_b, None);
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::Integration(integrator::IntegrationError::NonFiniteInput)
+        );
+    }
+
+    #[test]
     fn world_rejects_non_finite_force_and_preserves_invalid_input_for_recovery() {
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
