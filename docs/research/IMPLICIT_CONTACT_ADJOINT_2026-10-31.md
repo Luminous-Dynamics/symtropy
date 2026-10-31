@@ -77,12 +77,14 @@ The implementation does not regularize a singular active block to manufacture a 
 The source tests cover:
 - a one-row analytic derivative with a closed-form sensitivity;
 - central finite-difference agreement for the same parameterized LCP;
+- 24 deterministic randomized SPD-block checks across 1–4 active rows, comparing both impulse sensitivities and objective gradients against central finite differences;
+- a strictly inactive-contact case that returns the direct objective gradient and zero contact sensitivity;
 - parameter sensitivity through q (contact bias/free velocity);
 - rejection near an active-set transition;
 - rejection of a rank-deficient active block;
 - rejection of a non-monotone contact matrix.
 
-The Criterion benchmark target now measures fixed-active-set adjoint cost for 1, 2, 4 and 8 rows alongside assembly and LCP reference solve. It has not been executed; no runtime or memory result is claimed.
+The Criterion benchmark target now measures fixed-active-set adjoint cost for 1, 2, 4 and 8 rows alongside assembly and LCP reference solve. The adjoint benchmark uses constructed, well-conditioned SPD active blocks to isolate derivative-solve cost; geometric asymmetric-inertia assembly remains measured in separate benchmark groups. It has not been executed; no runtime or memory result is claimed.
 
 ## Promotion targets
 
