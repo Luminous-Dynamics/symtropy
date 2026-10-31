@@ -442,7 +442,6 @@ mod tests {
 
     #[test]
     fn discrete_work_ledger_separates_normal_impact_and_friction() {
-        use crate::body::RigidBody;
         use symtropy_math::Sphere;
 
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
@@ -467,8 +466,6 @@ mod tests {
         fixed.friction = 0.5;
         fixed.restitution = 0.2;
         let fixed_handle = world.add_body(fixed);
-        world.body_mut(fixed_handle).unwrap().friction = 0.5;
-
         let receipt = world.try_step_with_receipt(0.001).unwrap();
         let ledger = &receipt.work_ledger;
         assert!(ledger.normal_contact_kinetic_energy_change_joules < 0.0);
