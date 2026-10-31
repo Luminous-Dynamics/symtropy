@@ -1764,8 +1764,8 @@ mod tests {
             .unwrap()
             .unwrap();
         assert!(matches!(
-            nominal_plan.plan,
-            DecisionPlan::Experiment { command: 1, .. }
+            &nominal_plan.plan,
+            &DecisionPlan::Experiment { command: 1, .. }
         ));
         let shifted_replay = replay_shared_policy_across_worlds(
             &worlds,
@@ -1799,8 +1799,8 @@ mod tests {
             .unwrap();
         assert_eq!(selected.worst_case_hazard_probability(), Rational::zero());
         assert!(!matches!(
-            selected.plan,
-            DecisionPlan::Experiment { command: 1, .. }
+            &selected.plan,
+            &DecisionPlan::Experiment { command: 1, .. }
         ));
     }
 
@@ -1829,8 +1829,8 @@ mod tests {
             .unwrap();
         assert_eq!(selected.worst_case_total_loss().unwrap(), Rational::new(1, 2).unwrap());
         assert!(matches!(
-            selected.plan,
-            DecisionPlan::TerminalDecision { decision: Some(_) }
+            &selected.plan,
+            &DecisionPlan::TerminalDecision { decision: Some(_) }
         ));
         assert_eq!(
             selected.per_world[0].expected_terminal_loss,
