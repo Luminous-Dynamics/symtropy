@@ -64,3 +64,8 @@ This proves calculation and ranking-audit behavior only; it does not validate a 
 - ShapeBench 2026: multi-task optimizer rankings vary by task, reinforcing matched benchmarks rather than one-case claims: https://arxiv.org/abs/2605.20763
 - Gneiting and Raftery (2007), proper scoring rules: https://doi.org/10.1198/016214506000001437
 - Conformal prediction guarantees and distribution-shift caveats: https://journals.sagepub.com/doi/10.1177/25152459251380452
+
+
+## Small-sample risk uncertainty
+
+Every risk/coverage point also reports Wilson 95% confidence bounds for the false-feasible fraction among all accepted candidates, and conditional bounds among accepted candidates predicted feasible. At one or two accepted samples these intervals are intentionally wide. Zero observed false-feasible outcomes at tiny coverage must not be reported as a low-probability safety guarantee. The independent oracle checks both Wilson bounds at every threshold.

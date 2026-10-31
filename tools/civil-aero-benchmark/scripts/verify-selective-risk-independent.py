@@ -14,6 +14,16 @@ def require(ok: bool, message: str) -> None:
         raise ValueError(message)
 
 
+def wilson95(successes: int, trials: int) -> tuple[float, float]:
+    z = 1.959963984540054
+    p = successes / trials
+    z2 = z * z
+    denominator = 1.0 + z2 / trials
+    center = (p + z2 / (2.0 * trials)) / denominator
+    half = z * math.sqrt(p * (1.0 - p) / trials + z2 / (4.0 * trials**2)) / denominator
+    return max(0.0, center - half), min(1.0, center + half)
+
+
 def expected(domain: str, model: str) -> list[dict]:
     shift = 1.0 if domain == "in_domain" else 2.0
     samples = []
@@ -63,7 +73,12 @@ def curve(samples: list[dict]) -> list[dict]:
         mae = error_sum / accepted
         rmse = math.sqrt(squared_sum / accepted)
         false_rate = false_feasible / accepted
+        false_lower, false_upper = wilson95(false_feasible, accepted)
         per_predicted = false_feasible / predicted_feasible if predicted_feasible else None
+        if predicted_feasible:
+            per_predicted_lower, per_predicted_upper = wilson95(false_feasible, predicted_feasible)
+        else:
+            per_predicted_lower = per_predicted_upper = None
         area_mae += (coverage - previous_coverage) * (previous_mae + mae) / 2.0
         area_false += (coverage - previous_coverage) * (previous_false_rate + false_rate) / 2.0
         rows.append({
@@ -75,8 +90,12 @@ def curve(samples: list[dict]) -> list[dict]:
             "selective_rmse": rmse,
             "false_feasible_count": false_feasible,
             "false_feasible_rate": false_rate,
+            "false_feasible_rate_wilson95_lower": false_lower,
+            "false_feasible_rate_wilson95_upper": false_upper,
             "predicted_feasible_count": predicted_feasible,
             "false_feasible_rate_per_predicted_feasible": per_predicted,
+            "false_feasible_given_predicted_feasible_wilson95_lower": per_predicted_lower,
+            "false_feasible_given_predicted_feasible_wilson95_upper": per_predicted_upper,
             "missed_feasible_count": missed_feasible,
             "partial_area_under_mae_risk_coverage": area_mae,
             "partial_area_under_false_feasible_risk_coverage": area_false,

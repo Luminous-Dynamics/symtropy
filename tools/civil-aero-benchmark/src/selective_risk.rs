@@ -37,9 +37,13 @@ pub struct RiskCoveragePoint {
     pub false_feasible_count: usize,
     /// False-feasible decisions divided by all accepted samples.
     pub false_feasible_rate: f64,
+    pub false_feasible_rate_wilson95_lower: f64,
+    pub false_feasible_rate_wilson95_upper: f64,
     pub predicted_feasible_count: usize,
     /// False-feasible decisions divided by accepted predictions labelled feasible.
     pub false_feasible_rate_per_predicted_feasible: Option<f64>,
+    pub false_feasible_given_predicted_feasible_wilson95_lower: Option<f64>,
+    pub false_feasible_given_predicted_feasible_wilson95_upper: Option<f64>,
     pub missed_feasible_count: usize,
     /// Running area under the MAE risk-coverage curve from zero coverage to this point.
     pub partial_area_under_mae_risk_coverage: f64,
@@ -255,11 +259,22 @@ pub fn audit_blind_selective_risk(
             let selective_mae = absolute_error_sum / accepted_count as f64;
             let selective_rmse = (squared_error_sum / accepted_count as f64).sqrt();
             let false_feasible_rate = false_feasible_count as f64 / accepted_count as f64;
+            let (false_feasible_rate_wilson95_lower, false_feasible_rate_wilson95_upper) =
+                wilson95_interval(false_feasible_count, accepted_count)?;
             let false_feasible_rate_per_predicted_feasible = if predicted_feasible_count == 0 {
                 None
             } else {
                 Some(false_feasible_count as f64 / predicted_feasible_count as f64)
             };
+            let (false_feasible_given_predicted_feasible_wilson95_lower,
+                false_feasible_given_predicted_feasible_wilson95_upper) =
+                if predicted_feasible_count == 0 {
+                    (None, None)
+                } else {
+                    let (lower, upper) =
+                        wilson95_interval(false_feasible_count, predicted_feasible_count)?;
+                    (Some(lower), Some(upper))
+                };
             area_under_mae_risk_coverage += (coverage_fraction - previous_coverage)
                 * (previous_mae_risk + selective_mae)
                 * 0.5;
@@ -275,8 +290,12 @@ pub fn audit_blind_selective_risk(
                 selective_rmse,
                 false_feasible_count,
                 false_feasible_rate,
+                false_feasible_rate_wilson95_lower,
+                false_feasible_rate_wilson95_upper,
                 predicted_feasible_count,
                 false_feasible_rate_per_predicted_feasible,
+                false_feasible_given_predicted_feasible_wilson95_lower,
+                false_feasible_given_predicted_feasible_wilson95_upper,
                 missed_feasible_count,
                 partial_area_under_mae_risk_coverage: area_under_mae_risk_coverage,
                 partial_area_under_false_feasible_risk_coverage:
@@ -301,6 +320,12 @@ pub fn audit_blind_selective_risk(
                     || !point.selective_mae.is_finite()
                     || !point.selective_rmse.is_finite()
                     || !point.false_feasible_rate.is_finite()
+                    || !point.false_feasible_rate_wilson95_lower.is_finite()
+                    || !point.false_feasible_rate_wilson95_upper.is_finite()
+                    || point.false_feasible_given_predicted_feasible_wilson95_lower
+                        .is_some_and(|value| !value.is_finite())
+                    || point.false_feasible_given_predicted_feasible_wilson95_upper
+                        .is_some_and(|value| !value.is_finite())
                     || !point.partial_area_under_mae_risk_coverage.is_finite()
                     || !point
                         .partial_area_under_false_feasible_risk_coverage
@@ -336,6 +361,26 @@ pub fn audit_blind_selective_risk(
         evidence_level: "empirical_selective_risk_coverage_and_false_feasible_audit_not_future_guarantee",
         summaries,
     })
+}
+
+fn wilson95_interval(successes: usize, trials: usize) -> Result<(f64, f64), String> {
+    const Z: f64 = 1.959_963_984_540_054;
+    if trials == 0 || successes > trials {
+        return Err("Wilson interval requires 0 <= successes <= positive trials".to_owned());
+    }
+    let n = trials as f64;
+    let p = successes as f64 / n;
+    let z2 = Z * Z;
+    let denominator = 1.0 + z2 / n;
+    let center = (p + z2 / (2.0 * n)) / denominator;
+    let half_width =
+        Z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
+    let lower = (center - half_width).max(0.0);
+    let upper = (center + half_width).min(1.0);
+    if !lower.is_finite() || !upper.is_finite() || lower > upper {
+        return Err("Wilson interval calculation produced invalid bounds".to_owned());
+    }
+    Ok((lower, upper))
 }
 
 fn validate_prediction(prediction: &SelectivePrediction, index: usize) -> Result<(), String> {
@@ -382,14 +427,14 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const SELECTIVE_RISK_COVERAGE_CSV_HEADER: &str = "task_id,model_id,geometry_family,flow_regime,constraint_id,domain_status,accepted_count,sample_count,uncertainty_threshold,coverage_fraction,selective_mae,selective_rmse,false_feasible_count,false_feasible_rate,predicted_feasible_count,false_feasible_rate_per_predicted_feasible,missed_feasible_count,area_under_mae_risk_coverage,area_under_false_feasible_risk_coverage,evidence_level";
+pub const SELECTIVE_RISK_COVERAGE_CSV_HEADER: &str = "task_id,model_id,geometry_family,flow_regime,constraint_id,domain_status,accepted_count,sample_count,uncertainty_threshold,coverage_fraction,selective_mae,selective_rmse,false_feasible_count,false_feasible_rate,false_feasible_rate_wilson95_lower,false_feasible_rate_wilson95_upper,predicted_feasible_count,false_feasible_rate_per_predicted_feasible,false_feasible_given_predicted_feasible_wilson95_lower,false_feasible_given_predicted_feasible_wilson95_upper,missed_feasible_count,area_under_mae_risk_coverage,area_under_false_feasible_risk_coverage,evidence_level";
 
 pub fn report_to_csv(report: &SelectiveRiskReport) -> String {
     let mut output = format!("{SELECTIVE_RISK_COVERAGE_CSV_HEADER}\n");
     for summary in &report.summaries {
         for point in &summary.curve {
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{},{:.12},{},{},{},{:.12},{:.12},{}\n",
+                "{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{},{:.12},{:.12},{:.12},{},{},{},{},{},{:.12},{:.12},{}\n",
                 csv_escape(&summary.task_id),
                 csv_escape(&summary.model_id),
                 csv_escape(&summary.geometry_family),
@@ -404,9 +449,19 @@ pub fn report_to_csv(report: &SelectiveRiskReport) -> String {
                 point.selective_rmse,
                 point.false_feasible_count,
                 point.false_feasible_rate,
+                point.false_feasible_rate_wilson95_lower,
+                point.false_feasible_rate_wilson95_upper,
                 point.predicted_feasible_count,
                 point
                     .false_feasible_rate_per_predicted_feasible
+                    .map(|value| format!("{value:.12}"))
+                    .unwrap_or_default(),
+                point
+                    .false_feasible_given_predicted_feasible_wilson95_lower
+                    .map(|value| format!("{value:.12}"))
+                    .unwrap_or_default(),
+                point
+                    .false_feasible_given_predicted_feasible_wilson95_upper
                     .map(|value| format!("{value:.12}"))
                     .unwrap_or_default(),
                 point.missed_feasible_count,
@@ -501,6 +556,41 @@ mod tests {
             assert!(ranked.area_under_false_feasible_risk_coverage
                 < misranked.area_under_false_feasible_risk_coverage);
         }
+    }
+
+    #[test]
+    fn false_feasible_rate_has_wilson_bounds_at_low_coverage() {
+        let report =
+            audit_blind_selective_risk(&synthetic_predictions()).expect("valid blind set");
+        let first_ranked = report
+            .summaries
+            .iter()
+            .find(|row| {
+                row.model_id == "error_ranked_uncertainty"
+                    && row.domain_status == DomainStatus::InDomain
+            })
+            .expect("ranked in-domain group");
+        let first_point = &first_ranked.curve[0];
+        assert_eq!(first_point.accepted_count, 1);
+        assert_eq!(first_point.false_feasible_count, 0);
+        assert!(first_point.false_feasible_rate_wilson95_lower <= 0.0);
+        assert!(first_point.false_feasible_rate_wilson95_upper > 0.5);
+        assert!(
+            first_point
+                .false_feasible_given_predicted_feasible_wilson95_lower
+                .is_some()
+        );
+        assert!(
+            first_point
+                .false_feasible_given_predicted_feasible_wilson95_upper
+                .is_some()
+        );
+        assert!(
+            first_point
+                .false_feasible_given_predicted_feasible_wilson95_upper
+                .unwrap()
+                > 0.5
+        );
     }
 
     #[test]
