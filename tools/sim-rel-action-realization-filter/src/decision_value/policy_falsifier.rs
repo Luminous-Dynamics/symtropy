@@ -948,7 +948,7 @@ mod tests {
         let state = parent.kernel.initial_belief[0].state;
         let scenarios = vec![
             PerturbationScenario {
-                scenario_id: "valid-first".into(),
+                scenario_id: "a-valid-first".into(),
                 generator_version: "1".into(),
                 parameter_receipt: "swap".into(),
                 perturbation: KernelPerturbation::SwapMeasurementLabels {
@@ -959,7 +959,7 @@ mod tests {
                 },
             },
             PerturbationScenario {
-                scenario_id: "invalid-second".into(),
+                scenario_id: "z-invalid-second".into(),
                 generator_version: "1".into(),
                 parameter_receipt: "too-much".into(),
                 perturbation: KernelPerturbation::TransferOutcomeProbability {
