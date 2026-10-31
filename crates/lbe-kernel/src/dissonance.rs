@@ -1565,9 +1565,14 @@ mod tests {
         record.report_hazard(HazardReport {
             id: "hazard-u".to_owned(),
             hazard: CorrosiveHazard::EssentialAccessConditioning,
-            finding: HazardFinding::Unresolved,
+            finding: HazardFinding::Reported,
             evidence_ref: None,
         }).unwrap();
+        record.update_hazard_finding(
+            "hazard-u",
+            HazardFinding::Unresolved,
+            Some("evidence:still-unresolved".to_owned()),
+        ).unwrap();
         assert!(record
             .assess()
             .corrosive_hazards
