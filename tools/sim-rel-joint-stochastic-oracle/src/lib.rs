@@ -411,6 +411,9 @@ fn validate_ids(ids: &[String], kind: &str) -> Result<(), String> {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum PolicyPlan {
     Claim { hypothesis: usize },
+    /// Claim an observational-equivalence class rather than one arbitrary member.
+    /// Members must be non-empty, unique and sorted by hypothesis index.
+    ClaimClass { hypotheses: Vec<usize> },
     Abstain,
     Action { action: usize, branches: Vec<PolicyBranch> },
 }
@@ -938,6 +941,21 @@ fn validate_plan_shape(
                 return Err("policy claims an invalid hypothesis".into());
             }
         }
+        PolicyPlan::ClaimClass { hypotheses } => {
+            if hypotheses.is_empty() {
+                return Err("policy claims an empty equivalence class".into());
+            }
+            let mut previous = None;
+            for hypothesis in hypotheses {
+                if *hypothesis >= kernel.hypothesis_ids.len() {
+                    return Err("policy equivalence class contains an invalid hypothesis".into());
+                }
+                if previous.is_some_and(|value| value >= *hypothesis) {
+                    return Err("policy equivalence-class indices must be unique and strictly sorted".into());
+                }
+                previous = Some(*hypothesis);
+            }
+        }
         PolicyPlan::Abstain => {}
         PolicyPlan::Action { action, branches } => {
             if depth >= max_steps || *action >= kernel.action_ids.len() {
@@ -978,6 +996,15 @@ fn replay_from(
     match plan {
         PolicyPlan::Claim { hypothesis: claimed } => {
             if *claimed == hypothesis {
+                accumulator.correct_identification =
+                    accumulator.correct_identification.checked_add(mass)?;
+            } else {
+                accumulator.false_identification =
+                    accumulator.false_identification.checked_add(mass)?;
+            }
+        }
+        PolicyPlan::ClaimClass { hypotheses } => {
+            if hypotheses.binary_search(&hypothesis).is_ok() {
                 accumulator.correct_identification =
                     accumulator.correct_identification.checked_add(mass)?;
             } else {
