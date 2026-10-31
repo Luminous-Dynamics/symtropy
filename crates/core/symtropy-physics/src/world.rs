@@ -1353,7 +1353,11 @@ impl<const D: usize> PhysicsWorld<D> {
             }
 
             // Clamp: accumulated normal impulse must stay ≥ 0 (no pulling)
-            let new_lambda = (pt.lambda + delta_lambda).max(0.0);
+            let candidate_lambda = pt.lambda + delta_lambda;
+            if !candidate_lambda.is_finite() {
+                return Err(PhysicsStepCause::NonFiniteContactMetric);
+            }
+            let new_lambda = candidate_lambda.max(0.0);
             let actual_delta = new_lambda - pt.lambda;
             pt.lambda = new_lambda;
 
@@ -1382,6 +1386,9 @@ impl<const D: usize> PhysicsWorld<D> {
                 integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
 
                 total_normal_impulse += modulated_delta.abs();
+                if !total_normal_impulse.is_finite() {
+                    return Err(PhysicsStepCause::NonFiniteContactMetric);
+                }
             }
         }
 
@@ -1449,6 +1456,9 @@ impl<const D: usize> PhysicsWorld<D> {
                 let v_n = contact.normal * v_rel.dot(&contact.normal);
                 let v_t = v_rel - v_n;
                 let v_t_mag = v_t.norm();
+                if !v_t_mag.is_finite() {
+                    return Err(PhysicsStepCause::NonFiniteContactMetric);
+                }
 
                 if v_t_mag > 1e-10 {
                     let tangent = v_t / v_t_mag;
@@ -1502,6 +1512,9 @@ impl<const D: usize> PhysicsWorld<D> {
                     }
                     let j_t = j_t_desired.clamp(-friction_bound, friction_bound);
                     let friction_impulse = tangent * j_t;
+                    if !friction_impulse.iter().all(|value| value.is_finite()) {
+                        return Err(PhysicsStepCause::NonFiniteContactMetric);
+                    }
                     integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
                     integrator::apply_impulse(&mut self.bodies[b], &friction_impulse);
 
