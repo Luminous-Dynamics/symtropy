@@ -458,6 +458,41 @@ mod tests {
         assert!(receipt.drift.linear_momentum_error_norm() < 1e-12);
     }
 
+    struct DoubleForceCallback;
+
+    impl PhysicsCallback<2> for DoubleForceCallback {
+        fn modulate_force(&self, _: BodyHandle, force: &SVector<f64, 2>) -> SVector<f64, 2> {
+            force * 2.0
+        }
+
+        fn modulate_impulse(&self, impulse: f64, _: &SVector<f64, 2>) -> f64 {
+            impulse
+        }
+
+        fn friction_multiplier(&self, _: &SVector<f64, 2>, _: BodyHandle) -> f64 {
+            1.0
+        }
+
+        fn on_collision(&mut self, _: &crate::contact::CollisionEvent<2>) {}
+        fn record_dissipation(&mut self, _: f64) {}
+        fn record_work(&mut self, _: BodyHandle, _: f64) {}
+        fn apply_trauma(&mut self, _: &crate::contact::CollisionEvent<2>) {}
+    }
+
+    #[test]
+    fn callback_aware_receipt_accounts_for_modulated_force() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.1, 1.0);
+        world.body_mut(handle).unwrap().apply_force(SVector::new(1.0, 0.0));
+        let mut callback = DoubleForceCallback;
+
+        let receipt = world
+            .try_step_with_callback_and_receipt(0.01, &mut callback)
+            .unwrap();
+        assert!((receipt.work_ledger.external_force_work_joules - 0.0002).abs() < 1e-12);
+        assert!(receipt.work_ledger.closes_within(1e-12));
+    }
+
     #[test]
     fn discrete_work_ledger_closes_force_and_gravity_energy_balance() {
         let mut world = PhysicsWorld::<2>::new(SVector::new(0.0, -9.81));
