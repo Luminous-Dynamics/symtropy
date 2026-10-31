@@ -1,0 +1,284 @@
+{
+  "manifest_schema": "civil-aero-dpw8-source-discovery/0.1.0",
+  "program": "AERO-DPW8-001",
+  "status": "source_discovery_only",
+  "important": "No DPW8 bytes are retained or admitted by this manifest. Entries point to NASA/AIAA landing pages and selected README/artifact URLs discovered on 2026-10-30. Hashes and byte lengths remain null until the exact resolved files are downloaded, retained and independently hashed. Public directory visibility is not a redistribution license.",
+  "discovered_utc_date": "2026-10-30",
+  "sources": [
+    {
+      "source_id": "AIAA-DPW8-AEPW4-OVERVIEW",
+      "kind": "workshop_protocol",
+      "description": "Joint 8th Drag Prediction Workshop / 4th Aeroelastic Prediction Workshop overview. AIAA identifies multidisciplinary drag prediction and aeroelasticity, with work groups including static deformation, buffet, high angle, high speed, large deflection, source of scatter and test environments.",
+      "landing_page": "https://aiaa.org/courses/aiaa-drag-prediction-workshop/",
+      "artifact_urls": [
+        "https://www.aiaa-dpw.org/"
+      ],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "admission_status": "protocol_reference_only"
+    },
+    {
+      "source_id": "NASA-DPW8-ONERA-OAT15A-EXPERIMENTAL",
+      "kind": "experimental_pressure_or_force_data",
+      "description": "NASA DPW8 ONERA OAT15A experimental-data directory lists onera-oat15a.zip (207 KB in the directory listing, last modified 2026-06-25 at 16:26:56 UTC as observed 2026-10-30). The archive contents, measurements, conditions, units, uncertainties and applicable terms must be inspected before selecting test cases.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/Experimental_Data/",
+      "artifact_urls": [
+        "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/Experimental_Data/onera-oat15a.zip"
+      ],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "condition_review": "pending",
+      "parser_review": "pending",
+      "admission_status": "pending_source_bytes",
+      "artifact_metadata": {
+        "directory_reported_size": "207 KB",
+        "directory_modified_utc": "2026-06-25T16:26:56",
+        "observation_date_utc": "2026-10-30",
+        "notes": "Directory metadata only; not a byte length or checksum."
+      }
+    },
+    {
+      "source_id": "NASA-DPW8-ONERA-OAT15A-GRID-FAMILIES",
+      "kind": "CFD_grid_families",
+      "description": "The NASA DPW8 ONERA OAT15A directory lists Cadence, Helden, ONERA-Deck and ONERA-Rizzi grid directories. These are independent grid lineages and must not be silently mixed or assumed equivalent.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/",
+      "artifact_urls": [],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "grid_family_review": "pending",
+      "admission_status": "directory_discovered_artifacts_not_pinned"
+    },
+    {
+      "source_id": "NASA-DPW8-SCATTER-CRM-TEST-CASE-2",
+      "kind": "geometry_condition_and_grid_provenance",
+      "description": "The Test_Case_2 README associates alpha-labelled grids (2.50 to 4.25 degrees) with CRM wing deformation measured at M=0.85 in a low-dynamic-pressure ETW test condition. It states horizontal tails were removed before gridding and that farfield surfaces in source geometry were extended during grid generation. Original geometry and gridded geometry must be separately hashed and mapped.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/Scatter/Test_Case_2/",
+      "artifact_urls": [
+        "https://dpw.larc.nasa.gov/DPW8/Scatter/Test_Case_2/README.txt"
+      ],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "geometry_mapping_review": "pending",
+      "condition_review": "pending",
+      "admission_status": "readme_discovered_data_not_pinned"
+    },
+    {
+      "source_id": "NASA-DPW8-STATIC-DEFORMATION-FEM",
+      "kind": "finite_element_model_provenance",
+      "description": "The Static_Deformation Test_Case_2 FEM_Models README identifies NASA_CRM_FULLSPAN_WBT0.REV00 as sourced from the NASA Common Research Model site and NASA_CRM_HALFSPAN_FEM.REV00 as generated for DPW8/AePW4 (semispan model). The model files, revisions, units, materials, boundary conditions and coupling conventions remain uninspected.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/",
+      "artifact_urls": [
+        "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/README.txt",
+        "https://commonresearchmodel.larc.nasa.gov/fem-file/wingbodytail0-deg-configuration/"
+      ],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "structural_model_review": "pending",
+      "admission_status": "readme_discovered_model_bytes_not_pinned"
+    },
+    {
+      "source_id": "NASA-DPW8-BUFFET",
+      "kind": "unsteady_transonic_aerodynamics",
+      "description": "NASA DPW8 buffet directory lists separate Test_Case_2 and Test_Case_3 data families. Exact flow conditions, time-resolved outputs, model setup and measurement references must be extracted from the task readmes before use.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/Buffet/",
+      "artifact_urls": [],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "condition_review": "pending",
+      "unsteady_data_review": "pending",
+      "admission_status": "directory_discovered_artifacts_not_pinned"
+    },
+    {
+      "source_id": "NASA-DPW8-TEST-ENVIRONMENT",
+      "kind": "facility_and_test_environment_metadata",
+      "description": "NASA DPW8 Test_Environment directory lists Test_Case_1, Test_Case_2 and Test_Case_3. Exact facility, boundary-condition, calibration, support/tare and uncertainty artifacts must be identified before using this source family.",
+      "landing_page": "https://dpw.larc.nasa.gov/DPW8/Test_Environment/",
+      "artifact_urls": [],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "facility_metadata_review": "pending",
+      "admission_status": "directory_discovered_artifacts_not_pinned"
+    },
+    {
+      "source_id": "AIAA-DPW8-V1A-ONERA-OAT15A-TEST-DEFINITION",
+      "kind": "benchmark_task_protocol",
+      "description": "Official DPW8 verification activity defines V1a ONERA OAT15A grid convergence and polar as a required steady CFD/RANS task. A six-member grid family is defined (four required, six desirable). Conditions: Mach 0.73, chord Reynolds number 3e6, static temperature 271 K; alpha values 1.36, 1.50, 2.50, 3.00 and 3.10 degrees.",
+      "landing_page": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "artifact_urls": [
+        "https://www.aiaa-dpw.org/TestCases/testcases.html"
+      ],
+      "flow_conditions": {
+        "mach": 0.73,
+        "reynolds_number_per_chord": 3000000,
+        "static_temperature_kelvin": 271,
+        "angle_of_attack_deg": [
+          1.36,
+          1.5,
+          2.5,
+          3,
+          3.1
+        ]
+      },
+      "grid_family": {
+        "members": 6,
+        "required_levels": 4,
+        "desirable_levels": 6
+      },
+      "solver_class": "steady CFD (e.g. RANS)",
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "protocol_parse_review": "pending",
+      "admission_status": "task_protocol_discovered_not_data_admitted"
+    },
+    {
+      "source_id": "NASA-AEPW4-WG3-BUFFET-JAXA-DATABASE",
+      "kind": "unsteady_aeroelastic_benchmark_data_catalog",
+      "description": "JAXA's joint DPW-AePW database describes Test Case 2 as unsteady CFD on a rigid/static wing using in-tunnel measured deformed geometries and experimental data; Test Case 3 is unsteady CFD with dynamic wing structural response/fluid-structure interaction. The exact geometry/data files, conditions, units and terms remain unpinned.",
+      "landing_page": "https://cfdws.chofu.jaxa.jp/apc/dpw/",
+      "artifact_urls": [
+        "https://cfdws.chofu.jaxa.jp/apc/dpw/"
+      ],
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "geometry_and_condition_review": "pending",
+      "admission_status": "catalog_discovered_artifacts_not_pinned"
+    },
+    {
+      "source_id": "AIAA-DPW8-AEPW4-POSTPROCESSING-SUBMISSION-TEMPLATES",
+      "kind": "benchmark_output_schema",
+      "description": "Official DPW8/AePW4 postprocessing page specifies Tecplot-readable ASCII submissions with dataset-identifying auxiliary metadata. Templates include convergence v5, forces/moments v5, surface cuts v5, unsteady time series v5, spectra v6, grid metrics v5, plus contour, spanwise load, boundary-layer and bending/twist outputs.",
+      "landing_page": "https://www.aiaa-dpw.org/postprocessing.html",
+      "artifact_urls": [
+        "https://www.aiaa-dpw.org/Forms/DPW8-AePW4_Convergence_v5.dat",
+        "https://www.aiaa-dpw.org/Forms/DPW8-AePW4_ForceMoment_v5.dat",
+        "https://www.aiaa-dpw.org/Forms/DPW8-AePW4_SectionalCuts_v5.dat",
+        "https://www.aiaa-dpw.org/Forms/DPW8-AePW4_UnsteadyProbe_v5.dat"
+      ],
+      "schema_versions": {
+        "convergence": "v5 (2024-10-16)",
+        "forces_moments": "v5 (2024-10-16)",
+        "surface_cuts": "v5 (2024-10-16)",
+        "unsteady_probe": "v5 (2024-10-16)",
+        "spectra": "v6 (2025-02-10)",
+        "grid_metrics": "v5 (2024-10-15)"
+      },
+      "data_sha256": null,
+      "byte_length": null,
+      "license_review": "pending",
+      "parser_review": "pending",
+      "admission_status": "schema_discovered_template_bytes_not_pinned"
+    },
+    {
+      "source_id": "DPW8-2025-IISc-SU2-01401-V1A-FORCEMOMENT-V5",
+      "kind": "participant_submitted_steady_aerodynamic_results",
+      "upstream_repository": "Drag-Prediction-Workshop/DPW8-Buffet",
+      "upstream_commit": "4d7582633a2bed4f4fe1fe933af9a9b6f3e2ae43",
+      "path": "TestCase1a/014_IISc/01_SU2_Symmetric_BC/DPW8-AePW4_ForceMoment_v5.dat",
+      "git_blob_sha1": "d843a46a1a286272463d79515cb810d5b7dda69b",
+      "immutable_url": "https://github.com/Drag-Prediction-Workshop/DPW8-Buffet/blob/4d7582633a2bed4f4fe1fe933af9a9b6f3e2ae43/TestCase1a/014_IISc/01_SU2_Symmetric_BC/DPW8-AePW4_ForceMoment_v5.dat",
+      "data_sha256": null,
+      "byte_length": null,
+      "terms_review": "pending; no root-level LICENSE was found at the pinned repository revision; no blanket reuse/redistribution permission inferred",
+      "admission_status": "participant_output_discovered_not_retained_terms_pending_anomaly_flagged",
+      "participant_id": "014.01",
+      "institution": "Indian Institute of Science",
+      "solver": "SU2 8.0.1 Harrier",
+      "basic_algorithm": "RANS",
+      "turbulence_model": "SA Edwards-Chandra",
+      "grid_id": "Hybrid",
+      "boundary_condition_note": "symmetric boundary condition is applied",
+      "reference_case": "ONERA OAT15A V1a",
+      "conditions": {
+        "mach": 0.73,
+        "reynolds_number_per_chord": 3000000,
+        "static_temperature_kelvin": 271,
+        "alpha_deg": [
+          1.36,
+          1.5,
+          2.5,
+          3,
+          3.1
+        ]
+      },
+      "grid_levels": [
+        {
+          "level": 1,
+          "grid_size": 47187
+        },
+        {
+          "level": 2,
+          "grid_size": 89616
+        },
+        {
+          "level": 3,
+          "grid_size": 150333
+        },
+        {
+          "level": 4,
+          "grid_size": 235491
+        }
+      ],
+      "representation_reconciliation": {
+        "raw_numeric_rows": 40,
+        "grid_level_view_rows": 20,
+        "angle_view_rows": 20,
+        "unique_grid_level_angle_cells": 20,
+        "all_20_cross_view_cells_match_exactly": true,
+        "interpretation": "The version-5 file lists the same 20 grid/angle results once grouped by grid level and once grouped by angle. Treat the two blocks as alternate views, not 40 independent observations."
+      },
+      "unresolved_anomaly": {
+        "status": "unresolved_do_not_correct_or_drop",
+        "grid_view_source_line": 134,
+        "alpha_view_source_line": 194,
+        "grid_level": 3,
+        "grid_size": 150333,
+        "alpha_deg": 3.1,
+        "cl": 0.81306463,
+        "cd": 0.01460769,
+        "cm": -0.13340253,
+        "suspicious_duplicate": {
+          "grid_view_source_line": 131,
+          "alpha_view_source_line": 164,
+          "alpha_deg": 1.5,
+          "cl": 0.81306462,
+          "cd": 0.01460768,
+          "cm": -0.13751499
+        },
+        "neighboring_alpha_3_1_results": {
+          "level_2": {
+            "cl": 0.92194924,
+            "cd": 0.0376464
+          },
+          "level_4": {
+            "cl": 0.95262443,
+            "cd": 0.03820128
+          }
+        },
+        "notes": "The alpha=3.1 grid-level-3 CL/CD pair is effectively identical to the grid-level-3 alpha=1.5 pair despite materially different angles. It is also a large discontinuity from adjacent grid levels. This is an anomaly requiring participant/workgroup adjudication; the available source does not establish its cause."
+      }
+    }
+  ],
+  "admission_gates": [
+    "Resolve each directory to exact artifact URLs and record UTC acquisition time and final resolved URI.",
+    "Retain the exact original bytes without modifying upstream files; compute SHA-256 and byte length over the retained bytes.",
+    "Review licensing, dataset use/redistribution terms, citation requirements, source owner and any embargo or participant-specific restrictions.",
+    "Extract and preserve geometry revision, units, operating point, facility, mesh/grid family, solver conditions and measurement uncertainty.",
+    "Write independent parsers and negative controls; preserve source zone/run/case labels and row identifiers.",
+    "For CFD, record mesh topology and refinement lineage, boundary conditions, turbulence/transition model, convergence criteria and solver build/config hash.",
+    "For aeroelastic cases, record structural model, materials, boundary conditions, deformation transfer/interpolation and force/load conservation.",
+    "Do not promote any entry to admitted until byte, license, applicability, parser and independent-review gates are all complete.",
+    "Freeze the official ONERA OAT15A V1a conditions before solver comparisons: Mach 0.73, Re_c=3e6, T_static=271 K, alpha=[1.36,1.50,2.50,3.00,3.10] degrees, six grid levels with at least four required; keep all grid families and refinement levels traceable.",
+    "Keep DPW8 V1a steady RANS, buffet Test Case 2 static-deformed unsteady CFD, and buffet Test Case 3 dynamic-wing FSI as separate physics tasks and evidence classes.",
+    "Pin the official DPW8/AePW4 submission-template versions and produce compatible Tecplot-readable ASCII exports for convergence, integrated forces/moments, pressure cuts, unsteady time series/spectra, grid metrics and bending/twist when applicable.",
+    "Preserve every template's auxiliary dataset metadata, participant/run IDs, units and optional missing-value conventions; never map a missing value sentinel to a physical zero."
+  ]
+}

@@ -1,0 +1,390 @@
+name: civil-aero-benchmark
+
+on:
+  push:
+    paths:
+      - "tools/civil-aero-benchmark/**"
+      - ".github/workflows/civil-aero-benchmark.yml"
+  pull_request:
+    paths:
+      - "tools/civil-aero-benchmark/**"
+      - ".github/workflows/civil-aero-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: civil-aero-benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Format
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/Cargo.toml --check
+      - name: Unit and negative-control tests
+        run: cargo test --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic report check
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin civil-aero-benchmark -- tools/civil-aero-benchmark/data/example_cases.csv > /tmp/aero-report-a.csv
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin civil-aero-benchmark -- tools/civil-aero-benchmark/data/example_cases.csv > /tmp/aero-report-b.csv
+          cmp /tmp/aero-report-a.csv /tmp/aero-report-b.csv
+          test "$(wc -l < /tmp/aero-report-a.csv)" -eq 4
+          grep -q "screening_only" /tmp/aero-report-a.csv
+          sha256sum /tmp/aero-report-a.csv
+      - name: Matched-mission Pareto and exploitation controls
+        shell: bash
+        run: |
+          cargo build --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin pareto
+          ./tools/civil-aero-benchmark/target/debug/pareto tools/civil-aero-benchmark/data/candidate_designs.csv > /tmp/aero-pareto-a.csv 2> /tmp/aero-pareto-a.txt
+          ./tools/civil-aero-benchmark/target/debug/pareto tools/civil-aero-benchmark/data/candidate_designs.csv > /tmp/aero-pareto-b.csv 2> /tmp/aero-pareto-b.txt
+          cmp /tmp/aero-pareto-a.csv /tmp/aero-pareto-b.csv
+          cmp /tmp/aero-pareto-a.txt /tmp/aero-pareto-b.txt
+          test "$(wc -l < /tmp/aero-pareto-a.csv)" -eq 5
+          grep -q "pareto=balanced_reference;lower_mass_higher_drag;higher_mass_lower_drag" /tmp/aero-pareto-a.txt
+          awk -F, '$1 == "dominated_high_drag" { found = 1; if ($9 != "false" || $10 != "false") exit 1 } END { if (!found) exit 1 }' /tmp/aero-pareto-a.csv
+          sha256sum /tmp/aero-pareto-a.csv
+      - name: Run deterministic stress-scenario screening
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
+            tools/civil-aero-benchmark/data/example_cases.csv \
+            tools/civil-aero-benchmark/data/illustrative_stress_scenarios.csv \
+            > /tmp/aero-stress-a.csv 2> /tmp/aero-stress-a.txt
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
+            tools/civil-aero-benchmark/data/example_cases.csv \
+            tools/civil-aero-benchmark/data/illustrative_stress_scenarios.csv \
+            > /tmp/aero-stress-b.csv 2> /tmp/aero-stress-b.txt
+          cmp /tmp/aero-stress-a.csv /tmp/aero-stress-b.csv
+          cmp /tmp/aero-stress-a.txt /tmp/aero-stress-b.txt
+          test "$(wc -l < /tmp/aero-stress-a.csv)" -eq 25
+          awk -F, 'NF != 16 { exit 1 }' /tmp/aero-stress-a.csv
+          grep -q "screening_only" /tmp/aero-stress-a.csv
+          grep -q "case=balanced_reference .*robust_screen_pass=true probability=none" /tmp/aero-stress-a.txt
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
+            tools/civil-aero-benchmark/data/robustness_negative_control.csv \
+            tools/civil-aero-benchmark/data/illustrative_stress_scenarios.csv \
+            > /tmp/aero-stress-negative.csv 2> /tmp/aero-stress-negative.txt
+          test "$(wc -l < /tmp/aero-stress-negative.csv)" -eq 9
+          grep -q "case=borderline_energy .*energy_failures=[1-9].*robust_screen_pass=false probability=none" /tmp/aero-stress-negative.txt
+          sha256sum /tmp/aero-stress-a.csv /tmp/aero-stress-negative.csv
+      - name: Generate and audit non-flight coupon mesh
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin coupon_mesh -- \
+            --chord-mm 100 --span-mm 80 --chordwise 32 --spanwise 4 \
+            --out /tmp/civil-aero-coupon.stl \
+            --manifest /tmp/civil-aero-coupon.json
+          grep -q "solid civil_aero_nonflight_coupon" /tmp/civil-aero-coupon.stl
+          bash tools/civil-aero-benchmark/scripts/finalize-coupon-manifest.sh \
+            /tmp/civil-aero-coupon.stl /tmp/civil-aero-coupon.json
+          jq -e '
+            .manifest_schema == "civil-aero-coupon/0.1.0" and
+            .watertight_two_manifold == true and
+            .orientation_consistent == true and
+            .signed_volume_mm3 > 0 and
+            .bounding_box_mm.x[0] == 0 and
+            .bounding_box_mm.x[1] == 100 and
+            .bounding_box_mm.y[0] == 0 and
+            .bounding_box_mm.y[1] == 80 and
+            .maximum_thickness_in_mesh_mm > 11.8 and
+            .maximum_thickness_in_mesh_mm < 12 and
+            .geometry_measurement_basis == "computed from in-memory mesh coordinates before STL decimal serialization" and
+            (.output_sha256 | type == "string" and test("^[0-9a-f]{64}$")) and
+            .output_sha256_status == "computed_from_exact_stl_bytes" and
+            .manufacturing_release == "not_authorized" and
+            .flight_use == "prohibited" and
+            .airworthiness_or_structural_claim == false
+          ' /tmp/civil-aero-coupon.json
+      - name: Verify byte-pinned NASA TMR source files
+        working-directory: tools/civil-aero-benchmark
+        run: sha256sum -c data/reference/nasa-tmr/SHA256SUMS
+      - name: Independently audit retained NASA TMR bytes and zones
+        run: bash tools/civil-aero-benchmark/scripts/verify-nasa-tmr-independent.sh
+      - name: Run strict NASA TMR parsers and zone-count oracle
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin reference_audit -- > /tmp/aero-reference-audit.txt
+          cat /tmp/aero-reference-audit.txt
+          grep -q "dataset=NASA-TMR-NACA0012-LADSON-FORCES observations=53 zones=3" /tmp/aero-reference-audit.txt
+          grep -q "dataset=NASA-TMR-NACA0012-LADSON-PRESSURE observations=405 zones=9" /tmp/aero-reference-audit.txt
+          grep -q "dataset=NASA-TMR-NACA0012-GREGORY-PRESSURE observations=73 zones=3" /tmp/aero-reference-audit.txt
+          grep -q "evidence=source_bytes_sha256_verified_parser_output_unqualified" /tmp/aero-reference-audit.txt
+      - name: Export normalized reference observations with source provenance
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin reference_export -- all > /tmp/aero-reference-all-a.csv
+          cargo run --locked --bin reference_export -- all > /tmp/aero-reference-all-b.csv
+          cmp /tmp/aero-reference-all-a.csv /tmp/aero-reference-all-b.csv
+          test "$(wc -l < /tmp/aero-reference-all-a.csv)" -eq 532
+          test "$(grep -c '^dataset_id,' /tmp/aero-reference-all-a.csv)" -eq 1
+          grep -q '"NASA-TMR-NACA0012-LADSON-FORCES",78cd2f6aa4968e80f44cbf6c96f699bd9c6e45681d958ec528a10cf72ed23357,20a39f549dbff988a6accc421ac84dafc4487695,"force","80 grit",6,-4.04,-0.4417,0.00871,,,source_bytes_sha256_verified_parser_output_unqualified,true' /tmp/aero-reference-all-a.csv
+          grep -q '"NASA-TMR-NACA0012-LADSON-PRESSURE",547e022634a360cd7697813543348cd447ee0038cdbc8f00a5296c7822ec7af8,20a39f549dbff988a6accc421ac84dafc4487695,"pressure","Re=6 million, alpha=.0169, free transition"' /tmp/aero-reference-all-a.csv
+          cargo run --locked --bin reference_export -- forces > /tmp/aero-reference-forces.csv
+          cargo run --locked --bin reference_export -- ladson-pressure > /tmp/aero-reference-ladson-cp.csv
+          cargo run --locked --bin reference_export -- gregory-pressure > /tmp/aero-reference-gregory-cp.csv
+          test "$(wc -l < /tmp/aero-reference-forces.csv)" -eq 54
+          test "$(wc -l < /tmp/aero-reference-ladson-cp.csv)" -eq 406
+          test "$(wc -l < /tmp/aero-reference-gregory-cp.csv)" -eq 74
+          sha256sum /tmp/aero-reference-all-a.csv
+      - name: Audit empirical section-polar model envelope on pinned NASA force data
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin section_polar_audit -- > /tmp/section-polar-a.csv 2> /tmp/section-polar-a.txt
+          cargo run --locked --bin section_polar_audit -- > /tmp/section-polar-b.csv 2> /tmp/section-polar-b.txt
+          cmp /tmp/section-polar-a.csv /tmp/section-polar-b.csv
+          cmp /tmp/section-polar-a.txt /tmp/section-polar-b.txt
+          test "$(wc -l < /tmp/section-polar-a.csv)" -eq 4
+          awk -F, '
+            NR == 1 { if (NF != 30) exit 1; next }
+            NF != 30 { exit 1 }
+            $7 == "80 grit" {
+              seen++
+              if ($8 != 17 || $10 != 7 || $18 != 7 || $24 != 3) exit 1
+              if ($14 > 0.0003 || $20 < 0.002 || $26 < 0.1) exit 1
+            }
+            $7 == "120 grit" {
+              seen++
+              if ($8 != 18 || $10 != 8 || $18 != 7 || $24 != 3) exit 1
+              if ($14 > 0.0004 || $20 < 0.002 || $26 < 0.1) exit 1
+            }
+            $7 == "180 grit" {
+              seen++
+              if ($8 != 18 || $10 != 8 || $18 != 7 || $24 != 3) exit 1
+              if ($14 > 0.0004 || $20 < 0.002 || $26 < 0.1) exit 1
+            }
+            END { if (seen != 3) exit 1 }
+          ' /tmp/section-polar-a.csv
+          grep -q "2D section-polar diagnostic only" /tmp/section-polar-a.txt
+          python3 scripts/verify-section-polar-independent.py \
+            data/reference/nasa-tmr/CLCD_Ladson_expdata.dat \
+            /tmp/section-polar-a.csv
+          sha256sum /tmp/section-polar-a.csv
+          cp data/reference/nasa-tmr/CLCD_Ladson_expdata.dat /tmp/section-polar-tampered.dat
+          python3 -c 'from pathlib import Path; p=Path("/tmp/section-polar-tampered.dat"); b=bytearray(p.read_bytes()); b[0] = ord("X"); p.write_bytes(b)'
+          if cargo run --locked --bin section_polar_audit -- /tmp/section-polar-tampered.dat > /tmp/section-polar-tampered.csv 2> /tmp/section-polar-tampered.txt; then
+            echo "modified reference bytes unexpectedly received NASA provenance" >&2
+            exit 1
+          fi
+          grep -q "SHA-256 mismatch" /tmp/section-polar-tampered.txt
+      - name: Audit matched-budget experiment costs
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin budget_audit -- data/decision_value/matched_budget_ledger.csv > /tmp/aero-budget-a.csv
+          cargo run --locked --bin budget_audit -- data/decision_value/matched_budget_ledger.csv > /tmp/aero-budget-b.csv
+          cmp /tmp/aero-budget-a.csv /tmp/aero-budget-b.csv
+          test "$(wc -l < /tmp/aero-budget-a.csv)" -eq 3
+          grep -q "naca-smoke,seed-1,random,5.000000,2.500000,2.500000,1.250000,1.000000,2,1,1,true,ledger_audit_only" /tmp/aero-budget-a.csv
+          grep -q "naca-smoke,seed-1,voi,5.000000,2.500000,2.500000,1.250000,1.000000,2,2,0,true,ledger_audit_only" /tmp/aero-budget-a.csv
+          if cargo run --locked --bin budget_audit -- data/decision_value/budget_overrun_negative_control.csv > /tmp/aero-budget-overrun.csv 2> /tmp/aero-budget-overrun.txt; then
+            echo "budget overrun negative control unexpectedly passed" >&2
+            exit 1
+          fi
+          grep -q "exceeded budget cap" /tmp/aero-budget-overrun.txt
+          sha256sum /tmp/aero-budget-a.csv
+      - name: Verify decision-aware EVSI arithmetic and budget abstention
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin voi_demo > /tmp/aero-evsi-a.csv 2> /tmp/aero-evsi-a.txt
+          cargo run --locked --bin voi_demo > /tmp/aero-evsi-b.csv 2> /tmp/aero-evsi-b.txt
+          cmp /tmp/aero-evsi-a.csv /tmp/aero-evsi-b.csv
+          cmp /tmp/aero-evsi-a.txt /tmp/aero-evsi-b.txt
+          test "$(wc -l < /tmp/aero-evsi-a.csv)" -eq 5
+          grep -q "prior_decision=design_a prior_expected_utility=5.000000 selected_experiment=perfect_information" /tmp/aero-evsi-a.txt
+          grep -Fq '"two-state-design-choice","perfect_information",1.000000,2.000000,true,"design_a",5.000000000000,10.000000000000,5.000000000000,4.000000000000,2,1,true,caller_supplied_probabilities_not_independently_calibrated' /tmp/aero-evsi-a.csv
+          grep -Fq '"two-state-design-choice","uninformative",0.250000,2.000000,true,"design_a",5.000000000000,5.000000000000,0.000000000000,-0.250000000000,2,0,false,caller_supplied_probabilities_not_independently_calibrated' /tmp/aero-evsi-a.csv
+          grep -Fq '"two-state-design-choice","too_expensive",8.000000,2.000000,false,"design_a",5.000000000000,10.000000000000,5.000000000000,-3.000000000000,2,1,false,caller_supplied_probabilities_not_independently_calibrated' /tmp/aero-evsi-a.csv
+          python3 scripts/verify-evsi-independent.py /tmp/aero-evsi-a.csv
+          sha256sum /tmp/aero-evsi-a.csv
+      - name: Reconcile DPW-8 V5 grid and angle views on synthetic fixture
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin dpw8_v5_audit > /tmp/dpw8-v5-a.csv 2> /tmp/dpw8-v5-a.txt
+          cargo run --locked --bin dpw8_v5_audit > /tmp/dpw8-v5-b.csv 2> /tmp/dpw8-v5-b.txt
+          cmp /tmp/dpw8-v5-a.csv /tmp/dpw8-v5-b.csv
+          cmp /tmp/dpw8-v5-a.txt /tmp/dpw8-v5-b.txt
+          test "$(wc -l < /tmp/dpw8-v5-a.csv)" -eq 21
+          grep -q "source_evidence=repository_default_synthetic_fixture" /tmp/dpw8-v5-a.txt
+          grep -q "raw_records=40 grid_view_records=20 alpha_view_records=20 canonical_cells=20" /tmp/dpw8-v5-a.txt
+          awk -F, 'NR > 1 && $12 == "true" { found++ } END { if (found != 1) exit 1 }' /tmp/dpw8-v5-a.csv
+          python3 scripts/verify-dpw8-v5-independent.py data/dpw8/synthetic_two_view_fixture_v0.1.dat /tmp/dpw8-v5-a.csv
+          cp data/dpw8/synthetic_two_view_fixture_v0.1.dat /tmp/dpw8-v5-tampered.dat
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("/tmp/dpw8-v5-tampered.dat")
+          content = path.read_text()
+          original = "0.70000000 0.01200000"
+          assert content.count(original) == 2
+          path.write_text(content.replace(original, "0.70010000 0.01200000", 1))
+          PY
+          if cargo run --locked --bin dpw8_v5_audit -- /tmp/dpw8-v5-tampered.dat > /tmp/dpw8-v5-tampered.csv 2> /tmp/dpw8-v5-tampered.txt; then
+            echo "single-value cross-view mutation unexpectedly passed Rust parser" >&2
+            exit 1
+          fi
+          grep -q "cross-view mismatch" /tmp/dpw8-v5-tampered.txt
+          python3 scripts/verify-dpw8-v5-independent.py /tmp/dpw8-v5-tampered.dat /tmp/dpw8-v5-tampered.csv --expect-reject
+      - name: Verify grid-convergence order, Richardson limit, and GCI with independent oracle
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin grid_convergence_demo > /tmp/gci-a.csv 2> /tmp/gci-a.txt
+          cargo run --locked --bin grid_convergence_demo > /tmp/gci-b.csv 2> /tmp/gci-b.txt
+          cmp /tmp/gci-a.csv /tmp/gci-b.csv
+          cmp /tmp/gci-a.txt /tmp/gci-b.txt
+          test "$(wc -l < /tmp/gci-a.csv)" -eq 5
+          grep -q "synthetic_gci_known_answer_only grids=6 triplets=4 expected_order=2.0 expected_limit=2.0" /tmp/gci-a.txt
+          python3 scripts/verify-gci-independent.py /tmp/gci-a.csv
+      - name: Verify CFD evidence admission gate on six-grid synthetic study
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo build --locked --bin verification_admission_demo
+          ./target/debug/verification_admission_demo > /tmp/cfd-admission-a.csv 2> /tmp/cfd-admission-a.txt
+          ./target/debug/verification_admission_demo > /tmp/cfd-admission-b.csv 2> /tmp/cfd-admission-b.txt
+          cmp /tmp/cfd-admission-a.csv /tmp/cfd-admission-b.csv
+          cmp /tmp/cfd-admission-a.txt /tmp/cfd-admission-b.txt
+          test "$(wc -l < /tmp/cfd-admission-a.csv)" -eq 5
+          grep -q "synthetic_cfd_admission_known_answer_only status=numerically_admitted_under_declared_criteria_caller_hashes_unverified_not_experimentally_validated grids=6 triplets=4" /tmp/cfd-admission-a.txt
+          grep -q "not_experimentally_validated" /tmp/cfd-admission-a.csv
+          grep -q "coarse_mesh_sha256" /tmp/cfd-admission-a.csv
+          grep -q "fine_mesh_sha256" /tmp/cfd-admission-a.csv
+          grep -q "study_total_cpu_core_hours" /tmp/cfd-admission-a.csv
+          grep -q "study_total_gpu_hours_measured" /tmp/cfd-admission-a.csv
+          grep -q "study_total_wall_clock_seconds" /tmp/cfd-admission-a.csv
+          grep -q "study_total_energy_joules_measured" /tmp/cfd-admission-a.csv
+          grep -q "coarse_solver_exit_code" /tmp/cfd-admission-a.csv
+          python3 scripts/verify-cfd-admission-independent.py /tmp/cfd-admission-a.csv
+          grep -q "observed_order_min,observed_order_max" /tmp/cfd-admission-a.csv || grep -q "observed_order_max" /tmp/cfd-admission-a.csv
+      - name: Verify robust maximin EVSI over finite model ambiguity set
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo build --locked --bin robust_voi_demo
+          ./target/debug/robust_voi_demo > /tmp/robust-evsi-a.csv 2> /tmp/robust-evsi-a.txt
+          ./target/debug/robust_voi_demo > /tmp/robust-evsi-b.csv 2> /tmp/robust-evsi-b.txt
+          cmp /tmp/robust-evsi-a.csv /tmp/robust-evsi-b.csv
+          cmp /tmp/robust-evsi-a.txt /tmp/robust-evsi-b.txt
+          test "$(wc -l < /tmp/robust-evsi-a.csv)" -eq 3
+          grep -q "selected=robust_noisy criterion=maximin_worst_case_net_evsi" /tmp/robust-evsi-a.txt
+          python3 scripts/verify-robust-evsi-independent.py /tmp/robust-evsi-a.csv
+      - name: Verify byte-bound CFD artifact manifests and adversarial controls
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo build --locked --bin run_artifact_audit
+          python3 scripts/verify-cfd-artifacts-independent.py target/debug/run_artifact_audit
+      - name: Compare validated Pareto quality under matched total cost
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin policy_benchmark_demo > /tmp/policy-benchmark-a.csv 2> /tmp/policy-benchmark-a.txt
+          cargo run --locked --bin policy_benchmark_demo > /tmp/policy-benchmark-b.csv 2> /tmp/policy-benchmark-b.txt
+          cmp /tmp/policy-benchmark-a.csv /tmp/policy-benchmark-b.csv
+          cmp /tmp/policy-benchmark-a.txt /tmp/policy-benchmark-b.txt
+          test "$(wc -l < /tmp/policy-benchmark-a.csv)" -eq 5
+          grep -q "synthetic_policy_benchmark_only tasks=1 replicates=2 policies=2" /tmp/policy-benchmark-a.txt
+          python3 scripts/verify-policy-benchmark-independent.py /tmp/policy-benchmark-a.csv
+      - name: Verify unsteady Welch PSD and stationarity with independent DFT oracle
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin unsteady_spectrum_demo > /tmp/unsteady-psd-a.csv 2> /tmp/unsteady-psd-a.txt
+          cargo run --locked --bin unsteady_spectrum_demo > /tmp/unsteady-psd-b.csv 2> /tmp/unsteady-psd-b.txt
+          cmp /tmp/unsteady-psd-a.csv /tmp/unsteady-psd-b.csv
+          cmp /tmp/unsteady-psd-a.txt /tmp/unsteady-psd-b.txt
+          test "$(wc -l < /tmp/unsteady-psd-a.csv)" -eq 130
+          grep -q "synthetic_unsteady_spectrum_only samples=1024 segments=7 bins=129 peak_hz=32.000000000000 integrated_mean_square=2.000000000000" /tmp/unsteady-psd-a.txt
+          python3 scripts/verify-unsteady-spectrum-independent.py /tmp/unsteady-psd-a.csv
+      - name: Audit blind interval calibration and out-of-domain coverage independently
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin interval_calibration_demo > /tmp/interval-calibration-a.csv 2> /tmp/interval-calibration-a.txt
+          cargo run --locked --bin interval_calibration_demo > /tmp/interval-calibration-b.csv 2> /tmp/interval-calibration-b.txt
+          cmp /tmp/interval-calibration-a.csv /tmp/interval-calibration-b.csv
+          cmp /tmp/interval-calibration-a.txt /tmp/interval-calibration-b.txt
+          test "$(wc -l < /tmp/interval-calibration-a.csv)" -eq 13
+          grep -q "blind_confirmation_synthetic_only models=2 domains=2 levels=3 prediction_rows=720 summaries=12" /tmp/interval-calibration-a.txt
+          python3 scripts/verify-interval-calibration-independent.py /tmp/interval-calibration-a.csv
+      - name: Audit selective prediction risk and false-feasible risk coverage
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin selective_risk_demo > /tmp/selective-risk-a.csv 2> /tmp/selective-risk-a.txt
+          cargo run --locked --bin selective_risk_demo > /tmp/selective-risk-b.csv 2> /tmp/selective-risk-b.txt
+          cmp /tmp/selective-risk-a.csv /tmp/selective-risk-b.csv
+          cmp /tmp/selective-risk-a.txt /tmp/selective-risk-b.txt
+          test "$(wc -l < /tmp/selective-risk-a.csv)" -eq 81
+          grep -q "synthetic_selective_risk_only models=2 domains=2 samples_per_group=20 curve_rows=80 summaries=4" /tmp/selective-risk-a.txt
+          python3 scripts/verify-selective-risk-independent.py /tmp/selective-risk-a.csv
+      - name: Verify immutable SU2 historical and current solver-reference pins
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          python3 scripts/verify-solver-reference-manifest.py data/solver_reference_manifest.v0.1.json
+      - name: Guard blank manufacturing templates against accidental evidence promotion
+        shell: bash
+        run: |
+          test "$(wc -l < tools/civil-aero-benchmark/data/manufacturing/coupon_build_traveler_template.csv)" -eq 1
+          test "$(wc -l < tools/civil-aero-benchmark/data/manufacturing/coupon_measurement_template.csv)" -eq 1
+          grep -q "stl_sha256" tools/civil-aero-benchmark/data/manufacturing/coupon_build_traveler_template.csv
+          grep -q "material_lot" tools/civil-aero-benchmark/data/manufacturing/coupon_build_traveler_template.csv
+          grep -q "expanded_uncertainty" tools/civil-aero-benchmark/data/manufacturing/coupon_measurement_template.csv
+          grep -q "calibration_status" tools/civil-aero-benchmark/data/manufacturing/coupon_measurement_template.csv
+      - name: Validate evidence manifest without promoting pending sources
+        shell: bash
+        run: |
+          jq -e '
+            .manifest_schema == "civil-aero-evidence-manifest/0.1.0" and
+            .status == "partial_source_bytes_pinned_not_admitted" and
+            (.sources | length >= 6) and
+            all(.sources[];
+              (.source_id | type == "string" and length > 0) and
+              (.admission_status | type == "string" and length > 0) and
+              (if .data_sha256 == null
+               then (.admission_status | test("pending|catalog_only"))
+               else
+                 (.data_sha256 | type == "string" and test("^[0-9a-fA-F]{64}$")) and
+                 (.byte_length | type == "number" and . > 0)
+               end)
+            ) and
+            any(.sources[];
+              .source_id == "NASA-TMR-NACA0012-LADSON-FORCES" and
+              .data_sha256 == "78cd2f6aa4968e80f44cbf6c96f699bd9c6e45681d958ec528a10cf72ed23357" and
+              .byte_length == 1343 and
+              .git_blob_sha1 == "336d2e1bebb65a9613d65a2d36d9d942bd745acf" and
+              .upstream_git_commit == "20a39f549dbff988a6accc421ac84dafc4487695" and
+              .admission_status == "bytes_pinned_license_reviewed_parser_pending"
+            ) and
+            any(.sources[];
+              .source_id == "NASA-TMR-NACA0012-LADSON-PRESSURE" and
+              .data_sha256 == "547e022634a360cd7697813543348cd447ee0038cdbc8f00a5296c7822ec7af8" and
+              .byte_length == 6331 and
+              .git_blob_sha1 == "c533ce28db34b6cb12073f9a6feb20c73b2a1dd1" and
+              .upstream_git_commit == "20a39f549dbff988a6accc421ac84dafc4487695" and
+              .admission_status == "bytes_pinned_license_reviewed_parser_pending"
+            ) and
+            any(.sources[];
+              .source_id == "NASA-TMR-NACA0012-GREGORY-PRESSURE" and
+              .data_sha256 == "38d8474bc67661c3cef5e4cd9eeddb95d4a436d06abc1f58a8518066f510647c" and
+              .byte_length == 1608 and
+              .git_blob_sha1 == "80d0ec12030ffd902952ae2c199671348243dfbf" and
+              .upstream_git_commit == "20a39f549dbff988a6accc421ac84dafc4487695" and
+              .admission_status == "bytes_pinned_license_reviewed_parser_pending"
+            )
+          ' tools/civil-aero-benchmark/data/source_manifest.v0.1.json

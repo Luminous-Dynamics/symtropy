@@ -1,0 +1,10 @@
+[package]
+name = "civil-aero-benchmark"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Deterministic first-order mission-energy screening and evidence-aware reporting for civil research aircraft"
+
+[workspace]
+
+[dependencies]

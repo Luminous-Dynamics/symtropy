@@ -1,0 +1,312 @@
+# Civil Aero Benchmark 0.1
+
+A dependency-free Rust tool for transparent first-order mission-energy screening of non-weaponized civil research aircraft. It is a starting engineering artifact, not a flight design, CFD solver, flight controller or airworthiness assessment.
+
+## Run
+
+From this directory, run cargo fmt --check, cargo test --locked, cargo clippy --locked --all-targets -- -D warnings, then cargo run --locked -- data/example_cases.csv.
+
+The example input is synthetic. It tests dimensional relationships and controlled counterfactuals; it is not evidence of achievable aircraft performance.
+
+## Model boundary
+
+For steady, level, still-air cruise:
+
+- CL = m g / (q S)
+- CD = CD0 + CL squared / (pi e AR)
+- D = q S CD
+- E_route[Wh] = D times distance[m] divided by (eta times 3600)
+- E_usable[Wh] = battery_energy[Wh] times (1 - reserve_fraction)
+
+Here q = 0.5 rho V squared; m is airframe plus payload mass; S is wing planform area; AR is aspect ratio; e is Oswald efficiency; CD0 is zero-lift drag coefficient; eta is a caller-supplied combined propulsive/electrical efficiency. Distance is converted to metres; N*m is joules and 3600 J = 1 Wh.
+
+The screen flags only whether the estimated cruise lift coefficient is below a caller-supplied assumed limit and whether estimated route energy fits within caller-specified energy after reserve. Both can be wrong. A combined pass is not a safe-to-fly or airworthiness determination.
+
+The model omits climb, takeoff, landing, turns, gusts, wind, control authority, stability, dynamic response, propeller operating maps, motor/controller thermal limits, battery sag and aging, aeroelasticity, structural sizing, fabrication tolerances, manufacturing yield, uncertainty propagation and regulations. Do not use it to authorize flight or manufacture a flight-critical part.
+
+
+## Measured section-polar discrepancy diagnostic
+
+The `section_polar_audit` binary performs a separate two-dimensional diagnostic using the pinned NASA TMR Ladson NACA 0012 force observations. It fits the empirical relation `Cd_section = a + b * Cl^2` independently within each of the 80, 120 and 180 grit zones using only `|alpha| <= 8.5 deg`. It reports MAE, RMSE, maximum absolute error and mean signed error for the calibration rows, an intermediate held-out band (`8.5 < |alpha| <= 16.5 deg`) and a high-angle extrapolation band (`|alpha| > 16.5 deg`). These boundaries are benchmark splits only, not safe operating limits or stall declarations.
+
+The initial pinned-data run is expected to expose a sharp validity gap: calibration RMSE is approximately 0.00022–0.00026, intermediate held-out RMSE approximately 0.00319–0.00413, and high-angle extrapolation RMSE approximately 0.182–0.284 in the three zones. These values are data-specific diagnostics, not universal error guarantees. The NASA TMR source warns that high-angle experimental measurements may no longer be effectively two-dimensional near stall and that transition/tripping materially affects drag.
+
+Important distinctions:
+- The fitted coefficient `b` is only an empirical **2D section** coefficient. It is not the aircraft's induced-drag factor `1/(pi e AR)`, and it must not be used to infer Oswald efficiency.
+- Roughness zones are kept separate; they are not pooled as IID samples.
+- The section-polar CLI, reference-data audit and normalized reference exporter verify the exact in-memory bytes (byte length and SHA-256) before parsing or attaching NASA provenance. They use the system `sha256sum` or `shasum -a 256` command through stdin; the Rust crate itself has no external Cargo dependencies. CI also runs `sha256sum -c` on the retained source files before the benchmark steps.
+- A successful report is a model-discrepancy diagnostic, not solver validation, aerodynamic certification, or a physical flight envelope.
+
+Run it from the repository root with:
+
+```bash
+cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin section_polar_audit
+```
+
+
+A test-only, stdlib-only independent Python oracle (`scripts/verify-section-polar-independent.py`) separately parses the raw file, checks its SHA-256 and byte length, refits each zone, recomputes every error metric and verifies that perturbing held-out observations cannot affect calibration coefficients. Production remains Rust; the Python script is only a second implementation used by CI to reduce common-mode test errors.
+
+The strategic next gate is to require a calibrated model's uncertainty and demonstrated domain to travel with every candidate. An optimizer that leaves the verified domain must request a higher-fidelity evaluation or return an abstention—not quietly extrapolate a nominal score.
+
+
+## Exact-byte source identity gate
+
+The integrity module provides a dependency-free Rust boundary that hashes the exact byte buffer subsequently parsed. The section-polar audit, reference-data audit and normalized reference exporter now reject source files whose byte count or SHA-256 differs from the pinned manifest. They use the installed sha256sum or shasum -a 256 executable via stdin; if neither is available, the tool fails closed. The CI suite mutates one byte without changing file length and verifies that the section-polar CLI refuses to emit NASA-labelled output.
+
+This closes an important provenance gap: a file with plausible headers or numerically valid observations is not thereby the pinned NASA artifact. The parsers remain reusable for synthetic unit fixtures, but the NASA-labelled command-line outputs require exact-byte verification.
+
+## Finite-state decision-value experiment selector
+
+The voi module implements a transparent one-step expected value of sample information calculation over caller-supplied finite states, prior probabilities, decision utilities, experiment costs and P(outcome | state) matrices. It reports gross EVSI, net EVSI, affordability, posterior-optimal decisions and the number of possible outcomes that change the current preferred decision. It selects the highest positive-net-value affordable experiment, or abstains when none qualifies.
+
+Run the fixed synthetic known-answer example from the crate directory:
+
+    cargo run --locked --bin voi_demo
+
+The demonstration's prior best expected utility is 5. Perfect information has gross EVSI 5 and net EVSI 4 at cost 1; noisy information has gross EVSI 3 and net EVSI 2; an uninformative measurement has zero gross EVSI; and an over-budget experiment is not selected. These are analytic synthetic results, not an aerodynamic experiment and not evidence that a learned acquisition policy is calibrated. A separate stdlib Python oracle independently recomputes the posterior decisions, expected utility, EVSI, decision-change counts and selected experiment from the frozen fixture. CSV output explicitly states that caller-supplied probabilities have not been independently calibrated. The method is one-step greedy and does not claim globally optimal sequential experiment design.
+
+## DPW-8/AePW-4 source discovery
+
+The DPW-8/AePW-4 source discovery manifest records the official NASA DPW8 landing pages, ONERA OAT15A experimental archive, CRM scatter and FEM readmes, official V1a task definition and JAXA buffet catalog. The first concrete benchmark is V1a: steady RANS/grid convergence at Mach 0.73, Re_c=3e6, T_static=271 K and alpha=[1.36,1.50,2.50,3.00,3.10] degrees, using a six-member grid family (four required, six desirable). Buffet Test Case 2 (unsteady CFD on measured static-deformed geometry) and Test Case 3 (dynamic wing FSI) are separate later tasks. The manifest is deliberately source-discovery-only: no DPW8 bytes are retained, hashes/byte lengths remain null and licensing/parser reviews remain pending. Do not use it as an admitted data corpus. See [AERO-DPW8-001 issue #2918](https://github.com/Luminous-Dynamics/symtropy/issues/2918).
+
+## Input and provenance
+
+The first CSV line must match the documented header exactly. This deliberately small parser rejects quoted fields and comma-containing values. parameter_basis is synthetic, estimate, or measured. Non-synthetic rows must provide a 64-character hexadecimal source_sha256 and non-empty source_ref.
+
+Source fields are declared metadata: the tool does not download evidence, recompute hashes, authenticate suppliers or verify measurements. A measured label is not proof of calibration. Every output includes a model version and evidence_level=screening_only.
+
+The tool emits unweighted engineering metrics and separate gate flags so a single score cannot hide an energy or lift-margin failure.
+
+## Verification and validation sequence
+
+1. Code verification: units and shape checks, deterministic replay, monotonicity/counterfactual tests, invalid-input rejection.
+2. Analytical/solver parity: independently review hand calculations, then compare with pinned outputs from SU2 or another named solver. A solver producing a result is not proof of physical validity.
+3. Public-data validation: use NASA's Turbulence Modeling Resource NACA 0012 force and pressure datasets under published Reynolds/Mach conditions. Record grid/refinement evidence, compare lift, drag and pressure separately, and preserve near-stall limitations.
+4. Mission-level validation: only after aerodynamic coefficients have an appropriate validation domain, combine them with motor/propeller maps and battery measurements. Hold out complete environmental conditions and physical builds, not random rows from a single run.
+5. Manufacturing qualification: compare measured build mass, dimensional tolerances, material/layup records, first-pass yield, scrap, repairability, cost and energy per conforming unit. Keep missing values unresolved; do not turn them into zero.
+6. Physical test: independent review of load cases, fail-safe behaviour, operating permissions and site hazards before flight. This screening tool never grants authorization.
+
+## Comparison protocol
+
+Compare candidates on the same stated mission, payload, density profile, route distance, reserve, wind treatment, measurement process and evidence level. Report route energy, Wh per payload-kilometre, estimated L/D, lift and energy margins, uncertainty and model validity. Show per-condition and worst-condition outcomes alongside aggregates. Improvement claims require paired held-out comparisons plus physical confirmation; synthetic examples cannot meet that bar.
+
+## Next work
+
+- Complete independent parser/admission review for the three byte-pinned NASA TMR text files; then pin the corrected geometry points and grid archive with separate profile/grid lineage.
+- Add SU2 grid-refinement, convergence and benchmark-report ingestion without implementing a bespoke CFD solver.
+- Select a precise, licensed low-Reynolds-number dataset relevant to small electric research aircraft; do not pool different Reynolds regimes.
+- Implement calibrated uncertainty propagation and an operational fail-closed domain gate; preserve unweighted source metrics.
+- Manufacture and measure the non-flight coupon only after the facility owner approves the actual test article, then populate the build traveler and measurement record.
+- Begin the DPW-8/AePW-4 tiers (ONERA OAT15A, CRM scatter and static deformation) after artifact/terms review.
+
+## References
+
+- NASA TMR, 2D NACA 0012 Airfoil Validation: https://tmbwg.github.io/turbmodels/naca0012_val.html
+- NASA CFD Verification and Validation overview: https://www.grc.nasa.gov/www/wind/valid/tutorial/overview.html
+- SU2 open-source CFD and PDE-constrained optimization: https://github.com/su2code/SU2
+- NASA OpenVSP Ground School: https://www.nasa.gov/software/openvsp-ground-school/
+- NIST industrial CFD V&V/UQ review: https://www.nist.gov/publications/summary-industrial-verification-validation-and-uncertainty-quantification-procedures
+
+## Evidence-source manifest
+
+`data/source_manifest.v0.1.json` is now a **partial source-ingest manifest**. The three retained NASA TMR force/pressure text files have exact upstream commit references, Git blob IDs, byte lengths and SHA-256 digests; their parser and independent-parse admission reviews are still pending. The geometry points, NASA CFD grid archive and UIUC low-Re catalog remain unpinned or catalog-only with null hashes. No source in this manifest is admitted as a qualified CFD validation dataset. The CI guard rejects a null hash paired with an admitted-looking status.
+
+Do not report a CFD validation result until raw bytes, revision, conditions, units, licensing/applicability review, parser tests, convergence evidence and independent checks have been recorded. Do not pool the NASA Re=6,000,000 case with low-Reynolds-number airfoil measurements as if they were the same regime.
+
+## Matched-mission candidate comparison
+
+A second CLI, the Pareto comparator, compares candidates only when they share an identical mission and parameter evidence class:
+
+`cargo run --locked --bin pareto -- data/candidate_designs.csv`
+
+It re-evaluates each candidate from its stored input fields at the comparison boundary rather than trusting caller-provided derived metrics. It excludes candidates failing either screening gate, rejects mixed missions/evidence classes and duplicate IDs, and reports the nondominated set without inventing a single scalar winner.
+
+The frozen synthetic corpus intentionally includes three trade-off candidates and one dominated candidate. Its expected Pareto set is balanced_reference, lower_mass_higher_drag, and higher_mass_lower_drag; dominated_high_drag should be excluded. This expected set is a property of the chosen synthetic fixture, not evidence that any physical airframe is optimal.
+
+Objectives are estimated route energy (lower), total mass (lower), and estimated lift-to-drag (higher). Total mass is merely a proxy here: without structural sizing and load cases, lower mass says nothing about adequate strength. This comparator is not robust optimization; it samples one nominal point per candidate and does not propagate parameter/model uncertainty.
+
+## Robustness and industry-comparison protocol
+
+Read ROBUST_PARETO_BENCHMARK_PROTOCOL_V0_1.md for the baseline ladder and research plan. It compares the first-order screen (B0), NASA TMR reference (B1), pinned SU2 fixed-geometry solution (B2), SU2 adjoint optimization (B3), ShapeBench task suite (B4), matched-budget experiment selector (B5), high-fidelity/physical replay (B6), and the AIAA DPW-8/AePW-4 3D drag/aeroelastic tier (B7).
+
+The intended differentiator is decision credibility per engineering cost—not a claimed aerodynamic result: useful experiments selected with a fixed expensive-evaluation budget, held-out-condition generalization, honest uncertainty and model discrepancy, independent feasibility checks, and improvement confirmed on manufactured non-flight coupons. No SOTA superiority claim is supported until the same tasks, compute budget, data splits, physical conditions and objective constraints are measured head-to-head.
+
+## Parametric non-flight coupon geometry
+
+The optional Rust binary named coupon_mesh creates a watertight, extruded, ground-test-only NACA 0012 coupon using the corrected scaled sharp-trailing-edge polynomial published by NASA TMR. It uses cosine chordwise spacing and performs an internal edge-use, directed edge-winding, unreferenced-vertex, and signed-volume audit before writing ASCII STL. The generated JSON manifest explicitly states that its dimensions are millimetres, its SHA-256 still needs to be computed over the exact output bytes, and the geometry is not approved for flight or any specific wind tunnel.
+
+Example command (100 mm chord / 80 mm span are only CI smoke-test parameters, not recommended dimensions for a real facility):
+
+`cargo run --locked --bin coupon_mesh -- --chord-mm 100 --span-mm 80 --chordwise 32 --spanwise 4 --out out/coupon.stl --manifest out/coupon.json`
+
+For a real non-flight ground-test article, choose chord, span, blockage margin, support and measurement envelope only after the facility owner reviews the actual test section, Reynolds-number target and force-balance limits. The generator cannot assess those constraints. It does not add mounting hardware, internal structure, load qualification or finishing allowance. STL does not encode units, so retain the JSON manifest alongside the geometry. After generating a new STL and manifest, bind the exact STL bytes to the manifest with:
+
+`bash tools/civil-aero-benchmark/scripts/finalize-coupon-manifest.sh out/coupon.stl out/coupon.json`
+
+The script refuses mismatched, previously finalized, non-manifold or flight-authorized-looking manifests; it computes SHA-256 over the actual STL bytes, records the digest, and then prints digests for both STL and manifest. Preserve the printed receipt or commit it to the manufacturing evidence record.
+
+The profile convention follows the corrected scaled sharp-TE equation on NASA TMR's validation page, but is generated analytically; it is not copied from the raw reference grid or experimental data. The source bytes and experimental data remain unadmitted until the AERO-DATA-001 gates pass.
+
+## External SOTA comparison target: ShapeBench
+
+Do not make a superiority claim from the NACA 0012 smoke test. The 2026 ShapeBench preprint describes 103 aerodynamic shape-optimization tasks across eight shape categories, with standardized budget accounting and comparison baselines spanning adjoint methods, L-BFGS-B, PSO, CMA-ES, Bayesian optimization, OpenEvolve, ShinkaEvolve and ShapeEvolve where applicable. Its reported optimizer rankings vary by task and budget, which is an explicit reason to test a diverse suite rather than extrapolate from one airfoil. See:
+
+- ShapeBench paper: https://arxiv.org/abs/2605.20763
+- Official code linked by the paper: https://github.com/ShapeBench/ShapeBench
+- Dataset linked by the paper: https://huggingface.co/datasets/ShapeBench
+
+The follow-on [AERO-SHAPEBENCH-001 issue #2896](https://github.com/Luminous-Dynamics/symtropy/issues/2896) defines the adapter. Before integration, review the official API, task/data terms, exact release revisions, dependencies, and budget rules. First reproduce a small, diverse smoke subset, then freeze a representative confirmatory subset and held-out geometry families. Compare the proposed Symthaea experiment-selection policy to official and conventional baselines under identical task definitions and matched total cost, including surrogate and high-fidelity evaluations, failed solves, tuning, orchestration and audit work. Only use official high-fidelity replay to confirm candidates where available.
+
+A ShapeBench optimization win would support a claim about that measured optimization method/task suite—not by itself the physical validity of new Reynolds/Mach conditions, a manufactured article, structural adequacy or flight readiness. Keep NASA TMR solver validation, small-aircraft low-Re data, and the non-flight coupon measurements as distinct evidence classes.
+
+## Deterministic stress-scenario screening
+
+A third CLI evaluates each candidate against an explicit scenario CSV:
+
+`cargo run --locked --bin robust -- data/example_cases.csv data/illustrative_stress_scenarios.csv`
+
+It emits per-candidate/per-scenario lift and drag estimates, energy after reserve, energy margin, lift margin and separate screening flags. The summary reports the scenario producing the highest estimated energy, the lowest energy margin, the lowest lift margin, and counts of screening failures.
+
+The committed stress set includes nominal, overweight, drag-model bias, lower density, lower propulsion efficiency, reduced battery energy, longer route and a combined adverse case. Every factor is visible in the scenario data file. The set is labelled synthetic_stress_not_probability. The multipliers are software stress fixtures, **not probabilities, not measured uncertainty bounds and not a real operating envelope**. Do not use them as aircraft engineering assumptions. Before evaluating a real candidate, replace or supplement them with bounds justified by actual material/build distributions, calibrated measurements, validated model discrepancy and the intended mission environment.
+
+The negative control data file has a nominal estimate that fits its declared usable energy, but the explicit combined stress and lower-efficiency/energy cases expose failures. The CLI reports those failures; it does not convert a failed scenario into a fatal program error, because a stress report is useful evidence. The workflow asserts that the negative control is reported as not robust.
+
+This is a deterministic scenario-sensitivity screen. It is not a Monte Carlo analysis, calibrated reliability estimate, probabilistic safety assessment, structural analysis or flight authorization.
+
+## Pinned NASA TMR experimental bytes and parser contract
+
+Three reference text artifacts are now retained in the repository under data/reference/nasa-tmr/ at the immutable upstream repository commit 20a39f549dbff988a6accc421ac84dafc4487695 (TMBWG/turbmodels). The upstream LICENSE at that commit states CC0 1.0 Universal. Their exact SHA-256 values and byte lengths are recorded in data/source_manifest.v0.1.json and data/reference/nasa-tmr/SHA256SUMS. The copied files retain the upstream Git blob IDs; no rows were regenerated or rounded during mirroring.
+
+- CLCD_Ladson_expdata.dat — 1,343 bytes, SHA-256 78cd2f6aa4968e80f44cbf6c96f699bd9c6e45681d958ec528a10cf72ed23357. The source header says Ladson/NASA TM 4074 (1988), Re=6 million, M=0.15, transition tripped. The three 80/120/180 grit zones have 17/18/18 force observations respectively.
+- CP_Ladson.dat — 6,331 bytes, SHA-256 547e022634a360cd7697813543348cd447ee0038cdbc8f00a5296c7822ec7af8. The file header says M=0.3 and contains nine zones spanning Re=3, 6 and 9 million with different transition descriptions; do not silently treat this as the M=0.15 tripped-force experiment.
+- CP_Gregory_expdata.dat — 1,608 bytes, SHA-256 38d8474bc67661c3cef5e4cd9eeddb95d4a436d06abc1f58a8518066f510647c. The header says Re=2.88 million, digitized approximately from a photocopy, and upper surface only.
+
+The strict Rust parser code is in src/reference_data.rs. It preserves each source zone and original line number, checks required source/variable headers, exact numeric column counts, non-finite values, invalid chord-normalized coordinates, duplicate zone labels and empty zones. Known-answer tests freeze the extracted row and zone counts. The reference_audit binary prints counts without promoting the content to qualified aerodynamics evidence. Run it from this package directory with cargo run --locked --bin reference_audit.
+
+The CI workflow runs sha256sum -c against the pinned raw files before the parser-count check. This demonstrates retained-byte integrity and parser-structure agreement, not independent reproduction of the original experiment, source-authority authentication, CFD verification/validation or flight readiness. The three sources remain marked parser-review-pending in the evidence manifest until the exact-head Rust workflow passes and a separate review is recorded.
+
+The corrected TMR profile-point file and grid archive remain separate source-admission items; do not conflate the geometry polynomial or these experimental datasets with a grid-convergence result.
+
+## Deterministic normalized reference export
+
+The reference_export binary turns the strict parser output into one consistent CSV schema, preserving dataset ID, exact source SHA-256, upstream Git revision, condition zone, and original source line. It leaves non-applicable measurement columns blank and emits source_parser_output_unqualified to make the evidence limit visible. The all-dataset mode produces one header followed by 531 observations; per-dataset modes preserve their own row counts.
+
+Run from this package directory:
+
+`cargo run --locked --bin reference_export -- all > reference-observations.csv`
+
+The workflow checks the all-dataset output is deterministic across two invocations, verifies source-hash/revision binding in known rows, and checks per-dataset row counts. The normalized CSV is derived from the original source; the exact unmodified files remain authoritative and the export is not independent experimental data or an aerodynamic validation result.
+
+## Matched-budget experiment cost accounting
+
+The Rust budget auditor is in src/budget.rs with CLI src/bin/budget_audit.rs. Run it from this package directory:
+
+`cargo run --locked --bin budget_audit -- data/decision_value/matched_budget_ledger.csv`
+
+The ledger requires a fixed budget cap for every policy on the same task/replicate, records per-operation cost/wall/CPU time, binds successful outputs to SHA-256, and requires failure reason codes when an operation fails. Failed or aborted high-fidelity runs still count against the policy's total cost. The auditor rejects a policy overrun and rejects a comparison with only one policy. Actual spend may differ under a common cap; report remaining budget and quality-by-cost curves rather than forcing unused budget to count as consumed.
+
+The committed ledger is synthetic. It charges a nonconverged high-fidelity run to the random baseline and demonstrates bookkeeping only. The CSV's cost units need a documented mapping to actual solver calls, compute, tuning, orchestration and independent-audit effort before a real ShapeBench or CFD comparison. The output label is ledger_audit_only, not aerodynamic validation or an optimizer win.
+
+
+## DPW-8/AePW-4 Force/Moment V5 dual-view ingestion
+
+The clean-room V5 parser is in src/dpw8_submission.rs, with CLI dpw8_v5_audit. It preserves dataset/zone auxiliary metadata and source line numbers, requires the 31-column Force/Moment V5 schema, converts optional -999 values to missing values, and rejects the sentinel in required fields. It reconciles the GRID LEVEL n and ALPHA x table views by (GRID_LEVEL, ALPHA), rejects duplicate or mismatched cells, and retains both original line references.
+
+Run the synthetic fixture from this package directory:
+
+    cargo run --locked --bin dpw8_v5_audit
+
+The committed fixture has 40 rows across two table presentations and must produce 20 canonical cells. A one-value cross-view mutation is a required negative control. A synthetic coefficient pattern is flagged for review but its values are not changed or removed. A separate stdlib Python parser independently recomputes the reconciliation and checks the Rust CSV output.
+
+This parser work does not ingest or redistribute the official participant file. Its upstream repository revision has no identified root-level license at the pinned revision; terms remain unresolved. The synthetic fixture is not a participant result, experiment, CFD validation result, or evidence that Symtropy beats SU2. See DPW8_V5_PARSER_PROTOCOL_V0_1.md and issue #2936.
+
+
+The V5 auditor also verifies that every angle assigned to a grid level carries the same `GRID_SIZE` and `GRID_FAC`, and that a mesh size is not reused under another grid-level identifier. The CLI emits the exact input byte length and SHA-256 digest on stderr; a caller-supplied path is explicitly labelled unverified and is never upgraded to official-source status.
+
+
+## CFD evidence admission gate
+
+The cfd_admission module requires a zero solver exit code, positive iteration and mesh-node counts, residual reduction, a stable six-sample coefficient-monitor tail, and caller-declared mass/energy conservation limits. Each run records CPU core-hours, wall time and peak memory. GPU time and energy are optional only when not measured; missing values remain blank and study totals include measured-run counts. The gate binds runs to common caller-supplied solver/build/configuration/geometry digests, unique mesh digests and ordered characteristic spacings, then applies GCI to sliding three-grid triplets.
+
+Run the synthetic six-grid demonstration with cargo run --locked --bin verification_admission_demo. Its status explicitly says caller-supplied hashes are not independently authenticated and the data are not experimentally validated. This v0.2 receipt still consumes caller-supplied summary residuals rather than complete per-equation residual histories; the next integrity step is to bind raw run artifacts and residual/force histories to bytes and independently verify their digests. See CFD_RUN_RECEIPT_PROTOCOL_V0_2.md. The workflow also runs verify-cfd-admission-independent.py, a separate stdlib parser that checks every triplet's run identity, mesh count/digest, solver status, CPU/GPU/wall/memory/energy fields, optional-field blanks, GCI values and study totals.
+
+## Civil-aerospace benchmark roadmap
+
+See AERO_CIVIL_BENCHMARK_ROADMAP_V0_1.md for the evidence-first validation ladder, industry baseline plan, matched-budget optimizer comparisons and proposed acceptance targets.
+
+## Grid-convergence and GCI diagnostics
+
+The grid_convergence module implements sliding three-grid observed-order, Richardson extrapolation and Grid Convergence Index estimates. Callers must supply characteristic spacing and justify its definition as well as the safety factor. It never infers spacing from node count, rejects non-monotonic and zero-difference sequences, and reports absolute/relative GCI, extrapolated values and an asymptotic consistency ratio. The grid_convergence_demo CLI and independent Python oracle use a synthetic quadratic known-answer problem; this tests arithmetic, not CFD convergence or validation. See GRID_CONVERGENCE_GCI_PROTOCOL_V0_1.md.
+
+
+## Robust EVSI over model uncertainty
+
+The robust_voi module evaluates a finite, compatible ensemble of prior/likelihood models and selects the experiment with the greatest worst-case net EVSI. Its average and best-case values are diagnostic only; selection is maximin and abstains when all affordable experiments have non-positive worst-case value. It does not average priors or claim probability calibration, and its guarantee applies only to the supplied finite set. Run robust_voi_demo for the two-model adversarial known-answer case.
+
+
+The CFD admission CSV is a per-triplet evidence receipt: each coarse/medium/fine member is joined to its run ID, grid level, characteristic spacing, mesh SHA-256, scalar output, residual and conservation diagnostics; the global solver/config/geometry identity and declared criteria are carried alongside. A missing run-to-triplet join fails export.
+
+
+## Byte-bound CFD run artifact manifests
+
+The run_artifacts module verifies actual on-disk file bytes under a caller-selected artifact root. Each grid run requires eight artifact roles: solver build, physics configuration, geometry, mesh, run log, residual history, force history and field output. Paths must be root-relative, traversal-free and remain inside the canonical artifact root; symlink escapes are rejected. The verifier recomputes byte length and SHA-256 from the opened file, and binds the four principal artifact digests back to the numerical run summary.
+
+The run_artifact_audit CLI accepts a strict manifest CSV with header:
+
+    run_id,artifact_role,relative_path,byte_length,sha256
+
+Example invocation:
+
+    cargo run --locked --bin run_artifact_audit -- artifacts/ manifest.csv
+
+The CLI emits a canonical manifest digest over normalized role/path/length/SHA-256 records. This is not a hash of a serialized manifest file, and it is not a digital signature. The current manifest format is supplied by the caller in memory / CSV; source-author identity, execution attestation and chain of custody are not established. A passing artifact audit proves only that the on-disk bytes match the supplied manifest and that the designated build/config/geometry/mesh digests agree with the numerical receipt. It does not prove the solver is correct or the output is experimentally valid.
+
+CI exercises a synthetic eight-role bundle with a separate Python verifier, including same-length byte mutation, path traversal and missing-role negative controls. These fixtures are not CFD results. See CFD_ARTIFACT_MANIFEST_PROTOCOL_V0_1.md.
+
+
+The GCI safety-factor gate now uses an explicit grid-family type. Structured studies require F_s >= 1.25; unstructured or hybrid studies require F_s >= 3.0. The type and chosen factor are retained in both the GCI and CFD-admission CSV receipts. The observed-order equations use exp_m1-based denominators to reduce floating-point cancellation for refinement ratios close to one.
+
+
+## Optimizer comparison: validated Pareto quality per cost
+
+The policy_benchmark module and policy_benchmark_demo CLI compare policies on matched task/replicate budgets. The ledger counts every failed attempt and every operation cost; successful high-fidelity outputs need an exact digest match plus an admission-receipt digest. Only feasible admitted points contribute to two-objective minimization hypervolume. The scorecard exports feasible/admission yield, hypervolume and hypervolume per total cost. The synthetic demo has two policies x two replicates and an independent Python oracle. It is an evaluator known-answer fixture, not an aerodynamic result. See POLICY_BENCHMARK_PROTOCOL_V0_1.md and issue #3068.
+
+
+The policy scorecard also emits normalized hypervolume fraction: raw HV divided by the area of the task-declared ideal/reference objective box. The ideal lower bound and reference upper bound are predeclared per task, and candidates outside that box are rejected. This enables dimensionless cross-task summaries without averaging raw drag-energy units.
+
+
+The evaluator requires at least two independent replicates per task/policy before producing a scorecard, and rejects incomplete policy/replicate matrices. This avoids treating one seed as generalization evidence.
+
+
+## Unsteady buffet signal diagnostics
+
+The unsteady_spectrum module provides Welch one-sided PSD, stationarity window diagnostics, integrated band power, dominant frequency and normalized spectral-shape comparison. It uses explicit sampling interval, segment size, overlap, periodic Hann window and per-segment mean removal. A radix-2 FFT avoids external numerical dependencies. The unsteady_spectrum_demo tests a synthetic 32 Hz known tone; an independent Python direct-DFT oracle checks all 129 PSD bins and the Parseval/RMS relationship. This is a signal-processing test, not a validated buffet simulation. See UNSTEADY_SPECTRUM_PROTOCOL_V0_1.md and issue #3071.
+
+
+## Prediction interval calibration and OOD stress
+
+The interval_calibration module audits blind-only prediction intervals by geometry family, flow regime and in/out-of-domain status. It reports empirical coverage with Wilson 95% intervals, coverage gap, mean width, proper interval score, point MAE/RMSE/bias and separate lower/upper misses. Calibration/training observations are rejected, repeated sample truth must stay fixed across confidence levels, and intervals must be nested. The synthetic demo is an adversarial coverage/width known-answer only; see PREDICTION_INTERVAL_CALIBRATION_PROTOCOL_V0_1.md.
+
+
+## Immutable SU2 comparison references
+
+`data/solver_reference_manifest.v0.1.json` pins SU2 8.0.1 as the historical participant-reproduction lane and SU2 8.6.0 as the current-release comparison lane. The exact source tag commits are checked by an independent stdlib Python validator in CI. These are source references only: neither solver has been built or run by this manifest, and neither pin is a validation result. Every actual run still needs an executable/build digest, compiler and dependency environment, hardware, geometry/mesh/configuration and output artifact hashes.
+
+
+The CFD admission gate now also rejects a nominally finer grid whose node count does not strictly exceed the previous coarser grid. This is only a necessary mesh-family consistency guard; the supplied characteristic spacing and mesh lineage still require independent justification.
+
+
+The byte-bound artifact layer now has a deterministic composite receipt helper. It re-verifies all eight per-grid artifact roles, recomputes numerical admission, and hashes the artifact bundle together with criteria, per-grid run metrics and GCI triplets. Use the resulting receipt_sha256 as the admission-receipt digest in a matched-budget policy observation. It is still unsigned and does not prove runner identity or experimental validity.
+
+
+The composite CFD evidence-chain API now exposes a deterministic CSV receipt row. Use its receipt_sha256 as candidate.admission_receipt_sha256 when recording a CFD candidate in the matched-budget Pareto scorecard. The scorecard itself does not authenticate a signer or validate the underlying physics.
+
+
+## Selective prediction risk/coverage and false-feasible audit
+
+The selective_risk module evaluates the quality of uncertainty rankings when the system may abstain on high-uncertainty candidate designs. It emits a full risk-versus-coverage curve, mean absolute/squared error among accepted samples, false-feasible and missed-feasible counts/rates, and areas under both the error-risk and false-feasible-risk curves. It requires blind_confirmation samples, matching physical sample sets across compared models and identical observed truth/constraint labels across models.
+
+The synthetic demo compares uncertainty ranked by actual error against deliberately inverted uncertainty on in-domain and OOD groups. It checks whether abstaining on high-uncertainty cases reduces ordinary prediction risk and false-feasible decisions. This is a synthetic policy-evaluation fixture, not an aerodynamic result or a future safety guarantee. See SELECTIVE_PREDICTION_RISK_COVERAGE_PROTOCOL_V0_1.md.
+
+ 
+The selective risk/coverage curve now includes Wilson 95% intervals for false-feasible rates at each threshold, both across all accepted candidates and conditional on predicted-feasible candidates. This prevents tiny accepted sets with zero observed false-feasible outcomes from appearing certain.

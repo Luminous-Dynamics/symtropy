@@ -1,0 +1,51 @@
+{
+  "schema": "civil-aero-solver-reference-manifest/0.1.0",
+  "repository": "su2code/SU2",
+  "manifest_status": "immutable_source_tag_pins_only_not_built_not_run_not_validated",
+  "references": [
+    {
+      "solver": "SU2",
+      "version": "8.0.1",
+      "tag": "v8.0.1",
+      "tag_ref": "refs/tags/v8.0.1",
+      "resolved_commit_sha": "8ef4b1be045122b2fdb485bfb5fe4eecd1bc4246",
+      "comparison_role": "historical_participant_reproduction",
+      "upstream_release_url": "https://github.com/su2code/SU2/releases/tag/v8.0.1",
+      "historical_context": "The pinned DPW8 participant force/moment output identifies SU2 8.0.1. Reproduction requires the exact original mesh, configuration, solver options, dependencies and build environment; this tag alone is not sufficient.",
+      "execution_status": "not_built_not_run",
+      "validation_status": "not_validated"
+    },
+    {
+      "solver": "SU2",
+      "version": "8.6.0",
+      "tag": "v8.6.0",
+      "tag_ref": "refs/tags/v8.6.0",
+      "resolved_commit_sha": "7048fd35f56d4bf52e586429d6746a36a10255f8",
+      "comparison_role": "current_release_comparison",
+      "upstream_release_url": "https://github.com/su2code/SU2/releases/tag/v8.6.0",
+      "historical_context": "Latest public release observed on 2026-10-31. Compare only after reproducing the same admitted geometry, mesh policy, physics, boundary conditions and convergence criteria as the historical lane.",
+      "execution_status": "not_built_not_run",
+      "validation_status": "not_validated"
+    }
+  ],
+  "comparison_controls": {
+    "historical_and_current_lanes_must_remain_separate": true,
+    "release_tag_is_not_a_build_digest": true,
+    "source_pin_is_not_execution_attestation": true,
+    "release_notes_are_not_case_validation": true,
+    "required_run_receipt_fields": [
+      "solver_source_commit",
+      "solver_executable_sha256",
+      "compiler_and_build_flags",
+      "dependency_lock_or_environment_digest",
+      "hardware_and_accelerator_description",
+      "geometry_sha256",
+      "mesh_sha256",
+      "physics_configuration_sha256",
+      "raw_run_log_sha256",
+      "residual_history_sha256",
+      "force_and_moment_history_sha256",
+      "field_output_sha256"
+    ]
+  }
+}
