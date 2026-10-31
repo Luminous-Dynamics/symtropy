@@ -658,9 +658,12 @@ fn assess(manifest: &Manifest) -> Assessment {
             .iter()
             .map(|requirement| format!("REQUIRED_POST_ACTION_METRIC_MISSING:{}", requirement.metric))
             .collect();
+        if manifest.recovery.is_some() {
+            missing_reasons.push("RECOVERY_WITHOUT_COMPLETE_POST_ACTION_FAILURE_EVIDENCE".to_string());
+        }
         missing_reasons.sort();
         return Assessment {
-            state: "ISSUED_UNVERIFIED".to_string(),
+            state: if manifest.recovery.is_some() { "BLOCKED" } else { "ISSUED_UNVERIFIED" }.to_string(),
             reasons: missing_reasons,
         };
     }
@@ -1111,16 +1114,10 @@ mod tests {
     #[test]
     fn every_declared_required_metric_must_be_measured() {
         let input = valid_manifest().replace(
-            &format!("VERIFY|verify-1|plan-1|POST_ACTION|surface_roughness|1.4|um|0.0|2.0|2026-10-31T11:56:00Z|{}\\n", HASH_F),
+            &format!("VERIFY|verify-1|plan-1|POST_ACTION|surface_roughness|1.4|um|0.0|2.0|2026-10-31T11:56:00Z|{}\n", HASH_F),
             "",
         );
-        let input = mutate(
-            input,
-            "PLAN|plan-1|machine-7|LINE-1|adjust_feed_rate",
-            "PLAN|plan-1|machine-7|LINE-1|adjust_feed_rate",
-        );
-        let mut input = input;
-        input.push_str("REQUIRE|req-diameter|plan-1|diameter|mm|9.8|10.2\\n");
+        input.push_str("REQUIRE|req-diameter|plan-1|diameter|mm|9.8|10.2\n");
         let report = run_report(&input).unwrap();
         assert!(report.contains("REQUIRED_POST_ACTION_METRIC_MISSING:diameter"));
         assert!(report.contains("RESULT state=ISSUED_UNVERIFIED"));
