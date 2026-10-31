@@ -81,7 +81,6 @@ struct Campaign {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum DiagnosticStatus {
-    InsufficientEvidence,
     MeanShiftFlag,
     VarianceShiftFlag,
     BothShiftFlags,
@@ -91,11 +90,25 @@ enum DiagnosticStatus {
 impl DiagnosticStatus {
     fn code(self) -> &'static str {
         match self {
-            Self::InsufficientEvidence => "INSUFFICIENT_EVIDENCE",
             Self::MeanShiftFlag => "MEAN_SHIFT_FLAG",
             Self::VarianceShiftFlag => "VARIANCE_SHIFT_FLAG",
             Self::BothShiftFlags => "BOTH_SHIFT_FLAGS",
             Self::NoShiftFlagDetected => "NO_SHIFT_FLAG_DETECTED",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EvidenceGateStatus {
+    Qualified,
+    InsufficientEvidence,
+}
+
+impl EvidenceGateStatus {
+    fn code(self) -> &'static str {
+        match self {
+            Self::Qualified => "QUALIFIED",
+            Self::InsufficientEvidence => "INSUFFICIENT_EVIDENCE",
         }
     }
 }
@@ -225,14 +238,14 @@ fn capability_indices(
 }
 
 impl Campaign {
-    fn upstream_evidence_status(&self) -> DiagnosticStatus {
+    fn upstream_evidence_status(&self) -> EvidenceGateStatus {
         if self.msa_qualified
             && self.calibration_evidence_verified
             && self.specification_evidence_verified
             && self.uncertainty_evidence_verified {
-            DiagnosticStatus::NoShiftFlagDetected
+            EvidenceGateStatus::Qualified
         } else {
-            DiagnosticStatus::InsufficientEvidence
+            EvidenceGateStatus::InsufficientEvidence
         }
     }
 
@@ -280,7 +293,7 @@ impl Campaign {
             || self.uncertainty_unit != self.unit {
             return Err("UNCERTAINTY_BUDGET_SCOPE_MISMATCH".into());
         }
-        if self.upstream_evidence_status() == DiagnosticStatus::InsufficientEvidence {
+        if self.upstream_evidence_status() == EvidenceGateStatus::InsufficientEvidence {
             return Err("UPSTREAM_EVIDENCE_INCOMPLETE".into());
         }
         if self.windows.len() < MIN_WINDOWS {
@@ -755,7 +768,8 @@ mod tests {
     fn invalid_evidence_or_scope_mismatch_never_returns_capability() {
         let mut campaign = fixtures()[0].clone();
         campaign.msa_qualified = false;
-        assert_eq!(campaign.upstream_evidence_status(), DiagnosticStatus::InsufficientEvidence);
+        assert_eq!(campaign.upstream_evidence_status(), EvidenceGateStatus::InsufficientEvidence);
+        assert_eq!(campaign.upstream_evidence_status().code(), "INSUFFICIENT_EVIDENCE");
         assert!(campaign.evaluate().is_err());
 
         let mut campaign = fixtures()[0].clone();
