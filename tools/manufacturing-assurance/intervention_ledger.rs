@@ -586,6 +586,7 @@ fn assess(manifest: &Manifest) -> Assessment {
                 && authority.action == plan.action
                 && authority.approved_at >= plan.valid_from
                 && authority.approved_at <= execution.issued_at
+                && manifest.checks.iter().all(|check| check.checked_at <= authority.approved_at)
                 && execution.issued_at < authority.valid_until
                 && execution.issued_at >= plan.valid_from
             {
@@ -1038,6 +1039,17 @@ mod tests {
             valid_manifest(),
             "2026-10-31T11:53:00Z|2026-10-31T23:00:00Z|GRANTED",
             "2026-10-31T11:56:00Z|2026-10-31T23:00:00Z|GRANTED",
+        );
+        let report = run_report(&input).unwrap();
+        assert!(report.contains("NO_CURRENT_MATCHING_AUTHORITY"));
+    }
+
+    #[test]
+    fn authority_must_follow_all_admission_checks() {
+        let input = mutate(
+            valid_manifest(),
+            "2026-10-31T11:53:00Z|2026-10-31T23:00:00Z|GRANTED",
+            "2026-10-31T11:50:30Z|2026-10-31T23:00:00Z|GRANTED",
         );
         let report = run_report(&input).unwrap();
         assert!(report.contains("NO_CURRENT_MATCHING_AUTHORITY"));
