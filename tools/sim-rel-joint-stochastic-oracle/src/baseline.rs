@@ -103,7 +103,7 @@ pub fn rank_by_one_step_eig(
                     .expected_information_gain_nats
                     .total_cmp(&left.expected_information_gain_nats)
             })
-            .then_with(|| left.action_id.cmp(&right.action_id))
+            .then_with(|| left.action_index.cmp(&right.action_index))
     });
     Ok(scores)
 }

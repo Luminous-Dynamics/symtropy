@@ -1,0 +1,48 @@
+name: SIM-REL-017 Reproducible Experiment Benchmark Harness
+
+on:
+  push:
+    branches: ["research/sim-rel-017-*"]
+    paths:
+      - "tools/sim-rel-joint-stochastic-oracle/**"
+      - ".github/workflows/sim-rel-017-benchmark-harness.yml"
+  pull_request:
+    branches: ["main", "research/sim-rel-016-robust-joint-policy-dp"]
+    paths:
+      - "tools/sim-rel-joint-stochastic-oracle/**"
+      - ".github/workflows/sim-rel-017-benchmark-harness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  qualify:
+    name: matched baselines, myopia controls and exact robust regret
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Isolate Cargo target directory
+        run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/sim-rel-017-benchmark-target" >> "$GITHUB_ENV"
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Formatting
+        run: cargo fmt --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml -- --check
+      - name: Unit, baseline and exact-regret tests
+        run: cargo test --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib -- -D warnings
+      - name: Verify exact checkout identity
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
