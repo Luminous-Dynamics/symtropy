@@ -11,7 +11,8 @@ use super::robust_finite_horizon::{
 };
 use super::finite_horizon::{DecisionBudgets, DecisionPlan};
 use super::{DecisionLossTable, ObservationProtocol};
-use crate::{ActionRealizationKernel, LatentState, Rational, TransitionOutcome};
+use crate::{ActionRealizationKernel, LatentState, Rational};
+use std::collections::BTreeSet;
 use std::cmp::Ordering;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -137,8 +138,17 @@ pub struct RejectedPerturbation {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CounterexampleSearchReport {
+    /// Exact input snapshots needed to reproduce the falsification.
+    pub baseline_worlds: Vec<DecisionModelWorld>,
     pub baseline_world_ids: Vec<String>,
     pub baseline_worst_case_total_loss: Rational,
+    pub loss_table: DecisionLossTable,
+    pub protocol: ObservationProtocol,
+    pub command_costs: Vec<Rational>,
+    pub hazard_loss: Rational,
+    pub policy: DecisionPlan,
+    pub horizon: usize,
+    pub budgets: DecisionBudgets,
     pub attempted: usize,
     pub witnesses: Vec<CounterexampleWitness>,
     pub non_violating_candidates: Vec<CounterexampleWitness>,
@@ -467,22 +477,35 @@ pub fn search_policy_counterexamples(
     )?;
     let baseline_worst_case_total_loss = baseline.worst_case_total_loss()?;
     let mut report = CounterexampleSearchReport {
+        baseline_worlds: worlds.to_vec(),
         baseline_world_ids: baseline
             .per_world
             .iter()
             .map(|world| world.world_id.clone())
             .collect(),
         baseline_worst_case_total_loss,
+        loss_table: table.clone(),
+        protocol,
+        command_costs: command_costs.to_vec(),
+        hazard_loss,
+        policy: policy.clone(),
+        horizon,
+        budgets,
         attempted: 0,
         witnesses: Vec::new(),
         non_violating_candidates: Vec::new(),
         rejected: Vec::new(),
     };
 
+    let mut used_candidate_ids: BTreeSet<String> =
+        worlds.iter().map(|world| world.id.clone()).collect();
     for spec in specs {
-        report.attempted += 1;
+        report.attempted = report
+            .attempted
+            .checked_add(1)
+            .ok_or_else(|| "counterexample attempt counter overflow".to_string())?;
         if spec.candidate_world_id.trim().is_empty()
-            || worlds.iter().any(|world| world.id == spec.candidate_world_id)
+            || !used_candidate_ids.insert(spec.candidate_world_id.clone())
         {
             report.rejected.push(RejectedPerturbation {
                 spec: spec.clone(),
