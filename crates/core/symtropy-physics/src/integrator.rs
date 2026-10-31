@@ -1009,7 +1009,8 @@ mod tests {
             Err(IntegrationError::NonFiniteInput)
         );
         assert!(body.force_accumulator[0].is_nan());
-        assert!(body.torque_accumulator.is_finite() == torque_before.is_finite());
+        assert!(!body.torque_accumulator.is_finite());
+        assert!(body.torque_accumulator.to_matrix()[(0, 1)].is_infinite());
         assert_eq!(body.force_accumulator[1], force_before[1]);
         assert_eq!(body.force_accumulator[2], force_before[2]);
         assert_eq!(body.transform.translation.0, position_before);
