@@ -403,6 +403,8 @@ LBE-Bench should not claim to supersede any one of these. Its differentiator is 
 
 The objective is to **outperform the best relevant baseline on pre-registered outcomes**, not to claim superiority by definition.
 
+The additional research contribution is a **shadow-aware constraint layer**: systems must demonstrate not only that they deliver services, but also that they do not manufacture consent, extract unpaid care, punish refusal, suppress complaints, or make exit costly. Two authenticated consent receipts are necessary for bilateral agreement but do not prove freedom from duress. A rights-first system must combine exact proposal consent with private refusal, revocation, independent complaint routes, and no retaliation for non-participation. This is where LBE-Bench can go beyond conventional throughput, cost-efficiency and trust dashboards without pretending to measure inner love.
+
 ## 10. Research and implementation sequence
 
 ### P0 — Contract and integrity
