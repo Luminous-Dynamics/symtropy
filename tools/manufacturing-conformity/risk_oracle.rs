@@ -12,6 +12,12 @@ const MAX_SPECIFIC_PRODUCER_RISK: f64 = 0.25;
 const MAX_GLOBAL_CONSUMER_RISK: f64 = 0.05;
 const MAX_GLOBAL_PRODUCER_RISK: f64 = 0.05;
 const TOL: f64 = 1.0e-12;
+const SCENARIO_ID: &str = "SYNTHETIC-METROLOGY-PRIOR-SHIFT-01";
+const SPECIFICATION_ID: &str = "SYNTHETIC-SHAFT-10-20";
+const PROCESS_PRIOR_SHA256: &str = "fa3fc7d7a2771c7e4bdf784e1cc68898c5d3abf112e143f1f501f81d0587d02c";
+const MEASUREMENT_LIKELIHOOD_SHA256: &str = "c82e04274b6012675920be964bebe9b1f2c3c145ead15181b03c17429f54e42e";
+const RISK_POLICY_SHA256: &str = "0eb1be66aa2a6b9236502f2db538eda69cd50fc774646cf4bd4a1597c36789c2";
+const SPECIFICATION_SHA256: &str = "cde0e2b54c5616c49da4fc0ffd1e7dbd4b9bf33e81312e0b88e31a0470836e91";
 
 type Vector = [f64; N];
 type Matrix = [[f64; N]; N];
@@ -339,15 +345,32 @@ fn verify() -> Result<(), String> {
 fn emit_csv() -> Result<(), String> {
     let evaluation = evaluate(PROCESS_PRIOR, MEASUREMENT_LIKELIHOOD, RiskPolicy::synthetic())?;
     let s = evaluation.summary;
-    println!("row_type,index,true_or_observed_value,process_probability,measurement_bin_probability,posterior_conformance_probability,action,specific_consumer_risk,specific_producer_risk,global_consumer_risk,global_producer_risk,accepted_mass,rejected_mass,indeterminate_mass,false_accept_rate_given_accept,false_reject_rate_given_reject");
-    for bin in evaluation.bins {
+    println!("row_type,scenario_id,specification_id,process_prior_sha256,measurement_likelihood_sha256,risk_policy_sha256,specification_sha256,index,true_or_observed_value,process_probability,measurement_bin_probability,posterior_conformance_probability,action,specific_consumer_risk,specific_producer_risk,global_consumer_risk,global_producer_risk,accepted_mass,rejected_mass,indeterminate_mass,false_accept_rate_given_accept,false_reject_rate_given_reject");
+
+    for i in 0..N {
         println!(
-            "measurement_bin,{},{:.12e},,{:.12e},{:.12e},{},{},{},{},{},{},{},{},{},{}",
-            bin.observation_index,
-            bin.observation_value,
-            bin.observation_probability,
-            bin.posterior_conformance_probability,
-            bin.action.code(),
+            "true_support,{},{},{},{},{},{},{},{:.12e},{:.12e},,,,,,,,,,,,",
+            SCENARIO_ID, SPECIFICATION_ID, PROCESS_PRIOR_SHA256,
+            MEASUREMENT_LIKELIHOOD_SHA256, RISK_POLICY_SHA256, SPECIFICATION_SHA256,
+            i, TRUE_VALUES[i], PROCESS_PRIOR[i]
+        );
+    }
+
+    for bin in evaluation.bins {
+        let fields = vec![
+            "measurement_bin".to_string(),
+            SCENARIO_ID.to_string(),
+            SPECIFICATION_ID.to_string(),
+            PROCESS_PRIOR_SHA256.to_string(),
+            MEASUREMENT_LIKELIHOOD_SHA256.to_string(),
+            RISK_POLICY_SHA256.to_string(),
+            SPECIFICATION_SHA256.to_string(),
+            bin.observation_index.to_string(),
+            format!("{:.12e}", bin.observation_value),
+            String::new(),
+            format!("{:.12e}", bin.observation_probability),
+            format!("{:.12e}", bin.posterior_conformance_probability),
+            bin.action.code().to_string(),
             bin.specific_consumer_risk.map(|v| format!("{v:.12e}")).unwrap_or_default(),
             bin.specific_producer_risk.map(|v| format!("{v:.12e}")).unwrap_or_default(),
             format!("{:.12e}", s.global_consumer_risk),
@@ -356,10 +379,12 @@ fn emit_csv() -> Result<(), String> {
             format!("{:.12e}", s.rejected_mass),
             format!("{:.12e}", s.indeterminate_mass),
             s.false_accept_rate_given_accept.map(|v| format!("{v:.12e}")).unwrap_or_default(),
-            s.false_reject_rate_given_reject.map(|v| format!("{v:.12e}")).unwrap_or_default()
-        );
+            s.false_reject_rate_given_reject.map(|v| format!("{v:.12e}")).unwrap_or_default(),
+        ];
+        println!("{}", fields.join(","));
     }
     Ok(())
+}
 }
 
 fn main() {
@@ -442,18 +467,11 @@ mod tests {
 
     #[test]
     fn process_prior_shift_changes_risk_without_changing_measurement_likelihood() {
-        let mut shifted = PROCESS_PRIOR;
-        shifted[0] = 0.10;
-        shifted[7] = 0.05;
-        shifted[4] = 0.20;
-        shifted[3] = 0.20;
-        shifted[5] = 0.15;
-        shifted[6] = 0.10;
-        shifted[1] = 0.10;
-        shifted[2] = 0.10;
+        let shifted = [0.10, 0.10, 0.10, 0.20, 0.20, 0.15, 0.10, 0.05];
         let baseline = evaluate(PROCESS_PRIOR, MEASUREMENT_LIKELIHOOD, RiskPolicy::synthetic()).unwrap();
         let shifted_eval = evaluate(shifted, MEASUREMENT_LIKELIHOOD, RiskPolicy::synthetic()).unwrap();
-        assert!((baseline.summary.global_consumer_risk - shifted_eval.summary.global_consumer_risk).abs() > 1.0e-6);
+        assert!((baseline.summary.global_producer_risk - shifted_eval.summary.global_producer_risk).abs() > 1.0e-6);
+        assert!((baseline.summary.rejected_mass - shifted_eval.summary.rejected_mass).abs() > 1.0e-6);
     }
 
     #[test]
