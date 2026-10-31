@@ -133,6 +133,7 @@ Run all policy arms on matched populations, capacities, budgets, shocks, seeds a
 | DD-29 | A source corrects its position after new evidence | Append a source-authenticated revision; retain the original statement and all earlier decisions |
 | DD-30 | An administrator attempts to withdraw another participant's position | Reject the mutation; do not change the active projection or append a purported source withdrawal |
 | DD-31 | A source withdraws and later reinstates its position | Append separate withdrawal and reinstatement events; replay preserves both and later decisions use the correct active projection |
+| DD-32 | A hazard report or safeguard regression arrives after a prior decision | Reopen inquiry, preserve the prior decision in history, and require a new decision before claiming the earlier disposition is current |
 
 ### Required metrics
 
