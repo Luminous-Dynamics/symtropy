@@ -113,7 +113,7 @@ pub fn benchmark_particle_counts(
                 seed,
             },
         )?;
-        let diagnostics = filter.observe(kernel, action, observation)?;
+        let diagnostics = filter.observe(action, observation)?;
         let elapsed_nanos = start.elapsed().as_nanos();
         let posterior = filter.posterior();
         let total_variation = filter.total_variation_distance(&exact_posterior)?;
@@ -193,7 +193,8 @@ fn posterior_squared_errors(
 
 /// Deterministic joint-state particle filter.
 #[derive(Clone, Debug, PartialEq)]
-pub struct JointStateParticleFilter {
+pub struct JointStateParticleFilter<'kernel> {
+    kernel: &'kernel JointKernel,
     particles: Vec<JointParticle>,
     target_particle_count: usize,
     resample_ess_fraction: f64,
@@ -202,10 +203,10 @@ pub struct JointStateParticleFilter {
     terminated_by_hazard: bool,
 }
 
-impl JointStateParticleFilter {
+impl<'kernel> JointStateParticleFilter<'kernel> {
     /// Sample the supplied exact joint prior into a weighted particle set.
     pub fn from_joint_belief(
-        kernel: &JointKernel,
+        kernel: &'kernel JointKernel,
         initial_belief: &[JointMass],
         config: ParticleFilterConfig,
     ) -> Result<Self, String> {
@@ -233,6 +234,7 @@ impl JointStateParticleFilter {
         )?;
 
         Ok(Self {
+            kernel,
             particles,
             target_particle_count: config.particle_count,
             resample_ess_fraction: config.resample_ess_fraction,
@@ -284,13 +286,13 @@ impl JointStateParticleFilter {
     /// an error without changing particles, RNG state, or diagnostics.
     pub fn observe(
         &mut self,
-        kernel: &JointKernel,
         action: usize,
         observation: Option<usize>,
     ) -> Result<ParticleFilterDiagnostics, String> {
         if self.terminated_by_hazard {
             return Err("particle-filter campaign has already terminated on a hazard".into());
         }
+        let kernel = self.kernel;
         kernel.validate()?;
         if action >= kernel.action_ids.len() {
             return Err("particle filter action index is out of range".into());
@@ -298,7 +300,7 @@ impl JointStateParticleFilter {
         if observation.is_some_and(|id| id >= kernel.observation_ids.len()) {
             return Err("particle filter observation index is out of range".into());
         }
-        self.validate_state(kernel)?;
+        self.validate_state()?;
 
         let mut next_rng = DeterministicRng {
             state: self.rng_state,
@@ -447,7 +449,8 @@ impl JointStateParticleFilter {
         Ok(distance)
     }
 
-    fn validate_state(&self, kernel: &JointKernel) -> Result<(), String> {
+    fn validate_state(&self) -> Result<(), String> {
+        let kernel = self.kernel;
         if self.particles.is_empty()
             || self.particles.len() > self.target_particle_count
             || self.target_particle_count == 0
@@ -785,7 +788,7 @@ mod tests {
                 seed: 7,
             },
         ).unwrap();
-        let diagnostics = filter.observe(&kernel, 0, Some(0)).unwrap();
+        let diagnostics = filter.observe(0, Some(0)).unwrap();
         assert!(!diagnostics.resampled);
         assert!(diagnostics.effective_sample_size_before_resampling > 1000.0);
         assert!(filter.total_variation_distance(&exact).unwrap() < 0.04);
@@ -805,8 +808,8 @@ mod tests {
             config,
         ).unwrap();
         let mut right = left.clone();
-        let left_diag = left.observe(&kernel, 0, Some(0)).unwrap();
-        let right_diag = right.observe(&kernel, 0, Some(0)).unwrap();
+        let left_diag = left.observe(0, Some(0)).unwrap();
+        let right_diag = right.observe(0, Some(0)).unwrap();
         assert_eq!(left, right);
         assert_eq!(left_diag, right_diag);
         assert!(left_diag.resampled);
