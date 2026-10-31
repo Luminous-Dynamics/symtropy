@@ -1,0 +1,27 @@
+name: 3D tangential Coulomb disk reference
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/src/friction_disk.rs"
+      - "crates/core/symtropy-physics/src/lib.rs"
+      - "docs/research/FRICTION_DISK_REFERENCE_2026-10-31.md"
+      - ".github/workflows/friction-disk-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  friction-disk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Test tangential Coulomb disk reference
+        run: cargo test -p symtropy-physics --lib friction_disk::tests --locked
