@@ -1,0 +1,26 @@
+name: Higher-dimensional simplex mass-property qualification
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/tests/nd_simplex_mass_properties.rs"
+      - "docs/research/ND_SIMPLEX_MASS_PROPERTIES_2026-10-31.md"
+      - ".github/workflows/nd-simplex-mass-properties.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simplex-mass-properties:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run higher-dimensional simplex tests
+        run: cargo test -p symtropy-physics --test nd_simplex_mass_properties --locked
