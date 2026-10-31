@@ -195,7 +195,9 @@ fn cauchy_bound(poly: &[Rational]) -> Result<Rational, &'static str> {
             largest = ratio;
         }
     }
-    Ok(Rational::one() + largest)
+    // Use a strict enclosure, not the sharp non-strict Cauchy bound: no
+    // polynomial root may sit on either outer endpoint.
+    Ok(Rational::from_integer(BigInt::from(2)) + largest)
 }
 
 fn isolate_recursive(
@@ -293,6 +295,62 @@ fn sturm_isolate_f64(
         .map(|coefficient| exact_f64(*coefficient))
         .collect::<Result<Polynomial, _>>()?;
     sturm_isolate_rational(poly)
+}
+
+/// Check the projective half-angle point t = infinity (theta = pi)
+/// directly from exact dyadic contact inputs and the unreduced sliding KKT
+/// equations. The quartic's leading coefficient is the angular equation at
+/// this projective point; the impulse checks below prevent a spurious angular
+/// direction from being reported as an admissible contact solution.
+fn exact_projective_pi_candidate(
+    w: &Matrix3<f64>,
+    q: &SVector<f64, 3>,
+    mu: f64,
+) -> Result<bool, &'static str> {
+    let a = exact_f64(w[(0, 0)])?;
+    let d1 = exact_f64(w[(0, 1)])?;
+    let d2 = exact_f64(w[(0, 2)])?;
+    let qn = exact_f64(q[0])?;
+    let q1 = exact_f64(q[1])?;
+    let q2 = exact_f64(q[2])?;
+    let mu = exact_f64(mu)?;
+    let a11 = exact_f64(w[(1, 1)])?;
+    let a12 = exact_f64(w[(1, 2)])?;
+
+    if mu <= Rational::zero() {
+        return Ok(false);
+    }
+    let denominator = a + mu.clone() * d1.clone();
+    if denominator.is_zero() {
+        return Ok(false);
+    }
+    let lambda = -qn / denominator;
+    if lambda <= Rational::zero() {
+        return Ok(false);
+    }
+    let tangent_one = mu.clone() * lambda.clone();
+    let post_tangent_two =
+        q2 + lambda.clone() * d2 + tangent_one.clone() * a12;
+    if !post_tangent_two.is_zero() {
+        return Ok(false);
+    }
+    let post_tangent_one =
+        q1 + lambda.clone() * d1 + tangent_one.clone() * a11;
+    let disk_multiplier = -post_tangent_one / tangent_one.clone();
+    if disk_multiplier < Rational::zero() {
+        return Ok(false);
+    }
+
+    // Independently evaluate the full impulse kinetic-energy change:
+    // Delta K = p^T q + 1/2 p^T W p, with p=(lambda, mu*lambda, 0).
+    let wp_normal = a.clone() * lambda.clone() + d1.clone() * tangent_one.clone();
+    let wp_tangent_one = d1 * lambda.clone() + a11 * tangent_one.clone();
+    let energy_linear = lambda.clone() * qn + tangent_one.clone() * q1;
+    let energy_quadratic =
+        lambda.clone() * wp_normal + tangent_one.clone() * wp_tangent_one;
+    let energy_delta =
+        energy_linear + energy_quadratic / Rational::from_integer(BigInt::from(2));
+    Ok(energy_delta <= Rational::zero())
 }
 
 fn polynomial_add(lhs: &[Rational], rhs: &[Rational]) -> Polynomial {
