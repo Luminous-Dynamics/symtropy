@@ -478,7 +478,7 @@ mod tests {
     fn physical_carryover_requires_condition_then_read() {
         for seed in 0..16 {
             let task = generate_task(TaskFamily::PhysicalCarryover, seed).unwrap();
-            let policy = task.receipt.strict_feasible_policy.as_ref().unwrap();
+            let policy = task.receipt.budget_feasible_policy.as_ref().unwrap();
             assert_eq!(policy_actions(policy, &task.kernel), vec!["condition".to_string(), "read".to_string()]);
             assert!(task.receipt.one_step_baseline.iter().all(|score| {
                 score.expected_information_gain_nats.abs() < 1e-12
