@@ -20,13 +20,11 @@ use symtropy_math::{LatticeOffset, PeriodicLattice, PeriodicLatticeError, Shape,
 
 use crate::broadphase::{support_aabb, Aabb};
 use crate::ccd;
-use crate::gjk;
+use crate::gjk::{self, GjkTermination};
 use crate::periodic_lattice_broadphase::{
     PeriodicLatticeBroadphaseError, lattice_image_offsets_for_aabb_pair,
 };
 use crate::support_map::TransformedShape;
-
-const LEGACY_GJK_ITERATION_LIMIT: usize = 64;
 
 /// Failure reason for a triclinic periodic collision query.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -191,13 +189,17 @@ pub fn query_triclinic_convex<const D: usize>(
         );
         result.gjk_calls += 1;
 
-        if collision.intersecting {
-            result.hits.push(PeriodicLatticeCollisionHit {
-                image_offset: offset,
-                gjk_iterations: collision.iterations,
-            });
-        } else if collision.iterations >= LEGACY_GJK_ITERATION_LIMIT {
-            result.unresolved_offsets.push(offset);
+        match collision.termination {
+            GjkTermination::Intersecting => {
+                result.hits.push(PeriodicLatticeCollisionHit {
+                    image_offset: offset,
+                    gjk_iterations: collision.iterations,
+                });
+            }
+            GjkTermination::Separated => {}
+            GjkTermination::IterationLimit => {
+                result.unresolved_offsets.push(offset);
+            }
         }
     }
 
