@@ -1860,6 +1860,20 @@ mod tests {
             frontier_objectives(&optimized.frontier),
             frontier_objectives(&oracle)
         );
+        for point in &optimized.frontier {
+            let raw_replay = replay_shared_policy_across_worlds(
+                &worlds,
+                "world-a",
+                &table,
+                protocol,
+                &costs,
+                Rational::one(),
+                &point.plan,
+                1,
+            )
+            .unwrap();
+            assert_eq!(raw_replay.per_world, point.per_world);
+        }
     }
 
     #[test]
