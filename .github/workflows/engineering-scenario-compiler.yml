@@ -118,6 +118,81 @@ jobs:
             sha256sum tools/engineering-scenario-compiler/Cargo.lock
           } > target/engineering-scenario-compiler-benchmark/reproducibility.txt
 
+      - name: Benchmark strict JSON preflight and independent JCS separately
+        env:
+          GO111MODULE: "off"
+          GOPATH: \${{ runner.temp }}/jcs-gopath
+          JCS_BENCH_INPUT: \${{ github.workspace }}/target/engineering-scenario-compiler-portable-identity/scenario-ir-input.json
+        run: |
+          cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
+          test -z "$(gofmt -d *.go)"
+          go test . -run '^        run: |
+          cargo bench --manifest-path tools/engineering-scenario-compiler/Cargo.toml --bench compile_latency --locked \
+            > target/engineering-scenario-compiler-benchmark/latency.csv
+          cat target/engineering-scenario-compiler-benchmark/latency.csv
+
+      - name: Upload reproducible compiler latency measurements
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-scenario-compiler-benchmark-${{ github.sha }}
+          path: |
+            target/engineering-scenario-compiler-benchmark/
+            target/engineering-scenario-compiler-portable-identity/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish formatted sources and resolved lockfile for commit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-scenario-compiler-formatted
+          path: |
+            tools/engineering-scenario-compiler/Cargo.toml
+            tools/engineering-scenario-compiler/Cargo.lock
+            tools/engineering-scenario-compiler/README.md
+            tools/engineering-scenario-compiler/src/lib.rs
+            tools/engineering-scenario-compiler/src/main.rs
+            tools/engineering-scenario-compiler/benches/compile_latency.rs
+            tools/engineering-scenario-compiler/interop/golden/
+            tools/engineering-scenario-compiler/interop/go-verifier/
+            target/engineering-scenario-compiler-portable-identity/
+          if-no-files-found: error
+ \
+            -bench 'Benchmark(StrictPreflight|JCSCanonicalize|StrictThenJCS)        run: |
+          cargo bench --manifest-path tools/engineering-scenario-compiler/Cargo.toml --bench compile_latency --locked \
+            > target/engineering-scenario-compiler-benchmark/latency.csv
+          cat target/engineering-scenario-compiler-benchmark/latency.csv
+
+      - name: Upload reproducible compiler latency measurements
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-scenario-compiler-benchmark-${{ github.sha }}
+          path: |
+            target/engineering-scenario-compiler-benchmark/
+            target/engineering-scenario-compiler-portable-identity/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish formatted sources and resolved lockfile for commit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-scenario-compiler-formatted
+          path: |
+            tools/engineering-scenario-compiler/Cargo.toml
+            tools/engineering-scenario-compiler/Cargo.lock
+            tools/engineering-scenario-compiler/README.md
+            tools/engineering-scenario-compiler/src/lib.rs
+            tools/engineering-scenario-compiler/src/main.rs
+            tools/engineering-scenario-compiler/benches/compile_latency.rs
+            tools/engineering-scenario-compiler/interop/golden/
+            tools/engineering-scenario-compiler/interop/go-verifier/
+            target/engineering-scenario-compiler-portable-identity/
+          if-no-files-found: error
+ \
+            -benchmem -count=5 \
+            | tee "$GITHUB_WORKSPACE/target/engineering-scenario-compiler-benchmark/go-jcs-bench.txt"
+
       - name: Measure deterministic compiler latency distribution
         run: |
           cargo bench --manifest-path tools/engineering-scenario-compiler/Cargo.toml --bench compile_latency --locked \
