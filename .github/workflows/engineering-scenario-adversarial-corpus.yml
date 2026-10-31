@@ -67,8 +67,9 @@ jobs:
             (.valid_cases | length) == 268 and
             (.reject_cases | length) == 14
           ' "$corpus/manifest.json"
-          sha256sum "$corpus/manifest.json" > "$corpus/manifest.sha256.actual"
-          test -s "$corpus/manifest.sha256"
+          manifest_expected="$(cut -d ' ' -f 1 "$corpus/manifest.sha256")"
+          manifest_actual="$(sha256sum "$corpus/manifest.json" | cut -d ' ' -f 1)"
+          test "$manifest_actual" = "$manifest_expected"
           test "$(find "$corpus/valid" -type f -name '*.json' | wc -l)" -eq 268
           test "$(find "$corpus/expected" -type f -name '*.jcs' | wc -l)" -eq 268
           test "$(find "$corpus/reject" -type f -name '*.bin' | wc -l)" -eq 14
@@ -123,6 +124,102 @@ jobs:
             .failure_count == 0
           ' "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus/go-summary.json"
           test "$(wc -l < "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus/go-results.jsonl")" -eq 282
+
+      - name: Benchmark strict preflight and JCS by generated payload size
+        env:
+          GO111MODULE: "off"
+          GOPATH: \${{ runner.temp }}/jcs-gopath
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
+          corpus="$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus"
+          mkdir -p "$corpus/benchmarks"
+          for case_id in generated-0000 generated-0001 generated-0002 generated-0003; do
+            input="$corpus/valid/$case_id.json"
+            test -s "$input"
+            JCS_BENCH_INPUT="$input" go test . -run '^        run: |
+          set -euo pipefail
+          corpus="target/engineering-scenario-jcs-adversarial-corpus"
+          {
+            printf 'commit_sha=%s\n' "$(git rev-parse HEAD)"
+            printf 'rustc='; rustc --version
+            printf 'cargo='; cargo --version
+            printf 'go='; go version
+            printf 'host='; uname -a
+            printf 'logical_cpus=%s\n' "$(nproc)"
+            printf 'independent_go_jcs_commit=%s\n' "32a48195b9b20fe67b1795e39e4509f14d860b45"
+            sha256sum tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.toml
+            sha256sum tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.lock
+            sha256sum tools/engineering-scenario-compiler/src/strict_jcs_input.rs
+            sha256sum tools/engineering-scenario-compiler/interop/go-verifier/*.go
+            sha256sum "$corpus/manifest.json" "$corpus/go-results.jsonl" "$corpus/go-summary.json"
+            sha256sum "$corpus/benchmarks/"*.txt
+            find "$corpus/valid" "$corpus/expected" "$corpus/reject" -type f -print0 \
+              | sort -z | xargs -0 sha256sum
+          } > "$corpus/reproducibility.txt"
+
+      - name: Publish generated corpus and independent verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-scenario-jcs-adversarial-corpus-${{ github.sha }}
+          path: |
+            target/engineering-scenario-jcs-adversarial-corpus/
+            tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.toml
+            tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.lock
+            tools/engineering-scenario-compiler/interop/corpus-generator/src/
+            tools/engineering-scenario-compiler/interop/go-verifier/
+            tools/engineering-scenario-compiler/src/strict_jcs_input.rs
+            tools/engineering-scenario-compiler/interop/golden/
+          if-no-files-found: error
+          retention-days: 14
+ \
+              -bench 'Benchmark(StrictPreflight|JCSCanonicalize|StrictThenJCS)        run: |
+          set -euo pipefail
+          corpus="target/engineering-scenario-jcs-adversarial-corpus"
+          {
+            printf 'commit_sha=%s\n' "$(git rev-parse HEAD)"
+            printf 'rustc='; rustc --version
+            printf 'cargo='; cargo --version
+            printf 'go='; go version
+            printf 'host='; uname -a
+            printf 'logical_cpus=%s\n' "$(nproc)"
+            printf 'independent_go_jcs_commit=%s\n' "32a48195b9b20fe67b1795e39e4509f14d860b45"
+            sha256sum tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.toml
+            sha256sum tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.lock
+            sha256sum tools/engineering-scenario-compiler/src/strict_jcs_input.rs
+            sha256sum tools/engineering-scenario-compiler/interop/go-verifier/*.go
+            sha256sum "$corpus/manifest.json" "$corpus/go-results.jsonl" "$corpus/go-summary.json"
+            find "$corpus/valid" "$corpus/expected" "$corpus/reject" -type f -print0 \
+              | sort -z | xargs -0 sha256sum
+          } > "$corpus/reproducibility.txt"
+
+      - name: Publish generated corpus and independent verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-scenario-jcs-adversarial-corpus-${{ github.sha }}
+          path: |
+            target/engineering-scenario-jcs-adversarial-corpus/
+            tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.toml
+            tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.lock
+            tools/engineering-scenario-compiler/interop/corpus-generator/src/
+            tools/engineering-scenario-compiler/interop/go-verifier/
+            tools/engineering-scenario-compiler/src/strict_jcs_input.rs
+            tools/engineering-scenario-compiler/interop/golden/
+          if-no-files-found: error
+          retention-days: 14
+ \
+              -benchmem -count=5 \
+              | tee "$corpus/benchmarks/$case_id-go-bench.txt"
+          done
+          {
+            printf 'input_case_ids=generated-0000,generated-0001,generated-0002,generated-0003\n'
+            sha256sum "$corpus/valid/generated-0000.json" \
+              "$corpus/valid/generated-0001.json" \
+              "$corpus/valid/generated-0002.json" \
+              "$corpus/valid/generated-0003.json"
+          } > "$corpus/benchmarks/reproducibility.txt"
 
       - name: Record exact generator, corpus, toolchain and verifier provenance
         run: |
