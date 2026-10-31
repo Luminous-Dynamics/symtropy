@@ -494,25 +494,26 @@ mod tests {
         assert_eq!(ledger.verify_conservation(), Ok(()));
     }
 
-    fn make_fragmentation_ledger(split: bool) -> (Ledger, AccountId) {
+    fn make_fragmentation_ledger_with(parts: &[i128]) -> (Ledger, AccountId) {
         let treasury = id("commons:treasury");
         let issuance = id("system:issuance");
         let mut ledger = Ledger::new(treasury.clone(), issuance).unwrap();
         let debtor = id("debtor");
         ledger.open_member_account(debtor.clone(), 1_000).unwrap();
-        if split {
-            let a = id("positive:a");
-            let b = id("positive:b");
-            ledger.open_member_account(a.clone(), 1_000).unwrap();
-            ledger.open_member_account(b.clone(), 1_000).unwrap();
-            ledger.transfer(&debtor, &a, 50).unwrap();
-            ledger.transfer(&debtor, &b, 50).unwrap();
-        } else {
-            let a = id("positive:all");
-            ledger.open_member_account(a.clone(), 1_000).unwrap();
-            ledger.transfer(&debtor, &a, 100).unwrap();
+        for (index, amount) in parts.iter().copied().enumerate() {
+            let account = id(&format!("positive:{index:03}"));
+            ledger.open_member_account(account.clone(), 1_000).unwrap();
+            ledger.transfer(&debtor, &account, amount).unwrap();
         }
         (ledger, treasury)
+    }
+
+    fn make_fragmentation_ledger(split: bool) -> (Ledger, AccountId) {
+        if split {
+            make_fragmentation_ledger_with(&[50, 50])
+        } else {
+            make_fragmentation_ledger_with(&[100])
+        }
     }
 
     #[test]
@@ -541,6 +542,42 @@ mod tests {
                 assert_eq!(single.total_balance(), split.total_balance());
                 single.verify_conservation().unwrap();
                 split.verify_conservation().unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn pooled_demurrage_is_invariant_over_many_account_partitions_and_rates() {
+        for seed_start in 1_u64..=64 {
+            let mut seed = seed_start;
+            let mut left = 100_i128;
+            let mut parts = Vec::new();
+            while left > 0 {
+                // Deterministic bounded pseudo-random partition, no external crate.
+                seed ^= seed << 13;
+                seed ^= seed >> 7;
+                seed ^= seed << 17;
+                let amount = ((seed % 17) as i128 + 1).min(left);
+                parts.push(amount);
+                left -= amount;
+            }
+
+            for rate in (1..=64).map(|n| n * 13_333) {
+                let (mut single, single_treasury) = make_fragmentation_ledger_with(&[100]);
+                let (mut fragmented, fragmented_treasury) =
+                    make_fragmentation_ledger_with(&parts);
+                for _ in 0..8 {
+                    let single_levy = single.apply_demurrage(rate).unwrap();
+                    let fragmented_levy = fragmented.apply_demurrage(rate).unwrap();
+                    assert_eq!(single_levy, fragmented_levy);
+                    assert_eq!(
+                        single.balance(&single_treasury),
+                        fragmented.balance(&fragmented_treasury)
+                    );
+                    assert_eq!(single.demurrage_carry_ppm(), fragmented.demurrage_carry_ppm());
+                    single.verify_conservation().unwrap();
+                    fragmented.verify_conservation().unwrap();
+                }
             }
         }
     }
