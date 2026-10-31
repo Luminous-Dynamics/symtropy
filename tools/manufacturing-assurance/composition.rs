@@ -483,7 +483,7 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
             ));
         }
 
-        let receipt = evidence_for(
+        evidence_for(
             manifest,
             &component.vvuq_evidence_id,
             "COMPONENT",
@@ -561,6 +561,18 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
         if !kinds.contains(kind) {
             return Err(format!("missing required lifecycle node {kind}"));
         }
+    }
+    let product_id = manifest.nodes.values().find(|node| node.kind == "PRODUCT")
+        .map(|node| node.id.as_str()).ok_or("missing PRODUCT identity")?;
+    let lot_id = manifest.nodes.values().find(|node| node.kind == "LOT")
+        .map(|node| node.id.as_str()).ok_or("missing LOT identity")?;
+    let operation_id = manifest.nodes.values().find(|node| node.kind == "OPERATION")
+        .map(|node| node.id.as_str()).ok_or("missing OPERATION identity")?;
+    let expected_scope = format!("{product_id}/{lot_id}/{operation_id}");
+    if scope != Some(expected_scope.as_str()) {
+        return Err(format!(
+            "scope_key must encode the exact product/lot/operation identity: expected {expected_scope}"
+        ));
     }
 
     let mut seen_edges = BTreeSet::new();
@@ -751,7 +763,7 @@ mod tests {
     #[test]
     fn rejects_cross_lot_scope_mismatch() {
         let input = fixture("integrated").replace(
-            "NODE|MEASUREMENT|meas-001|part-001/lot-001/op-001|",
+            "NODE|MEASUREMENT|meas-001|product-001/lot-001/op-001|",
             "NODE|MEASUREMENT|meas-001|part-001/lot-999/op-001|",
         );
         let result = audit_text(&input);
