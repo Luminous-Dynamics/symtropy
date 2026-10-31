@@ -1100,7 +1100,7 @@ mod tests {
             "|surface_roughness|3.4|um|0.0|2.0|",
         );
         input.push_str(&format!(
-            "RECOVERY|recovery-1|plan-1|SAFE_STATE|2026-10-31T11:55:30Z|2026-10-31T11:55:32Z|ACKNOWLEDGED|{}\\nVERIFY|verify-2|plan-1|POST_RECOVERY|surface_roughness|1.7|um|0.0|2.0|2026-10-31T11:58:00Z|{}\\n",
+            "RECOVERY|recovery-1|plan-1|SAFE_STATE|2026-10-31T11:55:30Z|2026-10-31T11:55:32Z|ACKNOWLEDGED|{}\nVERIFY|verify-2|plan-1|POST_RECOVERY|surface_roughness|1.7|um|0.0|2.0|2026-10-31T11:58:00Z|{}\n",
             HASH_D, HASH_F
         ));
         let report = run_report(&input).unwrap();
