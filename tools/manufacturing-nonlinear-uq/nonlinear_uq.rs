@@ -199,7 +199,6 @@ fn classify_probability(lower: f64, upper: f64) -> Decision {
 
 #[derive(Clone, Debug)]
 struct Propagated {
-    resolution: usize,
     valid_mass: f64,
     invalid_domain_mass: f64,
     tail_mass: f64,
@@ -414,7 +413,6 @@ fn propagate(
     }
 
     Ok(Propagated {
-        resolution,
         valid_mass,
         invalid_domain_mass,
         tail_mass,
