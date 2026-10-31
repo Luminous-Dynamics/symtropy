@@ -554,6 +554,21 @@ fn sturm_root_count_is_invariant_under_binary_power_and_sign_scaling() {
 }
 
 #[test]
+fn cauchy_bound_is_strict_and_endpoints_are_not_roots() {
+    let roots = [-3_i64, -1, 2, 5]
+        .into_iter()
+        .map(|value| Rational::from_integer(BigInt::from(value)))
+        .collect::<Vec<_>>();
+    let polynomial = polynomial_from_roots(&roots);
+    let bound = cauchy_bound(&polynomial).unwrap();
+    assert!(evaluate(&polynomial, &bound).is_nonzero());
+    assert!(evaluate(&polynomial, &-bound).is_nonzero());
+    for root in roots {
+        assert!(root.abs() < bound);
+    }
+}
+
+#[test]
 fn sturm_counts_four_simple_roots_and_production_matches() {
     let roots = [-3_i64, -1, 2, 5]
         .into_iter()
@@ -656,7 +671,7 @@ fn exact_projective_theta_pi_root_is_counted_and_original_sliding_law_checked() 
     assert_eq!(finite_roots.len() + 1, 2);
 
     let outcome =
-        super::super::solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-12).unwrap();
+        super::solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-12).unwrap();
     assert!(
         outcome.sliding_angles.iter().any(|angle| {
             (*angle - std::f64::consts::PI).abs() <= 1.0e-10
