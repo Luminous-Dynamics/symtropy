@@ -792,6 +792,43 @@ mod tests {
     }
 
     #[test]
+    fn quartic_coefficients_match_the_unreduced_angular_equation() {
+        let w = Matrix3::new(
+            3.0, 0.4, -0.2,
+            0.4, 2.0, 0.5,
+            -0.2, 0.5, 1.5,
+        );
+        let q = SVector::new(-0.8, -2.5, 0.9);
+        let mu = 0.37;
+        let coefficients = sliding_quartic(&w, &q, mu);
+        for index in 0..64 {
+            let theta = -std::f64::consts::PI
+                + (index as f64 + 0.37) * (2.0 * std::f64::consts::PI / 64.0);
+            let t = (0.5 * theta).tan();
+            let polynomial = coefficients.iter().rev().fold(0.0, |value, coefficient| {
+                value * t + coefficient
+            });
+            let (angular, _) = angular_residual(&w, &q, mu, theta);
+            let factor = (1.0 + t * t).powi(2);
+            let scale = polynomial.abs().max((angular * factor).abs()).max(1.0);
+            assert!((polynomial - angular * factor).abs() <= 1.0e-11 * scale);
+        }
+    }
+
+    #[test]
+    fn grazing_with_singular_normal_coupling_is_not_guessed_through() {
+        let w = Matrix3::new(
+            1.0, 0.8, 0.0,
+            0.8, 1.0, 0.0,
+            0.0, 0.0, 1.0,
+        );
+        let q = SVector::new(0.0, -1.0, 0.5);
+        let outcome = solve_coupled_signorini_coulomb(&w, &q, 2.0, 1.0e-12).unwrap();
+        assert_eq!(outcome.status, CoupledCoulombStatus::Inconclusive);
+        assert!(outcome.unique_solution().is_none());
+    }
+
+    #[test]
     fn grazing_with_positive_global_coupling_margin_is_separating() {
         let w = Matrix3::new(
             2.0, 0.1, 0.0,
