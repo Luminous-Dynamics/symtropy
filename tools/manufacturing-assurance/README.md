@@ -50,7 +50,7 @@ Exactly one each: PRODUCT, LOT, OPERATION, MACHINE_CYCLE, MODEL_RUN, SPECIFICATI
 
 All nodes use the exact `scope_key` format `PRODUCT_ID/LOT_ID/OPERATION_ID`; the verifier checks that it matches the unique PRODUCT, LOT and OPERATION node IDs. This v0.1 scenario supports one product / lot / operation. Every node names its producer component and an evidence record whose subject key is `KIND:id`.
 
-The MEASUREMENT node must include a UTC `event_time_utc`. The CALIBRATION and MSA_STUDY evidence records must have validity intervals containing that measurement timestamp. The MSA_STUDY evidence must have `QUALIFIED` or `SYNTHETIC_ONLY` status. This explicitly links an observation to its instrument, applicable calibration, MSA study and uncertainty budget while leaving measurement-system qualification itself with the existing metrology owner.
+The MEASUREMENT node must include a UTC `event_time_utc`. Every timestamped lifecycle node must fall inside its own source evidence validity interval. The CALIBRATION and MSA_STUDY evidence records must also have validity intervals containing the measurement timestamp. The MSA_STUDY evidence must have `QUALIFIED` or `SYNTHETIC_ONLY` status. This explicitly links an observation to its instrument, applicable calibration, MSA study and uncertainty budget while leaving measurement-system qualification itself with the existing metrology owner.
 
 ## Required edges
 
@@ -73,13 +73,13 @@ The MEASUREMENT node must include a UTC `event_time_utc`. The CALIBRATION and MS
 - AUTHORIZATION --AUTHORIZES--> EXECUTION
 - EXECUTION --VERIFIED_BY--> POSTCONDITION
 
-Every edge needs a distinct `EXPLICIT_ASSOCIATION` evidence record whose subject key is `from_kind:from_id:relation:to_kind:to_id`. No fuzzy or nearest-timestamp join is accepted. Extra edges are allowed only when both endpoints exist and their evidence references are valid.
+Every edge needs a distinct `EXPLICIT_ASSOCIATION` evidence record whose subject key is `from_kind:from_id:relation:to_kind:to_id`; association evidence must cover the full composition validity interval. No fuzzy or nearest-timestamp join is accepted. Extra edges are allowed only when both endpoints exist and their evidence references are valid.
 
 ## Typed interfaces
 
 The fixture requires these component-role paths: machine→inspection, inspection→metrology, physics→quality, metrology→quality, quality→intervention and intervention→authority.
 
-Equal unit or clock domains require `IDENTITY`. Different domains require a named `MAP:<versioned-id>` transform. Every interface must use `EXPLICIT_ID` as its join policy and must cite its own `INTERFACE_MAPPING` evidence receipt. The evidence subject must be the exact interface ID. This verifier checks declarations and compatibility; it does not execute unit or clock transforms or prove their numerical correctness.
+Equal unit or clock domains require `IDENTITY`. Different domains require a named `MAP:<versioned-id>` transform. Every interface must use `EXPLICIT_ID` as its join policy and must cite its own `INTERFACE_MAPPING` evidence receipt. The evidence subject must be the exact interface ID, and the receipt must cover the full composition validity interval. This verifier checks declarations and compatibility; it does not execute unit or clock transforms or prove their numerical correctness.
 
 ## Evidence record rules
 
@@ -95,7 +95,7 @@ The synthetic offline authorization and execution nodes test lifecycle completen
 
 ## Initial negative controls
 
-Unit tests cover all three composition modes, missing machine-cycle/inspection association, cross-lot scope mismatch, unqualified VVUQ and MSA evidence, fuzzy joins, unit conversion without a declared mapping, wrong integrated schema, federated peer collisions, missing/wrong interface evidence, absent source locator, VVUQ validity expiry, calibration/MSA expiry, malformed calendar timestamps and digests, orphan evidence and deterministic replay.
+Unit tests cover all three composition modes, missing machine-cycle/inspection association, cross-lot scope mismatch, unqualified VVUQ and MSA evidence, fuzzy joins, unit conversion without a declared mapping, wrong integrated schema, federated peer collisions, missing/wrong interface evidence, absent source locator, event/evidence validity mismatch, VVUQ/edge/interface validity expiry, calibration/MSA expiry, malformed calendar timestamps and digests, orphan evidence and deterministic replay.
 
 ## Next qualification work
 
