@@ -49,3 +49,13 @@ drift_first="$("$TMP/drift-diagnosis")"
 drift_second="$("$TMP/drift-diagnosis")"
 test "$drift_first" = "$drift_second"
 printf '%s\n' "$drift_first"
+
+COUPLING_SRC="$ROOT/tools/manufacturing-assurance/composition_coupling.rs"
+rustc --edition=2021 -D warnings --test "$COUPLING_SRC" -o "$TMP/coupling-tests"
+"$TMP/coupling-tests"
+
+rustc --edition=2021 -D warnings "$COUPLING_SRC" -o "$TMP/composition-coupling"
+coupling_first="$("$TMP/composition-coupling")"
+coupling_second="$("$TMP/composition-coupling")"
+test "$coupling_first" = "$coupling_second"
+printf '%s\n' "$coupling_first"
