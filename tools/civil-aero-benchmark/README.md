@@ -270,3 +270,6 @@ The GCI safety-factor gate now uses an explicit grid-family type. Structured stu
 ## Optimizer comparison: validated Pareto quality per cost
 
 The policy_benchmark module and policy_benchmark_demo CLI compare policies on matched task/replicate budgets. The ledger counts every failed attempt and every operation cost; successful high-fidelity outputs need an exact digest match plus an admission-receipt digest. Only feasible admitted points contribute to two-objective minimization hypervolume. The scorecard exports feasible/admission yield, hypervolume and hypervolume per total cost. The synthetic demo has two policies x two replicates and an independent Python oracle. It is an evaluator known-answer fixture, not an aerodynamic result. See POLICY_BENCHMARK_PROTOCOL_V0_1.md and issue #3068.
+
+
+The policy scorecard also emits normalized hypervolume fraction: raw HV divided by the area of the task-declared ideal/reference objective box. The ideal lower bound and reference upper bound are predeclared per task, and candidates outside that box are rejected. This enables dimensionless cross-task summaries without averaging raw drag-energy units.

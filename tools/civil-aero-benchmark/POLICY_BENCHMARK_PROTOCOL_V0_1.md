@@ -13,7 +13,7 @@ This is not proof that a caller-provided receipt is authentic, and this scorecar
 - Compare at least two policies for every task/replicate.
 - Policy sets and replicate sets must be complete and identical within each task.
 - Budget caps must match for each task/replicate/policy.
-- Objective names, directions and the reference point are fixed by task before comparisons.
+- Objective names, directions, a lower/ideal point and the upper/reference point are fixed by task before comparisons. The task-declared box bounds make hypervolume fractions comparable across tasks without confusing raw units; their bounds must be justified and frozen before evaluation.
 - This initial implementation is two-objective minimization only.
 - Every successful high-fidelity operation receives exactly one disposition: admitted or not admitted.
 - A failed high-fidelity operation is charged and counted as an attempt, but it cannot produce a validated candidate.
@@ -34,7 +34,8 @@ Per task/replicate/policy, report:
 - feasible yield = feasible admitted candidates / all high-fidelity attempts, including failed attempts;
 - admission yield = admitted candidates / all high-fidelity attempts;
 - 2D validated Pareto hypervolume (HV);
-- HV per total cost.
+- normalized HV fraction = HV / ((reference_1 - ideal_1) * (reference_2 - ideal_2));
+- HV per total cost and normalized HV per total cost.
 
 Hypervolume uses a fixed task-specific reference point in minimization space. Only feasible admitted candidates contribute. Dominated points do not inflate the volume. The value is reported separately for every replicate; do not hide task variance behind a single mean.
 

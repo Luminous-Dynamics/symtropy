@@ -17,7 +17,10 @@ pub struct PolicyBenchmarkTask {
     pub task_id: String,
     pub objective_1_name: String,
     pub objective_2_name: String,
-    /// Fixed task-specific reference point for two-objective minimization.
+    /// Declared lower/ideal corner of the objective box, fixed before policy runs.
+    pub ideal_point_1: f64,
+    pub ideal_point_2: f64,
+    /// Fixed task-specific upper/reference point for two-objective minimization.
     pub reference_point_1: f64,
     pub reference_point_2: f64,
 }
@@ -63,6 +66,8 @@ pub struct PolicyBenchmarkRow {
     pub policy_id: String,
     pub objective_1_name: String,
     pub objective_2_name: String,
+    pub ideal_point_1: f64,
+    pub ideal_point_2: f64,
     pub reference_point_1: f64,
     pub reference_point_2: f64,
     pub budget_cap_units: f64,
@@ -84,7 +89,10 @@ pub struct PolicyBenchmarkRow {
     /// Admitted candidates divided by all high-fidelity attempts, including failures.
     pub admission_yield: f64,
     pub validated_hypervolume_2d: f64,
+    /// Raw hypervolume divided by the task-declared ideal/reference box area.
+    pub normalized_validated_hypervolume_fraction: f64,
     pub validated_hypervolume_per_cost: Option<f64>,
+    pub normalized_hypervolume_per_cost: Option<f64>,
     pub evidence_level: &'static str,
 }
 
@@ -108,8 +116,12 @@ pub fn evaluate_policy_benchmark(
             || task.objective_1_name.trim().is_empty()
             || task.objective_2_name.trim().is_empty()
             || task.objective_1_name == task.objective_2_name
+            || !task.ideal_point_1.is_finite()
+            || !task.ideal_point_2.is_finite()
             || !task.reference_point_1.is_finite()
             || !task.reference_point_2.is_finite()
+            || task.ideal_point_1 >= task.reference_point_1
+            || task.ideal_point_2 >= task.reference_point_2
         {
             return Err("task IDs, distinct objective names, and finite reference points are required".to_owned());
         }
@@ -239,7 +251,9 @@ pub fn evaluate_policy_benchmark(
                     return Err(format!("admitted candidate {} has non-finite objectives", candidate.candidate_id));
                 }
                 if feasible
-                    && (objective_1 > task.reference_point_1
+                    && (objective_1 < task.ideal_point_1
+                        || objective_2 < task.ideal_point_2
+                        || objective_1 > task.reference_point_1
                         || objective_2 > task.reference_point_2)
                 {
                     return Err(format!(
@@ -346,6 +360,18 @@ pub fn evaluate_policy_benchmark(
         )?;
         let feasible_yield = feasible_admitted_candidates as f64 / hf_attempts as f64;
         let admission_yield = admitted_candidates as f64 / hf_attempts as f64;
+        let objective_box_area = (task.reference_point_1 - task.ideal_point_1)
+            * (task.reference_point_2 - task.ideal_point_2);
+        if !objective_box_area.is_finite() || objective_box_area <= 0.0 {
+            return Err(format!("task {} has invalid objective reference-box area", task.task_id));
+        }
+        let normalized_hypervolume_fraction =
+            validated_hypervolume_2d / objective_box_area;
+        if !normalized_hypervolume_fraction.is_finite()
+            || !(-1.0e-12..=1.0 + 1.0e-12).contains(&normalized_hypervolume_fraction)
+        {
+            return Err(format!("task {} normalized hypervolume is outside [0, 1]", task.task_id));
+        }
 
         rows.push(PolicyBenchmarkRow {
             task_id: budget.task_id,
@@ -353,6 +379,8 @@ pub fn evaluate_policy_benchmark(
             policy_id: budget.policy_id,
             objective_1_name: task.objective_1_name.clone(),
             objective_2_name: task.objective_2_name.clone(),
+            ideal_point_1: task.ideal_point_1,
+            ideal_point_2: task.ideal_point_2,
             reference_point_1: task.reference_point_1,
             reference_point_2: task.reference_point_2,
             budget_cap_units: budget.budget_cap_units,
@@ -372,8 +400,14 @@ pub fn evaluate_policy_benchmark(
             feasible_yield,
             admission_yield,
             validated_hypervolume_2d,
+            normalized_validated_hypervolume_fraction: normalized_hypervolume_fraction,
             validated_hypervolume_per_cost: if budget.total_cost_units > 0.0 {
                 Some(validated_hypervolume_2d / budget.total_cost_units)
+            } else {
+                None
+            },
+            normalized_hypervolume_per_cost: if budget.total_cost_units > 0.0 {
+                Some(normalized_hypervolume_fraction / budget.total_cost_units)
             } else {
                 None
             },
@@ -479,18 +513,20 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const POLICY_BENCHMARK_CSV_HEADER: &str = "task_id,replicate_id,policy_id,objective_1_name,objective_2_name,reference_point_1,reference_point_2,budget_cap_units,total_cost_units,remaining_budget_units,budget_utilization_fraction,wall_seconds,cpu_seconds,operation_count,successful_operations,failed_operations,high_fidelity_attempts,successful_high_fidelity_operations,admitted_candidates,not_admitted_candidates,feasible_admitted_candidates,feasible_yield,admission_yield,validated_hypervolume_2d,validated_hypervolume_per_cost,evidence_level";
+pub const POLICY_BENCHMARK_CSV_HEADER: &str = "task_id,replicate_id,policy_id,objective_1_name,objective_2_name,ideal_point_1,ideal_point_2,reference_point_1,reference_point_2,budget_cap_units,total_cost_units,remaining_budget_units,budget_utilization_fraction,wall_seconds,cpu_seconds,operation_count,successful_operations,failed_operations,high_fidelity_attempts,successful_high_fidelity_operations,admitted_candidates,not_admitted_candidates,feasible_admitted_candidates,feasible_yield,admission_yield,validated_hypervolume_2d,normalized_validated_hypervolume_fraction,validated_hypervolume_per_cost,normalized_hypervolume_per_cost,evidence_level";
 
 pub fn report_to_csv(report: &PolicyBenchmarkReport) -> String {
     let mut output = format!("{POLICY_BENCHMARK_CSV_HEADER}\n");
     for row in &report.rows {
         output.push_str(&format!(
-            "{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{},{}\n",
+            "{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{}\n",
             csv_escape(&row.task_id),
             csv_escape(&row.replicate_id),
             csv_escape(&row.policy_id),
             csv_escape(&row.objective_1_name),
             csv_escape(&row.objective_2_name),
+            row.ideal_point_1,
+            row.ideal_point_2,
             row.reference_point_1,
             row.reference_point_2,
             row.budget_cap_units,
@@ -510,7 +546,11 @@ pub fn report_to_csv(report: &PolicyBenchmarkReport) -> String {
             row.feasible_yield,
             row.admission_yield,
             row.validated_hypervolume_2d,
+            row.normalized_validated_hypervolume_fraction,
             row.validated_hypervolume_per_cost
+                .map(|value| format!("{value:.12}"))
+                .unwrap_or_default(),
+            row.normalized_hypervolume_per_cost
                 .map(|value| format!("{value:.12}"))
                 .unwrap_or_default(),
             row.evidence_level
@@ -592,6 +632,8 @@ mod tests {
             task_id: "airfoil-multipoint-smoke".to_owned(),
             objective_1_name: "drag_coefficient".to_owned(),
             objective_2_name: "mission_energy_wh".to_owned(),
+            ideal_point_1: 0.0,
+            ideal_point_2: 0.0,
             reference_point_1: 0.05,
             reference_point_2: 1000.0,
         };
@@ -642,7 +684,10 @@ mod tests {
         assert!((voi.total_cost_units - 5.0).abs() < 1.0e-12);
         assert!((uniform.validated_hypervolume_2d - 9.5).abs() < 1.0e-10);
         assert!((voi.validated_hypervolume_2d - 10.04).abs() < 1.0e-10);
+        assert!((uniform.normalized_validated_hypervolume_fraction - 0.19).abs() < 1.0e-12);
+        assert!((voi.normalized_validated_hypervolume_fraction - 0.2008).abs() < 1.0e-12);
         assert!(voi.validated_hypervolume_per_cost.unwrap() > uniform.validated_hypervolume_per_cost.unwrap());
+        assert!(voi.normalized_hypervolume_per_cost.unwrap() > uniform.normalized_hypervolume_per_cost.unwrap());
     }
 
     #[test]
@@ -672,6 +717,12 @@ mod tests {
         candidates[0].objective_1 = Some(0.06);
         assert!(evaluate_policy_benchmark(&tasks, &operations, &candidates)
             .expect_err("out-of-reference objective must fail")
+            .contains("outside task"));
+
+        let (tasks, operations, mut candidates) = fixture();
+        candidates[0].objective_1 = Some(-0.001);
+        assert!(evaluate_policy_benchmark(&tasks, &operations, &candidates)
+            .expect_err("below-ideal objective must fail")
             .contains("outside task"));
     }
 

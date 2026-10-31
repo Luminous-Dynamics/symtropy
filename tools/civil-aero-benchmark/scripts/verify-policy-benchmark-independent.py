@@ -68,6 +68,8 @@ def main() -> int:
         require(row["task_id"] == "airfoil-multipoint-smoke", "task mismatch")
         require(row["objective_1_name"] == "drag_coefficient", "objective 1 mismatch")
         require(row["objective_2_name"] == "mission_energy_wh", "objective 2 mismatch")
+        close(row["ideal_point_1"], 0.0, "ideal_point_1")
+        close(row["ideal_point_2"], 0.0, "ideal_point_2")
         close(row["reference_point_1"], 0.05, "reference_point_1")
         close(row["reference_point_2"], 1000.0, "reference_point_2")
         close(row["budget_cap_units"], 8.0, "budget_cap_units")
@@ -86,8 +88,13 @@ def main() -> int:
         close(row["admission_yield"], 0.5, "admission_yield")
         hv = hypervolume(expected["points"], (0.05, 1000.0))
         close(row["validated_hypervolume_2d"], hv, "validated_hypervolume_2d")
+        normalized_hv = hv / (0.05 * 1000.0)
+        close(row["normalized_validated_hypervolume_fraction"], normalized_hv,
+              "normalized_validated_hypervolume_fraction")
         close(row["validated_hypervolume_per_cost"], hv / expected["cost"],
               "validated_hypervolume_per_cost")
+        close(row["normalized_hypervolume_per_cost"], normalized_hv / expected["cost"],
+              "normalized_hypervolume_per_cost")
         require(row["evidence_level"] ==
                 "caller_bound_admission_receipt_scorecard_not_solver_validation",
                 "evidence ceiling missing")

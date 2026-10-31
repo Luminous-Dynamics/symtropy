@@ -87,6 +87,8 @@ fn run() -> Result<(), String> {
         task_id: "airfoil-multipoint-smoke".to_owned(),
         objective_1_name: "drag_coefficient".to_owned(),
         objective_2_name: "mission_energy_wh".to_owned(),
+        ideal_point_1: 0.0,
+        ideal_point_2: 0.0,
         reference_point_1: 0.05,
         reference_point_2: 1000.0,
     };
