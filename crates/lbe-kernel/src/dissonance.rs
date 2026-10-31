@@ -954,6 +954,16 @@ mod tests {
         record.record_safeguards(safe_safeguards(), context).unwrap();
     }
 
+    fn apply_disposition(
+        record: &mut DissonanceRecord,
+        disposition: DissonanceDisposition,
+        at: u64,
+    ) -> Result<(), DissonanceError> {
+        let receipt = format!("decision-{}", record.event_history().count() + 1);
+        let context = event_context(record, at, &receipt);
+        record.set_disposition_with_context(disposition, context)
+    }
+
     #[test]
     fn record_preserves_both_poles_without_a_composite_score() {
         let record = record(DissonanceKind::StructuralParadox);
