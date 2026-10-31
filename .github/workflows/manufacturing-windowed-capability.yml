@@ -1,0 +1,42 @@
+name: Time-windowed manufacturing capability reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-capability/windowed_capability.rs"
+      - "tools/manufacturing-capability/README.md"
+      - ".github/workflows/manufacturing-windowed-capability.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-capability/windowed_capability.rs"
+      - "tools/manufacturing-capability/README.md"
+      - ".github/workflows/manufacturing-windowed-capability.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windowed-capability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run evidence/drift tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/manufacturing-capability/windowed_capability.rs -o "$RUNNER_TEMP/windowed-capability-tests"
+          "$RUNNER_TEMP/windowed-capability-tests"
+      - name: Build and verify frozen campaign statuses
+        run: |
+          rustc --edition=2024 -D warnings tools/manufacturing-capability/windowed_capability.rs -o "$RUNNER_TEMP/windowed-capability"
+          "$RUNNER_TEMP/windowed-capability" --verify
+      - name: Verify deterministic CSV output
+        run: |
+          "$RUNNER_TEMP/windowed-capability" --csv > "$RUNNER_TEMP/capability-a.csv"
+          "$RUNNER_TEMP/windowed-capability" --csv > "$RUNNER_TEMP/capability-b.csv"
+          diff -u "$RUNNER_TEMP/capability-a.csv" "$RUNNER_TEMP/capability-b.csv"
+          sha256sum tools/manufacturing-capability/windowed_capability.rs "$RUNNER_TEMP/capability-a.csv"
+          cat "$RUNNER_TEMP/capability-a.csv"
