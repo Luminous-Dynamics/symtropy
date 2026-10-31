@@ -353,13 +353,21 @@ impl StudyRng {
     }
 
     fn index(&mut self, length: usize) -> usize {
-        (self.next_u64() as usize) % length
+        let bound = length as u64;
+        let rejection_threshold = (0_u64.wrapping_sub(bound)) % bound;
+        loop {
+            let value = self.next_u64();
+            if value >= rejection_threshold {
+                return (value % bound) as usize;
+            }
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeSet;
 
     fn smoke_config(seeds: Vec<u64>) -> PairedStudyConfig {
         PairedStudyConfig {
