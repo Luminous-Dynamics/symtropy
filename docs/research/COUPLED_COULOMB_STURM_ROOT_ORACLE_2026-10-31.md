@@ -17,18 +17,19 @@ The safe response to a stationary value that is small but nonzero at the configu
 
 The new test-only verifier is implemented in coupled_friction_sturm.rs. It does not reuse the production derivative-partition algorithm.
 
-1. Each finite binary64 coefficient is decoded from its IEEE-754 sign, exponent and significand into its **exact dyadic rational**. There is no decimal parse or floating conversion in this step.
-2. It builds a polynomial over BigRational.
-3. It constructs a classical Sturm chain using exact rational polynomial remainders. Only positive rescalings are applied, so sign variations are preserved.
-4. At rational endpoints, one-sided signs are obtained from the first nonzero derivative. This handles a root exactly on a bisection midpoint without dropping it or double-counting it.
-5. A strict Cauchy bound encloses every finite real root. Exact Sturm variation differences count distinct roots in open rational intervals.
-6. Rational bisection yields disjoint intervals; each emitted interval has an independently verified Sturm count of exactly one. Exactly representable rational roots are retained as point intervals.
+1. Each finite binary64 entry of W, q and mu is decoded from its IEEE-754 sign, exponent and significand into its **exact dyadic rational**. There is no decimal parse or floating conversion in this step.
+2. The half-angle sliding equation is independently expanded as rational polynomials: the numerators of D(theta), the tangent free-velocity projection, and the A*s term are combined into the quartic. This is a vector/polynomial derivation, not a copy of the production closed-form coefficient array.
+3. Separately, the production f64 coefficient array is decoded into its exact dyadic polynomial. The exact-input derivation and the rounded production coefficients are compared under a coefficient-error envelope.
+4. For each exact rational polynomial, a classical Sturm chain is constructed using exact rational polynomial remainders. Only positive rescalings are applied, so sign variations are preserved.
+5. At rational endpoints, one-sided signs are obtained from the first nonzero derivative. This handles a root exactly on a bisection midpoint without dropping it or double-counting it.
+6. A strict Cauchy bound encloses every finite real root. Exact Sturm variation differences count distinct roots in open rational intervals.
+7. Rational bisection yields disjoint intervals; each emitted interval has an independently verified Sturm count of exactly one.
 
-The test compares the production root list with the exact distinct-root count and checks that every production root is close to one certified interval.
+The test compares the production numerical candidates with the exact-input quartic's distinct-root count and isolating intervals. It also verifies that the rounded coefficient polynomial has the same count on the frozen corpus.
 
 ### Claim boundary
 
-This proves the number and isolating intervals of the distinct real roots of the **binary64 coefficient polynomial actually supplied to the oracle**. It does not prove that the coefficient calculation from physical inputs was performed in exact arithmetic, nor that an impulse satisfies the original physical model beyond the existing independent residual checks. It is an independent root-completeness check for the rounded quartic, not a complete formal proof of the entire contact solve.
+This certifies the number and isolating intervals of distinct real roots for the exact algebraic half-angle quartic formed from the **binary64 W, q and mu inputs**. It also checks the production rounded coefficient array against that exact-input polynomial on a preregistered corpus. It does not certify the correctness of the physical assembly of W or q, model uncertainty, the contact law beyond its derivation, or the impulse against the entire physical system beyond the existing independent residual checks. It is a root-completeness oracle for this single-contact quartic, not a complete formal proof of the entire contact solve.
 
 The verifier is test-only. num-bigint, num-rational and num-traits are development dependencies, not runtime dependencies of Symtropy's physics crate.
 
@@ -63,7 +64,7 @@ These are gates, not achieved measurements:
 | False UniqueWithinTolerance on unresolved root panels | 0 |
 | Exact arithmetic in release/runtime solver | Not required |
 
-The next stronger step is interval arithmetic on the coefficient construction itself, which would enclose rounding from W, q, mu through the quartic coefficients. That is a distinct proof obligation and should not be conflated with the exact Sturm count for the supplied binary64 polynomial.
+The remaining stronger step is an interval proof for the coefficient formula and its sensitivity over uncertain physical inputs, not merely exact arithmetic at one binary64 input tuple. That is a distinct proof obligation and should not be conflated with the exact Sturm count for the declared W, q and mu values.
 
 ## Industry and research comparison
 
