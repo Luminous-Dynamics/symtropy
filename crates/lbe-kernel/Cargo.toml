@@ -1,0 +1,16 @@
+[package]
+name = "lbe-kernel"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Dependency-free rights-first provisioning and mutual-credit accounting kernel"
+
+[lib]
+path = "src/lib.rs"
+
+# This crate is deliberately its own tiny workspace. It can be tested without
+# pulling in Symtropy's Bevy graph or private Mycelix integration dependencies.
+[workspace]
+members = ["."]
+resolver = "3"
