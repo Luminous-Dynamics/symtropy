@@ -1,6 +1,6 @@
 # Probability-based conformity risk reference
 
-This standalone Rust reference demonstrates exact finite-support calculation of consumer and producer risk for an explicit process population and measurement likelihood. All values are synthetic. It does not infer a probability distribution from an expanded uncertainty value and it does not authorize product release.
+This standalone Rust reference is an exact finite-support global operating-characteristic oracle. It evaluates the joint distribution induced by an explicit process population and conditional measurement likelihood, computes per-observation posterior conformance, and integrates global consumer/producer risk over the policy's accepted/rejected regions. It is intended as an independent small-state mathematical oracle for the per-item histogram posterior path in Symtropy PR #3008, not as a second production posterior representation. All values are synthetic. It does not infer a probability distribution from expanded uncertainty and it does not authorize product release.
 
 ## Model
 
@@ -10,6 +10,8 @@ This standalone Rust reference demonstrates exact finite-support calculation of 
 - Approved synthetic thresholds: maximum specific consumer risk 0.15, maximum specific producer risk 0.25, maximum global consumer risk 0.05 and maximum global producer risk 0.05.
 
 The measurement matrix contains non-zero tails. This ensures that false acceptance and false rejection risks are measurable.
+
+The frozen input manifest binds scenario ID `SYNTHETIC-METROLOGY-PRIOR-SHIFT-01`, specification `SYNTHETIC-SHAFT-10-20`, and separate SHA-256 digests for the process prior (`fa3fc7d7…`), likelihood (`c82e0427…`), risk policy (`0eb1be66…`) and specification (`cde0e2b5…`). The CSV emits both the true-support population and the measured-bin decision/risk rows so the global calculation can be reconstructed.
 
 ## Calculations
 
