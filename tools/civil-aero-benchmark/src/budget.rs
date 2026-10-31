@@ -6,8 +6,8 @@
 
 use std::collections::{BTreeMap, HashSet};
 
-pub const LEDGER_INPUT_HEADER: &str = "task_id,replicate_id,policy_id,operation_id,operation_kind,fidelity,cost_units,budget_cap_units,wall_seconds,cpu_seconds,success,output_sha256,reason_code";
-pub const LEDGER_OUTPUT_HEADER: &str = "task_id,replicate_id,policy_id,budget_cap_units,total_cost_units,remaining_budget_units,wall_seconds,cpu_seconds,operation_count,successful_operations,failed_operations,all_operation_costs_counted,evidence_level";
+pub const LEDGER_INPUT_HEADER: &str = "task_id,replicate_id,policy_id,operation_id,operation_kind,fidelity,aerodynamic_condition_calls_attempted,aerodynamic_condition_calls_succeeded,cost_units,budget_cap_units,wall_seconds,cpu_seconds,success,output_sha256,reason_code";
+pub const LEDGER_OUTPUT_HEADER: &str = "task_id,replicate_id,policy_id,budget_cap_units,total_cost_units,remaining_budget_units,wall_seconds,cpu_seconds,operation_count,successful_operations,failed_operations,all_operation_costs_counted,evidence_level,aerodynamic_condition_calls_attempted,aerodynamic_condition_calls_succeeded,aerodynamic_condition_calls_failed,high_fidelity_condition_calls_attempted,high_fidelity_condition_calls_succeeded,high_fidelity_condition_calls_failed";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LedgerOperation {
@@ -17,6 +17,10 @@ pub struct LedgerOperation {
     pub operation_id: String,
     pub operation_kind: String,
     pub fidelity: String,
+    /// Actual aerodynamic operating-condition solver/model calls, including failed calls.
+    pub aerodynamic_condition_calls_attempted: u64,
+    /// Successful condition outputs, a subset of attempted calls.
+    pub aerodynamic_condition_calls_succeeded: u64,
     pub cost_units: f64,
     pub budget_cap_units: f64,
     pub wall_seconds: f64,
@@ -39,6 +43,10 @@ pub struct PolicyBudgetSummary {
     pub operation_count: usize,
     pub successful_operations: usize,
     pub failed_operations: usize,
+    pub aerodynamic_condition_calls_attempted: u64,
+    pub aerodynamic_condition_calls_succeeded: u64,
+    pub high_fidelity_condition_calls_attempted: u64,
+    pub high_fidelity_condition_calls_succeeded: u64,
 }
 
 pub fn parse_ledger_csv(input: &str) -> Result<Vec<LedgerOperation>, String> {
@@ -90,7 +98,12 @@ pub fn parse_ledger_csv(input: &str) -> Result<Vec<LedgerOperation>, String> {
             }
             Ok(value)
         };
-        let success = match fields[10] {
+        let condition_calls = |index: usize, name: &str| -> Result<u64, String> {
+            fields[index]
+                .parse::<u64>()
+                .map_err(|_| format!("line {line_number}: {name} must be a non-negative integer"))
+        };
+        let success = match fields[12] {
             "true" => true,
             "false" => false,
             _ => return Err(format!("line {line_number}: success must be true or false")),
@@ -103,13 +116,15 @@ pub fn parse_ledger_csv(input: &str) -> Result<Vec<LedgerOperation>, String> {
             operation_id: string_field(3, "operation_id")?,
             operation_kind: string_field(4, "operation_kind")?,
             fidelity: string_field(5, "fidelity")?,
-            cost_units: number(6, "cost_units")?,
-            budget_cap_units: number(7, "budget_cap_units")?,
-            wall_seconds: number(8, "wall_seconds")?,
-            cpu_seconds: number(9, "cpu_seconds")?,
+            aerodynamic_condition_calls_attempted: condition_calls(6, "aerodynamic_condition_calls_attempted")?,
+            aerodynamic_condition_calls_succeeded: condition_calls(7, "aerodynamic_condition_calls_succeeded")?,
+            cost_units: number(8, "cost_units")?,
+            budget_cap_units: number(9, "budget_cap_units")?,
+            wall_seconds: number(10, "wall_seconds")?,
+            cpu_seconds: number(11, "cpu_seconds")?,
             success,
-            output_sha256: string_field(11, "output_sha256")?,
-            reason_code: string_field(12, "reason_code")?,
+            output_sha256: string_field(13, "output_sha256")?,
+            reason_code: string_field(14, "reason_code")?,
         };
         validate_operation(&operation, line_number)?;
 
@@ -182,6 +197,30 @@ fn validate_operation(operation: &LedgerOperation, line_number: usize) -> Result
             "line {line_number}: time costs must be non-negative"
         ));
     }
+    if operation.aerodynamic_condition_calls_succeeded
+        > operation.aerodynamic_condition_calls_attempted
+    {
+        return Err(format!(
+            "line {line_number}: successful aerodynamic condition calls exceed attempted calls"
+        ));
+    }
+    let requires_condition_calls = matches!(
+        operation.operation_kind.as_str(),
+        "low_fidelity" | "high_fidelity"
+    );
+    if requires_condition_calls && operation.aerodynamic_condition_calls_attempted == 0 {
+        return Err(format!(
+            "line {line_number}: low/high fidelity operations require explicit aerodynamic condition-call counts"
+        ));
+    }
+    if !requires_condition_calls
+        && (operation.aerodynamic_condition_calls_attempted != 0
+            || operation.aerodynamic_condition_calls_succeeded != 0)
+    {
+        return Err(format!(
+            "line {line_number}: non-aerodynamic operations must use zero condition-call counts"
+        ));
+    }
     if operation.success {
         if !is_sha256_hex(&operation.output_sha256) {
             return Err(format!(
@@ -217,6 +256,10 @@ pub fn summarize_matched_budget(
         count: usize,
         successful: usize,
         failed: usize,
+        aerodynamic_condition_calls_attempted: u64,
+        aerodynamic_condition_calls_succeeded: u64,
+        high_fidelity_condition_calls_attempted: u64,
+        high_fidelity_condition_calls_succeeded: u64,
     }
 
     let mut groups = BTreeMap::<(String, String, String), Accumulator>::new();
@@ -243,6 +286,24 @@ pub fn summarize_matched_budget(
         acc.total_cost += operation.cost_units;
         acc.wall_seconds += operation.wall_seconds;
         acc.cpu_seconds += operation.cpu_seconds;
+        acc.aerodynamic_condition_calls_attempted = acc
+            .aerodynamic_condition_calls_attempted
+            .checked_add(operation.aerodynamic_condition_calls_attempted)
+            .ok_or_else(|| "aerodynamic condition-call count overflowed".to_owned())?;
+        acc.aerodynamic_condition_calls_succeeded = acc
+            .aerodynamic_condition_calls_succeeded
+            .checked_add(operation.aerodynamic_condition_calls_succeeded)
+            .ok_or_else(|| "successful aerodynamic condition-call count overflowed".to_owned())?;
+        if operation.operation_kind == "high_fidelity" {
+            acc.high_fidelity_condition_calls_attempted = acc
+                .high_fidelity_condition_calls_attempted
+                .checked_add(operation.aerodynamic_condition_calls_attempted)
+                .ok_or_else(|| "high-fidelity condition-call count overflowed".to_owned())?;
+            acc.high_fidelity_condition_calls_succeeded = acc
+                .high_fidelity_condition_calls_succeeded
+                .checked_add(operation.aerodynamic_condition_calls_succeeded)
+                .ok_or_else(|| "successful high-fidelity condition-call count overflowed".to_owned())?;
+        }
         acc.count += 1;
         if operation.success {
             acc.successful += 1;
@@ -308,6 +369,10 @@ pub fn summarize_matched_budget(
                 operation_count: acc.count,
                 successful_operations: acc.successful,
                 failed_operations: acc.failed,
+                aerodynamic_condition_calls_attempted: acc.aerodynamic_condition_calls_attempted,
+                aerodynamic_condition_calls_succeeded: acc.aerodynamic_condition_calls_succeeded,
+                high_fidelity_condition_calls_attempted: acc.high_fidelity_condition_calls_attempted,
+                high_fidelity_condition_calls_succeeded: acc.high_fidelity_condition_calls_succeeded,
             }
         })
         .collect())
@@ -315,7 +380,7 @@ pub fn summarize_matched_budget(
 
 pub fn summary_csv_row(summary: &PolicyBudgetSummary) -> String {
     format!(
-        "{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{},{},{},true,ledger_audit_only",
+        "{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{},{},{},true,ledger_audit_only,{},{},{},{},{},{}",
         summary.task_id,
         summary.replicate_id,
         summary.policy_id,
@@ -326,7 +391,13 @@ pub fn summary_csv_row(summary: &PolicyBudgetSummary) -> String {
         summary.cpu_seconds,
         summary.operation_count,
         summary.successful_operations,
-        summary.failed_operations
+        summary.failed_operations,
+        summary.aerodynamic_condition_calls_attempted,
+        summary.aerodynamic_condition_calls_succeeded,
+        summary.aerodynamic_condition_calls_attempted - summary.aerodynamic_condition_calls_succeeded,
+        summary.high_fidelity_condition_calls_attempted,
+        summary.high_fidelity_condition_calls_succeeded,
+        summary.high_fidelity_condition_calls_attempted - summary.high_fidelity_condition_calls_succeeded
     )
 }
 
@@ -357,6 +428,8 @@ mod tests {
             operation_id: op_id.to_owned(),
             operation_kind: kind.to_owned(),
             fidelity: "high".to_owned(),
+            aerodynamic_condition_calls_attempted: if kind == "high_fidelity" { 1 } else { 0 },
+            aerodynamic_condition_calls_succeeded: if kind == "high_fidelity" && success { 1 } else { 0 },
             cost_units: cost,
             budget_cap_units: cap,
             wall_seconds: 0.5 * cost,
@@ -390,6 +463,60 @@ mod tests {
         assert_eq!(random.remaining_budget_units, 2.5);
         assert!((voi.total_cost_units - 2.5).abs() < 1e-12);
         assert_eq!(voi.failed_operations, 0);
+    }
+
+    #[test]
+    fn multipoint_operations_charge_every_condition_including_failed_conditions() {
+        let mut multipoint = operation("voi", "hpa-multipoint", "high_fidelity", 1.0, true, 5.0);
+        multipoint.aerodynamic_condition_calls_attempted = 6;
+        multipoint.aerodynamic_condition_calls_succeeded = 5;
+        let single_point = operation("random", "single-point", "high_fidelity", 1.0, true, 5.0);
+        let rows = vec![multipoint, single_point];
+
+        let summary = summarize_matched_budget(&rows).expect("matched multipoint budget");
+        let voi = summary.iter().find(|row| row.policy_id == "voi").expect("voi");
+        let random = summary
+            .iter()
+            .find(|row| row.policy_id == "random")
+            .expect("random");
+
+        assert_eq!(voi.aerodynamic_condition_calls_attempted, 6);
+        assert_eq!(voi.aerodynamic_condition_calls_succeeded, 5);
+        assert_eq!(voi.high_fidelity_condition_calls_attempted, 6);
+        assert_eq!(voi.high_fidelity_condition_calls_succeeded, 5);
+        assert_eq!(
+            voi.high_fidelity_condition_calls_attempted
+                - voi.high_fidelity_condition_calls_succeeded,
+            1
+        );
+        assert_eq!(random.high_fidelity_condition_calls_attempted, 1);
+
+        let parsed = parse_ledger_csv(&serialize(&rows)).expect("serialize/parse round trip");
+        assert_eq!(parsed, rows);
+    }
+
+    #[test]
+    fn aerodynamic_condition_counts_must_be_explicit_and_consistent() {
+        let mut missing_calls = operation("random", "hf", "high_fidelity", 1.0, true, 5.0);
+        missing_calls.aerodynamic_condition_calls_attempted = 0;
+        missing_calls.aerodynamic_condition_calls_succeeded = 0;
+        assert!(validate_operation(&missing_calls, 1)
+            .expect_err("high-fidelity operation cannot omit condition count")
+            .contains("require explicit aerodynamic condition-call counts"));
+
+        let mut impossible = operation("random", "hf", "high_fidelity", 1.0, true, 5.0);
+        impossible.aerodynamic_condition_calls_attempted = 1;
+        impossible.aerodynamic_condition_calls_succeeded = 2;
+        assert!(validate_operation(&impossible, 1)
+            .expect_err("successful calls cannot exceed attempts")
+            .contains("exceed attempted calls"));
+
+        let mut audit_with_calls = operation("random", "audit", "audit", 0.1, true, 5.0);
+        audit_with_calls.aerodynamic_condition_calls_attempted = 1;
+        audit_with_calls.aerodynamic_condition_calls_succeeded = 1;
+        assert!(validate_operation(&audit_with_calls, 1)
+            .expect_err("audit operation is not aerodynamic")
+            .contains("non-aerodynamic operations"));
     }
 
     #[test]
@@ -431,13 +558,15 @@ mod tests {
         let mut output = format!("{LEDGER_INPUT_HEADER}\n");
         for operation in operations {
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
                 operation.task_id,
                 operation.replicate_id,
                 operation.policy_id,
                 operation.operation_id,
                 operation.operation_kind,
                 operation.fidelity,
+                operation.aerodynamic_condition_calls_attempted,
+                operation.aerodynamic_condition_calls_succeeded,
                 operation.cost_units,
                 operation.budget_cap_units,
                 operation.wall_seconds,

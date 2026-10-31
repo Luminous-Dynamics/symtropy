@@ -79,6 +79,12 @@ pub struct PolicyBenchmarkRow {
     pub operation_count: usize,
     pub successful_operations: usize,
     pub failed_operations: usize,
+    pub aerodynamic_condition_calls_attempted: u64,
+    pub aerodynamic_condition_calls_succeeded: u64,
+    pub aerodynamic_condition_calls_failed: u64,
+    pub high_fidelity_condition_calls_attempted: u64,
+    pub high_fidelity_condition_calls_succeeded: u64,
+    pub high_fidelity_condition_calls_failed: u64,
     pub high_fidelity_attempts: usize,
     pub successful_high_fidelity_operations: usize,
     pub admitted_candidates: usize,
@@ -392,6 +398,14 @@ pub fn evaluate_policy_benchmark(
             operation_count: budget.operation_count,
             successful_operations: budget.successful_operations,
             failed_operations: budget.failed_operations,
+            aerodynamic_condition_calls_attempted: budget.aerodynamic_condition_calls_attempted,
+            aerodynamic_condition_calls_succeeded: budget.aerodynamic_condition_calls_succeeded,
+            aerodynamic_condition_calls_failed: budget.aerodynamic_condition_calls_attempted
+                - budget.aerodynamic_condition_calls_succeeded,
+            high_fidelity_condition_calls_attempted: budget.high_fidelity_condition_calls_attempted,
+            high_fidelity_condition_calls_succeeded: budget.high_fidelity_condition_calls_succeeded,
+            high_fidelity_condition_calls_failed: budget.high_fidelity_condition_calls_attempted
+                - budget.high_fidelity_condition_calls_succeeded,
             high_fidelity_attempts: hf_attempts,
             successful_high_fidelity_operations: successful_hf,
             admitted_candidates,
@@ -522,13 +536,13 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const POLICY_BENCHMARK_CSV_HEADER: &str = "task_id,replicate_id,policy_id,objective_1_name,objective_2_name,ideal_point_1,ideal_point_2,reference_point_1,reference_point_2,budget_cap_units,total_cost_units,remaining_budget_units,budget_utilization_fraction,wall_seconds,cpu_seconds,operation_count,successful_operations,failed_operations,high_fidelity_attempts,successful_high_fidelity_operations,admitted_candidates,not_admitted_candidates,feasible_admitted_candidates,feasible_yield,admission_yield,validated_hypervolume_2d,normalized_validated_hypervolume_fraction,validated_hypervolume_per_cost,normalized_hypervolume_per_cost,evidence_level";
+pub const POLICY_BENCHMARK_CSV_HEADER: &str = "task_id,replicate_id,policy_id,objective_1_name,objective_2_name,ideal_point_1,ideal_point_2,reference_point_1,reference_point_2,budget_cap_units,total_cost_units,remaining_budget_units,budget_utilization_fraction,wall_seconds,cpu_seconds,operation_count,successful_operations,failed_operations,high_fidelity_attempts,successful_high_fidelity_operations,admitted_candidates,not_admitted_candidates,feasible_admitted_candidates,feasible_yield,admission_yield,validated_hypervolume_2d,normalized_validated_hypervolume_fraction,validated_hypervolume_per_cost,normalized_hypervolume_per_cost,evidence_level,aerodynamic_condition_calls_attempted,aerodynamic_condition_calls_succeeded,aerodynamic_condition_calls_failed,high_fidelity_condition_calls_attempted,high_fidelity_condition_calls_succeeded,high_fidelity_condition_calls_failed";
 
 pub fn report_to_csv(report: &PolicyBenchmarkReport) -> String {
     let mut output = format!("{POLICY_BENCHMARK_CSV_HEADER}\n");
     for row in &report.rows {
         output.push_str(&format!(
-            "{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{}\n",
+            "{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{}\n",
             csv_escape(&row.task_id),
             csv_escape(&row.replicate_id),
             csv_escape(&row.policy_id),
@@ -562,7 +576,13 @@ pub fn report_to_csv(report: &PolicyBenchmarkReport) -> String {
             row.normalized_hypervolume_per_cost
                 .map(|value| format!("{value:.12}"))
                 .unwrap_or_default(),
-            row.evidence_level
+            row.evidence_level,
+            row.aerodynamic_condition_calls_attempted,
+            row.aerodynamic_condition_calls_succeeded,
+            row.aerodynamic_condition_calls_failed,
+            row.high_fidelity_condition_calls_attempted,
+            row.high_fidelity_condition_calls_succeeded,
+            row.high_fidelity_condition_calls_failed
         ));
     }
     output
@@ -594,6 +614,8 @@ mod tests {
             operation_id: id.to_owned(),
             operation_kind: kind.to_owned(),
             fidelity: if kind == "high_fidelity" { "high" } else { "low" }.to_owned(),
+            aerodynamic_condition_calls_attempted: if matches!(kind, "high_fidelity" | "low_fidelity") { 6 } else { 0 },
+            aerodynamic_condition_calls_succeeded: if matches!(kind, "high_fidelity" | "low_fidelity") && success { 6 } else { 0 },
             cost_units: cost,
             budget_cap_units: cap,
             wall_seconds: cost * 10.0,
@@ -686,6 +708,12 @@ mod tests {
         let voi = report.rows.iter().find(|row| row.replicate_id == "seed-1" && row.policy_id == "voi").unwrap();
         assert_eq!(uniform.failed_operations, 1);
         assert_eq!(uniform.high_fidelity_attempts, 4);
+        assert_eq!(uniform.aerodynamic_condition_calls_attempted, 30);
+        assert_eq!(uniform.aerodynamic_condition_calls_succeeded, 24);
+        assert_eq!(uniform.aerodynamic_condition_calls_failed, 6);
+        assert_eq!(uniform.high_fidelity_condition_calls_attempted, 24);
+        assert_eq!(uniform.high_fidelity_condition_calls_succeeded, 18);
+        assert_eq!(uniform.high_fidelity_condition_calls_failed, 6);
         assert_eq!(uniform.admitted_candidates, 2);
         assert_eq!(uniform.not_admitted_candidates, 1);
         assert_eq!(uniform.feasible_admitted_candidates, 2);

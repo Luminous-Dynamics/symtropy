@@ -187,8 +187,8 @@ jobs:
           cargo run --locked --bin budget_audit -- data/decision_value/matched_budget_ledger.csv > /tmp/aero-budget-b.csv
           cmp /tmp/aero-budget-a.csv /tmp/aero-budget-b.csv
           test "$(wc -l < /tmp/aero-budget-a.csv)" -eq 3
-          grep -q "naca-smoke,seed-1,random,5.000000,2.500000,2.500000,1.250000,1.000000,2,1,1,true,ledger_audit_only" /tmp/aero-budget-a.csv
-          grep -q "naca-smoke,seed-1,voi,5.000000,2.500000,2.500000,1.250000,1.000000,2,2,0,true,ledger_audit_only" /tmp/aero-budget-a.csv
+          grep -q "naca-smoke,seed-1,random,5.000000,2.500000,2.500000,1.250000,1.000000,2,1,1,true,ledger_audit_only,2,1,1,2,1,1" /tmp/aero-budget-a.csv
+          grep -q "naca-smoke,seed-1,voi,5.000000,2.500000,2.500000,1.250000,1.000000,2,2,0,true,ledger_audit_only,6,6,0,6,6,0" /tmp/aero-budget-a.csv
           if cargo run --locked --bin budget_audit -- data/decision_value/budget_overrun_negative_control.csv > /tmp/aero-budget-overrun.csv 2> /tmp/aero-budget-overrun.txt; then
             echo "budget overrun negative control unexpectedly passed" >&2
             exit 1
@@ -297,7 +297,7 @@ jobs:
           cmp /tmp/policy-benchmark-a.csv /tmp/policy-benchmark-b.csv
           cmp /tmp/policy-benchmark-a.txt /tmp/policy-benchmark-b.txt
           test "$(wc -l < /tmp/policy-benchmark-a.csv)" -eq 5
-          grep -q "synthetic_policy_benchmark_only tasks=1 replicates=2 policies=2" /tmp/policy-benchmark-a.txt
+          grep -q "synthetic_policy_benchmark_only tasks=1 replicates=2 policies=2 rows=4 high_fidelity_attempts_per_policy=4 high_fidelity_condition_calls_per_policy=24 high_fidelity_condition_calls_failed_per_policy=6 admitted_candidates_per_policy=2" /tmp/policy-benchmark-a.txt
           python3 scripts/verify-policy-benchmark-independent.py /tmp/policy-benchmark-a.csv
       - name: Verify unsteady Welch PSD and stationarity with independent DFT oracle
         working-directory: tools/civil-aero-benchmark

@@ -79,6 +79,12 @@ def main() -> int:
         require(int(row["operation_count"]) == 5, "operation count mismatch")
         require(int(row["successful_operations"]) == 4, "successful operation count mismatch")
         require(int(row["failed_operations"]) == 1, "failed operation cost was omitted")
+        require(int(row["aerodynamic_condition_calls_attempted"]) == 30, "total aerodynamic condition-call attempts mismatch")
+        require(int(row["aerodynamic_condition_calls_succeeded"]) == 24, "successful aerodynamic condition calls mismatch")
+        require(int(row["aerodynamic_condition_calls_failed"]) == 6, "failed aerodynamic condition calls mismatch")
+        require(int(row["high_fidelity_condition_calls_attempted"]) == 24, "high-fidelity condition-call attempts mismatch")
+        require(int(row["high_fidelity_condition_calls_succeeded"]) == 18, "successful high-fidelity condition calls mismatch")
+        require(int(row["high_fidelity_condition_calls_failed"]) == 6, "failed high-fidelity condition calls mismatch")
         require(int(row["high_fidelity_attempts"]) == 4, "HF attempt count mismatch")
         require(int(row["successful_high_fidelity_operations"]) == 3, "successful HF count mismatch")
         require(int(row["admitted_candidates"]) == 2, "admitted count mismatch")
@@ -105,7 +111,8 @@ def main() -> int:
             EXPECTED["uniform"]["hypervolume"] / EXPECTED["uniform"]["cost"],
             "known-answer VOI policy should have better HV per cost")
     print("independent_policy_benchmark_oracle=pass rows=4 tasks=1 replicates=2 policies=2 "
-          "uniform_cost=6.75 voi_cost=5.0 failed_attempts_counted=true admitted_only_hv=true")
+          "uniform_cost=6.75 voi_cost=5.0 failed_attempts_counted=true "
+          "condition_calls_attempted=30 high_fidelity_condition_calls=24 admitted_only_hv=true")
     return 0
 
 

@@ -341,3 +341,8 @@ See SHAPEBENCH_FAMILY_COST_PROTOCOL_V0_1.md for the clean-room adapter design, l
 
 
 The aggregate CSV now carries the common cost-unit basis, task-family mapping SHA-256, bootstrap sample count and seed on every policy row. The digest is computed over the canonical sorted task-to-family mapping (UTF-8, task ID, tab, family ID, newline); the Python oracle independently recomputes it.
+
+
+## Multipoint condition-call cost accounting
+
+Each operation ledger row now explicitly records aerodynamic condition calls attempted and successful, separate from operation-level success and separate from normalized cost. Policy scorecards expose total and high-fidelity condition-call counts (including failed calls). This prevents a six-condition objective from being reported as a single equivalent evaluation. The matched-budget cost units remain the total cost authority; call counts are an independent workload metric, not an extra cost charge.

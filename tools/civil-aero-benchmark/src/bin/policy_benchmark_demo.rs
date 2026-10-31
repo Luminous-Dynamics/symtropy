@@ -30,6 +30,16 @@ fn operation(
         } else {
             "low".to_owned()
         },
+        aerodynamic_condition_calls_attempted: if matches!(kind, "low_fidelity" | "high_fidelity") {
+            6
+        } else {
+            0
+        },
+        aerodynamic_condition_calls_succeeded: if matches!(kind, "low_fidelity" | "high_fidelity") && success {
+            6
+        } else {
+            0
+        },
         cost_units: cost,
         budget_cap_units: 8.0,
         wall_seconds: cost * 10.0,
@@ -167,7 +177,7 @@ fn run() -> Result<(), String> {
 
     let report = evaluate_policy_benchmark(&[task], &operations, &candidates)?;
     eprintln!(
-        "synthetic_policy_benchmark_only tasks=1 replicates=2 policies=2 rows={} high_fidelity_attempts_per_policy=4 failed_attempts_per_policy=1 admitted_candidates_per_policy=2",
+        "synthetic_policy_benchmark_only tasks=1 replicates=2 policies=2 rows={} high_fidelity_attempts_per_policy=4 high_fidelity_condition_calls_per_policy=24 high_fidelity_condition_calls_failed_per_policy=6 admitted_candidates_per_policy=2",
         report.rows.len()
     );
     print!("{}", report_to_csv(&report));

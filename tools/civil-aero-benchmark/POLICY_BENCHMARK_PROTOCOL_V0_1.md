@@ -76,3 +76,18 @@ Use multiple seeds and hold out complete geometry families and flow regimes. Cha
 ### Preferred CFD admission receipt binding
 
 For a CFD-derived candidate, populate candidate.admission_receipt_sha256 with the receipt_sha256 returned by create_cfd_evidence_chain_receipt. That helper re-verifies the eight per-grid artifact roles, recomputes the numerical-admission report and emits a deterministic composite digest over the artifact bundle and numerical evidence. This scorecard still checks only the digest's syntax and does not verify the underlying receipt or its signer. A signed runner attestation remains future work.
+
+
+## Aerodynamic condition-call accounting (v0.2 extension)
+
+The operation ledger now requires two explicit non-negative integer fields for every operation:
+- aerodynamic_condition_calls_attempted;
+- aerodynamic_condition_calls_succeeded.
+
+A low- or high-fidelity operation must declare at least one attempted aerodynamic condition call. For non-aerodynamic work (sampling, tuning, orchestration, audit, etc.), both fields must be zero. Successful condition calls may not exceed attempts. A solver operation can produce a usable output while some constituent condition calls fail; the success fields therefore track condition calls separately from the operation-level output status.
+
+The budget summary reports total and high-fidelity condition-call attempts, successes and failures. Failed condition calls are attempted minus succeeded; they are never silently discarded. This is an additional workload counter, not a second charge to cost_units. The normalized cost ledger remains the total budget authority; condition-call counts expose work hidden inside a multipoint objective.
+
+A six-point HPA evaluation must record six actual condition calls per candidate (or the actual number reached if some calls are never started). A candidate with four successful calls and two failed calls must report attempted=6, succeeded=4. If the solver stops early after a failure, report only the condition calls actually attempted; never infer the planned six as executed.
+
+The synthetic policy known-answer uses six condition calls for each low-fidelity screen and each high-fidelity operation. Per policy it records 30 aerodynamic condition calls total, of which 24 are high-fidelity; one failed high-fidelity operation contributes six attempted and zero successful condition calls. The independent oracle checks those counts. The data are synthetic and do not represent an actual HPA optimization run.
