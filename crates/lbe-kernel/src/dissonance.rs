@@ -637,6 +637,27 @@ impl DissonanceRecord {
                 DissonanceEventKind::DispositionRecorded { disposition } => {
                     record.set_disposition_with_context(disposition.clone(), context)?;
                 }
+                DissonanceEventKind::PositionCorrected {
+                    position_id, revision, ..
+                } => {
+                    record.correct_position(
+                        position_id,
+                        revision.claim.clone(),
+                        revision.rationale.clone(),
+                        revision.evidence_refs.clone(),
+                        context,
+                    )?;
+                }
+                DissonanceEventKind::PositionWithdrawn {
+                    position_id, reason_ref, ..
+                } => {
+                    record.withdraw_position(position_id, reason_ref.clone(), context)?;
+                }
+                DissonanceEventKind::PositionReinstated {
+                    position_id, reason_ref, ..
+                } => {
+                    record.reinstate_position(position_id, reason_ref.clone(), context)?;
+                }
             }
             if record.event_history.last() != Some(event) {
                 return Err(DissonanceError::BrokenEventChain);
@@ -648,6 +669,154 @@ impl DissonanceRecord {
     /// Iterate over every preserved position in canonical ID order.
     pub fn positions(&self) -> impl Iterator<Item = &Position> {
         self.positions.values()
+    }
+
+    /// Iterate over currently active positions in canonical ID order.
+    pub fn active_positions(&self) -> impl Iterator<Item = &Position> {
+        self.positions.values().filter(|position| {
+            !self.withdrawn_positions.contains(&position.id)
+        })
+    }
+
+    /// Return whether a position has an active source-authored withdrawal.
+    pub fn is_position_withdrawn(&self, position_id: &PositionId) -> bool {
+        self.withdrawn_positions.contains(position_id)
+    }
+
+    /// Return all source-authored revisions for a position.
+    pub fn position_revision_history(
+        &self,
+        position_id: &PositionId,
+    ) -> Option<&[PositionRevision]> {
+        self.position_revisions.get(position_id).map(Vec::as_slice)
+    }
+
+    /// Return the current claim, falling back to the immutable original statement.
+    pub fn current_position_claim(&self, position_id: &PositionId) -> Option<&str> {
+        let original = self.positions.get(position_id)?;
+        Some(
+            self.position_revisions
+                .get(position_id)
+                .and_then(|history| history.last())
+                .map_or(original.claim.as_str(), |revision| revision.claim.as_str()),
+        )
+    }
+
+    fn current_revision_number(&self, position_id: &PositionId) -> Option<u64> {
+        self.positions.get(position_id)?;
+        Some(
+            self.position_revisions
+                .get(position_id)
+                .and_then(|history| history.last())
+                .map_or(0, |revision| revision.revision_number),
+        )
+    }
+
+    /// Append a correction authored by the original position source.
+    ///
+    /// The host must authenticate actor identity; this method additionally
+    /// requires it to match the immutable source field from the genesis position.
+    pub fn correct_position(
+        &mut self,
+        position_id: &PositionId,
+        claim: impl Into<String>,
+        rationale: impl Into<String>,
+        evidence_refs: Vec<String>,
+        context: EventContext,
+    ) -> Result<(), DissonanceError> {
+        let position = self.positions.get(position_id).ok_or(DissonanceError::UnknownReference)?;
+        if context.actor_id != position.source {
+            return Err(DissonanceError::UnauthorizedPositionMutation);
+        }
+        if self.withdrawn_positions.contains(position_id) {
+            return Err(DissonanceError::PositionAlreadyWithdrawn);
+        }
+        let previous_revision = self.current_revision_number(position_id)
+            .ok_or(DissonanceError::UnknownReference)?;
+        let revision_number = previous_revision
+            .checked_add(1)
+            .ok_or(DissonanceError::InvalidPositionRevision)?;
+        let revision = PositionRevision::new(
+            revision_number, claim, rationale, evidence_refs
+        )?;
+        self.append_event(
+            context,
+            DissonanceEventKind::PositionCorrected {
+                position_id: position_id.clone(),
+                previous_revision,
+                revision: revision.clone(),
+            },
+        )?;
+        self.position_revisions
+            .entry(position_id.clone())
+            .or_default()
+            .push(revision);
+        self.status = DissonanceStatus::UnderInquiry;
+        Ok(())
+    }
+
+    /// Append a withdrawal authored by the original source.
+    pub fn withdraw_position(
+        &mut self,
+        position_id: &PositionId,
+        reason_ref: String,
+        context: EventContext,
+    ) -> Result<(), DissonanceError> {
+        let position = self.positions.get(position_id).ok_or(DissonanceError::UnknownReference)?;
+        if context.actor_id != position.source {
+            return Err(DissonanceError::UnauthorizedPositionMutation);
+        }
+        if self.withdrawn_positions.contains(position_id) {
+            return Err(DissonanceError::PositionAlreadyWithdrawn);
+        }
+        if reason_ref.trim().is_empty() || reason_ref.len() > 512 {
+            return Err(DissonanceError::InvalidPositionRevision);
+        }
+        let revision_number = self.current_revision_number(position_id)
+            .ok_or(DissonanceError::UnknownReference)?;
+        self.append_event(
+            context,
+            DissonanceEventKind::PositionWithdrawn {
+                position_id: position_id.clone(),
+                revision_number,
+                reason_ref,
+            },
+        )?;
+        self.withdrawn_positions.insert(position_id.clone());
+        self.status = DissonanceStatus::UnderInquiry;
+        Ok(())
+    }
+
+    /// Append a reinstatement authored by the original position source.
+    pub fn reinstate_position(
+        &mut self,
+        position_id: &PositionId,
+        reason_ref: String,
+        context: EventContext,
+    ) -> Result<(), DissonanceError> {
+        let position = self.positions.get(position_id).ok_or(DissonanceError::UnknownReference)?;
+        if context.actor_id != position.source {
+            return Err(DissonanceError::UnauthorizedPositionMutation);
+        }
+        if !self.withdrawn_positions.contains(position_id) {
+            return Err(DissonanceError::PositionNotWithdrawn);
+        }
+        if reason_ref.trim().is_empty() || reason_ref.len() > 512 {
+            return Err(DissonanceError::InvalidPositionRevision);
+        }
+        let revision_number = self.current_revision_number(position_id)
+            .ok_or(DissonanceError::UnknownReference)?;
+        self.append_event(
+            context,
+            DissonanceEventKind::PositionReinstated {
+                position_id: position_id.clone(),
+                revision_number,
+                reason_ref,
+            },
+        )?;
+        self.withdrawn_positions.remove(position_id);
+        self.status = DissonanceStatus::UnderInquiry;
+        Ok(())
     }
 
     fn append_event(
@@ -806,7 +975,13 @@ impl DissonanceRecord {
         context: EventContext,
     ) -> Result<(), DissonanceError> {
         let now = context.occurred_at;
-        validate_disposition(&disposition, now, &self.positions, self.kind)?;
+        let active_positions: BTreeMap<PositionId, Position> = self
+            .positions
+            .iter()
+            .filter(|(id, _)| !self.withdrawn_positions.contains(*id))
+            .map(|(id, position)| (id.clone(), position.clone()))
+            .collect();
+        validate_disposition(&disposition, now, &active_positions, self.kind)?;
         if !matches!(&disposition, DissonanceDisposition::HoldOpen { .. })
             && !self.assess().ready_for_consequential_action
         {
