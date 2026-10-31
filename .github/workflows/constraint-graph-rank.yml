@@ -1,0 +1,45 @@
+name: Rank-aware constraint graph diagnostics
+
+on:
+  pull_request:
+    paths:
+      - "tools/constraint-graph-rank/**"
+      - "docs/research/CONSTRAINT_GRAPH_RANK_DIAGNOSTICS_2026-10-31.md"
+      - ".github/workflows/constraint-graph-rank.yml"
+  push:
+    branches:
+      - "research/constraint-graph-rank-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  rank-diagnostics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/constraint-graph-rank/constraint_graph_rank.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/constraint-graph-rank/constraint_graph_rank.rs \
+            -o /tmp/constraint-graph-rank-tests
+          /tmp/constraint-graph-rank-tests
+
+      - name: Compile optimized rank-stress replay
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/constraint-graph-rank/constraint_graph_rank.rs \
+            -o /tmp/constraint-graph-rank
+          /tmp/constraint-graph-rank > /tmp/constraint-graph-rank-a.csv
+          /tmp/constraint-graph-rank > /tmp/constraint-graph-rank-b.csv
+          cmp /tmp/constraint-graph-rank-a.csv /tmp/constraint-graph-rank-b.csv
+          test "$(wc -l < /tmp/constraint-graph-rank-a.csv)" -eq 10
+          grep -q "RankDeficient" /tmp/constraint-graph-rank-a.csv
