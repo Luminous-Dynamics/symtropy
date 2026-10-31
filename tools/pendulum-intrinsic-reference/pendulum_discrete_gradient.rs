@@ -553,7 +553,7 @@ mod tests {
     }
 
     #[test]
-    fn invalid_inputs_and_nonconvergent_solver_are_rejected() {
+    fn invalid_inputs_and_solver_options_are_rejected() {
         assert_eq!(
             IntrinsicPendulum::new(0.0, 1.0, 9.81, 0.0).unwrap_err(),
             Error::InvalidParameter
