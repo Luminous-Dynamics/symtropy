@@ -96,6 +96,9 @@ pub struct InvariantDrift<const D: usize> {
 /// contacts, motors and other work sources before judging energy balance.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InvariantStepReceipt<const D: usize> {
+    /// Monotonic world-local identifier shared by accepted and rejected steps.
+    #[serde(default)]
+    pub step_id: u64,
     pub dt: f64,
     pub total_body_count: usize,
     pub dynamic_body_count: usize,
@@ -139,6 +142,7 @@ impl<const D: usize> PhysicsWorld<D> {
         &mut self,
         dt: f64,
     ) -> Result<InvariantStepReceipt<D>, crate::world::PhysicsStepError> {
+        let step_id = self.next_step_id;
         let before = self.invariant_snapshot();
         let total_body_count = self.bodies.len();
         let dynamic_body_count = self
@@ -152,6 +156,7 @@ impl<const D: usize> PhysicsWorld<D> {
         let after = self.invariant_snapshot();
         let drift = before.drift_to(&after);
         Ok(InvariantStepReceipt {
+            step_id,
             dt,
             total_body_count,
             dynamic_body_count,
