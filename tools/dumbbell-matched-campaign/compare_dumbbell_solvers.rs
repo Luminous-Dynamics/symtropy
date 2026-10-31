@@ -378,7 +378,7 @@ mod tests {
     }
 
     #[test]
-    fn pHDAE_and_RATTLE_both_match_the_analytic_free_solution_at_second_order() {
+    fn phdae_and_rattle_both_match_the_analytic_free_solution_at_second_order() {
         let csv = campaign_csv();
         for line in csv.lines().skip(1) {
             let fields: Vec<&str> = line.split(',').collect();
