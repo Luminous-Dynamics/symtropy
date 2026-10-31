@@ -124,6 +124,107 @@ pub struct IdentifiabilityCertificate {
     pub aggregate_stats: DistinguishabilityStats,
 }
 
+/// A terminal claim at the finest resolution the finite-horizon certificate supports.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EquivalenceClassClaim {
+    pub representative: String,
+    pub members: Vec<String>,
+}
+
+/// A terminal decision against the certified observational quotient.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TerminalIdentityDecision {
+    /// None means the decision abstains.
+    pub claim: Option<EquivalenceClassClaim>,
+    pub correct_identification_probability: Rational,
+    pub false_identification_probability: Rational,
+    pub abstention_probability: Rational,
+}
+
+/// Choose a terminal equivalence-class claim under an explicit false-claim budget.
+///
+/// This does not change the adaptive policy optimizer. It is a safe terminal
+/// decision layer: hypotheses that cannot be distinguished under the supplied
+/// horizon are claimed together. A tie between distinct quotient classes
+/// abstains rather than arbitrarily selecting one representative.
+pub fn select_terminal_equivalence_class(
+    certificate: &IdentifiabilityCertificate,
+    posterior: &[Rational],
+    max_false_identification: Rational,
+) -> Result<TerminalIdentityDecision, String> {
+    if posterior.len() != certificate.hypothesis_ids.len() {
+        return Err("terminal posterior length does not match certificate hypothesis vocabulary".into());
+    }
+    if !max_false_identification.is_probability() {
+        return Err("maximum false-identification budget must lie in [0, 1]".into());
+    }
+    let posterior_mass = posterior.iter().try_fold(
+        Rational::zero(),
+        |sum, mass| sum.checked_add(*mass),
+    )?;
+    if posterior_mass != Rational::one() {
+        return Err("terminal posterior mass must sum exactly to one".into());
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut class_masses = Vec::with_capacity(certificate.equivalence_classes.len());
+    for class in &certificate.equivalence_classes {
+        if class.members.is_empty() || class.representative != class.members[0] {
+            return Err("certificate contains an empty or non-canonical equivalence class".into());
+        }
+        let mut mass = Rational::zero();
+        for member in &class.members {
+            let index = certificate.hypothesis_ids
+                .iter()
+                .position(|hypothesis| hypothesis == member)
+                .ok_or_else(|| format!("certificate class contains unknown hypothesis {member}"))?;
+            if !seen.insert(index) {
+                return Err("certificate equivalence classes contain duplicate hypotheses".into());
+            }
+            mass = mass.checked_add(posterior[index])?;
+        }
+        class_masses.push((class, mass));
+    }
+    if seen.len() != certificate.hypothesis_ids.len() {
+        return Err("certificate equivalence classes do not partition the hypothesis vocabulary".into());
+    }
+    if class_masses.is_empty() {
+        return Err("certificate contains no equivalence classes".into());
+    }
+
+    let maximum = class_masses.iter()
+        .map(|(_, mass)| *mass)
+        .max()
+        .ok_or_else(|| "certificate contains no class masses".to_string())?;
+    let maximum_count = class_masses.iter()
+        .filter(|(_, mass)| *mass == maximum)
+        .count();
+    if maximum.is_zero()
+        || maximum_count != 1
+        || Rational::one().checked_sub(maximum)? > max_false_identification
+    {
+        return Ok(TerminalIdentityDecision {
+            claim: None,
+            correct_identification_probability: Rational::zero(),
+            false_identification_probability: Rational::zero(),
+            abstention_probability: Rational::one(),
+        });
+    }
+
+    let (class, _) = class_masses.into_iter()
+        .find(|(_, mass)| *mass == maximum)
+        .ok_or_else(|| "maximum equivalence class disappeared".to_string())?;
+    Ok(TerminalIdentityDecision {
+        claim: Some(EquivalenceClassClaim {
+            representative: class.representative.clone(),
+            members: class.members.clone(),
+        }),
+        correct_identification_probability: maximum,
+        false_identification_probability: Rational::one().checked_sub(maximum)?,
+        abstention_probability: Rational::zero(),
+    })
+}
+
 /// Compute exact pairwise finite-horizon distinguishability and quotient classes.
 ///
 /// The initial belief is conditioned separately on each mechanism hypothesis.
@@ -830,6 +931,61 @@ mod tests {
             .find(|class| class.members.len() == 2)
             .unwrap();
         assert_eq!(equivalent.members, vec!["h0".to_string(), "h1".to_string()]);
+    }
+
+    #[test]
+    fn terminal_decision_claims_observable_quotient_class_not_arbitrary_member() {
+        let model = kernel(3, 1, vec!["read"], |hypothesis, physical, _action| {
+            let p_zero = if hypothesis == 2 {
+                Rational::new(1, 4).unwrap()
+            } else {
+                Rational::new(3, 4).unwrap()
+            };
+            vec![
+                safe(p_zero, physical, 0),
+                safe(Rational::one().checked_sub(p_zero).unwrap(), physical, 1),
+            ]
+        });
+        let certificate = analyze_identifiability(&model, &config(2)).unwrap();
+        let posterior = vec![
+            Rational::new(3, 8).unwrap(),
+            Rational::new(3, 8).unwrap(),
+            Rational::new(1, 4).unwrap(),
+        ];
+        let selected = select_terminal_equivalence_class(
+            &certificate,
+            &posterior,
+            Rational::new(1, 4).unwrap(),
+        ).unwrap();
+        let claim = selected.claim.unwrap();
+        assert_eq!(claim.members, vec!["h0".to_string(), "h1".to_string()]);
+        assert_eq!(selected.correct_identification_probability, Rational::new(3, 4).unwrap());
+        assert_eq!(selected.false_identification_probability, Rational::new(1, 4).unwrap());
+        assert_eq!(selected.abstention_probability, Rational::zero());
+
+        let strict = select_terminal_equivalence_class(
+            &certificate,
+            &posterior,
+            Rational::zero(),
+        ).unwrap();
+        assert!(strict.claim.is_none());
+        assert_eq!(strict.abstention_probability, Rational::one());
+    }
+
+    #[test]
+    fn terminal_class_decision_abstains_on_quotient_mass_ties() {
+        let model = kernel(2, 1, vec!["read"], |hypothesis, physical, _action| {
+            vec![safe(Rational::one(), physical, hypothesis)]
+        });
+        let certificate = analyze_identifiability(&model, &config(1)).unwrap();
+        let posterior = vec![half(), half()];
+        let decision = select_terminal_equivalence_class(
+            &certificate,
+            &posterior,
+            Rational::one(),
+        ).unwrap();
+        assert!(decision.claim.is_none());
+        assert_eq!(decision.abstention_probability, Rational::one());
     }
 
     #[test]
