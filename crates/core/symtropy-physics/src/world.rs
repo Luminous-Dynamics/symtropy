@@ -60,6 +60,22 @@ fn quantize_q16_16(v: f64) -> f64 {
 /// The physics world calls these methods during collision resolution,
 /// allowing consciousness to modulate forces, impulses, and friction
 /// without creating a circular dependency between crates.
+/// Side effects published only after a physics-world step commits.
+#[derive(Clone, Debug)]
+pub enum PhysicsCallbackEffect<const D: usize> {
+    /// Kinetic energy removed by a resolved friction impulse.
+    FrictionDissipation { energy_joules: f64 },
+    /// A collision that has been fully resolved by a committed step.
+    Collision(CollisionEvent<D>),
+}
+
+/// Physics callbacks that observe/modulate the solver.
+///
+/// The three modulation methods take `&self` and are expected to be pure and
+/// deterministic for a fixed input. Observable mutable effects are buffered
+/// during the solve and published through `commit_step_effects` only after the
+/// world transaction succeeds. Implementations that need atomic publication
+/// should override that method and commit the supplied batch in one operation.
 pub trait PhysicsCallback<const D: usize> {
     /// Modulate a force by the entity's consciousness level.
     /// Returns the modified force vector.
@@ -90,6 +106,25 @@ pub trait PhysicsCallback<const D: usize> {
     /// (e.g., trauma, fatigue, shock) to the entity's internal state.
     /// This is the primary hook for persistent state change based on impact.
     fn apply_trauma(&mut self, event: &CollisionEvent<D>);
+
+    /// Publish all observable effects from a successfully committed step.
+    ///
+    /// The default implementation preserves legacy callback behavior and
+    /// dispatches effects in their original solver order. A callback whose
+    /// external state must be atomic should override this batch method.
+    fn commit_step_effects(&mut self, effects: &[PhysicsCallbackEffect<D>]) {
+        for effect in effects {
+            match effect {
+                PhysicsCallbackEffect::FrictionDissipation { energy_joules } => {
+                    self.record_dissipation(*energy_joules);
+                }
+                PhysicsCallbackEffect::Collision(event) => {
+                    self.on_collision(event);
+                    self.apply_trauma(event);
+                }
+            }
+        }
+    }
 }
 
 /// No-op callback for physics-only usage (no consciousness coupling).
@@ -553,8 +588,15 @@ impl<const D: usize> PhysicsWorld<D> {
         callback: &mut dyn PhysicsCallback<D>,
     ) -> Result<(), PhysicsStepError> {
         let snapshot = WorldStepSnapshot::capture(self);
-        match self.step_internal(dt, callback) {
-            Ok(()) => Ok(()),
+        let mut pending_effects = Vec::new();
+        match self.step_internal(dt, callback, &mut pending_effects) {
+            Ok(()) => {
+                // Only publish callback-owned state after the physics state
+                // has crossed its commit boundary. If the solve rejects, the
+                // buffered events are dropped with the rollback.
+                callback.commit_step_effects(&pending_effects);
+                Ok(())
+            }
             Err(error) => {
                 snapshot.restore(self);
                 Err(error)
@@ -566,6 +608,7 @@ impl<const D: usize> PhysicsWorld<D> {
         &mut self,
         dt: f64,
         callback: &mut dyn PhysicsCallback<D>,
+        pending_effects: &mut Vec<PhysicsCallbackEffect<D>>,
     ) -> Result<(), PhysicsStepError> {
         // 0. Clear events from previous step
         self.collision_events.clear();
@@ -819,7 +862,7 @@ impl<const D: usize> PhysicsWorld<D> {
                     let body_a = contact.body_a;
                     let body_b = contact.body_b;
                     let updated =
-                        self.try_resolve_contact(contact, dt, callback)
+                        self.try_resolve_contact(contact, dt, callback, pending_effects)
                             .map_err(|cause| PhysicsStepError {
                                 phase: PhysicsStepPhase::ContactSolve,
                                 body_a: Some(body_a),
@@ -1160,6 +1203,7 @@ impl<const D: usize> PhysicsWorld<D> {
         mut contact: ContactManifold<D>,
         dt: f64,
         callback: &mut dyn PhysicsCallback<D>,
+        pending_effects: &mut Vec<PhysicsCallbackEffect<D>>,
     ) -> Result<ContactManifold<D>, crate::inertia::RotationalInertiaError> {
         let (idx_a, idx_b) = self.find_body_indices(contact.body_a, contact.body_b);
         let (Some(a), Some(b)) = (idx_a, idx_b) else {
@@ -1399,12 +1443,15 @@ impl<const D: usize> PhysicsWorld<D> {
 
         // ─── Post-manifold bookkeeping ───
         if total_normal_impulse > 1e-15 {
-            // Record friction dissipation for consciousness energy budget
+            // Buffer observable callback effects. They are published only
+            // after every fallible physics phase succeeds and the world step
+            // commits, so a later rejection cannot leak a phantom collision.
             if total_friction_dissipation > 0.0 {
-                callback.record_dissipation(total_friction_dissipation);
+                pending_effects.push(PhysicsCallbackEffect::FrictionDissipation {
+                    energy_joules: total_friction_dissipation,
+                });
             }
 
-            // ─── Emit collision event ───
             let event = CollisionEvent {
                 body_a: contact.body_a,
                 body_b: contact.body_b,
@@ -1412,12 +1459,7 @@ impl<const D: usize> PhysicsWorld<D> {
                 normal: contact.normal,
                 depth: contact.depth(),
             };
-
-            // ═══ CONSCIOUSNESS FEEDBACK: collision → prediction error ═══
-            // 1. Call the general on_collision hook (for immediate reaction)
-            callback.on_collision(&event);
-            // 2. Call the dedicated trauma/state update hook (for persistent state)
-            callback.apply_trauma(&event);
+            pending_effects.push(PhysicsCallbackEffect::Collision(event));
         }
 
         Ok(contact)
@@ -2913,10 +2955,12 @@ mod transformed_halfspace_tests {
         let before_a = world.bodies[0].linear_velocity.clone();
         let before_b = world.bodies[1].linear_velocity.clone();
         let mut callback = NoOpCallback;
+        let mut pending_effects = Vec::new();
 
         let error = world
-            .try_resolve_contact(contact, 0.01, &mut callback)
+            .try_resolve_contact(contact, 0.01, &mut callback, &mut pending_effects)
             .unwrap_err();
+        assert!(pending_effects.is_empty());
         assert_eq!(
             error,
             crate::inertia::RotationalInertiaError::SingularInertia
