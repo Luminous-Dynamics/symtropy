@@ -1,0 +1,42 @@
+name: Manufacturing nonlinear uncertainty propagation reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-nonlinear-uq/nonlinear_uq.rs"
+      - "tools/manufacturing-nonlinear-uq/README.md"
+      - ".github/workflows/manufacturing-nonlinear-uq.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-nonlinear-uq/nonlinear_uq.rs"
+      - "tools/manufacturing-nonlinear-uq/README.md"
+      - ".github/workflows/manufacturing-nonlinear-uq.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nonlinear-propagation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run analytic / domain / decision tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/manufacturing-nonlinear-uq/nonlinear_uq.rs -o "$RUNNER_TEMP/nonlinear-uq-tests"
+          "$RUNNER_TEMP/nonlinear-uq-tests"
+      - name: Build and verify nonlinear propagation campaign
+        run: |
+          rustc --edition=2024 -D warnings tools/manufacturing-nonlinear-uq/nonlinear_uq.rs -o "$RUNNER_TEMP/nonlinear-uq"
+          "$RUNNER_TEMP/nonlinear-uq" --verify
+      - name: Check byte-identical deterministic report
+        run: |
+          "$RUNNER_TEMP/nonlinear-uq" --csv > "$RUNNER_TEMP/nonlinear-a.csv"
+          "$RUNNER_TEMP/nonlinear-uq" --csv > "$RUNNER_TEMP/nonlinear-b.csv"
+          diff -u "$RUNNER_TEMP/nonlinear-a.csv" "$RUNNER_TEMP/nonlinear-b.csv"
+          sha256sum tools/manufacturing-nonlinear-uq/nonlinear_uq.rs "$RUNNER_TEMP/nonlinear-a.csv"
+          cat "$RUNNER_TEMP/nonlinear-a.csv"
