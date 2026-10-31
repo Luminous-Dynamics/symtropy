@@ -83,6 +83,7 @@ Each test should specify actor capabilities, initial resources, policy state, at
 | SH-17 | Dependency lock-in | Provider makes service exit technically or economically prohibitive | Reasonable portability, continuity and alternative-provider routes |
 | SH-18 | Crisis exception creep | Emergency powers remain active after crisis | Automatic expiry, independent reauthorization and retrospective audit |
 | SH-19 | Unilateral match / care settlement | One participant marks a match accepted, reports completion or credits both parties | Remains pending until both distinct parties accept the same immutable terms; no one-sided credit settlement |
+| SH-20 | Coerced consent under dependency | A provider, household authority or donor implies essentials will be withdrawn unless a person accepts optional terms | Private refusal/revocation path; no unrelated essential-access penalty; independent review of coercion allegation |
 
 ## 6. Metrics: report a dashboard, never one moral score
 
