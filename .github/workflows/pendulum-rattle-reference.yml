@@ -1,0 +1,45 @@
+name: Cartesian RATTLE pendulum reference
+
+on:
+  pull_request:
+    paths:
+      - "tools/pendulum-rattle-reference/**"
+      - "docs/research/CARTESIAN_RATTLE_PENDULUM_REFERENCE_2026-10-31.md"
+      - ".github/workflows/pendulum-rattle-reference.yml"
+  push:
+    branches:
+      - "research/pendulum-rattle-baseline-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-rust-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/pendulum-rattle-reference/rattle_cartesian.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/pendulum-rattle-reference/rattle_cartesian.rs \
+            -o /tmp/rattle-tests
+          /tmp/rattle-tests
+
+      - name: Compile optimized deterministic fixture
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/pendulum-rattle-reference/rattle_cartesian.rs \
+            -o /tmp/rattle-ref
+          /tmp/rattle-ref > /tmp/rattle-a.csv
+          /tmp/rattle-ref > /tmp/rattle-b.csv
+          cmp /tmp/rattle-a.csv /tmp/rattle-b.csv
+          test "$(wc -l < /tmp/rattle-a.csv)" -eq 501
+          grep -q "^500," /tmp/rattle-a.csv
