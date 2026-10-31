@@ -8,9 +8,10 @@
 //! solve. It intentionally rejects active-set transitions and ill-conditioned
 //! active blocks instead of returning misleading gradients.
 
-use nalgebra::{DMatrix, DVector};
+use nalgebra::{DMatrix, DVector, Matrix2, SVector};
 
 use crate::delassus::ReferenceLcpSolution;
+use crate::friction_cone::{PlanarContactMode, PlanarFrictionConeSolution};
 
 /// Failure to obtain a locally valid implicit contact derivative.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -23,6 +24,9 @@ pub enum ContactAdjointError {
     ActiveSetBoundary,
     IllConditionedActiveBlock,
     SingularAdjointSolve,
+    PlanarModeBoundary,
+    InvalidFrictionParameter,
+    IllConditionedPlanarMode,
 }
 
 /// Sensitivity of a scalar objective through a fixed-active-set contact LCP.
@@ -266,6 +270,210 @@ pub fn differentiate_fixed_active_set_lcp(
         impulse_sensitivity: full_sensitivity,
         objective_parameter_gradient,
         active_condition_estimate,
+    })
+}
+
+/// Forward sensitivity for one fixed mode of the planar maximum-dissipation
+/// Coulomb reference. The derivative is valid only while the mode inequalities
+/// remain strict; transition cases return PlanarModeBoundary.
+#[derive(Clone, Debug)]
+pub struct PlanarFrictionSensitivity {
+    pub mode: PlanarContactMode,
+    pub impulse_sensitivity: SVector<f64, 2>,
+    pub objective_parameter_gradient: f64,
+    pub mode_condition_estimate: f64,
+}
+
+/// Differentiate one planar friction solution with respect to a scalar model
+/// parameter. The parameter may change W, free velocity q, and the friction
+/// coefficient mu. Sticking differentiates the full two-equation system;
+/// sliding differentiates the active normal equation plus the Coulomb edge.
+/// Separation has zero contact impulse sensitivity while the positive normal
+/// separating velocity remains outside its transition margin.
+pub fn differentiate_planar_friction_mode(
+    effective_mass: &Matrix2<f64>,
+    free_velocity: &SVector<f64, 2>,
+    solution: &PlanarFrictionConeSolution,
+    friction_coefficient: f64,
+    mass_derivative: &Matrix2<f64>,
+    free_velocity_derivative: &SVector<f64, 2>,
+    friction_derivative: f64,
+    objective_impulse_gradient: &SVector<f64, 2>,
+    direct_parameter_gradient: f64,
+    impulse_margin: f64,
+    velocity_margin: f64,
+    friction_coefficient_margin: f64,
+    relative_tolerance: f64,
+) -> Result<PlanarFrictionSensitivity, ContactAdjointError> {
+    if !effective_mass.iter().all(|value| value.is_finite())
+        || !mass_derivative.iter().all(|value| value.is_finite())
+        || !free_velocity.iter().all(|value| value.is_finite())
+        || !free_velocity_derivative.iter().all(|value| value.is_finite())
+        || !solution.impulse.iter().all(|value| value.is_finite())
+        || !solution.post_velocity.iter().all(|value| value.is_finite())
+        || !objective_impulse_gradient.iter().all(|value| value.is_finite())
+        || !friction_coefficient.is_finite()
+        || !friction_derivative.is_finite()
+        || !direct_parameter_gradient.is_finite()
+    {
+        return Err(ContactAdjointError::NonFinite);
+    }
+    if !impulse_margin.is_finite()
+        || impulse_margin <= 0.0
+        || !velocity_margin.is_finite()
+        || velocity_margin <= 0.0
+        || !friction_coefficient_margin.is_finite()
+        || friction_coefficient_margin <= 0.0
+        || !relative_tolerance.is_finite()
+        || relative_tolerance <= 0.0
+        || friction_coefficient < 0.0
+    {
+        return Err(ContactAdjointError::InvalidFrictionParameter);
+    }
+
+    let matrix_scale = effective_mass.norm().max(f64::MIN_POSITIVE);
+    if (effective_mass - effective_mass.transpose()).norm() > relative_tolerance * matrix_scale
+        || (mass_derivative - mass_derivative.transpose()).norm()
+            > relative_tolerance * mass_derivative.norm().max(f64::MIN_POSITIVE)
+    {
+        return Err(ContactAdjointError::InconsistentPrimalSolution);
+    }
+    let eigenvalues =
+        nalgebra::linalg::SymmetricEigen::new(*effective_mass).eigenvalues;
+    let minimum_eigenvalue = eigenvalues
+        .iter()
+        .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+    if minimum_eigenvalue <= relative_tolerance * matrix_scale {
+        return Err(ContactAdjointError::NonMonotoneMatrix);
+    }
+
+    let post_velocity = effective_mass * solution.impulse + free_velocity;
+    let velocity_scale = post_velocity
+        .norm()
+        .max(solution.post_velocity.norm())
+        .max(free_velocity.norm())
+        .max(f64::MIN_POSITIVE);
+    let impulse_scale = solution.impulse.norm().max(f64::MIN_POSITIVE);
+    if (post_velocity - solution.post_velocity).norm() > relative_tolerance * velocity_scale
+        || solution.impulse[0] < -relative_tolerance * impulse_scale
+        || post_velocity[0] < -relative_tolerance * velocity_scale
+        || (solution.impulse[0] * post_velocity[0]).abs()
+            > relative_tolerance * impulse_scale * velocity_scale
+        || solution.cone_violation > relative_tolerance * impulse_scale
+        || solution.frictional_work_delta
+            > relative_tolerance * impulse_scale * velocity_scale
+    {
+        return Err(ContactAdjointError::InconsistentPrimalSolution);
+    }
+
+    let zero = SVector::<f64, 2>::zeros();
+    let sensitivity;
+    let condition_estimate;
+
+    match solution.mode {
+        PlanarContactMode::Separating => {
+            if free_velocity[0] <= velocity_margin
+                || solution.impulse.norm() > impulse_margin
+            {
+                return Err(ContactAdjointError::PlanarModeBoundary);
+            }
+            sensitivity = zero;
+            condition_estimate = 1.0;
+        }
+        PlanarContactMode::Sticking => {
+            let cone_slack =
+                friction_coefficient * solution.impulse[0] - solution.impulse[1].abs();
+            if solution.impulse[0] <= impulse_margin
+                || cone_slack <= impulse_margin
+                || solution.post_velocity[0].abs() > velocity_margin
+                || solution.post_velocity[1].abs() > velocity_margin
+            {
+                return Err(ContactAdjointError::PlanarModeBoundary);
+            }
+
+            let singular_values = (*effective_mass).svd(false, false).singular_values;
+            let maximum = singular_values.iter().fold(0.0_f64, |m, v| m.max(*v));
+            let minimum = singular_values
+                .iter()
+                .fold(f64::INFINITY, |m, v| m.min(*v));
+            if !maximum.is_finite()
+                || !minimum.is_finite()
+                || maximum <= f64::MIN_POSITIVE
+                || minimum <= relative_tolerance * maximum
+            {
+                return Err(ContactAdjointError::IllConditionedPlanarMode);
+            }
+            condition_estimate = maximum / minimum;
+
+            let parameter_rhs = mass_derivative * solution.impulse + free_velocity_derivative;
+            let Some(value) = effective_mass.lu().solve(&(-parameter_rhs)) else {
+                return Err(ContactAdjointError::SingularAdjointSolve);
+            };
+            sensitivity = value;
+        }
+        PlanarContactMode::SlidingPositive | PlanarContactMode::SlidingNegative => {
+            if solution.impulse[0] <= impulse_margin
+                || friction_coefficient <= friction_coefficient_margin
+                || solution.post_velocity[0].abs() > velocity_margin
+                || solution.post_velocity[1].abs() <= velocity_margin
+            {
+                return Err(ContactAdjointError::PlanarModeBoundary);
+            }
+            let slip_sign = if solution.mode == PlanarContactMode::SlidingPositive {
+                1.0
+            } else {
+                -1.0
+            };
+            if solution.post_velocity[1] * slip_sign <= velocity_margin {
+                return Err(ContactAdjointError::PlanarModeBoundary);
+            }
+
+            let cone_edge_residual = if slip_sign > 0.0 {
+                solution.impulse[1] + friction_coefficient * solution.impulse[0]
+            } else {
+                solution.impulse[1] - friction_coefficient * solution.impulse[0]
+            };
+            if cone_edge_residual.abs() > relative_tolerance * impulse_scale {
+                return Err(ContactAdjointError::InconsistentPrimalSolution);
+            }
+
+            let cone_direction = SVector::new(1.0, -friction_coefficient * slip_sign);
+            let cone_direction_derivative = SVector::new(0.0, -friction_derivative * slip_sign);
+            let metric_cone_direction = effective_mass * cone_direction;
+            let denominator = metric_cone_direction[0];
+            if !denominator.is_finite()
+                || denominator <= relative_tolerance * matrix_scale
+            {
+                return Err(ContactAdjointError::IllConditionedPlanarMode);
+            }
+            condition_estimate = matrix_scale / denominator;
+
+            let directional_parameter_response =
+                (mass_derivative * cone_direction
+                    + effective_mass * cone_direction_derivative)
+                    * solution.impulse[0]
+                    + free_velocity_derivative;
+            let normal_impulse_derivative = -directional_parameter_response[0] / denominator;
+            sensitivity =
+                cone_direction * normal_impulse_derivative
+                    + cone_direction_derivative * solution.impulse[0];
+        }
+    }
+
+    let objective_parameter_gradient =
+        direct_parameter_gradient + objective_impulse_gradient.dot(&sensitivity);
+    if !objective_parameter_gradient.is_finite()
+        || !sensitivity.iter().all(|value| value.is_finite())
+        || !condition_estimate.is_finite()
+    {
+        return Err(ContactAdjointError::NonFinite);
+    }
+
+    Ok(PlanarFrictionSensitivity {
+        mode: solution.mode,
+        impulse_sensitivity: sensitivity,
+        objective_parameter_gradient,
+        mode_condition_estimate: condition_estimate,
     })
 }
 
