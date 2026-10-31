@@ -360,7 +360,7 @@ mod tests {
         assert_eq!(selected.worst_case_abstention_probability(), Rational::zero());
         assert_eq!(selected.worst_case_correct_identification_probability(), Rational::one());
         match &selected.policy {
-            crate::robust_optimizer::PolicyPlan::Action { action, .. } => {
+            crate::PolicyPlan::Action { action, .. } => {
                 assert_eq!(family.worlds[0].kernel.action_ids[*action], "independent-reference-read");
             }
             _ => panic!("expected independent reference measurement"),
