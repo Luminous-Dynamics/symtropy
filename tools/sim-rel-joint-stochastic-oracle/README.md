@@ -56,3 +56,12 @@ The robust optimizer performs finite-horizon dynamic programming over a vector o
 The optimizer preserves per-world objective vectors during Pareto pruning. This is required because observation probabilities differ across worlds: pruning only by current worst-case aggregates inside a subtree can discard a globally optimal shared policy. At the root, callers can minimize worst-case expected cost or nominal expected cost subject to worst-case hazard, false-identification and abstention budgets.
 
 The implementation is bounded and exact for the supplied finite model family, prior beliefs, action costs, horizon, and policy class. It is not evidence that the real process belongs to that family.
+
+
+## Deterministic adversarial benchmark factory (SIM-REL-017)
+
+The benchmark module generates seeded finite joint-stochastic challenges in five families: specimen/sensor confounding, persistent sensor drift, physical carryover, calibration-induced specimen damage, and observation-correlated hazard. Each case contains a nominal kernel and a plausible alternative kernel sharing the same hypothesis/action/observation vocabularies, state dimensions and costs.
+
+Generation is deterministic for a fixed seed and generator version and has explicit per-family caps. Every instance includes a stable 64-bit FNV-1a reproducibility fingerprint over its manifest, priors, costs and full world kernels; this is a reproducibility digest, not a cryptographic commitment. Every emitted kernel is validated for complete transition tables and exact rational probability normalization before it is returned. Family labels are construction metadata, not inferred from an agent's self-report.
+
+This is a development fixture factory, not a sealed leaderboard by itself. Keep holdout seeds and mutation compositions out of agent development, publish manifests after evaluation, and do not interpret generated coverage as proof of real-world failure-mode completeness.
