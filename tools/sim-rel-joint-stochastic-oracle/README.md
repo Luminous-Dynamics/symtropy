@@ -38,3 +38,12 @@ This oracle is intentionally small and exact. It does not implement particle fil
 The baseline module ranks actions by one-step expected information gain about the mechanism, divided by action cost. It integrates the current joint physical/sensor belief through the same transition kernel, and treats a hazard event as an observed terminal outcome. Its score is floating-point and is deliberately separate from the exact rational optimizer.
 
 The calibration fixture is a useful counterexample: neither the measurement nor calibration action has immediate mechanism information, but calibration changes sensor state so that a subsequent measurement becomes identifying. A one-step EIG policy cannot value that enabling sequence; the finite-horizon joint optimizer can.
+
+
+## Model-indexed robust replay (SIM-REL-015)
+
+The robust module evaluates one identical public-observation policy tree against a finite family of complete joint stochastic kernels. A kernel identity remains fixed for an entire campaign; the policy cannot inspect a model-world ID. Each world is replayed independently, with exact per-world expected cost, hazard, false-identification, abstention, and correct-identification probabilities.
+
+The report exposes exact worst-case cost and risk summaries and checks explicit worst-case hazard, false-claim, and abstention budgets. The worlds must share hypothesis, action, observation, physical-state and sensor-state semantics, plus the same action-cost contract; each world may carry its own validated initial joint belief and transition kernel.
+
+This is a robust evaluator, not a robust policy optimizer. It does not choose a minimax policy. Robustness is only over the supplied finite world family and does not establish that the true data-generating process is covered.
