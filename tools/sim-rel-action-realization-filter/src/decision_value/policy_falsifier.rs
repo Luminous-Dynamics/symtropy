@@ -19,6 +19,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const MAX_FALSIFIER_CANDIDATES: usize = 128;
 pub const MAX_PERTURBATION_SCENARIOS: usize = 128;
+pub const MAX_PERTURBATIONS_PER_SCENARIO: usize = 8;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum KernelPerturbation {
@@ -57,6 +58,8 @@ pub enum KernelPerturbation {
         outcome: usize,
         apparatus_state: usize,
     },
+    /// Ordered, bounded edits applied atomically to one candidate clone.
+    Sequence(Vec<KernelPerturbation>),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -243,6 +246,19 @@ fn apply_kernel_perturbation(
                 return Err("apparatus transition would not change the model".into());
             }
             target.next_state.apparatus_state = *apparatus_state;
+        }
+        KernelPerturbation::Sequence(edits) => {
+            if edits.is_empty() || edits.len() > MAX_PERTURBATIONS_PER_SCENARIO {
+                return Err(format!(
+                    "perturbation sequence length must be in 1..={MAX_PERTURBATIONS_PER_SCENARIO}"
+                ));
+            }
+            for edit in edits {
+                if matches!(edit, KernelPerturbation::Sequence(_)) {
+                    return Err("nested perturbation sequences are not permitted".into());
+                }
+                apply_kernel_perturbation(kernel, edit)?;
+            }
         }
     }
     Ok(())
@@ -1052,6 +1068,86 @@ mod tests {
             parent.kernel.initial_belief
         );
         generated[0].world.kernel.validate().unwrap();
+    }
+
+    #[test]
+    fn bounded_multi_factor_sequence_captures_probability_concentrated_on_hazard() {
+        let parent = make_two_outcome_world("interaction");
+        let state = parent.kernel.initial_belief[0].state;
+        let generated = generate_search_perturbation_candidates(
+            &parent,
+            &[PerturbationScenario {
+                scenario_id: "probability-to-hazard".into(),
+                generator_version: "1".into(),
+                parameter_receipt: "transfer=1/4;promote=outcome1".into(),
+                perturbation: KernelPerturbation::Sequence(vec![
+                    KernelPerturbation::TransferOutcomeProbability {
+                        state,
+                        command: 0,
+                        donor_outcome: 0,
+                        receiver_outcome: 1,
+                        amount: Rational::new(1, 4).unwrap(),
+                    },
+                    KernelPerturbation::PromoteSafeOutcomeToHazard {
+                        state,
+                        command: 0,
+                        outcome: 1,
+                    },
+                ]),
+            }],
+        )
+        .unwrap();
+        let outcomes = &generated[0].world.kernel.rows[0].outcomes;
+        assert_eq!(outcomes[0].probability, Rational::new(1, 4).unwrap());
+        assert_eq!(outcomes[1].probability, Rational::new(3, 4).unwrap());
+        assert!(outcomes[1].hazard);
+        assert_eq!(outcomes[1].measurement, None);
+        generated[0].world.kernel.validate().unwrap();
+    }
+
+    #[test]
+    fn perturbation_sequences_fail_closed_on_empty_nested_and_over_budget_edits() {
+        let parent = make_world("parent", 0);
+        let scenarios = vec![
+            PerturbationScenario {
+                scenario_id: "empty".into(),
+                generator_version: "1".into(),
+                parameter_receipt: "empty".into(),
+                perturbation: KernelPerturbation::Sequence(Vec::new()),
+            },
+        ];
+        assert!(generate_search_perturbation_candidates(&parent, &scenarios).is_err());
+
+        let nested = PerturbationScenario {
+            scenario_id: "nested".into(),
+            generator_version: "1".into(),
+            parameter_receipt: "nested".into(),
+            perturbation: KernelPerturbation::Sequence(vec![
+                KernelPerturbation::Sequence(vec![
+                    KernelPerturbation::PromoteSafeOutcomeToHazard {
+                        state: parent.kernel.initial_belief[0].state,
+                        command: 0,
+                        outcome: 0,
+                    },
+                ]),
+            ]),
+        };
+        assert!(generate_search_perturbation_candidates(&parent, &[nested]).is_err());
+
+        let over_budget = PerturbationScenario {
+            scenario_id: "over-budget".into(),
+            generator_version: "1".into(),
+            parameter_receipt: "nine-edits".into(),
+            perturbation: KernelPerturbation::Sequence(vec![
+                KernelPerturbation::PromoteSafeOutcomeToHazard {
+                    state: parent.kernel.initial_belief[0].state,
+                    command: 0,
+                    outcome: 0,
+                };
+                MAX_PERTURBATIONS_PER_SCENARIO + 1
+            ]),
+        };
+        assert!(generate_search_perturbation_candidates(&parent, &[over_budget]).is_err());
     }
 
     #[test]
