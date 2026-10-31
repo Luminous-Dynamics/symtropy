@@ -56,6 +56,8 @@ struct Campaign {
     station_id: String,
     instrument_id: String,
     calibration_id: String,
+    calibration_source_sha256: String,
+    msa_source_sha256: String,
     measurand_id: String,
     unit: String,
     specification_id: String,
@@ -238,7 +240,9 @@ impl Campaign {
             return Err("MEASUREMENT_UNCERTAINTY_INVALID".into());
         }
         if !valid_sha256(&self.specification_source_sha256)
-            || !valid_sha256(&self.uncertainty_source_sha256) {
+            || !valid_sha256(&self.uncertainty_source_sha256)
+            || !valid_sha256(&self.calibration_source_sha256)
+            || !valid_sha256(&self.msa_source_sha256) {
             return Err("SOURCE_DIGEST_INVALID".into());
         }
         if !self.msa_qualified
@@ -426,6 +430,8 @@ impl Campaign {
             station_id: self.station_id.clone(),
             instrument_id: self.instrument_id.clone(),
             calibration_id: self.calibration_id.clone(),
+            calibration_source_sha256: self.calibration_source_sha256.clone(),
+            msa_source_sha256: self.msa_source_sha256.clone(),
             measurand_id: self.measurand_id.clone(),
             unit: self.unit.clone(),
             specification_id: self.specification_id.clone(),
@@ -470,6 +476,8 @@ impl Report {
                 self.station_id.clone(),
                 self.instrument_id.clone(),
                 self.calibration_id.clone(),
+                self.calibration_source_sha256.clone(),
+                self.msa_source_sha256.clone(),
                 self.measurand_id.clone(),
                 self.unit.clone(),
                 self.specification_id.clone(),
@@ -561,6 +569,8 @@ fn fixture(id: &str, means: [f64; 4], scales: [f64; 4]) -> Campaign {
         station_id: "CNC-01".into(),
         instrument_id: "CMM-01".into(),
         calibration_id: "CAL-CMM-01".into(),
+        calibration_source_sha256: "c".repeat(DIGEST_LEN),
+        msa_source_sha256: "d".repeat(DIGEST_LEN),
         measurand_id: "shaft-diameter".into(),
         unit: "mm".into(),
         specification_id: "SPEC-SHAFT-01".into(),
@@ -628,7 +638,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() -> Result<(), String> {
-    println!("campaign_id,part_id,lot_id,operation_id,station_id,instrument_id,calibration_id,measurand_id,unit,specification_id,specification_revision,specification_source_sha256,lower_specification,upper_specification,uncertainty_budget_id,uncertainty_source_sha256,measurement_expanded_uncertainty,msa_study_id,window_count,total_sample_count,pooled_within_sd,pooled_within_cp,pooled_within_cpk,overall_mean,overall_sd,overall_pp,overall_ppk,worst_window_cpk,worst_window_id,window_mean_span,maximum_variance_ratio,first_mean_shift_window,first_variance_shift_window,diagnostic_status,distributional_assumption,window_id,window_start_ns,window_end_ns,sample_count,measurement_ids,measurement_source_sha256s,window_mean,window_sd,window_cp,window_cpk,guarded_mean_margin,guarded_mean_inside_spec,mean_delta_from_previous,variance_ratio_from_first");
+    println!("campaign_id,part_id,lot_id,operation_id,station_id,instrument_id,calibration_id,calibration_source_sha256,msa_source_sha256,measurand_id,unit,specification_id,specification_revision,specification_source_sha256,lower_specification,upper_specification,uncertainty_budget_id,uncertainty_source_sha256,measurement_expanded_uncertainty,msa_study_id,window_count,total_sample_count,pooled_within_sd,pooled_within_cp,pooled_within_cpk,overall_mean,overall_sd,overall_pp,overall_ppk,worst_window_cpk,worst_window_id,window_mean_span,maximum_variance_ratio,first_mean_shift_window,first_variance_shift_window,diagnostic_status,distributional_assumption,window_id,window_start_ns,window_end_ns,sample_count,measurement_ids,measurement_source_sha256s,window_mean,window_sd,window_cp,window_cpk,guarded_mean_margin,guarded_mean_inside_spec,mean_delta_from_previous,variance_ratio_from_first");
     for campaign in fixtures() {
         let report = campaign.evaluate()?;
         print!("{}", report.csv_rows());
@@ -706,6 +716,10 @@ mod tests {
 
         let mut campaign = fixtures()[0].clone();
         campaign.calibration_evidence_verified = false;
+        assert!(campaign.evaluate().is_err());
+
+        let mut campaign = fixtures()[0].clone();
+        campaign.msa_source_sha256 = "bad".into();
         assert!(campaign.evaluate().is_err());
 
         let mut campaign = fixtures()[0].clone();
