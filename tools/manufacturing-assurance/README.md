@@ -1,0 +1,99 @@
+# Manufacturing composition verifier (v0.1)
+
+This is a deliberately narrow, offline, standard-library-only Rust verifier for a **single product / lot / operation** evidence chain. It checks structural consistency and explicit source references across an ISO 23247-6-style composition. It is not a general graph engine.
+
+## Build and test
+
+No Cargo workspace changes or third-party crates are required.
+
+```sh
+rustc --edition=2021 -D warnings --test tools/manufacturing-assurance/composition.rs -o /tmp/mfg-composition-tests
+/tmp/mfg-composition-tests
+rustc --edition=2021 -D warnings tools/manufacturing-assurance/composition.rs -o /tmp/mfg-composition
+/tmp/mfg-composition tools/manufacturing-assurance/fixtures/valid-integrated.tsv
+/tmp/mfg-composition tools/manufacturing-assurance/fixtures/valid-unified.tsv
+/tmp/mfg-composition tools/manufacturing-assurance/fixtures/valid-federated.tsv
+```
+
+Or run `tools/manufacturing-assurance/run-tests.sh`.
+
+## TSV format
+
+The format is intentionally strict and simple so the first verifier can be built using only the Rust standard library. Fields are pipe-delimited; fields cannot contain a pipe, newline or escape sequence. Blank fields are rejected. Lines beginning with `#` are comments.
+
+- `META|schema_version|composition_id|revision|mode|context_id|valid_from_utc|valid_until_utc`
+- `COMP|component_id|role|artifact_sha256|schema_id|schema_version|context_id|vvuq_evidence_id|peer_id`
+- `NODE|kind|node_id|scope_key|component_id|evidence_id`
+- `EVIDENCE|evidence_id|class|subject_kind|subject_id|authority|artifact_sha256|receipt_sha256|status`
+- `EDGE|from_kind|from_id|relation|to_kind|to_id|evidence_id`
+- `IFACE|interface_id|from_component|from_port|to_component|to_port|mapping_id|unit_from|unit_to|unit_transform|clock_from|clock_to|clock_transform|join_policy`
+
+The manifest is order-independent. Exactly one META record is required. Component, node, evidence and interface IDs must be unique.
+
+### Composition modes
+
+- `integrated`: all participating component declarations use the common `mfg.canonical/1` schema.
+- `unified`: component schemas remain independently declared; each interface still carries a typed, versioned mapping.
+- `federated`: component schemas remain independently declared and every component has a unique peer identity.
+
+These are structural test profiles, not assertions that this small fixture implements every normative requirement of ISO 23247-6:2026.
+
+### Required component roles
+
+`digital_thread`, `machine`, `inspection`, `physics`, `metrology`, `quality`, `intervention`, `authority`.
+
+Each component references a `COMPONENT_VVUQ` evidence record whose subject is that exact component. A `SYNTHETIC_ONLY` receipt is accepted only to let the synthetic fixture exercise the graph; it is not production qualification.
+
+### Required lifecycle nodes
+
+Exactly one each: PRODUCT, LOT, OPERATION, MACHINE_CYCLE, MODEL_RUN, SPECIFICATION, INSPECTION_RESULT, MEASUREMENT, UNCERTAINTY_BUDGET, CONFORMITY, ACTION_PROPOSAL, AUTHORIZATION, EXECUTION and POSTCONDITION.
+
+All must use the same exact `scope_key`, binding this v0.1 scenario to one product / lot / operation. Every node names its producer component and an evidence record whose subject key is `KIND:id`.
+
+### Required edges
+
+- PRODUCT --HAS_LOT--> LOT
+- LOT --PROCESSED_IN--> OPERATION
+- OPERATION --OBSERVED_BY--> MACHINE_CYCLE
+- OPERATION --SIMULATED_BY--> MODEL_RUN
+- MACHINE_CYCLE --EXPLICITLY_LINKED_TO--> INSPECTION_RESULT
+- INSPECTION_RESULT --HAS_MEASUREMENT--> MEASUREMENT
+- MEASUREMENT --HAS_UNCERTAINTY--> UNCERTAINTY_BUDGET
+- MEASUREMENT --COMPARED_TO--> SPECIFICATION
+- MEASUREMENT --DISPOSED_BY--> CONFORMITY
+- CONFORMITY --JUSTIFIES--> ACTION_PROPOSAL
+- ACTION_PROPOSAL --AUTHORIZED_BY--> AUTHORIZATION
+- AUTHORIZATION --AUTHORIZES--> EXECUTION
+- EXECUTION --VERIFIED_BY--> POSTCONDITION
+
+Every edge needs a distinct `EXPLICIT_ASSOCIATION` evidence record whose subject key is `from_kind:from_id:relation:to_kind:to_id`. No fuzzy or nearest-timestamp join is accepted. Extra edges are allowed only when both endpoints exist and their evidence references are valid.
+
+### Typed interfaces
+
+The fixture requires these component-role paths: machine→inspection, inspection→metrology, physics→quality, metrology→quality, quality→intervention and intervention→authority.
+
+Equal unit or clock domains require `IDENTITY`. Different domains require a named `MAP:<versioned-id>` transform. Every interface must use `EXPLICIT_ID` as its join policy. This verifier checks declarations and compatibility; it does not execute unit or clock transforms or prove their numerical correctness.
+
+### Evidence record rules
+
+Evidence records must have a non-empty declared authority, lowercase 64-character hexadecimal digest references, a matching subject and expected evidence class, and status one of `ADMITTED`, `VERIFIED`, `QUALIFIED` or `SYNTHETIC_ONLY`. Each evidence record must be referenced exactly once; orphaned or reused evidence IDs are rejected.
+
+**Critical limitation:** this first slice validates digest *shape and reference consistency only*. It does not read or hash referenced artifacts, verify signatures, authenticate an authority, validate calibration truth, or establish the correctness of an association. The fixtures intentionally use deterministic sentinel digests and are labelled synthetic-only.
+
+## Output and claim ceiling
+
+A successful result is `MANIFEST_STRUCTURALLY_VALID`, not "VVUQ passed", "product conforming", "part released", or "manufacturing process qualified". The CLI prints explicit claim-ceiling flags. The verifier does not independently validate physical models, measurements, posterior distributions, decisions, authorization signatures or execution telemetry.
+
+The synthetic offline authorization and execution nodes test lifecycle completeness only. They do not connect to a PLC, controller, machine, release system or live factory.
+
+## Initial negative controls
+
+Unit tests cover missing machine-cycle/inspection association, cross-lot scope mismatch, wrong VVUQ evidence class, fuzzy joins, unit conversion without a declared mapping, wrong integrated schema, federated peer collisions, orphan evidence, malformed digest references and deterministic replay.
+
+## Next qualification work
+
+1. Replace sentinel fixture digests with exact source and receipt hashes for rights-cleared, independently admitted artifacts.
+2. Add an independent artifact-byte and signature/authority verification adapter through existing evidence owners; do not silently fold these responsibilities into this structural verifier.
+3. Add clock-transform residual bounds, executable unit transforms and an independently generated association oracle.
+4. Expand from one-article v0.1 to multi-part/assembly and multi-operation scopes only after genealogy and route completeness semantics are independently qualified.
+5. Add schema/format admissions for actual MTConnect and QIF instances; the mapper and schema-admission owner remain authoritative.
