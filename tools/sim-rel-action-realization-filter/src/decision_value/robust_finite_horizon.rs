@@ -953,25 +953,23 @@ fn replay_unnormalized_node(
                     if *child_plan != DecisionPlan::HazardTerminal {
                         return Err("observed hazard branch must terminate immediately".into());
                     }
-                    partitions
-                        .iter()
-                        .map(|partition| {
-                            let probability = partition
-                                .get(&observation)
-                                .map(|branch| branch.probability)
-                                .unwrap_or_else(Rational::zero);
-                            if probability.is_zero() {
-                                WorldObjectives::zero()
-                            } else {
-                                WorldObjectives {
-                                    expected_terminal_loss: probability.checked_mul(hazard_loss)
-                                        .unwrap_or_else(|_| Rational::one()),
-                                    hazard_probability: probability,
-                                    ..WorldObjectives::zero()
-                                }
-                            }
-                        })
-                        .collect::<Vec<_>>()
+                    let mut hazards = Vec::with_capacity(partitions.len());
+                    for partition in &partitions {
+                        let probability = partition
+                            .get(&observation)
+                            .map(|branch| branch.probability)
+                            .unwrap_or_else(Rational::zero);
+                        if probability.is_zero() {
+                            hazards.push(WorldObjectives::zero());
+                        } else {
+                            hazards.push(WorldObjectives {
+                                expected_terminal_loss: probability.checked_mul(hazard_loss)?,
+                                hazard_probability: probability,
+                                ..WorldObjectives::zero()
+                            });
+                        }
+                    }
+                    hazards
                 } else {
                     if *child_plan == DecisionPlan::HazardTerminal {
                         return Err("non-hazard observation cannot use a hazard terminal".into());
