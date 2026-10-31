@@ -314,11 +314,6 @@ fn validate_graph(manifest: &Manifest) -> Result<BTreeMap<String, Vec<String>>, 
         if !graph_identity_exists(manifest, &dependency.downstream_id) {
             return Err(format!("dependency references unknown downstream {}", dependency.downstream_id));
         }
-        if manifest.claims.contains_key(&dependency.downstream_id)
-            && manifest.claims.contains_key(&dependency.upstream_id)
-        {
-            // Claim-to-claim composition is allowed; each edge remains revision-bound.
-        }
         if graph_revision(manifest, &dependency.upstream_id) != Some(dependency.upstream_revision.as_str()) {
             return Err(format!(
                 "dependency {} -> {} binds the wrong upstream revision",
@@ -551,23 +546,23 @@ fn traverse_impact(
                         let existing = path_counts.get(child).copied().unwrap_or(0);
                         path_counts.insert(child.clone(), add_saturating(existing, parent_paths));
                         let candidate_distance = distances.get(&id).copied().unwrap_or(0) + 1;
-                    let mut candidate_path = witness_paths
-                        .get(&id)
-                        .cloned()
-                        .unwrap_or_else(|| vec![id.clone()]);
-                    candidate_path.push(child.clone());
+                        let mut candidate_path = witness_paths
+                            .get(&id)
+                            .cloned()
+                            .unwrap_or_else(|| vec![id.clone()]);
+                        candidate_path.push(child.clone());
 
-                    let replace = match distances.get(child).copied() {
-                        None => true,
-                        Some(previous) if candidate_distance < previous => true,
-                        Some(previous) if candidate_distance == previous => {
-                            witness_paths
-                                .get(child)
-                                .map(|existing_path| candidate_path < *existing_path)
-                                .unwrap_or(true)
-                        }
-                        _ => false,
-                    };
+                        let replace = match distances.get(child).copied() {
+                            None => true,
+                            Some(previous) if candidate_distance < previous => true,
+                            Some(previous) if candidate_distance == previous => {
+                                witness_paths
+                                    .get(child)
+                                    .map(|existing_path| candidate_path < *existing_path)
+                                    .unwrap_or(true)
+                            }
+                            _ => false,
+                        };
                         if replace {
                             distances.insert(child.clone(), candidate_distance);
                             witness_paths.insert(child.clone(), candidate_path);
@@ -641,9 +636,13 @@ fn analyze(manifest: &Manifest) -> Result<ImpactReport, String> {
     let mut union_claims = BTreeSet::new();
 
     let mut change_ids = BTreeSet::new();
+    let mut change_receipts = BTreeSet::new();
     for change in &manifest.changes {
         if !change_ids.insert(change.id.as_str()) {
             return Err(format!("duplicate change id {}", change.id));
+        }
+        if !change_receipts.insert(change.receipt_id.as_str()) {
+            return Err(format!("duplicate or reused change receipt {}", change.receipt_id));
         }
         let no_op = validate_change(manifest, change)?;
         let impact = if no_op {
@@ -914,6 +913,113 @@ CHANGE|change-physics|physics|r1|r2|00000000000000000000000000000000000000000000
     fn requires_claim_supporting_dependency() {
         let input = FIXTURE.replace("DEP|conformity-a|r1|claim-a-historical\n", "");
         assert!(parse_and_analyze(&input).unwrap_err().contains("has no supporting dependency"));
+    }
+
+    #[test]
+    fn multiple_dependency_paths_are_counted_with_a_deterministic_witness() {
+        let input = FIXTURE.replace(
+            "DEP|conformity-cal-a|r1|claim-a",
+            "DEP|conformity-cal-a|r1|claim-a\nDEP|simulation-a|r1|conformity-cal-a",
+        );
+        let report = parse_and_analyze(&input).unwrap();
+        let impact = &report.change_impacts[0];
+        let claim = impact.affected_claims.iter().find(|entry| entry.claim_id == "claim-a").unwrap();
+        assert_eq!(claim.dependency_path_count, 2);
+        assert_eq!(claim.witness_path.first().unwrap(), "physics");
+        assert_eq!(claim.witness_path.last().unwrap(), "claim-a");
+    }
+
+    #[test]
+    fn change_class_must_match_target_item_kind() {
+        let input = FIXTURE.replace(
+            "|SUBSTANTIVE|GLOBAL|2026-10-01T00:00:00Z|",
+            "|CALIBRATION|GLOBAL|2026-10-01T00:00:00Z|",
+        );
+        assert!(parse_and_analyze(&input).unwrap_err().contains("incompatible with target kind"));
+    }
+
+    #[test]
+    fn change_effective_interval_must_overlap_target_item_validity() {
+        let input = FIXTURE.replace(
+            "2027-12-31T23:59:59Z\nITEM|simulation-a",
+            "2026-08-31T23:59:59Z\nITEM|simulation-a",
+        );
+        assert!(parse_and_analyze(&input).unwrap_err().contains("does not overlap target item validity"));
+    }
+
+    #[test]
+    fn unknown_dependency_target_fails_closed() {
+        let input = FIXTURE.replace(
+            "DEP|conformity-b|r1|claim-b",
+            "DEP|conformity-b|r1|claim-b\nDEP|not-present|r1|claim-b",
+        );
+        assert!(parse_and_analyze(&input).unwrap_err().contains("unknown upstream"));
+    }
+
+    #[test]
+    fn reused_change_receipt_fails_closed() {
+        let extra = "CHANGE|change-cal|calibration-a|r1|r2|0000000000000000000000000000000000000000000000000000000000000006|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|CALIBRATION|LINE_A|2026-10-01T00:00:00Z|9999-12-31T23:59:59Z|TRUE|receipt-physics";
+        assert!(parse_and_analyze(&format!("{FIXTURE}\n{extra}\n")).unwrap_err().contains("reused change receipt"));
+    }
+
+    #[test]
+    fn ten_thousand_dependency_items_complete_with_exact_impact() {
+        let mut manifest = Manifest::default();
+        let valid_from = "2026-01-01T00:00:00Z".to_string();
+        let valid_until = "2027-12-31T23:59:59Z".to_string();
+        for index in 0..=10_000usize {
+            let id = format!("item-{index:05}");
+            let kind = if index == 0 { "PHYSICS_MODEL" } else { "DERIVED_EVIDENCE" };
+            let digest = if index == 0 { "1".repeat(64) } else { "a".repeat(64) };
+            manifest.items.insert(id.clone(), Item {
+                id,
+                kind: kind.to_string(),
+                scope: "LINE_A".to_string(),
+                revision: "r1".to_string(),
+                digest,
+                valid_from: valid_from.clone(),
+                valid_until: valid_until.clone(),
+            });
+        }
+        for index in 1..=10_000usize {
+            manifest.dependencies.push(Dependency {
+                upstream_id: format!("item-{:05}", index - 1),
+                upstream_revision: "r1".to_string(),
+                downstream_id: format!("item-{index:05}"),
+            });
+        }
+        manifest.claims.insert("claim-scale".to_string(), Claim {
+            id: "claim-scale".to_string(),
+            revision: "r1".to_string(),
+            scope: "LINE_A".to_string(),
+            valid_from: valid_from.clone(),
+            valid_until: valid_until.clone(),
+            class: "PHYSICS".to_string(),
+            status: "SYNTHETIC_ONLY".to_string(),
+        });
+        manifest.dependencies.push(Dependency {
+            upstream_id: "item-10000".to_string(),
+            upstream_revision: "r1".to_string(),
+            downstream_id: "claim-scale".to_string(),
+        });
+        manifest.changes.push(Change {
+            id: "change-scale".to_string(),
+            target_id: "item-00000".to_string(),
+            old_revision: "r1".to_string(),
+            new_revision: "r2".to_string(),
+            old_digest: "1".repeat(64),
+            new_digest: "2".repeat(64),
+            class: "SUBSTANTIVE".to_string(),
+            scope: "LINE_A".to_string(),
+            effective_from: "2026-10-01T00:00:00Z".to_string(),
+            effective_until: "9999-12-31T23:59:59Z".to_string(),
+            semantic_change: true,
+            receipt_id: "receipt-scale".to_string(),
+        });
+        let report = analyze(&manifest).unwrap();
+        assert_eq!(report.union_affected_items.len(), 10_000);
+        assert_eq!(report.union_affected_claims, vec!["claim-scale".to_string()]);
+        assert_eq!(report.change_impacts[0].affected_claims[0].dependency_path_count, 1);
     }
 
     #[test]
