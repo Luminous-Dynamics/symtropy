@@ -3,13 +3,14 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use nalgebra::{DVector, Matrix2, SVector};
+use nalgebra::{DMatrix, DVector, Matrix2, SVector};
 use symtropy_math::{Bivector, Point, Rotor};
 use symtropy_physics::{
     BivectorInertia, BodyHandle, ContactFrame, ContactWrenchFrictionLimits,
     ContactWrenchImpulse, ContactWrenchRow, FrictionlessContactRow, PhysicsWorld, RigidBody,
     assemble_contact_wrench_delassus, assemble_contact_wrench_free_velocity,
     assemble_delassus, solve_frictionless_lcp, solve_planar_friction_cone,
+    QuadraticPortHamiltonian,
 };
 
 fn fixture(
@@ -304,6 +305,45 @@ fn work_ledger_receipt_overhead(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_port_hamiltonian_discrete_gradient(c: &mut Criterion) {
+    let mut group = c.benchmark_group("port_hamiltonian_discrete_gradient");
+    for dimension in [2_usize, 16, 64] {
+        let energy = DMatrix::<f64>::identity(dimension, dimension);
+        let mut interconnection = DMatrix::<f64>::zeros(dimension, dimension);
+        let mut dissipation = DMatrix::<f64>::identity(dimension, dimension) * 0.01;
+        let mut input_matrix = DMatrix::<f64>::zeros(dimension, 1);
+        for index in (0..dimension).step_by(2) {
+            interconnection[(index, index + 1)] = 1.0;
+            interconnection[(index + 1, index)] = -1.0;
+        }
+        input_matrix[(0, 0)] = 1.0;
+        let system = QuadraticPortHamiltonian::new(
+            energy,
+            interconnection,
+            std::mem::replace(&mut dissipation, DMatrix::zeros(dimension, dimension)),
+            input_matrix,
+            1e-12,
+        )
+        .expect("valid benchmark port-Hamiltonian model");
+        let state = DVector::from_element(dimension, 0.1);
+        let input = DVector::from_vec(vec![0.2]);
+        group.bench_with_input(
+            BenchmarkId::new("state_dimension", dimension),
+            &dimension,
+            |bench, _| {
+                bench.iter(|| {
+                    black_box(
+                        system
+                            .step(black_box(&state), black_box(&input), 0.001)
+                            .expect("finite discrete-gradient step"),
+                    )
+                });
+            },
+        );
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_delassus_assembly,
@@ -313,5 +353,6 @@ criterion_group!(
     bench_planar_friction_cone,
     bench_nd_contact_frame_and_wrench,
     work_ledger_receipt_overhead,
+    bench_port_hamiltonian_discrete_gradient,
 );
 criterion_main!(benches);
