@@ -806,6 +806,56 @@ mod tests {
     }
 
     #[test]
+    fn first_shift_windows_are_reported_from_cumulative_evidence() {
+        let drift = fixtures()[1].evaluate().unwrap();
+        assert_eq!(drift.first_mean_shift_window.as_deref(), Some("WINDOW-2"));
+        let variance = fixtures()[2].evaluate().unwrap();
+        assert_eq!(variance.first_variance_shift_window.as_deref(), Some("WINDOW-3"));
+    }
+
+    #[test]
+    fn malformed_source_identity_and_window_identity_reject() {
+        let mut campaign = fixtures()[0].clone();
+        campaign.calibration_source_sha256 = "not-a-digest".into();
+        assert!(campaign.evaluate().is_err());
+
+        let mut campaign = fixtures()[0].clone();
+        campaign.windows[3].id = campaign.windows[2].id.clone();
+        assert!(campaign.evaluate().is_err());
+
+        let mut campaign = fixtures()[0].clone();
+        campaign.windows[0].measurements[0].value = f64::NAN;
+        assert!(campaign.evaluate().is_err());
+
+        let mut campaign = fixtures()[0].clone();
+        campaign.upper_specification = campaign.lower_specification;
+        assert!(campaign.evaluate().is_err());
+    }
+
+    #[test]
+    fn receipt_preserves_calibration_msa_uncertainty_and_measurement_lineage() {
+        let report = fixtures()[0].evaluate().unwrap();
+        let csv = report.csv_rows();
+        for token in [
+            "CAL-CMM-01",
+            "MSA-CROSSED-01",
+            "UQ-CMM-01",
+            "PART-001",
+            "shaft-diameter",
+            &"a".repeat(DIGEST_LEN),
+            &"b".repeat(DIGEST_LEN),
+            &"c".repeat(DIGEST_LEN),
+            &"d".repeat(DIGEST_LEN),
+            "MEAS-000",
+            "MEAS-031",
+            "WINDOW-1",
+            "WINDOW-4",
+        ] {
+            assert!(csv.contains(token), "missing receipt token: {token}");
+        }
+    }
+
+    #[test]
     fn deterministic_report_is_byte_identical() {
         let first = fixtures().iter().map(|c| c.evaluate().unwrap().csv_rows()).collect::<String>();
         let second = fixtures().iter().map(|c| c.evaluate().unwrap().csv_rows()).collect::<String>();
