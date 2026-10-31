@@ -835,6 +835,126 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_undirected_edges_and_missing_endpoints_fail_closed() {
+        let bodies = [
+            GraphBody { id: 10, mass: 1.0, position: [0.0, 0.0, 0.0] },
+            GraphBody { id: 20, mass: 2.0, position: [1.0, 0.0, 0.0] },
+            GraphBody { id: 30, mass: 3.0, position: [2.0, 0.0, 0.0] },
+        ];
+        let duplicate_pair = vec![
+            DistanceEdge { id: 1, from_body_id: 10, to_body_id: 20, length: 1.0 },
+            DistanceEdge { id: 2, from_body_id: 20, to_body_id: 10, length: 1.0 },
+        ];
+        assert_eq!(
+            ConstraintGraph3::new(
+                1,
+                bodies,
+                duplicate_pair,
+                RankPolicy::default()
+            )
+            .unwrap_err(),
+            GraphError::DuplicateUndirectedEdge {
+                edge_id: 2,
+                other_edge_id: 1
+            }
+        );
+
+        let missing_endpoint = vec![
+            DistanceEdge { id: 1, from_body_id: 10, to_body_id: 20, length: 1.0 },
+            DistanceEdge { id: 2, from_body_id: 20, to_body_id: 99, length: 1.0 },
+        ];
+        assert_eq!(
+            ConstraintGraph3::new(
+                1,
+                bodies,
+                missing_endpoint,
+                RankPolicy::default()
+            )
+            .unwrap_err(),
+            GraphError::MissingEndpoint {
+                edge_id: 2,
+                body_id: 99
+            }
+        );
+    }
+
+    #[test]
+    fn inconsistent_edge_geometry_nonfinite_body_and_invalid_policy_fail_closed() {
+        let bodies = [
+            GraphBody { id: 10, mass: 1.0, position: [0.0, 0.0, 0.0] },
+            GraphBody { id: 20, mass: 1.0, position: [1.0, 0.0, 0.0] },
+            GraphBody { id: 30, mass: 1.0, position: [2.0, 0.0, 0.0] },
+        ];
+        let edges = vec![
+            DistanceEdge { id: 1, from_body_id: 10, to_body_id: 20, length: 1.1 },
+            DistanceEdge { id: 2, from_body_id: 20, to_body_id: 30, length: 1.0 },
+        ];
+        assert_eq!(
+            ConstraintGraph3::new(1, bodies, edges, RankPolicy::default()).unwrap_err(),
+            GraphError::PositionDoesNotMatchEdge { edge_id: 1 }
+        );
+
+        let nonfinite = [
+            bodies[0],
+            bodies[1],
+            GraphBody {
+                position: [f64::NAN, 0.0, 0.0],
+                ..bodies[2]
+            },
+        ];
+        assert_eq!(
+            ConstraintGraph3::new(
+                1,
+                nonfinite,
+                vec![
+                    DistanceEdge { id: 1, from_body_id: 10, to_body_id: 20, length: 1.0 },
+                    DistanceEdge { id: 2, from_body_id: 20, to_body_id: 30, length: 1.0 },
+                ],
+                RankPolicy::default()
+            )
+            .unwrap_err(),
+            GraphError::NonFiniteBodyState { body_index: 2 }
+        );
+
+        assert_eq!(
+            RankPolicy {
+                ill_conditioned_rcond: 1.0e-12,
+                rank_deficient_rcond: 1.0e-6,
+                geometry_tolerance: 1.0e-10,
+            }
+            .validate()
+            .unwrap_err(),
+            GraphError::InvalidRankPolicy
+        );
+    }
+
+    #[test]
+    fn uniform_mass_scaling_does_not_change_geometric_rcond() {
+        let base = closed_triangle(0.19, 25);
+        let baseline = base.assess_geometry().unwrap();
+        let mut bodies = *base.bodies();
+        for body in &mut bodies {
+            body.mass *= 17.0;
+        }
+        let scaled = ConstraintGraph3::new(
+            26,
+            bodies,
+            base.edges().to_vec(),
+            RankPolicy::default(),
+        )
+        .unwrap()
+        .assess_geometry()
+        .unwrap();
+        assert_eq!(baseline.numerical_rank, scaled.numerical_rank);
+        assert!(
+            (baseline.reciprocal_condition_indicator
+                - scaled.reciprocal_condition_indicator)
+                .abs()
+                < 2.0e-13
+        );
+    }
+
+    #[test]
     fn invalid_ids_edges_masses_and_lengths_fail_closed() {
         let body = [
             GraphBody { id: 10, mass: 1.0, position: [0.0, 0.0, 0.0] },
