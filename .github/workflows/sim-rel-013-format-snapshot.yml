@@ -1,0 +1,33 @@
+name: SIM-REL-013 formatter snapshot
+
+on:
+  push:
+    branches: ["research/sim-rel-013-format-snapshot"]
+    paths:
+      - "tools/sim-rel-joint-stochastic-oracle/**"
+      - ".github/workflows/sim-rel-013-format-snapshot.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: \${{ github.sha }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Format crate using pinned rustfmt
+        run: cargo fmt --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml
+      - name: Package formatter output
+        run: tar -czf "$RUNNER_TEMP/sim-rel-rustfmt-output.tar.gz" tools/sim-rel-joint-stochastic-oracle/src
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sim-rel-013-rustfmt-output
+          path: \${{ runner.temp }}/sim-rel-rustfmt-output.tar.gz
+          if-no-files-found: error
+          retention-days: 1
