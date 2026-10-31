@@ -51,3 +51,10 @@ The decision semantics are informed by ISO 14253-1:2017, JCGM 106:2012 and Eurac
 ## Claim and authority ceiling
 
 This is a scalar characteristic decision reference. It does not prove the measurement is physically accurate, validate the process/model, certify a part, replace customer/purchaser rules, authorize shipment or actuate a process. ACCEPT is an outcome under the supplied evidence and rule, not a release authorization.
+
+
+## Interpretation of the coverage interval
+
+The interval [y-U, y+U] is the upstream-qualified *coverage interval* associated with the declared coverage factor and coverage probability. It is not a hard support bound and does not prove that every possible true measurand value lies inside it. The ACCEPT outcome means guarded acceptance under this declared decision rule and coverage evidence; it is not a deterministic truth claim, product certificate or shipment authorization. Preserve the coverage probability in the receipt.
+
+When a probability of conformity is needed, use the separate PDF-based evaluator in Symtropy [PWR-MFG-RISK-001 #3007](https://github.com/Luminous-Dynamics/symtropy/issues/3007). That evaluator requires an explicit, qualified post-measurement PDF; it must not infer a Gaussian or other distribution from U, k, or the coverage probability alone.
