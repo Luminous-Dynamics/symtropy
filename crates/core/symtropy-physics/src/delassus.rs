@@ -976,6 +976,88 @@ mod tests {
         );
     }
 
+    #[test]
+    fn contact_wrench_delassus_rejects_known_body_inertia_mass_mismatch() {
+        use crate::body::BodyType;
+        use symtropy_math::{Sphere, Transform};
+
+        let static_body = RigidBody::<3>::new(
+            BodyHandle(0),
+            BodyType::Static,
+            Transform::identity(),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+            0.0,
+            SVector::zeros(),
+        );
+        let mut dynamic_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        dynamic_body.set_rotational_inertia_operator(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                2.0,
+                SVector::new(1.0, 0.8, 0.6),
+            )
+            .unwrap(),
+        );
+        let frame =
+            ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let row = ContactWrenchRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::new(1.0, 0.0, 0.0),
+            frame,
+        };
+
+        assert_eq!(
+            assemble_contact_wrench_delassus(&[static_body, dynamic_body], &[row], 1e-12)
+                .unwrap_err(),
+            DelassusAssemblyError::RotationalInertia(
+                crate::inertia::RotationalInertiaError::MassMismatch
+            )
+        );
+    }
+
+    #[test]
+    fn contact_wrench_delassus_propagates_singular_rolling_or_torsional_plane() {
+        use crate::body::BodyType;
+        use nalgebra::SMatrix;
+        use symtropy_math::{Sphere, Transform};
+
+        let static_body = RigidBody::<3>::new(
+            BodyHandle(0),
+            BodyType::Static,
+            Transform::identity(),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+            0.0,
+            SVector::zeros(),
+        );
+        let mut dynamic_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        dynamic_body.set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(
+                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
+            )
+            .unwrap(),
+        );
+        let frame =
+            ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let row = ContactWrenchRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::zeros(),
+            frame,
+        };
+
+        assert_eq!(
+            assemble_contact_wrench_delassus(&[static_body, dynamic_body], &[row], 1e-12)
+                .unwrap_err(),
+            DelassusAssemblyError::RotationalInertia(
+                crate::inertia::RotationalInertiaError::SingularInertia
+            )
+        );
+    }
+
     fn assert_isotropic_contact_wrench_diagonal<const D: usize>() {
         let bodies = vec![
             RigidBody::<D>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 2.0),
