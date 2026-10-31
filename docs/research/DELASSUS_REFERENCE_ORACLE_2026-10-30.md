@@ -67,13 +67,19 @@ The package now has a Criterion target:
 cargo bench -p symtropy-physics --bench delassus_reference
 ```
 
-It measures Delassus assembly and exhaustive LCP solve independently at 1, 2, 4 and 8 rows for a fixed asymmetric 3D two-body fixture. The timing output must be accompanied by host/compiler metadata and the exact source SHA. These are microbenchmarks for the reference layer, not engine-level throughput comparisons. No measurements are claimed until the benchmark is actually run. It now also measures the full contact-wrench Delassus assembly at 1, 2 and 4 contact patches (6 coordinates per 3D contact), including normal/tangent/rolling/torsional cross-coupling on asymmetric bodies.
+It measures frictionless Delassus assembly and exhaustive LCP solve independently at 1, 2, 4 and 8 rows for a fixed asymmetric 3D two-body fixture, and the full contact-wrench matrix at 1, 2 and 4 3D contact patches. The timing output must be accompanied by host/compiler metadata and the exact source SHA. These are microbenchmarks for the reference layer, not engine-level throughput comparisons. No measurements are claimed until the benchmark is actually run. It now also measures the full contact-wrench Delassus assembly at 1, 2 and 4 contact patches (6 coordinates per 3D contact), including normal/tangent/rolling/torsional cross-coupling on asymmetric bodies.
 
 ## Full contact-wrench metric
 
 The branch now exports `ContactWrenchRow<D>` and `assemble_contact_wrench_delassus`. For each contact, the row basis consists of D linear directions (normal plus tangents) and D(D-1)/2 angular directions (rolling plus torsion), for D(D+1)/2 coordinates total. Each input coordinate is applied to both bodies using its correct contact lever arm/direct angular impulse; each output coordinate measures the corresponding relative point/angular velocity. All cross-channel blocks are retained.
 
 Regression tests cover the analytic isotropic diagonal metric in D=2/3/4, asymmetric tangent-to-rolling coupling, symmetry/PSD and global rigid-rotation covariance. This is a reference matrix assembler, not a 3D Coulomb/rolling/torsion optimizer or production contact path.
+
+## Contact-wrench effective metric and free velocity
+
+The branch now also exports `ContactWrenchRow<D>`, `assemble_contact_wrench_delassus` and `assemble_contact_wrench_free_velocity`. A contact contributes D linear coordinates (normal plus tangents) and D(D-1)/2 angular coordinates (rolling plus torsion). The matrix includes contact lever-arm moments, direct angular impulses, and the cross-channel/cross-body response. The free-velocity projection uses the same basis and converts the stored rotor generator to physical angular velocity before projection.
+
+Tests verify analytic isotropic diagonals in D=2/3/4, asymmetric tangent-to-rolling coupling, symmetry/PSD, the physical angular-state sign and global-frame covariance of both W and q. The full coupled metric remains a reference assembler; it is not connected to a 3D/4D maximum-dissipation friction optimizer or production TGS.
 
 ## Mechanical evidence increment
 
