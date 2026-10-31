@@ -246,10 +246,10 @@ There is no single "SOTA" comparator for this problem. Established approaches so
 | Delphi | Anonymity, iteration and controlled feedback for expert elicitation | Normative legitimacy, material affected-party voice and non-expert lived experience |
 | Adversarial collaboration | Fairly characterizes competing claims and designs a test jointly before results | Repeatable institutional workflow, rights/appeals, scarcity and care-cost integration |
 | OECD deliberative evaluation | Design integrity, deliberative experience and pathways to impact | Executable issue-level event lineage and distributional outcomes at each review |
-| Decidim-style participation | Proposals, amendments, voting, phased participation and accountability | Whether the surrounding process preserves power/safety context and evaluates long-horizon burden |
+| Decidim | Proposal authors can modify/withdraw proposals before support opens; proposals have version control and integrity checks, amendments, phased evolution and accountability | Interoperability and comparative testing of source authorization across the full issue/hazard/decision lifecycle, replay/genesis anchoring, and longitudinal material/care-burden outcomes; do not claim basic revision/withdrawal as novel |
 | LBE protocol | A proposed combination of typed tension handling, event-sourced dissent, review/appeal and material incidence | Must prove its incremental value under matched, independent comparison |
 
-Do not equate event sourcing itself with novelty; it is an established software architecture. The research hypothesis is that event-sourced institutional memory, typed tension/disposition semantics and material/power/care accounting can be combined into a reproducible civic/economic benchmark with stronger rights and longitudinal evaluation.
+Do not equate event sourcing itself with novelty; it is an established software architecture. The research hypothesis is that source-authenticated position lifecycle events, event-sourced institutional memory, typed tension/disposition semantics and material/power/care accounting can be combined into a reproducible civic/economic benchmark with stronger rights and longitudinal evaluation. Decidim's documented proposal versioning and author withdrawal are a baseline to interoperate with and compare against, not a feature to claim as unique.
 
 ### Claim ladder
 
