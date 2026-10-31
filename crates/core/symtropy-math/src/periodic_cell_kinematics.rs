@@ -656,8 +656,8 @@ fn vector_close<const D: usize>(
 #[cfg(test)]
 mod tests {
     use super::{
-        CartesianCellState, FractionalCellState, PeriodicCellKinematics,
-        PeriodicCellKinematicsError,
+        integer_matrix_to_f64, integer_unimodular_inverse, CartesianCellState,
+        FractionalCellState, PeriodicCellKinematics, PeriodicCellKinematicsError,
     };
     use nalgebra::{SMatrix, SVector};
 
@@ -1144,6 +1144,35 @@ mod tests {
         assert_eq!(result.unimodular_determinant, 1);
         assert!((result.after.position - before.position).norm() < 1e-11);
         assert!((result.after.velocity - before.velocity).norm() < 1e-11);
+    }
+
+    #[test]
+    fn integer_basis_transform_overflow_and_float_precision_fail_closed() {
+        let exact_but_unrepresentable =
+            SMatrix::<i64, 2, 2>::from_row_slice(&[
+                1, 9_007_199_254_740_992,
+                0, 1,
+            ]);
+        assert_eq!(
+            integer_unimodular_inverse(&exact_but_unrepresentable)
+                .unwrap()
+                .0,
+            1
+        );
+        assert_eq!(
+            integer_matrix_to_f64(&exact_but_unrepresentable),
+            Err(PeriodicCellKinematicsError::InvalidIntegerBasisTransform)
+        );
+
+        let overflowing_determinant =
+            SMatrix::<i64, 2, 2>::from_row_slice(&[
+                i64::MAX, i64::MAX - 1,
+                i64::MAX - 1, i64::MAX - 2,
+            ]);
+        assert_eq!(
+            integer_unimodular_inverse(&overflowing_determinant),
+            Err(PeriodicCellKinematicsError::InvalidIntegerBasisTransform)
+        );
     }
 
     #[test]
