@@ -574,15 +574,16 @@ fn audit_campaign(csv: &str) -> Result<(), String> {
             return Err(format!("rank/condition/iteration audit failed at line {line_number}"));
         }
 
-        if values[2] > 1.0e-9
+        if values[1] > 1.0e-6
+            || values[2] > 1.0e-7
             || values[3] > 1.0e-9
-            || values[4] > 1.0e-7
+            || values[4] > 1.0e-9
             || values[5] > 1.0e-7
             || values[6] > 1.0e-7
             || values[7] > 1.0e-7
-            || values[8] > 1.0e-8
+            || values[8] > 1.0e-7
             || values[9] > 1.0e-8
-            || values[10] > 1.0e-4
+            || values[10] > 1.0e-8
         {
             return Err(format!("constraint, momentum or energy envelope failed at line {line_number}"));
         }
