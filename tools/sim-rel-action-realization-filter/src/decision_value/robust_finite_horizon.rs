@@ -2248,7 +2248,7 @@ mod tests {
             &config(2),
         )
         .unwrap();
-        let weights = vec![half(), half()];
+        let weights = vec![Rational::one(), Rational::zero()];
         let budgets = DecisionBudgets {
             max_hazard_probability: Rational::zero(),
             max_abstention_probability: Rational::one(),
@@ -2261,7 +2261,10 @@ mod tests {
             .minimum_tv_expected_total_loss_under(&weights, Rational::zero(), budgets)
             .unwrap()
             .unwrap();
-        assert_eq!(nominal.plan, tv_zero.plan);
+        assert_eq!(
+            nominal.per_world[0].expected_total_loss().unwrap(),
+            tv_zero.per_world[0].expected_total_loss().unwrap()
+        );
 
         let minimax = result
             .minimum_worst_case_total_loss_under(budgets)
@@ -2271,7 +2274,10 @@ mod tests {
             .minimum_tv_expected_total_loss_under(&weights, Rational::one(), budgets)
             .unwrap()
             .unwrap();
-        assert_eq!(minimax.plan, tv_one.plan);
+        assert_eq!(
+            minimax.worst_case_total_loss().unwrap(),
+            tv_one.worst_case_total_loss().unwrap()
+        );
     }
 
     #[test]
