@@ -41,6 +41,8 @@ The solver chooses (j_t\) opposite slip and clamps it to the Coulomb bound. Unde
 - Documents the callback quantity as joules.
 - Adds a runtime test using a sliding sphere against a static half-space. The test reads the actual post-step point velocity, reconstructs the applied tangential impulse through the effective mass, and checks that callback-reported dissipation matches the work formula.
 
+Rejected integration steps now carry a monotonic world-local `step_id`, failure phase, optional body handles and a typed root cause. The same sequence counter is included in accepted `InvariantStepReceipt` records, so a recorded command stream can correlate a failed attempt with the next accepted state transition. This ID is not a cryptographic replay hash; source/configuration digests and input-command capture remain part of the run-envelope work.
+
 ## Accepted-step invariant receipt
 
 The cumulative implementation also adds `PhysicsWorld::try_step_with_receipt`, returning an `InvariantStepReceipt` with deterministic pre/post invariant snapshots, total/dynamic body counts, contact count, maximum penetration and signed mechanical-energy drift. This is a state-transition record, not a closed energy balance: un-attributed work sources can legitimately explain energy changes.
