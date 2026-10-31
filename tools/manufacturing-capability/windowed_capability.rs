@@ -98,7 +98,11 @@ impl DiagnosticStatus {
 #[derive(Clone, Debug)]
 struct WindowMetrics {
     id: String,
+    start_ns: i64,
+    end_ns: i64,
     sample_count: usize,
+    measurement_ids: Vec<String>,
+    measurement_source_sha256s: Vec<String>,
     mean: f64,
     sample_standard_deviation: f64,
     cp_descriptive: f64,
@@ -117,13 +121,16 @@ struct Report {
     operation_id: String,
     station_id: String,
     instrument_id: String,
+    calibration_id: String,
     measurand_id: String,
     unit: String,
     specification_id: String,
     specification_revision: String,
+    specification_source_sha256: String,
     lower_specification: f64,
     upper_specification: f64,
     uncertainty_budget_id: String,
+    uncertainty_source_sha256: String,
     measurement_expanded_uncertainty: f64,
     msa_study_id: String,
     window_count: usize,
@@ -364,7 +371,12 @@ impl Campaign {
             all_values.extend_from_slice(&values);
             window_metrics.push(WindowMetrics {
                 id: window.id.clone(),
+                start_ns: window.start_ns,
+                end_ns: window.end_ns,
                 sample_count: values.len(),
+                measurement_ids: window.measurements.iter().map(|m| m.id.clone()).collect(),
+                measurement_source_sha256s: window.measurements.iter()
+                    .map(|m| m.source_sha256.clone()).collect(),
                 mean: average,
                 sample_standard_deviation: standard_deviation,
                 cp_descriptive: cp,
@@ -413,13 +425,16 @@ impl Campaign {
             operation_id: self.operation_id.clone(),
             station_id: self.station_id.clone(),
             instrument_id: self.instrument_id.clone(),
+            calibration_id: self.calibration_id.clone(),
             measurand_id: self.measurand_id.clone(),
             unit: self.unit.clone(),
             specification_id: self.specification_id.clone(),
             specification_revision: self.specification_revision.clone(),
+            specification_source_sha256: self.specification_source_sha256.clone(),
             lower_specification: self.lower_specification,
             upper_specification: self.upper_specification,
             uncertainty_budget_id: self.uncertainty_budget_id.clone(),
+            uncertainty_source_sha256: self.uncertainty_source_sha256.clone(),
             measurement_expanded_uncertainty: self.measurement_expanded_uncertainty_for_window_mean,
             msa_study_id: self.msa_study_id.clone(),
             window_count: self.windows.len(),
@@ -454,13 +469,16 @@ impl Report {
                 self.operation_id.clone(),
                 self.station_id.clone(),
                 self.instrument_id.clone(),
+                self.calibration_id.clone(),
                 self.measurand_id.clone(),
                 self.unit.clone(),
                 self.specification_id.clone(),
                 self.specification_revision.clone(),
+                self.specification_source_sha256.clone(),
                 format!("{:.12e}", self.lower_specification),
                 format!("{:.12e}", self.upper_specification),
                 self.uncertainty_budget_id.clone(),
+                self.uncertainty_source_sha256.clone(),
                 format!("{:.12e}", self.measurement_expanded_uncertainty),
                 self.msa_study_id.clone(),
                 self.window_count.to_string(),
@@ -481,7 +499,11 @@ impl Report {
                 self.status.code().to_string(),
                 "NORMAL_ASSUMPTION_UNVERIFIED".to_string(),
                 window.id.clone(),
+                window.start_ns.to_string(),
+                window.end_ns.to_string(),
                 window.sample_count.to_string(),
+                window.measurement_ids.join(";"),
+                window.measurement_source_sha256s.join(";"),
                 format!("{:.12e}", window.mean),
                 format!("{:.12e}", window.sample_standard_deviation),
                 format!("{:.12e}", window.cp_descriptive),
@@ -606,7 +628,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() -> Result<(), String> {
-    println!("campaign_id,part_id,lot_id,operation_id,station_id,instrument_id,measurand_id,unit,specification_id,specification_revision,lower_specification,upper_specification,uncertainty_budget_id,measurement_expanded_uncertainty,msa_study_id,window_count,total_sample_count,pooled_within_sd,pooled_within_cp,pooled_within_cpk,overall_mean,overall_sd,overall_pp,overall_ppk,worst_window_cpk,worst_window_id,window_mean_span,maximum_variance_ratio,first_mean_shift_window,first_variance_shift_window,diagnostic_status,distributional_assumption,window_id,sample_count,window_mean,window_sd,window_cp,window_cpk,guarded_mean_margin,guarded_mean_inside_spec,mean_delta_from_previous,variance_ratio_from_first");
+    println!("campaign_id,part_id,lot_id,operation_id,station_id,instrument_id,calibration_id,measurand_id,unit,specification_id,specification_revision,specification_source_sha256,lower_specification,upper_specification,uncertainty_budget_id,uncertainty_source_sha256,measurement_expanded_uncertainty,msa_study_id,window_count,total_sample_count,pooled_within_sd,pooled_within_cp,pooled_within_cpk,overall_mean,overall_sd,overall_pp,overall_ppk,worst_window_cpk,worst_window_id,window_mean_span,maximum_variance_ratio,first_mean_shift_window,first_variance_shift_window,diagnostic_status,distributional_assumption,window_id,window_start_ns,window_end_ns,sample_count,measurement_ids,measurement_source_sha256s,window_mean,window_sd,window_cp,window_cpk,guarded_mean_margin,guarded_mean_inside_spec,mean_delta_from_previous,variance_ratio_from_first");
     for campaign in fixtures() {
         let report = campaign.evaluate()?;
         print!("{}", report.csv_rows());
