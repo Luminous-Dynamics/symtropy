@@ -27,7 +27,7 @@ func main() {
 	}
 
 	if err := validateStrictJCSInput(input); err != nil {
-		fmt.Fprintf(os.Stderr, "strict JCS input validation failed: %v\\n", err)
+		fmt.Fprintf(os.Stderr, "strict JCS input validation failed: %v\n", err)
 		os.Exit(2)
 	}
 
