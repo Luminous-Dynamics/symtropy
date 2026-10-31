@@ -53,8 +53,7 @@ pub fn rank_by_one_step_eig(
                 let event = event_by_hypothesis
                     .entry(outcome.observation)
                     .or_insert_with(|| vec![Rational::zero(); kernel.hypothesis_ids.len()]);
-                event[point.hypothesis] =
-                    event[point.hypothesis].checked_add(weighted_mass)?;
+                event[point.hypothesis] = event[point.hypothesis].checked_add(weighted_mass)?;
             }
         }
 
@@ -63,10 +62,9 @@ pub fn rank_by_one_step_eig(
         let mut expected_posterior_entropy = 0.0_f64;
         let outcome_count = event_by_hypothesis.len();
         for (observation, hypothesis_masses) in event_by_hypothesis {
-            let event_mass = hypothesis_masses.iter().try_fold(
-                Rational::zero(),
-                |sum, mass| sum.checked_add(*mass),
-            )?;
+            let event_mass = hypothesis_masses
+                .iter()
+                .try_fold(Rational::zero(), |sum, mass| sum.checked_add(*mass))?;
             total_event_mass = total_event_mass.checked_add(event_mass)?;
             if observation.is_none() {
                 hazard_probability = hazard_probability.checked_add(event_mass)?;
@@ -122,11 +120,7 @@ fn validate_belief(kernel: &JointKernel, belief: &[JointMass]) -> Result<(), Str
         {
             return Err("joint belief contains an invalid tuple or non-positive mass".into());
         }
-        if !seen.insert((
-            point.hypothesis,
-            point.physical_state,
-            point.sensor_state,
-        )) {
+        if !seen.insert((point.hypothesis, point.physical_state, point.sensor_state)) {
             return Err("joint belief contains a duplicate tuple".into());
         }
         total = total.checked_add(point.mass)?;
@@ -155,4 +149,3 @@ fn entropy(masses: &[Rational], normalizer: Rational) -> Result<f64, String> {
 fn to_f64(value: Rational) -> f64 {
     value.numerator() as f64 / value.denominator() as f64
 }
-
