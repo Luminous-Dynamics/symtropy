@@ -916,7 +916,7 @@ mod tests {
         use crate::body::BodyType;
         use symtropy_math::{Sphere, Transform};
 
-        let mut static_body = RigidBody::<3>::new(
+        let static_body = RigidBody::<3>::new(
             BodyHandle(0),
             BodyType::Static,
             Transform::identity(),
