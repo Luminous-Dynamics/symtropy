@@ -18,8 +18,18 @@ use symtropy_math::{Point, Shape, Transform};
 
 use crate::support_map::{TransformedShape, WorldSupportMap};
 
-/// Maximum GJK iterations before giving up.
-const MAX_ITERATIONS: usize = 64;
+/// Maximum production GJK iterations before returning an unresolved result.
+pub const MAX_GJK_ITERATIONS: usize = 64;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GjkTermination {
+    /// The simplex encloses the origin or the search direction reached zero.
+    Intersecting,
+    /// A support-plane test proves the origin is outside the Minkowski difference.
+    Separated,
+    /// The configured iteration budget was exhausted without a proof.
+    IterationLimit,
+}
 
 /// Maximum simplex size: D+1 vertices. Cap at 5 (D=4).
 const MAX_SIMPLEX: usize = 5;
@@ -35,6 +45,8 @@ pub struct GjkResult<const D: usize> {
     pub simplex: Simplex<D>,
     /// Number of iterations used.
     pub iterations: usize,
+    /// Explicit proof/termination outcome. IterationLimit is never a separation.
+    pub termination: GjkTermination,
 }
 
 /// Test if two translated shapes intersect using the GJK algorithm.
@@ -65,10 +77,21 @@ pub fn intersects_transformed<const D: usize>(
     intersects_support_maps(&map_a, &map_b)
 }
 
-/// GJK over arbitrary world-space support maps.
+/// GJK over arbitrary world-space support maps, using the production budget.
 pub fn intersects_support_maps<const D: usize>(
     shape_a: &dyn WorldSupportMap<D>,
     shape_b: &dyn WorldSupportMap<D>,
+) -> GjkResult<D> {
+    intersects_support_maps_with_limit(shape_a, shape_b, MAX_GJK_ITERATIONS)
+}
+
+/// Internal bounded entry point. Exposed to this module's tests so a small
+/// budget can deterministically exercise the IterationLimit contract without
+/// changing the production iteration limit.
+fn intersects_support_maps_with_limit<const D: usize>(
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
+    max_iterations: usize,
 ) -> GjkResult<D> {
     // Initial direction: from A to B.
     let mut direction = shape_b.center_world() - shape_a.center_world();
@@ -82,12 +105,13 @@ pub fn intersects_support_maps<const D: usize>(
     simplex.push(first);
     direction = -first;
 
-    for iteration in 0..MAX_ITERATIONS {
+    for iteration in 0..max_iterations {
         if direction.norm_squared() < 1e-20 {
             return GjkResult {
                 intersecting: true,
                 simplex,
                 iterations: iteration,
+                termination: GjkTermination::Intersecting,
             };
         }
 
@@ -97,6 +121,7 @@ pub fn intersects_support_maps<const D: usize>(
                 intersecting: false,
                 simplex,
                 iterations: iteration,
+                termination: GjkTermination::Separated,
             };
         }
 
@@ -113,7 +138,8 @@ pub fn intersects_support_maps<const D: usize>(
     GjkResult {
         intersecting: false,
         simplex,
-        iterations: MAX_ITERATIONS,
+        iterations: max_iterations,
+        termination: GjkTermination::IterationLimit,
     }
 }
 
@@ -447,7 +473,7 @@ mod tests {
         let result = intersects(&a, &pa, &b, &pb);
         // At exact touching, GJK may report either way — both are acceptable
         // The important thing is it doesn't crash or infinite loop
-        assert!(result.iterations < MAX_ITERATIONS);
+        assert!(result.iterations < MAX_GJK_ITERATIONS);
     }
 
     #[test]
