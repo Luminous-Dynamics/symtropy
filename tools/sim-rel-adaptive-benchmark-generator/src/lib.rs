@@ -122,10 +122,17 @@ pub fn generate_task(family: TaskFamily, seed: u64) -> Result<GeneratedTask, Str
     let total_weight = left_weight
         .checked_add(right_weight)
         .ok_or_else(|| "generated prior mass overflow".to_string())?;
-    let prior = [
-        Rational::new(left_weight, total_weight)?,
-        Rational::new(right_weight, total_weight)?,
-    ];
+    let prior = if family == TaskFamily::NoisySensorConfounding {
+        // Keep the prior balanced so the 1/4 false-claim budget cannot be
+        // satisfied by a zero-cost prior-only guess; the calibrated noisy
+        // measurement is the actual information-bearing sequence.
+        [Rational::new(1, 2)?, Rational::new(1, 2)?]
+    } else {
+        [
+            Rational::new(left_weight, total_weight)?,
+            Rational::new(right_weight, total_weight)?,
+        ]
+    };
     let primary_cost = rng.between(1, 4);
     let secondary_cost = rng.between(1, 4);
     let kernel = build_kernel(family, prior, primary_cost, secondary_cost)?;
