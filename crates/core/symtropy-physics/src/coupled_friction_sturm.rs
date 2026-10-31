@@ -417,6 +417,26 @@ fn rationals_to_f64(poly: &[Rational]) -> Vec<f64> {
     poly.iter().map(|coefficient| coefficient.to_f64().unwrap()).collect()
 }
 
+fn assert_f64_coefficients_match_exact(rounded: &[f64], exact: &[Rational]) {
+    let rounded = rounded
+        .iter()
+        .map(|coefficient| exact_f64(*coefficient).unwrap())
+        .collect::<Polynomial>();
+    let scale = exact
+        .iter()
+        .fold(Rational::one(), |sum, coefficient| sum + coefficient.abs());
+    let tolerance = exact_f64(1.0e-13).unwrap();
+    for index in 0..rounded.len().max(exact.len()) {
+        let rounded_coefficient = rounded.get(index).cloned().unwrap_or_else(Rational::zero);
+        let exact_coefficient = exact.get(index).cloned().unwrap_or_else(Rational::zero);
+        let difference = (rounded_coefficient - exact_coefficient).abs();
+        assert!(
+            difference <= tolerance.clone() * scale.clone(),
+            "rounded quartic coefficient {index} differs from exact dyadic derivation"
+        );
+    }
+}
+
 fn assert_production_matches_sturm(coefficients: &[f64], tolerance: f64) {
     let certified = sturm_isolate_f64(coefficients).expect("exact Sturm isolation");
     let numerical = real_polynomial_roots(coefficients, tolerance)
@@ -569,18 +589,31 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
         );
         let mu = 0.05 + (seed % 11) as f64 * 0.21;
         let coefficients = sliding_quartic(&w, &q, mu);
-        let exact = sturm_isolate_f64(&coefficients).unwrap_or_else(|error| {
+        let exact_polynomial =
+            exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap_or_else(|error| {
+                panic!("seed={seed}: exact quartic construction failed: {error}")
+            });
+        assert_f64_coefficients_match_exact(&coefficients, &exact_polynomial);
+        let exact_intervals = sturm_isolate_rational(exact_polynomial).unwrap_or_else(|error| {
             panic!("seed={seed}: exact Sturm oracle failed: {error}")
         });
+        let rounded_intervals = sturm_isolate_f64(&coefficients).unwrap_or_else(|error| {
+            panic!("seed={seed}: rounded-polynomial Sturm oracle failed: {error}")
+        });
+        assert_eq!(
+            rounded_intervals.len(),
+            exact_intervals.len(),
+            "seed={seed}: coefficient rounding changed the distinct-root count"
+        );
         match real_polynomial_roots(&coefficients, 1.0e-10) {
             Ok(numerical) => {
                 assert_eq!(
                     numerical.len(),
-                    exact.len(),
+                    exact_intervals.len(),
                     "seed={seed}: exact={}, numerical={numerical:?}, coefficients={coefficients:?}",
-                    exact.len()
+                    exact_intervals.len()
                 );
-                for interval in &exact {
+                for interval in &exact_intervals {
                     let midpoint = ((&interval.0 + &interval.1)
                         / Rational::from_integer(BigInt::from(2)))
                         .to_f64()
