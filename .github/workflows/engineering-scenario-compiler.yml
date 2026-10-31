@@ -116,6 +116,11 @@ jobs:
             printf 'independent_go_jcs_commit=%s\n' "32a48195b9b20fe67b1795e39e4509f14d860b45"
             printf 'serde_jcs_version=%s\n' "0.2.0"
             sha256sum tools/engineering-scenario-compiler/Cargo.lock
+            sha256sum tools/engineering-scenario-compiler/interop/golden/basic-input.json \
+              tools/engineering-scenario-compiler/interop/golden/basic-output.jcs \
+              tools/engineering-scenario-compiler/interop/golden/adversarial-input.json \
+              tools/engineering-scenario-compiler/interop/golden/adversarial-output.jcs
+            sha256sum tools/engineering-scenario-compiler/interop/go-verifier/*.go
           } > target/engineering-scenario-compiler-benchmark/reproducibility.txt
 
       - name: Benchmark strict JSON preflight and independent JCS separately
