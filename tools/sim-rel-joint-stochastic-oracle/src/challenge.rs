@@ -144,7 +144,7 @@ fn measurement_outcomes(
     sensor_state: usize,
 ) -> Result<Vec<JointOutcome>, String> {
     let reversed = mode == Mode::InstrumentReversal;
-    let signal = (physical_state ^ sensor_state) ^ usize::from(reversed);
+    let signal = (physical_state ^ sensor_state) ^ if reversed { 1 } else { 0 };
     let next_physical = if mode == Mode::PhysicalCarryover {
         physical_state ^ 1
     } else {
