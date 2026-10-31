@@ -25,42 +25,42 @@ objective and tuning procedure:
    be matched. Keep them as separate baselines and ablations; do not collapse
    them into one generic "robust EIG" score. Score every selected design using
    the shared downstream decision-loss endpoint.
-4. **SIM-REL-027 nominal DP:** exact finite-horizon downstream decision-value
+5. **SIM-REL-027 nominal DP:** exact finite-horizon downstream decision-value
    optimizer using one nominal complete kernel. Replay its policy in every
    shifted test world without allowing it to see world identity.
-5. **SIM-REL-028 finite-family minimax:** exact shared-policy planner minimizing
+6. **SIM-REL-028 finite-family minimax:** exact shared-policy planner minimizing
    worst-case cost plus terminal loss over the declared worlds.
-6. **SIM-REL-028 TV ambiguity:** exact total-variation robust expectation over
+7. **SIM-REL-028 TV ambiguity:** exact total-variation robust expectation over
    nominal categorical world weights, with worst-case hazard and abstention
    constraints retained over the full declared family. Calibrate the TV radius
    on a separate calibration split and preregister it.
-7. **Robust Bayesian Decision Making under Adversarial Uncertainty (UAI 2026):**
+8. **Robust Bayesian Decision Making under Adversarial Uncertainty (UAI 2026):**
    implement or obtain the authors' sequential adversarial decision-aware
    acquisition baseline. Match its adversarial-variable family where possible,
    then score its selected policy under the common downstream loss. This is the
    closest current decision-stability comparator and must not be represented as
    an EIG-only baseline.
-8. **Maximin robust Bayesian experimental design (2026):** include the
+9. **Maximin robust Bayesian experimental design (2026):** include the
    adversarial Sibson-alpha mutual-information/PAC-Bayes policy baseline where
    its inference and model-family assumptions can be matched. Retain its own
    robust information objective as a secondary diagnostic.
-9. **COPEx:** constrained multi-step Bayesian experimental design with online
+10. **COPEx:** constrained multi-step Bayesian experimental design with online
    scenario-tree lookahead. Preserve its original informative-design objective;
    evaluate its chosen sequence using our common downstream loss and risk
    metrics.
-10. **R-IDeA:** include informativeness-only, representativeness-only,
+11. **R-IDeA:** include informativeness-only, representativeness-only,
    informativeness-plus-representativeness, and full
    representativeness/informativeness/error-de-amplification ablations.
-11. **Generalized total-variation DRO (Fontem & Ji, EJOR 2026):** compare
+12. **Generalized total-variation DRO (Fontem & Ji, EJOR 2026):** compare
    a sample-size-, support-, confidence- and cost-sensitive ambiguity set
    against the simple finite-support TV ball. Re-derive its guarantees for our
    sequential per-world decision-loss setting; do not transplant its newsvendor
    or portfolio guarantee without proving the assumptions and mapping.
-12. **Robust sequential experimental design:** use its published worst-case
+13. **Robust sequential experimental design:** use its published worst-case
    estimation-risk objective as a comparator where the task supports its
    assumptions. Also report a downstream-decision evaluation of its selected
    designs.
-13. **Sequential conformal calibration under recursive selection:** compare a
+14. **Sequential conformal calibration under recursive selection: compare a
    fresh-fold stagewise calibration policy, including its prefix-coverage and
    abstention tradeoffs, against naive survivor reuse and Bonferroni-style
    allocation. Only claim its finite-sample coverage when the paper's
