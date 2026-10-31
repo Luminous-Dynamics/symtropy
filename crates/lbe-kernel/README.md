@@ -58,6 +58,21 @@ Pooled carry has an explicit incidence trade-off: a fraction accrued in one inte
 
 Debt relief is separate. A reserve must first be funded by an explicit transfer. Forgiveness then moves funds from the reserve to a debtor, reducing that member's negative balance while preserving the aggregate ledger.
 
+## Bilateral consent
+
+The `consent` module is a pure state machine for a match or service exchange:
+
+- proposal terms are represented by a fixed 32-byte digest;
+- the host adapter authenticates the caller and recomputes the digest from canonical immutable terms;
+- two distinct parties must independently accept that same digest;
+- one acceptance is not enough to settle;
+- changed terms require a new proposal digest and new acceptances;
+- a party can decline or revoke before settlement;
+- pending proposals expire;
+- settlement is available only after both acceptances and is idempotent in the model.
+
+The module does **not** cryptographically authenticate an actor or verify a digest. It is unsafe to trust caller-supplied subject IDs or digest bytes. Holochain adapters must use the authenticated `action.author`, verify the referenced Need/Offer actors, and hash a canonical representation of all material terms. External settlement must be journaled and idempotent. Gratitude, ratings, reciprocity and public testimony are not part of consent.
+
 ## Current claim ceiling
 
 Passing this crate's tests would establish properties of this small in-memory model only. It would not establish:
