@@ -308,6 +308,8 @@ impl Campaign {
         let mut within_degrees_of_freedom = 0_usize;
         let mut previous_mean = None;
         let mut first_variance = None;
+        let mut minimum_window_variance = f64::INFINITY;
+        let mut maximum_window_variance = 0.0_f64;
         let mut window_mean_min = f64::INFINITY;
         let mut window_mean_max = f64::NEG_INFINITY;
         let mut max_variance_ratio = 0.0_f64;
@@ -340,19 +342,19 @@ impl Campaign {
             if first_variance.is_none() {
                 first_variance = Some(variance);
             }
-            if max_variance_ratio < variance_ratio {
-                max_variance_ratio = variance_ratio;
-            }
-            if variance_ratio > VARIANCE_RATIO_LIMIT && first_variance_shift_window.is_none() {
+            minimum_window_variance = minimum_window_variance.min(variance);
+            maximum_window_variance = maximum_window_variance.max(variance);
+            max_variance_ratio = maximum_window_variance / minimum_window_variance;
+            if max_variance_ratio > VARIANCE_RATIO_LIMIT && first_variance_shift_window.is_none() {
                 first_variance_shift_window = Some(window.id.clone());
-            }
-            if delta.is_some() && delta.unwrap().abs() > mean_shift_threshold
-                && first_mean_shift_window.is_none() {
-                first_mean_shift_window = Some(window.id.clone());
             }
 
             window_mean_min = window_mean_min.min(average);
             window_mean_max = window_mean_max.max(average);
+            if window_mean_max - window_mean_min > mean_shift_threshold
+                && first_mean_shift_window.is_none() {
+                first_mean_shift_window = Some(window.id.clone());
+            }
             if cpk < worst_window_cpk {
                 worst_window_cpk = cpk;
                 worst_window_id = window.id.clone();
@@ -444,36 +446,55 @@ impl Campaign {
 impl Report {
     fn csv_rows(&self) -> String {
         let mut out = String::new();
-        out.push_str(&format!(
-            "campaign,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
-            self.campaign_id, self.part_id, self.lot_id, self.operation_id,
-            self.station_id, self.instrument_id, self.measurand_id, self.unit,
-            self.specification_id, self.specification_revision,
-            self.lower_specification, self.upper_specification,
-            self.uncertainty_budget_id, self.measurement_expanded_uncertainty,
-            self.msa_study_id, self.window_count, self.total_sample_count,
-            self.pooled_within_standard_deviation, self.pooled_within_cp,
-            self.pooled_within_cpk, self.overall_mean, self.overall_standard_deviation,
-            self.overall_pp, self.overall_ppk, self.worst_window_cpk,
-        ));
-        out.push_str(&format!(
-            "summary,{},{},{},{},{},{},{}\n",
-            self.worst_window_id, self.window_mean_span, self.maximum_variance_ratio,
-            self.first_mean_shift_window.as_deref().unwrap_or(""),
-            self.first_variance_shift_window.as_deref().unwrap_or(""),
-            self.status.code(), "NORMAL_ASSUMPTION_UNVERIFIED"
-        ));
-        out.push_str("window_id,sample_count,mean,sample_sd,cp_descriptive,cpk_descriptive,guarded_mean_margin,guarded_mean_inside_spec,mean_delta_from_previous,variance_ratio_from_first\n");
         for window in &self.windows {
-            out.push_str(&format!(
-                "{},{},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{},{},{:.12e}\n",
-                window.id, window.sample_count, window.mean,
-                window.sample_standard_deviation, window.cp_descriptive,
-                window.cpk_descriptive, window.guarded_mean_margin,
-                window.guarded_mean_inside_specification,
-                window.mean_delta_from_previous.map(|v| format!("{v:.12e}")).unwrap_or_default(),
-                window.variance_ratio_from_first
-            ));
+            let fields = vec![
+                self.campaign_id.clone(),
+                self.part_id.clone(),
+                self.lot_id.clone(),
+                self.operation_id.clone(),
+                self.station_id.clone(),
+                self.instrument_id.clone(),
+                self.measurand_id.clone(),
+                self.unit.clone(),
+                self.specification_id.clone(),
+                self.specification_revision.clone(),
+                format!("{:.12e}", self.lower_specification),
+                format!("{:.12e}", self.upper_specification),
+                self.uncertainty_budget_id.clone(),
+                format!("{:.12e}", self.measurement_expanded_uncertainty),
+                self.msa_study_id.clone(),
+                self.window_count.to_string(),
+                self.total_sample_count.to_string(),
+                format!("{:.12e}", self.pooled_within_standard_deviation),
+                format!("{:.12e}", self.pooled_within_cp),
+                format!("{:.12e}", self.pooled_within_cpk),
+                format!("{:.12e}", self.overall_mean),
+                format!("{:.12e}", self.overall_standard_deviation),
+                format!("{:.12e}", self.overall_pp),
+                format!("{:.12e}", self.overall_ppk),
+                format!("{:.12e}", self.worst_window_cpk),
+                self.worst_window_id.clone(),
+                format!("{:.12e}", self.window_mean_span),
+                format!("{:.12e}", self.maximum_variance_ratio),
+                self.first_mean_shift_window.clone().unwrap_or_default(),
+                self.first_variance_shift_window.clone().unwrap_or_default(),
+                self.status.code().to_string(),
+                "NORMAL_ASSUMPTION_UNVERIFIED".to_string(),
+                window.id.clone(),
+                window.sample_count.to_string(),
+                format!("{:.12e}", window.mean),
+                format!("{:.12e}", window.sample_standard_deviation),
+                format!("{:.12e}", window.cp_descriptive),
+                format!("{:.12e}", window.cpk_descriptive),
+                format!("{:.12e}", window.guarded_mean_margin),
+                window.guarded_mean_inside_specification.to_string(),
+                window.mean_delta_from_previous
+                    .map(|value| format!("{value:.12e}"))
+                    .unwrap_or_default(),
+                format!("{:.12e}", window.variance_ratio_from_first),
+            ];
+            out.push_str(&fields.join(","));
+            out.push('\n');
         }
         out
     }
@@ -567,16 +588,14 @@ fn verify() -> Result<(), String> {
     }
 
     for report in &reports {
-        if report.windows.len() != 4 || report.total_sample_count != 32
-            || report.worst_window_cpk > report.pooled_within_cpk + REL_TOL {
-            // The worst-window Cpk may not be smaller for arbitrary data, but
-            // it must be no more optimistic than the actual minimum window Cpk.
-            let actual_worst = report.windows.iter()
-                .map(|w| w.cpk_descriptive)
-                .fold(f64::INFINITY, f64::min);
-            if (actual_worst - report.worst_window_cpk).abs() > REL_TOL {
-                return Err("WORST_WINDOW_CPK_AGGREGATION_FAILED".into());
-            }
+        if report.windows.len() != 4 || report.total_sample_count != 32 {
+            return Err("FROZEN_CAMPAIGN_SHAPE_MISMATCH".into());
+        }
+        let actual_worst = report.windows.iter()
+            .map(|window| window.cpk_descriptive)
+            .fold(f64::INFINITY, f64::min);
+        if (actual_worst - report.worst_window_cpk).abs() > REL_TOL {
+            return Err("WORST_WINDOW_CPK_AGGREGATION_FAILED".into());
         }
         if report.windows.iter().any(|w| w.sample_count != MIN_SAMPLES_PER_WINDOW) {
             return Err("WINDOW_SAMPLE_COUNT_REPORT_MISMATCH".into());
@@ -587,7 +606,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() -> Result<(), String> {
-    println!("campaign,field_a,field_b,field_c,field_d,field_e,field_f,field_g,field_h,field_i,field_j,field_k,field_l,field_m,field_n,field_o,field_p,field_q,field_r,field_s,field_t,field_u,field_v,field_w,field_x");
+    println!("campaign_id,part_id,lot_id,operation_id,station_id,instrument_id,measurand_id,unit,specification_id,specification_revision,lower_specification,upper_specification,uncertainty_budget_id,measurement_expanded_uncertainty,msa_study_id,window_count,total_sample_count,pooled_within_sd,pooled_within_cp,pooled_within_cpk,overall_mean,overall_sd,overall_pp,overall_ppk,worst_window_cpk,worst_window_id,window_mean_span,maximum_variance_ratio,first_mean_shift_window,first_variance_shift_window,diagnostic_status,distributional_assumption,window_id,sample_count,window_mean,window_sd,window_cp,window_cpk,guarded_mean_margin,guarded_mean_inside_spec,mean_delta_from_previous,variance_ratio_from_first");
     for campaign in fixtures() {
         let report = campaign.evaluate()?;
         print!("{}", report.csv_rows());
@@ -650,13 +669,11 @@ mod tests {
 
     #[test]
     fn guarded_mean_margin_responds_monotonically_to_uncertainty() {
-        let mut narrow = fixtures()[0].evaluate().unwrap();
+        let narrow = fixtures()[0].evaluate().unwrap();
         let mut campaign = fixtures()[0].clone();
         campaign.measurement_expanded_uncertainty_for_window_mean = 0.10;
         let wide = campaign.evaluate().unwrap();
         assert!(wide.windows[0].guarded_mean_margin < narrow.windows[0].guarded_mean_margin);
-        narrow.windows.clear();
-        assert!(!narrow.windows.is_empty() == false);
     }
 
     #[test]
