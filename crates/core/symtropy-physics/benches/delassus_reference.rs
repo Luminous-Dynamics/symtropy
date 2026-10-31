@@ -7,7 +7,7 @@ use nalgebra::{DVector, Matrix2, SVector};
 use symtropy_math::{Bivector, Point, Rotor};
 use symtropy_physics::{
     BivectorInertia, BodyHandle, ContactFrame, ContactWrenchFrictionLimits,
-    ContactAdjointError, ContactWrenchImpulse, ContactWrenchRow, FrictionlessContactRow, RigidBody,
+    ContactWrenchImpulse, ContactWrenchRow, FrictionlessContactRow, RigidBody,
     assemble_contact_wrench_delassus, assemble_contact_wrench_free_velocity,
     assemble_delassus, differentiate_fixed_active_set_lcp, solve_frictionless_lcp,
     solve_planar_friction_cone,
@@ -281,29 +281,41 @@ fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
 }
 
 fn bench_implicit_contact_adjoint(c: &mut Criterion) {
-    let mut group = c.benchmark_group("implicit_contact_adjoint_asymmetric_3d");
+    let mut group = c.benchmark_group("implicit_contact_adjoint_spd_reference");
     for row_count in [1_usize, 2, 4, 8] {
-        let (_, _, matrix, q) = fixture(row_count);
-        let solution = solve_frictionless_lcp(&matrix, &q, 1e-10)
-            .expect("constructed feasible LCP for adjoint benchmark");
+        // A deterministic, well-conditioned SPD active block isolates
+        // derivative cost from active-set degeneracy and oracle tie-breaking.
+        let factor = nalgebra::DMatrix::<f64>::from_fn(row_count, row_count, |i, j| {
+            if i == j {
+                1.0 + 0.05 * i as f64
+            } else {
+                0.01 * (i + j + 1) as f64
+            }
+        });
+        let matrix = factor.transpose() * factor
+            + nalgebra::DMatrix::identity(row_count, row_count) * 0.5;
+        let target_impulses = DVector::from_element(row_count, 0.1);
+        let q = -(&matrix * &target_impulses);
+        let solution = solve_frictionless_lcp(&matrix, &q, 1e-12)
+            .expect("constructed strictly feasible SPD LCP");
         let matrix_derivative = nalgebra::DMatrix::identity(row_count, row_count) * 0.01;
         let q_derivative = DVector::zeros(row_count);
         let objective_gradient = DVector::from_element(row_count, 1.0);
-        let result = differentiate_fixed_active_set_lcp(
-            &matrix,
-            &q,
-            &solution,
-            &matrix_derivative,
-            &q_derivative,
-            &objective_gradient,
-            0.0,
-            1e-10,
-            1e-10,
-            1e-12,
-        );
         assert!(
-            matches!(result, Ok(_) | Err(ContactAdjointError::IllConditionedActiveBlock)),
-            "unexpected adjoint fixture rejection: {result:?}"
+            differentiate_fixed_active_set_lcp(
+                &matrix,
+                &q,
+                &solution,
+                &matrix_derivative,
+                &q_derivative,
+                &objective_gradient,
+                0.0,
+                1e-10,
+                1e-10,
+                1e-12,
+            )
+            .is_ok(),
+            "well-conditioned adjoint benchmark fixture must be accepted"
         );
         group.bench_with_input(
             BenchmarkId::new("active_rows", row_count),
