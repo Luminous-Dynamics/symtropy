@@ -1,0 +1,45 @@
+name: 3D SO(3) pHDAE dumbbell reference
+
+on:
+  pull_request:
+    paths:
+      - "tools/phdae-dumbbell-3d-reference/**"
+      - "docs/research/PHDAE_DUMBBELL_SO3_REFERENCE_2026-10-31.md"
+      - ".github/workflows/phdae-dumbbell-3d-reference.yml"
+  push:
+    branches:
+      - "research/dumbbell-so3-pHdae-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  so3-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/phdae-dumbbell-3d-reference/constrained_dumbbell_3d.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/phdae-dumbbell-3d-reference/constrained_dumbbell_3d.rs \
+            -o /tmp/dumbbell-3d-tests
+          /tmp/dumbbell-3d-tests
+
+      - name: Compile optimized deterministic fixture
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/phdae-dumbbell-3d-reference/constrained_dumbbell_3d.rs \
+            -o /tmp/dumbbell-3d
+          /tmp/dumbbell-3d > /tmp/dumbbell-3d-a.csv
+          /tmp/dumbbell-3d > /tmp/dumbbell-3d-b.csv
+          cmp /tmp/dumbbell-3d-a.csv /tmp/dumbbell-3d-b.csv
+          test "$(wc -l < /tmp/dumbbell-3d-a.csv)" -eq 501
+          grep -q "^500," /tmp/dumbbell-3d-a.csv
