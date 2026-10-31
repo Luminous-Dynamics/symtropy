@@ -42,7 +42,7 @@ struct Metrics {
     final_relative_energy_drift: f64,
     max_relative_energy_drift: f64,
     max_relative_position_constraint: f64,
-    max_relative_tangent_constraint: f64,
+    max_absolute_endpoint_tangent_constraint: f64,
     /// Present only for the semi-explicit pHDAE method, where this is
     /// the exact discrete midpoint velocity-constraint residual.
     max_relative_midpoint_velocity_constraint: Option<f64>,
@@ -85,7 +85,7 @@ fn cartesian_metrics(state: rattle::State) -> (f64, f64) {
     let position = (q_squared - LENGTH * LENGTH).abs()
         / (1.0 + q_squared + LENGTH * LENGTH);
     // Common scale-aware endpoint tangent residual used by all five methods.
-    let tangent = q_dot_v.abs() / (1.0 + LENGTH * velocity_norm);
+    let tangent = q_dot_v.abs();
     (position, tangent)
 }
 
@@ -177,7 +177,7 @@ fn run_intrinsic(dt: f64, steps: usize, reference: rattle::State) -> Metrics {
             / energy0.abs().max(f64::MIN_POSITIVE),
         max_relative_energy_drift: max_energy_drift,
         max_relative_position_constraint: max_position,
-        max_relative_tangent_constraint: max_tangent,
+        max_absolute_endpoint_tangent_constraint: max_tangent,
         max_relative_midpoint_velocity_constraint: None,
         mean_nonlinear_iterations: total_iterations as f64 / steps as f64,
         max_nonlinear_iterations: max_iterations,
@@ -217,7 +217,7 @@ fn run_rattle(dt: f64, steps: usize, reference: rattle::State) -> Metrics {
             / energy0.abs().max(f64::MIN_POSITIVE),
         max_relative_energy_drift: max_energy_drift,
         max_relative_position_constraint: max_position,
-        max_relative_tangent_constraint: max_tangent,
+        max_absolute_endpoint_tangent_constraint: max_tangent,
         max_relative_midpoint_velocity_constraint: None,
         mean_nonlinear_iterations: total_iterations as f64 / steps as f64,
         max_nonlinear_iterations: max_iterations,
@@ -250,7 +250,7 @@ fn run_symplectic_euler(dt: f64, steps: usize, reference: rattle::State) -> Metr
             / energy0.abs().max(f64::MIN_POSITIVE),
         max_relative_energy_drift: max_energy_drift,
         max_relative_position_constraint: max_position,
-        max_relative_tangent_constraint: max_tangent,
+        max_absolute_endpoint_tangent_constraint: max_tangent,
         max_relative_midpoint_velocity_constraint: None,
         mean_nonlinear_iterations: 0.0,
         max_nonlinear_iterations: 0,
@@ -281,7 +281,7 @@ fn run_rk4(dt: f64, steps: usize, reference: rattle::State) -> Metrics {
             / energy0.abs().max(f64::MIN_POSITIVE),
         max_relative_energy_drift: max_energy_drift,
         max_relative_position_constraint: max_position,
-        max_relative_tangent_constraint: max_tangent,
+        max_absolute_endpoint_tangent_constraint: max_tangent,
         max_relative_midpoint_velocity_constraint: None,
         mean_nonlinear_iterations: 0.0,
         max_nonlinear_iterations: 0,
@@ -320,7 +320,7 @@ fn run_phdae(dt: f64, steps: usize, reference: rattle::State) -> Metrics {
         );
         max_position = max_position.max(receipt.relative_position_constraint_residual);
         max_endpoint_tangent =
-            max_endpoint_tangent.max(receipt.scaled_endpoint_velocity_constraint_residual);
+            max_endpoint_tangent.max(receipt.endpoint_velocity_constraint_residual.abs());
         max_midpoint_constraint =
             max_midpoint_constraint.max(receipt.relative_midpoint_velocity_constraint_residual);
         total_iterations += receipt.multiplier_iterations;
@@ -344,7 +344,7 @@ fn run_phdae(dt: f64, steps: usize, reference: rattle::State) -> Metrics {
             / energy0.abs().max(f64::MIN_POSITIVE),
         max_relative_energy_drift: max_energy_drift,
         max_relative_position_constraint: max_position,
-        max_relative_tangent_constraint: max_endpoint_tangent,
+        max_absolute_endpoint_tangent_constraint: max_endpoint_tangent,
         max_relative_midpoint_velocity_constraint: Some(max_midpoint_constraint),
         mean_nonlinear_iterations: total_iterations as f64 / steps as f64,
         max_nonlinear_iterations: max_iterations,
@@ -361,7 +361,7 @@ fn campaign_csv() -> String {
     let mut output = String::new();
     writeln!(
         &mut output,
-        "method,dt,steps,final_state_error,final_relative_energy_drift,max_relative_energy_drift,max_relative_position_constraint,max_relative_tangent_constraint,max_relative_midpoint_velocity_constraint,mean_nonlinear_iterations,max_nonlinear_iterations"
+        "method,dt,steps,final_state_error,final_relative_energy_drift,max_relative_energy_drift,max_relative_position_constraint,max_absolute_endpoint_tangent_constraint,max_relative_midpoint_velocity_constraint,mean_nonlinear_iterations,max_nonlinear_iterations"
     )
     .expect("writing to String cannot fail");
 
@@ -384,7 +384,7 @@ fn campaign_csv() -> String {
                 result.final_relative_energy_drift,
                 result.max_relative_energy_drift,
                 result.max_relative_position_constraint,
-                result.max_relative_tangent_constraint,
+                result.max_absolute_endpoint_tangent_constraint,
                 result.max_relative_midpoint_velocity_constraint
                     .map(|value| format!("{value:.17e}"))
                     .unwrap_or_else(|| "NA".to_string()),
@@ -405,7 +405,7 @@ fn audit_campaign(csv: &str) -> Result<(), String> {
         "rk4",
         "cartesian_phdae_discrete_gradient",
     ];
-    const HEADER: &str = "method,dt,steps,final_state_error,final_relative_energy_drift,max_relative_energy_drift,max_relative_position_constraint,max_relative_tangent_constraint,max_relative_midpoint_velocity_constraint,mean_nonlinear_iterations,max_nonlinear_iterations";
+    const HEADER: &str = "method,dt,steps,final_state_error,final_relative_energy_drift,max_relative_energy_drift,max_relative_position_constraint,max_absolute_endpoint_tangent_constraint,max_relative_midpoint_velocity_constraint,mean_nonlinear_iterations,max_nonlinear_iterations";
 
     let mut lines = csv.lines();
     if lines.next() != Some(HEADER) {
