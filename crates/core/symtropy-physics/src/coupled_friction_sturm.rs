@@ -627,7 +627,7 @@ fn sturm_resolves_close_distinct_roots_without_merging_them() {
 
 #[test]
 fn sturm_handles_no_real_roots_and_degree_loss() {
-    let no_real_roots = vec![1.0, 0.0, 1.0, 0.0, 1.0];
+    let no_real_roots = vec![1.0, 1.0, 1.0, 0.0, 1.0];
     assert!(sturm_isolate_f64(&no_real_roots).unwrap().is_empty());
     assert!(real_polynomial_roots(&no_real_roots, 1.0e-12).unwrap().is_empty());
 
