@@ -290,7 +290,7 @@ mod schur_reduction_tests {
         if full_minimum_eigenvalue <= tolerance {
             return Err("two-contact Delassus matrix is not sufficiently positive definite");
         }
-        if w.clone().cholesky().is_none() {
+        if (*w).clone().cholesky().is_none() {
             return Err("two-contact Delassus matrix is not positive definite");
         }
 
