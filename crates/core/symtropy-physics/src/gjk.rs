@@ -131,6 +131,7 @@ fn intersects_support_maps_with_limit<const D: usize>(
                 intersecting: true,
                 simplex,
                 iterations: iteration,
+                termination: GjkTermination::Intersecting,
             };
         }
     }
@@ -445,6 +446,30 @@ mod tests {
     use symtropy_math::{ConvexHull, Point, Sphere};
 
     #[test]
+    fn typed_termination_distinguishes_intersection_separation_and_budget_exhaustion() {
+        let a = Sphere::<2>::new(Point::origin(), 1.0);
+        let b = Sphere::<2>::new(Point::origin(), 1.0);
+        let transform_a = Transform::from_translation(Point::origin());
+        let overlapping_b = Transform::from_translation(Point::new([1.0, 0.0]));
+        let separated_b = Transform::from_translation(Point::new([4.0, 0.0]));
+
+        let overlap = intersects_transformed(&a, &transform_a, &b, &overlapping_b);
+        assert!(overlap.intersecting);
+        assert_eq!(overlap.termination, GjkTermination::Intersecting);
+
+        let separation = intersects_transformed(&a, &transform_a, &b, &separated_b);
+        assert!(!separation.intersecting);
+        assert_eq!(separation.termination, GjkTermination::Separated);
+
+        let map_a = TransformedShape::new(&a, &transform_a);
+        let map_b = TransformedShape::new(&b, &overlapping_b);
+        let exhausted = intersects_support_maps_with_limit(&map_a, &map_b, 0);
+        assert!(!exhausted.intersecting);
+        assert_eq!(exhausted.iterations, 0);
+        assert_eq!(exhausted.termination, GjkTermination::IterationLimit);
+    }
+
+    #[test]
     fn spheres_overlapping_3d() {
         let a = Sphere::<3>::new(Point::new([0.0, 0.0, 0.0]), 1.0);
         let b = Sphere::<3>::new(Point::origin(), 1.0);
@@ -620,7 +645,7 @@ mod proptests {
             prop_assert!(ab.intersecting == ba.intersecting, "GJK must be symmetric: ab={} ba={}", ab.intersecting, ba.intersecting);
         }
 
-        /// GJK never exceeds MAX_ITERATIONS.
+        /// GJK never exceeds MAX_GJK_ITERATIONS.
         #[test]
         fn gjk_always_terminates(
             ax in -50.0f64..50.0, ay in -50.0f64..50.0, az in -50.0f64..50.0,
@@ -632,7 +657,7 @@ mod proptests {
             let pa = SVector::from([ax, ay, az]);
             let pb = SVector::from([bx, by, bz]);
             let result = intersects(&a, &pa, &b, &pb);
-            prop_assert!(result.iterations <= MAX_ITERATIONS, "GJK must terminate");
+            prop_assert!(result.iterations <= MAX_GJK_ITERATIONS, "GJK must terminate");
         }
 
         /// Sphere intersection agrees with analytical distance check.
