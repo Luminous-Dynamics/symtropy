@@ -144,6 +144,19 @@ pub enum HazardFinding {
     Unresolved,
 }
 
+/// A traceable review of process safeguards at one point in a tension's lifecycle.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProcessReview {
+    /// Review timestamp in the host's declared time unit.
+    pub reviewed_at: u64,
+    /// Reviewer identity or independent body reference.
+    pub reviewer_id: String,
+    /// Safeguards observed at this review.
+    pub safeguards: ProcessSafeguards,
+    /// Supporting audit or evidence reference.
+    pub evidence_ref: Option<String>,
+}
+
 /// A traceable hazard report.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HazardReport {
