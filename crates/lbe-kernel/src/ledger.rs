@@ -351,7 +351,11 @@ impl Ledger {
             shares.push((id, base, remainder));
         }
 
-        let extra = usize::try_from(levy_units.checked_sub(base_total).ok_or(LedgerError::InvalidLevyPlan)?)
+        let extra = usize::try_from(
+            levy_units
+                .checked_sub(base_total)
+                .ok_or(LedgerError::InvalidLevyPlan)?,
+        )
             .map_err(|_| LedgerError::InvalidLevyPlan)?;
         shares.sort_by(|a, b| b.2.cmp(&a.2).then_with(|| a.0.cmp(&b.0)));
         if extra > shares.len() {
