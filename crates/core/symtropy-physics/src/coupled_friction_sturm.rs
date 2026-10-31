@@ -2569,3 +2569,34 @@ fn interval_non_sliding_verifiers_fail_closed_when_spd_is_not_proven() {
         NonSlidingBranchStatus::Inconclusive(_)
     ));
 }
+
+
+#[test]
+fn separating_branch_is_rejected_when_normal_free_velocity_is_strictly_negative() {
+    let input = ContactInputBox::from_f64_bounds([
+        [1.0, 1.0], [0.0, 0.0], [0.0, 0.0],
+        [1.0, 1.0], [0.0, 0.0], [1.0, 1.0],
+        [-0.2, -0.1], [-3.0, 3.0], [-2.0, 2.0], [0.0, 0.5],
+    ]).unwrap();
+    assert_eq!(
+        certify_separating_branch(&input).status,
+        NonSlidingBranchStatus::InadmissibleThroughout(
+            "normal free velocity is strictly negative"
+        )
+    );
+}
+
+#[test]
+fn sticking_branch_refuses_a_normal_impulse_box_crossing_zero() {
+    let input = ContactInputBox::from_f64_bounds([
+        [1.0, 1.0], [0.0, 0.0], [0.0, 0.0],
+        [1.0, 1.0], [0.0, 0.0], [1.0, 1.0],
+        [-0.1, 0.1], [0.0, 0.0], [0.0, 0.0], [0.5, 0.5],
+    ]).unwrap();
+    assert_eq!(
+        certify_sticking_branch(&input).status,
+        NonSlidingBranchStatus::Inconclusive(
+            "sticking normal impulse interval touches or crosses zero"
+        )
+    );
+}
