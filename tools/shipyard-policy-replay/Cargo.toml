@@ -1,0 +1,12 @@
+[package]
+name = "shipyard-policy-replay"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+description = "Dependency-free audit of non-anticipative shipyard recovery-policy replay traces"
+license = "MIT OR Apache-2.0"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
