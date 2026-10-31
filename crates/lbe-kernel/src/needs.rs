@@ -225,10 +225,16 @@ pub enum NeedError {
 }
 
 /// In-memory deterministic need intake and allocation state.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NeedIntake {
     next_id: u64,
     cases: BTreeMap<NeedId, NeedCase>,
+}
+
+impl Default for NeedIntake {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl NeedIntake {
@@ -479,6 +485,15 @@ mod tests {
         assert_eq!(result.iter().map(|a| a.quantity).collect::<Vec<_>>(), vec![2, 2, 1]);
         assert!(result.iter().all(|a| a.remaining_after == 10 - a.quantity));
         assert_eq!(result.iter().map(|a| a.need_id).collect::<Vec<_>>(), ids.to_vec());
+    }
+
+    #[test]
+    fn default_intake_starts_need_ids_at_one() {
+        let mut intake = NeedIntake::default();
+        let id = intake
+            .submit(subject("first"), request(NeedCategory::Food, NeedSeverity::Normal, 1), 0)
+            .unwrap();
+        assert_eq!(id.value(), 1);
     }
 
     #[test]
