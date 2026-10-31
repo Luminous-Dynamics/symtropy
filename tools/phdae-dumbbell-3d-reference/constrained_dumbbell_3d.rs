@@ -724,11 +724,12 @@ mod tests {
     }
 
     #[test]
-    fn position_and_midpoint_constraints_hold_over_long_horizon() {
+    fn position_midpoint_and_endpoint_constraints_hold_over_long_horizon() {
         let model = model();
         let mut state = initial_state();
         let mut max_link = 0.0_f64;
         let mut max_midpoint = 0.0_f64;
+        let mut max_endpoint = 0.0_f64;
         for _ in 0..5000 {
             let receipt = model
                 .step(
@@ -742,10 +743,13 @@ mod tests {
             max_link = max_link.max(receipt.relative_link_constraint_residual);
             max_midpoint = max_midpoint
                 .max(receipt.relative_midpoint_velocity_constraint_residual);
+            max_endpoint =
+                max_endpoint.max(receipt.endpoint_velocity_constraint_residual.abs());
             state = receipt.after;
         }
         assert!(max_link < 2.0e-12);
         assert!(max_midpoint < 2.0e-12);
+        assert!(max_endpoint < 3.0e-12);
     }
 
     #[test]
@@ -811,11 +815,13 @@ mod tests {
     fn twenty_generic_so3_rotations_commute_with_the_discrete_update() {
         let model = model();
         let initial = initial_state();
+        let force1 = [0.12, -0.07, 0.05];
+        let force2 = [-0.03, 0.09, 0.11];
         let normal = model
             .step(
                 initial,
-                [0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0],
+                force1,
+                force2,
                 0.01,
                 SolverOptions::default(),
             )
@@ -831,8 +837,8 @@ mod tests {
             let rotated = model
                 .step(
                     rotate_state(initial, rotation_vector),
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0],
+                    rodrigues(rotation_vector, force1),
+                    rodrigues(rotation_vector, force2),
                     0.01,
                     SolverOptions::default(),
                 )
@@ -993,10 +999,10 @@ fn main() {
     let model = ConstrainedDumbbell3D::new(1.3, 2.1, 1.2)
         .expect("frozen 3D model must be valid");
     let mut state = State {
-        q1: [-0.29375, -0.58875, 0.05375],
-        q2: [0.545, 0.1625, 0.44875],
-        v1: [0.0475, -0.17125, 0.24125],
-        v2: [0.29375, -0.28375, -0.13125],
+        q1: [-0.24411764705882355, -0.6141176470588235, 0.0529411764705882],
+        q2: [0.5558823529411765, 0.1858823529411765, 0.4529411764705882],
+        v1: [0.0464705882352941, -0.1682352941176471, 0.2335294117647060],
+        v2: [0.2464705882352941, -0.2682352941176471, 0.0335294117647059],
     };
     println!("step,energy,link_residual,midpoint_constraint,endpoint_tangent,linear_momentum_residual,angular_momentum_x,angular_momentum_y,angular_momentum_z,multiplier_iterations");
     for step in 0..500 {
