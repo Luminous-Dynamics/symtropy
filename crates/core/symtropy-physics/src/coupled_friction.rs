@@ -35,9 +35,11 @@ pub enum CoupledCoulombError {
 /// Mathematical classification of the bounded single-contact problem.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CoupledCoulombStatus {
-    /// Exactly one admissible impulse was found and all original equations
-    /// passed their residual gates.
-    Unique,
+    /// Exactly one admissible impulse was isolated by the floating-point
+    /// quartic enumerator at the requested tolerance and passed all original
+    /// equation residual gates. This is not a formal interval proof of root
+    /// completeness; promotion requires an independent high-precision count.
+    UniqueWithinTolerance,
     /// Two or more distinct admissible impulses satisfy the same contact law.
     MultipleSolutions,
     /// Floating-point root isolation or a degenerate branch prevented a
@@ -94,7 +96,7 @@ pub struct CoupledCoulombOutcome {
 impl CoupledCoulombOutcome {
     /// Return the sole candidate only when uniqueness was established.
     pub fn unique_solution(&self) -> Option<&CoupledCoulombCandidate> {
-        if self.status == CoupledCoulombStatus::Unique {
+        if self.status == CoupledCoulombStatus::UniqueWithinTolerance {
             self.candidates.first()
         } else {
             None
@@ -184,7 +186,7 @@ pub fn solve_coupled_signorini_coulomb(
         let candidates = candidate.into_iter().collect::<Vec<_>>();
         return Ok(CoupledCoulombOutcome {
             status: if candidates.len() == 1 {
-                CoupledCoulombStatus::Unique
+                CoupledCoulombStatus::UniqueWithinTolerance
             } else {
                 CoupledCoulombStatus::Inconclusive
             },
@@ -215,7 +217,7 @@ pub fn solve_coupled_signorini_coulomb(
             let candidates = candidate.into_iter().collect::<Vec<_>>();
             return Ok(CoupledCoulombOutcome {
                 status: if candidates.len() == 1 {
-                    CoupledCoulombStatus::Unique
+                    CoupledCoulombStatus::UniqueWithinTolerance
                 } else {
                     CoupledCoulombStatus::Inconclusive
                 },
@@ -251,7 +253,7 @@ pub fn solve_coupled_signorini_coulomb(
         let candidates = candidate.into_iter().collect::<Vec<_>>();
         return Ok(CoupledCoulombOutcome {
             status: if candidates.len() == 1 {
-                CoupledCoulombStatus::Unique
+                CoupledCoulombStatus::UniqueWithinTolerance
             } else {
                 CoupledCoulombStatus::Inconclusive
             },
@@ -384,7 +386,7 @@ pub fn solve_coupled_signorini_coulomb(
     let status = if unresolved || candidates.is_empty() {
         CoupledCoulombStatus::Inconclusive
     } else if candidates.len() == 1 {
-        CoupledCoulombStatus::Unique
+        CoupledCoulombStatus::UniqueWithinTolerance
     } else {
         CoupledCoulombStatus::MultipleSolutions
     };
@@ -703,7 +705,7 @@ mod tests {
         );
         let q = SVector::new(-1.0, 0.2, -0.1);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.6, 1.0e-12).unwrap();
-        assert_eq!(outcome.status, CoupledCoulombStatus::Unique);
+        assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
         assert_eq!(candidate.regime, CoupledCoulombRegime::Sticking);
         assert!(
@@ -718,7 +720,7 @@ mod tests {
         let q = SVector::new(-1.0, -3.0, 1.0);
         let mu = 0.25;
         let outcome = solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-12).unwrap();
-        assert_eq!(outcome.status, CoupledCoulombStatus::Unique);
+        assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
         assert_eq!(candidate.regime, CoupledCoulombRegime::Sliding);
         let expected = SVector::new(1.0, 3.0 * mu / 10.0_f64.sqrt(), -mu / 10.0_f64.sqrt());
@@ -751,7 +753,7 @@ mod tests {
         );
         let q = SVector::new(0.5, 2.0, -1.0);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.5, 1.0e-12).unwrap();
-        assert_eq!(outcome.status, CoupledCoulombStatus::Unique);
+        assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
         assert_eq!(candidate.regime, CoupledCoulombRegime::Separating);
         assert_eq!(candidate.impulse, SVector::zeros());
@@ -909,7 +911,7 @@ mod tests {
         );
         let q = SVector::new(0.0, -2.0, 1.0);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.5, 1.0e-12).unwrap();
-        assert_eq!(outcome.status, CoupledCoulombStatus::Unique);
+        assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         assert_eq!(
             outcome.unique_solution().unwrap().regime,
             CoupledCoulombRegime::Separating
