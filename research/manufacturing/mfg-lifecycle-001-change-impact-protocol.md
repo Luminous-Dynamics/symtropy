@@ -1,7 +1,7 @@
 # MFG-LIFECYCLE-001 — Manufacturing twin change-impact and requalification protocol
 
 **Work item:** [MFG-LIFECYCLE-001 #3164](https://github.com/Luminous-Dynamics/symtropy/issues/3164).  
-**Implementation:** [lifecycle change-impact reference in PR #3168](https://github.com/Luminous-Dynamics/symtropy/pull/3168) (once opened).  
+**Implementation:** Rust reference and synthetic fixture are developed on `feat/manufacturing-lifecycle-change-impact-20261031`.  
 **Parent:** [MFG-TWIN-VVUQ-001 #3121](https://github.com/Luminous-Dynamics/symtropy/issues/3121).
 
 ## 1. Research question
@@ -54,7 +54,7 @@ Every dependency names the exact upstream revision it used. A dependency referen
 
 ### 4.3 Time
 
-Claims and items have half-open/closed? **This v0.1 profile uses inclusive UTC interval overlap**. If a claim validity interval ended before a change became effective, preserve the historical claim and its old receipt. If the validity intervals overlap, the claim enters the requalification set.
+Claims and items use inclusive UTC validity intervals in this v0.1 profile. If a claim validity interval ended before a change became effective, preserve the historical claim and its old receipt. If the validity intervals overlap, the claim enters the requalification set.
 
 The reference tool currently uses closed interval comparison. A future profile may adopt explicit half-open intervals if every producer/consumer agrees; mixed conventions are prohibited.
 
