@@ -1245,6 +1245,75 @@ mod tests {
         }
     }
 
+    #[test]
+    fn bounded_grid_generation_is_deterministic_and_emits_only_valid_kernels() {
+        let mut first = world();
+        first.id = "world-a".into();
+        let mut second = world();
+        second.id = "world-b".into();
+        second.kernel.measurement_ids = vec!["m0".into(), "m1".into()];
+        let grid = BoundedPerturbationGrid {
+            split_probabilities: vec![Rational::new(1, 10).unwrap()],
+            outcome_mass_shifts: vec![],
+            include_measurement_label_swaps: true,
+            include_readback_dropout: true,
+            include_hazard_injection: true,
+            include_outcome_mass_shifts: false,
+            include_apparatus_degradation: false,
+            include_realized_action_remapping: true,
+            include_sensor_scoped_variants: true,
+        };
+        let forward =
+            generate_bounded_perturbation_grid(&[first.clone(), second.clone()], &grid, 100)
+                .unwrap();
+        let reversed =
+            generate_bounded_perturbation_grid(&[second.clone(), first.clone()], &grid, 100)
+                .unwrap();
+        assert_eq!(forward, reversed);
+        assert!(!forward.specs.is_empty());
+
+        let mut candidate_ids = BTreeSet::new();
+        for spec in &forward.specs {
+            assert!(candidate_ids.insert(spec.candidate_world_id.as_str()));
+            let source = [&first, &second]
+                .into_iter()
+                .find(|world| world.id == spec.source_world_id)
+                .unwrap();
+            let candidate = apply_model_world_perturbation(
+                source,
+                &spec.candidate_world_id,
+                &spec.perturbation,
+            )
+            .unwrap();
+            candidate.kernel.validate().unwrap();
+        }
+        assert_eq!(forward.attempted,
+            forward.specs.len() + forward.skipped_inapplicable);
+    }
+
+    #[test]
+    fn bounded_grid_fails_closed_on_attempt_caps_and_invalid_probabilities() {
+        let source = world();
+        let grid = BoundedPerturbationGrid {
+            split_probabilities: vec![Rational::new(1, 10).unwrap()],
+            outcome_mass_shifts: vec![],
+            include_measurement_label_swaps: true,
+            include_readback_dropout: false,
+            include_hazard_injection: false,
+            include_outcome_mass_shifts: false,
+            include_apparatus_degradation: false,
+            include_realized_action_remapping: false,
+            include_sensor_scoped_variants: false,
+        };
+        assert!(generate_bounded_perturbation_grid(&[source.clone()], &grid, 1).is_err());
+
+        let invalid = BoundedPerturbationGrid {
+            split_probabilities: vec![Rational::one()],
+            ..grid
+        };
+        assert!(generate_bounded_perturbation_grid(&[source], &invalid, 100).is_err());
+    }
+
     fn base_inputs() -> (Vec<DecisionModelWorld>, DecisionLossTable, Vec<Rational>) {
         (
             vec![world()],
