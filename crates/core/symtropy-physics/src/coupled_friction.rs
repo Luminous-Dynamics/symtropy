@@ -762,6 +762,51 @@ mod tests {
     }
 
     #[test]
+    fn strong_coupling_can_create_multiple_solutions_from_initial_separation() {
+        let w = Matrix3::new(
+            3.38215268, 1.97328063, 2.48164591,
+            1.97328063, 5.28809392, -1.19836457,
+            2.48164591, -1.19836457, 4.53646300,
+        );
+        let q = SVector::new(0.93301773, 0.94422924, 2.42911533);
+        let mu = 2.609311810828915;
+        let outcome = solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-11).unwrap();
+        assert_eq!(outcome.status, CoupledCoulombStatus::MultipleSolutions);
+        assert!(outcome.candidates.iter().any(|candidate| {
+            candidate.regime == CoupledCoulombRegime::Separating
+                && candidate.impulse.norm() == 0.0
+        }));
+        assert!(outcome.candidates.iter().any(|candidate| {
+            candidate.regime == CoupledCoulombRegime::Sticking
+        }));
+        assert!(outcome.candidates.iter().any(|candidate| {
+            candidate.regime == CoupledCoulombRegime::Sliding
+        }));
+        for candidate in &outcome.candidates {
+            assert_candidate(candidate, 1.0e-7);
+        }
+    }
+
+    #[test]
+    fn rejects_nonfinite_velocity_and_invalid_friction_or_tolerance() {
+        let w = Matrix3::identity();
+        let finite_q = SVector::new(-1.0, 0.2, 0.1);
+        let nonfinite_q = SVector::new(f64::NAN, 0.2, 0.1);
+        assert_eq!(
+            solve_coupled_signorini_coulomb(&w, &nonfinite_q, 0.4, 1.0e-12).unwrap_err(),
+            CoupledCoulombError::NonFinite
+        );
+        assert_eq!(
+            solve_coupled_signorini_coulomb(&w, &finite_q, -0.1, 1.0e-12).unwrap_err(),
+            CoupledCoulombError::InvalidFrictionCoefficient
+        );
+        assert_eq!(
+            solve_coupled_signorini_coulomb(&w, &finite_q, 0.4, f64::NAN).unwrap_err(),
+            CoupledCoulombError::InvalidTolerance
+        );
+    }
+
+    #[test]
     fn contact_frame_rotation_preserves_candidate_impulses_and_classification() {
         let w = Matrix3::new(
             3.0, 0.4, -0.2,
