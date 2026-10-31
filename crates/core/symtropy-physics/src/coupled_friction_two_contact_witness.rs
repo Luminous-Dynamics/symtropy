@@ -29,36 +29,36 @@ fn fixture() -> (Matrix6, Vector6) {
         0.59497432,
         -0.39054620,
         -0.63542426,
-        -0.000039924658947135029,
-        -0.0012577367209219154,
-        0.0025740231899637452,
+        -0.0015969863578854011,
+        -0.05030946883687662,
+        0.1029609275985498,
         -0.39054620,
         1.65052340,
         0.80910089,
-        0.00048179797619192906,
-        0.00064354662453555516,
-        -0.00020792667991444019,
+        0.019271919047677163,
+        0.025741864981422207,
+        -0.0083170671965776075,
         -0.63542426,
         0.80910089,
         0.94522735,
-        0.000058287084621405077,
-        0.00033674263636546630,
-        0.00019510708987712771,
-        -0.000039924658947135029,
-        0.00048179797619192906,
-        0.000058287084621405077,
+        0.002331483384856203,
+        0.013469705454618652,
+        0.0078042835950851083,
+        -0.0015969863578854011,
+        0.019271919047677163,
+        0.002331483384856203,
         1.0,
         0.0,
         0.0,
-        -0.0012577367209219154,
-        0.00064354662453555516,
-        0.00033674263636546630,
+        -0.05030946883687662,
+        0.025741864981422207,
+        0.013469705454618652,
         0.0,
         1.0,
         0.0,
-        0.0025740231899637452,
-        -0.00020792667991444019,
-        0.00019510708987712771,
+        0.1029609275985498,
+        -0.0083170671965776075,
+        0.0078042835950851083,
         0.0,
         0.0,
         1.0,
@@ -77,28 +77,28 @@ fn fixture() -> (Matrix6, Vector6) {
 fn candidate_impulses() -> [Vector6; 3] {
     [
         Vector6::new(
-            7.815345510903483,
-            -3.662506987009205,
-            9.399827492910301,
-            1.0015287249177007,
-            -0.0909786816467600,
-            0.0772876135118944,
+            8.62138207099778,
+            -3.8288167608242003,
+            10.084652431088083,
+            1.0640446766313634,
+            0.2964607388684519,
+            -0.8982135090246709,
         ),
         Vector6::new(
-            3.0858247093883393,
-            -1.840334930132206,
-            3.8514965848212723,
-            1.0007853776365874,
-            -0.0962314667302979,
-            0.0909229066155821,
+            2.635473725062579,
+            -1.6299849931593697,
+            3.260938855010074,
+            1.028018929666454,
+            0.030624250979954602,
+            -0.2103568057229951,
         ),
         Vector6::new(
-            0.2946100695600148,
-            -0.2907300604870012,
-            0.2855829594605342,
-            1.0001351895631858,
-            -0.0995385277067534,
-            0.0991254970525885,
+            0.2475960198151996,
+            -0.25149711759758553,
+            0.23249392235397026,
+            1.0047001838399274,
+            -0.08420119556665649,
+            0.07060111719912938,
         ),
     ]
 }
@@ -129,7 +129,7 @@ fn validate_candidate(
         ContactOneRegime::Sticking => {
             assert!(u[1].abs() < TOL);
             assert!(u[2].abs() < TOL);
-            assert!(MU_1 * lambda_1 - tangent_1_norm > 0.5);
+            assert!(MU_1 * lambda_1 - tangent_1_norm > 1.0);
             assert_eq!(tau_1, 0.0);
         }
         ContactOneRegime::Sliding => {
@@ -143,7 +143,7 @@ fn validate_candidate(
     // Contact 2 is strictly sticking for all three distinct island solutions.
     assert!(u[4].abs() < TOL);
     assert!(u[5].abs() < TOL);
-    assert!(MU_2 * lambda_2 - tangent_2_norm > 0.8);
+    assert!(MU_2 * lambda_2 - tangent_2_norm > 0.1);
 
     // The complete island impulse is dissipative under the frozen law.
     let kinetic_energy_delta = p.dot(q) + 0.5 * p.dot(&(w * p));
@@ -180,13 +180,13 @@ mod tests {
             }
         }
         let cross_block_norm = cross_norm_squared.sqrt();
-        assert!(cross_block_norm > 3.0e-3);
+        assert!(cross_block_norm > 0.12);
 
         let candidates = candidate_impulses();
         let regimes = [
             (ContactOneRegime::Sticking, 0.0),
-            (ContactOneRegime::Sliding, 0.19858773537606256),
-            (ContactOneRegime::Sliding, 3.880015978755019),
+            (ContactOneRegime::Sliding, 0.2654416783961581),
+            (ContactOneRegime::Sliding, 4.709435913523664),
         ];
         let mut energy_deltas = Vec::new();
         let mut cross_work = Vec::new();
@@ -207,10 +207,9 @@ mod tests {
 
         // The independently computed island energies differ by branch and all
         // remain strictly dissipative; cross-contact contributions are nonzero.
-        assert!(energy_deltas[0] < -8.0);
+        assert!(energy_deltas[0] < -8.5);
         assert!(energy_deltas[1] < -5.0);
         assert!(energy_deltas[2] < -1.0);
-        assert!(cross_work.iter().any(|value| *value > 1.0e-4));
-        assert!(cross_work.iter().any(|value| *value < -1.0e-7));
+        assert!(cross_work.iter().all(|value| *value < -1.0e-3));
     }
 }
