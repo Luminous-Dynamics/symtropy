@@ -162,6 +162,48 @@ The new engineering work is the manufacturing-specific policy layer: binding cry
 - #3174: covariance inputs and uncertainty claims are individually attested; source correlations must be preserved.
 - #3173: exchange-receipt evidence is bound to exact participants, timestamps and transfer artifacts.
 
+
+### Concrete Cosign verification adapter (v3.1.4)
+
+The pinned adapter target is Cosign release v3.1.4, source commit `0e48502cf5ef34e2e60bbd3617aa19945712f705`. The release source was inspected at the tag and exposes the following verified CLI options for `verify-blob-attestation`:
+
+- bundle: `--bundle`;
+- predicate type: `--type`;
+- exact identity and issuer: `--certificate-identity`, `--certificate-oidc-issuer`;
+- GitHub workflow claims: `--certificate-github-workflow-repository`, `--certificate-github-workflow-name`, `--certificate-github-workflow-ref`, `--certificate-github-workflow-sha`, `--certificate-github-workflow-trigger`;
+- local trusted root: `--trusted-root`;
+- in-toto subject comparison: `--check-claims=true`.
+
+The command's `--check-claims` defaults to true. If an artifact path is supplied, the implementation hashes the bytes and checks the digest against the in-toto subject. The verifier also checks the expected predicate type. It prints `Verified OK` on successful bundle verification but does not emit the complete manufacturing admission receipt.
+
+Example preflight (with all values supplied by a trusted deployment profile):
+
+```sh
+cosign verify-blob-attestation \
+  --bundle "$BUNDLE_PATH" \
+  --trusted-root "$TRUSTED_ROOT_PATH" \
+  --type "$PREDICATE_TYPE" \
+  --certificate-identity "$SIGNER_IDENTITY" \
+  --certificate-oidc-issuer "$OIDC_ISSUER" \
+  --certificate-github-workflow-repository "$WORKFLOW_REPOSITORY" \
+  --certificate-github-workflow-name "$WORKFLOW_NAME" \
+  --certificate-github-workflow-ref "$WORKFLOW_REF" \
+  --certificate-github-workflow-sha "$WORKFLOW_SHA" \
+  --certificate-github-workflow-trigger "$WORKFLOW_TRIGGER" \
+  --check-claims=true \
+  "$ARTIFACT_PATH"
+```
+
+Do not use the deprecated `--offline` flag as the trust-root freshness mechanism. For air-gapped verification the command accepts a Sigstore TrustedRoot JSON file and a local Sigstore bundle; an independent TUF-aware provisioning process must authenticate root metadata, threshold, version, expiry and rollback/freeze state. Validate air-gap behavior by denying network egress in the actual test, not by assuming a flag guarantees it.
+
+The CLI workflow repository claim checks owner/name. This is not an immutable repository ID. The signed manufacturing predicate now also carries `producer.repositoryId`; the post-Cosign semantic validator must compare it against the trusted local GitHub repository ID (for this repository, `1263670049`). It must also check workflow name/ref/SHA and predicate producer revision against policy.
+
+The implementation therefore has two gates:
+1. Cosign verifies DSSE/signature/certificate/issuer/workflow claims/subject digest/predicate type.
+2. A maintained in-toto/DSSE parser extracts the authenticated payload from the same bundle and validates schema, repository ID, scope, time, evidence tier, materials/calibration, physical units, uncertainty and claim limits. Only after both gates may a verifier-produced receipt be emitted.
+
+The profile and preflight example are committed under `tools/manufacturing-assurance/policies/` and `tools/manufacturing-assurance/examples/`. The platform-specific Cosign binary digest and organization-controlled predicate URI remain required deployment inputs, not invented values.
+
 ## 11. Implementation roadmap
 
 1. T0: current schemas and synthetic example; no cryptographic claim.
