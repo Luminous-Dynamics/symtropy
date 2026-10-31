@@ -2,6 +2,7 @@ use engineering_scenario_compiler::{
     canonical_semantic_ir_bytes, compile_bytes, Disposition, COMPILER_VERSION,
     MAX_SOURCE_BYTES,
 };
+use sha2::Digest;
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -63,8 +64,9 @@ fn main() {
         samples.sort_unstable();
 
         println!(
-            "compile_end_to_end,{},{}, {},{},{},{},{},{},{},blocked",
+            "compile_end_to_end,{},{},{},{},{},{},{},{},{},blocked",
             bytes.len(),
+            0,
             source_digest,
             percentile(&samples, 50),
             percentile(&samples, 95),
@@ -72,6 +74,7 @@ fn main() {
             samples[0],
             samples[samples.len() - 1],
             SAMPLE_COUNT
+        );
     }
 
     // Measure canonical serialization independently from parsing and typed
@@ -85,7 +88,7 @@ fn main() {
     let canonical_example = canonical_semantic_ir_bytes(scenario)
         .expect("typed IR has valid JCS encoding");
     let canonical_output_bytes = canonical_example.len();
-    let canonical_sha256 = hex::encode(sha2::Sha256::digest(&canonical_example));
+    let canonical_sha256 = hex::encode(Digest::digest(&canonical_example));
 
     for _ in 0..WARMUP_COUNT {
         black_box(
@@ -104,8 +107,7 @@ fn main() {
     }
     canonical_samples.sort_unstable();
     println!(
-        "canonical_ir_jcs,{},{},{},{},{},{},{},{},{},blocked",
-        0,
+        "canonical_ir_jcs,0,{},{},{},{},{},{},{},{},blocked",
         canonical_output_bytes,
         canonical_sha256,
         percentile(&canonical_samples, 50),
@@ -113,6 +115,6 @@ fn main() {
         percentile(&canonical_samples, 99),
         canonical_samples[0],
         canonical_samples[canonical_samples.len() - 1],
-        SAMPLE_COUNT,
+        SAMPLE_COUNT
     );
 }
