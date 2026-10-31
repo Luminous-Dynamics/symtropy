@@ -914,7 +914,13 @@ mod tests {
         let mut dynamic_body =
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         dynamic_body.linear_velocity = SVector::new(1.0, -0.5, 0.25);
-        dynamic_body.angular_velocity = Bivector::<3>::new([0.2, -0.3, 0.4]).scale(-1.0);
+        dynamic_body.angular_velocity = {
+            let mut angular = Bivector::<3>::zero();
+            angular.set(0, 1, -0.2);
+            angular.set(0, 2, 0.3);
+            angular.set(1, 2, -0.4);
+            angular
+        };
         let frame =
             ContactFrame::<3>::new(SVector::new(0.3, 0.4, 0.5), 1e-12).unwrap();
         let row = ContactWrenchRow {
