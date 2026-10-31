@@ -16,3 +16,12 @@ The initial grammar is intentionally small. New task families should be added on
 Qualification pins Rust 1.96.0, checks format, locked tests, strict Clippy, exact checkout identity, and a clean tree.
 
 These tasks are finite synthetic models. Passing them does not establish physical validity, transfer to real apparatus, or superiority to current experimental-design systems.
+
+
+## Capability-discriminating selection
+
+The `selection` module converts method-run results into a deterministic task shortlist. Every candidate task is re-verified against the exact optimizer, EIG baseline and identifiability receipt. Every task must have one result from the same complete method roster.
+
+A task is ranked by the number of method pairs separated either by risk-budget compliance or by an exact regret gap above a declared rational threshold. Ties are broken deterministically by regret spread, number of risk-compliant methods, exact frontier size, family and task ID. Selection enforces a maximum task count and per-family cap, and reports tasks no method solved under its declared budgets rather than silently including them as successful challenges.
+
+This is a first deterministic selector, not a statistically complete adaptive-benchmark framework. Paired-seed confidence intervals, holdout sealing, task-family novelty and external baselines still need a separate evaluation protocol.
