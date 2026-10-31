@@ -466,8 +466,6 @@ fn solve_step(
     Err(format!("FLAG_NO_CONVERGENCE: exceeded {FLAG_ITERATION_BUDGET} consistency iterations"))
 }
 
-fn trapezoid_unused_marker() {}
-
 fn interface_position(latent: &[f64], c: &ValidatedCampaign, row: usize) -> Result<f64, String> {
     let nx = c.campaign.x_cells;
     let threshold = 0.5 * c.latent_density;
@@ -505,6 +503,7 @@ fn run_campaign(campaign: Campaign) -> Result<Summary, String> {
     let ny = campaign.y_cells;
     let initial_enthalpy_value = c.latent_density + RHO * CP_L * TINF;
     let mut enthalpy = vec![initial_enthalpy_value; c.cells];
+    let mut latent = vec![c.latent_density; c.cells];
     let mut flags = vec![1_i8; c.cells];
     let mut potential = vec![K_L * TINF; c.cells];
 
@@ -529,11 +528,8 @@ fn run_campaign(campaign: Campaign) -> Result<Summary, String> {
         let temperatures = temperature_field(&step)?;
         let time_s = (step_index + 1) as f64 * c.dt;
         let front_exact = exact_front(time_s, c.alpha_s);
-        let mut front_sum = 0.0_f64;
-
         for y in 0..ny {
             let front = interface_position(&step.latent, &c, y)?;
-            front_sum += front;
             sum_front_error += (front - front_exact).abs();
             front_count += 1;
         }
@@ -585,12 +581,12 @@ fn run_campaign(campaign: Campaign) -> Result<Summary, String> {
         max_block_residual = max_block_residual.max(step.relative_block_residual);
 
         enthalpy = step.enthalpy;
+        latent = step.latent;
         flags = step.flags;
         potential = step.potential;
-        let _ = front_sum;
     }
 
-    let final_front = interface_position(&recover_final_latent(&c, &enthalpy, &flags)?, &c, 0)?;
+    let final_front = interface_position(&latent, &c, 0)?;
     let exact_final_front = exact_front(campaign.end_time_s, c.alpha_s);
     let energy_residual = enthalpy_drop - wall_heat;
     let energy_relative = energy_residual.abs() / wall_heat.max(1.0);
@@ -631,24 +627,6 @@ fn run_campaign(campaign: Campaign) -> Result<Summary, String> {
 
 fn y_index(i: usize, nx: usize) -> usize { i / nx }
 
-fn recover_final_latent(c: &ValidatedCampaign, enthalpy: &[f64], flags: &[i8]) -> Result<Vec<f64>, String> {
-    // Reconstruct only the latent component of a terminal state. For solid/liquid
-    // it is fixed; the mixed component is not needed for final front location in
-    // this initial slice, so use the persisted E - gamma*v relation in caller
-    // only where available. This placeholder is replaced by a state-preserving
-    // latent return in the main loop.
-    if enthalpy.len() != flags.len() { return Err("FINAL_STATE_SIZE_MISMATCH".into()); }
-    let mut latent = vec![0.0; enthalpy.len()];
-    for i in 0..flags.len() {
-        latent[i] = match flags[i] {
-            -1 => 0.0,
-            0 => return Err("FINAL_MIXED_LATENT_NOT_PERSISTED".into()),
-            1 => c.latent_density,
-            _ => return Err("PHASE_FLAG_INVALID".into()),
-        };
-    }
-    Ok(latent)
-}
 
 fn verify() -> Result<(), String> {
     let result = run_campaign(Campaign::published(48, 4, 72))?;
@@ -718,12 +696,11 @@ mod tests {
     }
 
     #[test]
-    fn mixed_flag_state_cycles_fail_closed() {
+    fn all_mixed_flags_transition_to_liquid_when_latent_reaches_upper_bound() {
         let c=Campaign::published(48,4,72).validate().unwrap();
-        let e=vec![c.latent_density; c.cells];
-        let flags=vec![0_i8; c.cells];
-        let v=vec![0.0; c.cells];
-        let s=recover_latent(&c,&e,&flags,&v).unwrap();
+        let flags=vec![0_i8;c.cells];
+        let v=vec![0.0;c.cells];
+        let s=vec![c.latent_density;c.cells];
         assert_eq!(update_flags(&flags,&v,&s,c.latent_density).unwrap(),vec![1_i8;c.cells]);
     }
 }
