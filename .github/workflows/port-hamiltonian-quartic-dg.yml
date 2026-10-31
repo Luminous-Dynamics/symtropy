@@ -1,0 +1,45 @@
+name: Nonlinear port-Hamiltonian discrete-gradient reference
+
+on:
+  pull_request:
+    paths:
+      - "tools/port-hamiltonian-nonlinear/**"
+      - "docs/research/NONLINEAR_PORT_HAMILTONIAN_QUARTIC_DG_2026-10-31.md"
+      - ".github/workflows/port-hamiltonian-quartic-dg.yml"
+  push:
+    branches:
+      - "research/port-hamiltonian-quartic-dg-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-rust-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/port-hamiltonian-nonlinear/quartic_discrete_gradient.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/port-hamiltonian-nonlinear/quartic_discrete_gradient.rs \
+            -o /tmp/quartic-dg-tests
+          /tmp/quartic-dg-tests
+
+      - name: Compile optimized deterministic fixture
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/port-hamiltonian-nonlinear/quartic_discrete_gradient.rs \
+            -o /tmp/quartic-dg
+          /tmp/quartic-dg > /tmp/quartic-dg-a.csv
+          /tmp/quartic-dg > /tmp/quartic-dg-b.csv
+          cmp /tmp/quartic-dg-a.csv /tmp/quartic-dg-b.csv
+          test "$(wc -l < /tmp/quartic-dg-a.csv)" -eq 101
+          grep -q "^100," /tmp/quartic-dg-a.csv
