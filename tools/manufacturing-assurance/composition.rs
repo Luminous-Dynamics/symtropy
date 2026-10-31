@@ -50,6 +50,7 @@ struct Node {
     scope_key: String,
     component_id: String,
     evidence_id: String,
+    event_time_utc: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -60,6 +61,8 @@ struct Evidence {
     authority: String,
     artifact_sha256: String,
     receipt_sha256: String,
+    valid_from_utc: String,
+    valid_until_utc: String,
     status: String,
 }
 
@@ -124,7 +127,7 @@ const REQUIRED_ROLES: [&str; 8] = [
     "authority",
 ];
 
-const REQUIRED_NODE_KINDS: [&str; 14] = [
+const REQUIRED_NODE_KINDS: [&str; 17] = [
     "PRODUCT",
     "LOT",
     "OPERATION",
@@ -132,7 +135,10 @@ const REQUIRED_NODE_KINDS: [&str; 14] = [
     "MODEL_RUN",
     "SPECIFICATION",
     "INSPECTION_RESULT",
+    "INSTRUMENT",
     "MEASUREMENT",
+    "CALIBRATION",
+    "MSA_STUDY",
     "UNCERTAINTY_BUDGET",
     "CONFORMITY",
     "ACTION_PROPOSAL",
@@ -141,13 +147,18 @@ const REQUIRED_NODE_KINDS: [&str; 14] = [
     "POSTCONDITION",
 ];
 
-const REQUIRED_EDGES: [(&str, &str, &str, &str); 13] = [
+const REQUIRED_EDGES: [(&str, &str, &str, &str); 18] = [
     ("PRODUCT", "HAS_LOT", "LOT", "product identity binds the material lot"),
     ("LOT", "PROCESSED_IN", "OPERATION", "lot must be linked to the actual route operation"),
     ("OPERATION", "OBSERVED_BY", "MACHINE_CYCLE", "operation must have machine-cycle evidence"),
     ("OPERATION", "SIMULATED_BY", "MODEL_RUN", "operation must have a scoped physical-model run"),
     ("MACHINE_CYCLE", "EXPLICITLY_LINKED_TO", "INSPECTION_RESULT", "machine cycle and inspection need an explicit source-backed association"),
     ("INSPECTION_RESULT", "HAS_MEASUREMENT", "MEASUREMENT", "inspection result must bind the actual measurement"),
+    ("MEASUREMENT", "MEASURED_WITH", "INSTRUMENT", "measurement must identify its instrument"),
+    ("INSTRUMENT", "CALIBRATED_BY", "CALIBRATION", "instrument must bind the calibration applicable to the measurement"),
+    ("MEASUREMENT", "QUALIFIED_BY_MSA", "MSA_STUDY", "measurement method must bind its qualified MSA study"),
+    ("CALIBRATION", "CONTRIBUTES_TO", "UNCERTAINTY_BUDGET", "calibration uncertainty must contribute to the uncertainty budget"),
+    ("MSA_STUDY", "CONTRIBUTES_TO", "UNCERTAINTY_BUDGET", "MSA evidence must contribute to the uncertainty budget"),
     ("MEASUREMENT", "HAS_UNCERTAINTY", "UNCERTAINTY_BUDGET", "measurement must bind its uncertainty budget"),
     ("MEASUREMENT", "COMPARED_TO", "SPECIFICATION", "measurement must bind the exact specification"),
     ("MEASUREMENT", "DISPOSED_BY", "CONFORMITY", "measurement must bind its conformity disposition"),
@@ -213,7 +224,7 @@ fn expected_component_role(kind: &str) -> Option<&'static str> {
         "MACHINE_CYCLE" | "EXECUTION" => Some("machine"),
         "MODEL_RUN" => Some("physics"),
         "INSPECTION_RESULT" => Some("inspection"),
-        "MEASUREMENT" | "UNCERTAINTY_BUDGET" | "POSTCONDITION" => Some("metrology"),
+        "INSTRUMENT" | "MEASUREMENT" | "CALIBRATION" | "MSA_STUDY" | "UNCERTAINTY_BUDGET" | "POSTCONDITION" => Some("metrology"),
         "CONFORMITY" => Some("quality"),
         "ACTION_PROPOSAL" => Some("intervention"),
         "AUTHORIZATION" => Some("authority"),
@@ -230,7 +241,10 @@ fn expected_node_evidence_class(kind: &str) -> Option<&'static str> {
         "MODEL_RUN" => Some("SIMULATION_RUN"),
         "SPECIFICATION" => Some("SPECIFICATION"),
         "INSPECTION_RESULT" => Some("QIF_RESULT"),
+        "INSTRUMENT" => Some("INSTRUMENT_IDENTITY"),
         "MEASUREMENT" => Some("OBSERVATION"),
+        "CALIBRATION" => Some("CALIBRATION_RECEIPT"),
+        "MSA_STUDY" => Some("MSA_STUDY_RECEIPT"),
         "UNCERTAINTY_BUDGET" => Some("UNCERTAINTY_BUDGET"),
         "CONFORMITY" => Some("CONFORMITY_DECISION"),
         "ACTION_PROPOSAL" => Some("ACTION_PROPOSAL"),
@@ -291,8 +305,8 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                 }
             }
             "NODE" => {
-                if fields.len() != 6 {
-                    return Err(format!("line {line_number}: NODE requires 5 fields"));
+                if fields.len() != 7 {
+                    return Err(format!("line {line_number}: NODE requires 6 fields"));
                 }
                 let node = Node {
                     kind: nonempty(fields[1], "NODE kind")?,
@@ -300,6 +314,7 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                     scope_key: nonempty(fields[3], "NODE scope_key")?,
                     component_id: nonempty(fields[4], "NODE component_id")?,
                     evidence_id: nonempty(fields[5], "NODE evidence_id")?,
+                    event_time_utc: nonempty(fields[6], "NODE event_time_utc; use - when not an event")?,
                 };
                 let key = node_key(&node.kind, &node.id);
                 if manifest.nodes.insert(key, node).is_some() {
@@ -307,8 +322,8 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                 }
             }
             "EVIDENCE" => {
-                if fields.len() != 9 {
-                    return Err(format!("line {line_number}: EVIDENCE requires 8 fields"));
+                if fields.len() != 11 {
+                    return Err(format!("line {line_number}: EVIDENCE requires 10 fields"));
                 }
                 let evidence_id = nonempty(fields[1], "EVIDENCE id")?;
                 let evidence = Evidence {
@@ -318,7 +333,9 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                     authority: nonempty(fields[5], "EVIDENCE authority")?,
                     artifact_sha256: nonempty(fields[6], "EVIDENCE artifact_sha256")?,
                     receipt_sha256: nonempty(fields[7], "EVIDENCE receipt_sha256")?,
-                    status: nonempty(fields[8], "EVIDENCE status")?,
+                    valid_from_utc: nonempty(fields[8], "EVIDENCE valid_from_utc")?,
+                    valid_until_utc: nonempty(fields[9], "EVIDENCE valid_until_utc")?,
+                    status: nonempty(fields[10], "EVIDENCE status")?,
                 };
                 if manifest.evidence.insert(evidence_id, evidence).is_some() {
                     return Err(format!("line {line_number}: duplicate evidence id"));
@@ -394,6 +411,12 @@ fn evidence_for<'a>(
     }
     if evidence.authority == "-" {
         return Err(format!("evidence {evidence_id} has no declared authority"));
+    }
+    if !valid_utc(&evidence.valid_from_utc)
+        || !valid_utc(&evidence.valid_until_utc)
+        || evidence.valid_from_utc >= evidence.valid_until_utc
+    {
+        return Err(format!("evidence {evidence_id} has an invalid validity interval"));
     }
     if !matches!(
         evidence.status.as_str(),
@@ -520,6 +543,9 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
         if !kinds.insert(node.kind.as_str()) {
             return Err(format!("multiple nodes of kind {}", node.kind));
         }
+        if node.event_time_utc != "-" && !valid_utc(&node.event_time_utc) {
+            return Err(format!("node {}:{} has invalid event_time_utc", node.kind, node.id));
+        }
         if let Some(existing_scope) = scope {
             if existing_scope != node.scope_key {
                 return Err(format!(
@@ -573,6 +599,33 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
         return Err(format!(
             "scope_key must encode the exact product/lot/operation identity: expected {expected_scope}"
         ));
+    }
+
+    let measurement = manifest.nodes.get("MEASUREMENT:meas-001")
+        .ok_or("missing measurement node")?;
+    if measurement.event_time_utc == "-" || !valid_utc(&measurement.event_time_utc) {
+        return Err("measurement must declare a valid UTC observation timestamp".to_string());
+    }
+    if measurement.event_time_utc < meta.valid_from || measurement.event_time_utc > meta.valid_until {
+        return Err("measurement timestamp is outside composition validity".to_string());
+    }
+
+    let calibration = manifest.nodes.get("CALIBRATION:cal-001")
+        .ok_or("missing calibration node")?;
+    let calibration_evidence = manifest.evidence.get(&calibration.evidence_id)
+        .ok_or("missing calibration evidence")?;
+    if measurement.event_time_utc < calibration_evidence.valid_from_utc
+        || measurement.event_time_utc > calibration_evidence.valid_until_utc
+    {
+        return Err("calibration was not valid at the measurement timestamp".to_string());
+    }
+
+    let msa = manifest.nodes.get("MSA_STUDY:msa-001")
+        .ok_or("missing MSA study node")?;
+    let msa_evidence = manifest.evidence.get(&msa.evidence_id)
+        .ok_or("missing MSA study evidence")?;
+    if !matches!(msa_evidence.status.as_str(), "QUALIFIED" | "SYNTHETIC_ONLY") {
+        return Err("MSA study evidence is not qualified".to_string());
     }
 
     let mut seen_edges = BTreeSet::new();
@@ -754,10 +807,10 @@ mod tests {
             assert_eq!(summary.revision, "1");
             assert_eq!(summary.mode, mode);
             assert_eq!(summary.components, 8);
-            assert_eq!(summary.nodes, 14);
-            assert_eq!(summary.edges, 13);
+            assert_eq!(summary.nodes, 17);
+            assert_eq!(summary.edges, 18);
             assert_eq!(summary.interfaces, 6);
-            assert_eq!(summary.evidence_records, 35);
+            assert_eq!(summary.evidence_records, 43);
             assert_eq!(summary.scope_key, "product-001/lot-001/op-001");
         }
     }
