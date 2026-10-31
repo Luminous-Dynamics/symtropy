@@ -17,9 +17,14 @@ The September 2026 Ostrich preprint reports a GPU-accelerated hard-contact simul
 
 DiffMJX (ICLR 2026) addresses gradient accuracy in penalty-based contacts through adaptive time integration and backward-only contacts-from-distance. Bundled Contact Gradients (September 2026) uses contact-local randomized bundles to reduce gradient variance for stiff contact and reports transfer to a Unitree G1. These are distinct approaches with different forward/gradient tradeoffs; Symtropy should benchmark all three objectives rather than conflate them.
 
-## Implemented primitive
+## Implemented primitives
 
-The current prototype differentiates the small-island frictionless reference LCP under a locally fixed active set.
+The prototype now differentiates two reference contact families:
+
+1. The small-island frictionless LCP under a locally fixed active set.
+2. The single-contact planar maximum-dissipation Coulomb reference under a locally fixed separating, sticking, positive-sliding or negative-sliding mode.
+
+The planar reference exposes its active mode as explicit solver output so the derivative does not have to infer a mode from rounded impulses.
 
 For active rows A:
 
@@ -59,6 +64,45 @@ The public API accepts W, q, a reference LCP solution, dW/dtheta, dq/dtheta, the
 
 The separate absolute margins intentionally have different units. A single dimensionless threshold must not be applied indiscriminately to impulses and velocity residuals.
 
+### Planar friction-mode sensitivity
+
+For sticking, both post-contact components are constrained to zero and:
+
+\[
+\frac{d\lambda}{d\theta}
+=-W^{-1}\left(\frac{dW}{d\theta}\lambda+
+\frac{dq}{d\theta}\right).
+\]
+
+For sliding with signed tangential velocity s in {+1,-1}, the active Coulomb edge is:
+
+\[
+\lambda=\lambda_n c,\qquad
+c=\begin{bmatrix}1\\-\mu s\end{bmatrix},
+\qquad
+e_n^T(Wc\lambda_n+q)=0.
+\]
+
+Differentiating the scalar normal equation includes both dW and dmu:
+
+\[
+\frac{d\lambda_n}{d\theta}
+=-\frac{
+e_n^T\left[
+\left(\frac{dW}{d\theta}c+
+W\frac{dc}{d\theta}\right)\lambda_n+
+\frac{dq}{d\theta}
+\right]
+}{
+e_n^T Wc
+},\qquad
+\frac{d\lambda}{d\theta}
+=c\frac{d\lambda_n}{d\theta}
++\frac{dc}{d\theta}\lambda_n.
+\]
+
+The separating mode has zero impulse sensitivity while the positive normal separating velocity remains outside its transition margin. Sticking rejects a near-zero Coulomb-cone slack; sliding rejects near-zero tangential post-velocity or a vanishing friction coefficient. These are one-sided mode derivatives, not derivatives across mode changes.
+
 ## Failure semantics
 
 The derivative returns an explicit error when:
@@ -78,6 +122,10 @@ The source tests cover:
 - a one-row analytic derivative with a closed-form sensitivity;
 - central finite-difference agreement for the same parameterized LCP;
 - 24 deterministic randomized SPD-block checks across 1–4 active rows, comparing both impulse sensitivities and objective gradients against central finite differences;
+- planar sticking and positive-sliding derivatives against central finite differences, including friction-coefficient sensitivity;
+- negative-sliding sensitivity on the opposite Coulomb edge;
+- strict separating-mode zero sensitivity;
+- stick–slip transition rejection;
 - a strictly inactive-contact case that returns the direct objective gradient and zero contact sensitivity;
 - parameter sensitivity through q (contact bias/free velocity);
 - rejection near an active-set transition;
@@ -106,12 +154,11 @@ The thresholds are campaign acceptance targets, not measured results.
 
 ## Next implementation stages
 
-1. Validate this small-LCP derivative under CI and randomized fixed-active-set finite differences.
-2. Extend the reference derivative to the planar friction-cone KKT/active-face equations already present in Symtropy. Track stick, positive slide, negative slide and transition boundaries as distinct modes.
-3. Derive the coupled 3D contact-wrench cone derivative using the exact constitutive model selected for that experiment. Do not differentiate a feasibility approximation and call it maximum-dissipation friction.
-4. Move from dense small matrices to matrix-free Jacobian-vector and transpose-Jacobian-vector products through the production contact residual.
-5. Reuse the production Newton/Schur factorization in the adjoint pass; avoid storing the entire internal iteration tape.
-6. Add checkpointed long-horizon trajectory benchmarks and real measured hardware trajectories.
+1. Validate the fixed-active-set LCP and planar mode derivatives under exact-head CI and the randomized finite-difference tests.
+2. Derive the coupled 3D contact-wrench cone derivative using the exact constitutive model selected for that experiment. Do not differentiate a feasibility approximation and call it maximum-dissipation friction.
+3. Move from dense small matrices to matrix-free Jacobian-vector and transpose-Jacobian-vector products through the production contact residual.
+4. Reuse the production Newton/Schur factorization in the adjoint pass; avoid storing the entire internal iteration tape.
+5. Add checkpointed long-horizon trajectory benchmarks and real measured hardware trajectories.
 
 ## Industry comparison
 
