@@ -439,6 +439,15 @@ fn validate_matched_policy_matrix(budgets: &[PolicyBudgetSummary]) -> Result<(),
         if policies.len() < 2 {
             return Err(format!("task {task_id} requires at least two matched policies"));
         }
+        let first_policy = policies.iter().next().expect("at least one policy");
+        let reference_replicates = replicate_sets
+            .get(&(task_id.clone(), first_policy.clone()))
+            .expect("policy replicate set exists");
+        if reference_replicates.len() < 2 {
+            return Err(format!(
+                "task {task_id} requires at least two independent replicates per policy"
+            ));
+        }
         let mut expected_replicates: Option<&BTreeSet<String>> = None;
         for policy_id in policies {
             let replicates = replicate_sets
@@ -731,6 +740,15 @@ mod tests {
         let (tasks, mut operations, candidates) = fixture();
         operations.retain(|operation| !(operation.replicate_id == "seed-2" && operation.policy_id == "voi"));
         assert!(evaluate_policy_benchmark(&tasks, &operations, &candidates).is_err());
+    }
+
+    #[test]
+    fn one_seed_is_not_enough_to_claim_policy_generalization() {
+        let (tasks, mut operations, _) = fixture();
+        operations.retain(|operation| operation.replicate_id == "seed-1");
+        assert!(evaluate_policy_benchmark(&tasks, &operations, &[])
+            .expect_err("one seed must not count as policy benchmark")
+            .contains("at least two independent replicates"));
     }
 
     #[test]

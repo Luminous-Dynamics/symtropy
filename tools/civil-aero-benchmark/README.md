@@ -273,3 +273,6 @@ The policy_benchmark module and policy_benchmark_demo CLI compare policies on ma
 
 
 The policy scorecard also emits normalized hypervolume fraction: raw HV divided by the area of the task-declared ideal/reference objective box. The ideal lower bound and reference upper bound are predeclared per task, and candidates outside that box are rejected. This enables dimensionless cross-task summaries without averaging raw drag-energy units.
+
+
+The evaluator requires at least two independent replicates per task/policy before producing a scorecard, and rejects incomplete policy/replicate matrices. This avoids treating one seed as generalization evidence.

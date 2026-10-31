@@ -10,7 +10,7 @@ This is not proof that a caller-provided receipt is authentic, and this scorecar
 
 ## Fair comparison rules
 
-- Compare at least two policies for every task/replicate.
+- Compare at least two policies for every task/replicate and require at least two independent replicates per task/policy for a scorecard to be admitted.
 - Policy sets and replicate sets must be complete and identical within each task.
 - Budget caps must match for each task/replicate/policy.
 - Objective names, directions, a lower/ideal point and the upper/reference point are fixed by task before comparisons. The task-declared box bounds make hypervolume fractions comparable across tasks without confusing raw units; their bounds must be justified and frozen before evaluation.
@@ -49,7 +49,7 @@ The synthetic example contains two policies, two replicates and five operations 
 
 Both policies use a total budget cap of 8 units. Uniform costs 6.75 units and has two feasible admitted candidates with HV 9.5. VOI costs 5.0 units and has two feasible admitted candidates with HV 10.04. The finite fixture therefore has better HV/cost for the VOI policy while charging the failed run and excluding the not-admitted output from hypervolume.
 
-The Rust unit tests and independent standard-library Python oracle recompute all four scorecard rows. Additional negative controls reject output digest mismatch, missing admission receipt, omitted disposition for a successful high-fidelity run, out-of-reference objective, duplicate disposition and incomplete replicate matrix.
+The Rust unit tests and independent standard-library Python oracle recompute all four scorecard rows. A single-seed-only policy matrix is a required negative control and is rejected. Additional negative controls reject output digest mismatch, missing admission receipt, omitted disposition for a successful high-fidelity run, out-of-reference objective, duplicate disposition and incomplete replicate matrix.
 
 This is arithmetic and policy-scorecard plumbing only. It is not aerodynamic data, proof of model superiority or proof that expected value of information improves physical design.
 
