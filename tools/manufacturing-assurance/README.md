@@ -104,3 +104,25 @@ Unit tests cover all three composition modes, missing machine-cycle/inspection a
 3. Add clock-transform residual bounds, executable unit transforms and an independently generated association oracle.
 4. Expand from one-article v0.1 to multi-part/assembly and multi-operation scopes only after genealogy and route completeness semantics are independently qualified.
 5. Add schema/format admissions for actual MTConnect and QIF instances; the mapper and schema-admission owner remain authoritative.
+
+
+## Causal falsification known-truth benchmark
+
+`causal.rs` is a separate offline, standard-library-only benchmark for [MFG-CAUSAL-001 #3152](https://github.com/Luminous-Dynamics/symtropy/issues/3152). It is not part of the structural manifest verifier.
+
+The runner compiles and tests both programs:
+
+```sh
+rustc --edition=2021 -D warnings --test tools/manufacturing-assurance/causal.rs -o /tmp/mfg-causal-tests
+/tmp/mfg-causal-tests
+rustc --edition=2021 -D warnings tools/manufacturing-assurance/causal.rs -o /tmp/mfg-causal
+/tmp/mfg-causal
+```
+
+It includes:
+- a matched-pair cluster-randomized panel with heterogeneous known effects;
+- exhaustive enumeration of all treatment assignments to check that the estimator's randomization expectation matches the finite-population ATE;
+- a zero-effect time-trend fixture where before/after falsely reports improvement;
+- an observational hidden-confounder fixture where treated/control outcome changes appear different and the placebo pre-period contrast exposes the same bias.
+
+It is a synthetic method test. It does not estimate a real factory effect, validate a twin's causal model, handle arbitrary production interference, or authorize intervention.
