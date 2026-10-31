@@ -1,0 +1,45 @@
+name: pHDAE dumbbell momentum-map reference
+
+on:
+  pull_request:
+    paths:
+      - "tools/phdae-dumbbell-reference/**"
+      - "docs/research/PHDAE_DUMBBELL_MOMENTUM_MAP_2026-10-31.md"
+      - ".github/workflows/phdae-dumbbell-reference.yml"
+  push:
+    branches:
+      - "research/pHdae-dumbbell-momentum-map-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-dumbbell-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/phdae-dumbbell-reference/constrained_dumbbell.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/phdae-dumbbell-reference/constrained_dumbbell.rs \
+            -o /tmp/dumbbell-tests
+          /tmp/dumbbell-tests
+
+      - name: Compile optimized deterministic fixture
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/phdae-dumbbell-reference/constrained_dumbbell.rs \
+            -o /tmp/dumbbell-ref
+          /tmp/dumbbell-ref > /tmp/dumbbell-a.csv
+          /tmp/dumbbell-ref > /tmp/dumbbell-b.csv
+          cmp /tmp/dumbbell-a.csv /tmp/dumbbell-b.csv
+          test "$(wc -l < /tmp/dumbbell-a.csv)" -eq 501
+          grep -q "^500," /tmp/dumbbell-a.csv
