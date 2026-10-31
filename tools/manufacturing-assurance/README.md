@@ -24,9 +24,9 @@ The first verifier uses a strict pipe-delimited format so it can be compiled wit
 - `META|schema_version|composition_id|revision|mode|context_id|valid_from_utc|valid_until_utc`
 - `COMP|component_id|role|artifact_sha256|schema_id|schema_version|context_id|vvuq_evidence_id|peer_id`
 - `NODE|kind|node_id|scope_key|component_id|evidence_id|event_time_utc`
-- `EVIDENCE|evidence_id|class|subject_kind|subject_id|authority|artifact_sha256|receipt_sha256|valid_from_utc|valid_until_utc|status`
+- `EVIDENCE|evidence_id|class|subject_kind|subject_id|source_locator|authority|artifact_sha256|receipt_sha256|valid_from_utc|valid_until_utc|status`
 - `EDGE|from_kind|from_id|relation|to_kind|to_id|evidence_id`
-- `IFACE|interface_id|from_component|from_port|to_component|to_port|mapping_id|unit_from|unit_to|unit_transform|clock_from|clock_to|clock_transform|join_policy`
+- `IFACE|interface_id|from_component|from_port|to_component|to_port|mapping_id|unit_from|unit_to|unit_transform|clock_from|clock_to|clock_transform|join_policy|evidence_id`
 
 The manifest is order-independent. Exactly one META record is required. Component, node, evidence and interface IDs must be unique.
 
@@ -42,7 +42,7 @@ These are structural test profiles, not assertions that this small verifier impl
 
 `digital_thread`, `machine`, `inspection`, `physics`, `metrology`, `quality`, `intervention`, `authority`.
 
-Each component references a `COMPONENT_VVUQ` evidence record whose subject is that exact component. A `SYNTHETIC_ONLY` receipt is accepted only to let the synthetic fixtures exercise the graph; it is not production qualification.
+Each component references a `COMPONENT_VVUQ` evidence record whose subject is that exact component. VVUQ evidence must cover the full composition validity interval. A `SYNTHETIC_ONLY` receipt is accepted only to let the synthetic fixtures exercise the graph; it is not production qualification.
 
 ## Required lifecycle nodes
 
@@ -50,7 +50,7 @@ Exactly one each: PRODUCT, LOT, OPERATION, MACHINE_CYCLE, MODEL_RUN, SPECIFICATI
 
 All nodes use the exact `scope_key` format `PRODUCT_ID/LOT_ID/OPERATION_ID`; the verifier checks that it matches the unique PRODUCT, LOT and OPERATION node IDs. This v0.1 scenario supports one product / lot / operation. Every node names its producer component and an evidence record whose subject key is `KIND:id`.
 
-The MEASUREMENT node must include a UTC `event_time_utc`. The CALIBRATION evidence record must have a validity interval containing that measurement timestamp. The MSA_STUDY evidence must have `QUALIFIED` or `SYNTHETIC_ONLY` status. This explicitly links the observation to its instrument, applicable calibration, MSA study and uncertainty budget while leaving measurement-system qualification itself with the existing metrology owner.
+The MEASUREMENT node must include a UTC `event_time_utc`. The CALIBRATION and MSA_STUDY evidence records must have validity intervals containing that measurement timestamp. The MSA_STUDY evidence must have `QUALIFIED` or `SYNTHETIC_ONLY` status. This explicitly links an observation to its instrument, applicable calibration, MSA study and uncertainty budget while leaving measurement-system qualification itself with the existing metrology owner.
 
 ## Required edges
 
@@ -79,13 +79,13 @@ Every edge needs a distinct `EXPLICIT_ASSOCIATION` evidence record whose subject
 
 The fixture requires these component-role paths: machine→inspection, inspection→metrology, physics→quality, metrology→quality, quality→intervention and intervention→authority.
 
-Equal unit or clock domains require `IDENTITY`. Different domains require a named `MAP:<versioned-id>` transform. Every interface must use `EXPLICIT_ID` as its join policy. This verifier checks declarations and compatibility; it does not execute unit or clock transforms or prove their numerical correctness.
+Equal unit or clock domains require `IDENTITY`. Different domains require a named `MAP:<versioned-id>` transform. Every interface must use `EXPLICIT_ID` as its join policy and must cite its own `INTERFACE_MAPPING` evidence receipt. The evidence subject must be the exact interface ID. This verifier checks declarations and compatibility; it does not execute unit or clock transforms or prove their numerical correctness.
 
 ## Evidence record rules
 
-Evidence records must have a non-empty declared authority, lowercase 64-character hexadecimal digest references, a valid UTC validity interval, a matching subject and expected evidence class, and status one of `ADMITTED`, `VERIFIED`, `QUALIFIED` or `SYNTHETIC_ONLY`. Each evidence record must be referenced exactly once; orphaned or reused evidence IDs are rejected.
+Evidence records must have a non-empty source locator, declared authority, lowercase 64-character hexadecimal digest references, a valid UTC validity interval, a matching subject and expected evidence class, and status one of `ADMITTED`, `VERIFIED`, `QUALIFIED` or `SYNTHETIC_ONLY`. Each evidence record must be referenced exactly once; orphaned or reused evidence IDs are rejected.
 
-**Critical limitation:** this first slice validates digest shape and reference consistency only. It does not read or hash referenced artifacts, verify signatures, authenticate an authority, validate calibration truth, or establish the correctness of an association. The fixtures intentionally use deterministic sentinel digests and are labelled synthetic-only.
+**Critical limitation:** this first slice validates digest shape and reference consistency only. It does not read or hash referenced artifacts, verify signatures, authenticate an authority, validate calibration truth, or establish the correctness of an association. The fixtures intentionally use deterministic sentinel digests and source locators under `fixture://`, and are labelled synthetic-only.
 
 ## Output and claim ceiling
 
@@ -95,11 +95,11 @@ The synthetic offline authorization and execution nodes test lifecycle completen
 
 ## Initial negative controls
 
-Unit tests cover all three composition modes, missing machine-cycle/inspection association, cross-lot scope mismatch, unqualified VVUQ and MSA evidence, fuzzy joins, unit conversion without a declared mapping, wrong integrated schema, federated peer collisions, orphan evidence, malformed digest references, calibration expiry at measurement time and deterministic replay.
+Unit tests cover all three composition modes, missing machine-cycle/inspection association, cross-lot scope mismatch, unqualified VVUQ and MSA evidence, fuzzy joins, unit conversion without a declared mapping, wrong integrated schema, federated peer collisions, missing/wrong interface evidence, absent source locator, VVUQ validity expiry, calibration/MSA expiry, malformed calendar timestamps and digests, orphan evidence and deterministic replay.
 
 ## Next qualification work
 
-1. Replace sentinel fixture digests with exact source and receipt hashes for rights-cleared, independently admitted artifacts.
+1. Replace sentinel fixture digests and `fixture://` locators with exact source and receipt hashes for rights-cleared, independently admitted artifacts.
 2. Add an independent artifact-byte and signature/authority verification adapter through existing evidence owners; do not silently fold these responsibilities into this structural verifier.
 3. Add clock-transform residual bounds, executable unit transforms and an independently generated association oracle.
 4. Expand from one-article v0.1 to multi-part/assembly and multi-operation scopes only after genealogy and route completeness semantics are independently qualified.
