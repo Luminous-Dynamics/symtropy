@@ -964,6 +964,30 @@ mod tests {
     }
 
     #[test]
+    fn aggregate_replay_preserves_every_current_historical_and_extra_source_digest() {
+        let mut old = receipt("diameter", "R-OLD", ScalarOutcome::Indeterminate);
+        old.is_current = false;
+        old.receipt_sha256 = "b".repeat(HASH_LEN);
+        let mut current = receipt("diameter", "R-CURRENT", ScalarOutcome::Accept);
+        current.supersedes_receipt_id = Some("R-OLD".into());
+        current.receipt_sha256 = "c".repeat(HASH_LEN);
+        let extra = receipt("unlisted-feature", "R-EXTRA", ScalarOutcome::Accept);
+        let r = request(
+            vec![req("diameter", true, Some("R-CURRENT"))],
+            vec![old, current, extra],
+        );
+        let report = aggregate(&r);
+        let rows = csv_rows(&report).join("\n");
+        assert!(rows.contains("R-OLD"));
+        assert!(rows.contains("R-CURRENT"));
+        assert!(rows.contains("R-EXTRA"));
+        assert!(rows.contains(&"b".repeat(HASH_LEN)));
+        assert!(rows.contains(&"c".repeat(HASH_LEN)));
+        assert!(rows.contains("unlisted-feature"));
+        assert_eq!(report.extra_receipt_count, 1);
+    }
+
+    #[test]
     fn frozen_verification_campaign_passes() {
         verify().unwrap();
     }
