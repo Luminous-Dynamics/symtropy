@@ -140,7 +140,8 @@ Compare:
 2. centralized encrypted database with ordinary audit logs;
 3. encrypted log with stable global pseudonyms;
 4. encrypted private evidence with record-scoped actor references;
-5. selective disclosure with cryptographically verifiable event commitments/checkpoints.
+5. selective disclosure with cryptographically verifiable event commitments/checkpoints;
+6. an ATL v2.0.0 draft-compatible receipt/checkpoint implementation, with its claims independently tested against the same metadata-correlation and split-view attacks.
 
 Use the same scenario, participants, role structure and information exposure wherever possible. Publish attacker assumptions and test artifacts.
 
@@ -150,6 +151,7 @@ Use the same scenario, participants, role structure and information exposure whe
 - **NIST SP 800-226** gives guidance for evaluating differential-privacy guarantees and warns that privacy claims must be evaluated against the actual implementation and threat model.
 - A **September 2026 study** examines field-level selective encryption in structured logs under data-at-rest/index-leakage assumptions and measures security, utility and performance trade-offs.
 - Existing transparency-log systems show that append-only integrity and inclusion/consistency proofs are established building blocks. LBE should reuse reviewed primitives rather than claim that append-only logging is new.
+- **Anchored Transparency Log (ATL) Protocol v2.0.0** is a draft specification dated January 2026 (last updated August 2026). It proposes selective-disclosure evidence receipts using Merkle inclusion and consistency proofs, JCS canonicalization, Ed25519 signatures, SHA-256 and external RFC 3161 / Bitcoin OpenTimestamps anchors. It also describes metadata privacy, unlinkability and split-view risks. Treat this as an emerging design baseline to compare and test, not a finalized standard or proof that its privacy claims hold in all deployments.
 
 The proposed contribution is the application of privacy-preserving, independently verifiable evidence to civic/economic processes involving dissent, care, dependency, essential entitlements and source-authenticated corrections/withdrawals.
 
@@ -163,6 +165,7 @@ This protocol does not prove that the LBE implementation is anonymous, private, 
 - NIST, [SP 800-226: Guidelines for Evaluating Differential Privacy Guarantees](https://csrc.nist.gov/pubs/sp/800/226/final), March 2025.
 - [Selective encryption of sensitive fields in structured logs: Quantifying security–utility–performance tradeoffs](https://doi.org/10.1016/j.jisa.2026.104550), *Journal of Information Security and Applications*, September 2026.
 - Google, [Trillian transparent logging design](https://github.com/google/trillian/blob/master/docs/TransparentLogging.md).
+- [Anchored Transparency Log Protocol v2.0.0](https://atl-protocol.org/protocol), draft specification, January 2026 (last updated August 25, 2026).
 - BENCH-003: [issue #3110](https://github.com/Luminous-Dynamics/symtropy/issues/3110)
 - BENCH-004: [issue #3123](https://github.com/Luminous-Dynamics/symtropy/issues/3123)
 - Source-authenticated position lifecycle: [issue #3125](https://github.com/Luminous-Dynamics/symtropy/issues/3125)
