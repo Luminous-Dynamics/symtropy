@@ -1,0 +1,27 @@
+name: Coupled Signorini-Coulomb quartic reference
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/src/coupled_friction.rs"
+      - "crates/core/symtropy-physics/src/lib.rs"
+      - "docs/research/COUPLED_SIGNORINI_COULOMB_QUARTIC_2026-10-31.md"
+      - ".github/workflows/coupled-signorini-coulomb-quartic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coupled-coulomb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Test coupled Signorini-Coulomb reference
+        run: cargo test -p symtropy-physics --lib coupled_friction::tests --locked
