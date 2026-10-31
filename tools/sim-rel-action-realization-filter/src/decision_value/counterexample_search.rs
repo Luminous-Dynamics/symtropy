@@ -716,6 +716,38 @@ mod tests {
         }
     }
 
+    fn world_with_two_apparatus_states() -> DecisionModelWorld {
+        let mut source = world();
+        source.kernel.apparatus_state_count = 2;
+        source.kernel.rows.clear();
+        for hypothesis in 0..2 {
+            for apparatus_state in 0..2 {
+                let state = LatentState {
+                    hypothesis,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    apparatus_state,
+                };
+                for command in 0..2 {
+                    source.kernel.rows.push(KernelRow {
+                        state,
+                        command,
+                        outcomes: vec![TransitionOutcome {
+                            probability: Rational::one(),
+                            next_state: state,
+                            realized_action: 0,
+                            readback: Some(0),
+                            measurement: Some(hypothesis),
+                            hazard: false,
+                        }],
+                    });
+                }
+            }
+        }
+        source.kernel.validate().unwrap();
+        source
+    }
+
     fn table() -> DecisionLossTable {
         DecisionLossTable {
             decision_ids: vec!["claim-h0".into(), "claim-h1".into()],
@@ -925,6 +957,170 @@ mod tests {
         candidate.kernel.validate().unwrap();
         assert_eq!(candidate.kernel.rows[0].outcomes[0].probability, Rational::new(7, 10).unwrap());
         assert_eq!(candidate.kernel.rows[0].outcomes[1].probability, Rational::new(3, 10).unwrap());
+    }
+
+    #[test]
+    fn readback_dropout_and_hazard_mutations_preserve_kernel_mass() {
+        let source = world();
+        let dropout = apply_model_world_perturbation(
+            &source,
+            "dropout",
+            &ModelWorldPerturbation::DropReadback {
+                command: 0,
+                sensor_state: None,
+                dropout_probability: Rational::new(1, 10).unwrap(),
+            },
+        )
+        .unwrap();
+        dropout.kernel.validate().unwrap();
+        assert_eq!(dropout.kernel.rows[0].outcomes.len(), 2);
+        assert_eq!(
+            dropout.kernel.rows[0].outcomes[0].probability
+                .checked_add(dropout.kernel.rows[0].outcomes[1].probability)
+                .unwrap(),
+            Rational::one()
+        );
+
+        let hazard = apply_model_world_perturbation(
+            &source,
+            "hazard",
+            &ModelWorldPerturbation::InjectHazard {
+                command: 0,
+                sensor_state: None,
+                hazard_probability: Rational::new(1, 20).unwrap(),
+            },
+        )
+        .unwrap();
+        hazard.kernel.validate().unwrap();
+        assert_eq!(hazard.kernel.rows[0].outcomes.len(), 2);
+        assert_eq!(
+            hazard.kernel.rows[0].outcomes.iter().filter(|outcome| outcome.hazard).count(),
+            1
+        );
+    }
+
+    #[test]
+    fn apparatus_degradation_and_hidden_action_remap_are_exact() {
+        let source = world_with_two_apparatus_states();
+        let degraded = apply_model_world_perturbation(
+            &source,
+            "degraded",
+            &ModelWorldPerturbation::DegradeApparatus {
+                command: 0,
+                current_apparatus_state_at_least: 0,
+                degraded_next_state: 1,
+            },
+        )
+        .unwrap();
+        degraded.kernel.validate().unwrap();
+        assert!(degraded
+            .kernel
+            .rows
+            .iter()
+            .filter(|row| row.command == 0 && row.state.apparatus_state == 0)
+            .all(|row| row.outcomes.iter().all(|outcome| outcome.next_state.apparatus_state == 1)));
+
+        let remapped = apply_model_world_perturbation(
+            &source,
+            "action-remapped",
+            &ModelWorldPerturbation::RemapRealizedAction {
+                command: 0,
+                sensor_state: None,
+                from_action: 0,
+                to_action: 1,
+            },
+        )
+        .unwrap();
+        remapped.kernel.validate().unwrap();
+        assert!(remapped
+            .kernel
+            .rows
+            .iter()
+            .filter(|row| row.command == 0)
+            .all(|row| row.outcomes.iter().all(|outcome| outcome.realized_action == 1)));
+    }
+
+    #[test]
+    fn non_violating_hidden_action_change_is_retained_as_a_control() {
+        let (worlds, table, costs) = base_inputs();
+        let action_remap = spec(
+            "hidden-action-remap",
+            ModelWorldPerturbation::RemapRealizedAction {
+                command: 0,
+                sensor_state: None,
+                from_action: 0,
+                to_action: 1,
+            },
+        );
+        let report = search_policy_counterexamples(
+            &worlds,
+            "nominal",
+            &table,
+            ObservationProtocol::fully_observed(),
+            &costs,
+            Rational::zero(),
+            &policy(),
+            1,
+            DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::one(),
+            },
+            &[action_remap],
+        )
+        .unwrap();
+        assert_eq!(report.witnesses.len(), 0);
+        assert_eq!(report.non_violating_candidates.len(), 1);
+        assert_eq!(
+            report.non_violating_candidates[0].outcome.class(),
+            CounterexampleClass::NoViolation
+        );
+        assert_eq!(report.baseline_worlds, worlds);
+        assert_eq!(report.loss_table, table);
+        assert_eq!(report.policy, policy());
+        assert_eq!(report.command_costs, costs);
+    }
+
+    #[test]
+    fn repeated_candidate_id_is_rejected_within_one_search_batch() {
+        let (worlds, table, costs) = base_inputs();
+        let specs = [
+            spec(
+                "same-candidate",
+                ModelWorldPerturbation::SwapMeasurementLabels {
+                    command: 0,
+                    sensor_state: 0,
+                    left_measurement: 0,
+                    right_measurement: 1,
+                },
+            ),
+            spec(
+                "same-candidate",
+                ModelWorldPerturbation::InjectHazard {
+                    command: 0,
+                    sensor_state: None,
+                    hazard_probability: Rational::new(1, 10).unwrap(),
+                },
+            ),
+        ];
+        let report = search_policy_counterexamples(
+            &worlds,
+            "nominal",
+            &table,
+            ObservationProtocol::fully_observed(),
+            &costs,
+            Rational::one(),
+            &policy(),
+            1,
+            DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::one(),
+            },
+            &specs,
+        )
+        .unwrap();
+        assert_eq!(report.attempted, 2);
+        assert_eq!(report.witnesses.len(), 1);
+        assert_eq!(report.rejected.len(), 1);
     }
 
     #[test]
