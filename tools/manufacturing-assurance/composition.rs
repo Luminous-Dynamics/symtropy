@@ -913,11 +913,40 @@ mod tests {
     }
 
     #[test]
+    fn rejects_calibration_expired_before_measurement() {
+        let input = fixture("integrated")
+            .lines()
+            .map(|line| {
+                if line.starts_with("EVIDENCE|ev-node-calibration|") {
+                    let mut fields: Vec<&str> = line.split('|').collect();
+                    fields[9] = "2026-10-14T00:00:00Z";
+                    fields.join("|")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let result = audit_text(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("calibration was not valid at the measurement timestamp"));
+    }
+
+    #[test]
     fn rejects_malformed_sha256_reference() {
-        let input = fixture("integrated").replace(
-            "EVIDENCE|ev-node-product|THREAD_IDENTITY|NODE|PRODUCT:product-001|synthetic-fixture|",
-            "EVIDENCE|ev-node-product|THREAD_IDENTITY|NODE|PRODUCT:product-001|synthetic-fixture|not-a-digest|",
-        );
+        let input = fixture("integrated")
+            .lines()
+            .map(|line| {
+                if line.starts_with("EVIDENCE|ev-node-product|") {
+                    let mut fields: Vec<&str> = line.split('|').collect();
+                    fields[6] = "not-a-digest";
+                    fields.join("|")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
         let result = audit_text(&input);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("malformed SHA-256"));
