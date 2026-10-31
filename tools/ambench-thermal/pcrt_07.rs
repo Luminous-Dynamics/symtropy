@@ -441,7 +441,7 @@ fn invalid_pixel(profile: &PixelProfile, reason: &'static str) -> PixelResult {
     }
 }
 
-fn extract_pixel(times: &[f64], profile: &PixelProfile, all_profiles: &[PixelProfile]) -> PixelResult {
+fn extract_pixel(times: &[f64], profile: &PixelProfile) -> PixelResult {
     if profile.temperatures_c.iter().any(|sample| match sample {
         None => true,
         Some(value) => !value.is_finite(),
@@ -471,13 +471,12 @@ fn extract_pixel(times: &[f64], profile: &PixelProfile, all_profiles: &[PixelPro
 
     // A later above-melt episode before reaching the solidus makes the
     // cooling-rate attribution to the selected TAM spike ambiguous.
-    let other_tam_before_solidus = all_profiles.iter()
-        .find(|candidate| candidate.pixel_id == profile.pixel_id)
-        .and_then(|_| above_threshold_intervals(times, &temperatures, TAM_THRESHOLD_C).ok())
-        .map(|intervals| intervals.iter().any(|interval| {
+    let other_tam_before_solidus = match above_threshold_intervals(times, &temperatures, TAM_THRESHOLD_C) {
+        Ok(intervals) => intervals.iter().any(|interval| {
             interval.start_s > episode.end_s && interval.start_s < t1260
-        }))
-        .unwrap_or(false);
+        }),
+        Err(_) => true,
+    };
     if other_tam_before_solidus {
         return PixelResult {
             pixel_id: profile.pixel_id.clone(), row: profile.row, column: profile.column,
@@ -628,7 +627,7 @@ where
 fn process_collection(collection: &Collection) -> Result<CollectionReport, &'static str> {
     validate_collection(collection)?;
     let mut pixels: Vec<PixelResult> = collection.profiles.iter()
-        .map(|profile| extract_pixel(&collection.times_s, profile, &collection.profiles))
+        .map(|profile| extract_pixel(&collection.times_s, profile))
         .collect();
     pixels.sort_by_key(|pixel| (pixel.row, pixel.column, pixel.pixel_id.clone()));
     let tam_values = collect_values(&pixels, |p| p.tam_s);
@@ -815,7 +814,7 @@ fn verify() -> Result<(), String> {
         temperatures_c: temps.iter().copied().map(Some).collect(),
         source_profile_sha256: "a".repeat(64),
     };
-    let pixel = extract_pixel(&times, &profile, std::slice::from_ref(&profile));
+    let pixel = extract_pixel(&times, &profile);
     if (pixel.tam_s.unwrap() - (expected_end - expected_start)).abs() > 1.0e-12
         || (pixel.scr_c_per_s.unwrap() - 100.0).abs() > 1.0e-12 {
         return Err("SAME_SPIKE_SCR_KNOWN_ANSWER_FAILED".into());
@@ -842,7 +841,7 @@ fn verify() -> Result<(), String> {
         temperatures_c: no_solidus.iter().copied().map(Some).collect(),
         source_profile_sha256: "b".repeat(64),
     };
-    let invalid_result = extract_pixel(&times, &invalid_scr, std::slice::from_ref(&invalid_scr));
+    let invalid_result = extract_pixel(&times, &invalid_scr);
     if invalid_result.tam_s.is_none() || invalid_result.scr_c_per_s.is_some() {
         return Err("MISSING_SCR_CROSSING_MUST_NOT_ZERO_FILL".into());
     }
@@ -853,7 +852,7 @@ fn verify() -> Result<(), String> {
         temperatures_c: reheating.iter().copied().map(Some).collect(),
         source_profile_sha256: "c".repeat(64),
     };
-    let reheating_result = extract_pixel(&times, &reheating_profile, std::slice::from_ref(&reheating_profile));
+    let reheating_result = extract_pixel(&times, &reheating_profile);
     if reheating_result.scr_c_per_s.is_some() {
         return Err("REHEATING_MUST_INVALIDATE_SAME_SPIKE_SCR".into());
     }
