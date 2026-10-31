@@ -329,8 +329,8 @@ pub fn compare_methods_paired(
                         rational_to_f64(left.exact_regret)
                             - rational_to_f64(right.exact_regret),
                     );
-                    left_passes += usize::from(left.risk_compliant);
-                    right_passes += usize::from(right.risk_compliant);
+                    left_passes += if left.risk_compliant { 1 } else { 0 };
+                    right_passes += if right.risk_compliant { 1 } else { 0 };
                 }
 
                 let count = differences.len();
