@@ -1,0 +1,30 @@
+# CASE|id|scope|assessment_utc|minimum_evidence_tier|top_claim
+CASE|case-1|LINE-1|2026-10-31T12:00:00Z|T0|top
+
+# CLAIM|id|scope|valid_from|valid_until|minimum_tier|ALL_OR_ANY|claim_kind|action_key_or_dash|statement
+CLAIM|top|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T0|ALL|COMPOSITION_VALIDITY|-|Composed twin evidence is admissible
+CLAIM|physics|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T0|ALL|MODEL_VALIDITY|-|Physics model is in its valid domain
+CLAIM|intervention|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T0|ALL|INTERVENTION_AUTHORIZATION|adjust_feed_rate|Feed-rate action is authorized
+
+# EVIDENCE|id|scope|valid_from|valid_until|tier|status|sha256|statement
+EVIDENCE|e-physics|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T0|VERIFIED|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|Synthetic physics reference replay
+EVIDENCE|e-plan|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T0|VERIFIED|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|Bounded action envelope evidence
+EVIDENCE|e-discharge|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T0|VERIFIED|cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc|Independent thermal interlock evidence
+
+# ASSUMPTION|id|scope|valid_from|valid_until|ACCEPTED_OPEN_REJECTED|statement
+ASSUMPTION|a-boundary|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|ACCEPTED|Ambient boundary remains within declared envelope
+
+# DEFEATER|id|scope|valid_from|valid_until|statement
+DEFEATER|d-overheat|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|Possible overheating under loss of cooling
+
+# AUTHORITY|id|scope|valid_from|valid_until|GRANTED_REVOKED_SUSPENDED|principal|action_scope
+AUTHORITY|auth-1|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|GRANTED|operator-1|adjust_feed_rate
+
+# EDGE|source_id|target_id|SUPPORTS_COUNTERS_ASSUMES_DEFEATS_DISCHARGES_AUTHORIZES
+EDGE|e-physics|physics|SUPPORTS
+EDGE|physics|top|SUPPORTS
+EDGE|e-plan|intervention|SUPPORTS
+EDGE|auth-1|intervention|AUTHORIZES
+EDGE|e-discharge|d-overheat|DISCHARGES
+EDGE|d-overheat|top|DEFEATS
+EDGE|a-boundary|top|ASSUMES
