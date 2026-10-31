@@ -91,6 +91,12 @@ struct ObservationBranch {
 type BeliefVector = Vec<Option<Vec<BeliefMass>>>;
 type WorldPartition = BTreeMap<PublicObservation, ObservationBranch>;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ReplayBranch {
+    probability: Rational,
+    next_mass: Option<Vec<BeliefMass>>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct BeliefVectorKey(Vec<Option<Vec<(LatentState, Rational)>>>);
 
@@ -807,7 +813,7 @@ pub fn replay_shared_policy_across_worlds(
     if matches!(plan, DecisionPlan::HazardTerminal) {
         return Err("a campaign cannot begin in a hazard-terminal state".into());
     }
-    let metrics = replay_node(
+    let metrics = replay_unnormalized_node(
         &canonical_worlds,
         table,
         protocol,
@@ -834,36 +840,59 @@ pub fn replay_shared_policy_across_worlds(
     })
 }
 
+/// Independent forward-mass replay of a shared policy.
+///
+/// Unlike the optimizer and exhaustive policy oracle, this verifier never
+/// computes a Bayesian posterior and never calls `filter_one_step`. It
+/// propagates unnormalized path mass directly through raw kernel outcomes.
+/// This independently checks posterior normalization and branch-probability
+/// bookkeeping in addition to policy non-anticipativity.
 #[allow(clippy::too_many_arguments)]
-fn replay_node(
+fn replay_unnormalized_node(
     worlds: &[DecisionModelWorld],
     table: &DecisionLossTable,
     protocol: ObservationProtocol,
     command_costs: &[Rational],
     hazard_loss: Rational,
     plan: &DecisionPlan,
-    beliefs: &BeliefVector,
+    masses: &BeliefVector,
     remaining_horizon: usize,
 ) -> Result<Vec<WorldObjectives>, String> {
     match plan {
         DecisionPlan::TerminalDecision { decision } => {
-            let mut metrics = Vec::with_capacity(worlds.len());
-            for belief in beliefs {
-                if let Some(belief) = belief {
-                    metrics.push(WorldObjectives {
-                        expected_terminal_loss: expected_terminal_loss(table, belief, *decision)?,
-                        abstention_probability: if decision.is_none() {
-                            Rational::one()
-                        } else {
-                            Rational::zero()
-                        },
-                        ..WorldObjectives::zero()
-                    });
-                } else {
-                    metrics.push(WorldObjectives::zero());
+            let mut result = Vec::with_capacity(worlds.len());
+            for mass in masses {
+                match mass {
+                    Some(points) => {
+                        let mut terminal_loss = Rational::zero();
+                        let mut total_mass = Rational::zero();
+                        for point in points {
+                            total_mass = total_mass.checked_add(point.mass)?;
+                            let loss = match decision {
+                                Some(index) => {
+                                    if *index >= table.decision_ids.len() {
+                                        return Err("terminal policy references an invalid decision".into());
+                                    }
+                                    table.loss_for_state(*index, point.state)
+                                }
+                                None => table.abstention_loss,
+                            };
+                            terminal_loss = terminal_loss.checked_add(point.mass.checked_mul(loss)?)?;
+                        }
+                        result.push(WorldObjectives {
+                            expected_terminal_loss: terminal_loss,
+                            abstention_probability: if decision.is_none() {
+                                total_mass
+                            } else {
+                                Rational::zero()
+                            },
+                            ..WorldObjectives::zero()
+                        });
+                    }
+                    None => result.push(WorldObjectives::zero()),
                 }
             }
-            Ok(metrics)
+            Ok(result)
         }
         DecisionPlan::HazardTerminal => {
             Err("hazard terminal is valid only below an observed hazard branch".into())
@@ -875,9 +904,12 @@ fn replay_node(
             let Some(command_cost) = command_costs.get(*command).copied() else {
                 return Err("shared policy references an invalid command".into());
             };
-            let partitions =
-                command_partitions_for_beliefs(worlds, beliefs, *command, protocol)?;
-            let observations = union_observations(&partitions);
+
+            let partitions = raw_replay_partitions(worlds, masses, *command, protocol)?;
+            let observations: BTreeSet<_> = partitions
+                .iter()
+                .flat_map(|partition| partition.keys().copied())
+                .collect();
             let branch_map: BTreeMap<_, _> = branches
                 .iter()
                 .map(|branch| (branch.observation, branch.plan.as_ref()))
@@ -892,62 +924,153 @@ fn replay_node(
                 );
             }
 
-            let mut metrics: Vec<WorldObjectives> = beliefs
-                .iter()
-                .map(|belief| {
-                    if belief.is_some() {
-                        WorldObjectives {
-                            expected_experiment_cost: command_cost,
-                            ..WorldObjectives::zero()
-                        }
-                    } else {
-                        WorldObjectives::zero()
-                    }
-                })
-                .collect();
+            let mut result = Vec::with_capacity(worlds.len());
+            for mass in masses {
+                let total_mass = match mass {
+                    Some(points) => points.iter().try_fold(Rational::zero(), |sum, point| {
+                        sum.checked_add(point.mass)
+                    })?,
+                    None => Rational::zero(),
+                };
+                result.push(WorldObjectives {
+                    expected_experiment_cost: total_mass.checked_mul(command_cost)?,
+                    ..WorldObjectives::zero()
+                });
+            }
 
             for observation in observations {
-                let (probabilities, branch_beliefs) =
-                    branch_vectors(&partitions, &observation);
                 let child_plan = branch_map[&observation];
+                let branch_masses: BeliefVector = partitions
+                    .iter()
+                    .map(|partition| {
+                        partition
+                            .get(&observation)
+                            .and_then(|branch| branch.next_mass.clone())
+                    })
+                    .collect();
+
                 let child_metrics = if observation.hazard {
                     if *child_plan != DecisionPlan::HazardTerminal {
                         return Err("observed hazard branch must terminate immediately".into());
                     }
-                    probabilities
+                    partitions
                         .iter()
-                        .map(|probability| {
+                        .map(|partition| {
+                            let probability = partition
+                                .get(&observation)
+                                .map(|branch| branch.probability)
+                                .unwrap_or_else(Rational::zero);
                             if probability.is_zero() {
                                 WorldObjectives::zero()
                             } else {
-                                WorldObjectives::hazard_terminal(hazard_loss)
+                                WorldObjectives {
+                                    expected_terminal_loss: probability.checked_mul(hazard_loss)
+                                        .unwrap_or_else(|_| Rational::one()),
+                                    hazard_probability: probability,
+                                    ..WorldObjectives::zero()
+                                }
                             }
                         })
-                        .collect()
+                        .collect::<Vec<_>>()
                 } else {
                     if *child_plan == DecisionPlan::HazardTerminal {
                         return Err("non-hazard observation cannot use a hazard terminal".into());
                     }
-                    replay_node(
+                    replay_unnormalized_node(
                         worlds,
                         table,
                         protocol,
                         command_costs,
                         hazard_loss,
                         child_plan,
-                        &branch_beliefs,
+                        &branch_masses,
                         remaining_horizon - 1,
                     )?
                 };
-                for index in 0..metrics.len() {
-                    if !probabilities[index].is_zero() {
-                        metrics[index].add_scaled(child_metrics[index], probabilities[index])?;
-                    }
+                for (current, child) in result.iter_mut().zip(child_metrics.iter()) {
+                    current.expected_experiment_cost =
+                        current.expected_experiment_cost.checked_add(child.expected_experiment_cost)?;
+                    current.expected_terminal_loss =
+                        current.expected_terminal_loss.checked_add(child.expected_terminal_loss)?;
+                    current.hazard_probability =
+                        current.hazard_probability.checked_add(child.hazard_probability)?;
+                    current.abstention_probability =
+                        current.abstention_probability.checked_add(child.abstention_probability)?;
                 }
             }
-            Ok(metrics)
+            Ok(result)
         }
     }
+}
+
+/// Group raw, unnormalized path mass by protocol-visible observation.
+///
+/// This intentionally uses direct outcome enumeration rather than the
+/// Bayesian filter. For a non-hazard observation, the next-state masses retain
+/// the total probability of reaching that branch instead of being normalized.
+fn raw_replay_partitions(
+    worlds: &[DecisionModelWorld],
+    masses: &BeliefVector,
+    command: usize,
+    protocol: ObservationProtocol,
+) -> Result<Vec<BTreeMap<PublicObservation, ReplayBranch>>, String> {
+    worlds
+        .iter()
+        .zip(masses.iter())
+        .map(|(world, mass)| match mass {
+            None => Ok(BTreeMap::new()),
+            Some(points) => {
+                let kernel = &world.kernel;
+                if command >= kernel.command_ids.len() {
+                    return Err("replay command is out of range for a model world".into());
+                }
+                let mut raw = BTreeMap::<
+                    PublicObservation,
+                    (Rational, BTreeMap<LatentState, Rational>),
+                >::new();
+                for point in points {
+                    let row = &kernel.rows[kernel.row_index(point.state, command)];
+                    for outcome in &row.outcomes {
+                        let observation = public_observation(outcome, protocol);
+                        let path_mass = point.mass.checked_mul(outcome.probability)?;
+                        let entry = raw
+                            .entry(observation)
+                            .or_insert_with(|| (Rational::zero(), BTreeMap::new()));
+                        entry.0 = entry.0.checked_add(path_mass)?;
+                        if !outcome.hazard {
+                            let next = entry.1.entry(outcome.next_state)
+                                .or_insert_with(Rational::zero);
+                            *next = next.checked_add(path_mass)?;
+                        }
+                    }
+                }
+                let mut partitions = BTreeMap::new();
+                for (observation, (probability, next_states)) in raw {
+                    if probability.is_zero() {
+                        return Err("raw replay constructed a zero-mass observation".into());
+                    }
+                    let next_mass = if observation.hazard {
+                        None
+                    } else {
+                        Some(
+                            next_states
+                                .into_iter()
+                                .map(|(state, mass)| BeliefMass { state, mass })
+                                .collect(),
+                        )
+                    };
+                    partitions.insert(
+                        observation,
+                        ReplayBranch {
+                            probability,
+                            next_mass,
+                        },
+                    );
+                }
+                Ok(partitions)
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]
