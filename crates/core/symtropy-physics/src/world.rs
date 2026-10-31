@@ -1490,9 +1490,16 @@ impl<const D: usize> PhysicsWorld<D> {
                         &r_b,
                         &tangent,
                     )?;
-                    let denom_t = (total_inv_mass + ang_term_a_t + ang_term_b_t).max(1e-15);
+                    let raw_denom_t = total_inv_mass + ang_term_a_t + ang_term_b_t;
+                    if !raw_denom_t.is_finite() || raw_denom_t <= 0.0 {
+                        return Err(PhysicsStepCause::NonFiniteContactMetric);
+                    }
+                    let denom_t = raw_denom_t.max(1e-15);
 
                     let j_t_desired = -v_t_mag / denom_t;
+                    if !j_t_desired.is_finite() {
+                        return Err(PhysicsStepCause::NonFiniteContactMetric);
+                    }
                     let j_t = j_t_desired.clamp(-friction_bound, friction_bound);
                     let friction_impulse = tangent * j_t;
                     integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
@@ -3030,6 +3037,20 @@ mod transformed_halfspace_tests {
             .unwrap_err();
         assert_eq!(error.phase, PhysicsStepPhase::ContactSolve);
         assert_eq!(error.cause, PhysicsStepCause::NegativeFrictionMultiplier);
+        assert_eq!(world.bodies[0].transform.translation.0, position_before);
+        assert_eq!(world.bodies[0].linear_velocity, velocity_before);
+    }
+
+    #[test]
+    fn world_rejects_negative_body_friction_coefficient_transactionally() {
+        let mut world = sphere_impact_world(1.0);
+        world.bodies[0].friction = -0.5;
+        let position_before = world.bodies[0].transform.translation.0;
+        let velocity_before = world.bodies[0].linear_velocity;
+
+        let error = world.try_step(0.001).unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::ContactSolve);
+        assert_eq!(error.cause, PhysicsStepCause::NegativeFrictionCoefficient);
         assert_eq!(world.bodies[0].transform.translation.0, position_before);
         assert_eq!(world.bodies[0].linear_velocity, velocity_before);
     }
