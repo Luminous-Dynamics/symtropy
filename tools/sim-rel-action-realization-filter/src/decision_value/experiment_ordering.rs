@@ -817,6 +817,20 @@ mod tests {
         }
     }
 
+    fn posterior_rule(
+        assumed: &FiniteObservationChannel,
+        rule_id: &str,
+        posterior_by_observation: Vec<Vec<Rational>>,
+    ) -> InferencePosteriorRule {
+        InferencePosteriorRule {
+            rule_id: rule_id.into(),
+            assumed_channel_id: assumed.channel_id.clone(),
+            state_ids: assumed.state_ids.clone(),
+            observation_ids: assumed.observation_ids.clone(),
+            posterior_by_observation,
+        }
+    }
+
     #[test]
     fn exact_garbling_witness_proves_nominal_blackwell_dominance() {
         let perfect = perfect_channel("perfect");
@@ -1036,37 +1050,93 @@ mod tests {
     }
 
     #[test]
-    fn inference_mismatch_and_model_mismatch_are_separately_identifiable() {
+    fn inference_model_and_interaction_misspecification_are_separately_identifiable() {
         let prior = vec![rational(1, 2), rational(1, 2)];
         let loss = binary_decisions();
         let perfect = perfect_channel("perfect");
         let inverted = inverted_channel("inverted");
 
-        // Correct data model, wrong inference model.
-        let inference_only =
-            evaluate_channel_decisions(&inverted, &perfect, &prior, &loss).unwrap();
-        assert_eq!(inference_only.nominal_model_expected_loss, Rational::zero());
+        // Inference-only: the working and true data models are identical,
+        // but the approximate posterior rule reverses both observations.
+        let inverted_rule = posterior_rule(
+            &perfect,
+            "posterior-inverted",
+            vec![
+                vec![Rational::zero(), Rational::one()],
+                vec![Rational::one(), Rational::zero()],
+            ],
+        );
+        let inference_only = evaluate_channel_decisions_with_inference_rule(
+            &perfect,
+            &perfect,
+            &prior,
+            &loss,
+            &inverted_rule,
+        )
+        .unwrap();
         assert_eq!(inference_only.realized_policy_loss, Rational::one());
+        assert_eq!(
+            inference_only.inference_rule_disagreement_probability,
+            Rational::one()
+        );
+        assert_eq!(
+            inference_only.expected_inference_posterior_tv_distance,
+            Rational::one()
+        );
 
-        // Exact inference, wrong data-generating model.
+        // Model-only: the inference rule is exact Bayes for the assumed
+        // channel, but the true data-generating channel is inverted.
         let model_only =
             evaluate_channel_decisions(&perfect, &inverted, &prior, &loss).unwrap();
-        assert_eq!(model_only.nominal_model_expected_loss, Rational::zero());
         assert_eq!(model_only.realized_policy_loss, Rational::one());
+        assert_eq!(
+            model_only.inference_rule_disagreement_probability,
+            Rational::zero()
+        );
+        assert_eq!(
+            model_only.expected_inference_posterior_tv_distance,
+            Rational::zero()
+        );
 
-        // Both inference and the data-generating channel differ from the nominal perfect model.
-        let approximate_inference = noisy_channel("approximate-inference");
-        let interaction =
-            evaluate_channel_decisions(&approximate_inference, &inverted, &prior, &loss).unwrap();
-        assert_eq!(interaction.nominal_model_expected_loss, rational(1, 5));
-        assert_eq!(interaction.expected_assumed_loss_under_true_observations, rational(1, 5));
+        // Interaction: model channel is misspecified and the inference rule
+        // is additionally overconfident relative to exact Bayes under it.
+        let assumed_noisy = noisy_channel("assumed-noisy");
+        let overconfident_rule = posterior_rule(
+            &assumed_noisy,
+            "overconfident-posterior",
+            vec![
+                vec![rational(9, 10), rational(1, 10)],
+                vec![rational(1, 10), rational(9, 10)],
+            ],
+        );
+        let interaction = evaluate_channel_decisions_with_inference_rule(
+            &assumed_noisy,
+            &inverted,
+            &prior,
+            &loss,
+            &overconfident_rule,
+        )
+        .unwrap();
+        assert_eq!(interaction.nominal_model_expected_loss, rational(1, 10));
         assert_eq!(interaction.realized_policy_loss, Rational::one());
         assert_eq!(interaction.decision_regret, Rational::one());
+        assert_eq!(
+            interaction.expected_inference_posterior_tv_distance,
+            rational(1, 10)
+        );
+        assert_eq!(
+            interaction.inference_rule_disagreement_probability,
+            Rational::zero()
+        );
 
-        // Correct negative control.
+        // Correctly specified negative control with exact Bayesian inference.
         let matched = evaluate_channel_decisions(&perfect, &perfect, &prior, &loss).unwrap();
         assert_eq!(matched.realized_policy_loss, Rational::zero());
         assert_eq!(matched.decision_regret, Rational::zero());
+        assert_eq!(
+            matched.expected_inference_posterior_tv_distance,
+            Rational::zero()
+        );
     }
 
     #[test]
