@@ -976,6 +976,20 @@ mod tests {
     }
 
     #[test]
+    fn actual_typed_ir_preimage_and_jcs_bytes_are_consistent() {
+        let report = compile_bytes(FIXTURE);
+        assert_eq!(report.disposition, Disposition::Blocked);
+        let scenario = report.scenario_ir.as_ref().expect("typed fixture IR");
+        let input = portable_semantic_ir_input_bytes(scenario).expect("portable JSON envelope");
+        let expected = canonical_semantic_ir_bytes(scenario).expect("portable JCS bytes");
+        let value: serde_json::Value = serde_json::from_slice(&input).expect("valid envelope JSON");
+        assert_eq!(serde_jcs::to_vec(&value).expect("JCS from parsed JSON"), expected);
+        assert!(input.windows(CANONICALIZATION_PROFILE.len()).any(|window| {
+            window == CANONICALIZATION_PROFILE.as_bytes()
+        }));
+    }
+
+    #[test]
     fn rust_jcs_matches_the_language_neutral_golden_vector() {
         let value: serde_json::Value =
             serde_json::from_slice(include_bytes!("../interop/golden/basic-input.json"))
