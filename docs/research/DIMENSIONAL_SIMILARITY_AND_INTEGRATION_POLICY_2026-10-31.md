@@ -22,6 +22,7 @@ A scientific integrator must not silently impose arbitrary unitful limits.
 - `IntegrationLimits::unbounded()` expresses that default explicitly.
 - `IntegrationLimits::with_speed_caps(max_linear_speed, max_angular_speed)` creates application-defined limits in the caller's unit system. Each cap is optional and must be finite and positive.
 - `try_integrate_with_limits` applies those caps only when the caller explicitly provides them.
+- `PhysicsWorld::set_integration_limits` makes the same policy available to complete world steps; new worlds default to `IntegrationLimits::unbounded()`.
 - The old 1,000 linear-speed and 100 angular-rate clamps are removed from the default path.
 - The absolute (10^{-24}) angular-rate-squared gate is replaced by a test for a non-zero representable angular generator.
 
@@ -58,10 +59,14 @@ Scale cases include:
 
 Additional tests require:
 - velocities above the former hard caps remain unchanged under the unbounded policy;
-- explicit limits clamp only when configured;
+- explicit body-level and world-level limits clamp only when configured;
 - zero, negative, NaN or infinite bounds are rejected.
 
 The target for these free-flight similarity fixtures is normalized state/energy error <= (10^{-8}). This is a regression target, not a published benchmark result.
+
+## World-level configuration
+
+A world owns one `IntegrationLimits` policy that is copied for each body-integration phase. Use `PhysicsWorld::set_integration_limits` to configure real-time caps. The policy is configuration, not simulation state, and does not change during a transactional step. A future evidence receipt should include the chosen limits alongside timestep, material parameters and source/config hashes.
 
 ## What this does not prove
 
