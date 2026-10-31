@@ -126,6 +126,11 @@ struct Manifest {
 #[derive(Clone, Debug)]
 struct Marginal {
     characteristic_id: String,
+    part_id: String,
+    lot_id: String,
+    operation_id: String,
+    decision_context_id: String,
+    decision_time_ns: i64,
     measurand_id: String,
     unit: String,
     specification_id: String,
@@ -312,7 +317,9 @@ fn validate_manifest_and_marginals(request: &Request) -> Result<(), &'static str
 
     for marginal in &request.marginals {
         for id in [
-            marginal.characteristic_id.as_str(), marginal.measurand_id.as_str(),
+            marginal.characteristic_id.as_str(), marginal.part_id.as_str(),
+            marginal.lot_id.as_str(), marginal.operation_id.as_str(),
+            marginal.decision_context_id.as_str(), marginal.measurand_id.as_str(),
             marginal.unit.as_str(), marginal.specification_id.as_str(),
             marginal.specification_revision.as_str(), marginal.posterior_id.as_str(),
             marginal.posterior_model_revision.as_str(),
@@ -328,6 +335,13 @@ fn validate_manifest_and_marginals(request: &Request) -> Result<(), &'static str
             || marginal.probability_lower > marginal.probability_upper
         {
             return Err("MARGINAL_PROBABILITY_ENCLOSURE_INVALID");
+        }
+        if marginal.part_id != manifest.part_id
+            || marginal.lot_id != manifest.lot_id
+            || marginal.operation_id != manifest.operation_id
+            || marginal.decision_context_id != manifest.decision_context_id
+            || marginal.decision_time_ns != manifest.decision_time_ns {
+            return Err("MARGINAL_SCOPE_MISMATCH");
         }
         if marginal.valid_from_ns > marginal.valid_until_ns
             || manifest.decision_time_ns < marginal.valid_from_ns
@@ -418,6 +432,7 @@ fn classify(request: &Request) -> Report {
     if let Err(reason) = validate_manifest_and_marginals(request) {
         if reason.contains("EVIDENCE") || reason.contains("QUALIFIED")
             || reason == "POSTERIOR_NOT_VALID_AT_DECISION_TIME"
+            || reason == "MARGINAL_SCOPE_MISMATCH"
             || reason == "REQUIRED_CHARACTERISTIC_SET_INCOMPLETE_OR_EXTRANEOUS"
             || reason == "REQUIRED_CHARACTERISTIC_SET_MISMATCH" {
             return evidence_incomplete(request, reason);
@@ -475,44 +490,78 @@ fn classify(request: &Request) -> Report {
 }
 
 fn report_csv_header() -> &'static str {
-    "manifest_id,manifest_revision,manifest_sha256,part_id,lot_id,operation_id,policy_id,policy_revision,policy_sha256,decision_context_id,decision_time_ns,required_count,observed_count,joint_lower,joint_upper,accept_threshold,reject_threshold,consumer_risk_upper,producer_risk_upper,outcome,reason,characteristic_id,measurand_id,unit,specification_id,specification_revision,posterior_id,posterior_model_revision,marginal_lower,marginal_upper,posterior_sha256,model_calibration_sha256,measurement_sha256,msa_sha256,calibration_sha256,uncertainty_sha256,specification_sha256,posterior_evidence,model_calibration_evidence,measurement_evidence,msa_evidence,calibration_evidence,uncertainty_evidence,specification_evidence"
+    "manifest_id,manifest_revision,manifest_sha256,manifest_part_id,manifest_lot_id,manifest_operation_id,manifest_product_family,manifest_decision_context_id,manifest_decision_time_ns,policy_id,policy_revision,policy_sha256,required_count,observed_count,joint_lower,joint_upper,accept_threshold,reject_threshold,consumer_risk_upper,producer_risk_upper,outcome,reason,characteristic_id,marginal_part_id,marginal_lot_id,marginal_operation_id,marginal_decision_context_id,marginal_decision_time_ns,measurand_id,unit,specification_id,specification_revision,posterior_id,posterior_model_revision,marginal_lower,marginal_upper,valid_from_ns,valid_until_ns,posterior_sha256,model_calibration_sha256,measurement_sha256,msa_sha256,calibration_sha256,uncertainty_sha256,specification_sha256,posterior_evidence,model_calibration_evidence,measurement_evidence,msa_evidence,calibration_evidence,uncertainty_evidence,specification_evidence"
 }
 
 fn csv_row(report: &Report, marginal: &Marginal) -> String {
     let f = |value: Option<f64>| value.map(|v| format!("{v:.12e}")).unwrap_or_default();
-    let joint_lower = f(report.joint_lower);
-    let joint_upper = f(report.joint_upper);
-    let accept = f(report.accept_threshold);
-    let reject = f(report.reject_threshold);
-    let consumer = f(report.consumer_risk_upper);
-    let producer = f(report.producer_risk_upper);
-    format!(
-        "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{:.12e},{:.12e},{},{},{},{},{},{},{},{},{},{},{},{},{}",
-        report.manifest_id, report.manifest_revision, report.manifest_sha256,
-        report.part_id, report.lot_id, report.operation_id,
-        report.policy_id, report.policy_revision, report.policy_sha256,
-        report.decision_context_id, report.decision_time_ns,
-        report.required_count, report.observed_count,
-        joint_lower, joint_upper, accept, reject, consumer, producer,
-        report.outcome.code(), report.reason,
-        marginal.characteristic_id, marginal.measurand_id, marginal.unit,
-        marginal.specification_id, marginal.specification_revision,
-        marginal.posterior_id, marginal.posterior_model_revision,
-        marginal.probability_lower, marginal.probability_upper,
-        marginal.posterior_sha256, marginal.model_calibration_sha256,
-        marginal.measurement_sha256, marginal.msa_sha256,
-        marginal.calibration_sha256, marginal.uncertainty_sha256,
-        marginal.specification_sha256,
-        marginal.evidence.posterior.code(), marginal.evidence.model_calibration.code(),
-        marginal.evidence.measurement.code(), marginal.evidence.msa.code(),
-        marginal.evidence.calibration.code(), marginal.evidence.uncertainty.code(),
-        marginal.evidence.specification.code(),
-    )
+    vec![
+        report.manifest_id.clone(),
+        report.manifest_revision.clone(),
+        report.manifest_sha256.clone(),
+        report.part_id.clone(),
+        report.lot_id.clone(),
+        report.operation_id.clone(),
+        // Product family and decision context are policy / manifest fields.
+        marginal.part_id.clone(),
+        marginal.lot_id.clone(),
+        marginal.operation_id.clone(),
+        marginal.decision_context_id.clone(),
+        marginal.decision_time_ns.to_string(),
+        report.policy_id.clone(),
+        report.policy_revision.clone(),
+        report.policy_sha256.clone(),
+        report.required_count.to_string(),
+        report.observed_count.to_string(),
+        f(report.joint_lower),
+        f(report.joint_upper),
+        f(report.accept_threshold),
+        f(report.reject_threshold),
+        f(report.consumer_risk_upper),
+        f(report.producer_risk_upper),
+        report.outcome.code().to_string(),
+        report.reason.to_string(),
+        marginal.characteristic_id.clone(),
+        marginal.part_id.clone(),
+        marginal.lot_id.clone(),
+        marginal.operation_id.clone(),
+        marginal.decision_context_id.clone(),
+        marginal.decision_time_ns.to_string(),
+        marginal.measurand_id.clone(),
+        marginal.unit.clone(),
+        marginal.specification_id.clone(),
+        marginal.specification_revision.clone(),
+        marginal.posterior_id.clone(),
+        marginal.posterior_model_revision.clone(),
+        f(Some(marginal.probability_lower)),
+        f(Some(marginal.probability_upper)),
+        marginal.valid_from_ns.to_string(),
+        marginal.valid_until_ns.to_string(),
+        marginal.posterior_sha256.clone(),
+        marginal.model_calibration_sha256.clone(),
+        marginal.measurement_sha256.clone(),
+        marginal.msa_sha256.clone(),
+        marginal.calibration_sha256.clone(),
+        marginal.uncertainty_sha256.clone(),
+        marginal.specification_sha256.clone(),
+        marginal.evidence.posterior.code().to_string(),
+        marginal.evidence.model_calibration.code().to_string(),
+        marginal.evidence.measurement.code().to_string(),
+        marginal.evidence.msa.code().to_string(),
+        marginal.evidence.calibration.code().to_string(),
+        marginal.evidence.uncertainty.code().to_string(),
+        marginal.evidence.specification.code().to_string(),
+    ].join(",")
 }
 
 fn fixture_marginal(id: &str, lower: f64, upper: f64) -> Marginal {
     Marginal {
         characteristic_id: id.into(),
+        part_id: "PART-0001".into(),
+        lot_id: "LOT-0001".into(),
+        operation_id: "FINAL-INSPECTION".into(),
+        decision_context_id: "COU-SHAFT-RELEASE".into(),
+        decision_time_ns: 5_000,
         measurand_id: format!("measurand-{id}"),
         unit: "mm".into(),
         specification_id: format!("spec-{id}"),
@@ -856,6 +905,24 @@ mod tests {
         ], vec!["diameter", "runout"]);
         wrong_scope.policy.product_family = "OTHER".into();
         assert_eq!(classify(&wrong_scope).outcome, Outcome::InvalidInput);
+    }
+
+    #[test]
+    fn every_marginal_is_bound_to_the_exact_part_lot_operation_and_decision_time() {
+        for mutate in 0..5 {
+            let mut request = request(vec![
+                fixture_marginal("diameter", 0.9, 0.95),
+                fixture_marginal("runout", 0.8, 0.9),
+            ], vec!["diameter", "runout"]);
+            match mutate {
+                0 => request.marginals[0].part_id = "OTHER-PART".into(),
+                1 => request.marginals[0].lot_id = "OTHER-LOT".into(),
+                2 => request.marginals[0].operation_id = "OTHER-OP".into(),
+                3 => request.marginals[0].decision_context_id = "OTHER-CONTEXT".into(),
+                _ => request.marginals[0].decision_time_ns += 1,
+            }
+            assert_eq!(classify(&request).outcome, Outcome::EvidenceIncomplete);
+        }
     }
 
     #[test]
