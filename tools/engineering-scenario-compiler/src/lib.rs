@@ -8,6 +8,8 @@ use sha1::Sha1;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
+pub mod strict_jcs_input;
+
 pub const COMPILER_ID: &str = "engineering-scenario-compiler";
 pub const COMPILER_VERSION: &str = "0.1.0";
 pub const SCHEMA_VERSION: &str = "engineering-scenario-v0.1";
