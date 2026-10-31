@@ -54,7 +54,6 @@ struct Node {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Evidence {
-    id: String,
     class: String,
     subject_kind: String,
     subject_id: String,
@@ -104,6 +103,7 @@ struct Manifest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct AuditSummary {
     composition_id: String,
+    revision: String,
     mode: String,
     components: usize,
     nodes: usize,
@@ -310,8 +310,8 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                 if fields.len() != 9 {
                     return Err(format!("line {line_number}: EVIDENCE requires 8 fields"));
                 }
+                let evidence_id = nonempty(fields[1], "EVIDENCE id")?;
                 let evidence = Evidence {
-                    id: nonempty(fields[1], "EVIDENCE id")?,
                     class: nonempty(fields[2], "EVIDENCE class")?,
                     subject_kind: nonempty(fields[3], "EVIDENCE subject_kind")?,
                     subject_id: nonempty(fields[4], "EVIDENCE subject_id")?,
@@ -320,7 +320,7 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                     receipt_sha256: nonempty(fields[7], "EVIDENCE receipt_sha256")?,
                     status: nonempty(fields[8], "EVIDENCE status")?,
                 };
-                if manifest.evidence.insert(evidence.id.clone(), evidence).is_some() {
+                if manifest.evidence.insert(evidence_id, evidence).is_some() {
                     return Err(format!("line {line_number}: duplicate evidence id"));
                 }
             }
@@ -680,6 +680,7 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
 
     Ok(AuditSummary {
         composition_id: meta.composition_id.clone(),
+        revision: meta.revision.clone(),
         mode: meta.mode.clone(),
         components: manifest.components.len(),
         nodes: manifest.nodes.len(),
@@ -708,8 +709,9 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("cannot read {}: {error}", args[1]))?;
     let summary = audit_text(&content)?;
     println!(
-        "MANIFEST_STRUCTURALLY_VALID composition={} mode={} components={} nodes={} edges={} interfaces={} evidence={} scope={}",
+        "MANIFEST_STRUCTURALLY_VALID composition={} revision={} mode={} components={} nodes={} edges={} interfaces={} evidence={} scope={}",
         summary.composition_id,
+        summary.revision,
         summary.mode,
         summary.components,
         summary.nodes,
@@ -750,7 +752,16 @@ mod tests {
         for mode in ["integrated", "unified", "federated"] {
             let result = audit_text(fixture(mode));
             assert!(result.is_ok(), "{mode}: {result:?}");
-            assert_eq!(result.unwrap().mode, mode);
+            let summary = result.unwrap();
+            assert_eq!(summary.composition_id, "mfg-demo-001");
+            assert_eq!(summary.revision, "1");
+            assert_eq!(summary.mode, mode);
+            assert_eq!(summary.components, 8);
+            assert_eq!(summary.nodes, 14);
+            assert_eq!(summary.edges, 13);
+            assert_eq!(summary.interfaces, 6);
+            assert_eq!(summary.evidence_records, 35);
+            assert_eq!(summary.scope_key, "product-001/lot-001/op-001");
         }
     }
 
