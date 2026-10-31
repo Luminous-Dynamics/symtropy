@@ -1,0 +1,32 @@
+name: Coupled Coulomb exact Sturm root-count oracle
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/src/coupled_friction.rs"
+      - "crates/core/symtropy-physics/src/coupled_friction_sturm.rs"
+      - "crates/core/symtropy-physics/src/lib.rs"
+      - "crates/core/symtropy-physics/Cargo.toml"
+      - "Cargo.lock"
+      - "docs/research/COUPLED_COULOMB_STURM_ROOT_ORACLE_2026-10-31.md"
+      - ".github/workflows/coupled-coulomb-sturm-oracle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-root-count:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run exact rational Sturm oracle
+        run: cargo test -p symtropy-physics --lib coupled_friction::sturm --locked
+      - name: Re-run coupled point-contact regression panel
+        run: cargo test -p symtropy-physics --lib coupled_friction::tests --locked

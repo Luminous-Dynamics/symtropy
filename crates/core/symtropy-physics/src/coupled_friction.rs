@@ -553,9 +553,13 @@ fn sliding_quartic(w: &Matrix3<f64>, q: &SVector<f64, 3>, mu: f64) -> [f64; 5] {
 fn polynomial_value_and_scale(coefficients: &[f64], x: f64) -> Option<(f64, f64)> {
     let mut value = 0.0;
     let mut scale = 0.0;
+    // Use a coefficient-based evaluation bound even when |x| < 1. A pure
+    // Horner magnitude shrinks toward zero near t=0 and can hide a repeated
+    // root whose derivative root is only approximate.
+    let radius = x.abs().max(1.0);
     for coefficient in coefficients.iter().rev() {
         value = value * x + coefficient;
-        scale = scale * x.abs() + coefficient.abs();
+        scale = scale * radius + coefficient.abs();
         if !value.is_finite() || !scale.is_finite() {
             return None;
         }
@@ -563,21 +567,26 @@ fn polynomial_value_and_scale(coefficients: &[f64], x: f64) -> Option<(f64, f64)
     Some((value, scale.max(f64::MIN_POSITIVE)))
 }
 
-fn add_root(roots: &mut Vec<f64>, root: f64, tolerance: f64) {
+fn add_root(roots: &mut Vec<f64>, root: f64, tolerance: f64) -> Result<(), ()> {
     if !root.is_finite() {
-        return;
+        return Err(());
     }
-    if !roots.iter().any(|existing| {
+    if roots.iter().any(|existing| {
         (existing - root).abs() <= 128.0 * tolerance * (1.0 + root.abs().max(existing.abs()))
     }) {
-        roots.push(root);
+        // Do not silently collapse two roots whose separation is below the
+        // numeric resolution of this candidate generator.
+        return Err(());
     }
+    roots.push(root);
+    Ok(())
 }
 
-/// Enumerate real roots by recursively partitioning the real line at roots of
-/// the derivative. Each open partition is monotone; sign-changing intervals
-/// contain one simple root, while stationary points capture even multiplicity.
-/// Floating-point degeneracy and unbounded root ranges fail closed.
+/// Generate simple real-root candidates by partitioning at floating-point
+/// derivative roots and bisecting sign-changing monotone intervals. Any
+/// stationary-point root, rounded-zero midpoint, unresolved close critical
+/// points, or unbounded root range fails closed. Repeated-root multiplicity is
+/// established by the independent exact test oracle, not by this routine.
 fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> {
     if input.is_empty() || !input.iter().all(|x| x.is_finite()) {
         return Err(());
@@ -618,28 +627,36 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
     points.extend(critical.into_iter().filter(|x| *x > -bound && *x < bound));
     points.push(bound);
     points.sort_by(f64::total_cmp);
-    points.dedup_by(|a, b| {
-        (*a - *b).abs() <= 64.0 * tolerance * (1.0 + a.abs().max(b.abs()))
-    });
+    for pair in points.windows(2) {
+        if (pair[1] - pair[0]).abs()
+            <= 64.0 * tolerance * (1.0 + pair[0].abs().max(pair[1].abs()))
+        {
+            return Err(());
+        }
+    }
 
     let mut roots = Vec::new();
     for point in &points {
         let (value, eval_scale) =
             polynomial_value_and_scale(&coefficients, *point).ok_or(())?;
         if value.abs() <= 64.0 * tolerance * eval_scale {
-            add_root(&mut roots, *point, tolerance);
+            // Even an exactly zero f64 evaluation cannot prove that this
+            // stationary point is an exact polynomial root: Horner rounding
+            // may have cancelled a small nonzero value. Do not promote an
+            // even-multiplicity candidate without an independent root count.
+            return Err(());
         }
     }
 
     for pair in points.windows(2) {
         let mut lower = pair[0];
         let mut upper = pair[1];
-        let (mut f_lower, s_lower) =
+        let (mut f_lower, _) =
             polynomial_value_and_scale(&coefficients, lower).ok_or(())?;
-        let (f_upper, s_upper) =
+        let (f_upper, _) =
             polynomial_value_and_scale(&coefficients, upper).ok_or(())?;
-        let lower_is_root = f_lower.abs() <= 64.0 * tolerance * s_lower;
-        let upper_is_root = f_upper.abs() <= 64.0 * tolerance * s_upper;
+        let lower_is_root = f_lower == 0.0;
+        let upper_is_root = f_upper == 0.0;
         if lower_is_root
             || upper_is_root
             || f_lower.is_sign_positive() == f_upper.is_sign_positive()
@@ -655,9 +672,8 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
             let (f_mid, _) =
                 polynomial_value_and_scale(&coefficients, midpoint).ok_or(())?;
             if f_mid == 0.0 {
-                lower = midpoint;
-                upper = midpoint;
-                break;
+                // A rounded zero is not an exact rational sign certificate.
+                return Err(());
             }
             if f_mid.is_sign_positive() == f_lower.is_sign_positive() {
                 lower = midpoint;
@@ -669,7 +685,7 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
                 break;
             }
         }
-        add_root(&mut roots, lower + 0.5 * (upper - lower), tolerance);
+        add_root(&mut roots, lower + 0.5 * (upper - lower), tolerance)?;
     }
 
     roots.sort_by(f64::total_cmp);
@@ -979,3 +995,8 @@ mod tests {
         }
     }
 }
+
+
+#[cfg(test)]
+#[path = "coupled_friction_sturm.rs"]
+mod sturm;
