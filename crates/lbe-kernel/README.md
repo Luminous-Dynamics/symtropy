@@ -88,7 +88,11 @@ The model distinguishes dispositions:
 - contextualize every position with an explicit context rule;
 - resolve an empirical disagreement through a reviewed evidence bundle.
 
-Normative conflict cannot be marked as empirically resolved. Consequential action requires all process safeguards and no active or unresolved corrosive hazard. Decision dispositions are append-only; a later decision does not rewrite the earlier record.
+Normative conflict cannot be marked as empirically resolved. Consequential action requires all process safeguards and no active or unresolved corrosive hazard.
+
+**Process changes are now event-sourced in the kernel prototype.** Safeguard snapshots, hazard reports, hazard-finding transitions and dispositions each append an attributed event with a sequence number, monotonic timestamp, predecessor receipt reference and current receipt reference. Hazard finding changes require new evidence references, and the prior finding remains in the event history. The record can deterministically replay a complete event stream from its initial position set and reject broken receipt links, repeated receipts and backdated events.
+
+The kernel does not authenticate actor IDs or verify cryptographic receipts. The host must bind the genesis position set and each canonical event to signed/content-addressed receipts, verify the authenticated principal, enforce authorization and preserve the append-only store. The sequence and receipt-link checks in this in-memory model are not, by themselves, tamper-proof storage.
 
 This remains a pure model. Safeguard booleans require external evidence, and the model is not an ethics review, truth oracle, facilitation tool, legal authorization mechanism or proof that consent is free of coercion. Strong anger, protest or minority dissent are not automatically corrosive.
 
