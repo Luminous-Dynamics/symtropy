@@ -1,7 +1,7 @@
 use std::process;
 
 use civil_aero_benchmark::grid_convergence::{
-    GciStudy, GridObservation, evaluate_grid_convergence, report_to_csv,
+    GciStudy, GridFamilyKind, GridObservation, evaluate_grid_convergence, report_to_csv,
 };
 
 fn main() {
@@ -18,6 +18,7 @@ fn run() -> Result<(), String> {
         source_reference: "synthetic-known-answer-quadratic-v0.1".to_owned(),
         spacing_definition: "synthetic h values supplied explicitly; not derived from node counts"
             .to_owned(),
+        grid_family_kind: GridFamilyKind::Structured,
         safety_factor: 1.25,
         observations: spacings
             .iter()

@@ -3,6 +3,7 @@ use std::process;
 use civil_aero_benchmark::cfd_admission::{
     AdmissionCriteria, CfdEvidenceStudy, CfdGridRun, evaluate_cfd_evidence_admission, report_to_csv,
 };
+use civil_aero_benchmark::grid_convergence::GridFamilyKind;
 
 fn digest(byte: char) -> String {
     byte.to_string().repeat(64)
@@ -66,6 +67,7 @@ fn run() -> Result<(), String> {
         quantity: "CD".to_owned(),
         source_reference: "synthetic-known-answer-not-cfd".to_owned(),
         spacing_definition: "explicit synthetic characteristic spacing".to_owned(),
+        grid_family_kind: GridFamilyKind::Structured,
         safety_factor: 1.25,
         criteria: AdmissionCriteria {
             residual_final_max: 1.0e-8,

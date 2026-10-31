@@ -48,7 +48,7 @@ def main() -> int:
         headers = set(reader.fieldnames or [])
 
     required = {
-        "status", "solver_build_sha256", "physics_config_sha256", "geometry_sha256",
+        "status", "grid_family_kind", "solver_build_sha256", "physics_config_sha256", "geometry_sha256",
         "study_total_cpu_core_hours", "study_total_gpu_hours_measured",
         "gpu_measured_run_count", "study_total_wall_clock_seconds",
         "study_peak_memory_bytes", "study_total_energy_joules_measured",
@@ -81,6 +81,8 @@ def main() -> int:
 
     for row_index, row in enumerate(rows):
         require(row["status"] == expected_status, "evidence status/ceiling mismatch")
+        require(row["grid_family_kind"] == "structured", "grid-family type mismatch")
+        number(row, "safety_factor", 1.25)
         for field, expected in common_hashes.items():
             require(row[field] == expected, f"common {field} changed")
 

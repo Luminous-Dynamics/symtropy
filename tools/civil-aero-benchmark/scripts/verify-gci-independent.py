@@ -44,6 +44,8 @@ def main() -> int:
         rows = list(csv.DictReader(handle))
     require(len(rows) == 4, f"expected 4 sliding triplets, got {len(rows)}")
     require(rows[0]["quantity"] == "CD", "unexpected quantity")
+    require(rows[0]["grid_family_kind"] == "structured", "grid-family type mismatch")
+    require(float(rows[0]["safety_factor"]) == SAFETY, "structured safety factor mismatch")
     for index, row in enumerate(rows):
         h0, h1, h2 = SPACINGS[index:index + 3]
         p0, p1, p2 = VALUES[index:index + 3]

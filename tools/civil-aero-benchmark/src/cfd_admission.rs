@@ -6,7 +6,9 @@
 
 use std::collections::HashSet;
 
-use crate::grid_convergence::{GciReport, GciStudy, GridObservation, evaluate_grid_convergence};
+use crate::grid_convergence::{
+    GciReport, GciStudy, GridFamilyKind, GridObservation, evaluate_grid_convergence,
+};
 
 const MIN_HISTORY_SAMPLES: usize = 6;
 
@@ -63,6 +65,7 @@ pub struct CfdEvidenceStudy {
     pub quantity: String,
     pub source_reference: String,
     pub spacing_definition: String,
+    pub grid_family_kind: GridFamilyKind,
     pub safety_factor: f64,
     pub criteria: AdmissionCriteria,
     /// Ordered coarse-to-fine; at least three runs are required.
@@ -101,6 +104,7 @@ pub struct CfdEvidenceAdmissionReport {
     pub solver_build_sha256: String,
     pub physics_config_sha256: String,
     pub geometry_sha256: String,
+    pub grid_family_kind: GridFamilyKind,
     pub safety_factor: f64,
     pub criteria: AdmissionCriteria,
     pub status: &'static str,
@@ -342,6 +346,7 @@ pub fn evaluate_cfd_evidence_admission(
         quantity: study.quantity.clone(),
         source_reference: study.source_reference.clone(),
         spacing_definition: study.spacing_definition.clone(),
+        grid_family_kind: study.grid_family_kind,
         safety_factor: study.safety_factor,
         observations: study
             .runs
@@ -426,6 +431,7 @@ pub fn evaluate_cfd_evidence_admission(
         solver_build_sha256: first.solver_build_sha256.clone(),
         physics_config_sha256: first.physics_config_sha256.clone(),
         geometry_sha256: first.geometry_sha256.clone(),
+        grid_family_kind: study.grid_family_kind,
         safety_factor: study.safety_factor,
         criteria: study.criteria.clone(),
         status: "numerically_admitted_under_declared_criteria_caller_hashes_unverified_not_experimentally_validated",
@@ -477,7 +483,7 @@ fn optional_decimal(value: Option<f64>) -> String {
         .unwrap_or_default()
 }
 
-pub const ADMISSION_CSV_HEADER: &str = "case_id,quantity,status,source_reference,spacing_definition,solver_build_sha256,physics_config_sha256,geometry_sha256,safety_factor,coarse_run_id,coarse_grid_id,coarse_grid_level,coarse_spacing,coarse_mesh_sha256,coarse_mesh_node_count,coarse_solver_exit_code,coarse_iterations_completed,coarse_cpu_core_hours,coarse_gpu_hours,coarse_wall_clock_seconds,coarse_peak_memory_bytes,coarse_energy_consumed_joules,coarse_quantity_value,coarse_residual_final,coarse_residual_reduction_ratio,coarse_quantity_history_drift_absolute,coarse_mass_imbalance_fraction,coarse_energy_imbalance_fraction,medium_run_id,medium_grid_id,medium_grid_level,medium_spacing,medium_mesh_sha256,medium_mesh_node_count,medium_solver_exit_code,medium_iterations_completed,medium_cpu_core_hours,medium_gpu_hours,medium_wall_clock_seconds,medium_peak_memory_bytes,medium_energy_consumed_joules,medium_quantity_value,medium_residual_final,medium_residual_reduction_ratio,medium_quantity_history_drift_absolute,medium_mass_imbalance_fraction,medium_energy_imbalance_fraction,fine_run_id,fine_grid_id,fine_grid_level,fine_spacing,fine_mesh_sha256,fine_mesh_node_count,fine_solver_exit_code,fine_iterations_completed,fine_cpu_core_hours,fine_gpu_hours,fine_wall_clock_seconds,fine_peak_memory_bytes,fine_energy_consumed_joules,fine_quantity_value,fine_residual_final,fine_residual_reduction_ratio,fine_quantity_history_drift_absolute,fine_mass_imbalance_fraction,fine_energy_imbalance_fraction,refinement_ratio_coarse_medium,refinement_ratio_medium_fine,observed_order,extrapolated_value,medium_gci_absolute,medium_gci_relative_percent,fine_gci_absolute,fine_gci_relative_percent,asymptotic_ratio,residual_final_max,residual_reduction_ratio_max,quantity_history_drift_absolute_max,mass_imbalance_fraction_max,energy_imbalance_fraction_max,observed_order_min,observed_order_max,asymptotic_ratio_min,asymptotic_ratio_max,study_total_cpu_core_hours,study_total_gpu_hours_measured,gpu_measured_run_count,study_total_wall_clock_seconds,study_peak_memory_bytes,study_total_energy_joules_measured,energy_measured_run_count";
+pub const ADMISSION_CSV_HEADER: &str = "case_id,quantity,status,source_reference,spacing_definition,grid_family_kind,solver_build_sha256,physics_config_sha256,geometry_sha256,safety_factor,coarse_run_id,coarse_grid_id,coarse_grid_level,coarse_spacing,coarse_mesh_sha256,coarse_mesh_node_count,coarse_solver_exit_code,coarse_iterations_completed,coarse_cpu_core_hours,coarse_gpu_hours,coarse_wall_clock_seconds,coarse_peak_memory_bytes,coarse_energy_consumed_joules,coarse_quantity_value,coarse_residual_final,coarse_residual_reduction_ratio,coarse_quantity_history_drift_absolute,coarse_mass_imbalance_fraction,coarse_energy_imbalance_fraction,medium_run_id,medium_grid_id,medium_grid_level,medium_spacing,medium_mesh_sha256,medium_mesh_node_count,medium_solver_exit_code,medium_iterations_completed,medium_cpu_core_hours,medium_gpu_hours,medium_wall_clock_seconds,medium_peak_memory_bytes,medium_energy_consumed_joules,medium_quantity_value,medium_residual_final,medium_residual_reduction_ratio,medium_quantity_history_drift_absolute,medium_mass_imbalance_fraction,medium_energy_imbalance_fraction,fine_run_id,fine_grid_id,fine_grid_level,fine_spacing,fine_mesh_sha256,fine_mesh_node_count,fine_solver_exit_code,fine_iterations_completed,fine_cpu_core_hours,fine_gpu_hours,fine_wall_clock_seconds,fine_peak_memory_bytes,fine_energy_consumed_joules,fine_quantity_value,fine_residual_final,fine_residual_reduction_ratio,fine_quantity_history_drift_absolute,fine_mass_imbalance_fraction,fine_energy_imbalance_fraction,refinement_ratio_coarse_medium,refinement_ratio_medium_fine,observed_order,extrapolated_value,medium_gci_absolute,medium_gci_relative_percent,fine_gci_absolute,fine_gci_relative_percent,asymptotic_ratio,residual_final_max,residual_reduction_ratio_max,quantity_history_drift_absolute_max,mass_imbalance_fraction_max,energy_imbalance_fraction_max,observed_order_min,observed_order_max,asymptotic_ratio_min,asymptotic_ratio_max,study_total_cpu_core_hours,study_total_gpu_hours_measured,gpu_measured_run_count,study_total_wall_clock_seconds,study_peak_memory_bytes,study_total_energy_joules_measured,energy_measured_run_count";
 
 pub fn report_to_csv(report: &CfdEvidenceAdmissionReport) -> Result<String, String> {
     let max_residual_final = report
@@ -530,6 +536,7 @@ pub fn report_to_csv(report: &CfdEvidenceAdmissionReport) -> Result<String, Stri
             report.status.to_owned(),
             csv_escape(&report.source_reference),
             csv_escape(&report.spacing_definition),
+            report.grid_family_kind.as_str().to_owned(),
             report.solver_build_sha256.clone(),
             report.physics_config_sha256.clone(),
             report.geometry_sha256.clone(),
@@ -612,6 +619,7 @@ mod tests {
             quantity: "CD".to_owned(),
             source_reference: "synthetic-known-answer-not-cfd".to_owned(),
             spacing_definition: "explicit synthetic characteristic spacing".to_owned(),
+            grid_family_kind: GridFamilyKind::Structured,
             safety_factor: 1.25,
             criteria: AdmissionCriteria {
                 residual_final_max: 1.0e-8,

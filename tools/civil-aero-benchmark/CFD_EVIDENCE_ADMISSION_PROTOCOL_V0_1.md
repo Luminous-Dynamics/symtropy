@@ -23,6 +23,7 @@ The caller must supply and retain:
 - maximum mass and energy imbalance fractions;
 - observed-order interval for each quantity;
 - asymptotic GCI ratio interval;
+- grid-family classification (structured versus unstructured/hybrid);
 - GCI safety factor and characteristic-spacing definition.
 
 Criteria are data, not hidden defaults. Reports retain them so the verifier can inspect what the caller asserted. Criteria must be fixed before the solver results are reviewed. A broad or retroactively changed threshold invalidates the comparison.
@@ -37,7 +38,7 @@ The algorithm does not assert that a solver residual threshold is universally ap
 
 ## Benchmark programme
 
-For DPW8 OAT15A V1a, run separate admission studies for CL, CD and CM across the recommended six-member family. Before admitting the actual case, establish and document a valid characteristic-spacing definition for that exact mesh family; node count is insufficient. Preserve each grid's solver logs, geometry/mesh/config digests, flow conditions, force histories and conservation checks. For an unsteady buffet case, this steady monitor gate is not sufficient; introduce time-step convergence, statistically stationary windows, spectral uncertainty and phase-sensitive comparisons as a separate module.
+For DPW8 OAT15A V1a, run separate admission studies for CL, CD and CM across the recommended six-member family. Before admitting the actual case, establish and document a valid characteristic-spacing definition and classify the grid family as structured or unstructured/hybrid; node count is insufficient. The GCI gate requires F_s >= 1.25 for structured meshes and F_s >= 3.0 for unstructured/hybrid meshes. Since the pinned IISc participant metadata describes a hybrid grid, the conservative unstructured/hybrid floor is the applicable default unless the mesh-generation method is independently shown to meet a structured-grid definition. Preserve each grid's solver logs, geometry/mesh/config digests, flow conditions, force histories and conservation checks. For an unsteady buffet case, this steady monitor gate is not sufficient; introduce time-step convergence, statistically stationary windows, spectral uncertainty and phase-sensitive comparisons as a separate module.
 
 A passing numerical gate is only one rung before experimental validation. The next stage compares each quantity and pressure distribution against the correct experimental reference and uncertainty, with model-form sensitivity reported separately.
 

@@ -262,3 +262,6 @@ Example invocation:
 The CLI emits a canonical manifest digest over normalized role/path/length/SHA-256 records. This is not a hash of a serialized manifest file, and it is not a digital signature. The current manifest format is supplied by the caller in memory / CSV; source-author identity, execution attestation and chain of custody are not established. A passing artifact audit proves only that the on-disk bytes match the supplied manifest and that the designated build/config/geometry/mesh digests agree with the numerical receipt. It does not prove the solver is correct or the output is experimentally valid.
 
 CI exercises a synthetic eight-role bundle with a separate Python verifier, including same-length byte mutation, path traversal and missing-role negative controls. These fixtures are not CFD results. See CFD_ARTIFACT_MANIFEST_PROTOCOL_V0_1.md.
+
+
+The GCI safety-factor gate now uses an explicit grid-family type. Structured studies require F_s >= 1.25; unstructured or hybrid studies require F_s >= 3.0. The type and chosen factor are retained in both the GCI and CFD-admission CSV receipts. The observed-order equations use exp_m1-based denominators to reduce floating-point cancellation for refinement ratios close to one.

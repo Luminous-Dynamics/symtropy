@@ -4,7 +4,7 @@
 
 This protocol adds a numerical verification diagnostic for a scalar output on a systematically refined grid family. It implements an observed-order estimate, Richardson extrapolation and the Grid Convergence Index (GCI) on sliding triples of grids. The output is a numerical uncertainty estimate under the method's assumptions. It does not authenticate the solver, prove that the mesh family is systematically refined, estimate model-form error, validate against an experiment or establish aircraft safety.
 
-The caller must provide ordered coarse-to-fine mesh identifiers, a positive characteristic spacing for each grid in consistent units, a disclosed method for deriving that spacing, one solution value for a named scalar quantity on each grid, and a safety factor with an explicit justification. For three-or-more-grid studies this implementation requires F_s >= 1.25, consistent with NASA's published recommendation; the factor remains recorded in every report. Node count alone is not characteristic spacing. Do not infer h from GRID_SIZE without a documented mesh-family geometry and a valid spacing definition.
+The caller must provide ordered coarse-to-fine mesh identifiers, a positive characteristic spacing for each grid in consistent units, a disclosed method for deriving that spacing, one solution value for a named scalar quantity on each grid, an explicit grid-family classification, and a safety factor with an explicit justification. For three-or-more-grid studies this implementation requires F_s >= 1.25 for structured grids and F_s >= 3.0 for unstructured or hybrid grids, following NIST IR 8298's summary of Roache's recommendations. The topology and factor are retained in every report. These are conservative recommended floors, not a substitute for the governing test standard. Node count alone is not characteristic spacing. Do not infer h from GRID_SIZE without a documented mesh-family geometry and a valid spacing definition.
 
 ## Method
 
@@ -35,7 +35,11 @@ The asymptotic consistency ratio is GCI_medium / (GCI_fine * r_mf^p) using absol
 
 For six grids, the implementation computes four consecutive three-grid windows. It does not collapse them into one universal order or uncertainty number.
 
-## Known-answer validation
+## Numerical conditioning and known-answer validation
+
+The observed-order solver uses expm1-based expressions for small refinement increments to reduce cancellation as ratios approach one. This does not make arbitrarily close grids informative; the caller must still provide sufficiently separated and systematically refined meshes.
+
+The structured synthetic fixture uses F_s=1.25. A separate unit test proves that the same unstructured/hybrid study is rejected at F_s=1.25 and accepted at F_s=3.0.
 
 A synthetic function phi(h) = 2 + 0.8*h^2 on six spacings [4, 2, 1, 0.5, 0.25, 0.125] has exact order 2 and exact zero-spacing limit 2. Rust tests and an independent standard-library Python implementation must recover four sliding triplets, order 2 on every triplet, extrapolated limit 2, asymptotic ratio 1, and deterministic CSV output.
 
@@ -56,7 +60,7 @@ Before a DPW8 V1a result can use this method:
 ## References
 
 - NASA CFD verification and validation guidance: https://www.grc.nasa.gov/www/wind/valid/tutorial/verassess.html
-- NIST IR 8298, Industrial Verification, Validation, and Uncertainty Quantification: https://nvlpubs.nist.gov/nistpubs/ir/2020/NIST.IR.8298.pdf
+- NIST IR 8298, Industrial Verification, Validation, and Uncertainty Quantification (structured F_s=1.25; unstructured F_s=3.0): https://nvlpubs.nist.gov/nistpubs/ir/2020/NIST.IR.8298.pdf
 - Official AIAA DPW-8/AePW-4 test cases: https://www.aiaa-dpw.org/TestCases/testcases.html
 
 

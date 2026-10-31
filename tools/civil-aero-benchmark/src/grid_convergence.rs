@@ -10,6 +10,28 @@ const ORDER_UPPER_LIMIT: f64 = 128.0;
 const BISECTION_STEPS: usize = 100;
 const ORDER_TOLERANCE: f64 = 1.0e-12;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GridFamilyKind {
+    Structured,
+    UnstructuredOrHybrid,
+}
+
+impl GridFamilyKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Structured => "structured",
+            Self::UnstructuredOrHybrid => "unstructured_or_hybrid",
+        }
+    }
+
+    pub fn minimum_recommended_safety_factor(self) -> f64 {
+        match self {
+            Self::Structured => 1.25,
+            Self::UnstructuredOrHybrid => 3.0,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct GridObservation {
     pub grid_id: String,
@@ -24,7 +46,9 @@ pub struct GciStudy {
     pub source_reference: String,
     /// Disclosed derivation, such as a volume-based characteristic length.
     pub spacing_definition: String,
-    /// Caller-selected GCI safety factor, finite and >= 1.
+    /// Explicit grid-family classification used to select the conservative safety-factor floor.
+    pub grid_family_kind: GridFamilyKind,
+    /// Caller-selected GCI safety factor; must meet the topology-specific recommendation.
     pub safety_factor: f64,
     /// Ordered coarse-to-fine; at least three grids are required.
     pub observations: Vec<GridObservation>,
@@ -58,6 +82,7 @@ pub struct GciReport {
     pub quantity: String,
     pub source_reference: String,
     pub spacing_definition: String,
+    pub grid_family_kind: GridFamilyKind,
     pub safety_factor: f64,
     pub evidence_level: &'static str,
     pub triplets: Vec<GciTriplet>,
@@ -72,10 +97,12 @@ pub fn evaluate_grid_convergence(study: &GciStudy) -> Result<GciReport, String> 
             "quantity, source_reference, and spacing_definition must be non-empty".to_owned(),
         );
     }
-    if !study.safety_factor.is_finite() || study.safety_factor < 1.25 {
-        return Err(
-            "safety_factor must be finite and >= 1.25 for three-or-more-grid studies".to_owned(),
-        );
+    let minimum_safety_factor = study.grid_family_kind.minimum_recommended_safety_factor();
+    if !study.safety_factor.is_finite() || study.safety_factor < minimum_safety_factor {
+        return Err(format!(
+            "safety_factor must be finite and >= {minimum_safety_factor:.2} for {} grid families",
+            study.grid_family_kind.as_str()
+        ));
     }
     if study.observations.len() < 3 {
         return Err("at least three systematically refined grids are required".to_owned());
@@ -135,6 +162,7 @@ pub fn evaluate_grid_convergence(study: &GciStudy) -> Result<GciReport, String> 
         quantity: study.quantity.clone(),
         source_reference: study.source_reference.clone(),
         spacing_definition: study.spacing_definition.clone(),
+        grid_family_kind: study.grid_family_kind,
         safety_factor: study.safety_factor,
         evidence_level: "caller_supplied_grid_convergence_estimate_not_independent_validation",
         triplets,
@@ -167,10 +195,11 @@ fn evaluate_triplet(
     }
 
     let order = solve_observed_order(observed_ratio, r_cm, r_mf)?;
-    let r_cm_power = checked_power(r_cm, order)?;
+    let exponent_cm = order * r_cm.ln();
+    let exponent_mf = order * r_mf.ln();
+    let denominator_cm = checked_exp_m1(exponent_cm)?;
+    let denominator_mf = checked_exp_m1(exponent_mf)?;
     let r_mf_power = checked_power(r_mf, order)?;
-    let denominator_cm = r_cm_power - 1.0;
-    let denominator_mf = r_mf_power - 1.0;
     if denominator_cm <= 0.0 || denominator_mf <= 0.0 {
         return Err("observed-order denominator is not positive".to_owned());
     }
@@ -274,6 +303,17 @@ fn ratio_for_order(order: f64, r_cm: f64, r_mf: f64) -> f64 {
     (exponent.exp() - 1.0) / (1.0 - (-order * r_mf.ln()).exp())
 }
 
+fn checked_exp_m1(exponent: f64) -> Result<f64, String> {
+    if !exponent.is_finite() || exponent > f64::MAX.ln() {
+        return Err("observed-order exponential denominator overflowed".to_owned());
+    }
+    let value = exponent.exp_m1();
+    if !value.is_finite() || value <= 0.0 {
+        return Err("observed-order exponential denominator is invalid".to_owned());
+    }
+    Ok(value)
+}
+
 fn checked_power(ratio: f64, order: f64) -> Result<f64, String> {
     let exponent = order * ratio.ln();
     if !exponent.is_finite() || exponent > f64::MAX.ln() {
@@ -298,16 +338,17 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const GCI_CSV_HEADER: &str = "quantity,source_reference,spacing_definition,safety_factor,coarse_grid_id,medium_grid_id,fine_grid_id,h_coarse,h_medium,h_fine,phi_coarse,phi_medium,phi_fine,r_cm,r_mf,observed_order,extrapolated_value,medium_gci_absolute,medium_gci_relative_percent,fine_gci_absolute,fine_gci_relative_percent,asymptotic_ratio,evidence_level";
+pub const GCI_CSV_HEADER: &str = "quantity,source_reference,spacing_definition,grid_family_kind,safety_factor,coarse_grid_id,medium_grid_id,fine_grid_id,h_coarse,h_medium,h_fine,phi_coarse,phi_medium,phi_fine,r_cm,r_mf,observed_order,extrapolated_value,medium_gci_absolute,medium_gci_relative_percent,fine_gci_absolute,fine_gci_relative_percent,asymptotic_ratio,evidence_level";
 
 pub fn report_to_csv(report: &GciReport) -> String {
     let mut output = format!("{GCI_CSV_HEADER}\n");
     for triplet in &report.triplets {
         output.push_str(&format!(
-            "{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{:.12},{},{:.12},{}\n",
+            "{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{:.12},{},{:.12},{}\n",
             csv_escape(&report.quantity),
             csv_escape(&report.source_reference),
             csv_escape(&report.spacing_definition),
+            report.grid_family_kind.as_str(),
             report.safety_factor,
             csv_escape(&triplet.coarse_grid_id),
             csv_escape(&triplet.medium_grid_id),
@@ -347,6 +388,7 @@ mod tests {
             quantity: "CD".to_owned(),
             source_reference: "synthetic-known-answer-quadratic-v0.1".to_owned(),
             spacing_definition: "synthetic h values, explicitly supplied".to_owned(),
+            grid_family_kind: GridFamilyKind::Structured,
             safety_factor: 1.25,
             observations: spacings
                 .iter()
@@ -380,6 +422,7 @@ mod tests {
             quantity: "CL".to_owned(),
             source_reference: "synthetic-nonuniform-v0.1".to_owned(),
             spacing_definition: "explicit nonuniform h".to_owned(),
+            grid_family_kind: GridFamilyKind::UnstructuredOrHybrid,
             safety_factor: 3.0,
             observations: vec![
                 GridObservation {
@@ -460,11 +503,24 @@ mod tests {
     }
 
     #[test]
+    fn unstructured_or_hybrid_grid_family_requires_factor_three() {
+        let mut study = quadratic_six_grid_study();
+        study.grid_family_kind = GridFamilyKind::UnstructuredOrHybrid;
+        assert!(evaluate_grid_convergence(&study)
+            .expect_err("1.25 is too permissive for unstructured/hybrid grids")
+            .contains(">= 3.00"));
+
+        study.safety_factor = 3.0;
+        assert!(evaluate_grid_convergence(&study).is_ok());
+    }
+
+    #[test]
     fn zero_fine_value_has_no_relative_gci_but_keeps_absolute_gci() {
         let study = GciStudy {
             quantity: "residual".to_owned(),
             source_reference: "synthetic-zero-fine-v0.1".to_owned(),
             spacing_definition: "explicit h".to_owned(),
+            grid_family_kind: GridFamilyKind::Structured,
             safety_factor: 1.25,
             observations: vec![
                 GridObservation {
