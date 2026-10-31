@@ -956,7 +956,7 @@ mod tests {
         assert_eq!(body.torque_accumulator, torque_before);
 
         assert_eq!(
-            try_apply_angular_impulse(&mut body, &Bivector::<3>::unit_plane(0, 1),)
+            try_apply_angular_impulse(&mut body, &Bivector::<3>::unit_plane(0, 1),),
             Err(RotationalInertiaError::MassMismatch)
         );
         assert_eq!(body.angular_velocity, angular_before);
