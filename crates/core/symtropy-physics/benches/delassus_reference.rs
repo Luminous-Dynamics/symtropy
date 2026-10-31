@@ -310,7 +310,7 @@ fn bench_port_hamiltonian_discrete_gradient(c: &mut Criterion) {
     for dimension in [2_usize, 16, 64] {
         let energy = DMatrix::<f64>::identity(dimension, dimension);
         let mut interconnection = DMatrix::<f64>::zeros(dimension, dimension);
-        let mut dissipation = DMatrix::<f64>::identity(dimension, dimension) * 0.01;
+        let dissipation = DMatrix::<f64>::identity(dimension, dimension) * 0.01;
         let mut input_matrix = DMatrix::<f64>::zeros(dimension, 1);
         for index in (0..dimension).step_by(2) {
             interconnection[(index, index + 1)] = 1.0;
@@ -320,7 +320,7 @@ fn bench_port_hamiltonian_discrete_gradient(c: &mut Criterion) {
         let system = QuadraticPortHamiltonian::new(
             energy,
             interconnection,
-            std::mem::replace(&mut dissipation, DMatrix::zeros(dimension, dimension)),
+            dissipation,
             input_matrix,
             1e-12,
         )
