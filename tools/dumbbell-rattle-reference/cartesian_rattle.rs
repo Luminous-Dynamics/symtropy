@@ -499,6 +499,103 @@ mod tests {
     }
 
     #[test]
+    fn common_acceleration_matches_exact_center_of_mass_trajectory() {
+        let model = model();
+        let initial = initial_state();
+        let acceleration = [0.18, -0.07];
+        let reference_free = exact_state(initial, 1.3, 2.1, 1.2, 1.0);
+        let reference = State {
+            q1: add(reference_free.q1, scale(acceleration, 0.5)),
+            q2: add(reference_free.q2, scale(acceleration, 0.5)),
+            v1: add(reference_free.v1, acceleration),
+            v2: add(reference_free.v2, acceleration),
+        };
+        let mut errors = Vec::new();
+        for dt in [0.04, 0.02, 0.01, 0.005] {
+            let mut state = initial;
+            for _ in 0..(1.0 / dt).round() as usize {
+                state = model
+                    .step_with_accelerations(state, acceleration, acceleration, dt)
+                    .unwrap()
+                    .after;
+            }
+            errors.push(state_error(state, reference));
+        }
+        for pair in errors.windows(2) {
+            let ratio = pair[0] / pair[1];
+            assert!(
+                (3.6..4.4).contains(&ratio),
+                "forced common-acceleration RATTLE should remain second order: {errors:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn external_force_work_linear_impulse_and_torque_impulse_are_separate() {
+        let model = model();
+        let initial = initial_state();
+        let acceleration1 = [0.18, -0.07];
+        let acceleration2 = acceleration1;
+        let receipt = model
+            .step_with_accelerations(initial, acceleration1, acceleration2, 0.01)
+            .unwrap();
+        let force1 = scale(acceleration1, 1.3);
+        let force2 = scale(acceleration2, 2.1);
+        let expected_work = dot(force1, sub(receipt.after.q1, initial.q1))
+            + dot(force2, sub(receipt.after.q2, initial.q2));
+        assert!((receipt.external_work - expected_work).abs() < 2.0e-14);
+        assert!(
+            receipt.relative_linear_momentum_residual < 2.0e-12,
+            "impulse residual={:e}",
+            receipt.relative_linear_momentum_residual
+        );
+        assert!(
+            receipt.relative_angular_momentum_residual < 2.0e-12,
+            "torque residual={:e}",
+            receipt.relative_angular_momentum_residual
+        );
+        assert!(receipt.energy_balance_residual.is_finite());
+        assert!(receipt.relative_energy_balance_residual.is_finite());
+    }
+
+    #[test]
+    fn rotated_external_accelerations_commute_with_rattle_step() {
+        let model = model();
+        let initial = initial_state();
+        let angle = 0.731_f64;
+        let acceleration1 = [0.18, -0.07];
+        let acceleration2 = [-0.03, 0.11];
+        let normal = model
+            .step_with_accelerations(initial, acceleration1, acceleration2, 0.01)
+            .unwrap();
+        let rotated = model
+            .step_with_accelerations(
+                rotate_state(initial, angle),
+                rotate(acceleration1, angle),
+                rotate(acceleration2, angle),
+                0.01,
+            )
+            .unwrap();
+        assert!(state_error(rotated.after, rotate_state(normal.after, angle)) < 3.0e-12);
+    }
+
+    #[test]
+    fn non_finite_external_acceleration_fails_closed() {
+        let model = model();
+        assert_eq!(
+            model
+                .step_with_accelerations(
+                    initial_state(),
+                    [f64::NAN, 0.0],
+                    [0.0, 0.0],
+                    0.01,
+                )
+                .unwrap_err(),
+            Error::NonFiniteInput
+        );
+    }
+
+    #[test]
     fn invalid_inputs_and_unresolvable_timestep_fail_closed() {
         let model = model();
         assert_eq!(
