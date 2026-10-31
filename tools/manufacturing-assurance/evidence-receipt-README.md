@@ -58,6 +58,34 @@ Offline operation is useful for isolated manufacturing networks, but it is not s
 
 Use a maintained verifier such as Cosign/Sigstore libraries or an explicitly profiled enterprise PKI implementation. Do not implement DSSE signatures, X.509 path validation, transparency proofs, Merkle inclusion, TUF metadata or hash primitives from scratch. A Rust orchestrator may call a pinned verifier binary or use a maintained Rust-compatible binding; the verifier version/build digest must be recorded. Avoid shelling out to arbitrary, unpinned commands.
 
+
+## Concrete verifier profile: Cosign v3.1.4
+
+The first implementation target is the maintained Cosign CLI, pinned to release **v3.1.4** and source commit `0e48502cf5ef34e2e60bbd3617aa19945712f705`. The profile is an example, not production configuration:
+
+- `policies/cosign-verify-blob-attestation-v3.1.4.example.json` defines required identity, issuer, GitHub workflow claims, exact predicate type, trust-root freshness and mandatory post-verification checks.
+- `examples/cosign-verify-blob-attestation-preflight.example.sh` checks the local Cosign executable and trusted-root file against expected SHA-256 values, then invokes the maintained verifier.
+
+The exact release source exposes `verify-blob-attestation` with `--bundle`, `--type`, `--certificate-identity`, `--certificate-oidc-issuer`, GitHub workflow claim filters, `--trusted-root` and `--check-claims`. The command defaults `--check-claims` to true; the profile sets it explicitly. When given the artifact path, the new bundle verification path computes the artifact digest and verifies that digest against the in-toto subject. The command then validates the requested predicate type and returns `Verified OK` on success.
+
+### Two distinct acceptance stages
+
+1. **Cosign cryptographic preflight:** verify DSSE/bundle, signature, certificate identity and issuer, selected workflow claims, exact predicate type, and exact artifact subject digest.
+2. **Manufacturing semantic admission:** only after Cosign exits successfully, parse the payload from that same bundle with a maintained in-toto/DSSE parser; validate the predicate schema, exact subject role/name, evidence class/tier, validity, scope, materials/calibration, units, uncertainty and limitations; and bind the result to a new verifier receipt.
+
+The CLI command itself does not emit the complete manufacturing receipt. Its `Verified OK` message is not a receipt, and exit code zero is not the final admission decision.
+
+### Immutable repository identity
+
+Cosign's GitHub workflow repository filter checks the owner/name claim. The signed manufacturing predicate also includes the immutable GitHub repository database ID (`producer.repositoryId`). The post-Cosign semantic gate must compare that signed field to the trusted repository ID in local policy (currently `1263670049` for this repository), so a reused owner/name is not silently treated as the same repository.
+
+### Offline operation
+
+The example intentionally does **not** pass the deprecated `--offline` flag. In Cosign v3.1.4 that flag is deprecated; the air-gapped guidance is to supply the signature bundle and a local `--trusted-root` file. The verifier must be run with network egress denied in its offline test. A separate TUF-aware process must authenticate and freshness-check the root snapshot before provisioning it. The preflight script checks the root file digest but does not implement TUF or prove root freshness by itself.
+
+Before production use, replace every placeholder in the profile, resolve a stable organization-controlled predicate URI, fill the platform-specific Cosign binary digest from the official immutable release asset, provision a current authenticated trusted root, and test the actual workflow certificate identity and issuer. Broad identity regular expressions, `--insecure-ignore-tlog`, `--insecure-ignore-sct`, or `--check-claims=false` are not permitted.
+
+
 ## Claim ceiling
 
 This v0.1 design supplies schemas, example data and a verification policy. It does not verify signatures, hash files, authenticate the signer, validate Rekor, update TUF roots, or emit a real verified receipt. No cryptographic authenticity claim is made until an exact-byte verifier is implemented and independently tested against frozen positive and negative bundles.
