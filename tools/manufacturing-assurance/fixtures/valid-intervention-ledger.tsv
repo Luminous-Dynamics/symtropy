@@ -1,0 +1,16 @@
+# PLAN|id|asset|scope|action|target|unit|min|max|action_digest|precondition_digest|assurance_digest|valid_from|valid_until|requires_human
+PLAN|plan-1|machine-7|LINE-1|adjust_feed_rate|120.0|mm_per_min|80.0|150.0|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|TRUE
+
+# CHECK|id|plan_id|PRECONDITION/ASSURANCE/INTERLOCK|PASS/FAIL|checked_at|evidence_digest
+CHECK|check-pre|plan-1|PRECONDITION|PASS|2026-10-31T11:50:00Z|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+CHECK|check-assurance|plan-1|ASSURANCE|PASS|2026-10-31T11:51:00Z|cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+CHECK|check-interlock|plan-1|INTERLOCK|PASS|2026-10-31T11:52:00Z|dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+
+# AUTH|id|plan_id|HUMAN/SYSTEM|principal|asset|scope|action|approved_at|valid_until|GRANTED/REJECTED|receipt_digest
+AUTH|auth-1|plan-1|HUMAN|operator-1|machine-7|LINE-1|adjust_feed_rate|2026-10-31T11:53:00Z|2026-10-31T23:00:00Z|GRANTED|eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+
+# EXEC|id|plan_id|command_id|executor|command_digest|issued_at|acknowledged_at|ACKNOWLEDGED/REJECTED
+EXEC|exec-1|plan-1|command-1|controller-gateway|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|2026-10-31T11:55:00Z|2026-10-31T11:55:01Z|ACKNOWLEDGED
+
+# VERIFY|id|plan_id|POST_ACTION/POST_RECOVERY|metric|value|unit|min|max|measured_at|measurement_digest
+VERIFY|verify-1|plan-1|POST_ACTION|surface_roughness|1.4|um|0.0|2.0|2026-10-31T11:56:00Z|ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
