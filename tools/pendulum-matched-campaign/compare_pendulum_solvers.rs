@@ -83,7 +83,7 @@ fn cartesian_metrics(state: rattle::State) -> (f64, f64) {
     let q_dot_v = q[0] * velocity[0] + q[1] * velocity[1];
     let position = (q_squared - LENGTH * LENGTH).abs()
         / (1.0 + q_squared + LENGTH * LENGTH);
-    // Common scale-aware endpoint tangent residual used by all five methods.
+    // Absolute endpoint tangent residual |q·v| in the common frozen units.
     let tangent = q_dot_v.abs();
     (position, tangent)
 }
