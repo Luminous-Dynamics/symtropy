@@ -918,7 +918,16 @@ pub fn search_policy_counterexamples(
             policy,
             horizon,
         ) {
-            Err(reason) => CounterexampleOutcome::PolicyInvalidated { reason },
+            Err(reason) if is_policy_invalidated_error(&reason) => {
+                CounterexampleOutcome::PolicyInvalidated { reason }
+            }
+            Err(reason) => {
+                report.rejected.push(RejectedPerturbation {
+                    spec: spec.clone(),
+                    reason: format!("candidate replay was inconclusive: {reason}"),
+                });
+                continue;
+            }
             Ok(replay) => {
                 let Some(metrics) = replay
                     .per_world
@@ -1022,6 +1031,38 @@ pub fn search_policy_against_bounded_grid(
         grid: grid_report,
         search: search_report,
     })
+}
+
+/// Distinguish a policy that cannot represent newly reachable behavior
+/// from a replay failure caused by malformed inputs or arithmetic limits.
+fn is_policy_invalidated_error(reason: &str) -> bool {
+    [
+        "shared policy must contain exactly one branch per reachable public observation",
+        "observed hazard branch must terminate immediately",
+        "non-hazard observation cannot use a hazard terminal",
+        "shared policy exceeds its finite horizon",
+        "shared policy references an invalid command",
+        "terminal policy references an invalid decision",
+    ]
+    .iter()
+    .any(|prefix| reason.starts_with(prefix))
+}
+
+#[cfg(test)]
+mod error_classification_tests {
+    use super::*;
+
+    #[test]
+    fn only_policy_contract_failures_are_reported_as_policy_invalidation() {
+        assert!(is_policy_invalidated_error(
+            "shared policy must contain exactly one branch per reachable public observation"
+        ));
+        assert!(is_policy_invalidated_error(
+            "observed hazard branch must terminate immediately"
+        ));
+        assert!(!is_policy_invalidated_error("rational multiplication numerator overflow"));
+        assert!(!is_policy_invalidated_error("model worlds must share dimensions"));
+    }
 }
 
 fn compare_witness_severity(
