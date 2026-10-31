@@ -461,7 +461,7 @@ struct Case { name: &'static str, model: Model, momentum: Vec3 }
 const CASES: [Case; 3] = [
     Case { name: "asymmetric", model: Model { principal_moments: Vec3::new(2.0, 3.0, 4.0) }, momentum: Vec3::new(0.3, 0.5, 0.7) },
     Case { name: "near_axisymmetric", model: Model { principal_moments: Vec3::new(2.0, 2.05, 3.6) }, momentum: Vec3::new(0.8, 0.2, 0.4) },
-    Case { name: "intermediate_axis", model: Model { principal_moments: Vec3::new(1.0, 2.0, 3.0) }, momentum: Vec3::new(0.08, 1.0, 0.12) },
+    Case { name: "intermediate_axis", model: Model { principal_moments: Vec3::new(1.2, 2.0, 2.6) }, momentum: Vec3::new(0.08, 1.0, 0.12) },
 ];
 
 fn campaign() -> Result<(), StepError> {
