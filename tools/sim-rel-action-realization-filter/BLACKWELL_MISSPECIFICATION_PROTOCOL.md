@@ -39,8 +39,9 @@ Given an *assumed* channel K and a distinct *true* channel T, the evaluator:
    probability as unsupported; those paths explicitly abstain and are never
    normalized into a fabricated posterior.
 
-The receipt reports nominal expected loss under the assumed posterior (weighted
-by true observation frequencies), realized policy loss, true Bayes oracle loss,
+The receipt separates nominal model Bayes risk under its own observation
+distribution from the assumed conditional risk reweighted by true observation
+frequencies. It also reports realized policy loss, true Bayes oracle loss,
 decision regret, unsupported-observation probability and the probability that
 the chosen decision differs from the true Bayes decision.
 
