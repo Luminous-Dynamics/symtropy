@@ -80,7 +80,7 @@ The `dissonance` module records empirical disagreements, normative conflicts, re
 It preserves position records, source attribution, rationale and evidence references. Process safeguards (faithful representation, accessible affected-party voice, dissent retention, evidence review, appeal and power disclosure) are explicit. Corrosive hazards such as retaliation, coercion, essential-access conditioning, evidence suppression, misrepresentation, intimidation and surveillance retain their finding state: reported, corroborated, substantiated, refuted or unresolved.
 
 The model distinguishes dispositions:
-- hold a tension open;
+- hold a tension open with an accountable owner, reason for deferral, accessible review/appeal route and mandatory review time;
 - integrate all recorded positions;
 - provisionally prioritize one position while retaining all others;
 - sequence two positions with explicit retention and a rollback trigger;
