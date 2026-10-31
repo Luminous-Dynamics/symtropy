@@ -315,6 +315,24 @@ mod tests {
             1,
         ).unwrap_err().contains("action vocabulary"));
 
+        let mut changed_physical = make_world("changed-physical", false);
+        changed_physical.kernel.physical_state_ids[0] = "different-specimen-state".into();
+        assert!(evaluate_policy_across_worlds(
+            &[nominal.clone(), changed_physical],
+            "nominal",
+            &identifying_policy(),
+            1,
+        ).unwrap_err().contains("physical-state vocabulary"));
+
+        let mut changed_sensor = make_world("changed-sensor", false);
+        changed_sensor.kernel.sensor_state_ids[0] = "different-sensor-state".into();
+        assert!(evaluate_policy_across_worlds(
+            &[nominal.clone(), changed_sensor],
+            "nominal",
+            &identifying_policy(),
+            1,
+        ).unwrap_err().contains("sensor-state vocabulary"));
+
         let mut changed_cost = make_world("changed-cost", false);
         changed_cost.kernel.action_costs[0] = 3;
         assert!(evaluate_policy_across_worlds(
