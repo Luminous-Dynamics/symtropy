@@ -79,7 +79,7 @@ Regression tests cover the analytic isotropic diagonal metric in D=2/3/4, asymme
 
 The branch now also exports `ContactWrenchRow<D>`, `assemble_contact_wrench_delassus` and `assemble_contact_wrench_free_velocity`. A contact contributes D linear coordinates (normal plus tangents) and D(D-1)/2 angular coordinates (rolling plus torsion). The matrix includes contact lever-arm moments, direct angular impulses, and the cross-channel/cross-body response. The free-velocity projection uses the same basis and converts the stored rotor generator to physical angular velocity before projection.
 
-Tests verify analytic isotropic diagonals in D=2/3/4, asymmetric tangent-to-rolling coupling, symmetry/PSD, the physical angular-state sign and global-frame covariance of both W and q. The full coupled metric remains a reference assembler; it is not connected to a 3D/4D maximum-dissipation friction optimizer or production TGS.
+Tests verify analytic isotropic diagonals in D=2/3/4, asymmetric tangent-to-rolling coupling, symmetry/PSD, the physical angular-state sign and global-frame covariance of both W and q. The new linear normal/tangent diagonal entries are also cross-checked against the pre-existing frictionless Delassus assembler. The full coupled metric remains a reference assembler; it is not connected to a 3D/4D maximum-dissipation friction optimizer or production TGS.
 
 ## Mechanical evidence increment
 
