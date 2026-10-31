@@ -24,6 +24,7 @@ const EDGE_IDS: [u64; EDGE_COUNT] = [101, 202];
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Error {
     InvalidParameter,
+    InvalidSolverOptions,
     InvalidTimeStep,
     InvalidInitialLinkConstraint { edge: usize },
     InvalidInitialVelocityConstraint { edge: usize },
@@ -73,7 +74,7 @@ impl SolverOptions {
             || self.max_iterations == 0
             || self.max_backtracks == 0
         {
-            return Err(Error::InvalidParameter);
+            return Err(Error::InvalidSolverOptions);
         }
         self.rank_policy.validate().map_err(Error::RankPreflight)?;
         Ok(self)
@@ -438,14 +439,7 @@ impl CartesianRattleChain {
             let r_plus = edge_vector(after, row);
             residuals[row] = 0.5 * (dot(r_plus, r_plus) - self.lengths[row] * self.lengths[row]);
             for column in 0..EDGE_COUNT {
-                let (from, to) = EDGES[column];
                 let r0 = edge_vector(before, column);
-                let dq_from = [0.0; 3];
-                let _ = dq_from;
-                let grad_row_from = edge_gradient(row, from, r_plus);
-                let grad_row_to = edge_gradient(row, to, r_plus);
-                let grad_column_from = edge_gradient(column, from, r0);
-                let grad_column_to = edge_gradient(column, to, r0);
                 let mut contraction = 0.0;
                 for body in 0..BODY_COUNT {
                     let g_row = edge_gradient(row, body, r_plus);
@@ -453,7 +447,6 @@ impl CartesianRattleChain {
                     contraction += dot(g_row, g_column) / self.masses[body];
                 }
                 jacobian[row][column] = -0.5 * dt * dt * contraction;
-                let _ = (grad_row_from, grad_row_to, grad_column_from, grad_column_to);
             }
         }
         let _ = after_positions;
