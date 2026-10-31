@@ -22,9 +22,11 @@ The per-body fallible APIs are insufficient if the world continues to call compa
 
 ## Callback boundary
 
-The physics-owned state can be restored, but arbitrary external side effects from callback methods cannot be rolled back through the current `PhysicsCallback` trait. In particular, a callback may already have observed a force modulation or recorded a collision/dissipation from an earlier contact before a later contact fails. The new docs explicitly state this limitation.
+The mutable event hooks are now two-phase: friction-dissipation, collision and trauma effects are buffered during the solve and dispatched through `PhysicsCallback::commit_step_effects` only after the whole physics step succeeds. The default batch method preserves legacy hook order; custom callbacks may override it for atomic publication to their own state store. On rejection, the buffer is dropped with the world rollback.
 
-A future fully transactional callback contract should buffer callback observations and publish them only after the physics commit, or let callbacks implement prepare/commit/abort semantics. The no-op `try_step` has no external callback side effects and is the strongest current atomicity path.
+The three solver modulation methods (`modulate_force`, `modulate_impulse`, `friction_multiplier`) take `&self` and are contractually pure and deterministic for fixed inputs. They may be called before a later phase rejects, so implementations must not use interior mutability to publish irreversible effects from modulation. This is a behavioral contract, not a property enforced by the type system.
+
+The physics-owned state and buffered mutable effects can be rolled back, but arbitrary side effects performed by impure modulation callbacks cannot be undone. The default `commit_step_effects` implementation dispatches legacy callbacks sequentially; callbacks needing atomic publication must override the batch method. Callback panics occur after the physics commit and are not converted into recoverable physics errors.
 
 ## Ordering invariant
 
