@@ -194,17 +194,40 @@ fn is_sha256(value: &str) -> bool {
 
 fn valid_utc(value: &str) -> bool {
     let bytes = value.as_bytes();
-    bytes.len() == 20
-        && bytes[4] == b'-'
-        && bytes[7] == b'-'
-        && bytes[10] == b'T'
-        && bytes[13] == b':'
-        && bytes[16] == b':'
-        && bytes[19] == b'Z'
-        && bytes
-            .iter()
-            .enumerate()
-            .all(|(i, b)| matches!(i, 4 | 7 | 10 | 13 | 16 | 19) || b.is_ascii_digit())
+    if bytes.len() != 20
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
+        || !bytes.iter().enumerate().all(|(i, b)| {
+            matches!(i, 4 | 7 | 10 | 13 | 16 | 19) || b.is_ascii_digit()
+        })
+    {
+        return false;
+    }
+    let parse = |range: std::ops::Range<usize>| -> Option<u32> {
+        std::str::from_utf8(&bytes[range]).ok()?.parse().ok()
+    };
+    let year = match parse(0..4) { Some(v) => v, None => return false };
+    let month = match parse(5..7) { Some(v) => v, None => return false };
+    let day = match parse(8..10) { Some(v) => v, None => return false };
+    let hour = match parse(11..13) { Some(v) => v, None => return false };
+    let minute = match parse(14..16) { Some(v) => v, None => return false };
+    let second = match parse(17..19) { Some(v) => v, None => return false };
+    if year == 0 || hour > 23 || minute > 59 || second > 59 {
+        return false;
+    }
+    let leap_year = year % 400 == 0 || (year % 4 == 0 && year % 100 != 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return false,
+    };
+    day >= 1 && day <= days_in_month
 }
 
 fn node_key(kind: &str, id: &str) -> String {
@@ -509,13 +532,16 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
             ));
         }
 
-        evidence_for(
+        let vvuq_receipt = evidence_for(
             manifest,
             &component.vvuq_evidence_id,
             "COMPONENT",
             &component.id,
             "COMPONENT_VVUQ",
         )?;
+        if !matches!(vvuq_receipt.status.as_str(), "QUALIFIED" | "SYNTHETIC_ONLY") {
+            return Err(format!("component {} VVUQ evidence is not qualified", component.id));
+        }
         if !used_evidence.insert(component.vvuq_evidence_id.as_str()) {
             return Err(format!("evidence {} is reused", component.vvuq_evidence_id));
         }
@@ -619,6 +645,9 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
     {
         return Err("calibration was not valid at the measurement timestamp".to_string());
     }
+    if !matches!(calibration_evidence.status.as_str(), "VERIFIED" | "QUALIFIED" | "SYNTHETIC_ONLY") {
+        return Err("calibration evidence is not verified".to_string());
+    }
 
     let msa = manifest.nodes.get("MSA_STUDY:msa-001")
         .ok_or("missing MSA study node")?;
@@ -639,13 +668,16 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
             return Err(format!("duplicate edge {}", edge_key(edge)));
         }
         let subject_id = edge_key(edge);
-        evidence_for(
+        let edge_evidence = evidence_for(
             manifest,
             &edge.evidence_id,
             "EDGE",
             &subject_id,
             "EXPLICIT_ASSOCIATION",
         )?;
+        if !matches!(edge_evidence.status.as_str(), "VERIFIED" | "SYNTHETIC_ONLY") {
+            return Err(format!("edge {} association evidence is not verified", subject_id));
+        }
         if !used_evidence.insert(edge.evidence_id.as_str()) {
             return Err(format!("evidence {} is reused", edge.evidence_id));
         }
@@ -902,7 +934,7 @@ mod tests {
     #[test]
     fn rejects_orphan_evidence_record() {
         let input = format!(
-            "{}\nEVIDENCE|ev-orphan|UNUSED|NODE|UNUSED|fixture|{}|{}|SYNTHETIC_ONLY\n",
+            "{}\nEVIDENCE|ev-orphan|UNUSED|NODE|UNUSED|fixture|{}|{}|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|SYNTHETIC_ONLY\n",
             fixture("integrated"),
             "f".repeat(64),
             "e".repeat(64)
