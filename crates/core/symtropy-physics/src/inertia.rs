@@ -868,17 +868,14 @@ mod tests {
         });
         let rotated =
             BivectorInertia::<3>::from_tetrahedra([(rotated_vertices, 6.0)], 1e-12).unwrap();
-        let rotation_matrix = rotation.to_matrix();
-        let expected_second_moment = rotation_matrix
-            * reference.inertia.second_moment()
-            * rotation_matrix.transpose();
+        let expected_second_moment = reference.inertia.rotated_by(&rotation);
 
         assert!(
             (rotated.center_of_mass - rotation.rotate_vector(&reference.center_of_mass)).norm()
                 < 1e-12
         );
         assert!(
-            (rotated.inertia.second_moment() - expected_second_moment).norm() < 1e-12
+            (rotated.inertia.second_moment() - expected_second_moment.second_moment()).norm() < 1e-12
         );
     }
 
