@@ -10,6 +10,7 @@ From this directory:
     cargo bench --bench compile_latency --locked
     cargo run --locked -- ../../../benchmarks/aero/naca0012-inc-rans/case.toml
     cargo run --locked -- ../../../benchmarks/aero/naca0012-inc-rans/case.toml --solver-config ./upstream/config.cfg --mesh ./upstream/mesh.su2
+    cargo run --locked -- ../../../benchmarks/aero/naca0012-inc-rans/case.toml --portable-ir-dir ./portable-identity
 
 Exit codes: 0 = PlanReady, 2 = Invalid, 3 = Blocked, 4 = Unsupported, 64 = usage, 66 = source read error, 70 = report serialization error.
 
@@ -90,8 +91,16 @@ existing digests.
 The compiler's Rust tests compare `serde_jcs` against the shared frozen byte
 vector. CI separately checks the same input and expected output using the
 pinned Go implementation, built in an isolated GOPATH from its exact upstream
-commit. This is an independent-language comparison, not two wrappers around
-the same Rust serializer.
+commit.
+
+More importantly, the compiler CLI can export both the actual typed-IR profile
+envelope as ordinary JSON and the Rust JCS byte sequence via
+`--portable-ir-dir <path>`. The workflow runs the independent Go
+canonicalizer over that exact compiler-produced JSON and requires it to
+reproduce the exact Rust JCS bytes. This checks the real Scenario IR field set,
+values, nested structure, compiler/parser/profile envelope and numeric
+formatting—not merely a generic library example. The JSON preimage and JCS
+output are published with SHA-256 digests as qualification artifacts.
 
 The compile-latency benchmark continues to report whole compile p50/p95/p99
 and now reports standalone canonical IR JCS serialization p50/p95/p99 as a
