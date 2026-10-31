@@ -66,7 +66,7 @@ The system may produce a provisional decision without claiming the underlying pa
 
 | Disposition | Use when | Required safeguards |
 |---|---|---|
-| Hold open | Evidence or legitimacy is insufficient, or no safe decision is possible | Review date, continued monitoring, no manufactured consensus |
+| Hold open | Evidence or legitimacy is insufficient, or no safe decision is possible | Named accountable owner, reason for deferral, accessible review/appeal route, review date, continued monitoring, no manufactured consensus |
 | Evidence resolution | A factual dispute has been tested with adequate evidence | Pre-registered test, evidence bundle, uncertainty and residual limits |
 | Integrate | A design can preserve multiple poles | Each affected pole represented; outcome tests for both |
 | Prioritize provisionally | Urgency or binding constraints require one pole to lead temporarily | Explicit reason, retained alternatives, review date, reversible where feasible |
