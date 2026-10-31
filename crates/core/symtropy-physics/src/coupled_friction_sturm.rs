@@ -1080,6 +1080,60 @@ fn interval_monomial(
 
 /// Exact interval enclosure of the quartic discriminant. The closed form is
 /// expanded term-by-term with outward-exact rational interval operations.
+fn exact_quartic_discriminant_via_resultant(poly: &[Rational]) -> Result<Rational, &'static str> {
+    if poly.len() != 5 {
+        return Err("exact resultant helper requires a quartic");
+    }
+    let descending = poly.iter().rev().cloned().collect::<Vec<_>>();
+    let derivative_descending = vec![
+        &descending[0] * Rational::from_integer(BigInt::from(4)),
+        &descending[1] * Rational::from_integer(BigInt::from(3)),
+        &descending[2] * Rational::from_integer(BigInt::from(2)),
+        descending[3].clone(),
+    ];
+    let mut sylvester = vec![vec![Rational::zero(); 7]; 7];
+    for shift in 0..3 {
+        for (index, coefficient) in descending.iter().enumerate() {
+            sylvester[shift][shift + index] = coefficient.clone();
+        }
+    }
+    for shift in 0..4 {
+        for (index, coefficient) in derivative_descending.iter().enumerate() {
+            sylvester[3 + shift][shift + index] = coefficient.clone();
+        }
+    }
+
+    let mut determinant = Rational::one();
+    for pivot_index in 0..7 {
+        let pivot_row = (pivot_index..7)
+            .find(|row| !sylvester[*row][pivot_index].is_zero())
+            .ok_or("singular Sylvester matrix")?;
+        if pivot_row != pivot_index {
+            sylvester.swap(pivot_row, pivot_index);
+            determinant = -determinant;
+        }
+        let pivot = sylvester[pivot_index][pivot_index].clone();
+        determinant *= pivot.clone();
+        for row in pivot_index + 1..7 {
+            if sylvester[row][pivot_index].is_zero() {
+                continue;
+            }
+            let factor = sylvester[row][pivot_index].clone() / pivot.clone();
+            for column in pivot_index + 1..7 {
+                sylvester[row][column] -=
+                    factor.clone() * sylvester[pivot_index][column].clone();
+            }
+            sylvester[row][pivot_index] = Rational::zero();
+        }
+    }
+    let leading = poly.last().ok_or("missing quartic leading coefficient")?;
+    if leading.is_zero() {
+        return Err("quartic leading coefficient is zero");
+    }
+    // For degree four, (-1)^(4*3/2) = +1, so Disc(P)=Res(P,P')/a.
+    Ok(determinant / leading.clone())
+}
+
 fn quartic_discriminant_interval(coefficients: &[ExactInterval]) -> Result<ExactInterval, &'static str> {
     if coefficients.len() != 5 {
         return Err("quartic coefficient interval vector must have length five");
@@ -1241,6 +1295,24 @@ fn certify_contact_input_box(input: &ContactInputBox) -> FamilyRootCertificate {
         discriminant,
         spd_gershgorin_lower_bound: spd_lower_bound,
     }
+}
+
+#[test]
+fn interval_discriminant_formula_matches_an_independent_exact_resultant() {
+    let roots = [-3_i64, -1, 2, 5]
+        .into_iter()
+        .map(|value| Rational::from_integer(BigInt::from(value)))
+        .collect::<Vec<_>>();
+    let polynomial = polynomial_from_roots(&roots);
+    let exact_discriminant = exact_quartic_discriminant_via_resultant(&polynomial).unwrap();
+    let interval_coefficients = polynomial
+        .iter()
+        .cloned()
+        .map(ExactInterval::point)
+        .collect::<Vec<_>>();
+    let enclosed = quartic_discriminant_interval(&interval_coefficients).unwrap();
+    assert_eq!(enclosed.lower, exact_discriminant);
+    assert_eq!(enclosed.upper, exact_discriminant);
 }
 
 #[test]
