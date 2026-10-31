@@ -13,7 +13,7 @@
 //!   rustc --edition=2021 -D warnings tools/manufacturing-assurance/change_impact.rs -o /tmp/mfg-change
 //!   /tmp/mfg-change <manifest.tsv>
 
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Item {
@@ -71,6 +71,7 @@ struct Manifest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct ClaimImpact {
     claim_id: String,
+    current_status: String,
     witness_path: Vec<String>,
     dependency_path_count: u64,
 }
@@ -78,6 +79,7 @@ struct ClaimImpact {
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct ChangeImpact {
     change_id: String,
+    receipt_id: String,
     disposition: String,
     direct_item_id: String,
     affected_items: Vec<String>,
@@ -297,6 +299,9 @@ fn validate_graph(manifest: &Manifest) -> Result<BTreeMap<String, Vec<String>>, 
     let mut indegree: BTreeMap<String, usize> = BTreeMap::new();
 
     for id in manifest.items.keys().chain(manifest.claims.keys()) {
+        if manifest.items.contains_key(id) && manifest.claims.contains_key(id) {
+            return Err(format!("duplicate graph identity {id}"));
+        }
         adjacency.insert(id.clone(), Vec::new());
         indegree.insert(id.clone(), 0);
     }
@@ -406,6 +411,32 @@ fn validate_change(manifest: &Manifest, change: &Change) -> Result<bool, String>
             change.id, change.target_id
         ));
     }
+    if !intervals_overlap(
+        &item.valid_from,
+        &item.valid_until,
+        &change.effective_from,
+        &change.effective_until,
+    ) {
+        return Err(format!(
+            "change {} effective interval does not overlap target item validity",
+            change.id
+        ));
+    }
+    let compatible_kind = match change.class.as_str() {
+        "CALIBRATION" => item.kind == "CALIBRATION",
+        "MATERIAL" => item.kind == "MATERIAL" || item.kind == "MATERIAL_LOT",
+        "ENVIRONMENT" => item.kind == "ENVIRONMENT" || item.kind == "BOUNDARY_CONDITION",
+        "PROCESS" => item.kind == "PROCESS" || item.kind == "PROCESS_PARAMETER" || item.kind == "ROUTE",
+        "SCHEMA" => item.kind == "SCHEMA" || item.kind == "INTERFACE_MAPPING",
+        "SUBSTANTIVE" | "METADATA_ONLY" => true,
+        _ => false,
+    };
+    if !compatible_kind {
+        return Err(format!(
+            "change {} class {} is incompatible with target kind {}",
+            change.id, change.class, item.kind
+        ));
+    }
 
     // Explicit no-op: metadata-only revision change, identical content digest,
     // and a declared absence of semantic change. It never invalidates downstream claims.
@@ -463,7 +494,6 @@ fn traverse_impact(
     adjacency: &BTreeMap<String, Vec<String>>,
     change: &Change,
 ) -> ChangeImpact {
-    let mut queue = VecDeque::new();
     let mut distances: BTreeMap<String, usize> = BTreeMap::new();
     let mut witness_paths: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut path_counts: BTreeMap<String, u64> = BTreeMap::new();
@@ -471,7 +501,6 @@ fn traverse_impact(
     distances.insert(change.target_id.clone(), 0);
     witness_paths.insert(change.target_id.clone(), vec![change.target_id.clone()]);
     path_counts.insert(change.target_id.clone(), 1);
-    queue.push_back(change.target_id.clone());
 
     // The dependency graph is already a DAG. Topological propagation counts
     // distinct paths while retaining one deterministic shortest witness path.
@@ -492,10 +521,36 @@ fn traverse_impact(
     while let Some(id) = ready.pop_first() {
         if let Some(children) = adjacency.get(&id) {
             for child in children {
-                if let Some(parent_paths) = path_counts.get(&id).copied() {
-                    let existing = path_counts.get(child).copied().unwrap_or(0);
-                    path_counts.insert(child.clone(), add_saturating(existing, parent_paths));
-                    let candidate_distance = distances.get(&id).copied().unwrap_or(0) + 1;
+                let child_is_in_scope = if let Some(item) = manifest.items.get(child) {
+                    change.scope == "GLOBAL" || item.scope == "GLOBAL" || item.scope == change.scope
+                } else if let Some(claim) = manifest.claims.get(child) {
+                    claim_scope_affected(&change.scope, &claim.scope)
+                } else {
+                    false
+                };
+                let child_is_in_time = if let Some(item) = manifest.items.get(child) {
+                    intervals_overlap(
+                        &item.valid_from,
+                        &item.valid_until,
+                        &change.effective_from,
+                        &change.effective_until,
+                    )
+                } else if let Some(claim) = manifest.claims.get(child) {
+                    intervals_overlap(
+                        &claim.valid_from,
+                        &claim.valid_until,
+                        &change.effective_from,
+                        &change.effective_until,
+                    )
+                } else {
+                    false
+                };
+
+                if child_is_in_scope && child_is_in_time {
+                    if let Some(parent_paths) = path_counts.get(&id).copied() {
+                        let existing = path_counts.get(child).copied().unwrap_or(0);
+                        path_counts.insert(child.clone(), add_saturating(existing, parent_paths));
+                        let candidate_distance = distances.get(&id).copied().unwrap_or(0) + 1;
                     let mut candidate_path = witness_paths
                         .get(&id)
                         .cloned()
@@ -513,9 +568,10 @@ fn traverse_impact(
                         }
                         _ => false,
                     };
-                    if replace {
-                        distances.insert(child.clone(), candidate_distance);
-                        witness_paths.insert(child.clone(), candidate_path);
+                        if replace {
+                            distances.insert(child.clone(), candidate_distance);
+                            witness_paths.insert(child.clone(), candidate_path);
+                        }
                     }
                 }
 
@@ -551,6 +607,7 @@ fn traverse_impact(
         if scope_matches && time_matches {
             affected_claims.push(ClaimImpact {
                 claim_id: claim_id.clone(),
+                current_status: claim.status.clone(),
                 witness_path: witness_paths.get(claim_id).cloned().unwrap_or_default(),
                 dependency_path_count: path_counts.get(claim_id).copied().unwrap_or(0),
             });
@@ -568,6 +625,7 @@ fn traverse_impact(
 
     ChangeImpact {
         change_id: change.id.clone(),
+        receipt_id: change.receipt_id.clone(),
         disposition: disposition.to_string(),
         direct_item_id: change.target_id.clone(),
         affected_items,
@@ -591,6 +649,7 @@ fn analyze(manifest: &Manifest) -> Result<ImpactReport, String> {
         let impact = if no_op {
             ChangeImpact {
                 change_id: change.id.clone(),
+                receipt_id: change.receipt_id.clone(),
                 disposition: "NO_OP_METADATA_ONLY".to_string(),
                 direct_item_id: change.target_id.clone(),
                 affected_items: Vec::new(),
@@ -626,8 +685,9 @@ fn render_report(report: &ImpactReport) -> String {
     let mut output = String::new();
     for change in &report.change_impacts {
         output.push_str(&format!(
-            "CHANGE_IMPACT change={} disposition={} direct={} affected_items={} affected_claims={}\n",
+            "CHANGE_IMPACT change={} receipt_ref={} disposition={} direct={} affected_items={} affected_claims={}\n",
             change.change_id,
+            change.receipt_id,
             change.disposition,
             change.direct_item_id,
             change.affected_items.len(),
@@ -638,9 +698,10 @@ fn render_report(report: &ImpactReport) -> String {
         }
         for claim in &change.affected_claims {
             output.push_str(&format!(
-                "AFFECTED_CLAIM change={} claim={} dependency_paths={} witness={}\n",
+                "AFFECTED_CLAIM change={} claim={} current_status={} dependency_paths={} witness={}\n",
                 change.change_id,
                 claim.claim_id,
+                claim.current_status,
                 claim.dependency_path_count,
                 claim.witness_path.join("->")
             ));
@@ -772,7 +833,10 @@ CHANGE|change-physics|physics|r1|r2|00000000000000000000000000000000000000000000
 
     #[test]
     fn wrong_old_revision_or_digest_fails_closed() {
-        let input = FIXTURE.replace("|physics|r1|0000000000000000000000000000000000000000000000000000000000000001|", "|physics|r0|0000000000000000000000000000000000000000000000000000000000000001|");
+        let input = FIXTURE.replace(
+            "CHANGE|change-physics|physics|r1|",
+            "CHANGE|change-physics|physics|r0|",
+        );
         assert!(parse_and_analyze(&input).unwrap_err().contains("old revision/digest"));
     }
 
