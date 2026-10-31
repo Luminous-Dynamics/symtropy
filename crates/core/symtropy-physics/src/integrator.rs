@@ -168,7 +168,9 @@ pub fn try_integrate_with_limits<const D: usize>(
         || !body.linear_damping.is_finite()
         || !body.angular_damping.is_finite()
         || !body.mass.is_finite()
+        || body.mass <= 0.0
         || !body.inv_mass.is_finite()
+        || body.inv_mass <= 0.0
         || !body.inv_inertia.iter().all(|value| value.is_finite())
     {
         return Err(reject_integration(IntegrationError::InvalidParameters));
@@ -214,7 +216,7 @@ pub fn try_integrate_with_limits<const D: usize>(
             Ok(acceleration) => acceleration,
             Err(error) => {
                 ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
-                return Err(error);
+                return Err(IntegrationError::RotationalInertia(error));
             }
         }
     } else {
