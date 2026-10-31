@@ -482,6 +482,8 @@ The same inspection found that the MutualAid Requests coordinator copies a calle
 
 The governance-policy simulation work is tracked separately in [CIV-GOV-002 / issue #3766](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3766), which includes equal civic standing and a rights-floor hybrid as candidate model families. This specification does not claim that voting policy is already corrected.
 
+The MutualAid Needs path has two further consent/state issues independent of civic scoring: [#3785](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3785) tracks the fact that one participant can currently set the shared match status to Accepted without a distinct second-party acceptance receipt; [#3784](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3784) tracks the apparent conflict between `confirm_fulfillment` and the integrity validator's blanket rejection of Fulfillment updates. These are source-level findings and require HDI tests.
+
 These are source-level findings, not conductor-tested claims about a deployed network. Verify all affected DNA compositions, alternate intake routes, integrity validators and live call flows before making deployment-level statements.
 
 ---
