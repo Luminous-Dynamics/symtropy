@@ -1283,6 +1283,21 @@ mod tests {
         ).unwrap()
     }
 
+    fn source_context(
+        record: &DissonanceRecord,
+        actor: &str,
+        at: u64,
+        receipt: &str,
+    ) -> EventContext {
+        let previous = record.event_history().last().map(|event| event.receipt_ref().to_owned());
+        EventContext::new(
+            actor,
+            at.max(record.event_history().last().map_or(0, |event| event.occurred_at())),
+            previous,
+            format!("receipt:{receipt}"),
+        ).unwrap()
+    }
+
     fn record_safe(record: &mut DissonanceRecord, at: u64, receipt: &str) {
         let context = event_context(record, at, receipt);
         record.record_safeguards(safe_safeguards(), context).unwrap();
@@ -1847,6 +1862,189 @@ mod tests {
             } if evidence_ref == "evidence:new"
         ));
         assert!(record.assess().corrosive_hazards.contains(&CorrosiveHazard::Coercion));
+    }
+
+
+    #[test]
+    fn only_the_original_source_can_correct_a_position() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        let p1 = PositionId::new("p1").unwrap();
+        let unauthorized = source_context(&record, "administrator", 10, "unauthorized-correction");
+        assert_eq!(
+            record.correct_position(
+                &p1,
+                "Replace worker autonomy with administrator preference.",
+                "Unauthorized rewrite attempt.",
+                vec!["evidence:admin".to_owned()],
+                unauthorized,
+            ),
+            Err(DissonanceError::UnauthorizedPositionMutation)
+        );
+        assert_eq!(record.position_revision_history(&p1), None);
+        assert_eq!(record.current_position_claim(&p1), Some("Protect worker autonomy."));
+        assert_eq!(record.event_history().count(), 0);
+    }
+
+    #[test]
+    fn source_correction_appends_revision_without_rewriting_original_position() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        let p1 = PositionId::new("p1").unwrap();
+        let context = source_context(&record, "workers", 10, "source-correction");
+        record.correct_position(
+            &p1,
+            "Protect worker autonomy with a minimum reliability floor.",
+            "The source clarified its original position after new service evidence.",
+            vec!["evidence:reliability".to_owned()],
+            context,
+        ).unwrap();
+
+        let original = record.positions().find(|position| position.id == p1).unwrap();
+        assert_eq!(original.claim, "Protect worker autonomy.");
+        assert_eq!(
+            record.current_position_claim(&p1),
+            Some("Protect worker autonomy with a minimum reliability floor.")
+        );
+        let revisions = record.position_revision_history(&p1).unwrap();
+        assert_eq!(revisions.len(), 1);
+        assert_eq!(revisions[0].revision_number, 1);
+        assert_eq!(record.event_history().count(), 1);
+        assert_eq!(record.status(), DissonanceStatus::UnderInquiry);
+    }
+
+    #[test]
+    fn position_withdrawal_is_source_authenticated_and_retains_history() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        let p1 = PositionId::new("p1").unwrap();
+        let context = source_context(&record, "workers", 10, "source-withdrawal");
+        record.withdraw_position(
+            &p1,
+            "withdrawal-reason:private-1".to_owned(),
+            context,
+        ).unwrap();
+
+        assert!(record.is_position_withdrawn(&p1));
+        assert_eq!(record.active_positions().count(), 1);
+        assert_eq!(record.positions().count(), 2);
+        assert_eq!(record.current_position_claim(&p1), Some("Protect worker autonomy."));
+        assert_eq!(record.event_history().count(), 1);
+        assert!(matches!(
+            record.event_history().next().unwrap().kind(),
+            DissonanceEventKind::PositionWithdrawn {
+                position_id,
+                revision_number: 0,
+                reason_ref,
+            } if position_id == &p1 && reason_ref == "withdrawal-reason:private-1"
+        ));
+    }
+
+    #[test]
+    fn duplicate_withdrawal_and_correction_after_withdrawal_fail_closed() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        let p1 = PositionId::new("p1").unwrap();
+        let context = source_context(&record, "workers", 10, "withdraw-once");
+        record.withdraw_position(&p1, "reason:1".to_owned(), context).unwrap();
+
+        let duplicate = source_context(&record, "workers", 11, "withdraw-twice");
+        assert_eq!(
+            record.withdraw_position(&p1, "reason:2".to_owned(), duplicate),
+            Err(DissonanceError::PositionAlreadyWithdrawn)
+        );
+        let correction = source_context(&record, "workers", 11, "correct-while-withdrawn");
+        assert_eq!(
+            record.correct_position(
+                &p1,
+                "A new claim.",
+                "Correction while withdrawn is disallowed.",
+                vec![],
+                correction,
+            ),
+            Err(DissonanceError::PositionAlreadyWithdrawn)
+        );
+        assert_eq!(record.event_history().count(), 1);
+    }
+
+    #[test]
+    fn source_can_reinstate_a_withdrawn_position_as_a_new_event() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        let p1 = PositionId::new("p1").unwrap();
+        let withdraw = source_context(&record, "workers", 10, "withdraw");
+        record.withdraw_position(&p1, "reason:withdraw".to_owned(), withdraw).unwrap();
+        let reinstate = source_context(&record, "workers", 11, "reinstate");
+        record.reinstate_position(&p1, "reason:reinstate".to_owned(), reinstate).unwrap();
+
+        assert!(!record.is_position_withdrawn(&p1));
+        assert_eq!(record.active_positions().count(), 2);
+        assert_eq!(record.positions().count(), 2);
+        assert_eq!(record.event_history().count(), 2);
+        assert!(matches!(
+            record.event_history().last().unwrap().kind(),
+            DissonanceEventKind::PositionReinstated { position_id, .. } if position_id == &p1
+        ));
+    }
+
+    #[test]
+    fn correction_withdrawal_and_reinstatement_replay_to_identical_projection() {
+        let mut original = record(DissonanceKind::StructuralParadox);
+        let genesis: Vec<Position> = original.positions().cloned().collect();
+        let p1 = PositionId::new("p1").unwrap();
+
+        let correct = source_context(&original, "workers", 10, "correct");
+        original.correct_position(
+            &p1,
+            "Protect autonomy while publishing a reliability floor.",
+            "A source-authored clarification.",
+            vec!["evidence:1".to_owned()],
+            correct,
+        ).unwrap();
+        let withdraw = source_context(&original, "workers", 11, "withdraw");
+        original.withdraw_position(&p1, "reason:withdraw".to_owned(), withdraw).unwrap();
+        let reinstate = source_context(&original, "workers", 12, "reinstate");
+        original.reinstate_position(&p1, "reason:reinstate".to_owned(), reinstate).unwrap();
+
+        let events: Vec<DissonanceEvent> = original.event_history().cloned().collect();
+        let replayed = DissonanceRecord::replay(
+            DissonanceKind::StructuralParadox,
+            genesis,
+            &events,
+        ).unwrap();
+        assert_eq!(replayed, original);
+        assert_eq!(
+            replayed.current_position_claim(&p1),
+            Some("Protect autonomy while publishing a reliability floor.")
+        );
+    }
+
+    #[test]
+    fn dispositions_after_withdrawal_account_for_active_positions_only() {
+        let mut record = DissonanceRecord::new(
+            DissonanceKind::StructuralParadox,
+            vec![
+                position("p1", "workers", "Protect worker autonomy."),
+                position("p2", "community", "Maintain reliable shared capacity."),
+                position("p3", "caregivers", "Protect care time."),
+            ],
+        ).unwrap();
+        record_safe(&mut record, 10, "safeguards");
+        let withdrawn = PositionId::new("p3").unwrap();
+        let context = source_context(&record, "caregivers", 11, "withdraw-p3");
+        record.withdraw_position(
+            &withdrawn,
+            "reason:caregivers".to_owned(),
+            context,
+        ).unwrap();
+
+        let disposition = DissonanceDisposition::Integrate {
+            position_ids: vec![PositionId::new("p1").unwrap(), PositionId::new("p2").unwrap()],
+            rationale: "Integrate all currently active positions.".to_owned(),
+            review_at: 100,
+        };
+        let context = event_context(&record, 12, "integrate-active");
+        record.set_disposition_with_context(disposition, context).unwrap();
+
+        assert_eq!(record.active_positions().count(), 2);
+        assert_eq!(record.positions().count(), 3);
+        assert_eq!(record.disposition_history().count(), 1);
+        assert_eq!(record.status(), DissonanceStatus::Integrated);
     }
 
     #[test]
