@@ -20,7 +20,9 @@ def main() -> int:
     with Path(sys.argv[1]).open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
     require(len(rows) == 1, f"expected one summary row, found {len(rows)}")
+    require(len(rows[0].keys()) == 39, f"expected 39 CSV columns, found {len(rows[0].keys())}")
     row = rows[0]
+    require(None not in row, "CSV contains extra unbound columns")
     require(row["case_id"] == "synthetic-oat15a-validation", "wrong case binding")
     require(row["quantity"] == "CD", "wrong quantity")
     require(row["admission_status"].startswith("numerically_admitted_"), "not numerically admitted")
@@ -35,6 +37,8 @@ def main() -> int:
     input_variance = 0.2**2 + (-0.3)**2 + 2.0 * 0.4 * 0.2 * (-0.3)
     input_uncertainty = math.sqrt(input_variance)
     require(math.isclose(float(row["input_standard_uncertainty"]), input_uncertainty, rel_tol=1e-10), "covariance propagation mismatch")
+    require(row["experimental_uncertainty_source_reference"] == "synthetic-experiment-budget-v0.1", "experimental uncertainty source missing")
+    require(row["experimental_uncertainty_method"] == "synthetic repeatability and calibration aggregate", "experimental uncertainty method missing")
     require(row["input_and_experiment_are_aleatory"] == "true", "aleatory basis declaration missing")
     require(row["aleatory_basis_rationale"] == "synthetic declared aleatory sources", "aleatory rationale missing")
     require(row["input_experiment_error_correlation"] == "0.250000000000", "input/experiment correlation missing")

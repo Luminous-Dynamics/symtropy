@@ -62,8 +62,12 @@ pub struct ValidationUncertaintyStudy {
     pub input_contributions: Vec<InputUncertaintyContribution>,
     /// Ordered exactly like input_contributions; must be symmetric positive semidefinite.
     pub input_correlation_matrix: Vec<Vec<f64>>,
-    /// Experimental standard uncertainty in output units.
+    /// Aggregate experimental standard uncertainty in output units.
     pub experimental_standard_uncertainty: f64,
+    /// Immutable reference to the experimental uncertainty budget, calibration certificate, or report.
+    pub experimental_uncertainty_source_reference: String,
+    /// Method used to estimate this aggregate, including the included random/systematic terms.
+    pub experimental_uncertainty_method: String,
     /// Explicitly declares that input and experimental uncertainty sources are aleatory.
     /// A correlation coefficient alone is not evidence of aleatory behaviour.
     pub input_and_experiment_are_aleatory: bool,
@@ -97,6 +101,8 @@ pub struct ValidationUncertaintyReport {
     pub numerical_expanded_bound: f64,
     pub input_standard_uncertainty: f64,
     pub experimental_standard_uncertainty: f64,
+    pub experimental_uncertainty_source_reference: String,
+    pub experimental_uncertainty_method: String,
     pub input_and_experiment_are_aleatory: bool,
     pub aleatory_basis_rationale: String,
     pub input_experiment_error_correlation: Option<f64>,
@@ -128,11 +134,15 @@ pub fn evaluate_validation_uncertainty(
         || study.quantity.trim().is_empty()
         || study.output_unit.trim().is_empty()
         || study.gci_coverage_rationale.trim().is_empty()
+        || study.experimental_uncertainty_source_reference.trim().is_empty()
+        || study.experimental_uncertainty_method.trim().is_empty()
+        || study.experimental_uncertainty_source_reference.contains('|')
+        || study.experimental_uncertainty_method.contains('|')
         || (study.input_and_experiment_are_aleatory
             && study.aleatory_basis_rationale.trim().is_empty())
     {
         return Err(
-            "case_id, quantity, output_unit, and GCI coverage rationale must be non-empty"
+            "case_id, quantity, output_unit, GCI coverage rationale, and experimental uncertainty source and method must be non-empty"
                 .to_owned(),
         );
     }
@@ -286,6 +296,8 @@ pub fn evaluate_validation_uncertainty(
         numerical_expanded_bound,
         input_standard_uncertainty,
         experimental_standard_uncertainty: study.experimental_standard_uncertainty,
+        experimental_uncertainty_source_reference: study.experimental_uncertainty_source_reference.clone(),
+        experimental_uncertainty_method: study.experimental_uncertainty_method.clone(),
         input_and_experiment_are_aleatory: study.input_and_experiment_are_aleatory,
         aleatory_basis_rationale: study.aleatory_basis_rationale.clone(),
         input_experiment_error_correlation: study.input_experiment_error_correlation,
@@ -461,7 +473,7 @@ fn matrix_string(matrix: &[Vec<f64>]) -> String {
         .join(";")
 }
 
-pub const VALIDATION_UNCERTAINTY_CSV_HEADER: &str = "case_id,quantity,output_unit,admission_status,source_reference,coarse_grid_id,medium_grid_id,fine_grid_id,gci_fine_absolute,gci_coverage_model,gci_coverage_factor,gci_standard_uncertainty,iterative_standard_uncertainty,roundoff_standard_uncertainty,numerical_standard_uncertainty,numerical_expansion_factor,numerical_expanded_bound,input_standard_uncertainty,experimental_standard_uncertainty,input_experiment_error_correlation,aleatory_standard_uncertainty,aleatory_expansion_factor,aleatory_expanded_bound,conservative_total_bound,comparison_error,model_discrepancy_lower,model_discrepancy_upper,input_correlation_matrix,input_correlation_min_eigenvalue,input_component_ids,input_component_units,input_component_source_refs,input_sensitivity_coefficients,input_standard_uncertainties,input_and_experiment_are_aleatory,aleatory_basis_rationale,evidence_level";
+pub const VALIDATION_UNCERTAINTY_CSV_HEADER: &str = "case_id,quantity,output_unit,admission_status,source_reference,coarse_grid_id,medium_grid_id,fine_grid_id,gci_fine_absolute,gci_coverage_model,gci_coverage_factor,gci_standard_uncertainty,iterative_standard_uncertainty,roundoff_standard_uncertainty,numerical_standard_uncertainty,numerical_expansion_factor,numerical_expanded_bound,input_standard_uncertainty,experimental_standard_uncertainty,input_experiment_error_correlation,aleatory_standard_uncertainty,aleatory_expansion_factor,aleatory_expanded_bound,conservative_total_bound,comparison_error,model_discrepancy_lower,model_discrepancy_upper,input_correlation_matrix,input_correlation_min_eigenvalue,input_component_ids,input_component_units,input_component_source_refs,input_sensitivity_coefficients,input_standard_uncertainties,experimental_uncertainty_source_reference,experimental_uncertainty_method,input_and_experiment_are_aleatory,aleatory_basis_rationale,evidence_level";
 
 pub fn report_to_csv(report: &ValidationUncertaintyReport) -> String {
     let optional = |value: Option<f64>| {
@@ -504,6 +516,8 @@ pub fn report_to_csv(report: &ValidationUncertaintyReport) -> String {
         csv_escape(&report.input_contributions.iter().map(|item| item.source_reference.as_str()).collect::<Vec<_>>().join("|")),
         csv_escape(number_list(report.input_contributions.iter().map(|item| item.sensitivity_coefficient))),
         csv_escape(number_list(report.input_contributions.iter().map(|item| item.standard_uncertainty))),
+        csv_escape(&report.experimental_uncertainty_source_reference),
+        csv_escape(&report.experimental_uncertainty_method),
         report.input_and_experiment_are_aleatory.to_string(),
         csv_escape(&report.aleatory_basis_rationale),
         report.evidence_level.to_owned(),
@@ -610,6 +624,8 @@ mod tests {
             ],
             input_correlation_matrix: vec![vec![1.0, 0.4], vec![0.4, 1.0]],
             experimental_standard_uncertainty: 0.15,
+            experimental_uncertainty_source_reference: "synthetic-experiment-budget-v0.1".to_owned(),
+            experimental_uncertainty_method: "synthetic repeatability and calibration aggregate".to_owned(),
             input_and_experiment_are_aleatory: true,
             aleatory_basis_rationale: "synthetic declared aleatory sources".to_owned(),
             input_experiment_error_correlation: Some(0.25),
@@ -717,6 +733,20 @@ mod tests {
         assert!(evaluate_validation_uncertainty(&admission(), &study)
             .expect_err("prediction not matching finest GCI grid rejected")
             .contains("finest GCI grid value"));
+    }
+
+    #[test]
+    fn experimental_uncertainty_without_source_or_method_is_rejected() {
+        let mut study = base_study();
+        study.experimental_uncertainty_source_reference.clear();
+        assert!(evaluate_validation_uncertainty(&admission(), &study)
+            .expect_err("missing experimental source must fail")
+            .contains("experimental uncertainty source and method"));
+        let mut study = base_study();
+        study.experimental_uncertainty_method.clear();
+        assert!(evaluate_validation_uncertainty(&admission(), &study)
+            .expect_err("missing experimental method must fail")
+            .contains("experimental uncertainty source and method"));
     }
 
     #[test]

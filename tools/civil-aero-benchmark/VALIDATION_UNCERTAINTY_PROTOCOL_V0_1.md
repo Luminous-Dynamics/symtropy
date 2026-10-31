@@ -31,7 +31,7 @@ The correlation matrix must be finite, symmetric, have unit diagonal, and be pos
 
 ## Experimental and input correlation
 
-The experimental standard uncertainty is supplied separately. Only when the caller explicitly declares both groups aleatory, supplies a rationale, and provides correlation rho between input-induced prediction error and experimental error in E = S - D, then:
+The aggregate experimental standard uncertainty is supplied separately and must retain a source reference to its measurement uncertainty budget or calibration record and a method description that identifies the included repeatability, calibration, data-reduction and other material terms. A bare scalar without its source and estimation method is rejected. Only when the caller explicitly declares both groups aleatory, supplies a rationale, and provides correlation rho between input-induced prediction error and experimental error in E = S - D, then:
 
 u_aleatory^2 = u_input^2 + u_exp^2 - 2 rho u_input u_exp.
 
@@ -51,9 +51,9 @@ The synthetic admission fixture has three grids with phi(h) = 2 + 0.8 h^2 at h =
 - u_GCI = 1.0 / 2 = 0.5;
 - iterative uncertainty 0.02 and round-off uncertainty 0.005, yielding u_num = 0.525;
 - input sensitivity contributions [0.2, -0.3] with correlation 0.4;
-- experimental standard uncertainty 0.15 and explicitly supplied input/experiment error correlation 0.25.
+- experimental standard uncertainty 0.15 from synthetic-experiment-budget-v0.1 using a declared repeatability/calibration aggregate method, plus explicitly supplied input/experiment error correlation 0.25.
 
-The Rust tests and independent Python oracle verify covariance propagation, numerical linear summation, signed comparison error, conservative envelope, input source/matrix retention and the no-joint-coverage label. Negative controls reject non-positive-semidefinite or asymmetric correlation matrices, mismatched predicted values, non-admitted runs, incorrect GCI coverage factors and quantity/case mismatches. Missing input/experiment correlation leaves the combined aleatory uncertainty and discrepancy envelope absent.
+The Rust tests and independent Python oracle verify covariance propagation, numerical linear summation, signed comparison error, conservative envelope, input source/matrix retention, experimental uncertainty source/method lineage, and the no-joint-coverage label. Negative controls reject non-positive-semidefinite or asymmetric correlation matrices, mismatched predicted values, non-admitted runs, incorrect GCI coverage factors and quantity/case mismatches. Missing input/experiment correlation leaves the combined aleatory uncertainty and discrepancy envelope absent.
 
 ## Reference
 
