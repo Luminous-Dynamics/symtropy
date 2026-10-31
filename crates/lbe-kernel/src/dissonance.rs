@@ -55,7 +55,7 @@ impl PositionId {
 pub struct Position {
     /// Stable position identifier.
     pub id: PositionId,
-    /// Stakeholder, constituency, or source identifier; not a moral rank.
+    /// Stakeholder, constituency, or record-scoped opaque source reference; not a global identity or moral rank.
     pub source: String,
     /// Faithful statement of the position.
     pub claim: String,
@@ -440,7 +440,7 @@ impl DissonanceEvent {
     /// Monotonic sequence number within this record.
     pub const fn sequence(&self) -> u64 { self.sequence }
 
-    /// Authenticated actor identifier asserted by the host adapter.
+    /// Host-asserted record-scoped actor reference; authentication is external.
     pub fn actor_id(&self) -> &str { &self.actor_id }
 
     /// Host-supplied event time in the record's declared time basis.
