@@ -146,6 +146,10 @@ fn is_conforming(value: f64) -> bool {
     value >= LSL && value <= USL
 }
 
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
 fn observed_probabilities(prior: Vector, likelihood: Matrix) -> Vector {
     let mut q = [0.0; N];
     for j in 0..N {
@@ -305,6 +309,16 @@ fn baseline_shared_risk(prior: Vector, likelihood: Matrix) -> Result<(f64, f64),
 }
 
 fn verify() -> Result<(), String> {
+    for digest in [
+        PROCESS_PRIOR_SHA256,
+        MEASUREMENT_LIKELIHOOD_SHA256,
+        RISK_POLICY_SHA256,
+        SPECIFICATION_SHA256,
+    ] {
+        if !valid_sha256(digest) {
+            return Err("INPUT_MANIFEST_DIGEST_INVALID".into());
+        }
+    }
     let evaluation = evaluate(PROCESS_PRIOR, MEASUREMENT_LIKELIHOOD, RiskPolicy::synthetic())?;
     let s = evaluation.summary;
     if (s.global_consumer_risk - 0.026).abs() > 1.0e-12 {
@@ -416,6 +430,19 @@ mod tests {
 
     fn uninformative_likelihood() -> Matrix {
         [[1.0 / N as f64; N]; N]
+    }
+
+    #[test]
+    fn frozen_scenario_input_digests_are_valid_sha256() {
+        for digest in [
+            PROCESS_PRIOR_SHA256,
+            MEASUREMENT_LIKELIHOOD_SHA256,
+            RISK_POLICY_SHA256,
+            SPECIFICATION_SHA256,
+        ] {
+            assert!(valid_sha256(digest));
+        }
+        assert!(!valid_sha256("not-a-digest"));
     }
 
     #[test]
