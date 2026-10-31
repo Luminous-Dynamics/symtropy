@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use nalgebra::SVector;
+use serde::{Deserialize, Serialize};
 use symtropy_math::{Bivector, Capsule, HalfSpace, HyperBox, Point, Sphere, Transform};
 
 use crate::body::{BodyHandle, NetId, RigidBody};
@@ -201,8 +202,78 @@ pub struct PhysicsStepError {
     pub cause: PhysicsStepCause,
 }
 
+/// Stage of a contact impulse captured in an accepted-step work trace.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContactImpulseKind {
+    Normal,
+    Friction,
+}
+
+/// Per-body evidence for the translational force/gravity integration update.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BodyWorkRecord<const D: usize> {
+    pub body: BodyHandle,
+    pub mass: f64,
+    pub dt: f64,
+    pub position_before: SVector<f64, D>,
+    pub position_after_force_update: SVector<f64, D>,
+    pub initial_velocity: SVector<f64, D>,
+    pub pre_damping_velocity: SVector<f64, D>,
+    pub final_velocity: SVector<f64, D>,
+    pub applied_force: SVector<f64, D>,
+    pub gravity: SVector<f64, D>,
+    pub external_force_work_joules: f64,
+    pub gravity_work_joules: f64,
+    pub linear_damping_and_speed_limit_energy_change_joules: f64,
+}
+
+impl<const D: usize> BodyWorkRecord<D> {
+    pub fn recompute_external_force_work(&self) -> f64 {
+        self.applied_force
+            .dot(&((self.initial_velocity + self.pre_damping_velocity) * 0.5))
+            * self.dt
+    }
+
+    pub fn recompute_gravity_work(&self) -> f64 {
+        (self.gravity * self.mass)
+            .dot(&((self.initial_velocity + self.pre_damping_velocity) * 0.5))
+            * self.dt
+    }
+
+    pub fn recompute_linear_damping_energy_change(&self) -> f64 {
+        0.5 * self.mass
+            * (self.final_velocity.norm_squared() - self.pre_damping_velocity.norm_squared())
+    }
+}
+
+/// Per-contact-impulse evidence sufficient to independently recompute ΔK.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ContactImpulseWorkRecord<const D: usize> {
+    pub kind: ContactImpulseKind,
+    pub body_a: BodyHandle,
+    pub body_b: BodyHandle,
+    pub point_index: usize,
+    pub contact_position: SVector<f64, D>,
+    /// Physical impulse applied to body B (body A receives its negative).
+    pub impulse_on_b: SVector<f64, D>,
+    /// Relative point velocity v_B - v_A immediately before this impulse.
+    pub relative_velocity_before: SVector<f64, D>,
+    /// Inverse effective mass along the impulse direction, excluding compliance.
+    pub directional_inverse_effective_mass: f64,
+    pub kinetic_energy_change_joules: f64,
+}
+
+impl<const D: usize> ContactImpulseWorkRecord<D> {
+    pub fn recompute_kinetic_energy_change(&self) -> f64 {
+        self.impulse_on_b.dot(&self.relative_velocity_before)
+            + 0.5
+                * self.directional_inverse_effective_mass
+                * self.impulse_on_b.norm_squared()
+    }
+}
+
 /// Discrete work terms accumulated by one attempted world step.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub(crate) struct StepWorkAccumulator {
     pub(crate) external_force_work_joules: f64,
     pub(crate) gravity_work_joules: f64,
@@ -210,6 +281,9 @@ pub(crate) struct StepWorkAccumulator {
     pub(crate) normal_contact_kinetic_energy_change_joules: f64,
     pub(crate) friction_contact_kinetic_energy_change_joules: f64,
     pub(crate) frictional_dissipation_joules: f64,
+    pub(crate) capture_trace: bool,
+    pub(crate) body_records: Vec<BodyWorkRecord<D>>,
+    pub(crate) contact_impulse_records: Vec<ContactImpulseWorkRecord<D>>,
 }
 
 #[derive(Clone)]
