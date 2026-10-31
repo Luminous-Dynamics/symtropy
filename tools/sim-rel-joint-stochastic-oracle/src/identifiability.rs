@@ -728,6 +728,7 @@ mod tests {
                 }
             }
         }
+        let action_count = action_ids.len();
         JointKernel {
             hypothesis_ids: (0..hypothesis_count).map(|id| format!("h{id}")).collect(),
             physical_state_count: physical_count,
@@ -736,7 +737,7 @@ mod tests {
             sensor_state_ids: vec!["sensor-stable".into()],
             action_ids: action_ids.into_iter().map(str::to_string).collect(),
             observation_ids: vec!["zero".into(), "one".into()],
-            action_costs: vec![1; action_ids.len()],
+            action_costs: vec![1; action_count],
             initial_belief: (0..hypothesis_count)
                 .map(|hypothesis| JointMass {
                     hypothesis,
@@ -816,7 +817,7 @@ mod tests {
         assert_eq!(pair.max_total_variation, Rational::one());
         assert!(pair.perfectly_separable());
         assert!(matches!(
-            pair.distinguishing_policy,
+            &pair.distinguishing_policy,
             DistinguishingPolicy::Action { action: 0, .. }
         ));
     }
@@ -851,7 +852,7 @@ mod tests {
                 if action == 0 {
                     // Conditioning looks identical, but leaves a mechanism-specific
                     // physical state for the later measurement.
-                    vec![safe(Rational::one(), usize::from(hypothesis == 0), 0)]
+                    vec![safe(Rational::one(), if hypothesis == 0 { 1 } else { 0 }, 0)]
                 } else {
                     vec![safe(Rational::one(), physical, physical)]
                 }
@@ -862,7 +863,7 @@ mod tests {
         assert_eq!(one_step.pairwise[0].max_total_variation, Rational::zero());
         assert_eq!(two_step.pairwise[0].max_total_variation, Rational::one());
         assert!(matches!(
-            two_step.pairwise[0].distinguishing_policy,
+            &two_step.pairwise[0].distinguishing_policy,
             DistinguishingPolicy::Action { action: 0, .. }
         ));
     }
@@ -926,11 +927,12 @@ mod tests {
 
     #[test]
     fn zero_prior_hypotheses_and_resource_exhaustion_fail_closed() {
-        let mut kernel = kernel(2, 1, vec!["read"], |_hypothesis, physical, _action| {
+        let mut zero_prior_kernel = kernel(2, 1, vec!["read"], |_hypothesis, physical, _action| {
             vec![safe(Rational::one(), physical, 0)]
         });
-        kernel.initial_belief.retain(|point| point.hypothesis == 0);
-        assert!(analyze_identifiability(&kernel, &config(1))
+        zero_prior_kernel.initial_belief.retain(|point| point.hypothesis == 0);
+        zero_prior_kernel.initial_belief[0].mass = Rational::one();
+        assert!(analyze_identifiability(&zero_prior_kernel, &config(1))
             .unwrap_err()
             .contains("zero initial prior mass"));
 
