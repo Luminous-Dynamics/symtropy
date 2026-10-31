@@ -786,13 +786,20 @@ mod tests {
 
     #[test]
     fn rejects_unqualified_component_vvuq_receipt() {
-        let input = fixture("integrated").replace(
-            "EVIDENCE|ev-vvuq-machine|COMPONENT_VVUQ|COMPONENT|cmp-machine|",
-            "EVIDENCE|ev-vvuq-machine|WRONG_CLASS|COMPONENT|cmp-machine|",
-        );
+        let input = fixture("integrated")
+            .lines()
+            .map(|line| {
+                if line.starts_with("EVIDENCE|ev-vvuq-machine|") {
+                    line.replace("SYNTHETIC_ONLY", "UNQUALIFIED")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
         let result = audit_text(&input);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("class mismatch"));
+        assert!(result.unwrap_err().contains("non-admissible status"));
     }
 
     #[test]
@@ -831,9 +838,6 @@ mod tests {
     #[test]
     fn rejects_federated_peer_identity_collision() {
         let input = fixture("federated").replace(
-            "COMP|cmp-inspection|inspection|",
-            "COMP|cmp-inspection|inspection|",
-        ).replace(
             "|peer-inspection",
             "|peer-machine",
         );
@@ -858,8 +862,8 @@ mod tests {
     #[test]
     fn rejects_malformed_sha256_reference() {
         let input = fixture("integrated").replace(
-            "EVIDENCE|ev-node-product|THREAD_IDENTITY|NODE|PRODUCT:product-001|fixture|",
-            "EVIDENCE|ev-node-product|THREAD_IDENTITY|NODE|PRODUCT:product-001|fixture|not-a-digest|",
+            "EVIDENCE|ev-node-product|THREAD_IDENTITY|NODE|PRODUCT:product-001|synthetic-fixture|",
+            "EVIDENCE|ev-node-product|THREAD_IDENTITY|NODE|PRODUCT:product-001|synthetic-fixture|not-a-digest|",
         );
         let result = audit_text(&input);
         assert!(result.is_err());
