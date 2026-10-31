@@ -65,3 +65,38 @@ The benchmark module generates seeded finite joint-stochastic challenges in five
 Generation is deterministic for a fixed seed and generator version and has explicit per-family caps. Every instance includes a stable 64-bit FNV-1a reproducibility fingerprint over its manifest, priors, costs and full world kernels; this is a reproducibility digest, not a cryptographic commitment. Every emitted kernel is validated for complete transition tables and exact rational probability normalization before it is returned. Family labels are construction metadata, not inferred from an agent's self-report.
 
 This is a development fixture factory, not a sealed leaderboard by itself. Keep holdout seeds and mutation compositions out of agent development, publish manifests after evaluation, and do not interpret generated coverage as proof of real-world failure-mode completeness.
+
+
+## Finite-lookahead joint-state EIG baseline (SIM-REL-018)
+
+The baseline module includes a finite-horizon observation-tree planner that minimizes expected terminal mechanism entropy under a hard per-path experiment-cost budget and exact campaign hazard budget. Every outcome updates the full joint belief over mechanism, physical state and sensor state. Hazards are terminal observable outcomes, and costs are charged even on hazardous paths.
+
+Unlike the one-step EIG ranker, the lookahead planner can value an action that is useful only because it changes the specimen or sensor state for a later measurement. Its posterior entropy objective is evaluated in floating point, while kernel probabilities, posterior masses, expected costs and hazard constraints remain exact rationals.
+
+This is a finite discrete scenario-tree comparator, not a reproduction of COPEx's amortized policy/posterior training, continuous design optimization or gradient-based planner.
+
+
+## Joint-state particle-filter baseline (SIM-REL-019)
+
+The particle-filter module supplies a seeded, fully adapted conditional filter over mechanism, physical state and sensor state. Each filter instance borrows one immutable kernel for its lifetime; alternative model worlds require separate filter instances. At each observation update, particles are weighted by the event likelihood from the full joint kernel and the next physical/sensor tuple is sampled conditional on the observed event.
+
+The filter normalizes weights, measures ESS, and performs deterministic systematic resampling only when the configured threshold is crossed. Diagnostics distinguish particles that lost support for an observed event from posterior degeneracy (ESS near one). A rare event absent from the approximate particle support is reported as a particle-support failure, not silently treated as an impossible model event. A hazard outcome is terminal and prevents further actions. The filter retains the successfully incorporated observation count and cumulative log predictive-evidence estimate across a campaign.
+
+The exact rational one-step posterior function is the reference. Tests compare particle posterior with that exact binary-channel posterior, verify deterministic resampling and ESS reporting, check that impossible / unsupported observations fail atomically, enforce terminal hazard behavior, and prove that calibration resets sensor state without destroying mechanism/specimen-state correlation.
+
+The particle module also exposes a paired particle-count sweep against the exact one-step joint posterior. Each record reports predictive-probability error, joint-posterior total-variation and squared error, mechanism-posterior squared error, ESS before/after resampling, support-loss fraction, resampling occurrence, and elapsed time. Runtime is descriptive; posterior metrics are seeded and deterministic for a fixed configuration.
+
+This is a finite-state fully adapted particle-filter comparator. It is not nested SMC-squared, does not infer continuous parameters, and does not reproduce BAD-PODS' theoretical convergence guarantees.
+
+
+## Running the particle-count comparison
+
+Run the deterministic synthetic sweep with the pinned toolchain:
+
+\`\`\`sh
+cargo run --release --locked \\
+  --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml \\
+  --example particle_filter_sweep > particle-filter-sweep.tsv
+\`\`\`
+
+The example generates eight instances per challenge family, sweeps 32–4096 particles, and emits TSV records with the per-instance manifest fingerprint. It uses the nominal kernel and the same first measurement action for every particle count. Timing includes initialization and one update and is descriptive; exact posterior errors and ESS diagnostics are the primary comparison.
