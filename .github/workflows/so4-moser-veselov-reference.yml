@@ -1,0 +1,48 @@
+name: SO(4) Moser-Veselov rigid-body reference
+
+on:
+  pull_request:
+    paths:
+      - "tools/so4-moser-veselov/**"
+      - "docs/research/SO4_MOSER_VESELOV_REFERENCE_2026-10-31.md"
+      - ".github/workflows/so4-moser-veselov-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: Standalone SO(4) reference qualification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+
+      - name: Check formatting
+        run: rustfmt --edition 2021 --check tools/so4-moser-veselov/so4_reference.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustc --edition=2021 --test -D warnings \
+            tools/so4-moser-veselov/so4_reference.rs \
+            -o /tmp/so4-moser-veselov-tests
+          /tmp/so4-moser-veselov-tests
+
+      - name: Build deterministic benchmark
+        run: |
+          RUSTC_VERSION="$(rustc --version)" \
+          SYMTROPY_SOURCE_REV="$GITHUB_SHA" \
+          rustc --edition=2021 -O -D warnings \
+            tools/so4-moser-veselov/so4_reference.rs \
+            -o /tmp/so4-moser-veselov-campaign
+          /tmp/so4-moser-veselov-campaign > /tmp/so4-first.csv
+          /tmp/so4-moser-veselov-campaign > /tmp/so4-second.csv
+          cmp /tmp/so4-first.csv /tmp/so4-second.csv
+          sha256sum /tmp/so4-first.csv
