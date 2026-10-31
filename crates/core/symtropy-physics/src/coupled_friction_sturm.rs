@@ -331,6 +331,40 @@ fn assert_production_matches_sturm(coefficients: &[f64], tolerance: f64) {
 }
 
 #[test]
+fn exact_f64_decoder_round_trips_binary64_edge_values() {
+    let values = [
+        0.0,
+        -0.0,
+        0.1,
+        -3.25,
+        f64::from_bits(1),
+        f64::MIN_POSITIVE,
+        f64::MAX,
+        -f64::MAX,
+    ];
+    for value in values {
+        let exact = exact_f64(value).unwrap();
+        assert_eq!(exact.to_f64().unwrap(), value);
+    }
+}
+
+#[test]
+fn sturm_root_count_is_invariant_under_binary_power_and_sign_scaling() {
+    let roots = [-3_i64, -1, 2, 5]
+        .into_iter()
+        .map(|value| Rational::from_integer(BigInt::from(value)))
+        .collect::<Vec<_>>();
+    let coefficients = rationals_to_f64(&polynomial_from_roots(&roots));
+    let expected = sturm_isolate_f64(&coefficients).unwrap().len();
+    for factor in [2.0_f64.powi(-600), -2.0_f64.powi(-600), 2.0_f64.powi(500)] {
+        let scaled = coefficients.iter().map(|coefficient| coefficient * factor).collect::<Vec<_>>();
+        let intervals = sturm_isolate_f64(&scaled).unwrap();
+        assert_eq!(intervals.len(), expected);
+        assert_production_matches_sturm(&scaled, 1.0e-12);
+    }
+}
+
+#[test]
 fn sturm_counts_four_simple_roots_and_production_matches() {
     let roots = [-3_i64, -1, 2, 5]
         .into_iter()
