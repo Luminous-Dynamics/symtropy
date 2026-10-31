@@ -86,6 +86,14 @@ canonical JSON remains inspectable in review artifacts. Switching encoding
 requires a new explicit profile ID and golden vectors, not a rewrite of
 existing digests.
 
+The shared Rust/Go golden corpus now includes a second adversarial vector that
+combines UTF-16 key-order edge cases (a supplementary-plane key against a BMP
+private-use key), composed/decomposed Unicode strings, negative zero, the
+smallest positive binary64 subnormal, maximum finite binary64, and decimal vs
+exponent formatting boundaries. Both the Rust `serde_jcs` test and independent
+Go canonicalizer test require exact byte equality with the same committed
+canonical output.
+
 ### Strict pre-canonicalization input validation
 
 The Rust compiler's source ingress is TOML (not raw JSON). Its strict
