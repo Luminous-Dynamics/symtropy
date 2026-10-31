@@ -703,6 +703,96 @@ mod tests {
     }
 
     #[test]
+    fn binary_blackwell_solver_constructs_and_verifies_exact_garbling() {
+        let perfect = perfect_channel("perfect");
+        let noisy = noisy_channel("noisy");
+        let receipt = solve_binary_blackwell_garbling(&perfect, &noisy)
+            .unwrap()
+            .unwrap();
+        assert!(receipt.exactly_verified);
+        assert_eq!(
+            receipt.witness.probabilities,
+            vec![
+                vec![rational(4, 5), rational(1, 5)],
+                vec![rational(1, 5), rational(4, 5)],
+            ]
+        );
+    }
+
+    #[test]
+    fn binary_blackwell_solver_rejects_non_dominance_and_inconsistent_singular_case() {
+        let noisy = noisy_channel("noisy");
+        let perfect = perfect_channel("perfect");
+        assert!(solve_binary_blackwell_garbling(&noisy, &perfect)
+            .unwrap()
+            .is_none());
+
+        let uninformative = FiniteObservationChannel {
+            channel_id: "uninformative".into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["z0".into(), "z1".into()],
+            probabilities: vec![
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(1, 2), rational(1, 2)],
+            ],
+        };
+        let inconsistent_target = noisy_channel("not-a-garbling");
+        assert!(solve_binary_blackwell_garbling(&uninformative, &inconsistent_target)
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn binary_blackwell_solver_handles_singular_but_consistent_channels() {
+        let uninformative = FiniteObservationChannel {
+            channel_id: "uninformative".into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["z0".into(), "z1".into()],
+            probabilities: vec![
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(1, 2), rational(1, 2)],
+            ],
+        };
+        let same_uninformative_target = FiniteObservationChannel {
+            channel_id: "same-uninformative".into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["y0".into(), "y1".into()],
+            probabilities: vec![
+                vec![rational(3, 10), rational(7, 10)],
+                vec![rational(3, 10), rational(7, 10)],
+            ],
+        };
+        let receipt = solve_binary_blackwell_garbling(
+            &uninformative,
+            &same_uninformative_target,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(
+            receipt.witness.probabilities,
+            vec![
+                vec![rational(3, 10), rational(7, 10)],
+                vec![rational(3, 10), rational(7, 10)],
+            ]
+        );
+    }
+
+    #[test]
+    fn binary_blackwell_solver_rejects_unsupported_dimensions() {
+        let binary = perfect_channel("binary");
+        let multi = FiniteObservationChannel {
+            channel_id: "multi".into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["o0".into(), "o1".into(), "o2".into()],
+            probabilities: vec![
+                vec![rational(1, 3), rational(1, 3), rational(1, 3)],
+                vec![rational(1, 3), rational(1, 3), rational(1, 3)],
+            ],
+        };
+        assert!(solve_binary_blackwell_garbling(&binary, &multi).is_err());
+    }
+
+    #[test]
     fn more_nominal_information_can_produce_greater_realized_decision_loss() {
         let prior = vec![rational(1, 2), rational(1, 2)];
         let loss = binary_decisions();
