@@ -151,13 +151,101 @@ impl ChannelDecisionLossTable {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// A posterior-producing inference procedure over a declared observation
+/// alphabet. It is separate from the working likelihood channel so model
+/// misspecification and inferential approximation can be varied independently.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InferencePosteriorRule {
+    pub rule_id: String,
+    pub assumed_channel_id: String,
+    pub state_ids: Vec<String>,
+    pub observation_ids: Vec<String>,
+    /// Approximate/working posterior indexed [observation][state].
+    pub posterior_by_observation: Vec<Vec<Rational>>,
+}
+
+impl InferencePosteriorRule {
+    pub fn validate(&self, assumed: &FiniteObservationChannel) -> Result<(), String> {
+        if self.rule_id.trim().is_empty() {
+            return Err("inference rule ID must be non-empty".into());
+        }
+        if self.assumed_channel_id != assumed.channel_id {
+            return Err("inference rule is not bound to the supplied assumed channel".into());
+        }
+        if self.state_ids != assumed.state_ids || self.observation_ids != assumed.observation_ids {
+            return Err("inference rule state/observation vocabularies do not match the assumed channel".into());
+        }
+        if self.posterior_by_observation.len() != assumed.observation_ids.len() {
+            return Err("inference rule must provide one posterior for every observation".into());
+        }
+        for (observation, posterior) in self.posterior_by_observation.iter().enumerate() {
+            if posterior.len() != assumed.state_ids.len() {
+                return Err(format!("inference posterior {observation} has the wrong state dimension"));
+            }
+            let mut total = Rational::zero();
+            for probability in posterior {
+                if !probability.is_probability() {
+                    return Err(format!("inference posterior {observation} contains an invalid probability"));
+                }
+                total = total.checked_add(*probability)?;
+            }
+            if total != Rational::one() {
+                return Err(format!("inference posterior {observation} must sum exactly to one"));
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Construct the exact Bayesian posterior rule induced by a working channel
+/// and prior. Rows for observations impossible under that working model carry
+/// the prior as a harmless placeholder; the evaluator will abstain on those
+/// observations if they occur under the true channel.
+pub fn exact_bayes_posterior_rule(
+    assumed: &FiniteObservationChannel,
+    prior: &[Rational],
+) -> Result<InferencePosteriorRule, String> {
+    assumed.validate()?;
+    validate_prior(prior, assumed.state_ids.len())?;
+    let mut posterior_by_observation = Vec::with_capacity(assumed.observation_ids.len());
+    for observation in 0..assumed.observation_ids.len() {
+        let mut joint = Vec::with_capacity(assumed.state_ids.len());
+        let mut marginal = Rational::zero();
+        for (state, prior_mass) in prior.iter().copied().enumerate() {
+            let mass = prior_mass.checked_mul(assumed.probabilities[state][observation])?;
+            joint.push(mass);
+            marginal = marginal.checked_add(mass)?;
+        }
+        let posterior = if marginal.is_zero() {
+            prior.to_vec()
+        } else {
+            joint
+                .iter()
+                .map(|mass| mass.checked_div(marginal))
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        posterior_by_observation.push(posterior);
+    }
+    let rule = InferencePosteriorRule {
+        rule_id: format!("exact-bayes:{}", assumed.channel_id),
+        assumed_channel_id: assumed.channel_id.clone(),
+        state_ids: assumed.state_ids.clone(),
+        observation_ids: assumed.observation_ids.clone(),
+        posterior_by_observation,
+    };
+    rule.validate(assumed)?;
+    Ok(rule)
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ObservationDecisionReceipt {
     pub observation_id: String,
     pub true_observation_probability: Rational,
     pub assumed_observation_probability: Rational,
-    pub chosen_decision: Option<usize>,
+    pub inference_decision: Option<usize>,
+    pub assumed_model_bayes_decision: Option<usize>,
     pub true_bayes_decision: Option<usize>,
-    pub assumed_conditional_loss: Rational,
+    pub inference_conditional_loss: Rational,
     pub realized_conditional_loss: Rational,
     pub true_bayes_conditional_loss: Rational,
 }
@@ -166,15 +254,19 @@ pub struct ObservationDecisionReceipt {
 pub struct ChannelDecisionEvaluation {
     pub assumed_channel_id: String,
     pub true_channel_id: String,
-    /// Bayes risk predicted under the assumed channel's own observation law.
+    pub inference_rule_id: String,
+    /// Bayes risk predicted under the working channel and inference rule's own observation law.
     pub nominal_model_expected_loss: Rational,
-    /// Assumed conditional risks reweighted by the true channel's observation law.
+    /// Inference-rule conditional losses reweighted by true observation frequencies.
     pub expected_assumed_loss_under_true_observations: Rational,
     pub realized_policy_loss: Rational,
     pub true_bayes_oracle_loss: Rational,
     pub decision_regret: Rational,
     pub unsupported_observation_probability: Rational,
+    /// Probability the inference rule's decision differs from the true Bayes decision.
     pub decision_disagreement_probability: Rational,
+    /// Probability the inference rule differs from exact Bayes under the working channel.
+    pub inference_rule_disagreement_probability: Rational,
     pub observations: Vec<ObservationDecisionReceipt>,
 }
 
@@ -247,20 +339,27 @@ fn bayes_decision(
     Ok((selected_decision, best_loss))
 }
 
-/// Evaluate inference under an assumed channel while observations are generated
-/// by a possibly different true channel.
+/// Evaluate an explicit inference rule while the assumed working channel
+/// and the true observation-generating channel are held independently fixed.
 ///
-/// Posterior updates and decision-loss receipts are exact. Unsupported true
-/// observations are handled by explicit abstention, never by inventing a
-/// normalized posterior. The caller receives both the model's predicted loss
-/// (weighted by true observation frequencies) and realized downstream loss.
-pub fn evaluate_channel_decisions(
+/// This is the key two-axis interface:
+/// - change `truth` while keeping `assumed` and `inference_rule` fixed to
+///   isolate model misspecification;
+/// - change only `inference_rule` while keeping `assumed == truth` to
+///   isolate inferential misspecification;
+/// - change both to measure their interaction.
+///
+/// Unsupported true observations absent from the working model cause explicit
+/// abstention. All posterior and decision-risk quantities are exact rationals.
+pub fn evaluate_channel_decisions_with_inference_rule(
     assumed: &FiniteObservationChannel,
     truth: &FiniteObservationChannel,
     prior: &[Rational],
     table: &ChannelDecisionLossTable,
+    inference_rule: &InferencePosteriorRule,
 ) -> Result<ChannelDecisionEvaluation, String> {
     validate_channel_pair(assumed, truth, prior, table)?;
+    inference_rule.validate(assumed)?;
 
     let mut nominal_model_expected_loss = Rational::zero();
     let mut expected_assumed_loss = Rational::zero();
@@ -268,6 +367,7 @@ pub fn evaluate_channel_decisions(
     let mut true_bayes_oracle_loss = Rational::zero();
     let mut unsupported_observation_probability = Rational::zero();
     let mut decision_disagreement_probability = Rational::zero();
+    let mut inference_rule_disagreement_probability = Rational::zero();
     let mut observations = Vec::new();
 
     for (observation, observation_id) in assumed.observation_ids.iter().enumerate() {
@@ -286,17 +386,17 @@ pub fn evaluate_channel_decisions(
             assumed_probability = assumed_probability.checked_add(assumed_mass)?;
         }
 
-        let (chosen_decision, assumed_conditional_loss) = if assumed_probability.is_zero() {
-            (None, table.abstention_loss)
-        } else {
-            let assumed_posterior: Vec<Rational> = assumed_joint
-                .iter()
-                .map(|mass| mass.checked_div(assumed_probability))
-                .collect::<Result<_, _>>()?;
-            bayes_decision(table, &assumed_posterior)?
-        };
+        let (inference_decision, inference_conditional_loss) =
+            if assumed_probability.is_zero() {
+                (None, table.abstention_loss)
+            } else {
+                bayes_decision(
+                    table,
+                    &inference_rule.posterior_by_observation[observation],
+                )?
+            };
         nominal_model_expected_loss = nominal_model_expected_loss.checked_add(
-            assumed_probability.checked_mul(assumed_conditional_loss)?,
+            assumed_probability.checked_mul(inference_conditional_loss)?,
         )?;
 
         if true_probability.is_zero() {
@@ -308,20 +408,32 @@ pub fn evaluate_channel_decisions(
             .map(|mass| mass.checked_div(true_probability))
             .collect::<Result<_, _>>()?;
         let (true_bayes_decision, true_bayes_loss) = bayes_decision(table, &true_posterior)?;
-        if assumed_probability.is_zero() {
+
+        let assumed_model_bayes_decision = if assumed_probability.is_zero() {
             unsupported_observation_probability =
                 unsupported_observation_probability.checked_add(true_probability)?;
-        }
-
+            None
+        } else {
+            let assumed_posterior: Vec<Rational> = assumed_joint
+                .iter()
+                .map(|mass| mass.checked_div(assumed_probability))
+                .collect::<Result<_, _>>()?;
+            let (model_decision, _) = bayes_decision(table, &assumed_posterior)?;
+            if model_decision != inference_decision {
+                inference_rule_disagreement_probability =
+                    inference_rule_disagreement_probability.checked_add(true_probability)?;
+            }
+            Some(model_decision)
+        };
         let realized_conditional_loss =
-            expected_loss_for_posterior(table, &true_posterior, chosen_decision)?;
-        if chosen_decision != true_bayes_decision {
+            expected_loss_for_posterior(table, &true_posterior, inference_decision)?;
+        if inference_decision != true_bayes_decision {
             decision_disagreement_probability =
                 decision_disagreement_probability.checked_add(true_probability)?;
         }
 
         expected_assumed_loss = expected_assumed_loss.checked_add(
-            true_probability.checked_mul(assumed_conditional_loss)?,
+            true_probability.checked_mul(inference_conditional_loss)?,
         )?;
         realized_policy_loss = realized_policy_loss.checked_add(
             true_probability.checked_mul(realized_conditional_loss)?,
@@ -333,9 +445,10 @@ pub fn evaluate_channel_decisions(
             observation_id: observation_id.clone(),
             true_observation_probability: true_probability,
             assumed_observation_probability: assumed_probability,
-            chosen_decision,
+            inference_decision,
+            assumed_model_bayes_decision,
             true_bayes_decision,
-            assumed_conditional_loss,
+            inference_conditional_loss,
             realized_conditional_loss,
             true_bayes_conditional_loss: true_bayes_loss,
         });
@@ -350,6 +463,7 @@ pub fn evaluate_channel_decisions(
     Ok(ChannelDecisionEvaluation {
         assumed_channel_id: assumed.channel_id.clone(),
         true_channel_id: truth.channel_id.clone(),
+        inference_rule_id: inference_rule.rule_id.clone(),
         nominal_model_expected_loss,
         expected_assumed_loss_under_true_observations: expected_assumed_loss,
         realized_policy_loss,
@@ -357,8 +471,28 @@ pub fn evaluate_channel_decisions(
         decision_regret,
         unsupported_observation_probability,
         decision_disagreement_probability,
+        inference_rule_disagreement_probability,
         observations,
     })
+}
+
+/// Evaluate exact Bayesian inference under the assumed channel. This wrapper
+/// is equivalent to constructing `exact_bayes_posterior_rule` and passing it
+/// to `evaluate_channel_decisions_with_inference_rule`.
+pub fn evaluate_channel_decisions(
+    assumed: &FiniteObservationChannel,
+    truth: &FiniteObservationChannel,
+    prior: &[Rational],
+    table: &ChannelDecisionLossTable,
+) -> Result<ChannelDecisionEvaluation, String> {
+    let inference_rule = exact_bayes_posterior_rule(assumed, prior)?;
+    evaluate_channel_decisions_with_inference_rule(
+        assumed,
+        truth,
+        prior,
+        table,
+        &inference_rule,
+    )
 }
 
 /// Mutual information in bits under the supplied nominal prior/channel.
