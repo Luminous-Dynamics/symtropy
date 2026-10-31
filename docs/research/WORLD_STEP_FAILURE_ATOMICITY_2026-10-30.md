@@ -28,7 +28,7 @@ A future fully transactional callback contract should buffer callback observatio
 
 ## Numerical rejection semantics
 
-The strict integrator now rejects non-finite gravity, force/torque accumulators, current body state, invalid timestep/parameters, and non-finite candidate state. It computes candidate position, velocities and rotation locally, committing only after all components are finite. An error leaves the body state and accumulators unchanged; the enclosing world transaction restores all other physics-owned step state. The compatibility `integrate` wrapper retains its void signature but discards the typed error and clears accumulators, so scientific callers must use `try_integrate` or the world `try_step` APIs.
+The world validates timestep and gravity before any phase (including empty worlds); the strict integrator rejects non-finite force/torque accumulators, current body state, invalid parameters, singular inertia, and non-finite candidate state. It computes candidate position, velocities and rotation locally, committing only after all components are finite. An error leaves the body state and accumulators unchanged; the enclosing world transaction restores all other physics-owned step state. The compatibility `integrate` wrapper retains its void signature but discards the typed error and clears accumulators, so scientific callers must use `try_integrate` or the world `try_step` APIs.
 
 ## Ordering invariant
 
