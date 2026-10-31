@@ -59,3 +59,13 @@ coupling_first="$("$TMP/composition-coupling")"
 coupling_second="$("$TMP/composition-coupling")"
 test "$coupling_first" = "$coupling_second"
 printf '%s\n' "$coupling_first"
+
+UQ_SRC="$ROOT/tools/manufacturing-assurance/composition_uncertainty.rs"
+rustc --edition=2021 -D warnings --test "$UQ_SRC" -o "$TMP/uq-tests"
+"$TMP/uq-tests"
+
+rustc --edition=2021 -D warnings "$UQ_SRC" -o "$TMP/composition-uncertainty"
+uq_first="$("$TMP/composition-uncertainty")"
+uq_second="$("$TMP/composition-uncertainty")"
+test "$uq_first" = "$uq_second"
+printf '%s\\n' "$uq_first"
