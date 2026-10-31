@@ -511,6 +511,15 @@ fn validate_state_vector<const D: usize>(
     Ok(())
 }
 
+fn excluded_pair(index: usize) -> [usize; 2] {
+    match index {
+        0 => [1, 2],
+        1 => [0, 2],
+        2 => [0, 1],
+        _ => unreachable!("3D cofactor index is bounded to 0..3"),
+    }
+}
+
 fn integer_unimodular_inverse<const D: usize>(
     matrix: &SMatrix<i64, D, D>,
 ) -> Result<(i64, SMatrix<i64, D, D>), PeriodicCellKinematicsError> {
@@ -531,10 +540,8 @@ fn integer_unimodular_inverse<const D: usize>(
     } else {
         for row in 0..3 {
             for column in 0..3 {
-                let rows = (0..3).filter(|candidate| *candidate != row).collect::<Vec<_>>();
-                let columns = (0..3)
-                    .filter(|candidate| *candidate != column)
-                    .collect::<Vec<_>>();
+                        let rows = excluded_pair(row);
+                let columns = excluded_pair(column);
                 let a = matrix[(rows[0], columns[0])];
                 let b = matrix[(rows[0], columns[1])];
                 let c = matrix[(rows[1], columns[0])];
@@ -619,7 +626,9 @@ fn integer_matrix_to_f64<const D: usize>(
             return Err(PeriodicCellKinematicsError::InvalidIntegerBasisTransform);
         }
     }
-    let converted = matrix.map(|value| value as f64);
+    let converted = SMatrix::<f64, D, D>::from_fn(|row, column| {
+        matrix[(row, column)] as f64
+    });
     if !converted.iter().all(|value| value.is_finite()) {
         return Err(PeriodicCellKinematicsError::NumericRange {
             field: "integer basis transform conversion",
@@ -891,8 +900,6 @@ mod tests {
             0.01, 0.02,
             0.0, -0.03,
         ]);
-        let origin = SVector::from([3.0, -2.0]);
-        let origin_velocity = SVector::from([0.2, -0.1]);
         let old = frame2(
             old_basis,
             old_rate,
