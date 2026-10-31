@@ -33,14 +33,16 @@ pub struct PlanarFrictionConeSolution {
     /// Signed kinetic-energy change attributable to the tangential impulse.
     /// Maximum-dissipation friction should make this non-positive.
     pub frictional_work_delta: f64,
+    /// The locally active contact mode; required for mode-specific derivatives.
+    pub mode: PlanarContactMode,
     /// Absolute Coulomb-cone violation.
     pub cone_violation: f64,
     /// Normalized residual for normal complementarity and the friction law.
     pub normalized_contact_residual: f64,
 }
 
-#[derive(Clone, Copy)]
-enum ContactMode {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PlanarContactMode {
     Separating,
     Sticking,
     SlidingPositive,
@@ -100,7 +102,7 @@ pub fn solve_planar_friction_cone(
     let impulse_tolerance = relative_tolerance * impulse_scale;
 
     let (impulse, mode) = if free_velocity[0] >= -velocity_tolerance {
-        (SVector::zeros(), ContactMode::Separating)
+        (SVector::zeros(), PlanarContactMode::Separating)
     } else {
         let mut admissible = Vec::with_capacity(3);
 
@@ -205,6 +207,7 @@ pub fn solve_planar_friction_cone(
     Ok(PlanarFrictionConeSolution {
         impulse,
         post_velocity,
+        mode,
         frictional_work_delta,
         cone_violation,
         normalized_contact_residual,
