@@ -550,7 +550,9 @@ fn validate_disposition(
                 || retained.iter().any(|id| !has_position(id) || id == first || id == second)
                 || positions
                     .keys()
-                    .any(|id| id != first && id != second && !retained.iter().any(|other| other == id))
+                    .any(|id| {
+                        id != first && id != second && !retained.iter().any(|other| other == id)
+                    })
                 || rationale.trim().is_empty() || rollback_trigger.trim().is_empty()
                 || rationale.len() > 8_192 || rollback_trigger.len() > 2_048
             {
@@ -791,8 +793,14 @@ mod tests {
         );
         let complete = DissonanceDisposition::Contextualize {
             assignments: vec![
-                ContextAssignment { position_id: PositionId::new("p1").unwrap(), context_rule: "context A".to_owned() },
-                ContextAssignment { position_id: PositionId::new("p2").unwrap(), context_rule: "context B".to_owned() },
+                ContextAssignment {
+                    position_id: PositionId::new("p1").unwrap(),
+                    context_rule: "context A".to_owned(),
+                },
+                ContextAssignment {
+                    position_id: PositionId::new("p2").unwrap(),
+                    context_rule: "context B".to_owned(),
+                },
                 ContextAssignment {
                     position_id: PositionId::new("p3").unwrap(),
                     context_rule: "context C".to_owned(),
