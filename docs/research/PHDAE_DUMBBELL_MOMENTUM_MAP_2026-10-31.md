@@ -146,7 +146,7 @@ The test suite also verifies:
 - zero relative angular-velocity / pure translation control;
 - nonzero center-of-mass translation plus relative rotation;
 - exact analytic free dumbbell trajectory under timestep refinement;
-- invalid link length, radial relative velocity, invalid masses, timestep, and solver options.
+- invalid link length, radial relative velocity, invalid/NaN masses, non-finite state/force, zero timestep, invalid solver options, and a deliberately under-iterated multiplier solve.
 
 The method's endpoint hidden velocity constraint is measured explicitly. In the isolated torque-free dumbbell, the only relative acceleration is parallel to the midpoint link. That makes the endpoint tangent residual also vanish to roundoff in this special model. This special-case result must **not** be generalized to arbitrary semi-explicit pHDAEs: the broader published method can have only approximate endpoint hidden-velocity satisfaction for other systems.
 
