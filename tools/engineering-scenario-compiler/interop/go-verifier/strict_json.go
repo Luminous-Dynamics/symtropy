@@ -14,7 +14,7 @@ import (
 
 const (
 	maxJCSInputBytes    = 1 << 20
-	maxJCSNestingDepth  = 128
+	maxJCSNestingDepth  = 127
 )
 
 // validateStrictJCSInput rejects ambiguous or non-I-JSON-shaped input before
