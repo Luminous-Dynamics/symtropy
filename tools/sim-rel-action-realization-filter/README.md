@@ -226,11 +226,15 @@ supported candidate loss and lists uncovered-policy candidates independently;
 it never assigns an invented numeric penalty to an undefined policy. Candidate
 ordering and report ordering are deterministic by world ID.
 
-The `generate_search_perturbation_candidates` helper now supplies a
-bounded first-generation stress set. Each scenario applies one exact edit to a
+The `generate_search_perturbation_candidates` helper supplies a
+bounded synthetic stress set. Each scenario can apply one exact edit to a
 validated parent kernel: transfer probability between outcomes in a row;
 suppress a readback; swap two measurement labels; remap the realized action;
 promote a safe outcome to a hazard; or change the next apparatus-state index.
+An ordered sequence can compose up to eight such edits to expose interactions,
+for example shifting probability mass onto an outcome that is then promoted to
+hazard. Nested, empty and over-budget sequences are rejected.
+
 Scenarios are sorted by stable ID, namespaced under the parent world ID,
 validated after mutation, and carry parent/generator/version/parameter
 receipts. No-op edits, invalid probability transfers, out-of-range indices
