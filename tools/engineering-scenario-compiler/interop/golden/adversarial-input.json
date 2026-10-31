@@ -6,5 +6,9 @@
     "𝄞": "supplementary",
     "z": "last-ascii",
     "a": "ascii"
+  },
+  "unicodeKeys": {
+    "é": "composed-key",
+    "e\u0301": "decomposed-key"
   }
 }
