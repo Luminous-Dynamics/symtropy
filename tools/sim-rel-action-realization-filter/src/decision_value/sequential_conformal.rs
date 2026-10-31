@@ -10,6 +10,9 @@
 use crate::Rational;
 use std::collections::BTreeSet;
 
+const MAX_CONFORMAL_STAGES: usize = 64;
+const MAX_FRESH_FOLD_SAMPLES: usize = 1_000_000;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FreshFoldStageInput {
     /// Zero-based stage in the sequential decision/calibration chain.
@@ -64,9 +67,10 @@ impl FreshFoldStageInput {
             return Err("fold ID and score version must be non-empty".into());
         }
         if self.fold_sample_count == 0
+            || self.fold_sample_count > MAX_FRESH_FOLD_SAMPLES
             || self.survivor_scores.len() > self.fold_sample_count
         {
-            return Err("fresh-fold sample count is zero or survivor scores exceed it".into());
+            return Err("fresh-fold sample count is zero, exceeds its cap, or survivor scores exceed it".into());
         }
         if self.target_conditional_coverage.is_zero()
             || !self.target_conditional_coverage.is_probability()
@@ -99,8 +103,10 @@ impl FreshFoldStageInput {
 pub fn calibrate_fresh_fold_sequence(
     stages: &[FreshFoldStageInput],
 ) -> Result<FreshFoldSequentialCalibration, String> {
-    if stages.is_empty() {
-        return Err("at least one fresh-fold calibration stage is required".into());
+    if stages.is_empty() || stages.len() > MAX_CONFORMAL_STAGES {
+        return Err(format!(
+            "fresh-fold calibration stage count must be in 1..={MAX_CONFORMAL_STAGES}"
+        ));
     }
 
     let mut fold_positions = BTreeSet::new();
@@ -113,13 +119,19 @@ pub fn calibrate_fresh_fold_sequence(
 
     for (index, stage) in stages.iter().enumerate() {
         for fit_fold in &stage.score_fit_fold_ids {
-            if let Some(position) = stages.iter().position(|candidate| candidate.fold_id == *fit_fold) {
-                if position >= index {
-                    return Err(
-                        "stage score refit cannot use its current or a future calibration fold"
-                            .into(),
-                    );
-                }
+            let Some(position) = stages
+                .iter()
+                .position(|candidate| candidate.fold_id == *fit_fold)
+            else {
+                return Err(
+                    "score-fit fold ID is absent from the declared fresh-fold sequence".into(),
+                );
+            };
+            if position >= index {
+                return Err(
+                    "stage score refit cannot use its current or a future calibration fold"
+                        .into(),
+                );
             }
         }
     }
@@ -302,6 +314,15 @@ mod tests {
             stage(1, "fold-b", rational(1, 2), &[1, 2, 3], &[]),
         ];
         assert!(calibrate_fresh_fold_sequence(&future_reuse).is_err());
+
+        let undeclared_reuse = [stage(
+            0,
+            "fold-a",
+            rational(1, 2),
+            &[1, 2, 3],
+            &["unknown-fold"],
+        )];
+        assert!(calibrate_fresh_fold_sequence(&undeclared_reuse).is_err());
     }
 
     #[test]
