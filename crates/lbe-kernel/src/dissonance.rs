@@ -171,6 +171,12 @@ pub struct ContextAssignment {
 pub enum DissonanceDisposition {
     /// Keep the disagreement open, with a defined review point.
     HoldOpen {
+        /// Accountable review owner asserted by the host identity adapter.
+        owner_id: String,
+        /// Why a decision is not yet justified or safe.
+        rationale: String,
+        /// Reference to an accessible review/appeal route.
+        review_route_ref: String,
         /// Time at which the tension must be revisited.
         review_at: u64,
     },
@@ -835,7 +841,21 @@ fn validate_disposition(
         if time > now { Ok(()) } else { Err(DissonanceError::InvalidReviewTime) }
     };
     match disposition {
-        DissonanceDisposition::HoldOpen { review_at } => future(*review_at),
+        DissonanceDisposition::HoldOpen {
+            owner_id,
+            rationale,
+            review_route_ref,
+            review_at,
+        } => {
+            future(*review_at)?;
+            if owner_id.trim().is_empty() || owner_id.len() > 256
+                || rationale.trim().is_empty() || rationale.len() > 2_048
+                || review_route_ref.trim().is_empty() || review_route_ref.len() > 512
+            {
+                return Err(DissonanceError::InvalidDisposition);
+            }
+            Ok(())
+        }
         DissonanceDisposition::Integrate { position_ids, rationale, review_at } => {
             future(*review_at)?;
             let ids: BTreeSet<&PositionId> = position_ids.iter().collect();
@@ -1044,7 +1064,12 @@ mod tests {
     #[test]
     fn hold_open_is_a_valid_outcome_not_a_failed_resolution() {
         let mut record = record(DissonanceKind::StructuralParadox);
-        record.set_disposition(DissonanceDisposition::HoldOpen { review_at: 100 }, 10).unwrap();
+        record.set_disposition(DissonanceDisposition::HoldOpen {
+            owner_id: "governance:review-owner".to_owned(),
+            rationale: "The evidence and affected-party access are insufficient.".to_owned(),
+            review_route_ref: "appeal:review-route-1".to_owned(),
+            review_at: 100,
+        }, 10).unwrap();
         assert_eq!(record.status(), DissonanceStatus::HeldOpen);
         assert_eq!(record.positions().count(), 2);
     }
@@ -1250,7 +1275,12 @@ mod tests {
     #[test]
     fn changing_the_disposition_appends_history_instead_of_rewriting_it() {
         let mut record = record(DissonanceKind::StructuralParadox);
-        record.set_disposition(DissonanceDisposition::HoldOpen { review_at: 100 }, 10).unwrap();
+        record.set_disposition(DissonanceDisposition::HoldOpen {
+                owner_id: "governance:review-owner".to_owned(),
+                rationale: "The issue remains materially unresolved.".to_owned(),
+                review_route_ref: "appeal:review-route-2".to_owned(),
+                review_at: 100,
+            }, 10).unwrap();
         record.set_safeguards(safe_safeguards());
         record.set_disposition(DissonanceDisposition::PrioritizeProvisionally {
             selected: PositionId::new("p1").unwrap(),
@@ -1401,6 +1431,23 @@ mod tests {
         assert_eq!(replayed, original);
     }
 
+
+
+    #[test]
+    fn hold_open_requires_owner_reason_and_accessible_review_route() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        let incomplete = DissonanceDisposition::HoldOpen {
+            owner_id: " ".to_owned(),
+            rationale: "Not ready.".to_owned(),
+            review_route_ref: "appeal:route".to_owned(),
+            review_at: 100,
+        };
+        assert_eq!(
+            record.set_disposition(incomplete, 10),
+            Err(DissonanceError::InvalidDisposition)
+        );
+        assert!(record.disposition().is_none());
+    }
 
     #[test]
     fn mandatory_review_becomes_due_without_silently_closing_the_record() {
