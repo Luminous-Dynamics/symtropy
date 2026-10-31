@@ -750,6 +750,19 @@ mod tests {
     fn duplicate_keys_and_unknown_fields_are_invalid() {
         let duplicate = b"case_id = 'first'\ncase_id = 'second'\n";
         assert_eq!(compile_bytes(duplicate).disposition, Disposition::Invalid);
+
+        let original = std::str::from_utf8(FIXTURE).unwrap();
+        let duplicate_nested = replace_once(
+            original,
+            r#"name = "TMR NACA 0012 sharp trailing edge""#,
+            "name = \"TMR NACA 0012 sharp trailing edge\"\nname = \"duplicate geometry name\"",
+        );
+        assert_eq!(
+            compile_bytes(duplicate_nested.as_bytes()).disposition,
+            Disposition::Invalid,
+            "duplicate member in a nested TOML table must be rejected"
+        );
+
         let unknown = String::from_utf8(FIXTURE.to_vec()).unwrap() + "\nunknown_authority_field = true\n";
         let report = compile_bytes(unknown.as_bytes());
         assert_eq!(report.disposition, Disposition::Invalid);
