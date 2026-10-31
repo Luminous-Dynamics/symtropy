@@ -132,6 +132,29 @@ fn bench_contact_wrench_assembly(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_contact_wrench_free_velocity(c: &mut Criterion) {
+    let mut group = c.benchmark_group("contact_wrench_free_velocity_projection_asymmetric_3d");
+    for row_count in [1_usize, 2, 4] {
+        let (bodies, rows) = contact_wrench_fixture(row_count);
+        group.bench_with_input(
+            BenchmarkId::new("contact_patches", row_count),
+            &row_count,
+            |bench, _| {
+                bench.iter(|| {
+                    black_box(
+                        assemble_contact_wrench_free_velocity(
+                            black_box(&bodies),
+                            black_box(&rows),
+                        )
+                        .expect("valid contact-wrench free-velocity fixture"),
+                    )
+                });
+            },
+        );
+    }
+    group.finish();
+}
+
 fn bench_delassus_assembly(c: &mut Criterion) {
     let mut group = c.benchmark_group("delassus_assembly_asymmetric_3d");
     for row_count in [1_usize, 2, 4, 8] {
