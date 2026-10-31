@@ -1,0 +1,329 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/verified-evidence-receipt-v1.schema.json",
+  "title": "Verified Evidence Receipt v1",
+  "description": "A verifier output record. Schema validity alone is not proof that cryptographic verification was performed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receiptVersion",
+    "statementDigest",
+    "bundleDigest",
+    "subjectDigests",
+    "signatureVerification",
+    "transparency",
+    "trustRoot",
+    "verifier",
+    "policy",
+    "decision",
+    "predicateValidation"
+  ],
+  "properties": {
+    "receiptVersion": {
+      "const": "1.0.0"
+    },
+    "statementDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 hex digest of exact artifact bytes."
+    },
+    "bundleDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 hex digest of exact artifact bytes."
+    },
+    "subjectDigests": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$",
+        "description": "Lowercase SHA-256 hex digest of exact artifact bytes."
+      }
+    },
+    "signatureVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "signerIdentity",
+        "issuer",
+        "signedAt",
+        "certificateNotBefore",
+        "certificateNotAfter"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "FAILED"
+          ]
+        },
+        "signerIdentity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issuer": {
+          "type": "string",
+          "format": "uri"
+        },
+        "signedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$",
+          "description": "UTC timestamp with Z suffix."
+        },
+        "certificateNotBefore": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$",
+          "description": "UTC timestamp with Z suffix."
+        },
+        "certificateNotAfter": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$",
+          "description": "UTC timestamp with Z suffix."
+        },
+        "certificateFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase SHA-256 hex digest of exact artifact bytes."
+        },
+        "workflowRepository": {
+          "type": "string"
+        },
+        "workflowRef": {
+          "type": "string"
+        },
+        "workflowName": {
+          "type": "string"
+        }
+      }
+    },
+    "transparency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "logId",
+        "integratedTime"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "FAILED",
+            "NOT_REQUIRED"
+          ]
+        },
+        "logId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entryId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "integratedTime": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$",
+          "description": "UTC timestamp with Z suffix."
+        },
+        "inclusionProofDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase SHA-256 hex digest of exact artifact bytes."
+        }
+      }
+    },
+    "trustRoot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "version",
+        "digest",
+        "expires",
+        "checkedAt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "CURRENT",
+            "STALE",
+            "INVALID",
+            "UNKNOWN"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase SHA-256 hex digest of exact artifact bytes."
+        },
+        "expires": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$",
+          "description": "UTC timestamp with Z suffix."
+        },
+        "checkedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$",
+          "description": "UTC timestamp with Z suffix."
+        },
+        "trustDomain": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "verifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "buildDigest",
+        "verifiedAt"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "buildDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase SHA-256 hex digest of exact artifact bytes."
+        },
+        "verifiedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$",
+          "description": "UTC timestamp with Z suffix."
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "digest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase SHA-256 hex digest of exact artifact bytes."
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reasons"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ACCEPTED",
+            "REJECTED"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "predicateValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "predicateType",
+        "schemaVersion",
+        "repositoryId",
+        "evidenceClass",
+        "evidenceTier"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "VALID",
+            "INVALID"
+          ]
+        },
+        "predicateType": {
+          "type": "string",
+          "format": "uri"
+        },
+        "schemaVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repositoryId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "repositoryOwnerName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceClass": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceTier": {
+          "enum": [
+            "T0",
+            "T1",
+            "T2",
+            "T3",
+            "T4"
+          ]
+        },
+        "scopeDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "subjectName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "materialsVerified": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "materialsRequired": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

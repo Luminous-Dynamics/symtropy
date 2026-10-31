@@ -1,0 +1,95 @@
+{
+  "profileVersion": "1.0.0",
+  "status": "EXAMPLE_NOT_PRODUCTION_READY",
+  "verifier": {
+    "name": "cosign",
+    "version": "v3.1.4",
+    "sourceRepository": "https://github.com/sigstore/cosign",
+    "sourceCommit": "0e48502cf5ef34e2e60bbd3617aa19945712f705",
+    "binarySha256ByPlatform": {
+      "linux-amd64": "REQUIRED_FROM_OFFICIAL_V3_1_4_RELEASE_ASSET",
+      "linux-arm64": "REQUIRED_FROM_OFFICIAL_V3_1_4_RELEASE_ASSET"
+    }
+  },
+  "trust": {
+    "trustedRootFile": "/etc/luminous/sigstore/trusted-root.json",
+    "trustedRootSha256": "REQUIRED_FROM_AUTHENTICATED_TUF_UPDATE_RECEIPT",
+    "trustRootSnapshotReceipt": "/etc/luminous/sigstore/trusted-root-update-receipt.json",
+    "minimumTrustRootVersion": "REQUIRED",
+    "maximumRootAgeSeconds": 604800,
+    "staleOrUnknownPolicy": "REJECT_OR_ABSTAIN",
+    "networkEgressDuringVerification": false
+  },
+  "statement": {
+    "statementType": "https://in-toto.io/Statement/v1",
+    "predicateType": "https://YOUR_ORG_CONTROLLED_DOMAIN/predicates/manufacturing-evidence/v1",
+    "predicateSchemaVersion": "1.0.0",
+    "subjectDigestAlgorithm": "sha256",
+    "checkClaims": true
+  },
+  "signer": {
+    "identity": "REPLACE_WITH_EXACT_FULCIO_CERTIFICATE_SUBJECT",
+    "oidcIssuer": "https://token.actions.githubusercontent.com",
+    "githubWorkflowRepository": "Luminous-Dynamics/symtropy",
+    "githubRepositoryId": "1263670049",
+    "workflowName": "REPLACE_WITH_EXACT_GITHUB_OIDC_WORKFLOW_CLAIM",
+    "workflowRef": "refs/tags/REPLACE_WITH_PROTECTED_IMMUTABLE_RELEASE_TAG",
+    "workflowSha": "REPLACE_WITH_EXACT_40_OR_64_HEX_COMMIT",
+    "workflowTrigger": "push"
+  },
+  "cosignInvocation": [
+    "verify-blob-attestation",
+    "--bundle",
+    "${BUNDLE_PATH}",
+    "--trusted-root",
+    "${TRUSTED_ROOT_PATH}",
+    "--type",
+    "${PREDICATE_TYPE}",
+    "--certificate-identity",
+    "${SIGNER_IDENTITY}",
+    "--certificate-oidc-issuer",
+    "${OIDC_ISSUER}",
+    "--certificate-github-workflow-repository",
+    "${WORKFLOW_REPOSITORY}",
+    "--certificate-github-workflow-name",
+    "${WORKFLOW_NAME}",
+    "--certificate-github-workflow-ref",
+    "${WORKFLOW_REF}",
+    "--certificate-github-workflow-sha",
+    "${WORKFLOW_SHA}",
+    "--certificate-github-workflow-trigger",
+    "${WORKFLOW_TRIGGER}",
+    "--check-claims=true",
+    "${ARTIFACT_PATH}"
+  ],
+  "postCosignChecks": [
+    "Parse DSSE envelope from the exact verified bundle using a maintained parser; do not treat a producer-supplied JSON receipt as authoritative.",
+    "Require the exact Statement v1 and predicateType URI.",
+    "Require exactly the expected subject name/role and sha256 digest for the artifact bytes.",
+    "Require predicate.producer.repositoryId to equal the immutable repository ID from policy; the Cosign workflow-repository flag checks owner/name, not immutable repository ID.",
+    "Require predicate.producer.repository, workflow, workflowRef and sourceRevision to match policy and the verified certificate workflow claims.",
+    "Require run source revision to match the attested workflow SHA.",
+    "Validate predicate schema, evidence class/tier, scope, validity interval, materials/calibration digests, measurement units, uncertainty, limitations and consumer claim policy.",
+    "Emit a new verifier receipt only after every cryptographic, trust-root, identity, subject and semantic gate passes."
+  ],
+  "receipt": {
+    "acceptedOnlyAfterAllGates": true,
+    "captureCosignBinarySha256": true,
+    "captureBundleSha256": true,
+    "captureTrustedRootSha256": true,
+    "captureTrustRootSnapshotVersionAndExpiry": true,
+    "captureArtifactSha256": true,
+    "captureVerifiedIdentityIssuerWorkflowClaims": true,
+    "capturePredicateTypeAndSchemaVersion": true,
+    "captureVerifierPolicyDigest": true,
+    "captureVerifierBuildIdentity": true
+  },
+  "prohibitions": [
+    "Do not use a mutable branch name as the sole signer policy.",
+    "Do not allow a broad identity or issuer regular expression in production.",
+    "Do not accept missing/expired/unknown trust-root freshness.",
+    "Do not use --insecure-ignore-tlog, --insecure-ignore-sct or --check-claims=false.",
+    "Do not treat command exit zero as a complete manufacturing evidence admission until post-Cosign predicate semantics have been checked.",
+    "Do not treat the deprecated --offline flag as a substitute for supplying and validating a current trusted root."
+  ]
+}

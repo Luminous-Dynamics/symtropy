@@ -1,0 +1,31 @@
+# SPEC_ONLY|case_id|stage|mutation|expected|reason
+SIGSTORE|BUNDLE_SUBJECT_MUTATION|COSIGN|Change one byte in artifact after signing|REJECT|Cosign must hash exact artifact bytes and compare to in-toto subject digest
+SIGSTORE|BUNDLE_SIGNATURE_TAMPER|COSIGN|Modify DSSE signature or authenticated payload|REJECT|DSSE/bundle signature verification fails
+SIGSTORE|PAYLOAD_TYPE_CONFUSION|COSIGN|Change authenticated payload type or use unsupported type|REJECT|DSSE payload-type and expected predicate-type binding
+SIGSTORE|PREDICATE_TYPE_MISMATCH|COSIGN|Validly signed bundle with a different predicateType|REJECT|Exact --type URI required
+SIGSTORE|SIGNER_IDENTITY_MISMATCH|COSIGN|Valid signature from a different certificate subject|REJECT|Exact certificate identity required
+SIGSTORE|OIDC_ISSUER_MISMATCH|COSIGN|Certificate issued by a non-approved OIDC issuer|REJECT|Exact OIDC issuer required
+SIGSTORE|WORKFLOW_REPOSITORY_MISMATCH|COSIGN|Different owner/repository OIDC claim|REJECT|Exact workflow repository filter
+SIGSTORE|WORKFLOW_IDENTITY_MISMATCH|COSIGN|Different workflow name claim|REJECT|Exact workflow name filter
+SIGSTORE|WORKFLOW_REF_MISMATCH|COSIGN|Unprotected branch or unexpected tag ref|REJECT|Exact protected workflow ref required
+SIGSTORE|WORKFLOW_SHA_MISMATCH|COSIGN|Signer workflow based on an unexpected source SHA|REJECT|Exact workflow SHA filter
+SIGSTORE|WORKFLOW_TRIGGER_MISMATCH|COSIGN|Unexpected event trigger|REJECT|Exact workflow trigger policy
+SIGSTORE|CERTIFICATE_TIME_INVALID|COSIGN|Signing certificate invalid at authenticated signing time|REJECT|Certificate validity must cover verified signing time
+SIGSTORE|TRANSPARENCY_PROOF_INVALID|COSIGN|Missing or invalid required transparency inclusion evidence|REJECT|Transparency proof verification
+TRUST|TRUST_ROOT_DIGEST_MISMATCH|ROOT_PROVISIONING|Trusted-root bytes differ from authenticated root update receipt|REJECT|Expected root digest binding
+TRUST|TRUST_ROOT_EXPIRED|ROOT_PROVISIONING|TUF root or required metadata expired|REJECT|Fresh signed trust metadata required
+TRUST|TRUST_ROOT_ROLLBACK|ROOT_PROVISIONING|Older metadata version presented|REJECT|Monotonic version/rollback protection
+TRUST|TRUST_ROOT_THRESHOLD_FAILURE|ROOT_PROVISIONING|Insufficient authorized signatures on root metadata|REJECT|TUF threshold policy
+TRUST|TRUST_ROOT_UNKNOWN_FRESHNESS|ROOT_PROVISIONING|No authenticated update receipt or stale disconnected snapshot|ABSTAIN_OR_REJECT|Never claim current trust with unknown freshness
+SEMANTIC|REPOSITORY_ID_MISMATCH|PREDICATE|Signed producer.repositoryId differs from trusted immutable repository ID|REJECT|Owner/name alone is not immutable repository identity
+SEMANTIC|REPOSITORY_NAME_MISMATCH|PREDICATE|Signed repository owner/name differs from policy|REJECT|Cross-check signed producer repo identity
+SEMANTIC|SOURCE_REVISION_MISMATCH|PREDICATE|Signed run source revision differs from signer workflow SHA|REJECT|Exact source and builder linkage
+SEMANTIC|MISSING_CALIBRATION|PREDICATE|Required calibration subject/material omitted|REJECT|Required metrology lineage
+SEMANTIC|MATERIAL_DIGEST_MISMATCH|PREDICATE|Raw data/model/lot/calibration bytes differ from signed materials digest|REJECT|Every required material independently hashed
+SEMANTIC|EVIDENCE_TIER_TOO_LOW|PREDICATE|T0 or T1 evidence presented for a T2+ claim|REJECT|Consumer minimum evidence tier
+SEMANTIC|EVIDENCE_EXPIRED|PREDICATE|Assessment time outside half-open validity interval|REJECT|Time-qualified evidence
+SEMANTIC|SCOPE_LEAKAGE|PREDICATE|Line-only evidence used for global or different-site claim|REJECT|Scope compatibility policy
+SEMANTIC|UNKNOWN_UNIT|PREDICATE|Physical quantity uses unrecognized or dimensionally incompatible unit|REJECT|Dimensional validation
+SEMANTIC|UNCERTAINTY_UNKNOWN|PREDICATE|Required uncertainty missing or marked UNKNOWN|ABSTAIN_OR_REJECT|Uncertainty is not silently assumed zero
+SEMANTIC|CLAIM_CEILING_EXCEEDED|PREDICATE|T0 synthetic evidence asserted as plant validation or safety certification|REJECT|Evidence tier and limitation enforcement
+SEMANTIC|INVALID_VERIFIER_RECEIPT|RECEIPT|Receipt omits verifier build, trust root, policy digest or exact subject|REJECT|Receipt completeness and auditability
