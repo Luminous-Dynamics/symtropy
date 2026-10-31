@@ -48,8 +48,10 @@ fn production_inertia_sign_bridge_matches_physical_so4_metric() {
     // Production stores L_store = B*S + S*B = -M_physical.
     let stored_momentum = inertia.angular_momentum(&stored_b);
     let physical_momentum = stored_momentum.scale(-1.0);
-    let expected_physical_momentum = second_moment * physical_omega.to_matrix()
-        + physical_omega.to_matrix() * second_moment;
+    let second_moment = second_moment.clone();
+    let physical_omega_matrix = physical_omega.to_matrix();
+    let expected_physical_momentum = second_moment * physical_omega_matrix
+        + physical_omega_matrix * second_moment;
 
     assert!(
         (physical_momentum.to_matrix() - expected_physical_momentum).norm() < 1e-11,
@@ -100,7 +102,7 @@ fn production_four_dimensional_inertia_is_body_basis_covariant() {
     let r_02 = Rotor::<4>::from_plane_angle(&Bivector::unit_plane(0, 2), 0.41);
     let r_13 = Rotor::<4>::from_plane_angle(&Bivector::unit_plane(1, 3), -0.23);
     let body_rotation = r_02.compose(&r_13);
-    let rotation = body_rotation.to_matrix();
+    let rotation = body_rotation.to_matrix().clone();
     let rotation_t = rotation.transpose();
 
     let rotated_inertia = inertia.rotated_by(&body_rotation);
