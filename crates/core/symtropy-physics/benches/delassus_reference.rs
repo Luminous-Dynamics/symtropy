@@ -249,12 +249,31 @@ fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
             )
         });
     });
-    c.bench_function("contact_wrench_validate_4d", |bench| {
+    c.bench_function("contact_wrench_validate_independent_channels_4d", |bench| {
         bench.iter(|| {
             black_box(
                 wrench
                     .validate(black_box(&frame), black_box(&limits), 1e-12)
-                    .expect("admissible 4D wrench"),
+                    .expect("admissible independent-channel 4D wrench"),
+            )
+        });
+    });
+    let ellipsoidal_wrench = ContactWrenchImpulse::<4> {
+        normal: 10.0,
+        tangential: frame.tangent_basis()[0] * 1.0,
+        rolling: vec![0.01, 0.0, 0.0],
+        torsional: vec![0.005, 0.0, 0.0],
+    };
+    c.bench_function("contact_wrench_validate_coupled_ellipsoid_4d", |bench| {
+        bench.iter(|| {
+            black_box(
+                ellipsoidal_wrench
+                    .validate_ellipsoidal_friction_budget(
+                        black_box(&frame),
+                        black_box(&limits),
+                        1e-12,
+                    )
+                    .expect("admissible coupled-ellipsoid 4D wrench"),
             )
         });
     });
@@ -263,6 +282,8 @@ fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_delassus_assembly,
+    bench_contact_wrench_assembly,
+    bench_contact_wrench_free_velocity,
     bench_reference_lcp,
     bench_planar_friction_cone,
     bench_nd_contact_frame_and_wrench,
