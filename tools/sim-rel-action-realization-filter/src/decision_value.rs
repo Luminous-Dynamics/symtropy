@@ -6,6 +6,7 @@
 
 pub mod finite_horizon;
 pub mod robust_finite_horizon;
+pub mod policy_falsifier;
 
 use super::{
     ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PosteriorMass,
