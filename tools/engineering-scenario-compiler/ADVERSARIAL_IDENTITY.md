@@ -1,6 +1,6 @@
 # Adversarial Scenario Identity Qualification v0.1
 
-Status: contract plus first implementation of strict input preflight in the independent Go verifier; full corpus and Rust-side ingestion guard remain unimplemented and unqualified.
+Status: contract plus strict Go JSON/JCS preflight, nested Rust TOML duplicate-key tests, and shared Rust/Go adversarial Unicode/binary64 golden vector. Full generated corpus and exact-head CI qualification remain open.
 
 ## 1. Protocol, not serializer
 
@@ -71,6 +71,17 @@ Separate raw input read, strict duplicate-aware JSON parse, typed deserializatio
 Report p50/p95/p99, throughput, allocation count and peak memory by payload size. Use 50 warmups and at least 500 samples for small deterministic local tests; increase sample size and report confidence/noise for public comparisons. Preserve the prior whole-compiler benchmark as a separate end-to-end metric.
 
 Do not claim superiority over general-purpose JSON Schema or CUE validators until the corpus contains equivalent semantics, accepted/rejected rules, hardware, warm/cold behavior and output requirements.
+
+### Implemented adversarial golden vector
+
+The follow-on branch adds a language-neutral adversarial input/output pair shared
+by the Rust `serde_jcs` unit test and the independent Go canonicalizer test.
+It checks UTF-16 property ordering where a supplementary-plane key sorts
+before a BMP private-use key, composed versus decomposed Unicode preservation,
+negative-zero normalization, minimum positive subnormal, maximum finite
+binary64, and the fixed-decimal/exponent formatting boundary. Both
+implementations must reproduce the same committed canonical bytes. This is a
+single frozen vector, not yet the full generated edge corpus.
 
 ## 8. Acceptance and claim ceiling
 
