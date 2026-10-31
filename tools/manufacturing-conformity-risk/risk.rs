@@ -421,20 +421,6 @@ fn probability_bounds(r: &Request) -> Result<(f64, f64), &'static str> {
 }
 
 
-    validate(r)?;
-    let mut represented = 0.0_f64;
-    for bin in &r.posterior.bins {
-        let overlap = (bin.upper.min(r.spec.upper) - bin.lower.max(r.spec.lower)).max(0.0);
-        represented += bin.mass * overlap / (bin.upper - bin.lower);
-    }
-    if !represented.is_finite() || represented < -TOL || represented > 1.0 + TOL {
-        return Err("CONFORMANCE_INTEGRAL_INVALID");
-    }
-    let lower = represented.clamp(0.0, 1.0);
-    let upper = (lower + r.posterior.unknown_tail_mass).clamp(lower, 1.0);
-    Ok((lower, upper))
-}
-
 fn classify(r: &Request) -> Report {
     if let Err(reason) = validate(r) { return incomplete(r, reason); }
     let (lower, upper) = match probability_bounds(r) {
