@@ -94,6 +94,15 @@ struct TruthKey {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct SampleSetKey {
+    task_id: String,
+    model_id: String,
+    geometry_family: String,
+    flow_regime: String,
+    domain_status: DomainStatus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct ComparisonKey {
     task_id: String,
     geometry_family: String,
@@ -143,6 +152,8 @@ pub fn audit_blind_prediction_intervals(
     let mut truth_by_sample: BTreeMap<TruthKey, u64> = BTreeMap::new();
     let mut comparison_sets: BTreeMap<ComparisonKey, BTreeMap<String, BTreeSet<String>>> =
         BTreeMap::new();
+    let mut interval_levels_by_sample: BTreeMap<SampleSetKey, BTreeMap<String, BTreeSet<u64>>> =
+        BTreeMap::new();
     let mut summaries: BTreeMap<SummaryKey, Accumulator> = BTreeMap::new();
 
     for (index, prediction) in predictions.iter().enumerate() {
@@ -178,6 +189,20 @@ pub fn audit_blind_prediction_intervals(
             .entry(prediction.model_id.clone())
             .or_default()
             .insert(prediction.sample_id.clone());
+
+        let sample_set_key = SampleSetKey {
+            task_id: prediction.task_id.clone(),
+            model_id: prediction.model_id.clone(),
+            geometry_family: prediction.geometry_family.clone(),
+            flow_regime: prediction.flow_regime.clone(),
+            domain_status: prediction.domain_status,
+        };
+        interval_levels_by_sample
+            .entry(sample_set_key)
+            .or_default()
+            .entry(prediction.sample_id.clone())
+            .or_default()
+            .insert(prediction.nominal_coverage.to_bits());
 
         let sample_key = SampleKey {
             task_id: prediction.task_id.clone(),
@@ -245,6 +270,24 @@ pub fn audit_blind_prediction_intervals(
         summary.absolute_error_sum += point_error.abs();
         summary.squared_error_sum += point_error * point_error;
         summary.signed_error_sum += point_error;
+    }
+
+    // Every sample in one model/stratum must expose the same interval levels.
+    // Otherwise hard samples could selectively omit a 95% interval, evading calibration scoring.
+    for (group, samples) in &interval_levels_by_sample {
+        let mut level_sets = samples.values();
+        if let Some(reference_levels) = level_sets.next() {
+            if level_sets.any(|levels| levels != reference_levels) {
+                return Err(format!(
+                    "samples have different nominal interval level sets for task={} model={} geometry={} regime={} domain={}",
+                    group.task_id,
+                    group.model_id,
+                    group.geometry_family,
+                    group.flow_regime,
+                    group.domain_status.as_str()
+                ));
+            }
+        }
     }
 
     // Comparative model rows must cover exactly the same blind samples. Otherwise a
@@ -596,6 +639,21 @@ mod tests {
         assert!(audit_blind_prediction_intervals(&predictions)
             .expect_err("omitted hard samples must be detected")
             .contains("different blind sample sets"));
+    }
+
+    #[test]
+    fn every_sample_must_include_the_same_nominal_interval_levels() {
+        let mut predictions = synthetic_predictions();
+        predictions.retain(|row| {
+            !(row.model_id == "nominal_model"
+                && row.sample_id == "in_domain-0"
+                && (row.nominal_coverage - 0.95).abs() < 1.0e-12)
+        });
+        assert!(
+            audit_blind_prediction_intervals(&predictions)
+                .expect_err("missing interval level on one sample must fail")
+                .contains("different nominal interval level sets")
+        );
     }
 
     #[test]
