@@ -1067,7 +1067,7 @@ mod tests {
     fn later_revocation_supersedes_prior_grant_for_same_principal() {
         let mut input = valid_manifest();
         input.push_str(&format!(
-            "AUTH|auth-revoke|plan-1|HUMAN|operator-1|machine-7|LINE-1|adjust_feed_rate|2026-10-31T11:54:00Z|2026-10-31T23:00:00Z|REVOKED|{}\\n",
+            "AUTH|auth-revoke|plan-1|HUMAN|operator-1|machine-7|LINE-1|adjust_feed_rate|2026-10-31T11:54:00Z|2026-10-31T23:00:00Z|REVOKED|{}\n",
             HASH_E
         ));
         let report = run_report(&input).unwrap();
