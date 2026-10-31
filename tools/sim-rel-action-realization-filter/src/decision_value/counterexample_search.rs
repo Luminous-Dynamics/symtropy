@@ -789,20 +789,120 @@ fn emit_grid_candidate(
     {
         return Err("generated candidate ID collides with a source world".into());
     }
-    match apply_model_world_perturbation(source, &candidate_world_id, &perturbation) {
-        Ok(_) => report.specs.push(PerturbationSpec {
+    if perturbation_is_applicable(source, &perturbation) {
+        report.specs.push(PerturbationSpec {
             source_world_id: source.id.clone(),
             candidate_world_id,
             perturbation,
-        }),
-        Err(_) => {
-            report.skipped_inapplicable = report
-                .skipped_inapplicable
-                .checked_add(1)
-                .ok_or_else(|| "inapplicable perturbation counter overflow".to_string())?;
-        }
+        });
+    } else {
+        report.skipped_inapplicable = report
+            .skipped_inapplicable
+            .checked_add(1)
+            .ok_or_else(|| "inapplicable perturbation counter overflow".to_string())?;
     }
     Ok(())
+}
+
+/// Cheap preflight applicability check. The generated candidate is still
+/// fully constructed and kernel-validated by the execution/search path; this
+/// scan avoids cloning a potentially large kernel for candidates that cannot
+/// change any outcome.
+fn perturbation_is_applicable(
+    source: &DecisionModelWorld,
+    perturbation: &ModelWorldPerturbation,
+) -> bool {
+    let kernel = &source.kernel;
+    match perturbation {
+        ModelWorldPerturbation::SwapMeasurementLabels {
+            command,
+            sensor_state,
+            left_measurement,
+            right_measurement,
+        } => kernel.rows.iter().any(|row| {
+            row.command == *command
+                && row.state.sensor_state == *sensor_state
+                && row.outcomes.iter().any(|outcome| {
+                    outcome.measurement == Some(*left_measurement)
+                        || outcome.measurement == Some(*right_measurement)
+                })
+        }),
+        ModelWorldPerturbation::SwapSensorCalibration {
+            sensor_state,
+            left_measurement,
+            right_measurement,
+        } => kernel.rows.iter().any(|row| {
+            row.state.sensor_state == *sensor_state
+                && row.outcomes.iter().any(|outcome| {
+                    outcome.measurement == Some(*left_measurement)
+                        || outcome.measurement == Some(*right_measurement)
+                })
+        }),
+        ModelWorldPerturbation::DropReadback {
+            command,
+            sensor_state,
+            ..
+        } => kernel.rows.iter().any(|row| {
+            row_matches(row.state, row.command, *command, *sensor_state)
+                && row.outcomes.iter().any(|outcome| outcome.readback.is_some())
+        }),
+        ModelWorldPerturbation::InjectHazard {
+            command,
+            sensor_state,
+            ..
+        } => kernel.rows.iter().any(|row| {
+            row_matches(row.state, row.command, *command, *sensor_state)
+                && row.outcomes.iter().any(|outcome| !outcome.hazard)
+        }),
+        ModelWorldPerturbation::ShiftOutcomeMass {
+            state,
+            command,
+            source_outcome,
+            target_outcome,
+            amount,
+        } => {
+            if *command >= kernel.command_ids.len()
+                || *source_outcome == *target_outcome
+                || amount.is_zero()
+                || state.hypothesis >= kernel.hypothesis_ids.len()
+                || state.physical_state >= kernel.physical_state_count
+                || state.sensor_state >= kernel.sensor_state_count
+                || state.apparatus_state >= kernel.apparatus_state_count
+            {
+                return false;
+            }
+            let row = &kernel.rows[kernel.row_index(*state, *command)];
+            if *source_outcome >= row.outcomes.len() || *target_outcome >= row.outcomes.len() {
+                return false;
+            }
+            let source_mass = row.outcomes[*source_outcome].probability;
+            let target_mass = row.outcomes[*target_outcome].probability;
+            *amount < source_mass
+                && target_mass
+                    .checked_add(*amount)
+                    .is_ok_and(Rational::is_probability)
+        }
+        ModelWorldPerturbation::DegradeApparatus {
+            command,
+            current_apparatus_state_at_least,
+            degraded_next_state,
+        } => kernel.rows.iter().any(|row| {
+            row.command == *command
+                && row.state.apparatus_state >= *current_apparatus_state_at_least
+                && row.outcomes.iter().any(|outcome| {
+                    outcome.next_state.apparatus_state != *degraded_next_state
+                })
+        }),
+        ModelWorldPerturbation::RemapRealizedAction {
+            command,
+            sensor_state,
+            from_action,
+            ..
+        } => kernel.rows.iter().any(|row| {
+            row_matches(row.state, row.command, *command, *sensor_state)
+                && row.outcomes.iter().any(|outcome| outcome.realized_action == *from_action)
+        }),
+    }
 }
 
 /// Search a fixed policy against a finite, deterministic perturbation family.
