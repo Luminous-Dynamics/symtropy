@@ -680,6 +680,7 @@ mod tests {
         let mut state = initial_state();
         let mut max_link_residual = 0.0_f64;
         let mut max_midpoint_residual = 0.0_f64;
+        let mut max_endpoint_residual = 0.0_f64;
         for _ in 0..5000 {
             let receipt = model
                 .step(
@@ -694,10 +695,13 @@ mod tests {
                 max_link_residual.max(receipt.relative_link_constraint_residual);
             max_midpoint_residual = max_midpoint_residual
                 .max(receipt.relative_midpoint_velocity_constraint_residual);
+            max_endpoint_residual =
+                max_endpoint_residual.max(receipt.endpoint_velocity_constraint_residual.abs());
             state = receipt.after;
         }
         assert!(max_link_residual < 1.0e-12);
         assert!(max_midpoint_residual < 1.0e-12);
+        assert!(max_endpoint_residual < 2.0e-12);
     }
 
     #[test]
