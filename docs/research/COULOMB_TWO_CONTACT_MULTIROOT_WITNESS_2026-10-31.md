@@ -9,7 +9,7 @@
 
 Two contacts sharing generalized degrees of freedom cannot be treated as two independent 3x3 solves. Their complete 6x6 Delassus matrix contains cross-contact blocks that couple the impulses.
 
-This fixture is a concrete falsification target for the next solver. It has:
+This fixture is a concrete falsification target for the next solver. A first regime-restricted algebraic reduction now replays the witness when contact 2 is held to the strict sticking regime; see [the Schur reduction note](COULOMB_TWO_CONTACT_SCHUR_REDUCTION_2026-11-01.md). It has:
 - a symmetric positive-definite 6x6 Delassus matrix;
 - nonzero off-diagonal cross-contact blocks;
 - two loaded contacts;
