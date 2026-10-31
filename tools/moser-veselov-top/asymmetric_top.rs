@@ -546,7 +546,7 @@ mod tests {
         let (model, initial) = baseline();
         let reference = integrate_rk4(model, initial, 0.00005, 20_000);
         let mut errors = Vec::new();
-        for h in [0.08, 0.04, 0.02, 0.01] {
+        for h in [0.125, 0.0625, 0.03125, 0.015625] {
             let candidate = integrate_dmv(model, initial, h, (1.0 / h).round() as usize).unwrap().0;
             let (q, p) = state_error(candidate, reference);
             errors.push(q.hypot(p));
