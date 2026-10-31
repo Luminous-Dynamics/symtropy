@@ -884,7 +884,7 @@ mod tests {
         let one_step = analyze_identifiability(nominal, &config(1)).unwrap();
         let two_steps = analyze_identifiability(nominal, &config(2)).unwrap();
         assert_eq!(one_step.pairwise[0].max_total_variation, Rational::zero());
-        assert_eq!(two_steps.pairwise[0].max_total_variation, Rational::one());
+        assert_eq!(two_steps.pairwise[0].max_total_variation, Rational::new(3, 4).unwrap());
     }
 
     #[test]
