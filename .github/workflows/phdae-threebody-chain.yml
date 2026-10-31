@@ -1,0 +1,45 @@
+name: Coupled three-body spatial pHDAE chain reference
+
+on:
+  pull_request:
+    paths:
+      - "tools/phdae-threebody-chain/**"
+      - "docs/research/THREE_BODY_TWO_LINK_PHDAE_CHAIN_2026-10-31.md"
+      - ".github/workflows/phdae-threebody-chain.yml"
+  push:
+    branches:
+      - "research/pHdae-threebody-spatial-chain-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  coupled-open-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/phdae-threebody-chain/three_body_chain.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/phdae-threebody-chain/three_body_chain.rs \
+            -o /tmp/threebody-chain-tests
+          /tmp/threebody-chain-tests
+
+      - name: Compile optimized deterministic replay
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/phdae-threebody-chain/three_body_chain.rs \
+            -o /tmp/threebody-chain
+          /tmp/threebody-chain > /tmp/threebody-chain-a.csv
+          /tmp/threebody-chain > /tmp/threebody-chain-b.csv
+          cmp /tmp/threebody-chain-a.csv /tmp/threebody-chain-b.csv
+          test "$(wc -l < /tmp/threebody-chain-a.csv)" -eq 501
+          grep -q "^500," /tmp/threebody-chain-a.csv
