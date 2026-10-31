@@ -232,7 +232,7 @@ These are must-pass tests, not average scores:
 
 Positive measures such as care delivered, trust, donations, participation or cohesion cannot compensate for coercion or rights violations. LBE-Bench must adversarially test benevolent paternalism, coerced reciprocity, compulsory participation, unpaid care extraction, social-credit capture, in-group closure, intimate surveillance, forced forgiveness, compassionate impunity, donor/provider capture, exit retaliation, emotional manipulation and conflict suppression.
 
-The dedicated [LBE-BENCH-002 threat model](https://github.com/Luminous-Dynamics/symtropy/issues/3090) and [benchmark specification](https://github.com/Luminous-Dynamics/symtropy/pull/3092) define 18 adversarial scenarios (SH-01–SH-18), hard red-line invariants, metrics, baselines and acceptance rules. These are separate from the ordinary economic shock scenarios.
+The dedicated [LBE-BENCH-002 threat model](https://github.com/Luminous-Dynamics/symtropy/issues/3090) and [benchmark specification](https://github.com/Luminous-Dynamics/symtropy/pull/3092) define 19 adversarial scenarios (SH-01–SH-19), hard red-line invariants, metrics, baselines and acceptance rules. These are separate from the ordinary economic shock scenarios.
 
 Add the following hard-gate properties:
 - refusal of optional labour, gratitude, publicity, data collection or reconciliation has exactly zero effect on unrelated essential access;
