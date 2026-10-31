@@ -28,14 +28,24 @@ objective and tuning procedure:
    nominal categorical world weights, with worst-case hazard and abstention
    constraints retained over the full declared family. Calibrate the TV radius
    on a separate calibration split and preregister it.
-7. **COPEx:** constrained multi-step Bayesian experimental design with online
+7. **Robust Bayesian Decision Making under Adversarial Uncertainty (UAI 2026):**
+   implement or obtain the authors' sequential adversarial decision-aware
+   acquisition baseline. Match its adversarial-variable family where possible,
+   then score its selected policy under the common downstream loss. This is the
+   closest current decision-stability comparator and must not be represented as
+   an EIG-only baseline.
+8. **Maximin robust Bayesian experimental design (2026):** include the
+   adversarial Sibson-alpha mutual-information/PAC-Bayes policy baseline where
+   its inference and model-family assumptions can be matched. Retain its own
+   robust information objective as a secondary diagnostic.
+9. **COPEx:** constrained multi-step Bayesian experimental design with online
    scenario-tree lookahead. Preserve its original informative-design objective;
    evaluate its chosen sequence using our common downstream loss and risk
    metrics.
-8. **R-IDeA:** include informativeness-only, representativeness-only,
+10. **R-IDeA:** include informativeness-only, representativeness-only,
    informativeness-plus-representativeness, and full
    representativeness/informativeness/error-de-amplification ablations.
-9. **Robust sequential experimental design:** use its published worst-case
+11. **Robust sequential experimental design:** use its published worst-case
    estimation-risk objective as a comparator where the task supports its
    assumptions. Also report a downstream-decision evaluation of its selected
    designs.
@@ -170,6 +180,10 @@ alone is not evidence of robustness or scientific progress.
 ## 6. External reference baselines
 
 - COPEx, ICML 2026: https://proceedings.mlr.press/v306/guo26g.html
+- Robust Bayesian Decision Making under Adversarial Uncertainty, UAI 2026:
+  https://proceedings.mlr.press/v337/harikumar26a.html
+- Maximin Robust Bayesian Experimental Design, 2026:
+  https://arxiv.org/abs/2603.14094
 - R-IDeA, AISTATS 2026: https://proceedings.mlr.press/v300/tang26d.html
 - Robust Sequential Experimental Design for A/B Testing, ICML 2026:
   https://proceedings.mlr.press/v306/wen26i.html
