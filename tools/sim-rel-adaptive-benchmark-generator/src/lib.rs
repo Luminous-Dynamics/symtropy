@@ -238,8 +238,19 @@ pub fn verify_generated_task(task: &GeneratedTask) -> Result<(), String> {
     }
 
     let ident = analyze_identifiability(&task.kernel, &IdentifiabilityConfig::default())?;
-    if ident.equivalence_classes != receipt.equivalence_classes {
-        return Err("equivalence-class receipt did not replay".into());
+    if ident != task.identifiability
+        || ident.equivalence_classes != receipt.equivalence_classes
+    {
+        return Err("identifiability receipt did not replay".into());
+    }
+    let strict_is_feasible = strict.is_some();
+    if receipt.family.requires_identification() != strict_is_feasible {
+        return Err("task family strict-feasibility contract did not replay".into());
+    }
+    if receipt.family.requires_identification()
+        && eig.iter().any(|score| score.expected_information_gain_nats.abs() > 1e-12)
+    {
+        return Err("sequential task family has immediate one-step information".into());
     }
     let certificate_count = ident.pairwise.iter().filter(|pair| {
         matches!(
@@ -394,7 +405,7 @@ mod tests {
         for seed in 0..16 {
             let task = generate_task(TaskFamily::SensorPhysicalConfounding, seed).unwrap();
             let policy = task.receipt.strict_feasible_policy.as_ref().unwrap();
-            assert_eq!(policy_actions(policy, &task.kernel), vec!["calibrate", "measure"]);
+            assert_eq!(policy_actions(policy, &task.kernel), vec!["calibrate".to_string(), "measure".to_string()]);
             assert!(task.receipt.one_step_baseline.iter().all(|score| {
                 score.expected_information_gain_nats.abs() < 1e-12
             }));
@@ -406,7 +417,7 @@ mod tests {
         for seed in 0..16 {
             let task = generate_task(TaskFamily::PhysicalCarryover, seed).unwrap();
             let policy = task.receipt.strict_feasible_policy.as_ref().unwrap();
-            assert_eq!(policy_actions(policy, &task.kernel), vec!["condition", "read"]);
+            assert_eq!(policy_actions(policy, &task.kernel), vec!["condition".to_string(), "read".to_string()]);
             assert!(task.receipt.one_step_baseline.iter().all(|score| {
                 score.expected_information_gain_nats.abs() < 1e-12
             }));
