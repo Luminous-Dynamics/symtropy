@@ -28,7 +28,7 @@ The current generator emits:
 
 - 268 valid cases, including twelve fixed edge cases and 256 deterministic
   nested cases from an LCG seed.
-- 14 expected-reject cases.
+- 17 expected-reject cases.
 - Two metamorphic equivalence groups: object property-order changes and
   escaped/literal Unicode spellings that decode to the same strings.
 
