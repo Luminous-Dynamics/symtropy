@@ -323,11 +323,31 @@ impl RobustDecisionOptimizationResult {
         tv_radius: Rational,
         budgets: DecisionBudgets,
     ) -> Result<Option<&RobustDecisionFrontierPoint>, String> {
+        self.minimum_tv_expected_total_loss_under_with_terminal_loss_ceiling(
+            nominal_world_weights,
+            tv_radius,
+            budgets,
+            None,
+        )
+    }
+
+    /// TV-robust loss selection with an optional maximum terminal loss in any
+    /// supplied world. The ceiling is independent of the mixture weights.
+    pub fn minimum_tv_expected_total_loss_under_with_terminal_loss_ceiling(
+        &self,
+        nominal_world_weights: &[Rational],
+        tv_radius: Rational,
+        budgets: DecisionBudgets,
+        max_worst_case_terminal_loss: Option<Rational>,
+    ) -> Result<Option<&RobustDecisionFrontierPoint>, String> {
         budgets.validate()?;
         validate_world_weights(self.world_ids.len(), nominal_world_weights, tv_radius)?;
         let mut selected: Option<&RobustDecisionFrontierPoint> = None;
         for point in &self.frontier {
-            if !within_risk_budgets(point, budgets) {
+            if !within_risk_budgets(point, budgets)
+                || max_worst_case_terminal_loss
+                    .is_some_and(|limit| point.worst_case_terminal_loss() > limit)
+            {
                 continue;
             }
             let candidate_loss =
@@ -2397,6 +2417,33 @@ mod tests {
             minimax.worst_case_total_loss().unwrap(),
             tv_one.worst_case_total_loss().unwrap()
         );
+    }
+
+    #[test]
+    fn tv_selector_can_enforce_a_worst_case_terminal_loss_ceiling() {
+        let result = optimize_shared_policy_decisions(
+            &worlds(),
+            "world-a",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &costs(),
+            Rational::one(),
+            &config(2),
+        )
+        .unwrap();
+        let selected = result
+            .minimum_tv_expected_total_loss_under_with_terminal_loss_ceiling(
+                &[half(), half()],
+                Rational::new(1, 10).unwrap(),
+                DecisionBudgets {
+                    max_hazard_probability: Rational::zero(),
+                    max_abstention_probability: Rational::one(),
+                },
+                Some(Rational::zero()),
+            )
+            .unwrap()
+            .unwrap();
+        assert_eq!(selected.worst_case_terminal_loss(), Rational::zero());
     }
 
     #[test]
