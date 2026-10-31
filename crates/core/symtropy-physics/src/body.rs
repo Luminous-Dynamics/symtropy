@@ -372,6 +372,10 @@ impl<const D: usize> RigidBody<D> {
                         + tool_mass * (tool_local_translation - com_offset).norm_squared())
         };
 
+        if !i_total.is_finite() || i_total <= 0.0 {
+            return Err(crate::inertia::RotationalInertiaError::InvalidMassProperties);
+        }
+
         self.collider = Box::new(compound);
         self.mass = total_mass;
         self.inv_mass = 1.0 / total_mass;
