@@ -623,14 +623,12 @@ impl<const D: usize> PhysicsWorld<D> {
                 body.force_accumulator =
                     callback.modulate_force(body.handle, &body.force_accumulator);
                 integrator::try_integrate_with_limits(body, &self.gravity, dt, &integration_limits)
-                    .map_err(|cause| {
-                    PhysicsStepError {
+                    .map_err(|cause| PhysicsStepError {
                         phase: PhysicsStepPhase::BodyIntegration,
                         body_a: Some(body.handle),
                         body_b: None,
                         cause,
-                    }
-                })?;
+                    })?;
             }
         }
         #[cfg(feature = "deterministic-net")]
