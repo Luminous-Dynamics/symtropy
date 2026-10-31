@@ -111,6 +111,8 @@ fn build_world(mode: Mode, noise: Rational) -> Result<ModelWorld, String> {
         hypothesis_ids: vec!["h0".into(), "h1".into()],
         physical_state_count: 2,
         sensor_state_count: 2,
+        physical_state_ids: vec!["specimen-pristine".into(), "specimen-conditioned".into()],
+        sensor_state_ids: vec!["sensor-biased".into(), "sensor-calibrated".into()],
         action_ids,
         observation_ids,
         action_costs: vec![2, 1],
