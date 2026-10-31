@@ -72,6 +72,7 @@ Different physical sample times are rejected by the same-time mapping API. An in
 - Pure deformation with analytic F and determinant/volume ratio.
 - Same-time old/new/old deformation round trip.
 - Pure integer basis rebase preserving Cartesian x and v.
+- A named restricted-triclinic xy tilt flip, xy=+6 to xy=-4 with Lx=10, using an explicit determinant-+1 lattice transform.
 - 65 deterministic 2D integer shears (including negative shear) with invariant physical state.
 - 3D upper-triangular unimodular basis transform.
 - Non-unimodular transform rejection and active/inactive mask-mixing rejection.
