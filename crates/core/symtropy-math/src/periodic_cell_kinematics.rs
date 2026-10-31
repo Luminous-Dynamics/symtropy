@@ -941,6 +941,46 @@ mod tests {
     }
 
     #[test]
+    fn lammps_style_xy_tilt_flip_preserves_physical_cell_state() {
+        // A 2D restricted-triclinic box with Lx=10 and xy tilt=6 is
+        // represented equivalently with xy=-4 by subtracting one x lattice
+        // vector from the second basis vector.
+        let old_basis =
+            SMatrix::<f64, 2, 2>::from_row_slice(&[10.0, 6.0, 0.0, 10.0]);
+        let new_basis =
+            SMatrix::<f64, 2, 2>::from_row_slice(&[10.0, -4.0, 0.0, 10.0]);
+        let old = frame2(
+            old_basis,
+            SMatrix::zeros(),
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [true, true],
+        );
+        let next = frame2(
+            new_basis,
+            SMatrix::zeros(),
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [true, true],
+        );
+        let u = SMatrix::<i64, 2, 2>::from_row_slice(&[
+            1, -1,
+            0, 1,
+        ]);
+        let fractional = FractionalCellState {
+            fractional_position: SVector::from([0.2, 0.4]),
+            fractional_velocity: SVector::from([0.1, -0.3]),
+        };
+        let before = old.to_cartesian(&fractional).unwrap();
+        let result = old.basis_rebase_to(&next, &before, u).unwrap();
+
+        assert_eq!(result.unimodular_determinant, 1);
+        assert!((result.after.position - before.position).norm() < 1e-11);
+        assert!((result.after.velocity - before.velocity).norm() < 1e-11);
+        assert!((result.fractional_after.fractional_position - SVector::from([0.6, 0.4])).norm() < 1e-12);
+    }
+
+    #[test]
     fn randomized_integer_shears_preserve_the_same_cell_state() {
         let old_basis = SMatrix::<f64, 2, 2>::from_row_slice(&[
             2.0, 0.25,
