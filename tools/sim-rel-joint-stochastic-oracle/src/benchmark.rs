@@ -530,11 +530,7 @@ fn seeded_random_sequence(
     let mut order: Vec<usize> = (0..action_count).collect();
     let mut state = if seed == 0 { 0xa076_1d64_78bd_642f } else { seed };
     for index in (1..order.len()).rev() {
-        state ^= state >> 12;
-        state ^= state << 25;
-        state ^= state >> 27;
-        let random = state.wrapping_mul(0x2545_f491_4f6c_dd1d);
-        order.swap(index, (random as usize) % (index + 1));
+        order.swap(index, unbiased_index(&mut state, index + 1));
     }
     if order.is_empty() {
         return Vec::new();
@@ -542,6 +538,25 @@ fn seeded_random_sequence(
     (0..horizon)
         .map(|step| order[step % order.len()])
         .collect()
+}
+
+fn next_random(state: &mut u64) -> u64 {
+    *state ^= *state >> 12;
+    *state ^= *state << 25;
+    *state ^= *state >> 27;
+    state.wrapping_mul(0x2545_f491_4f6c_dd1d)
+}
+
+/// Draw an unbiased index using rejection sampling.
+fn unbiased_index(state: &mut u64, upper_exclusive: usize) -> usize {
+    let bound = upper_exclusive as u64;
+    let rejection_threshold = (0_u64.wrapping_sub(bound)) % bound;
+    loop {
+        let value = next_random(state);
+        if value >= rejection_threshold {
+            return (value % bound) as usize;
+        }
+    }
 }
 
 #[cfg(test)]
