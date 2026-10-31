@@ -38,8 +38,10 @@ jobs:
         run: cargo fmt --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml -- --check
       - name: Unit and exact posterior comparison tests
         run: cargo test --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib
+      - name: Compile benchmark examples
+        run: cargo check --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --examples
       - name: Strict Clippy
-        run: cargo clippy --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib -- -D warnings
+        run: cargo clippy --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib --examples -- -D warnings
       - name: Verify exact checkout identity
         env:
           EXPECTED_HEAD: \${{ github.event.pull_request.head.sha || github.sha }}
