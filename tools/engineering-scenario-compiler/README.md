@@ -1,6 +1,6 @@
 # Engineering Scenario Compiler v0.1
 
-A standalone Rust tool that compiles the existing NACA0012 engineering scenario TOML into a deterministic typed IR and compile-obligation report. The dependency graph is committed in `Cargo.lock` and CI uses `--locked`.
+A standalone Rust tool that compiles the existing NACA0012 engineering scenario TOML into a deterministic typed IR and compile-obligation report. The Rust dependency graph is committed/generated in `Cargo.lock` during exact-head qualification. The portable identity profile pins `serde_jcs = 0.2.0`; its independent Go verifier uses the source commit recorded in the workflow.
 
 ## Run
 
@@ -30,6 +30,76 @@ A BLOCKED report is a successful compile of a structurally and dimensionally val
 
 The semantic identity is deterministic within this compiler/schema/registry version and ordered IR definition. Cross-language canonicalization and digest golden vectors are still a separate qualification requirement.
 
+
+## Portable semantic identity v1
+
+The compiler now emits a parallel, language-neutral identity profile:
+
+`engineering-scenario-ir-jcs-rfc8785-v1`
+
+The canonicalizer is pinned to Rust `serde_jcs = 0.2.0`, which implements RFC
+8785. The independently implemented Go verifier is pinned to
+`cyberphone/json-canonicalization` commit
+`32a48195b9b20fe67b1795e39e4509f14d860b45`. Both must produce the exact same
+bytes for the checked-in `interop/golden/basic-input.json` vector.
+
+The identity model deliberately separates three levels:
+
+1. **Source identity** — SHA-256 over the exact TOML source bytes. Whitespace and
+   comment changes alter this digest.
+2. **Portable semantic identity** — SHA-256 over the RFC 8785 canonical bytes
+   of a profile/version/compiler/parser envelope plus the typed Scenario IR.
+   Source-only whitespace/comment changes preserve this digest.
+3. **Portable compilation-subject identity** — a domain-separated SHA-256 over
+   JCS canonical bytes binding the exact source digest, portable semantic
+   digest, sorted verified-artifact manifest digest, compiler/schema/parser
+   identities, compile disposition, and the full compile-obligation list.
+   Changing source bytes, an artifact, an obligation, or the profile changes
+   this identity.
+
+The existing v0.1 `semantic_ir_sha256`, `artifact_manifest_sha256` and
+`compilation_subject_sha256` fields remain unchanged and continue to use the
+legacy Rust `serde_json` serialization path. The new fields
+`canonicalization_profile`, `semantic_ir_jcs_sha256`,
+`artifact_manifest_jcs_sha256`, and `compilation_subject_jcs_sha256` are
+additive. This is intentionally not a silent migration of previous digests.
+
+### JCS numeric and Unicode boundaries
+
+The current typed IR contains finite IEEE-754 binary64 quantities and bounded
+unsigned 32-bit integer fields. Those integer fields are within JCS's exact
+interoperable integer range. Non-finite values are rejected by source
+validation. JCS preserves Unicode string content without applying a Unicode
+normalization form, sorts object property names by UTF-16 code units, and
+preserves array order. If a future schema introduces exact integer values
+outside the interoperable binary64-safe range, represent those values as
+canonical decimal strings or publish a new identity profile; do not round them
+through binary64. Duplicate JSON object names are not representable in the
+typed IR serializer; untrusted JSON canonicalization must separately reject
+duplicates before constructing typed values.
+
+Deterministic CBOR remains a viable alternative for a future profile where
+exact wide integers or compact binary transport become requirements. JCS is
+the v1 choice because the present IR's numeric model fits its boundaries and
+canonical JSON remains inspectable in review artifacts. Switching encoding
+requires a new explicit profile ID and golden vectors, not a rewrite of
+existing digests.
+
+### Interoperability qualification
+
+The compiler's Rust tests compare `serde_jcs` against the shared frozen byte
+vector. CI separately checks the same input and expected output using the
+pinned Go implementation, built in an isolated GOPATH from its exact upstream
+commit. This is an independent-language comparison, not two wrappers around
+the same Rust serializer.
+
+The compile-latency benchmark continues to report whole compile p50/p95/p99
+and now reports standalone canonical IR JCS serialization p50/p95/p99 as a
+separate measurement. The two timings must not be conflated.
+
+This profile establishes portable identity of the typed representation only.
+It does not validate CFD numerics, authenticate inputs, prove reference-data
+quality, or authorize solver execution.
 
 ## Compiler latency benchmark
 
