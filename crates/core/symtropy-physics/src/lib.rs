@@ -20,9 +20,14 @@ pub mod broadphase;
 pub mod ccd;
 pub mod constraint;
 pub mod contact;
+pub mod contact_adjoint;
+pub mod contact_frame;
+pub mod delassus;
 pub mod diagnostics;
 pub mod epa;
+pub mod friction_cone;
 pub mod gjk;
+pub mod inertia;
 pub mod integrator;
 pub mod island;
 pub mod joints;
@@ -37,9 +42,26 @@ pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
-pub use diagnostics::{InvariantDrift, InvariantSnapshot};
+pub use contact_adjoint::{
+    ContactAdjointError, ContactAdjointResult, PlanarFrictionSensitivity,
+    differentiate_fixed_active_set_lcp, differentiate_planar_friction_mode,
+};
+pub use contact_frame::{
+    ContactAngularCoordinates, ContactFrame, ContactFrameError, ContactWrenchFrictionLimits,
+    ContactWrenchImpulse,
+};
+pub use delassus::{
+    ContactWrenchRow, DelassusAssemblyError, FrictionlessContactRow, ReferenceLcpError,
+    ReferenceLcpSolution, assemble_contact_wrench_delassus, assemble_contact_wrench_free_velocity,
+    assemble_delassus, solve_frictionless_lcp,
+};
+pub use diagnostics::{InvariantDrift, InvariantSnapshot, InvariantStepReceipt};
 pub use epa::EpaResult;
+pub use friction_cone::{
+    FrictionConeError, PlanarContactMode, PlanarFrictionConeSolution, solve_planar_friction_cone,
+};
+pub use inertia::{BivectorInertia, RotationalInertiaError};
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
-pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
+pub use world::{NoOpCallback, PhysicsCallback, PhysicsStepError, PhysicsStepPhase, PhysicsWorld};
