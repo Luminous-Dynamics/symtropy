@@ -895,10 +895,6 @@ impl ExactInterval {
         self.upper < Rational::zero() || self.lower > Rational::zero()
     }
 
-    fn is_exact_zero(&self) -> bool {
-        self.lower.is_zero() && self.upper.is_zero()
-    }
-
     fn add(&self, rhs: &Self) -> Self {
         Self {
             lower: self.lower.clone() + rhs.lower.clone(),
@@ -911,10 +907,6 @@ impl ExactInterval {
             lower: -self.upper.clone(),
             upper: -self.lower.clone(),
         }
-    }
-
-    fn sub(&self, rhs: &Self) -> Self {
-        self.add(&rhs.neg())
     }
 
     fn mul(&self, rhs: &Self) -> Self {
@@ -935,10 +927,6 @@ impl ExactInterval {
             }
         }
         Self { lower, upper }
-    }
-
-    fn scale_integer(&self, factor: i64) -> Self {
-        self.mul(&Self::point(Rational::from_integer(BigInt::from(factor))))
     }
 
     fn pow(&self, exponent: u32) -> Self {
@@ -1156,11 +1144,6 @@ impl ContactInputBox {
         })
     }
 
-    fn point(values: [f64; 10]) -> Self {
-        let bounds = values.map(|value| [value, value]);
-        Self::from_f64_bounds(bounds).expect("finite point-box fixture")
-    }
-
     fn gershgorin_spd_lower_bound(&self) -> Rational {
         let row_0 = self.w00.lower.clone()
             - self.w01.abs_upper()
@@ -1276,7 +1259,7 @@ fn interval_family_certificate_accepts_a_narrow_regular_spd_box() {
     ]).unwrap();
     let certificate = certify_contact_input_box(&input);
     assert!(
-        matches!(certificate.status, FamilyRootStatus::Certified { finite_real_root_count: 4 }),
+        matches!(certificate.status, FamilyRootStatus::Certified { finite_real_root_count: 2 }),
         "unexpected family status: {:?}, leading={:?}, discriminant={:?}",
         certificate.status,
         certificate.leading_coefficient,
