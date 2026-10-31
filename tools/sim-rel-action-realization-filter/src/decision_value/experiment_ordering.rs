@@ -410,6 +410,182 @@ pub fn mutual_information_bits(
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SignedRational {
+    negative: bool,
+    magnitude: Rational,
+}
+
+impl SignedRational {
+    fn from_rational(value: Rational) -> Self {
+        Self {
+            negative: false,
+            magnitude: value,
+        }
+    }
+
+    fn from_difference(left: Rational, right: Rational) -> Result<Self, String> {
+        if left >= right {
+            Ok(Self {
+                negative: false,
+                magnitude: subtract_nonnegative(left, right)?,
+            })
+        } else {
+            Ok(Self {
+                negative: true,
+                magnitude: subtract_nonnegative(right, left)?,
+            })
+        }
+    }
+
+    fn negated(self) -> Self {
+        if self.magnitude.is_zero() {
+            self
+        } else {
+            Self {
+                negative: !self.negative,
+                magnitude: self.magnitude,
+            }
+        }
+    }
+
+    fn checked_add(self, other: Self) -> Result<Self, String> {
+        if self.negative == other.negative {
+            Ok(Self {
+                negative: self.negative,
+                magnitude: self.magnitude.checked_add(other.magnitude)?,
+            })
+        } else if self.magnitude >= other.magnitude {
+            Ok(Self {
+                negative: self.negative,
+                magnitude: subtract_nonnegative(self.magnitude, other.magnitude)?,
+            })
+        } else {
+            Ok(Self {
+                negative: other.negative,
+                magnitude: subtract_nonnegative(other.magnitude, self.magnitude)?,
+            })
+        }
+    }
+
+    fn checked_mul(self, other: Self) -> Result<Self, String> {
+        Ok(Self {
+            negative: self.negative ^ other.negative,
+            magnitude: self.magnitude.checked_mul(other.magnitude)?,
+        })
+    }
+
+    fn checked_div(self, other: Self) -> Result<Self, String> {
+        if other.magnitude.is_zero() {
+            return Err("signed rational division by zero".into());
+        }
+        Ok(Self {
+            negative: self.negative ^ other.negative,
+            magnitude: self.magnitude.checked_div(other.magnitude)?,
+        })
+    }
+
+    fn as_probability(self) -> Option<Rational> {
+        if self.negative || !self.magnitude.is_probability() {
+            None
+        } else {
+            Some(self.magnitude)
+        }
+    }
+}
+
+fn subtract_nonnegative(left: Rational, right: Rational) -> Result<Rational, String> {
+    if left < right {
+        return Err("rational subtraction would be negative".into());
+    }
+    let common = gcd(left.denominator(), right.denominator());
+    let left_scale = right.denominator() / common;
+    let right_scale = left.denominator() / common;
+    let left_numerator = left
+        .numerator()
+        .checked_mul(left_scale)
+        .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
+    let right_numerator = right
+        .numerator()
+        .checked_mul(right_scale)
+        .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
+    let denominator = left
+        .denominator()
+        .checked_mul(left_scale)
+        .ok_or_else(|| "rational subtraction denominator overflow".to_string())?;
+    Rational::new(left_numerator - right_numerator, denominator)
+}
+
+fn gcd(mut left: u128, mut right: u128) -> u128 {
+    while right != 0 {
+        let remainder = left % right;
+        left = right;
+        right = remainder;
+    }
+    left.max(1)
+}
+
+/// Solve Blackwell garbling feasibility exactly for two-state, two-observation
+/// channels. The general verifier remains authoritative and checks the
+/// constructed witness before it is returned.
+///
+/// Let A's probability of observation 0 in the two states be a and c, and
+/// let B's corresponding probabilities be b and d. A binary garbling is
+/// determined by x=P(output0 | A-observation0) and
+/// y=P(output0 | A-observation1). This routine solves the resulting two
+/// linear equations with signed exact rationals and returns None when the
+/// unique solution is outside [0,1] or the singular equations are inconsistent.
+pub fn solve_binary_blackwell_garbling(
+    more_informative: &FiniteObservationChannel,
+    less_informative: &FiniteObservationChannel,
+) -> Result<Option<BlackwellDominanceReceipt>, String> {
+    more_informative.validate()?;
+    less_informative.validate()?;
+    if more_informative.state_ids != less_informative.state_ids {
+        return Err("Blackwell channels must share the same ordered state vocabulary".into());
+    }
+    if more_informative.state_ids.len() != 2
+        || more_informative.observation_ids.len() != 2
+        || less_informative.observation_ids.len() != 2
+    {
+        return Err("binary Blackwell solver requires exactly two states and two observations per channel".into());
+    }
+
+    let a = more_informative.probabilities[0][0];
+    let c = more_informative.probabilities[1][0];
+    let b = less_informative.probabilities[0][0];
+    let d = less_informative.probabilities[1][0];
+
+    let (x, y) = if a == c {
+        if b != d {
+            return Ok(None);
+        }
+        (b, b)
+    } else {
+        let target_difference = SignedRational::from_difference(b, d)?;
+        let source_difference = SignedRational::from_difference(a, c)?;
+        let delta = target_difference.checked_div(source_difference)?;
+        let a_delta = SignedRational::from_rational(a).checked_mul(delta)?;
+        let y_signed = SignedRational::from_rational(b).checked_add(a_delta.negated())?;
+        let x_signed = y_signed.checked_add(delta)?;
+        let (Some(x), Some(y)) = (x_signed.as_probability(), y_signed.as_probability()) else {
+            return Ok(None);
+        };
+        (x, y)
+    };
+
+    let witness = BlackwellGarblingWitness {
+        probabilities: vec![
+            vec![x, subtract_nonnegative(Rational::one(), x)?],
+            vec![y, subtract_nonnegative(Rational::one(), y)?],
+        ],
+    };
+    match verify_blackwell_dominance(more_informative, less_informative, &witness) {
+        Ok(receipt) => Ok(Some(receipt)),
+        Err(_) => Ok(None),
+    }
+}
+
 fn validate_unique_ids(ids: &[String], label: &str) -> Result<(), String> {
     if ids.is_empty() {
         return Err(format!("{label} vocabulary must be non-empty"));
