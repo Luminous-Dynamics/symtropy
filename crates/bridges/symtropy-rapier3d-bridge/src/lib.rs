@@ -504,10 +504,10 @@ mod tests {
             1.0
         }
 
-        fn on_collision(&mut self, _: &CollisionEvent<3>) {}
+        fn on_collision(&mut self, _: &symtropy_physics::contact::CollisionEvent<3>) {}
         fn record_dissipation(&mut self, _: f64) {}
         fn record_work(&mut self, _: BodyHandle, _: f64) {}
-        fn apply_trauma(&mut self, _: &CollisionEvent<3>) {}
+        fn apply_trauma(&mut self, _: &symtropy_physics::contact::CollisionEvent<3>) {}
     }
 
     struct ScaleForceCallback(f64);
@@ -525,10 +525,10 @@ mod tests {
             1.0
         }
 
-        fn on_collision(&mut self, _: &CollisionEvent<3>) {}
+        fn on_collision(&mut self, _: &symtropy_physics::contact::CollisionEvent<3>) {}
         fn record_dissipation(&mut self, _: f64) {}
         fn record_work(&mut self, _: BodyHandle, _: f64) {}
-        fn apply_trauma(&mut self, _: &CollisionEvent<3>) {}
+        fn apply_trauma(&mut self, _: &symtropy_physics::contact::CollisionEvent<3>) {}
     }
 
     fn y_after_one_step(dt: f32) -> (f32, f32) {
