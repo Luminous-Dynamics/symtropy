@@ -75,3 +75,8 @@ The benchmark runner records the exact hazard, false-identification and abstenti
 ## Generated stateful-confounding challenge families (SIM-REL-017)
 
 The challenge module generates a six-world finite family from an explicit seed and declared rational observation-noise rate: nominal, sensor drift, physical carryover, instrument reversal, shifted hazard, and damaging calibration. Every member shares the same hypothesis/action/observation vocabulary, state dimensions, initial prior, and action costs. Each generated kernel is complete and probability-normalized exactly before it is returned. These deterministic seeds are development fixtures, not a substitute for sealed holdout seeds managed outside the public source tree.
+
+
+## Joint-state bootstrap particle filter (SIM-REL-018)
+
+The particle module is a first approximate inference arm, not a nested particle filter or SMC-squared reproduction. Each particle retains a persistent model-world index and a joint mechanism/physical/sensor state. Public-observation updates condition on the corresponding world-specific joint kernel, sample the next physical and sensor states jointly, and use systematic resampling. Diagnostics expose ESS before and after resampling, resampling count, update count, and degeneracy. Approximate mechanism and model-world posterior summaries and a particle-estimated one-step EIG ranking are available. The exact oracle remains the reference for posterior and EIG approximation error on tractable kernels.
