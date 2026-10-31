@@ -626,8 +626,13 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
     for point in &points {
         let (value, eval_scale) =
             polynomial_value_and_scale(&coefficients, *point).ok_or(())?;
-        if value.abs() <= 64.0 * tolerance * eval_scale {
+        if value == 0.0 {
             add_root(&mut roots, *point, tolerance);
+        } else if value.abs() <= 64.0 * tolerance * eval_scale {
+            // A small nonzero value at a stationary point cannot distinguish
+            // an even-multiplicity root from two very close simple roots.
+            // Do not collapse that uncertainty into one fabricated root.
+            return Err(());
         }
     }
 
@@ -638,8 +643,8 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
             polynomial_value_and_scale(&coefficients, lower).ok_or(())?;
         let (f_upper, s_upper) =
             polynomial_value_and_scale(&coefficients, upper).ok_or(())?;
-        let lower_is_root = f_lower.abs() <= 64.0 * tolerance * s_lower;
-        let upper_is_root = f_upper.abs() <= 64.0 * tolerance * s_upper;
+        let lower_is_root = f_lower == 0.0;
+        let upper_is_root = f_upper == 0.0;
         if lower_is_root
             || upper_is_root
             || f_lower.is_sign_positive() == f_upper.is_sign_positive()
@@ -979,3 +984,8 @@ mod tests {
         }
     }
 }
+
+
+#[cfg(test)]
+#[path = "coupled_friction_sturm.rs"]
+mod sturm;
