@@ -40,9 +40,6 @@ struct Lot {
 
 #[derive(Clone, Copy, Debug)]
 struct Statistics {
-    mean: f64,
-    overall_sd: f64,
-    within_sd: f64,
     cpk: f64,
     ppk: f64,
 }
@@ -70,15 +67,6 @@ struct BootstrapIntervals {
 enum ResamplingUnit {
     WholeLotCluster,
     NaiveWindow,
-}
-
-impl ResamplingUnit {
-    fn label(self) -> &'static str {
-        match self {
-            Self::WholeLotCluster => "WHOLE_LOT_CLUSTER",
-            Self::NaiveWindow => "NAIVE_WINDOW_NOT_INDEPENDENT",
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -184,13 +172,7 @@ fn statistics(windows: &[&Window]) -> Result<Statistics, String> {
     if !cpk.is_finite() || !ppk.is_finite() {
         return Err("CAPABILITY_INDEX_NONFINITE".into());
     }
-    Ok(Statistics {
-        mean: average,
-        overall_sd,
-        within_sd,
-        cpk,
-        ppk,
-    })
+    Ok(Statistics { cpk, ppk })
 }
 
 fn percentile(sorted_values: &[f64], probability: f64) -> Result<f64, String> {
