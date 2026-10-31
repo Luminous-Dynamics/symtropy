@@ -29,6 +29,7 @@ pub enum CoupledCoulombError {
     InvalidTolerance,
     NotSymmetric,
     NotPositiveDefinite,
+    IllConditioned,
 }
 
 /// Mathematical classification of the bounded single-contact problem.
@@ -138,18 +139,29 @@ pub fn solve_coupled_signorini_coulomb(
         return Err(CoupledCoulombError::InvalidTolerance);
     }
 
-    let matrix_scale = effective_mass.norm().max(f64::MIN_POSITIVE);
-    if (effective_mass - effective_mass.transpose()).norm()
-        > relative_tolerance * matrix_scale
-    {
-        return Err(CoupledCoulombError::NotSymmetric);
-    }
-    let w = (effective_mass + effective_mass.transpose()) * 0.5;
-    let eigenvalues = nalgebra::linalg::SymmetricEigen::new(w).eigenvalues;
-    let minimum_eigenvalue = eigenvalues.iter().fold(f64::INFINITY, |a, b| a.min(*b));
-    if minimum_eigenvalue <= relative_tolerance * matrix_scale {
+    // Scale by the largest entry before symmetry/eigenvalue checks. This
+    // avoids avoidable overflow in a Frobenius norm for finite large matrices.
+    let matrix_scale = effective_mass
+        .iter()
+        .fold(0.0_f64, |scale, value| scale.max(value.abs()));
+    if matrix_scale == 0.0 {
         return Err(CoupledCoulombError::NotPositiveDefinite);
     }
+    let scaled_input = effective_mass / matrix_scale;
+    let scaled_asymmetry = (&scaled_input - scaled_input.transpose()).norm();
+    if !scaled_asymmetry.is_finite() || scaled_asymmetry > relative_tolerance {
+        return Err(CoupledCoulombError::NotSymmetric);
+    }
+    let scaled_w = (&scaled_input + scaled_input.transpose()) * 0.5;
+    let eigenvalues = nalgebra::linalg::SymmetricEigen::new(scaled_w).eigenvalues;
+    let minimum_eigenvalue = eigenvalues.iter().fold(f64::INFINITY, |a, b| a.min(*b));
+    if minimum_eigenvalue <= 0.0 {
+        return Err(CoupledCoulombError::NotPositiveDefinite);
+    }
+    if minimum_eigenvalue <= relative_tolerance {
+        return Err(CoupledCoulombError::IllConditioned);
+    }
+    let w = (effective_mass + effective_mass.transpose()) * 0.5;
 
     let mu = friction_coefficient;
     let qn = free_velocity[0];
@@ -785,6 +797,21 @@ mod tests {
         for candidate in &outcome.candidates {
             assert_candidate(candidate, 1.0e-7);
         }
+    }
+
+    #[test]
+    fn distinguishes_indefinite_from_positive_but_ill_conditioned_metrics() {
+        let q = SVector::new(-1.0, 0.2, 0.1);
+        let ill_conditioned = Matrix3::new(
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0e-14,
+        );
+        assert_eq!(
+            solve_coupled_signorini_coulomb(&ill_conditioned, &q, 0.4, 1.0e-12)
+                .unwrap_err(),
+            CoupledCoulombError::IllConditioned
+        );
     }
 
     #[test]
