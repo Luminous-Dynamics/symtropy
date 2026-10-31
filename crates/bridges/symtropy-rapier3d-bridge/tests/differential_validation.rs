@@ -16,8 +16,8 @@ use rapier3d::prelude::*;
 use symtropy_physics::validation::{
     BodyObservation3d, PHYSICS_SCENARIO_SCHEMA_VERSION, PHYSICS_TRACE_SCHEMA_VERSION,
     PhysicsBackendDescriptor, PhysicsSample3d, PhysicsScenario3d, PhysicsTrace3d, ScenarioBody3d,
-    ScenarioBodyType, ScenarioShape3d, ScenarioValidationError, ValidationBodyId, compare_traces_3d,
-    run_native_scenario_3d,
+    ScenarioBodyType, ScenarioShape3d, ScenarioValidationError, ValidationBodyId,
+    compare_traces_3d, run_native_scenario_3d,
 };
 use symtropy_physics::world::NoOpCallback;
 use symtropy_rapier3d_bridge::RapierPhysicsBridge;
