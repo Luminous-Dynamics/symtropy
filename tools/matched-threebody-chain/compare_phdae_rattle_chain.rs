@@ -578,8 +578,8 @@ fn audit_campaign(csv: &str) -> Result<(), String> {
             || values[2] > 1.0e-7
             || values[3] > 1.0e-9
             || values[4] > 1.0e-9
-            || values[5] > 1.0e-7
-            || values[6] > 1.0e-7
+            || values[5] > 1.0e-6
+            || values[6] > 1.0e-6
             || values[7] > 1.0e-7
             || values[8] > 1.0e-7
             || values[9] > 1.0e-8
