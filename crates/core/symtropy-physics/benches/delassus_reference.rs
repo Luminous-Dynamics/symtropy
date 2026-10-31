@@ -9,7 +9,8 @@ use symtropy_physics::{
     BivectorInertia, BodyHandle, ContactFrame, ContactWrenchFrictionLimits,
     ContactWrenchImpulse, ContactWrenchRow, FrictionlessContactRow, RigidBody,
     assemble_contact_wrench_delassus, assemble_contact_wrench_free_velocity,
-    assemble_delassus, differentiate_fixed_active_set_lcp, solve_frictionless_lcp,
+    assemble_delassus, differentiate_fixed_active_set_lcp, differentiate_planar_friction_mode,
+    solve_frictionless_lcp,
     solve_planar_friction_cone,
 };
 
@@ -280,6 +281,59 @@ fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
     });
 }
 
+fn bench_planar_friction_sensitivity(c: &mut Criterion) {
+    let effective_mass = Matrix2::new(2.0, 0.0, 0.0, 1.0);
+    let mass_derivative = Matrix2::new(0.2, 0.0, 0.0, 0.1);
+    let q_derivative = SVector::new(0.1, -0.05);
+    let objective_gradient = SVector::new(1.0, 0.7);
+
+    let sticking_velocity = SVector::new(-1.0, -0.2);
+    let sticking = solve_planar_friction_cone(&effective_mass, &sticking_velocity, 1.0, 1e-12)
+        .expect("valid sticking fixture");
+    c.bench_function("planar_friction_sensitivity_sticking", |bench| {
+        bench.iter(|| {
+            black_box(differentiate_planar_friction_mode(
+                black_box(&effective_mass),
+                black_box(&sticking_velocity),
+                black_box(&sticking),
+                1.0,
+                black_box(&mass_derivative),
+                black_box(&q_derivative),
+                0.0,
+                black_box(&objective_gradient),
+                0.0,
+                1e-10,
+                1e-10,
+                1e-10,
+                1e-12,
+            ))
+        });
+    });
+
+    let sliding_velocity = SVector::new(-1.0, 1.0);
+    let sliding = solve_planar_friction_cone(&effective_mass, &sliding_velocity, 0.5, 1e-12)
+        .expect("valid positive sliding fixture");
+    c.bench_function("planar_friction_sensitivity_sliding", |bench| {
+        bench.iter(|| {
+            black_box(differentiate_planar_friction_mode(
+                black_box(&effective_mass),
+                black_box(&sliding_velocity),
+                black_box(&sliding),
+                0.5,
+                black_box(&mass_derivative),
+                black_box(&q_derivative),
+                0.05,
+                black_box(&objective_gradient),
+                0.0,
+                1e-10,
+                1e-10,
+                1e-10,
+                1e-12,
+            ))
+        });
+    });
+}
+
 fn bench_implicit_contact_adjoint(c: &mut Criterion) {
     let mut group = c.benchmark_group("implicit_contact_adjoint_spd_reference");
     for row_count in [1_usize, 2, 4, 8] {
@@ -349,6 +403,7 @@ criterion_group!(
     bench_reference_lcp,
     bench_implicit_contact_adjoint,
     bench_planar_friction_cone,
+    bench_planar_friction_sensitivity,
     bench_nd_contact_frame_and_wrench,
 );
 criterion_main!(benches);
