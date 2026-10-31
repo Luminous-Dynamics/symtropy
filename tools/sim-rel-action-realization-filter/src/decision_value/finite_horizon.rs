@@ -5,13 +5,10 @@
 //! non-dominated frontier and supplies independent non-memoized enumeration
 //! and policy replay for small-domain verification.
 
-use super::{
-    BayesDecision, DecisionLossTable, DecisionValueError, ObservationProtocol,
-    bayes_decision_from_belief,
-};
+use super::{DecisionLossTable, ObservationProtocol, bayes_decision_from_belief};
 use crate::{
-    ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PublicObservation,
-    Rational, filter_one_step,
+    ActionRealizationKernel, BeliefMass, ObservationField, PublicObservation, Rational,
+    filter_one_step,
 };
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
