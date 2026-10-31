@@ -2,7 +2,7 @@
 //!
 //! This module separates mechanism information from the downstream decision
 //! that the evidence supports. Losses are defined over the mechanism and next
-//! physical state; sensor and apparatus uncertainty still affect the posterior.
+//! the complete mechanism/process/sensor/apparatus state.
 
 use super::{
     ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PosteriorMass,
@@ -541,6 +541,96 @@ mod tests {
         assert_eq!(report.expected_terminal_loss, Rational::new(99, 100).unwrap());
         assert_eq!(report.expected_total_loss, Rational::one());
         assert!(!report.experiment_is_preferred);
+    }
+
+    #[test]
+    fn apparatus_state_can_change_the_optimal_terminal_decision() {
+        let state_calibrated = LatentState {
+            hypothesis: 0,
+            physical_state: 0,
+            sensor_state: 0,
+            apparatus_state: 0,
+        };
+        let state_degraded = LatentState {
+            apparatus_state: 1,
+            ..state_calibrated
+        };
+        let kernel = ActionRealizationKernel {
+            hypothesis_ids: vec!["mechanism".into()],
+            physical_state_count: 1,
+            sensor_state_count: 1,
+            apparatus_state_count: 2,
+            command_ids: vec!["inspect-apparatus".into()],
+            realized_action_ids: vec!["executed".into()],
+            readback_ids: vec!["calibrated".into(), "degraded".into()],
+            measurement_ids: vec!["valid-reading".into()],
+            initial_belief: vec![
+                BeliefMass {
+                    state: state_calibrated,
+                    mass: Rational::new(1, 2).unwrap(),
+                },
+                BeliefMass {
+                    state: state_degraded,
+                    mass: Rational::new(1, 2).unwrap(),
+                },
+            ],
+            rows: vec![
+                super::super::KernelRow {
+                    state: state_calibrated,
+                    command: 0,
+                    outcomes: vec![super::super::TransitionOutcome {
+                        probability: Rational::one(),
+                        next_state: state_calibrated,
+                        realized_action: 0,
+                        readback: Some(0),
+                        measurement: Some(0),
+                        hazard: false,
+                    }],
+                },
+                super::super::KernelRow {
+                    state: state_degraded,
+                    command: 0,
+                    outcomes: vec![super::super::TransitionOutcome {
+                        probability: Rational::one(),
+                        next_state: state_degraded,
+                        realized_action: 0,
+                        readback: Some(1),
+                        measurement: Some(0),
+                        hazard: false,
+                    }],
+                },
+            ],
+        };
+        let table = DecisionLossTable {
+            decision_ids: vec!["release".into(), "hold".into()],
+            losses: vec![
+                vec![vec![vec![vec![
+                    Rational::zero(),
+                    Rational::from_u64(10),
+                ]]]],
+                vec![vec![vec![vec![Rational::one(), Rational::one()]]]],
+            ],
+            abstention_loss: Rational::new(2, 1).unwrap(),
+        };
+
+        let baseline =
+            bayes_decision_from_belief(&kernel, &kernel.initial_belief, &table).unwrap();
+        assert_eq!(baseline.decision, Some(1));
+        assert_eq!(baseline.expected_loss, Rational::one());
+
+        let report = evaluate_one_step_decision_value(
+            &kernel,
+            &kernel.initial_belief,
+            0,
+            &table,
+            ObservationProtocol::fully_observed(),
+            Rational::zero(),
+            Rational::zero(),
+        )
+        .unwrap();
+
+        assert_eq!(report.expected_terminal_loss, Rational::new(1, 2).unwrap());
+        assert!(report.experiment_is_preferred);
     }
 
     #[test]
