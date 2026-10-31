@@ -597,8 +597,9 @@ mod tests {
     #[test]
     fn resampling_and_effective_sample_size_are_reported() {
         let world = reliable_world("nominal", Rational::new(3, 4).unwrap(), false);
+        let worlds = vec![world];
         let mut filter = JointParticleFilter::with_uniform_world_prior(
-            &[world],
+            &worlds,
             ParticleFilterConfig {
                 particle_count: 4_000,
                 seed: 42,
@@ -617,8 +618,9 @@ mod tests {
     #[test]
     fn impossible_observation_is_transactional_and_records_degeneracy() {
         let world = reliable_world("deterministic", Rational::one(), true);
+        let worlds = vec![world];
         let mut filter = JointParticleFilter::with_uniform_world_prior(
-            &[world],
+            &worlds,
             ParticleFilterConfig {
                 particle_count: 1_000,
                 seed: 9,
