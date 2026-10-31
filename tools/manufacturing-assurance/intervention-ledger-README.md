@@ -24,7 +24,9 @@ bash tools/manufacturing-assurance/run-tests.sh
 - **PLAN** binds an asset, scope, action, target quantity/unit, permitted numeric bounds, three SHA-256-shaped digests (action envelope, precondition evidence and assurance case), validity interval and whether human approval is mandatory.
 - **CHECK** records precondition, assurance and interlock checks, with status, timestamp and evidence digest. The PRECONDITION and ASSURANCE digests must match the plan. Every check must pass before command issue.
 - **AUTH** records an identified HUMAN or SYSTEM principal, the exact asset/scope/action, grant/reject decision, approval time, expiry and receipt digest. A plan requiring human approval must have a HUMAN grant.
+- **AUTH** is accepted only after every required admission check and before command issue.
 - **EXEC** records one unique command ID, executor, exact approved action digest, command issue/acknowledgment times and result.
+- **REQUIRE** declares every required outcome metric, unit and acceptance interval *before* execution. A successful transaction cannot omit an inconvenient metric.
 - **VERIFY** records a measurement and acceptance interval. The verifier computes pass/fail from the actual value. POST_ACTION and POST_RECOVERY are separate stages.
 - **RECOVERY** records ROLLBACK, SAFE_STATE or CONTAIN with issue/acknowledgment, result and evidence digest.
 
@@ -44,14 +46,14 @@ The evaluator requires post-recovery verification to cover the full set of faile
 
 ## Frozen controls
 
-The Rust reference has 28 unit tests at the initial implementation snapshot. The current branch adds controls for:
+The Rust reference now has a warning-denied unit-test suite covering the frozen transaction and seeded fault cases. Use the exact commit to count the tests; The current branch adds controls for:
 - missing/failed preconditions, assurance checks and interlocks;
 - plan-bound precondition/assurance digest mismatch;
 - absent, wrong-action, wrong-asset/scope, rejected, late or system-only authority;
 - command digest mismatch and out-of-bounds plan values;
-- missing command acknowledgment or missing post-action verification;
+- missing command acknowledgment, missing declared metric or missing post-action verification;
 - post-action failure with missing, failed or chronologically invalid recovery;
-- post-recovery measurement before acknowledgment, incomplete metric coverage and out-of-range result;
+- approval before completion of all admission checks; post-recovery measurement before acknowledgment, incomplete failed-metric coverage and out-of-range result;
 - duplicate execution records, malformed measurement digests, invalid intervals and non-finite measurements;
 - deterministic replay and explicit no-actuation claim ceiling.
 
