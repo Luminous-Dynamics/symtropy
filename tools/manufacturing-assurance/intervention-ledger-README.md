@@ -23,14 +23,14 @@ bash tools/manufacturing-assurance/run-tests.sh
 
 - **PLAN** binds an asset, scope, action, target quantity/unit, permitted numeric bounds, three SHA-256-shaped digests (action envelope, precondition evidence and assurance case), validity interval and whether human approval is mandatory.
 - **CHECK** records precondition, assurance and interlock checks, with status, timestamp and evidence digest. The PRECONDITION and ASSURANCE digests must match the plan. Every check must pass before command issue.
-- **AUTH** records an identified HUMAN or SYSTEM principal, the exact asset/scope/action, grant/reject decision, approval time, expiry and receipt digest. A plan requiring human approval must have a HUMAN grant.
+- **AUTH** records an identified HUMAN or SYSTEM principal, the exact asset/scope/action, grant/reject decision, approval time, expiry and receipt digest. A plan requiring human approval must have a HUMAN grant. The latest matching authority event per principal supersedes earlier events, so a later REVOKED or REJECTED record cancels an earlier GRANTED record.
 - **AUTH** is accepted only after every required admission check and before command issue.
 - **EXEC** records one unique command ID, executor, exact approved action digest, command issue/acknowledgment times and result.
 - **REQUIRE** declares every required outcome metric, unit and acceptance interval *before* execution. A successful transaction cannot omit an inconvenient metric.
 - **VERIFY** records a measurement and acceptance interval. The verifier computes pass/fail from the actual value. POST_ACTION and POST_RECOVERY are separate stages.
 - **RECOVERY** records ROLLBACK, SAFE_STATE or CONTAIN with issue/acknowledgment, result and evidence digest.
 
-All timestamps use canonical UTC `YYYY-MM-DDTHH:MM:SSZ`. The plan and authority intervals are half-open `[from,until)`.
+All timestamps use canonical UTC `YYYY-MM-DDTHH:MM:SSZ`. The plan and authority intervals are half-open `[from,until)`. Every required admission check must occur before approval, and approval must occur before command issue.
 
 ## Result states
 
