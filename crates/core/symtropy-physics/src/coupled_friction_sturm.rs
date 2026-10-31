@@ -354,7 +354,9 @@ fn exact_sliding_quartic_from_inputs(
     let one_plus_t2 = vec![Rational::one(), Rational::zero(), Rational::one()];
     let one_minus_t2 = vec![Rational::one(), Rational::zero(), -Rational::one()];
     let two_t = vec![Rational::zero(), Rational::from_integer(BigInt::from(2))];
-    let minus_two_t = polynomial_scale(&two_t, &-Rational::one());
+    let negative_one = -Rational::one();
+    let negative_mu = -mu.clone();
+    let minus_two_t = polynomial_scale(&two_t, &negative_one);
 
     let d_numerator = polynomial_add(
         &polynomial_scale(&one_plus_t2, &a),
@@ -363,7 +365,7 @@ fn exact_sliding_quartic_from_inputs(
                 &polynomial_scale(&one_minus_t2, &d1),
                 &polynomial_scale(&two_t, &d2),
             ),
-            &-mu.clone(),
+            &negative_mu,
         ),
     );
     let q_tangent_perp = polynomial_add(
@@ -388,11 +390,13 @@ fn exact_sliding_quartic_from_inputs(
     );
 
     let first = polynomial_multiply(&d_numerator, &q_tangent_perp);
+    let negative_qn = -qn.clone();
     let second = polynomial_scale(
         &polynomial_multiply(&d_perp, &one_plus_t2),
-        &-qn.clone(),
+        &negative_qn,
     );
-    let third = polynomial_scale(&perp_dot_a_s, &(mu * qn));
+    let third_factor = mu * qn;
+    let third = polynomial_scale(&perp_dot_a_s, &third_factor);
     Ok(polynomial_add(&polynomial_add(&first, &second), &third))
 }
 
