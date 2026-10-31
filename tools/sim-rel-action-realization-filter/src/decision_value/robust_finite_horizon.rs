@@ -90,6 +90,9 @@ struct ObservationBranch {
 
 type BeliefVector = Vec<Option<Vec<BeliefMass>>>;
 type WorldPartition = BTreeMap<PublicObservation, ObservationBranch>;
+type RawStateMassMap = BTreeMap<LatentState, Rational>;
+type RawObservationMassMap = BTreeMap<PublicObservation, (Rational, RawStateMassMap)>;
+type ReplayPartition = BTreeMap<PublicObservation, ReplayBranch>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct RawPathMass {
@@ -1207,7 +1210,7 @@ fn raw_replay_partitions(
     masses: &RawPathMassVector,
     command: usize,
     protocol: ObservationProtocol,
-) -> Result<Vec<BTreeMap<PublicObservation, ReplayBranch>>, String> {
+) -> Result<Vec<ReplayPartition>, String> {
     worlds
         .iter()
         .zip(masses.iter())
@@ -1218,10 +1221,7 @@ fn raw_replay_partitions(
                 if command >= kernel.command_ids.len() {
                     return Err("replay command is out of range for a model world".into());
                 }
-                let mut raw = BTreeMap::<
-                    PublicObservation,
-                    (Rational, BTreeMap<LatentState, Rational>),
-                >::new();
+                let mut raw = RawObservationMassMap::new();
                 for point in points {
                     let row = &kernel.rows[kernel.row_index(point.state, command)];
                     for outcome in &row.outcomes {
@@ -1238,7 +1238,7 @@ fn raw_replay_partitions(
                         }
                     }
                 }
-                let mut partitions = BTreeMap::new();
+                let mut partitions = ReplayPartition::new();
                 for (observation, (probability, next_states)) in raw {
                     if probability.is_zero() {
                         return Err("raw replay constructed a zero-mass observation".into());
