@@ -476,7 +476,7 @@ fn validate_belief(
 }
 
 /// How one field of an outcome is constrained by public history.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ObservationField {
     /// The field was not observed; do not condition on it.
     Any,
