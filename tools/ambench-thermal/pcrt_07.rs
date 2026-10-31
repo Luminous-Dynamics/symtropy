@@ -781,7 +781,7 @@ fn synthetic_pair() -> (Collection, Collection) {
     let build = |kind: CollectionKind, id: &str, offset: f64, ch: char| {
         let mut collection = synthetic_collection(kind, id, offset, ch);
         collection.times_s = times.clone();
-        collection.profiles.truncate(3);
+        collection.profiles.truncate(4);
         collection.grid.rows = 2;
         collection.grid.columns = 2;
         collection
@@ -790,8 +790,10 @@ fn synthetic_pair() -> (Collection, Collection) {
     let mut measured = build(CollectionKind::ThermographyReference, "measured-fixture", 2.0, 'b');
     predicted.profiles[0].temperatures_c.resize(10, Some(1000.0));
     predicted.profiles[1].temperatures_c.resize(10, Some(1000.0));
+    predicted.profiles[3].temperatures_c.resize(10, Some(1000.0));
     measured.profiles[0].temperatures_c.resize(10, Some(1000.0));
     measured.profiles[1].temperatures_c.resize(10, Some(1000.0));
+    measured.profiles[3].temperatures_c.resize(10, Some(1000.0));
     (predicted, measured)
 }
 
@@ -863,10 +865,14 @@ fn verify() -> Result<(), String> {
         || synthetic_comparison.comparison.paired_scr_count == 0 {
         return Err("SYNTHETIC_COLLECTION_COMPARISON_FAILED".into());
     }
-    for row in csv_rows(&synthetic_comparison) {
+    let output_rows = csv_rows(&synthetic_comparison);
+    for row in &output_rows {
         if row.split(',').count() != 49 {
             return Err("CSV_COLUMN_COUNT_MISMATCH".into());
         }
+    }
+    if !output_rows.iter().any(|row| row.contains("TAM_INVALID_REASON:NO_TAM_INTERVAL_ABOVE_1298C")) {
+        return Err("MISSING_TAM_REASON_DISTRIBUTION".into());
     }
 
     let ks = ks_d(&[1.0, 2.0, 3.0], &[2.0, 3.0, 4.0]).ok_or("KS_EMPTY")?;
@@ -875,6 +881,21 @@ fn verify() -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn reason_counts(pixels: &[PixelResult], tam: bool) -> BTreeMap<&'static str, usize> {
+    let mut counts = BTreeMap::new();
+    for pixel in pixels {
+        let (value, reason) = if tam {
+            (pixel.tam_s, pixel.tam_reason)
+        } else {
+            (pixel.scr_c_per_s, pixel.scr_reason)
+        };
+        if value.is_none() {
+            *counts.entry(reason).or_insert(0) += 1;
+        }
+    }
+    counts
 }
 
 fn csv_header() -> &'static str {
@@ -942,6 +963,24 @@ fn csv_rows(report: &ComparisonReport) -> Vec<String> {
             ]);
             cells.resize(49, String::new());
             rows.push(cells.join(","));
+        }
+        for (metric, reason_counts) in [
+            ("TAM", reason_counts(&collection.pixels, true)),
+            ("SCR", reason_counts(&collection.pixels, false)),
+        ] {
+            for (reason, count) in reason_counts {
+                let mut cells = vec!["REASON_COUNT".to_string()];
+                cells.extend(prefix.clone());
+                cells.resize(35, String::new());
+                cells.extend([
+                    format!("{metric}_INVALID_REASON:{reason}"),
+                    collection.pixels.len().to_string(),
+                    String::new(),
+                    count.to_string(),
+                ]);
+                cells.resize(49, String::new());
+                rows.push(cells.join(","));
+            }
         }
     }
 
