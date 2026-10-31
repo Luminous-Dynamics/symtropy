@@ -895,7 +895,7 @@ mod tests {
             vec!["condition", "measure"],
             |hypothesis, physical, action| {
                 if action == 0 {
-                    vec![safe(Rational::one(), usize::from(hypothesis == 0), 0)]
+                    vec![safe(Rational::one(), if hypothesis == 0 { 1 } else { 0 }, 0)]
                 } else {
                     vec![safe(Rational::one(), physical, physical)]
                 }
