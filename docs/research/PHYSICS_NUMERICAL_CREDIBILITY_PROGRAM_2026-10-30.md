@@ -233,6 +233,8 @@ Prefer a thin adapter to a mature library where it is reliable and license-compa
 
 All benchmark inputs and thresholds must be committed before the run. Compare at matched error/tolerance, not only at matched timestep or frames per second.
 
+
+The strict integrator now rejects invalid timestep/parameters, non-finite input and non-finite candidate state instead of zeroing them. Candidate body state is committed only after validation; `PhysicsWorld::try_step` propagates a typed cause and restores the full physics-owned world snapshot. Accepted and rejected attempts share a monotonic world-local step ID that is included in accepted invariant receipts and rejected-step errors. This does not make arbitrary callback side effects rollbackable, and the legacy void `integrate` wrapper remains a lossy compatibility API.
 ### Campaign A — Numerical kernel (P0)
 
 | Problem | What it tests | Required evidence |
