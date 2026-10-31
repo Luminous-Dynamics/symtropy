@@ -328,11 +328,11 @@ impl EventContext {
     ) -> Result<Self, DissonanceError> {
         let actor_id = actor_id.into();
         let receipt_ref = receipt_ref.into();
-        if actor_id.trim().is_empty() || actor_id.len() > 256 || actor_id.trim() != actor_id
+        if actor_id.trim().is_empty() || actor_id.len() > 256 || actor_id.trim() != actor_id.as_str()
             || receipt_ref.trim().is_empty() || receipt_ref.len() > 512
-            || receipt_ref.trim() != receipt_ref
+            || receipt_ref.trim() != receipt_ref.as_str()
             || previous_receipt_ref.as_ref().is_some_and(|value| {
-                value.trim().is_empty() || value.len() > 512 || value.trim() != value
+                value.trim().is_empty() || value.len() > 512 || value.trim() != value.as_str()
                     || value == &receipt_ref
             })
         {
