@@ -587,7 +587,7 @@ mod tests {
 
         let mut r = request(15.0, 1.0);
         r.evidence.msa = EvidenceState::NotQualified;
-        assert_eq!(classify(&r).reason, "MSA_NOT_QUALIFIED");
+        assert_eq!(classify(&r).reason, "MSA_EVIDENCE_NOT_QUALIFIED");
 
         let mut r = request(15.0, 1.0);
         r.evidence.context_policy = EvidenceState::Missing;
