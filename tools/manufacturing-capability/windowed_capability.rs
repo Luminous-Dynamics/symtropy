@@ -67,6 +67,9 @@ struct Campaign {
     upper_specification: f64,
     measurement_expanded_uncertainty_for_window_mean: f64,
     uncertainty_budget_id: String,
+    uncertainty_part_scope_id: String,
+    uncertainty_measurand_id: String,
+    uncertainty_unit: String,
     uncertainty_source_sha256: String,
     msa_study_id: String,
     msa_qualified: bool,
@@ -223,6 +226,9 @@ impl Campaign {
             ("specification_id", self.specification_id.as_str()),
             ("specification_revision", self.specification_revision.as_str()),
             ("uncertainty_budget_id", self.uncertainty_budget_id.as_str()),
+            ("uncertainty_part_scope_id", self.uncertainty_part_scope_id.as_str()),
+            ("uncertainty_measurand_id", self.uncertainty_measurand_id.as_str()),
+            ("uncertainty_unit", self.uncertainty_unit.as_str()),
             ("msa_study_id", self.msa_study_id.as_str()),
         ] {
             if !nonempty(value) {
@@ -245,6 +251,11 @@ impl Campaign {
             || !valid_sha256(&self.msa_source_sha256) {
             return Err("SOURCE_DIGEST_INVALID".into());
         }
+        if self.uncertainty_part_scope_id != self.part_id
+            || self.uncertainty_measurand_id != self.measurand_id
+            || self.uncertainty_unit != self.unit {
+            return Err("UNCERTAINTY_BUDGET_SCOPE_MISMATCH".into());
+        }
         if !self.msa_qualified
             || !self.calibration_evidence_verified
             || !self.specification_evidence_verified
@@ -256,10 +267,12 @@ impl Campaign {
         }
 
         let mut seen_ids = HashSet::new();
+        let mut seen_window_ids = HashSet::new();
         let mut previous_timestamp = None;
         let mut previous_window_end = None;
         for window in &self.windows {
-            if !nonempty(&window.id) || window.start_ns >= window.end_ns {
+            if !nonempty(&window.id) || !seen_window_ids.insert(window.id.clone())
+                || window.start_ns >= window.end_ns {
                 return Err("WINDOW_ID_OR_INTERVAL_INVALID".into());
             }
             if previous_window_end.is_some_and(|end| window.start_ns < end) {
@@ -440,6 +453,9 @@ impl Campaign {
             lower_specification: self.lower_specification,
             upper_specification: self.upper_specification,
             uncertainty_budget_id: self.uncertainty_budget_id.clone(),
+            uncertainty_part_scope_id: self.uncertainty_part_scope_id.clone(),
+            uncertainty_measurand_id: self.uncertainty_measurand_id.clone(),
+            uncertainty_unit: self.uncertainty_unit.clone(),
             uncertainty_source_sha256: self.uncertainty_source_sha256.clone(),
             measurement_expanded_uncertainty: self.measurement_expanded_uncertainty_for_window_mean,
             msa_study_id: self.msa_study_id.clone(),
@@ -486,6 +502,9 @@ impl Report {
                 format!("{:.12e}", self.lower_specification),
                 format!("{:.12e}", self.upper_specification),
                 self.uncertainty_budget_id.clone(),
+                self.uncertainty_part_scope_id.clone(),
+                self.uncertainty_measurand_id.clone(),
+                self.uncertainty_unit.clone(),
                 self.uncertainty_source_sha256.clone(),
                 format!("{:.12e}", self.measurement_expanded_uncertainty),
                 self.msa_study_id.clone(),
@@ -580,6 +599,9 @@ fn fixture(id: &str, means: [f64; 4], scales: [f64; 4]) -> Campaign {
         upper_specification: 1.0,
         measurement_expanded_uncertainty_for_window_mean: 0.02,
         uncertainty_budget_id: "UQ-CMM-01".into(),
+        uncertainty_part_scope_id: "PART-001".into(),
+        uncertainty_measurand_id: "shaft-diameter".into(),
+        uncertainty_unit: "mm".into(),
         uncertainty_source_sha256: "b".repeat(DIGEST_LEN),
         msa_study_id: "MSA-CROSSED-01".into(),
         msa_qualified: true,
@@ -638,7 +660,7 @@ fn verify() -> Result<(), String> {
 }
 
 fn emit_csv() -> Result<(), String> {
-    println!("campaign_id,part_id,lot_id,operation_id,station_id,instrument_id,calibration_id,calibration_source_sha256,msa_source_sha256,measurand_id,unit,specification_id,specification_revision,specification_source_sha256,lower_specification,upper_specification,uncertainty_budget_id,uncertainty_source_sha256,measurement_expanded_uncertainty,msa_study_id,window_count,total_sample_count,pooled_within_sd,pooled_within_cp,pooled_within_cpk,overall_mean,overall_sd,overall_pp,overall_ppk,worst_window_cpk,worst_window_id,window_mean_span,maximum_variance_ratio,first_mean_shift_window,first_variance_shift_window,diagnostic_status,distributional_assumption,window_id,window_start_ns,window_end_ns,sample_count,measurement_ids,measurement_source_sha256s,window_mean,window_sd,window_cp,window_cpk,guarded_mean_margin,guarded_mean_inside_spec,mean_delta_from_previous,variance_ratio_from_first");
+    println!("campaign_id,part_id,lot_id,operation_id,station_id,instrument_id,calibration_id,calibration_source_sha256,msa_source_sha256,measurand_id,unit,specification_id,specification_revision,specification_source_sha256,lower_specification,upper_specification,uncertainty_budget_id,uncertainty_part_scope_id,uncertainty_measurand_id,uncertainty_unit,uncertainty_source_sha256,measurement_expanded_uncertainty,msa_study_id,window_count,total_sample_count,pooled_within_sd,pooled_within_cp,pooled_within_cpk,overall_mean,overall_sd,overall_pp,overall_ppk,worst_window_cpk,worst_window_id,window_mean_span,maximum_variance_ratio,first_mean_shift_window,first_variance_shift_window,diagnostic_status,distributional_assumption,window_id,window_start_ns,window_end_ns,sample_count,measurement_ids,measurement_source_sha256s,window_mean,window_sd,window_cp,window_cpk,guarded_mean_margin,guarded_mean_inside_spec,mean_delta_from_previous,variance_ratio_from_first");
     for campaign in fixtures() {
         let report = campaign.evaluate()?;
         print!("{}", report.csv_rows());
@@ -724,6 +746,14 @@ mod tests {
 
         let mut campaign = fixtures()[0].clone();
         campaign.windows[0].measurements[0].unit = "inch".into();
+        assert!(campaign.evaluate().is_err());
+
+        let mut campaign = fixtures()[0].clone();
+        campaign.uncertainty_part_scope_id = "PART-OTHER".into();
+        assert!(campaign.evaluate().is_err());
+
+        let mut campaign = fixtures()[0].clone();
+        campaign.uncertainty_unit = "inch".into();
         assert!(campaign.evaluate().is_err());
     }
 
