@@ -498,6 +498,29 @@ mod tests {
     }
 
     #[test]
+    fn unobserved_telemetry_is_marginalized_once_as_one_public_branch() {
+        let kernel = decision_screen_kernel();
+        let table = decision_losses();
+        let report = evaluate_one_step_decision_value(
+            &kernel,
+            &kernel.initial_belief,
+            1,
+            &table,
+            ObservationProtocol::no_telemetry(),
+            Rational::new(1, 100).unwrap(),
+            Rational::zero(),
+        )
+        .unwrap();
+
+        // All hidden measurement outcomes map to the same public observation.
+        // They are marginalized once, not duplicated as separate branches.
+        assert_eq!(report.public_observation_branches, 1);
+        assert_eq!(report.expected_terminal_loss, Rational::new(99, 100).unwrap());
+        assert_eq!(report.expected_total_loss, Rational::one());
+        assert!(!report.experiment_is_preferred);
+    }
+
+    #[test]
     fn abstention_is_selected_when_its_declared_loss_is_lower() {
         let kernel = decision_screen_kernel();
         let mut table = decision_losses();
