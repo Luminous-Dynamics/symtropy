@@ -145,7 +145,7 @@ pub fn run_benchmark_suite(
         &nominal.kernel,
         &nominal.kernel.initial_belief,
     )?;
-    let mut eig_order: Vec<usize> = eig_scores
+    let eig_order: Vec<usize> = eig_scores
         .iter()
         .map(|score| score.action_index)
         .collect();
@@ -155,9 +155,6 @@ pub fn run_benchmark_suite(
     let static_eig_sequence: Vec<usize> = (0..config.horizon)
         .map(|step| eig_order[step % eig_order.len()])
         .collect();
-    // Keep the ranking owned by this exact benchmark instance; do not mutate
-    // action identity or leak any latent state to the policy.
-    eig_order.clear();
 
     let plans = vec![
         (
@@ -233,7 +230,7 @@ fn build_sequence_node(
 ) -> Result<PolicyPlan, String> {
     consume_node_budget(budget)?;
     let Some((&action, remaining)) = sequence.split_first() else {
-        return Ok(map_claim(belief, kernel.hypothesis_ids.len()));
+        return map_claim(belief, kernel.hypothesis_ids.len());
     };
 
     let posteriors = observation_posteriors(kernel, belief, action)?;
@@ -262,7 +259,7 @@ fn build_greedy_eig_node(
 ) -> Result<PolicyPlan, String> {
     consume_node_budget(budget)?;
     if remaining == 0 {
-        return Ok(map_claim(belief, kernel.hypothesis_ids.len()));
+        return map_claim(belief, kernel.hypothesis_ids.len());
     }
     let scores = rank_by_one_step_eig(kernel, belief)?;
     let action = scores
@@ -297,22 +294,28 @@ fn consume_node_budget(budget: &mut usize) -> Result<(), String> {
     Ok(())
 }
 
-fn map_claim(belief: &[JointMass], hypothesis_count: usize) -> PolicyPlan {
+fn map_claim(
+    belief: &[JointMass],
+    hypothesis_count: usize,
+) -> Result<PolicyPlan, String> {
     let mut masses = vec![Rational::zero(); hypothesis_count];
     for point in belief {
-        masses[point.hypothesis] = masses[point.hypothesis]
-            .checked_add(point.mass)
-            .expect("validated normalized belief rational addition is representable");
+        masses[point.hypothesis] =
+            masses[point.hypothesis].checked_add(point.mass)?;
     }
-    let mut best = None;
-    for (hypothesis, mass) in masses.into_iter().enumerate() {
-        if best.is_none_or(|(_, best_mass)| mass > best_mass) {
-            best = Some((hypothesis, mass));
-        }
+    let Some(maximum) = masses.iter().copied().max() else {
+        return Ok(PolicyPlan::Abstain);
+    };
+    if maximum.is_zero()
+        || masses.iter().filter(|mass| **mass == maximum).count() != 1
+    {
+        return Ok(PolicyPlan::Abstain);
     }
-    best.map_or(PolicyPlan::Abstain, |(hypothesis, _)| {
-        PolicyPlan::Claim { hypothesis }
-    })
+    let hypothesis = masses
+        .iter()
+        .position(|mass| *mass == maximum)
+        .ok_or_else(|| "MAP hypothesis disappeared during selection".to_string())?;
+    Ok(PolicyPlan::Claim { hypothesis })
 }
 
 fn observation_posteriors(
