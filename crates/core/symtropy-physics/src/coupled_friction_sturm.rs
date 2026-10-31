@@ -256,15 +256,9 @@ fn isolate_recursive(
     Ok(())
 }
 
-/// Returns disjoint rational intervals, each containing exactly one distinct
-/// real root of the exact polynomial represented by the supplied f64 values.
-fn sturm_isolate_f64(
-    coefficients_ascending: &[f64],
+fn sturm_isolate_rational(
+    mut poly: Polynomial,
 ) -> Result<Vec<(Rational, Rational)>, &'static str> {
-    let mut poly = coefficients_ascending
-        .iter()
-        .map(|coefficient| exact_f64(*coefficient))
-        .collect::<Result<Polynomial, _>>()?;
     trim(&mut poly);
     if poly.is_empty() {
         return Err("zero polynomial");
@@ -287,6 +281,119 @@ fn sturm_isolate_f64(
         return Err("isolated interval count does not match Sturm count");
     }
     Ok(intervals)
+}
+
+/// Returns disjoint rational intervals for the exact dyadic values of f64
+/// coefficients, not for the decimal text used to display those values.
+fn sturm_isolate_f64(
+    coefficients_ascending: &[f64],
+) -> Result<Vec<(Rational, Rational)>, &'static str> {
+    let poly = coefficients_ascending
+        .iter()
+        .map(|coefficient| exact_f64(*coefficient))
+        .collect::<Result<Polynomial, _>>()?;
+    sturm_isolate_rational(poly)
+}
+
+fn polynomial_add(lhs: &[Rational], rhs: &[Rational]) -> Polynomial {
+    let mut sum = vec![Rational::zero(); lhs.len().max(rhs.len())];
+    for (index, coefficient) in lhs.iter().enumerate() {
+        sum[index] += coefficient.clone();
+    }
+    for (index, coefficient) in rhs.iter().enumerate() {
+        sum[index] += coefficient.clone();
+    }
+    trim(&mut sum);
+    sum
+}
+
+fn polynomial_scale(poly: &[Rational], factor: &Rational) -> Polynomial {
+    let mut scaled = poly
+        .iter()
+        .map(|coefficient| coefficient.clone() * factor.clone())
+        .collect::<Polynomial>();
+    trim(&mut scaled);
+    scaled
+}
+
+fn polynomial_multiply(lhs: &[Rational], rhs: &[Rational]) -> Polynomial {
+    if lhs.is_empty() || rhs.is_empty() {
+        return Vec::new();
+    }
+    let mut product = vec![Rational::zero(); lhs.len() + rhs.len() - 1];
+    for (left_power, left) in lhs.iter().enumerate() {
+        for (right_power, right) in rhs.iter().enumerate() {
+            let index = left_power + right_power;
+            product[index] += left.clone() * right.clone();
+        }
+    }
+    trim(&mut product);
+    product
+}
+
+/// Independently derive the half-angle quartic from exact dyadic W, q and mu.
+/// This expands the vector equation in polynomial form rather than copying the
+/// production's closed-form coefficient array.
+fn exact_sliding_quartic_from_inputs(
+    w: &Matrix3<f64>,
+    q: &SVector<f64, 3>,
+    mu: f64,
+) -> Result<Polynomial, &'static str> {
+    let a = exact_f64(w[(0, 0)])?;
+    let d1 = exact_f64(w[(0, 1)])?;
+    let d2 = exact_f64(w[(0, 2)])?;
+    let qn = exact_f64(q[0])?;
+    let q1 = exact_f64(q[1])?;
+    let q2 = exact_f64(q[2])?;
+    let mu = exact_f64(mu)?;
+    let a11 = exact_f64(w[(1, 1)])?;
+    let a12 = exact_f64(w[(1, 2)])?;
+    let a22 = exact_f64(w[(2, 2)])?;
+
+    // s numerator = (1-t^2, 2t), s_perp numerator = (-2t, 1-t^2).
+    let one_plus_t2 = vec![Rational::one(), Rational::zero(), Rational::one()];
+    let one_minus_t2 = vec![Rational::one(), Rational::zero(), -Rational::one()];
+    let two_t = vec![Rational::zero(), Rational::from_integer(BigInt::from(2))];
+    let minus_two_t = polynomial_scale(&two_t, &-Rational::one());
+
+    let d_numerator = polynomial_add(
+        &polynomial_scale(&one_plus_t2, &a),
+        &polynomial_scale(
+            &polynomial_add(
+                &polynomial_scale(&one_minus_t2, &d1),
+                &polynomial_scale(&two_t, &d2),
+            ),
+            &-mu.clone(),
+        ),
+    );
+    let q_tangent_perp = polynomial_add(
+        &polynomial_scale(&minus_two_t, &q1),
+        &polynomial_scale(&one_minus_t2, &q2),
+    );
+    let d_perp = polynomial_add(
+        &polynomial_scale(&minus_two_t, &d1),
+        &polynomial_scale(&one_minus_t2, &d2),
+    );
+    let a_s_first = polynomial_add(
+        &polynomial_scale(&one_minus_t2, &a11),
+        &polynomial_scale(&two_t, &a12),
+    );
+    let a_s_second = polynomial_add(
+        &polynomial_scale(&one_minus_t2, &a12),
+        &polynomial_scale(&two_t, &a22),
+    );
+    let perp_dot_a_s = polynomial_add(
+        &polynomial_multiply(&minus_two_t, &a_s_first),
+        &polynomial_multiply(&one_minus_t2, &a_s_second),
+    );
+
+    let first = polynomial_multiply(&d_numerator, &q_tangent_perp);
+    let second = polynomial_scale(
+        &polynomial_multiply(&d_perp, &one_plus_t2),
+        &-qn.clone(),
+    );
+    let third = polynomial_scale(&perp_dot_a_s, &(mu * qn));
+    Ok(polynomial_add(&polynomial_add(&first, &second), &third))
 }
 
 fn polynomial_from_roots(roots: &[Rational]) -> Polynomial {
