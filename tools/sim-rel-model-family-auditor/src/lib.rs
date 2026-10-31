@@ -232,9 +232,11 @@ mod tests {
         let mut rows = Vec::new();
         for hypothesis in 0..2 {
             for action in 0..2 {
-                let observation = if action == 0 {
-                    if (hypothesis == 0) == reverse { 1 } else { 0 }
-                } else if hypothesis == 0 { 0 } else { 1 };
+                let observation = match (action, reverse) {
+                    (0, false) | (1, true) => 0,
+                    (0, true) | (1, false) => 1,
+                    _ => unreachable!("fixture has exactly two actions"),
+                };
                 rows.push(KernelRow {
                     hypothesis,
                     physical_state: 0,
@@ -291,8 +293,8 @@ mod tests {
         assert_eq!(audit.status, FamilyTraceStatus::WithinDeclaredFamily);
         assert_eq!(audit.supported_world_ids, vec!["nominal".to_string()]);
         assert_eq!(audit.eliminated_world_ids, vec!["reversed".to_string()]);
-        assert_eq!(audit.per_world[0].trace_likelihood, half());
-        assert_eq!(audit.per_world[0].final_joint_posterior.as_ref().unwrap().len(), 1);
+        assert_eq!(audit.per_world[0].trace_likelihood, Rational::one());
+        assert_eq!(audit.per_world[0].final_joint_posterior.as_ref().unwrap().len(), 2);
         assert_eq!(audit.per_world[1].first_zero_prefix, Some(1));
         assert!(audit.per_world[1].final_joint_posterior.is_none());
     }
