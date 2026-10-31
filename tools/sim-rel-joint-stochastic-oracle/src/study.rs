@@ -418,7 +418,18 @@ mod tests {
             assert_eq!(optimum.worst_case_false_identification_probability(), Rational::zero());
             assert_eq!(optimum.worst_case_hazard_probability(), Rational::zero());
             assert_eq!(optimum.worst_case_abstention_probability(), Rational::zero());
+            assert!(run.exact_robust_optimum_feasible);
         }
+        let positive_control = report.method_summaries.iter()
+            .find(|summary| summary.method == "independent-reference-positive-control")
+            .unwrap();
+        assert_eq!(positive_control.feasible_run_count, 3);
+        assert_eq!(positive_control.paired_feasible_run_count, 3);
+        let interval = positive_control.paired_cost_regret.unwrap();
+        assert_eq!(interval.paired_sample_count, 3);
+        assert_eq!(interval.mean_regret, Rational::zero());
+        assert_eq!(interval.lower_percentile, 0.0);
+        assert_eq!(interval.upper_percentile, 0.0);
     }
 
     #[test]
