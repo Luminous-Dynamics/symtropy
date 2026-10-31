@@ -63,8 +63,10 @@ impl FreshFoldStageInput {
         if self.fold_id.trim().is_empty() || self.score_version.trim().is_empty() {
             return Err("fold ID and score version must be non-empty".into());
         }
-        if self.survivor_scores.len() > self.fold_sample_count {
-            return Err("survivor score count exceeds the fresh-fold sample count".into());
+        if self.fold_sample_count == 0
+            || self.survivor_scores.len() > self.fold_sample_count
+        {
+            return Err("fresh-fold sample count is zero or survivor scores exceed it".into());
         }
         if self.target_conditional_coverage.is_zero()
             || !self.target_conditional_coverage.is_probability()
@@ -173,7 +175,7 @@ fn ceil_product(integer: usize, multiplier: Rational) -> Result<usize, String> {
     let quotient = numerator / denominator;
     let remainder = numerator % denominator;
     let rounded = quotient
-        .checked_add(u128::from(remainder != 0))
+        .checked_add(if remainder == 0 { 0 } else { 1 })
         .ok_or_else(|| "conformal rank overflow".to_string())?;
     usize::try_from(rounded).map_err(|_| "conformal rank does not fit usize".to_string())
 }
@@ -201,7 +203,7 @@ mod tests {
             fold_sample_count: scores.len() + 3,
             survivor_scores: scores
                 .iter()
-                .map(|score| Rational::from_u64(*score as u64))
+                .map(|score| Rational::new(*score, 1).unwrap())
                 .collect(),
             target_conditional_coverage: beta,
         }
