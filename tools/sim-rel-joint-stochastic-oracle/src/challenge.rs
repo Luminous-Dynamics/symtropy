@@ -77,6 +77,8 @@ fn build_world(mode: Mode, noise: Rational) -> Result<ModelWorld, String> {
     let action_ids = vec![
         "measure-combined-signal".to_string(),
         "calibrate-sensor".to_string(),
+        "independent-reference-read".to_string(),
+        "fast-nominal-compensated-read".to_string(),
     ];
     let observation_ids = vec!["zero".to_string(), "one".to_string()];
     let mut rows = Vec::new();
@@ -84,16 +86,22 @@ fn build_world(mode: Mode, noise: Rational) -> Result<ModelWorld, String> {
     for hypothesis in 0..2 {
         for physical_state in 0..2 {
             for sensor_state in 0..2 {
-                for action in 0..2 {
-                    let outcomes = if action == 0 {
-                        measurement_outcomes(
+                for action in 0..action_ids.len() {
+                    let outcomes = match action {
+                        0 => measurement_outcomes(
                             mode,
                             noise,
                             physical_state,
                             sensor_state,
-                        )?
-                    } else {
-                        calibration_outcomes(mode, physical_state)?
+                        )?,
+                        1 => calibration_outcomes(mode, physical_state)?,
+                        2 => reference_measurement_outcomes(physical_state)?,
+                        _ => fast_nominal_measurement_outcomes(
+                            mode,
+                            noise,
+                            physical_state,
+                            sensor_state,
+                        )?,
                     };
                     rows.push(KernelRow {
                         hypothesis,
@@ -115,7 +123,7 @@ fn build_world(mode: Mode, noise: Rational) -> Result<ModelWorld, String> {
         sensor_state_ids: vec!["sensor-biased".into(), "sensor-calibrated".into()],
         action_ids,
         observation_ids,
-        action_costs: vec![2, 1],
+        action_costs: vec![2, 1, 5, 1],
         initial_belief: vec![
             JointMass {
                 hypothesis: 0,
@@ -187,6 +195,71 @@ fn measurement_outcomes(
     outcomes.push(JointOutcome {
         probability: error_probability,
         next_physical_state,
+        next_sensor_state: next_sensor,
+        observation: Some(signal ^ 1),
+    });
+    Ok(outcomes)
+}
+
+fn reference_measurement_outcomes(
+    physical_state: usize,
+) -> Result<Vec<JointOutcome>, String> {
+    Ok(vec![JointOutcome {
+        probability: Rational::one(),
+        next_physical_state: physical_state,
+        next_sensor_state: 0,
+        observation: Some(physical_state),
+    }])
+}
+
+fn fast_nominal_measurement_outcomes(
+    mode: Mode,
+    noise: Rational,
+    physical_state: usize,
+    sensor_state: usize,
+) -> Result<Vec<JointOutcome>, String> {
+    // This cheap measurement assumes the nominal instrument orientation. It is
+    // intentionally reversed in one model world and hazardous in another.
+    let reversal = if mode == Mode::InstrumentReversal { 1 } else { 0 };
+    let signal = physical_state ^ reversal;
+    let next_physical = if mode == Mode::PhysicalCarryover {
+        physical_state ^ 1
+    } else {
+        physical_state
+    };
+    let next_sensor = if mode == Mode::SensorDrift {
+        sensor_state ^ 1
+    } else {
+        sensor_state
+    };
+    let hazard = if mode == Mode::ShiftedHazard && physical_state == 1 {
+        Rational::new(1, 4)?
+    } else {
+        Rational::zero()
+    };
+    let safe_mass = Rational::one().checked_sub(hazard)?;
+    let correct_probability = Rational::one()
+        .checked_sub(noise)?
+        .checked_mul(safe_mass)?;
+    let error_probability = noise.checked_mul(safe_mass)?;
+    let mut outcomes = Vec::with_capacity(3);
+    if !hazard.is_zero() {
+        outcomes.push(JointOutcome {
+            probability: hazard,
+            next_physical_state: next_physical,
+            next_sensor_state: next_sensor,
+            observation: None,
+        });
+    }
+    outcomes.push(JointOutcome {
+        probability: correct_probability,
+        next_physical_state: next_physical,
+        next_sensor_state: next_sensor,
+        observation: Some(signal),
+    });
+    outcomes.push(JointOutcome {
+        probability: error_probability,
+        next_physical_state: next_physical,
         next_sensor_state: next_sensor,
         observation: Some(signal ^ 1),
     });
