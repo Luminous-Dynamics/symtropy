@@ -196,6 +196,42 @@ fn bench_reference_lcp(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_tetrahedral_mass_properties(c: &mut Criterion) {
+    let mut group = c.benchmark_group("tetrahedral_mass_properties_piecewise_uniform");
+    for tetrahedron_count in [1_usize, 8, 64, 512] {
+        let tetrahedra: Vec<([SVector<f64, 3>; 4], f64)> = (0..tetrahedron_count)
+            .map(|index| {
+                let x = index as f64 * 2.0;
+                (
+                    [
+                        SVector::new(x, 0.0, 0.0),
+                        SVector::new(x + 0.25, 0.0, 0.0),
+                        SVector::new(x, 0.25, 0.0),
+                        SVector::new(x, 0.0, 0.25),
+                    ],
+                    1000.0,
+                )
+            })
+            .collect();
+        group.bench_with_input(
+            BenchmarkId::new("tetrahedra", tetrahedron_count),
+            &tetrahedra,
+            |bench, cells| {
+                bench.iter(|| {
+                    black_box(
+                        BivectorInertia::<3>::from_tetrahedra(
+                            black_box(cells.iter().cloned()),
+                            1e-12,
+                        )
+                        .expect("valid disjoint tetrahedral benchmark mesh"),
+                    )
+                });
+            },
+        );
+    }
+    group.finish();
+}
+
 fn bench_planar_friction_cone(c: &mut Criterion) {
     let effective_mass = Matrix2::new(2.0, 0.25, 0.25, 1.5);
     let free_velocity = SVector::new(-1.0, -0.8);
@@ -285,6 +321,7 @@ criterion_group!(
     bench_contact_wrench_assembly,
     bench_contact_wrench_free_velocity,
     bench_reference_lcp,
+    bench_tetrahedral_mass_properties,
     bench_planar_friction_cone,
     bench_nd_contact_frame_and_wrench,
 );
