@@ -19,11 +19,12 @@ struct Sample {
     twin_prediction: Option<f64>,
     process_input: Option<f64>,
     interface_source_value: Option<f64>,
+    interface_scale: Option<f64>,
+    interface_offset: Option<f64>,
     interface_mapped_value: Option<f64>,
-    interface_expected_value: Option<f64>,
     source_time_ms: Option<i64>,
+    expected_transport_latency_ms: Option<i64>,
     receiver_time_ms: Option<i64>,
-    receiver_expected_time_ms: Option<i64>,
     calibration_qualified: bool,
     stale: bool,
     replayed: bool,
@@ -129,11 +130,12 @@ fn analyze_window(samples: &[Sample], thresholds: Thresholds) -> Result<Diagnost
             || required_finite(sample.twin_prediction).is_none()
             || required_finite(sample.process_input).is_none()
             || required_finite(sample.interface_source_value).is_none()
+            || required_finite(sample.interface_scale).is_none()
+            || required_finite(sample.interface_offset).is_none()
             || required_finite(sample.interface_mapped_value).is_none()
-            || required_finite(sample.interface_expected_value).is_none()
             || sample.source_time_ms.is_none()
+            || sample.expected_transport_latency_ms.is_none()
             || sample.receiver_time_ms.is_none()
-            || sample.receiver_expected_time_ms.is_none()
         {
             return Ok(empty_report("INSUFFICIENT_EVIDENCE", samples.len()));
         }
@@ -157,21 +159,28 @@ fn analyze_window(samples: &[Sample], thresholds: Thresholds) -> Result<Diagnost
         let reference = sample.reference_sensor.expect("finite channel was checked");
         let prediction = sample.twin_prediction.expect("finite channel was checked");
         let process_input = sample.process_input.expect("finite channel was checked");
+        let source_value = sample.interface_source_value.expect("finite channel was checked");
+        let scale = sample.interface_scale.expect("finite channel was checked");
+        let offset = sample.interface_offset.expect("finite channel was checked");
         let mapped = sample.interface_mapped_value.expect("finite channel was checked");
-        let expected = sample.interface_expected_value.expect("finite channel was checked");
+        let expected = source_value * scale + offset;
+        if !expected.is_finite() {
+            return Ok(empty_report("INSUFFICIENT_EVIDENCE", samples.len()));
+        }
 
         sensor_differences.push((primary - reference).abs());
         model_differences.push((reference - prediction).abs());
         mapping_residuals.push((mapped - expected).abs());
+        let expected_receiver_time = sample
+            .source_time_ms
+            .expect("source time channel was checked")
+            .checked_add(sample.expected_transport_latency_ms.expect("latency was checked"))
+            .ok_or_else(|| "expected receiver timestamp overflow".to_string())?;
         clock_residuals.push(
             sample
                 .receiver_time_ms
                 .expect("time channel was checked")
-                .abs_diff(
-                    sample
-                        .receiver_expected_time_ms
-                        .expect("expected time channel was checked"),
-                ),
+                .abs_diff(expected_receiver_time),
         );
         process_inputs.push(process_input);
     }
@@ -245,11 +254,12 @@ fn sample(
         twin_prediction: Some(prediction),
         process_input: Some(process_input),
         interface_source_value: Some(5.0),
+        interface_scale: Some(1.0),
+        interface_offset: Some(273.15),
         interface_mapped_value: Some(278.15),
-        interface_expected_value: Some(278.15),
         source_time_ms: Some(1_000),
+        expected_transport_latency_ms: Some(50),
         receiver_time_ms: Some(1_050),
-        receiver_expected_time_ms: Some(1_050),
         calibration_qualified: true,
         stale: false,
         replayed: false,
