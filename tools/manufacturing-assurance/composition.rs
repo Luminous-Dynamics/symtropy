@@ -784,7 +784,7 @@ mod tests {
     #[test]
     fn rejects_unit_change_without_versioned_transform() {
         let input = fixture("integrated").replace(
-            "|mm|um|IDENTITY|",
+            "|mm|um|MAP:length-mm-to-um-v1|",
             "|mm|um|IDENTITY|",
         );
         let result = audit_text(&input);
