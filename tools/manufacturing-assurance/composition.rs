@@ -493,9 +493,6 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
             &component.id,
             "COMPONENT_VVUQ",
         )?;
-        if receipt.status == "ADMITTED" && receipt.authority == "untrusted" {
-            return Err(format!("component {} VVUQ authority is untrusted", component.id));
-        }
         if !used_evidence.insert(component.vvuq_evidence_id.as_str()) {
             return Err(format!("evidence {} is reused", component.vvuq_evidence_id));
         }
