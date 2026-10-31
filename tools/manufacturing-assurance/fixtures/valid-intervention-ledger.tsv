@@ -12,5 +12,8 @@ AUTH|auth-1|plan-1|HUMAN|operator-1|machine-7|LINE-1|adjust_feed_rate|2026-10-31
 # EXEC|id|plan_id|command_id|executor|command_digest|issued_at|acknowledged_at|ACKNOWLEDGED/REJECTED
 EXEC|exec-1|plan-1|command-1|controller-gateway|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|2026-10-31T11:55:00Z|2026-10-31T11:55:01Z|ACKNOWLEDGED
 
+# REQUIRE|id|plan_id|metric|unit|min|max
+REQUIRE|req-roughness|plan-1|surface_roughness|um|0.0|2.0
+
 # VERIFY|id|plan_id|POST_ACTION/POST_RECOVERY|metric|value|unit|min|max|measured_at|measurement_digest
 VERIFY|verify-1|plan-1|POST_ACTION|surface_roughness|1.4|um|0.0|2.0|2026-10-31T11:56:00Z|ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
