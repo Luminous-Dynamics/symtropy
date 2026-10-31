@@ -27,6 +27,101 @@ pub trait WorldSupportMap<const D: usize> {
     fn bounding_sphere_world(&self) -> (SVector<f64, D>, f64);
 }
 
+/// Shared, dimensionless coordinate frame for a pair of convex support maps.
+///
+/// The origin is placed between the representative centers. The scale is the
+/// maximum of both enclosing radii and center separation, so intersecting
+/// geometry has O(1) normalized extent regardless of the caller's length unit.
+/// Minkowski support points are divided by this scale; public query results
+/// are converted back to world units at the API boundary.
+#[derive(Clone, Copy, Debug)]
+pub struct SupportNormalization<const D: usize> {
+    origin: SVector<f64, D>,
+    scale: f64,
+}
+
+impl<const D: usize> SupportNormalization<D> {
+    pub fn for_pair(
+        a: &dyn WorldSupportMap<D>,
+        b: &dyn WorldSupportMap<D>,
+    ) -> Self {
+        let (center_a, radius_a) = a.bounding_sphere_world();
+        let (center_b, radius_b) = b.bounding_sphere_world();
+        let center_delta = center_b - center_a;
+        let raw_scale = center_delta.norm().max(radius_a.abs()).max(radius_b.abs());
+        let scale = if raw_scale.is_finite() && raw_scale > f64::MIN_POSITIVE {
+            raw_scale
+        } else {
+            1.0
+        };
+        Self {
+            origin: center_a + center_delta * 0.5,
+            scale,
+        }
+    }
+
+    #[inline]
+    pub fn scale(&self) -> f64 {
+        self.scale
+    }
+
+    #[inline]
+    pub fn normalize_minkowski_point(
+        &self,
+        point: &SVector<f64, D>,
+    ) -> SVector<f64, D> {
+        point / self.scale
+    }
+
+    #[inline]
+    pub fn restore_minkowski_point(
+        &self,
+        point: &SVector<f64, D>,
+    ) -> SVector<f64, D> {
+        point * self.scale
+    }
+
+    #[inline]
+    pub fn map<'a>(
+        &self,
+        inner: &'a dyn WorldSupportMap<D>,
+    ) -> NormalizedSupportMap<'a, D> {
+        NormalizedSupportMap {
+            inner,
+            normalization: *self,
+        }
+    }
+}
+
+/// Borrowed support map expressed in a shared dimensionless pair frame.
+#[derive(Clone, Copy)]
+pub struct NormalizedSupportMap<'a, const D: usize> {
+    inner: &'a dyn WorldSupportMap<D>,
+    normalization: SupportNormalization<D>,
+}
+
+impl<const D: usize> WorldSupportMap<D> for NormalizedSupportMap<'_, D> {
+    #[inline]
+    fn support_world(&self, direction: &SVector<f64, D>) -> SVector<f64, D> {
+        (self.inner.support_world(direction) - self.normalization.origin)
+            / self.normalization.scale
+    }
+
+    #[inline]
+    fn center_world(&self) -> SVector<f64, D> {
+        (self.inner.center_world() - self.normalization.origin) / self.normalization.scale
+    }
+
+    #[inline]
+    fn bounding_sphere_world(&self) -> (SVector<f64, D>, f64) {
+        let (center, radius) = self.inner.bounding_sphere_world();
+        (
+            (center - self.normalization.origin) / self.normalization.scale,
+            radius / self.normalization.scale,
+        )
+    }
+}
+
 /// Borrowed local shape paired with its complete world transform.
 #[derive(Clone, Copy)]
 pub struct TransformedShape<'a, const D: usize> {
