@@ -181,6 +181,7 @@ Targets are divided into exact software properties and contextual empirical meas
 - Hazard-finding transitions follow a declared state graph, require new evidence references and preserve prior findings; reopening a refuted hazard is a new event.
 - Missing, duplicated, reordered, backdated or incorrectly linked events fail closed.
 - The kernel does not authenticate actors or verify receipt signatures/digests. The host adapter must bind the genesis state and canonical event payload to signed/content-addressed receipts and enforce an independently authorized, append-only store.
+- The benchmark must include mutation attacks for truncated histories and genesis-anchor mismatch; the in-memory replay routine alone cannot prove that a supplied stream is complete.
 - Current dispositions expose their mandatory review time; overdue review is a detectable state, not automatic resolution.
 
 ### Longitudinal evaluation
@@ -233,7 +234,45 @@ This programme should integrate rather than claim to replace several established
 
 The proposed contribution is an executable institutional benchmark connecting these insights to real resource allocation, rights, consent, governance power, privacy, care work and reversible decisions.
 
-## 9. Architecture mapping
+## 9. How to substantiate a claim beyond current practice
+
+There is no single "SOTA" comparator for this problem. Established approaches solve different parts of it:
+
+| Approach | Existing strength to respect | Gap this benchmark tests without presuming failure |
+|---|---|---|
+| Majority vote | Clear collective choice and procedural simplicity | Minority retention, coercion and delayed distributional harm |
+| Facilitated consensus | Joint reasoning and legitimacy where participants can deliberate freely | Suppressed dissent, hidden power and false unanimity |
+| Delphi | Anonymity, iteration and controlled feedback for expert elicitation | Normative legitimacy, material affected-party voice and non-expert lived experience |
+| Adversarial collaboration | Fairly characterizes competing claims and designs a test jointly before results | Repeatable institutional workflow, rights/appeals, scarcity and care-cost integration |
+| OECD deliberative evaluation | Design integrity, deliberative experience and pathways to impact | Executable issue-level event lineage and distributional outcomes at each review |
+| Decidim-style participation | Proposals, amendments, voting, phased participation and accountability | Whether the surrounding process preserves power/safety context and evaluates long-horizon burden |
+| LBE protocol | A proposed combination of typed tension handling, event-sourced dissent, review/appeal and material incidence | Must prove its incremental value under matched, independent comparison |
+
+Do not equate event sourcing itself with novelty; it is an established software architecture. The research hypothesis is that event-sourced institutional memory, typed tension/disposition semantics and material/power/care accounting can be combined into a reproducible civic/economic benchmark with stronger rights and longitudinal evaluation.
+
+### Claim ladder
+
+**Level 0 — exact conformance.** All deterministic invariants pass on valid and adversarial inputs: all positions accounted for, correct type-specific disposition, complete event lineage, replay parity, and zero acceptance of broken/backdated/duplicate events. Use mutation testing to demonstrate that each gate detects its targeted defect. A source-level unit-test count is not evidence of conformance until code is compiled and tests are executed.
+
+**Level 1 — operational non-inferiority.** On matched scenarios, service outcomes, decision quality, latency, facilitation cost and accessibility are no worse than pre-registered margins against established approaches, while rights/safety gates remain intact. Margins must be justified before results, not selected afterward.
+
+**Level 2 — contextual superiority.** In at least two independently run settings, the protocol improves pre-registered outcomes such as minority-position retention, evidence update, appeal/remedy latency, safeguard-regression response or distribution of unpaid care burden, without worsening essential-service outcomes or subgroup safety. Publish confidence/credible intervals, missingness, null results and all adverse outcomes.
+
+**Level 3 — external replication.** Independent teams reproduce both conformance and at least one empirically superior outcome on held-out scenarios or new settings. Release scenario manifests, pre-registration, anonymized or synthetic event traces, analysis code and deviations.
+
+### Software and systems benchmarks
+
+In addition to institutional outcomes, measure:
+- event append and replay throughput, p50/p95 latency and memory/storage growth;
+- replay parity after restart, failover and partial network partitions;
+- rejection of duplicate, missing, reordered, truncated, stale and wrongly attributed events;
+- cryptographic receipt verification and genesis-state anchoring in the host adapter;
+- privacy leakage through event metadata and evidence-reference correlation;
+- storage durability, retention and authorized correction/withdrawal workflows.
+
+Do not invent numeric throughput targets before profiling. First publish baseline throughput, tail latency, event growth, and the threat model. Correctness, privacy and rights invariants are hard gates, never traded for throughput.
+
+## 10. Architecture mapping
 
 - **Symtropy:** stores typed tension records, disposition transitions, scenario manifests, matched policy runs and outcomes.
 - **Mycelix:** supplies authenticated provenance, scoped participation, consent, dissent records, appeal and portable evidence receipts; it does not decide whose view is morally superior.
@@ -241,11 +280,11 @@ The proposed contribution is an executable institutional benchmark connecting th
 - **Sol-Atlas:** grounds resource, location, infrastructure and time constraints.
 - **Praxis:** teaches disagreement, evidence, power, paradox, conflict de-escalation, rights and repair.
 
-## 10. Explicit non-claims
+## 11. Explicit non-claims
 
 This benchmark does not measure a person's moral worth, consciousness, love, maturity or psychological fitness. It does not assume that conflict improves performance, that consensus is always bad, that both sides are equally valid, or that paradox must remain unresolved. It tests whether a process can distinguish evidence from values, make defensible choices, preserve dissent, protect rights and learn over time.
 
-## 11. Research references
+## 12. Research references
 
 - Yuan, Yin & Sun (2026), [The paradox of team conflict revisited: An updated meta-analysis](https://doi.org/10.1037/apl0001315), *Journal of Applied Psychology*, 111(2), 195–224.
 - Johansen & Nielsen (2026), [A process-temporal perspective on organizational paradoxes](https://doi.org/10.1111/ijmr.70032), *International Journal of Management Reviews*, review of 81 empirical studies.
