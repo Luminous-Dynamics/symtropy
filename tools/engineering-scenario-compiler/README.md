@@ -94,6 +94,15 @@ exponent formatting boundaries. Both the Rust `serde_jcs` test and independent
 Go canonicalizer test require exact byte equality with the same committed
 canonical output.
 
+CI also benchmarks the Go consumer path against the actual compiler-exported
+typed Scenario IR envelope. It reports three independent distributions with
+allocation counts: strict duplicate-aware preflight only, independent Go JCS
+canonicalization only, and their combined path. The Go benchmark uses the
+pinned canonicalizer source commit and Go 1.27.3; results are uploaded alongside
+the Rust compiler's end-to-end and JCS-only distributions. These are separate
+language/runtime measurements, not a claim that the Go verifier is faster than
+the Rust compiler.
+
 ### Strict pre-canonicalization input validation
 
 The Rust compiler's source ingress is TOML (not raw JSON). Its strict
