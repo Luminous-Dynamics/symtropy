@@ -226,11 +226,21 @@ supported candidate loss and lists uncovered-policy candidates independently;
 it never assigns an invented numeric penalty to an undefined policy. Candidate
 ordering and report ordering are deterministic by world ID.
 
-This first falsifier consumes a caller-supplied finite candidate set (maximum
-128 per call). It does not generate perturbations, prove candidate physical
-plausibility, cryptographically attest parameter receipts, or establish
-open-world coverage. Candidate generation/admission, falsifier-overfit tests
-and calibration/held-out separation remain the next SIM-REL-029 steps.
+The `generate_search_perturbation_candidates` helper now supplies a
+bounded first-generation stress set. Each scenario applies one exact edit to a
+validated parent kernel: transfer probability between outcomes in a row;
+suppress a readback; swap two measurement labels; remap the realized action;
+promote a safe outcome to a hazard; or change the next apparatus-state index.
+Scenarios are sorted by stable ID, namespaced under the parent world ID,
+validated after mutation, and carry parent/generator/version/parameter
+receipts. No-op edits, invalid probability transfers, out-of-range indices
+and invalid resulting kernels fail closed; a failed batch emits no partial
+candidate list.
+
+These are structural synthetic stress operators only. They do not prove that a
+generated world is physically plausible or cover arbitrary real-world drift.
+Domain-specific admissibility constraints, multi-factor combinations,
+falsifier-overfit tests and calibration/held-out separation remain open.
 
 This is exact only for the supplied finite world family, kernels, priors, loss
 tensor, command costs, observation protocol, horizon and policy class. It does
