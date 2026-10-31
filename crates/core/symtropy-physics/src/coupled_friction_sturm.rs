@@ -1380,7 +1380,7 @@ enum FamilySubdivisionStatus {
     InvalidInput { invalid_leaves: usize },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 struct FamilySubdivisionSummary {
     status: FamilySubdivisionStatus,
     visited_boxes: usize,
@@ -1398,6 +1398,7 @@ fn subdivide_contact_family(
         max_boxes: usize,
         visited: &mut usize,
         counts: &mut Vec<usize>,
+        certified_leaf_count: &mut usize,
         unresolved: &mut usize,
         invalid: &mut usize,
     ) {
@@ -1410,6 +1411,7 @@ fn subdivide_contact_family(
         match certificate.status {
             FamilyRootStatus::Certified { finite_real_root_count } => {
                 counts.push(finite_real_root_count);
+                *certified_leaf_count += 1;
             }
             FamilyRootStatus::InvalidInput(_) => {
                 *invalid += 1;
@@ -1418,11 +1420,11 @@ fn subdivide_contact_family(
                 if let Some((left, right)) = input.split_widest_relative_interval() {
                     visit(
                         &left, depth + 1, max_depth, max_boxes,
-                        visited, counts, unresolved, invalid,
+                        visited, counts, certified_leaf_count, unresolved, invalid,
                     );
                     visit(
                         &right, depth + 1, max_depth, max_boxes,
-                        visited, counts, unresolved, invalid,
+                        visited, counts, certified_leaf_count, unresolved, invalid,
                     );
                 } else {
                     *unresolved += 1;
@@ -1436,15 +1438,16 @@ fn subdivide_contact_family(
 
     let mut visited = 0;
     let mut counts = Vec::new();
+    let mut certified_leaf_count = 0;
     let mut unresolved = 0;
     let mut invalid = 0;
     visit(
         input, 0, max_depth, max_boxes,
-        &mut visited, &mut counts, &mut unresolved, &mut invalid,
+        &mut visited, &mut counts, &mut certified_leaf_count, &mut unresolved, &mut invalid,
     );
     counts.sort_unstable();
     counts.dedup();
-    let certified_leaves = counts.len();
+    let certified_leaves = certified_leaf_count;
     let status = if invalid > 0 {
         FamilySubdivisionStatus::InvalidInput {
             invalid_leaves: invalid,
@@ -1519,6 +1522,26 @@ fn interval_coefficient_enclosures_contain_seeded_exact_dyadic_samples() {
             );
         }
     }
+}
+
+#[test]
+fn deterministic_family_subdivision_replays_identically() {
+    let input = ContactInputBox::from_f64_bounds([
+        [0.8, 1.2],
+        [-0.03, 0.03],
+        [-0.03, 0.03],
+        [0.8, 1.2],
+        [-0.03, 0.03],
+        [0.8, 1.2],
+        [-1.1, -0.9],
+        [-3.1, -2.9],
+        [0.9, 1.1],
+        [0.15, 0.35],
+    ]).unwrap();
+    let first = subdivide_contact_family(&input, 5, 63);
+    let second = subdivide_contact_family(&input, 5, 63);
+    assert_eq!(first, second);
+    assert!(first.visited_boxes <= 63);
 }
 
 #[test]
