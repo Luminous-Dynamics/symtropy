@@ -73,13 +73,13 @@ The checker distinguishes a system principal from a human principal. A plan requ
 
 This version permits one execution record per plan. Multi-step plans and repeated attempts require explicit transaction/retry semantics in a future version; a second EXEC must not be silently interpreted as a valid retry.
 
-### VERIFY / RECOVERY
-- metric, numeric value, unit, lower/upper acceptance interval;
-- measurement time and evidence digest;
-- post-action and post-recovery stages kept separate;
-- recovery mode, time, acknowledgment, status and evidence digest.
+### REQUIRE / VERIFY / RECOVERY
+- REQUIRE declares each required post-action metric, unit and lower/upper acceptance interval before execution;
+- VERIFY records metric, numeric value, unit, measured time and evidence digest;
+- POST_ACTION and POST_RECOVERY stages are separate;
+- RECOVERY records mode, issue/acknowledgment times, status and evidence digest.
 
-Recovery verification must re-measure all post-action failed metrics with the same metric, unit and acceptance bounds. Missing one failed metric cannot close the transaction.
+Every REQUIRE metric must have a POST_ACTION verification before the transaction can become VERIFIED. Recovery verification must re-measure every failed post-action metric with the same metric, unit and acceptance bounds. Missing one required or failed metric cannot close the transaction.
 
 ## 6. Frozen known-truth panel
 
