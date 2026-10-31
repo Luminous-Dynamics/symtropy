@@ -514,6 +514,54 @@ mod tests {
     }
 
     #[test]
+    fn unequal_external_accelerations_match_work_and_vector_impulse_ledgers() {
+        let model = model();
+        let initial = initial_state();
+        let acceleration1 = [0.12, -0.07, 0.05];
+        let acceleration2 = [-0.03, 0.09, 0.11];
+        let dt = 0.01;
+        let receipt = model
+            .step_with_accelerations(initial, acceleration1, acceleration2, dt)
+            .unwrap();
+        let force1 = scale(acceleration1, MASS_1);
+        let force2 = scale(acceleration2, MASS_2);
+        let expected_work = dot(force1, sub(receipt.after.q1, initial.q1))
+            + dot(force2, sub(receipt.after.q2, initial.q2));
+        assert!((receipt.external_work - expected_work).abs() < 2.0e-14);
+        assert!(receipt.relative_linear_momentum_residual < 3.0e-12);
+        assert!(receipt.relative_angular_momentum_residual < 3.0e-12);
+        assert!(receipt.relative_link_constraint_residual < 2.0e-12);
+        assert!(receipt.relative_endpoint_velocity_constraint_residual < 2.0e-12);
+    }
+
+    #[test]
+    fn non_finite_state_and_acceleration_fail_closed() {
+        let model = model();
+        assert_eq!(
+            model.step(
+                State {
+                    q1: [f64::NAN, 0.0, 0.0],
+                    ..initial_state()
+                },
+                0.01
+            )
+            .unwrap_err(),
+            Error::NonFiniteInput
+        );
+        assert_eq!(
+            model
+                .step_with_accelerations(
+                    initial_state(),
+                    [0.0, 0.0, 0.0],
+                    [0.0, f64::INFINITY, 0.0],
+                    0.01,
+                )
+                .unwrap_err(),
+            Error::NonFiniteInput
+        );
+    }
+
+    #[test]
     fn rattle_commutes_with_generic_so3_rotations() {
         let model = model();
         let initial = initial_state();
