@@ -49,6 +49,11 @@ objective and tuning procedure:
    estimation-risk objective as a comparator where the task supports its
    assumptions. Also report a downstream-decision evaluation of its selected
    designs.
+12. **Sequential conformal calibration under recursive selection:** compare a
+   fresh-fold stagewise calibration policy, including its prefix-coverage and
+   abstention tradeoffs, against naive survivor reuse and Bonferroni-style
+   allocation. Only claim its finite-sample coverage when the paper's
+   exchangeability, predictable-refitting and fresh-fold assumptions are met.
 
 Do not silently retune external baselines on our sealed test worlds. Record
 baseline source revision, parameters, training data, tool versions and compute.
@@ -155,6 +160,13 @@ none is allowed to replace the downstream decision endpoint.
 - Calibrate the TV radius only on a dedicated calibration split. Report
   calibration coverage by subgroup and sensitivity to the radius; do not select
   the radius by maximizing sealed-test performance.
+- For adaptive multi-stage calibration, do not reuse observations that informed
+  the selection/refitting step as though they were exchangeable fresh scores.
+  Use disjoint fresh folds per stage or a separately justified valid reuse
+  scheme. Report prefix coverage and the price of freshness (calibration
+  budget, abstention / infinite thresholds and achieved risk). Sequential
+  conformal's fresh-fold guarantee is not a general protection against arbitrary
+  nonstationary physical shifts; its sampling assumptions must be stated.
 - Evaluate the falsifier on its own training-generator suite and a disjoint
   sealed generator suite to measure adversarial-search overfit.
 
@@ -184,6 +196,8 @@ alone is not evidence of robustness or scientific progress.
   https://proceedings.mlr.press/v337/harikumar26a.html
 - Maximin Robust Bayesian Experimental Design, 2026:
   https://arxiv.org/abs/2603.14094
+- Sequential Conformal Calibration under Recursive Selection, 2026:
+  https://arxiv.org/abs/2610.12937
 - R-IDeA, AISTATS 2026: https://proceedings.mlr.press/v300/tang26d.html
 - Robust Sequential Experimental Design for A/B Testing, ICML 2026:
   https://proceedings.mlr.press/v306/wen26i.html
