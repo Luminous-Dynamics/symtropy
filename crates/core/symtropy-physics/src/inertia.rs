@@ -559,11 +559,13 @@ impl BivectorInertia<3> {
 
         for (vertices, density) in std::iter::once(first).chain(iterator) {
             if !density.is_finite()
-                || density <= 0.0
                 || !vertices
                     .iter()
                     .all(|vertex| vertex.iter().all(|value| value.is_finite()))
             {
+                return Err(RotationalInertiaError::NonFinite);
+            }
+            if density <= 0.0 {
                 return Err(RotationalInertiaError::InvalidMassProperties);
             }
 
@@ -913,6 +915,10 @@ mod tests {
         assert_eq!(
             BivectorInertia::<3>::from_tetrahedra([(degenerate, -1.0)], 1e-12).unwrap_err(),
             RotationalInertiaError::InvalidMassProperties
+        );
+        assert_eq!(
+            BivectorInertia::<3>::from_tetrahedra([(degenerate, f64::NAN)], 1e-12).unwrap_err(),
+            RotationalInertiaError::NonFinite
         );
     }
 
