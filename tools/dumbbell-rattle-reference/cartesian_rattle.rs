@@ -201,7 +201,7 @@ impl CartesianRattleDumbbell {
                 * (dot(relative_free_drift, relative_free_drift)
                     - self.length * self.length);
         let discriminant_scale = (linear_term * linear_term).abs()
-            + (radius_squared * (dot(drift, drift) - self.length * self.length)).abs()
+            + (radius_squared * (dot(relative_free_drift, relative_free_drift) - self.length * self.length)).abs()
             + radius_squared * self.length * self.length;
         if !discriminant.is_finite() {
             return Err(Error::NonFiniteResult);
