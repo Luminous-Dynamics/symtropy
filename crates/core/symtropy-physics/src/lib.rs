@@ -50,7 +50,9 @@ pub use delassus::{
     ReferenceLcpSolution, assemble_contact_wrench_delassus, assemble_contact_wrench_free_velocity,
     assemble_delassus, solve_frictionless_lcp,
 };
-pub use diagnostics::{InvariantDrift, InvariantSnapshot, InvariantStepReceipt};
+pub use diagnostics::{
+    DiscreteWorkLedger, InvariantDrift, InvariantSnapshot, InvariantStepReceipt,
+};
 pub use epa::EpaResult;
 pub use friction_cone::{FrictionConeError, PlanarFrictionConeSolution, solve_planar_friction_cone};
 pub use inertia::{BivectorInertia, RotationalInertiaError};
