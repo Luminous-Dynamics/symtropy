@@ -65,3 +65,8 @@ The benchmark module constructs four concrete baseline families from a nominal j
 The same explicit risk/false-claim/abstention budgets are applied to each baseline and to the exact robust shared-policy optimizer. Where a baseline is feasible and an exact robust optimum exists, the harness reports exact additional worst-case cost (regret). It records the random seed and horizon. The EIG score itself is floating point, while all replay outcomes and costs remain exact rational values.
 
 The calibration-confounding fixture is a deliberate myopia trap: greedy one-step EIG follows the default first-action tie-break and repeatedly measures an uninformative combined signal, while the exact lookahead optimizer discovers the calibration-then-measure sequence. This isolates a real algorithmic distinction from broad claims about model quality or physical validity.
+
+
+### Benchmark receipts and provenance
+
+The benchmark runner records the exact hazard, false-identification and abstention budgets used, the seed and horizon, an optional caller-supplied 40- or 64-character Git source revision, and a canonical model-family fingerprint. The fingerprint is FNV-1a 64-bit, invariant to model-world order and outcome-row order, and sensitive to kernel changes. It is a reproducibility fingerprint only, not a cryptographic integrity or provenance proof; retain the Git commit and a separately signed or cryptographically hashed evidence receipt for assurance-sensitive use.
