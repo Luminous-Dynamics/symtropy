@@ -9,7 +9,7 @@ use super::finite_horizon::{DecisionBranch, DecisionBudgets, DecisionPlan, Decis
 use super::{DecisionLossTable, ObservationProtocol};
 use crate::{
     filter_one_step, ActionRealizationKernel, BeliefMass, LatentState, ObservationField,
-    PublicObservation, Rational, TransitionOutcome,
+    PublicObservation, Rational,
 };
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
