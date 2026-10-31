@@ -548,6 +548,85 @@ mod tests {
         ));
     }
 
+    fn frame_at(step_index: u64, time_s: f64) -> ObservationFrame {
+        let mut frame = ObservationFrame::new(identity(), step_index, time_s);
+        frame.bodies.push(body("ball/main"));
+        frame
+    }
+
+    #[test]
+    fn trace_accepts_sparse_monotonic_fixed_step_samples_and_round_trips() {
+        let mut trace = ObservationTrace::new(identity());
+        trace.push(frame_at(0, 0.0)).unwrap();
+        trace.push(frame_at(3, 3.0 / 60.0)).unwrap();
+        trace.push(frame_at(60, 1.0)).unwrap();
+
+        assert_eq!(trace.validate(), Ok(()));
+        assert_eq!(trace.final_frame().unwrap().step_index, 60);
+
+        let encoded = serde_json::to_string(&trace).expect("serialize observation trace");
+        let decoded: ObservationTrace =
+            serde_json::from_str(&encoded).expect("deserialize observation trace");
+        assert_eq!(decoded, trace);
+        assert_eq!(decoded.validate(), Ok(()));
+    }
+
+    #[test]
+    fn trace_rejects_mixed_backend_identity() {
+        let mut trace = ObservationTrace::new(identity());
+        trace.push(frame_at(0, 0.0)).unwrap();
+
+        let mut foreign = frame_at(1, 1.0 / 60.0);
+        foreign.identity.backend_id = "rapier".to_owned();
+        assert_eq!(
+            trace.push(foreign),
+            Err(ObservationError::FrameIdentityMismatch)
+        );
+        assert_eq!(trace.frames.len(), 1, "failed push must not mutate trace");
+    }
+
+    #[test]
+    fn trace_rejects_duplicate_or_nonmonotonic_steps_and_times() {
+        let mut duplicate_step = ObservationTrace::new(identity());
+        duplicate_step.push(frame_at(1, 1.0 / 60.0)).unwrap();
+        assert_eq!(
+            duplicate_step.push(frame_at(1, 1.0 / 60.0)),
+            Err(ObservationError::NonIncreasingStep {
+                previous: 1,
+                current: 1
+            })
+        );
+
+        let mut reversed_time = ObservationTrace::new(identity());
+        reversed_time.push(frame_at(2, 2.0 / 60.0)).unwrap();
+        let mut earlier = frame_at(3, 3.0 / 60.0);
+        earlier.simulation_time_seconds = 1.0 / 60.0;
+        assert_eq!(
+            reversed_time.push(earlier),
+            Err(ObservationError::FrameTimeDoesNotMatchTimestep {
+                step_index: 3,
+                actual_seconds: 1.0 / 60.0,
+                expected_seconds: 3.0 / 60.0
+            })
+        );
+    }
+
+    #[test]
+    fn trace_rejects_empty_and_wrong_fixed_step_clock() {
+        let empty = ObservationTrace::new(identity());
+        assert_eq!(empty.validate(), Err(ObservationError::EmptyTrace));
+
+        let mut wrong_clock = ObservationTrace::new(identity());
+        assert_eq!(
+            wrong_clock.push(frame_at(3, 0.04)),
+            Err(ObservationError::FrameTimeDoesNotMatchTimestep {
+                step_index: 3,
+                actual_seconds: 0.04,
+                expected_seconds: 3.0 / 60.0
+            })
+        );
+    }
+
     #[test]
     fn invalid_provenance_and_physical_summaries_are_rejected() {
         let mut invalid_dt = frame();
