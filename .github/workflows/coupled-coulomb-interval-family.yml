@@ -1,0 +1,28 @@
+name: Coupled Coulomb interval root-family certificate
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/src/coupled_friction_sturm.rs"
+      - "docs/research/COULOMB_INTERVAL_ROOT_FAMILY_2026-10-31.md"
+      - ".github/workflows/coupled-coulomb-interval-family.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  interval-root-family:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run exact interval family and Sturm tests
+        run: cargo test -p symtropy-physics --lib coupled_friction::sturm --locked
+      - name: Re-run production coupled contact tests
+        run: cargo test -p symtropy-physics --lib coupled_friction::tests --locked
