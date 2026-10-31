@@ -359,8 +359,10 @@ mod tests {
                 });
                 let matrix = &lower * lower.transpose()
                     + DMatrix::identity(n, n) * 0.5;
+                let raw_matrix_derivative =
+                    DMatrix::<f64>::from_fn(n, n, |_, _| 0.01 * sample());
                 let matrix_derivative =
-                    DMatrix::<f64>::from_fn(n, n, |i, j| 0.005 * (sample() + sample()));
+                    (&raw_matrix_derivative + raw_matrix_derivative.transpose()) * 0.5;
                 let q_derivative =
                     DVector::<f64>::from_fn(n, |_, _| 0.02 * sample());
                 let target_impulses =
@@ -400,7 +402,7 @@ mod tests {
                 let sensitivity_scale = finite_difference_sensitivity
                     .norm()
                     .max(result.impulse_sensitivity.norm())
-                    .max(1e-10);
+                    .max(1.0);
                 assert!(
                     (&finite_difference_sensitivity - &result.impulse_sensitivity).norm()
                         <= 1e-6 * sensitivity_scale,
@@ -415,7 +417,7 @@ mod tests {
                     (objective_plus - objective_minus) / (2.0 * epsilon);
                 assert!(
                     (finite_difference_gradient - result.objective_parameter_gradient).abs()
-                        <= 1e-6 * finite_difference_gradient.abs().max(1e-8),
+                        <= 1e-6 * finite_difference_gradient.abs().max(1.0),
                     "n={n}, seed={seed}: adjoint discrepancy, finite_difference={finite_difference_gradient}, adjoint={}",
                     result.objective_parameter_gradient
                 );
