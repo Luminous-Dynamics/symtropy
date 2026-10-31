@@ -21,6 +21,8 @@ pub mod ccd;
 pub mod constraint;
 pub mod contact;
 pub mod coupled_friction;
+#[cfg(test)]
+mod coupled_friction_sturm;
 pub mod contact_frame;
 pub mod delassus;
 pub mod diagnostics;
