@@ -43,7 +43,8 @@ pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use contact_adjoint::{
-    ContactAdjointError, ContactAdjointResult, differentiate_fixed_active_set_lcp,
+    ContactAdjointError, ContactAdjointResult, PlanarFrictionSensitivity,
+    differentiate_fixed_active_set_lcp, differentiate_planar_friction_mode,
 };
 pub use contact_frame::{
     ContactAngularCoordinates, ContactFrame, ContactFrameError, ContactWrenchFrictionLimits,
