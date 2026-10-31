@@ -302,9 +302,15 @@ impl EventContext {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DissonanceEventKind {
     /// A new explicit safeguard snapshot was recorded.
-    SafeguardsRecorded { safeguards: ProcessSafeguards },
+    SafeguardsRecorded {
+        /// Safeguards asserted for the state after this event.
+        safeguards: ProcessSafeguards,
+    },
     /// A hazard report was added without making an automatic finding about intent.
-    HazardReported { report: HazardReport },
+    HazardReported {
+        /// The new hazard report.
+        report: HazardReport,
+    },
     /// A hazard finding changed with a new supporting evidence receipt.
     HazardFindingChanged {
         /// Stable hazard report identifier.
@@ -317,7 +323,10 @@ pub enum DissonanceEventKind {
         evidence_ref: String,
     },
     /// A disposition was appended without erasing previous positions.
-    DispositionRecorded { disposition: DissonanceDisposition },
+    DispositionRecorded {
+        /// The newly recorded disposition.
+        disposition: DissonanceDisposition,
+    },
 }
 
 /// One append-only process event. Sequence and receipt links allow deterministic
@@ -703,7 +712,8 @@ impl DissonanceRecord {
 
     #[cfg(test)]
     fn set_safeguards(&mut self, safeguards: ProcessSafeguards) {
-        let context = self.test_context(self.event_history.last().map_or(1, |event| event.occurred_at + 1));
+        let next_time = self.event_history.last().map_or(1, |event| event.occurred_at + 1);
+        let context = self.test_context(next_time);
         self.record_safeguards(safeguards, context).unwrap();
     }
 
@@ -1245,7 +1255,9 @@ mod tests {
             "hazard-1", HazardFinding::Refuted, "review:refuted".to_owned(), ctx
         ).unwrap();
         let events: Vec<DissonanceEvent> = original.event_history().cloned().collect();
-        let replayed = DissonanceRecord::replay(DissonanceKind::StructuralParadox, genesis, &events).unwrap();
+        let replayed = DissonanceRecord::replay(
+            DissonanceKind::StructuralParadox, genesis, &events
+        ).unwrap();
         assert_eq!(replayed, original);
     }
 
