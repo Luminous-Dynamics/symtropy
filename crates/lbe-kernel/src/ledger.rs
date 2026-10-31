@@ -107,6 +107,8 @@ pub enum LedgerError {
     Overflow,
     /// Transfer would exceed the source account's credit limit.
     CreditLimitExceeded,
+    /// Redemption exceeds the member's positive balance.
+    InsufficientPositiveBalance,
     /// Transfer would attempt to forgive more debt than the member owes.
     ReliefExceedsDebt,
     /// A journal sequence number is exhausted.
@@ -446,6 +448,31 @@ mod tests {
         assert_eq!(ledger.balance(&bob), Ok(-40));
         assert_eq!(ledger.verify_conservation(), Ok(()));
         assert_eq!(ledger.entries().len(), 1);
+    }
+
+    #[test]
+    fn issuance_and_redemption_are_explicit_and_conserved() {
+        let (mut ledger, _, issuance, alice, _) = setup();
+        ledger.issue_to(&alice, 75).unwrap();
+        assert_eq!(ledger.balance(&alice), Ok(75));
+        assert_eq!(ledger.balance(&issuance), Ok(-75));
+        ledger.redeem_from(&alice, 25).unwrap();
+        assert_eq!(ledger.balance(&alice), Ok(50));
+        assert_eq!(ledger.balance(&issuance), Ok(-50));
+        assert_eq!(ledger.verify_conservation(), Ok(()));
+        assert_eq!(ledger.entries()[0].kind, JournalKind::Issuance);
+        assert_eq!(ledger.entries()[1].kind, JournalKind::Redemption);
+    }
+
+    #[test]
+    fn redemption_cannot_turn_an_empty_account_into_mutual_credit_debt() {
+        let (mut ledger, _, _, alice, _) = setup();
+        let before = ledger.clone();
+        assert_eq!(
+            ledger.redeem_from(&alice, 1),
+            Err(LedgerError::InsufficientPositiveBalance)
+        );
+        assert_eq!(ledger, before);
     }
 
     #[test]
