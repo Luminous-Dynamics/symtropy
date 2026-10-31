@@ -175,7 +175,7 @@ alone is not evidence of robustness or scientific progress.
   https://proceedings.mlr.press/v306/wen26i.html
 - Autonomous Science Bench 0.1: https://www.autonomous-science-bench.ai/
 - EmbodiedLab: https://arxiv.org/abs/2610.35385
-- SafeLab, ICML 2026: https://proceedings.mlr.press/v306/yu26c.html
+- SafeLab, ICML 2026: https://proceedings.mlr.press/v306/bai26e.html
 
 These works optimize different objectives and operate at different levels. The
 fair comparison is not “our score versus their paper score”; it is a matched
