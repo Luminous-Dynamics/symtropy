@@ -417,24 +417,28 @@ struct SignedRational {
 }
 
 impl SignedRational {
-    fn from_rational(value: Rational) -> Self {
+    fn from_parts(negative: bool, magnitude: Rational) -> Self {
         Self {
-            negative: false,
-            magnitude: value,
+            negative: negative && !magnitude.is_zero(),
+            magnitude,
         }
+    }
+
+    fn from_rational(value: Rational) -> Self {
+        Self::from_parts(false, value)
     }
 
     fn from_difference(left: Rational, right: Rational) -> Result<Self, String> {
         if left >= right {
-            Ok(Self {
-                negative: false,
-                magnitude: subtract_nonnegative(left, right)?,
-            })
+            Ok(Self::from_parts(
+                false,
+                subtract_nonnegative(left, right)?,
+            ))
         } else {
-            Ok(Self {
-                negative: true,
-                magnitude: subtract_nonnegative(right, left)?,
-            })
+            Ok(Self::from_parts(
+                true,
+                subtract_nonnegative(right, left)?,
+            ))
         }
     }
 
@@ -451,38 +455,38 @@ impl SignedRational {
 
     fn checked_add(self, other: Self) -> Result<Self, String> {
         if self.negative == other.negative {
-            Ok(Self {
-                negative: self.negative,
-                magnitude: self.magnitude.checked_add(other.magnitude)?,
-            })
+            Ok(Self::from_parts(
+                self.negative,
+                self.magnitude.checked_add(other.magnitude)?,
+            ))
         } else if self.magnitude >= other.magnitude {
-            Ok(Self {
-                negative: self.negative,
-                magnitude: subtract_nonnegative(self.magnitude, other.magnitude)?,
-            })
+            Ok(Self::from_parts(
+                self.negative,
+                subtract_nonnegative(self.magnitude, other.magnitude)?,
+            ))
         } else {
-            Ok(Self {
-                negative: other.negative,
-                magnitude: subtract_nonnegative(other.magnitude, self.magnitude)?,
-            })
+            Ok(Self::from_parts(
+                other.negative,
+                subtract_nonnegative(other.magnitude, self.magnitude)?,
+            ))
         }
     }
 
     fn checked_mul(self, other: Self) -> Result<Self, String> {
-        Ok(Self {
-            negative: self.negative ^ other.negative,
-            magnitude: self.magnitude.checked_mul(other.magnitude)?,
-        })
+        Ok(Self::from_parts(
+            self.negative ^ other.negative,
+            self.magnitude.checked_mul(other.magnitude)?,
+        ))
     }
 
     fn checked_div(self, other: Self) -> Result<Self, String> {
         if other.magnitude.is_zero() {
             return Err("signed rational division by zero".into());
         }
-        Ok(Self {
-            negative: self.negative ^ other.negative,
-            magnitude: self.magnitude.checked_div(other.magnitude)?,
-        })
+        Ok(Self::from_parts(
+            self.negative ^ other.negative,
+            self.magnitude.checked_div(other.magnitude)?,
+        ))
     }
 
     fn as_probability(self) -> Option<Rational> {
