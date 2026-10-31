@@ -130,8 +130,8 @@ jobs:
       - name: Benchmark Go strict preflight and JCS separately on actual typed IR
         env:
           GO111MODULE: "off"
-          GOPATH: ${{ runner.temp }}
-          JCS_BENCH_INPUT: ${{ github.workspace }}
+          GOPATH: ${{ runner.temp }}/jcs-gopath
+          JCS_BENCH_INPUT: ${{ github.workspace }}/target/engineering-scenario-compiler-portable-identity/scenario-ir-input.json
         run: |
           cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
           go test . -run '^$' \
