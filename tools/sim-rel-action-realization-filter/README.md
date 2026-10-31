@@ -63,3 +63,30 @@ SIM-REL-013/016 contracts through an explicit versioned adapter.
 The dedicated workflow pins Rust 1.96.0 and checks formatting, locked tests,
 strict Clippy, exact checkout identity and a clean tree. A passing hosted run is
 required before this source is described as qualified.
+
+## Downstream decision-value reference
+
+The `decision_value` module adds an exact one-step Bayes-risk evaluator over
+finite terminal decisions. Its loss table is indexed by
+`(decision, mechanism, next physical state)`; the current sensor and apparatus
+states affect the posterior, while their terminal consequences must be encoded
+in the declared physical-state context or extended by a later loss-table schema.
+Abstention has its own explicit loss. Every possible public outcome is replayed
+through the exact action-realization filter, and the command cost is charged once
+even on a hazard branch. The caller supplies an explicit hazard loss and receives
+the exact hazard probability separately.
+
+The counterexample uses prior probabilities `(0.80, 0.19, 0.01)`. The two
+ordinary mechanisms share the same optimal terminal decision; a rare critical
+mechanism requires a different decision and has a 1,000-unit false-release loss.
+The high-information detail probe separates the two ordinary mechanisms but
+does not reduce downstream Bayes risk: expected terminal loss remains 0.99.
+The lower-information critical-regime screen isolates the rare mechanism and
+reduces terminal Bayes risk to zero. Under the same 0.01 experiment cost, the
+exact total losses are 1.00 for the detail probe and 0.01 for the critical screen.
+
+For reference, the exact observation-channel entropies correspond to mutual
+information of approximately 0.702 bits for the detail probe and 0.081 bits for
+the critical screen. These entropy values are descriptive diagnostics; selection
+uses the exact rational downstream loss, not a floating-point entropy score.
+This is a constructed finite counterexample, not a measured benchmark victory.
