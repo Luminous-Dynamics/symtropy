@@ -25,3 +25,10 @@ The `selection` module converts method-run results into a deterministic task sho
 A task is ranked by the number of method pairs separated either by risk-budget compliance or by an exact regret gap above a declared rational threshold. Ties are broken deterministically by regret spread, number of risk-compliant methods, exact frontier size, family and task ID. Selection enforces a maximum task count and per-family cap, and reports tasks no method solved under its declared budgets rather than silently including them as successful challenges.
 
 This is a first deterministic selector, not a statistically complete adaptive-benchmark framework. Paired-seed confidence intervals, holdout sealing, task-family novelty and external baselines still need a separate evaluation protocol.
+
+
+## Paired-seed statistical comparisons
+
+`selection::compare_methods_paired` compares every method pair within each task family using the same task seeds for both methods. It reports mean left-minus-right exact-oracle regret, a deterministic 95% paired-bootstrap interval, risk-compliance rates, paired sample count, and whether the configured minimum sample count is met. If the sample count is below the predeclared minimum (30 by default), the comparison is marked underpowered even when the observed interval excludes zero.
+
+The bootstrap is deterministic from a recorded root seed and family/method pair. Regret inputs remain exact rationals; conversion to floating point occurs only for the statistical resampling summaries. These intervals are a first paired-task analysis, not a full study protocol: multiple-comparison control, task-family stratification beyond the per-family output, preregistered tuning budgets and independent external replications remain necessary.
