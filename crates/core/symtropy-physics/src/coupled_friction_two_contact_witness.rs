@@ -343,34 +343,52 @@ mod schur_reduction_tests {
 
             // Recheck contact 1's declared regime against the reconstructed full
             // 6x6 post-impulse velocity, not merely against the reduced system.
-            if p_1[0] < -impulse_tolerance
-                || u_1[0] < -velocity_tolerance
-                || (p_1[0] * u_1[0]).abs() > impulse_tolerance * velocity_tolerance
-            {
+            if p_1[0] < -impulse_tolerance {
                 continue;
             }
-            let contact_one_valid = match candidate.regime {
+            let normal_valid = if p_1[0] > impulse_tolerance {
+                u_1[0].abs() <= velocity_tolerance
+            } else {
+                u_1[0] >= -velocity_tolerance
+            };
+            if !normal_valid {
+                continue;
+            }
+
+            let tangent_velocity = u_1.fixed_rows::<2>(1);
+            let contact_one_tangent_residual = match candidate.regime {
                 CoupledCoulombRegime::Separating => {
-                    p_1.norm() <= impulse_tolerance
+                    if p_1.norm() > impulse_tolerance {
+                        continue;
+                    }
+                    0.0
                 }
                 CoupledCoulombRegime::Frictionless => {
-                    mu_1 == 0.0
-                        && p_1_tangent_norm <= impulse_tolerance
+                    if mu_1 != 0.0 || p_1_tangent_norm > impulse_tolerance {
+                        continue;
+                    }
+                    0.0
                 }
                 CoupledCoulombRegime::Sticking => {
-                    u_1.fixed_rows::<2>(1).norm() <= velocity_tolerance
-                        && mu_1 * p_1[0] - p_1_tangent_norm > -impulse_tolerance
+                    if p_1[0] <= impulse_tolerance
+                        || mu_1 * p_1[0] - p_1_tangent_norm <= impulse_tolerance
+                    {
+                        continue;
+                    }
+                    tangent_velocity.norm()
                 }
                 CoupledCoulombRegime::Sliding => {
-                    (p_1_tangent_norm - mu_1 * p_1[0]).abs() <= impulse_tolerance
-                        && candidate.disk_multiplier >= -tolerance
-                        && (u_1.fixed_rows::<2>(1)
-                            + candidate.disk_multiplier * p_1.fixed_rows::<2>(1))
-                            .norm()
-                            <= velocity_tolerance
+                    if (p_1_tangent_norm - mu_1 * p_1[0]).abs() > impulse_tolerance
+                        || candidate.disk_multiplier <= 0.0
+                    {
+                        continue;
+                    }
+                    (tangent_velocity
+                        + candidate.disk_multiplier * p_1.fixed_rows::<2>(1))
+                    .norm()
                 }
             };
-            if !contact_one_valid {
+            if contact_one_tangent_residual > velocity_tolerance {
                 continue;
             }
 
@@ -378,12 +396,20 @@ mod schur_reduction_tests {
             if kinetic_energy_delta > tolerance * (1.0 + q.norm() * impulse.norm()) * 100.0 {
                 continue;
             }
+            let normal_residual = if p_1[0] > impulse_tolerance {
+                u_1[0].abs()
+            } else {
+                (-u_1[0]).max(0.0)
+            };
             candidates.push(SchurCandidate {
                 impulse,
                 contact_one_regime: candidate.regime,
                 contact_one_tau: candidate.disk_multiplier,
                 kinetic_energy_delta,
-                max_velocity_residual: post_velocity.norm(),
+                max_velocity_residual: u_2
+                    .norm()
+                    .max(normal_residual)
+                    .max(contact_one_tangent_residual),
             });
         }
 
