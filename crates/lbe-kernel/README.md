@@ -94,6 +94,8 @@ Normative conflict cannot be marked as empirically resolved. Consequential actio
 
 The kernel does not authenticate actor IDs or verify cryptographic receipts. The host must bind the genesis position set and each canonical event to signed/content-addressed receipts, verify the authenticated principal, enforce authorization and preserve the append-only store. The sequence and receipt-link checks in this in-memory model are not, by themselves, tamper-proof storage.
 
+Experiments must account for every recorded position as either tested or explicitly retained. Hazard finding changes follow a defined transition graph and require a new evidence reference; reopening a refuted concern appends a new event rather than rewriting the earlier finding. `next_review_at()` and `review_due(now)` expose mandatory review deadlines without silently changing an issue's status.
+
 This remains a pure model. Safeguard booleans require external evidence, and the model is not an ethics review, truth oracle, facilitation tool, legal authorization mechanism or proof that consent is free of coercion. Strong anger, protest or minority dissent are not automatically corrosive.
 
 See [LBE-BENCH-003](https://github.com/Luminous-Dynamics/symtropy/issues/3110) and its [research specification](https://github.com/Luminous-Dynamics/symtropy/pull/3111).
