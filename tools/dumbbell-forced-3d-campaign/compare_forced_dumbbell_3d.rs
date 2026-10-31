@@ -473,6 +473,7 @@ fn audit_campaign(csv: &str) -> Result<(), String> {
             || metrics[4] > 1.0e-8
             || metrics[5] > 1.0e-8
             || metrics[6] > 1.0e-8
+            || metrics[7] > 1.0e-8
         {
             return Err(format!("energy, constraint or momentum residual outside envelope at line {line_number}"));
         }
