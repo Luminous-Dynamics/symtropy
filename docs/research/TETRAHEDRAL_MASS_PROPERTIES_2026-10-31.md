@@ -83,6 +83,16 @@ Source tests cover:
 
 The source has not been promoted until exact-head formatting, Clippy, compilation and tests pass.
 
+## Microbenchmark
+
+The cumulative Criterion target includes a piecewise-uniform tetrahedral integration benchmark:
+
+```sh
+cargo bench -p symtropy-physics --bench delassus_reference -- tetrahedral_mass_properties_piecewise_uniform
+```
+
+It measures 1, 8, 64 and 512 disjoint tetrahedra with fixed density, using cells separated along the x-axis. This isolates accumulation and centered-moment construction cost; it is not a complete CAD import or tetrahedralization benchmark. No timings are claimed until run on pinned hardware with source, compiler, CPU and configuration metadata.
+
 ## Scope limits and next work
 
 1. Integrate/import a validated tetrahedral mesh from a CAD or mesh pipeline, preserving cell connectivity and checking that tetrahedra are non-overlapping and consistently represent the intended solid.
