@@ -862,10 +862,7 @@ mod tests {
 
         let rotation =
             Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.47);
-        let rotated_vertices = vertices.map(|vertex| {
-            reference.center_of_mass
-                + rotation.rotate_vector(&(vertex - reference.center_of_mass))
-        });
+        let rotated_vertices = vertices.map(|vertex| rotation.rotate_vector(&vertex));
         let rotated =
             BivectorInertia::<3>::from_tetrahedra([(rotated_vertices, 6.0)], 1e-12).unwrap();
         let expected_second_moment = reference.inertia.rotated_by(&rotation);
