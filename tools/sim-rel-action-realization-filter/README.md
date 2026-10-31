@@ -160,14 +160,17 @@ elimination only where a world assigns exactly zero probability; no independent
 world-specific policies are admitted.
 
 A finite-support total-variation ambiguity selector is also provided. Given
-nominal categorical weights over the canonical sorted world IDs and a radius
-`epsilon in [0, 1]`, it computes the exact worst expected cost-plus-terminal
-loss over all reweightings within that TV ball. It transfers probability mass
-from the lowest-loss worlds to the highest-loss worlds, subject to exact
-rational arithmetic and explicit weight normalization. Radius zero recovers
-the nominal mixture objective; radius one recovers the maximum over supplied
-worlds. Hazard and abstention budgets remain worst-case across every supplied
-world, even when the loss objective uses a TV ambiguity set.
+nominal categorical weights $q$ over the canonical sorted world IDs and a
+radius $\\epsilon \\in [0, 1]$, it computes the exact worst expected
+cost-plus-terminal loss:
+`max p · L` subject to `p ∈ simplex` and
+`0.5 * sum_i |p_i - q_i| <= epsilon`.
+It transfers probability mass from the lowest-loss worlds to the highest-loss
+worlds, subject to exact rational arithmetic, simplex capacity and explicit
+weight normalization. Radius zero recovers the nominal mixture objective;
+radius one recovers the maximum over supplied worlds. Hazard and abstention
+budgets remain worst-case across every supplied world, even when the loss
+objective uses a TV ambiguity set.
 
 This is finite-support distributionally robust optimization over a declared
 world list, not a Wasserstein or continuous-model ambiguity set. It does not
