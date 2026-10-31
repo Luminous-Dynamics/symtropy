@@ -121,6 +121,10 @@ The fair objective is a Pareto frontier over verified error, physical-balance de
 
 ## Industry comparison and claim ceiling
 
+The broader numerical-method context is not speculative: Kinon, Morandin and Schulze (2026) develop discrete-gradient methods for nonlinear port-Hamiltonian DAEs and demonstrate multibody applications ([DOI: 10.1016/j.apnum.2025.12.006](https://doi.org/10.1016/j.apnum.2025.12.006)). This scalar quartic model is a preparatory qualification slice, not a reproduction of that paper's DAE method.
+
+Industry engines optimize different points on the stability/accuracy/throughput frontier. MuJoCo documents distinct Euler, implicitfast, implicit, discrete, and RK4 integration choices with workload-specific tradeoffs ([computation documentation](https://mujoco.readthedocs.io/en/latest/computation/index.html)). Rapier exposes timestep, CCD subdivision, constraint-solver iteration, stabilization, and contact-recycling controls that explicitly trade accuracy/stability against runtime ([integration parameters](https://rapier.rs/docs/user_guides/rust/integration_parameters/)). These are the comparison references for future matched workloads; they are not evidence that the present scalar prototype outperforms either engine.
+
 This one-degree-of-freedom research fixture is **not directly comparable** with MuJoCo, Rapier, PhysX, Bullet, Chrono, or OpenFOAM. Those systems solve different workloads and expose different integration/contact pipelines. The next fair comparison ladder should be:
 
 1. A common smooth nonlinear oscillator and driven/damped fixtures.
