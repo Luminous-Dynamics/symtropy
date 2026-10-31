@@ -50,6 +50,10 @@ fn norm(a: [f64; 2]) -> f64 {
     dot(a, a).sqrt()
 }
 
+fn cross(a: [f64; 2], b: [f64; 2]) -> f64 {
+    a[0] * b[1] - a[1] * b[0]
+}
+
 fn state_error(a: phdae::State, b: phdae::State) -> f64 {
     (norm(sub(a.q1, b.q1)).powi(2)
         + norm(sub(a.q2, b.q2)).powi(2)
@@ -69,6 +73,35 @@ fn exact_forced_state(time: f64) -> phdae::State {
         v1: add(free.v1, velocity_change),
         v2: add(free.v2, velocity_change),
     }
+}
+
+fn analytic_external_impulse() -> [f64; 2] {
+    scale(
+        ACCELERATION,
+        (MASS_1 + MASS_2) * HORIZON,
+    )
+}
+
+fn analytic_external_torque_impulse() -> f64 {
+    let initial = initial_state();
+    let total_mass = MASS_1 + MASS_2;
+    let center_position = scale(
+        add(
+            scale(initial.q1, MASS_1),
+            scale(initial.q2, MASS_2),
+        ),
+        1.0 / total_mass,
+    );
+    let center_velocity = scale(
+        add(
+            scale(initial.v1, MASS_1),
+            scale(initial.v2, MASS_2),
+        ),
+        1.0 / total_mass,
+    );
+    total_mass
+        * (cross(center_position, ACCELERATION) * HORIZON
+            + 0.5 * cross(center_velocity, ACCELERATION) * HORIZON * HORIZON)
 }
 
 fn analytic_external_work() -> f64 {
@@ -105,6 +138,8 @@ struct Metrics {
     max_relative_linear_momentum_residual: f64,
     max_relative_angular_momentum_residual: f64,
     cumulative_external_work: f64,
+    final_linear_momentum_delta: [f64; 2],
+    final_angular_momentum_delta: f64,
     mean_multiplier_iterations: f64,
     max_multiplier_iterations: usize,
 }
@@ -158,6 +193,11 @@ fn run_phdae(dt: f64, steps: usize, reference: phdae::State) -> Metrics {
         maximum_iterations = maximum_iterations.max(receipt.multiplier_iterations);
     }
 
+    let initial_linear_momentum = model.linear_momentum(initial);
+    let final_linear_momentum = model.linear_momentum(state);
+    let initial_angular_momentum = model.angular_momentum(initial);
+    let final_angular_momentum = model.angular_momentum(state);
+
     Metrics {
         method: "semi_explicit_phdae_dg",
         dt,
@@ -171,6 +211,8 @@ fn run_phdae(dt: f64, steps: usize, reference: phdae::State) -> Metrics {
         max_relative_linear_momentum_residual: max_linear,
         max_relative_angular_momentum_residual: max_angular,
         cumulative_external_work: cumulative_work,
+        final_linear_momentum_delta: sub(final_linear_momentum, initial_linear_momentum),
+        final_angular_momentum_delta: final_angular_momentum - initial_angular_momentum,
         mean_multiplier_iterations: total_iterations as f64 / steps as f64,
         max_multiplier_iterations: maximum_iterations,
     }
@@ -239,6 +281,16 @@ fn run_rattle(dt: f64, steps: usize, reference: phdae::State) -> Metrics {
         v1: state.v1,
         v2: state.v2,
     };
+    let initial_rattle = rattle::State {
+        q1: initial.q1,
+        q2: initial.q2,
+        v1: initial.v1,
+        v2: initial.v2,
+    };
+    let initial_linear_momentum = model.linear_momentum(initial_rattle);
+    let final_linear_momentum = model.linear_momentum(state);
+    let initial_angular_momentum = model.angular_momentum(initial_rattle);
+    let final_angular_momentum = model.angular_momentum(state);
     Metrics {
         method: "cartesian_rattle",
         dt,
@@ -252,6 +304,8 @@ fn run_rattle(dt: f64, steps: usize, reference: phdae::State) -> Metrics {
         max_relative_linear_momentum_residual: max_linear,
         max_relative_angular_momentum_residual: max_angular,
         cumulative_external_work: cumulative_work,
+        final_linear_momentum_delta: sub(final_linear_momentum, initial_linear_momentum),
+        final_angular_momentum_delta: final_angular_momentum - initial_angular_momentum,
         mean_multiplier_iterations: 0.0,
         max_multiplier_iterations: 0,
     }
@@ -262,7 +316,7 @@ fn campaign_csv() -> String {
     let mut output = String::new();
     writeln!(
         &mut output,
-        "method,dt,steps,final_state_error,max_relative_energy_balance_residual,final_relative_energy_work_defect,max_relative_link_constraint,max_relative_midpoint_velocity_constraint,max_absolute_endpoint_tangent_residual,max_relative_linear_momentum_residual,max_relative_angular_momentum_residual,cumulative_external_work,mean_multiplier_iterations,max_multiplier_iterations"
+        "method,dt,steps,final_state_error,max_relative_energy_balance_residual,final_relative_energy_work_defect,max_relative_link_constraint,max_relative_midpoint_velocity_constraint,max_absolute_endpoint_tangent_residual,max_relative_linear_momentum_residual,max_relative_angular_momentum_residual,cumulative_external_work,linear_momentum_delta_x,linear_momentum_delta_y,angular_momentum_delta,mean_multiplier_iterations,max_multiplier_iterations"
     )
     .expect("writing to String cannot fail");
 
@@ -274,7 +328,7 @@ fn campaign_csv() -> String {
         ] {
             writeln!(
                 &mut output,
-                "{},{:.8},{},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.6},{}",
+                "{},{:.8},{},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.6},{}",
                 result.method,
                 result.dt,
                 result.steps,
@@ -287,6 +341,9 @@ fn campaign_csv() -> String {
                 result.max_relative_linear_momentum_residual,
                 result.max_relative_angular_momentum_residual,
                 result.cumulative_external_work,
+                result.final_linear_momentum_delta[0],
+                result.final_linear_momentum_delta[1],
+                result.final_angular_momentum_delta,
                 result.mean_multiplier_iterations,
                 result.max_multiplier_iterations
             )
@@ -298,7 +355,7 @@ fn campaign_csv() -> String {
 
 fn audit_campaign(csv: &str) -> Result<(), String> {
     const METHODS: [&str; 2] = ["semi_explicit_phdae_dg", "cartesian_rattle"];
-    const HEADER: &str = "method,dt,steps,final_state_error,max_relative_energy_balance_residual,final_relative_energy_work_defect,max_relative_link_constraint,max_relative_midpoint_velocity_constraint,max_absolute_endpoint_tangent_residual,max_relative_linear_momentum_residual,max_relative_angular_momentum_residual,cumulative_external_work,mean_multiplier_iterations,max_multiplier_iterations";
+    const HEADER: &str = "method,dt,steps,final_state_error,max_relative_energy_balance_residual,final_relative_energy_work_defect,max_relative_link_constraint,max_relative_midpoint_velocity_constraint,max_absolute_endpoint_tangent_residual,max_relative_linear_momentum_residual,max_relative_angular_momentum_residual,cumulative_external_work,linear_momentum_delta_x,linear_momentum_delta_y,angular_momentum_delta,mean_multiplier_iterations,max_multiplier_iterations";
 
     let mut lines = csv.lines();
     if lines.next() != Some(HEADER) {
@@ -311,8 +368,8 @@ fn audit_campaign(csv: &str) -> Result<(), String> {
     for (row, line) in lines.enumerate() {
         let line_number = row + 2;
         let fields: Vec<&str> = line.split(',').collect();
-        if fields.len() != 14 {
-            return Err(format!("expected 14 fields at line {line_number}"));
+        if fields.len() != 17 {
+            return Err(format!("expected 17 fields at line {line_number}"));
         }
         let method = METHODS
             .iter()
@@ -355,10 +412,34 @@ fn audit_campaign(csv: &str) -> Result<(), String> {
             return Err(format!("signed external-work receipt mismatch at line {line_number}"));
         }
 
-        let mean_iterations: f64 = fields[12]
+        let actual_impulse_x: f64 = fields[12]
+            .parse()
+            .map_err(|_| format!("invalid x impulse at line {line_number}"))?;
+        let actual_impulse_y: f64 = fields[13]
+            .parse()
+            .map_err(|_| format!("invalid y impulse at line {line_number}"))?;
+        let actual_torque_impulse: f64 = fields[14]
+            .parse()
+            .map_err(|_| format!("invalid torque impulse at line {line_number}"))?;
+        let expected_impulse = analytic_external_impulse();
+        let expected_torque = analytic_external_torque_impulse();
+        if !actual_impulse_x.is_finite()
+            || !actual_impulse_y.is_finite()
+            || !actual_torque_impulse.is_finite()
+            || (actual_impulse_x - expected_impulse[0]).abs()
+                > 1.0e-10 * (1.0 + expected_impulse[0].abs())
+            || (actual_impulse_y - expected_impulse[1]).abs()
+                > 1.0e-10 * (1.0 + expected_impulse[1].abs())
+            || (actual_torque_impulse - expected_torque).abs()
+                > 1.0e-10 * (1.0 + expected_torque.abs())
+        {
+            return Err(format!("signed external impulse/torque mismatch at line {line_number}"));
+        }
+
+        let mean_iterations: f64 = fields[15]
             .parse()
             .map_err(|_| format!("invalid mean iterations at line {line_number}"))?;
-        let max_iterations: usize = fields[13]
+        let max_iterations: usize = fields[16]
             .parse()
             .map_err(|_| format!("invalid max iterations at line {line_number}"))?;
         if !mean_iterations.is_finite()
