@@ -14,7 +14,7 @@ pub const SCHEMA_VERSION: &str = "engineering-scenario-v0.1";
 pub const REGISTRY_REVISION: &str = "naca0012-inc-rans-profile-registry-v0.1";
 pub const CANONICALIZATION_PROFILE: &str = "engineering-scenario-ir-jcs-rfc8785-v1";
 const COMPILATION_SUBJECT_JCS_DOMAIN: &[u8] =
-    b"LUMINOUS-DYNAMICS\\0ENGINEERING-SCENARIO-COMPILATION-SUBJECT\\0JCS-RFC8785-V1\\0";
+    b"LUMINOUS-DYNAMICS\0ENGINEERING-SCENARIO-COMPILATION-SUBJECT\0JCS-RFC8785-V1\0";
 pub const MAX_SOURCE_BYTES: usize = 1_048_576;
 pub const MAX_INSTANCES: usize = 128;
 pub const MAX_UPSTREAM_CONFIG_BYTES: usize = 4 * 1024 * 1024;
@@ -724,6 +724,13 @@ mod tests {
         assert!(report.claim_ceiling.contains("no solver execution"));
         assert!(report.artifact_manifest_sha256.is_some());
         assert!(report.compilation_subject_sha256.is_some());
+        assert_eq!(
+            report.canonicalization_profile.as_deref(),
+            Some(CANONICALIZATION_PROFILE)
+        );
+        assert!(report.semantic_ir_jcs_sha256.as_ref().is_some_and(|digest| digest.len() == 64));
+        assert!(report.artifact_manifest_jcs_sha256.as_ref().is_some_and(|digest| digest.len() == 64));
+        assert!(report.compilation_subject_jcs_sha256.as_ref().is_some_and(|digest| digest.len() == 64));
     }
 
     #[test]
@@ -744,6 +751,12 @@ mod tests {
         let reformatted = compile_bytes(whitespace_variant.as_bytes());
         assert_ne!(baseline.source_sha256, reformatted.source_sha256);
         assert_eq!(baseline.semantic_ir_sha256, reformatted.semantic_ir_sha256);
+        assert_eq!(baseline.semantic_ir_jcs_sha256, reformatted.semantic_ir_jcs_sha256);
+        assert_ne!(
+            baseline.compilation_subject_jcs_sha256,
+            reformatted.compilation_subject_jcs_sha256,
+            "portable complete subject must retain exact source-byte provenance"
+        );
         assert_ne!(
             baseline.compilation_subject_sha256,
             reformatted.compilation_subject_sha256,
@@ -947,6 +960,103 @@ mod tests {
             observed_source_digests.insert(report.source_sha256);
         }
         assert_eq!(observed_source_digests.len(), 1_000);
+    }
+
+    #[test]
+    fn rust_jcs_matches_the_language_neutral_golden_vector() {
+        let value: serde_json::Value =
+            serde_json::from_slice(include_bytes!("../interop/golden/basic-input.json"))
+                .expect("golden input is valid JSON");
+        let canonical = serde_jcs::to_vec(&value).expect("JCS serialization succeeds");
+        let expected = include_bytes!("../interop/golden/basic-output.jcs");
+        assert_eq!(canonical, expected.trim_ascii_end());
+    }
+
+    #[test]
+    fn portable_subject_binds_profile_domain_and_compile_obligations() {
+        let report = compile_bytes(FIXTURE);
+        let source = report.source_sha256;
+        let semantic = report.semantic_ir_jcs_sha256.expect("portable semantic digest");
+        let artifact = report.artifact_manifest_jcs_sha256.expect("portable artifact digest");
+        let obligations = report.obligations;
+        let subject = PortableCompilationSubject {
+            domain: "luminous-dynamics.engineering-scenario-compilation-subject",
+            canonicalization_profile: CANONICALIZATION_PROFILE,
+            compiler_id: COMPILER_ID,
+            compiler_version: COMPILER_VERSION,
+            schema_version: SCHEMA_VERSION,
+            registry_revision: REGISTRY_REVISION,
+            parser_profile: TOML_PARSER_PROFILE,
+            source_sha256: &source,
+            semantic_ir_sha256: &semantic,
+            artifact_manifest_sha256: &artifact,
+            disposition: Disposition::Blocked,
+            obligations: &obligations,
+        };
+        let baseline = portable_compilation_subject_sha256(&subject).unwrap();
+
+        let changed_profile = PortableCompilationSubject {
+            canonicalization_profile: "future-profile",
+            ..subject
+        };
+        assert_ne!(
+            baseline,
+            portable_compilation_subject_sha256(&changed_profile).unwrap()
+        );
+
+        let changed_domain = PortableCompilationSubject {
+            domain: "different.domain",
+            ..subject
+        };
+        assert_ne!(
+            baseline,
+            portable_compilation_subject_sha256(&changed_domain).unwrap()
+        );
+
+        let mut changed_obligations = obligations.clone();
+        changed_obligations[0].detail.push_str(" changed");
+        let changed_obligation_subject = PortableCompilationSubject {
+            obligations: &changed_obligations,
+            ..subject
+        };
+        assert_ne!(
+            baseline,
+            portable_compilation_subject_sha256(&changed_obligation_subject).unwrap()
+        );
+    }
+
+    #[test]
+    fn portable_artifact_manifest_identity_is_order_independent() {
+        let original = std::str::from_utf8(FIXTURE).unwrap();
+        let config = b"canonical config";
+        let mesh = b"canonical mesh";
+        let config_oid = git_blob_oid(config);
+        let mesh_oid = git_blob_oid(mesh);
+        let source = replace_once(
+            &replace_once(
+                original,
+                "38d60d0ff09853a9fcf51559c8bd1e56a829ebe7",
+                &config_oid,
+            ),
+            "dc088bd5a6e9897e60b17da9c744e36b2c719187",
+            &mesh_oid,
+        );
+        let forward = compile_with_artifacts(
+            source.as_bytes(),
+            &[
+                SuppliedArtifact { role: ArtifactRole::SolverConfig, bytes: config },
+                SuppliedArtifact { role: ArtifactRole::Mesh, bytes: mesh },
+            ],
+        );
+        let reversed = compile_with_artifacts(
+            source.as_bytes(),
+            &[
+                SuppliedArtifact { role: ArtifactRole::Mesh, bytes: mesh },
+                SuppliedArtifact { role: ArtifactRole::SolverConfig, bytes: config },
+            ],
+        );
+        assert_eq!(forward.artifact_manifest_jcs_sha256, reversed.artifact_manifest_jcs_sha256);
+        assert_eq!(forward.compilation_subject_jcs_sha256, reversed.compilation_subject_jcs_sha256);
     }
 
     #[test]
