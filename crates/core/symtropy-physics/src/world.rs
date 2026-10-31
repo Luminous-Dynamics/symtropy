@@ -130,6 +130,7 @@ type MeshContactFn<const D: usize> = Arc<
 /// Phase in which a fallible physics-world step was rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PhysicsStepPhase {
+    WorldConfiguration,
     BodyIntegration,
     ContactWarmStart,
     ContactSolve,
@@ -607,6 +608,25 @@ impl<const D: usize> PhysicsWorld<D> {
         dt: f64,
         callback: &mut dyn PhysicsCallback<D>,
     ) -> Result<(), PhysicsStepError> {
+        if !dt.is_finite() || dt <= 0.0 {
+            return Err(PhysicsStepError {
+                phase: PhysicsStepPhase::WorldConfiguration,
+                body_a: None,
+                body_b: None,
+                cause: PhysicsStepCause::Integration(integrator::IntegrationError::InvalidTimeStep),
+                step_id: 0,
+            });
+        }
+        if !self.gravity.iter().all(|value| value.is_finite()) {
+            return Err(PhysicsStepError {
+                phase: PhysicsStepPhase::WorldConfiguration,
+                body_a: None,
+                body_b: None,
+                cause: PhysicsStepCause::Integration(integrator::IntegrationError::NonFiniteInput),
+                step_id: 0,
+            });
+        }
+
         // 0. Clear events from previous step
         self.collision_events.clear();
         self.sensor_events.clear();
