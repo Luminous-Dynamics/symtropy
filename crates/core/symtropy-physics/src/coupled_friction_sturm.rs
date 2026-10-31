@@ -565,6 +565,23 @@ fn sturm_handles_no_real_roots_and_degree_loss() {
 }
 
 #[test]
+fn exact_dyadic_contact_inputs_rederive_the_production_quartic() {
+    let w = Matrix3::new(
+        3.0, 0.4, -0.2,
+        0.4, 2.0, 0.5,
+        -0.2, 0.5, 1.5,
+    );
+    let q = SVector::new(-0.8, -2.5, 0.9);
+    let mu = 0.37;
+    let rounded = sliding_quartic(&w, &q, mu);
+    let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
+    assert_f64_coefficients_match_exact(&rounded, &exact);
+    let exact_intervals = sturm_isolate_rational(exact).unwrap();
+    let rounded_intervals = sturm_isolate_f64(&rounded).unwrap();
+    assert_eq!(exact_intervals.len(), rounded_intervals.len());
+}
+
+#[test]
 fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
     let mut checked = 0_usize;
     let mut inconclusive = 0_usize;
