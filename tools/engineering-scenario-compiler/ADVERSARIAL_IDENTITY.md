@@ -27,13 +27,13 @@ and within the nested geometry table. The independent Go verifier separately
 guards the JSON/JCS consumer boundary. These tests cover different
 representations; neither is a claim about unimplemented JSON ingress paths.
 
-Define one explicit boundary for invalid UTF-8 and escaped lone-surrogate behavior. Rejection must occur before canonical output or a hash is emitted.
+Define one explicit boundary for invalid UTF-8, escaped lone-surrogate behavior, Unicode noncharacters, input byte size, and JSON container nesting depth. The current strict ingress profile caps raw input at 1 MiB and nesting at 128 containers in both Rust and Go. The Go CLI must enforce the byte cap before allocating the full file and retain a post-read check for file-growth races. Rejection must occur before canonical output or a hash is emitted.
 
 ## 3. Frozen corpus classes
 
 Valid cases include RFC 8785 shared vectors, current checked-in vectors, reordered object properties, recursively nested objects in arrays, BMP and supplementary-plane property names, composed and decomposed Unicode strings as distinct content, escaped and literal spellings that decode to the same string, zero/negative zero, subnormal values, exponent boundaries, maximum finite binary64, bounded integer values and valid typed Scenario IR envelopes.
 
-Invalid or ambiguous cases include duplicate property names at top-level and nested levels, invalid UTF-8, lone-surrogate escape attempts, BMP and supplementary-plane Unicode noncharacters in both property names and values, NaN/infinities/exponent overflow, unsupported raw numeric values, unknown profile, duplicate artifact role, malformed digest, missing required envelope field and inconsistent source/semantic/artifact/subject digest associations.
+Invalid or ambiguous cases include duplicate property names at top-level and nested levels, invalid UTF-8, lone-surrogate escape attempts, BMP and supplementary-plane Unicode noncharacters in both property names and values, byte payloads over 1 MiB, nesting deeper than 128 containers, NaN/infinities/exponent overflow, unsupported raw numeric values, unknown profile, duplicate artifact role, malformed digest, missing required envelope field and inconsistent source/semantic/artifact/subject digest associations.
 
 The corpus manifest must classify each input as valid or expected-reject and name the rejection boundary. Parser errors and typed-schema errors are different outcomes.
 
