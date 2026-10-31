@@ -611,7 +611,7 @@ fn terminal_candidates(
     let mut candidates = Vec::with_capacity(table.decision_ids.len() + 1);
     // Abstention is inserted first, so an exact objective tie is deterministic.
     for decision in std::iter::once(None).chain((0..table.decision_ids.len()).map(Some)) {
-        let mut per_world = Vec::with_capacity(worlds.len());
+        let mut per_world = Vec::with_capacity(beliefs.len());
         for belief in beliefs {
             match belief {
                 Some(belief) => {
@@ -761,17 +761,6 @@ fn candidate_order(left: &Candidate, right: &Candidate) -> Ordering {
     left.per_world
         .cmp(&right.per_world)
         .then_with(|| left.plan.cmp(&right.plan))
-}
-
-fn worst_metric(
-    metrics: &[WorldObjectives],
-    select: impl Fn(&WorldObjectives) -> Rational,
-) -> Rational {
-    metrics
-        .iter()
-        .map(select)
-        .max()
-        .unwrap_or_else(Rational::zero)
 }
 
 fn prune_candidates(mut candidates: Vec<Candidate>) -> Result<Vec<Candidate>, String> {
@@ -1143,7 +1132,8 @@ fn independent_partial_frontier(
             if index == other_index {
                 return false;
             }
-            independent_same_objectives(&other.per_world, &candidate.per_world)
+            (other_index < index
+                && independent_same_objectives(&other.per_world, &candidate.per_world))
                 || independent_dominates(&other.per_world, &candidate.per_world)
         });
         if !dominated {
