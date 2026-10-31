@@ -683,12 +683,14 @@ fn compare_witness_severity(
                 return Ordering::Equal;
             };
             match left.outcome.class() {
-                CounterexampleClass::HazardBudgetViolated => {
-                    b.hazard_probability.cmp(&a.hazard_probability)
-                }
-                CounterexampleClass::AbstentionBudgetViolated => {
-                    b.abstention_probability.cmp(&a.abstention_probability)
-                }
+                CounterexampleClass::HazardBudgetViolated => b
+                    .hazard_probability
+                    .cmp(&a.hazard_probability)
+                    .then_with(|| b.expected_terminal_loss.cmp(&a.expected_terminal_loss)),
+                CounterexampleClass::AbstentionBudgetViolated => b
+                    .abstention_probability
+                    .cmp(&a.abstention_probability)
+                    .then_with(|| b.expected_terminal_loss.cmp(&a.expected_terminal_loss)),
                 CounterexampleClass::DecisionLossAmplified => {
                     b.expected_terminal_loss.cmp(&a.expected_terminal_loss)
                 }
@@ -696,11 +698,6 @@ fn compare_witness_severity(
                     Ordering::Equal
                 }
             }
-            .then_with(|| {
-                b.expected_total_loss()
-                    .unwrap_or_else(|_| Rational::zero())
-                    .cmp(&a.expected_total_loss().unwrap_or_else(|_| Rational::zero()))
-            })
         })
         .then_with(|| {
             left.spec
