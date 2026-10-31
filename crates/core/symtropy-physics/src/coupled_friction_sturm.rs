@@ -1521,6 +1521,14 @@ fn interval_coefficient_enclosures_contain_seeded_exact_dyadic_samples() {
                 "seed={seed}, coefficient={index}"
             );
         }
+        let exact_discriminant = exact_quartic_discriminant_via_resultant(&exact)
+            .unwrap_or_else(|error| panic!("seed={seed}: {error}"));
+        let discriminant_enclosure = quartic_discriminant_interval(&enclosure).unwrap();
+        assert!(
+            discriminant_enclosure.lower <= exact_discriminant
+                && exact_discriminant <= discriminant_enclosure.upper,
+            "seed={seed}: exact discriminant escaped interval enclosure"
+        );
     }
 }
 
