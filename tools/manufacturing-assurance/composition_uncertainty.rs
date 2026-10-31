@@ -161,8 +161,7 @@ fn independent_false_control() -> Covariance2 {
     }
 }
 
-fn fixture_values() -> Result<BTreeMap<String, f64>, String> {
-    let fixture = include_str!("fixtures/shared-latent-covariance.tsv");
+fn parse_fixture(fixture: &str) -> Result<BTreeMap<String, f64>, String> {
     let mut values = BTreeMap::new();
     for (index, line) in fixture.lines().enumerate() {
         let line = line.trim();
@@ -184,6 +183,10 @@ fn fixture_values() -> Result<BTreeMap<String, f64>, String> {
         }
     }
     Ok(values)
+}
+
+fn fixture_values() -> Result<BTreeMap<String, f64>, String> {
+    parse_fixture(include_str!("fixtures/shared-latent-covariance.tsv"))
 }
 
 fn required_fixture_value(values: &BTreeMap<String, f64>, key: &str) -> Result<f64, String> {
@@ -432,8 +435,8 @@ mod tests {
     #[test]
     fn fixture_rejects_duplicate_or_malformed_keys() {
         assert!(fixture_values().is_ok());
-        let mut values = BTreeMap::new();
-        assert!(values.insert("var_a_k2".to_string(), 5.0).is_none());
-        assert!(values.insert("var_a_k2".to_string(), 6.0).is_some());
+        assert!(parse_fixture("value|1.0\\nvalue|2.0").is_err());
+        assert!(parse_fixture("malformed-row").is_err());
+        assert!(parse_fixture("value|NaN").is_err());
     }
 }
