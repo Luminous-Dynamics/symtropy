@@ -3129,7 +3129,10 @@ mod transformed_halfspace_tests {
         assert_eq!(error.phase, PhysicsStepPhase::BodyIntegration);
         assert_eq!(error.body_a, Some(second_handle));
         assert_eq!(error.body_b, None);
-        assert_eq!(error.cause, RotationalInertiaError::SingularInertia);
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::RotationalInertia(RotationalInertiaError::SingularInertia)
+        );
         assert_eq!(world.bodies[0].transform.translation.0, first_position);
         assert_eq!(world.bodies[0].linear_velocity, first_velocity);
         assert_eq!(world.bodies[0].force_accumulator, first_force);
@@ -3189,7 +3192,9 @@ mod transformed_halfspace_tests {
         assert!(pending_effects.is_empty());
         assert_eq!(
             error,
-            crate::inertia::RotationalInertiaError::SingularInertia
+            PhysicsStepCause::RotationalInertia(
+                crate::inertia::RotationalInertiaError::SingularInertia
+            )
         );
         assert_eq!(world.bodies[0].linear_velocity, before_a);
         assert_eq!(world.bodies[1].linear_velocity, before_b);
