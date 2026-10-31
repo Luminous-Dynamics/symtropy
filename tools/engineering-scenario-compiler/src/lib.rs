@@ -1017,10 +1017,11 @@ mod tests {
 
     #[test]
     fn rust_jcs_matches_adversarial_unicode_and_binary64_boundaries() {
-        let value: serde_json::Value =
-            serde_json::from_slice(include_bytes!("../interop/golden/adversarial-input.json"))
-                .expect("adversarial golden input is valid JSON");
-        let canonical = serde_jcs::to_vec(&value).expect("JCS serialization succeeds");
+        let input = include_bytes!("../interop/golden/adversarial-input.json");
+        let value = strict_jcs_input::parse_strict_jcs_input(input)
+            .expect("adversarial raw JSON passes strict ingress");
+        let canonical = strict_jcs_input::canonicalize_strict_jcs_input(input)
+            .expect("adversarial raw JSON canonicalizes");
         let expected = include_bytes!("../interop/golden/adversarial-output.jcs");
         assert_eq!(canonical, expected);
         assert_ne!(
@@ -1028,6 +1029,11 @@ mod tests {
             value["strings"][1],
             "JCS preserves decomposed and composed Unicode as distinct strings"
         );
+        assert_ne!(
+            value["unicodeKeys"].as_object().unwrap().keys().next(),
+            None
+        );
+        assert_eq!(value["unicodeKeys"].as_object().unwrap().len(), 2);
     }
 
     #[test]
