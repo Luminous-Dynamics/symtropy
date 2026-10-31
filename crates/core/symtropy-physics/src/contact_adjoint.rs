@@ -11,7 +11,9 @@
 use nalgebra::{DMatrix, DVector, Matrix2, SVector};
 
 use crate::delassus::ReferenceLcpSolution;
-use crate::friction_cone::{PlanarContactMode, PlanarFrictionConeSolution};
+use crate::friction_cone::{
+    PlanarContactMode, PlanarFrictionConeSolution, solve_planar_friction_cone,
+};
 
 /// Failure to obtain a locally valid implicit contact derivative.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
