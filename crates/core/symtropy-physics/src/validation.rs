@@ -349,11 +349,9 @@ impl fmt::Display for TraceComparisonError {
                 f,
                 "trace sample times differ at step {step}: left={left}, right={right}"
             ),
-            Self::DuplicateBodyObservation { step, body_id } => write!(
-                f,
-                "duplicate body observation {} at step {step}",
-                body_id.0
-            ),
+            Self::DuplicateBodyObservation { step, body_id } => {
+                write!(f, "duplicate body observation {} at step {step}", body_id.0)
+            }
             Self::BodySetMismatch { step } => {
                 write!(f, "trace body identity sets differ at step {step}")
             }
@@ -832,7 +830,9 @@ mod tests {
     fn trace_comparison_rejects_duplicate_body_observations() {
         let left = one_sample_trace();
         let mut right = left.clone();
-        right.samples[0].bodies.push(right.samples[0].bodies[0].clone());
+        right.samples[0]
+            .bodies
+            .push(right.samples[0].bodies[0].clone());
         assert_eq!(
             compare_traces_3d(&left, &right),
             Err(TraceComparisonError::DuplicateBodyObservation {
