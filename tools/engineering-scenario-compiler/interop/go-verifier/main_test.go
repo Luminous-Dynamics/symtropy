@@ -35,7 +35,6 @@ func TestRFC8785GoldenVector(t *testing.T) {
 	}
 }
 
-
 func TestRFC8785AdversarialUnicodeAndBinary64Boundaries(t *testing.T) {
 	inputPath := filepath.Join("..", "golden", "adversarial-input.json")
 	expectedPath := filepath.Join("..", "golden", "adversarial-output.jcs")
