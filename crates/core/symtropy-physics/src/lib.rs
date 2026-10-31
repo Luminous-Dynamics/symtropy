@@ -41,6 +41,7 @@ pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
+pub use gjk::{GjkResult, GjkTermination, MAX_GJK_ITERATIONS};
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use periodic_lattice_broadphase::{
