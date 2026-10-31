@@ -168,7 +168,11 @@ fn apply_kernel_perturbation(
             command,
             outcome,
         } => {
-            find_outcome_mut(kernel, *state, *command, *outcome)?.readback = None;
+            let target = find_outcome_mut(kernel, *state, *command, *outcome)?;
+            if target.readback.is_none() {
+                return Err("readback suppression target is already missing".into());
+            }
+            target.readback = None;
         }
         KernelPerturbation::SwapMeasurementLabels {
             state,
@@ -192,6 +196,9 @@ fn apply_kernel_perturbation(
             if left.is_none() || right.is_none() {
                 return Err("measurement swap requires two safe measured outcomes".into());
             }
+            if left == right {
+                return Err("measurement swap would not change the model".into());
+            }
             row.outcomes[*left_outcome].measurement = right;
             row.outcomes[*right_outcome].measurement = left;
         }
@@ -204,8 +211,11 @@ fn apply_kernel_perturbation(
             if *realized_action >= kernel.realized_action_ids.len() {
                 return Err("realized-action remap target is out of range".into());
             }
-            find_outcome_mut(kernel, *state, *command, *outcome)?.realized_action =
-                *realized_action;
+            let target = find_outcome_mut(kernel, *state, *command, *outcome)?;
+            if target.realized_action == *realized_action {
+                return Err("realized-action remap would not change the model".into());
+            }
+            target.realized_action = *realized_action;
         }
         KernelPerturbation::PromoteSafeOutcomeToHazard {
             state,
@@ -228,9 +238,11 @@ fn apply_kernel_perturbation(
             if *apparatus_state >= kernel.apparatus_state_count {
                 return Err("apparatus transition target is out of range".into());
             }
-            find_outcome_mut(kernel, *state, *command, *outcome)?
-                .next_state
-                .apparatus_state = *apparatus_state;
+            let target = find_outcome_mut(kernel, *state, *command, *outcome)?;
+            if target.next_state.apparatus_state == *apparatus_state {
+                return Err("apparatus transition would not change the model".into());
+            }
+            target.next_state.apparatus_state = *apparatus_state;
         }
     }
     Ok(())
