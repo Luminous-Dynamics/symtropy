@@ -640,6 +640,54 @@ fn exact_dyadic_contact_inputs_rederive_the_production_quartic() {
 }
 
 #[test]
+fn exact_projective_theta_pi_root_is_counted_and_original_sliding_law_checked() {
+    let w = Matrix3::new(
+        2.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0,
+    );
+    let q = SVector::new(-1.0, -3.0, 0.0);
+    let mu = 0.2;
+    let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
+    assert!(exact.len() < 5, "theta=pi is the missing leading projective root");
+    let finite_roots = sturm_isolate_rational(exact.clone()).unwrap();
+    assert_eq!(finite_roots.len(), 1);
+    assert!(exact_projective_pi_candidate(&w, &q, mu).unwrap());
+    assert_eq!(finite_roots.len() + 1, 2);
+
+    let outcome =
+        super::super::solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-12).unwrap();
+    assert!(
+        outcome.sliding_angles.iter().any(|angle| {
+            (*angle - std::f64::consts::PI).abs() <= 1.0e-10
+        }),
+        "production path must explicitly retain the projective theta=pi candidate"
+    );
+    assert!(
+        outcome.candidates.iter().any(|candidate| {
+            candidate.sliding_angle.is_some_and(|angle| {
+                (angle - std::f64::consts::PI).abs() <= 1.0e-10
+            })
+        }),
+        "the exact projective direction must pass the unreduced impulse/KKT/energy checks"
+    );
+}
+
+#[test]
+fn exact_projective_theta_pi_direction_is_not_promoted_when_kkt_fails() {
+    let w = Matrix3::new(
+        2.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0,
+    );
+    let q = SVector::new(-1.0, 3.0, 0.0);
+    let mu = 0.2;
+    let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
+    assert!(exact.len() < 5);
+    assert!(!exact_projective_pi_candidate(&w, &q, mu).unwrap());
+}
+
+#[test]
 fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
     let mut checked = 0_usize;
     let mut inconclusive = 0_usize;
