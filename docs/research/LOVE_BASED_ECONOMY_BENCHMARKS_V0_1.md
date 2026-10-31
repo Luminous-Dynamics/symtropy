@@ -244,6 +244,25 @@ Add the following hard-gate properties:
 
 Report each breach individually; do not create a weighted "love score" or average away a severe failure.
 
+### 5.3.2 Constructive dissonance and paradox preservation
+
+LBE-Bench must not optimize for zero disagreement, maximum conflict, or forced consensus. It must distinguish empirical disagreement, normative conflict, resource trade-offs, temporal tensions, structural paradoxes and interpretive differences.
+
+The new [LBE-BENCH-003 specification](https://github.com/Luminous-Dynamics/symtropy/pull/3111) and [tracking issue #3110](https://github.com/Luminous-Dynamics/symtropy/issues/3110) define a disposition portfolio:
+- hold a tension open;
+- resolve an empirical claim through evidence;
+- integrate all materially distinct positions;
+- temporarily prioritize one position while retaining all others;
+- sequence demands with review and rollback triggers;
+- test a bounded experiment;
+- contextualize every position with explicit context rules.
+
+A normative disagreement cannot be marked as empirically resolved. Strong emotion or dissent is not automatically corrosive. The system records process safeguards and evidence states separately from corrosive-hazard reports. Reported or unresolved retaliation, coercion, essential-access conditioning, evidence suppression, misrepresentation, intimidation or surveillance blocks consequential action in the prototype model.
+
+The benchmark measures counter-position fidelity, minority-position retention, evidence responsiveness, premature-closure resistance, paradox integrity, safety/retaliation, distribution of facilitation labour, decision latency, reversibility and long-term regret. It deliberately defines no single "dissonance quality", "integrative complexity" or "paradox wisdom" score.
+
+The dependency-free Rust prototype is being developed in [kernel PR #3091](https://github.com/Luminous-Dynamics/symtropy/pull/3091), in `crates/lbe-kernel/src/dissonance.rs`. This is a model contract, not a verified real-world facilitation or truth-classification system.
+
 ### 5.4 Outcome metrics
 
 Never compress the results into a single love score, Phi score or moral ranking.
