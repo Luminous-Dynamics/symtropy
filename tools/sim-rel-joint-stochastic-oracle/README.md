@@ -60,7 +60,7 @@ The implementation is bounded and exact for the supplied finite model family, pr
 
 ## Reproducible baseline benchmark runner (SIM-REL-017)
 
-The benchmark module constructs four concrete baseline families from a nominal joint kernel: fixed action order, seeded random order, static one-step EIG ranking, and receding-horizon greedy one-step EIG. It then replays every unchanged policy across all supplied model worlds and reports exact per-world/worst-case cost, hazard, false identification, abstention and correct identification.
+The benchmark module constructs fixed action order, seeded random order, static one-step EIG ranking, and receding-horizon greedy one-step EIG. When the challenge provides an independent-reference action, it also runs that action as a positive-control policy. Every unchanged policy is replayed across all supplied model worlds and scored with exact per-world/worst-case cost, hazard, false identification, abstention and correct identification.
 
 The same explicit risk/false-claim/abstention budgets are applied to each baseline and to the exact robust shared-policy optimizer. Where a baseline is feasible and an exact robust optimum exists, the harness reports exact additional worst-case cost (regret). It records the random seed and horizon. The EIG score itself is floating point, while all replay outcomes and costs remain exact rational values.
 
@@ -74,7 +74,7 @@ The benchmark runner records the exact hazard, false-identification and abstenti
 
 ## Generated stateful-confounding challenge families (SIM-REL-017)
 
-The challenge module generates a six-world finite family from an explicit seed and declared rational observation-noise rate: nominal, sensor drift, physical carryover, instrument reversal, shifted hazard, and damaging calibration. Every member shares the same hypothesis/action/observation vocabulary, state dimensions, initial prior, and action costs. Each generated kernel is complete and probability-normalized exactly before it is returned. These deterministic seeds are development fixtures, not a substitute for sealed holdout seeds managed outside the public source tree.
+The challenge module generates a six-world finite family from a seed-selected tuple of rational observation-noise, shifted-hazard, and calibration-damage rates: nominal, sensor drift, physical carryover, instrument reversal, shifted hazard, and damaging calibration. Every member shares the same hypothesis/action/observation vocabulary, state dimensions, initial prior, and action costs. Each generated kernel is complete and probability-normalized exactly before it is returned. The first 30 study seeds map to 30 distinct finite model-family fingerprints. These deterministic variants form a development parameter grid, not a random sample of all physical systems or a substitute for sealed holdout seeds.
 
 
 ## Joint-state bootstrap particle filter (SIM-REL-018)
