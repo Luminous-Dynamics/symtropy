@@ -91,7 +91,7 @@ pub enum CounterexampleOutcome {
     },
     DecisionLossAmplified {
         metrics: WorldDecisionObjectives,
-        baseline_worst_case_total_loss: Rational,
+        baseline_worst_case_terminal_loss: Rational,
     },
     NoViolation {
         metrics: WorldDecisionObjectives,
@@ -142,6 +142,8 @@ pub struct CounterexampleSearchReport {
     pub baseline_worlds: Vec<DecisionModelWorld>,
     pub baseline_world_ids: Vec<String>,
     pub baseline_worst_case_total_loss: Rational,
+    pub baseline_worst_case_terminal_loss: Rational,
+    pub nominal_world_id: String,
     pub loss_table: DecisionLossTable,
     pub protocol: ObservationProtocol,
     pub command_costs: Vec<Rational>,
@@ -492,6 +494,13 @@ pub fn search_policy_counterexamples(
             .map(|world| world.world_id.clone())
             .collect(),
         baseline_worst_case_total_loss,
+        baseline_worst_case_terminal_loss: baseline
+            .per_world
+            .iter()
+            .map(|world| world.expected_terminal_loss)
+            .max()
+            .unwrap_or_else(Rational::zero),
+        nominal_world_id: nominal_world_id.to_string(),
         loss_table: table.clone(),
         protocol,
         command_costs: command_costs.to_vec(),
@@ -585,10 +594,13 @@ pub fn search_policy_counterexamples(
                         metrics,
                         allowed_abstention_probability: budgets.max_abstention_probability,
                     }
-                } else if metrics.expected_total_loss()? > baseline_worst_case_total_loss {
+                } else if metrics.expected_terminal_loss
+                    > report.baseline_worst_case_terminal_loss
+                {
                     CounterexampleOutcome::DecisionLossAmplified {
                         metrics,
-                        baseline_worst_case_total_loss,
+                        baseline_worst_case_terminal_loss: report
+                            .baseline_worst_case_terminal_loss,
                     }
                 } else {
                     CounterexampleOutcome::NoViolation { metrics }
