@@ -257,13 +257,40 @@ impl<const D: usize> RigidBody<D> {
     /// Merge a toolhead while preserving collider geometry and authoritative
     /// mass properties. A known component/body mass mismatch rejects the
     /// operation before any body or collider state is changed.
+    /// Merge a toolhead using an explicit uniform-ball approximation of radius 0.1.
+    ///
+    /// This compatibility convenience is only a mass-property approximation.
+    /// For arbitrary tool colliders, use try_merge_toolhead_with_inertia and
+    /// supply the tool's actual centered second-moment operator and mass.
     pub fn try_merge_toolhead(
         &mut self,
         local_transform: Transform<D>,
         tool_collider: Box<dyn Shape<D>>,
         tool_mass: f64,
     ) -> Result<(), crate::inertia::RotationalInertiaError> {
+        let tool_inertia = BivectorInertia::<D>::uniform_solid_ball(tool_mass, 0.1)?;
+        self.try_merge_toolhead_with_inertia(local_transform, tool_collider, tool_inertia)
+    }
+
+    /// Merge a toolhead from its own mass-aware centered rotational inertia.
+    ///
+    /// The tool total mass is taken from the inertia metadata; raw second
+    /// moments without known total mass are rejected. The operator must be
+    /// centered at the tool's own center of mass and expressed in the tool's
+    /// local frame. Geometry, COM, mass and inertia are changed only after all
+    /// mass-property validations and the parallel-axis combination succeed.
+    pub fn try_merge_toolhead_with_inertia(
+        &mut self,
+        local_transform: Transform<D>,
+        tool_collider: Box<dyn Shape<D>>,
+        tool_inertia: BivectorInertia<D>,
+    ) -> Result<(), crate::inertia::RotationalInertiaError> {
         use symtropy_math::CompoundShape;
+
+        let tool_mass = tool_inertia
+            .total_mass()
+            .ok_or(crate::inertia::RotationalInertiaError::UnknownTotalMass)?;
+        tool_inertia.validate_body_mass(tool_mass, 1e-10)?;
 
         let total_mass = self.mass + tool_mass;
         if !self.mass.is_finite()
@@ -290,7 +317,6 @@ impl<const D: usize> RigidBody<D> {
         // collider geometry while changing the physics model underneath it.
         let combined_rotational_inertia = if let Some(body_inertia) = &self.rotational_inertia {
             body_inertia.validate_body_mass(self.mass, 1e-10)?;
-            let tool_inertia = BivectorInertia::<D>::uniform_solid_ball(tool_mass, 0.1)?;
             let body_offset = -com_offset;
             let tool_offset = tool_local_translation - com_offset;
             Some(BivectorInertia::combine_at_common_center(
@@ -329,18 +355,24 @@ impl<const D: usize> RigidBody<D> {
         let mut shifted_tool_transform = local_transform;
         shifted_tool_transform.translation.0 -= com_offset;
         compound.add_child(shifted_tool_transform, tool_collider);
+
+        // The legacy D-vector stores only an isotropic compatibility value.
+        // Its mean-plane parallel-axis increment is 2*m*|d|^2/D, not m*|d|^2
+        // (the latter is only correct in D=2). When the exact combined operator
+        // exists, derive this compatibility value directly from its trace.
+        let i_total = if let Some(inertia) = &combined_rotational_inertia {
+            inertia.mean_plane_inertia()
+        } else {
+            let i_original = self.inertia.sum() / D as f64;
+            let i_tool = tool_inertia.mean_plane_inertia();
+            i_original
+                + i_tool
+                + (2.0 / D as f64)
+                    * (self.mass * com_offset.norm_squared()
+                        + tool_mass * (tool_local_translation - com_offset).norm_squared())
+        };
+
         self.collider = Box::new(compound);
-
-        // Keep legacy per-axis fields as a compatibility approximation. The
-        // second-moment operator is authoritative whenever both components
-        // supplied validated mass properties.
-        let i_original = self.inertia.sum() / D as f64;
-        let i_tool = (2.0 / (D as f64 + 2.0)) * tool_mass * 0.1 * 0.1;
-        let d_original = com_offset.norm();
-        let d_tool = (tool_local_translation - com_offset).norm();
-        let i_total = (i_original + self.mass * d_original * d_original)
-            + (i_tool + tool_mass * d_tool * d_tool);
-
         self.mass = total_mass;
         self.inv_mass = 1.0 / total_mass;
         self.inertia = SVector::from_element(i_total);
