@@ -1581,7 +1581,7 @@ mod tests {
         let stream=map_mtconnect(&mt,"urn:uuid:machine-001","STREAM-001",true,&fixture_observations(false)).unwrap();
         let qif=fixture_source(Standard::Qif);
         let mut result=fixture_qif_result(&qif);
-        result.measured_at_ns=1_750_002_000;
+        result.measured_at_reference_ns=1_750_002_000;
         let cycle=fixture_cycle(&stream);
         let association=fixture_association(&stream,&qif);
         let join=join_qif_to_cycle(&stream,&cycle,&qif,&result,&association,1_750_000_800,None);
