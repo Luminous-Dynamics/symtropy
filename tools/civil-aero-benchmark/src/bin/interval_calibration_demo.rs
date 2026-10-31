@@ -41,12 +41,7 @@ fn run() -> Result<(), String> {
                     let half_width = half_widths[level_index] * width_scale;
                     predictions.push(IntervalPrediction {
                         task_id: "synthetic-calibration-task".to_owned(),
-                        sample_id: format!(
-                            "{}-{}-{}",
-                            model_id,
-                            domain_status.as_str(),
-                            index
-                        ),
+                        sample_id: format!("{}-{}", domain_status.as_str(), index),
                         model_id: model_id.to_owned(),
                         geometry_family: "synthetic-OAT15A-family".to_owned(),
                         flow_regime: "synthetic-transonic".to_owned(),

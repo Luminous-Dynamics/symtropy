@@ -779,6 +779,17 @@ mod tests {
     }
 
     #[test]
+    fn rejects_nonincreasing_mesh_node_counts_even_when_spacing_decreases() {
+        let mut changed = study();
+        changed.runs[3].mesh_node_count = changed.runs[2].mesh_node_count;
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("a finer level must add nodes")
+                .contains("increasing mesh node counts")
+        );
+    }
+
+    #[test]
     fn rejects_bad_digest_and_invalid_criteria() {
         let mut changed = study();
         changed.runs[0].mesh_sha256 = "not-a-sha".to_owned();

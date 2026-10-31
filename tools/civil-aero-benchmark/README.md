@@ -291,3 +291,6 @@ The interval_calibration module audits blind-only prediction intervals by geomet
 ## Immutable SU2 comparison references
 
 `data/solver_reference_manifest.v0.1.json` pins SU2 8.0.1 as the historical participant-reproduction lane and SU2 8.6.0 as the current-release comparison lane. The exact source tag commits are checked by an independent stdlib Python validator in CI. These are source references only: neither solver has been built or run by this manifest, and neither pin is a validation result. Every actual run still needs an executable/build digest, compiler and dependency environment, hardware, geometry/mesh/configuration and output artifact hashes.
+
+
+The CFD admission gate now also rejects a nominally finer grid whose node count does not strictly exceed the previous coarser grid. This is only a necessary mesh-family consistency guard; the supplied characteristic spacing and mesh lineage still require independent justification.

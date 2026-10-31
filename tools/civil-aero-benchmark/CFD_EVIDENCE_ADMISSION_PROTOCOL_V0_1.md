@@ -50,3 +50,8 @@ The CLI and Rust tests use an exact synthetic power law over six explicitly supp
 ## Reproducible per-triplet export
 
 Each sliding three-grid CSV row now joins the GCI triplet back to its exact coarse, medium and fine run records. For all three grids the row includes run ID, grid ID and level, characteristic spacing, mesh SHA-256, scalar quantity value, final residual, residual reduction ratio, final-window monitor drift, and mass/energy balance defects. The row also includes common solver-build, physics-configuration and geometry digests, plus the declared admission thresholds. Missing joins are an error; they are not silently emitted as empty metadata. This is the intended handoff artifact for independent review and a future provenance receipt.
+
+
+## Mesh-family consistency guard
+
+In addition to strictly decreasing caller-supplied characteristic spacing and increasing grid levels, the admission layer requires strictly increasing mesh-node counts from coarse to fine. This is a necessary sanity check, not proof of systematic refinement: node count alone cannot establish a valid characteristic spacing or a similar mesh family. Each grid still requires a distinct exact mesh digest and a disclosed spacing derivation. A run with lower/equal node count at a nominally finer level is rejected.

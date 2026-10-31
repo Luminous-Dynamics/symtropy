@@ -473,12 +473,7 @@ mod tests {
                         let half_width = widths[level_index] * width_scale;
                         predictions.push(IntervalPrediction {
                             task_id: "synthetic-calibration-task".to_owned(),
-                            sample_id: format!(
-                                "{}-{}-{}",
-                                model_id,
-                                domain_status.as_str(),
-                                index
-                            ),
+                            sample_id: format!("{}-{}", domain_status.as_str(), index),
                             model_id: model_id.to_owned(),
                             geometry_family: "synthetic-OAT15A-family".to_owned(),
                             flow_regime: "synthetic-transonic".to_owned(),
@@ -595,7 +590,9 @@ mod tests {
     #[test]
     fn comparative_models_must_cover_the_same_blind_samples() {
         let mut predictions = synthetic_predictions();
-        predictions.retain(|row| row.sample_id != "robust_model-in_domain-0");
+        predictions.retain(|row| {
+            !(row.model_id == "robust_model" && row.sample_id == "in_domain-0")
+        });
         assert!(audit_blind_prediction_intervals(&predictions)
             .expect_err("omitted hard samples must be detected")
             .contains("different blind sample sets"));
@@ -606,7 +603,7 @@ mod tests {
         let mut predictions = synthetic_predictions();
         for row in predictions
             .iter_mut()
-            .filter(|row| row.sample_id == "robust_model-in_domain-0")
+            .filter(|row| row.model_id == "robust_model" && row.sample_id == "in_domain-0")
         {
             row.observed_value += 0.01;
         }
