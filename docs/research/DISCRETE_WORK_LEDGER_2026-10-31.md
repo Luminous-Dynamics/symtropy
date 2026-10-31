@@ -132,6 +132,35 @@ The following must remain visible in the residual until separately modeled:
 
 The current solver uses semi-implicit Euler and TGS Soft. A complete conservation certificate needs consistent accounting across all those updates, not just translational and contact impulses.
 
+## Benchmark instrumentation
+
+The existing Criterion target now includes two accepted-step paths:
+
+```sh
+cargo bench -p symtropy-physics --bench delassus_reference
+```
+
+- `step_without_receipt`: advances a one-body no-contact world using the ordinary step API.
+- `step_with_work_receipt`: advances an equivalent world and materializes the invariant/work receipt.
+
+The comparison estimates the accounting/receipt overhead on a minimal scene. It is not a general scene-throughput benchmark. Record compiler, target CPU, source SHA and Criterion output; do not infer overhead for large contact islands from this fixture alone.
+
+## Paradigm-shift follow-up: port-Hamiltonian research profile
+
+The ledger creates a path toward an energy-port model, but it does not yet implement one. A 2026 paper on discrete-gradient methods for port-Hamiltonian differential-algebraic equations develops a structure-preserving method and applies it to multibody dynamics (Kinon, Morandin and Schulze, *Applied Numerical Mathematics* 223, May 2026, DOI 10.1016/j.apnum.2025.12.006).
+
+The research hypothesis is to express external forces, actuators, joints, contact, damping and friction as explicit power ports and dissipative elements. Then add a separate research-grade integrator that enforces a discrete energy balance for its declared model, while keeping the current TGS/sequential impulse profile for bounded real-time work.
+
+The port-Hamiltonian prototype must not be promoted by energy conservation alone. It needs:
+- exact discrete energy/power balance on closed analytical fixtures;
+- non-negative dissipation and correct external-work accounting;
+- constraint satisfaction and complementarity checks at impacts;
+- convergence against an independent high-accuracy reference;
+- robust behavior under stiff contacts, high mass ratios and variable timesteps;
+- measured cost versus the realtime path at matched physical error.
+
+A useful architecture is a **portfolio of integrators with explicit contracts**: realtime TGS, coupled Delassus/Newton for selected islands, and a port-Hamiltonian/discrete-gradient research path for energy-sensitive systems. The selector may recommend a path, but each path must emit its own evidence and validity envelope.
+
 ## Regression contract
 
 The implementation adds analytical and metamorphic tests for:
