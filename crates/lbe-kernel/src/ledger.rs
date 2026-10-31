@@ -430,10 +430,8 @@ mod tests {
         let mut ledger = Ledger::new(treasury.clone(), issuance.clone()).unwrap();
         let alice = id("alice");
         let bob = id("bob");
-        let carol = id("carol");
         ledger.open_member_account(alice.clone(), 1_000).unwrap();
         ledger.open_member_account(bob.clone(), 1_000).unwrap();
-        ledger.open_member_account(carol.clone(), 1_000).unwrap();
         (ledger, treasury, issuance, alice, bob)
     }
 
@@ -499,6 +497,22 @@ mod tests {
         assert_eq!(split.balance(&split_treasury), Ok(1));
         assert_eq!(single.verify_conservation(), Ok(()));
         assert_eq!(split.verify_conservation(), Ok(()));
+    }
+
+    #[test]
+    fn pooled_levy_is_account_fragmentation_invariant_across_rates() {
+        for rate in (1..=128).map(|n| n * 7_777) {
+            let (mut single, single_treasury) = make_fragmentation_ledger(false);
+            let (mut split, split_treasury) = make_fragmentation_ledger(true);
+            for _ in 0..12 {
+                single.apply_demurrage(rate).unwrap();
+                split.apply_demurrage(rate).unwrap();
+                assert_eq!(single.balance(&single_treasury), split.balance(&split_treasury));
+                assert_eq!(single.total_balance(), split.total_balance());
+                single.verify_conservation().unwrap();
+                split.verify_conservation().unwrap();
+            }
+        }
     }
 
     #[test]
