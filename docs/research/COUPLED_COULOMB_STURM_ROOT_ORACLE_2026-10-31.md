@@ -42,13 +42,14 @@ Ordinary simple roots remain isolated by sign-changing monotone intervals. Repea
 ## Frozen tests
 
 - Exact binary64 decoding round-trips signed zero, 0.1, the smallest subnormal, the smallest normal, and the largest finite values.
+- Independent exact-dyadic expansion from W, q and mu reproduces the production coefficient array within the registered coefficient-error envelope.
 - Four distinct simple roots at known integer locations.
 - Repeated factors; Sturm count is the number of **distinct** real roots, not algebraic multiplicity.
 - A repeated root and a double root exactly at the initial rational bisection midpoint; exact Sturm resolves the distinct roots while production refuses to guess multiplicity.
 - A close pair of distinct dyadic roots; exact Sturm resolves four roots while production refuses the ambiguous stationary point.
 - No-real-root and degree-reduced polynomials.
 - Positive/negative binary-power scaling invariance.
-- A deterministic 128-case panel of SPD 3x3 contact matrices; each generated sliding quartic is checked by both algorithms. At least 120 cases must be resolved by the production method; unresolved cases are separately counted rather than treated as successes.
+- A deterministic 128-case panel of SPD 3x3 contact matrices; each exact-input quartic and rounded production quartic must have the same distinct-root count, and each resolved production root must match an exact isolating interval. At least 120 cases must be resolved by the production method; unresolved cases are separately counted rather than treated as successes.
 
 ## Promotion targets
 
