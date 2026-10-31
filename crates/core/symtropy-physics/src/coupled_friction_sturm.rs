@@ -48,13 +48,13 @@ fn exact_f64(value: f64) -> Result<Rational, &'static str> {
 }
 
 fn trim(poly: &mut Polynomial) {
-    while poly.last().is_some_and(Zero::is_zero) {
+    while poly.last().is_some_and(|coefficient| coefficient.is_zero()) {
         poly.pop();
     }
 }
 
 fn is_zero(poly: &[Rational]) -> bool {
-    poly.iter().all(Zero::is_zero)
+    poly.iter().all(|coefficient| coefficient.is_zero())
 }
 
 fn derivative(poly: &[Rational]) -> Polynomial {
@@ -70,7 +70,7 @@ fn derivative(poly: &[Rational]) -> Polynomial {
 
 fn evaluate(poly: &[Rational], x: &Rational) -> Rational {
     poly.iter().rev().fold(Rational::zero(), |value, coefficient| {
-        value * x + coefficient
+        value * x.clone() + coefficient.clone()
     })
 }
 
@@ -80,7 +80,7 @@ fn normalize_positive(poly: &mut Polynomial) {
         let scale = leading.abs();
         if !scale.is_zero() {
             for coefficient in poly.iter_mut() {
-                *coefficient /= &scale;
+                *coefficient = coefficient.clone() / scale.clone();
             }
         }
     }
@@ -98,7 +98,7 @@ fn remainder(dividend: &[Rational], divisor: &[Rational]) -> Result<Polynomial, 
             / divisor.last().ok_or("empty polynomial divisor")?.clone();
         for (index, coefficient) in divisor.iter().enumerate() {
             let slot = index + shift;
-            rest[slot] -= &factor * coefficient;
+            rest[slot] = rest[slot].clone() - factor.clone() * coefficient.clone();
         }
         trim(&mut rest);
     }
@@ -290,8 +290,8 @@ fn polynomial_from_roots(roots: &[Rational]) -> Polynomial {
     for root in roots {
         let mut next = vec![Rational::zero(); polynomial.len() + 1];
         for (power, coefficient) in polynomial.iter().enumerate() {
-            next[power] -= coefficient * root;
-            next[power + 1] += coefficient;
+            next[power] = next[power].clone() - coefficient.clone() * root.clone();
+            next[power + 1] = next[power + 1].clone() + coefficient.clone();
         }
         polynomial = next;
     }
