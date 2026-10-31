@@ -2840,6 +2840,78 @@ mod transformed_halfspace_tests {
     }
 
     #[test]
+    fn world_rejects_non_finite_force_and_preserves_invalid_input_for_recovery() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_velocity = SVector::new(0.25, -0.5, 0.75);
+        body.force_accumulator = SVector::new(f64::NAN, 1.0, 0.0);
+        let position_before = body.transform.translation.0;
+        let velocity_before = body.linear_velocity;
+
+        let error = world.try_step_with_receipt(0.01).unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::BodyIntegration);
+        assert_eq!(error.body_a, Some(handle));
+        assert_eq!(error.body_b, None);
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::Integration(integrator::IntegrationError::NonFiniteInput)
+        );
+
+        let body = world.body(handle).unwrap();
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, velocity_before);
+        assert!(body.force_accumulator[0].is_nan());
+        assert_eq!(body.force_accumulator[1], 1.0);
+    }
+
+    #[test]
+    fn world_rejects_invalid_dt_with_typed_failure_and_rolls_back() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_velocity = SVector::new(1.0, 2.0, 3.0);
+        body.apply_force(SVector::new(2.0, 0.0, 0.0));
+        let position_before = body.transform.translation.0;
+        let velocity_before = body.linear_velocity;
+        let force_before = body.force_accumulator;
+
+        let error = world.try_step(0.0).unwrap_err();
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::Integration(integrator::IntegrationError::InvalidTimeStep)
+        );
+        let body = world.body(handle).unwrap();
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, velocity_before);
+        assert_eq!(body.force_accumulator, force_before);
+    }
+
+    #[test]
+    fn world_rejects_overflowed_candidate_without_committing_partial_state() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = SVector::new(f64::MAX / 2.0, 0.0, 0.0);
+        body.apply_force(SVector::new(1.0, 0.0, 0.0));
+        let position_before = body.transform.translation.0;
+        let velocity_before = body.linear_velocity;
+        let force_before = body.force_accumulator;
+
+        let error = world.try_step(4.0).unwrap_err();
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::Integration(integrator::IntegrationError::NonFiniteState)
+        );
+        let body = world.body(handle).unwrap();
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, velocity_before);
+        assert_eq!(body.force_accumulator, force_before);
+    }
+
+    #[test]
     fn world_default_integration_policy_does_not_apply_hidden_speed_caps() {
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
