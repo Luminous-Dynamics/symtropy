@@ -49,7 +49,7 @@ The reference is frictionless, torque-free, planar, and uses constant gravity. I
 | Position and tangent constraints | 5,000 steps, h=0.002 | Both relative residuals remain below 1e-10 |
 | Energy behavior | Same 5,000-step campaign | Maximum relative energy deviation below 5e-4; exact conservation is not claimed |
 | Temporal accuracy | h=0.04, 0.02, 0.01, 0.005; one-second terminal time | State-error ratios in [3.6, 4.4] against the independent reduced-coordinate RK4 solution |
-| Metamorphic rotation | Rotate q, p and gravity by same planar rotation | Final state commutes with rotation within 2e-12 |
+| Zero-gravity circular control | 1,000 steps, h=0.001 | Angular momentum and kinetic energy remain within 1e-11 / 2e-12 absolute error |\n| Metamorphic rotation | Rotate q, p and gravity by same planar rotation | Final state commutes with rotation within 2e-12 |
 | Negative controls | Off-circle position, non-tangent momentum, invalid mass, zero timestep | Explicit rejection |
 
 An independent Python implementation of the equations yielded maximum position and tangent residuals near 4.5e-16, maximum relative energy deviation 6.9e-5 for the frozen 5,000-step case, and convergence ratios 4.007, 4.002, 4.000. These are equation-level checks, not Rust CI evidence.
