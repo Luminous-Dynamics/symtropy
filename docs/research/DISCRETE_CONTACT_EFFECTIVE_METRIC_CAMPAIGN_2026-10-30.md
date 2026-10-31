@@ -93,6 +93,33 @@ Measure 1, 32, 256 and 1,024 parallel environments where the backend supports th
 - 4D coupled bivector tests exercising all six independent rotation planes.
 - Higher D only after matrix dimensions, storage and algorithmic complexity are recorded. Do not present 4D correctness as evidence of scalable arbitrary-D performance.
 
+## 4.1 Dimensional similarity campaign
+
+Run the same dimensionless physical scenario after coherent changes of units, with all dimensional inputs transformed consistently. For length, mass and time scales \\(\\alpha,\\beta,\\gamma\\):
+
+\[
+\begin{aligned}
+x'&=\alpha x,& v'&=\alpha v/\gamma,& a'&=\alpha a/\gamma^2,\\
+m'&=\beta m,& F'&=\beta\alpha F/\gamma^2,&
+S'&=\beta\alpha^2 S,\\
+\tau'&=\beta\alpha^2\tau/\gamma^2,&
+\omega'&=\omega/\gamma,&
+E'&=\beta\alpha^2 E/\gamma^2.
+\end{aligned}
+\]
+
+The first free-flight integration fixture uses an asymmetric point-mass inertia distribution, gravity, external force and torque. Its target is normalized position/velocity/orientation/energy error <= 1e-8 over the committed scale set. It includes an extreme coherent length/time scaling that previously caused the absolute angular-rate gate to skip rotation.
+
+Follow-on scale families must cover:
+- sphere/half-space and box/half-space contact;
+- multi-point contact with asymmetric rotational inertia;
+- Coulomb, rolling and twist friction;
+- CCD and rotating thin-body impact;
+- compliant contacts, joints and motors;
+- sleeping/waking and broadphase margins.
+
+Normalize penetration by feature size, contact residual by characteristic velocity/impulse, and energy/work residual by characteristic energy. Every tolerance with physical dimensions must state its units and scale law. Do not infer full engine unit-invariance from the current free-flight test.
+
 ## 5. Promotion targets
 
 These are proposed gates, not achieved measurements:
