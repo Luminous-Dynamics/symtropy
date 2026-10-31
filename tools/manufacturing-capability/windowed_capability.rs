@@ -225,6 +225,17 @@ fn capability_indices(
 }
 
 impl Campaign {
+    fn upstream_evidence_status(&self) -> DiagnosticStatus {
+        if self.msa_qualified
+            && self.calibration_evidence_verified
+            && self.specification_evidence_verified
+            && self.uncertainty_evidence_verified {
+            DiagnosticStatus::NoShiftFlagDetected
+        } else {
+            DiagnosticStatus::InsufficientEvidence
+        }
+    }
+
     fn validate(&self) -> Result<(), String> {
         for (name, value) in [
             ("campaign_id", self.id.as_str()),
@@ -269,10 +280,7 @@ impl Campaign {
             || self.uncertainty_unit != self.unit {
             return Err("UNCERTAINTY_BUDGET_SCOPE_MISMATCH".into());
         }
-        if !self.msa_qualified
-            || !self.calibration_evidence_verified
-            || !self.specification_evidence_verified
-            || !self.uncertainty_evidence_verified {
+        if self.upstream_evidence_status() == DiagnosticStatus::InsufficientEvidence {
             return Err("UPSTREAM_EVIDENCE_INCOMPLETE".into());
         }
         if self.windows.len() < MIN_WINDOWS {
@@ -747,6 +755,7 @@ mod tests {
     fn invalid_evidence_or_scope_mismatch_never_returns_capability() {
         let mut campaign = fixtures()[0].clone();
         campaign.msa_qualified = false;
+        assert_eq!(campaign.upstream_evidence_status(), DiagnosticStatus::InsufficientEvidence);
         assert!(campaign.evaluate().is_err());
 
         let mut campaign = fixtures()[0].clone();
