@@ -10,6 +10,9 @@ use super::{
 };
 use std::collections::BTreeSet;
 
+const MAX_STUDY_SEEDS: usize = 10_000;
+const MAX_BOOTSTRAP_RESAMPLES: usize = 1_000_000;
+
 /// Configuration for a paired generated-family benchmark study.
 ///
 /// Use at least 30 seeds for comparative claims. The runner accepts 2+ for
@@ -101,14 +104,21 @@ pub fn run_paired_study(config: &PairedStudyConfig) -> Result<PairedStudyReport,
     if config.seeds.len() < 2 {
         return Err("paired study requires at least two seeds".into());
     }
+    if config.seeds.len() > MAX_STUDY_SEEDS {
+        return Err(format!("paired study seed count exceeds {MAX_STUDY_SEEDS}"));
+    }
     let mut unique_seeds = BTreeSet::new();
     for seed in &config.seeds {
         if !unique_seeds.insert(*seed) {
             return Err("paired study seeds must be unique".into());
         }
     }
-    if config.bootstrap_resamples == 0 {
-        return Err("bootstrap resample count must be positive".into());
+    if config.bootstrap_resamples == 0
+        || config.bootstrap_resamples > MAX_BOOTSTRAP_RESAMPLES
+    {
+        return Err(format!(
+            "bootstrap resample count must lie in 1..={MAX_BOOTSTRAP_RESAMPLES}"
+        ));
     }
     if !config.confidence_level.is_finite()
         || config.confidence_level <= 0.0
@@ -414,11 +424,26 @@ mod tests {
     }
 
     #[test]
+    fn default_seed_grid_produces_thirty_distinct_finite_model_families() {
+        let fingerprints: BTreeSet<String> = (0..30)
+            .map(|seed| {
+                let family = generate_stateful_confounding_family(seed).unwrap();
+                fingerprint_model_family(&family.worlds).unwrap()
+            })
+            .collect();
+        assert_eq!(fingerprints.len(), 30);
+    }
+
+    #[test]
     fn duplicate_seeds_invalid_bootstrap_and_too_few_seeds_fail_closed() {
         assert!(run_paired_study(&smoke_config(vec![1])).is_err());
         assert!(run_paired_study(&smoke_config(vec![1, 1])).is_err());
         assert!(run_paired_study(&PairedStudyConfig {
             bootstrap_resamples: 0,
+            ..smoke_config(vec![0, 1])
+        }).is_err());
+        assert!(run_paired_study(&PairedStudyConfig {
+            bootstrap_resamples: MAX_BOOTSTRAP_RESAMPLES + 1,
             ..smoke_config(vec![0, 1])
         }).is_err());
         assert!(run_paired_study(&PairedStudyConfig {
