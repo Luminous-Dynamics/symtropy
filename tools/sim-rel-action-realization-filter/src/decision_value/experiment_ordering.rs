@@ -691,6 +691,49 @@ mod tests {
     }
 
     #[test]
+    fn binary_blackwell_solver_recovers_a_non_symmetric_rational_garbling() {
+        let a = rational(2, 3);
+        let c = rational(1, 4);
+        let x = rational(1, 5);
+        let y = rational(4, 5);
+        let one_minus = |value: Rational| subtract_nonnegative(Rational::one(), value).unwrap();
+        let b0 = a.checked_mul(x).unwrap()
+            .checked_add(one_minus(a).checked_mul(y).unwrap())
+            .unwrap();
+        let b1 = c.checked_mul(x).unwrap()
+            .checked_add(one_minus(c).checked_mul(y).unwrap())
+            .unwrap();
+        let more = FiniteObservationChannel {
+            channel_id: "more-asymmetric".into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["z0".into(), "z1".into()],
+            probabilities: vec![
+                vec![a, one_minus(a)],
+                vec![c, one_minus(c)],
+            ],
+        };
+        let less = FiniteObservationChannel {
+            channel_id: "less-asymmetric".into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["y0".into(), "y1".into()],
+            probabilities: vec![
+                vec![b0, one_minus(b0)],
+                vec![b1, one_minus(b1)],
+            ],
+        };
+        let receipt = solve_binary_blackwell_garbling(&more, &less)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            receipt.witness.probabilities,
+            vec![
+                vec![x, one_minus(x)],
+                vec![y, one_minus(y)],
+            ]
+        );
+    }
+
+    #[test]
     fn binary_blackwell_solver_rejects_non_dominance_and_inconsistent_singular_case() {
         let noisy = noisy_channel("noisy");
         let perfect = perfect_channel("perfect");
