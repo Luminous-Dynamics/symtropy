@@ -73,6 +73,8 @@ func TestStrictJCSInputRejectsAmbiguousAndInvalidJSON(t *testing.T) {
 		{name: "unpaired high surrogate", input: []byte("{\"x\":\"\\uD800\"}")},
 		{name: "unpaired low surrogate", input: []byte("{\"x\":\"\\uDC00\"}")},
 		{name: "non-finite binary64 overflow", input: []byte("1e9999")},
+		{name: "unsafe positive integer literal", input: []byte("9007199254740992")},
+		{name: "unsafe negative integer literal", input: []byte("-9007199254740992")},
 		{name: "trailing JSON value", input: []byte("{} {}")},
 	}
 	for _, test := range tests {
@@ -85,7 +87,7 @@ func TestStrictJCSInputRejectsAmbiguousAndInvalidJSON(t *testing.T) {
 }
 
 func TestStrictJCSInputAcceptsValidSurrogatePairAndNestedValues(t *testing.T) {
-	input := []byte("{\"outer\":[{\"symbol\":\"\\uD834\\uDD1E\"},-0,1e30,true,null]}")
+	input := []byte("{\"outer\":[{\"symbol\":\"\\uD834\\uDD1E\"},-0,1e30,9007199254740991,true,null]}")
 	if err := validateStrictJCSInput(input); err != nil {
 		t.Fatalf("valid JCS input rejected: %v", err)
 	}
