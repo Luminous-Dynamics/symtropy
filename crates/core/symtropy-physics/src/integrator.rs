@@ -133,10 +133,10 @@ pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64,
 
 /// Transactional integration entry point.
 ///
-/// If a body carries an authoritative inertia operator and its rotational
-/// solve is singular or invalid, this returns the error before mutating the
-/// body's pose or velocities. The caller may decide whether to retry, reject
-/// the frame, or quarantine the body.
+/// Invalid timestep/parameters, non-finite input, singular mass properties,
+/// and non-finite candidate state are returned as typed errors. Candidate
+/// state is committed only after all components validate; on error the body's
+/// state and force/torque accumulators remain unchanged.
 pub fn try_integrate<const D: usize>(
     body: &mut RigidBody<D>,
     gravity: &SVector<f64, D>,
