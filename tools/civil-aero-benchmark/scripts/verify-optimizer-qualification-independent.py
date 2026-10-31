@@ -11,7 +11,7 @@ from pathlib import Path
 REFERENCE = (1.1, 1.1)
 CHECKPOINTS = (100, 250, 500, 1000)
 SEEDS = (101, 202, 303, 404, 505)
-TASKS = ("zdt1", "zdt2", "zdt3")
+TASKS = ("zdt1", "zdt2", "zdt3", "zdt4")
 POLICIES = ("uniform_random", "nsga2", "gde3")
 DIMENSIONS = 30
 ALGORITHM_CONFIG_IDS = {
@@ -29,10 +29,25 @@ def require(condition: bool, message: str) -> None:
 
 def objective(task: str, x: list[float]) -> tuple[float, float, float]:
     require(len(x) == DIMENSIONS, f"expected {DIMENSIONS} variables, got {len(x)}")
-    require(all(math.isfinite(v) and 0.0 <= v <= 1.0 for v in x),
-            "decision variable outside [0,1]")
+    require(
+        all(
+            math.isfinite(value)
+            and (
+                (-5.0 <= value <= 5.0 if task == "zdt4" and index > 0
+                 else 0.0 <= value <= 1.0)
+            )
+            for index, value in enumerate(x)
+        ),
+        "decision variable outside task-specific domain",
+    )
     f1 = x[0]
-    g = 1.0 + 9.0 * sum(x[1:]) / (len(x) - 1)
+    if task == "zdt4":
+        g = 1.0 + 10.0 * (len(x) - 1) + sum(
+            value**2 - 10.0 * math.cos(4.0 * math.pi * value)
+            for value in x[1:]
+        )
+    else:
+        g = 1.0 + 9.0 * sum(x[1:]) / (len(x) - 1)
     ratio = f1 / g
     if task == "zdt1":
         f2 = g * (1.0 - math.sqrt(ratio))
@@ -43,6 +58,8 @@ def objective(task: str, x: list[float]) -> tuple[float, float, float]:
             1.0 - math.sqrt(ratio)
             - ratio * math.sin(10.0 * math.pi * f1)
         )
+    elif task == "zdt4":
+        f2 = g * (1.0 - math.sqrt(ratio))
     else:
         raise ValueError(f"unknown task {task}")
     return f1, f2, g
@@ -96,7 +113,10 @@ def zdt3_y(x: float) -> float:
 
 def exact_hv(task: str) -> float:
     if task != "zdt3":
-        curve_integral = (REFERENCE[1] - 1.0) + (2.0 / 3.0 if task == "zdt1" else 1.0 / 3.0)
+        curve_integral = (
+            (REFERENCE[1] - 1.0)
+            + (2.0 / 3.0 if task in ("zdt1", "zdt4") else 1.0 / 3.0)
+        )
         return curve_integral + (REFERENCE[0] - 1.0) * REFERENCE[1]
 
     area = 0.0
@@ -110,7 +130,7 @@ def exact_hv(task: str) -> float:
 
 
 def pareto_y(task: str, x: float) -> float:
-    if task == "zdt1":
+    if task in ("zdt1", "zdt4"):
         return 1.0 - math.sqrt(x)
     if task == "zdt2":
         return 1.0 - x * x

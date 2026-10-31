@@ -23,6 +23,7 @@ pub enum AnalyticTask {
     Zdt1,
     Zdt2,
     Zdt3,
+    Zdt4,
 }
 
 impl AnalyticTask {
@@ -31,6 +32,7 @@ impl AnalyticTask {
             Self::Zdt1 => "zdt1",
             Self::Zdt2 => "zdt2",
             Self::Zdt3 => "zdt3",
+            Self::Zdt4 => "zdt4",
         }
     }
 
@@ -40,6 +42,8 @@ impl AnalyticTask {
             Self::Zdt1 => (reference_y - 1.0) + 2.0 / 3.0,
             Self::Zdt2 => (reference_y - 1.0) + 1.0 / 3.0,
             Self::Zdt3 => zdt3_exact_hypervolume(reference_x, reference_y),
+            Self::Zdt4 => (reference_y - 1.0) + 2.0 / 3.0
+                + (reference_x - 1.0) * reference_y,
         };
         curve_integral + (reference_x - 1.0) * reference_y
     }
@@ -49,6 +53,7 @@ impl AnalyticTask {
             Self::Zdt1 => 1.0 - x.sqrt(),
             Self::Zdt2 => 1.0 - x * x,
             Self::Zdt3 => 1.0 - x.sqrt() - x * (10.0 * std::f64::consts::PI * x).sin(),
+            Self::Zdt4 => 1.0 - x.sqrt(),
         }
     }
 }
@@ -147,7 +152,12 @@ pub fn evaluate_optimizer_qualification(
 ) -> Result<OptimizerQualificationReport, String> {
     validate_config(config)?;
 
-    let tasks = [AnalyticTask::Zdt1, AnalyticTask::Zdt2, AnalyticTask::Zdt3];
+    let tasks = [
+        AnalyticTask::Zdt1,
+        AnalyticTask::Zdt2,
+        AnalyticTask::Zdt3,
+        AnalyticTask::Zdt4,
+    ];
     let policies = ["uniform_random", "nsga2", "gde3"];
     let mut summaries = Vec::with_capacity(
         tasks.len() * policies.len() * config.seeds.len() * config.checkpoints.len(),
@@ -244,7 +254,7 @@ fn run_policy(
 
     if policy_id == "uniform_random" {
         while trace.len() < maximum_evaluations {
-            let x = random_vector(dimensions, &mut rng);
+            let x = random_vector(task, dimensions, &mut rng);
             trace.push(evaluate_trace(task, policy_id, seed, trace.len() + 1, x)?);
         }
         return Ok(trace);
@@ -253,7 +263,7 @@ fn run_policy(
     let initial_size = population_size.min(maximum_evaluations);
     let mut population = Vec::with_capacity(population_size);
     for _ in 0..initial_size {
-        let x = random_vector(dimensions, &mut rng);
+        let x = random_vector(task, dimensions, &mut rng);
         let candidate = evaluate_trace(task, policy_id, seed, trace.len() + 1, x)?;
         population.push(individual_from_trace(&candidate));
         trace.push(candidate);
@@ -263,21 +273,22 @@ fn run_policy(
         while trace.len() < maximum_evaluations {
             let batch_size = population_size.min(maximum_evaluations - trace.len());
             let mut competition = Vec::with_capacity(population_size + batch_size);
-            for target_index in 0..batch_size {
+            for (target_index, parent) in population.iter().take(batch_size).enumerate() {
                 let donors = distinct_donors(target_index, population.len(), &mut rng);
                 let forced_coordinate = rng.index(dimensions);
                 let mut trial_x = Vec::with_capacity(dimensions);
-                for coordinate in 0..dimensions {
+                for (coordinate, parent_value) in parent.x.iter().enumerate() {
                     let mutant = population[donors[0]].x[coordinate]
                         + DIFFERENTIAL_WEIGHT
                             * (population[donors[1]].x[coordinate]
                                 - population[donors[2]].x[coordinate]);
                     let use_mutant = coordinate == forced_coordinate
                         || rng.unit() < DIFFERENTIAL_CROSSOVER;
+                    let (lower, upper) = domain_bounds(task, coordinate);
                     trial_x.push(if use_mutant {
-                        mutant.clamp(0.0, 1.0)
+                        mutant.clamp(lower, upper)
                     } else {
-                        population[target_index].x[coordinate]
+                        *parent_value
                     });
                 }
                 let trial_trace = evaluate_trace(
@@ -317,7 +328,7 @@ fn run_policy(
         for _ in 0..batch_size {
             let first = tournament(&parent_scores, &mut rng);
             let second = tournament(&parent_scores, &mut rng);
-            let child_x = make_child(&population[first].x, &population[second].x, &mut rng);
+            let child_x = make_child(task, &population[first].x, &population[second].x, &mut rng);
             let candidate = evaluate_trace(task, policy_id, seed, trace.len() + 1, child_x)?;
             offspring.push(individual_from_trace(&candidate));
             trace.push(candidate);
@@ -351,8 +362,21 @@ fn distinct_donors(
     donors
 }
 
-fn random_vector(dimensions: usize, rng: &mut SplitMix64) -> Vec<f64> {
-    (0..dimensions).map(|_| rng.unit()).collect()
+fn domain_bounds(task: AnalyticTask, coordinate: usize) -> (f64, f64) {
+    if task == AnalyticTask::Zdt4 && coordinate > 0 {
+        (-5.0, 5.0)
+    } else {
+        (0.0, 1.0)
+    }
+}
+
+fn random_vector(task: AnalyticTask, dimensions: usize, rng: &mut SplitMix64) -> Vec<f64> {
+    (0..dimensions)
+        .map(|coordinate| {
+            let (lower, upper) = domain_bounds(task, coordinate);
+            lower + (upper - lower) * rng.unit()
+        })
+        .collect()
 }
 
 fn evaluate_trace(
@@ -382,17 +406,27 @@ pub fn evaluate_objectives(
     if decision_vector.len() < 2 {
         return Err("ZDT objective requires at least two decision variables".to_owned());
     }
-    if decision_vector
-        .iter()
-        .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
-    {
-        return Err("ZDT decision variables must be finite and in [0, 1]".to_owned());
+    if decision_vector.iter().enumerate().any(|(index, value)| {
+        let (lower, upper) = domain_bounds(task, index);
+        !value.is_finite() || *value < lower || *value > upper
+    }) {
+        return Err("ZDT decision variable is non-finite or outside its task-specific bounds".to_owned());
     }
 
     let objective_1 = decision_vector[0];
-    let mean_tail =
-        decision_vector[1..].iter().sum::<f64>() / (decision_vector.len() - 1) as f64;
-    let g_value = 1.0 + 9.0 * mean_tail;
+    let g_value = if task == AnalyticTask::Zdt4 {
+        let multimodal_tail = decision_vector[1..]
+            .iter()
+            .map(|value| {
+                value.powi(2) - 10.0 * (4.0 * std::f64::consts::PI * value).cos()
+            })
+            .sum::<f64>();
+        1.0 + 10.0 * (decision_vector.len() - 1) as f64 + multimodal_tail
+    } else {
+        let mean_tail =
+            decision_vector[1..].iter().sum::<f64>() / (decision_vector.len() - 1) as f64;
+        1.0 + 9.0 * mean_tail
+    };
     let ratio = objective_1 / g_value;
     let shape = match task {
         AnalyticTask::Zdt1 => 1.0 - ratio.sqrt(),
@@ -401,6 +435,7 @@ pub fn evaluate_objectives(
             1.0 - ratio.sqrt()
                 - ratio * (10.0 * std::f64::consts::PI * objective_1).sin()
         },
+        AnalyticTask::Zdt4 => 1.0 - ratio.sqrt(),
     };
     let objective_2 = g_value * shape;
     if !objective_1.is_finite() || !objective_2.is_finite() || !g_value.is_finite() {
@@ -550,19 +585,28 @@ fn compare_ranked(left: &RankedIndividual, right: &RankedIndividual) -> Ordering
     })
 }
 
-fn make_child(left: &[f64], right: &[f64], rng: &mut SplitMix64) -> Vec<f64> {
+fn make_child(
+    task: AnalyticTask,
+    left: &[f64],
+    right: &[f64],
+    rng: &mut SplitMix64,
+) -> Vec<f64> {
     let mut child = Vec::with_capacity(left.len());
     let mutation_probability = 1.0 / left.len() as f64;
-    for (left_value, right_value) in left.iter().zip(right) {
-        let mut value = if rng.unit() <= 0.5 {
-            sbx_child(*left_value, *right_value, rng)
+    for (coordinate, (left_value, right_value)) in left.iter().zip(right).enumerate() {
+        let (lower, upper) = domain_bounds(task, coordinate);
+        let range = upper - lower;
+        let left_normalized = (*left_value - lower) / range;
+        let right_normalized = (*right_value - lower) / range;
+        let mut normalized = if rng.unit() <= 0.5 {
+            sbx_child(left_normalized, right_normalized, rng)
         } else {
-            *left_value
+            left_normalized
         };
         if rng.unit() < mutation_probability {
-            value = polynomial_mutation(value, rng);
+            normalized = polynomial_mutation(normalized, rng);
         }
-        child.push(value.clamp(0.0, 1.0));
+        child.push(lower + range * normalized.clamp(0.0, 1.0));
     }
     child
 }
@@ -892,6 +936,10 @@ mod tests {
         assert!((zdt3.1 - 0.7423803458662553).abs() < 1.0e-12);
         assert_eq!(zdt3.2, 1.0);
         assert_eq!(pareto_reference_points(AnalyticTask::Zdt3).len(), 201);
+        let zdt4 = evaluate_objectives(AnalyticTask::Zdt4, &x).expect("ZDT4 point");
+        assert!((zdt4.1 - 0.4).abs() < 1.0e-12);
+        assert_eq!(zdt4.2, 1.0);
+        assert!(evaluate_objectives(AnalyticTask::Zdt4, &[0.36, 5.1]).is_err());
     }
 
     #[test]
@@ -913,14 +961,14 @@ mod tests {
         let first = evaluate_optimizer_qualification(&config()).expect("valid qualification");
         let second = evaluate_optimizer_qualification(&config()).expect("repeat qualification");
         assert_eq!(first, second);
-        assert_eq!(first.summaries.len(), 3 * 3 * 2 * 3);
-        assert_eq!(first.candidates.len(), 3 * 3 * 2 * 32);
+        assert_eq!(first.summaries.len(), 4 * 3 * 2 * 3);
+        assert_eq!(first.candidates.len(), 4 * 3 * 2 * 32);
         assert!(first.summaries.iter().all(|row| {
             row.actual_evaluations == row.evaluation_budget
                 && row.evidence_level.contains("not_aerodynamic")
                 && row.hypervolume_fraction_of_exact_front <= 1.0 + 1.0e-9
         }));
-        for task in ["zdt1", "zdt2", "zdt3"] {
+        for task in ["zdt1", "zdt2", "zdt3", "zdt4"] {
             for seed in [11, 29] {
                 for policy in ["uniform_random", "nsga2", "gde3"] {
                     let trace = first
@@ -933,10 +981,17 @@ mod tests {
                     assert_eq!(trace.len(), 32);
                     assert!(trace.iter().enumerate().all(|(index, row)| {
                         row.evaluation == index + 1
-                            && row
-                                .decision_vector
-                                .iter()
-                                .all(|value| (0.0..=1.0).contains(value))
+                            && row.decision_vector.iter().enumerate().all(|(coordinate, value)| {
+                                let task_kind = match task {
+                                    "zdt1" => AnalyticTask::Zdt1,
+                                    "zdt2" => AnalyticTask::Zdt2,
+                                    "zdt3" => AnalyticTask::Zdt3,
+                                    "zdt4" => AnalyticTask::Zdt4,
+                                    _ => unreachable!("task list is fixed"),
+                                };
+                                let (lower, upper) = domain_bounds(task_kind, coordinate);
+                                (lower..=upper).contains(value)
+                            })
                     }));
                 }
                 let random_initial = first

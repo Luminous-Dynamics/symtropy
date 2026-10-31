@@ -32,7 +32,7 @@ fn run() -> Result<(), String> {
     fs::write(&arguments[1], candidates_to_csv(&report))
         .map_err(|error| format!("cannot write {}: {error}", arguments[1]))?;
     eprintln!(
-        "synthetic_algorithm_qualification_only tasks=3 seeds=5 policies=3 checkpoints=4 summaries={} decision_dimensions={} population={} objective_evaluations={} candidate_trace_rows={} no_cfd_solves=true",
+        "synthetic_algorithm_qualification_only tasks=4 seeds=5 policies=3 checkpoints=4 summaries={} decision_dimensions={} population={} objective_evaluations={} candidate_trace_rows={} no_cfd_solves=true",
         report.summaries.len(),
         report.decision_dimensions,
         report.population_size,
