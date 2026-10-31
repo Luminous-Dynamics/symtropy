@@ -903,11 +903,13 @@ mod tests {
             .compilation_subject_sha256
             .as_deref()
             .expect("valid fixture has complete compilation subject");
+        let mut structural_encodings = BTreeSet::new();
         let mut source_digests = BTreeSet::new();
         let mut subject_digests = BTreeSet::new();
 
         for mutation in 0..1_000_u32 {
             let reordered = reorder_fixture_table_keys(original, mutation);
+            structural_encodings.insert(sha256(reordered.as_bytes()));
             let mut variant = format!("# structural metamorphic case {mutation}\r\n");
             variant.push_str(&reordered.replace('\n', "\r\n"));
             variant.push_str(&format!("# source provenance variant {mutation}\r\n"));
@@ -936,6 +938,11 @@ mod tests {
             subject_digests.insert(subject);
         }
 
+        assert_eq!(
+            structural_encodings.len(),
+            1_000,
+            "each mutation must produce a distinct key-order encoding even before comments"
+        );
         assert_eq!(source_digests.len(), 1_000, "each source byte sequence must be unique");
         assert_eq!(
             subject_digests.len(),
