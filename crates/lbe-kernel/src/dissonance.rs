@@ -466,6 +466,26 @@ impl DissonanceRecord {
         self.disposition_history.last()
     }
 
+    /// Return the next mandatory review time for the current disposition.
+    /// Empirical evidence resolutions have no automatic review date; hosts may
+    /// reopen them when new evidence or changed conditions warrant it.
+    pub fn next_review_at(&self) -> Option<u64> {
+        match self.disposition()? {
+            DissonanceDisposition::HoldOpen { review_at }
+            | DissonanceDisposition::Integrate { review_at, .. }
+            | DissonanceDisposition::PrioritizeProvisionally { review_at, .. }
+            | DissonanceDisposition::Sequence { review_at, .. }
+            | DissonanceDisposition::Experiment { review_at, .. }
+            | DissonanceDisposition::Contextualize { review_at, .. } => Some(*review_at),
+            DissonanceDisposition::EvidenceResolution { .. } => None,
+        }
+    }
+
+    /// Whether the current disposition has reached or passed its mandatory review time.
+    pub fn review_due(&self, now: u64) -> bool {
+        self.next_review_at().is_some_and(|review_at| now >= review_at)
+    }
+
     /// Iterate over every disposition in append-only decision history.
     pub fn disposition_history(&self) -> impl Iterator<Item = &DissonanceDisposition> {
         self.disposition_history.iter()
@@ -1261,6 +1281,74 @@ mod tests {
             DissonanceKind::StructuralParadox, genesis, &events
         ).unwrap();
         assert_eq!(replayed, original);
+    }
+
+
+    #[test]
+    fn mandatory_review_becomes_due_without_silently_closing_the_record() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        apply_disposition(
+            &mut record,
+            DissonanceDisposition::HoldOpen { review_at: 100 },
+            10,
+        ).unwrap();
+        assert_eq!(record.next_review_at(), Some(100));
+        assert!(!record.review_due(99));
+        assert!(record.review_due(100));
+        assert_eq!(record.status(), DissonanceStatus::HeldOpen);
+    }
+
+    #[test]
+    fn safeguard_regression_is_logged_and_blocks_later_consequential_action() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        record_safe(&mut record, 10, "initial-safeguards");
+        let context = event_context(&record, 11, "safeguard-regression");
+        record.record_safeguards(ProcessSafeguards::default(), context).unwrap();
+        assert_eq!(record.event_history().count(), 2);
+        assert_eq!(record.assess().missing_safeguards.len(), 6);
+        let decision = DissonanceDisposition::Integrate {
+            position_ids: vec![PositionId::new("p1").unwrap(), PositionId::new("p2").unwrap()],
+            rationale: "An integrated arrangement.".to_owned(),
+            review_at: 100,
+        };
+        let context = event_context(&record, 12, "blocked-after-regression");
+        assert_eq!(
+            record.set_disposition_with_context(decision, context),
+            Err(DissonanceError::UnsafeProcess)
+        );
+        assert_eq!(record.event_history().count(), 2);
+    }
+
+    #[test]
+    fn a_refuted_hazard_can_reopen_only_as_a_new_evidence_linked_event() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        let ctx = event_context(&record, 10, "hazard-report");
+        record.report_hazard_with_context(HazardReport {
+            id: "hazard-reopen".to_owned(),
+            hazard: CorrosiveHazard::Coercion,
+            finding: HazardFinding::Reported,
+            evidence_ref: Some("case:initial".to_owned()),
+        }, ctx).unwrap();
+        let ctx = event_context(&record, 11, "hazard-refuted");
+        record.update_hazard_finding_with_context(
+            "hazard-reopen", HazardFinding::Refuted, "review:refutation".to_owned(), ctx
+        ).unwrap();
+        let ctx = event_context(&record, 12, "hazard-reopened");
+        record.update_hazard_finding_with_context(
+            "hazard-reopen", HazardFinding::Corroborated, "evidence:new".to_owned(), ctx
+        ).unwrap();
+        let events: Vec<&DissonanceEvent> = record.event_history().collect();
+        assert_eq!(events.len(), 3);
+        assert!(matches!(
+            events[2].kind(),
+            DissonanceEventKind::HazardFindingChanged {
+                previous_finding: HazardFinding::Refuted,
+                finding: HazardFinding::Corroborated,
+                evidence_ref,
+                ..
+            } if evidence_ref == "evidence:new"
+        ));
+        assert!(record.assess().corrosive_hazards.contains(&CorrosiveHazard::Coercion));
     }
 
     #[test]
