@@ -1166,7 +1166,7 @@ mod tests {
         collection.profiles = (0..=MAX_OUTPUT_POINTS).map(|i| {
             PixelProfile {
                 pixel_id: format!("p{i}"), row: 0, column: i, x_um: i as f64 * 100.0,
-                y_um: 0.0, temperatures_c: vec![Some(1000.0); collection.times_s.len()],
+                y_um: 0.0, temperatures_c: Vec::new(),
                 source_profile_sha256: "a".repeat(64),
             }
         }).collect();
