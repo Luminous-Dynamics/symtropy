@@ -730,21 +730,35 @@ pub fn inverted_generational_distance(task: AnalyticTask, archive: &[(f64, f64)]
     total / IGD_REFERENCE_POINTS as f64
 }
 
-pub const OPTIMIZER_SUMMARY_HEADER: &str = "task_id,policy_id,seed,evaluation_budget,actual_evaluations,archive_size,hypervolume,exact_front_hypervolume,hypervolume_fraction_of_exact_front,inverted_generational_distance,mean_g_value,evidence_level";
+pub const OPTIMIZER_SUMMARY_HEADER: &str = "task_id,policy_id,algorithm_config_id,seed,decision_dimensions,population_size,maximum_evaluations,initial_population_basis,evaluation_budget,actual_evaluations,archive_size,hypervolume,exact_front_hypervolume,hypervolume_fraction_of_exact_front,inverted_generational_distance,mean_g_value,evidence_level";
 pub const OPTIMIZER_CANDIDATE_HEADER: &str = "task_id,policy_id,seed,evaluation,objective_1,objective_2,g_value,decision_vector_semicolon_separated";
 
 fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
+fn algorithm_config_id(policy_id: &str) -> &'static str {
+    match policy_id {
+        "uniform_random" => "uniform-random-sampling-v0.1",
+        "nsga2" => "nsga2-sbx15-pm20-pc0.5-v0.1",
+        "gde3" => "gde3-de-rand1-f0.5-cr0.9-v0.1",
+        _ => "unknown",
+    }
+}
+
 pub fn summary_to_csv(report: &OptimizerQualificationReport) -> String {
     let mut output = format!("{OPTIMIZER_SUMMARY_HEADER}\n");
     for row in &report.summaries {
         output.push_str(&format!(
-            "{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{}\n",
+            "{},{},{},{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{}\n",
             row.task_id,
             row.policy_id,
+            algorithm_config_id(&row.policy_id),
             row.seed,
+            report.decision_dimensions,
+            report.population_size,
+            report.maximum_evaluations,
+            "common_seeded_uniform_v0.1",
             row.evaluation_budget,
             row.actual_evaluations,
             row.archive_size,

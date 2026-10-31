@@ -353,3 +353,6 @@ The policy scorecard additionally reports raw and normalized validated hypervolu
 ## Executed analytic optimizer qualification
 
 The crate now executes uniform random search, an NSGA-II-style generational policy, and GDE3 (generalized differential evolution) on 30-dimensional ZDT1 and ZDT2, both with known continuous Pareto fronts. It reports hypervolume as a fraction of the exact front value and IGD at 100/250/500/1,000 objective calls over five seeds. Every decision vector is exported for independent objective replay and metric recomputation. This lane proves neither CFD performance nor aerospace optimizer SOTA; it tests actual algorithm execution where the ground truth is known.
+
+
+The optimizer scorecard records algorithm configuration IDs, decision dimensions, population size, evaluation cap, and the common-initialization rule in every summary row. Its independent oracle also verifies identical initial design vectors across policies before comparing search progress.

@@ -14,6 +14,12 @@ SEEDS = (101, 202, 303, 404, 505)
 TASKS = ("zdt1", "zdt2")
 POLICIES = ("uniform_random", "nsga2", "gde3")
 DIMENSIONS = 30
+ALGORITHM_CONFIG_IDS = {
+    "uniform_random": "uniform-random-sampling-v0.1",
+    "nsga2": "nsga2-sbx15-pm20-pc0.5-v0.1",
+    "gde3": "gde3-de-rand1-f0.5-cr0.9-v0.1",
+}
+INITIAL_POPULATION_BASIS = "common_seeded_uniform_v0.1"
 
 
 def require(condition: bool, message: str) -> None:
@@ -101,6 +107,7 @@ def load_candidates(path: Path) -> dict[tuple[str, str, int], list[dict]]:
                 math.isclose(float(row["g_value"]), g, rel_tol=1e-12, abs_tol=1e-14),
                 f"g mismatch {key} evaluation {row['evaluation']}",
             )
+            row["_vector"] = vector
             grouped[key].append(row)
     return grouped
 
@@ -123,6 +130,10 @@ def verify_summaries(path: Path, candidates: dict[tuple[str, str, int], list[dic
                 f"{key} has missing or duplicate evaluation identifiers",
             )
             require(checkpoint in CHECKPOINTS, f"unexpected checkpoint {checkpoint}")
+            require(row["algorithm_config_id"] == ALGORITHM_CONFIG_IDS[key[1]],
+                    f"algorithm config ID mismatch for {key}")
+            require(row["initial_population_basis"] == INITIAL_POPULATION_BASIS,
+                    f"common-initialization metadata missing for {key}")
             prefix = trace[:checkpoint]
             points = [(float(item["objective_1"]), float(item["objective_2"])) for item in prefix]
             archive = archive_points(points)
@@ -132,6 +143,9 @@ def verify_summaries(path: Path, candidates: dict[tuple[str, str, int], list[dic
             distance = igd(key[0], archive)
             mean_g = statistics.fmean(float(item["g_value"]) for item in prefix)
             targets = {
+                "decision_dimensions": float(DIMENSIONS),
+                "population_size": 40.0,
+                "maximum_evaluations": 1000.0,
                 "actual_evaluations": float(checkpoint),
                 "archive_size": float(len(archive)),
                 "hypervolume": hv,
@@ -170,6 +184,27 @@ def verify_summaries(path: Path, candidates: dict[tuple[str, str, int], list[dic
     return {key: statistics.median(values) for key, values in aggregate.items()}
 
 
+def verify_common_initial_designs(
+    candidates: dict[tuple[str, str, int], list[dict]]
+) -> None:
+    for task in TASKS:
+        for seed in SEEDS:
+            reference = None
+            for policy in POLICIES:
+                rows = sorted(
+                    candidates[(task, policy, seed)],
+                    key=lambda item: int(item["evaluation"]),
+                )
+                initial = tuple(tuple(row["_vector"]) for row in rows[:40])
+                if reference is None:
+                    reference = initial
+                else:
+                    require(
+                        initial == reference,
+                        f"common seeded initial population mismatch task={task} seed={seed} policy={policy}",
+                    )
+
+
 def main() -> int:
     if len(sys.argv) != 3:
         print(
@@ -182,6 +217,7 @@ def main() -> int:
         sum(len(group) for group in candidates.values()) == 30_000,
         "expected 30,000 evaluated decision vectors",
     )
+    verify_common_initial_designs(candidates)
     aggregate = verify_summaries(Path(sys.argv[1]), candidates)
     print(
         "independent_optimizer_qualification_oracle=pass "

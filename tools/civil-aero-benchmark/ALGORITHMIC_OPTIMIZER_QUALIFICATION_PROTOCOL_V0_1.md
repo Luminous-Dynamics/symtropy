@@ -52,3 +52,10 @@ The ZDT lane is only a deterministic algorithm smoke/qualification suite. ShapeB
 - Zitzler, Deb and Thiele, Comparison of Multiobjective Evolutionary Algorithms: Empirical Results, Evolutionary Computation, 2000, DOI: 10.1162/106365600568202.
 - ShapeBench 2026: https://arxiv.org/abs/2605.20763
 - AIAA DPW-8/AePW-4 test cases: https://www.aiaa-dpw.org/TestCases/testcases.html
+
+
+## Machine-readable algorithm configuration receipt
+
+Every summary row records a stable algorithm configuration ID, decision dimension, population size, maximum evaluation budget, and initial-population basis. The configuration IDs are uniform-random-sampling-v0.1, nsga2-sbx15-pm20-pc0.5-v0.1, and gde3-de-rand1-f0.5-cr0.9-v0.1. The NSGA-II-style settings are SBX distribution index 15, polynomial mutation distribution index 20, per-coordinate crossover probability 0.5, and mutation probability 1/dimension. GDE3 uses DE/rand/1 weight 0.5 and binomial crossover rate 0.9.
+
+All policies use the same SplitMix64 seed for a task/replicate, producing identical initial population vectors before algorithm-specific search. Subsequent random streams diverge as the operators consume random values. The independent oracle checks that the initial vectors match across all policies.
