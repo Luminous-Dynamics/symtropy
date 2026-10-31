@@ -1240,6 +1240,117 @@ mod tests {
         }
     }
 
+    fn stochastic_world(
+        id: &str,
+        h0_probability_zero: Rational,
+        h1_probability_zero: Rational,
+    ) -> DecisionModelWorld {
+        let mut rows = Vec::new();
+        for hypothesis in 0..2 {
+            let state = LatentState {
+                hypothesis,
+                physical_state: 0,
+                sensor_state: 0,
+                apparatus_state: 0,
+            };
+            let probability_zero = if hypothesis == 0 {
+                h0_probability_zero
+            } else {
+                h1_probability_zero
+            };
+            let probability_one = Rational::new(
+                probability_zero.denominator() - probability_zero.numerator(),
+                probability_zero.denominator(),
+            )
+            .unwrap();
+            rows.push(KernelRow {
+                state,
+                command: 0,
+                outcomes: vec![
+                    TransitionOutcome {
+                        probability: probability_zero,
+                        next_state: state,
+                        realized_action: 0,
+                        readback: Some(0),
+                        measurement: Some(0),
+                        hazard: false,
+                    },
+                    TransitionOutcome {
+                        probability: probability_one,
+                        next_state: state,
+                        realized_action: 0,
+                        readback: Some(0),
+                        measurement: Some(1),
+                        hazard: false,
+                    },
+                ],
+            });
+        }
+        DecisionModelWorld {
+            id: id.into(),
+            kernel: ActionRealizationKernel {
+                hypothesis_ids: vec!["h0".into(), "h1".into()],
+                physical_state_count: 1,
+                sensor_state_count: 1,
+                apparatus_state_count: 1,
+                command_ids: vec!["stochastic-read".into()],
+                realized_action_ids: vec!["executed".into()],
+                readback_ids: vec!["ack".into()],
+                measurement_ids: vec!["zero".into(), "one".into()],
+                initial_belief: vec![
+                    BeliefMass {
+                        state: LatentState {
+                            hypothesis: 0,
+                            physical_state: 0,
+                            sensor_state: 0,
+                            apparatus_state: 0,
+                        },
+                        mass: half(),
+                    },
+                    BeliefMass {
+                        state: LatentState {
+                            hypothesis: 1,
+                            physical_state: 0,
+                            sensor_state: 0,
+                            apparatus_state: 0,
+                        },
+                        mass: half(),
+                    },
+                ],
+                rows,
+            },
+        }
+    }
+
+    fn hazard_shift_world() -> DecisionModelWorld {
+        let mut world = make_inverted_instrument_world("world-hazard-shift", false, 0);
+        for row in &mut world.kernel.rows {
+            if row.command == 1 {
+                let state = row.state;
+                let measurement = row.outcomes[0].measurement;
+                row.outcomes = vec![
+                    TransitionOutcome {
+                        probability: Rational::new(9, 10).unwrap(),
+                        next_state: state,
+                        realized_action: 0,
+                        readback: Some(0),
+                        measurement,
+                        hazard: false,
+                    },
+                    TransitionOutcome {
+                        probability: Rational::new(1, 10).unwrap(),
+                        next_state: state,
+                        realized_action: 0,
+                        readback: Some(0),
+                        measurement: None,
+                        hazard: true,
+                    },
+                ];
+            }
+        }
+        world
+    }
+
     fn loss_table() -> DecisionLossTable {
         DecisionLossTable {
             decision_ids: vec!["claim-h0".into(), "claim-h1".into()],
@@ -1551,6 +1662,142 @@ mod tests {
         .unwrap();
         assert_eq!(a.world_ids, b.world_ids);
         assert_eq!(frontier_objectives(&a.frontier), frontier_objectives(&b.frontier));
+    }
+
+    #[test]
+    fn different_world_observation_probabilities_are_preserved_exactly() {
+        let worlds = vec![
+            stochastic_world(
+                "world-a",
+                Rational::new(3, 4).unwrap(),
+                Rational::new(1, 4).unwrap(),
+            ),
+            stochastic_world(
+                "world-b",
+                Rational::new(19, 20).unwrap(),
+                Rational::new(2, 5).unwrap(),
+            ),
+        ];
+        let observation = PublicObservation {
+            hazard: false,
+            readback: ObservationField::Value(0),
+            measurement: ObservationField::Value(0),
+        };
+        let probability_a = crate::filter_one_step(
+            &worlds[0].kernel,
+            &worlds[0].kernel.initial_belief,
+            0,
+            observation,
+        )
+        .unwrap()
+        .observation_likelihood;
+        let probability_b = crate::filter_one_step(
+            &worlds[1].kernel,
+            &worlds[1].kernel.initial_belief,
+            0,
+            observation,
+        )
+        .unwrap()
+        .observation_likelihood;
+        assert_ne!(probability_a, probability_b);
+
+        let table = loss_table();
+        let protocol = ObservationProtocol::fully_observed();
+        let costs = vec![Rational::new(1, 10).unwrap()];
+        let optimized = optimize_shared_policy_decisions(
+            &worlds,
+            "world-a",
+            &table,
+            protocol,
+            &costs,
+            Rational::one(),
+            &config(1),
+        )
+        .unwrap();
+        let initial: BeliefVector = worlds
+            .iter()
+            .map(|world| Some(world.kernel.initial_belief.clone()))
+            .collect();
+        let mut generated = 0;
+        let exhaustive = exhaustive_frontier(
+            &worlds,
+            &table,
+            protocol,
+            &costs,
+            Rational::one(),
+            &initial,
+            1,
+            100_000,
+            &mut generated,
+        )
+        .unwrap();
+        let oracle = frontier_points_from_candidates(
+            exhaustive,
+            &vec!["world-a".to_string(), "world-b".to_string()],
+        );
+        assert_eq!(
+            frontier_objectives(&optimized.frontier),
+            frontier_objectives(&oracle)
+        );
+    }
+
+    #[test]
+    fn zero_worst_case_hazard_budget_rejects_a_nominally_safe_shifted_command() {
+        let worlds = vec![
+            make_inverted_instrument_world("world-nominal", false, 0),
+            hazard_shift_world(),
+        ];
+        let result = optimize_shared_policy_decisions(
+            &worlds,
+            "world-nominal",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &costs(),
+            Rational::one(),
+            &config(1),
+        )
+        .unwrap();
+        let selected = result
+            .minimum_worst_case_total_loss_under(DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::one(),
+            })
+            .unwrap()
+            .unwrap();
+        assert_eq!(selected.worst_case_hazard_probability(), Rational::zero());
+        assert!(!matches!(
+            selected.plan,
+            DecisionPlan::Experiment { command: 1, .. }
+        ));
+    }
+
+    #[test]
+    fn abstention_is_a_shared_terminal_action_and_can_be_robustly_optimal() {
+        let worlds = worlds();
+        let mut table = loss_table();
+        table.abstention_loss = Rational::zero();
+        let result = optimize_shared_policy_decisions(
+            &worlds,
+            "world-a",
+            &table,
+            ObservationProtocol::fully_observed(),
+            &costs(),
+            Rational::one(),
+            &config(0),
+        )
+        .unwrap();
+        let selected = result
+            .minimum_worst_case_total_loss_under(DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::one(),
+            })
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            selected.plan,
+            DecisionPlan::TerminalDecision { decision: None }
+        );
+        assert_eq!(selected.worst_case_abstention_probability(), Rational::one());
     }
 
     #[test]
