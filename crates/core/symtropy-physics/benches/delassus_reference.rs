@@ -7,7 +7,7 @@ use nalgebra::{DVector, Matrix2, SVector};
 use symtropy_math::{Bivector, Point, Rotor};
 use symtropy_physics::{
     BivectorInertia, BodyHandle, ContactFrame, ContactWrenchFrictionLimits,
-    ContactWrenchImpulse, ContactWrenchRow, FrictionlessContactRow, RigidBody,
+    ContactWrenchImpulse, ContactWrenchRow, FrictionlessContactRow, PhysicsWorld, RigidBody,
     assemble_contact_wrench_delassus, assemble_contact_wrench_free_velocity,
     assemble_delassus, solve_frictionless_lcp, solve_planar_friction_cone,
 };
@@ -279,6 +279,31 @@ fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
     });
 }
 
+fn work_ledger_receipt_overhead(c: &mut Criterion) {
+    let mut step_world = PhysicsWorld::<3>::new(SVector::zeros());
+    step_world.add_sphere(Point::origin(), 0.1, 1.0);
+    let mut receipt_world = PhysicsWorld::<3>::new(SVector::zeros());
+    receipt_world.add_sphere(Point::origin(), 0.1, 1.0);
+
+    let mut group = c.benchmark_group("accepted_step_work_ledger_overhead");
+    group.bench_function("step_without_receipt", |bench| {
+        bench.iter(|| {
+            step_world.step(black_box(0.001));
+            black_box(step_world.total_kinetic_energy())
+        });
+    });
+    group.bench_function("step_with_work_receipt", |bench| {
+        bench.iter(|| {
+            black_box(
+                receipt_world
+                    .try_step_with_receipt(black_box(0.001))
+                    .expect("valid ledger benchmark step"),
+            )
+        });
+    });
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_delassus_assembly,
@@ -287,5 +312,6 @@ criterion_group!(
     bench_reference_lcp,
     bench_planar_friction_cone,
     bench_nd_contact_frame_and_wrench,
+    work_ledger_receipt_overhead,
 );
 criterion_main!(benches);
