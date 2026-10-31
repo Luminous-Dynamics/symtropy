@@ -622,11 +622,18 @@ fn compare_witness_severity(
             let left_metrics = left.outcome.metrics();
             let right_metrics = right.outcome.metrics();
             match (left_metrics, right_metrics) {
-                (Some(a), Some(b)) => b
-                    .expected_total_loss()
-                    .unwrap_or_else(|_| Rational::zero())
-                    .cmp(&a.expected_total_loss().unwrap_or_else(|_| Rational::zero()))
-                    .then_with(|| b.hazard_probability.cmp(&a.hazard_probability)),
+                (Some(a), Some(b)) => {
+                    let loss_order = match (
+                        a.expected_total_loss(),
+                        b.expected_total_loss(),
+                    ) {
+                        (Ok(left_loss), Ok(right_loss)) => right_loss.cmp(&left_loss),
+                        (Err(_), Ok(_)) => Ordering::Less,
+                        (Ok(_), Err(_)) => Ordering::Greater,
+                        (Err(_), Err(_)) => Ordering::Equal,
+                    };
+                    loss_order.then_with(|| b.hazard_probability.cmp(&a.hazard_probability))
+                }
                 _ => Ordering::Equal,
             }
         })
