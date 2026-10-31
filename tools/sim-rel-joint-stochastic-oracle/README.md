@@ -65,3 +65,21 @@ The benchmark module generates seeded finite joint-stochastic challenges in five
 Generation is deterministic for a fixed seed and generator version and has explicit per-family caps. Every instance includes a stable 64-bit FNV-1a reproducibility fingerprint over its manifest, priors, costs and full world kernels; this is a reproducibility digest, not a cryptographic commitment. Every emitted kernel is validated for complete transition tables and exact rational probability normalization before it is returned. Family labels are construction metadata, not inferred from an agent's self-report.
 
 This is a development fixture factory, not a sealed leaderboard by itself. Keep holdout seeds and mutation compositions out of agent development, publish manifests after evaluation, and do not interpret generated coverage as proof of real-world failure-mode completeness.
+
+
+## Finite-lookahead joint-state EIG baseline (SIM-REL-018)
+
+The baseline module includes a finite-horizon observation-tree planner that minimizes expected terminal mechanism entropy under a hard per-path experiment-cost budget and exact campaign hazard budget. Every outcome updates the full joint belief over mechanism, physical state and sensor state. Hazards are terminal observable outcomes, and costs are charged even on hazardous paths.
+
+Unlike the one-step EIG ranker, the lookahead planner can value an action that is useful only because it changes the specimen or sensor state for a later measurement. Its posterior entropy objective is evaluated in floating point, while kernel probabilities, posterior masses, expected costs and hazard constraints remain exact rationals.
+
+This is a finite discrete scenario-tree comparator, not a reproduction of COPEx's amortized policy/posterior training, continuous design optimization or gradient-based planner.
+
+
+## Joint-state particle-filter baseline (SIM-REL-019)
+
+The particle-filter module supplies a seeded conditional bootstrap filter over mechanism, physical state and sensor state. Each observation update weights particles by the event likelihood from the full joint kernel, samples next physical and sensor states conditional on the observed event, normalizes weights, measures ESS, and performs deterministic systematic resampling only when the configured threshold is crossed. Diagnostics also distinguish particles that lost support for an observed event from a posterior degeneracy (ESS near one), so a rare-event particle-support failure is not confused with a zero-probability model event.
+
+The exact rational function for a single Bayesian joint-belief update is provided as a reference. Tests compare particle posterior with that exact binary-channel posterior, verify deterministic resampling and ESS reporting, and ensure impossible observations fail atomically without mutating the filter.
+
+This is a finite-state bootstrap particle-filter comparator. It is not nested SMC-squared, does not infer continuous parameters, and does not reproduce the convergence guarantees of BAD-PODS.
