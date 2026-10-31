@@ -216,7 +216,7 @@ impl JointStateParticleFilter {
         // Systematic initialization is lower variance than independent draws
         // and exactly preserves equal-mass strata when the requested count allows it.
         let mut rng = DeterministicRng::new(config.seed);
-        let prior_particles: Vec<JointParticle> = initial_belief
+        let mut prior_particles: Vec<JointParticle> = initial_belief
             .iter()
             .map(|point| JointParticle {
                 hypothesis: point.hypothesis,
@@ -225,6 +225,7 @@ impl JointStateParticleFilter {
                 weight: to_f64(point.mass),
             })
             .collect();
+        normalize_weights(&mut prior_particles)?;
         let particles = systematic_resample(
             &prior_particles,
             config.particle_count,
