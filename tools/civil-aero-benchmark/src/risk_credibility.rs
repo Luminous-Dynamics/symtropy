@@ -194,6 +194,9 @@ pub fn assess_model_credibility(
         ("model_assumptions_and_input_lineage", "Assumptions, inputs and their provenance must be reviewable."),
         ("exact_model_and_run_identity", "The model version, run configuration and outputs need immutable identities."),
         ("failure_modes_and_abstention_policy", "Known failure conditions and no-answer behaviour must be declared."),
+        ("input_sensitivity_screen", "Check whether plausible input changes reverse the decision."),
+        ("no_release_authorization_from_assessment", "This requirements assessment never authorizes flight, manufacturing or operational release."),
+        ("screening_only_label", "Keep outputs explicitly labelled as screening or requirements-only; never as released designs."),
         ("independent_control_review", "A reviewer independent of model development must inspect the evidence record."),
     ] {
         required.insert(control);
@@ -278,17 +281,9 @@ pub fn assess_model_credibility(
 
     match tier {
         CredibilityTier::Screening => {
-            required.insert((
-                "screening_only_label",
-                "Keep output explicitly limited to exploration and screening.",
-            ));
             restrictions.push("No design release, manufacturing authorization or operational safety claim.");
         }
         CredibilityTier::Low => {
-            required.insert((
-                "input_sensitivity_screen",
-                "Check whether plausible input changes reverse the decision.",
-            ));
             restrictions.push("No design release or safety certification from this assessment.");
         }
         CredibilityTier::Moderate => {
@@ -437,6 +432,62 @@ mod tests {
                 classify_credibility_tier(ModelInfluence::Material, consequence)
                     <= classify_credibility_tier(ModelInfluence::Controlling, consequence)
             );
+        }
+    }
+
+    #[test]
+    fn increasing_influence_or_consequence_never_removes_a_required_control() {
+        let influences = [
+            ModelInfluence::Advisory,
+            ModelInfluence::Material,
+            ModelInfluence::Controlling,
+        ];
+        let consequences = [
+            DecisionConsequence::Limited,
+            DecisionConsequence::Significant,
+            DecisionConsequence::Severe,
+        ];
+        let ids = |assessment: &ModelCredibilityAssessment| {
+            assessment
+                .requirements
+                .iter()
+                .map(|requirement| requirement.control_id)
+                .collect::<BTreeSet<_>>()
+        };
+
+        for consequence in consequences {
+            for pair in influences.windows(2) {
+                let lower = assess_model_credibility(&context(
+                    ModelCreation::Hybrid,
+                    pair[0],
+                    consequence,
+                ))
+                .expect("lower influence assessment");
+                let higher = assess_model_credibility(&context(
+                    ModelCreation::Hybrid,
+                    pair[1],
+                    consequence,
+                ))
+                .expect("higher influence assessment");
+                assert!(ids(&lower).is_subset(&ids(&higher)));
+            }
+        }
+        for influence in influences {
+            for pair in consequences.windows(2) {
+                let lower = assess_model_credibility(&context(
+                    ModelCreation::Hybrid,
+                    influence,
+                    pair[0],
+                ))
+                .expect("lower consequence assessment");
+                let higher = assess_model_credibility(&context(
+                    ModelCreation::Hybrid,
+                    influence,
+                    pair[1],
+                ))
+                .expect("higher consequence assessment");
+                assert!(ids(&lower).is_subset(&ids(&higher)));
+            }
         }
     }
 

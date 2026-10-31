@@ -26,7 +26,7 @@ This matrix is a declared policy choice. A project owner must justify the chosen
 
 ## Required assurance controls
 
-All tiers retain a baseline: explicit intended-use/applicability domain, assumptions/input lineage, exact model/run identity, failure modes/abstention policy, and independent control review.
+All tiers retain a baseline: explicit intended-use/applicability domain, assumptions/input lineage, exact model/run identity, failure modes/abstention policy, input sensitivity screen, explicit no-release label, and independent control review. Raising influence or consequence only adds requirements; it never removes baseline or lower-tier controls.
 
 Model creation changes the technical evidence profile:
 - Mechanistic: code verification, iterative convergence, conservation/consistency, spatial/temporal convergence as applicable, and model-form sensitivity.
