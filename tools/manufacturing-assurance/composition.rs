@@ -58,6 +58,7 @@ struct Evidence {
     class: String,
     subject_kind: String,
     subject_id: String,
+    source_locator: String,
     authority: String,
     artifact_sha256: String,
     receipt_sha256: String,
@@ -91,6 +92,7 @@ struct Interface {
     clock_to: String,
     clock_transform: String,
     join_policy: String,
+    evidence_id: String,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -345,20 +347,21 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                 }
             }
             "EVIDENCE" => {
-                if fields.len() != 11 {
-                    return Err(format!("line {line_number}: EVIDENCE requires 10 fields"));
+                if fields.len() != 12 {
+                    return Err(format!("line {line_number}: EVIDENCE requires 11 fields"));
                 }
                 let evidence_id = nonempty(fields[1], "EVIDENCE id")?;
                 let evidence = Evidence {
                     class: nonempty(fields[2], "EVIDENCE class")?,
                     subject_kind: nonempty(fields[3], "EVIDENCE subject_kind")?,
                     subject_id: nonempty(fields[4], "EVIDENCE subject_id")?,
-                    authority: nonempty(fields[5], "EVIDENCE authority")?,
-                    artifact_sha256: nonempty(fields[6], "EVIDENCE artifact_sha256")?,
-                    receipt_sha256: nonempty(fields[7], "EVIDENCE receipt_sha256")?,
-                    valid_from_utc: nonempty(fields[8], "EVIDENCE valid_from_utc")?,
-                    valid_until_utc: nonempty(fields[9], "EVIDENCE valid_until_utc")?,
-                    status: nonempty(fields[10], "EVIDENCE status")?,
+                    source_locator: nonempty(fields[5], "EVIDENCE source_locator")?,
+                    authority: nonempty(fields[6], "EVIDENCE authority")?,
+                    artifact_sha256: nonempty(fields[7], "EVIDENCE artifact_sha256")?,
+                    receipt_sha256: nonempty(fields[8], "EVIDENCE receipt_sha256")?,
+                    valid_from_utc: nonempty(fields[9], "EVIDENCE valid_from_utc")?,
+                    valid_until_utc: nonempty(fields[10], "EVIDENCE valid_until_utc")?,
+                    status: nonempty(fields[11], "EVIDENCE status")?,
                 };
                 if manifest.evidence.insert(evidence_id, evidence).is_some() {
                     return Err(format!("line {line_number}: duplicate evidence id"));
@@ -378,8 +381,8 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                 });
             }
             "IFACE" => {
-                if fields.len() != 14 {
-                    return Err(format!("line {line_number}: IFACE requires 13 fields"));
+                if fields.len() != 15 {
+                    return Err(format!("line {line_number}: IFACE requires 14 fields"));
                 }
                 let interface = Interface {
                     id: nonempty(fields[1], "IFACE id")?,
@@ -395,6 +398,7 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                     clock_to: nonempty(fields[11], "IFACE clock_to")?,
                     clock_transform: nonempty(fields[12], "IFACE clock_transform")?,
                     join_policy: nonempty(fields[13], "IFACE join_policy")?,
+                    evidence_id: nonempty(fields[14], "IFACE evidence_id")?,
                 };
                 if manifest.interfaces.insert(interface.id.clone(), interface).is_some() {
                     return Err(format!("line {line_number}: duplicate interface id"));
@@ -431,6 +435,9 @@ fn evidence_for<'a>(
     }
     if !is_sha256(&evidence.artifact_sha256) || !is_sha256(&evidence.receipt_sha256) {
         return Err(format!("evidence {evidence_id} has malformed SHA-256 reference"));
+    }
+    if evidence.source_locator == "-" {
+        return Err(format!("evidence {evidence_id} has no exact source locator"));
     }
     if evidence.authority == "-" {
         return Err(format!("evidence {evidence_id} has no declared authority"));
@@ -539,6 +546,11 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
             &component.id,
             "COMPONENT_VVUQ",
         )?;
+        if vvuq_receipt.valid_from_utc > meta.valid_from
+            || vvuq_receipt.valid_until_utc < meta.valid_until
+        {
+            return Err(format!("component {} VVUQ evidence does not cover composition validity", component.id));
+        }
         if !matches!(vvuq_receipt.status.as_str(), "QUALIFIED" | "SYNTHETIC_ONLY") {
             return Err(format!("component {} VVUQ evidence is not qualified", component.id));
         }
@@ -627,7 +639,7 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
         ));
     }
 
-    let measurement = manifest.nodes.get("MEASUREMENT:meas-001")
+    let measurement = manifest.nodes.values().find(|node| node.kind == "MEASUREMENT")
         .ok_or("missing measurement node")?;
     if measurement.event_time_utc == "-" || !valid_utc(&measurement.event_time_utc) {
         return Err("measurement must declare a valid UTC observation timestamp".to_string());
@@ -636,7 +648,7 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
         return Err("measurement timestamp is outside composition validity".to_string());
     }
 
-    let calibration = manifest.nodes.get("CALIBRATION:cal-001")
+    let calibration = manifest.nodes.values().find(|node| node.kind == "CALIBRATION")
         .ok_or("missing calibration node")?;
     let calibration_evidence = manifest.evidence.get(&calibration.evidence_id)
         .ok_or("missing calibration evidence")?;
@@ -649,10 +661,15 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
         return Err("calibration evidence is not verified".to_string());
     }
 
-    let msa = manifest.nodes.get("MSA_STUDY:msa-001")
+    let msa = manifest.nodes.values().find(|node| node.kind == "MSA_STUDY")
         .ok_or("missing MSA study node")?;
     let msa_evidence = manifest.evidence.get(&msa.evidence_id)
         .ok_or("missing MSA study evidence")?;
+    if measurement.event_time_utc < msa_evidence.valid_from_utc
+        || measurement.event_time_utc > msa_evidence.valid_until_utc
+    {
+        return Err("MSA study was not valid at the measurement timestamp".to_string());
+    }
     if !matches!(msa_evidence.status.as_str(), "QUALIFIED" | "SYNTHETIC_ONLY") {
         return Err("MSA study evidence is not qualified".to_string());
     }
@@ -733,6 +750,19 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
                 "interface {} must use explicit identity joins, not {}",
                 interface.id, interface.join_policy
             ));
+        }
+        let interface_evidence = evidence_for(
+            manifest,
+            &interface.evidence_id,
+            "INTERFACE",
+            &interface.id,
+            "INTERFACE_MAPPING",
+        )?;
+        if !matches!(interface_evidence.status.as_str(), "VERIFIED" | "SYNTHETIC_ONLY") {
+            return Err(format!("interface {} mapping evidence is not verified", interface.id));
+        }
+        if !used_evidence.insert(interface.evidence_id.as_str()) {
+            return Err(format!("evidence {} is reused", interface.evidence_id));
         }
         interface_role_pairs.insert((from.role.as_str(), to.role.as_str()));
     }
@@ -842,7 +872,7 @@ mod tests {
             assert_eq!(summary.nodes, 17);
             assert_eq!(summary.edges, 18);
             assert_eq!(summary.interfaces, 6);
-            assert_eq!(summary.evidence_records, 43);
+            assert_eq!(summary.evidence_records, 49);
             assert_eq!(summary.scope_key, "product-001/lot-001/op-001");
         }
     }
@@ -934,7 +964,7 @@ mod tests {
     #[test]
     fn rejects_orphan_evidence_record() {
         let input = format!(
-            "{}\nEVIDENCE|ev-orphan|UNUSED|NODE|UNUSED|fixture|{}|{}|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|SYNTHETIC_ONLY\n",
+            "{}\nEVIDENCE|ev-orphan|UNUSED|NODE|UNUSED|fixture://orphan|fixture|{}|{}|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|SYNTHETIC_ONLY\n",
             fixture("integrated"),
             "f".repeat(64),
             "e".repeat(64)
@@ -980,7 +1010,7 @@ mod tests {
             .map(|line| {
                 if line.starts_with("EVIDENCE|ev-node-calibration|") {
                     let mut fields: Vec<&str> = line.split('|').collect();
-                    fields[9] = "2026-10-14T00:00:00Z";
+                    fields[10] = "2026-10-14T00:00:00Z";
                     fields.join("|")
                 } else {
                     line.to_string()
@@ -1000,7 +1030,7 @@ mod tests {
             .map(|line| {
                 if line.starts_with("EVIDENCE|ev-node-product|") {
                     let mut fields: Vec<&str> = line.split('|').collect();
-                    fields[6] = "not-a-digest";
+                    fields[7] = "not-a-digest";
                     fields.join("|")
                 } else {
                     line.to_string()
