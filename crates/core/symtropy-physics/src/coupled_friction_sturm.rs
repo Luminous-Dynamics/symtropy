@@ -327,6 +327,26 @@ fn sturm_isolate_rational(
     if intervals.len() != count {
         return Err("isolated interval count does not match Sturm count");
     }
+    let mut previous_upper: Option<&Rational> = None;
+    for (lower, upper) in &intervals {
+        if let Some(previous) = previous_upper {
+            if previous >= lower {
+                return Err("Sturm isolating intervals are not pairwise disjoint");
+            }
+        }
+        if lower == upper {
+            if !evaluate(&poly, lower).is_zero() {
+                return Err("point interval does not evaluate to an exact root");
+            }
+        } else if lower > upper
+            || evaluate(&poly, lower).is_zero()
+            || evaluate(&poly, upper).is_zero()
+            || count_open(&chain, lower, upper)? != 1
+        {
+            return Err("open isolating interval lacks non-root endpoints or unit Sturm count");
+        }
+        previous_upper = Some(upper);
+    }
     Ok(intervals)
 }
 
