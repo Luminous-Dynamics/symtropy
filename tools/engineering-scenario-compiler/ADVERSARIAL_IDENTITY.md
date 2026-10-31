@@ -16,7 +16,16 @@ Do not repurpose an existing digest field. Any incompatible semantic or encoding
 
 RFC 8785 JCS is defined over an I-JSON-compatible data model. Duplicate property names must not be accepted as ambiguous input; number values must fit the IEEE-754 binary64 data model; invalid non-finite values are rejected; string data is preserved without Unicode normalization. Property sorting uses UTF-16 code-unit ordering and array order is preserved.
 
-A typed serializer cannot detect every ambiguity in raw bytes after a lossy parse. Therefore the untrusted-input path must reject duplicate object member names before conversion into a map or typed struct. This is a parser security requirement, not a JCS formatting option.
+A typed serializer cannot detect every ambiguity in raw JSON bytes after a
+lossy parse. Therefore any untrusted JSON-to-JCS consumer must reject
+duplicate object member names before conversion into a map or typed struct.
+This is a parser security requirement, not a JCS formatting option.
+
+The compiler's primary source DSL is TOML, not JSON. Rust source ingress uses
+the pinned strict TOML parser and now tests duplicate keys at the top level
+and within the nested geometry table. The independent Go verifier separately
+guards the JSON/JCS consumer boundary. These tests cover different
+representations; neither is a claim about unimplemented JSON ingress paths.
 
 Define one explicit boundary for invalid UTF-8 and escaped lone-surrogate behavior. Rejection must occur before canonical output or a hash is emitted.
 
