@@ -147,11 +147,14 @@ sample/survivor count, score version, fit-fold IDs and exact prefix-coverage
 lower bound, equal to the product of conditional targets through that stage.
 
 This is only the finite-sample rank calculation under the sequential conformal
-paper's sampling and exchangeability assumptions. In particular, calibration
-folds must be independent of the score function fitted at that stage, and
-fresh-fold survivors must be exchangeable with a surviving test case
-conditional on prior history. The result is not a guarantee under arbitrary
-nonstationary physical shift, and it is not a calibrated TV ambiguity radius.
+paper's sampling and exchangeability assumptions. Its prefix-coverage lower
+bound is marginal over repeated training/calibration samples and a new test
+case; it is not conditional coverage for one realized calibration set. In
+particular, calibration folds must be independent of the score function fitted
+at that stage, and fresh-fold survivors must be exchangeable with a surviving
+test case conditional on prior history. The result is not a guarantee under
+arbitrary nonstationary physical shift, and it is not a calibrated TV ambiguity
+radius.
 An unbounded threshold is not automatically equivalent to abstention; a
 downstream safety policy must decide how to handle an unavailable finite
 threshold. The module records provenance but cannot prove that caller-supplied
