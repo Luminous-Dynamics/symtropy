@@ -483,10 +483,8 @@ struct PortableCompilationSubject<'a> {
     obligations: &'a [CompileObligation],
 }
 
-/// Return the language-neutral JCS bytes for one validated typed scenario IR.
-/// Callers must ensure the IR was produced by the strict compiler frontend.
-pub fn canonical_semantic_ir_bytes(scenario: &ScenarioIr) -> Result<Vec<u8>, String> {
-    let envelope = CanonicalSemanticEnvelope {
+fn canonical_semantic_envelope(scenario: &ScenarioIr) -> CanonicalSemanticEnvelope<'_> {
+    CanonicalSemanticEnvelope {
         identity_profile: CANONICALIZATION_PROFILE,
         compiler_id: COMPILER_ID,
         compiler_version: COMPILER_VERSION,
@@ -494,8 +492,21 @@ pub fn canonical_semantic_ir_bytes(scenario: &ScenarioIr) -> Result<Vec<u8>, Str
         registry_revision: REGISTRY_REVISION,
         parser_profile: TOML_PARSER_PROFILE,
         scenario,
-    };
-    serde_jcs::to_vec(&envelope)
+    }
+}
+
+/// Return the ordinary JSON input envelope for independent canonicalization.
+/// This output is not itself the semantic identity; it is the exact structured
+/// preimage for the versioned JCS profile.
+pub fn portable_semantic_ir_input_bytes(scenario: &ScenarioIr) -> Result<Vec<u8>, String> {
+    serde_json::to_vec(&canonical_semantic_envelope(scenario))
+        .map_err(|error| format!("portable semantic IR JSON serialization failed: {error}"))
+}
+
+/// Return the language-neutral JCS bytes for one validated typed scenario IR.
+/// Callers must ensure the IR was produced by the strict compiler frontend.
+pub fn canonical_semantic_ir_bytes(scenario: &ScenarioIr) -> Result<Vec<u8>, String> {
+    serde_jcs::to_vec(&canonical_semantic_envelope(scenario))
         .map_err(|error| format!("portable semantic IR JCS serialization failed: {error}"))
 }
 
