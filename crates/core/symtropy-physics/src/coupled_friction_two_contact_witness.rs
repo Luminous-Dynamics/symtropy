@@ -213,3 +213,254 @@ mod tests {
         assert!(cross_work.iter().all(|value| *value < -1.0e-3));
     }
 }
+
+
+// -----------------------------------------------------------------------------
+// Regime-restricted two-contact Schur-complement reduction
+// -----------------------------------------------------------------------------
+//
+// If contact 2 is sticking, u_2 = 0 determines p_2 exactly from p_1.
+// Eliminating p_2 gives a 3x3 effective Signorini-Coulomb problem at contact
+// 1. This is an algebraic reduction for one declared regime assignment, not
+// a complete two-contact island solver.
+
+#[cfg(test)]
+mod schur_reduction_tests {
+    use super::*;
+    use crate::coupled_friction::{
+        solve_coupled_signorini_coulomb, CoupledCoulombRegime, CoupledCoulombStatus,
+    };
+    use nalgebra::Matrix3;
+
+    #[derive(Clone, Debug)]
+    struct SchurCandidate {
+        impulse: Vector6,
+        contact_one_regime: CoupledCoulombRegime,
+        contact_one_tau: f64,
+        kinetic_energy_delta: f64,
+        max_velocity_residual: f64,
+    }
+
+    #[derive(Clone, Debug)]
+    struct SchurOutcome {
+        reduced_status: CoupledCoulombStatus,
+        candidates: Vec<SchurCandidate>,
+    }
+
+    /// Eliminate contact 2 under the strict sticking hypothesis.
+    ///
+    /// With W = [[A,B],[B^T,C]], p_2 = -C^-1(q_2+B^T p_1),
+    /// W_eff = A-B C^-1 B^T, q_eff = q_1-B C^-1 q_2.
+    fn solve_with_contact_two_sticking(
+        w: &Matrix6,
+        q: &Vector6,
+        mu_1: f64,
+        mu_2: f64,
+        tolerance: f64,
+    ) -> Result<SchurOutcome, &'static str> {
+        if !w.iter().all(|value| value.is_finite())
+            || !q.iter().all(|value| value.is_finite())
+            || !mu_1.is_finite()
+            || !mu_2.is_finite()
+            || mu_1 < 0.0
+            || mu_2 < 0.0
+            || !tolerance.is_finite()
+            || tolerance <= 0.0
+        {
+            return Err("invalid or non-finite two-contact input");
+        }
+
+        let scale = w.iter().fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if scale == 0.0 {
+            return Err("zero two-contact Delassus matrix");
+        }
+        if (w - w.transpose()).norm() > tolerance * scale * 10.0 {
+            return Err("two-contact Delassus matrix is not symmetric");
+        }
+        if w.clone().cholesky().is_none() {
+            return Err("two-contact Delassus matrix is not positive definite");
+        }
+
+        let a = Matrix3::from_fn(|i, j| w[(i, j)]);
+        let b = Matrix3::from_fn(|i, j| w[(i, j + 3)]);
+        let c = Matrix3::from_fn(|i, j| w[(i + 3, j + 3)]);
+        let q_1 = SVector::<f64, 3>::new(q[0], q[1], q[2]);
+        let q_2 = SVector::<f64, 3>::new(q[3], q[4], q[5]);
+
+        let c_factor = c.cholesky().ok_or("sticking contact principal block is not SPD")?;
+        let c_inverse_b_transpose = c_factor.solve(&b.transpose());
+        let c_inverse_q_2 = c_factor.solve(&q_2);
+        let effective_mass = a - b * c_inverse_b_transpose;
+        let effective_velocity = q_1 - b * c_inverse_q_2;
+
+        let reduced = solve_coupled_signorini_coulomb(
+            &effective_mass,
+            &effective_velocity,
+            mu_1,
+            tolerance,
+        )
+        .map_err(|_| "reduced single-contact solver refused the Schur system")?;
+
+        let mut candidates = Vec::new();
+        for candidate in &reduced.candidates {
+            let p_1 = candidate.impulse;
+            let p_2 = -c_factor.solve(&(q_2 + b.transpose() * p_1));
+            let impulse = Vector6::new(
+                p_1[0], p_1[1], p_1[2],
+                p_2[0], p_2[1], p_2[2],
+            );
+            let post_velocity = q + w * impulse;
+            let u_1 = SVector::<f64, 3>::new(
+                post_velocity[0], post_velocity[1], post_velocity[2],
+            );
+            let u_2 = SVector::<f64, 3>::new(
+                post_velocity[3], post_velocity[4], post_velocity[5],
+            );
+            let p_1_tangent_norm = p_1.fixed_rows::<2>(1).norm();
+            let p_2_tangent_norm = p_2.fixed_rows::<2>(1).norm();
+            let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
+            let velocity_scale = (scale * impulse.norm()).max(q.norm()).max(f64::MIN_POSITIVE);
+            let impulse_tolerance = tolerance * impulse_scale * 100.0;
+            let velocity_tolerance = tolerance * velocity_scale * 100.0;
+
+            // The eliminated contact must be strictly loaded, exactly sticking
+            // up to the declared normalized residual budget, and inside its disk.
+            if p_2[0] <= impulse_tolerance
+                || u_2.norm() > velocity_tolerance
+                || mu_2 * p_2[0] - p_2_tangent_norm <= impulse_tolerance
+            {
+                continue;
+            }
+
+            // Recheck contact 1's declared regime against the reconstructed full
+            // 6x6 post-impulse velocity, not merely against the reduced system.
+            if p_1[0] < -impulse_tolerance
+                || u_1[0] < -velocity_tolerance
+                || (p_1[0] * u_1[0]).abs() > impulse_tolerance * velocity_tolerance
+            {
+                continue;
+            }
+            let contact_one_valid = match candidate.regime {
+                CoupledCoulombRegime::Separating => {
+                    p_1.norm() <= impulse_tolerance
+                }
+                CoupledCoulombRegime::Frictionless => {
+                    mu_1 == 0.0
+                        && p_1_tangent_norm <= impulse_tolerance
+                }
+                CoupledCoulombRegime::Sticking => {
+                    u_1.fixed_rows::<2>(1).norm() <= velocity_tolerance
+                        && mu_1 * p_1[0] - p_1_tangent_norm > -impulse_tolerance
+                }
+                CoupledCoulombRegime::Sliding => {
+                    (p_1_tangent_norm - mu_1 * p_1[0]).abs() <= impulse_tolerance
+                        && candidate.disk_multiplier >= -tolerance
+                        && (u_1.fixed_rows::<2>(1)
+                            + candidate.disk_multiplier * p_1.fixed_rows::<2>(1))
+                            .norm()
+                            <= velocity_tolerance
+                }
+            };
+            if !contact_one_valid {
+                continue;
+            }
+
+            let kinetic_energy_delta = impulse.dot(q) + 0.5 * impulse.dot(&(w * impulse));
+            if kinetic_energy_delta > tolerance * (1.0 + q.norm() * impulse.norm()) * 100.0 {
+                continue;
+            }
+            candidates.push(SchurCandidate {
+                impulse,
+                contact_one_regime: candidate.regime,
+                contact_one_tau: candidate.disk_multiplier,
+                kinetic_energy_delta,
+                max_velocity_residual: post_velocity.norm(),
+            });
+        }
+
+        // Deduplicate only at the requested numerical comparison scale. This
+        // is candidate hygiene, not a proof of root completeness.
+        candidates.sort_by(|left, right| {
+            left.impulse[0].total_cmp(&right.impulse[0])
+        });
+        candidates.dedup_by(|left, right| {
+            (left.impulse - right.impulse).norm()
+                <= tolerance * 1000.0 * (1.0 + left.impulse.norm().max(right.impulse.norm()))
+        });
+
+        Ok(SchurOutcome {
+            reduced_status: reduced.status,
+            candidates,
+        })
+    }
+
+    #[test]
+    fn schur_reduction_replays_all_three_frozen_contact_two_sticking_branches() {
+        let (w, q) = fixture();
+        let outcome = solve_with_contact_two_sticking(
+            &w, &q, MU_1, MU_2, 1.0e-12,
+        ).unwrap();
+
+        assert_eq!(outcome.reduced_status, CoupledCoulombStatus::MultipleSolutions);
+        assert_eq!(outcome.candidates.len(), 3);
+
+        let references = candidate_impulses();
+        for expected in references {
+            let match_candidate = outcome.candidates.iter().find(|candidate| {
+                (candidate.impulse - expected).norm() < 2.0e-6
+            });
+            assert!(
+                match_candidate.is_some(),
+                "Schur reduction missed frozen full-island branch {expected:?}; found={:?}",
+                outcome.candidates.iter().map(|candidate| &candidate.impulse).collect::<Vec<_>>()
+            );
+        }
+
+        let mut sticking = 0;
+        let mut sliding = 0;
+        for candidate in &outcome.candidates {
+            assert!(candidate.kinetic_energy_delta < -1.0e-2);
+            assert!(candidate.max_velocity_residual < 1.0e-8);
+            match candidate.contact_one_regime {
+                CoupledCoulombRegime::Sticking => sticking += 1,
+                CoupledCoulombRegime::Sliding => {
+                    sliding += 1;
+                    assert!(candidate.contact_one_tau > 0.0);
+                }
+                _ => panic!("unexpected contact-one regime in frozen witness"),
+            }
+        }
+        assert_eq!(sticking, 1);
+        assert_eq!(sliding, 2);
+    }
+
+    #[test]
+    fn schur_reduction_is_symmetric_under_contact_block_permutation() {
+        let (w, q) = fixture();
+        let forward = solve_with_contact_two_sticking(
+            &w, &q, MU_1, MU_2, 1.0e-12,
+        ).unwrap();
+
+        // The witness has contact 2 sticking in all branches. Permuting the
+        // contact blocks turns contact 1 into the eliminated sticking block
+        // only for the all-sticking solution; compare that branch explicitly.
+        let sticking = forward.candidates.iter()
+            .find(|candidate| candidate.contact_one_regime == CoupledCoulombRegime::Sticking)
+            .expect("all-sticking branch");
+        let permuted_w = Matrix6::from_fn(|i, j| {
+            w[(if i < 3 { i + 3 } else { i - 3 }, if j < 3 { j + 3 } else { j - 3 })]
+        });
+        let permuted_q = Vector6::from_fn(|i, _| q[if i < 3 { i + 3 } else { i - 3 }]);
+        let reverse = solve_with_contact_two_sticking(
+            &permuted_w, &permuted_q, MU_2, MU_1, 1.0e-12,
+        ).unwrap();
+        let expected = Vector6::new(
+            sticking.impulse[3], sticking.impulse[4], sticking.impulse[5],
+            sticking.impulse[0], sticking.impulse[1], sticking.impulse[2],
+        );
+        assert!(reverse.candidates.iter().any(|candidate| {
+            candidate.contact_one_regime == CoupledCoulombRegime::Sticking
+                && (candidate.impulse - expected).norm() < 2.0e-6
+        }));
+    }
+}
