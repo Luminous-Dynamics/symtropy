@@ -26,7 +26,7 @@ A suitable division of labour is: Symthaea proposes hypotheses and selects infor
 
 ### Solver capability
 
-SU2 is an open-source multiphysics suite for PDE solution and PDE-constrained optimization, with aerodynamic shape optimization among its primary applications. Its public repository currently identifies version 8.5.0 "Harrier". This is a serious reference baseline, not a straw man. The current civil-aero crate is an analytical screening and evidence-audit package; it is not yet a competing production CFD solver.
+SU2 is an open-source multiphysics suite for PDE solution and PDE-constrained optimization, with aerodynamic shape optimization among its primary applications. The latest public release is SU2 v8.6.0, tag commit 7048fd35f56d4bf52e586429d6746a36a10255f8 (released 2026-10-30). It includes GPU-enabled linear-solver updates, a pressure-based incompressible solver, multigrid improvements, and further adjoint / multiphysics capabilities. It is a serious reference baseline, not a straw man. For historical reproduction of the pinned DPW8 participant result, separately retain the reported SU2 8.0.1 build/configuration; do not substitute the latest version and call it a reproduction. The current civil-aero crate is an analytical screening and evidence-audit package; it is not yet a competing production CFD solver.
 
 Reference: https://github.com/su2code/SU2
 
@@ -70,7 +70,7 @@ Do not merge these levels into one score. A steady RANS result cannot validate b
 
 ### Solver comparisons
 
-Use at least one established open solver baseline (SU2) and, when licensed and available, a second solver using meaningfully different numerical methods. A commercial solver can be added as an industry reference only when the same geometry, mesh policy, physical model, boundary conditions, convergence requirements and available resources are disclosed. Record exact executable/build hashes and all configuration files.
+Use the historical participant build (SU2 8.0.1) for reproduction where exact mesh/config/build inputs are lawfully available, then a separately pinned current SU2 v8.6.0 baseline (tag commit 7048fd35f56d4bf52e586429d6746a36a10255f8). Also use, when licensed and available, a second solver using meaningfully different numerical methods. A commercial solver can be added as an industry reference only when the same geometry, mesh policy, physical model, boundary conditions, convergence requirements and available resources are disclosed. Record exact executable/build hashes and all configuration files.
 
 For every solver run retain:
 - geometry and mesh digests, cell/node counts, mesh quality and refinement lineage;
@@ -140,3 +140,8 @@ The current CFD admission receipt is a summary-level contract: solver exit code,
 - A solver pass proves neither experimental validity nor airworthiness.
 - A low-fidelity screen never authorizes manufacturing or flight use.
 - Every failure, excluded run and deviation remains in the record with a reason.
+
+
+### Current solver baseline pin
+
+As of 2026-10-31, SU2 v8.6.0 is the latest public release. Immutable tag commit: 7048fd35f56d4bf52e586429d6746a36a10255f8. Record the local executable digest, compiler/build flags, dependencies, hardware and exact configuration in every run receipt. Keep the historical SU2 8.0.1 participant reproduction lane separate from the latest-release performance lane.

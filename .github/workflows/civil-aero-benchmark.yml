@@ -310,6 +310,17 @@ jobs:
           test "$(wc -l < /tmp/unsteady-psd-a.csv)" -eq 130
           grep -q "synthetic_unsteady_spectrum_only samples=1024 segments=7 bins=129 peak_hz=32.000000000000 integrated_mean_square=2.000000000000" /tmp/unsteady-psd-a.txt
           python3 scripts/verify-unsteady-spectrum-independent.py /tmp/unsteady-psd-a.csv
+      - name: Audit blind interval calibration and out-of-domain coverage independently
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin interval_calibration_demo > /tmp/interval-calibration-a.csv 2> /tmp/interval-calibration-a.txt
+          cargo run --locked --bin interval_calibration_demo > /tmp/interval-calibration-b.csv 2> /tmp/interval-calibration-b.txt
+          cmp /tmp/interval-calibration-a.csv /tmp/interval-calibration-b.csv
+          cmp /tmp/interval-calibration-a.txt /tmp/interval-calibration-b.txt
+          test "$(wc -l < /tmp/interval-calibration-a.csv)" -eq 13
+          grep -q "blind_confirmation_synthetic_only models=2 domains=2 levels=3 prediction_rows=720 summaries=12" /tmp/interval-calibration-a.txt
+          python3 scripts/verify-interval-calibration-independent.py /tmp/interval-calibration-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |

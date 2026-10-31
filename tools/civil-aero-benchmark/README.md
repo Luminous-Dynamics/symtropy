@@ -281,3 +281,8 @@ The evaluator requires at least two independent replicates per task/policy befor
 ## Unsteady buffet signal diagnostics
 
 The unsteady_spectrum module provides Welch one-sided PSD, stationarity window diagnostics, integrated band power, dominant frequency and normalized spectral-shape comparison. It uses explicit sampling interval, segment size, overlap, periodic Hann window and per-segment mean removal. A radix-2 FFT avoids external numerical dependencies. The unsteady_spectrum_demo tests a synthetic 32 Hz known tone; an independent Python direct-DFT oracle checks all 129 PSD bins and the Parseval/RMS relationship. This is a signal-processing test, not a validated buffet simulation. See UNSTEADY_SPECTRUM_PROTOCOL_V0_1.md and issue #3071.
+
+
+## Prediction interval calibration and OOD stress
+
+The interval_calibration module audits blind-only prediction intervals by geometry family, flow regime and in/out-of-domain status. It reports empirical coverage with Wilson 95% intervals, coverage gap, mean width, proper interval score, point MAE/RMSE/bias and separate lower/upper misses. Calibration/training observations are rejected, repeated sample truth must stay fixed across confidence levels, and intervals must be nested. The synthetic demo is an adversarial coverage/width known-answer only; see PREDICTION_INTERVAL_CALIBRATION_PROTOCOL_V0_1.md.

@@ -112,12 +112,12 @@ The first comparison should be **solver verification before optimizer comparison
 
 The official NASA/AIAA DPW-8 data tree lists the ONERA OAT15A experimental-data ZIP as 207 KB in its directory listing (last modified 2026-06-25); this directory metadata is not a raw byte count or a digest. The archive is not admitted until downloaded, independently hashed, inspected, and its applicable data terms and condition metadata reviewed.
 
-For the CFD baseline, use the current official SU2 release as a pinned reference rather than inventing a solver: SU2 v8.5.0 "Harrier" (release page identifies 2026-04-27). Its release notes describe significant multigrid improvements, a DES grey-area mitigation strategy, fully functional thermoelasticity coupling and adjoint thermoelasticity. These are useful capabilities but do **not** by themselves prove that a particular DPW-8 aeroelastic coupling case is validated or ready. Resolve the release tag to an immutable commit, record build/compiler flags and test the exact task interface. The older SU2 static-FSI tutorial demonstrates a partitioned flow/elasticity approach; revalidate it on the pinned release before using it as a DPW-8 baseline.
+For the current CFD baseline, use SU2 v8.6.0 (released 2026-10-30), tag commit 7048fd35f56d4bf52e586429d6746a36a10255f8. The release adds GPU linear-solver work, a pressure-based incompressible solver, improved multigrid, and additional adjoint/multiphysics capabilities. This release note is not proof of DPW8 case validation: compile a pinned build, retain executable/config/mesh digests, reproduce the exact historical participant SU2 8.0.1 setup in a separate lane, and compare 8.6.0 only after equivalent numerical admission. Revalidate any older tutorial on the pinned release before using it as a DPW8 baseline.
 
 Official references:
 - DPW-8 test matrix: https://www.aiaa-dpw.org/TestCases/testcases.html
 - NASA DPW8 data directory: https://dpw.larc.nasa.gov/DPW8/
-- SU2 v8.5.0 release: https://github.com/su2code/SU2/releases
+- SU2 v8.6.0 release: https://github.com/su2code/SU2/releases
 - SU2 static FSI tutorial: https://su2code.github.io/tutorials/Static_FSI/
 
 Keep buffet Test Case 2 and 3 separate: JAXA describes Case 2 as unsteady CFD on rigid/static structural geometry using measured deformed wings and experimental data; Case 3 adds dynamic wing response/fluid-structure interaction. A steady V1a polar cannot validate either task.
@@ -252,3 +252,8 @@ For manufacturing-digital-twin credibility, track current standards activity and
 5. Design a Symthaea experiment-selection baseline with a fixed expensive-evaluation budget and compare against random, space-filling and conventional optimizer choices.
 6. Only after model/data gates pass, manufacture non-flight-critical coupons and compare as-built geometry and measured forces with declared uncertainty.
 7. Do not promote this work to flight operations without separate airframe engineering, structural analysis, independent review and applicable permissions.
+
+
+### Current baseline pin update (2026-10-31)
+
+The latest public SU2 release is v8.6.0, immutable tag commit 7048fd35f56d4bf52e586429d6746a36a10255f8. Historical SU2 8.0.1 participant reproduction remains a distinct benchmark lane. Do not claim that 8.6.0 reproduced a 8.0.1 result, and do not infer CFD accuracy improvements from release notes alone.
