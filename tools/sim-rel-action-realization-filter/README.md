@@ -135,8 +135,10 @@ oracle that keeps the assumed inference channel distinct from the true
 data-generating channel. It verifies a supplied Blackwell garbling witness
 exactly, updates posteriors under the assumed stochastic channel, evaluates the
 selected terminal decision under the true channel, and reports true-channel
-Bayes regret and decision disagreement. Unsupported observations trigger
-explicit abstention instead of fabricated posterior normalization.
+Bayes regret and decision disagreement. It separates nominal model Bayes risk
+under the assumed observation law from assumed conditional risk reweighted by
+true observation frequencies. Unsupported observations trigger explicit
+abstention instead of fabricated posterior normalization.
 
 Mutual information is provided only as a floating-point acquisition
 diagnostic. All posterior, expected-loss, oracle-regret and unsupported-mass
