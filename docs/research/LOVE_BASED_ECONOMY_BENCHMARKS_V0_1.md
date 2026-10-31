@@ -431,6 +431,25 @@ Select one service domain and a willing community partner. Use a pre-registered 
 
 ---
 
+## 3.5 Live Mycelix access-control findings
+
+A source-level review on 31 October 2026 found a mismatch between the rights-first design and several active request-intake call paths:
+
+- Commons MutualAid create_need calls require_civic with civic_requirement_basic().
+- Commons MutualAid Requests create_request calls the same basic civic gate.
+- Commons Care Timebank create_service_request also calls the basic civic gate.
+- The basic requirement is CivicTier::Participant. The profile tier function derives Participant at a score of 0.30, and the active gate is documented to reject ineligible callers.
+
+These are intake functions for reporting a need or requesting care. A profile / participation threshold should not determine whether a person can ask for help. The concrete audit and remediation are tracked in [Mycelix issue #3779](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3779).
+
+The same inspection found that the MutualAid Requests coordinator copies a caller-supplied requester DID into AidRequest, while the integrity path checks basic DID syntax but does not bind the claimed requester to the committing agent. Removing the civic gate must not leave this impersonation surface unaddressed. Use authenticated author identity for self-service and a separate signed, scoped delegation for assisted intake. This is tracked in [Mycelix issue #3780](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3780).
+
+The governance-policy simulation work is tracked separately in [CIV-GOV-002 / issue #3766](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3766), which includes equal civic standing and a rights-floor hybrid as candidate model families. This specification does not claim that voting policy is already corrected.
+
+These are source-level findings, not conductor-tested claims about a deployed network. Verify all affected DNA compositions, alternate intake routes, integrity validators and live call flows before making deployment-level statements.
+
+---
+
 ## 12. Explicit non-claims
 
 This specification does not establish that:
