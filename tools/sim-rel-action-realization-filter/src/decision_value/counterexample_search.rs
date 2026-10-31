@@ -1445,7 +1445,18 @@ mod tests {
             DecisionPlan::Experiment { command: 1, .. }
         ));
 
-        let report = search_policy_counterexamples(
+        let attack_grid = BoundedPerturbationGrid {
+            split_probabilities: Vec::new(),
+            outcome_mass_shifts: Vec::new(),
+            include_measurement_label_swaps: true,
+            include_readback_dropout: false,
+            include_hazard_injection: false,
+            include_outcome_mass_shifts: false,
+            include_apparatus_degradation: false,
+            include_realized_action_remapping: false,
+            include_sensor_scoped_variants: false,
+        };
+        let attack = search_policy_against_bounded_grid(
             &[nominal.clone()],
             "nominal",
             &table,
@@ -1455,17 +1466,13 @@ mod tests {
             &nominal_policy,
             1,
             budgets,
-            &[spec(
-                "sensor-inverted",
-                ModelWorldPerturbation::SwapSensorCalibration {
-                    sensor_state: 0,
-                    left_measurement: 0,
-                    right_measurement: 1,
-                },
-            )],
+            &attack_grid,
+            16,
         )
         .unwrap();
-        let witness = report.strongest_counterexample().unwrap();
+        assert_eq!(attack.grid.specs.len(), 1);
+        assert_eq!(attack.grid.attempted, 1);
+        let witness = attack.search.strongest_counterexample().unwrap();
         assert_eq!(
             witness.outcome.class(),
             CounterexampleClass::DecisionLossAmplified
