@@ -169,7 +169,7 @@ pub fn select_terminal_equivalence_class(
     let mut seen = BTreeSet::new();
     let mut class_masses = Vec::with_capacity(certificate.equivalence_classes.len());
     for class in &certificate.equivalence_classes {
-        if class.members.is_empty() || class.representative != class.members[0] {
+        if class.members.is_empty() || class.representative.as_str() != class.members[0].as_str() {
             return Err("certificate contains an empty or non-canonical equivalence class".into());
         }
         let mut mass = Rational::zero();
