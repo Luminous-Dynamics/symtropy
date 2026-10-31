@@ -385,7 +385,6 @@ fn emit_csv() -> Result<(), String> {
     }
     Ok(())
 }
-}
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
