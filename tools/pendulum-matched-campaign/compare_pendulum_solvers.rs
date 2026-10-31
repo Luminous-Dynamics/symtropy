@@ -14,6 +14,10 @@ mod intrinsic;
 #[path = "../pendulum-rattle-reference/rattle_cartesian.rs"]
 mod rattle;
 
+#[allow(dead_code)]
+#[path = "../pendulum-phdae-reference/semi_explicit_phdae_dg.rs"]
+mod phdae;
+
 const MASS: f64 = 1.0;
 const LENGTH: f64 = 1.0;
 const GRAVITY: f64 = 9.81;
@@ -38,7 +42,10 @@ struct Metrics {
     final_relative_energy_drift: f64,
     max_relative_energy_drift: f64,
     max_relative_position_constraint: f64,
-    max_relative_tangent_constraint: f64,
+    max_absolute_endpoint_tangent_constraint: f64,
+    /// Present only for the semi-explicit pHDAE method, where this is
+    /// the exact discrete midpoint velocity-constraint residual.
+    max_relative_midpoint_velocity_constraint: Option<f64>,
     mean_nonlinear_iterations: f64,
     max_nonlinear_iterations: usize,
 }
@@ -68,14 +75,16 @@ fn to_cartesian(state: IntrinsicState) -> rattle::State {
 
 fn cartesian_metrics(state: rattle::State) -> (f64, f64) {
     let q = state.position;
-    let p = state.momentum;
+    let velocity = [
+        state.momentum[0] / MASS,
+        state.momentum[1] / MASS,
+    ];
     let q_squared = q[0] * q[0] + q[1] * q[1];
-    let p_norm = (p[0] * p[0] + p[1] * p[1]).sqrt();
-    let q_dot_p = q[0] * p[0] + q[1] * p[1];
+    let q_dot_v = q[0] * velocity[0] + q[1] * velocity[1];
     let position = (q_squared - LENGTH * LENGTH).abs()
         / (1.0 + q_squared + LENGTH * LENGTH);
-    let tangent =
-        q_dot_p.abs() / (LENGTH * p_norm).max(f64::MIN_POSITIVE);
+    // Absolute endpoint tangent residual |q·v| in the common frozen units.
+    let tangent = q_dot_v.abs();
     (position, tangent)
 }
 
@@ -167,7 +176,8 @@ fn run_intrinsic(dt: f64, steps: usize, reference: rattle::State) -> Metrics {
             / energy0.abs().max(f64::MIN_POSITIVE),
         max_relative_energy_drift: max_energy_drift,
         max_relative_position_constraint: max_position,
-        max_relative_tangent_constraint: max_tangent,
+        max_absolute_endpoint_tangent_constraint: max_tangent,
+        max_relative_midpoint_velocity_constraint: None,
         mean_nonlinear_iterations: total_iterations as f64 / steps as f64,
         max_nonlinear_iterations: max_iterations,
     }
@@ -190,10 +200,9 @@ fn run_rattle(dt: f64, steps: usize, reference: rattle::State) -> Metrics {
         let energy = receipt.energy_after;
         max_energy_drift =
             max_energy_drift.max((energy - energy0).abs() / energy0.abs().max(f64::MIN_POSITIVE));
-        max_position =
-            max_position.max(receipt.relative_position_constraint_residual);
-        max_tangent =
-            max_tangent.max(receipt.relative_tangent_constraint_residual);
+        let (position_residual, tangent_residual) = cartesian_metrics(state);
+        max_position = max_position.max(position_residual);
+        max_tangent = max_tangent.max(tangent_residual);
         total_iterations += receipt.position_newton_iterations;
         max_iterations = max_iterations.max(receipt.position_newton_iterations);
     }
@@ -207,7 +216,8 @@ fn run_rattle(dt: f64, steps: usize, reference: rattle::State) -> Metrics {
             / energy0.abs().max(f64::MIN_POSITIVE),
         max_relative_energy_drift: max_energy_drift,
         max_relative_position_constraint: max_position,
-        max_relative_tangent_constraint: max_tangent,
+        max_absolute_endpoint_tangent_constraint: max_tangent,
+        max_relative_midpoint_velocity_constraint: None,
         mean_nonlinear_iterations: total_iterations as f64 / steps as f64,
         max_nonlinear_iterations: max_iterations,
     }
@@ -239,7 +249,8 @@ fn run_symplectic_euler(dt: f64, steps: usize, reference: rattle::State) -> Metr
             / energy0.abs().max(f64::MIN_POSITIVE),
         max_relative_energy_drift: max_energy_drift,
         max_relative_position_constraint: max_position,
-        max_relative_tangent_constraint: max_tangent,
+        max_absolute_endpoint_tangent_constraint: max_tangent,
+        max_relative_midpoint_velocity_constraint: None,
         mean_nonlinear_iterations: 0.0,
         max_nonlinear_iterations: 0,
     }
@@ -269,9 +280,73 @@ fn run_rk4(dt: f64, steps: usize, reference: rattle::State) -> Metrics {
             / energy0.abs().max(f64::MIN_POSITIVE),
         max_relative_energy_drift: max_energy_drift,
         max_relative_position_constraint: max_position,
-        max_relative_tangent_constraint: max_tangent,
+        max_absolute_endpoint_tangent_constraint: max_tangent,
+        max_relative_midpoint_velocity_constraint: None,
         mean_nonlinear_iterations: 0.0,
         max_nonlinear_iterations: 0,
+    }
+}
+
+fn run_phdae(dt: f64, steps: usize, reference: rattle::State) -> Metrics {
+    let model = phdae::SemiExplicitPendulumDg::new(MASS, LENGTH, [0.0, -GRAVITY])
+        .expect("frozen pHDAE model must be valid");
+    let mut state = phdae::State {
+        position: [
+            LENGTH * INITIAL_ANGLE.sin(),
+            -LENGTH * INITIAL_ANGLE.cos(),
+        ],
+        velocity: [
+            INITIAL_ANGULAR_MOMENTUM / (MASS * LENGTH) * INITIAL_ANGLE.cos(),
+            INITIAL_ANGULAR_MOMENTUM / (MASS * LENGTH) * INITIAL_ANGLE.sin(),
+        ],
+    };
+    let energy0 = model.hamiltonian(state).expect("initial energy must be finite");
+    let mut max_energy_drift = 0.0_f64;
+    let mut max_position = 0.0_f64;
+    let mut max_endpoint_tangent = 0.0_f64;
+    let mut max_midpoint_constraint = 0.0_f64;
+    let mut total_iterations = 0usize;
+    let mut max_iterations = 0usize;
+
+    for _ in 0..steps {
+        let receipt = model
+            .step(state, [0.0, 0.0], dt, phdae::SolverOptions::default())
+            .expect("semi-explicit pHDAE step must converge");
+        state = receipt.after;
+        max_energy_drift = max_energy_drift.max(
+            (receipt.hamiltonian_after - energy0).abs()
+                / energy0.abs().max(f64::MIN_POSITIVE),
+        );
+        max_position = max_position.max(receipt.relative_position_constraint_residual);
+        max_endpoint_tangent =
+            max_endpoint_tangent.max(receipt.endpoint_velocity_constraint_residual.abs());
+        max_midpoint_constraint =
+            max_midpoint_constraint.max(receipt.relative_midpoint_velocity_constraint_residual);
+        total_iterations += receipt.multiplier_iterations;
+        max_iterations = max_iterations.max(receipt.multiplier_iterations);
+    }
+
+    let final_state = rattle::State {
+        position: state.position,
+        momentum: [
+            MASS * state.velocity[0],
+            MASS * state.velocity[1],
+        ],
+    };
+    let final_energy = model.hamiltonian(state).expect("final energy must be finite");
+    Metrics {
+        method: "cartesian_phdae_discrete_gradient",
+        dt,
+        steps,
+        final_state_error: state_error(final_state, reference),
+        final_relative_energy_drift: (final_energy - energy0).abs()
+            / energy0.abs().max(f64::MIN_POSITIVE),
+        max_relative_energy_drift: max_energy_drift,
+        max_relative_position_constraint: max_position,
+        max_absolute_endpoint_tangent_constraint: max_endpoint_tangent,
+        max_relative_midpoint_velocity_constraint: Some(max_midpoint_constraint),
+        mean_nonlinear_iterations: total_iterations as f64 / steps as f64,
+        max_nonlinear_iterations: max_iterations,
     }
 }
 
@@ -285,7 +360,7 @@ fn campaign_csv() -> String {
     let mut output = String::new();
     writeln!(
         &mut output,
-        "method,dt,steps,final_state_error,final_relative_energy_drift,max_relative_energy_drift,max_relative_position_constraint,max_relative_tangent_constraint,mean_nonlinear_iterations,max_nonlinear_iterations"
+        "method,dt,steps,final_state_error,final_relative_energy_drift,max_relative_energy_drift,max_relative_position_constraint,max_absolute_endpoint_tangent_constraint,max_relative_midpoint_velocity_constraint,mean_nonlinear_iterations,max_nonlinear_iterations"
     )
     .expect("writing to String cannot fail");
 
@@ -296,10 +371,11 @@ fn campaign_csv() -> String {
             run_rattle(dt, steps, reference_cartesian),
             run_symplectic_euler(dt, steps, reference_cartesian),
             run_rk4(dt, steps, reference_cartesian),
+            run_phdae(dt, steps, reference_cartesian),
         ] {
             writeln!(
                 &mut output,
-                "{},{:.8},{},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{:.6},{}",
+                "{},{:.8},{},{:.17e},{:.17e},{:.17e},{:.17e},{:.17e},{},{:.6},{}",
                 result.method,
                 result.dt,
                 result.steps,
@@ -307,7 +383,10 @@ fn campaign_csv() -> String {
                 result.final_relative_energy_drift,
                 result.max_relative_energy_drift,
                 result.max_relative_position_constraint,
-                result.max_relative_tangent_constraint,
+                result.max_absolute_endpoint_tangent_constraint,
+                result.max_relative_midpoint_velocity_constraint
+                    .map(|value| format!("{value:.17e}"))
+                    .unwrap_or_else(|| "NA".to_string()),
                 result.mean_nonlinear_iterations,
                 result.max_nonlinear_iterations
             )
@@ -318,82 +397,115 @@ fn campaign_csv() -> String {
 }
 
 fn audit_campaign(csv: &str) -> Result<(), String> {
-    const METHODS: [&str; 4] = [
+    const METHODS: [&str; 5] = [
         "intrinsic_discrete_gradient",
         "cartesian_rattle",
         "symplectic_euler",
         "rk4",
+        "cartesian_phdae_discrete_gradient",
     ];
-    const HEADER: &str = "method,dt,steps,final_state_error,final_relative_energy_drift,max_relative_energy_drift,max_relative_position_constraint,max_relative_tangent_constraint,mean_nonlinear_iterations,max_nonlinear_iterations";
+    const HEADER: &str = "method,dt,steps,final_state_error,final_relative_energy_drift,max_relative_energy_drift,max_relative_position_constraint,max_absolute_endpoint_tangent_constraint,max_relative_midpoint_velocity_constraint,mean_nonlinear_iterations,max_nonlinear_iterations";
 
     let mut lines = csv.lines();
     if lines.next() != Some(HEADER) {
         return Err("unexpected or missing CSV header".to_string());
     }
-    let mut seen = [[false; 4]; 4];
+    let mut seen = [[false; 4]; 5];
     let mut record_count = 0usize;
 
     for (row_index, line) in lines.enumerate() {
+        let line_number = row_index + 2;
         if line.trim().is_empty() {
-            return Err(format!("empty CSV row at line {}", row_index + 2));
+            return Err(format!("empty CSV row at line {line_number}"));
         }
         let columns: Vec<&str> = line.split(',').collect();
-        if columns.len() != 10 {
-            return Err(format!("expected 10 columns at line {}", row_index + 2));
+        if columns.len() != 11 {
+            return Err(format!("expected 11 columns at line {line_number}"));
         }
         let method_index = METHODS
             .iter()
             .position(|method| *method == columns[0])
-            .ok_or_else(|| format!("unknown method at line {}", row_index + 2))?;
+            .ok_or_else(|| format!("unknown method at line {line_number}"))?;
         let dt: f64 = columns[1]
             .parse()
-            .map_err(|_| format!("invalid timestep at line {}", row_index + 2))?;
+            .map_err(|_| format!("invalid timestep at line {line_number}"))?;
         let dt_index = TIME_STEPS
             .iter()
             .position(|expected| (dt - expected).abs() <= 1.0e-10)
-            .ok_or_else(|| format!("unexpected timestep at line {}", row_index + 2))?;
+            .ok_or_else(|| format!("unexpected timestep at line {line_number}"))?;
         if seen[method_index][dt_index] {
-            return Err(format!("duplicate method/timestep at line {}", row_index + 2));
+            return Err(format!("duplicate method/timestep at line {line_number}"));
         }
         let steps: usize = columns[2]
             .parse()
-            .map_err(|_| format!("invalid step count at line {}", row_index + 2))?;
+            .map_err(|_| format!("invalid step count at line {line_number}"))?;
         let expected_steps = (HORIZON / dt).round() as usize;
         if steps != expected_steps {
-            return Err(format!("step count does not match horizon at line {}", row_index + 2));
+            return Err(format!("step count does not match horizon at line {line_number}"));
         }
 
-        let mut metrics = [0.0_f64; 6];
-        for (metric_index, column) in columns[3..9].iter().enumerate() {
+        let mut metrics = [0.0_f64; 5];
+        for (metric_index, column) in columns[3..8].iter().enumerate() {
             let value: f64 = column
                 .parse()
-                .map_err(|_| format!("invalid metric at line {}", row_index + 2))?;
+                .map_err(|_| format!("invalid metric at line {line_number}"))?;
             if !value.is_finite() || value < 0.0 {
-                return Err(format!("non-finite or negative metric at line {}", row_index + 2));
+                return Err(format!("non-finite or negative metric at line {line_number}"));
             }
             metrics[metric_index] = value;
         }
-        let max_iterations: usize = columns[9]
+
+        let midpoint_constraint = if columns[8] == "NA" {
+            None
+        } else {
+            let value: f64 = columns[8]
+                .parse()
+                .map_err(|_| format!("invalid midpoint-constraint metric at line {line_number}"))?;
+            if !value.is_finite() || value < 0.0 {
+                return Err(format!("non-finite or negative midpoint constraint at line {line_number}"));
+            }
+            Some(value)
+        };
+        let midpoint_is_applicable = method_index == 4;
+        if midpoint_constraint.is_some() != midpoint_is_applicable {
+            return Err(format!("midpoint-constraint applicability mismatch at line {line_number}"));
+        }
+
+        let mean_iterations: f64 = columns[9]
             .parse()
-            .map_err(|_| format!("invalid iteration count at line {}", row_index + 2))?;
+            .map_err(|_| format!("invalid mean iteration count at line {line_number}"))?;
+        let max_iterations: usize = columns[10]
+            .parse()
+            .map_err(|_| format!("invalid maximum iteration count at line {line_number}"))?;
+        if !mean_iterations.is_finite()
+            || mean_iterations < 0.0
+            || mean_iterations > max_iterations as f64
+            || max_iterations > 32
+        {
+            return Err(format!("iteration accounting is inconsistent at line {line_number}"));
+        }
+        if (method_index == 2 || method_index == 3) && max_iterations != 0 {
+            return Err(format!("explicit method reports nonlinear iterations at line {line_number}"));
+        }
 
         let final_energy_drift = metrics[1];
         let maximum_energy_drift = metrics[2];
         let position_residual = metrics[3];
-        let tangent_residual = metrics[4];
-        let mean_iterations = metrics[5];
-
+        let endpoint_tangent_residual = metrics[4];
         if final_energy_drift > maximum_energy_drift + 1.0e-14 {
-            return Err(format!("final energy drift exceeds maximum at line {}", row_index + 2));
+            return Err(format!("final energy drift exceeds maximum at line {line_number}"));
         }
-        if position_residual > 1.0e-10 || tangent_residual > 1.0e-10 {
-            return Err(format!("constraint residual exceeds bound at line {}", row_index + 2));
+        if position_residual > 1.0e-10 {
+            return Err(format!("position constraint exceeds bound at line {line_number}"));
         }
-        if mean_iterations > max_iterations as f64 || max_iterations > 32 {
-            return Err(format!("iteration accounting is inconsistent at line {}", row_index + 2));
-        }
-        if (method_index == 2 || method_index == 3) && max_iterations != 0 {
-            return Err(format!("explicit method reports nonlinear iterations at line {}", row_index + 2));
+        if midpoint_is_applicable {
+            if endpoint_tangent_residual > 1.0e-2
+                || midpoint_constraint.unwrap_or(f64::INFINITY) > 1.0e-10
+            {
+                return Err(format!("pHDAE constraint profile exceeds bound at line {line_number}"));
+            }
+        } else if endpoint_tangent_residual > 1.0e-10 {
+            return Err(format!("endpoint tangent constraint exceeds bound at line {line_number}"));
         }
 
         seen[method_index][dt_index] = true;
@@ -401,7 +513,7 @@ fn audit_campaign(csv: &str) -> Result<(), String> {
     }
 
     if record_count != METHODS.len() * TIME_STEPS.len() {
-        return Err(format!("expected 16 result rows, found {record_count}"));
+        return Err(format!("expected 20 result rows, found {record_count}"));
     }
     if seen.iter().any(|method_rows| method_rows.iter().any(|present| !present)) {
         return Err("missing method/timestep pair".to_string());
@@ -421,7 +533,21 @@ mod tests {
     #[test]
     fn independent_report_auditor_rejects_nan_duplicate_and_missing_rows() {
         let good = campaign_csv();
-        let poisoned = good.replacen("intrinsic_discrete_gradient,0.04000000,25,", "intrinsic_discrete_gradient,0.04000000,25,NaN,", 1);
+        let poisoned = good
+            .lines()
+            .enumerate()
+            .map(|(index, line)| {
+                if index == 1 {
+                    let mut columns: Vec<String> =
+                        line.split(',').map(str::to_string).collect();
+                    columns[3] = "NaN".to_string();
+                    columns.join(",")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
         assert!(audit_campaign(&poisoned).is_err());
 
         let mut lines: Vec<&str> = good.lines().collect();
@@ -436,12 +562,13 @@ mod tests {
     #[test]
     fn campaign_contains_all_methods_at_every_matched_step_size() {
         let csv = campaign_csv();
-        assert_eq!(csv.lines().count(), 17);
+        assert_eq!(csv.lines().count(), 21);
         for method in [
             "intrinsic_discrete_gradient",
             "cartesian_rattle",
             "symplectic_euler",
             "rk4",
+            "cartesian_phdae_discrete_gradient",
         ] {
             for dt in TIME_STEPS {
                 let needle = format!("{method},{dt:.8},");
@@ -463,7 +590,36 @@ mod tests {
             let position_residual: f64 = columns[6].parse().unwrap();
             let tangent_residual: f64 = columns[7].parse().unwrap();
             assert!(position_residual < 1.0e-10, "{line}");
-            assert!(tangent_residual < 1.0e-10, "{line}");
+            if columns[0] == "cartesian_phdae_discrete_gradient" {
+                assert!(tangent_residual < 1.0e-2, "{line}");
+                assert!(columns[8].parse::<f64>().unwrap() < 1.0e-10, "{line}");
+            } else {
+                assert!(tangent_residual < 1.0e-10, "{line}");
+                assert_eq!(columns[8], "NA", "{line}");
+            }
+        }
+    }
+
+    #[test]
+    fn phdae_discrete_gradient_preserves_energy_and_reports_endpoint_tangent_tradeoff() {
+        let csv = campaign_csv();
+        let mut endpoint = Vec::new();
+        for line in csv.lines().skip(1) {
+            let columns: Vec<&str> = line.split(',').collect();
+            if columns[0] == "cartesian_phdae_discrete_gradient" {
+                let endpoint_residual: f64 = columns[7].parse().unwrap();
+                let midpoint_residual: f64 = columns[8].parse().unwrap();
+                let energy_drift: f64 = columns[5].parse().unwrap();
+                assert!(midpoint_residual < 1.0e-10, "{line}");
+                assert!(endpoint_residual > 0.0 && endpoint_residual < 1.0e-2, "{line}");
+                assert!(energy_drift < 1.0e-10, "{line}");
+                endpoint.push(endpoint_residual);
+            }
+        }
+        assert_eq!(endpoint.len(), 4);
+        for pair in endpoint.windows(2) {
+            let ratio = pair[0] / pair[1];
+            assert!((3.6..4.4).contains(&ratio), "endpoint residual order: {endpoint:?}");
         }
     }
 

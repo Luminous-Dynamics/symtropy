@@ -2,13 +2,13 @@
 
 **Status:** synthetic numerical comparison; not an engine-wide performance or physical-validation benchmark.  
 **Date:** 2026-10-31  
-**Methods:** intrinsic discrete gradient (#3113), Cartesian RATTLE (#3114), symplectic Euler, RK4.
+**Methods:** intrinsic discrete gradient (#3113), Cartesian RATTLE (#3114), symplectic Euler, RK4, and semi-explicit pHDAE discrete gradient.
 
 ## Why this comparison exists
 
-The intrinsic pendulum and Cartesian RATTLE references have different mathematical structures. Comparing their isolated unit tests would be misleading. This runner applies the same physical parameters, initial condition, final time, and step-size ladder to four methods, then compares all final states in Cartesian position/momentum coordinates.
+The intrinsic pendulum, Cartesian RATTLE and semi-explicit pHDAE references have different mathematical structures. Comparing their isolated unit tests would be misleading. This runner applies the same physical parameters, initial condition, final time, and step-size ladder to five methods, then compares all final states in Cartesian position/velocity coordinates.
 
-The high-resolution RK4 run is an independent trajectory reference. It is not exact truth and is not energy preserving. The discrete-gradient method is assessed for its structure-preserving energy identity; RATTLE is assessed for Cartesian position/tangent constraints and its symplectic energy behavior.
+The high-resolution intrinsic-coordinate RK4 run is an independent trajectory reference. It is not exact truth and is not energy preserving. The intrinsic DG and semi-explicit pHDAE DG are assessed for their discrete energy identities; RATTLE is assessed for Cartesian position/tangent constraints and symplectic energy behavior. The pHDAE method preserves position and its midpoint algebraic velocity constraint, but only approximates the endpoint hidden-velocity constraint; this is measured separately.
 
 ## Frozen problem
 
@@ -29,6 +29,7 @@ The high-resolution RK4 run is an independent trajectory reference. It is not ex
 2. **Cartesian RATTLE:** Cartesian position/momentum state, position multiplier to enforce |q|=L, momentum multiplier to enforce q·p=0, symplectic constrained baseline.
 3. **Symplectic Euler:** canonical kick-drift baseline, inexpensive and first-order.
 4. **RK4:** fixed-step fourth-order trajectory baseline.
+5. **Semi-explicit pHDAE DG:** Cartesian position/velocity/constraint-multiplier formulation based on Kinon et al. (2026); exact discrete position-constraint propagation and discrete power balance, with endpoint velocity residual measured rather than assumed zero.
 
 RATTLE's energy drift is not labeled as physical dissipation. Symplectic Euler and RK4 do not have exact discrete energy receipts. The intrinsic method's energy closure is not used to infer that it will outperform a Cartesian constrained solver on impact, friction, or multibody workloads.
 
@@ -42,12 +43,15 @@ The deterministic CSV reports:
 - final Cartesian state error against the fine RK4 trajectory;
 - final and maximum relative energy drift;
 - maximum relative position-circle residual;
-- maximum relative tangent-momentum residual;
+- maximum absolute endpoint tangent residual (same units and normalization for every method);
+- maximum relative midpoint algebraic velocity-constraint residual for the pHDAE method only (`NA` for other methods);
 - mean and maximum nonlinear iteration count.
 
 No wall-clock numbers are mixed into the deterministic file. Runtime must be measured separately on pinned hardware with repeated independent process invocations and reported with dispersion. That prevents timing noise from breaking exact-output replay and prevents a single unpinned result from becoming a performance claim.
 
 ## Equation-level cross-checks
+
+The fifth method is the semi-explicit pHDAE discrete-gradient step from [Kinon, Morandin & Schulze (2026)](https://doi.org/10.1016/j.apnum.2025.12.006), specialized to a circle constraint and constant gravity. Its exact discrete Jacobian Dg(q0,q1)=(q0+q1)/2 makes position-level drift-off vanish; the algebraic midpoint condition Dg(q0,q1)·vbar=0 makes the constraint reaction do zero discrete work. The paper explicitly cautions that endpoint velocity-level constraints are only approximately satisfied in general (Remark 12), so the runner reports both the midpoint algebraic residual and absolute endpoint q1·v1 residual. The exact scheme, reduction to a scalar multiplier solve, and claim boundary are recorded in docs/research/SEMI_EXPLICIT_PHDAE_PENDULUM_REFERENCE_2026-10-31.md.
 
 An independent numerical prototype of the same frozen equations found:
 
@@ -62,14 +66,26 @@ These values are a prototype-side cross-check, not output from the committed Rus
 
 The earlier independent RATTLE campaign also found position and tangent residuals near roundoff and approximately second-order convergence; the intrinsic method's state-error ratios were approximately 4 under timestep halving. The runner is the next step toward one shared executable record.
 
+A separate equation-level prototype of the pHDAE method gives this additional tradeoff on the same case:
+
+| h (s) | Max absolute endpoint tangent residual | Final Cartesian state error vs 80k-step RK4 | Max relative energy drift |
+|---:|---:|---:|---:|
+| 0.040 | 6.8142e-3 | 1.4793e-2 | 1.49e-15 |
+| 0.020 | 1.6997e-3 | 3.6703e-3 | 1.82e-15 |
+| 0.010 | 4.2469e-4 | 9.1776e-4 | 1.98e-15 |
+| 0.005 | 1.0619e-4 | 2.2945e-4 | 6.12e-15 |
+
+Position and midpoint algebraic velocity residuals are at roundoff scale in the same prototype. Endpoint tangent residual contracts by about four per timestep halving, exactly the behavior the pHDAE formulation predicts for this fixture. These are independent equation-level prototype checks, not results emitted by the committed Rust runner or CI.
+
 ## Interpretation and claim ceiling
 
 This benchmark is useful for mathematical method comparison on a single smooth conservative problem. It cannot establish which engine is fastest or best overall.
 
 The expected tradeoff is deliberately multidimensional:
 
-- intrinsic DG: near-machine energy preservation on a smooth separable Hamiltonian; no Cartesian multiplier;
-- RATTLE: explicit Cartesian constraint handling and symplectic structure; small bounded energy error;
+- intrinsic DG: near-machine energy preservation on a smooth separable Hamiltonian and exact circle geometry by parameterization; no Cartesian multiplier;
+- Cartesian RATTLE: position and endpoint tangent constraints to solver precision, with bounded rather than exact energy error;
+- semi-explicit pHDAE DG: Cartesian position constraint and discrete power balance to solver precision, but an approximate endpoint tangent constraint that converges with h;
 - RK4: high-order trajectory accuracy at sufficient resolution; energy is not exact;
 - symplectic Euler: low computational complexity with lower temporal order and larger energy oscillations.
 
