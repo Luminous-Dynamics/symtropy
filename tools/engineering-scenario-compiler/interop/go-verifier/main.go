@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
+	"webpki.org/jsoncanonicalizer"
 )
 
 func main() {
