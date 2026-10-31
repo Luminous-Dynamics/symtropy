@@ -35,7 +35,8 @@ Per task/replicate/policy, report:
 - admission yield = admitted candidates / all high-fidelity attempts;
 - 2D validated Pareto hypervolume (HV);
 - normalized HV fraction = HV / ((reference_1 - ideal_1) * (reference_2 - ideal_2));
-- HV per total cost and normalized HV per total cost.
+- HV per total cost and normalized HV per total cost;
+- validated HV per attempted high-fidelity aerodynamic condition call, plus its normalized-HV equivalent. Failed condition calls remain in the denominator.
 
 Hypervolume uses a fixed task-specific reference point in minimization space. Only feasible admitted candidates contribute. Dominated points do not inflate the volume. The value is reported separately for every replicate; do not hide task variance behind a single mean.
 
@@ -91,3 +92,6 @@ The budget summary reports total and high-fidelity condition-call attempts, succ
 A six-point HPA evaluation must record six actual condition calls per candidate (or the actual number reached if some calls are never started). A candidate with four successful calls and two failed calls must report attempted=6, succeeded=4. If the solver stops early after a failure, report only the condition calls actually attempted; never infer the planned six as executed.
 
 The synthetic policy known-answer uses six condition calls for each low-fidelity screen and each high-fidelity operation. Per policy it records 30 aerodynamic condition calls total, of which 24 are high-fidelity; one failed high-fidelity operation contributes six attempted and zero successful condition calls. The independent oracle checks those counts. The data are synthetic and do not represent an actual HPA optimization run.
+
+
+The condition-call-efficiency metric uses attempted high-fidelity calls rather than successful calls as its denominator. A solver that fails often should not appear artificially efficient because its failed calls were removed. Interpret alongside condition-call failure rate and validated feasibility.

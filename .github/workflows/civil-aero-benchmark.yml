@@ -299,6 +299,7 @@ jobs:
           test "$(wc -l < /tmp/policy-benchmark-a.csv)" -eq 5
           grep -q "synthetic_policy_benchmark_only tasks=1 replicates=2 policies=2 rows=4 high_fidelity_attempts_per_policy=4 high_fidelity_condition_calls_per_policy=24 high_fidelity_condition_calls_failed_per_policy=6 admitted_candidates_per_policy=2" /tmp/policy-benchmark-a.txt
           python3 scripts/verify-policy-benchmark-independent.py /tmp/policy-benchmark-a.csv
+          grep -q "normalized_hypervolume_per_high_fidelity_condition_call" /tmp/policy-benchmark-a.csv
       - name: Verify unsteady Welch PSD and stationarity with independent DFT oracle
         working-directory: tools/civil-aero-benchmark
         shell: bash

@@ -346,3 +346,6 @@ The aggregate CSV now carries the common cost-unit basis, task-family mapping SH
 ## Multipoint condition-call cost accounting
 
 Each operation ledger row now explicitly records aerodynamic condition calls attempted and successful, separate from operation-level success and separate from normalized cost. Policy scorecards expose total and high-fidelity condition-call counts (including failed calls). This prevents a six-condition objective from being reported as a single equivalent evaluation. The matched-budget cost units remain the total cost authority; call counts are an independent workload metric, not an extra cost charge.
+
+
+The policy scorecard additionally reports raw and normalized validated hypervolume per attempted high-fidelity aerodynamic condition call. The denominator includes failures, complementing (not replacing) normalized total-cost metrics.

@@ -101,6 +101,11 @@ def main() -> int:
               "validated_hypervolume_per_cost")
         close(row["normalized_hypervolume_per_cost"], normalized_hv / expected["cost"],
               "normalized_hypervolume_per_cost")
+        close(row["validated_hypervolume_per_high_fidelity_condition_call"], hv / 24.0,
+              "validated_hypervolume_per_high_fidelity_condition_call")
+        close(row["normalized_hypervolume_per_high_fidelity_condition_call"],
+              normalized_hv / 24.0,
+              "normalized_hypervolume_per_high_fidelity_condition_call")
         require(row["evidence_level"] ==
                 "caller_bound_admission_receipt_scorecard_not_solver_validation",
                 "evidence ceiling missing")

@@ -468,6 +468,8 @@ mod tests {
                         normalized_validated_hypervolume_fraction: score,
                         validated_hypervolume_per_cost: Some(score * 12.5),
                         normalized_hypervolume_per_cost: Some(score / 8.0),
+                        validated_hypervolume_per_high_fidelity_condition_call: Some(score * 100.0 / 9.0),
+                        normalized_hypervolume_per_high_fidelity_condition_call: Some(score / 9.0),
                         evidence_level: "synthetic_policy_scorecard_only",
                     });
                 }
