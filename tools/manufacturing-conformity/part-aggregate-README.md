@@ -19,6 +19,8 @@ Remeasurement creates a new child receipt. The new receipt names the prior recei
 
 ## Scope and provenance
 
+Every required current receipt must also be available as of the aggregate decision timestamp: both measurement time and receipt issue time must be at or before that timestamp. A later remeasurement or later-issued result cannot be used to rewrite an earlier historical disposition; it creates a new current decision at a later time.
+
 Every required current receipt must match the manifest's:
 - part and serial;
 - lot and product revision;
