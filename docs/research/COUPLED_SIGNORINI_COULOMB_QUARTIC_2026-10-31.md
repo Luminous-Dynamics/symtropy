@@ -162,7 +162,7 @@ This existence argument does not prove uniqueness. The independent candidate enu
 - Explicit projective theta = pi check.
 - Independent sticking and separating candidates.
 - Original-equation checks for Signorini complementarity, tangent KKT, Coulomb disk and full kinetic-energy change.
-- Unique, MultipleSolutions and Inconclusive result classes; no arbitrary impulse selection.
+- UniqueWithinTolerance, MultipleSolutions and Inconclusive result classes; no arbitrary impulse selection.
 - Tests for diagonal stick/slip, off-diagonal coupling, separating contact, a three-solution SPD witness, tangent-frame rotation, grazing, invalid matrices, and a deterministic SPD approach panel.
 
 ## Benchmark plan and target gates
