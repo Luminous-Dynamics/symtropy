@@ -89,6 +89,10 @@ The example intentionally does **not** pass the deprecated `--offline` flag. In 
 Before production use, replace every placeholder in the profile, resolve a stable organization-controlled predicate URI, fill the platform-specific Cosign binary digest from the official immutable release asset, provision a current authenticated trusted root, and test the actual workflow certificate identity and issuer. The v3.1.4 `--offline` flag is explicitly deprecated; the profile uses the bundle and local `--trusted-root` mechanism, then requires a network-denied acceptance test. Broad identity regular expressions, `--insecure-ignore-tlog`, `--insecure-ignore-sct`, or `--check-claims=false` are not permitted.
 
 
+### Preflight script checks
+
+The example shell script passed `sh -n`. A local harness with a fake Cosign executable confirmed that the expected argument vector is passed and that a wrong executable digest exits 20 while a wrong trusted-root file digest exits 21. This validates shell syntax, argument wiring and local digest guards only. It did not run Cosign, validate a real Sigstore bundle, authenticate TUF metadata, or verify any signature.
+
 ## Claim ceiling
 
 This v0.1 design supplies schemas, example data and a verification policy. It does not verify signatures, hash files, authenticate the signer, validate Rekor, update TUF roots, or emit a real verified receipt. No cryptographic authenticity claim is made until an exact-byte verifier is implemented and independently tested against frozen positive and negative bundles.
