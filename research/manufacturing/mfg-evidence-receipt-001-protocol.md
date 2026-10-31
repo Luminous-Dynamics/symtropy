@@ -223,6 +223,10 @@ The deprecated `--offline` flag is not used. The v3.1.4 source deprecates it and
 
 The negative panel lists 30 cases across Cosign cryptographic verification, trust-root provisioning, and manufacturing predicate semantics. It is **SPEC_ONLY**: positive and negative signed bundles, expired/rollback TUF metadata and authenticated root-update receipts still need to be generated and frozen before it can be run as an executable suite.
 
+### Preflight script checks
+
+The example shell script passed `sh -n`. A local harness with a fake Cosign executable confirmed that the expected argument vector is passed and that a wrong executable digest exits 20 while a wrong trusted-root file digest exits 21. This validates shell syntax, argument wiring and local digest guards only. It did not run Cosign, validate a real Sigstore bundle, authenticate TUF metadata, or verify any signature.
+
 ## 12. Claim ceiling
 
 Until an implementation verifies exact bytes, signatures, identities, transparency proof and current trust policy, this work is a schema/protocol proposal only. Neither a JSON Schema validation result nor a declared digest is authenticated evidence.
