@@ -475,8 +475,8 @@ impl DynamicOptimizer<'_> {
                 let mut one_entries = Vec::new();
 
                 for entry in &entries {
-                    let transition = self.world.machines[entry.hypothesis_index]
-                        .transitions[action_index]
+                    let transition = self.world.machines[entry.hypothesis_index].transitions
+                        [action_index]
                         .get(entry.physical_state)
                         .ok_or_else(|| {
                             format!(
@@ -568,7 +568,8 @@ impl DynamicOptimizer<'_> {
                         let abstention_probability = probability_zero
                             .checked_mul(zero_candidate.abstention_probability)?
                             .checked_add(
-                                probability_one.checked_mul(one_candidate.abstention_probability)?,
+                                probability_one
+                                    .checked_mul(one_candidate.abstention_probability)?,
                             )?;
                         let identification_probability = probability_zero
                             .checked_mul(zero_candidate.identification_probability)?
@@ -623,7 +624,10 @@ fn prune_frontier(
                 left.campaign_hazard_probability
                     .cmp(&right.campaign_hazard_probability)
             })
-            .then_with(|| left.abstention_probability.cmp(&right.abstention_probability))
+            .then_with(|| {
+                left.abstention_probability
+                    .cmp(&right.abstention_probability)
+            })
             .then_with(|| left.plan.cmp(&right.plan))
     });
 
@@ -699,10 +703,7 @@ fn validate_world(world: &World) -> Result<(), String> {
             "world must contain 1..={MAX_HYPOTHESES} hypotheses with matching priors and machines"
         ));
     }
-    if action_count == 0
-        || action_count > MAX_ACTIONS
-        || world.action_costs.len() != action_count
-    {
+    if action_count == 0 || action_count > MAX_ACTIONS || world.action_costs.len() != action_count {
         return Err(format!(
             "world must contain 1..={MAX_ACTIONS} actions with matching costs"
         ));
@@ -738,7 +739,9 @@ fn validate_world(world: &World) -> Result<(), String> {
             || state_count > MAX_MACHINE_STATES
             || machine.initial_state >= state_count
         {
-            return Err(format!("hypothesis {hypothesis} has an invalid state space"));
+            return Err(format!(
+                "hypothesis {hypothesis} has an invalid state space"
+            ));
         }
         let machine_entries = state_count
             .checked_mul(action_count)
@@ -1023,9 +1026,7 @@ mod tests {
                 ..
             } => {
                 let action_cost = u128::from(world.action_costs[*action_index]);
-                match &world.machines[hypothesis_index].transitions[*action_index]
-                    [physical_state]
-                {
+                match &world.machines[hypothesis_index].transitions[*action_index][physical_state] {
                     Transition::Hazard => Ok(BruteTerminal {
                         cost: action_cost,
                         hazard: true,
@@ -1036,12 +1037,8 @@ mod tests {
                         next_state,
                     } => {
                         let child = if *observation { on_one } else { on_zero };
-                        let mut terminal = brute_replay_one(
-                            child,
-                            world,
-                            hypothesis_index,
-                            *next_state,
-                        )?;
+                        let mut terminal =
+                            brute_replay_one(child, world, hypothesis_index, *next_state)?;
                         terminal.cost = terminal
                             .cost
                             .checked_add(action_cost)
@@ -1056,9 +1053,7 @@ mod tests {
     /// Build the oracle frontier from full tree enumeration and per-hypothesis replay.
     fn brute_force_frontier(world: &World, horizon: usize) -> Vec<Candidate> {
         let mut entries = Vec::new();
-        for (hypothesis_index, prior_mass) in
-            world.prior_weights.iter().copied().enumerate()
-        {
+        for (hypothesis_index, prior_mass) in world.prior_weights.iter().copied().enumerate() {
             if prior_mass > 0 {
                 entries.push(BeliefEntry {
                     hypothesis_id: world.hypothesis_ids[hypothesis_index].clone(),
@@ -1085,9 +1080,7 @@ mod tests {
             let mut abstention_mass = 0_u128;
             let mut false_claim_mass = 0_u128;
 
-            for (hypothesis_index, prior_mass) in
-                world.prior_weights.iter().copied().enumerate()
-            {
+            for (hypothesis_index, prior_mass) in world.prior_weights.iter().copied().enumerate() {
                 if prior_mass == 0 {
                     continue;
                 }
@@ -1115,17 +1108,16 @@ mod tests {
                     false_claim_mass += weight;
                 }
             }
-            assert_eq!(false_claim_mass, 0, "enumerator produced a false exact claim");
+            assert_eq!(
+                false_claim_mass, 0,
+                "enumerator produced a false exact claim"
+            );
 
             let candidate = Candidate {
                 expected_experiment_cost: Rational::new(weighted_cost, total_mass).unwrap(),
                 campaign_hazard_probability: Rational::new(hazard_mass, total_mass).unwrap(),
                 abstention_probability: Rational::new(abstention_mass, total_mass).unwrap(),
-                identification_probability: Rational::new(
-                    identification_mass,
-                    total_mass,
-                )
-                .unwrap(),
+                identification_probability: Rational::new(identification_mass, total_mass).unwrap(),
                 plan,
             };
             let key = (
@@ -1147,8 +1139,7 @@ mod tests {
             let dominated = all.iter().enumerate().any(|(other_index, other)| {
                 other_index != index
                     && other.expected_experiment_cost <= candidate.expected_experiment_cost
-                    && other.campaign_hazard_probability
-                        <= candidate.campaign_hazard_probability
+                    && other.campaign_hazard_probability <= candidate.campaign_hazard_probability
                     && other.abstention_probability <= candidate.abstention_probability
                     && (other.expected_experiment_cost < candidate.expected_experiment_cost
                         || other.campaign_hazard_probability
@@ -1277,7 +1268,10 @@ mod tests {
         let half_value = Rational::new(50, 100).unwrap();
         assert_eq!(half_value, half());
         assert_eq!(half_value.checked_add(half_value).unwrap(), one());
-        assert_eq!(half_value.checked_mul(half_value).unwrap(), Rational::new(1, 4).unwrap());
+        assert_eq!(
+            half_value.checked_mul(half_value).unwrap(),
+            Rational::new(1, 4).unwrap()
+        );
         assert!(Rational::new(1, 0).is_err());
 
         let left = Rational::new(u128::MAX - 1, u128::MAX).unwrap();
@@ -1300,7 +1294,9 @@ mod tests {
         let optimum = point(&result.frontier, 2, zero(), zero());
         assert_eq!(optimum.identification_probability, one());
         match &optimum.policy.nodes[optimum.policy.root] {
-            PolicyNode::Action { action, on_zero, .. } => {
+            PolicyNode::Action {
+                action, on_zero, ..
+            } => {
                 assert_eq!(world.action_ids[*action], "A-condition");
                 match &optimum.policy.nodes[*on_zero] {
                     PolicyNode::Action { action, .. } => {
@@ -1349,14 +1345,28 @@ mod tests {
         .unwrap();
 
         let zero_risk_zero_abstention = result.minimum_cost_under(zero(), zero()).unwrap().unwrap();
-        assert_eq!(zero_risk_zero_abstention.expected_experiment_cost, Rational::from_u64(3));
+        assert_eq!(
+            zero_risk_zero_abstention.expected_experiment_cost,
+            Rational::from_u64(3)
+        );
         assert_eq!(zero_risk_zero_abstention.identification_probability, one());
 
         let half_risk_zero_abstention = result.minimum_cost_under(half(), zero()).unwrap().unwrap();
-        assert_eq!(half_risk_zero_abstention.expected_experiment_cost, Rational::from_u64(1));
-        assert_eq!(half_risk_zero_abstention.campaign_hazard_probability, half());
+        assert_eq!(
+            half_risk_zero_abstention.expected_experiment_cost,
+            Rational::from_u64(1)
+        );
+        assert_eq!(
+            half_risk_zero_abstention.campaign_hazard_probability,
+            half()
+        );
 
-        assert!(result.minimum_cost_under(zero(), Rational::new(1, 2).unwrap()).unwrap().is_some());
+        assert!(
+            result
+                .minimum_cost_under(zero(), Rational::new(1, 2).unwrap())
+                .unwrap()
+                .is_some()
+        );
         assert!(result.minimum_cost_under(zero(), zero()).unwrap().is_some());
     }
 
@@ -1366,15 +1376,27 @@ mod tests {
         let h0 = sim_rel_dynamics_evaluator::HypothesisMachine {
             initial_state: 0,
             transitions: vec![vec![
-                Safe { observation: false, next_state: 1 },
-                Safe { observation: false, next_state: 1 },
+                Safe {
+                    observation: false,
+                    next_state: 1,
+                },
+                Safe {
+                    observation: false,
+                    next_state: 1,
+                },
             ]],
         };
         let h1 = sim_rel_dynamics_evaluator::HypothesisMachine {
             initial_state: 0,
             transitions: vec![vec![
-                Safe { observation: false, next_state: 1 },
-                Safe { observation: true, next_state: 1 },
+                Safe {
+                    observation: false,
+                    next_state: 1,
+                },
+                Safe {
+                    observation: true,
+                    next_state: 1,
+                },
             ]],
         };
         let world = World {
@@ -1387,16 +1409,23 @@ mod tests {
         };
         let result = optimize_stateful_world(
             &world,
-            &SolverConfig { horizon: 2, ..SolverConfig::default() },
+            &SolverConfig {
+                horizon: 2,
+                ..SolverConfig::default()
+            },
         )
         .unwrap();
         let optimum = point(&result.frontier, 4, zero(), zero());
         assert_eq!(optimum.identification_probability, one());
         match &optimum.policy.nodes[optimum.policy.root] {
-            PolicyNode::Action { action, on_zero, .. } => {
+            PolicyNode::Action {
+                action, on_zero, ..
+            } => {
                 assert_eq!(world.action_ids[*action], "pulse");
                 match &optimum.policy.nodes[*on_zero] {
-                    PolicyNode::Action { action: repeated, .. } => {
+                    PolicyNode::Action {
+                        action: repeated, ..
+                    } => {
                         assert_eq!(*repeated, *action);
                     }
                     _ => panic!("expected repeated pulse after the first observation"),
@@ -1491,10 +1520,19 @@ mod tests {
 
         assert_eq!(baseline.frontier.len(), reordered.frontier.len());
         for (left, right) in baseline.frontier.iter().zip(reordered.frontier.iter()) {
-            assert_eq!(left.expected_experiment_cost, right.expected_experiment_cost);
-            assert_eq!(left.campaign_hazard_probability, right.campaign_hazard_probability);
+            assert_eq!(
+                left.expected_experiment_cost,
+                right.expected_experiment_cost
+            );
+            assert_eq!(
+                left.campaign_hazard_probability,
+                right.campaign_hazard_probability
+            );
             assert_eq!(left.abstention_probability, right.abstention_probability);
-            assert_eq!(left.identification_probability, right.identification_probability);
+            assert_eq!(
+                left.identification_probability,
+                right.identification_probability
+            );
         }
         let left = baseline.minimum_cost_under(zero(), zero()).unwrap();
         let right = reordered.minimum_cost_under(zero(), zero()).unwrap();
@@ -1526,13 +1564,18 @@ mod tests {
         };
         let result = optimize_stateful_world(
             &world,
-            &SolverConfig { horizon: 1, ..SolverConfig::default() },
+            &SolverConfig {
+                horizon: 1,
+                ..SolverConfig::default()
+            },
         )
         .unwrap();
         assert!(result.minimum_cost_under(zero(), zero()).unwrap().is_none());
-        assert!(result
-            .minimum_cost_under(Rational::new(2, 1).unwrap(), zero())
-            .is_err());
+        assert!(
+            result
+                .minimum_cost_under(Rational::new(2, 1).unwrap(), zero())
+                .is_err()
+        );
     }
 
     #[test]
@@ -1547,18 +1590,22 @@ mod tests {
             max_states: 1,
             ..SolverConfig::default()
         };
-        assert!(optimize_stateful_world(&world, &state_limited)
-            .unwrap_err()
-            .contains("state budget"));
+        assert!(
+            optimize_stateful_world(&world, &state_limited)
+                .unwrap_err()
+                .contains("state budget")
+        );
 
         let combinations_limited = SolverConfig {
             horizon: 2,
             max_generated_combinations: 1,
             ..SolverConfig::default()
         };
-        assert!(optimize_stateful_world(&world, &combinations_limited)
-            .unwrap_err()
-            .contains("combination budget"));
+        assert!(
+            optimize_stateful_world(&world, &combinations_limited)
+                .unwrap_err()
+                .contains("combination budget")
+        );
 
         let zero_frontier = SolverConfig {
             max_frontier_points: 0,
@@ -1571,9 +1618,11 @@ mod tests {
             max_frontier_points: 2,
             ..SolverConfig::default()
         };
-        assert!(optimize_stateful_world(&risk_frontier_world(), &capped_frontier)
-            .unwrap_err()
-            .contains("frontier budget"));
+        assert!(
+            optimize_stateful_world(&risk_frontier_world(), &capped_frontier)
+                .unwrap_err()
+                .contains("frontier budget")
+        );
 
         let over_horizon = SolverConfig {
             horizon: MAX_POLICY_STEPS + 1,
