@@ -9,7 +9,7 @@ use std::fmt;
 
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 pub const MAX_STRICT_JCS_INPUT_BYTES: usize = 1_048_576;
-pub const MAX_STRICT_JCS_NESTING_DEPTH: usize = 128;
+pub const MAX_STRICT_JCS_NESTING_DEPTH: usize = 127;
 
 
 /// I-JSON excludes Unicode noncharacters from member names and string values.
