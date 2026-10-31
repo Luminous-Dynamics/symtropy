@@ -106,7 +106,7 @@ fn bench_periodic_cell_kinematics(c: &mut Criterion) {
                     .basis_rebase_to(
                         &next_rebased,
                         black_box(&cartesian_2d),
-                        shear,
+                        shear.clone(),
                     )
                     .unwrap(),
             )
