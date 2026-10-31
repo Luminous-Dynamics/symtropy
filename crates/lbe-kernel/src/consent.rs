@@ -189,6 +189,17 @@ impl BilateralConsent {
         Ok(self.status)
     }
 
+    /// Expire a pending proposal once its acceptance deadline has passed.
+    ///
+    /// This is safe to call repeatedly. Accepted, declined, revoked or settled
+    /// proposals are not changed by this method.
+    pub fn expire(&mut self, now: u64) -> ConsentStatus {
+        if self.status == ConsentStatus::Pending && now >= self.expires_at {
+            self.status = ConsentStatus::Expired;
+        }
+        self.status
+    }
+
     /// Revoke pending or mutual consent before settlement.
     ///
     /// Revocation is available to either participant and does not depend on
@@ -363,6 +374,25 @@ mod tests {
         assert_eq!(pair.accept(&a, &digest, 200), Err(ConsentError::Expired));
         assert_eq!(pair.status(), ConsentStatus::Expired);
         assert!(!pair.can_settle());
+    }
+
+    #[test]
+    fn pending_proposal_expires_even_without_an_accept_attempt() {
+        let (mut pair, a, _, digest) = pair();
+        assert_eq!(pair.expire(199), ConsentStatus::Pending);
+        assert_eq!(pair.expire(200), ConsentStatus::Expired);
+        assert_eq!(pair.expire(201), ConsentStatus::Expired);
+        assert_eq!(pair.accept(&a, &digest, 201), Err(ConsentError::Expired));
+    }
+
+    #[test]
+    fn expiry_must_follow_creation() {
+        let a = subject("a");
+        let b = subject("b");
+        assert_eq!(
+            BilateralConsent::new([0; 32], a, b, 20, 20),
+            Err(ConsentError::InvalidExpiry)
+        );
     }
 
     #[test]
