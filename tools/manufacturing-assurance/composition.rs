@@ -610,13 +610,22 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
         let expected_class = expected_node_evidence_class(&node.kind)
             .ok_or_else(|| format!("node kind {} has no evidence class", node.kind))?;
         let subject_id = format!("{}:{}", node.kind, node.id);
-        evidence_for(
+        let node_evidence = evidence_for(
             manifest,
             &node.evidence_id,
             "NODE",
             &subject_id,
             expected_class,
         )?;
+        if node.event_time_utc != "-"
+            && (node.event_time_utc < node_evidence.valid_from_utc
+                || node.event_time_utc > node_evidence.valid_until_utc)
+        {
+            return Err(format!(
+                "node {}:{} event timestamp is outside its evidence validity",
+                node.kind, node.id
+            ));
+        }
         if !used_evidence.insert(node.evidence_id.as_str()) {
             return Err(format!("evidence {} is reused", node.evidence_id));
         }
@@ -695,6 +704,11 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
         if !matches!(edge_evidence.status.as_str(), "VERIFIED" | "SYNTHETIC_ONLY") {
             return Err(format!("edge {} association evidence is not verified", subject_id));
         }
+        if edge_evidence.valid_from_utc > meta.valid_from
+            || edge_evidence.valid_until_utc < meta.valid_until
+        {
+            return Err(format!("edge {} evidence does not cover composition validity", subject_id));
+        }
         if !used_evidence.insert(edge.evidence_id.as_str()) {
             return Err(format!("evidence {} is reused", edge.evidence_id));
         }
@@ -760,6 +774,11 @@ fn audit_manifest(manifest: &Manifest) -> Result<AuditSummary, String> {
         )?;
         if !matches!(interface_evidence.status.as_str(), "VERIFIED" | "SYNTHETIC_ONLY") {
             return Err(format!("interface {} mapping evidence is not verified", interface.id));
+        }
+        if interface_evidence.valid_from_utc > meta.valid_from
+            || interface_evidence.valid_until_utc < meta.valid_until
+        {
+            return Err(format!("interface {} mapping evidence does not cover composition validity", interface.id));
         }
         if !used_evidence.insert(interface.evidence_id.as_str()) {
             return Err(format!("evidence {} is reused", interface.evidence_id));
@@ -1001,6 +1020,46 @@ mod tests {
         let result = audit_text(&input);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("UTC YYYY-MM-DDTHH:MM:SSZ"));
+    }
+
+    #[test]
+    fn rejects_event_timestamp_outside_its_source_evidence_window() {
+        let input = fixture("integrated")
+            .lines()
+            .map(|line| {
+                if line.starts_with("EVIDENCE|ev-node-machine_cycle|") {
+                    let mut fields: Vec<&str> = line.split('|').collect();
+                    fields[10] = "2026-10-15T07:54:59Z";
+                    fields.join("|")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let result = audit_text(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("event timestamp is outside its evidence validity"));
+    }
+
+    #[test]
+    fn rejects_interface_receipt_expired_before_composition_end() {
+        let input = fixture("integrated")
+            .lines()
+            .map(|line| {
+                if line.starts_with("EVIDENCE|ev-interface-01|") {
+                    let mut fields: Vec<&str> = line.split('|').collect();
+                    fields[10] = "2026-10-31T23:59:59Z";
+                    fields.join("|")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let result = audit_text(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("mapping evidence does not cover composition validity"));
     }
 
     #[test]
