@@ -77,7 +77,7 @@ struct Collection {
     profiles: Vec<PixelProfile>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 struct Interval {
     start_s: f64,
     end_s: f64,
