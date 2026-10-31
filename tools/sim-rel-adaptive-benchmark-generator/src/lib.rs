@@ -10,7 +10,7 @@ use sim_rel_joint_stochastic_oracle::{
 };
 use std::collections::BTreeSet;
 
-pub const GENERATOR_VERSION: &str = "sim-rel-018-v0.1.0";
+pub const GENERATOR_VERSION: &str = "sim-rel-018-v0.2.0";
 pub const TASK_HORIZON: usize = 2;
 pub const MAX_TASKS_PER_FAMILY: usize = 128;
 
@@ -151,7 +151,7 @@ pub fn generate_task(family: TaskFamily, seed: u64) -> Result<GeneratedTask, Str
         .minimum_cost_under(Rational::zero(), false_identification_budget, Rational::zero())?
         .cloned();
     if family.requires_identification() != feasible.is_some() {
-        return Err(format!("family {} violates its strict feasibility contract", family.id()));
+        return Err(format!("family {} violates its budget-feasibility contract", family.id()));
     }
 
     let eig = rank_by_one_step_eig(&kernel, &kernel.initial_belief)?;
@@ -249,7 +249,7 @@ pub fn verify_generated_task(task: &GeneratedTask) -> Result<(), String> {
         != receipt.budget_feasible_expected_cost
         || feasible.as_ref().map(|point| point.policy.clone()) != receipt.budget_feasible_policy
     {
-        return Err("strict-feasibility receipt did not replay".into());
+        return Err("budget-feasibility receipt did not replay".into());
     }
 
     let eig = rank_by_one_step_eig(&task.kernel, &task.kernel.initial_belief)?;
@@ -265,7 +265,7 @@ pub fn verify_generated_task(task: &GeneratedTask) -> Result<(), String> {
     }
     let feasible_is_identifiable = feasible.is_some();
     if receipt.family.requires_identification() != feasible_is_identifiable {
-        return Err("task family strict-feasibility contract did not replay".into());
+        return Err("task family budget-feasibility contract did not replay".into());
     }
     if receipt.family.requires_identification()
         && eig.iter().any(|score| score.expected_information_gain_nats.abs() > 1e-12)
