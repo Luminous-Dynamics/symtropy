@@ -202,6 +202,7 @@ struct Report {
     part_id: String,
     lot_id: String,
     operation_id: String,
+    product_family: String,
     policy_id: String,
     policy_revision: String,
     policy_sha256: String,
@@ -240,6 +241,7 @@ fn invalid(request: &Request, reason: &'static str) -> Report {
         part_id: request.manifest.part_id.clone(),
         lot_id: request.manifest.lot_id.clone(),
         operation_id: request.manifest.operation_id.clone(),
+        product_family: request.manifest.product_family.clone(),
         policy_id: request.policy.id.clone(),
         policy_revision: request.policy.revision.clone(),
         policy_sha256: request.policy.source_sha256.clone(),
@@ -470,6 +472,7 @@ fn classify(request: &Request) -> Report {
         part_id: request.manifest.part_id.clone(),
         lot_id: request.manifest.lot_id.clone(),
         operation_id: request.manifest.operation_id.clone(),
+        product_family: request.manifest.product_family.clone(),
         policy_id: request.policy.id.clone(),
         policy_revision: request.policy.revision.clone(),
         policy_sha256: request.policy.source_sha256.clone(),
@@ -502,12 +505,9 @@ fn csv_row(report: &Report, marginal: &Marginal) -> String {
         report.part_id.clone(),
         report.lot_id.clone(),
         report.operation_id.clone(),
-        // Product family and decision context are policy / manifest fields.
-        marginal.part_id.clone(),
-        marginal.lot_id.clone(),
-        marginal.operation_id.clone(),
-        marginal.decision_context_id.clone(),
-        marginal.decision_time_ns.to_string(),
+        report.product_family.clone(),
+        report.decision_context_id.clone(),
+        report.decision_time_ns.to_string(),
         report.policy_id.clone(),
         report.policy_revision.clone(),
         report.policy_sha256.clone(),
@@ -905,6 +905,20 @@ mod tests {
         ], vec!["diameter", "runout"]);
         wrong_scope.policy.product_family = "OTHER".into();
         assert_eq!(classify(&wrong_scope).outcome, Outcome::InvalidInput);
+    }
+
+    #[test]
+    fn joint_csv_header_and_rows_have_identical_fixed_width() {
+        let r = request(vec![
+            fixture_marginal("diameter", 0.9, 0.95),
+            fixture_marginal("runout", 0.8, 0.9),
+        ], vec!["diameter", "runout"]);
+        let report = classify(&r);
+        let header_width = report_csv_header().split(',').count();
+        assert_eq!(header_width, 52);
+        for marginal in &report.marginal_rows {
+            assert_eq!(csv_row(&report, marginal).split(',').count(), header_width);
+        }
     }
 
     #[test]
