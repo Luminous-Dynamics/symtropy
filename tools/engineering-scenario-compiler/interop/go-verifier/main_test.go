@@ -104,6 +104,12 @@ func TestStrictJCSInputEnforcesSizeAndNestingBounds(t *testing.T) {
 	if err := validateStrictJCSInput(tooDeep); err == nil {
 		t.Fatal("expected excessive JSON nesting to be rejected")
 	}
+
+	atLimit := append(bytes.Repeat([]byte{'['}, maxJCSNestingDepth), '0')
+	atLimit = append(atLimit, bytes.Repeat([]byte{']'}, maxJCSNestingDepth)...)
+	if err := validateStrictJCSInput(atLimit); err != nil {
+		t.Fatalf("input at the declared nesting limit was rejected: %v", err)
+	}
 }
 
 func TestStrictJCSInputAcceptsValidSurrogatePairAndNestedValues(t *testing.T) {
