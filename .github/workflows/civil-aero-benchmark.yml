@@ -380,8 +380,8 @@ jobs:
         shell: bash
         run: |
           cargo run --locked --bin optimizer_qualification_demo -- /tmp/optimizer-quality.csv /tmp/optimizer-candidates.csv
-          test "$(wc -l < /tmp/optimizer-quality.csv)" -eq 121
-          test "$(wc -l < /tmp/optimizer-candidates.csv)" -eq 30001
+          test "$(wc -l < /tmp/optimizer-quality.csv)" -eq 181
+          test "$(wc -l < /tmp/optimizer-candidates.csv)" -eq 45001
           grep -q "synthetic_analytic_optimizer_qualification_not_aerodynamic_evidence" /tmp/optimizer-quality.csv
           python3 scripts/verify-optimizer-qualification-independent.py /tmp/optimizer-quality.csv /tmp/optimizer-candidates.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion

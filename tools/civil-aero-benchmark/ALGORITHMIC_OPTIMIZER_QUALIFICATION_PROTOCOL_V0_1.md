@@ -2,16 +2,16 @@
 
 ## Status and evidence ceiling
 
-This lane executes two actual optimization policies on analytic multi-objective functions with known continuous Pareto fronts. It fills a gap left by a result-only scorecard: deterministic mock scorecards are useful for testing accounting, but they do not test whether an optimizer actually searches well.
+This lane executes three actual optimization policies on analytic multi-objective functions with known Pareto fronts, including both connected and disconnected front geometries. It fills a gap left by a result-only scorecard: deterministic mock scorecards are useful for testing accounting, but they do not test whether an optimizer actually searches well.
 
-The lane is intentionally separate from aerodynamic CFD. Its objective evaluations are cheap analytic function calls. Passing it proves implementation and algorithm-qualification behaviour on ZDT1/ZDT2 only. It does not demonstrate airfoil performance, ShapeBench performance, CFD evaluation efficiency, or superiority to state-of-the-art aerospace optimization methods.
+The lane is intentionally separate from aerodynamic CFD. Its objective evaluations are cheap analytic function calls. Passing it proves implementation and algorithm-qualification behaviour on ZDT1/ZDT2/ZDT3 only. It does not demonstrate airfoil performance, ShapeBench performance, CFD evaluation efficiency, or superiority to state-of-the-art aerospace optimization methods.
 
 ## Tasks and known answers
 
 - ZDT1, 30 decision variables in [0,1], objectives: f1=x1; g=1+9*mean(x2..xn); f2=g*(1-sqrt(f1/g)). Its Pareto front has g=1 and f2=1-sqrt(f1).
 - ZDT2 uses the same decision domain and g, with f2=g*(1-(f1/g)^2). Its Pareto front is g=1 and f2=1-f1^2.
 
-Both have analytic two-objective Pareto curves. The report uses reference point (1.1,1.1), the exact continuous-front hypervolume, and a 201-point deterministic reference set for IGD. Hypervolume is normalized by the exact continuous-front value, so a result must lie in [0,1] up to floating-point tolerance.
+All three have analytically described two-objective Pareto fronts. ZDT3 is disconnected into five separated trade-off segments, testing front-preservation and coverage. The report uses reference point (1.1,1.1), the exact continuous-front hypervolume, and a 201-point deterministic reference set for IGD. Hypervolume is normalized by the exact continuous-front value, so a result must lie in [0,1] up to floating-point tolerance.
 
 ## Policies
 
@@ -27,7 +27,7 @@ At each checkpoint, the qualification runner rebuilds the nondominated archive f
 
 The full trace contains the decision vector and objective values for every evaluation. The independent Python oracle recomputes every ZDT objective from the vector, then recomputes the archive, hypervolume, normalized fraction, IGD and mean g for all checkpoints.
 
-The known-answer run uses 30 variables, population 40, 1,000 evaluations per policy/task/seed, checkpoints 100/250/500/1,000 and five seeds. This produces 30 runs, 30,000 total objective evaluations, 120 summary rows and 30,000 candidate trace rows.
+The qualification uses 30 variables, population 40, 1,000 evaluations per policy/task/seed, checkpoints 100/250/500/1,000 and five seeds. Across ZDT1, ZDT2 and disconnected-front ZDT3, this produces 45 runs, 45,000 objective evaluations, 180 summary rows and 45,000 candidate trace rows.
 
 ## Benchmark targets
 
@@ -59,3 +59,8 @@ The ZDT lane is only a deterministic algorithm smoke/qualification suite. ShapeB
 Every summary row records a stable algorithm configuration ID, decision dimension, population size, maximum evaluation budget, and initial-population basis. The configuration IDs are uniform-random-sampling-v0.1, nsga2-sbx15-pm20-pc0.5-v0.1, and gde3-de-rand1-f0.5-cr0.9-v0.1. The NSGA-II-style settings are SBX distribution index 15, polynomial mutation distribution index 20, per-coordinate crossover probability 0.5, and mutation probability 1/dimension. GDE3 uses DE/rand/1 weight 0.5 and binomial crossover rate 0.9.
 
 All policies use the same SplitMix64 seed for a task/replicate, producing identical initial population vectors before algorithm-specific search. Subsequent random streams diverge as the operators consume random values. The independent oracle checks that the initial vectors match across all policies.
+
+
+## Disconnected-front qualification: ZDT3
+
+ZDT3 uses the standard five disjoint non-dominated front intervals. The reference front is sampled at 201 points, allocated as 41/40/40/40/40 points across the five intervals. The hypervolume reference is integrated piecewise: analytic primitive along each Pareto interval, a constant-height rectangle across each disconnected gap, and a final rectangle to the declared reference point (1.1, 1.1). This exposes premature loss of entire Pareto segments that ZDT1/ZDT2's connected fronts cannot reveal.

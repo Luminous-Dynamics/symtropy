@@ -11,7 +11,7 @@ from pathlib import Path
 REFERENCE = (1.1, 1.1)
 CHECKPOINTS = (100, 250, 500, 1000)
 SEEDS = (101, 202, 303, 404, 505)
-TASKS = ("zdt1", "zdt2")
+TASKS = ("zdt1", "zdt2", "zdt3")
 POLICIES = ("uniform_random", "nsga2", "gde3")
 DIMENSIONS = 30
 ALGORITHM_CONFIG_IDS = {
@@ -38,6 +38,11 @@ def objective(task: str, x: list[float]) -> tuple[float, float, float]:
         f2 = g * (1.0 - math.sqrt(ratio))
     elif task == "zdt2":
         f2 = g * (1.0 - ratio * ratio)
+    elif task == "zdt3":
+        f2 = g * (
+            1.0 - math.sqrt(ratio)
+            - ratio * math.sin(10.0 * math.pi * f1)
+        )
     else:
         raise ValueError(f"unknown task {task}")
     return f1, f2, g
@@ -66,23 +71,72 @@ def hypervolume(points: list[tuple[float, float]]) -> float:
     return max(0.0, total)
 
 
+ZDT3_INTERVALS = (
+    (0.0, 0.0830015349),
+    (0.1822287280, 0.2577623634),
+    (0.4093136748, 0.4538821041),
+    (0.6183967944, 0.6525117038),
+    (0.8233317983, 0.8518328654),
+)
+
+
+def zdt3_primitive(x: float) -> float:
+    frequency = 10.0 * math.pi
+    return (
+        (REFERENCE[1] - 1.0) * x
+        + (2.0 / 3.0) * x**1.5
+        - x * math.cos(frequency * x) / frequency
+        + math.sin(frequency * x) / frequency**2
+    )
+
+
+def zdt3_y(x: float) -> float:
+    return 1.0 - math.sqrt(x) - x * math.sin(10.0 * math.pi * x)
+
+
 def exact_hv(task: str) -> float:
-    curve_integral = (REFERENCE[1] - 1.0) + (2.0 / 3.0 if task == "zdt1" else 1.0 / 3.0)
-    return curve_integral + (REFERENCE[0] - 1.0) * REFERENCE[1]
+    if task != "zdt3":
+        curve_integral = (REFERENCE[1] - 1.0) + (2.0 / 3.0 if task == "zdt1" else 1.0 / 3.0)
+        return curve_integral + (REFERENCE[0] - 1.0) * REFERENCE[1]
+
+    area = 0.0
+    for index, (start, end) in enumerate(ZDT3_INTERVALS):
+        if index:
+            previous_end = ZDT3_INTERVALS[index - 1][1]
+            area += (start - previous_end) * (REFERENCE[1] - zdt3_y(previous_end))
+        area += zdt3_primitive(end) - zdt3_primitive(start)
+    last_end = ZDT3_INTERVALS[-1][1]
+    return area + (REFERENCE[0] - last_end) * (REFERENCE[1] - zdt3_y(last_end))
 
 
 def pareto_y(task: str, x: float) -> float:
-    return 1.0 - math.sqrt(x) if task == "zdt1" else 1.0 - x * x
+    if task == "zdt1":
+        return 1.0 - math.sqrt(x)
+    if task == "zdt2":
+        return 1.0 - x * x
+    return zdt3_y(x)
+
+
+def reference_points(task: str) -> list[tuple[float, float]]:
+    if task == "zdt3":
+        counts = (41, 40, 40, 40, 40)
+        points = []
+        for (start, end), count in zip(ZDT3_INTERVALS, counts):
+            for index in range(count):
+                x = start + (end - start) * index / (count - 1)
+                points.append((x, zdt3_y(x)))
+        return points
+    return [(index / 200.0, pareto_y(task, index / 200.0)) for index in range(201)]
 
 
 def igd(task: str, archive: list[tuple[float, float]]) -> float:
     require(bool(archive), "empty archive has infinite IGD")
-    total = 0.0
-    for index in range(201):
-        x = index / 200.0
-        y = pareto_y(task, x)
-        total += min(math.hypot(px - x, py - y) for px, py in archive)
-    return total / 201.0
+    reference = reference_points(task)
+    total = sum(
+        min(math.hypot(px - x, py - y) for px, py in archive)
+        for x, y in reference
+    )
+    return total / len(reference)
 
 
 def load_candidates(path: Path) -> dict[tuple[str, str, int], list[dict]]:

@@ -844,14 +844,14 @@ mod tests {
         let first = evaluate_optimizer_qualification(&config()).expect("valid qualification");
         let second = evaluate_optimizer_qualification(&config()).expect("repeat qualification");
         assert_eq!(first, second);
-        assert_eq!(first.summaries.len(), 2 * 3 * 2 * 3);
-        assert_eq!(first.candidates.len(), 2 * 3 * 2 * 32);
+        assert_eq!(first.summaries.len(), 3 * 3 * 2 * 3);
+        assert_eq!(first.candidates.len(), 3 * 3 * 2 * 32);
         assert!(first.summaries.iter().all(|row| {
             row.actual_evaluations == row.evaluation_budget
                 && row.evidence_level.contains("not_aerodynamic")
                 && row.hypervolume_fraction_of_exact_front <= 1.0 + 1.0e-9
         }));
-        for task in ["zdt1", "zdt2"] {
+        for task in ["zdt1", "zdt2", "zdt3"] {
             for seed in [11, 29] {
                 for policy in ["uniform_random", "nsga2", "gde3"] {
                     let trace = first
