@@ -56,8 +56,11 @@ row-stochastic garbling matrix G such that
 `B[s,y] = sum_z A[s,z] * G[z,y]`
 
 for every state s and output y. `verify_blackwell_dominance` checks this
-identity exactly. It validates a supplied witness; it does not search for one
-or claim to solve a linear feasibility problem.
+identity exactly. The module also has an exact closed-form solver for the
+two-state/two-observation case: it solves the resulting rational 2x2 system,
+handles singular-but-consistent channels, and re-verifies its witness with the
+general checker. It does not search for witnesses for arbitrary channel
+dimensions or claim to solve the general linear-feasibility problem.
 
 This gives a clean nominal experiment-ordering test without conflating the
 mathematical ordering with robustness under misspecification.
