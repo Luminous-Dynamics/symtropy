@@ -901,6 +901,33 @@ mod tests {
     }
 
     #[test]
+    fn tetrahedral_mass_properties_reject_empty_input_invalid_tolerance_and_nonfinite_vertices() {
+        let empty: Vec<([SVector<f64, 3>; 4], f64)> = Vec::new();
+        assert_eq!(
+            BivectorInertia::<3>::from_tetrahedra(empty, 1e-12).unwrap_err(),
+            RotationalInertiaError::InvalidMassProperties
+        );
+
+        let vertices = [
+            SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 0.0, 1.0),
+        ];
+        assert_eq!(
+            BivectorInertia::<3>::from_tetrahedra([(vertices, 1.0)], 0.0).unwrap_err(),
+            RotationalInertiaError::InvalidTolerance
+        );
+
+        let mut invalid_vertices = vertices;
+        invalid_vertices[3][2] = f64::INFINITY;
+        assert_eq!(
+            BivectorInertia::<3>::from_tetrahedra([(invalid_vertices, 1.0)], 1e-12).unwrap_err(),
+            RotationalInertiaError::NonFinite
+        );
+    }
+
+    #[test]
     fn tetrahedral_mass_properties_reject_degenerate_and_invalid_density() {
         let degenerate = [
             SVector::<f64, 3>::new(0.0, 0.0, 0.0),
