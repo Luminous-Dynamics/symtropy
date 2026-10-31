@@ -66,7 +66,7 @@ jobs:
       - name: Verify RFC 8785 and adversarial golden vectors with independent Go
         env:
           GO111MODULE: "off"
-          GOPATH: ${{ runner.temp }}
+          GOPATH: ${{ runner.temp }}/jcs-gopath
         run: |
           cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
           go version
@@ -96,7 +96,7 @@ jobs:
       - name: Independently canonicalize the real typed Scenario IR with Go
         env:
           GO111MODULE: "off"
-          GOPATH: ${{ runner.temp }}
+          GOPATH: ${{ runner.temp }}/jcs-gopath
         run: |
           cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
           go run . \
@@ -130,7 +130,7 @@ jobs:
       - name: Benchmark Go strict preflight and JCS separately on actual typed IR
         env:
           GO111MODULE: "off"
-          GOPATH: ${{ runner.temp }}/jcs-gopath
+          GOPATH: ${{ runner.temp }}/jcs-gopath/jcs-gopath
           JCS_BENCH_INPUT: ${{ github.workspace }}/target/engineering-scenario-compiler-portable-identity/scenario-ir-input.json
         run: |
           cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
