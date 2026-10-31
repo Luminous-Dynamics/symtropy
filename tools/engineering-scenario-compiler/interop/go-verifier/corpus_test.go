@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"webpki.org/jsoncanonicalizer"
@@ -82,6 +83,31 @@ func TestGeneratedCorpusVerifierChecksValidAndRejectPanels(t *testing.T) {
 		summary.FailureCount != 0 ||
 		summary.CaseIDCount != 2 {
 		t.Fatalf("unexpected corpus summary: %+v", summary)
+	}
+	resultsBytes, err := os.ReadFile(resultsPath)
+	if err != nil {
+		t.Fatalf("read result sidecar: %v", err)
+	}
+	resultLines := strings.Split(strings.TrimSpace(string(resultsBytes)), "\n")
+	if len(resultLines) != 2 {
+		t.Fatalf("expected two result rows, got %d", len(resultLines))
+	}
+	var validResult, rejectResult corpusResult
+	if err := json.Unmarshal([]byte(resultLines[0]), &validResult); err != nil {
+		t.Fatalf("parse valid result row: %v", err)
+	}
+	if err := json.Unmarshal([]byte(resultLines[1]), &rejectResult); err != nil {
+		t.Fatalf("parse reject result row: %v", err)
+	}
+	if validResult.ActualClassification != "valid_match" {
+		t.Fatalf("valid row classification was %q", validResult.ActualClassification)
+	}
+	if rejectResult.ActualClassification != "rejected_before_canonicalization" ||
+		rejectResult.ExpectedRejectionClass == nil ||
+		*rejectResult.ExpectedRejectionClass != "duplicate_member_name" ||
+		rejectResult.ActualRejectionStage == nil ||
+		*rejectResult.ActualRejectionStage != "strict_raw_json_preflight" {
+		t.Fatalf("reject row did not separate expected class from observed stage: %+v", rejectResult)
 	}
 }
 
