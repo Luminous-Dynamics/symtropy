@@ -536,4 +536,15 @@ mod schur_reduction_tests {
         );
     }
 
+
+    #[test]
+    fn schur_reduction_refuses_candidates_outside_the_eliminated_contact_disk() {
+        let (w, q) = fixture();
+        let outcome = solve_with_contact_two_sticking(
+            &w, &q, MU_1, 0.01, 1.0e-12,
+        ).unwrap();
+        assert_eq!(outcome.reduced_status, CoupledCoulombStatus::MultipleSolutions);
+        assert!(outcome.candidates.is_empty());
+    }
+
 }
