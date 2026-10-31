@@ -571,10 +571,15 @@ impl BivectorInertia<3> {
             let edge_1 = relative_vertices[1] - relative_vertices[0];
             let edge_2 = relative_vertices[2] - relative_vertices[0];
             let edge_3 = relative_vertices[3] - relative_vertices[0];
-            let edge_scale = edge_1
-                .norm()
-                .max(edge_2.norm())
-                .max(edge_3.norm());
+            let edge_scale = relative_vertices
+                .iter()
+                .enumerate()
+                .flat_map(|(index, vertex)| {
+                    relative_vertices[index + 1..]
+                        .iter()
+                        .map(move |other| (other - vertex).norm())
+                })
+                .fold(0.0_f64, f64::max);
             if !edge_scale.is_finite() || edge_scale <= f64::MIN_POSITIVE {
                 return Err(RotationalInertiaError::DegenerateTetrahedron);
             }
@@ -818,6 +823,25 @@ mod tests {
         assert!(
             (properties.center_of_mass - (offset + SVector::repeat(0.25))).norm() < 1e-3
         );
+    }
+
+    #[test]
+    fn tetrahedral_mass_properties_are_invariant_to_cell_order() {
+        let first = [
+            SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 0.0, 1.0),
+        ];
+        let second = first.map(|vertex| vertex + SVector::new(2.0, 0.5, -0.25));
+        let cells_a = [(first, 6.0), (second, 12.0)];
+        let cells_b = [(second, 12.0), (first, 6.0)];
+        let a = BivectorInertia::<3>::from_tetrahedra(cells_a, 1e-12).unwrap();
+        let b = BivectorInertia::<3>::from_tetrahedra(cells_b, 1e-12).unwrap();
+
+        assert!((a.total_mass - b.total_mass).abs() < 1e-12);
+        assert!((a.center_of_mass - b.center_of_mass).norm() < 1e-12);
+        assert!((a.inertia.second_moment() - b.inertia.second_moment()).norm() < 1e-12);
     }
 
     #[test]
