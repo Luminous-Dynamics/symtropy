@@ -31,3 +31,7 @@ Run formatting, locked unit tests, and strict Clippy using the dedicated workflo
 ## Scope limits
 
 This oracle is intentionally small and exact. It does not implement particle filters, SMC-squared, approximate posterior inference, continuous states, model-family discovery, or physical safety certification. Its purpose is to make stochastic policy correctness auditable on finite cases before comparing scalable methods. Exactness is conditional on the supplied kernel, initial belief, costs, horizon, and policy class; it does not establish that these describe a real specimen or sensor.
+
+## Exact-head formatting and qualification
+
+The dedicated SIM-REL Rust format workflow applies the pinned Rust 1.96.0 formatter to this crate, commits formatter-only changes to the triggering research branch, then checks formatting, locked tests, strict Clippy and the resulting exact head. A run against an older head does not qualify a later formatter commit.
