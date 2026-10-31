@@ -25,11 +25,11 @@ Four campaign families:
 - variance shift: mean 0.5; scales 0.02, 0.02, 0.10, 0.18;
 - combined drift and variance shift.
 
-A mean-span flag occurs when window mean span exceeds 10% of specification width. A variance-shift flag occurs when the largest window sample variance exceeds the first-window sample variance by a factor greater than 3. These are deterministic research thresholds, not universal SPC limits.
+A mean-span flag occurs when the cumulative window-mean range first exceeds 10% of specification width. A variance-shift flag occurs when the running maximum/minimum window sample-variance ratio first exceeds 3, so both upward and downward spread changes can be detected. The receipt also includes first-flag window, adjacent mean changes and each window's variance ratio relative to the first. These are deterministic research thresholds, not universal SPC limits.
 
 ## Evidence contract
 
-Each row binds part, lot, operation, station, instrument, calibration, characteristic, unit, timestamp and source digest. Calibration is required to be valid at each measurement time. The campaign also consumes a qualified MSA state, specification evidence and uncertainty-budget evidence. Incomplete evidence rejects the capability computation rather than generating optimistic indices.
+Each row binds part, lot, operation, station, instrument, calibration, characteristic, unit, timestamp and source digest. Calibration is required to be valid at each measurement time. The campaign also consumes a qualified MSA state, specification evidence and an uncertainty-budget receipt explicitly scoped to the same part, measurand and unit. Calibration, MSA, specification and uncertainty-budget source digests are preserved, as are every measurement ID and measurement-source digest for each window. Incomplete or mismatched evidence rejects the capability computation rather than generating optimistic indices.
 
 ## Build and run
 
