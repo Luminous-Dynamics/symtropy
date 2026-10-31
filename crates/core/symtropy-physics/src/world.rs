@@ -135,6 +135,19 @@ pub enum PhysicsStepPhase {
     ContactSolve,
 }
 
+/// Root cause category for a rejected physics-world step.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PhysicsStepCause {
+    Integration(integrator::IntegrationError),
+    RotationalInertia(crate::inertia::RotationalInertiaError),
+}
+
+impl From<crate::inertia::RotationalInertiaError> for PhysicsStepCause {
+    fn from(error: crate::inertia::RotationalInertiaError) -> Self {
+        Self::RotationalInertia(error)
+    }
+}
+
 /// Structured failure receipt from a rejected physics-world step.
 ///
 /// Body handles identify the affected object(s); the phase distinguishes
@@ -144,7 +157,7 @@ pub struct PhysicsStepError {
     pub phase: PhysicsStepPhase,
     pub body_a: Option<BodyHandle>,
     pub body_b: Option<BodyHandle>,
-    pub cause: crate::inertia::RotationalInertiaError,
+    pub cause: PhysicsStepCause,
 }
 
 #[derive(Clone)]
@@ -627,7 +640,7 @@ impl<const D: usize> PhysicsWorld<D> {
                         phase: PhysicsStepPhase::BodyIntegration,
                         body_a: Some(body.handle),
                         body_b: None,
-                        cause,
+                        cause: PhysicsStepCause::Integration(cause),
                     })?;
             }
         }
@@ -824,7 +837,7 @@ impl<const D: usize> PhysicsWorld<D> {
                         phase: PhysicsStepPhase::ContactWarmStart,
                         body_a: Some(body_a),
                         body_b: Some(body_b),
-                        cause,
+                        cause: cause.into(),
                     })?;
             }
         }
@@ -843,7 +856,7 @@ impl<const D: usize> PhysicsWorld<D> {
                                 phase: PhysicsStepPhase::ContactSolve,
                                 body_a: Some(body_a),
                                 body_b: Some(body_b),
-                                cause,
+                                cause: cause.into(),
                             })?;
                     self.contacts[ci] = updated;
                 }
@@ -2815,7 +2828,10 @@ mod transformed_halfspace_tests {
         assert_eq!(error.phase, PhysicsStepPhase::ContactSolve);
         assert_eq!(error.body_a, Some(floor_handle));
         assert_eq!(error.body_b, Some(block_handle));
-        assert_eq!(error.cause, RotationalInertiaError::SingularInertia);
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::RotationalInertia(RotationalInertiaError::SingularInertia)
+        );
         assert_eq!(world.bodies[1].transform.translation.0, block_position);
         assert_eq!(world.bodies[1].linear_velocity, block_velocity);
         assert_eq!(world.bodies[1].force_accumulator, block_force);
@@ -2917,7 +2933,10 @@ mod transformed_halfspace_tests {
         assert_eq!(error.phase, PhysicsStepPhase::BodyIntegration);
         assert_eq!(error.body_a, Some(second_handle));
         assert_eq!(error.body_b, None);
-        assert_eq!(error.cause, RotationalInertiaError::SingularInertia);
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::RotationalInertia(RotationalInertiaError::SingularInertia)
+        );
         assert_eq!(world.bodies[0].transform.translation.0, first_position);
         assert_eq!(world.bodies[0].linear_velocity, first_velocity);
         assert_eq!(world.bodies[0].force_accumulator, first_force);
