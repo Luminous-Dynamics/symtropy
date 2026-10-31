@@ -356,6 +356,7 @@ mod tests {
         world.body_mut(handle).unwrap().linear_velocity = SVector::from([2.0, 0.0]);
 
         let receipt = world.try_step_with_receipt(0.01).unwrap();
+        assert_eq!(receipt.step_id, 0);
         assert_eq!(receipt.dt, 0.01);
         assert_eq!(receipt.total_body_count, 1);
         assert_eq!(receipt.dynamic_body_count, 1);
