@@ -252,7 +252,6 @@ impl QuadraticPortHamiltonian {
         if dissipated_energy
             < -self.relative_tolerance * balance_scale.max(f64::MIN_POSITIVE)
         {
-        {
             return Err(PortHamiltonianError::NegativeDissipation);
         }
 
