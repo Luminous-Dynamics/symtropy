@@ -19,6 +19,9 @@ Do not invent a new signature format.
 - `schemas/manufacturing-evidence-predicate-v1.schema.json`: JSON Schema for the custom predicate *inside* an in-toto Statement v1.
 - `schemas/verified-evidence-receipt-v1.schema.json`: JSON Schema for the output record produced by a trusted verifier after successful verification.
 - `fixtures/manufacturing-evidence-statement-v1.example.json`: synthetic, unsigned in-toto Statement example. Its subject digests and identity fields are placeholders.
+- `policies/cosign-verify-blob-attestation-v3.1.4.example.json`: pinned CLI verification profile; production identity, predicate URI, binary hash and root snapshot values remain required deployment inputs.
+- `examples/cosign-verify-blob-attestation-preflight.example.sh`: fail-closed binary/root digest preflight plus Cosign verification invocation; does not itself admit the manufacturing predicate.
+- `fixtures/evidence-receipt-negative-panel.tsv`: 30 seeded rejection/abstention cases, explicitly marked specification-only until signed bundles and root metadata are available.
 
 The `example.invalid` predicate/schema URIs are deliberately non-production placeholders. Before issuing real attestations, assign a stable URI controlled by the organization and publish/version the corresponding schema.
 
@@ -66,7 +69,7 @@ The first implementation target is the maintained Cosign CLI, pinned to release 
 - `policies/cosign-verify-blob-attestation-v3.1.4.example.json` defines required identity, issuer, GitHub workflow claims, exact predicate type, trust-root freshness and mandatory post-verification checks.
 - `examples/cosign-verify-blob-attestation-preflight.example.sh` checks the local Cosign executable and trusted-root file against expected SHA-256 values, then invokes the maintained verifier.
 
-The exact release source exposes `verify-blob-attestation` with `--bundle`, `--type`, `--certificate-identity`, `--certificate-oidc-issuer`, GitHub workflow claim filters, `--trusted-root` and `--check-claims`. The command defaults `--check-claims` to true; the profile sets it explicitly. When given the artifact path, the new bundle verification path computes the artifact digest and verifies that digest against the in-toto subject. The command then validates the requested predicate type and returns `Verified OK` on success.
+The exact v3.1.4 release source exposes `verify-blob-attestation` with `--bundle`, `--type`, `--certificate-identity`, `--certificate-oidc-issuer`, `--certificate-github-workflow-repository`, `--certificate-github-workflow-name`, `--certificate-github-workflow-ref`, `--certificate-github-workflow-sha`, `--certificate-github-workflow-trigger`, `--trusted-root` and `--check-claims`. The command defaults `--check-claims` to true; the profile sets it explicitly. When given the artifact path, the new bundle verification path hashes the artifact and verifies that digest against the in-toto subject. It then validates the requested predicate type and returns `Verified OK` on success. The release is [Cosign v3.1.4](https://github.com/sigstore/cosign/releases/tag/v3.1.4), source commit [`0e48502cf5ef34e2e60bbd3617aa19945712f705`](https://github.com/sigstore/cosign/commit/0e48502cf5ef34e2e60bbd3617aa19945712f705).
 
 ### Two distinct acceptance stages
 
@@ -77,13 +80,13 @@ The CLI command itself does not emit the complete manufacturing receipt. Its `Ve
 
 ### Immutable repository identity
 
-Cosign's GitHub workflow repository filter checks the owner/name claim. The signed manufacturing predicate also includes the immutable GitHub repository database ID (`producer.repositoryId`). The post-Cosign semantic gate must compare that signed field to the trusted repository ID in local policy (currently `1263670049` for this repository), so a reused owner/name is not silently treated as the same repository.
+Cosign's GitHub workflow repository filter checks the owner/name claim. The signed manufacturing predicate also includes the immutable GitHub repository database ID (`producer.repositoryId`). The post-Cosign semantic gate must compare that signed field to the trusted repository ID in local policy (currently `1263670049` for this repository), so a reused owner/name is not silently treated as the same repository. The ID is a signed predicate assertion, not a certificate extension: it is meaningful only after Cosign authenticates the bundle and the consumer checks the value against independently trusted repository metadata.
 
 ### Offline operation
 
 The example intentionally does **not** pass the deprecated `--offline` flag. In Cosign v3.1.4 that flag is deprecated; the air-gapped guidance is to supply the signature bundle and a local `--trusted-root` file. The verifier must be run with network egress denied in its offline test. A separate TUF-aware process must authenticate and freshness-check the root snapshot before provisioning it. The preflight script checks the root file digest but does not implement TUF or prove root freshness by itself.
 
-Before production use, replace every placeholder in the profile, resolve a stable organization-controlled predicate URI, fill the platform-specific Cosign binary digest from the official immutable release asset, provision a current authenticated trusted root, and test the actual workflow certificate identity and issuer. Broad identity regular expressions, `--insecure-ignore-tlog`, `--insecure-ignore-sct`, or `--check-claims=false` are not permitted.
+Before production use, replace every placeholder in the profile, resolve a stable organization-controlled predicate URI, fill the platform-specific Cosign binary digest from the official immutable release asset, provision a current authenticated trusted root, and test the actual workflow certificate identity and issuer. The v3.1.4 `--offline` flag is explicitly deprecated; the profile uses the bundle and local `--trusted-root` mechanism, then requires a network-denied acceptance test. Broad identity regular expressions, `--insecure-ignore-tlog`, `--insecure-ignore-sct`, or `--check-claims=false` are not permitted.
 
 
 ## Claim ceiling
