@@ -272,6 +272,29 @@ mod tests {
     }
 
     #[test]
+    fn invariant_drift_carries_mass_property_mismatch_count() {
+        let before = InvariantSnapshot::<3> {
+            dynamic_mass: 1.0,
+            center_of_mass: SVector::zeros(),
+            linear_momentum: SVector::zeros(),
+            kinetic_energy: 0.0,
+            gravitational_potential_energy: 0.0,
+            mechanical_energy: 0.0,
+            max_linear_speed: 0.0,
+            max_angular_speed: 0.0,
+            max_rotation_orthogonality_error: 0.0,
+            max_rotation_determinant_error: 0.0,
+            max_penetration_depth: 0.0,
+            non_finite_body_count: 0,
+            mass_property_mismatch_count: 0,
+        };
+        let mut after = before.clone();
+        after.mass_property_mismatch_count = 2;
+        let drift = before.drift_to(&after);
+        assert_eq!(drift.mass_property_mismatch_count, 2);
+    }
+
+    #[test]
     fn snapshot_detects_known_rotational_inertia_mass_mismatch() {
         use crate::inertia::BivectorInertia;
 
