@@ -93,8 +93,7 @@ impl<const D: usize> BivectorInertia<D> {
         // nalgebra's fixed-size SymmetricEigen requires a ToTypenum bound that
         // an unconstrained const-generic D cannot provide. Decompose through a
         // dynamic matrix, then copy the eigenpairs back into fixed-size storage.
-        let symmetric_dynamic =
-            nalgebra::DMatrix::<f64>::from_fn(D, D, |i, j| symmetric[(i, j)]);
+        let symmetric_dynamic = nalgebra::DMatrix::<f64>::from_fn(D, D, |i, j| symmetric[(i, j)]);
         let eigensystem = nalgebra::linalg::SymmetricEigen::new(symmetric_dynamic);
         let min_eigenvalue = eigensystem
             .eigenvalues
