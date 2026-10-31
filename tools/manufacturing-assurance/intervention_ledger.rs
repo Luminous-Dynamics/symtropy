@@ -73,6 +73,16 @@ struct Execution {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+struct MetricRequirement {
+    id: String,
+    plan_id: String,
+    metric: String,
+    unit: String,
+    acceptable_min: f64,
+    acceptable_max: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 struct Verification {
     id: String,
     plan_id: String,
@@ -103,6 +113,7 @@ struct Manifest {
     checks: Vec<Check>,
     authorities: Vec<Authority>,
     execution: Option<Execution>,
+    requirements: Vec<MetricRequirement>,
     verifications: Vec<Verification>,
     recovery: Option<Recovery>,
 }
@@ -347,6 +358,27 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                 }
                 manifest.execution = Some(execution);
             }
+            "REQUIRE" => {
+                if fields.len() != 7 {
+                    return Err(format!("line {line_number}: REQUIRE requires 6 fields"));
+                }
+                let id = nonempty(fields[1], "REQUIRE id")?;
+                if !identifiers.insert(id.clone()) {
+                    return Err(format!("line {line_number}: duplicate record id {id}"));
+                }
+                let requirement = MetricRequirement {
+                    id,
+                    plan_id: nonempty(fields[2], "REQUIRE plan_id")?,
+                    metric: nonempty(fields[3], "REQUIRE metric")?,
+                    unit: nonempty(fields[4], "REQUIRE unit")?,
+                    acceptable_min: parse_finite(fields[5], "REQUIRE acceptable_min")?,
+                    acceptable_max: parse_finite(fields[6], "REQUIRE acceptable_max")?,
+                };
+                if requirement.acceptable_min > requirement.acceptable_max {
+                    return Err(format!("line {line_number}: REQUIRE acceptance bounds are reversed"));
+                }
+                manifest.requirements.push(requirement);
+            }
             "VERIFY" => {
                 if fields.len() != 11 {
                     return Err(format!("line {line_number}: VERIFY requires 10 fields"));
@@ -447,9 +479,29 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
             // than a parser error so the report preserves the rejected reason.
         }
     }
+    if manifest.requirements.is_empty() {
+        return Err("manifest requires at least one REQUIRE metric".to_string());
+    }
+    let mut required_metrics = BTreeSet::new();
+    for requirement in &manifest.requirements {
+        if requirement.plan_id != plan.id {
+            return Err(format!("REQUIRE {} references another plan", requirement.id));
+        }
+        if !required_metrics.insert(requirement.metric.clone()) {
+            return Err(format!("duplicate required metric {}", requirement.metric));
+        }
+    }
     for verification in &manifest.verifications {
         if verification.plan_id != plan.id {
             return Err(format!("VERIFY {} references another plan", verification.id));
+        }
+        let requirement = manifest.requirements.iter().find(|item| item.metric == verification.metric);
+        match requirement {
+            Some(required)
+                if required.unit == verification.unit
+                    && required.acceptable_min == verification.acceptable_min
+                    && required.acceptable_max == verification.acceptable_max => {}
+            _ => return Err(format!("VERIFY {} does not match a PLAN REQUIRE metric", verification.id)),
         }
     }
     if let Some(recovery) = &manifest.recovery {
@@ -594,6 +646,24 @@ fn assess(manifest: &Manifest) -> Assessment {
         .iter()
         .filter(|verification| verification.stage == "POST_ACTION")
         .collect();
+    let missing_required: Vec<&MetricRequirement> = manifest
+        .requirements
+        .iter()
+        .filter(|requirement| {
+            !post_action.iter().any(|verification| verification.metric == requirement.metric)
+        })
+        .collect();
+    if !missing_required.is_empty() {
+        let mut missing_reasons: Vec<String> = missing_required
+            .iter()
+            .map(|requirement| format!("REQUIRED_POST_ACTION_METRIC_MISSING:{}", requirement.metric))
+            .collect();
+        missing_reasons.sort();
+        return Assessment {
+            state: "ISSUED_UNVERIFIED".to_string(),
+            reasons: missing_reasons,
+        };
+    }
     if post_action.is_empty() {
         if manifest.recovery.is_some() {
             return Assessment {
@@ -784,6 +854,13 @@ fn run_report(input: &str) -> Result<String, String> {
             execution.command_digest
         ));
     }
+    for requirement in &manifest.requirements {
+        output.push_str(&format!(
+            "REQUIRE id={} metric={} unit={} accepted=[{},{}]\n",
+            requirement.id, requirement.metric, requirement.unit,
+            requirement.acceptable_min, requirement.acceptable_max
+        ));
+    }
     for verification in &manifest.verifications {
         let pass = verification.value >= verification.acceptable_min
             && verification.value <= verification.acceptable_max;
@@ -863,6 +940,7 @@ mod tests {
              CHECK|check-interlock|plan-1|INTERLOCK|PASS|2026-10-31T11:52:00Z|{}\n\
              AUTH|auth-1|plan-1|HUMAN|operator-1|machine-7|LINE-1|adjust_feed_rate|2026-10-31T11:53:00Z|2026-10-31T23:00:00Z|GRANTED|{}\n\
              EXEC|exec-1|plan-1|command-1|controller-gateway|{}|2026-10-31T11:55:00Z|2026-10-31T11:55:01Z|ACKNOWLEDGED\n\
+             REQUIRE|req-roughness|plan-1|surface_roughness|um|0.0|2.0\n\
              VERIFY|verify-1|plan-1|POST_ACTION|surface_roughness|1.4|um|0.0|2.0|2026-10-31T11:56:00Z|{}\n",
             HASH_A, HASH_B, HASH_C, HASH_B, HASH_C, HASH_D, HASH_E, HASH_A, HASH_F
         )
@@ -1027,6 +1105,24 @@ mod tests {
             "# VERIFY|verify-1|plan-1|POST_ACTION",
         );
         let report = run_report(&input).unwrap();
+        assert!(report.contains("RESULT state=ISSUED_UNVERIFIED"));
+    }
+
+    #[test]
+    fn every_declared_required_metric_must_be_measured() {
+        let input = valid_manifest().replace(
+            &format!("VERIFY|verify-1|plan-1|POST_ACTION|surface_roughness|1.4|um|0.0|2.0|2026-10-31T11:56:00Z|{}\\n", HASH_F),
+            "",
+        );
+        let input = mutate(
+            input,
+            "PLAN|plan-1|machine-7|LINE-1|adjust_feed_rate",
+            "PLAN|plan-1|machine-7|LINE-1|adjust_feed_rate",
+        );
+        let mut input = input;
+        input.push_str("REQUIRE|req-diameter|plan-1|diameter|mm|9.8|10.2\\n");
+        let report = run_report(&input).unwrap();
+        assert!(report.contains("REQUIRED_POST_ACTION_METRIC_MISSING:diameter"));
         assert!(report.contains("RESULT state=ISSUED_UNVERIFIED"));
     }
 
