@@ -582,10 +582,11 @@ fn add_root(roots: &mut Vec<f64>, root: f64, tolerance: f64) -> Result<(), ()> {
     Ok(())
 }
 
-/// Enumerate real roots by recursively partitioning the real line at roots of
-/// the derivative. Each open partition is monotone; sign-changing intervals
-/// contain one simple root, while stationary points capture even multiplicity.
-/// Floating-point degeneracy and unbounded root ranges fail closed.
+/// Generate simple real-root candidates by partitioning at floating-point
+/// derivative roots and bisecting sign-changing monotone intervals. Any
+/// stationary-point root, rounded-zero midpoint, unresolved close critical
+/// points, or unbounded root range fails closed. Repeated-root multiplicity is
+/// established by the independent exact test oracle, not by this routine.
 fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> {
     if input.is_empty() || !input.iter().all(|x| x.is_finite()) {
         return Err(());
