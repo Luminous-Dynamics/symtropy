@@ -93,6 +93,8 @@ At least two independent evaluators should code process outcomes. Use participan
 | DD4-08 | Connectivity loss or exit makes appeal inaccessible | Offline/accessibility route is tested; safeguard regression blocks action |
 | DD4-09 | Emergency exception remains after expiry | It ceases or receives independently justified renewal |
 | DD4-10 | Formerly correct policy becomes wrong after changed conditions | Evidence update, review and repair occur without rewriting history |
+| DD4-11 | A source corrects, withdraws or reinstates its position | Source authorization, immutable prior versions, accurate active projection and replay parity |
+| DD4-12 | A new hazard or safeguard regression invalidates a prior disposition | Inquiry reopens; old decision remains historical and a new decision is required |
 
 ## 7. Required metrics
 
