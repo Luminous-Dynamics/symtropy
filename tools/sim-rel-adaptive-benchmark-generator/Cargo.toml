@@ -1,0 +1,15 @@
+[package]
+name = "sim-rel-adaptive-benchmark-generator"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Deterministic exact scientific experimental-design benchmark task generator"
+
+[workspace]
+
+[dependencies]
+sim-rel-joint-stochastic-oracle = { path = "../sim-rel-joint-stochastic-oracle" }
+
+[lib]
+path = "src/lib.rs"
