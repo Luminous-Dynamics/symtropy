@@ -6,7 +6,7 @@
 
 use super::{
     ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PosteriorMass,
-    PublicObservation, Rational, filter_one_step,
+    PublicObservation, Rational,
 };
 use std::collections::BTreeSet;
 use std::fmt;
