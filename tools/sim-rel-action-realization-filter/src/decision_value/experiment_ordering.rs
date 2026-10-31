@@ -498,37 +498,6 @@ impl SignedRational {
     }
 }
 
-fn subtract_nonnegative(left: Rational, right: Rational) -> Result<Rational, String> {
-    if left < right {
-        return Err("rational subtraction would be negative".into());
-    }
-    let common = gcd(left.denominator(), right.denominator());
-    let left_scale = right.denominator() / common;
-    let right_scale = left.denominator() / common;
-    let left_numerator = left
-        .numerator()
-        .checked_mul(left_scale)
-        .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
-    let right_numerator = right
-        .numerator()
-        .checked_mul(right_scale)
-        .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
-    let denominator = left
-        .denominator()
-        .checked_mul(left_scale)
-        .ok_or_else(|| "rational subtraction denominator overflow".to_string())?;
-    Rational::new(left_numerator - right_numerator, denominator)
-}
-
-fn gcd(mut left: u128, mut right: u128) -> u128 {
-    while right != 0 {
-        let remainder = left % right;
-        left = right;
-        right = remainder;
-    }
-    left.max(1)
-}
-
 /// Solve Blackwell garbling feasibility exactly for two-state, two-observation
 /// channels. The general verifier remains authoritative and checks the
 /// constructed witness before it is returned.
