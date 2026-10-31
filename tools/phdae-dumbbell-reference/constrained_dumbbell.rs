@@ -822,7 +822,7 @@ mod tests {
         );
 
         let mut off_tangent = initial_state();
-        off_tangent.v2 = add(off_tangent.v2, [0.0, 0.1]);
+        off_tangent.v2 = add(off_tangent.v2, [0.1, 0.0]);
         assert_eq!(
             model
                 .step(
