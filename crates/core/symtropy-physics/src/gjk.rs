@@ -16,7 +16,9 @@ use arrayvec::ArrayVec;
 use nalgebra::SVector;
 use symtropy_math::{Point, Shape, Transform};
 
-use crate::support_map::{TransformedShape, WorldSupportMap};
+use crate::support_map::{
+    NormalizedSupportMap, SupportNormalization, TransformedShape, WorldSupportMap,
+};
 
 /// Maximum GJK iterations before giving up.
 const MAX_ITERATIONS: usize = 64;
@@ -67,6 +69,23 @@ pub fn intersects_transformed<const D: usize>(
 
 /// GJK over arbitrary world-space support maps.
 pub fn intersects_support_maps<const D: usize>(
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
+) -> GjkResult<D> {
+    let normalization = SupportNormalization::for_pair(shape_a, shape_b);
+    let normalized_a: NormalizedSupportMap<'_, D> = normalization.map(shape_a);
+    let normalized_b: NormalizedSupportMap<'_, D> = normalization.map(shape_b);
+    let mut result = intersects_normalized_support_maps(&normalized_a, &normalized_b);
+    for point in &mut result.simplex {
+        *point = normalization.restore_minkowski_point(point);
+    }
+    result
+}
+
+/// Internal GJK kernel. Every support coordinate is dimensionless and has
+/// characteristic pair extent O(1), so its degeneracy/progress tolerances do
+/// not depend on the caller's length unit.
+fn intersects_normalized_support_maps<const D: usize>(
     shape_a: &dyn WorldSupportMap<D>,
     shape_b: &dyn WorldSupportMap<D>,
 ) -> GjkResult<D> {
@@ -630,6 +649,37 @@ mod proptests {
                     result.intersecting,
                 );
             }
+        }
+    }
+
+    fn assert_sphere_pair_scale_invariant<const D: usize>(scale: f64) {
+        let a = Sphere::<D>::new(Point::origin(), scale);
+        let b = Sphere::<D>::new(Point::origin(), scale);
+        let pos_a = SVector::<f64, D>::zeros();
+        let mut pos_b = SVector::<f64, D>::zeros();
+        pos_b[0] = 1.5 * scale;
+        let overlap = intersects(&a, &pos_a, &b, &pos_b);
+        assert!(
+            overlap.intersecting,
+            "D={D}, scale={scale:e}: overlapping spheres were separated"
+        );
+        assert!(overlap.iterations < MAX_ITERATIONS);
+
+        pos_b[0] = 2.5 * scale;
+        let separated = intersects(&a, &pos_a, &b, &pos_b);
+        assert!(
+            !separated.intersecting,
+            "D={D}, scale={scale:e}: separated spheres were intersecting"
+        );
+        assert!(separated.iterations < MAX_ITERATIONS);
+    }
+
+    #[test]
+    fn gjk_intersection_is_invariant_under_length_unit_scaling_2d_3d_4d() {
+        for scale in [1e-12, 1e-6, 1.0, 1e6, 1e12] {
+            assert_sphere_pair_scale_invariant::<2>(scale);
+            assert_sphere_pair_scale_invariant::<3>(scale);
+            assert_sphere_pair_scale_invariant::<4>(scale);
         }
     }
 
