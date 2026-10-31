@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: engineering-scenario-adversarial-corpus-${{ github.sha }}
+  group: engineering-scenario-adversarial-corpus-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -97,7 +97,7 @@ jobs:
       - name: Run independent Go verifier tests and generated corpus
         env:
           GO111MODULE: "off"
-          GOPATH: ${RUNNER_TEMP}/jcs-gopath
+          GOPATH: ${{ runner.temp }}/jcs-gopath
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
@@ -121,7 +121,7 @@ jobs:
       - name: Benchmark strict preflight and JCS across generated payload sizes
         env:
           GO111MODULE: "off"
-          GOPATH: ${RUNNER_TEMP}/jcs-gopath
+          GOPATH: ${{ runner.temp }}/jcs-gopath
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
