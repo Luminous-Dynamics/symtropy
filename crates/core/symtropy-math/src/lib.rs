@@ -32,6 +32,7 @@ pub mod hyperbox;
 pub mod hyperplane;
 pub mod periodic;
 pub mod periodic_lattice;
+pub mod periodic_cell_kinematics;
 pub mod point;
 pub mod rotor;
 pub mod shape;
@@ -48,6 +49,10 @@ pub use hyperplane::Hyperplane;
 pub use periodic::{LatticeOffset, PeriodicBox, PeriodicDomainError, WrappedPoint};
 pub use periodic_lattice::{
     ClosestLatticeImage, PeriodicLattice, PeriodicLatticeError, WrappedLatticePoint,
+};
+pub use periodic_cell_kinematics::{
+    CartesianCellState, FractionalCellState, PeriodicCellKinematics,
+    PeriodicCellKinematicsError, PeriodicCellRemap,
 };
 pub use point::Point;
 pub use rotor::Rotor;
