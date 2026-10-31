@@ -979,12 +979,20 @@ pub fn replay_shared_policy_across_worlds(
     horizon: usize,
 ) -> Result<RobustDecisionFrontierPoint, String> {
     let canonical_worlds = validate_world_family(worlds, nominal_world_id, table, command_costs)?;
-    let initial_beliefs: BeliefVector = canonical_worlds
+    let initial_masses: RawPathMassVector = canonical_worlds
         .iter()
         .map(|world| {
-            let mut belief = world.kernel.initial_belief.clone();
-            belief.sort_by_key(|point| point.state);
-            Some(belief)
+            Some(
+                world
+                    .kernel
+                    .initial_belief
+                    .iter()
+                    .map(|point| RawPathMass {
+                        state: point.state,
+                        mass: point.mass,
+                    })
+                    .collect(),
+            )
         })
         .collect();
     if matches!(plan, DecisionPlan::HazardTerminal) {
@@ -1117,7 +1125,7 @@ fn replay_unnormalized_node(
 
             for observation in observations {
                 let child_plan = branch_map[&observation];
-                let branch_masses: BeliefVector = partitions
+                let branch_masses: RawPathMassVector = partitions
                     .iter()
                     .map(|partition| {
                         partition
@@ -1230,7 +1238,7 @@ fn raw_replay_partitions(
                         Some(
                             next_states
                                 .into_iter()
-                                .map(|(state, mass)| BeliefMass { state, mass })
+                                .map(|(state, mass)| RawPathMass { state, mass })
                                 .collect(),
                         )
                     };
