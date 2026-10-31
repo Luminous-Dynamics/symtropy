@@ -5,6 +5,7 @@
 //! the complete mechanism/process/sensor/apparatus state.
 
 pub mod finite_horizon;
+pub mod robust_finite_horizon;
 
 use super::{
     ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PosteriorMass,
