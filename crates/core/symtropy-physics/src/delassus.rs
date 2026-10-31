@@ -794,6 +794,190 @@ mod tests {
         );
     }
 
+    fn assert_isotropic_contact_wrench_diagonal<const D: usize>() {
+        let bodies = vec![
+            RigidBody::<D>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 2.0),
+            RigidBody::<D>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 2.0),
+        ];
+        let mut normal = SVector::<f64, D>::zeros();
+        normal[0] = 1.0;
+        let row = ContactWrenchRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::zeros(),
+            frame: ContactFrame::<D>::new(normal, 1e-12).unwrap(),
+        };
+        let matrix = assemble_contact_wrench_delassus(&bodies, &[row], 1e-12).unwrap();
+        let coordinate_count = D * (D + 1) / 2;
+        assert_eq!(matrix.nrows(), coordinate_count);
+        assert_eq!(matrix.ncols(), coordinate_count);
+
+        // Two 2 kg unit-radius D-balls give a translational inverse-mass sum
+        // of 1 and an angular inverse-inertia sum of 2 / (4/(D+2)).
+        let angular_diagonal = (D as f64 + 2.0) / 2.0;
+        for coordinate in 0..D {
+            assert!(
+                (matrix[(coordinate, coordinate)] - 1.0).abs() < 1e-10,
+                "D={D}, linear coordinate={coordinate}, diagonal={}",
+                matrix[(coordinate, coordinate)]
+            );
+        }
+        for coordinate in D..coordinate_count {
+            assert!(
+                (matrix[(coordinate, coordinate)] - angular_diagonal).abs() < 1e-10,
+                "D={D}, angular coordinate={coordinate}, diagonal={}",
+                matrix[(coordinate, coordinate)]
+            );
+        }
+        for i in 0..coordinate_count {
+            for j in 0..coordinate_count {
+                if i != j {
+                    assert!(
+                        matrix[(i, j)].abs() < 1e-10,
+                        "D={D}, off-diagonal ({i},{j})={}",
+                        matrix[(i, j)]
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn contact_wrench_delassus_matches_isotropic_analytic_metric_in_2d_3d_4d() {
+        assert_isotropic_contact_wrench_diagonal::<2>();
+        assert_isotropic_contact_wrench_diagonal::<3>();
+        assert_isotropic_contact_wrench_diagonal::<4>();
+    }
+
+    #[test]
+    fn asymmetric_contact_wrench_delassus_is_symmetric_psd_and_coupled() {
+        use crate::body::BodyType;
+        use nalgebra::SMatrix;
+        use symtropy_math::{Sphere, Transform};
+
+        let static_body = RigidBody::<3>::new(
+            BodyHandle(0),
+            BodyType::Static,
+            Transform::identity(),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+            0.0,
+            SVector::zeros(),
+        );
+        let mut dynamic_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        dynamic_body.try_set_rotational_inertia_operator(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.0,
+                SVector::new(1.0, 0.8, 0.6),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let bodies = vec![static_body, dynamic_body];
+        let frame =
+            ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let row = ContactWrenchRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::new(1.0, 0.0, 0.0),
+            frame,
+        };
+
+        let matrix = assemble_contact_wrench_delassus(&bodies, &[row], 1e-12).unwrap();
+        let scale = matrix.norm().max(f64::MIN_POSITIVE);
+        assert!(
+            (&matrix - matrix.transpose()).norm() <= 1e-10 * scale,
+            "contact-wrench metric is not symmetric"
+        );
+        let eigenvalues =
+            nalgebra::linalg::SymmetricEigen::new((&matrix + matrix.transpose()) * 0.5)
+                .eigenvalues;
+        let minimum_eigenvalue = eigenvalues
+            .iter()
+            .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+        assert!(
+            minimum_eigenvalue >= -1e-10 * scale,
+            "contact-wrench metric is not PSD: min eigenvalue={minimum_eigenvalue}"
+        );
+
+        // Coordinate 1 is the first tangent, coordinate 3 the first rolling
+        // direction n∧t. An off-centre tangent impulse creates exactly this
+        // rolling angular response, so the full metric must retain it.
+        assert!(
+            matrix[(1, 3)].abs() > 1e-6,
+            "expected tangent/rolling coupling, got {}",
+            matrix[(1, 3)]
+        );
+    }
+
+    #[test]
+    fn contact_wrench_delassus_is_invariant_to_global_rigid_rotation() {
+        use crate::body::BodyType;
+        use symtropy_math::{Sphere, Transform};
+
+        let mut static_body = RigidBody::<3>::new(
+            BodyHandle(0),
+            BodyType::Static,
+            Transform::identity(),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+            0.0,
+            SVector::zeros(),
+        );
+        let mut dynamic_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        dynamic_body
+            .try_set_rotational_inertia_operator(
+                BivectorInertia::<3>::uniform_solid_ellipsoid(
+                    1.0,
+                    SVector::new(1.0, 0.8, 0.6),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        let frame =
+            ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let row = ContactWrenchRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::new(1.0, 0.0, 0.0),
+            frame,
+        };
+        let reference = assemble_contact_wrench_delassus(&[static_body.clone(), dynamic_body.clone()], &[row.clone()], 1e-12)
+            .unwrap();
+
+        let rotation =
+            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.53);
+        static_body.transform.translation.0 =
+            rotation.rotate_vector(&static_body.transform.translation.0);
+        static_body.transform.rotation =
+            rotation.compose(&static_body.transform.rotation);
+        dynamic_body.transform.translation.0 =
+            rotation.rotate_vector(&dynamic_body.transform.translation.0);
+        dynamic_body.transform.rotation =
+            rotation.compose(&dynamic_body.transform.rotation);
+        let rotated_row = ContactWrenchRow {
+            body_a: row.body_a,
+            body_b: row.body_b,
+            offset_a: rotation.rotate_vector(&row.offset_a),
+            offset_b: rotation.rotate_vector(&row.offset_b),
+            frame: row.frame.rotated_by(&rotation),
+        };
+        let rotated = assemble_contact_wrench_delassus(
+            &[static_body, dynamic_body],
+            &[rotated_row],
+            1e-12,
+        )
+        .unwrap();
+        assert!(
+            (&rotated - reference).norm() < 1e-10,
+            "global rotation changed contact-wrench metric by {}",
+            (&rotated - reference).norm()
+        );
+    }
+
     #[test]
     fn production_single_contact_impulse_matches_delassus_lcp_oracle() {
         use crate::world::PhysicsWorld;
