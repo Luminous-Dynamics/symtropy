@@ -30,8 +30,8 @@ pub enum ConsentStatus {
     Expired,
     /// A participant revoked consent before settlement.
     Revoked,
-    /// The proposal has already settled.
-    AlreadySettled,
+    /// Both parties completed the consent protocol and settlement was recorded.
+    Settled,
 }
 
 /// Errors returned by the bilateral consent state machine.
@@ -204,8 +204,11 @@ impl BilateralConsent {
         if self.status == ConsentStatus::Revoked {
             return Ok(ConsentStatus::Revoked);
         }
-        if matches!(self.status, ConsentStatus::Declined | ConsentStatus::Expired) {
-            return Err(ConsentError::Revoked);
+        match self.status {
+            ConsentStatus::Declined => return Err(ConsentError::AlreadyDeclined),
+            ConsentStatus::Expired => return Err(ConsentError::Expired),
+            ConsentStatus::Settled => return Err(ConsentError::AlreadySettled),
+            ConsentStatus::Pending | ConsentStatus::Accepted | ConsentStatus::Revoked => {}
         }
         self.status = ConsentStatus::Revoked;
         Ok(self.status)
