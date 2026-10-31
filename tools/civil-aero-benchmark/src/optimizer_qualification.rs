@@ -14,6 +14,8 @@ use std::collections::HashSet;
 const REFERENCE_POINT: (f64, f64) = (1.1, 1.1);
 const SBX_ETA: f64 = 15.0;
 const MUTATION_ETA: f64 = 20.0;
+const DIFFERENTIAL_WEIGHT: f64 = 0.5;
+const DIFFERENTIAL_CROSSOVER: f64 = 0.9;
 const IGD_REFERENCE_POINTS: usize = 201;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -142,7 +144,7 @@ pub fn evaluate_optimizer_qualification(
     validate_config(config)?;
 
     let tasks = [AnalyticTask::Zdt1, AnalyticTask::Zdt2];
-    let policies = ["uniform_random", "nsga2"];
+    let policies = ["uniform_random", "nsga2", "gde3"];
     let mut summaries = Vec::with_capacity(
         tasks.len() * policies.len() * config.seeds.len() * config.checkpoints.len(),
     );
@@ -229,12 +231,11 @@ fn run_policy(
     population_size: usize,
     maximum_evaluations: usize,
 ) -> Result<Vec<OptimizerCandidateTrace>, String> {
-    let seed_salt = match policy_id {
-        "uniform_random" => 0xA11C_E001,
-        "nsga2" => 0xA11C_E002,
-        _ => return Err(format!("unknown optimizer policy {policy_id}")),
-    };
-    let mut rng = SplitMix64::new(seed ^ seed_salt);
+    if !matches!(policy_id, "uniform_random" | "nsga2" | "gde3") {
+        return Err(format!("unknown optimizer policy {policy_id}"));
+    }
+    // Common random numbers make the initial population identical across policies.
+    let mut rng = SplitMix64::new(seed);
     let mut trace = Vec::with_capacity(maximum_evaluations);
 
     if policy_id == "uniform_random" {
@@ -252,6 +253,58 @@ fn run_policy(
         let candidate = evaluate_trace(task, policy_id, seed, trace.len() + 1, x)?;
         population.push(individual_from_trace(&candidate));
         trace.push(candidate);
+    }
+
+    if policy_id == "gde3" {
+        while trace.len() < maximum_evaluations {
+            let batch_size = population_size.min(maximum_evaluations - trace.len());
+            let mut competition = Vec::with_capacity(population_size + batch_size);
+            for target_index in 0..batch_size {
+                let donors = distinct_donors(target_index, population.len(), &mut rng);
+                let forced_coordinate = rng.index(dimensions);
+                let mut trial_x = Vec::with_capacity(dimensions);
+                for coordinate in 0..dimensions {
+                    let mutant = population[donors[0]].x[coordinate]
+                        + DIFFERENTIAL_WEIGHT
+                            * (population[donors[1]].x[coordinate]
+                                - population[donors[2]].x[coordinate]);
+                    let use_mutant = coordinate == forced_coordinate
+                        || rng.unit() < DIFFERENTIAL_CROSSOVER;
+                    trial_x.push(if use_mutant {
+                        mutant.clamp(0.0, 1.0)
+                    } else {
+                        population[target_index].x[coordinate]
+                    });
+                }
+                let trial_trace = evaluate_trace(
+                    task,
+                    policy_id,
+                    seed,
+                    trace.len() + 1,
+                    trial_x,
+                )?;
+                let trial = individual_from_trace(&trial_trace);
+                let parent = &population[target_index];
+                if dominates(&trial, parent) {
+                    competition.push(trial);
+                } else if dominates(parent, &trial) {
+                    competition.push(parent.clone());
+                } else {
+                    competition.push(parent.clone());
+                    competition.push(trial);
+                }
+                trace.push(trial_trace);
+            }
+            population = environmental_selection(competition, population_size);
+        }
+        if trace.len() != maximum_evaluations {
+            return Err("GDE3 exceeded or under-ran its declared evaluation budget".to_owned());
+        }
+        return Ok(trace);
+    }
+
+    if policy_id != "nsga2" {
+        return Err(format!("unknown optimizer policy {policy_id}"));
     }
 
     while trace.len() < maximum_evaluations {
@@ -275,6 +328,24 @@ fn run_policy(
         return Err("optimizer exceeded or under-ran its declared evaluation budget".to_owned());
     }
     Ok(trace)
+}
+
+fn distinct_donors(
+    target: usize,
+    population_size: usize,
+    rng: &mut SplitMix64,
+) -> [usize; 3] {
+    let mut donors = [usize::MAX; 3];
+    for position in 0..3 {
+        loop {
+            let candidate = rng.index(population_size);
+            if candidate != target && !donors[..position].contains(&candidate) {
+                donors[position] = candidate;
+                break;
+            }
+        }
+    }
+    donors
 }
 
 fn random_vector(dimensions: usize, rng: &mut SplitMix64) -> Vec<f64> {
@@ -758,8 +829,8 @@ mod tests {
         let first = evaluate_optimizer_qualification(&config()).expect("valid qualification");
         let second = evaluate_optimizer_qualification(&config()).expect("repeat qualification");
         assert_eq!(first, second);
-        assert_eq!(first.summaries.len(), 2 * 2 * 2 * 3);
-        assert_eq!(first.candidates.len(), 2 * 2 * 2 * 32);
+        assert_eq!(first.summaries.len(), 2 * 3 * 2 * 3);
+        assert_eq!(first.candidates.len(), 2 * 3 * 2 * 32);
         assert!(first.summaries.iter().all(|row| {
             row.actual_evaluations == row.evaluation_budget
                 && row.evidence_level.contains("not_aerodynamic")
@@ -767,7 +838,7 @@ mod tests {
         }));
         for task in ["zdt1", "zdt2"] {
             for seed in [11, 29] {
-                for policy in ["uniform_random", "nsga2"] {
+                for policy in ["uniform_random", "nsga2", "gde3"] {
                     let trace = first
                         .candidates
                         .iter()
@@ -784,6 +855,27 @@ mod tests {
                                 .all(|value| (0.0..=1.0).contains(value))
                     }));
                 }
+                let random_initial = first
+                    .candidates
+                    .iter()
+                    .filter(|row| {
+                        row.task_id == task
+                            && row.policy_id == "uniform_random"
+                            && row.seed == seed
+                    })
+                    .take(8)
+                    .map(|row| row.decision_vector.clone())
+                    .collect::<Vec<_>>();
+                let policy_initial = first
+                    .candidates
+                    .iter()
+                    .filter(|row| {
+                        row.task_id == task && row.policy_id == policy && row.seed == seed
+                    })
+                    .take(8)
+                    .map(|row| row.decision_vector.clone())
+                    .collect::<Vec<_>>();
+                assert_eq!(random_initial, policy_initial);
             }
         }
     }

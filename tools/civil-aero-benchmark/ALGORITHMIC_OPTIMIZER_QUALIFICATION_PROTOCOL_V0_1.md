@@ -17,8 +17,9 @@ Both have analytic two-objective Pareto curves. The report uses reference point 
 
 1. uniform_random: independent uniform samples across the full decision cube. Every evaluated vector is retained in the evaluator trace.
 2. nsga2: a compact generational NSGA-II-style implementation with nondominated sorting, crowding-distance selection, binary tournament, simulated binary crossover (SBX), and polynomial mutation. The final partial generation is clipped to the remaining evaluation budget.
+3. gde3: generalized differential evolution 3 using DE/rand/1 mutation, binomial crossover, parent/trial dominance comparison and nondominated/crowding truncation for mutually nondominated parent/trial pairs.
 
-Both policies are assigned identical tasks, seed list, and objective-evaluation checkpoints. They use the same decision dimension and total objective-call budget per seed/task. Failed or invalid evaluations must not be silently counted as successful results; the current deterministic analytic suite fails the run if any objective evaluation is non-finite or out of domain.
+All policies share the same seeded initial population for each task/replicate (common random numbers); their random streams diverge only after the initial design as their search operators consume randomness. All are assigned identical tasks, seed list, and objective-evaluation checkpoints. They use the same decision dimension and total objective-call budget per seed/task. Failed or invalid evaluations must not be silently counted as successful results; the current deterministic analytic suite fails the run if any objective evaluation is non-finite or out of domain.
 
 ## Metrics and fairness
 
@@ -26,7 +27,7 @@ At each checkpoint, the qualification runner rebuilds the nondominated archive f
 
 The full trace contains the decision vector and objective values for every evaluation. The independent Python oracle recomputes every ZDT objective from the vector, then recomputes the archive, hypervolume, normalized fraction, IGD and mean g for all checkpoints.
 
-The known-answer run uses 30 variables, population 40, 1,000 evaluations, checkpoints 100/250/500/1,000 and five seeds. This produces 20 runs, 20,000 total objective evaluations, 80 summary rows and 20,000 candidate trace rows.
+The known-answer run uses 30 variables, population 40, 1,000 evaluations per policy/task/seed, checkpoints 100/250/500/1,000 and five seeds. This produces 30 runs, 30,000 total objective evaluations, 120 summary rows and 30,000 candidate trace rows.
 
 ## Benchmark targets
 

@@ -12,7 +12,7 @@ REFERENCE = (1.1, 1.1)
 CHECKPOINTS = (100, 250, 500, 1000)
 SEEDS = (101, 202, 303, 404, 505)
 TASKS = ("zdt1", "zdt2")
-POLICIES = ("uniform_random", "nsga2")
+POLICIES = ("uniform_random", "nsga2", "gde3")
 DIMENSIONS = 30
 
 
@@ -179,13 +179,13 @@ def main() -> int:
         return 2
     candidates = load_candidates(Path(sys.argv[2]))
     require(
-        sum(len(group) for group in candidates.values()) == 20_000,
-        "expected 20,000 evaluated decision vectors",
+        sum(len(group) for group in candidates.values()) == 30_000,
+        "expected 30,000 evaluated decision vectors",
     )
     aggregate = verify_summaries(Path(sys.argv[1]), candidates)
     print(
         "independent_optimizer_qualification_oracle=pass "
-        "tasks=2 policies=2 seeds=5 checkpoints=4 evaluations=20000"
+        "tasks=2 policies=3 seeds=5 checkpoints=4 evaluations=30000"
     )
     for task in TASKS:
         random_hv = aggregate[(task, "uniform_random")]
