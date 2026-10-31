@@ -24,6 +24,13 @@ pub enum ModelWorldPerturbation {
         left_measurement: usize,
         right_measurement: usize,
     },
+    /// Invert a sensor's measurement labels across every commanded action.
+    /// This models a persistent calibration/sign change, not a one-command fault.
+    SwapSensorCalibration {
+        sensor_state: usize,
+        left_measurement: usize,
+        right_measurement: usize,
+    },
     /// Split readback-bearing outcomes into delivered and missing-readback paths.
     DropReadback {
         command: usize,
@@ -216,6 +223,39 @@ pub fn apply_model_world_perturbation(
                 }
             }
             require_changed(changed, "measurement swap matched no outcomes")?;
+        }
+        ModelWorldPerturbation::SwapSensorCalibration {
+            sensor_state,
+            left_measurement,
+            right_measurement,
+        } => {
+            if *sensor_state >= candidate.kernel.sensor_state_count
+                || *left_measurement >= candidate.kernel.measurement_ids.len()
+                || *right_measurement >= candidate.kernel.measurement_ids.len()
+                || left_measurement == right_measurement
+            {
+                return Err("sensor-calibration swap parameters are outside the source vocabulary".into());
+            }
+            let mut changed = false;
+            for row in &mut candidate.kernel.rows {
+                if row.state.sensor_state != *sensor_state {
+                    continue;
+                }
+                for outcome in &mut row.outcomes {
+                    match outcome.measurement {
+                        Some(value) if value == *left_measurement => {
+                            outcome.measurement = Some(*right_measurement);
+                            changed = true;
+                        }
+                        Some(value) if value == *right_measurement => {
+                            outcome.measurement = Some(*left_measurement);
+                            changed = true;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            require_changed(changed, "sensor-calibration swap matched no outcomes")?;
         }
         ModelWorldPerturbation::DropReadback {
             command,
@@ -780,6 +820,76 @@ mod tests {
         source
     }
 
+    fn instrument_world(id: &str) -> DecisionModelWorld {
+        let mut rows = Vec::new();
+        for hypothesis in 0..2 {
+            let state = LatentState {
+                hypothesis,
+                physical_state: 0,
+                sensor_state: 0,
+                apparatus_state: 0,
+            };
+            rows.push(KernelRow {
+                state,
+                command: 0,
+                outcomes: vec![TransitionOutcome {
+                    probability: Rational::one(),
+                    next_state: state,
+                    realized_action: 0,
+                    readback: Some(0),
+                    measurement: Some(0),
+                    hazard: false,
+                }],
+            });
+            rows.push(KernelRow {
+                state,
+                command: 1,
+                outcomes: vec![TransitionOutcome {
+                    probability: Rational::one(),
+                    next_state: state,
+                    realized_action: 0,
+                    readback: Some(0),
+                    measurement: Some(hypothesis),
+                    hazard: false,
+                }],
+            });
+        }
+        DecisionModelWorld {
+            id: id.into(),
+            kernel: ActionRealizationKernel {
+                hypothesis_ids: vec!["h0".into(), "h1".into()],
+                physical_state_count: 1,
+                sensor_state_count: 1,
+                apparatus_state_count: 1,
+                command_ids: vec!["calibration-probe".into(), "science-read".into()],
+                realized_action_ids: vec!["executed".into()],
+                readback_ids: vec!["ok".into()],
+                measurement_ids: vec!["zero".into(), "one".into()],
+                initial_belief: vec![
+                    BeliefMass {
+                        state: LatentState {
+                            hypothesis: 0,
+                            physical_state: 0,
+                            sensor_state: 0,
+                            apparatus_state: 0,
+                        },
+                        mass: half(),
+                    },
+                    BeliefMass {
+                        state: LatentState {
+                            hypothesis: 1,
+                            physical_state: 0,
+                            sensor_state: 0,
+                            apparatus_state: 0,
+                        },
+                        mass: half(),
+                    },
+                ],
+                rows,
+            },
+        }
+    }
+
     fn table() -> DecisionLossTable {
         DecisionLossTable {
             decision_ids: vec!["claim-h0".into(), "claim-h1".into()],
@@ -880,6 +990,115 @@ mod tests {
         assert_eq!(report.baseline_worst_case_total_loss, Rational::new(1, 10).unwrap());
         assert_eq!(report.attempted, 1);
         assert_eq!(report.witnesses.len(), 1);
+    }
+
+    #[test]
+    fn plan_attack_expand_replan_recovers_from_sensor_calibration_inversion() {
+        let nominal = instrument_world("nominal");
+        let table = table();
+        let protocol = ObservationProtocol::fully_observed();
+        let costs = vec![Rational::new(1, 10).unwrap(), Rational::new(1, 20).unwrap()];
+        let budgets = DecisionBudgets {
+            max_hazard_probability: Rational::zero(),
+            max_abstention_probability: Rational::one(),
+        };
+        let nominal_result =
+            super::super::finite_horizon::optimize_finite_horizon_decisions(
+                &nominal.kernel,
+                &table,
+                protocol,
+                &costs,
+                Rational::one(),
+                &super::super::finite_horizon::DecisionSolverConfig {
+                    horizon: 1,
+                    max_memo_states: 20_000,
+                    max_frontier_points: 20_000,
+                    max_generated_combinations: 200_000,
+                },
+            )
+            .unwrap();
+        let nominal_policy = nominal_result
+            .minimum_loss_under(budgets)
+            .unwrap()
+            .unwrap()
+            .plan
+            .clone();
+        assert!(matches!(
+            &nominal_policy,
+            DecisionPlan::Experiment { command: 1, .. }
+        ));
+
+        let report = search_policy_counterexamples(
+            &[nominal.clone()],
+            "nominal",
+            &table,
+            protocol,
+            &costs,
+            Rational::one(),
+            &nominal_policy,
+            1,
+            budgets,
+            &[spec(
+                "sensor-inverted",
+                ModelWorldPerturbation::SwapSensorCalibration {
+                    sensor_state: 0,
+                    left_measurement: 0,
+                    right_measurement: 1,
+                },
+            )],
+        )
+        .unwrap();
+        let witness = report.strongest_counterexample().unwrap();
+        assert_eq!(
+            witness.outcome.class(),
+            CounterexampleClass::DecisionLossAmplified
+        );
+        match &witness.outcome {
+            CounterexampleOutcome::DecisionLossAmplified { metrics, .. } => {
+                assert_eq!(metrics.expected_terminal_loss, Rational::one());
+            }
+            _ => panic!("sensor inversion should invalidate nominal decision quality"),
+        }
+
+        // Admit the immutable, validated counterexample explicitly and re-plan.
+        let expanded_family = vec![nominal, witness.candidate_world.clone()];
+        let robust = super::super::robust_finite_horizon::optimize_shared_policy_decisions(
+            &expanded_family,
+            "nominal",
+            &table,
+            protocol,
+            &costs,
+            Rational::one(),
+            &super::super::finite_horizon::DecisionSolverConfig {
+                horizon: 2,
+                max_memo_states: 20_000,
+                max_frontier_points: 20_000,
+                max_generated_combinations: 200_000,
+            },
+        )
+        .unwrap();
+        let replanned = robust
+            .minimum_worst_case_total_loss_under(budgets)
+            .unwrap()
+            .unwrap();
+        assert_eq!(replanned.worst_case_terminal_loss(), Rational::zero());
+        assert_eq!(
+            replanned.worst_case_total_loss().unwrap(),
+            Rational::new(3, 20).unwrap()
+        );
+
+        let replay = replay_shared_policy_across_worlds(
+            &expanded_family,
+            "nominal",
+            &table,
+            protocol,
+            &costs,
+            Rational::one(),
+            &replanned.plan,
+            2,
+        )
+        .unwrap();
+        assert_eq!(replay.per_world, replanned.per_world);
     }
 
     #[test]
