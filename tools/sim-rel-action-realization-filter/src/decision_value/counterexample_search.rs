@@ -783,7 +783,10 @@ fn emit_grid_candidate(
         .checked_add(1)
         .ok_or_else(|| "candidate ID counter overflow".to_string())?;
     let candidate_world_id = format!("sim-rel-029-generated-{ordinal:08}");
-    if world_ids.contains(candidate_world_id.as_str()) {
+    if world_ids
+        .iter()
+        .any(|world_id| *world_id == candidate_world_id.as_str())
+    {
         return Err("generated candidate ID collides with a source world".into());
     }
     match apply_model_world_perturbation(source, &candidate_world_id, &perturbation) {
