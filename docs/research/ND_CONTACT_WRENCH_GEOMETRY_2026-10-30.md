@@ -1,6 +1,6 @@
 # N-dimensional contact-wrench geometry
 
-**Date:** 2026-10-30
+**Date:** 2026-10-31
 **Status:** research proposal; no 3D/4D torsional or rolling solver implementation claimed.
 **Context:** Symtropy's generalized velocity is translational velocity plus a bivector angular state.
 
@@ -126,6 +126,7 @@ The branch now contains a first reference implementation in `symtropy-physics::c
 - `ContactWrenchFrictionLimits` records separate tangential, rolling and torsional coefficients with explicit rolling/torsional characteristic lengths. Its fields are private and validated by the constructor and again at use.
 - `ContactWrenchImpulse<D>` checks normal non-attraction, tangent orthogonality, dimensions, and each separate friction bound; it can reconstruct the angular impulse bivector from rolling and torsional coordinates.
 - `ContactWrenchImpulse<D>::validate_ellipsoidal_friction_budget` exposes a *separate coupled model* with squared normalized tangential, rolling and torsional usage summing to at most one. The original `validate` remains an independent-channel/product-of-bounds model; the API deliberately does not pretend these two constitutive sets are equivalent.
+- The coupled budget has explicit zero-bound semantics: a channel with zero coefficient may only carry zero impulse. The regression matrix verifies the independent model accepts three simultaneously saturated channels while the coupled ellipsoid rejects them, and verifies a feasible interior point.
 
 Source-level tests cover dimensions 2/3/4/5, all independent bivector coordinates, orthogonality and reconstruction, coordinate-axis/near-axis normals, common rotations, transported-frame coordinate continuity, antipodal transport, 3D/4D wrench bounds, negative controls and SI-to-centimetre length-unit conversion. This is a geometric/feasibility layer, not a contact solver: neither validation mode computes an impulse, couples wrench coordinates through the Delassus metric, enforces maximum dissipation, or integrates the contact into production.
 
@@ -174,6 +175,12 @@ These are explicit alternatives, not an assertion that either one is the unique 
 - No friction impulse for an open/separating contact under the declared hard-contact model.
 - Increasing the contact-patch discretization must converge in net wrench and work, not merely look visually stable.
 - Negative controls for zero/negative radii, non-finite coefficients, rank-deficient contact metrics and impossible constitutive parameters.
+
+## Industry benchmark refresh (2026-10-31)
+
+The immediate 3D contact baselines now include MuJoCo 3.17.0, Rapier 0.35.3, PhysX 5.8, Newton and the 2026 ComFree-Sim preprint. For GPU scale, Dimforge's Nexus 0.7.0 / Physmark workload suite is the most relevant new Rust comparison: it separates rigid-body piles, many parallel robotics environments and MPM; the Q3 report publishes a 505,000-body pyramid at about 14 ms/frame on an RTX 5080 (vendor-reported, scene-specific). These are not direct validations of Symtropy's N-D contact law. The comparison programme adopts the workload families, pins the exact scene/backends/hardware, and adds the additional geometric and work residuals required for N-dimensional mechanics.
+
+Primary links: [MuJoCo 3.17](https://github.com/google-deepmind/mujoco/releases/tag/3.17.0), [Dimforge Q3 report](https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/), [Physmark](https://github.com/dimforge/physmark), [ComFree-Sim preprint](https://arxiv.org/abs/2603.12185).
 
 ## Where this can compete
 
