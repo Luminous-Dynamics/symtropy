@@ -337,6 +337,13 @@ mod tests {
         let depth = MAX_STRICT_JCS_NESTING_DEPTH + 1;
         let too_deep = format!("{}0{}", "[".repeat(depth), "]".repeat(depth));
         assert!(parse_strict_jcs_input(too_deep.as_bytes()).is_err());
+
+        let at_limit = format!(
+            "{}0{}",
+            "[".repeat(MAX_STRICT_JCS_NESTING_DEPTH),
+            "]".repeat(MAX_STRICT_JCS_NESTING_DEPTH)
+        );
+        assert!(parse_strict_jcs_input(at_limit.as_bytes()).is_ok());
     }
 
     #[test]
