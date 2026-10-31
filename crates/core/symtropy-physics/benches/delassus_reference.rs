@@ -7,9 +7,10 @@ use nalgebra::{DVector, Matrix2, SVector};
 use symtropy_math::{Bivector, Point, Rotor};
 use symtropy_physics::{
     BivectorInertia, BodyHandle, ContactFrame, ContactWrenchFrictionLimits,
-    ContactWrenchImpulse, ContactWrenchRow, FrictionlessContactRow, RigidBody,
+    ContactAdjointError, ContactWrenchImpulse, ContactWrenchRow, FrictionlessContactRow, RigidBody,
     assemble_contact_wrench_delassus, assemble_contact_wrench_free_velocity,
-    assemble_delassus, solve_frictionless_lcp, solve_planar_friction_cone,
+    assemble_delassus, differentiate_fixed_active_set_lcp, solve_frictionless_lcp,
+    solve_planar_friction_cone,
 };
 
 fn fixture(
@@ -279,12 +280,62 @@ fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
     });
 }
 
+fn bench_implicit_contact_adjoint(c: &mut Criterion) {
+    let mut group = c.benchmark_group("implicit_contact_adjoint_asymmetric_3d");
+    for row_count in [1_usize, 2, 4, 8] {
+        let (_, _, matrix, q) = fixture(row_count);
+        let solution = solve_frictionless_lcp(&matrix, &q, 1e-10)
+            .expect("constructed feasible LCP for adjoint benchmark");
+        let matrix_derivative = nalgebra::DMatrix::identity(row_count, row_count) * 0.01;
+        let q_derivative = DVector::zeros(row_count);
+        let objective_gradient = DVector::from_element(row_count, 1.0);
+        let result = differentiate_fixed_active_set_lcp(
+            &matrix,
+            &q,
+            &solution,
+            &matrix_derivative,
+            &q_derivative,
+            &objective_gradient,
+            0.0,
+            1e-10,
+            1e-10,
+            1e-12,
+        );
+        assert!(
+            matches!(result, Ok(_) | Err(ContactAdjointError::IllConditionedActiveBlock)),
+            "unexpected adjoint fixture rejection: {result:?}"
+        );
+        group.bench_with_input(
+            BenchmarkId::new("active_rows", row_count),
+            &row_count,
+            |bench, _| {
+                bench.iter(|| {
+                    black_box(differentiate_fixed_active_set_lcp(
+                        black_box(&matrix),
+                        black_box(&q),
+                        black_box(&solution),
+                        black_box(&matrix_derivative),
+                        black_box(&q_derivative),
+                        black_box(&objective_gradient),
+                        0.0,
+                        1e-10,
+                        1e-10,
+                        1e-12,
+                    ))
+                });
+            },
+        );
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_delassus_assembly,
     bench_contact_wrench_assembly,
     bench_contact_wrench_free_velocity,
     bench_reference_lcp,
+    bench_implicit_contact_adjoint,
     bench_planar_friction_cone,
     bench_nd_contact_frame_and_wrench,
 );
