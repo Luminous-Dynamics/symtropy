@@ -1,0 +1,128 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "surface-roughness-report.json",
+      "digest": {
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    }
+  ],
+  "predicateType": "https://example.invalid/predicates/manufacturing-evidence/v1",
+  "predicate": {
+    "schemaVersion": "1.0.0",
+    "evidenceClass": "PROCESS_MEASUREMENT",
+    "evidenceTier": "T0",
+    "scope": {
+      "site": "synthetic-site",
+      "asset": "machine-7",
+      "line": "LINE-1",
+      "lot": "SYNTHETIC-LOT"
+    },
+    "validity": {
+      "issuedAt": "2026-10-31T12:00:00Z",
+      "validFrom": "2026-10-31T11:00:00Z",
+      "validUntil": "2026-11-01T00:00:00Z",
+      "assessmentAt": "2026-10-31T12:00:00Z"
+    },
+    "producer": {
+      "principal": "example-ci-workload",
+      "identityPolicyId": "example-policy-v1",
+      "organization": "example-org",
+      "workflow": "https://example.invalid/workflows/manufacturing-assurance",
+      "workflowRef": "refs/heads/example",
+      "repository": "example/repository",
+      "sourceRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "run": {
+      "invocationId": "synthetic-run-0001",
+      "startedAt": "2026-10-31T11:50:00Z",
+      "finishedAt": "2026-10-31T11:55:00Z",
+      "sourceRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "command": "synthetic fixture replay",
+      "workflowRunId": "example-run-1",
+      "host": "synthetic-runner",
+      "toolchain": [
+        {
+          "name": "synthetic-reference",
+          "version": "0.1.0",
+          "buildDigest": "2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ]
+    },
+    "materials": [
+      {
+        "role": "RAW_MEASUREMENT",
+        "name": "raw-measurement.json",
+        "digest": {
+          "sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "evidenceClass": "SYNTHETIC",
+        "scope": "LINE-1",
+        "uri": "https://example.invalid/data/raw-measurement.json"
+      },
+      {
+        "role": "CALIBRATION",
+        "name": "calibration-record.json",
+        "digest": {
+          "sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+        },
+        "evidenceClass": "SYNTHETIC",
+        "scope": "machine-7"
+      }
+    ],
+    "measurement": {
+      "quantity": "surface_roughness",
+      "unit": "um",
+      "instrumentId": "synthetic-reference-meter",
+      "channel": "CH-01",
+      "rawDataSubject": "raw-measurement.json",
+      "calibrationSubjects": [
+        "calibration-record.json"
+      ],
+      "sampleInterval": "synthetic-four-sample-window",
+      "uncertainty": {
+        "representation": "STANDARD_UNCERTAINTY",
+        "value": 0.1,
+        "unit": "um",
+        "coverageFactor": 1,
+        "confidenceLevel": 0.68
+      },
+      "transformations": [
+        {
+          "name": "synthetic-normalization",
+          "version": "1.0",
+          "digest": "5555555555555555555555555555555555555555555555555555555555555555"
+        }
+      ]
+    },
+    "assessment": {
+      "status": "PASS",
+      "policyVersion": "example-policy-v1",
+      "metrics": [
+        {
+          "name": "surface_roughness",
+          "value": 1.4,
+          "unit": "um",
+          "expected": "0 <= x <= 2 um",
+          "result": "PASS",
+          "uncertainty": 0.1
+        }
+      ],
+      "claims": [
+        "synthetic-measurement-admitted"
+      ],
+      "assumptions": [
+        "ambient boundary fixed in synthetic fixture"
+      ],
+      "defeaters": [],
+      "limitations": [
+        "Synthetic example only; not calibrated physical data."
+      ]
+    },
+    "claimCeiling": [
+      "T0 synthetic fixture only",
+      "No real metrology traceability or plant validity claim."
+    ]
+  }
+}
