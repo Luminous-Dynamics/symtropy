@@ -119,4 +119,6 @@ jobs:
             tools/engineering-scenario-compiler/src/lib.rs
             tools/engineering-scenario-compiler/src/main.rs
             tools/engineering-scenario-compiler/benches/compile_latency.rs
+            tools/engineering-scenario-compiler/interop/golden/
+            tools/engineering-scenario-compiler/interop/go-verifier/
           if-no-files-found: error
