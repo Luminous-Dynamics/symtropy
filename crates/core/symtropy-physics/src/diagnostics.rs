@@ -89,6 +89,18 @@ pub struct InvariantDrift<const D: usize> {
     pub mass_property_mismatch_count: usize,
 }
 
+/// Energy channels not yet fully attributed by the current discrete ledger.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UnmodeledEnergyChannel {
+    RotationalTorqueAndAngularDamping,
+    JointAndMotorWork,
+    ConstraintStabilizationAndCompliance,
+    CcdAndPositionCorrection,
+    PrescribedKinematicAndStaticBoundaryWork,
+    ConstitutiveMaterialWork,
+    FloatingPointAndSolverTermination,
+}
+
 /// Signed discrete work and energy accounting for one accepted step.
 ///
 /// The attributed terms cover translational force/gravity updates and normal
@@ -106,6 +118,41 @@ pub struct DiscreteWorkLedger {
     pub gravitational_potential_energy_change_joules: f64,
     pub measured_mechanical_energy_change_joules: f64,
     pub unattributed_energy_change_joules: f64,
+    /// Explicitly disclosed channels not yet included in the attribution model.
+    #[serde(default)]
+    pub unmodeled_energy_channels: Vec<UnmodeledEnergyChannel>,
+}
+
+impl DiscreteWorkLedger {
+    /// Unit-invariant unexplained-energy ratio for this receipt.
+    ///
+    /// The denominator is the sum of absolute measured/attributed energy
+    /// magnitudes, rather than a fixed 1 joule floor, so equivalent unit
+    /// conversions preserve the ratio.
+    pub fn relative_unattributed_residual(&self) -> f64 {
+        let scale = self.measured_mechanical_energy_change_joules.abs()
+            + self.external_force_work_joules.abs()
+            + self.gravity_work_joules.abs()
+            + self.linear_damping_and_speed_limit_energy_change_joules.abs()
+            + self.normal_contact_kinetic_energy_change_joules.abs()
+            + self.friction_contact_kinetic_energy_change_joules.abs()
+            + self.gravitational_potential_energy_change_joules.abs();
+        if scale <= f64::MIN_POSITIVE {
+            0.0
+        } else {
+            self.unattributed_energy_change_joules.abs() / scale
+        }
+    }
+
+    /// Whether the currently attributed terms close within a unit-invariant tolerance.
+    ///
+    /// This does not certify the physical model as complete; inspect
+    /// `unmodeled_energy_channels` before making a conservation claim.
+    pub fn closes_within(&self, relative_tolerance: f64) -> bool {
+        relative_tolerance.is_finite()
+            && relative_tolerance >= 0.0
+            && self.relative_unattributed_residual() <= relative_tolerance
+    }
 }
 
 /// Deterministic observation of one successfully committed world step.
@@ -197,6 +244,15 @@ impl<const D: usize> PhysicsWorld<D> {
             gravitational_potential_energy_change_joules: potential_energy_change,
             measured_mechanical_energy_change_joules: measured_energy_change,
             unattributed_energy_change_joules: measured_energy_change - attributed_energy_change,
+            unmodeled_energy_channels: vec![
+                UnmodeledEnergyChannel::RotationalTorqueAndAngularDamping,
+                UnmodeledEnergyChannel::JointAndMotorWork,
+                UnmodeledEnergyChannel::ConstraintStabilizationAndCompliance,
+                UnmodeledEnergyChannel::CcdAndPositionCorrection,
+                UnmodeledEnergyChannel::PrescribedKinematicAndStaticBoundaryWork,
+                UnmodeledEnergyChannel::ConstitutiveMaterialWork,
+                UnmodeledEnergyChannel::FloatingPointAndSolverTermination,
+            ],
         };
         Ok(InvariantStepReceipt {
             dt,
