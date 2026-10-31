@@ -1,0 +1,627 @@
+//! Exact finite-channel experiment ordering under model misspecification.
+//!
+//! This module separates the channel used for inference from the channel that
+//! generates observations. It validates nominal Blackwell dominance using an
+//! explicit stochastic garbling witness, then scores the chosen terminal
+//! decisions under the true channel. Mutual information is provided only as a
+//! floating-point diagnostic; posterior, decision and risk receipts use exact
+//! rational arithmetic.
+
+use crate::Rational;
+use std::collections::BTreeSet;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FiniteObservationChannel {
+    pub channel_id: String,
+    pub state_ids: Vec<String>,
+    pub observation_ids: Vec<String>,
+    /// Conditional probabilities indexed [state][observation].
+    pub probabilities: Vec<Vec<Rational>>,
+}
+
+impl FiniteObservationChannel {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.channel_id.trim().is_empty() {
+            return Err("channel ID must be non-empty".into());
+        }
+        validate_unique_ids(&self.state_ids, "state")?;
+        validate_unique_ids(&self.observation_ids, "observation")?;
+        if self.probabilities.len() != self.state_ids.len() {
+            return Err("channel row count must equal the state vocabulary size".into());
+        }
+        for (state, row) in self.probabilities.iter().enumerate() {
+            if row.len() != self.observation_ids.len() {
+                return Err(format!("channel state row {state} has the wrong observation dimension"));
+            }
+            let mut mass = Rational::zero();
+            for probability in row {
+                if !probability.is_probability() {
+                    return Err(format!("channel state row {state} has an invalid probability"));
+                }
+                mass = mass.checked_add(*probability)?;
+            }
+            if mass != Rational::one() {
+                return Err(format!("channel state row {state} must sum exactly to one"));
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BlackwellGarblingWitness {
+    /// Rows correspond to observations from the more-informative channel.
+    /// Columns correspond to observations from the less-informative channel.
+    pub probabilities: Vec<Vec<Rational>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BlackwellDominanceReceipt {
+    pub more_informative_channel_id: String,
+    pub less_informative_channel_id: String,
+    pub witness: BlackwellGarblingWitness,
+    pub exactly_verified: bool,
+}
+
+/// Verify the exact Blackwell relation:
+/// less(s, y) = sum_z more(s, z) * garbling(z, y) for every state and output.
+///
+/// This validator consumes an explicit stochastic garbling witness. It does
+/// not search for one; a supplied witness is not a solved feasibility problem.
+pub fn verify_blackwell_dominance(
+    more_informative: &FiniteObservationChannel,
+    less_informative: &FiniteObservationChannel,
+    witness: &BlackwellGarblingWitness,
+) -> Result<BlackwellDominanceReceipt, String> {
+    more_informative.validate()?;
+    less_informative.validate()?;
+    if more_informative.state_ids != less_informative.state_ids {
+        return Err("Blackwell channels must share the same ordered state vocabulary".into());
+    }
+    if witness.probabilities.len() != more_informative.observation_ids.len() {
+        return Err("garbling row count must equal the more-informative observation count".into());
+    }
+
+    for (source_observation, row) in witness.probabilities.iter().enumerate() {
+        if row.len() != less_informative.observation_ids.len() {
+            return Err(format!(
+                "garbling row {source_observation} has the wrong output dimension"
+            ));
+        }
+        let mut row_mass = Rational::zero();
+        for probability in row {
+            if !probability.is_probability() {
+                return Err(format!("garbling row {source_observation} contains an invalid probability"));
+            }
+            row_mass = row_mass.checked_add(*probability)?;
+        }
+        if row_mass != Rational::one() {
+            return Err(format!("garbling row {source_observation} must sum exactly to one"));
+        }
+    }
+
+    for state in 0..more_informative.state_ids.len() {
+        for less_observation in 0..less_informative.observation_ids.len() {
+            let mut reconstructed = Rational::zero();
+            for more_observation in 0..more_informative.observation_ids.len() {
+                reconstructed = reconstructed.checked_add(
+                    more_informative.probabilities[state][more_observation]
+                        .checked_mul(witness.probabilities[more_observation][less_observation])?,
+                )?;
+            }
+            if reconstructed != less_informative.probabilities[state][less_observation] {
+                return Err(format!(
+                    "garbling witness does not reconstruct state {state}, observation {less_observation}"
+                ));
+            }
+        }
+    }
+
+    Ok(BlackwellDominanceReceipt {
+        more_informative_channel_id: more_informative.channel_id.clone(),
+        less_informative_channel_id: less_informative.channel_id.clone(),
+        witness: witness.clone(),
+        exactly_verified: true,
+    })
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ChannelDecisionLossTable {
+    pub decision_ids: Vec<String>,
+    /// Loss indexed [decision][state].
+    pub losses: Vec<Vec<Rational>>,
+    pub abstention_loss: Rational,
+}
+
+impl ChannelDecisionLossTable {
+    pub fn validate(&self, state_count: usize) -> Result<(), String> {
+        validate_unique_ids(&self.decision_ids, "decision")?;
+        if self.losses.len() != self.decision_ids.len() || self.decision_ids.is_empty() {
+            return Err("one non-empty loss row is required for every decision".into());
+        }
+        for (decision, losses) in self.losses.iter().enumerate() {
+            if losses.len() != state_count {
+                return Err(format!("decision {decision} has the wrong state dimension"));
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ObservationDecisionReceipt {
+    pub observation_id: String,
+    pub true_observation_probability: Rational,
+    pub assumed_observation_probability: Rational,
+    pub chosen_decision: Option<usize>,
+    pub true_bayes_decision: Option<usize>,
+    pub assumed_conditional_loss: Rational,
+    pub realized_conditional_loss: Rational,
+    pub true_bayes_conditional_loss: Rational,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ChannelDecisionEvaluation {
+    pub assumed_channel_id: String,
+    pub true_channel_id: String,
+    pub expected_assumed_loss_under_true_observations: Rational,
+    pub realized_policy_loss: Rational,
+    pub true_bayes_oracle_loss: Rational,
+    pub decision_regret: Rational,
+    pub unsupported_observation_probability: Rational,
+    pub decision_disagreement_probability: Rational,
+    pub observations: Vec<ObservationDecisionReceipt>,
+}
+
+fn validate_prior(prior: &[Rational], state_count: usize) -> Result<(), String> {
+    if prior.len() != state_count || prior.is_empty() {
+        return Err("prior dimension must equal the non-empty state vocabulary".into());
+    }
+    let mut total = Rational::zero();
+    for probability in prior {
+        if !probability.is_probability() {
+            return Err("prior contains an invalid probability".into());
+        }
+        total = total.checked_add(*probability)?;
+    }
+    if total != Rational::one() {
+        return Err("prior probability mass must sum exactly to one".into());
+    }
+    Ok(())
+}
+
+fn validate_channel_pair(
+    assumed: &FiniteObservationChannel,
+    truth: &FiniteObservationChannel,
+    prior: &[Rational],
+    table: &ChannelDecisionLossTable,
+) -> Result<(), String> {
+    assumed.validate()?;
+    truth.validate()?;
+    if assumed.state_ids != truth.state_ids {
+        return Err("assumed and true channels must share the same ordered state vocabulary".into());
+    }
+    if assumed.observation_ids != truth.observation_ids {
+        return Err("assumed and true channels must share the same observable symbol vocabulary".into());
+    }
+    validate_prior(prior, assumed.state_ids.len())?;
+    table.validate(assumed.state_ids.len())
+}
+
+fn expected_loss_for_posterior(
+    table: &ChannelDecisionLossTable,
+    posterior: &[Rational],
+    decision: Option<usize>,
+) -> Result<Rational, String> {
+    match decision {
+        Some(index) if index < table.decision_ids.len() => {
+            let mut expected = Rational::zero();
+            for (probability, loss) in posterior.iter().zip(table.losses[index].iter()) {
+                expected = expected.checked_add(probability.checked_mul(*loss)?)?;
+            }
+            Ok(expected)
+        }
+        Some(_) => Err("decision index is outside the loss table".into()),
+        None => Ok(table.abstention_loss),
+    }
+}
+
+fn bayes_decision(
+    table: &ChannelDecisionLossTable,
+    posterior: &[Rational],
+) -> Result<(Option<usize>, Rational), String> {
+    let mut selected_decision = None;
+    let mut best_loss = table.abstention_loss;
+    for decision in 0..table.decision_ids.len() {
+        let loss = expected_loss_for_posterior(table, posterior, Some(decision))?;
+        if loss < best_loss {
+            best_loss = loss;
+            selected_decision = Some(decision);
+        }
+    }
+    Ok((selected_decision, best_loss))
+}
+
+/// Evaluate inference under an assumed channel while observations are generated
+/// by a possibly different true channel.
+///
+/// Posterior updates and decision-loss receipts are exact. Unsupported true
+/// observations are handled by explicit abstention, never by inventing a
+/// normalized posterior. The caller receives both the model's predicted loss
+/// (weighted by true observation frequencies) and realized downstream loss.
+pub fn evaluate_channel_decisions(
+    assumed: &FiniteObservationChannel,
+    truth: &FiniteObservationChannel,
+    prior: &[Rational],
+    table: &ChannelDecisionLossTable,
+) -> Result<ChannelDecisionEvaluation, String> {
+    validate_channel_pair(assumed, truth, prior, table)?;
+
+    let mut expected_assumed_loss = Rational::zero();
+    let mut realized_policy_loss = Rational::zero();
+    let mut true_bayes_oracle_loss = Rational::zero();
+    let mut unsupported_observation_probability = Rational::zero();
+    let mut decision_disagreement_probability = Rational::zero();
+    let mut observations = Vec::new();
+
+    for observation in 0..assumed.observation_ids.len() {
+        let mut true_probability = Rational::zero();
+        let mut assumed_probability = Rational::zero();
+        let mut true_joint = vec![Rational::zero(); prior.len()];
+        let mut assumed_joint = vec![Rational::zero(); prior.len()];
+
+        for state in 0..prior.len() {
+            let true_mass = prior[state].checked_mul(truth.probabilities[state][observation])?;
+            let assumed_mass =
+                prior[state].checked_mul(assumed.probabilities[state][observation])?;
+            true_joint[state] = true_mass;
+            assumed_joint[state] = assumed_mass;
+            true_probability = true_probability.checked_add(true_mass)?;
+            assumed_probability = assumed_probability.checked_add(assumed_mass)?;
+        }
+
+        if true_probability.is_zero() {
+            continue;
+        }
+
+        let true_posterior: Vec<Rational> = true_joint
+            .iter()
+            .map(|mass| mass.checked_div(true_probability))
+            .collect::<Result<_, _>>()?;
+        let (true_bayes_decision, true_bayes_loss) = bayes_decision(table, &true_posterior)?;
+
+        let (chosen_decision, assumed_conditional_loss) = if assumed_probability.is_zero() {
+            unsupported_observation_probability =
+                unsupported_observation_probability.checked_add(true_probability)?;
+            (None, table.abstention_loss)
+        } else {
+            let assumed_posterior: Vec<Rational> = assumed_joint
+                .iter()
+                .map(|mass| mass.checked_div(assumed_probability))
+                .collect::<Result<_, _>>()?;
+            bayes_decision(table, &assumed_posterior)?
+        };
+
+        let realized_conditional_loss =
+            expected_loss_for_posterior(table, &true_posterior, chosen_decision)?;
+        if chosen_decision != true_bayes_decision {
+            decision_disagreement_probability =
+                decision_disagreement_probability.checked_add(true_probability)?;
+        }
+
+        expected_assumed_loss = expected_assumed_loss.checked_add(
+            true_probability.checked_mul(assumed_conditional_loss)?,
+        )?;
+        realized_policy_loss = realized_policy_loss.checked_add(
+            true_probability.checked_mul(realized_conditional_loss)?,
+        )?;
+        true_bayes_oracle_loss =
+            true_bayes_oracle_loss.checked_add(true_probability.checked_mul(true_bayes_loss)?)?;
+
+        observations.push(ObservationDecisionReceipt {
+            observation_id: assumed.observation_ids[observation].clone(),
+            true_observation_probability: true_probability,
+            assumed_observation_probability: assumed_probability,
+            chosen_decision,
+            true_bayes_decision,
+            assumed_conditional_loss,
+            realized_conditional_loss,
+            true_bayes_conditional_loss: true_bayes_loss,
+        });
+    }
+
+    let decision_regret = if realized_policy_loss >= true_bayes_oracle_loss {
+        subtract_nonnegative(realized_policy_loss, true_bayes_oracle_loss)?
+    } else {
+        return Err("realized policy loss fell below the exact true-channel Bayes oracle".into());
+    };
+
+    Ok(ChannelDecisionEvaluation {
+        assumed_channel_id: assumed.channel_id.clone(),
+        true_channel_id: truth.channel_id.clone(),
+        expected_assumed_loss_under_true_observations: expected_assumed_loss,
+        realized_policy_loss,
+        true_bayes_oracle_loss,
+        decision_regret,
+        unsupported_observation_probability,
+        decision_disagreement_probability,
+        observations,
+    })
+}
+
+/// Mutual information in bits under the supplied nominal prior/channel.
+///
+/// This uses floating-point logarithms and is a diagnostic comparator only;
+/// all decision and risk quantities above remain exact.
+pub fn mutual_information_bits(
+    channel: &FiniteObservationChannel,
+    prior: &[Rational],
+) -> Result<f64, String> {
+    channel.validate()?;
+    validate_prior(prior, channel.state_ids.len())?;
+
+    let mut observation_marginal = vec![0.0_f64; channel.observation_ids.len()];
+    for state in 0..channel.state_ids.len() {
+        let prior_mass =
+            prior[state].numerator() as f64 / prior[state].denominator() as f64;
+        for observation in 0..channel.observation_ids.len() {
+            let channel_probability = channel.probabilities[state][observation].numerator() as f64
+                / channel.probabilities[state][observation].denominator() as f64;
+            observation_marginal[observation] += prior_mass * channel_probability;
+        }
+    }
+
+    let mut information = 0.0_f64;
+    for state in 0..channel.state_ids.len() {
+        let prior_mass =
+            prior[state].numerator() as f64 / prior[state].denominator() as f64;
+        if prior_mass == 0.0 {
+            continue;
+        }
+        for observation in 0..channel.observation_ids.len() {
+            let conditional =
+                channel.probabilities[state][observation].numerator() as f64
+                    / channel.probabilities[state][observation].denominator() as f64;
+            let marginal = observation_marginal[observation];
+            if conditional > 0.0 && marginal > 0.0 {
+                information += prior_mass * conditional * (conditional / marginal).log2();
+            }
+        }
+    }
+    if information.is_finite() {
+        Ok(information)
+    } else {
+        Err("mutual-information diagnostic was non-finite".into())
+    }
+}
+
+fn validate_unique_ids(ids: &[String], label: &str) -> Result<(), String> {
+    if ids.is_empty() {
+        return Err(format!("{label} vocabulary must be non-empty"));
+    }
+    let mut unique = BTreeSet::new();
+    if ids
+        .iter()
+        .any(|id| id.trim().is_empty() || !unique.insert(id.as_str()))
+    {
+        return Err(format!("{label} IDs must be non-empty and unique"));
+    }
+    Ok(())
+}
+
+fn subtract_nonnegative(left: Rational, right: Rational) -> Result<Rational, String> {
+    if left < right {
+        return Err("rational subtraction would be negative".into());
+    }
+    let common = gcd(left.denominator(), right.denominator());
+    let left_scale = right.denominator() / common;
+    let right_scale = left.denominator() / common;
+    let left_numerator = left
+        .numerator()
+        .checked_mul(left_scale)
+        .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
+    let right_numerator = right
+        .numerator()
+        .checked_mul(right_scale)
+        .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
+    let denominator = left
+        .denominator()
+        .checked_mul(left_scale)
+        .ok_or_else(|| "rational subtraction denominator overflow".to_string())?;
+    Rational::new(left_numerator - right_numerator, denominator)
+}
+
+fn gcd(mut left: u128, mut right: u128) -> u128 {
+    while right != 0 {
+        let remainder = left % right;
+        left = right;
+        right = remainder;
+    }
+    left.max(1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rational(n: u128, d: u128) -> Rational {
+        Rational::new(n, d).unwrap()
+    }
+
+    fn binary_decisions() -> ChannelDecisionLossTable {
+        ChannelDecisionLossTable {
+            decision_ids: vec!["state-zero".into(), "state-one".into()],
+            losses: vec![
+                vec![Rational::zero(), Rational::one()],
+                vec![Rational::one(), Rational::zero()],
+            ],
+            abstention_loss: rational(1, 2),
+        }
+    }
+
+    fn perfect_channel(id: &str) -> FiniteObservationChannel {
+        FiniteObservationChannel {
+            channel_id: id.into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["o0".into(), "o1".into()],
+            probabilities: vec![
+                vec![Rational::one(), Rational::zero()],
+                vec![Rational::zero(), Rational::one()],
+            ],
+        }
+    }
+
+    fn noisy_channel(id: &str) -> FiniteObservationChannel {
+        FiniteObservationChannel {
+            channel_id: id.into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["o0".into(), "o1".into()],
+            probabilities: vec![
+                vec![rational(4, 5), rational(1, 5)],
+                vec![rational(1, 5), rational(4, 5)],
+            ],
+        }
+    }
+
+    fn inverted_channel(id: &str) -> FiniteObservationChannel {
+        FiniteObservationChannel {
+            channel_id: id.into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["o0".into(), "o1".into()],
+            probabilities: vec![
+                vec![Rational::zero(), Rational::one()],
+                vec![Rational::one(), Rational::zero()],
+            ],
+        }
+    }
+
+    #[test]
+    fn exact_garbling_witness_proves_nominal_blackwell_dominance() {
+        let perfect = perfect_channel("perfect");
+        let noisy = noisy_channel("noisy");
+        let witness = BlackwellGarblingWitness {
+            probabilities: vec![
+                vec![rational(4, 5), rational(1, 5)],
+                vec![rational(1, 5), rational(4, 5)],
+            ],
+        };
+        let receipt = verify_blackwell_dominance(&perfect, &noisy, &witness).unwrap();
+        assert!(receipt.exactly_verified);
+        assert_eq!(receipt.more_informative_channel_id, "perfect");
+        assert_eq!(receipt.less_informative_channel_id, "noisy");
+    }
+
+    #[test]
+    fn more_nominal_information_can_produce_greater_realized_decision_loss() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let loss = binary_decisions();
+        let assumed_perfect = perfect_channel("A-perfect-assumed");
+        let true_inverted = inverted_channel("A-inverted-truth");
+        let assumed_noisy = noisy_channel("B-noisy-assumed");
+        let true_noisy = noisy_channel("B-noisy-truth");
+
+        let eig_a = mutual_information_bits(&assumed_perfect, &prior).unwrap();
+        let eig_b = mutual_information_bits(&assumed_noisy, &prior).unwrap();
+        assert!(eig_a > eig_b);
+
+        let evaluation_a = evaluate_channel_decisions(
+            &assumed_perfect,
+            &true_inverted,
+            &prior,
+            &loss,
+        )
+        .unwrap();
+        let evaluation_b = evaluate_channel_decisions(
+            &assumed_noisy,
+            &true_noisy,
+            &prior,
+            &loss,
+        )
+        .unwrap();
+
+        assert_eq!(evaluation_a.expected_assumed_loss_under_true_observations, Rational::zero());
+        assert_eq!(evaluation_a.realized_policy_loss, Rational::one());
+        assert_eq!(evaluation_a.decision_regret, Rational::one());
+        assert_eq!(evaluation_a.decision_disagreement_probability, Rational::one());
+
+        assert_eq!(evaluation_b.realized_policy_loss, rational(1, 5));
+        assert_eq!(evaluation_b.true_bayes_oracle_loss, rational(1, 5));
+        assert_eq!(evaluation_b.decision_regret, Rational::zero());
+        assert!(evaluation_a.realized_policy_loss > evaluation_b.realized_policy_loss);
+    }
+
+    #[test]
+    fn inference_mismatch_and_model_mismatch_are_separately_identifiable() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let loss = binary_decisions();
+        let perfect = perfect_channel("perfect");
+        let inverted = inverted_channel("inverted");
+
+        // Correct data model, wrong inference model.
+        let inference_only =
+            evaluate_channel_decisions(&inverted, &perfect, &prior, &loss).unwrap();
+        assert_eq!(inference_only.realized_policy_loss, Rational::one());
+
+        // Exact inference, wrong data-generating model.
+        let model_only =
+            evaluate_channel_decisions(&perfect, &inverted, &prior, &loss).unwrap();
+        assert_eq!(model_only.realized_policy_loss, Rational::one());
+
+        // Correct negative control.
+        let matched = evaluate_channel_decisions(&perfect, &perfect, &prior, &loss).unwrap();
+        assert_eq!(matched.realized_policy_loss, Rational::zero());
+        assert_eq!(matched.decision_regret, Rational::zero());
+    }
+
+    #[test]
+    fn unsupported_observations_fail_closed_to_explicit_abstention() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let assumed = noisy_channel("assumed");
+        let truth = inverted_channel("truth");
+        let evaluation =
+            evaluate_channel_decisions(&assumed, &truth, &prior, &binary_decisions()).unwrap();
+        assert_eq!(
+            evaluation.unsupported_observation_probability,
+            Rational::zero()
+        );
+
+        let partial_assumption = FiniteObservationChannel {
+            channel_id: "partial".into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["o0".into(), "o1".into()],
+            probabilities: vec![
+                vec![Rational::one(), Rational::zero()],
+                vec![Rational::one(), Rational::zero()],
+            ],
+        };
+        let unsupported = evaluate_channel_decisions(
+            &partial_assumption,
+            &truth,
+            &prior,
+            &binary_decisions(),
+        )
+        .unwrap();
+        assert_eq!(
+            unsupported.unsupported_observation_probability,
+            rational(1, 2)
+        );
+        assert_eq!(unsupported.realized_policy_loss, rational(1, 2));
+    }
+
+    #[test]
+    fn invalid_garbling_and_probability_mass_fail_closed() {
+        let perfect = perfect_channel("perfect");
+        let noisy = noisy_channel("noisy");
+        let invalid = BlackwellGarblingWitness {
+            probabilities: vec![
+                vec![Rational::one(), Rational::zero()],
+                vec![Rational::one(), Rational::zero()],
+            ],
+        };
+        assert!(verify_blackwell_dominance(&perfect, &noisy, &invalid).is_err());
+
+        let mut invalid_channel = noisy_channel("bad-channel");
+        invalid_channel.probabilities[0][0] = Rational::new(2, 1).unwrap();
+        assert!(invalid_channel.validate().is_err());
+    }
+}
