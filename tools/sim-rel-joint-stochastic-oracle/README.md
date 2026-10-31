@@ -56,3 +56,14 @@ The robust optimizer performs finite-horizon dynamic programming over a vector o
 The optimizer preserves per-world objective vectors during Pareto pruning. This is required because observation probabilities differ across worlds: pruning only by current worst-case aggregates inside a subtree can discard a globally optimal shared policy. At the root, callers can minimize worst-case expected cost or nominal expected cost subject to worst-case hazard, false-identification and abstention budgets.
 
 The implementation is bounded and exact for the supplied finite model family, prior beliefs, action costs, horizon, and policy class. It is not evidence that the real process belongs to that family.
+
+
+## All-horizon identifiability and observational equivalence (SIM-REL-017)
+
+The identifiability module treats each mechanism hypothesis as a finite probabilistic transducer over the joint physical/sensor state. It builds the signed difference between two hypothesis-conditional initial joint beliefs and closes the reachable linear span under every action/outcome operator, including terminal hazard.
+
+If any reachable word has a non-zero exact output probability difference, the analyzer returns a concrete distinguishing action/outcome sequence and its exact probability under both hypotheses. If the span closes, the result includes an all-horizon equivalence certificate: exact basis vectors, pivot columns, ambient dimension, and the complete operator count.
+
+The independent certificate verifier checks that the initial difference lies in the supplied span, every basis vector has zero output mass, and the span is closed under every action/outcome operator. This establishes equivalence for every finite action/outcome word in the declared kernel, and therefore for every adaptive policy whose actions depend only on public history.
+
+The result is relative to the supplied finite action and observation vocabularies and complete kernel. It is not a claim that two physical mechanisms are identical outside the modeled apparatus.
