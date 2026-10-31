@@ -344,6 +344,29 @@ pub struct DissonanceEvent {
 }
 
 impl DissonanceEvent {
+    /// Reconstruct an event loaded from external persistence.
+    ///
+    /// This constructor only validates the local sequence bound. It deliberately
+    /// does not authenticate the actor, verify receipt signatures/digests, or
+    /// establish history completeness. Call replay after host verification.
+    pub fn from_persisted_unverified(
+        sequence: u64,
+        context: EventContext,
+        kind: DissonanceEventKind,
+    ) -> Result<Self, DissonanceError> {
+        if sequence == 0 {
+            return Err(DissonanceError::InvalidEventSequence);
+        }
+        Ok(Self {
+            sequence,
+            actor_id: context.actor_id,
+            occurred_at: context.occurred_at,
+            previous_receipt_ref: context.previous_receipt_ref,
+            receipt_ref: context.receipt_ref,
+            kind,
+        })
+    }
+
     /// Monotonic sequence number within this record.
     pub const fn sequence(&self) -> u64 { self.sequence }
 
@@ -428,6 +451,8 @@ pub enum DissonanceError {
     EventSequenceExhausted,
     /// A hazard finding transition is not permitted from its prior state.
     InvalidHazardTransition,
+    /// An imported event must have a positive sequence number.
+    InvalidEventSequence,
 }
 
 /// Create and maintain a dissonance record with a durable history of positions.
@@ -1310,6 +1335,47 @@ mod tests {
         );
         assert_eq!(record.event_history().count(), 1);
         assert_eq!(record.assess().missing_safeguards.len(), 0);
+    }
+
+    #[test]
+    fn persisted_event_import_is_unverified_but_replay_checks_sequence() {
+        let mut original = record(DissonanceKind::StructuralParadox);
+        record_safe(&mut original, 10, "persisted-event");
+        let event = original.event_history().next().unwrap();
+        let imported = DissonanceEvent::from_persisted_unverified(
+            event.sequence(),
+            EventContext::new(
+                event.actor_id(),
+                event.occurred_at(),
+                event.previous_receipt_ref().map(str::to_owned),
+                event.receipt_ref(),
+            ).unwrap(),
+            event.kind().clone(),
+        ).unwrap();
+        assert_eq!(&imported, event);
+        let invalid_sequence = DissonanceEvent::from_persisted_unverified(
+            0,
+            EventContext::new("actor", 10, None, "receipt:zero").unwrap(),
+            DissonanceEventKind::SafeguardsRecorded {
+                safeguards: safe_safeguards(),
+            },
+        );
+        assert_eq!(invalid_sequence, Err(DissonanceError::InvalidEventSequence));
+        let genesis = original.positions().cloned().collect();
+        let events = vec![DissonanceEvent::from_persisted_unverified(
+            2,
+            EventContext::new(
+                event.actor_id(),
+                event.occurred_at(),
+                event.previous_receipt_ref().map(str::to_owned),
+                event.receipt_ref(),
+            ).unwrap(),
+            event.kind().clone(),
+        ).unwrap()];
+        assert_eq!(
+            DissonanceRecord::replay(DissonanceKind::StructuralParadox, genesis, &events),
+            Err(DissonanceError::BrokenEventChain)
+        );
     }
 
     #[test]
