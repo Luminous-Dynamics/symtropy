@@ -36,6 +36,30 @@ func TestRFC8785GoldenVector(t *testing.T) {
 }
 
 
+func TestRFC8785AdversarialUnicodeAndBinary64Boundaries(t *testing.T) {
+	inputPath := filepath.Join("..", "golden", "adversarial-input.json")
+	expectedPath := filepath.Join("..", "golden", "adversarial-output.jcs")
+
+	input, err := os.ReadFile(inputPath)
+	if err != nil {
+		t.Fatalf("read adversarial JCS input: %v", err)
+	}
+	expected, err := os.ReadFile(expectedPath)
+	if err != nil {
+		t.Fatalf("read adversarial JCS expected bytes: %v", err)
+	}
+	if err := validateStrictJCSInput(input); err != nil {
+		t.Fatalf("strict preflight rejected valid adversarial JCS input: %v", err)
+	}
+	actual, err := jsoncanonicalizer.Transform(input)
+	if err != nil {
+		t.Fatalf("independent adversarial JCS transform: %v", err)
+	}
+	if !bytes.Equal(actual, bytes.TrimSpace(expected)) {
+		t.Fatalf("adversarial canonical bytes differ\nactual:   %s\nexpected: %s", actual, bytes.TrimSpace(expected))
+	}
+}
+
 func TestStrictJCSInputRejectsAmbiguousAndInvalidJSON(t *testing.T) {
 	tests := []struct {
 		name  string
