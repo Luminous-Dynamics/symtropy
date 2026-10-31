@@ -850,6 +850,50 @@ mod tests {
         }
     }
 
+    fn partial_observation_world(id: &str, distinguishes_hypotheses: bool) -> ModelWorld {
+        let mut rows = Vec::new();
+        for hypothesis in 0..2 {
+            rows.push(KernelRow {
+                hypothesis,
+                physical_state: 0,
+                sensor_state: 0,
+                action: 0,
+                outcomes: vec![JointOutcome {
+                    probability: Rational::one(),
+                    next_physical_state: 0,
+                    next_sensor_state: 0,
+                    observation: Some(if distinguishes_hypotheses { hypothesis } else { 0 }),
+                }],
+            });
+        }
+        ModelWorld {
+            id: id.to_string(),
+            kernel: JointKernel {
+                hypothesis_ids: vec!["h0".into(), "h1".into()],
+                physical_state_count: 1,
+                sensor_state_count: 1,
+                action_ids: vec!["measure".into()],
+                observation_ids: vec!["zero".into(), "one".into()],
+                action_costs: vec![1],
+                initial_belief: vec![
+                    JointMass {
+                        hypothesis: 0,
+                        physical_state: 0,
+                        sensor_state: 0,
+                        mass: half(),
+                    },
+                    JointMass {
+                        hypothesis: 1,
+                        physical_state: 0,
+                        sensor_state: 0,
+                        mass: half(),
+                    },
+                ],
+                rows,
+            },
+        }
+    }
+
     fn stochastic_world(
         id: &str,
         h0_observation_zero: Rational,
@@ -1138,6 +1182,64 @@ mod tests {
         optimized_keys.dedup();
         brute_keys.dedup();
         assert_eq!(optimized_keys, brute_keys);
+    }
+
+    #[test]
+    fn world_with_zero_probability_observation_is_inactive_only_on_that_branch() {
+        let worlds = vec![
+            partial_observation_world("distinguishing", true),
+            partial_observation_world("non-distinguishing", false),
+        ];
+        let optimized = optimize_robust_worlds(
+            &worlds,
+            "distinguishing",
+            &RobustSolverConfig {
+                horizon: 1,
+                ..RobustSolverConfig::default()
+            },
+        ).unwrap();
+
+        let selected = optimized.frontier.iter().find(|point| {
+            match &point.policy {
+                PolicyPlan::Action { action: 0, branches } if branches.len() == 2 => {
+                    matches!(
+                        branches[0].plan.as_ref(),
+                        PolicyPlan::Claim { hypothesis: 0 }
+                    ) && matches!(
+                        branches[1].plan.as_ref(),
+                        PolicyPlan::Claim { hypothesis: 1 }
+                    )
+                }
+                _ => false,
+            }
+        }).expect("shared policy with observation-specific claims must be retained");
+
+        assert_eq!(
+            selected.per_world[0].correct_identification_probability,
+            Rational::one()
+        );
+        assert_eq!(
+            selected.per_world[0].false_identification_probability,
+            Rational::zero()
+        );
+        assert_eq!(
+            selected.per_world[1].correct_identification_probability,
+            half()
+        );
+        assert_eq!(
+            selected.per_world[1].false_identification_probability,
+            half()
+        );
+
+        let replay = evaluate_policy_across_worlds(
+            &worlds,
+            "distinguishing",
+            &selected.policy,
+            1,
+        ).unwrap();
+        for (expected, actual) in selected.per_world.iter().zip(replay.per_world.iter()) {
+            assert_eq!(expected, actual);
+        }
     }
 
     #[test]
