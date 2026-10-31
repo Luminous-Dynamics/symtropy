@@ -544,10 +544,7 @@ fn analytical_free_fall_observes_first_order_convergence_for_both_engines() {
         .map(|dt_s| {
             let scenario = free_fall_at_dt(dt_s);
             let trace = run_native_scenario_3d(&scenario).unwrap();
-            (
-                dt_s,
-                analytical_free_fall_position_error(&scenario, &trace),
-            )
+            (dt_s, analytical_free_fall_position_error(&scenario, &trace))
         })
         .collect();
     assert_first_order_convergence("native", &native_observations);
@@ -557,10 +554,7 @@ fn analytical_free_fall_observes_first_order_convergence_for_both_engines() {
         .map(|dt_s| {
             let scenario = free_fall_at_dt(dt_s);
             let trace = run_rapier_scenario_3d(&scenario).unwrap();
-            (
-                dt_s,
-                analytical_free_fall_position_error(&scenario, &trace),
-            )
+            (dt_s, analytical_free_fall_position_error(&scenario, &trace))
         })
         .collect();
     assert_first_order_convergence("Rapier", &rapier_observations);
@@ -594,10 +588,8 @@ fn free_fall_trajectory_obeys_constant_velocity_boost_metamorphism() {
         {
             assert_eq!(reference_sample.step, boosted_sample.step);
             assert_eq!(reference_sample.time_s, boosted_sample.time_s);
-            for (reference_body, boosted_body) in reference_sample
-                .bodies
-                .iter()
-                .zip(&boosted_sample.bodies)
+            for (reference_body, boosted_body) in
+                reference_sample.bodies.iter().zip(&boosted_sample.bodies)
             {
                 assert_eq!(reference_body.body_id, boosted_body.body_id);
                 for (axis, boost) in velocity_boost.iter().enumerate() {
@@ -649,9 +641,7 @@ fn isolated_free_fall_is_invariant_to_body_mass() {
         ),
     ] {
         assert_eq!(light_trace.samples.len(), heavy_trace.samples.len());
-        for (light_sample, heavy_sample) in
-            light_trace.samples.iter().zip(&heavy_trace.samples)
-        {
+        for (light_sample, heavy_sample) in light_trace.samples.iter().zip(&heavy_trace.samples) {
             assert_eq!(light_sample.step, heavy_sample.step);
             assert_eq!(light_sample.time_s, heavy_sample.time_s);
             let light_body = &light_sample.bodies[0];
@@ -956,20 +946,13 @@ fn free_fall_trajectory_is_invariant_to_uniform_translation() {
         ("Rapier", &rapier, &rapier_translated),
     ] {
         assert_eq!(reference.samples.len(), shifted.samples.len());
-        for (reference_sample, shifted_sample) in
-            reference.samples.iter().zip(&shifted.samples)
-        {
+        for (reference_sample, shifted_sample) in reference.samples.iter().zip(&shifted.samples) {
             assert_eq!(reference_sample.step, shifted_sample.step);
             assert_eq!(reference_sample.time_s, shifted_sample.time_s);
-            assert_eq!(
-                reference_sample.bodies.len(),
-                shifted_sample.bodies.len()
-            );
+            assert_eq!(reference_sample.bodies.len(), shifted_sample.bodies.len());
 
-            for (reference_body, shifted_body) in reference_sample
-                .bodies
-                .iter()
-                .zip(&shifted_sample.bodies)
+            for (reference_body, shifted_body) in
+                reference_sample.bodies.iter().zip(&shifted_sample.bodies)
             {
                 assert_eq!(reference_body.body_id, shifted_body.body_id);
                 for (axis, offset) in translation.iter().enumerate() {
