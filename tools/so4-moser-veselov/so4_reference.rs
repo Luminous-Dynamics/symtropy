@@ -35,7 +35,6 @@ const PAIRS: [(usize, usize); NV] = [
 struct V6([f64; NV]);
 
 impl V6 {
-    const ZERO: Self = Self([0.0; NV]);
     fn dot(self, rhs: Self) -> f64 {
         self.0.iter().zip(rhs.0).map(|(a, b)| a * b).sum()
     }
@@ -961,7 +960,8 @@ mod tests {
         let omega = skew_from_coords(V6([0.2, -0.1, 0.4, 0.7, -0.3, 0.5]));
         let momentum = skew_coords(model.inertia_action(omega));
         for (k, (i, j)) in PAIRS.iter().copied().enumerate() {
-            let expected = (s[i] + s[j]) * omega.0[i.min(j) * 0 + k];
+            let omega_coordinates = skew_coords(omega);
+            let expected = (s[i] + s[j]) * omega_coordinates.0[k];
             assert!((momentum.0[k] - expected).abs() < 1e-12);
         }
     }
