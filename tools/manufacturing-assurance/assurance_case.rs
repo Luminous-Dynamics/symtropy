@@ -851,7 +851,7 @@ fn run_report(input: &str) -> Result<String, String> {
     for (claim_id, claim) in &manifest.claims {
         let result = memo.get(claim_id).expect("all claims evaluated");
         output.push_str(&format!(
-            "CLAIM id={} kind={} scope={} strategy={} status={} achieved_tier={} witness={} reasons={}\\n",
+            "CLAIM id={} kind={} scope={} strategy={} status={} achieved_tier={} witness={} reasons={}\n",
             claim.id,
             claim.kind,
             claim.scope,
@@ -869,29 +869,29 @@ fn run_report(input: &str) -> Result<String, String> {
                 result.reasons.join(",")
             }
         ));
-        output.push_str(&format!("NODE kind=CLAIM id={} statement={}\\n", claim.id, claim.statement));
+        output.push_str(&format!("NODE kind=CLAIM id={} statement={}\n", claim.id, claim.statement));
     }
     for evidence in manifest.evidence.values() {
         output.push_str(&format!(
-            "NODE kind=EVIDENCE id={} status={} tier={} digest={} statement={}\\n",
+            "NODE kind=EVIDENCE id={} status={} tier={} digest={} statement={}\n",
             evidence.id, evidence.status, tier_name(Some(evidence.tier)), evidence.digest, evidence.statement
         ));
     }
     for assumption in manifest.assumptions.values() {
         output.push_str(&format!(
-            "NODE kind=ASSUMPTION id={} status={} statement={}\\n",
+            "NODE kind=ASSUMPTION id={} status={} statement={}\n",
             assumption.id, assumption.status, assumption.statement
         ));
     }
     for defeater in manifest.defeaters.values() {
         output.push_str(&format!(
-            "NODE kind=DEFEATER id={} statement={}\\n",
+            "NODE kind=DEFEATER id={} statement={}\n",
             defeater.id, defeater.statement
         ));
     }
     for authority in manifest.authorities.values() {
         output.push_str(&format!(
-            "NODE kind=AUTHORITY id={} status={} principal={} action_scope={}\\n",
+            "NODE kind=AUTHORITY id={} status={} principal={} action_scope={}\n",
             authority.id, authority.status, authority.principal, authority.action_scope
         ));
     }
@@ -1177,7 +1177,7 @@ mod tests {
         );
         let report = run_report(&input).unwrap();
         assert!(report.contains("CASE_RESULT status=BLOCKED"));
-        assert!(report.contains("SUPPORT_REQUIREMENT_NOT_MET"));
+        assert!(report.contains("EVIDENCE_NOT_VERIFIED:e-plan:UNVERIFIED"));
     }
 
     #[test]
