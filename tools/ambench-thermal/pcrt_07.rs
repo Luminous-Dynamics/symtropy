@@ -610,8 +610,8 @@ fn ks_d(left: &[f64], right: &[f64]) -> Option<f64> {
             (None, Some(y)) => *y,
             (None, None) => break,
         };
-        while i < a.len() && a[i] <= *next { i += 1; }
-        while j < b.len() && b[j] <= *next { j += 1; }
+        while i < a.len() && a[i] <= next { i += 1; }
+        while j < b.len() && b[j] <= next { j += 1; }
         let difference = (i as f64 / a.len() as f64 - j as f64 / b.len() as f64).abs();
         maximum = maximum.max(difference);
     }
