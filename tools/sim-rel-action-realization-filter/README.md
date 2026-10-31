@@ -126,3 +126,60 @@ prior, full joint-state loss tensor, action costs, observation protocol, horizon
 and policy class. It is not a robust multi-world decision optimizer,
 open-world model adequacy proof, continuous physical solver, or hardware safety
 certificate.
+
+
+## Shared-policy robust downstream decision planning (SIM-REL-028)
+
+The `decision_value::robust_finite_horizon` module extends the finite-horizon
+planner over a finite family of **persistent complete model worlds**. A world
+contains its own exact action-realization kernel and normalized joint initial
+belief. The family must share the same hypothesis vocabulary, process/sensor/
+apparatus dimensions, command IDs, realized-action IDs, readback IDs and
+measurement IDs. One terminal loss table, observation protocol and command-cost
+contract apply across the family.
+
+At every public observation history, each still-active world updates its own
+joint posterior under its own kernel. The optimizer chooses one command and one
+continuation policy for the whole active family. It does not receive a world ID,
+a hidden state, or a realized action. Worlds that assign zero likelihood to an
+observation become inactive on that branch only; their persistent model identity
+is not switched or discarded from other histories.
+
+The exact Pareto frontier retains a full per-world vector of:
+- expected cumulative experiment cost;
+- expected terminal downstream decision loss;
+- campaign hazard probability;
+- explicit-abstention probability.
+
+The root can minimize worst-case cost plus terminal loss under worst-case hazard
+and abstention budgets. A second selector minimizes nominal cost plus loss while
+preserving worst-case hazard/abstention limits and optionally imposing a
+worst-case terminal-loss ceiling. Terminal decisions are shared across all
+active worlds at each public history. The optimizer uses branch-local model
+elimination only where a world assigns exactly zero probability; no independent
+world-specific policies are admitted.
+
+A separate shared-policy replay checks observation-branch coverage, common
+actions and terminal decisions, horizon limits, hazard termination and exact
+per-world objective receipts. Tiny-domain exhaustive enumeration has its own
+quadratic pairwise dominance implementation rather than calling the production
+frontier pruner. Authored fixtures include:
+- an instrument whose measurement mapping is reversed in one plausible world;
+- a low-cost probe that identifies which mapping is present, followed by a
+  shared policy that selects the correct terminal action;
+- nominal planning that is optimal in its own world but wrong in the shifted
+  world;
+- exact robust-DP versus non-memoized exhaustive-frontier equality;
+- independent replay of every optimized frontier policy;
+- singleton-world reduction to the one-world finite-horizon DP;
+- model-world input permutation invariance;
+- rejection of incompatible observation and state semantics.
+
+This is exact only for the supplied finite world family, kernels, priors, loss
+tensor, command costs, observation protocol, horizon and policy class. It does
+not prove that the true physical process belongs to that family, establish
+coverage of unmodeled worlds, or certify apparatus safety. A trace impossible
+under every supplied world must be treated as out-of-family evidence and sent
+to model-family falsification/refinement; it must never be normalized into an
+empty posterior. The shared-policy robust planner is a decision-value extension
+of SIM-REL-016, not a measured SOTA victory.
