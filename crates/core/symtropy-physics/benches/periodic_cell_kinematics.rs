@@ -7,7 +7,7 @@
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::{SMatrix, SVector};
 use symtropy_math::{
-    CartesianCellState, FractionalCellState, PeriodicCellKinematics,
+    FractionalCellState, PeriodicCellKinematics,
 };
 
 fn frame2() -> PeriodicCellKinematics<2> {
@@ -148,10 +148,6 @@ fn bench_periodic_cell_kinematics(c: &mut Criterion) {
         },
     );
 
-    let _ = CartesianCellState {
-        position: SVector::zeros(),
-        velocity: SVector::zeros(),
-    };
     group.finish();
 }
 
