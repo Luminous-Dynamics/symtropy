@@ -339,7 +339,7 @@ pub fn differentiate_planar_friction_mode(
         return Err(ContactAdjointError::InconsistentPrimalSolution);
     }
     let eigenvalues =
-        nalgebra::linalg::SymmetricEigen::new(*effective_mass).eigenvalues;
+        nalgebra::linalg::SymmetricEigen::new(effective_mass.clone()).eigenvalues;
     let minimum_eigenvalue = eigenvalues
         .iter()
         .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
@@ -391,7 +391,7 @@ pub fn differentiate_planar_friction_mode(
                 return Err(ContactAdjointError::PlanarModeBoundary);
             }
 
-            let singular_values = (*effective_mass).svd(false, false).singular_values;
+            let singular_values = effective_mass.clone().svd(false, false).singular_values;
             let maximum = singular_values.iter().fold(0.0_f64, |m, v| m.max(*v));
             let minimum = singular_values
                 .iter()
