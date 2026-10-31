@@ -123,6 +123,7 @@ pub struct InvariantStepReceipt<const D: usize> {
     pub before: InvariantSnapshot<D>,
     pub after: InvariantSnapshot<D>,
     pub drift: InvariantDrift<D>,
+    #[serde(default)]
     pub work_ledger: DiscreteWorkLedger,
 }
 
@@ -387,4 +388,99 @@ mod tests {
         assert!(receipt.mechanical_energy_delta().abs() < 1e-12);
         assert!(receipt.drift.linear_momentum_error_norm() < 1e-12);
     }
+
+    #[test]
+    fn discrete_work_ledger_closes_force_and_gravity_energy_balance() {
+        let mut world = PhysicsWorld::<2>::new(SVector::new(0.0, -9.81));
+        let handle = world.add_sphere(Point::origin(), 0.1, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.apply_force(SVector::new(2.0, 0.0));
+
+        let receipt = world.try_step_with_receipt(0.01).unwrap();
+        let ledger = &receipt.work_ledger;
+
+        assert!((ledger.external_force_work_joules - 0.0002).abs() < 1e-12);
+        assert!((ledger.gravity_work_joules - 0.004811805).abs() < 1e-12);
+        assert!(ledger.linear_damping_and_speed_limit_energy_change_joules.abs() < 1e-12);
+        assert!(ledger.normal_contact_kinetic_energy_change_joules.abs() < 1e-12);
+        assert!(ledger.friction_contact_kinetic_energy_change_joules.abs() < 1e-12);
+        assert!((ledger.gravitational_potential_energy_change_joules + 0.00962361).abs() < 1e-12);
+        assert!((ledger.measured_mechanical_energy_change_joules + 0.004611805).abs() < 1e-12);
+        assert!(ledger.unattributed_energy_change_joules.abs() < 1e-12);
+    }
+
+    #[test]
+    fn discrete_work_ledger_attributes_linear_damping_energy_loss() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.1, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_velocity = SVector::new(1.0, 0.0);
+        body.linear_damping = 3.0;
+        body.angular_damping = 0.0;
+        body.apply_force(SVector::new(2.0, 0.0));
+
+        let receipt = world.try_step_with_receipt(0.1).unwrap();
+        let ledger = &receipt.work_ledger;
+        let raw_velocity = 1.2_f64;
+        let final_velocity = raw_velocity * (-0.3_f64).exp();
+        let expected_damping_delta =
+            0.5 * (final_velocity * final_velocity - raw_velocity * raw_velocity);
+        let expected_mechanical_delta = 0.5 * (final_velocity * final_velocity - 1.0);
+
+        assert!((ledger.external_force_work_joules - 0.22).abs() < 1e-12);
+        assert!(
+            (ledger.linear_damping_and_speed_limit_energy_change_joules
+                - expected_damping_delta)
+                .abs()
+                < 1e-12
+        );
+        assert!((ledger.measured_mechanical_energy_change_joules - expected_mechanical_delta).abs() < 1e-12);
+        assert!(ledger.unattributed_energy_change_joules.abs() < 1e-12);
+    }
+
+    #[test]
+    fn discrete_work_ledger_separates_normal_impact_and_friction() {
+        use crate::body::RigidBody;
+        use symtropy_math::Sphere;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 4;
+        world.baumgarte = 0.0;
+        world.compliance = 0.0;
+
+        let moving = world.add_sphere(Point::origin(), 0.5, 1.0);
+        {
+            let body = world.body_mut(moving).unwrap();
+            body.linear_velocity = SVector::new(1.0, 1.0, 0.0);
+            body.friction = 0.5;
+            body.restitution = 0.2;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+        }
+        let mut fixed = RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::new([0.999, 0.0, 0.0]),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+        );
+        fixed.friction = 0.5;
+        fixed.restitution = 0.2;
+        let fixed_handle = world.add_body(fixed);
+        world.body_mut(fixed_handle).unwrap().friction = 0.5;
+
+        let receipt = world.try_step_with_receipt(0.001).unwrap();
+        let ledger = &receipt.work_ledger;
+        assert!(ledger.normal_contact_kinetic_energy_change_joules < 0.0);
+        assert!(ledger.friction_contact_kinetic_energy_change_joules < 0.0);
+        assert!(ledger.frictional_dissipation_joules > 0.0);
+        assert!(
+            (ledger.frictional_dissipation_joules
+                + ledger.friction_contact_kinetic_energy_change_joules)
+                .abs()
+                < 1e-12
+        );
+        assert!(ledger.unattributed_energy_change_joules.is_finite());
+    }
+
 }
