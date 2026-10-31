@@ -404,6 +404,8 @@ impl<const D: usize> PeriodicCellKinematics<D> {
             affine_velocity_delta,
             affine_position_delta,
         })
+    }
+
     /// Verify and apply a pure integer-unimodular basis representation change.
     ///
     /// The new basis must satisfy B_next = B_current * U and the basis rate
