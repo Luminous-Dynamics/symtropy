@@ -1,0 +1,26 @@
+name: Production SO(4) free-top trajectory qualification
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/tests/so4_production_free_top.rs"
+      - "docs/research/SO4_PRODUCTION_FREE_TOP_TRAJECTORY_2026-10-31.md"
+      - ".github/workflows/so4-production-free-top.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-so4:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run production SO(4) trajectory tests
+        run: cargo test -p symtropy-physics --test so4_production_free_top --locked
