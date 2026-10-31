@@ -87,3 +87,16 @@ The exact rational one-step posterior function is the reference. Tests compare p
 The particle module also exposes a paired particle-count sweep against the exact one-step joint posterior. Each record reports predictive-probability error, joint-posterior total-variation and squared error, mechanism-posterior squared error, ESS before/after resampling, support-loss fraction, resampling occurrence, and elapsed time. Runtime is descriptive; posterior metrics are seeded and deterministic for a fixed configuration.
 
 This is a finite-state fully adapted particle-filter comparator. It is not nested SMC-squared, does not infer continuous parameters, and does not reproduce BAD-PODS' theoretical convergence guarantees.
+
+
+## Running the particle-count comparison
+
+Run the deterministic synthetic sweep with the pinned toolchain:
+
+\`\`\`sh
+cargo run --release --locked \\
+  --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml \\
+  --example particle_filter_sweep > particle-filter-sweep.tsv
+\`\`\`
+
+The example generates eight instances per challenge family, sweeps 32–4096 particles, and emits TSV records with the per-instance manifest fingerprint. It uses the nominal kernel and the same first measurement action for every particle count. Timing includes initialization and one update and is descriptive; exact posterior errors and ESS diagnostics are the primary comparison.
