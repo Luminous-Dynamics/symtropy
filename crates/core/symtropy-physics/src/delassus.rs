@@ -11,6 +11,7 @@
 use nalgebra::{DMatrix, DVector, SVector};
 
 use crate::body::{BodyHandle, RigidBody};
+use crate::contact_frame::ContactFrame;
 use crate::inertia::RotationalInertiaError;
 use crate::integrator::angular_point_velocity;
 use symtropy_math::Bivector;
@@ -24,6 +25,92 @@ pub struct FrictionlessContactRow<const D: usize> {
     pub offset_a: SVector<f64, D>,
     pub offset_b: SVector<f64, D>,
     pub normal: SVector<f64, D>,
+}
+
+/// A complete normal/tangent/rolling/torsional contact-wrench row.
+#[derive(Clone, Debug)]
+pub struct ContactWrenchRow<const D: usize> {
+    pub body_a: BodyHandle,
+    pub body_b: BodyHandle,
+    pub offset_a: SVector<f64, D>,
+    pub offset_b: SVector<f64, D>,
+    pub frame: ContactFrame<D>,
+}
+
+#[derive(Clone, Debug)]
+enum ContactWrenchBasis<const D: usize> {
+    Linear(SVector<f64, D>),
+    Angular(Bivector<D>),
+}
+
+fn contact_wrench_basis<const D: usize>(frame: &ContactFrame<D>) -> Vec<ContactWrenchBasis<D>> {
+    let mut basis = Vec::with_capacity(D * (D + 1) / 2);
+    basis.push(ContactWrenchBasis::Linear(*frame.normal()));
+    basis.extend(
+        frame
+            .tangent_basis()
+            .iter()
+            .copied()
+            .map(ContactWrenchBasis::Linear),
+    );
+    basis.extend(
+        frame
+            .rolling_basis()
+            .iter()
+            .cloned()
+            .map(ContactWrenchBasis::Angular),
+    );
+    basis.extend(
+        frame
+            .torsional_basis()
+            .iter()
+            .cloned()
+            .map(ContactWrenchBasis::Angular),
+    );
+    basis
+}
+
+fn bivector_inner_product<const D: usize>(left: &Bivector<D>, right: &Bivector<D>) -> f64 {
+    let mut result = 0.0;
+    for i in 0..D {
+        for j in (i + 1)..D {
+            result += left.get(i, j) * right.get(i, j);
+        }
+    }
+    result
+}
+
+fn contact_wrench_body_response<const D: usize>(
+    body: &RigidBody<D>,
+    linear_impulse: &SVector<f64, D>,
+    angular_impulse: &Bivector<D>,
+    impulse_offset: &SVector<f64, D>,
+    sample_offset: &SVector<f64, D>,
+    relative_tolerance: f64,
+) -> Result<(SVector<f64, D>, Bivector<D>), RotationalInertiaError> {
+    if !body.is_dynamic() {
+        return Ok((SVector::zeros(), Bivector::zero()));
+    }
+
+    let linear_response = linear_impulse * body.inv_mass;
+    let lever_arm_angular_impulse = Bivector::from_wedge(linear_impulse, impulse_offset);
+    let total_angular_impulse = angular_impulse.add(&lever_arm_angular_impulse);
+    let physical_angular_response = if let Some(inertia) = &body.rotational_inertia {
+        inertia.validate_body_mass(body.mass, relative_tolerance)?;
+        inertia
+            .rotated_by(&body.transform.rotation)
+            .angular_velocity_from_momentum(&total_angular_impulse, relative_tolerance)?
+    } else {
+        let inverse_mean_inertia = body.inv_inertia.sum() / D as f64;
+        total_angular_impulse.scale(inverse_mean_inertia)
+    };
+
+    // Convert the physical angular response to the stored state sign only at
+    // the shared point-velocity helper boundary.
+    let stored_angular_response = physical_angular_response.scale(-1.0);
+    let point_velocity_response =
+        linear_response + angular_point_velocity(&stored_angular_response, sample_offset);
+    Ok((point_velocity_response, physical_angular_response))
 }
 
 /// Failure while assembling a reference Delassus matrix.
@@ -178,6 +265,134 @@ fn impulse_response_at<const D: usize>(
     };
 
     Ok(linear_response + angular_point_velocity(&stored_angular_response, sample_offset))
+}
+
+/// Assemble the complete contact-wrench Delassus matrix for normal,
+/// tangential, rolling and torsional contact coordinates.
+///
+/// Each row contributes D linear coordinates (normal plus D-1 tangents) and
+/// D(D-1)/2 angular coordinates (rolling plus torsion), for D(D+1)/2 total.
+/// The matrix retains cross-coupling between every channel and both bodies.
+/// This is a reference assembler only: it does not select a friction law or
+/// solve the resulting coupled contact problem.
+pub fn assemble_contact_wrench_delassus<const D: usize>(
+    bodies: &[RigidBody<D>],
+    rows: &[ContactWrenchRow<D>],
+    relative_tolerance: f64,
+) -> Result<DMatrix<f64>, DelassusAssemblyError> {
+    if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 {
+        return Err(DelassusAssemblyError::InvalidTolerance);
+    }
+    if D < 2 || rows.is_empty() {
+        return Err(DelassusAssemblyError::InvalidRow);
+    }
+
+    let mut row_bases = Vec::with_capacity(rows.len());
+    let mut coordinate_ranges = Vec::with_capacity(rows.len());
+    let mut total_coordinates = 0usize;
+    for row in rows {
+        if row.body_a == row.body_b
+            || !row.offset_a.iter().all(|value| value.is_finite())
+            || !row.offset_b.iter().all(|value| value.is_finite())
+        {
+            return Err(DelassusAssemblyError::InvalidRow);
+        }
+        if !bodies.iter().any(|body| body.handle == row.body_a) {
+            return Err(DelassusAssemblyError::MissingBody(row.body_a));
+        }
+        if !bodies.iter().any(|body| body.handle == row.body_b) {
+            return Err(DelassusAssemblyError::MissingBody(row.body_b));
+        }
+        let basis = contact_wrench_basis(&row.frame);
+        if basis.len() != D * (D + 1) / 2 {
+            return Err(DelassusAssemblyError::InvalidRow);
+        }
+        coordinate_ranges.push(total_coordinates..total_coordinates + basis.len());
+        total_coordinates += basis.len();
+        row_bases.push(basis);
+    }
+
+    let mut matrix = DMatrix::<f64>::zeros(total_coordinates, total_coordinates);
+    for (row_index_i, row_i) in rows.iter().enumerate() {
+        for (local_i, basis_i) in row_bases[row_index_i].iter().enumerate() {
+            let global_i = coordinate_ranges[row_index_i].start + local_i;
+            for (row_index_j, row_j) in rows.iter().enumerate() {
+                for (local_j, basis_j) in row_bases[row_index_j].iter().enumerate() {
+                    let global_j = coordinate_ranges[row_index_j].start + local_j;
+                    let mut relative_linear_response = SVector::<f64, D>::zeros();
+                    let mut relative_angular_response = Bivector::<D>::zero();
+
+                    for (body_handle, sample_offset, relative_sign) in [
+                        (row_i.body_a, &row_i.offset_a, -1.0),
+                        (row_i.body_b, &row_i.offset_b, 1.0),
+                    ] {
+                        let body = bodies
+                            .iter()
+                            .find(|body| body.handle == body_handle)
+                            .ok_or(DelassusAssemblyError::MissingBody(body_handle))?;
+
+                        let impulse_sign = if body_handle == row_j.body_a {
+                            -1.0
+                        } else if body_handle == row_j.body_b {
+                            1.0
+                        } else {
+                            continue;
+                        };
+
+                        let (linear_impulse, angular_impulse, impulse_offset) = match basis_j {
+                            ContactWrenchBasis::Linear(direction) => (
+                                direction * impulse_sign,
+                                Bivector::zero(),
+                                if impulse_sign < 0.0 {
+                                    &row_j.offset_a
+                                } else {
+                                    &row_j.offset_b
+                                },
+                            ),
+                            ContactWrenchBasis::Angular(angular) => (
+                                SVector::zeros(),
+                                angular.scale(impulse_sign),
+                                if impulse_sign < 0.0 {
+                                    &row_j.offset_a
+                                } else {
+                                    &row_j.offset_b
+                                },
+                            ),
+                        };
+
+                        let (point_response, angular_response) = contact_wrench_body_response(
+                            body,
+                            &linear_impulse,
+                            &angular_impulse,
+                            impulse_offset,
+                            sample_offset,
+                            relative_tolerance,
+                        )
+                        .map_err(DelassusAssemblyError::RotationalInertia)?;
+                        relative_linear_response += point_response * relative_sign;
+                        relative_angular_response = relative_angular_response
+                            .add(&angular_response.scale(relative_sign));
+                    }
+
+                    matrix[(global_i, global_j)] = match basis_i {
+                        ContactWrenchBasis::Linear(direction) => {
+                            direction.dot(&relative_linear_response)
+                        }
+                        ContactWrenchBasis::Angular(angular) => {
+                            bivector_inner_product(angular, &relative_angular_response)
+                        }
+                    };
+                }
+            }
+        }
+    }
+
+    if !matrix.iter().all(|value| value.is_finite()) {
+        return Err(DelassusAssemblyError::RotationalInertia(
+            RotationalInertiaError::NonFinite,
+        ));
+    }
+    Ok(matrix)
 }
 
 /// Solve the monotone frictionless contact LCP:
