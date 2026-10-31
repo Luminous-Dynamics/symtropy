@@ -1152,7 +1152,8 @@ fn independent_candidate_frontier(candidates: Vec<Candidate>) -> Vec<Candidate> 
             if index == other_index {
                 return false;
             }
-            independent_same_objectives(&other.per_world, &candidate.per_world)
+            (other_index < index
+                && independent_same_objectives(&other.per_world, &candidate.per_world))
                 || independent_dominates(&other.per_world, &candidate.per_world)
         });
         if !dominated {
