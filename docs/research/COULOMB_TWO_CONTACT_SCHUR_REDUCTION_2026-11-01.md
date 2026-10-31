@@ -47,7 +47,7 @@ A test-only reducer:
 3. evaluates the exact Schur block formulas in binary64 for this numerical candidate-generation lane;
 4. calls the existing 3x3 single-contact reference for contact 1;
 5. reconstructs contact 2's impulse from the eliminated equation;
-6. rechecks each candidate against the original, unreduced 6x6 velocity, normal complementarity, contact-2 strict sticking disk, contact-1 declared regime, and full island kinetic energy;
+6. rechecks each candidate against the original, unreduced 6x6 normal complementarity, contact-2 strict sticking disk, contact-1 declared regime (including the sliding KKT residual rather than incorrectly requiring zero tangential velocity), and full island kinetic energy;
 7. deduplicates only at the numerical comparison tolerance.
 
 ## Frozen result target
@@ -76,7 +76,8 @@ Compare the reduced path against direct full-island nonlinear search on the same
 - full 6D residual and energy error;
 - reduction/factorization time versus direct solve time;
 - sensitivity to Schur-block condition number;
-- abstention when C is singular/ill-conditioned;
+- abstention when the full operator or C block is singular/ill-conditioned;
+- strict rejection when a reconstructed eliminated-contact impulse lies outside its sticking disk;
 - deterministic replay and contact-block permutation invariance.
 
 No engine-speed or SOTA claim is made. All benchmark/evidence receipts remain subject to #460.
