@@ -16,7 +16,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_MODEL_WORLDS: usize = 16;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DecisionModelWorld {
     pub id: String,
     pub kernel: ActionRealizationKernel,
