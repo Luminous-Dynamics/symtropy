@@ -1004,6 +1004,80 @@ mod tests {
     }
 
     #[test]
+    fn rejects_interface_mapping_without_its_own_receipt() {
+        let input = fixture("integrated")
+            .lines()
+            .filter(|line| !line.starts_with("EVIDENCE|ev-interface-01|"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let result = audit_text(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("missing evidence receipt ev-interface-01"));
+    }
+
+    #[test]
+    fn rejects_interface_mapping_receipt_with_wrong_subject() {
+        let input = fixture("integrated").replace(
+            "EVIDENCE|ev-interface-01|INTERFACE_MAPPING|INTERFACE|if-machine-inspection|",
+            "EVIDENCE|ev-interface-01|INTERFACE_MAPPING|INTERFACE|if-other-interface|",
+        );
+        let result = audit_text(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("subject mismatch"));
+    }
+
+    #[test]
+    fn rejects_missing_exact_source_locator() {
+        let input = fixture("integrated").replace(
+            "EVIDENCE|ev-node-product|THREAD_IDENTITY|NODE|PRODUCT:product-001|fixture://nodes/product/product-001|",
+            "EVIDENCE|ev-node-product|THREAD_IDENTITY|NODE|PRODUCT:product-001|-|",
+        );
+        let result = audit_text(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("no exact source locator"));
+    }
+
+    #[test]
+    fn rejects_vvuq_receipt_that_does_not_cover_composition_validity() {
+        let input = fixture("integrated")
+            .lines()
+            .map(|line| {
+                if line.starts_with("EVIDENCE|ev-vvuq-machine|") {
+                    let mut fields: Vec<&str> = line.split('|').collect();
+                    fields[10] = "2026-10-31T23:59:59Z";
+                    fields.join("|")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let result = audit_text(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("VVUQ evidence does not cover composition validity"));
+    }
+
+    #[test]
+    fn rejects_msa_study_expired_before_measurement() {
+        let input = fixture("integrated")
+            .lines()
+            .map(|line| {
+                if line.starts_with("EVIDENCE|ev-node-msa_study|") {
+                    let mut fields: Vec<&str> = line.split('|').collect();
+                    fields[10] = "2026-10-14T00:00:00Z";
+                    fields.join("|")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let result = audit_text(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("MSA study was not valid at the measurement timestamp"));
+    }
+
+    #[test]
     fn rejects_calibration_expired_before_measurement() {
         let input = fixture("integrated")
             .lines()
