@@ -63,8 +63,6 @@ pub struct SemiExplicitPendulumDg {
     length: f64,
     gravity: [f64; 2],
     constraint_tolerance: f64,
-    multiplier_tolerance: f64,
-    max_multiplier_iterations: usize,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -226,8 +224,6 @@ impl SemiExplicitPendulumDg {
             length,
             gravity,
             constraint_tolerance: 1.0e-10,
-            multiplier_tolerance: 1.0e-13,
-            max_multiplier_iterations: 32,
         })
     }
 
@@ -349,13 +345,7 @@ impl SemiExplicitPendulumDg {
                 converged = true;
                 break;
             }
-            let derivative_scale = (1.0
-                + self.length * norm(midpoint_velocity_derivative_placeholder(
-                    before.position,
-                    midpoint_velocity,
-                    dt,
-                )))
-            .max(f64::MIN_POSITIVE);
+            let derivative_scale = (1.0 + multiplier.abs()).max(f64::MIN_POSITIVE);
             if !derivative.is_finite()
                 || derivative.abs() <= f64::EPSILON * derivative_scale
             {
@@ -407,7 +397,7 @@ impl SemiExplicitPendulumDg {
         }
 
         if !converged {
-            let (_, residual, _) = midpoint_velocity_and_constraint(
+            let (midpoint_velocity, residual, _) = midpoint_velocity_and_constraint(
                 self.mass,
                 before.position,
                 before.velocity,
@@ -416,16 +406,6 @@ impl SemiExplicitPendulumDg {
                 dt,
                 multiplier,
             )?;
-            let midpoint_velocity = midpoint_velocity_and_constraint(
-                self.mass,
-                before.position,
-                before.velocity,
-                self.gravity,
-                applied_force,
-                dt,
-                multiplier,
-            )?
-            .0;
             let midpoint_position =
                 add(before.position, scale(midpoint_velocity, 0.5 * dt));
             let residual_scale = (1.0
@@ -539,15 +519,6 @@ impl SemiExplicitPendulumDg {
             multiplier_iterations: iterations,
         })
     }
-}
-
-// Retained as an explicit helper for the derivative scale check above.
-fn midpoint_velocity_derivative_placeholder(
-    _initial_position: [f64; 2],
-    _midpoint_velocity: [f64; 2],
-    _dt: f64,
-) -> [f64; 2] {
-    [0.0, 0.0]
 }
 
 #[cfg(test)]
