@@ -174,7 +174,8 @@ Targets are divided into exact software properties and contextual empirical meas
 
 - Every safeguard snapshot, hazard report, hazard-finding change and disposition change appends exactly one process event.
 - Every event has a strictly increasing sequence number, a non-decreasing host timestamp, an actor identifier, a predecessor receipt reference and a current receipt reference.
-- Every hazard-finding transition names the prior finding and a new evidence reference. Refutation does not delete the report; reopening requires a new event and evidence reference.
+- Every new hazard report starts in `Reported`. Every hazard-finding transition names the prior finding and a new evidence reference. Refutation does not delete the report; reopening requires a new event and evidence reference.
+- Experiments account for every recorded position as tested or explicitly retained.
 - Replay of a complete, valid event stream from the same genesis positions reproduces the same state and history.
 - Experiments account for every recorded position as tested or explicitly retained.
 - Hazard-finding transitions follow a declared state graph, require new evidence references and preserve prior findings; reopening a refuted hazard is a new event.
