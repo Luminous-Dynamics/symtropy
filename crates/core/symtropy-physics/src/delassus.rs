@@ -1148,6 +1148,32 @@ mod tests {
             frame,
         };
 
+        let normal = SVector::new(1.0, 0.0, 0.0);
+        let tangent = SVector::new(0.0, 1.0, 0.0);
+        let frictionless_normal = FrictionlessContactRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::new(1.0, 0.0, 0.0),
+            normal,
+        };
+        let frictionless_tangent = FrictionlessContactRow {
+            normal: tangent,
+            ..frictionless_normal.clone()
+        };
+        let normal_metric =
+            assemble_delassus(&bodies, &[frictionless_normal], 1e-12).unwrap();
+        let tangent_metric =
+            assemble_delassus(&bodies, &[frictionless_tangent], 1e-12).unwrap();
+        assert!(
+            (matrix[(0, 0)] - normal_metric[(0, 0)]).abs() < 1e-10,
+            "normal diagonal differs from frictionless reference"
+        );
+        assert!(
+            (matrix[(1, 1)] - tangent_metric[(0, 0)]).abs() < 1e-10,
+            "tangent diagonal differs from frictionless reference"
+        );
+
         let matrix = assemble_contact_wrench_delassus(&bodies, &[row], 1e-12).unwrap();
         let scale = matrix.norm().max(f64::MIN_POSITIVE);
         assert!(
