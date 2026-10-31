@@ -409,6 +409,17 @@ fn evaluate(manifest: &Manifest) -> ClosureReport {
         global_reasons.push("DEPENDENCY_CYCLE".to_string());
     }
 
+    let mut dependencies_by_consumer: BTreeMap<String, Vec<&Dependency>> = BTreeMap::new();
+    for dependency in &manifest.dependencies {
+        dependencies_by_consumer
+            .entry(dependency.consumer_id.clone())
+            .or_default()
+            .push(dependency);
+    }
+    for dependencies in dependencies_by_consumer.values_mut() {
+        dependencies.sort_by(|left, right| left.material_id.cmp(&right.material_id));
+    }
+
     for artifact_id in &reachable {
         let artifact = manifest.artifacts.get(artifact_id).expect("reachable artifact exists");
         let path = witness_path(artifact_id, &parent);
@@ -435,11 +446,10 @@ fn evaluate(manifest: &Manifest) -> ClosureReport {
             ));
         }
 
-        let dependencies: Vec<&Dependency> = manifest
-            .dependencies
-            .iter()
-            .filter(|dependency| dependency.consumer_id == *artifact_id)
-            .collect();
+        let dependencies: Vec<&Dependency> = dependencies_by_consumer
+            .get(artifact_id)
+            .cloned()
+            .unwrap_or_default();
 
         for policy in manifest
             .role_policies
@@ -694,13 +704,12 @@ mod tests {
     fn stale_calibration_blocks_closure() {
         let input = mutate(
             valid_manifest(),
-            "ARTIFACT|calibration|CALIBRATION_RECORD|",
-            "ARTIFACT|calibration|CALIBRATION_RECORD|",
-        );
-        let input = mutate(
-            input,
-            "2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2|ACCEPTED|",
-            "2026-10-01T00:00:00Z|2026-10-30T00:00:00Z|T2|ACCEPTED|",
+            &format!(
+                "ARTIFACT|calibration|CALIBRATION_RECORD|{HASH_C}|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2|ACCEPTED|{HASH_C}"
+            ),
+            &format!(
+                "ARTIFACT|calibration|CALIBRATION_RECORD|{HASH_C}|LINE-1|2026-10-01T00:00:00Z|2026-10-30T00:00:00Z|T2|ACCEPTED|{HASH_C}"
+            ),
         );
         let report = run_report(&input).unwrap();
         assert!(report.contains("ARTIFACT_NOT_CURRENT:calibration"));
@@ -710,10 +719,13 @@ mod tests {
     fn non_accepted_receipt_blocks_closure() {
         let input = mutate(
             valid_manifest(),
-            "ARTIFACT|calibration|CALIBRATION_RECORD|",
-            "ARTIFACT|calibration|CALIBRATION_RECORD|",
+            &format!(
+                "ARTIFACT|calibration|CALIBRATION_RECORD|{HASH_C}|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2|ACCEPTED|{HASH_C}"
+            ),
+            &format!(
+                "ARTIFACT|calibration|CALIBRATION_RECORD|{HASH_C}|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2|CONTESTED|{HASH_C}"
+            ),
         );
-        let input = mutate(input, "|T2|ACCEPTED|", "|T2|CONTESTED|");
         let report = run_report(&input).unwrap();
         assert!(report.contains("ARTIFACT_NOT_ACCEPTED:calibration:CONTESTED"));
     }
@@ -722,18 +734,12 @@ mod tests {
     fn cross_scope_material_cannot_support_consumer() {
         let input = mutate(
             valid_manifest(),
-            "ARTIFACT|instrument|INSTRUMENT_IDENTITY|",
-            "ARTIFACT|instrument|INSTRUMENT_IDENTITY|",
-        );
-        let input = mutate(
-            input,
-            "ARTIFACT|instrument|INSTRUMENT_IDENTITY|",
-            "ARTIFACT|instrument|INSTRUMENT_IDENTITY|",
-        );
-        let input = mutate(
-            input,
-            "|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2|ACCEPTED|",
-            "|LINE-2|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2|ACCEPTED|",
+            &format!(
+                "ARTIFACT|instrument|INSTRUMENT_IDENTITY|{HASH_D}|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2|ACCEPTED|{HASH_D}"
+            ),
+            &format!(
+                "ARTIFACT|instrument|INSTRUMENT_IDENTITY|{HASH_D}|LINE-2|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2|ACCEPTED|{HASH_D}"
+            ),
         );
         let report = run_report(&input).unwrap();
         assert!(report.contains("ARTIFACT_SCOPE_MISMATCH:instrument"));
@@ -744,27 +750,12 @@ mod tests {
     fn global_material_may_support_local_consumer() {
         let input = mutate(
             valid_manifest(),
-            "ARTIFACT|reference-standard|REFERENCE_STANDARD|",
-            "ARTIFACT|reference-standard|REFERENCE_STANDARD|",
-        );
-        let input = mutate(
-            input,
-            "ARTIFACT|reference-standard|REFERENCE_STANDARD|",
-            "ARTIFACT|reference-standard|REFERENCE_STANDARD|",
-        );
-        let input = mutate(
-            input,
-            "ARTIFACT|reference-standard|REFERENCE_STANDARD|",
-            "ARTIFACT|reference-standard|REFERENCE_STANDARD|",
-        );
-        let input = mutate(
-            input,
-            "ARTIFACT|reference-standard|REFERENCE_STANDARD|",
-            "ARTIFACT|reference-standard|REFERENCE_STANDARD|",
-        );
-        let input = input.replace(
-            &format!("ARTIFACT|reference-standard|REFERENCE_STANDARD|{HASH_F}|LINE-1|"),
-            &format!("ARTIFACT|reference-standard|REFERENCE_STANDARD|{HASH_F}|GLOBAL|"),
+            &format!(
+                "ARTIFACT|reference-standard|REFERENCE_STANDARD|{HASH_F}|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2|ACCEPTED|{HASH_F}"
+            ),
+            &format!(
+                "ARTIFACT|reference-standard|REFERENCE_STANDARD|{HASH_F}|GLOBAL|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2|ACCEPTED|{HASH_F}"
+            ),
         );
         let report = run_report(&input).unwrap();
         assert!(report.contains("RESULT status=CLOSED"));
