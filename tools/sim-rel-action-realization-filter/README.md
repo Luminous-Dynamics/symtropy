@@ -172,15 +172,13 @@ It returns a deterministic ordered set of validated candidate specs plus
 attempted/skipped counts. Input-order permutation does not change candidate
 IDs or ordering. A hard attempt cap fails closed rather than silently
 truncating a large Cartesian product. Each spec names an immutable source
-world, a unique candidate-world ID and an exact mutation. Initial mutation families include measurement-label
-inversion conditioned on sensor state, readback dropout, hazard injection,
-exact probability-mass transfer between outcomes, apparatus-state degradation
-and realized-action remapping.
+world, a unique candidate-world ID and an exact mutation.
 
-The generator validates every mutated kernel and preserves its state, action
-and observation vocabularies, so candidates can be appended to the existing
-finite model family without silently changing the meaning of the loss table or
-public protocol. Search replays the *same fixed policy* over the expanded
+The grid preflight skips obvious no-op/inapplicable parameter combinations
+without cloning the full kernel. The search stage constructs and validates each
+candidate kernel, preserving the source state's, action's and observation's
+vocabularies so candidates can be appended without silently changing the
+meaning of the loss table or public protocol. Search replays the *same fixed policy* over the expanded
 family. A newly reachable observation for which the policy has no branch is
 recorded as `PolicyInvalidated`; it is never silently normalized or discarded.
 Other witnesses distinguish hazard-budget violation, abstention-budget
@@ -202,6 +200,8 @@ exact mutation specification and candidate kernel. This makes a discovered
 counterexample replayable and allows an explicit later admission/re-plan step.
 Candidate IDs are unique within a search report, and candidate insertion is
 never performed implicitly.
+The `search_policy_against_bounded_grid` entry point connects grid generation
+and frozen-policy replay while retaining both the grid and search receipts.
 The `search_policy_against_bounded_grid` entry point connects grid generation
 and frozen-policy replay while retaining both the grid and search receipts.
 
