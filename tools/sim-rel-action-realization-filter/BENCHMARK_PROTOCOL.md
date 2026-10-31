@@ -148,7 +148,33 @@ none is allowed to replace the downstream decision endpoint.
 - Evaluate the falsifier on its own training-generator suite and a disjoint
   sealed generator suite to measure adversarial-search overfit.
 
-## 5. Preregistered research targets
+## 5. Counterexample-falsifier evaluation
+
+Evaluate the policy falsifier as a separate system component; do not fold its
+candidate-search success into planner accuracy.
+
+- Search only candidates whose origin is explicitly marked as the search/
+  training split. Calibration and sealed-evaluation origins must be rejected
+  before inspecting their kernels or observations.
+- Preserve generator ID/version, canonical parameter and seed receipt, parent
+  world ID, origin split and the exact policy revision for every candidate.
+  Receipts are descriptive provenance, not cryptographic attestations.
+- Report candidate count, generator-family coverage, perturbation-space
+  coverage, search budget, runtime, invalid-candidate count and unsupported
+  policy observations. An uncovered observation is a policy counterexample,
+  not a finite numeric loss.
+- Report worst supported candidate loss, hazard, abstention, false-decision
+  frequency and time/candidate budget to first counterexample.
+- Measure falsifier overfit by freezing the falsifier and evaluating it against
+  disjoint generator families and sealed physical traces. Report both the
+  proportion of known injected faults found and the proportion of held-out
+  failures missed; a search that finds only its own training-generator
+  constructions is not a robust falsifier.
+- Never call a search that exhausted its finite candidate budget a proof of
+  model adequacy. State the candidate domain, generators, seeds, constraints,
+  compute/search budget and the remaining unsearched parameter space.
+
+## 6. Preregistered research targets
 
 These are targets for future experiments, not achieved results:
 
@@ -167,7 +193,7 @@ A result is a supported improvement only when the paired held-out interval,
 risk constraints and compute accounting support it. A nominal score advantage
 alone is not evidence of robustness or scientific progress.
 
-## 6. External reference baselines
+## 7. External reference baselines
 
 - COPEx, ICML 2026: https://proceedings.mlr.press/v306/guo26g.html
 - R-IDeA, AISTATS 2026: https://proceedings.mlr.press/v300/tang26d.html
