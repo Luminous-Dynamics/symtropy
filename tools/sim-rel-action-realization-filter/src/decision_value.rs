@@ -2,9 +2,7 @@
 //!
 //! This module separates mechanism information from the downstream decision
 //! that the evidence supports. Losses are defined over the mechanism and next
-//! physical state; sensor and apparatus uncertainty still affect the posterior.
-
-pub mod finite_horizon;
+//! the complete mechanism/process/sensor/apparatus state.
 
 use super::{
     ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PosteriorMass,
@@ -13,11 +11,17 @@ use super::{
 use std::collections::BTreeSet;
 use std::fmt;
 
-/// Finite terminal-decision losses indexed by (decision, mechanism, physical state).
+/// Per-decision loss tensor indexed by
+/// [mechanism][physical state][sensor state][apparatus state].
+pub type JointStateLosses = Vec<Vec<Vec<Vec<Rational>>>>;
+
+/// Finite terminal-decision losses indexed by the complete joint latent state
+/// (mechanism, physical, sensor, apparatus).
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DecisionLossTable {
     pub decision_ids: Vec<String>,
-    pub losses: Vec<Vec<Vec<Rational>>>,
+    /// One complete joint-state loss tensor for every terminal decision.
+    pub losses: Vec<JointStateLosses>,
     pub abstention_loss: Rational,
 }
 
@@ -37,21 +41,40 @@ impl DecisionLossTable {
         if self.losses.len() != self.decision_ids.len() {
             return Err("loss table must have one matrix per decision".into());
         }
-        for (decision, matrix) in self.losses.iter().enumerate() {
-            if matrix.len() != kernel.hypothesis_ids.len() {
+        for (decision, mechanisms) in self.losses.iter().enumerate() {
+            if mechanisms.len() != kernel.hypothesis_ids.len() {
                 return Err(format!(
                     "decision {decision} has the wrong mechanism dimension"
                 ));
             }
-            for (hypothesis, row) in matrix.iter().enumerate() {
-                if row.len() != kernel.physical_state_count {
+            for (hypothesis, physical_states) in mechanisms.iter().enumerate() {
+                if physical_states.len() != kernel.physical_state_count {
                     return Err(format!(
                         "decision {decision}, mechanism {hypothesis} has the wrong physical-state dimension"
                     ));
                 }
+                for (physical, sensor_states) in physical_states.iter().enumerate() {
+                    if sensor_states.len() != kernel.sensor_state_count {
+                        return Err(format!(
+                            "decision {decision}, mechanism {hypothesis}, physical state {physical} has the wrong sensor-state dimension"
+                        ));
+                    }
+                    for (sensor, apparatus_states) in sensor_states.iter().enumerate() {
+                        if apparatus_states.len() != kernel.apparatus_state_count {
+                            return Err(format!(
+                                "decision {decision}, mechanism {hypothesis}, physical state {physical}, sensor state {sensor} has the wrong apparatus-state dimension"
+                            ));
+                        }
+                    }
+                }
             }
         }
         Ok(())
+    }
+
+    fn loss_for_state(&self, decision: usize, state: crate::LatentState) -> Rational {
+        self.losses[decision][state.hypothesis][state.physical_state][state.sensor_state]
+            [state.apparatus_state]
     }
 }
 
@@ -153,8 +176,7 @@ fn expected_losses_from_belief(
     for decision in 0..table.decision_ids.len() {
         let mut expected = Rational::zero();
         for point in belief {
-            let loss = table.losses[decision][point.state.hypothesis]
-                [point.state.physical_state];
+            let loss = table.loss_for_state(decision, point.state);
             let weighted = point
                 .mass
                 .checked_mul(loss)
@@ -175,8 +197,7 @@ fn expected_losses_from_posterior(
     let mut losses = vec![Rational::zero(); table.decision_ids.len()];
     for (decision, expected) in losses.iter_mut().enumerate() {
         for point in posterior {
-            let loss = table.losses[decision][point.next_state.hypothesis]
-                [point.next_state.physical_state];
+            let loss = table.loss_for_state(decision, point.next_state);
             let weighted = point
                 .mass
                 .checked_mul(loss)
@@ -442,14 +463,14 @@ mod tests {
             decision_ids: vec!["release".into(), "hold".into()],
             losses: vec![
                 vec![
-                    vec![Rational::zero()],
-                    vec![Rational::zero()],
-                    vec![Rational::from_u64(1_000)],
+                    vec![vec![vec![Rational::zero()]]],
+                    vec![vec![vec![Rational::zero()]]],
+                    vec![vec![vec![Rational::from_u64(1_000)]]],
                 ],
                 vec![
-                    vec![Rational::one()],
-                    vec![Rational::one()],
-                    vec![Rational::zero()],
+                    vec![vec![vec![Rational::one()]]],
+                    vec![vec![vec![Rational::one()]]],
+                    vec![vec![vec![Rational::zero()]]],
                 ],
             ],
             abstention_loss: Rational::new(2, 1).unwrap(),
@@ -520,6 +541,96 @@ mod tests {
         assert_eq!(report.expected_terminal_loss, Rational::new(99, 100).unwrap());
         assert_eq!(report.expected_total_loss, Rational::one());
         assert!(!report.experiment_is_preferred);
+    }
+
+    #[test]
+    fn apparatus_state_can_change_the_optimal_terminal_decision() {
+        let state_calibrated = LatentState {
+            hypothesis: 0,
+            physical_state: 0,
+            sensor_state: 0,
+            apparatus_state: 0,
+        };
+        let state_degraded = LatentState {
+            apparatus_state: 1,
+            ..state_calibrated
+        };
+        let kernel = ActionRealizationKernel {
+            hypothesis_ids: vec!["mechanism".into()],
+            physical_state_count: 1,
+            sensor_state_count: 1,
+            apparatus_state_count: 2,
+            command_ids: vec!["inspect-apparatus".into()],
+            realized_action_ids: vec!["executed".into()],
+            readback_ids: vec!["calibrated".into(), "degraded".into()],
+            measurement_ids: vec!["valid-reading".into()],
+            initial_belief: vec![
+                BeliefMass {
+                    state: state_calibrated,
+                    mass: Rational::new(1, 2).unwrap(),
+                },
+                BeliefMass {
+                    state: state_degraded,
+                    mass: Rational::new(1, 2).unwrap(),
+                },
+            ],
+            rows: vec![
+                super::super::KernelRow {
+                    state: state_calibrated,
+                    command: 0,
+                    outcomes: vec![super::super::TransitionOutcome {
+                        probability: Rational::one(),
+                        next_state: state_calibrated,
+                        realized_action: 0,
+                        readback: Some(0),
+                        measurement: Some(0),
+                        hazard: false,
+                    }],
+                },
+                super::super::KernelRow {
+                    state: state_degraded,
+                    command: 0,
+                    outcomes: vec![super::super::TransitionOutcome {
+                        probability: Rational::one(),
+                        next_state: state_degraded,
+                        realized_action: 0,
+                        readback: Some(1),
+                        measurement: Some(0),
+                        hazard: false,
+                    }],
+                },
+            ],
+        };
+        let table = DecisionLossTable {
+            decision_ids: vec!["release".into(), "hold".into()],
+            losses: vec![
+                vec![vec![vec![vec![
+                    Rational::zero(),
+                    Rational::from_u64(10),
+                ]]]],
+                vec![vec![vec![vec![Rational::one(), Rational::one()]]]],
+            ],
+            abstention_loss: Rational::new(2, 1).unwrap(),
+        };
+
+        let baseline =
+            bayes_decision_from_belief(&kernel, &kernel.initial_belief, &table).unwrap();
+        assert_eq!(baseline.decision, Some(1));
+        assert_eq!(baseline.expected_loss, Rational::one());
+
+        let report = evaluate_one_step_decision_value(
+            &kernel,
+            &kernel.initial_belief,
+            0,
+            &table,
+            ObservationProtocol::fully_observed(),
+            Rational::zero(),
+            Rational::zero(),
+        )
+        .unwrap();
+
+        assert_eq!(report.expected_terminal_loss, Rational::new(1, 2).unwrap());
+        assert!(report.experiment_is_preferred);
     }
 
     #[test]
