@@ -529,7 +529,7 @@ mod tests {
         let partition = two_cell_partition();
         let source = interval((0, 1), (1, 1));
         let map = AffineMap::new(
-            interval((2, 1), (2, 1)),
+            interval((3, 1), (3, 1)),
             interval((0, 1), (0, 1)),
             interval((0, 1), (0, 1)),
         );
