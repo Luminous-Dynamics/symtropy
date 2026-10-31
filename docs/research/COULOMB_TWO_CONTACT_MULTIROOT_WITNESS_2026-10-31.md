@@ -33,15 +33,15 @@ Friction coefficients:
 The full symmetric Delassus matrix is:
 
 ```text
-[ 0.5949743200, -0.3905462000, -0.6354242600, -0.0000399246589471, -0.0012577367209219,  0.0025740231899637]
-[-0.3905462000,  1.6505234000,  0.8091008900,  0.0004817979761919,  0.0006435466245356, -0.0002079266799144]
-[-0.6354242600,  0.8091008900,  0.9452273500,  0.0000582870846214,  0.0003367426363655,  0.0001951070898771]
-[-0.0000399246589471, 0.0004817979761919, 0.0000582870846214, 1, 0, 0]
-[-0.0012577367209219, 0.0006435466245356, 0.0003367426363655, 0, 1, 0]
-[ 0.0025740231899637, -0.0002079266799144, 0.0001951070898771, 0, 0, 1]
+[ 0.5949743200, -0.3905462000, -0.6354242600, -0.0015969863578854, -0.0503094688368766,  0.1029609275985498]
+[-0.3905462000,  1.6505234000,  0.8091008900,  0.0192719190476772,  0.0257418649814222, -0.0083170671965776]
+[-0.6354242600,  0.8091008900,  0.9452273500,  0.0023314833848562,  0.0134697054546187,  0.0078042835950851]
+[-0.0015969863578854, 0.0192719190476772, 0.0023314833848562, 1, 0, 0]
+[-0.0503094688368766, 0.0257418649814222, 0.0134697054546187, 0, 1, 0]
+[ 0.1029609275985498, -0.0083170671965776, 0.0078042835950851, 0, 0, 1]
 ```
 
-The smallest eigenvalue in the generating prototype was approximately 0.0786717464. The cross-contact block Frobenius norm is approximately 0.0030088978, so this is not a block-diagonal system.
+The smallest eigenvalue in the generating prototype was approximately 0.0707398084. The cross-contact block Frobenius norm is approximately 0.1203559111, so the cross-contact coupling is deliberate and materially larger than the original weak-coupling seed.
 
 ## Three distinct admissible impulses
 
@@ -49,13 +49,13 @@ The post-impulse velocity is u=q+Wp. For each contact, normal complementarity is
 
 | Branch | Contact 1 | Contact 2 | Kinetic-energy change |
 |---|---|---|---:|
-| A | Sticking | Sticking | -8.1526697111 |
-| B | Sliding, tau=0.1985877354 | Sticking | -5.6978488251 |
-| C | Sliding, tau=3.8800159788 | Sticking | -1.2013304004 |
+| A | Sticking | Sticking | -8.6104275288 |
+| B | Sliding, tau=0.2654416784 | Sticking | -5.1814817181 |
+| C | Sliding, tau=4.7094359135 | Sticking | -1.0982825525 |
 
-The independent nonlinear prototype's maximum residual norms were approximately 7.1e-16, 3.1e-16 and 4.6e-16 respectively. The impulses are separated by order-one distances, so they are not duplicate representations of a single solution.
+The independent nonlinear prototype's maximum residual norms were below 1e-9, with the largest residual about 8.2e-10 in the second branch. The impulses are separated by order-one distances, so they are not duplicate representations of a single solution.
 
-Both contacts have positive normal impulses in all three branches. The second contact remains strictly inside its friction disk, while the first contact changes between stick and two distinct sliding directions. Cross-contact energy terms are nonzero and change sign across the branches.
+Both contacts have positive normal impulses in all three branches. The second contact remains strictly inside its friction disk, while the first contact changes between stick and two distinct sliding directions. Cross-contact energy contributions are nonzero in all three branches (approximately -2.16458, -0.19618, and -0.002633 respectively).
 
 ## What the Rust fixture checks
 
