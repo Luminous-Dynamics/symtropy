@@ -132,6 +132,45 @@ fn bench_periodic_cell_kinematics(c: &mut Criterion) {
         });
     });
 
+    let basis_3d = SMatrix::<f64, 3, 3>::from_row_slice(&[
+        2.0, 0.4, 0.1,
+        0.0, 1.5, 0.3,
+        0.0, 0.0, 1.2,
+    ]);
+    let rate_3d = SMatrix::<f64, 3, 3>::from_row_slice(&[
+        0.01, 0.02, 0.0,
+        0.0, -0.01, 0.01,
+        0.0, 0.0, 0.02,
+    ]);
+    let shear_3d = SMatrix::<i64, 3, 3>::from_row_slice(&[
+        1, 1, 0,
+        0, 1, 1,
+        0, 0, 1,
+    ]);
+    let shear_3d_f64 = shear_3d.map(|value| value as f64);
+    let next_rebased_3d = PeriodicCellKinematics::new(
+        7.5,
+        SVector::from([3.0, -2.0, 1.0]),
+        SVector::from([0.2, -0.1, 0.05]),
+        basis_3d * shear_3d_f64,
+        rate_3d * shear_3d_f64,
+        [true, true, true],
+    )
+    .unwrap();
+    group.bench_function("pure_basis_rebase/3d", |b| {
+        b.iter(|| {
+            black_box(
+                frame_3d
+                    .basis_rebase_to(
+                        &next_rebased_3d,
+                        black_box(&cartesian_3d),
+                        shear_3d.clone(),
+                    )
+                    .unwrap(),
+            )
+        });
+    });
+
     group.bench_with_input(
         BenchmarkId::new("batch_fractional_to_cartesian/2d", 4096),
         &4096_usize,
