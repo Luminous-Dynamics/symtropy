@@ -39,6 +39,8 @@ impl Default for PairedStudyConfig {
 pub struct PairedStudyRun {
     pub seed: u64,
     pub observation_noise_rate: Rational,
+    pub shifted_hazard_rate: Rational,
+    pub calibration_damage_rate: Rational,
     pub model_family_fingerprint: String,
     pub benchmark: BenchmarkReport,
 }
@@ -81,6 +83,7 @@ pub struct PairedMethodSummary {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PairedStudyReport {
     pub seeds: Vec<u64>,
+    pub unique_model_family_count: usize,
     pub horizon: usize,
     pub max_hazard: Rational,
     pub max_false_identification: Rational,
@@ -126,6 +129,8 @@ pub fn run_paired_study(config: &PairedStudyConfig) -> Result<PairedStudyReport,
         runs.push(PairedStudyRun {
             seed: *seed,
             observation_noise_rate: family.observation_noise_rate,
+            shifted_hazard_rate: family.shifted_hazard_rate,
+            calibration_damage_rate: family.calibration_damage_rate,
             model_family_fingerprint: fingerprint,
             benchmark,
         });
@@ -157,8 +162,15 @@ pub fn run_paired_study(config: &PairedStudyConfig) -> Result<PairedStudyReport,
         )?);
     }
 
+    let unique_model_family_count = runs
+        .iter()
+        .map(|run| run.model_family_fingerprint.as_str())
+        .collect::<BTreeSet<_>>()
+        .len();
+
     Ok(PairedStudyReport {
         seeds: config.seeds.clone(),
+        unique_model_family_count,
         horizon: config.benchmark.horizon,
         max_hazard: config.benchmark.max_hazard,
         max_false_identification: config.benchmark.max_false_identification,
@@ -354,7 +366,12 @@ mod tests {
         let second = run_paired_study(&config).unwrap();
         assert_eq!(first, second);
         assert_eq!(first.runs.len(), 3);
+        assert_eq!(first.unique_model_family_count, 3);
         assert!(first.method_summaries.iter().all(|summary| summary.run_count == 3));
+        assert_ne!(
+            first.runs[0].shifted_hazard_rate,
+            first.runs[0].calibration_damage_rate
+        );
     }
 
     #[test]
