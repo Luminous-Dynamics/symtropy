@@ -639,9 +639,9 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
     for pair in points.windows(2) {
         let mut lower = pair[0];
         let mut upper = pair[1];
-        let (mut f_lower, s_lower) =
+        let (mut f_lower, _) =
             polynomial_value_and_scale(&coefficients, lower).ok_or(())?;
-        let (f_upper, s_upper) =
+        let (f_upper, _) =
             polynomial_value_and_scale(&coefficients, upper).ok_or(())?;
         let lower_is_root = f_lower == 0.0;
         let upper_is_root = f_upper == 0.0;
