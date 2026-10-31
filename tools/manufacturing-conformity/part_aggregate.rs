@@ -304,7 +304,7 @@ fn validate_linear_supersession_chain(receipts: &[&ScalarReceipt], current_id: &
     if receipts.is_empty() {
         return Err("REQUIRED_SCALAR_RECEIPT_MISSING");
     }
-    let mut current_nodes: Vec<&ScalarReceipt> = receipts.iter().copied()
+    let current_nodes: Vec<&ScalarReceipt> = receipts.iter().copied()
         .filter(|receipt| receipt.is_current)
         .collect();
     if current_nodes.len() != 1 || current_nodes[0].receipt_id != current_id {
@@ -392,7 +392,7 @@ fn aggregate(request: &Request) -> Report {
     let mut has_indeterminate = false;
 
     for requirement in requirement_refs {
-        let mut matching: Vec<&ScalarReceipt> = request.child_receipts.iter()
+        let matching: Vec<&ScalarReceipt> = request.child_receipts.iter()
             .filter(|receipt| receipt.characteristic_id == requirement.characteristic_id)
             .collect();
 
@@ -521,7 +521,7 @@ fn aggregate(request: &Request) -> Report {
             .any(|requirement| requirement.characteristic_id == receipt.characteristic_id))
         .map(|receipt| receipt.characteristic_id.clone())
         .collect();
-    let mut extra_ids = extra_ids;
+    let extra_ids = extra_ids;
     extra_ids.sort();
     extra_ids.dedup();
 
