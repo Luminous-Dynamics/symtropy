@@ -2,7 +2,7 @@ name: SIM-REL-027 Finite-Horizon Decision PR Qualification
 
 on:
   pull_request:
-    branches: ["research/sim-rel-027-one-step-decision-value"]
+    branches: ["research/sim-rel-027-one-step-decision-value", "research/sim-rel-027-finite-horizon-decision-dp-v2"]
     paths:
       - "tools/sim-rel-action-realization-filter/**"
       - ".github/workflows/sim-rel-027-finite-horizon-pr.yml"
