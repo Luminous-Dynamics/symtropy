@@ -327,51 +327,46 @@ mod tests {
     }
 
     fn rk4_reference(
-        mut state: State,
+        mut angle: f64,
+        mut angular_momentum: f64,
         dt: f64,
         steps: usize,
-        gravity: [f64; 2],
     ) -> State {
-        let mass = 1.0;
-        let rhs = |s: State| {
+        // Independent high-accuracy reference in reduced canonical
+        // coordinates, converted to Cartesian only at the terminal time.
+        // It does not reuse the RATTLE constraint or multiplier equations.
+        let inertia = 1.0_f64;
+        let gravity_scale = 9.81_f64;
+        let rhs = |theta: f64, momentum: f64| {
             (
-                [s.momentum[0] / mass, s.momentum[1] / mass],
-                [mass * gravity[0], mass * gravity[1]],
+                momentum / inertia,
+                -gravity_scale * theta.sin(),
             )
         };
         for _ in 0..steps {
-            let (q1, p1) = rhs(state);
-            let s2 = State {
-                position: add(state.position, scale(q1, 0.5 * dt)),
-                momentum: add(state.momentum, scale(p1, 0.5 * dt)),
-            };
-            let (q2, p2) = rhs(s2);
-            let s3 = State {
-                position: add(state.position, scale(q2, 0.5 * dt)),
-                momentum: add(state.momentum, scale(p2, 0.5 * dt)),
-            };
-            let (q3, p3) = rhs(s3);
-            let s4 = State {
-                position: add(state.position, scale(q3, dt)),
-                momentum: add(state.momentum, scale(p3, dt)),
-            };
-            let (q4, p4) = rhs(s4);
-            state.position = add(
-                state.position,
-                scale(
-                    add(add(q1, scale(q2, 2.0)), add(scale(q3, 2.0), q4)),
-                    dt / 6.0,
-                ),
+            let (a1q, a1p) = rhs(angle, angular_momentum);
+            let (a2q, a2p) = rhs(
+                angle + 0.5 * dt * a1q,
+                angular_momentum + 0.5 * dt * a1p,
             );
-            state.momentum = add(
-                state.momentum,
-                scale(
-                    add(add(p1, scale(p2, 2.0)), add(scale(p3, 2.0), p4)),
-                    dt / 6.0,
-                ),
+            let (a3q, a3p) = rhs(
+                angle + 0.5 * dt * a2q,
+                angular_momentum + 0.5 * dt * a2p,
             );
+            let (a4q, a4p) = rhs(
+                angle + dt * a3q,
+                angular_momentum + dt * a3p,
+            );
+            angle += dt * (a1q + 2.0 * a2q + 2.0 * a3q + a4q) / 6.0;
+            angular_momentum += dt * (a1p + 2.0 * a2p + 2.0 * a3p + a4p) / 6.0;
         }
-        state
+        State {
+            position: [angle.sin(), -angle.cos()],
+            momentum: [
+                angular_momentum * angle.cos(),
+                angular_momentum * angle.sin(),
+            ],
+        }
     }
 
     #[test]
@@ -428,7 +423,7 @@ mod tests {
     fn cartesian_rattle_is_second_order_against_independent_rk4() {
         let initial = from_intrinsic(1.1, 0.15, 1.0);
         let gravity = [0.0, -9.81];
-        let reference = rk4_reference(initial, 1.0 / 80_000.0, 80_000, gravity);
+        let reference = rk4_reference(1.1, 0.15, 1.0 / 80_000.0, 80_000);
         let dts = [0.04, 0.02, 0.01, 0.005];
         let mut errors = Vec::new();
         for dt in dts {
