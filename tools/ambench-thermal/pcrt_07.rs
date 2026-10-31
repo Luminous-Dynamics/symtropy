@@ -856,6 +856,19 @@ fn verify() -> Result<(), String> {
         return Err("REHEATING_MUST_INVALIDATE_SAME_SPIKE_SCR".into());
     }
 
+    let (predicted, measured) = synthetic_pair();
+    let synthetic_comparison = compare(&predicted, &measured).map_err(str::to_string)?;
+    if !synthetic_comparison.paired_grid
+        || synthetic_comparison.comparison.paired_tam_count == 0
+        || synthetic_comparison.comparison.paired_scr_count == 0 {
+        return Err("SYNTHETIC_COLLECTION_COMPARISON_FAILED".into());
+    }
+    for row in csv_rows(&synthetic_comparison) {
+        if row.split(',').count() != 49 {
+            return Err("CSV_COLUMN_COUNT_MISMATCH".into());
+        }
+    }
+
     let ks = ks_d(&[1.0, 2.0, 3.0], &[2.0, 3.0, 4.0]).ok_or("KS_EMPTY")?;
     if (ks - (1.0 / 3.0)).abs() > 1.0e-12 {
         return Err("KS_D_KNOWN_ANSWER_FAILED".into());
@@ -942,7 +955,7 @@ fn csv_rows(report: &ComparisonReport) -> Vec<String> {
         let mut cells = vec!["COMPARISON".to_string()];
         cells.resize(35, String::new());
         cells.push(metric.to_string());
-        cells.resize(43, String::new());
+        cells.resize(45, String::new());
         if metric == "TAM" {
             cells[43] = ks.map(|x| format!("{x:.12e}")).unwrap_or_default();
         } else {
