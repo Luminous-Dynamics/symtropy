@@ -112,7 +112,7 @@ pub struct CartesianCellState<const D: usize> {
     pub velocity: SVector<f64, D>,
 }
 
-/// Evidence returned by an instantaneous affine cell remap.
+/// Evidence returned by an instantaneous physical affine cell deformation.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PeriodicCellDeformation<const D: usize> {
     pub before: CartesianCellState<D>,
@@ -738,7 +738,7 @@ mod tests {
     }
 
     #[test]
-    fn affine_remap_reports_deformation_gradient_and_volume_ratio() {
+    fn affine_deformation_reports_gradient_and_volume_ratio() {
         let old = frame2(
             SMatrix::identity(),
             SMatrix::zeros(),
@@ -770,7 +770,7 @@ mod tests {
     }
 
     #[test]
-    fn old_new_old_affine_remap_roundtrips_material_state() {
+    fn old_new_old_affine_deformation_roundtrips_material_state() {
         let old_basis =
             SMatrix::<f64, 2, 2>::from_row_slice(&[2.0, 0.3, 0.0, 1.5]);
         let old_rate =
@@ -1019,6 +1019,35 @@ mod tests {
         assert_eq!(
             old.basis_rebase_to(&mixing_next, &cartesian, mixing),
             Err(PeriodicCellKinematicsError::BasisTransformMixesPeriodicSubspaces)
+        );
+    }
+
+    #[test]
+    fn basis_rebase_rejects_a_transform_that_does_not_match_the_next_frame() {
+        let old = frame2(
+            SMatrix::identity(),
+            SMatrix::zeros(),
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [true, true],
+        );
+        let mut wrong_basis = SMatrix::<f64, 2, 2>::identity();
+        wrong_basis[(0, 1)] = 0.25;
+        let next = frame2(
+            wrong_basis,
+            SMatrix::zeros(),
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [true, true],
+        );
+        let state = CartesianCellState {
+            position: SVector::from([0.2, 0.3]),
+            velocity: SVector::from([0.4, -0.1]),
+        };
+        let identity = SMatrix::<i64, 2, 2>::identity();
+        assert_eq!(
+            old.basis_rebase_to(&next, &state, identity),
+            Err(PeriodicCellKinematicsError::BasisRebaseMismatch)
         );
     }
 
