@@ -50,6 +50,7 @@ struct ConfoundingResult {
     naive_change_difference: f64,
     placebo_pretrend_difference: f64,
     before_after_treated_change: f64,
+    hidden_confounder_treated_count: usize,
 }
 
 fn mean(values: &[f64]) -> Result<f64, String> {
@@ -235,11 +236,16 @@ fn confounding_result(rows: &[ObservationalUnit]) -> Result<ConfoundingResult, S
     let placebo_pretrend_difference = treated_placebo - control_placebo;
 
     let before_after_treated_change = treated_post;
+    let hidden_confounder_treated_count = rows
+        .iter()
+        .filter(|row| row.treated && row.hidden_confounder)
+        .count();
     Ok(ConfoundingResult {
         true_ate,
         naive_change_difference,
         placebo_pretrend_difference,
         before_after_treated_change,
+        hidden_confounder_treated_count,
     })
 }
 
@@ -253,7 +259,7 @@ fn run_report() -> Result<String, String> {
             "MFG_CAUSAL_SYNTHETIC_KNOWN_TRUTH version=1\n",
             "RANDOMIZED_PAIR_DESIGN units=8 pairs=4 assignments={} finite_population_ate={:.6} observed_assignment_ate={:.6} exact_randomization_expectation={:.6}\n",
             "ZERO_EFFECT_TIME_TREND true_ate={:.6} naive_before_after_treated_change={:.6} naive_treated_minus_control_change={:.6}\n",
-            "HIDDEN_CONFOUNDING true_ate={:.6} naive_treated_minus_control_change={:.6} placebo_pretrend_difference={:.6}\n",
+            "HIDDEN_CONFOUNDING true_ate={:.6} naive_treated_minus_control_change={:.6} placebo_pretrend_difference={:.6} treated_hidden_confounder_count={}\n",
             "CLAIM_CEILING synthetic_known_truth=true real_factory_data=false causal_validation_claim=false machine_actuation=false"
         ),
         randomized.assignment_count,
@@ -265,7 +271,8 @@ fn run_report() -> Result<String, String> {
         trend.naive_change_difference,
         hidden.true_ate,
         hidden.naive_change_difference,
-        hidden.placebo_pretrend_difference
+        hidden.placebo_pretrend_difference,
+        hidden.hidden_confounder_treated_count
     ))
 }
 
@@ -325,6 +332,7 @@ mod tests {
         assert_eq!(result.true_ate, 0.0);
         assert_eq!(result.naive_change_difference, -4.0);
         assert_eq!(result.placebo_pretrend_difference, -4.0);
+        assert_eq!(result.hidden_confounder_treated_count, 2);
     }
 
     #[test]
