@@ -48,15 +48,24 @@ impl Rational {
     }
 
     pub const fn zero() -> Self {
-        Self { numerator: 0, denominator: 1 }
+        Self {
+            numerator: 0,
+            denominator: 1,
+        }
     }
 
     pub const fn one() -> Self {
-        Self { numerator: 1, denominator: 1 }
+        Self {
+            numerator: 1,
+            denominator: 1,
+        }
     }
 
     pub const fn from_u64(value: u64) -> Self {
-        Self { numerator: value as u128, denominator: 1 }
+        Self {
+            numerator: value as u128,
+            denominator: 1,
+        }
     }
 
     pub const fn numerator(self) -> u128 {
@@ -79,13 +88,20 @@ impl Rational {
         let common = gcd(self.denominator, other.denominator);
         let left_scale = other.denominator / common;
         let right_scale = self.denominator / common;
-        let left = self.numerator.checked_mul(left_scale)
+        let left = self
+            .numerator
+            .checked_mul(left_scale)
             .ok_or_else(|| "rational addition numerator overflow".to_string())?;
-        let right = other.numerator.checked_mul(right_scale)
+        let right = other
+            .numerator
+            .checked_mul(right_scale)
             .ok_or_else(|| "rational addition numerator overflow".to_string())?;
-        let numerator = left.checked_add(right)
+        let numerator = left
+            .checked_add(right)
             .ok_or_else(|| "rational addition numerator overflow".to_string())?;
-        let denominator = self.denominator.checked_mul(left_scale)
+        let denominator = self
+            .denominator
+            .checked_mul(left_scale)
             .ok_or_else(|| "rational addition denominator overflow".to_string())?;
         Self::new(numerator, denominator)
     }
@@ -94,14 +110,20 @@ impl Rational {
         let common = gcd(self.denominator, other.denominator);
         let left_scale = other.denominator / common;
         let right_scale = self.denominator / common;
-        let left = self.numerator.checked_mul(left_scale)
+        let left = self
+            .numerator
+            .checked_mul(left_scale)
             .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
-        let right = other.numerator.checked_mul(right_scale)
+        let right = other
+            .numerator
+            .checked_mul(right_scale)
             .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
         if left < right {
             return Err("rational subtraction would be negative".into());
         }
-        let denominator = self.denominator.checked_mul(left_scale)
+        let denominator = self
+            .denominator
+            .checked_mul(left_scale)
             .ok_or_else(|| "rational subtraction denominator overflow".to_string())?;
         Self::new(left - right, denominator)
     }
@@ -113,9 +135,11 @@ impl Rational {
         let right_num = other.numerator / cross_right;
         let left_den = self.denominator / cross_right;
         let right_den = other.denominator / cross_left;
-        let numerator = left_num.checked_mul(right_num)
+        let numerator = left_num
+            .checked_mul(right_num)
             .ok_or_else(|| "rational multiplication numerator overflow".to_string())?;
-        let denominator = left_den.checked_mul(right_den)
+        let denominator = left_den
+            .checked_mul(right_den)
             .ok_or_else(|| "rational multiplication denominator overflow".to_string())?;
         Self::new(numerator, denominator)
     }
@@ -178,10 +202,18 @@ fn compare_ratios(
         match (left_remainder == 0, right_remainder == 0) {
             (true, true) => return Ordering::Equal,
             (true, false) => {
-                return if reversed { Ordering::Greater } else { Ordering::Less };
+                return if reversed {
+                    Ordering::Greater
+                } else {
+                    Ordering::Less
+                };
             }
             (false, true) => {
-                return if reversed { Ordering::Less } else { Ordering::Greater };
+                return if reversed {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                };
             }
             (false, false) => {}
         }
@@ -249,16 +281,22 @@ impl JointKernel {
             return Err(format!("hypothesis count must be in 1..={MAX_HYPOTHESES}"));
         }
         if self.physical_state_count == 0 || self.physical_state_count > MAX_PHYSICAL_STATES {
-            return Err(format!("physical state count must be in 1..={MAX_PHYSICAL_STATES}"));
+            return Err(format!(
+                "physical state count must be in 1..={MAX_PHYSICAL_STATES}"
+            ));
         }
         if self.sensor_state_count == 0 || self.sensor_state_count > MAX_SENSOR_STATES {
-            return Err(format!("sensor state count must be in 1..={MAX_SENSOR_STATES}"));
+            return Err(format!(
+                "sensor state count must be in 1..={MAX_SENSOR_STATES}"
+            ));
         }
         if action_count == 0 || action_count > MAX_ACTIONS {
             return Err(format!("action count must be in 1..={MAX_ACTIONS}"));
         }
         if observation_count == 0 || observation_count > MAX_OBSERVATIONS {
-            return Err(format!("observation count must be in 1..={MAX_OBSERVATIONS}"));
+            return Err(format!(
+                "observation count must be in 1..={MAX_OBSERVATIONS}"
+            ));
         }
         if self.action_costs.len() != action_count || self.action_costs.contains(&0) {
             return Err("every action must have one positive integer cost".into());
@@ -267,9 +305,7 @@ impl JointKernel {
         validate_ids(&self.action_ids, "action")?;
         validate_ids(&self.observation_ids, "observation")?;
 
-        if self.initial_belief.is_empty()
-            || self.initial_belief.len() > MAX_INITIAL_BELIEF_TUPLES
-        {
+        if self.initial_belief.is_empty() || self.initial_belief.len() > MAX_INITIAL_BELIEF_TUPLES {
             return Err("initial joint belief is empty or exceeds its tuple cap".into());
         }
         let mut initial_mass = Rational::zero();
@@ -298,7 +334,9 @@ impl JointKernel {
             .and_then(|n| n.checked_mul(action_count))
             .ok_or_else(|| "kernel row count overflow".to_string())?;
         if row_count > MAX_KERNEL_ROWS || self.rows.len() != row_count {
-            return Err("kernel must contain exactly one row for every joint state/action tuple".into());
+            return Err(
+                "kernel must contain exactly one row for every joint state/action tuple".into(),
+            );
         }
 
         let mut total_outcomes = 0_usize;
@@ -318,7 +356,9 @@ impl JointKernel {
                             ));
                         }
                         if row.outcomes.is_empty() || row.outcomes.len() > MAX_OUTCOMES_PER_ROW {
-                            return Err(format!("kernel row {row_index} has an invalid outcome count"));
+                            return Err(format!(
+                                "kernel row {row_index} has an invalid outcome count"
+                            ));
                         }
                         total_outcomes = total_outcomes
                             .checked_add(row.outcomes.len())
@@ -343,7 +383,10 @@ impl JointKernel {
                                     "kernel row {row_index} points outside the joint state space"
                                 ));
                             }
-                            if outcome.observation.is_some_and(|id| id >= observation_count) {
+                            if outcome
+                                .observation
+                                .is_some_and(|id| id >= observation_count)
+                            {
                                 return Err(format!(
                                     "kernel row {row_index} contains an invalid observation ID"
                                 ));
@@ -370,8 +413,7 @@ impl JointKernel {
         sensor_state: usize,
         action: usize,
     ) -> usize {
-        (((hypothesis * self.physical_state_count + physical_state)
-            * self.sensor_state_count
+        (((hypothesis * self.physical_state_count + physical_state) * self.sensor_state_count
             + sensor_state)
             * self.action_ids.len())
             + action
@@ -391,9 +433,14 @@ fn validate_ids(ids: &[String], kind: &str) -> Result<(), String> {
 /// A policy tree over public observations only; it never receives a hidden tuple.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum PolicyPlan {
-    Claim { hypothesis: usize },
+    Claim {
+        hypothesis: usize,
+    },
     Abstain,
-    Action { action: usize, branches: Vec<PolicyBranch> },
+    Action {
+        action: usize,
+        branches: Vec<PolicyBranch>,
+    },
 }
 
 /// Continuation selected after a public observation.
@@ -462,9 +509,10 @@ fn prune_candidates(mut candidates: Vec<Candidate>) -> Vec<Candidate> {
     candidates.sort_by(candidate_order);
     let mut frontier: Vec<Candidate> = Vec::new();
     for candidate in candidates {
-        if frontier.iter().any(|other| {
-            other.same_objectives(&candidate) || dominates(other, &candidate)
-        }) {
+        if frontier
+            .iter()
+            .any(|other| other.same_objectives(&candidate) || dominates(other, &candidate))
+        {
             continue;
         }
         frontier.retain(|other| !dominates(&candidate, other));
@@ -607,7 +655,10 @@ pub fn optimize_joint_kernel(
             plan: candidate.plan,
         })
         .collect();
-    Ok(OptimizationResult { frontier, stats: solver.stats })
+    Ok(OptimizationResult {
+        frontier,
+        stats: solver.stats,
+    })
 }
 
 struct Solver<'a> {
@@ -651,9 +702,13 @@ impl Solver<'_> {
                     let mut next_partials = Vec::new();
                     for partial in &partials {
                         for child in &child_frontier {
-                            self.stats.generated_combinations = self.stats.generated_combinations
+                            self.stats.generated_combinations = self
+                                .stats
+                                .generated_combinations
                                 .checked_add(1)
-                                .ok_or_else(|| "generated-combination counter overflow".to_string())?;
+                                .ok_or_else(|| {
+                                    "generated-combination counter overflow".to_string()
+                                })?;
                             if self.stats.generated_combinations
                                 > self.config.max_generated_combinations
                             {
@@ -669,18 +724,20 @@ impl Solver<'_> {
                             )?;
                             next.false_identification_probability =
                                 next.false_identification_probability.checked_add(
-                                    branch.probability.checked_mul(
-                                        child.false_identification_probability,
-                                    )?,
+                                    branch
+                                        .probability
+                                        .checked_mul(child.false_identification_probability)?,
                                 )?;
                             next.abstention_probability = next.abstention_probability.checked_add(
-                                branch.probability.checked_mul(child.abstention_probability)?,
+                                branch
+                                    .probability
+                                    .checked_mul(child.abstention_probability)?,
                             )?;
                             next.correct_identification_probability =
                                 next.correct_identification_probability.checked_add(
-                                    branch.probability.checked_mul(
-                                        child.correct_identification_probability,
-                                    )?,
+                                    branch
+                                        .probability
+                                        .checked_mul(child.correct_identification_probability)?,
                                 )?;
                             next.branches.push(PolicyBranch {
                                 observation: branch.observation,
@@ -704,8 +761,12 @@ impl Solver<'_> {
                         hazard_probability: partial.hazard_probability,
                         false_identification_probability: partial.false_identification_probability,
                         abstention_probability: partial.abstention_probability,
-                        correct_identification_probability: partial.correct_identification_probability,
-                        plan: PolicyPlan::Action { action, branches: partial.branches },
+                        correct_identification_probability: partial
+                            .correct_identification_probability,
+                        plan: PolicyPlan::Action {
+                            action,
+                            branches: partial.branches,
+                        },
                     });
                 }
             }
@@ -715,8 +776,7 @@ impl Solver<'_> {
         if frontier.len() > self.config.max_frontier_points {
             return Err("solver frontier-point budget exceeded".into());
         }
-        self.stats.maximum_frontier_points =
-            self.stats.maximum_frontier_points.max(frontier.len());
+        self.stats.maximum_frontier_points = self.stats.maximum_frontier_points.max(frontier.len());
         self.memo.insert(key, frontier.clone());
         Ok(frontier)
     }
@@ -760,10 +820,9 @@ impl Solver<'_> {
         let mut branches = Vec::with_capacity(by_observation.len());
         let mut total_mass = hazard_probability;
         for (observation, states) in by_observation {
-            let probability = states.values().try_fold(
-                Rational::zero(),
-                |sum, mass| sum.checked_add(*mass),
-            )?;
+            let probability = states
+                .values()
+                .try_fold(Rational::zero(), |sum, mass| sum.checked_add(*mass))?;
             if probability.is_zero() {
                 return Err("internal zero-mass observation branch".into());
             }
@@ -779,7 +838,11 @@ impl Solver<'_> {
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             total_mass = total_mass.checked_add(probability)?;
-            branches.push(ObservationBranch { observation, probability, belief: posterior });
+            branches.push(ObservationBranch {
+                observation,
+                probability,
+                belief: posterior,
+            });
         }
         if total_mass != Rational::one() {
             return Err("joint action partition did not conserve probability mass".into());
@@ -833,7 +896,9 @@ fn validate_probability_partition(
         .checked_add(abstention)?
         .checked_add(correct_identification)?;
     if total != Rational::one() {
-        return Err("hazard, false claim, abstention, and correct claim must sum exactly to one".into());
+        return Err(
+            "hazard, false claim, abstention, and correct claim must sum exactly to one".into(),
+        );
     }
     Ok(())
 }
@@ -908,7 +973,8 @@ fn validate_plan_shape(
     max_steps: usize,
     node_count: &mut usize,
 ) -> Result<(), String> {
-    *node_count = node_count.checked_add(1)
+    *node_count = node_count
+        .checked_add(1)
         .ok_or_else(|| "policy node count overflow".to_string())?;
     if *node_count > MAX_POLICY_NODES {
         return Err("policy exceeds the node cap".into());
@@ -931,13 +997,7 @@ fn validate_plan_shape(
                 {
                     return Err("policy contains an invalid or duplicate observation branch".into());
                 }
-                validate_plan_shape(
-                    &branch.plan,
-                    kernel,
-                    depth + 1,
-                    max_steps,
-                    node_count,
-                )?;
+                validate_plan_shape(&branch.plan, kernel, depth + 1, max_steps, node_count)?;
             }
         }
     }
@@ -957,7 +1017,9 @@ fn replay_from(
     accumulator: &mut Accumulator,
 ) -> Result<(), String> {
     match plan {
-        PolicyPlan::Claim { hypothesis: claimed } => {
+        PolicyPlan::Claim {
+            hypothesis: claimed,
+        } => {
             if *claimed == hypothesis {
                 accumulator.correct_identification =
                     accumulator.correct_identification.checked_add(mass)?;
@@ -974,17 +1036,16 @@ fn replay_from(
                 return Err("policy replay exceeded the declared action horizon".into());
             }
             let cost = Rational::from_u64(kernel.action_costs[*action]);
-            accumulator.expected_cost = accumulator.expected_cost.checked_add(
-                mass.checked_mul(cost)?,
-            )?;
+            accumulator.expected_cost = accumulator
+                .expected_cost
+                .checked_add(mass.checked_mul(cost)?)?;
             let row_index = kernel.row_index(hypothesis, physical_state, sensor_state, *action);
             let row = &kernel.rows[row_index];
             for outcome in &row.outcomes {
                 let path_mass = mass.checked_mul(outcome.probability)?;
                 match outcome.observation {
                     None => {
-                        accumulator.hazard =
-                            accumulator.hazard.checked_add(path_mass)?;
+                        accumulator.hazard = accumulator.hazard.checked_add(path_mass)?;
                     }
                     Some(observation) => {
                         let branch = branches
@@ -1028,7 +1089,12 @@ mod tests {
         Rational::new(1, 4).unwrap()
     }
 
-    fn safe(probability: Rational, physical: usize, sensor: usize, observation: usize) -> JointOutcome {
+    fn safe(
+        probability: Rational,
+        physical: usize,
+        sensor: usize,
+        observation: usize,
+    ) -> JointOutcome {
         JointOutcome {
             probability,
             next_physical_state: physical,
@@ -1058,7 +1124,12 @@ mod tests {
                             physical_state,
                             sensor_state,
                             action,
-                            outcomes: make_outcomes(hypothesis, physical_state, sensor_state, action),
+                            outcomes: make_outcomes(
+                                hypothesis,
+                                physical_state,
+                                sensor_state,
+                                action,
+                            ),
                         });
                     }
                 }
@@ -1078,17 +1149,27 @@ mod tests {
 
     fn correlated_state_kernel() -> JointKernel {
         base_kernel(
-            2, 2, 2,
+            2,
+            2,
+            2,
             vec!["read-physical-state"],
             vec!["zero", "one"],
             vec![1],
             vec![
-                JointMass { hypothesis: 0, physical_state: 0, sensor_state: 0, mass: half() },
-                JointMass { hypothesis: 1, physical_state: 1, sensor_state: 1, mass: half() },
+                JointMass {
+                    hypothesis: 0,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    mass: half(),
+                },
+                JointMass {
+                    hypothesis: 1,
+                    physical_state: 1,
+                    sensor_state: 1,
+                    mass: half(),
+                },
             ],
-            |_h, physical, sensor, _action| {
-                vec![safe(Rational::one(), physical, sensor, physical)]
-            },
+            |_h, physical, sensor, _action| vec![safe(Rational::one(), physical, sensor, physical)],
         )
     }
 
@@ -1098,15 +1179,31 @@ mod tests {
         } else {
             vec!["measure-combined-signal"]
         };
-        let action_costs = if include_calibration { vec![1, 1] } else { vec![1] };
+        let action_costs = if include_calibration {
+            vec![1, 1]
+        } else {
+            vec![1]
+        };
         base_kernel(
-            2, 2, 2,
+            2,
+            2,
+            2,
             action_ids,
             vec!["zero", "one"],
             action_costs,
             vec![
-                JointMass { hypothesis: 0, physical_state: 0, sensor_state: 1, mass: half() },
-                JointMass { hypothesis: 1, physical_state: 1, sensor_state: 0, mass: half() },
+                JointMass {
+                    hypothesis: 0,
+                    physical_state: 0,
+                    sensor_state: 1,
+                    mass: half(),
+                },
+                JointMass {
+                    hypothesis: 1,
+                    physical_state: 1,
+                    sensor_state: 0,
+                    mass: half(),
+                },
             ],
             |_h, physical, sensor, action| {
                 if action == 0 {
@@ -1122,13 +1219,25 @@ mod tests {
 
     fn noisy_binary_kernel() -> JointKernel {
         base_kernel(
-            2, 1, 1,
+            2,
+            1,
+            1,
             vec!["noisy-measurement"],
             vec!["zero", "one"],
             vec![1],
             vec![
-                JointMass { hypothesis: 0, physical_state: 0, sensor_state: 0, mass: half() },
-                JointMass { hypothesis: 1, physical_state: 0, sensor_state: 0, mass: half() },
+                JointMass {
+                    hypothesis: 0,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    mass: half(),
+                },
+                JointMass {
+                    hypothesis: 1,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    mass: half(),
+                },
             ],
             |hypothesis, physical, sensor, _action| {
                 let (p_zero, p_one) = if hypothesis == 0 {
@@ -1159,7 +1268,10 @@ mod tests {
         assert_eq!(half().checked_add(half()).unwrap(), Rational::one());
         assert_eq!(three_quarters().checked_sub(quarter()).unwrap(), half());
         assert_eq!(half().checked_mul(half()).unwrap(), quarter());
-        assert_eq!(half().checked_div(quarter()).unwrap(), Rational::from_u64(2));
+        assert_eq!(
+            half().checked_div(quarter()).unwrap(),
+            Rational::from_u64(2)
+        );
         let large = Rational::new(u128::MAX - 1, u128::MAX).unwrap();
         assert!(large > Rational::new(u128::MAX - 2, u128::MAX).unwrap());
         assert!(Rational::one().checked_add(Rational::one()).unwrap() > Rational::one());
@@ -1172,8 +1284,14 @@ mod tests {
         let policy = PolicyPlan::Action {
             action: 0,
             branches: vec![
-                PolicyBranch { observation: 0, plan: Box::new(PolicyPlan::Claim { hypothesis: 0 }) },
-                PolicyBranch { observation: 1, plan: Box::new(PolicyPlan::Claim { hypothesis: 1 }) },
+                PolicyBranch {
+                    observation: 0,
+                    plan: Box::new(PolicyPlan::Claim { hypothesis: 0 }),
+                },
+                PolicyBranch {
+                    observation: 1,
+                    plan: Box::new(PolicyPlan::Claim { hypothesis: 1 }),
+                },
             ],
         };
         let report = evaluate_policy(&kernel, &policy, 1).unwrap();
@@ -1185,11 +1303,16 @@ mod tests {
 
         let optimized = optimize_joint_kernel(
             &kernel,
-            &SolverConfig { horizon: 1, ..SolverConfig::default() },
-        ).unwrap();
-        let selected = optimized.minimum_cost_under(
-            Rational::zero(), Rational::zero(), Rational::zero(),
-        ).unwrap().unwrap();
+            &SolverConfig {
+                horizon: 1,
+                ..SolverConfig::default()
+            },
+        )
+        .unwrap();
+        let selected = optimized
+            .minimum_cost_under(Rational::zero(), Rational::zero(), Rational::zero())
+            .unwrap()
+            .unwrap();
         assert_eq!(selected.correct_identification_probability, Rational::one());
         assert_eq!(selected.expected_cost, Rational::one());
     }
@@ -1199,11 +1322,16 @@ mod tests {
         let kernel = calibration_kernel(true);
         let result = optimize_joint_kernel(
             &kernel,
-            &SolverConfig { horizon: 2, ..SolverConfig::default() },
-        ).unwrap();
-        let selected = result.minimum_cost_under(
-            Rational::zero(), Rational::zero(), Rational::zero(),
-        ).unwrap().unwrap();
+            &SolverConfig {
+                horizon: 2,
+                ..SolverConfig::default()
+            },
+        )
+        .unwrap();
+        let selected = result
+            .minimum_cost_under(Rational::zero(), Rational::zero(), Rational::zero())
+            .unwrap()
+            .unwrap();
         assert_eq!(selected.expected_cost, Rational::from_u64(2));
         assert_eq!(selected.hazard_probability, Rational::zero());
         assert_eq!(selected.false_identification_probability, Rational::zero());
@@ -1232,15 +1360,23 @@ mod tests {
         let kernel = calibration_kernel(false);
         let result = optimize_joint_kernel(
             &kernel,
-            &SolverConfig { horizon: 4, ..SolverConfig::default() },
-        ).unwrap();
-        let selected = result.minimum_cost_under(
-            Rational::zero(), Rational::zero(), Rational::one(),
-        ).unwrap().unwrap();
+            &SolverConfig {
+                horizon: 4,
+                ..SolverConfig::default()
+            },
+        )
+        .unwrap();
+        let selected = result
+            .minimum_cost_under(Rational::zero(), Rational::zero(), Rational::one())
+            .unwrap()
+            .unwrap();
         assert_eq!(selected.plan, PolicyPlan::Abstain);
         assert_eq!(selected.expected_cost, Rational::zero());
         assert_eq!(selected.abstention_probability, Rational::one());
-        assert_eq!(selected.correct_identification_probability, Rational::zero());
+        assert_eq!(
+            selected.correct_identification_probability,
+            Rational::zero()
+        );
     }
 
     #[test]
@@ -1248,17 +1384,27 @@ mod tests {
         let kernel = noisy_binary_kernel();
         let result = optimize_joint_kernel(
             &kernel,
-            &SolverConfig { horizon: 2, ..SolverConfig::default() },
-        ).unwrap();
+            &SolverConfig {
+                horizon: 2,
+                ..SolverConfig::default()
+            },
+        )
+        .unwrap();
         assert!(!result.frontier.is_empty());
         for point in &result.frontier {
             assert_partition(point);
             let replay = evaluate_policy(&kernel, &point.plan, 2).unwrap();
             assert_eq!(replay.expected_cost, point.expected_cost);
             assert_eq!(replay.hazard_probability, point.hazard_probability);
-            assert_eq!(replay.false_identification_probability, point.false_identification_probability);
+            assert_eq!(
+                replay.false_identification_probability,
+                point.false_identification_probability
+            );
             assert_eq!(replay.abstention_probability, point.abstention_probability);
-            assert_eq!(replay.correct_identification_probability, point.correct_identification_probability);
+            assert_eq!(
+                replay.correct_identification_probability,
+                point.correct_identification_probability
+            );
         }
     }
 
@@ -1266,7 +1412,12 @@ mod tests {
     fn malformed_probability_rows_and_missing_kernel_rows_fail_closed() {
         let mut bad_mass = noisy_binary_kernel();
         bad_mass.rows[0].outcomes[0].probability = half();
-        assert!(bad_mass.validate().unwrap_err().contains("mass must sum exactly to one"));
+        assert!(
+            bad_mass
+                .validate()
+                .unwrap_err()
+                .contains("mass must sum exactly to one")
+        );
 
         let mut missing_row = noisy_binary_kernel();
         missing_row.rows.pop();
@@ -1274,18 +1425,28 @@ mod tests {
 
         let mut bad_prior = noisy_binary_kernel();
         bad_prior.initial_belief[0].mass = quarter();
-        assert!(bad_prior.validate().unwrap_err().contains("initial joint belief mass"));
+        assert!(
+            bad_prior
+                .validate()
+                .unwrap_err()
+                .contains("initial joint belief mass")
+        );
     }
 
     #[test]
     fn action_cost_is_charged_even_when_the_transition_is_hazardous() {
         let kernel = base_kernel(
-            1, 1, 1,
+            1,
+            1,
+            1,
             vec!["dangerous-test"],
             vec!["irrelevant"],
             vec![7],
             vec![JointMass {
-                hypothesis: 0, physical_state: 0, sensor_state: 0, mass: Rational::one(),
+                hypothesis: 0,
+                physical_state: 0,
+                sensor_state: 0,
+                mass: Rational::one(),
             }],
             |_h, _physical, _sensor, _action| {
                 vec![JointOutcome {
@@ -1296,7 +1457,10 @@ mod tests {
                 }]
             },
         );
-        let policy = PolicyPlan::Action { action: 0, branches: Vec::new() };
+        let policy = PolicyPlan::Action {
+            action: 0,
+            branches: Vec::new(),
+        };
         let report = evaluate_policy(&kernel, &policy, 1).unwrap();
         assert_eq!(report.expected_cost, Rational::from_u64(7));
         assert_eq!(report.hazard_probability, Rational::one());
@@ -1311,8 +1475,7 @@ mod tests {
     ) -> Vec<(usize, Vec<JointMass>)> {
         let mut groups: ObservationMassMap = BTreeMap::new();
         for point in belief {
-            let index = (((point.hypothesis * kernel.physical_state_count
-                + point.physical_state)
+            let index = (((point.hypothesis * kernel.physical_state_count + point.physical_state)
                 * kernel.sensor_state_count
                 + point.sensor_state)
                 * kernel.action_ids.len())
@@ -1320,7 +1483,11 @@ mod tests {
             for outcome in &kernel.rows[index].outcomes {
                 if let Some(observation) = outcome.observation {
                     let weighted = point.mass.checked_mul(outcome.probability).unwrap();
-                    let key = (point.hypothesis, outcome.next_physical_state, outcome.next_sensor_state);
+                    let key = (
+                        point.hypothesis,
+                        outcome.next_physical_state,
+                        outcome.next_sensor_state,
+                    );
                     let row = groups.entry(observation).or_default();
                     let old = row.get(&key).copied().unwrap_or(Rational::zero());
                     row.insert(key, old.checked_add(weighted).unwrap());
@@ -1330,18 +1497,22 @@ mod tests {
         groups
             .into_iter()
             .map(|(observation, states)| {
-                let probability = states.values().copied().fold(
-                    Rational::zero(),
-                    |sum, value| sum.checked_add(value).unwrap(),
-                );
+                let probability = states
+                    .values()
+                    .copied()
+                    .fold(Rational::zero(), |sum, value| {
+                        sum.checked_add(value).unwrap()
+                    });
                 let posterior = states
                     .into_iter()
-                    .map(|((hypothesis, physical_state, sensor_state), mass)| JointMass {
-                        hypothesis,
-                        physical_state,
-                        sensor_state,
-                        mass: mass.checked_div(probability).unwrap(),
-                    })
+                    .map(
+                        |((hypothesis, physical_state, sensor_state), mass)| JointMass {
+                            hypothesis,
+                            physical_state,
+                            sensor_state,
+                            mass: mass.checked_div(probability).unwrap(),
+                        },
+                    )
                     .collect();
                 (observation, posterior)
             })
@@ -1355,7 +1526,10 @@ mod tests {
     ) -> Vec<PolicyPlan> {
         let mut plans = vec![PolicyPlan::Abstain];
         for hypothesis in 0..kernel.hypothesis_ids.len() {
-            if belief.iter().any(|point| point.hypothesis == hypothesis && !point.mass.is_zero()) {
+            if belief
+                .iter()
+                .any(|point| point.hypothesis == hypothesis && !point.mass.is_zero())
+            {
                 plans.push(PolicyPlan::Claim { hypothesis });
             }
         }
@@ -1409,16 +1583,19 @@ mod tests {
             let dominated = frontier.iter().any(|other| {
                 let no_worse = other.expected_cost <= point.expected_cost
                     && other.hazard_probability <= point.hazard_probability
-                    && other.false_identification_probability <= point.false_identification_probability
+                    && other.false_identification_probability
+                        <= point.false_identification_probability
                     && other.abstention_probability <= point.abstention_probability;
                 let strict = other.expected_cost < point.expected_cost
                     || other.hazard_probability < point.hazard_probability
-                    || other.false_identification_probability < point.false_identification_probability
+                    || other.false_identification_probability
+                        < point.false_identification_probability
                     || other.abstention_probability < point.abstention_probability;
                 no_worse && strict
                     || (other.expected_cost == point.expected_cost
                         && other.hazard_probability == point.hazard_probability
-                        && other.false_identification_probability == point.false_identification_probability
+                        && other.false_identification_probability
+                            == point.false_identification_probability
                         && other.abstention_probability == point.abstention_probability)
             });
             if !dominated {
@@ -1433,13 +1610,15 @@ mod tests {
     fn objective_keys(points: &[FrontierPoint]) -> Vec<ObjectiveKey> {
         let mut keys: Vec<_> = points
             .iter()
-            .map(|point| (
-                point.expected_cost,
-                point.hazard_probability,
-                point.false_identification_probability,
-                point.abstention_probability,
-                point.correct_identification_probability,
-            ))
+            .map(|point| {
+                (
+                    point.expected_cost,
+                    point.hazard_probability,
+                    point.false_identification_probability,
+                    point.abstention_probability,
+                    point.correct_identification_probability,
+                )
+            })
             .collect();
         keys.sort();
         keys.dedup();
@@ -1449,7 +1628,10 @@ mod tests {
     #[test]
     fn dynamic_program_matches_independent_exhaustive_policy_enumeration() {
         let kernel = noisy_binary_kernel();
-        let config = SolverConfig { horizon: 2, ..SolverConfig::default() };
+        let config = SolverConfig {
+            horizon: 2,
+            ..SolverConfig::default()
+        };
         let optimized = optimize_joint_kernel(&kernel, &config).unwrap();
         let mut initial = kernel.initial_belief.clone();
         initial.sort();
@@ -1471,42 +1653,78 @@ mod tests {
         let kernel = noisy_binary_kernel();
         let result = optimize_joint_kernel(
             &kernel,
-            &SolverConfig { horizon: 1, ..SolverConfig::default() },
-        ).unwrap();
-        assert!(result.minimum_cost_under(
-            Rational::new(2, 1).unwrap(), Rational::zero(), Rational::zero(),
-        ).is_err());
-        assert!(optimize_joint_kernel(
-            &kernel,
-            &SolverConfig { horizon: MAX_HORIZON + 1, ..SolverConfig::default() },
-        ).is_err());
-        assert!(optimize_joint_kernel(
-            &kernel,
-            &SolverConfig { max_generated_combinations: 0, ..SolverConfig::default() },
-        ).is_err());
-        assert!(optimize_joint_kernel(
-            &kernel,
-            &SolverConfig { max_memo_states: 1, horizon: 2, ..SolverConfig::default() },
-        ).is_err());
+            &SolverConfig {
+                horizon: 1,
+                ..SolverConfig::default()
+            },
+        )
+        .unwrap();
+        assert!(
+            result
+                .minimum_cost_under(
+                    Rational::new(2, 1).unwrap(),
+                    Rational::zero(),
+                    Rational::zero(),
+                )
+                .is_err()
+        );
+        assert!(
+            optimize_joint_kernel(
+                &kernel,
+                &SolverConfig {
+                    horizon: MAX_HORIZON + 1,
+                    ..SolverConfig::default()
+                },
+            )
+            .is_err()
+        );
+        assert!(
+            optimize_joint_kernel(
+                &kernel,
+                &SolverConfig {
+                    max_generated_combinations: 0,
+                    ..SolverConfig::default()
+                },
+            )
+            .is_err()
+        );
+        assert!(
+            optimize_joint_kernel(
+                &kernel,
+                &SolverConfig {
+                    max_memo_states: 1,
+                    horizon: 2,
+                    ..SolverConfig::default()
+                },
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn one_step_eig_uses_joint_predictive_model_but_cannot_value_a_purely_enabling_calibration() {
         let kernel = calibration_kernel(true);
-        let scores = super::baseline::rank_by_one_step_eig(
-            &kernel,
-            &kernel.initial_belief,
-        ).unwrap();
+        let scores =
+            super::baseline::rank_by_one_step_eig(&kernel, &kernel.initial_belief).unwrap();
         assert_eq!(scores.len(), 2);
-        assert!(scores.iter().all(|score| score.expected_information_gain_nats.abs() < 1e-12));
+        assert!(
+            scores
+                .iter()
+                .all(|score| score.expected_information_gain_nats.abs() < 1e-12)
+        );
 
         let exact = optimize_joint_kernel(
             &kernel,
-            &SolverConfig { horizon: 2, ..SolverConfig::default() },
-        ).unwrap();
-        let selected = exact.minimum_cost_under(
-            Rational::zero(), Rational::zero(), Rational::zero(),
-        ).unwrap().unwrap();
+            &SolverConfig {
+                horizon: 2,
+                ..SolverConfig::default()
+            },
+        )
+        .unwrap();
+        let selected = exact
+            .minimum_cost_under(Rational::zero(), Rational::zero(), Rational::zero())
+            .unwrap()
+            .unwrap();
         match &selected.plan {
             PolicyPlan::Action { action, .. } => {
                 assert_eq!(kernel.action_ids[*action], "calibrate-sensor");
@@ -1518,17 +1736,12 @@ mod tests {
     #[test]
     fn one_step_eig_matches_the_analytic_binary_channel_value() {
         let kernel = noisy_binary_kernel();
-        let scores = super::baseline::rank_by_one_step_eig(
-            &kernel,
-            &kernel.initial_belief,
-        ).unwrap();
-        let expected = std::f64::consts::LN_2
-            + 0.75 * 0.75_f64.ln()
-            + 0.25 * 0.25_f64.ln();
+        let scores =
+            super::baseline::rank_by_one_step_eig(&kernel, &kernel.initial_belief).unwrap();
+        let expected = std::f64::consts::LN_2 + 0.75 * 0.75_f64.ln() + 0.25 * 0.25_f64.ln();
         assert_eq!(scores.len(), 1);
         assert!((scores[0].expected_information_gain_nats - expected).abs() < 1e-12);
         assert!((scores[0].information_gain_per_cost - expected).abs() < 1e-12);
         assert_eq!(scores[0].hazard_probability, Rational::zero());
     }
-
 }
