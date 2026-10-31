@@ -19,7 +19,7 @@
 //! solver, not a compliant/acceleration-level contact law, and not an engine
 //! integrator.
 
-use nalgebra::{Matrix2, Matrix3, SVector, SymmetricEigen};
+use nalgebra::{Matrix2, Matrix3, SVector};
 
 /// Invalid input or unsupported numerical conditioning.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -216,6 +216,34 @@ pub fn solve_coupled_signorini_coulomb(
         return Ok(CoupledCoulombOutcome {
             status: CoupledCoulombStatus::Inconclusive,
             candidates: Vec::new(),
+            sliding_quartic: [0.0; 5],
+            sliding_angles: Vec::new(),
+            normal_coupling_margin,
+        });
+    }
+
+    // If q_n > 0 and D(theta) = W_nn - mu W_nt.s stays positive for
+    // every unit tangent direction, lambda_n > 0 would require
+    // lambda_n = -q_n / D(theta) < 0. The separating solution is then unique.
+    if qn > 0.0 && normal_coupling_margin > relative_tolerance * matrix_scale {
+        let candidate = validate_candidate(
+            &w,
+            free_velocity,
+            mu,
+            SVector::zeros(),
+            CoupledCoulombRegime::Separating,
+            0.0,
+            None,
+            relative_tolerance,
+        );
+        let candidates = candidate.into_iter().collect::<Vec<_>>();
+        return Ok(CoupledCoulombOutcome {
+            status: if candidates.len() == 1 {
+                CoupledCoulombStatus::Unique
+            } else {
+                CoupledCoulombStatus::Inconclusive
+            },
+            candidates,
             sliding_quartic: [0.0; 5],
             sliding_angles: Vec::new(),
             normal_coupling_margin,
