@@ -367,7 +367,6 @@ impl StudyRng {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::BTreeSet;
 
     fn smoke_config(seeds: Vec<u64>) -> PairedStudyConfig {
         PairedStudyConfig {
@@ -433,7 +432,7 @@ mod tests {
 
     #[test]
     fn default_seed_grid_produces_thirty_distinct_finite_model_families() {
-        let fingerprints: BTreeSet<String> = (0..30)
+        let fingerprints: std::collections::BTreeSet<String> = (0..30)
             .map(|seed| {
                 let family = generate_stateful_confounding_family(seed).unwrap();
                 fingerprint_model_family(&family.worlds).unwrap()
