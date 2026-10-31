@@ -108,7 +108,7 @@ impl Position {
         rationale: impl Into<String>,
         evidence_refs: Vec<String>,
     ) -> Result<Self, DissonanceError> {
-        let source = source.into();
+        let source = source.into().trim().to_owned();
         let claim = claim.into();
         let rationale = rationale.into();
         if source.trim().is_empty() || source.len() > 256
@@ -328,10 +328,12 @@ impl EventContext {
     ) -> Result<Self, DissonanceError> {
         let actor_id = actor_id.into();
         let receipt_ref = receipt_ref.into();
-        if actor_id.trim().is_empty() || actor_id.len() > 256
+        if actor_id.trim().is_empty() || actor_id.len() > 256 || actor_id.trim() != actor_id
             || receipt_ref.trim().is_empty() || receipt_ref.len() > 512
+            || receipt_ref.trim() != receipt_ref
             || previous_receipt_ref.as_ref().is_some_and(|value| {
-                value.trim().is_empty() || value.len() > 512 || value == &receipt_ref
+                value.trim().is_empty() || value.len() > 512 || value.trim() != value
+                    || value == &receipt_ref
             })
         {
             return Err(DissonanceError::InvalidEventContext);
@@ -699,6 +701,33 @@ impl DissonanceRecord {
                 .get(position_id)
                 .and_then(|history| history.last())
                 .map_or(original.claim.as_str(), |revision| revision.claim.as_str()),
+        )
+    }
+
+    /// Return the current rationale, falling back to the immutable original rationale.
+    pub fn current_position_rationale(&self, position_id: &PositionId) -> Option<&str> {
+        let original = self.positions.get(position_id)?;
+        Some(
+            self.position_revisions
+                .get(position_id)
+                .and_then(|history| history.last())
+                .map_or(original.rationale.as_str(), |revision| revision.rationale.as_str()),
+        )
+    }
+
+    /// Return current evidence references, falling back to the original set.
+    pub fn current_position_evidence_refs(
+        &self,
+        position_id: &PositionId,
+    ) -> Option<&[String]> {
+        let original = self.positions.get(position_id)?;
+        Some(
+            self.position_revisions
+                .get(position_id)
+                .and_then(|history| history.last())
+                .map_or(original.evidence_refs.as_slice(), |revision| {
+                    revision.evidence_refs.as_slice()
+                }),
         )
     }
 
@@ -1864,6 +1893,26 @@ mod tests {
         assert!(record.assess().corrosive_hazards.contains(&CorrosiveHazard::Coercion));
     }
 
+
+    #[test]
+    fn actor_and_receipt_identifiers_reject_noncanonical_whitespace() {
+        assert_eq!(
+            EventContext::new(" workers", 1, None, "receipt:one"),
+            Err(DissonanceError::InvalidEventContext)
+        );
+        assert_eq!(
+            EventContext::new("workers", 1, None, " receipt:one"),
+            Err(DissonanceError::InvalidEventContext)
+        );
+        let position = Position::new(
+            PositionId::new("p-trim").unwrap(),
+            " workers ",
+            "A claim.",
+            "A rationale.",
+            vec![],
+        ).unwrap();
+        assert_eq!(position.source, "workers");
+    }
 
     #[test]
     fn only_the_original_source_can_correct_a_position() {
