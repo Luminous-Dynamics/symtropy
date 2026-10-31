@@ -284,7 +284,6 @@ fn run_policy(
                     trial_x,
                 )?;
                 let trial = individual_from_trace(&trial_trace);
-                let parent = &population[target_index];
                 if dominates(&trial, parent) {
                     competition.push(trial);
                 } else if dominates(parent, &trial) {
