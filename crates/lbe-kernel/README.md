@@ -45,7 +45,7 @@ These are comparative policy arms, not universal fairness claims. A real service
 
 ## Mutual-credit ledger
 
-All balances are signed integer units. Every transfer debits one account and credits another by exactly the same amount. Issuance and redemption are explicit events against a system issuance account.
+All balances are signed integer units. Every transfer debits one account and credits another by exactly the same amount. Issuance and redemption are explicit events against a system issuance account. Redemption can retire only an existing positive member balance; it cannot create debt.
 
 Demurrage is a **pooled community levy** on aggregate positive member balances:
 - fractional accrual is held once at the ledger level;
