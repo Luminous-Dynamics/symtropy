@@ -235,6 +235,109 @@ impl ObservationFrame {
     }
 }
 
+/// Complete sampled execution for one backend profile.
+///
+/// An observation trace is the canonical cross-engine output envelope. Scenario
+/// manifests remain separate inputs; every frame carries the same immutable run
+/// identity so a partial or mixed-backend trace cannot be mistaken for a valid run.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ObservationTrace {
+    pub identity: RunIdentity,
+    pub frames: Vec<ObservationFrame>,
+}
+
+impl ObservationTrace {
+    pub fn new(identity: RunIdentity) -> Self {
+        Self {
+            identity,
+            frames: Vec::new(),
+        }
+    }
+
+    /// Append one validated sample. The trace is not mutated on failure.
+    pub fn push(&mut self, frame: ObservationFrame) -> Result<(), ObservationError> {
+        self.identity.validate()?;
+        frame.validate()?;
+        if frame.identity != self.identity {
+            return Err(ObservationError::FrameIdentityMismatch);
+        }
+        validate_frame_clock(&self.identity, &frame)?;
+
+        if let Some(previous) = self.frames.last() {
+            if frame.step_index <= previous.step_index {
+                return Err(ObservationError::NonIncreasingStep {
+                    previous: previous.step_index,
+                    current: frame.step_index,
+                });
+            }
+            if frame.simulation_time_seconds <= previous.simulation_time_seconds {
+                return Err(ObservationError::NonIncreasingSimulationTime {
+                    previous: previous.simulation_time_seconds,
+                    current: frame.simulation_time_seconds,
+                });
+            }
+        }
+        self.frames.push(frame);
+        Ok(())
+    }
+
+    /// Re-validate the complete trace at serialization/import boundaries.
+    pub fn validate(&self) -> Result<(), ObservationError> {
+        self.identity.validate()?;
+        if self.frames.is_empty() {
+            return Err(ObservationError::EmptyTrace);
+        }
+
+        let mut previous: Option<&ObservationFrame> = None;
+        for frame in &self.frames {
+            frame.validate()?;
+            if frame.identity != self.identity {
+                return Err(ObservationError::FrameIdentityMismatch);
+            }
+            validate_frame_clock(&self.identity, frame)?;
+
+            if let Some(prior) = previous {
+                if frame.step_index <= prior.step_index {
+                    return Err(ObservationError::NonIncreasingStep {
+                        previous: prior.step_index,
+                        current: frame.step_index,
+                    });
+                }
+                if frame.simulation_time_seconds <= prior.simulation_time_seconds {
+                    return Err(ObservationError::NonIncreasingSimulationTime {
+                        previous: prior.simulation_time_seconds,
+                        current: frame.simulation_time_seconds,
+                    });
+                }
+            }
+            previous = Some(frame);
+        }
+        Ok(())
+    }
+
+    pub fn final_frame(&self) -> Option<&ObservationFrame> {
+        self.frames.last()
+    }
+}
+
+fn validate_frame_clock(
+    identity: &RunIdentity,
+    frame: &ObservationFrame,
+) -> Result<(), ObservationError> {
+    let expected_time = frame.step_index as f64 * identity.timestep_seconds;
+    let tolerance = 1.0e-9 * (1.0 + expected_time.abs());
+    if !expected_time.is_finite()
+        || (frame.simulation_time_seconds - expected_time).abs() > tolerance
+    {
+        return Err(ObservationError::FrameTimeDoesNotMatchTimestep {
+            step_index: frame.step_index,
+            actual_seconds: frame.simulation_time_seconds,
+            expected_seconds: expected_time,
+        });
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ObservationError {
     UnsupportedSchemaVersion {
@@ -259,6 +362,21 @@ pub enum ObservationError {
     NegativeOptionalValue {
         subject: &'static str,
         field: &'static str,
+    },
+    EmptyTrace,
+    FrameIdentityMismatch,
+    NonIncreasingStep {
+        previous: u64,
+        current: u64,
+    },
+    NonIncreasingSimulationTime {
+        previous: f64,
+        current: f64,
+    },
+    FrameTimeDoesNotMatchTimestep {
+        step_index: u64,
+        actual_seconds: f64,
+        expected_seconds: f64,
     },
 }
 
@@ -313,6 +431,27 @@ impl std::fmt::Display for ObservationError {
             Self::NegativeOptionalValue { subject, field } => {
                 write!(f, "{subject}.{field} must be nonnegative when present")
             }
+            Self::EmptyTrace => write!(f, "observation trace must contain at least one frame"),
+            Self::FrameIdentityMismatch => {
+                write!(f, "observation frame run identity differs from its trace identity")
+            }
+            Self::NonIncreasingStep { previous, current } => {
+                write!(f, "observation steps must increase: previous={previous}, current={current}")
+            }
+            Self::NonIncreasingSimulationTime { previous, current } => {
+                write!(
+                    f,
+                    "observation simulation time must increase: previous={previous}, current={current}"
+                )
+            }
+            Self::FrameTimeDoesNotMatchTimestep {
+                step_index,
+                actual_seconds,
+                expected_seconds,
+            } => write!(
+                f,
+                "frame time {actual_seconds} s at step {step_index} differs from fixed-step time {expected_seconds} s"
+            ),
         }
     }
 }
