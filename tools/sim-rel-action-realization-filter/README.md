@@ -206,10 +206,11 @@ search-split falsifier, not a candidate-world generator and not a physical
 plausibility oracle.
 
 Each candidate must provide a non-empty world ID, generator ID/version and a
-human-auditable parameter/seed receipt. Only `SearchTraining` origin is
-accepted. Calibration and sealed-evaluation candidates are rejected before
-inspection, preventing this search API from adaptively consuming its own
-calibration or test holdouts.
+human-auditable parameter/seed receipt. Only a caller-asserted
+`SearchTraining` origin is accepted. Calibration and sealed-evaluation
+assertions are rejected before candidate inspection. This is an API-level
+separation guard, not authenticated data lineage: the falsifier cannot prove
+that a caller truthfully labelled the candidate's origin.
 
 For each candidate, the falsifier projects the original policy onto that
 candidate's reachable public-observation support. Branches unreachable in that
