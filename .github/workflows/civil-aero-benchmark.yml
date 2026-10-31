@@ -369,7 +369,7 @@ jobs:
           cmp /tmp/policy-aggregate-a.csv /tmp/policy-aggregate-b.csv
           cmp /tmp/policy-aggregate-a.txt /tmp/policy-aggregate-b.txt
           test "$(wc -l < /tmp/policy-aggregate-a.csv)" -eq 4
-          grep -q "synthetic_policy_family_aggregate_only tasks=10 families=5 replicates_per_task=3 policies=3 bootstrap_samples=10000 baseline=uniform family_cluster_bootstrap=true no_solver_evaluations=true" /tmp/policy-aggregate-a.txt
+          grep -q "synthetic_policy_family_aggregate_only tasks=10 families=5 replicates_per_task=3 policies=3 bootstrap_samples=10000 bootstrap_seed=20261031 family_mapping=synthetic_task_pair_map_v0.1 baseline=uniform family_cluster_bootstrap=true no_solver_evaluations=true" /tmp/policy-aggregate-a.txt
           python3 scripts/verify-policy-aggregate-independent.py /tmp/policy-aggregate-a.csv
           awk -F, 'NR > 1 && $1 == "voi" { if ($14 != 4 || $15 != 0 || $16 != 1) exit 1; found = 1 } END { if (!found) exit 1 }' /tmp/policy-aggregate-a.csv
 

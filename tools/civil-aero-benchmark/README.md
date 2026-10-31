@@ -333,3 +333,8 @@ The policy_aggregate module aggregates matched-budget scorecard rows across comp
 
 
 The aggregate requires a frozen task-to-family mapping and resamples independent families/environments, not individual runs or sibling tasks. This is important for ShapeBench-style suites where multiple tasks share one environment; family mapping cannot be inferred from task IDs after results are seen.
+
+
+## ShapeBench family-aware benchmark adapter
+
+See SHAPEBENCH_FAMILY_COST_PROTOCOL_V0_1.md for the clean-room adapter design, license gate, frozen task-family mapping, condition-level cost accounting and family-cluster statistical comparison. The aggregate protocol and implementation are explicitly limited to upstream scorecards; they are not CFD validation evidence.
