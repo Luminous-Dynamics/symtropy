@@ -45,9 +45,9 @@ The report emits direct change identity, affected downstream evidence item IDs, 
 - a current line-A and line-B claim plus an expired historical line-A claim;
 - a GLOBAL physics change and its source receipt reference.
 
-The 15 unit tests cover global and scoped propagation, historical preservation, exact old-revision binding, metadata-only no-op semantics, malformed metadata changes, unknown targets, cycles, missing claim dependencies, claim scope, determinism and multi-change deduplication.
+The 20 unit tests cover global and scoped propagation, historical preservation, exact old-revision binding, metadata-only no-op semantics, malformed metadata changes, unknown targets/dependencies, cycles, missing claim dependencies, change-class/kind compatibility, validity overlap, multiple dependency paths, reused receipts, claim scope, determinism, multi-change deduplication and a 10,000-item dependency chain.
 
-## Claim ceiling
+## Initial scale benchmark\n\nThe in-test 10,000-item chain checks exact affected-set size and deterministic path propagation. The qualification programme should benchmark 100 / 1,000 / 10,000 / 100,000 items and multiple-change workloads, reporting wall time, memory, path count saturation and independent-oracle agreement. No runtime or memory performance result is claimed until the Rust test and benchmark are executed.\n\n## Claim ceiling
 
 This reports declared dependency impact only. It does not authenticate change receipts, hash artifact bytes, detect physical drift, establish that a change was actually applied, authorize production changes, verify the correctness of a manufacturing model or perform VVUQ. An impacted claim returns to a qualified state only through the existing owners and a new exact-revision qualification receipt.
 
