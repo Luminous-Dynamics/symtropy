@@ -80,3 +80,8 @@ The challenge module generates a six-world finite family from an explicit seed a
 ## Joint-state bootstrap particle filter (SIM-REL-018)
 
 The particle module is a first approximate inference arm, not a nested particle filter or SMC-squared reproduction. Each particle retains a persistent model-world index and a joint mechanism/physical/sensor state. Public-observation updates condition on the corresponding world-specific joint kernel, sample the next physical and sensor states jointly, and use systematic resampling. Diagnostics expose ESS before and after resampling, resampling count, update count, and degeneracy. Approximate mechanism and model-world posterior summaries and a particle-estimated one-step EIG ranking are available. The exact oracle remains the reference for posterior and EIG approximation error on tractable kernels.
+
+
+## Explicit state vocabularies (SIM-REL-019)
+
+Every joint kernel declares an ordered physical-state vocabulary and an ordered sensor-state vocabulary, each with one unique non-empty identifier per state index. Robust multi-world replay and optimization require exact vocabulary equality, not merely equal state counts. Model-family fingerprints include both ordered vocabularies. These labels are caller-declared semantic contracts: validation catches missing, duplicate, reordered or mismatched identifiers, but cannot prove that two scientists used the same label to mean the same physical condition.
