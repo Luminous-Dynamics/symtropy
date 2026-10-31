@@ -1,6 +1,6 @@
 # Adversarial Scenario Identity Qualification v0.1
 
-Status: design contract for issue #3104. This document does not claim that the adversarial corpus or duplicate-key guard has been implemented.
+Status: contract plus first implementation of strict input preflight in the independent Go verifier; full corpus and Rust-side ingestion guard remain unimplemented and unqualified.
 
 ## 1. Protocol, not serializer
 
