@@ -12,10 +12,10 @@ The primary bootstrap resamples complete lots with replacement. Every selected l
 
 ## Frozen stable DGP
 
-- 20 independent lots.
+- 20 independent lots for the main comparison.
 - 4 windows per lot.
 - 8 Normal observations per window.
-- Global mean 0.5, lot random-intercept SD 0.05, within-window SD 0.04.
+- Global location 0.5, lot random-intercept SD 0.05, within-window SD 0.04.
 - LSL 0, USL 1.
 - RNG: xorshift64* + Box-Muller, fixed seed; index selection uses modulo and is identified explicitly in the output.
 
@@ -23,12 +23,12 @@ The analytic target distinguishes:
 - within-subgroup Cpk = 0.5 / (3 × 0.04) = 4.1667;
 - marginal Ppk = 0.5 / (3 × sqrt(0.05² + 0.04²)) = 2.6029.
 
-This is a deliberately simple stable, Gaussian, nested DGP to isolate the resampling-unit effect. It does not represent a real plant or prove that the Normal assumption is appropriate for a physical process.
+This is a deliberately simple stable Gaussian nested DGP to isolate the resampling-unit effect. It does not represent a real plant or prove that the Normal assumption is appropriate for a physical process.
 
 ## Outputs
 
 - point Cpk/Ppk on the original synthetic campaign;
-- cluster-bootstrap percentile 95% intervals;
+- whole-lot cluster-bootstrap percentile 95% intervals;
 - naive window-bootstrap percentile 95% intervals;
 - interval widths, valid/invalid replicate counts;
 - lot, window and measurement counts independently;
@@ -48,7 +48,9 @@ Coverage results are empirical and deterministic for the pinned seed. The benchm
 
 ## Interpretation
 
-A wider cluster-bootstrap interval is not itself “better”; the correct resampling unit is the key. The coverage experiment compares whole-lot cluster intervals against the naive control under a known synthetic data-generating process. It should show how too few lots and treating windows as independent affect confidence-interval width and coverage. Do not assume 95% coverage simply because the nominal interval is 95%.
+A wider cluster-bootstrap interval is not automatically better; the correct resampling unit is the key. The coverage experiment compares whole-lot cluster intervals against the naive control under a known synthetic data-generating process. It should show how too few lots and treating windows as independent affect interval width and coverage. Do not assume 95% coverage simply because the nominal interval is 95%.
+
+The stable fixture's analytic targets are known, but one bootstrap interval from one realised sample is not expected to contain the truth with certainty. The benchmark therefore evaluates coverage over repeated independent outer campaigns, rather than requiring every single realised interval to contain the target.
 
 ## Claim ceiling
 
