@@ -286,6 +286,72 @@ mod tests {
         }
     }
 
+    #[derive(Clone)]
+    struct BruteTrajectory {
+        hypothesis: usize,
+        physical_state: usize,
+        sensor_state: usize,
+        mass: Rational,
+        terminal: bool,
+    }
+
+    /// Independent unnormalized trajectory enumeration; does not use posterior
+    /// updates or any production auditor helper.
+    fn brute_trace_likelihood(world: &ModelWorld, trace: &[ObservedStep]) -> Rational {
+        let kernel = &world.kernel;
+        let mut paths: Vec<BruteTrajectory> = kernel
+            .initial_belief
+            .iter()
+            .map(|point| BruteTrajectory {
+                hypothesis: point.hypothesis,
+                physical_state: point.physical_state,
+                sensor_state: point.sensor_state,
+                mass: point.mass,
+                terminal: false,
+            })
+            .collect();
+
+        for step in trace {
+            let action = kernel.action_ids.iter().position(|id| id == &step.action_id).unwrap();
+            let observation = match &step.outcome {
+                ObservedOutcome::Observation { id } => Some(
+                    kernel.observation_ids.iter().position(|known| known == id).unwrap(),
+                ),
+                ObservedOutcome::Hazard => None,
+            };
+            let mut next_paths = Vec::new();
+            for path in &paths {
+                if path.terminal {
+                    continue;
+                }
+                let row_index = (((path.hypothesis * kernel.physical_state_count
+                    + path.physical_state)
+                    * kernel.sensor_state_count
+                    + path.sensor_state)
+                    * kernel.action_ids.len())
+                    + action;
+                for outcome in &kernel.rows[row_index].outcomes {
+                    if outcome.observation != observation {
+                        continue;
+                    }
+                    let mass = path.mass.checked_mul(outcome.probability).unwrap();
+                    next_paths.push(BruteTrajectory {
+                        hypothesis: path.hypothesis,
+                        physical_state: outcome.next_physical_state,
+                        sensor_state: outcome.next_sensor_state,
+                        mass,
+                        terminal: observation.is_none(),
+                    });
+                }
+            }
+            paths = next_paths;
+        }
+        paths.iter().try_fold(
+            Rational::zero(),
+            |sum, path| sum.checked_add(path.mass),
+        ).unwrap()
+    }
+
     #[test]
     fn surviving_world_is_not_declared_true() {
         let worlds = vec![simple_world("nominal", false), simple_world("reversed", true)];
@@ -388,6 +454,64 @@ mod tests {
         let mut incompatible = simple_world("changed", false);
         incompatible.kernel.action_costs[0] = 5;
         assert!(audit_trace_against_worlds(&[worlds[0].clone(), incompatible], &[]).is_err());
+    }
+
+
+    #[test]
+    fn prefix_likelihoods_match_independent_unnormalized_trajectory_enumeration() {
+        let mut rare = simple_world("rare", false);
+        let epsilon = Rational::new(1, u128::MAX).unwrap();
+        let complement = Rational::one().checked_sub(epsilon).unwrap();
+        for row in &mut rare.kernel.rows {
+            row.outcomes = vec![
+                JointOutcome {
+                    probability: complement,
+                    next_physical_state: 0,
+                    next_sensor_state: 0,
+                    observation: Some(0),
+                },
+                JointOutcome {
+                    probability: epsilon,
+                    next_physical_state: 0,
+                    next_sensor_state: 0,
+                    observation: Some(1),
+                },
+            ];
+        }
+
+        let worlds = vec![
+            simple_world("normal", false),
+            simple_world("reverse", true),
+            rare,
+        ];
+        let traces = vec![
+            vec![step("read", "zero")],
+            vec![step("read", "one"), step("confirm", "zero")],
+            vec![
+                ObservedStep {
+                    action_id: "read".into(),
+                    outcome: ObservedOutcome::Hazard,
+                },
+                step("confirm", "one"),
+            ],
+            Vec::new(),
+        ];
+
+        for world in &worlds {
+            for trace in &traces {
+                let audit = audit_trace_against_worlds(
+                    std::slice::from_ref(world),
+                    trace,
+                ).unwrap();
+                assert_eq!(
+                    audit.per_world[0].trace_likelihood,
+                    brute_trace_likelihood(world, trace),
+                    "world={} trace_len={}",
+                    world.id,
+                    trace.len()
+                );
+            }
+        }
     }
 
     #[test]
