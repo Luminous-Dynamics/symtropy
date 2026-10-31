@@ -161,7 +161,7 @@ world-specific policies are admitted.
 
 A finite-support total-variation ambiguity selector is also provided. Given
 nominal categorical weights $q$ over the canonical sorted world IDs and a
-radius $\\epsilon \\in [0, 1]$, it computes the exact worst expected
+radius $\epsilon \in [0, 1]$, it computes the exact worst expected
 cost-plus-terminal loss:
 `max p · L` subject to `p ∈ simplex` and
 `0.5 * sum_i |p_i - q_i| <= epsilon`.
