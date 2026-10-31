@@ -266,6 +266,94 @@ pub enum DissonanceStatus {
     HeldOpen,
 }
 
+/// Host-supplied event context. The host must authenticate actor identity and
+/// verify that receipt_ref commits to the canonical event and prior receipt.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EventContext {
+    actor_id: String,
+    occurred_at: u64,
+    previous_receipt_ref: Option<String>,
+    receipt_ref: String,
+}
+
+impl EventContext {
+    /// Construct a bounded event context. Receipt verification remains a host responsibility.
+    pub fn new(
+        actor_id: impl Into<String>,
+        occurred_at: u64,
+        previous_receipt_ref: Option<String>,
+        receipt_ref: impl Into<String>,
+    ) -> Result<Self, DissonanceError> {
+        let actor_id = actor_id.into();
+        let receipt_ref = receipt_ref.into();
+        if actor_id.trim().is_empty() || actor_id.len() > 256
+            || receipt_ref.trim().is_empty() || receipt_ref.len() > 512
+            || previous_receipt_ref.as_ref().is_some_and(|value| {
+                value.trim().is_empty() || value.len() > 512 || value == &receipt_ref
+            })
+        {
+            return Err(DissonanceError::InvalidEventContext);
+        }
+        Ok(Self { actor_id, occurred_at, previous_receipt_ref, receipt_ref })
+    }
+}
+
+/// Immutable payload of a process event.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DissonanceEventKind {
+    /// A new explicit safeguard snapshot was recorded.
+    SafeguardsRecorded { safeguards: ProcessSafeguards },
+    /// A hazard report was added without making an automatic finding about intent.
+    HazardReported { report: HazardReport },
+    /// A hazard finding changed with a new supporting evidence receipt.
+    HazardFindingChanged {
+        /// Stable hazard report identifier.
+        report_id: String,
+        /// Finding before this event.
+        previous_finding: HazardFinding,
+        /// Finding after this event.
+        finding: HazardFinding,
+        /// Evidence reference supporting the change.
+        evidence_ref: String,
+    },
+    /// A disposition was appended without erasing previous positions.
+    DispositionRecorded { disposition: DissonanceDisposition },
+}
+
+/// One append-only process event. Sequence and receipt links allow deterministic
+/// replay; they are not a substitute for host-side signature or digest verification.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DissonanceEvent {
+    sequence: u64,
+    actor_id: String,
+    occurred_at: u64,
+    previous_receipt_ref: Option<String>,
+    receipt_ref: String,
+    kind: DissonanceEventKind,
+}
+
+impl DissonanceEvent {
+    /// Monotonic sequence number within this record.
+    pub const fn sequence(&self) -> u64 { self.sequence }
+
+    /// Authenticated actor identifier asserted by the host adapter.
+    pub fn actor_id(&self) -> &str { &self.actor_id }
+
+    /// Host-supplied event time in the record's declared time basis.
+    pub const fn occurred_at(&self) -> u64 { self.occurred_at }
+
+    /// Prior receipt reference in the append-only chain.
+    pub fn previous_receipt_ref(&self) -> Option<&str> {
+        self.previous_receipt_ref.as_deref()
+    }
+
+    /// Receipt reference that binds this event and its predecessor.
+    pub fn receipt_ref(&self) -> &str { &self.receipt_ref }
+
+    /// Event payload.
+    pub fn kind(&self) -> &DissonanceEventKind { &self.kind }
+}
+
 /// A multi-perspective record that does not force a single truth or consensus.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DissonanceRecord {
@@ -274,6 +362,7 @@ pub struct DissonanceRecord {
     safeguards: ProcessSafeguards,
     hazards: BTreeMap<String, HazardReport>,
     disposition_history: Vec<DissonanceDisposition>,
+    event_history: Vec<DissonanceEvent>,
     status: DissonanceStatus,
 }
 
@@ -316,6 +405,16 @@ pub enum DissonanceError {
     NotEmpiricalDisagreement,
     /// A required disposition field is empty or malformed.
     InvalidDisposition,
+    /// Event actor or receipt metadata is invalid.
+    InvalidEventContext,
+    /// Event does not link to the prior receipt in the current chain.
+    BrokenEventChain,
+    /// Event timestamp precedes the prior event timestamp.
+    NonMonotonicEventTime,
+    /// A receipt reference has already appeared in this record.
+    DuplicateEventReceipt,
+    /// Event sequence space has been exhausted.
+    EventSequenceExhausted,
 }
 
 /// Create and maintain a dissonance record with a durable history of positions.
@@ -338,6 +437,7 @@ impl DissonanceRecord {
             safeguards: ProcessSafeguards::default(),
             hazards: BTreeMap::new(),
             disposition_history: Vec::new(),
+            event_history: Vec::new(),
             status: DissonanceStatus::Open,
         })
     }
@@ -362,21 +462,107 @@ impl DissonanceRecord {
         self.disposition_history.iter()
     }
 
+    /// Iterate over every append-only process event in sequence order.
+    pub fn event_history(&self) -> impl Iterator<Item = &DissonanceEvent> {
+        self.event_history.iter()
+    }
+
+    /// Rebuild a record by replaying a complete event stream from its genesis positions.
+    /// The host must independently verify the genesis receipt, actor signatures and
+    /// receipt digests before treating replayed state as authoritative.
+    pub fn replay(
+        kind: DissonanceKind,
+        positions: Vec<Position>,
+        events: &[DissonanceEvent],
+    ) -> Result<Self, DissonanceError> {
+        let mut record = Self::new(kind, positions)?;
+        for event in events {
+            let context = EventContext {
+                actor_id: event.actor_id.clone(),
+                occurred_at: event.occurred_at,
+                previous_receipt_ref: event.previous_receipt_ref.clone(),
+                receipt_ref: event.receipt_ref.clone(),
+            };
+            match &event.kind {
+                DissonanceEventKind::SafeguardsRecorded { safeguards } => {
+                    record.record_safeguards(*safeguards, context)?;
+                }
+                DissonanceEventKind::HazardReported { report } => {
+                    record.report_hazard_with_context(report.clone(), context)?;
+                }
+                DissonanceEventKind::HazardFindingChanged {
+                    report_id, finding, evidence_ref, ..
+                } => {
+                    record.update_hazard_finding_with_context(
+                        report_id, *finding, evidence_ref.clone(), context
+                    )?;
+                }
+                DissonanceEventKind::DispositionRecorded { disposition } => {
+                    record.set_disposition_with_context(disposition.clone(), context)?;
+                }
+            }
+            if record.event_history.last() != Some(event) {
+                return Err(DissonanceError::BrokenEventChain);
+            }
+        }
+        Ok(record)
+    }
+
     /// Iterate over every preserved position in canonical ID order.
     pub fn positions(&self) -> impl Iterator<Item = &Position> {
         self.positions.values()
     }
 
-    /// Update explicitly attested process safeguards.
-    pub fn set_safeguards(&mut self, safeguards: ProcessSafeguards) {
+    fn append_event(
+        &mut self,
+        context: EventContext,
+        kind: DissonanceEventKind,
+    ) -> Result<(), DissonanceError> {
+        let expected_previous = self.event_history.last().map(|event| event.receipt_ref.clone());
+        if context.previous_receipt_ref != expected_previous {
+            return Err(DissonanceError::BrokenEventChain);
+        }
+        if self.event_history.last().is_some_and(|event| context.occurred_at < event.occurred_at) {
+            return Err(DissonanceError::NonMonotonicEventTime);
+        }
+        if self.event_history.iter().any(|event| event.receipt_ref == context.receipt_ref) {
+            return Err(DissonanceError::DuplicateEventReceipt);
+        }
+        let sequence = u64::try_from(self.event_history.len())
+            .ok()
+            .and_then(|length| length.checked_add(1))
+            .ok_or(DissonanceError::EventSequenceExhausted)?;
+        self.event_history.push(DissonanceEvent {
+            sequence,
+            actor_id: context.actor_id,
+            occurred_at: context.occurred_at,
+            previous_receipt_ref: context.previous_receipt_ref,
+            receipt_ref: context.receipt_ref,
+            kind,
+        });
+        Ok(())
+    }
+
+    /// Record a new safeguard snapshot as an attributed, receipt-linked event.
+    pub fn record_safeguards(
+        &mut self,
+        safeguards: ProcessSafeguards,
+        context: EventContext,
+    ) -> Result<(), DissonanceError> {
+        self.append_event(context, DissonanceEventKind::SafeguardsRecorded { safeguards })?;
         self.safeguards = safeguards;
         if self.status == DissonanceStatus::Open {
             self.status = DissonanceStatus::UnderInquiry;
         }
+        Ok(())
     }
 
-    /// Add a hazard report without making an automatic finding about intent.
-    pub fn report_hazard(&mut self, report: HazardReport) -> Result<(), DissonanceError> {
+    /// Add an attributed hazard report without making an automatic finding about intent.
+    pub fn report_hazard_with_context(
+        &mut self,
+        report: HazardReport,
+        context: EventContext,
+    ) -> Result<(), DissonanceError> {
         if report.id.trim().is_empty() || report.id.len() > 128
             || report.evidence_ref.as_ref().is_some_and(|value| {
                 value.trim().is_empty() || value.len() > 512
@@ -387,25 +573,40 @@ impl DissonanceRecord {
         if self.hazards.contains_key(&report.id) {
             return Err(DissonanceError::DuplicateHazardReport);
         }
+        self.append_event(
+            context,
+            DissonanceEventKind::HazardReported { report: report.clone() },
+        )?;
         self.hazards.insert(report.id.clone(), report);
         Ok(())
     }
 
-    /// Update a report's finding while retaining the same audit identity.
-    pub fn update_hazard_finding(
+    /// Append a hazard finding transition. New evidence is mandatory; previous
+    /// findings remain available in event history and are never overwritten there.
+    pub fn update_hazard_finding_with_context(
         &mut self,
         report_id: &str,
         finding: HazardFinding,
-        evidence_ref: Option<String>,
+        evidence_ref: String,
+        context: EventContext,
     ) -> Result<(), DissonanceError> {
-        if evidence_ref.as_ref().is_some_and(|value| value.trim().is_empty() || value.len() > 512) {
+        if evidence_ref.trim().is_empty() || evidence_ref.len() > 512 {
             return Err(DissonanceError::InvalidIdentifier);
         }
+        let report = self.hazards.get(report_id).ok_or(DissonanceError::UnknownReference)?;
+        let previous_finding = report.finding;
+        self.append_event(
+            context,
+            DissonanceEventKind::HazardFindingChanged {
+                report_id: report_id.to_owned(),
+                previous_finding,
+                finding,
+                evidence_ref: evidence_ref.clone(),
+            },
+        )?;
         let report = self.hazards.get_mut(report_id).ok_or(DissonanceError::UnknownReference)?;
         report.finding = finding;
-        if evidence_ref.is_some() {
-            report.evidence_ref = evidence_ref;
-        }
+        report.evidence_ref = Some(evidence_ref);
         Ok(())
     }
 
@@ -456,11 +657,12 @@ impl DissonanceRecord {
     /// consequential action requires all safeguards and no active/unresolved
     /// corrosive hazard. The host must separately enforce legal rights and
     /// emergency authority; this model is not an authorization engine.
-    pub fn set_disposition(
+    pub fn set_disposition_with_context(
         &mut self,
         disposition: DissonanceDisposition,
-        now: u64,
+        context: EventContext,
     ) -> Result<(), DissonanceError> {
+        let now = context.occurred_at;
         validate_disposition(&disposition, now, &self.positions, self.kind)?;
         if !matches!(&disposition, DissonanceDisposition::HoldOpen { .. })
             && !self.assess().ready_for_consequential_action
@@ -468,7 +670,7 @@ impl DissonanceRecord {
             return Err(DissonanceError::UnsafeProcess);
         }
 
-        self.status = match disposition {
+        let next_status = match &disposition {
             DissonanceDisposition::HoldOpen { .. } => DissonanceStatus::HeldOpen,
             DissonanceDisposition::Integrate { .. } => DissonanceStatus::Integrated,
             DissonanceDisposition::PrioritizeProvisionally { .. }
@@ -477,8 +679,60 @@ impl DissonanceRecord {
             DissonanceDisposition::Contextualize { .. } => DissonanceStatus::Contextualized,
             DissonanceDisposition::EvidenceResolution { .. } => DissonanceStatus::EvidenceResolved,
         };
+        self.append_event(
+            context,
+            DissonanceEventKind::DispositionRecorded { disposition: disposition.clone() },
+        )?;
+        self.status = next_status;
         self.disposition_history.push(disposition);
         Ok(())
+    }
+
+    // Test-only conveniences preserve old unit-test readability. Production callers
+    // cannot bypass actor attribution, timestamp ordering or receipt-chain checks.
+    #[cfg(test)]
+    fn test_context(&self, at: u64) -> EventContext {
+        let previous = self.event_history.last().map(|event| event.receipt_ref.clone());
+        EventContext::new(
+            "test:legacy-adapter",
+            self.event_history.last().map_or(at, |event| at.max(event.occurred_at)),
+            previous,
+            format!("test:receipt:{}", self.event_history.len() + 1),
+        ).unwrap()
+    }
+
+    #[cfg(test)]
+    fn set_safeguards(&mut self, safeguards: ProcessSafeguards) {
+        let context = self.test_context(self.event_history.last().map_or(1, |event| event.occurred_at + 1));
+        self.record_safeguards(safeguards, context).unwrap();
+    }
+
+    #[cfg(test)]
+    fn report_hazard(&mut self, report: HazardReport) -> Result<(), DissonanceError> {
+        let context = self.test_context(self.event_history.last().map_or(1, |event| event.occurred_at + 1));
+        self.report_hazard_with_context(report, context)
+    }
+
+    #[cfg(test)]
+    fn update_hazard_finding(
+        &mut self,
+        report_id: &str,
+        finding: HazardFinding,
+        evidence_ref: Option<String>,
+    ) -> Result<(), DissonanceError> {
+        let evidence_ref = evidence_ref.ok_or(DissonanceError::InvalidIdentifier)?;
+        let context = self.test_context(self.event_history.last().map_or(1, |event| event.occurred_at + 1));
+        self.update_hazard_finding_with_context(report_id, finding, evidence_ref, context)
+    }
+
+    #[cfg(test)]
+    fn set_disposition(
+        &mut self,
+        disposition: DissonanceDisposition,
+        now: u64,
+    ) -> Result<(), DissonanceError> {
+        let context = self.test_context(now);
+        self.set_disposition_with_context(disposition, context)
     }
 }
 
@@ -651,6 +905,21 @@ mod tests {
             appeal_available: true,
             power_context_disclosed: true,
         }
+    }
+
+    fn event_context(record: &DissonanceRecord, at: u64, receipt: &str) -> EventContext {
+        let previous = record.event_history().last().map(|event| event.receipt_ref().to_owned());
+        EventContext::new(
+            "test:reviewer",
+            at.max(record.event_history().last().map_or(0, |event| event.occurred_at())),
+            previous,
+            format!("receipt:{receipt}"),
+        ).unwrap()
+    }
+
+    fn record_safe(record: &mut DissonanceRecord, at: u64, receipt: &str) {
+        let context = event_context(record, at, receipt);
+        record.record_safeguards(safe_safeguards(), context).unwrap();
     }
 
     #[test]
@@ -900,6 +1169,94 @@ mod tests {
             stop_condition: "Stop on material harm.".to_owned(),
         };
         assert_eq!(record.set_disposition(decision, 10), Err(DissonanceError::InvalidDisposition));
+    }
+
+
+    #[test]
+    fn process_events_are_attributed_sequenced_and_receipt_linked() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        record_safe(&mut record, 10, "safeguards");
+        let ctx = event_context(&record, 11, "hazard-report");
+        record.report_hazard_with_context(HazardReport {
+            id: "hazard-1".to_owned(),
+            hazard: CorrosiveHazard::Retaliation,
+            finding: HazardFinding::Reported,
+            evidence_ref: Some("case:1".to_owned()),
+        }, ctx).unwrap();
+        let ctx = event_context(&record, 12, "hazard-review");
+        record.update_hazard_finding_with_context(
+            "hazard-1", HazardFinding::Substantiated, "review:1".to_owned(), ctx
+        ).unwrap();
+        let events: Vec<&DissonanceEvent> = record.event_history().collect();
+        assert_eq!(events.len(), 3);
+        assert_eq!(events.iter().map(|event| event.sequence()).collect::<Vec<_>>(), vec![1, 2, 3]);
+        assert_eq!(events[0].actor_id(), "test:reviewer");
+        assert_eq!(events[1].previous_receipt_ref(), Some("receipt:safeguards"));
+        assert_eq!(events[2].previous_receipt_ref(), Some("receipt:hazard-report"));
+        assert!(matches!(
+            events[2].kind(),
+            DissonanceEventKind::HazardFindingChanged {
+                previous_finding: HazardFinding::Reported,
+                finding: HazardFinding::Substantiated,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn event_chain_rejects_wrong_predecessor_and_backdated_updates_atomically() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        let bad_context = EventContext::new(
+            "test:reviewer", 10, Some("receipt:forged-predecessor".to_owned()),
+            "receipt:bad-event",
+        ).unwrap();
+        assert_eq!(
+            record.record_safeguards(safe_safeguards(), bad_context),
+            Err(DissonanceError::BrokenEventChain)
+        );
+        assert_eq!(record.event_history().count(), 0);
+
+        record_safe(&mut record, 20, "first");
+        let backdated = EventContext::new(
+            "test:reviewer", 19, Some("receipt:first".to_owned()), "receipt:backdated"
+        ).unwrap();
+        assert_eq!(
+            record.record_safeguards(ProcessSafeguards::default(), backdated),
+            Err(DissonanceError::NonMonotonicEventTime)
+        );
+        assert_eq!(record.event_history().count(), 1);
+        assert_eq!(record.assess().missing_safeguards.len(), 0);
+    }
+
+    #[test]
+    fn event_replay_reconstructs_the_same_record_projection_and_history() {
+        let mut original = record(DissonanceKind::StructuralParadox);
+        let genesis: Vec<Position> = original.positions().cloned().collect();
+        record_safe(&mut original, 10, "safe");
+        let ctx = event_context(&original, 11, "report");
+        original.report_hazard_with_context(HazardReport {
+            id: "hazard-1".to_owned(),
+            hazard: CorrosiveHazard::Coercion,
+            finding: HazardFinding::Reported,
+            evidence_ref: Some("case:coercion".to_owned()),
+        }, ctx).unwrap();
+        let ctx = event_context(&original, 12, "refuted");
+        original.update_hazard_finding_with_context(
+            "hazard-1", HazardFinding::Refuted, "review:refuted".to_owned(), ctx
+        ).unwrap();
+        let events: Vec<DissonanceEvent> = original.event_history().cloned().collect();
+        let replayed = DissonanceRecord::replay(DissonanceKind::StructuralParadox, genesis, &events).unwrap();
+        assert_eq!(replayed, original);
+    }
+
+    #[test]
+    fn receipt_context_rejects_reusing_the_current_receipt() {
+        assert_eq!(
+            EventContext::new(
+                "test:reviewer", 1, Some("receipt:same".to_owned()), "receipt:same"
+            ),
+            Err(DissonanceError::InvalidEventContext)
+        );
     }
 
     #[test]
