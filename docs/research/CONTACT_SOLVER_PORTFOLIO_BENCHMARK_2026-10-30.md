@@ -29,6 +29,10 @@ This is not one universal leaderboard. Contact laws, scene families, hardware an
 | NVIDIA PhysX 5.8 | TGS and PGS are available; NVIDIA generally recommends TGS for convergence, mass-ratio, drive-accuracy and high-frequency behavior. | TGS baselines with friction patches, solver iteration splits and high-mass-ratio/joint-drive scenes. |
 | Newton Physics | Open-source GPU-accelerated differentiable robotics engine using Warp/OpenUSD and multiple solver families. | Essential GPU/robotics comparison, not an apples-to-apples CPU Rust baseline. |
 | ComFree-Sim (2026 arXiv preprint) | Proposes GPU-parallelized analytical contact with impedance-style prediction/correction in the dual Coulomb cone, and a 6D tangential/torsional/rolling model. Authors report near-linear contact scaling and 2–3× throughput versus MJWarp in dense-contact tests, with comparable physical fidelity. These are author-reported results, not independently reproduced. | Reproduce matched scenes and compare dual-cone impedance separately from hard Signorini/max-dissipation Coulomb. |
+| Ostrich (2026 arXiv preprint) | GPU hard-contact rigid-body solver using backward Euler, non-smooth Newton and an implicit-function-theorem adjoint that reuses the forward Schur operator. Authors report O(1) adjoint memory per timestep, usable steps up to 50× larger than MJX on one robot/pallet trajectory, and 8,192 parallel worlds on a 24 GB GPU. | Hard-contact gradient accuracy, large-step stability, forward/adjoint solve cost, memory vs horizon, triangle-mesh contact. These are paper-specific author results. |
+| DiffMJX (ICLR 2026) | Adaptive integration for penalty-based contact gradients, plus contacts-from-distance only in the backward pass. | Gradient directional accuracy vs finite differences, pre-contact gradients, physical forward penetration and time-to-gradient. |
+| Bundled Contact Gradients (2026 preprint) | Keeps stiff forward contact and uses local randomized contact rollouts to reduce high-variance backward gradients; the authors report zero-shot transfer of dynamic motions to a Unitree G1. | Gradient variance, bias, rollout count and sim-to-real task success at matched forward physics. |
+| Curvature-aware sparse-SDF/LCP (Mechanism and Machine Theory, 15 October 2026) | Uses sparse signed-distance fields, curvature-aware gaps and patch-level dual-mode processing inside an LCP-based rigid-contact approach. | Narrow-phase query cost, memory, curvature error, contact-patch stability and LCP residual at equal geometry accuracy. |
 | Project Chrono 10.0.0 | Mature engineering/multiphysics reference for multibody, FSI, peridynamics, checkpointing and implicit integration/Jacobian strategies. | Selected engineering verification cases rather than a real-time leaderboard. |
 
 Primary reading:
@@ -40,6 +44,10 @@ Primary reading:
 - [PhysX 5.8 simulation docs](https://nvidia-omniverse.github.io/PhysX/physx/5.8.0/docs/Simulation.html)
 - [Newton overview](https://newton-physics.github.io/newton/stable/guide/overview.html)
 - [ComFree-Sim preprint](https://arxiv.org/abs/2603.12185)
+- [Ostrich preprint](https://arxiv.org/abs/2609.08800)
+- [DiffMJX / ICLR 2026](https://proceedings.iclr.cc/paper_files/paper/2026/hash/44039e59aaf6a41b16f1fc5b27bcd409-Abstract-Conference.html)
+- [Bundled Contact Gradients preprint](https://arxiv.org/abs/2609.30951)
+- [Curvature-aware sparse-SDF/LCP paper (15 October 2026)](https://www.sciencedirect.com/science/article/pii/S0094114X26002090)
 - [Project Chrono news](https://projectchrono.org/news/)
 
 ## Contact-law semantics: do not mix unlike models
@@ -58,6 +66,20 @@ Therefore every cross-engine campaign needs two tracks:
 2. **Best-native-model comparisons**, where each engine uses its preferred contact formulation and all physical metrics are reported without pretending the models are identical.
 
 The planar reference is not an oracle for MuJoCo's soft convex model or ComFree-Sim's impedance model. Instead, create dedicated expected envelopes for each law and measure the trade-offs explicitly.
+
+## Differentiable contact is a separate qualification axis
+
+Hard-contact forward accuracy, gradient correctness and gradient throughput are distinct objectives. The new fixed-active-set prototype in [IMPLICIT_CONTACT_ADJOINT_2026-10-31.md](IMPLICIT_CONTACT_ADJOINT_2026-10-31.md) differentiates the converged frictionless reference equations, checks active-set margins and conditioning, and compares its one-row result with finite differences. It is an initial primitive, not a full differentiable world integrator.
+
+The next progression should be:
+
+1. Fixed-active-set frictionless LCP sensitivity, already prototyped.
+2. Planar friction-cone mode sensitivities for stick, positive slide and negative slide; reject mode transitions.
+3. Coupled 3D contact-wrench cone derivatives using the selected physical constitutive law.
+4. Implicit adjoint through the converged full contact residual, reusing the forward Schur/factorization rather than differentiating every inner solver iteration.
+5. Horizon-level trajectory optimization, where forward error, gradient error, gradient variance, memory and wall-clock are measured separately.
+
+Do not claim a gradient is valid simply because autodiff returned a tensor. It must pass directional finite-difference tests away from active-set boundaries and explicitly reject or apply a declared generalized-gradient policy at transitions.
 
 ## What would actually differentiate Symtropy
 
@@ -220,7 +242,8 @@ These increments provide geometric and single-contact references. There is still
 4. Add multi-contact wrench-cone fixtures with redundant rows and clear primal/dual/work residual tolerances.
 5. Instrument production TGS with work, residual and per-island timing receipts.
 6. Add adaptive iteration/substep experiments driven by residual contraction and conditioning.
-7. Only then implement production solver switching and GPU batching.
+7. Prototype fixed-active-set implicit derivatives; extend to friction modes and then the converged full residual, reusing the forward Schur complement.
+8. Only then implement production solver switching and GPU batching.
 
 ## Promotion rule
 
