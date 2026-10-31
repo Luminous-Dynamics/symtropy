@@ -189,6 +189,24 @@ impl RobustDecisionFrontierPoint {
             .max()
             .unwrap_or_else(Rational::zero)
     }
+
+    /// Worst-case expected total loss over a total-variation ball around a
+    /// nominal categorical distribution over the canonical world ordering.
+    ///
+    /// Radius zero is the nominal mixture expectation; radius one is the
+    /// maximum loss over supplied worlds.
+    pub fn worst_case_total_loss_under_tv(
+        &self,
+        nominal_world_weights: &[Rational],
+        radius: Rational,
+    ) -> Result<Rational, String> {
+        let losses = self
+            .per_world
+            .iter()
+            .map(WorldDecisionObjectives::expected_total_loss)
+            .collect::<Result<Vec<_>, _>>()?;
+        worst_case_tv_expectation(&losses, nominal_world_weights, radius)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -281,6 +299,149 @@ impl RobustDecisionOptimizationResult {
         }
         Ok(selected)
     }
+
+    /// Minimize expected total loss over a finite-support TV ambiguity set.
+    ///
+    /// The supplied nominal weights are aligned to `self.world_ids`, which
+    /// are always sorted lexicographically. Hazard and abstention budgets
+    /// remain worst-case over every supplied world, independent of the TV
+    /// distribution used for the loss objective.
+    pub fn minimum_tv_expected_total_loss_under(
+        &self,
+        nominal_world_weights: &[Rational],
+        tv_radius: Rational,
+        budgets: DecisionBudgets,
+    ) -> Result<Option<&RobustDecisionFrontierPoint>, String> {
+        budgets.validate()?;
+        validate_world_weights(&self.world_ids, nominal_world_weights, tv_radius)?;
+        let mut selected: Option<&RobustDecisionFrontierPoint> = None;
+        for point in &self.frontier {
+            if !within_risk_budgets(point, budgets) {
+                continue;
+            }
+            let candidate_loss =
+                point.worst_case_total_loss_under_tv(nominal_world_weights, tv_radius)?;
+            let Some(current) = selected else {
+                selected = Some(point);
+                continue;
+            };
+            let current_loss =
+                current.worst_case_total_loss_under_tv(nominal_world_weights, tv_radius)?;
+            let order = candidate_loss
+                .cmp(&current_loss)
+                .then_with(|| {
+                    point
+                        .worst_case_hazard_probability()
+                        .cmp(&current.worst_case_hazard_probability())
+                })
+                .then_with(|| {
+                    point
+                        .worst_case_abstention_probability()
+                        .cmp(&current.worst_case_abstention_probability())
+                })
+                .then_with(|| point.plan.cmp(&current.plan));
+            if order == Ordering::Less {
+                selected = Some(point);
+            }
+        }
+        Ok(selected)
+    }
+}
+
+fn validate_world_weights(
+    world_ids: &[String],
+    weights: &[Rational],
+    radius: Rational,
+) -> Result<(), String> {
+    if weights.len() != world_ids.len() || weights.is_empty() {
+        return Err("one nominal mixture weight is required for every canonical model world".into());
+    }
+    if !radius.is_probability() {
+        return Err("total-variation radius must be in [0, 1]".into());
+    }
+    let mut total = Rational::zero();
+    for weight in weights {
+        if !weight.is_probability() {
+            return Err("nominal model-world weights must be probabilities".into());
+        }
+        total = total.checked_add(*weight)?;
+    }
+    if total != Rational::one() {
+        return Err("nominal model-world weights must sum exactly to one".into());
+    }
+    Ok(())
+}
+
+fn checked_sub_nonnegative(left: Rational, right: Rational) -> Result<Rational, String> {
+    if left < right {
+        return Err("non-negative rational subtraction underflow".into());
+    }
+    let left_scaled = left
+        .numerator()
+        .checked_mul(right.denominator())
+        .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
+    let right_scaled = right
+        .numerator()
+        .checked_mul(left.denominator())
+        .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
+    let denominator = left
+        .denominator()
+        .checked_mul(right.denominator())
+        .ok_or_else(|| "rational subtraction denominator overflow".to_string())?;
+    Rational::new(left_scaled - right_scaled, denominator)
+}
+
+fn worst_case_tv_expectation(
+    losses: &[Rational],
+    nominal_weights: &[Rational],
+    radius: Rational,
+) -> Result<Rational, String> {
+    let world_ids: Vec<String> = (0..losses.len()).map(|index| index.to_string()).collect();
+    validate_world_weights(&world_ids, nominal_weights, radius)?;
+    if losses.is_empty() {
+        return Err("TV expectation requires at least one world".into());
+    }
+
+    let mut adjusted = nominal_weights.to_vec();
+    let mut low_to_high: Vec<usize> = (0..losses.len()).collect();
+    low_to_high.sort_by(|left, right| losses[*left].cmp(&losses[*right]).then(left.cmp(right)));
+    let mut high_to_low = low_to_high.clone();
+    high_to_low.reverse();
+
+    let mut donor_index = 0;
+    let mut receiver_index = 0;
+    let mut remaining_radius = radius;
+    while !remaining_radius.is_zero()
+        && donor_index < low_to_high.len()
+        && receiver_index < high_to_low.len()
+    {
+        let donor = low_to_high[donor_index];
+        let receiver = high_to_low[receiver_index];
+        if donor == receiver || losses[receiver] <= losses[donor] {
+            break;
+        }
+        if adjusted[donor].is_zero() {
+            donor_index += 1;
+            continue;
+        }
+        let receiver_room = checked_sub_nonnegative(Rational::one(), adjusted[receiver])?;
+        if receiver_room.is_zero() {
+            receiver_index += 1;
+            continue;
+        }
+        let transfer = remaining_radius
+            .min(adjusted[donor])
+            .min(receiver_room);
+        adjusted[donor] = checked_sub_nonnegative(adjusted[donor], transfer)?;
+        adjusted[receiver] = adjusted[receiver].checked_add(transfer)?;
+        remaining_radius = checked_sub_nonnegative(remaining_radius, transfer)?;
+    }
+
+    let mut expectation = Rational::zero();
+    for (weight, loss) in adjusted.iter().zip(losses.iter()) {
+        expectation = expectation.checked_add(weight.checked_mul(*loss)?)?;
+    }
+    Ok(expectation)
 }
 
 fn within_risk_budgets(
@@ -2000,6 +2161,140 @@ mod tests {
             DecisionPlan::TerminalDecision { decision: None }
         );
         assert_eq!(selected.worst_case_abstention_probability(), Rational::one());
+    }
+
+    #[test]
+    fn finite_support_tv_ambiguity_interpolates_nominal_and_worst_case_loss() {
+        let losses = vec![Rational::zero(), Rational::one()];
+        let weights = vec![half(), half()];
+        assert_eq!(
+            worst_case_tv_expectation(&losses, &weights, Rational::zero()).unwrap(),
+            half()
+        );
+        assert_eq!(
+            worst_case_tv_expectation(
+                &losses,
+                &weights,
+                Rational::new(1, 4).unwrap(),
+            )
+            .unwrap(),
+            Rational::new(3, 4).unwrap()
+        );
+        assert_eq!(
+            worst_case_tv_expectation(&losses, &weights, half()).unwrap(),
+            Rational::one()
+        );
+        assert_eq!(
+            worst_case_tv_expectation(&losses, &weights, Rational::one()).unwrap(),
+            Rational::one()
+        );
+    }
+
+    #[test]
+    fn finite_support_tv_is_invariant_to_world_order_after_canonicalization() {
+        let worlds = worlds();
+        let table = loss_table();
+        let protocol = ObservationProtocol::fully_observed();
+        let costs = costs();
+        let forward = optimize_shared_policy_decisions(
+            &worlds,
+            "world-a",
+            &table,
+            protocol,
+            &costs,
+            Rational::one(),
+            &config(2),
+        )
+        .unwrap();
+        let reversed = optimize_shared_policy_decisions(
+            &[worlds[1].clone(), worlds[0].clone()],
+            "world-a",
+            &table,
+            protocol,
+            &costs,
+            Rational::one(),
+            &config(2),
+        )
+        .unwrap();
+        let weights = vec![Rational::new(3, 4).unwrap(), Rational::new(1, 4).unwrap()];
+        let budgets = DecisionBudgets {
+            max_hazard_probability: Rational::zero(),
+            max_abstention_probability: Rational::one(),
+        };
+        let a = forward
+            .minimum_tv_expected_total_loss_under(&weights, Rational::new(1, 5).unwrap(), budgets)
+            .unwrap()
+            .unwrap();
+        let b = reversed
+            .minimum_tv_expected_total_loss_under(&weights, Rational::new(1, 5).unwrap(), budgets)
+            .unwrap()
+            .unwrap();
+        assert_eq!(a.plan, b.plan);
+        assert_eq!(
+            a.worst_case_total_loss_under_tv(&weights, Rational::new(1, 5).unwrap()).unwrap(),
+            b.worst_case_total_loss_under_tv(&weights, Rational::new(1, 5).unwrap()).unwrap()
+        );
+    }
+
+    #[test]
+    fn tv_radius_zero_and_one_recover_nominal_and_minimax_selectors() {
+        let result = optimize_shared_policy_decisions(
+            &worlds(),
+            "world-a",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &costs(),
+            Rational::one(),
+            &config(2),
+        )
+        .unwrap();
+        let weights = vec![half(), half()];
+        let budgets = DecisionBudgets {
+            max_hazard_probability: Rational::zero(),
+            max_abstention_probability: Rational::one(),
+        };
+        let nominal = result
+            .minimum_nominal_total_loss_under(budgets, None)
+            .unwrap()
+            .unwrap();
+        let tv_zero = result
+            .minimum_tv_expected_total_loss_under(&weights, Rational::zero(), budgets)
+            .unwrap()
+            .unwrap();
+        assert_eq!(nominal.plan, tv_zero.plan);
+
+        let minimax = result
+            .minimum_worst_case_total_loss_under(budgets)
+            .unwrap()
+            .unwrap();
+        let tv_one = result
+            .minimum_tv_expected_total_loss_under(&weights, Rational::one(), budgets)
+            .unwrap()
+            .unwrap();
+        assert_eq!(minimax.plan, tv_one.plan);
+    }
+
+    #[test]
+    fn total_variation_weight_contract_fails_closed() {
+        let losses = vec![Rational::zero(), Rational::one()];
+        assert!(worst_case_tv_expectation(
+            &losses,
+            &[Rational::new(1, 4).unwrap(), Rational::new(1, 4).unwrap()],
+            half(),
+        )
+        .is_err());
+        assert!(worst_case_tv_expectation(
+            &losses,
+            &[half(), half()],
+            Rational::new(3, 2).unwrap(),
+        )
+        .is_err());
+        assert!(worst_case_tv_expectation(
+            &losses,
+            &[half()],
+            half(),
+        )
+        .is_err());
     }
 
     #[test]
