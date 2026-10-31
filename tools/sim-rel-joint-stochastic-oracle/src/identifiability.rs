@@ -667,8 +667,10 @@ impl UnionFind {
     }
 
     fn find(&mut self, value: usize) -> usize {
-        if self.parent[value] != value {
-            self.parent[value] = self.find(self.parent[value]);
+        let parent = self.parent[value];
+        if parent != value {
+            let root = self.find(parent);
+            self.parent[value] = root;
         }
         self.parent[value]
     }
