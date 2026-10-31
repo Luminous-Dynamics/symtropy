@@ -13,7 +13,7 @@ use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
 
 use crate::body::BodyType;
-use crate::world::PhysicsWorld;
+use crate::world::{NoOpCallback, PhysicsWorld, StepWorkAccumulator};
 
 /// A quantitative snapshot of world-level physical invariants and health.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -42,6 +42,9 @@ pub struct InvariantSnapshot<const D: usize> {
     pub max_penetration_depth: f64,
     /// Number of bodies whose state contains a NaN or infinity.
     pub non_finite_body_count: usize,
+    /// Number of bodies whose known inertia mass disagrees with translational mass.
+    #[serde(default)]
+    pub mass_property_mismatch_count: usize,
 }
 
 impl<const D: usize> InvariantSnapshot<D> {
@@ -49,6 +52,7 @@ impl<const D: usize> InvariantSnapshot<D> {
     /// supplied proper-rotation tolerance.
     pub fn is_numerically_healthy(&self, rotation_tolerance: f64) -> bool {
         self.non_finite_body_count == 0
+            && self.mass_property_mismatch_count == 0
             && self.max_rotation_orthogonality_error <= rotation_tolerance
             && self.max_rotation_determinant_error <= rotation_tolerance
     }
@@ -65,6 +69,7 @@ impl<const D: usize> InvariantSnapshot<D> {
             max_rotation_orthogonality_error: later.max_rotation_orthogonality_error,
             max_rotation_determinant_error: later.max_rotation_determinant_error,
             non_finite_body_count: later.non_finite_body_count,
+            mass_property_mismatch_count: later.mass_property_mismatch_count,
         }
     }
 }
@@ -79,6 +84,106 @@ pub struct InvariantDrift<const D: usize> {
     pub max_rotation_orthogonality_error: f64,
     pub max_rotation_determinant_error: f64,
     pub non_finite_body_count: usize,
+    /// Number of bodies whose known inertia mass disagrees with translational mass.
+    #[serde(default)]
+    pub mass_property_mismatch_count: usize,
+}
+
+/// Energy channels not yet fully attributed by the current discrete ledger.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UnmodeledEnergyChannel {
+    RotationalTorqueAndAngularDamping,
+    JointAndMotorWork,
+    ConstraintStabilizationAndCompliance,
+    CcdAndPositionCorrection,
+    PrescribedKinematicAndStaticBoundaryWork,
+    ConstitutiveMaterialWork,
+    FloatingPointAndSolverTermination,
+}
+
+/// Signed discrete work and energy accounting for one accepted step.
+///
+/// The attributed terms cover translational force/gravity updates and normal
+/// and friction contact impulses. The unattributed term deliberately retains
+/// energy changes from rotational torque/damping, constraints, motors,
+/// stabilization and any other source not yet represented by this ledger.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct DiscreteWorkLedger {
+    pub external_force_work_joules: f64,
+    pub gravity_work_joules: f64,
+    pub linear_damping_and_speed_limit_energy_change_joules: f64,
+    pub normal_contact_kinetic_energy_change_joules: f64,
+    pub friction_contact_kinetic_energy_change_joules: f64,
+    pub frictional_dissipation_joules: f64,
+    pub gravitational_potential_energy_change_joules: f64,
+    pub measured_mechanical_energy_change_joules: f64,
+    pub unattributed_energy_change_joules: f64,
+    /// Explicitly disclosed channels not yet included in the attribution model.
+    #[serde(default)]
+    pub unmodeled_energy_channels: Vec<UnmodeledEnergyChannel>,
+}
+
+impl DiscreteWorkLedger {
+    /// Unit-invariant unexplained-energy ratio for this receipt.
+    ///
+    /// The denominator is the sum of absolute measured/attributed energy
+    /// magnitudes, rather than a fixed 1 joule floor, so equivalent unit
+    /// conversions preserve the ratio.
+    pub fn relative_unattributed_residual(&self) -> f64 {
+        let scale = self.measured_mechanical_energy_change_joules.abs()
+            + self.external_force_work_joules.abs()
+            + self.gravity_work_joules.abs()
+            + self.linear_damping_and_speed_limit_energy_change_joules.abs()
+            + self.normal_contact_kinetic_energy_change_joules.abs()
+            + self.friction_contact_kinetic_energy_change_joules.abs()
+            + self.gravitational_potential_energy_change_joules.abs();
+        if scale <= f64::MIN_POSITIVE {
+            0.0
+        } else {
+            self.unattributed_energy_change_joules.abs() / scale
+        }
+    }
+
+    /// Whether the currently attributed terms close within a unit-invariant tolerance.
+    ///
+    /// This does not certify the physical model as complete; inspect
+    /// `unmodeled_energy_channels` before making a conservation claim.
+    pub fn closes_within(&self, relative_tolerance: f64) -> bool {
+        relative_tolerance.is_finite()
+            && relative_tolerance >= 0.0
+            && self.relative_unattributed_residual() <= relative_tolerance
+    }
+}
+
+/// Deterministic observation of one successfully committed world step.
+///
+/// This records the state transition and invariant drift, but is not a
+/// conservation certificate: callers must account for applied forces,
+/// contacts, motors and other work sources before judging energy balance.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct InvariantStepReceipt<const D: usize> {
+    pub dt: f64,
+    pub total_body_count: usize,
+    pub dynamic_body_count: usize,
+    pub contact_count: usize,
+    pub max_penetration_depth: f64,
+    pub before: InvariantSnapshot<D>,
+    pub after: InvariantSnapshot<D>,
+    pub drift: InvariantDrift<D>,
+    #[serde(default)]
+    pub work_ledger: DiscreteWorkLedger,
+}
+
+impl<const D: usize> InvariantStepReceipt<D> {
+    /// True when the post-step state contains no non-finite bodies and all
+    /// rotations satisfy the given proper-rotation tolerance.
+    pub fn is_numerically_healthy(&self, rotation_tolerance: f64) -> bool {
+        self.after.is_numerically_healthy(rotation_tolerance)
+    }
+
+    pub fn mechanical_energy_delta(&self) -> f64 {
+        self.after.mechanical_energy - self.before.mechanical_energy
+    }
 }
 
 impl<const D: usize> InvariantDrift<D> {
@@ -92,6 +197,76 @@ impl<const D: usize> InvariantDrift<D> {
 }
 
 impl<const D: usize> PhysicsWorld<D> {
+    /// Step the world and return deterministic before/after invariant evidence.
+    ///
+    /// If the physical step fails, this returns the same typed error as
+    /// `try_step` and the world's transactional rollback remains in effect.
+    /// The receipt describes the committed state transition only; it does not
+    /// attribute every external or constraint work source.
+    pub fn try_step_with_receipt(
+        &mut self,
+        dt: f64,
+    ) -> Result<InvariantStepReceipt<D>, crate::world::PhysicsStepError> {
+        let before = self.invariant_snapshot();
+        let total_body_count = self.bodies.len();
+        let dynamic_body_count = self
+            .bodies
+            .iter()
+            .filter(|body| body.body_type == BodyType::Dynamic)
+            .count();
+
+        let mut work = StepWorkAccumulator::default();
+        let mut noop = NoOpCallback;
+        self.try_step_with_callback_and_work(dt, &mut noop, &mut work)?;
+
+        let after = self.invariant_snapshot();
+        let drift = before.drift_to(&after);
+        let measured_energy_change = after.mechanical_energy - before.mechanical_energy;
+        let potential_energy_change =
+            after.gravitational_potential_energy - before.gravitational_potential_energy;
+        let frictional_dissipation = work.frictional_dissipation_joules;
+        let attributed_energy_change = work.external_force_work_joules
+            + work.gravity_work_joules
+            + work.linear_damping_and_speed_limit_energy_change_joules
+            + work.normal_contact_kinetic_energy_change_joules
+            + work.friction_contact_kinetic_energy_change_joules
+            + potential_energy_change;
+        let work_ledger = DiscreteWorkLedger {
+            external_force_work_joules: work.external_force_work_joules,
+            gravity_work_joules: work.gravity_work_joules,
+            linear_damping_and_speed_limit_energy_change_joules: work
+                .linear_damping_and_speed_limit_energy_change_joules,
+            normal_contact_kinetic_energy_change_joules: work
+                .normal_contact_kinetic_energy_change_joules,
+            friction_contact_kinetic_energy_change_joules: work
+                .friction_contact_kinetic_energy_change_joules,
+            frictional_dissipation_joules: frictional_dissipation,
+            gravitational_potential_energy_change_joules: potential_energy_change,
+            measured_mechanical_energy_change_joules: measured_energy_change,
+            unattributed_energy_change_joules: measured_energy_change - attributed_energy_change,
+            unmodeled_energy_channels: vec![
+                UnmodeledEnergyChannel::RotationalTorqueAndAngularDamping,
+                UnmodeledEnergyChannel::JointAndMotorWork,
+                UnmodeledEnergyChannel::ConstraintStabilizationAndCompliance,
+                UnmodeledEnergyChannel::CcdAndPositionCorrection,
+                UnmodeledEnergyChannel::PrescribedKinematicAndStaticBoundaryWork,
+                UnmodeledEnergyChannel::ConstitutiveMaterialWork,
+                UnmodeledEnergyChannel::FloatingPointAndSolverTermination,
+            ],
+        };
+        Ok(InvariantStepReceipt {
+            dt,
+            total_body_count,
+            dynamic_body_count,
+            contact_count: self.contacts.len(),
+            max_penetration_depth: after.max_penetration_depth,
+            before,
+            after,
+            drift,
+            work_ledger,
+        })
+    }
+
     /// Capture physical invariants and numerical-health metrics.
     ///
     /// The snapshot is deterministic for a fixed world state and contains no
@@ -107,6 +282,7 @@ impl<const D: usize> PhysicsWorld<D> {
         let mut max_rotation_orthogonality_error = 0.0_f64;
         let mut max_rotation_determinant_error = 0.0_f64;
         let mut non_finite_body_count = 0;
+        let mut mass_property_mismatch_count = 0;
 
         for body in &self.bodies {
             let position = body.transform.translation.0;
@@ -116,6 +292,14 @@ impl<const D: usize> PhysicsWorld<D> {
                 max_rotation_orthogonality_error.max(rotation_orthogonality_error);
             max_rotation_determinant_error =
                 max_rotation_determinant_error.max(rotation_determinant_error);
+
+            if body
+                .rotational_inertia
+                .as_ref()
+                .is_some_and(|inertia| inertia.validate_body_mass(body.mass, 1e-10).is_err())
+            {
+                mass_property_mismatch_count += 1;
+            }
 
             let finite = position.iter().all(|value| value.is_finite())
                 && body.linear_velocity.iter().all(|value| value.is_finite())
@@ -164,6 +348,7 @@ impl<const D: usize> PhysicsWorld<D> {
             max_rotation_determinant_error,
             max_penetration_depth,
             non_finite_body_count,
+            mass_property_mismatch_count,
         }
     }
 }
@@ -188,6 +373,25 @@ mod tests {
         assert!((snapshot.center_of_mass[0] - 1.0 / 3.0).abs() < 1e-12);
         assert!((snapshot.linear_momentum[0] - 3.0).abs() < 1e-12);
         assert!(snapshot.is_numerically_healthy(1e-12));
+    }
+
+    #[test]
+    fn snapshot_detects_known_rotational_inertia_mass_mismatch() {
+        use crate::inertia::BivectorInertia;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world
+            .body_mut(handle)
+            .unwrap()
+            .set_rotational_inertia_operator(
+                BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+                    .unwrap(),
+            );
+
+        let snapshot = world.invariant_snapshot();
+        assert_eq!(snapshot.mass_property_mismatch_count, 1);
+        assert!(!snapshot.is_numerically_healthy(1e-12));
     }
 
     #[test]
@@ -220,4 +424,141 @@ mod tests {
         assert_eq!(snapshot.non_finite_body_count, 1);
         assert!(!snapshot.is_numerically_healthy(1e-9));
     }
+
+    #[test]
+    fn accepted_step_receipt_captures_deterministic_invariant_transition() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.body_mut(handle).unwrap().linear_velocity = SVector::from([2.0, 0.0]);
+
+        let receipt = world.try_step_with_receipt(0.01).unwrap();
+        assert_eq!(receipt.dt, 0.01);
+        assert_eq!(receipt.total_body_count, 1);
+        assert_eq!(receipt.dynamic_body_count, 1);
+        assert_eq!(receipt.contact_count, 0);
+        assert!(receipt.is_numerically_healthy(1e-12));
+        assert!(
+            (receipt.after.center_of_mass[0] - receipt.before.center_of_mass[0] - 0.02).abs()
+                < 1e-12
+        );
+        assert!(receipt.mechanical_energy_delta().abs() < 1e-12);
+        assert!(receipt.drift.linear_momentum_error_norm() < 1e-12);
+    }
+
+    #[test]
+    fn discrete_work_ledger_closes_force_and_gravity_energy_balance() {
+        let mut world = PhysicsWorld::<2>::new(SVector::new(0.0, -9.81));
+        let handle = world.add_sphere(Point::origin(), 0.1, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.apply_force(SVector::new(2.0, 0.0));
+
+        let receipt = world.try_step_with_receipt(0.01).unwrap();
+        let ledger = &receipt.work_ledger;
+
+        assert!((ledger.external_force_work_joules - 0.0002).abs() < 1e-12);
+        assert!((ledger.gravity_work_joules - 0.004811805).abs() < 1e-12);
+        assert!(ledger.linear_damping_and_speed_limit_energy_change_joules.abs() < 1e-12);
+        assert!(ledger.normal_contact_kinetic_energy_change_joules.abs() < 1e-12);
+        assert!(ledger.friction_contact_kinetic_energy_change_joules.abs() < 1e-12);
+        assert!((ledger.gravitational_potential_energy_change_joules + 0.00962361).abs() < 1e-12);
+        assert!((ledger.measured_mechanical_energy_change_joules + 0.004611805).abs() < 1e-12);
+        assert!(ledger.unattributed_energy_change_joules.abs() < 1e-12);
+        assert!(ledger.closes_within(1e-12));
+        assert_eq!(ledger.unmodeled_energy_channels.len(), 7);
+    }
+
+    #[test]
+    fn discrete_work_ledger_attributes_linear_damping_energy_loss() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.1, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_velocity = SVector::new(1.0, 0.0);
+        body.linear_damping = 3.0;
+        body.angular_damping = 0.0;
+        body.apply_force(SVector::new(2.0, 0.0));
+
+        let receipt = world.try_step_with_receipt(0.1).unwrap();
+        let ledger = &receipt.work_ledger;
+        let raw_velocity = 1.2_f64;
+        let final_velocity = raw_velocity * (-0.3_f64).exp();
+        let expected_damping_delta =
+            0.5 * (final_velocity * final_velocity - raw_velocity * raw_velocity);
+        let expected_mechanical_delta = 0.5 * (final_velocity * final_velocity - 1.0);
+
+        assert!((ledger.external_force_work_joules - 0.22).abs() < 1e-12);
+        assert!(
+            (ledger.linear_damping_and_speed_limit_energy_change_joules
+                - expected_damping_delta)
+                .abs()
+                < 1e-12
+        );
+        assert!((ledger.measured_mechanical_energy_change_joules - expected_mechanical_delta).abs() < 1e-12);
+        assert!(ledger.unattributed_energy_change_joules.abs() < 1e-12);
+        assert!(ledger.closes_within(1e-12));
+    }
+
+    #[test]
+    fn discrete_work_ledger_separates_normal_impact_and_friction() {
+        use symtropy_math::Sphere;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 4;
+        world.baumgarte = 0.0;
+        world.compliance = 0.0;
+
+        let moving = world.add_sphere(Point::origin(), 0.5, 1.0);
+        {
+            let body = world.body_mut(moving).unwrap();
+            body.linear_velocity = SVector::new(1.0, 1.0, 0.0);
+            body.friction = 0.5;
+            body.restitution = 0.2;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+        }
+        let mut fixed = RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::new([0.999, 0.0, 0.0]),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+        );
+        fixed.friction = 0.5;
+        fixed.restitution = 0.2;
+        world.add_body(fixed);
+        let receipt = world.try_step_with_receipt(0.001).unwrap();
+        let ledger = &receipt.work_ledger;
+        assert!(ledger.normal_contact_kinetic_energy_change_joules < 0.0);
+        assert!(ledger.friction_contact_kinetic_energy_change_joules < 0.0);
+        assert!(ledger.frictional_dissipation_joules > 0.0);
+        assert!(
+            (ledger.frictional_dissipation_joules
+                + ledger.friction_contact_kinetic_energy_change_joules)
+                .abs()
+                < 1e-12
+        );
+        assert!(ledger.unattributed_energy_change_joules.is_finite());
+    }
+
+    #[test]
+    fn work_ledger_relative_residual_is_invariant_to_energy_units() {
+        let si = DiscreteWorkLedger {
+            external_force_work_joules: 2.0,
+            measured_mechanical_energy_change_joules: 2.1,
+            unattributed_energy_change_joules: 0.1,
+            ..DiscreteWorkLedger::default()
+        };
+        let converted = DiscreteWorkLedger {
+            external_force_work_joules: 2.0e7,
+            measured_mechanical_energy_change_joules: 2.1e7,
+            unattributed_energy_change_joules: 1.0e6,
+            ..DiscreteWorkLedger::default()
+        };
+        assert!(
+            (si.relative_unattributed_residual() - converted.relative_unattributed_residual())
+                .abs()
+                < 1e-15
+        );
+    }
+
+
 }
