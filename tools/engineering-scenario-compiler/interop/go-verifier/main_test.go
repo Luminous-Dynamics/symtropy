@@ -67,6 +67,8 @@ func TestStrictJCSInputRejectsAmbiguousAndInvalidJSON(t *testing.T) {
 		{name: "duplicate top-level member", input: []byte("{\"x\":1,\"x\":2}")},
 		{name: "duplicate nested member", input: []byte("{\"outer\":{\"x\":1,\"x\":2}}")},
 		{name: "escaped duplicate member name", input: []byte("{\"a\":1,\"\\u0061\":2}")},
+		{name: "duplicate nested inside array", input: []byte("{\"items\":[{\"x\":1,\"x\":2}]}")},
+		{name: "escaped Unicode duplicate property", input: []byte("{\"é\":1,\"\\u00e9\":2}")},
 		{name: "invalid UTF-8", input: []byte{0xff, 0x7b, 0x7d}},
 		{name: "unpaired high surrogate", input: []byte("{\"x\":\"\\uD800\"}")},
 		{name: "unpaired low surrogate", input: []byte("{\"x\":\"\\uDC00\"}")},
