@@ -297,3 +297,6 @@ The CFD admission gate now also rejects a nominally finer grid whose node count 
 
 
 The byte-bound artifact layer now has a deterministic composite receipt helper. It re-verifies all eight per-grid artifact roles, recomputes numerical admission, and hashes the artifact bundle together with criteria, per-grid run metrics and GCI triplets. Use the resulting receipt_sha256 as the admission-receipt digest in a matched-budget policy observation. It is still unsigned and does not prove runner identity or experimental validity.
+
+
+The composite CFD evidence-chain API now exposes a deterministic CSV receipt row. Use its receipt_sha256 as candidate.admission_receipt_sha256 when recording a CFD candidate in the matched-budget Pareto scorecard. The scorecard itself does not authenticate a signer or validate the underlying physics.

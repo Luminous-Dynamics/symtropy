@@ -127,6 +127,26 @@ pub struct CfdEvidenceChainReceipt {
     pub evidence_level: &'static str,
 }
 
+pub const CFD_EVIDENCE_CHAIN_RECEIPT_CSV_HEADER: &str =
+    "case_id,quantity,run_count,artifact_bundle_sha256,numerical_admission_sha256,receipt_sha256,evidence_level";
+
+pub fn receipt_to_csv(receipt: &CfdEvidenceChainReceipt) -> String {
+    format!(
+        "{CFD_EVIDENCE_CHAIN_RECEIPT_CSV_HEADER}\n{},{},{},{},{},{},{}\n",
+        csv_escape(&receipt.case_id),
+        csv_escape(&receipt.quantity),
+        receipt.run_count,
+        receipt.artifact_bundle_sha256,
+        receipt.numerical_admission_sha256,
+        receipt.receipt_sha256,
+        receipt.evidence_level
+    )
+}
+
+fn csv_escape(value: &str) -> String {
+    format!("\"{}\"", value.replace('"', "\"\""))
+}
+
 pub fn verify_artifact_manifest(
     artifact_root: &Path,
     manifest: &CfdArtifactManifest,
@@ -713,6 +733,10 @@ mod tests {
         assert!(is_sha256_hex(&first.receipt_sha256));
         assert!(first.evidence_level.contains("unsigned_not_source_authenticated"));
         assert!(first.evidence_level.contains("not_experimentally_validated"));
+        let first_csv = receipt_to_csv(&first);
+        assert_eq!(first_csv, receipt_to_csv(&second));
+        assert_eq!(first_csv.lines().count(), 2);
+        assert!(first_csv.contains(&first.receipt_sha256));
         fs::remove_dir_all(&root).expect("remove composite receipt fixture");
     }
 

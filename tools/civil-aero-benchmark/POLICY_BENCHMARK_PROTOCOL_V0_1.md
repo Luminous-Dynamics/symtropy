@@ -71,3 +71,8 @@ Use multiple seeds and hold out complete geometry families and flow regimes. Cha
 - ShapeBench: https://arxiv.org/abs/2605.20763
 - SU2: https://github.com/su2code/SU2
 - AIAA DPW8/AePW4: https://www.aiaa-dpw.org/TestCases/testcases.html
+
+
+### Preferred CFD admission receipt binding
+
+For a CFD-derived candidate, populate candidate.admission_receipt_sha256 with the receipt_sha256 returned by create_cfd_evidence_chain_receipt. That helper re-verifies the eight per-grid artifact roles, recomputes the numerical-admission report and emits a deterministic composite digest over the artifact bundle and numerical evidence. This scorecard still checks only the digest's syntax and does not verify the underlying receipt or its signer. A signed runner attestation remains future work.

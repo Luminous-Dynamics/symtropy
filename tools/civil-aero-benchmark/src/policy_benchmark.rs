@@ -50,7 +50,7 @@ pub struct CandidateObservation {
     /// Must equal the SHA-256 of the matching successful high-fidelity ledger operation.
     pub output_sha256: String,
     pub admission_status: CandidateAdmissionStatus,
-    /// Digest of the independently produced admission/constraint receipt. This is not a signature.
+    /// Digest of CfdEvidenceChainReceipt.receipt_sha256 or another explicitly documented admission/constraint receipt. This is not a signature; the policy scorecard does not authenticate the receipt.
     pub admission_receipt_sha256: String,
     /// Present only when admission succeeded.
     pub feasible: Option<bool>,
