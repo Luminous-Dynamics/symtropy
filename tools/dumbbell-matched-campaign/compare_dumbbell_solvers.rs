@@ -29,11 +29,6 @@ fn initial_state() -> phdae::State {
     }
 }
 
-fn rotate(a: [f64; 2], angle: f64) -> [f64; 2] {
-    let (sin, cos) = angle.sin_cos();
-    [cos * a[0] - sin * a[1], sin * a[0] + cos * a[1]]
-}
-
 fn norm(a: [f64; 2]) -> f64 {
     (a[0] * a[0] + a[1] * a[1]).sqrt()
 }
@@ -370,7 +365,7 @@ mod tests {
         assert!(audit_campaign(&poisoned).is_err());
 
         let rows: Vec<&str> = good.lines().collect();
-        let duplicate = format!("{}\n{}", good, rows[1]);
+        let duplicate = format!("{}\n{}", good.trim_end(), rows[1]);
         assert!(audit_campaign(&duplicate).is_err());
 
         let truncated = rows[..rows.len() - 1].join("\n");
