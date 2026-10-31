@@ -105,7 +105,29 @@ Split by generator family and apparatus signature, never by random rows alone.
 A shift family used to design the falsifier or calibrate the TV radius cannot
 also serve as a sealed test family.
 
-### C. Real workflow / agent transfer
+### C. Experiment-ordering under misspecification
+
+Construct paired channels where experiment A is Blackwell-more-informative than
+experiment B under the nominal model. Then independently vary:
+- **Inference misspecification:** hold the data generator to the nominal family
+  while perturbing the inference approximation, posterior truncation,
+  likelihood calculation or calibration procedure.
+- **Model misspecification:** keep inference exact while perturbing the
+  data-generating kernel, sensor mapping, action realization or apparatus
+  transition.
+- **Interaction:** cross inference and model shifts factorially, including
+  combinations that cause confident but wrong terminal decisions.
+
+For each pair, report the nominal ranking, realized downstream-loss ranking,
+decision flip frequency, confidence calibration and whether the supposedly
+more informative experiment amplifies error. This is the direct falsification
+suite for Blackwell-style monotonicity assumptions under misspecification.
+Compare classical EIG, EGIG/inferential-error penalties, the model-error
+criterion, nominal decision-aware DP, finite-family robust DP, TV ambiguity and
+UAI-style adversarial decision-aware design. Preserve the experiment cost and
+risk constraints across the pair.
+
+### D. Real workflow / agent transfer
 
 Use public laboratory benchmarks only through their documented interfaces.
 Autonomous Science Bench evaluates the complete model-agent-tools-harness loop
