@@ -128,6 +128,35 @@ open-world model adequacy proof, continuous physical solver, or hardware safety
 certificate.
 
 
+## Fresh-fold sequential conformal calibration
+
+The `decision_value::sequential_conformal` module implements the exact
+augmented order-statistic bookkeeping for multistage calibration under
+recursive selection. At stage k, with M_k survivor scores and target
+conditional coverage beta_k, it computes
+`r_k = ceil((M_k + 1) * beta_k)` using exact rational arithmetic. A finite
+threshold is the r_k-th smallest survivor score; when r_k = M_k + 1, the
+receipt marks the threshold unbounded rather than inventing a finite one.
+
+The routine requires distinct fresh-fold IDs, contiguous stages, declared
+score versions, survivor counts bounded by each fold's original size, and
+score-fit fold provenance. A stage score may use only calibration folds from
+strictly earlier stages; current, future or undeclared fold reuse fails closed.
+Each receipt records the augmented rank, threshold (or unbounded status),
+sample/survivor count, score version, fit-fold IDs and exact prefix-coverage
+lower bound, equal to the product of conditional targets through that stage.
+
+This is only the finite-sample rank calculation under the sequential conformal
+paper's sampling and exchangeability assumptions. In particular, calibration
+folds must be independent of the score function fitted at that stage, and
+fresh-fold survivors must be exchangeable with a surviving test case
+conditional on prior history. The result is not a guarantee under arbitrary
+nonstationary physical shift, and it is not a calibrated TV ambiguity radius.
+An unbounded threshold is not automatically equivalent to abstention; a
+downstream safety policy must decide how to handle an unavailable finite
+threshold. The module records provenance but cannot prove that caller-supplied
+fold lineage is truthful.
+
 ## Deterministic model-family falsification (SIM-REL-029 precursor)
 
 The `decision_value::counterexample_search` module provides a deterministic,
