@@ -2,7 +2,6 @@ use engineering_scenario_compiler::{
     canonical_semantic_ir_bytes, compile_bytes, Disposition, COMPILER_VERSION,
     MAX_SOURCE_BYTES,
 };
-use sha2::Digest;
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -88,7 +87,11 @@ fn main() {
     let canonical_example = canonical_semantic_ir_bytes(scenario)
         .expect("typed IR has valid JCS encoding");
     let canonical_output_bytes = canonical_example.len();
-    let canonical_sha256 = hex::encode(Digest::digest(&canonical_example));
+    let canonical_sha256 = baseline
+        .semantic_ir_jcs_sha256
+        .as_ref()
+        .expect("compile report contains portable semantic digest")
+        .clone();
 
     for _ in 0..WARMUP_COUNT {
         black_box(
