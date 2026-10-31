@@ -217,11 +217,15 @@ fn run_rattle(dt: f64, steps: usize, reference: phdae::State) -> Metrics {
                 + cumulative_work.abs());
         max_energy_work_defect = max_energy_work_defect.max(work_defect);
         max_link = max_link.max(receipt.relative_link_constraint_residual);
+        let r0 = sub(receipt.before.q2, receipt.before.q1);
+        let r1 = sub(state.q2, state.q1);
+        let w0 = sub(receipt.before.v2, receipt.before.v1);
+        let w1 = sub(state.v2, state.v1);
+        let rbar = scale(add(r0, r1), 0.5);
+        let wbar = scale(add(w0, w1), 0.5);
         max_midpoint = max_midpoint.max(
-            receipt.midpoint_velocity_constraint_residual.abs()
-                / (1.0
-                    + LENGTH
-                        * norm(sub(state.v2, state.v1))),
+            (dot(rbar, wbar)).abs()
+                / (1.0 + norm(rbar) * norm(wbar)),
         );
         max_endpoint =
             max_endpoint.max(receipt.endpoint_velocity_constraint_residual.abs());
@@ -431,11 +435,22 @@ mod tests {
     fn signed_work_auditor_rejects_wrong_sign_and_nan() {
         let good = campaign_csv();
         let rows: Vec<&str> = good.lines().collect();
-        let wrong_sign = good.replacen(
-            &format!("{:.17e}", analytic_external_work()),
-            &format!("{:.17e}", -analytic_external_work()),
-            1,
-        );
+        let wrong_sign = good
+            .lines()
+            .enumerate()
+            .map(|(index, line)| {
+                if index == 1 {
+                    let mut columns: Vec<String> =
+                        line.split(',').map(str::to_string).collect();
+                    let work: f64 = columns[11].parse().unwrap();
+                    columns[11] = format!("{:.17e}", -work);
+                    columns.join(",")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
         assert!(audit_campaign(&wrong_sign).is_err());
 
         let poisoned = good
