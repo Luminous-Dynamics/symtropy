@@ -967,6 +967,49 @@ mod tests {
                 .unwrap_err(),
             Error::InvalidSolverOptions
         );
+        assert_eq!(
+            model
+                .step(
+                    State {
+                        q1: [f64::NAN, 0.0],
+                        ..initial_state()
+                    },
+                    [0.0, 0.0],
+                    [0.0, 0.0],
+                    0.01,
+                    SolverOptions::default()
+                )
+                .unwrap_err(),
+            Error::NonFiniteInput
+        );
+        assert_eq!(
+            model
+                .step(
+                    initial_state(),
+                    [f64::INFINITY, 0.0],
+                    [0.0, 0.0],
+                    0.01,
+                    SolverOptions::default()
+                )
+                .unwrap_err(),
+            Error::NonFiniteInput
+        );
+        assert_eq!(
+            model
+                .step(
+                    initial_state(),
+                    [0.0, 0.0],
+                    [0.0, 0.0],
+                    0.01,
+                    SolverOptions {
+                        relative_tolerance: 1.0e-30,
+                        max_iterations: 1,
+                        max_backtracks: 1,
+                    }
+                )
+                .unwrap_err(),
+            Error::NoConvergence
+        );
     }
 }
 
