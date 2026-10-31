@@ -18,3 +18,13 @@ for mode in integrated unified federated; do
   test "$first" = "$second"
   printf '%s\n' "$first"
 done
+
+CAUSAL_SRC="$ROOT/tools/manufacturing-assurance/causal.rs"
+rustc --edition=2021 -D warnings --test "$CAUSAL_SRC" -o "$TMP/causal-tests"
+"$TMP/causal-tests"
+
+rustc --edition=2021 -D warnings "$CAUSAL_SRC" -o "$TMP/causal-benchmark"
+causal_first="$("$TMP/causal-benchmark")"
+causal_second="$("$TMP/causal-benchmark")"
+test "$causal_first" = "$causal_second"
+printf '%s\n' "$causal_first"
