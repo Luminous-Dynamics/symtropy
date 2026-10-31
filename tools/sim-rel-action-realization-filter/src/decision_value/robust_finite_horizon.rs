@@ -1273,6 +1273,20 @@ fn raw_replay_partitions(
                         },
                     );
                 }
+                let input_mass = points.iter().try_fold(
+                    Rational::zero(),
+                    |sum, point| sum.checked_add(point.mass),
+                )?;
+                let output_mass = partitions.values().try_fold(
+                    Rational::zero(),
+                    |sum, branch| sum.checked_add(branch.probability),
+                )?;
+                if input_mass != output_mass {
+                    return Err(
+                        "raw replay observation partitions do not conserve incoming path mass"
+                            .into(),
+                    );
+                }
                 Ok(partitions)
             }
         })
