@@ -732,7 +732,8 @@ impl DissonanceRecord {
         evidence_ref: Option<String>,
     ) -> Result<(), DissonanceError> {
         let evidence_ref = evidence_ref.ok_or(DissonanceError::InvalidIdentifier)?;
-        let context = self.test_context(self.event_history.last().map_or(1, |event| event.occurred_at + 1));
+        let next_time = self.event_history.last().map_or(1, |event| event.occurred_at + 1);
+        let context = self.test_context(next_time);
         self.update_hazard_finding_with_context(report_id, finding, evidence_ref, context)
     }
 
