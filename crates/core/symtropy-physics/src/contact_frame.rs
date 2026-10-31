@@ -221,6 +221,61 @@ impl<const D: usize> ContactWrenchImpulse<D> {
         Ok(())
     }
 
+    /// Validate a coupled ellipsoidal friction-wrench budget.
+    ///
+    /// Unlike `validate`, which enforces independent tangential/rolling/
+    /// torsional bounds, this method constrains the combined normalized wrench:
+    ///
+    /// (||p_t|| / b_t)^2 + (||tau_r|| / b_r)^2
+    ///     + (||tau_tau|| / b_tau)^2 <= 1.
+    ///
+    /// This is one explicit convex friction-wrench model, not a universal
+    /// Coulomb law. The independent-channel model remains available through
+    /// `validate`. Zero channel bounds permit only a zero impulse in that
+    /// channel.
+    pub fn validate_ellipsoidal_friction_budget(
+        &self,
+        frame: &ContactFrame<D>,
+        limits: &ContactWrenchFrictionLimits,
+        relative_tolerance: f64,
+    ) -> Result<(), ContactFrameError> {
+        self.validate(frame, limits, relative_tolerance)?;
+
+        let normal_impulse = self.normal.max(0.0);
+        let tangential_bound = limits.tangential_bound(normal_impulse);
+        let rolling_bound = limits.rolling_bound(normal_impulse);
+        let torsional_bound = limits.torsional_bound(normal_impulse);
+
+        let normalized_usage = |magnitude: f64, bound: f64| {
+            if magnitude == 0.0 {
+                0.0
+            } else if bound <= 0.0 {
+                f64::INFINITY
+            } else {
+                magnitude / bound
+            }
+        };
+
+        let tangential_usage = normalized_usage(self.tangential.norm(), tangential_bound);
+        let rolling_norm = self.rolling.iter().map(|value| value * value).sum::<f64>().sqrt();
+        let torsional_norm = self
+            .torsional
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
+        let rolling_usage = normalized_usage(rolling_norm, rolling_bound);
+        let torsional_usage = normalized_usage(torsional_norm, torsional_bound);
+        let budget = tangential_usage * tangential_usage
+            + rolling_usage * rolling_usage
+            + torsional_usage * torsional_usage;
+
+        if !budget.is_finite() || budget > 1.0 + relative_tolerance {
+            return Err(ContactFrameError::FrictionLimitExceeded);
+        }
+        Ok(())
+    }
+
     /// Reconstruct the complete angular impulse bivector.
     pub fn angular_impulse(
         &self,
@@ -727,6 +782,60 @@ mod tests {
         assert_eq!(
             pulling_contact.validate(&frame, &limits, 1e-12),
             Err(ContactFrameError::NegativeNormalImpulse)
+        );
+    }
+
+    #[test]
+    fn independent_channel_bounds_and_coupled_ellipsoidal_budget_are_distinct_models() {
+        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let limits = ContactWrenchFrictionLimits::new(0.5, 0.1, 0.1, 0.5, 0.25).unwrap();
+        let all_channels_at_their_independent_limits = ContactWrenchImpulse::<3> {
+            normal: 2.0,
+            tangential: frame.tangent_basis()[0] * 1.0,
+            rolling: vec![0.1, 0.0],
+            torsional: vec![0.05],
+        };
+
+        // The legacy contract is a product of three independent bounds.
+        assert!(
+            all_channels_at_their_independent_limits
+                .validate(&frame, &limits, 1e-12)
+                .is_ok()
+        );
+        // A coupled ellipsoid spends all three budgets simultaneously and
+        // therefore rejects the same impulse (1 + 1 + 1 > 1).
+        assert_eq!(
+            all_channels_at_their_independent_limits
+                .validate_ellipsoidal_friction_budget(&frame, &limits, 1e-12),
+            Err(ContactFrameError::FrictionLimitExceeded)
+        );
+
+        let within_combined_budget = ContactWrenchImpulse::<3> {
+            normal: 2.0,
+            tangential: frame.tangent_basis()[0] * 0.25,
+            rolling: vec![0.025, 0.0],
+            torsional: vec![0.0125],
+        };
+        assert!(
+            within_combined_budget
+                .validate_ellipsoidal_friction_budget(&frame, &limits, 1e-12)
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn ellipsoidal_friction_budget_rejects_nonzero_impulse_on_zero_bound_channel() {
+        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let limits = ContactWrenchFrictionLimits::new(0.0, 0.1, 0.1, 0.5, 0.25).unwrap();
+        let wrench = ContactWrenchImpulse::<3> {
+            normal: 1.0,
+            tangential: frame.tangent_basis()[0] * 1e-9,
+            rolling: vec![0.0, 0.0],
+            torsional: vec![0.0],
+        };
+        assert_eq!(
+            wrench.validate_ellipsoidal_friction_budget(&frame, &limits, 1e-12),
+            Err(ContactFrameError::FrictionLimitExceeded)
         );
     }
 
