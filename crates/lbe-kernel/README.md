@@ -73,6 +73,27 @@ The `consent` module is a pure state machine for a match or service exchange:
 
 The module does **not** cryptographically authenticate an actor, verify a digest, or prove that agreement was free of duress. It is unsafe to trust caller-supplied subject IDs or digest bytes. Holochain adapters must use the authenticated `action.author`, verify the referenced Need/Offer actors, and hash a canonical representation of all material terms. A separate, private refusal/revocation and coercion-review path is required where dependency or power imbalance exists. External settlement must be journaled and idempotent. Gratitude, ratings, reciprocity and public testimony are not part of consent.
 
+## Dissonance and paradox
+
+The `dissonance` module records empirical disagreements, normative conflicts, resource trade-offs, temporal tensions, structural paradoxes and interpretive differences without assigning people a moral or psychological score.
+
+It preserves position records, source attribution, rationale and evidence references. Process safeguards (faithful representation, accessible affected-party voice, dissent retention, evidence review, appeal and power disclosure) are explicit. Corrosive hazards such as retaliation, coercion, essential-access conditioning, evidence suppression, misrepresentation, intimidation and surveillance retain their finding state: reported, corroborated, substantiated, refuted or unresolved.
+
+The model distinguishes dispositions:
+- hold a tension open;
+- integrate all recorded positions;
+- provisionally prioritize one position while retaining all others;
+- sequence two positions with explicit retention and a rollback trigger;
+- run a bounded experiment against named positions;
+- contextualize every position with an explicit context rule;
+- resolve an empirical disagreement through a reviewed evidence bundle.
+
+Normative conflict cannot be marked as empirically resolved. Consequential action requires all process safeguards and no active or unresolved corrosive hazard. Decision dispositions are append-only; a later decision does not rewrite the earlier record.
+
+This remains a pure model. Safeguard booleans require external evidence, and the model is not an ethics review, truth oracle, facilitation tool, legal authorization mechanism or proof that consent is free of coercion. Strong anger, protest or minority dissent are not automatically corrosive.
+
+See [LBE-BENCH-003](https://github.com/Luminous-Dynamics/symtropy/issues/3110) and its [research specification](https://github.com/Luminous-Dynamics/symtropy/pull/3111).
+
 ## Current claim ceiling
 
 Passing this crate's tests would establish properties of this small in-memory model only. It would not establish:
