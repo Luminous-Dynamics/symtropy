@@ -2153,3 +2153,419 @@ fn interval_discriminant_contains_zero_for_a_wide_unresolved_box() {
     assert!(certificate.discriminant.as_ref().is_some_and(ExactInterval::contains_zero));
     assert!(matches!(certificate.status, FamilyRootStatus::NeedsSubdivision(_)));
 }
+
+
+// -----------------------------------------------------------------------------
+// Non-sliding regime certificates
+// -----------------------------------------------------------------------------
+//
+// These certificates complement the sliding branch verifier. They certify an
+// individual separating or sticking branch over the complete exact-dyadic
+// input box. They do not establish that the branch is the only solution or
+// that every other regime has been enumerated.
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum NonSlidingBranchStatus {
+    AdmissibleThroughout,
+    InadmissibleThroughout(&'static str),
+    Inconclusive(&'static str),
+    InvalidInput(&'static str),
+}
+
+#[derive(Clone, Debug)]
+struct SeparatingBranchCertificate {
+    status: NonSlidingBranchStatus,
+    normal_free_velocity: ExactInterval,
+}
+
+#[derive(Clone, Debug)]
+struct StickingBranchCertificate {
+    status: NonSlidingBranchStatus,
+    normal_impulse: Option<ExactInterval>,
+    disk_margin_squared: Option<ExactInterval>,
+    kinetic_energy_delta: Option<ExactInterval>,
+    post_velocity_residual: Option<[ExactInterval; 3]>,
+    determinant: ExactInterval,
+}
+
+/// Interval determinant of the symmetric contact Delassus matrix.
+fn contact_matrix_determinant(input: &ContactInputBox) -> ExactInterval {
+    let c00 = input.w11.mul(&input.w22).sub(&input.w12.square());
+    let c01 = input.w02.mul(&input.w12).sub(&input.w01.mul(&input.w22));
+    let c02 = input.w01.mul(&input.w12).sub(&input.w02.mul(&input.w11));
+    input
+        .w00
+        .mul(&c00)
+        .add(&input.w01.mul(&c01))
+        .add(&input.w02.mul(&c02))
+}
+
+/// Certify the p=0 branch. This says nothing about the existence or
+/// completeness of sticking/sliding branches.
+fn certify_separating_branch(input: &ContactInputBox) -> SeparatingBranchCertificate {
+    let spd_lower = input.gershgorin_spd_lower_bound();
+    if input.mu.lower < Rational::zero() {
+        return SeparatingBranchCertificate {
+            status: NonSlidingBranchStatus::InvalidInput("friction interval contains negative values"),
+            normal_free_velocity: input.q0.clone(),
+        };
+    }
+    if spd_lower <= Rational::zero() {
+        return SeparatingBranchCertificate {
+            status: NonSlidingBranchStatus::Inconclusive("interval Gershgorin bound does not prove SPD"),
+            normal_free_velocity: input.q0.clone(),
+        };
+    }
+    let status = if input.q0.lower >= Rational::zero() {
+        NonSlidingBranchStatus::AdmissibleThroughout
+    } else if input.q0.upper < Rational::zero() {
+        NonSlidingBranchStatus::InadmissibleThroughout("normal free velocity is strictly negative")
+    } else {
+        NonSlidingBranchStatus::Inconclusive("normal free velocity box crosses the grazing boundary")
+    };
+    SeparatingBranchCertificate {
+        status,
+        normal_free_velocity: input.q0.clone(),
+    }
+}
+
+/// Certify the unconstrained sticking impulse p = -W^-1 q over the entire
+/// parameter box. The adjugate/determinant enclosure is exact rational
+/// interval arithmetic. A positive determinant interval and the independent
+/// Gershgorin lower bound are both required before any branch is promoted.
+fn certify_sticking_branch(input: &ContactInputBox) -> StickingBranchCertificate {
+    let determinant = contact_matrix_determinant(input);
+    let inconclusive = |reason| StickingBranchCertificate {
+        status: NonSlidingBranchStatus::Inconclusive(reason),
+        normal_impulse: None,
+        disk_margin_squared: None,
+        kinetic_energy_delta: None,
+        post_velocity_residual: None,
+        determinant: determinant.clone(),
+    };
+
+    if input.mu.lower < Rational::zero() {
+        return StickingBranchCertificate {
+            status: NonSlidingBranchStatus::InvalidInput("friction interval contains negative values"),
+            normal_impulse: None,
+            disk_margin_squared: None,
+            kinetic_energy_delta: None,
+            post_velocity_residual: None,
+            determinant,
+        };
+    }
+    if input.gershgorin_spd_lower_bound() <= Rational::zero() {
+        return inconclusive("interval Gershgorin bound does not prove SPD");
+    }
+    if determinant.lower <= Rational::zero() {
+        return inconclusive("interval determinant does not prove an invertible positive metric");
+    }
+
+    // Symmetric 3x3 adjugate entries.
+    let adj00 = input.w11.mul(&input.w22).sub(&input.w12.square());
+    let adj01 = input.w02.mul(&input.w12).sub(&input.w01.mul(&input.w22));
+    let adj02 = input.w01.mul(&input.w12).sub(&input.w02.mul(&input.w11));
+    let adj11 = input.w00.mul(&input.w22).sub(&input.w02.square());
+    let adj12 = input.w01.mul(&input.w02).sub(&input.w00.mul(&input.w12));
+    let adj22 = input.w00.mul(&input.w11).sub(&input.w01.square());
+
+    let numerator0 = adj00.mul(&input.q0)
+        .add(&adj01.mul(&input.q1))
+        .add(&adj02.mul(&input.q2));
+    let numerator1 = adj01.mul(&input.q0)
+        .add(&adj11.mul(&input.q1))
+        .add(&adj12.mul(&input.q2));
+    let numerator2 = adj02.mul(&input.q0)
+        .add(&adj12.mul(&input.q1))
+        .add(&adj22.mul(&input.q2));
+
+    let p0 = match numerator0.neg().div(&determinant) {
+        Some(value) => value,
+        None => return inconclusive("normal sticking impulse interval division failed"),
+    };
+    let p1 = match numerator1.neg().div(&determinant) {
+        Some(value) => value,
+        None => return inconclusive("first tangent sticking impulse interval division failed"),
+    };
+    let p2 = match numerator2.neg().div(&determinant) {
+        Some(value) => value,
+        None => return inconclusive("second tangent sticking impulse interval division failed"),
+    };
+
+    if p0.upper <= Rational::zero() {
+        return StickingBranchCertificate {
+            status: NonSlidingBranchStatus::InadmissibleThroughout(
+                "unconstrained sticking normal impulse is never strictly positive",
+            ),
+            normal_impulse: Some(p0),
+            disk_margin_squared: None,
+            kinetic_energy_delta: None,
+            post_velocity_residual: None,
+            determinant,
+        };
+    }
+    if p0.lower <= Rational::zero() {
+        return StickingBranchCertificate {
+            status: NonSlidingBranchStatus::Inconclusive(
+                "sticking normal impulse interval touches or crosses zero",
+            ),
+            normal_impulse: Some(p0),
+            disk_margin_squared: None,
+            kinetic_energy_delta: None,
+            post_velocity_residual: None,
+            determinant,
+        };
+    }
+
+    // Strict disk interior, compared in squared form to avoid an uncertified
+    // square root: (mu*lambda)^2 - j_1^2 - j_2^2 > 0.
+    let friction_radius = input.mu.mul(&p0);
+    let disk_margin_squared = friction_radius
+        .square()
+        .sub(&p1.square())
+        .sub(&p2.square());
+    if disk_margin_squared.upper < Rational::zero() {
+        return StickingBranchCertificate {
+            status: NonSlidingBranchStatus::InadmissibleThroughout(
+                "unconstrained sticking impulse lies outside the Coulomb disk",
+            ),
+            normal_impulse: Some(p0),
+            disk_margin_squared: Some(disk_margin_squared),
+            kinetic_energy_delta: None,
+            post_velocity_residual: None,
+            determinant,
+        };
+    }
+    if disk_margin_squared.lower <= Rational::zero() {
+        return StickingBranchCertificate {
+            status: NonSlidingBranchStatus::Inconclusive(
+                "sticking disk margin may reach the stick-slip boundary",
+            ),
+            normal_impulse: Some(p0),
+            disk_margin_squared: Some(disk_margin_squared),
+            kinetic_energy_delta: None,
+            post_velocity_residual: None,
+            determinant,
+        };
+    }
+
+    // Independently reconstruct q + Wp. The inverse formula defines this as
+    // zero pointwise; the interval expression must enclose that identity.
+    let residual0 = input.q0
+        .add(&input.w00.mul(&p0))
+        .add(&input.w01.mul(&p1))
+        .add(&input.w02.mul(&p2));
+    let residual1 = input.q1
+        .add(&input.w01.mul(&p0))
+        .add(&input.w11.mul(&p1))
+        .add(&input.w12.mul(&p2));
+    let residual2 = input.q2
+        .add(&input.w02.mul(&p0))
+        .add(&input.w12.mul(&p1))
+        .add(&input.w22.mul(&p2));
+    if !residual0.contains_zero() || !residual1.contains_zero() || !residual2.contains_zero() {
+        return StickingBranchCertificate {
+            status: NonSlidingBranchStatus::Inconclusive(
+                "interval reconstruction of q + Wp excludes zero",
+            ),
+            normal_impulse: Some(p0),
+            disk_margin_squared: Some(disk_margin_squared),
+            kinetic_energy_delta: None,
+            post_velocity_residual: Some([residual0, residual1, residual2]),
+            determinant,
+        };
+    }
+
+    let wp0 = input.w00.mul(&p0)
+        .add(&input.w01.mul(&p1))
+        .add(&input.w02.mul(&p2));
+    let wp1 = input.w01.mul(&p0)
+        .add(&input.w11.mul(&p1))
+        .add(&input.w12.mul(&p2));
+    let wp2 = input.w02.mul(&p0)
+        .add(&input.w12.mul(&p1))
+        .add(&input.w22.mul(&p2));
+    let linear_energy = p0.mul(&input.q0)
+        .add(&p1.mul(&input.q1))
+        .add(&p2.mul(&input.q2));
+    let quadratic_energy = p0.mul(&wp0)
+        .add(&p1.mul(&wp1))
+        .add(&p2.mul(&wp2));
+    let half = ExactInterval::point(Rational::new(BigInt::one(), BigInt::from(2)));
+    let kinetic_energy_delta = linear_energy.add(&half.mul(&quadratic_energy));
+
+    let status = if kinetic_energy_delta.upper <= Rational::zero() {
+        NonSlidingBranchStatus::AdmissibleThroughout
+    } else if kinetic_energy_delta.lower > Rational::zero() {
+        NonSlidingBranchStatus::InadmissibleThroughout(
+            "unconstrained sticking impulse increases kinetic energy",
+        )
+    } else {
+        NonSlidingBranchStatus::Inconclusive("sticking kinetic-energy interval straddles zero")
+    };
+
+    StickingBranchCertificate {
+        status,
+        normal_impulse: Some(p0),
+        disk_margin_squared: Some(disk_margin_squared),
+        kinetic_energy_delta: Some(kinetic_energy_delta),
+        post_velocity_residual: Some([residual0, residual1, residual2]),
+        determinant,
+    }
+}
+
+fn narrow_regular_sticking_box() -> ContactInputBox {
+    ContactInputBox::from_f64_bounds([
+        [0.9999, 1.0001],
+        [-0.0001, 0.0001],
+        [-0.0001, 0.0001],
+        [0.9999, 1.0001],
+        [-0.0001, 0.0001],
+        [0.9999, 1.0001],
+        [-1.0001, -0.9999],
+        [0.0999, 0.1001],
+        [-0.2001, -0.1999],
+        [0.5499, 0.5501],
+    ]).unwrap()
+}
+
+#[test]
+fn separating_branch_is_certified_for_uniform_grazing_and_separation_boxes() {
+    let approaching = ContactInputBox::from_f64_bounds([
+        [0.999, 1.001], [0.0, 0.0], [0.0, 0.0],
+        [0.999, 1.001], [0.0, 0.0], [0.999, 1.001],
+        [0.0, 0.2], [-2.0, 2.0], [-3.0, 3.0], [0.0, 0.5],
+    ]).unwrap();
+    assert_eq!(
+        certify_separating_branch(&approaching).status,
+        NonSlidingBranchStatus::AdmissibleThroughout
+    );
+}
+
+#[test]
+fn separating_branch_refuses_a_box_crossing_the_grazing_boundary() {
+    let crossing = ContactInputBox::from_f64_bounds([
+        [1.0, 1.0], [0.0, 0.0], [0.0, 0.0],
+        [1.0, 1.0], [0.0, 0.0], [1.0, 1.0],
+        [-0.1, 0.1], [0.0, 0.0], [0.0, 0.0], [0.0, 0.5],
+    ]).unwrap();
+    assert_eq!(
+        certify_separating_branch(&crossing).status,
+        NonSlidingBranchStatus::Inconclusive(
+            "normal free velocity box crosses the grazing boundary"
+        )
+    );
+}
+
+#[test]
+fn interval_sticking_branch_certifies_strict_disk_interior_and_energy() {
+    let input = narrow_regular_sticking_box();
+    let certificate = certify_sticking_branch(&input);
+    assert_eq!(
+        certificate.status,
+        NonSlidingBranchStatus::AdmissibleThroughout
+    );
+    assert!(certificate.normal_impulse.as_ref().unwrap().lower > Rational::zero());
+    assert!(certificate.disk_margin_squared.as_ref().unwrap().lower > Rational::zero());
+    assert!(certificate.kinetic_energy_delta.as_ref().unwrap().upper <= Rational::zero());
+    assert!(certificate.post_velocity_residual.as_ref().unwrap().iter().all(
+        ExactInterval::contains_zero
+    ));
+    assert!(certificate.determinant.lower > Rational::zero());
+}
+
+#[test]
+fn interval_sticking_branch_does_not_promote_the_exact_stick_slip_boundary() {
+    let boundary = ContactInputBox::from_f64_bounds([
+        [1.0, 1.0], [0.0, 0.0], [0.0, 0.0],
+        [1.0, 1.0], [0.0, 0.0], [1.0, 1.0],
+        [-1.0, -1.0], [0.25, 0.25], [0.0, 0.0], [0.25, 0.25],
+    ]).unwrap();
+    let certificate = certify_sticking_branch(&boundary);
+    assert_eq!(
+        certificate.status,
+        NonSlidingBranchStatus::Inconclusive(
+            "sticking disk margin may reach the stick-slip boundary"
+        )
+    );
+    assert!(certificate.disk_margin_squared.unwrap().lower.is_zero());
+}
+
+#[test]
+fn interval_sticking_branch_rejects_a_strictly_sliding_unconstrained_impulse() {
+    let outside = ContactInputBox::from_f64_bounds([
+        [1.0, 1.0], [0.0, 0.0], [0.0, 0.0],
+        [1.0, 1.0], [0.0, 0.0], [1.0, 1.0],
+        [-1.0, -1.0], [1.0, 1.0], [0.0, 0.0], [0.25, 0.25],
+    ]).unwrap();
+    assert_eq!(
+        certify_sticking_branch(&outside).status,
+        NonSlidingBranchStatus::InadmissibleThroughout(
+            "unconstrained sticking impulse lies outside the Coulomb disk"
+        )
+    );
+}
+
+#[test]
+fn interval_sticking_outputs_enclose_exact_pointwise_samples() {
+    let broad = narrow_regular_sticking_box();
+    let broad_certificate = certify_sticking_branch(&broad);
+    assert_eq!(
+        broad_certificate.status,
+        NonSlidingBranchStatus::AdmissibleThroughout
+    );
+
+    let bounds = [
+        [0.9999, 1.0001], [-0.0001, 0.0001], [-0.0001, 0.0001],
+        [0.9999, 1.0001], [-0.0001, 0.0001], [0.9999, 1.0001],
+        [-1.0001, -0.9999], [0.0999, 0.1001], [-0.2001, -0.1999],
+        [0.5499, 0.5501],
+    ];
+    let broad_impulse = broad_certificate.normal_impulse.unwrap();
+    let broad_margin = broad_certificate.disk_margin_squared.unwrap();
+    let broad_energy = broad_certificate.kinetic_energy_delta.unwrap();
+
+    for seed in 0..96_u64 {
+        let mut point_bounds = [[0.0_f64; 2]; 10];
+        for index in 0..10 {
+            let bucket = (seed * (31 + index as u64 * 17) + 5 * index as u64) % 997;
+            let fraction = bucket as f64 / 996.0;
+            let value = bounds[index][0]
+                + fraction * (bounds[index][1] - bounds[index][0]);
+            point_bounds[index] = [value, value];
+        }
+        let point = ContactInputBox::from_f64_bounds(point_bounds).unwrap();
+        let sample = certify_sticking_branch(&point);
+        assert_eq!(
+            sample.status,
+            NonSlidingBranchStatus::AdmissibleThroughout,
+            "sample seed={seed}"
+        );
+        let sample_impulse = sample.normal_impulse.unwrap();
+        let sample_margin = sample.disk_margin_squared.unwrap();
+        let sample_energy = sample.kinetic_energy_delta.unwrap();
+        assert!(broad_impulse.lower <= sample_impulse.lower);
+        assert!(broad_impulse.upper >= sample_impulse.upper);
+        assert!(broad_margin.lower <= sample_margin.lower);
+        assert!(broad_margin.upper >= sample_margin.upper);
+        assert!(broad_energy.lower <= sample_energy.lower);
+        assert!(broad_energy.upper >= sample_energy.upper);
+    }
+}
+
+#[test]
+fn interval_non_sliding_verifiers_fail_closed_when_spd_is_not_proven() {
+    let input = ContactInputBox::from_f64_bounds([
+        [1.0, 1.0], [0.9, 1.1], [0.0, 0.0],
+        [1.0, 1.0], [0.0, 0.0], [1.0, 1.0],
+        [-1.0, -1.0], [0.1, 0.1], [-0.2, -0.2], [0.5, 0.5],
+    ]).unwrap();
+    assert!(matches!(
+        certify_separating_branch(&input).status,
+        NonSlidingBranchStatus::Inconclusive(_)
+    ));
+    assert!(matches!(
+        certify_sticking_branch(&input).status,
+        NonSlidingBranchStatus::Inconclusive(_)
+    ));
+}
