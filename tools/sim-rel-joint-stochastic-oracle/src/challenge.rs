@@ -333,7 +333,7 @@ mod tests {
     }
 
     #[test]
-    fn generated_family_exercises_robust_optimizer_and_preserves_abstention() {
+    fn generated_family_exercises_robust_optimizer_with_independent_reference_action() {
         let family = generate_stateful_confounding_family(31).unwrap();
         let result = optimize_robust_worlds(
             &family.worlds,
@@ -350,18 +350,21 @@ mod tests {
             .minimum_worst_case_cost_under(
                 Rational::zero(),
                 Rational::zero(),
-                Rational::one(),
+                Rational::zero(),
             )
             .unwrap()
             .unwrap();
-        assert_eq!(
-            selected.worst_case_false_identification_probability(),
-            Rational::zero()
-        );
-        assert_eq!(
-            selected.worst_case_abstention_probability(),
-            Rational::one()
-        );
+        assert_eq!(selected.worst_case_expected_cost(), Rational::from_u64(5));
+        assert_eq!(selected.worst_case_false_identification_probability(), Rational::zero());
+        assert_eq!(selected.worst_case_hazard_probability(), Rational::zero());
+        assert_eq!(selected.worst_case_abstention_probability(), Rational::zero());
+        assert_eq!(selected.worst_case_correct_identification_probability(), Rational::one());
+        match &selected.policy {
+            crate::robust_optimizer::PolicyPlan::Action { action, .. } => {
+                assert_eq!(family.worlds[0].kernel.action_ids[*action], "independent-reference-read");
+            }
+            _ => panic!("expected independent reference measurement"),
+        }
     }
 
     #[test]
