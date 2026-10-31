@@ -483,6 +483,22 @@ struct PortableCompilationSubject<'a> {
     obligations: &'a [CompileObligation],
 }
 
+/// Return the language-neutral JCS bytes for one validated typed scenario IR.
+/// Callers must ensure the IR was produced by the strict compiler frontend.
+pub fn canonical_semantic_ir_bytes(scenario: &ScenarioIr) -> Result<Vec<u8>, String> {
+    let envelope = CanonicalSemanticEnvelope {
+        identity_profile: CANONICALIZATION_PROFILE,
+        compiler_id: COMPILER_ID,
+        compiler_version: COMPILER_VERSION,
+        schema_version: SCHEMA_VERSION,
+        registry_revision: REGISTRY_REVISION,
+        parser_profile: TOML_PARSER_PROFILE,
+        scenario,
+    };
+    serde_jcs::to_vec(&envelope)
+        .map_err(|error| format!("portable semantic IR JCS serialization failed: {error}"))
+}
+
 fn portable_compilation_subject_sha256(
     subject: &PortableCompilationSubject<'_>,
 ) -> Result<String, String> {
@@ -598,23 +614,9 @@ pub fn compile_with_artifacts(
         &artifact_manifest_sha256,
     );
 
-    let canonical_envelope = CanonicalSemanticEnvelope {
-        identity_profile: CANONICALIZATION_PROFILE,
-        compiler_id: COMPILER_ID,
-        compiler_version: COMPILER_VERSION,
-        schema_version: SCHEMA_VERSION,
-        registry_revision: REGISTRY_REVISION,
-        parser_profile: TOML_PARSER_PROFILE,
-        scenario: &ir,
-    };
-    let canonical_semantic_bytes = match serde_jcs::to_vec(&canonical_envelope) {
+    let canonical_semantic_bytes = match canonical_semantic_ir_bytes(&ir) {
         Ok(bytes) => bytes,
-        Err(error) => {
-            return invalid_report(
-                source_digest,
-                format!("portable semantic IR JCS serialization failed: {error}"),
-            );
-        }
+        Err(error) => return invalid_report(source_digest, error),
     };
     let semantic_ir_jcs_sha256 = sha256(&canonical_semantic_bytes);
 
