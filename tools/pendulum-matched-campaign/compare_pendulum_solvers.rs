@@ -317,9 +317,121 @@ fn campaign_csv() -> String {
     output
 }
 
+fn audit_campaign(csv: &str) -> Result<(), String> {
+    const METHODS: [&str; 4] = [
+        "intrinsic_discrete_gradient",
+        "cartesian_rattle",
+        "symplectic_euler",
+        "rk4",
+    ];
+    const HEADER: &str = "method,dt,steps,final_state_error,final_relative_energy_drift,max_relative_energy_drift,max_relative_position_constraint,max_relative_tangent_constraint,mean_nonlinear_iterations,max_nonlinear_iterations";
+
+    let mut lines = csv.lines();
+    if lines.next() != Some(HEADER) {
+        return Err("unexpected or missing CSV header".to_string());
+    }
+    let mut seen = [[false; 4]; 4];
+    let mut record_count = 0usize;
+
+    for (row_index, line) in lines.enumerate() {
+        if line.trim().is_empty() {
+            return Err(format!("empty CSV row at line {}", row_index + 2));
+        }
+        let columns: Vec<&str> = line.split(',').collect();
+        if columns.len() != 10 {
+            return Err(format!("expected 10 columns at line {}", row_index + 2));
+        }
+        let method_index = METHODS
+            .iter()
+            .position(|method| *method == columns[0])
+            .ok_or_else(|| format!("unknown method at line {}", row_index + 2))?;
+        let dt: f64 = columns[1]
+            .parse()
+            .map_err(|_| format!("invalid timestep at line {}", row_index + 2))?;
+        let dt_index = TIME_STEPS
+            .iter()
+            .position(|expected| (dt - expected).abs() <= 1.0e-10)
+            .ok_or_else(|| format!("unexpected timestep at line {}", row_index + 2))?;
+        if seen[method_index][dt_index] {
+            return Err(format!("duplicate method/timestep at line {}", row_index + 2));
+        }
+        let steps: usize = columns[2]
+            .parse()
+            .map_err(|_| format!("invalid step count at line {}", row_index + 2))?;
+        let expected_steps = (HORIZON / dt).round() as usize;
+        if steps != expected_steps {
+            return Err(format!("step count does not match horizon at line {}", row_index + 2));
+        }
+
+        let mut metrics = [0.0_f64; 6];
+        for (metric_index, column) in columns[3..9].iter().enumerate() {
+            let value: f64 = column
+                .parse()
+                .map_err(|_| format!("invalid metric at line {}", row_index + 2))?;
+            if !value.is_finite() || value < 0.0 {
+                return Err(format!("non-finite or negative metric at line {}", row_index + 2));
+            }
+            metrics[metric_index] = value;
+        }
+        let max_iterations: usize = columns[9]
+            .parse()
+            .map_err(|_| format!("invalid iteration count at line {}", row_index + 2))?;
+
+        let final_energy_drift = metrics[1];
+        let maximum_energy_drift = metrics[2];
+        let position_residual = metrics[3];
+        let tangent_residual = metrics[4];
+        let mean_iterations = metrics[5];
+
+        if final_energy_drift > maximum_energy_drift + 1.0e-14 {
+            return Err(format!("final energy drift exceeds maximum at line {}", row_index + 2));
+        }
+        if position_residual > 1.0e-10 || tangent_residual > 1.0e-10 {
+            return Err(format!("constraint residual exceeds bound at line {}", row_index + 2));
+        }
+        if mean_iterations > max_iterations as f64 || max_iterations > 32 {
+            return Err(format!("iteration accounting is inconsistent at line {}", row_index + 2));
+        }
+        if (method_index == 2 || method_index == 3) && max_iterations != 0 {
+            return Err(format!("explicit method reports nonlinear iterations at line {}", row_index + 2));
+        }
+
+        seen[method_index][dt_index] = true;
+        record_count += 1;
+    }
+
+    if record_count != METHODS.len() * TIME_STEPS.len() {
+        return Err(format!("expected 16 result rows, found {record_count}"));
+    }
+    if seen.iter().any(|method_rows| method_rows.iter().any(|present| !present)) {
+        return Err("missing method/timestep pair".to_string());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn independent_report_auditor_accepts_the_frozen_campaign() {
+        audit_campaign(&campaign_csv()).unwrap();
+    }
+
+    #[test]
+    fn independent_report_auditor_rejects_nan_duplicate_and_missing_rows() {
+        let good = campaign_csv();
+        let poisoned = good.replacen("4.00000000", "NaN", 1);
+        assert!(audit_campaign(&poisoned).is_err());
+
+        let mut lines: Vec<&str> = good.lines().collect();
+        let duplicate = format!("{}\n{}", good, lines[1]);
+        assert!(audit_campaign(&duplicate).is_err());
+
+        lines.pop();
+        let truncated = lines.join("\n");
+        assert!(audit_campaign(&truncated).is_err());
+    }
 
     #[test]
     fn campaign_contains_all_methods_at_every_matched_step_size() {
@@ -380,5 +492,7 @@ mod tests {
 
 #[cfg(not(test))]
 fn main() {
-    print!("{}", campaign_csv());
+    let csv = campaign_csv();
+    audit_campaign(&csv).expect("campaign report must pass independent structural audit");
+    print!("{csv}");
 }
