@@ -9,6 +9,7 @@
 //! that are unavailable or not comparable are represented as `None`, not as zero.
 
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// Current version of the common observation record schema.
 pub const OBSERVATION_SCHEMA_VERSION: u16 = 1;
@@ -336,6 +337,371 @@ fn validate_frame_clock(
         });
     }
     Ok(())
+}
+
+/// Per-run numerical differences between two validated observation traces.
+///
+/// Optional measurements are compared only where both adapters provide them.
+/// Not-comparable counters prevent unavailable measurements from silently
+/// becoming zero-valued agreements.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TraceDifferenceMetrics {
+    pub scenario_id: String,
+    pub left_backend: String,
+    pub left_backend_version: String,
+    pub right_backend: String,
+    pub right_backend_version: String,
+    pub compared_frames: u64,
+    pub compared_body_observations: u64,
+    pub max_position_error_m: f64,
+    pub rms_position_error_m: f64,
+    pub max_orientation_error_rad: f64,
+    pub rms_orientation_error_rad: f64,
+    pub max_linear_velocity_error_mps: f64,
+    pub rms_linear_velocity_error_mps: f64,
+    pub max_angular_velocity_error_radps: f64,
+    pub rms_angular_velocity_error_radps: f64,
+    pub sleeping_comparisons: u64,
+    pub sleeping_mismatches: u64,
+    pub sleeping_not_comparable: u64,
+    pub contact_count_comparisons: u64,
+    pub contact_count_mismatches: u64,
+    pub contact_count_not_comparable: u64,
+    pub penetration_comparisons: u64,
+    pub max_penetration_error_m: f64,
+    pub kinetic_energy_comparisons: u64,
+    pub max_kinetic_energy_error_j: f64,
+    pub potential_energy_comparisons: u64,
+    pub max_potential_energy_error_j: f64,
+}
+
+/// Why two otherwise-valid traces cannot be compared under the same scenario.
+#[derive(Debug, Clone, PartialEq)]
+pub enum TraceComparisonError {
+    InvalidLeftTrace(ObservationError),
+    InvalidRightTrace(ObservationError),
+    ScenarioIdMismatch,
+    ScenarioDigestMismatch,
+    TimestepMismatch { left_seconds: f64, right_seconds: f64 },
+    FrameCountMismatch { left: usize, right: usize },
+    FrameStepMismatch { left: u64, right: u64 },
+    FrameTimeMismatch { step: u64, left_seconds: f64, right_seconds: f64 },
+    BodySetMismatch { step: u64 },
+    NonFiniteDifference { step: u64, semantic_body_id: String, field: &'static str },
+}
+
+/// Stable sum-of-squares accumulator (the scaled LASSQ algorithm).
+#[derive(Clone, Copy, Debug, Default)]
+struct StableSumSquares {
+    scale: f64,
+    sum_squares: f64,
+    count: u64,
+}
+
+impl StableSumSquares {
+    fn add(&mut self, value: f64) {
+        let magnitude = value.abs();
+        self.count += 1;
+        if magnitude == 0.0 {
+            return;
+        }
+        if self.scale < magnitude {
+            let ratio = if self.scale == 0.0 { 0.0 } else { self.scale / magnitude };
+            self.sum_squares = 1.0 + self.sum_squares * ratio * ratio;
+            self.scale = magnitude;
+        } else {
+            let ratio = magnitude / self.scale;
+            self.sum_squares += ratio * ratio;
+        }
+    }
+
+    fn rms(self) -> f64 {
+        if self.count == 0 || self.scale == 0.0 {
+            0.0
+        } else {
+            self.scale * (self.sum_squares / self.count as f64).sqrt()
+        }
+    }
+}
+
+fn checked_difference(
+    left: f64,
+    right: f64,
+    step: u64,
+    semantic_body_id: &str,
+    field: &'static str,
+) -> Result<f64, TraceComparisonError> {
+    let difference = left - right;
+    if difference.is_finite() {
+        Ok(difference.abs())
+    } else {
+        Err(TraceComparisonError::NonFiniteDifference {
+            step,
+            semantic_body_id: semantic_body_id.to_owned(),
+            field,
+        })
+    }
+}
+
+fn stable_vec3_error(
+    left: [f64; 3],
+    right: [f64; 3],
+    step: u64,
+    semantic_body_id: &str,
+    field: &'static str,
+) -> Result<f64, TraceComparisonError> {
+    let dx = checked_difference(left[0], right[0], step, semantic_body_id, field)?;
+    let dy = checked_difference(left[1], right[1], step, semantic_body_id, field)?;
+    let dz = checked_difference(left[2], right[2], step, semantic_body_id, field)?;
+    let error = dx.hypot(dy).hypot(dz);
+    if error.is_finite() {
+        Ok(error)
+    } else {
+        Err(TraceComparisonError::NonFiniteDifference {
+            step,
+            semantic_body_id: semantic_body_id.to_owned(),
+            field,
+        })
+    }
+}
+
+fn quaternion_geodesic_error(
+    left: [f64; 4],
+    right: [f64; 4],
+    step: u64,
+    semantic_body_id: &str,
+) -> Result<f64, TraceComparisonError> {
+    let mut dot = 0.0;
+    for index in 0..4 {
+        dot += left[index] * right[index];
+    }
+    if !dot.is_finite() {
+        return Err(TraceComparisonError::NonFiniteDifference {
+            step,
+            semantic_body_id: semantic_body_id.to_owned(),
+            field: "orientation_wxyz",
+        });
+    }
+    // q and -q represent the same rotation.
+    Ok(2.0 * dot.abs().clamp(0.0, 1.0).acos())
+}
+
+/// Compare two traces only when scenario digest, timestep, sampled clock and
+/// semantic body sets agree. Optional fields are compared only where both
+/// backends provide them; unavailable values are counted separately.
+pub fn compare_observation_traces(
+    left: &ObservationTrace,
+    right: &ObservationTrace,
+) -> Result<TraceDifferenceMetrics, TraceComparisonError> {
+    left.validate()
+        .map_err(TraceComparisonError::InvalidLeftTrace)?;
+    right
+        .validate()
+        .map_err(TraceComparisonError::InvalidRightTrace)?;
+
+    if left.identity.scenario_id != right.identity.scenario_id {
+        return Err(TraceComparisonError::ScenarioIdMismatch);
+    }
+    if left.identity.scenario_digest != right.identity.scenario_digest {
+        return Err(TraceComparisonError::ScenarioDigestMismatch);
+    }
+    let timestep_delta =
+        (left.identity.timestep_seconds - right.identity.timestep_seconds).abs();
+    let timestep_scale = 1.0
+        + left.identity.timestep_seconds.abs()
+        + right.identity.timestep_seconds.abs();
+    if timestep_delta > 1.0e-12 * timestep_scale {
+        return Err(TraceComparisonError::TimestepMismatch {
+            left_seconds: left.identity.timestep_seconds,
+            right_seconds: right.identity.timestep_seconds,
+        });
+    }
+    if left.frames.len() != right.frames.len() {
+        return Err(TraceComparisonError::FrameCountMismatch {
+            left: left.frames.len(),
+            right: right.frames.len(),
+        });
+    }
+
+    let mut position = StableSumSquares::default();
+    let mut orientation = StableSumSquares::default();
+    let mut linear_velocity = StableSumSquares::default();
+    let mut angular_velocity = StableSumSquares::default();
+    let mut metrics = TraceDifferenceMetrics {
+        scenario_id: left.identity.scenario_id.clone(),
+        left_backend: left.identity.backend_id.clone(),
+        left_backend_version: left.identity.backend_version.clone(),
+        right_backend: right.identity.backend_id.clone(),
+        right_backend_version: right.identity.backend_version.clone(),
+        compared_frames: 0,
+        compared_body_observations: 0,
+        max_position_error_m: 0.0,
+        rms_position_error_m: 0.0,
+        max_orientation_error_rad: 0.0,
+        rms_orientation_error_rad: 0.0,
+        max_linear_velocity_error_mps: 0.0,
+        rms_linear_velocity_error_mps: 0.0,
+        max_angular_velocity_error_radps: 0.0,
+        rms_angular_velocity_error_radps: 0.0,
+        sleeping_comparisons: 0,
+        sleeping_mismatches: 0,
+        sleeping_not_comparable: 0,
+        contact_count_comparisons: 0,
+        contact_count_mismatches: 0,
+        contact_count_not_comparable: 0,
+        penetration_comparisons: 0,
+        max_penetration_error_m: 0.0,
+        kinetic_energy_comparisons: 0,
+        max_kinetic_energy_error_j: 0.0,
+        potential_energy_comparisons: 0,
+        max_potential_energy_error_j: 0.0,
+    };
+
+    for (left_frame, right_frame) in left.frames.iter().zip(&right.frames) {
+        if left_frame.step_index != right_frame.step_index {
+            return Err(TraceComparisonError::FrameStepMismatch {
+                left: left_frame.step_index,
+                right: right_frame.step_index,
+            });
+        }
+        let time_delta =
+            (left_frame.simulation_time_seconds - right_frame.simulation_time_seconds).abs();
+        let time_scale = 1.0
+            + left_frame.simulation_time_seconds.abs()
+            + right_frame.simulation_time_seconds.abs();
+        if time_delta > 1.0e-12 * time_scale {
+            return Err(TraceComparisonError::FrameTimeMismatch {
+                step: left_frame.step_index,
+                left_seconds: left_frame.simulation_time_seconds,
+                right_seconds: right_frame.simulation_time_seconds,
+            });
+        }
+
+        let left_bodies: BTreeMap<&str, &BodyObservation> = left_frame
+            .bodies
+            .iter()
+            .map(|body| (body.semantic_body_id.as_str(), body))
+            .collect();
+        let right_bodies: BTreeMap<&str, &BodyObservation> = right_frame
+            .bodies
+            .iter()
+            .map(|body| (body.semantic_body_id.as_str(), body))
+            .collect();
+        if left_bodies.keys().ne(right_bodies.keys()) {
+            return Err(TraceComparisonError::BodySetMismatch {
+                step: left_frame.step_index,
+            });
+        }
+
+        for (semantic_body_id, left_body) in &left_bodies {
+            let right_body = right_bodies[semantic_body_id];
+            let step = left_frame.step_index;
+            let position_error = stable_vec3_error(
+                left_body.position_m,
+                right_body.position_m,
+                step,
+                semantic_body_id,
+                "position_m",
+            )?;
+            let orientation_error = quaternion_geodesic_error(
+                left_body.orientation_wxyz,
+                right_body.orientation_wxyz,
+                step,
+                semantic_body_id,
+            )?;
+            let linear_error = stable_vec3_error(
+                left_body.linear_velocity_mps,
+                right_body.linear_velocity_mps,
+                step,
+                semantic_body_id,
+                "linear_velocity_mps",
+            )?;
+            let angular_error = stable_vec3_error(
+                left_body.angular_velocity_radps,
+                right_body.angular_velocity_radps,
+                step,
+                semantic_body_id,
+                "angular_velocity_radps",
+            )?;
+
+            position.add(position_error);
+            orientation.add(orientation_error);
+            linear_velocity.add(linear_error);
+            angular_velocity.add(angular_error);
+            metrics.max_position_error_m = metrics.max_position_error_m.max(position_error);
+            metrics.max_orientation_error_rad =
+                metrics.max_orientation_error_rad.max(orientation_error);
+            metrics.max_linear_velocity_error_mps =
+                metrics.max_linear_velocity_error_mps.max(linear_error);
+            metrics.max_angular_velocity_error_radps =
+                metrics.max_angular_velocity_error_radps.max(angular_error);
+            metrics.compared_body_observations += 1;
+
+            match (left_body.sleeping, right_body.sleeping) {
+                (Some(left_value), Some(right_value)) => {
+                    metrics.sleeping_comparisons += 1;
+                    metrics.sleeping_mismatches += u64::from(left_value != right_value);
+                }
+                _ => metrics.sleeping_not_comparable += 1,
+            }
+            match (left_body.contact_count, right_body.contact_count) {
+                (Some(left_value), Some(right_value)) => {
+                    metrics.contact_count_comparisons += 1;
+                    metrics.contact_count_mismatches += u64::from(left_value != right_value);
+                }
+                _ => metrics.contact_count_not_comparable += 1,
+            }
+            match (left_body.max_penetration_m, right_body.max_penetration_m) {
+                (Some(left_value), Some(right_value)) => {
+                    let error = checked_difference(
+                        left_value,
+                        right_value,
+                        step,
+                        semantic_body_id,
+                        "max_penetration_m",
+                    )?;
+                    metrics.penetration_comparisons += 1;
+                    metrics.max_penetration_error_m =
+                        metrics.max_penetration_error_m.max(error);
+                }
+                _ => {}
+            }
+        }
+
+        metrics.compared_frames += 1;
+        for (left_value, right_value, counter, maximum) in [
+            (
+                left_frame.energy.kinetic_energy_j,
+                right_frame.energy.kinetic_energy_j,
+                &mut metrics.kinetic_energy_comparisons,
+                &mut metrics.max_kinetic_energy_error_j,
+            ),
+            (
+                left_frame.energy.potential_energy_j,
+                right_frame.energy.potential_energy_j,
+                &mut metrics.potential_energy_comparisons,
+                &mut metrics.max_potential_energy_error_j,
+            ),
+        ] {
+            if let (Some(left_value), Some(right_value)) = (left_value, right_value) {
+                let error = checked_difference(
+                    left_value,
+                    right_value,
+                    left_frame.step_index,
+                    "<frame>",
+                    "energy_j",
+                )?;
+                *counter += 1;
+                *maximum = maximum.max(error);
+            }
+        }
+    }
+
+    metrics.rms_position_error_m = position.rms();
+    metrics.rms_orientation_error_rad = orientation.rms();
+    metrics.rms_linear_velocity_error_mps = linear_velocity.rms();
+    metrics.rms_angular_velocity_error_radps = angular_velocity.rms();
+    Ok(metrics)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
