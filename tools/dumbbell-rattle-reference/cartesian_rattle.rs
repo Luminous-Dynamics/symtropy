@@ -561,6 +561,27 @@ mod tests {
     }
 
     #[test]
+    fn unequal_external_accelerations_match_signed_work_impulse_and_torque() {
+        let model = model();
+        let initial = initial_state();
+        let acceleration1 = [0.18, -0.07];
+        let acceleration2 = [-0.03, 0.11];
+        let dt = 0.01;
+        let receipt = model
+            .step_with_accelerations(initial, acceleration1, acceleration2, dt)
+            .unwrap();
+        let force1 = scale(acceleration1, 1.3);
+        let force2 = scale(acceleration2, 2.1);
+        let expected_work = dot(force1, sub(receipt.after.q1, initial.q1))
+            + dot(force2, sub(receipt.after.q2, initial.q2));
+        assert!((receipt.external_work - expected_work).abs() < 2.0e-14);
+        assert!(receipt.relative_linear_momentum_residual < 2.0e-12);
+        assert!(receipt.relative_angular_momentum_residual < 2.0e-12);
+        assert!(receipt.relative_link_constraint_residual < 1.0e-12);
+        assert!(receipt.relative_endpoint_velocity_constraint_residual < 1.0e-12);
+    }
+
+    #[test]
     fn rotated_external_accelerations_commute_with_rattle_step() {
         let model = model();
         let initial = initial_state();
