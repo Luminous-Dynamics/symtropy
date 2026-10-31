@@ -111,6 +111,31 @@ pub struct StepReceipt {
     pub relative_angular_momentum_residual: f64,
 }
 
+impl StepReceipt {
+    pub fn closes_energy_balance_within(&self, tolerance: f64) -> bool {
+        tolerance.is_finite()
+            && tolerance >= 0.0
+            && self.relative_energy_balance_residual.is_finite()
+            && self.relative_energy_balance_residual <= tolerance
+    }
+
+    pub fn preserves_all_link_constraints_within(&self, tolerance: f64) -> bool {
+        tolerance.is_finite()
+            && tolerance >= 0.0
+            && self.relative_link_constraint_residuals
+                .iter()
+                .all(|residual| residual.is_finite() && *residual <= tolerance)
+    }
+
+    pub fn preserves_all_midpoint_constraints_within(&self, tolerance: f64) -> bool {
+        tolerance.is_finite()
+            && tolerance >= 0.0
+            && self.relative_midpoint_constraint_residuals
+                .iter()
+                .all(|residual| residual.is_finite() && *residual <= tolerance)
+    }
+}
+
 pub fn add(a: Vec3, b: Vec3) -> Vec3 {
     [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
 }
