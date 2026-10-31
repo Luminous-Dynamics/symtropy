@@ -603,6 +603,9 @@ impl DissonanceRecord {
         {
             return Err(DissonanceError::InvalidIdentifier);
         }
+        if report.finding != HazardFinding::Reported {
+            return Err(DissonanceError::InvalidHazardTransition);
+        }
         if self.hazards.contains_key(&report.id) {
             return Err(DissonanceError::DuplicateHazardReport);
         }
@@ -1401,6 +1404,24 @@ mod tests {
         };
         let context = event_context(&record, 11, "complete-experiment");
         assert_eq!(record.set_disposition_with_context(complete, context), Ok(()));
+    }
+
+
+    #[test]
+    fn new_hazard_reports_must_enter_through_reported_state() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        let context = event_context(&record, 10, "premature-refuted-report");
+        assert_eq!(
+            record.report_hazard_with_context(HazardReport {
+                id: "hazard-premature".to_owned(),
+                hazard: CorrosiveHazard::Retaliation,
+                finding: HazardFinding::Refuted,
+                evidence_ref: Some("review:already-decided".to_owned()),
+            }, context),
+            Err(DissonanceError::InvalidHazardTransition)
+        );
+        assert_eq!(record.event_history().count(), 0);
+        assert_eq!(record.hazard_reports().count(), 0);
     }
 
     #[test]
