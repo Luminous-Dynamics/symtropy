@@ -802,6 +802,56 @@ mod tests {
         }
     }
 
+    fn make_two_command_world(id: &str, second_measurement: usize) -> DecisionModelWorld {
+        let mut rows = Vec::new();
+        for hypothesis in 0..2 {
+            let state = LatentState {
+                hypothesis,
+                physical_state: 0,
+                sensor_state: 0,
+                apparatus_state: 0,
+            };
+            for command in 0..2 {
+                rows.push(KernelRow {
+                    state,
+                    command,
+                    outcomes: vec![TransitionOutcome {
+                        probability: Rational::one(),
+                        next_state: state,
+                        realized_action: 0,
+                        readback: Some(0),
+                        measurement: Some(if command == 0 { 0 } else { second_measurement }),
+                        hazard: false,
+                    }],
+                });
+            }
+        }
+        DecisionModelWorld {
+            id: id.into(),
+            kernel: ActionRealizationKernel {
+                hypothesis_ids: vec!["h0".into(), "h1".into()],
+                physical_state_count: 1,
+                sensor_state_count: 1,
+                apparatus_state_count: 1,
+                command_ids: vec!["context-probe".into(), "follow-up-probe".into()],
+                realized_action_ids: vec!["performed".into()],
+                readback_ids: vec!["ack".into()],
+                measurement_ids: vec!["m0".into(), "m1".into()],
+                initial_belief: vec![
+                    BeliefMass {
+                        state: LatentState { hypothesis: 0, physical_state: 0, sensor_state: 0, apparatus_state: 0 },
+                        mass: half(),
+                    },
+                    BeliefMass {
+                        state: LatentState { hypothesis: 1, physical_state: 0, sensor_state: 0, apparatus_state: 0 },
+                        mass: half(),
+                    },
+                ],
+                rows,
+            },
+        }
+    }
+
     fn make_two_apparatus_state_world(id: &str) -> DecisionModelWorld {
         let mut rows = Vec::new();
         for hypothesis in 0..2 {
@@ -1225,6 +1275,61 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn uncovered_observation_reports_preceding_multi_step_public_history() {
+        let reference = make_two_command_world("reference", 0);
+        let candidate = PolicyFalsificationCandidate {
+            world: make_two_command_world("shifted", 1),
+            provenance: provenance(CandidateOrigin::SearchTraining, "second-probe-shift"),
+        };
+        let root_observation = PublicObservation {
+            hazard: false,
+            readback: ObservationField::Value(0),
+            measurement: ObservationField::Value(0),
+        };
+        let policy = DecisionPlan::Experiment {
+            command: 0,
+            branches: vec![DecisionBranch {
+                observation: root_observation,
+                plan: Box::new(DecisionPlan::Experiment {
+                    command: 1,
+                    branches: vec![DecisionBranch {
+                        observation: root_observation,
+                        plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(0) }),
+                    }],
+                }),
+            }],
+        };
+        let report = falsify_shared_policy_against_candidates(
+            &reference,
+            &[candidate],
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &[Rational::new(1, 10).unwrap(), Rational::new(1, 10).unwrap()],
+            Rational::one(),
+            &policy,
+            2,
+        )
+        .unwrap();
+        let CandidatePolicyOutcome::UncoveredObservation {
+            command,
+            observation,
+            preceding_observations,
+            ..
+        } = &report.evaluations[0].outcome else {
+            panic!("second-step observation should falsify this policy");
+        };
+        assert_eq!(*command, 1);
+        assert_eq!(
+            *observation,
+            PublicObservation {
+                measurement: ObservationField::Value(1),
+                ..root_observation
+            }
+        );
+        assert_eq!(preceding_observations, &vec![root_observation]);
     }
 
     #[test]
