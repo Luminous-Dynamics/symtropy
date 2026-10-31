@@ -64,6 +64,74 @@ fn fixture(
     (bodies, rows, matrix, q)
 }
 
+fn contact_wrench_fixture(row_count: usize) -> (Vec<RigidBody<3>>, Vec<ContactWrenchRow<3>>) {
+    let mut body_a =
+        RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+    body_a.set_rotational_inertia_operator(
+        BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(1.5, 1.0, 0.6))
+            .expect("positive ellipsoid mass properties"),
+    );
+    let mut body_b =
+        RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 0.0, 0.0]), 0.5, 1.5);
+    body_b.transform.rotation =
+        Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.31);
+    body_b.set_rotational_inertia_operator(
+        BivectorInertia::<3>::uniform_solid_ellipsoid(1.5, SVector::new(0.8, 1.2, 1.7))
+            .expect("positive ellipsoid mass properties"),
+    );
+
+    let bodies = vec![body_a, body_b];
+    let mut rows = Vec::with_capacity(row_count);
+    for index in 0..row_count {
+        let angle = (index as f64 + 0.5) * std::f64::consts::TAU / row_count as f64;
+        let normal = SVector::new(angle.cos(), angle.sin(), 0.2).normalize();
+        let offset_a = SVector::new(
+            0.25 * angle.sin(),
+            -0.2 * angle.cos(),
+            0.15 * (2.0 * angle).sin(),
+        );
+        let offset_b = SVector::new(
+            -0.2 * angle.sin(),
+            0.25 * angle.cos(),
+            0.15 * (2.0 * angle).cos(),
+        );
+        rows.push(ContactWrenchRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a,
+            offset_b,
+            frame: ContactFrame::<3>::new(normal, 1e-12)
+                .expect("finite nonzero benchmark contact normal"),
+        });
+    }
+
+    (bodies, rows)
+}
+
+fn bench_contact_wrench_assembly(c: &mut Criterion) {
+    let mut group = c.benchmark_group("contact_wrench_delassus_assembly_asymmetric_3d");
+    for row_count in [1_usize, 2, 4] {
+        let (bodies, rows) = contact_wrench_fixture(row_count);
+        group.bench_with_input(
+            BenchmarkId::new("contact_patches", row_count),
+            &row_count,
+            |bench, _| {
+                bench.iter(|| {
+                    black_box(
+                        assemble_contact_wrench_delassus(
+                            black_box(&bodies),
+                            black_box(&rows),
+                            1e-12,
+                        )
+                        .expect("valid contact-wrench fixture"),
+                    )
+                });
+            },
+        );
+    }
+    group.finish();
+}
+
 fn bench_delassus_assembly(c: &mut Criterion) {
     let mut group = c.benchmark_group("delassus_assembly_asymmetric_3d");
     for row_count in [1_usize, 2, 4, 8] {
