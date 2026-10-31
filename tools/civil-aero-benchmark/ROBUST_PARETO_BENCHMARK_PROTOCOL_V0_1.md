@@ -257,3 +257,8 @@ For manufacturing-digital-twin credibility, track current standards activity and
 ### Current baseline pin update (2026-10-31)
 
 The latest public SU2 release is v8.6.0, immutable tag commit 7048fd35f56d4bf52e586429d6746a36a10255f8. Historical SU2 8.0.1 participant reproduction remains a distinct benchmark lane. Do not claim that 8.6.0 reproduced a 8.0.1 result, and do not infer CFD accuracy improvements from release notes alone.
+
+
+### Immutable reference pins
+
+Use `data/solver_reference_manifest.v0.1.json` for the exact SU2 8.0.1 historical lane and SU2 8.6.0 current-release lane. A release tag is not an executable digest or a run receipt. Both source pins are marked `not_built_not_run` and `not_validated`; no baseline performance is inferred from the release notes.

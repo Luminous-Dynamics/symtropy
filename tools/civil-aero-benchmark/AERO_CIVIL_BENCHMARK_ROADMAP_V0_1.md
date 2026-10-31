@@ -145,3 +145,8 @@ The current CFD admission receipt is a summary-level contract: solver exit code,
 ### Current solver baseline pin
 
 As of 2026-10-31, SU2 v8.6.0 is the latest public release. Immutable tag commit: 7048fd35f56d4bf52e586429d6746a36a10255f8. Record the local executable digest, compiler/build flags, dependencies, hardware and exact configuration in every run receipt. Keep the historical SU2 8.0.1 participant reproduction lane separate from the latest-release performance lane.
+
+
+## Machine-readable solver source references
+
+The current and historical SU2 baselines are recorded in `data/solver_reference_manifest.v0.1.json` with exact tag commit SHAs. SU2 8.0.1 is reserved for reproducing the historical DPW8 participant setup; 8.6.0 is the latest-release comparison. Both lanes must use equivalent, independently admitted inputs before comparing numerical results. The manifest pins source only; it does not certify a build, run, solver receipt or validation.

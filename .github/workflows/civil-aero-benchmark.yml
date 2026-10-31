@@ -321,6 +321,11 @@ jobs:
           test "$(wc -l < /tmp/interval-calibration-a.csv)" -eq 13
           grep -q "blind_confirmation_synthetic_only models=2 domains=2 levels=3 prediction_rows=720 summaries=12" /tmp/interval-calibration-a.txt
           python3 scripts/verify-interval-calibration-independent.py /tmp/interval-calibration-a.csv
+      - name: Verify immutable SU2 historical and current solver-reference pins
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          python3 scripts/verify-solver-reference-manifest.py data/solver_reference_manifest.v0.1.json
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |

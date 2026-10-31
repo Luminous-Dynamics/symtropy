@@ -286,3 +286,8 @@ The unsteady_spectrum module provides Welch one-sided PSD, stationarity window d
 ## Prediction interval calibration and OOD stress
 
 The interval_calibration module audits blind-only prediction intervals by geometry family, flow regime and in/out-of-domain status. It reports empirical coverage with Wilson 95% intervals, coverage gap, mean width, proper interval score, point MAE/RMSE/bias and separate lower/upper misses. Calibration/training observations are rejected, repeated sample truth must stay fixed across confidence levels, and intervals must be nested. The synthetic demo is an adversarial coverage/width known-answer only; see PREDICTION_INTERVAL_CALIBRATION_PROTOCOL_V0_1.md.
+
+
+## Immutable SU2 comparison references
+
+`data/solver_reference_manifest.v0.1.json` pins SU2 8.0.1 as the historical participant-reproduction lane and SU2 8.6.0 as the current-release comparison lane. The exact source tag commits are checked by an independent stdlib Python validator in CI. These are source references only: neither solver has been built or run by this manifest, and neither pin is a validation result. Every actual run still needs an executable/build digest, compiler and dependency environment, hardware, geometry/mesh/configuration and output artifact hashes.
