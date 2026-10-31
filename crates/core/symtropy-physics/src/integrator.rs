@@ -946,7 +946,7 @@ mod tests {
             .unwrap();
         let mut body = RigidBody::<3>::dynamic_sphere(
             BodyHandle(22),
-            Point::new(SVector::new(0.1, 0.2, -0.3) * length_scale),
+            Point(SVector::new(0.1, 0.2, -0.3) * length_scale),
             0.35 * length_scale,
             mass,
         );
