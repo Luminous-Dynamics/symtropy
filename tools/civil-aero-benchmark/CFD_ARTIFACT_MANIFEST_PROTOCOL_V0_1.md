@@ -92,3 +92,15 @@ These synthetic tests prove implementation behaviour only. Before any real DPW8 
 - NASA CFD verification assessment: https://www.grc.nasa.gov/www/wind/valid/tutorial/verassess.html
 - NASA grid convergence and spatial convergence: https://www.grc.nasa.gov/www/wind/valid/tutorial/spatconv.html
 - NIST IR 8298, Industrial CFD VVUQ: https://www.nist.gov/publications/summary-industrial-verification-validation-and-uncertainty-quantification-procedures
+
+
+## Composite numerical-admission receipt
+
+The library helper \`create_cfd_evidence_chain_receipt\` reruns byte-level artifact verification for every grid, recomputes numerical admission from the supplied CfdEvidenceStudy, checks run identity and principal hashes across both results, and returns:
+- an artifact-bundle SHA-256 over the ordered canonical per-run manifest digests;
+- a numerical-admission SHA-256 over the declared criteria, per-grid numerical/resource audit metrics and every GCI triplet;
+- a composite receipt SHA-256 over both component digests and the case/quantity identity.
+
+The composite receipt digest can be supplied as the policy benchmark's admission_receipt_sha256. The policy scorecard still does not authenticate who created it, and the receipt is not signed. It only binds the actual bytes verified at call time to the numerical admission recomputed from the same study structure. A trusted runner identity, signed provenance/attestation and experimental validation remain separate requirements.
+
+A negative-control test changes one admitted numerical grid value while retaining the artifact bundle; the numerical-admission and composite receipt digests must both change. Another control rejects mismatched manifest/run IDs. The receipt's evidence label always states that it is unsigned, not source-authenticated and not experimentally validated.

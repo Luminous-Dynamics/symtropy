@@ -8,7 +8,9 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
-use crate::cfd_admission::CfdEvidenceStudy;
+use crate::cfd_admission::{
+    CfdEvidenceAdmissionReport, CfdEvidenceStudy, evaluate_cfd_evidence_admission,
+};
 use crate::integrity::verify_source_file;
 
 pub const ARTIFACT_MANIFEST_SCHEMA: &str = "civil-cfd-run-artifacts/0.1.0";
@@ -114,6 +116,17 @@ pub struct CfdStudyArtifactAudit {
     pub run_audits: Vec<CfdRunArtifactAudit>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CfdEvidenceChainReceipt {
+    pub case_id: String,
+    pub quantity: String,
+    pub run_count: usize,
+    pub artifact_bundle_sha256: String,
+    pub numerical_admission_sha256: String,
+    pub receipt_sha256: String,
+    pub evidence_level: &'static str,
+}
+
 pub fn verify_artifact_manifest(
     artifact_root: &Path,
     manifest: &CfdArtifactManifest,
@@ -203,6 +216,230 @@ pub fn verify_artifact_manifest(
         canonical_manifest_sha256,
         artifacts: verified,
     })
+}
+
+/// Re-verify every artifact byte, recompute numerical admission from the study inputs,
+/// and bind both outputs into one deterministic receipt digest. This is an integrity binding,
+/// not a signature, trusted-runner attestation, source-authorship proof or experimental validation.
+pub fn create_cfd_evidence_chain_receipt(
+    study: &CfdEvidenceStudy,
+    artifact_root: &Path,
+    manifests: &[CfdArtifactManifest],
+) -> Result<CfdEvidenceChainReceipt, String> {
+    let artifact_audit = verify_cfd_study_artifacts(study, artifact_root, manifests)?;
+    let admission = evaluate_cfd_evidence_admission(study)?;
+    if artifact_audit.study_id != admission.case_id || artifact_audit.study_id != study.case_id {
+        return Err("artifact and numerical-admission case identities differ".to_owned());
+    }
+    if artifact_audit.run_audits.len() != admission.grid_run_audits.len()
+        || artifact_audit.run_audits.len() != study.runs.len()
+    {
+        return Err("artifact and numerical-admission run counts differ".to_owned());
+    }
+    if artifact_audit.status
+        != "artifact_file_bytes_sha256_verified_canonical_manifest_unsigned_not_source_authenticated_not_experimentally_validated"
+        || admission.status
+            != "numerically_admitted_under_declared_criteria_caller_hashes_unverified_not_experimentally_validated"
+    {
+        return Err("unexpected evidence status in composite receipt inputs".to_owned());
+    }
+
+    let mut artifact_bundle = Vec::new();
+    append_string(&mut artifact_bundle, "civil-cfd-artifact-bundle/0.1.0");
+    append_string(&mut artifact_bundle, &artifact_audit.study_id);
+    for ((artifact, numeric), run) in artifact_audit
+        .run_audits
+        .iter()
+        .zip(&admission.grid_run_audits)
+        .zip(&study.runs)
+    {
+        if artifact.run_id != numeric.run_id || artifact.run_id != run.run_id {
+            return Err(format!(
+                "run identity mismatch while composing receipt for {}",
+                run.run_id
+            ));
+        }
+        if artifact.artifact_count != CfdArtifactRole::REQUIRED.len() {
+            return Err(format!(
+                "run {} has incomplete verified artifact roles",
+                run.run_id
+            ));
+        }
+        if !is_sha256_hex(&artifact.canonical_manifest_sha256)
+            || !is_sha256_hex(&artifact.solver_build_sha256)
+            || !is_sha256_hex(&artifact.physics_config_sha256)
+            || !is_sha256_hex(&artifact.geometry_sha256)
+            || !is_sha256_hex(&artifact.mesh_sha256)
+        {
+            return Err(format!(
+                "run {} has malformed artifact digests in composite receipt",
+                run.run_id
+            ));
+        }
+        if artifact.solver_build_sha256 != admission.solver_build_sha256
+            || artifact.physics_config_sha256 != admission.physics_config_sha256
+            || artifact.geometry_sha256 != admission.geometry_sha256
+            || artifact.mesh_sha256 != numeric.mesh_sha256
+            || artifact.mesh_sha256 != run.mesh_sha256.to_ascii_lowercase()
+        {
+            return Err(format!(
+                "run {} artifact hashes disagree with the admitted numerical record",
+                run.run_id
+            ));
+        }
+        append_string(&mut artifact_bundle, &artifact.run_id);
+        append_string(&mut artifact_bundle, &artifact.canonical_manifest_sha256);
+        append_u64(&mut artifact_bundle, artifact.artifact_count as u64);
+        append_string(&mut artifact_bundle, &artifact.solver_build_sha256);
+        append_string(&mut artifact_bundle, &artifact.physics_config_sha256);
+        append_string(&mut artifact_bundle, &artifact.geometry_sha256);
+        append_string(&mut artifact_bundle, &artifact.mesh_sha256);
+    }
+    let artifact_bundle_sha256 = crate::integrity::sha256_hex(&artifact_bundle)?;
+
+    let mut numerical_bytes = Vec::new();
+    append_admission_report(&mut numerical_bytes, &admission);
+    let numerical_admission_sha256 = crate::integrity::sha256_hex(&numerical_bytes)?;
+
+    let mut receipt_bytes = Vec::new();
+    append_string(&mut receipt_bytes, "civil-cfd-evidence-chain-receipt/0.1.0");
+    append_string(&mut receipt_bytes, &admission.case_id);
+    append_string(&mut receipt_bytes, &admission.quantity);
+    append_string(&mut receipt_bytes, &artifact_bundle_sha256);
+    append_string(&mut receipt_bytes, &numerical_admission_sha256);
+    let receipt_sha256 = crate::integrity::sha256_hex(&receipt_bytes)?;
+
+    Ok(CfdEvidenceChainReceipt {
+        case_id: admission.case_id,
+        quantity: admission.quantity,
+        run_count: admission.grid_run_audits.len(),
+        artifact_bundle_sha256,
+        numerical_admission_sha256,
+        receipt_sha256,
+        evidence_level: "byte_verified_artifacts_bound_to_recomputed_numerical_admission_unsigned_not_source_authenticated_not_experimentally_validated",
+    })
+}
+
+fn append_string(target: &mut Vec<u8>, value: &str) {
+    append_u64(target, value.len() as u64);
+    target.extend_from_slice(value.as_bytes());
+}
+
+fn append_u64(target: &mut Vec<u8>, value: u64) {
+    target.extend_from_slice(&value.to_le_bytes());
+}
+
+fn append_i32(target: &mut Vec<u8>, value: i32) {
+    target.extend_from_slice(&value.to_le_bytes());
+}
+
+fn append_f64(target: &mut Vec<u8>, value: f64) {
+    target.extend_from_slice(&value.to_bits().to_le_bytes());
+}
+
+fn append_optional_f64(target: &mut Vec<u8>, value: Option<f64>) {
+    match value {
+        Some(number) => {
+            target.push(1);
+            append_f64(target, number);
+        }
+        None => target.push(0),
+    }
+}
+
+fn append_admission_report(target: &mut Vec<u8>, report: &CfdEvidenceAdmissionReport) {
+    append_string(target, "civil-cfd-numerical-admission/0.1.0");
+    for value in [
+        report.case_id.as_str(),
+        report.quantity.as_str(),
+        report.source_reference.as_str(),
+        report.spacing_definition.as_str(),
+        report.solver_build_sha256.as_str(),
+        report.physics_config_sha256.as_str(),
+        report.geometry_sha256.as_str(),
+        report.grid_family_kind.as_str(),
+        report.status,
+        report.gci_report.evidence_level,
+        report.gci_report.quantity.as_str(),
+        report.gci_report.source_reference.as_str(),
+        report.gci_report.spacing_definition.as_str(),
+        report.gci_report.grid_family_kind.as_str(),
+    ] {
+        append_string(target, value);
+    }
+    append_f64(target, report.safety_factor);
+    append_f64(target, report.gci_report.safety_factor);
+    for value in [
+        report.criteria.residual_final_max,
+        report.criteria.residual_reduction_ratio_max,
+        report.criteria.quantity_history_drift_absolute_max,
+        report.criteria.mass_imbalance_fraction_max,
+        report.criteria.energy_imbalance_fraction_max,
+        report.criteria.observed_order_min,
+        report.criteria.observed_order_max,
+        report.criteria.asymptotic_ratio_min,
+        report.criteria.asymptotic_ratio_max,
+    ] {
+        append_f64(target, value);
+    }
+    append_u64(target, report.grid_run_audits.len() as u64);
+    for run in &report.grid_run_audits {
+        append_string(target, &run.run_id);
+        append_string(target, &run.grid_id);
+        append_u64(target, u64::from(run.grid_level));
+        append_f64(target, run.characteristic_spacing);
+        append_string(target, &run.mesh_sha256);
+        append_u64(target, run.mesh_node_count);
+        append_i32(target, run.solver_exit_code);
+        append_u64(target, run.iterations_completed);
+        append_f64(target, run.quantity_value);
+        append_f64(target, run.residual_final);
+        append_f64(target, run.residual_reduction_ratio);
+        append_f64(target, run.quantity_history_drift_absolute);
+        append_f64(target, run.mass_imbalance_fraction);
+        append_f64(target, run.energy_imbalance_fraction);
+        append_f64(target, run.cpu_core_hours);
+        append_optional_f64(target, run.gpu_hours);
+        append_f64(target, run.wall_clock_seconds);
+        append_u64(target, run.peak_memory_bytes);
+        append_optional_f64(target, run.energy_consumed_joules);
+    }
+    append_f64(target, report.total_cpu_core_hours);
+    append_optional_f64(target, report.total_gpu_hours_measured);
+    append_u64(target, report.gpu_measured_run_count as u64);
+    append_f64(target, report.total_wall_clock_seconds);
+    append_u64(target, report.peak_memory_bytes);
+    append_optional_f64(target, report.total_energy_joules_measured);
+    append_u64(target, report.energy_measured_run_count as u64);
+    append_u64(target, report.gci_report.triplets.len() as u64);
+    for triplet in &report.gci_report.triplets {
+        append_string(target, &triplet.coarse_grid_id);
+        append_string(target, &triplet.medium_grid_id);
+        append_string(target, &triplet.fine_grid_id);
+        for value in [
+            triplet.h_coarse,
+            triplet.h_medium,
+            triplet.h_fine,
+            triplet.phi_coarse,
+            triplet.phi_medium,
+            triplet.phi_fine,
+            triplet.refinement_ratio_coarse_medium,
+            triplet.refinement_ratio_medium_fine,
+            triplet.observed_order,
+            triplet.extrapolated_value,
+            triplet.medium_gci_absolute,
+        ] {
+            append_f64(target, value);
+        }
+        append_optional_f64(target, triplet.medium_gci_relative_percent);
+        append_f64(target, triplet.fine_gci_absolute);
+        append_optional_f64(target, triplet.fine_gci_relative_percent);
+        append_f64(target, triplet.asymptotic_ratio);
+    }
+}
+
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 /// Verify one complete artifact manifest for every grid run in a CFD study, then bind the
@@ -455,6 +692,65 @@ mod tests {
             });
         }
         manifests
+    }
+
+    #[test]
+    fn creates_deterministic_receipt_binding_artifacts_to_numerical_admission() {
+        let root = fixture_root("composite-receipt");
+        let mut study = fixture_study();
+        for run in &mut study.runs {
+            run.quantity_value = 2.0 + 0.8 * run.characteristic_spacing.powi(2);
+        }
+        let manifests = build_manifests(&root, &mut study);
+        let first = create_cfd_evidence_chain_receipt(&study, &root, &manifests)
+            .expect("bytes verify and numerical admission recomputes");
+        let second = create_cfd_evidence_chain_receipt(&study, &root, &manifests)
+            .expect("same evidence produces same receipt");
+        assert_eq!(first, second);
+        assert_eq!(first.run_count, 3);
+        assert!(is_sha256_hex(&first.artifact_bundle_sha256));
+        assert!(is_sha256_hex(&first.numerical_admission_sha256));
+        assert!(is_sha256_hex(&first.receipt_sha256));
+        assert!(first.evidence_level.contains("unsigned_not_source_authenticated"));
+        assert!(first.evidence_level.contains("not_experimentally_validated"));
+        fs::remove_dir_all(&root).expect("remove composite receipt fixture");
+    }
+
+    #[test]
+    fn composite_receipt_changes_when_admitted_numerical_evidence_changes() {
+        let root = fixture_root("composite-numeric-mutation");
+        let mut study = fixture_study();
+        for run in &mut study.runs {
+            run.quantity_value = 2.0 + 0.8 * run.characteristic_spacing.powi(2);
+        }
+        let manifests = build_manifests(&root, &mut study);
+        let original = create_cfd_evidence_chain_receipt(&study, &root, &manifests)
+            .expect("original evidence admitted");
+        let mut changed_study = study.clone();
+        changed_study.runs[0].quantity_value += 0.01;
+        let changed = create_cfd_evidence_chain_receipt(&changed_study, &root, &manifests)
+            .expect("small monotone numeric change remains admitted");
+        assert_ne!(original.numerical_admission_sha256, changed.numerical_admission_sha256);
+        assert_ne!(original.receipt_sha256, changed.receipt_sha256);
+        fs::remove_dir_all(&root).expect("remove numeric mutation fixture");
+    }
+
+    #[test]
+    fn composite_receipt_rejects_artifact_or_numerical_identity_mismatch() {
+        let root = fixture_root("composite-mismatch");
+        let mut study = fixture_study();
+        for run in &mut study.runs {
+            run.quantity_value = 2.0 + 0.8 * run.characteristic_spacing.powi(2);
+        }
+        let manifests = build_manifests(&root, &mut study);
+        let mut changed_manifests = manifests.clone();
+        changed_manifests[0].run_id = "wrong-run-id".to_owned();
+        assert!(
+            create_cfd_evidence_chain_receipt(&study, &root, &changed_manifests)
+                .expect_err("manifest/run identity mismatch rejected")
+                .contains("missing artifact manifest")
+        );
+        fs::remove_dir_all(&root).expect("remove composite mismatch fixture");
     }
 
     #[test]

@@ -294,3 +294,6 @@ The interval_calibration module audits blind-only prediction intervals by geomet
 
 
 The CFD admission gate now also rejects a nominally finer grid whose node count does not strictly exceed the previous coarser grid. This is only a necessary mesh-family consistency guard; the supplied characteristic spacing and mesh lineage still require independent justification.
+
+
+The byte-bound artifact layer now has a deterministic composite receipt helper. It re-verifies all eight per-grid artifact roles, recomputes numerical admission, and hashes the artifact bundle together with criteria, per-grid run metrics and GCI triplets. Use the resulting receipt_sha256 as the admission-receipt digest in a matched-budget policy observation. It is still unsigned and does not prove runner identity or experimental validity.
