@@ -61,7 +61,7 @@ The deterministic CSV contains:
 - maximum relative full angular momentum-vector residual;
 - mean and maximum multiplier iterations.
 
-The receipt auditor rejects unknown methods, wrong timestep/step count, duplicate or missing method/timestep rows, malformed/non-finite/negative numeric fields, excessive residuals and impossible iteration accounting. The test suite injects NaN, duplicate rows and a missing row. This is a structural/report invariant audit, not an independent reimplementation of either integrator.
+The receipt auditor rejects unknown methods, wrong timestep/step count, duplicate or missing method/timestep rows, malformed/non-finite/negative numeric fields, excessive energy, position, midpoint, endpoint, linear-momentum **and angular-momentum-vector** residuals, and impossible iteration accounting. The test suite injects NaN, duplicate rows and a missing row, and asserts byte-identical in-process replay. This is a structural/report invariant audit, not an independent reimplementation of either integrator.
 
 ## Independent equation-level numerical cross-checks
 
