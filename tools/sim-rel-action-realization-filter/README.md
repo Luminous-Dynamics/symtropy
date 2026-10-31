@@ -168,7 +168,7 @@ bounded attack surface against one fixed shared policy. It supports explicit
 The grid enumerates declared split probabilities, mass-shift magnitudes,
 measurement inversions, readback dropout, hazard injection, apparatus
 degradation and realized-action remapping across a sorted source-world list.
-It returns a deterministic ordered set of validated candidate specs plus
+It returns a deterministic ordered set of applicable candidate specs plus
 attempted/skipped counts. Input-order permutation does not change candidate
 IDs or ordering. A hard attempt cap fails closed rather than silently
 truncating a large Cartesian product. Each spec names an immutable source
