@@ -52,6 +52,7 @@ pub use delassus::{
 };
 pub use diagnostics::{
     DiscreteWorkLedger, InvariantDrift, InvariantSnapshot, InvariantStepReceipt,
+    UnmodeledEnergyChannel,
 };
 pub use epa::EpaResult;
 pub use friction_cone::{FrictionConeError, PlanarFrictionConeSolution, solve_planar_friction_cone};
