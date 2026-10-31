@@ -301,6 +301,15 @@ mod schur_reduction_tests {
         )
         .map_err(|_| "reduced single-contact solver refused the Schur system")?;
 
+        // Never forward a partially enumerated set from an inconclusive
+        // reduced solve as if it were a candidate set for this regime.
+        if reduced.status == CoupledCoulombStatus::Inconclusive {
+            return Ok(SchurOutcome {
+                reduced_status: reduced.status,
+                candidates: Vec::new(),
+            });
+        }
+
         let mut candidates = Vec::new();
         for candidate in &reduced.candidates {
             let p_1 = candidate.impulse;
