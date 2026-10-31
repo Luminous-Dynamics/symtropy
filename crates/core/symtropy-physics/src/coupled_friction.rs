@@ -145,7 +145,7 @@ pub fn solve_coupled_signorini_coulomb(
         return Err(CoupledCoulombError::NotSymmetric);
     }
     let w = (effective_mass + effective_mass.transpose()) * 0.5;
-    let eigenvalues = SymmetricEigen::new(w).eigenvalues;
+    let eigenvalues = nalgebra::linalg::SymmetricEigen::new(w).eigenvalues;
     let minimum_eigenvalue = eigenvalues.iter().fold(f64::INFINITY, |a, b| a.min(*b));
     if minimum_eigenvalue <= relative_tolerance * matrix_scale {
         return Err(CoupledCoulombError::NotPositiveDefinite);
