@@ -750,6 +750,19 @@ mod tests {
     fn duplicate_keys_and_unknown_fields_are_invalid() {
         let duplicate = b"case_id = 'first'\ncase_id = 'second'\n";
         assert_eq!(compile_bytes(duplicate).disposition, Disposition::Invalid);
+
+        let original = std::str::from_utf8(FIXTURE).unwrap();
+        let duplicate_nested = replace_once(
+            original,
+            r#"name = "TMR NACA 0012 sharp trailing edge""#,
+            "name = \"TMR NACA 0012 sharp trailing edge\"\nname = \"duplicate geometry name\"",
+        );
+        assert_eq!(
+            compile_bytes(duplicate_nested.as_bytes()).disposition,
+            Disposition::Invalid,
+            "duplicate member in a nested TOML table must be rejected"
+        );
+
         let unknown = String::from_utf8(FIXTURE.to_vec()).unwrap() + "\nunknown_authority_field = true\n";
         let report = compile_bytes(unknown.as_bytes());
         assert_eq!(report.disposition, Disposition::Invalid);
@@ -998,6 +1011,21 @@ mod tests {
         let expected = include_bytes!("../interop/golden/basic-output.jcs");
         let expected = std::str::from_utf8(expected).expect("golden output is UTF-8");
         assert_eq!(canonical, expected.trim_end().as_bytes());
+    }
+
+    #[test]
+    fn rust_jcs_matches_adversarial_unicode_and_binary64_boundaries() {
+        let value: serde_json::Value =
+            serde_json::from_slice(include_bytes!("../interop/golden/adversarial-input.json"))
+                .expect("adversarial golden input is valid JSON");
+        let canonical = serde_jcs::to_vec(&value).expect("JCS serialization succeeds");
+        let expected = include_bytes!("../interop/golden/adversarial-output.jcs");
+        assert_eq!(canonical, expected);
+        assert_ne!(
+            value["strings"][0],
+            value["strings"][1],
+            "JCS preserves decomposed and composed Unicode as distinct strings"
+        );
     }
 
     #[test]

@@ -86,6 +86,45 @@ canonical JSON remains inspectable in review artifacts. Switching encoding
 requires a new explicit profile ID and golden vectors, not a rewrite of
 existing digests.
 
+The shared Rust/Go golden corpus now includes a second adversarial vector that
+combines UTF-16 key-order edge cases (a supplementary-plane key against a BMP
+private-use key), composed/decomposed Unicode strings, negative zero, the
+smallest positive binary64 subnormal, maximum finite binary64, and decimal vs
+exponent formatting boundaries. Both the Rust `serde_jcs` test and independent
+Go canonicalizer test require exact byte equality with the same committed
+canonical output.
+
+CI also benchmarks the Go consumer path against the actual compiler-exported
+typed Scenario IR envelope. It reports three independent distributions with
+allocation counts: strict duplicate-aware preflight only, independent Go JCS
+canonicalization only, and their combined path. The Go benchmark uses the
+pinned canonicalizer source commit and Go 1.27.3; results are uploaded alongside
+the Rust compiler's end-to-end and JCS-only distributions. These are separate
+language/runtime measurements, not a claim that the Go verifier is faster than
+the Rust compiler.
+
+### Strict pre-canonicalization input validation
+
+The Rust compiler's source ingress is TOML (not raw JSON). Its strict
+`toml_edit` parser already rejects duplicate keys and unknown typed fields;
+the test suite now exercises both a duplicate top-level key and a duplicate
+key in the nested `geometry` table. The Go verifier is the raw JSON/JCS
+consumer boundary, and independently rejects duplicate JSON names before
+canonicalization. These are distinct ingress paths with distinct tests.
+
+The independent Go verifier now validates raw input before invoking the pinned
+JCS canonicalizer. Its preflight rejects duplicate object member names at any
+nesting depth (including names that become equal after JSON escape decoding),
+invalid UTF-8, unpaired high/low surrogate escapes, non-finite binary64
+overflow, malformed JSON and trailing JSON values. The existing golden-vector
+test runs through this preflight, and negative controls cover each rejection
+class. A valid paired surrogate remains accepted.
+
+This is an independent consumer-side guard in the Go qualification verifier;
+it does not yet establish that every future Rust JSON ingestion path performs
+the same duplicate-aware preflight. The full frozen adversarial corpus and
+Rust-side raw-input guard remain follow-on work.
+
 ### Interoperability qualification
 
 The compiler's Rust tests compare `serde_jcs` against the shared frozen byte

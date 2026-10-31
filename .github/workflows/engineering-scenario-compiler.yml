@@ -22,8 +22,9 @@ concurrency:
 
 jobs:
   compiler:
-    name: Strict offline compiler (Rust 1.96.0)
+    name: Strict offline compiler and portable identity (Rust 1.96.0)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -33,8 +34,8 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
-      - name: Apply pinned rustfmt to standalone compiler sources
-        run: cargo fmt --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all
+      - name: Format standalone compiler
+        run: cargo fmt --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all -- --check
 
       - name: Resolve TOML 1.0 parser and regenerate standalone lock
         run: cargo generate-lockfile --manifest-path tools/engineering-scenario-compiler/Cargo.toml
@@ -62,27 +63,27 @@ jobs:
           cp -a tools/engineering-scenario-compiler/interop/golden \
             "$RUNNER_TEMP/jcs-gopath/src/interop/"
 
-      - name: Verify RFC 8785 golden bytes with independent Go implementation
+      - name: Verify RFC 8785 and adversarial golden vectors with independent Go
         env:
           GO111MODULE: "off"
-          GOPATH: ${{ runner.temp }}/jcs-gopath
+          GOPATH: ${{ runner.temp }}
         run: |
           cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
           go version
+          test -z "$(gofmt -d *.go)"
           go test .
-          go run . ../golden/basic-input.json ../golden/basic-output.jcs
 
       - name: Test strict compiler and negative corpus
-        run: cargo test --manifest-path tools/engineering-scenario-compiler/Cargo.toml
+        run: cargo test --manifest-path tools/engineering-scenario-compiler/Cargo.toml --locked
 
       - name: Clippy standalone compiler
-        run: cargo clippy --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --manifest-path tools/engineering-scenario-compiler/Cargo.toml --all-targets --locked -- -D warnings
 
       - name: Export exact typed Scenario IR preimage and Rust JCS bytes
         run: |
           mkdir -p target/engineering-scenario-compiler-portable-identity
           status=0
-          cargo run --manifest-path tools/engineering-scenario-compiler/Cargo.toml -- \
+          cargo run --manifest-path tools/engineering-scenario-compiler/Cargo.toml --locked -- \
             benchmarks/aero/naca0012-inc-rans/case.toml \
             --portable-ir-dir target/engineering-scenario-compiler-portable-identity || status=$?
           test "$status" -eq 3
@@ -95,7 +96,7 @@ jobs:
       - name: Independently canonicalize the real typed Scenario IR with Go
         env:
           GO111MODULE: "off"
-          GOPATH: ${{ runner.temp }}/jcs-gopath
+          GOPATH: ${{ runner.temp }}
         run: |
           cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
           go run . \
@@ -103,28 +104,48 @@ jobs:
             "$GITHUB_WORKSPACE/target/engineering-scenario-compiler-portable-identity/scenario-ir.jcs" \
             | tee "$GITHUB_WORKSPACE/target/engineering-scenario-compiler-portable-identity/go-verification.txt"
 
-      - name: Record toolchain and host provenance
+      - name: Record toolchain host corpus and verifier provenance
         run: |
           mkdir -p target/engineering-scenario-compiler-benchmark
           {
             printf 'commit_sha=%s\n' "$(git rev-parse HEAD)"
             printf 'rustc='; rustc --version
             printf 'cargo='; cargo --version
+            printf 'go='; go version
             uname -a
             printf 'logical_cpus=%s\n' "$(nproc)"
             printf 'canonicalization_profile=%s\n' "engineering-scenario-ir-jcs-rfc8785-v1"
             printf 'independent_go_jcs_commit=%s\n' "32a48195b9b20fe67b1795e39e4509f14d860b45"
             printf 'serde_jcs_version=%s\n' "0.2.0"
             sha256sum tools/engineering-scenario-compiler/Cargo.lock
+            sha256sum tools/engineering-scenario-compiler/interop/golden/basic-input.json \
+              tools/engineering-scenario-compiler/interop/golden/basic-output.jcs \
+              tools/engineering-scenario-compiler/interop/golden/adversarial-input.json \
+              tools/engineering-scenario-compiler/interop/golden/adversarial-output.jcs
+            sha256sum tools/engineering-scenario-compiler/interop/go-verifier/*.go
+            sha256sum target/engineering-scenario-compiler-portable-identity/scenario-ir-input.json \
+              target/engineering-scenario-compiler-portable-identity/scenario-ir.jcs
           } > target/engineering-scenario-compiler-benchmark/reproducibility.txt
 
-      - name: Measure deterministic compiler latency distribution
+      - name: Benchmark Go strict preflight and JCS separately on actual typed IR
+        env:
+          GO111MODULE: "off"
+          GOPATH: ${{ runner.temp }}/jcs-gopath
+          JCS_BENCH_INPUT: ${{ github.workspace }}/target/engineering-scenario-compiler-portable-identity/scenario-ir-input.json
+        run: |
+          cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
+          go test . -run '^$' \
+            -bench 'Benchmark(StrictPreflight|JCSCanonicalize|StrictThenJCS)$' \
+            -benchmem -count=5 \
+            | tee "$GITHUB_WORKSPACE/target/engineering-scenario-compiler-benchmark/go-jcs-bench.txt"
+
+      - name: Measure deterministic Rust compiler latency distribution
         run: |
           cargo bench --manifest-path tools/engineering-scenario-compiler/Cargo.toml --bench compile_latency --locked \
-            > target/engineering-scenario-compiler-benchmark/latency.csv
-          cat target/engineering-scenario-compiler-benchmark/latency.csv
+            > target/engineering-scenario-compiler-benchmark/rust-compiler-latency.csv
+          cat target/engineering-scenario-compiler-benchmark/rust-compiler-latency.csv
 
-      - name: Upload reproducible compiler latency measurements
+      - name: Upload reproducible compiler and identity measurements
         uses: actions/upload-artifact@v4
         with:
           name: engineering-scenario-compiler-benchmark-${{ github.sha }}
@@ -134,15 +155,16 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish formatted sources and resolved lockfile for commit
+      - name: Publish qualified sources and resolved lockfile
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: engineering-scenario-compiler-formatted
+          name: engineering-scenario-compiler-qualified-sources
           path: |
             tools/engineering-scenario-compiler/Cargo.toml
             tools/engineering-scenario-compiler/Cargo.lock
             tools/engineering-scenario-compiler/README.md
+            tools/engineering-scenario-compiler/ADVERSARIAL_IDENTITY.md
             tools/engineering-scenario-compiler/src/lib.rs
             tools/engineering-scenario-compiler/src/main.rs
             tools/engineering-scenario-compiler/benches/compile_latency.rs

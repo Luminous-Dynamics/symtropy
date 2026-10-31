@@ -1,0 +1,10 @@
+{
+  "strings": ["e\u0301", "é"],
+  "numbers": [-0, 5e-324, 1.7976931348623157e308, 0.000001, 1e-7, 1e+30],
+  "keys": {
+    "\uE000": "bmp-private",
+    "𝄞": "supplementary",
+    "z": "last-ascii",
+    "a": "ascii"
+  }
+}
