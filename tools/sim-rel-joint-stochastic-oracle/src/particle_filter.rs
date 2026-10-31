@@ -7,6 +7,7 @@
 
 use super::{JointKernel, JointMass, Rational};
 use std::collections::{BTreeMap, BTreeSet};
+use std::time::Instant;
 
 const MAX_PARTICLES: usize = 1_000_000;
 const MAX_BELIEF_TUPLES: usize = 65_536;
@@ -62,6 +63,132 @@ pub struct ParticlePosteriorEntry {
     pub physical_state: usize,
     pub sensor_state: usize,
     pub probability: f64,
+}
+
+/// Accuracy and runtime record for one particle-count point.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ParticleFilterBenchmarkRecord {
+    pub particle_count: usize,
+    pub predictive_probability_exact: Rational,
+    pub predictive_probability_estimate: f64,
+    pub predictive_probability_absolute_error: f64,
+    pub joint_posterior_total_variation_distance: f64,
+    pub joint_posterior_squared_error: f64,
+    pub mechanism_posterior_squared_error: f64,
+    pub effective_sample_size_before_resampling: f64,
+    pub effective_sample_size_after_resampling: f64,
+    pub support_loss_fraction: f64,
+    pub resampled: bool,
+    pub elapsed_nanos: u128,
+}
+
+/// Run a paired particle-count sweep against the exact one-step posterior.
+///
+/// Each particle count uses the same seed. Runtime includes initialization and
+/// one observation update and is descriptive (not a stable correctness metric).
+pub fn benchmark_particle_counts(
+    kernel: &JointKernel,
+    belief: &[JointMass],
+    action: usize,
+    observation: Option<usize>,
+    particle_counts: &[usize],
+    resample_ess_fraction: f64,
+    seed: u64,
+) -> Result<Vec<ParticleFilterBenchmarkRecord>, String> {
+    if particle_counts.is_empty() {
+        return Err("particle-count sweep must contain at least one value".into());
+    }
+    let (exact_predictive, exact_posterior) =
+        exact_joint_posterior_after_observation(kernel, belief, action, observation)?;
+    let mut records = Vec::with_capacity(particle_counts.len());
+
+    for particle_count in particle_counts {
+        let start = Instant::now();
+        let mut filter = JointStateParticleFilter::from_joint_belief(
+            kernel,
+            belief,
+            ParticleFilterConfig {
+                particle_count: *particle_count,
+                resample_ess_fraction,
+                seed,
+            },
+        )?;
+        let diagnostics = filter.observe(kernel, action, observation)?;
+        let elapsed_nanos = start.elapsed().as_nanos();
+        let posterior = filter.posterior();
+        let total_variation = filter.total_variation_distance(&exact_posterior)?;
+        let (joint_squared_error, mechanism_squared_error) =
+            posterior_squared_errors(kernel, &posterior, &exact_posterior)?;
+
+        records.push(ParticleFilterBenchmarkRecord {
+            particle_count: *particle_count,
+            predictive_probability_exact: exact_predictive,
+            predictive_probability_estimate: diagnostics.predictive_probability_estimate,
+            predictive_probability_absolute_error: (
+                diagnostics.predictive_probability_estimate - to_f64(exact_predictive)
+            ).abs(),
+            joint_posterior_total_variation_distance: total_variation,
+            joint_posterior_squared_error: joint_squared_error,
+            mechanism_posterior_squared_error: mechanism_squared_error,
+            effective_sample_size_before_resampling:
+                diagnostics.effective_sample_size_before_resampling,
+            effective_sample_size_after_resampling:
+                diagnostics.effective_sample_size_after_resampling,
+            support_loss_fraction: diagnostics.support_loss_fraction,
+            resampled: diagnostics.resampled,
+            elapsed_nanos,
+        });
+    }
+    Ok(records)
+}
+
+fn posterior_squared_errors(
+    kernel: &JointKernel,
+    approximate: &[ParticlePosteriorEntry],
+    exact: &[JointMass],
+) -> Result<(f64, f64), String> {
+    let mut joint_approximate = BTreeMap::new();
+    for entry in approximate {
+        joint_approximate.insert(
+            (entry.hypothesis, entry.physical_state, entry.sensor_state),
+            entry.probability,
+        );
+    }
+    let mut joint_exact = BTreeMap::new();
+    for point in exact {
+        joint_exact.insert(
+            (point.hypothesis, point.physical_state, point.sensor_state),
+            to_f64(point.mass),
+        );
+    }
+    let keys: BTreeSet<_> = joint_approximate
+        .keys()
+        .chain(joint_exact.keys())
+        .copied()
+        .collect();
+    let joint_squared_error = keys.iter().fold(0.0, |sum, key| {
+        let delta = joint_approximate.get(key).copied().unwrap_or(0.0)
+            - joint_exact.get(key).copied().unwrap_or(0.0);
+        sum + delta * delta
+    });
+
+    let mut mechanism_approximate = vec![0.0_f64; kernel.hypothesis_ids.len()];
+    let mut mechanism_exact = vec![0.0_f64; kernel.hypothesis_ids.len()];
+    for entry in approximate {
+        mechanism_approximate[entry.hypothesis] += entry.probability;
+    }
+    for point in exact {
+        mechanism_exact[point.hypothesis] += to_f64(point.mass);
+    }
+    let mechanism_squared_error = mechanism_approximate
+        .iter()
+        .zip(mechanism_exact.iter())
+        .map(|(approximate, exact)| {
+            let delta = approximate - exact;
+            delta * delta
+        })
+        .sum();
+    Ok((joint_squared_error, mechanism_squared_error))
 }
 
 /// Deterministic joint-state particle filter.
@@ -710,6 +837,57 @@ mod tests {
         let before = filter.clone();
         assert!(filter.observe(&kernel, 0, Some(1)).is_err());
         assert_eq!(filter, before);
+    }
+
+    #[test]
+    fn particle_count_sweep_reports_exact_posterior_error_and_ess() {
+        let kernel = noisy_kernel();
+        let records = benchmark_particle_counts(
+            &kernel,
+            &kernel.initial_belief,
+            0,
+            Some(0),
+            &[32, 128, 512],
+            0.5,
+            0x51EE_D123,
+        ).unwrap();
+        assert_eq!(records.len(), 3);
+        assert_eq!(
+            records.iter().map(|record| record.particle_count).collect::<Vec<_>>(),
+            vec![32, 128, 512]
+        );
+        assert!(records.iter().all(|record| {
+            record.predictive_probability_exact == half()
+                && record.joint_posterior_total_variation_distance.is_finite()
+                && record.joint_posterior_squared_error.is_finite()
+                && record.mechanism_posterior_squared_error.is_finite()
+                && record.effective_sample_size_before_resampling >= 1.0
+                && record.elapsed_nanos > 0
+        }));
+
+        let repeat = benchmark_particle_counts(
+            &kernel,
+            &kernel.initial_belief,
+            0,
+            Some(0),
+            &[32, 128, 512],
+            0.5,
+            0x51EE_D123,
+        ).unwrap();
+        for (left, right) in records.iter().zip(repeat.iter()) {
+            assert_eq!(
+                left.predictive_probability_estimate,
+                right.predictive_probability_estimate
+            );
+            assert_eq!(
+                left.joint_posterior_total_variation_distance,
+                right.joint_posterior_total_variation_distance
+            );
+            assert_eq!(
+                left.effective_sample_size_before_resampling,
+                right.effective_sample_size_before_resampling
+            );
+        }
     }
 
     #[test]
