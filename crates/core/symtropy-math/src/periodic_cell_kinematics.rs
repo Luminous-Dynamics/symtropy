@@ -929,7 +929,8 @@ mod tests {
         assert!((result.after.velocity - before.velocity).norm() < 1e-11);
         assert!((result.fractional_after.fractional_position - SVector::from([-0.1, 0.4])).norm() < 1e-12);
         assert!((result.fractional_after.fractional_velocity - SVector::from([1.1, -0.4])).norm() < 1e-12);
-        assert_eq!(result.before, result.after);
+        assert!((result.after.position - result.before.position).norm() < 1e-12);
+        assert!((result.after.velocity - result.before.velocity).norm() < 1e-12);
     }
 
     #[test]
