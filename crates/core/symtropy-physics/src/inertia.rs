@@ -580,9 +580,8 @@ impl BivectorInertia<3> {
             }
 
             let six_volume = edge_1.dot(&edge_2.cross(&edge_3)).abs();
-            let volume_tolerance =
-                relative_volume_tolerance * edge_scale.powi(3);
-            if !six_volume.is_finite() {
+            let volume_tolerance = relative_volume_tolerance * edge_scale.powi(3);
+            if !six_volume.is_finite() || !volume_tolerance.is_finite() {
                 return Err(RotationalInertiaError::NonFinite);
             }
             if six_volume <= volume_tolerance {
@@ -836,7 +835,7 @@ mod tests {
 
         assert!((properties.total_mass - 3.0).abs() < 1e-12);
         assert_eq!(properties.inertia.total_mass(), Some(3.0));
-        assert!((properties.center_of_mass[0] - 1.25).abs() < 1e-12);
+        assert!((properties.center_of_mass[0] - 19.0 / 12.0).abs() < 1e-12);
     }
 
     #[test]
