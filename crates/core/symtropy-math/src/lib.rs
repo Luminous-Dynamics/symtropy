@@ -51,8 +51,8 @@ pub use periodic_lattice::{
     ClosestLatticeImage, PeriodicLattice, PeriodicLatticeError, WrappedLatticePoint,
 };
 pub use periodic_cell_kinematics::{
-    CartesianCellState, FractionalCellState, PeriodicCellKinematics,
-    PeriodicCellKinematicsError, PeriodicCellRemap,
+    CartesianCellState, FractionalCellState, PeriodicCellBasisRebase, PeriodicCellDeformation,
+    PeriodicCellKinematics, PeriodicCellKinematicsError,
 };
 pub use point::Point;
 pub use rotor::Rotor;
