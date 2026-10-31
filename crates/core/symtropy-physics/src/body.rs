@@ -480,6 +480,89 @@ mod tests {
         assert!((inertia.second_moment()[(2, 2)] - expected_yy).abs() < 1e-12);
         assert!((body.mass - 3.0).abs() < 1e-12);
         assert!((body.position()[0] - 2.0 / 3.0).abs() < 1e-12);
+        assert!(
+            (body.inertia.sum() / 3.0 - inertia.mean_plane_inertia()).abs() < 1e-12,
+            "legacy mean plane inertia must agree with the authoritative combined operator"
+        );
+    }
+
+    #[test]
+    fn explicit_toolhead_mass_properties_are_used_in_parallel_axis_merge() {
+        use nalgebra::SMatrix;
+
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([3.0, -2.0, 1.0]), 1.0, 2.0);
+        body.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.41);
+        let tool_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            1.5,
+            SVector::new(0.7, 0.4, 0.2),
+        )
+        .unwrap();
+        let tool_translation = SVector::new(2.0, 0.5, -0.25);
+        let total_mass = body.mass + 1.5;
+        let com_offset = tool_translation * (1.5 / total_mass);
+        let expected = BivectorInertia::combine_at_common_center(
+            body.mass,
+            body.rotational_inertia.as_ref().unwrap(),
+            &(-com_offset),
+            1.5,
+            &tool_inertia,
+            &(tool_translation - com_offset),
+        )
+        .unwrap();
+        let direction = body.transform.rotation.rotate_vector(&SVector::new(-1.0, 0.0, 0.0));
+        let support_before = body.world_support(&direction);
+
+        body.try_merge_toolhead_with_inertia(
+            Transform::from_translation(Point(tool_translation)),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+            tool_inertia.clone(),
+        )
+        .unwrap();
+
+        let actual = body.rotational_inertia.as_ref().unwrap();
+        assert_eq!(actual.total_mass(), Some(total_mass));
+        assert!(
+            (actual.second_moment() - expected.second_moment()).norm() < 1e-12,
+            "explicit tool mass properties were not preserved by the merge"
+        );
+        assert!((body.mass - total_mass).abs() < 1e-12);
+        assert!((body.position() - Point::new([3.0, -2.0, 1.0]).0
+            - body.transform.rotation.rotate_vector(&com_offset)).norm() < 1e-12);
+        assert!(
+            (body.inertia.sum() / 3.0 - actual.mean_plane_inertia()).abs() < 1e-12
+        );
+
+        let original_child_point = Point::new([-1.0 - com_offset[0], -com_offset[1], -com_offset[2]]);
+        let support_after = body.transform.transform_point(&original_child_point).0;
+        assert!((support_after - support_before).norm() < 1e-10);
+    }
+
+    #[test]
+    fn toolhead_merge_rejects_unknown_mass_without_mutating_body() {
+        use nalgebra::SMatrix;
+
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let support_before = body.world_support(&SVector::new(1.0, 0.0, 0.0));
+        let mass_before = body.mass;
+        let position_before = body.transform.translation.0.clone();
+        let tool_inertia =
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::identity()).unwrap();
+
+        let error = body
+            .try_merge_toolhead_with_inertia(
+                Transform::from_translation(Point::new([1.0, 0.0, 0.0])),
+                Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+                tool_inertia,
+            )
+            .unwrap_err();
+        assert_eq!(
+            error,
+            crate::inertia::RotationalInertiaError::UnknownTotalMass
+        );
+        assert_eq!(body.mass, mass_before);
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.world_support(&SVector::new(1.0, 0.0, 0.0)), support_before);
     }
 
     #[test]
