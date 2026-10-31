@@ -416,6 +416,17 @@ fn aggregate(request: &Request) -> Report {
             continue;
         }
 
+        if matching.iter().any(|receipt| {
+            receipt.measured_at_ns > request.decision_time_ns
+                || receipt.issued_at_ns > request.decision_time_ns
+                || receipt.issued_at_ns < receipt.measured_at_ns
+        }) {
+            indeterminate += usize::from(requirement.mandatory);
+            has_indeterminate |= requirement.mandatory;
+            results.push(empty_result(requirement, "RECEIPT_NOT_AVAILABLE_AT_DECISION_TIME"));
+            continue;
+        }
+
         if matching.iter().any(|receipt| !receipt_scope_matches(&request.manifest, requirement, receipt)) {
             indeterminate += usize::from(requirement.mandatory);
             has_indeterminate |= requirement.mandatory;
@@ -912,6 +923,28 @@ mod tests {
         wrong.lot_id = "OTHER-LOT".into();
         let r = request(vec![req("diameter", true, Some("R1"))], vec![wrong]);
         assert_eq!(aggregate(&r).outcome, PartOutcome::Indeterminate);
+    }
+
+    #[test]
+    fn future_measurement_or_issue_receipt_cannot_leak_into_historical_decision() {
+        let mut future_measurement = receipt("diameter", "R-FUTURE-MEASUREMENT", ScalarOutcome::Accept);
+        future_measurement.measured_at_ns = 6_100;
+        future_measurement.issued_at_ns = 6_200;
+        let historical = request(
+            vec![req("diameter", true, Some("R-FUTURE-MEASUREMENT"))],
+            vec![future_measurement],
+        );
+        assert_eq!(aggregate(&historical).outcome, PartOutcome::Indeterminate);
+        assert_eq!(aggregate(&historical).characteristic_results[0].disposition,
+            "RECEIPT_NOT_AVAILABLE_AT_DECISION_TIME");
+
+        let mut future_issue = receipt("diameter", "R-FUTURE-ISSUE", ScalarOutcome::Accept);
+        future_issue.issued_at_ns = 7_000;
+        let historical = request(
+            vec![req("diameter", true, Some("R-FUTURE-ISSUE"))],
+            vec![future_issue],
+        );
+        assert_eq!(aggregate(&historical).outcome, PartOutcome::Indeterminate);
     }
 
     #[test]
