@@ -137,7 +137,7 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
 
-    fn args<'a, 'b>(values: &'a [&'b str]) -> impl Iterator<Item = OsString> + 'a {
+    fn args<'a>(values: &'a [&str]) -> impl Iterator<Item = OsString> + 'a {
         values.iter().map(|value| OsString::from(*value))
     }
 
