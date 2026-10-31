@@ -93,3 +93,36 @@ information of approximately 0.702 bits for the detail probe and 0.081 bits for
 the critical screen. These entropy values are descriptive diagnostics; selection
 uses the exact rational downstream loss, not a floating-point entropy score.
 This is a constructed finite counterexample, not a measured benchmark victory.
+
+## Finite-horizon decision-policy reference
+
+The `decision_value::finite_horizon` module extends the one-step Bayes-risk
+evaluator into exact public-observation policy trees. At every history the
+planner may stop with the Bayes-optimal terminal decision (including explicit
+abstention) or issue another command. Hazard outcomes terminate immediately.
+
+The memoized dynamic programme retains the exact non-dominated frontier over
+four separate quantities:
+
+- expected cumulative experiment cost;
+- expected terminal decision / hazard loss;
+- campaign hazard probability;
+- abstention probability.
+
+It supports explicit hazard and abstention budgets when selecting a point from
+the frontier. The policy is keyed only by public observations; it never sees
+the hidden mechanism, process, sensor, apparatus or realized-action state.
+Observation protocols control which channels are visible and ensure that
+unacquired telemetry is marginalized.
+
+For tiny cases, the crate includes a **non-memoized exhaustive policy-tree
+enumerator** with independent pairwise frontier filtering, plus an independent
+policy replay routine. The authored Rust tests compare the full objective
+frontier, replay every optimized frontier policy, enforce hazard/abstention
+budgets, and check horizon-zero and resource-limit behavior.
+
+This remains an exact finite-model result conditional on the supplied kernel,
+prior, full joint-state loss tensor, action costs, observation protocol, horizon
+and policy class. It is not a robust multi-world decision optimizer,
+open-world model adequacy proof, continuous physical solver, or hardware safety
+certificate.
