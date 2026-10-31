@@ -19,6 +19,8 @@ pub enum FrictionConeError {
     NotSymmetric,
     NotPositiveDefinite,
     NoAdmissibleSolution,
+    /// The returned contact solution would increase kinetic energy through friction.
+    NonDissipativeSolution,
 }
 
 /// Exact solution of the planar single-contact Signorini/Coulomb problem.
@@ -189,6 +191,17 @@ pub fn solve_planar_friction_cone(
         return Err(FrictionConeError::NonFinite);
     }
 
+    let tangential_work_scale = impulse[1]
+        .abs()
+        .max(f64::MIN_POSITIVE)
+        * (tangential_pre_impulse_velocity
+            .abs()
+            .max((matrix[(1, 1)] * impulse[1]).abs())
+            .max(f64::MIN_POSITIVE));
+    if frictional_work_delta > relative_tolerance * tangential_work_scale {
+        return Err(FrictionConeError::NonDissipativeSolution);
+    }
+
     Ok(PlanarFrictionConeSolution {
         impulse,
         post_velocity,
@@ -257,6 +270,27 @@ mod tests {
         assert!(solution.impulse[1].abs() < 1e-12);
         assert!(solution.post_velocity[0].abs() < 1e-12);
         assert!(solution.cone_violation < 1e-12);
+    }
+
+    #[test]
+    fn off_diagonal_normal_tangent_coupling_preserves_friction_dissipation() {
+        let effective_mass = Matrix2::new(2.0, 0.6, 0.6, 1.5);
+        let free_velocity = SVector::new(-1.0, -0.8);
+        for friction_coefficient in [0.0, 0.2, 0.8, 2.0] {
+            let solution = solve_planar_friction_cone(
+                &effective_mass,
+                &free_velocity,
+                friction_coefficient,
+                1e-12,
+            )
+            .unwrap();
+            assert!(
+                solution.frictional_work_delta <= 1e-12,
+                "mu={friction_coefficient}, friction work={}",
+                solution.frictional_work_delta
+            );
+            assert!(solution.normalized_contact_residual < 1e-10);
+        }
     }
 
     #[test]
