@@ -583,7 +583,7 @@ fn canonical_manifest_bytes(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cfd_admission::{AdmissionCriteria, CfdEvidenceStudy, CfdGridRun};
+    use crate::cfd_admission::{AdmissionCriteria, CfdEvidenceStudy, CfdGridRun, GridFamilyKind};
     use crate::integrity::sha256_hex;
     use std::fs;
 
@@ -593,6 +593,7 @@ mod tests {
             quantity: "CD".to_owned(),
             source_reference: "synthetic-artifact-known-answer".to_owned(),
             spacing_definition: "explicit test spacings".to_owned(),
+            grid_family_kind: GridFamilyKind::Structured,
             safety_factor: 1.25,
             criteria: AdmissionCriteria {
                 residual_final_max: 1.0e-8,
