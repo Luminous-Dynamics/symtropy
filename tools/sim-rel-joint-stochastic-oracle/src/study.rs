@@ -42,6 +42,7 @@ pub struct PairedStudyRun {
     pub shifted_hazard_rate: Rational,
     pub calibration_damage_rate: Rational,
     pub model_family_fingerprint: String,
+    pub exact_robust_optimum_feasible: bool,
     pub benchmark: BenchmarkReport,
 }
 
@@ -69,6 +70,7 @@ pub struct PairedMethodSummary {
     pub run_count: usize,
     pub feasible_run_count: usize,
     pub infeasible_run_count: usize,
+    pub paired_feasible_run_count: usize,
     pub feasible_rate: Rational,
     pub worst_case_cost: ExactMetricSummary,
     pub worst_case_hazard: ExactMetricSummary,
@@ -132,6 +134,7 @@ pub fn run_paired_study(config: &PairedStudyConfig) -> Result<PairedStudyReport,
             shifted_hazard_rate: family.shifted_hazard_rate,
             calibration_damage_rate: family.calibration_damage_rate,
             model_family_fingerprint: fingerprint,
+            exact_robust_optimum_feasible: benchmark.exact_robust_optimal.is_some(),
             benchmark,
         });
     }
@@ -144,13 +147,13 @@ pub fn run_paired_study(config: &PairedStudyConfig) -> Result<PairedStudyReport,
         .collect();
     let mut method_summaries = Vec::with_capacity(method_names.len());
     for method_name in method_names {
-        let mut results: Vec<&MethodResult> = Vec::with_capacity(runs.len());
+        let mut results: Vec<(&MethodResult, bool)> = Vec::with_capacity(runs.len());
         for run in &runs {
             let result = run.benchmark.methods
                 .iter()
                 .find(|method| method.method == method_name)
                 .ok_or_else(|| format!("method {method_name} missing from paired seed {}", run.seed))?;
-            results.push(result);
+            results.push((result, run.exact_robust_optimum_feasible));
         }
         method_summaries.push(summarize_method(
             &method_name,
@@ -184,7 +187,7 @@ pub fn run_paired_study(config: &PairedStudyConfig) -> Result<PairedStudyReport,
 
 fn summarize_method(
     method_name: &str,
-    results: &[&MethodResult],
+    results: &[(&MethodResult, bool)],
     run_count: usize,
     bootstrap_resamples: usize,
     confidence_level: f64,
@@ -197,8 +200,9 @@ fn summarize_method(
     let mut correct = Vec::with_capacity(run_count);
     let mut regrets = Vec::new();
     let mut feasible_run_count = 0_usize;
+    let mut paired_feasible_run_count = 0_usize;
 
-    for result in results {
+    for (result, exact_optimum_feasible) in results {
         costs.push(result.evaluation.worst_case_expected_cost);
         hazards.push(result.evaluation.worst_case_hazard_probability);
         false_claims.push(result.evaluation.worst_case_false_identification_probability);
@@ -207,8 +211,11 @@ fn summarize_method(
 
         if result.satisfies_robust_budgets {
             feasible_run_count += 1;
-            if let Some(regret) = result.worst_case_cost_regret {
-                regrets.push(regret);
+            if *exact_optimum_feasible {
+                if let Some(regret) = result.worst_case_cost_regret {
+                    regrets.push(regret);
+                    paired_feasible_run_count += 1;
+                }
             }
         }
     }
@@ -229,6 +236,7 @@ fn summarize_method(
         run_count,
         feasible_run_count,
         infeasible_run_count: run_count - feasible_run_count,
+        paired_feasible_run_count,
         feasible_rate: Rational::new(feasible_run_count as u128, run_count as u128)?,
         worst_case_cost: summarize_exact(&costs)?,
         worst_case_hazard: summarize_exact(&hazards)?,
@@ -401,7 +409,7 @@ mod tests {
             .unwrap();
         assert!(greedy.infeasible_run_count > 0);
         if let Some(interval) = greedy.paired_cost_regret {
-            assert_eq!(interval.paired_sample_count, greedy.feasible_run_count);
+            assert_eq!(interval.paired_sample_count, greedy.paired_feasible_run_count);
         }
     }
 
