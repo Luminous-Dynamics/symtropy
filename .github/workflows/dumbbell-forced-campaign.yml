@@ -1,0 +1,51 @@
+name: Forced dumbbell external work and impulse campaign
+
+on:
+  pull_request:
+    paths:
+      - "tools/dumbbell-forced-campaign/**"
+      - "tools/dumbbell-rattle-reference/**"
+      - "tools/phdae-dumbbell-reference/**"
+      - "docs/research/DUMBBELL_FORCED_PORTS_CAMPAIGN_2026-10-31.md"
+      - ".github/workflows/dumbbell-forced-campaign.yml"
+  push:
+    branches:
+      - "research/dumbbell-forced-ports-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  forced-port-campaign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: |
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/phdae-dumbbell-reference/constrained_dumbbell.rs
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/dumbbell-rattle-reference/cartesian_rattle.rs
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/dumbbell-forced-campaign/compare_forced_dumbbell.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/dumbbell-forced-campaign/compare_forced_dumbbell.rs \
+            -o /tmp/dumbbell-forced-tests
+          /tmp/dumbbell-forced-tests
+
+      - name: Compile optimized campaign and verify deterministic receipts
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/dumbbell-forced-campaign/compare_forced_dumbbell.rs \
+            -o /tmp/dumbbell-forced
+          /tmp/dumbbell-forced > /tmp/dumbbell-forced-a.csv
+          /tmp/dumbbell-forced > /tmp/dumbbell-forced-b.csv
+          cmp /tmp/dumbbell-forced-a.csv /tmp/dumbbell-forced-b.csv
+          test "$(wc -l < /tmp/dumbbell-forced-a.csv)" -eq 9
+          grep -q "^semi_explicit_phdae_dg," /tmp/dumbbell-forced-a.csv
+          grep -q "^cartesian_rattle," /tmp/dumbbell-forced-a.csv
