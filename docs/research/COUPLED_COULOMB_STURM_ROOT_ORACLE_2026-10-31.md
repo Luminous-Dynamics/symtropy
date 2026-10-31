@@ -23,7 +23,7 @@ The new test-only verifier is implemented in coupled_friction_sturm.rs. It does 
 4. For each exact rational polynomial, a classical Sturm chain is constructed using exact rational polynomial remainders. Only positive rescalings are applied, so sign variations are preserved.
 5. At rational endpoints, one-sided signs are obtained from the first nonzero derivative. This handles a root exactly on a bisection midpoint without dropping it or double-counting it.
 6. A strict Cauchy bound encloses every finite real root. Exact Sturm variation differences count distinct roots in open rational intervals.
-7. Rational bisection yields disjoint intervals; each emitted interval has an independently verified Sturm count of exactly one.
+7. Rational bisection yields disjoint intervals; each non-point interval is moved off any exact-root endpoint and must have two exact non-root endpoints plus a Sturm count of exactly one. Exactly representable roots are retained as isolated point intervals with exact polynomial evaluation zero.
 
 The test compares the production numerical candidates with the exact-input quartic's distinct-root count and isolating intervals. It also verifies that the rounded coefficient polynomial has the same count on the frozen corpus.
 
@@ -68,7 +68,8 @@ These are gates, not achieved measurements:
 | Gate | Target |
 |---|---:|
 | Exact rational Sturm count on frozen polynomial corpus | 100% |
-| Every emitted rational interval contains exactly one distinct real root | 100% |
+| Every non-point interval has exact non-root endpoints and Sturm count exactly one; point intervals are exact roots | 100% |
+| Pairwise interval disjointness | 100% |
 | Production roots matched to independent intervals when classified resolved | 100% |
 | Close-root ambiguity converted to Inconclusive | 100% |
 | Silent merge of two distinct roots | 0 |
