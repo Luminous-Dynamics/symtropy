@@ -18,6 +18,8 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::env;
 #[cfg(not(test))]
 use std::fs;
+#[cfg(not(test))]
+use std::process::Command;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Case {
@@ -61,6 +63,9 @@ struct Manifest {
     case_record: Option<Case>,
     artifacts: BTreeMap<String, Artifact>,
     dependencies: Vec<Dependency>,
+    policy_id: String,
+    policy_version: String,
+    policy_minimum_tier: u8,
     role_policies: Vec<RolePolicy>,
 }
 
@@ -175,7 +180,11 @@ fn scope_compatible(source_scope: &str, consumer_scope: &str) -> bool {
     }
 }
 
-fn parse_manifest(input: &str) -> Result<Manifest, String> {
+fn parse_manifest(
+    input: &str,
+    trusted_policy_input: &str,
+    trusted_policy_digest: &str,
+) -> Result<Manifest, String> {
     let mut manifest = Manifest::default();
 
     for (line_index, original) in input.lines().enumerate() {
@@ -247,23 +256,66 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                 }
                 manifest.dependencies.push(dependency);
             }
+            other => return Err(format!("line {line_number}: unknown record type {other:?}")),
+        }
+    }
+
+    let (policy_id, policy_version, policy_minimum_tier, role_policies) =
+        parse_trusted_policy(trusted_policy_input)?;
+    if !is_sha256(trusted_policy_digest) {
+        return Err("trusted policy digest must be lowercase SHA-256".to_string());
+    }
+    manifest.policy_id = policy_id;
+    manifest.policy_version = policy_version;
+    manifest.policy_minimum_tier = policy_minimum_tier;
+    manifest.role_policies = role_policies;
+    validate_manifest(&manifest)?;
+    Ok(manifest)
+}
+
+fn parse_trusted_policy(input: &str) -> Result<(String, String, u8, Vec<RolePolicy>), String> {
+    let mut header: Option<(String, String, u8)> = None;
+    let mut role_policies = Vec::new();
+
+    for (line_index, original) in input.lines().enumerate() {
+        let line_number = line_index + 1;
+        let line = original.trim_end_matches('\r');
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let fields: Vec<&str> = line.split('|').collect();
+        match fields.first().copied().unwrap_or("") {
+            "POLICY" => {
+                if fields.len() != 4 || header.is_some() {
+                    return Err(format!("policy line {line_number}: POLICY requires 3 fields and must occur once"));
+                }
+                header = Some((
+                    nonempty(fields[1], "POLICY id")?,
+                    nonempty(fields[2], "POLICY version")?,
+                    parse_tier(fields[3], "POLICY minimum_root_tier")?,
+                ));
+            }
             "ROLE_POLICY" => {
                 if fields.len() != 5 {
-                    return Err(format!("line {line_number}: ROLE_POLICY requires 4 fields"));
+                    return Err(format!("policy line {line_number}: ROLE_POLICY requires 4 fields"));
                 }
-                manifest.role_policies.push(RolePolicy {
+                role_policies.push(RolePolicy {
                     consumer_role: nonempty(fields[1], "ROLE_POLICY consumer_role")?,
                     material_role: nonempty(fields[2], "ROLE_POLICY material_role")?,
                     minimum_tier: parse_tier(fields[3], "ROLE_POLICY minimum_tier")?,
                     minimum_count: parse_usize(fields[4], "ROLE_POLICY minimum_count")?,
                 });
             }
-            other => return Err(format!("line {line_number}: unknown record type {other:?}")),
+            other => return Err(format!("policy line {line_number}: unknown record type {other:?}")),
         }
     }
 
-    validate_manifest(&manifest)?;
-    Ok(manifest)
+    let (id, version, minimum_tier) =
+        header.ok_or_else(|| "trusted policy requires exactly one POLICY header".to_string())?;
+    if role_policies.is_empty() {
+        return Err("trusted policy requires at least one ROLE_POLICY".to_string());
+    }
+    Ok((id, version, minimum_tier, role_policies))
 }
 
 fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
@@ -274,8 +326,15 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
     if manifest.artifacts.is_empty() {
         return Err("manifest requires at least one ARTIFACT".to_string());
     }
-    if manifest.role_policies.is_empty() {
-        return Err("manifest requires at least one ROLE_POLICY".to_string());
+    if manifest.policy_id.is_empty() || manifest.policy_version.is_empty() || manifest.role_policies.is_empty() {
+        return Err("trusted closure policy is missing identity or role rules".to_string());
+    }
+    if case.minimum_tier < manifest.policy_minimum_tier {
+        return Err(format!(
+            "CASE minimum tier {} is below trusted policy minimum {}",
+            tier_name(case.minimum_tier),
+            tier_name(manifest.policy_minimum_tier)
+        ));
     }
     if !manifest.artifacts.contains_key(&case.root_artifact) {
         return Err(format!("CASE references unknown root artifact {}", case.root_artifact));
