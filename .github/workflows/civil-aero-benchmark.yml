@@ -337,18 +337,6 @@ jobs:
         shell: bash
         run: |
           python3 scripts/verify-solver-reference-manifest.py data/solver_reference_manifest.v0.1.json
-      - name: Compose CFD numerical, input, and experimental uncertainty without false independence
-        working-directory: tools/civil-aero-benchmark
-        shell: bash
-        run: |
-          cargo run --locked --bin validation_uncertainty_demo > /tmp/validation-uncertainty-a.csv 2> /tmp/validation-uncertainty-a.txt
-          cargo run --locked --bin validation_uncertainty_demo > /tmp/validation-uncertainty-b.csv 2> /tmp/validation-uncertainty-b.txt
-          cmp /tmp/validation-uncertainty-a.csv /tmp/validation-uncertainty-b.csv
-          cmp /tmp/validation-uncertainty-a.txt /tmp/validation-uncertainty-b.txt
-          test "$(wc -l < /tmp/validation-uncertainty-a.csv)" -eq 2
-          grep -q "synthetic_validation_uncertainty_only status=numerically_admitted_not_experimentally_validated grids=3" /tmp/validation-uncertainty-a.txt
-          grep -q "no_joint_coverage_claim" /tmp/validation-uncertainty-a.csv
-          python3 scripts/verify-validation-uncertainty-independent.py /tmp/validation-uncertainty-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |

@@ -64,6 +64,10 @@ pub struct ValidationUncertaintyStudy {
     pub input_correlation_matrix: Vec<Vec<f64>>,
     /// Experimental standard uncertainty in output units.
     pub experimental_standard_uncertainty: f64,
+    /// Explicitly declares that input and experimental uncertainty sources are aleatory.
+    /// A correlation coefficient alone is not evidence of aleatory behaviour.
+    pub input_and_experiment_are_aleatory: bool,
+    pub aleatory_basis_rationale: String,
     /// Correlation between input-induced prediction error and experimental error in E = S - D.
     /// None means no combined aleatory uncertainty or discrepancy interval is reported.
     pub input_experiment_error_correlation: Option<f64>,
@@ -93,6 +97,8 @@ pub struct ValidationUncertaintyReport {
     pub numerical_expanded_bound: f64,
     pub input_standard_uncertainty: f64,
     pub experimental_standard_uncertainty: f64,
+    pub input_and_experiment_are_aleatory: bool,
+    pub aleatory_basis_rationale: String,
     pub input_experiment_error_correlation: Option<f64>,
     pub aleatory_standard_uncertainty: Option<f64>,
     pub aleatory_expansion_factor: f64,
@@ -122,6 +128,8 @@ pub fn evaluate_validation_uncertainty(
         || study.quantity.trim().is_empty()
         || study.output_unit.trim().is_empty()
         || study.gci_coverage_rationale.trim().is_empty()
+        || (study.input_and_experiment_are_aleatory
+            && study.aleatory_basis_rationale.trim().is_empty())
     {
         return Err(
             "case_id, quantity, output_unit, and GCI coverage rationale must be non-empty"
@@ -219,7 +227,10 @@ pub fn evaluate_validation_uncertainty(
     }
 
     let (aleatory_standard_uncertainty, aleatory_expanded_bound, conservative_total_bound) =
-        if let Some(correlation) = study.input_experiment_error_correlation {
+        if study.input_and_experiment_are_aleatory {
+            let correlation = study.input_experiment_error_correlation.ok_or_else(|| {
+                "aleatory input/experiment combination requires an explicit correlation".to_owned()
+            })?;
             if !correlation.is_finite() || !(-1.0..=1.0).contains(&correlation) {
                 return Err("input/experiment error correlation must be finite and in [-1, 1]".to_owned());
             }
@@ -275,6 +286,8 @@ pub fn evaluate_validation_uncertainty(
         numerical_expanded_bound,
         input_standard_uncertainty,
         experimental_standard_uncertainty: study.experimental_standard_uncertainty,
+        input_and_experiment_are_aleatory: study.input_and_experiment_are_aleatory,
+        aleatory_basis_rationale: study.aleatory_basis_rationale.clone(),
         input_experiment_error_correlation: study.input_experiment_error_correlation,
         aleatory_standard_uncertainty,
         aleatory_expansion_factor: study.aleatory_expansion_factor,
@@ -307,7 +320,9 @@ fn propagate_input_uncertainty(
         if contribution.input_id.trim().is_empty()
             || contribution.input_id.contains('|')
             || contribution.input_unit.trim().is_empty()
+            || contribution.input_unit.contains('|')
             || contribution.source_reference.trim().is_empty()
+            || contribution.source_reference.contains('|')
         {
             return Err("input IDs, units, and source references must be non-empty and CSV-safe".to_owned());
         }
@@ -446,11 +461,15 @@ fn matrix_string(matrix: &[Vec<f64>]) -> String {
         .join(";")
 }
 
-pub const VALIDATION_UNCERTAINTY_CSV_HEADER: &str = "case_id,quantity,output_unit,admission_status,source_reference,coarse_grid_id,medium_grid_id,fine_grid_id,gci_fine_absolute,gci_coverage_model,gci_coverage_factor,gci_standard_uncertainty,iterative_standard_uncertainty,roundoff_standard_uncertainty,numerical_standard_uncertainty,numerical_expansion_factor,numerical_expanded_bound,input_standard_uncertainty,experimental_standard_uncertainty,input_experiment_error_correlation,aleatory_standard_uncertainty,aleatory_expansion_factor,aleatory_expanded_bound,conservative_total_bound,comparison_error,model_discrepancy_lower,model_discrepancy_upper,input_correlation_matrix,input_correlation_min_eigenvalue,input_component_ids,input_component_units,input_component_source_refs,input_sensitivity_coefficients,input_standard_uncertainties,evidence_level";
+pub const VALIDATION_UNCERTAINTY_CSV_HEADER: &str = "case_id,quantity,output_unit,admission_status,source_reference,coarse_grid_id,medium_grid_id,fine_grid_id,gci_fine_absolute,gci_coverage_model,gci_coverage_factor,gci_standard_uncertainty,iterative_standard_uncertainty,roundoff_standard_uncertainty,numerical_standard_uncertainty,numerical_expansion_factor,numerical_expanded_bound,input_standard_uncertainty,experimental_standard_uncertainty,input_experiment_error_correlation,aleatory_standard_uncertainty,aleatory_expansion_factor,aleatory_expanded_bound,conservative_total_bound,comparison_error,model_discrepancy_lower,model_discrepancy_upper,input_correlation_matrix,input_correlation_min_eigenvalue,input_component_ids,input_component_units,input_component_source_refs,input_sensitivity_coefficients,input_standard_uncertainties,input_and_experiment_are_aleatory,aleatory_basis_rationale,evidence_level";
 
 pub fn report_to_csv(report: &ValidationUncertaintyReport) -> String {
-    format!(
-        "{VALIDATION_UNCERTAINTY_CSV_HEADER}\n{},{},{},{},{},{},{},{},{:.12},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{:.12},{},{},{:.12},{},{},{},{:.12},{},{},{},{},{},{}\n",
+    let optional = |value: Option<f64>| {
+        value
+            .map(|number| format!("{number:.12}"))
+            .unwrap_or_default()
+    };
+    let fields = vec![
         csv_escape(&report.case_id),
         csv_escape(&report.quantity),
         csv_escape(&report.output_unit),
@@ -459,67 +478,37 @@ pub fn report_to_csv(report: &ValidationUncertaintyReport) -> String {
         csv_escape(&report.gci_coarse_grid_id),
         csv_escape(&report.gci_medium_grid_id),
         csv_escape(&report.gci_fine_grid_id),
-        report.gci_fine_absolute,
-        report.gci_coverage_model.as_str(),
-        report.gci_coverage_factor,
-        report.gci_standard_uncertainty,
-        report.iterative_standard_uncertainty,
-        report.roundoff_standard_uncertainty,
-        report.numerical_standard_uncertainty,
-        report.numerical_expansion_factor,
-        report.numerical_expanded_bound,
-        report.input_standard_uncertainty,
-        report.experimental_standard_uncertainty,
-        report.input_experiment_error_correlation
-            .map(|value| format!("{value:.12}"))
-            .unwrap_or_default(),
-        report.aleatory_standard_uncertainty
-            .map(|value| format!("{value:.12}"))
-            .unwrap_or_default(),
-        report.aleatory_expansion_factor,
-        report.aleatory_expanded_bound
-            .map(|value| format!("{value:.12}"))
-            .unwrap_or_default(),
-        report.conservative_total_bound
-            .map(|value| format!("{value:.12}"))
-            .unwrap_or_default(),
-        report.comparison_error,
-        report.model_discrepancy_lower
-            .map(|value| format!("{value:.12}"))
-            .unwrap_or_default(),
-        report.model_discrepancy_upper
-            .map(|value| format!("{value:.12}"))
-            .unwrap_or_default(),
+        format!("{:.12}", report.gci_fine_absolute),
+        report.gci_coverage_model.as_str().to_owned(),
+        format!("{:.12}", report.gci_coverage_factor),
+        format!("{:.12}", report.gci_standard_uncertainty),
+        format!("{:.12}", report.iterative_standard_uncertainty),
+        format!("{:.12}", report.roundoff_standard_uncertainty),
+        format!("{:.12}", report.numerical_standard_uncertainty),
+        format!("{:.12}", report.numerical_expansion_factor),
+        format!("{:.12}", report.numerical_expanded_bound),
+        format!("{:.12}", report.input_standard_uncertainty),
+        format!("{:.12}", report.experimental_standard_uncertainty),
+        optional(report.input_experiment_error_correlation),
+        optional(report.aleatory_standard_uncertainty),
+        format!("{:.12}", report.aleatory_expansion_factor),
+        optional(report.aleatory_expanded_bound),
+        optional(report.conservative_total_bound),
+        format!("{:.12}", report.comparison_error),
+        optional(report.model_discrepancy_lower),
+        optional(report.model_discrepancy_upper),
         csv_escape(&matrix_string(&report.input_correlation_matrix)),
-        report.input_correlation_min_eigenvalue,
-        csv_escape(
-            &report
-                .input_contributions
-                .iter()
-                .map(|input| input.input_id.as_str())
-                .collect::<Vec<_>>()
-                .join("|")
-        ),
-        csv_escape(
-            &report
-                .input_contributions
-                .iter()
-                .map(|input| input.input_unit.as_str())
-                .collect::<Vec<_>>()
-                .join("|")
-        ),
-        csv_escape(
-            &report
-                .input_contributions
-                .iter()
-                .map(|input| input.source_reference.as_str())
-                .collect::<Vec<_>>()
-                .join("|")
-        ),
-        csv_escape(number_list(report.input_contributions.iter().map(|input| input.sensitivity_coefficient))),
-        csv_escape(number_list(report.input_contributions.iter().map(|input| input.standard_uncertainty))),
-        report.evidence_level,
-    )
+        format!("{:.12}", report.input_correlation_min_eigenvalue),
+        csv_escape(&report.input_contributions.iter().map(|item| item.input_id.as_str()).collect::<Vec<_>>().join("|")),
+        csv_escape(&report.input_contributions.iter().map(|item| item.input_unit.as_str()).collect::<Vec<_>>().join("|")),
+        csv_escape(&report.input_contributions.iter().map(|item| item.source_reference.as_str()).collect::<Vec<_>>().join("|")),
+        csv_escape(number_list(report.input_contributions.iter().map(|item| item.sensitivity_coefficient))),
+        csv_escape(number_list(report.input_contributions.iter().map(|item| item.standard_uncertainty))),
+        report.input_and_experiment_are_aleatory.to_string(),
+        csv_escape(&report.aleatory_basis_rationale),
+        report.evidence_level.to_owned(),
+    ];
+    format!("{VALIDATION_UNCERTAINTY_CSV_HEADER}\n{}\n", fields.join(","))
 }
 
 #[cfg(test)]
@@ -621,6 +610,8 @@ mod tests {
             ],
             input_correlation_matrix: vec![vec![1.0, 0.4], vec![0.4, 1.0]],
             experimental_standard_uncertainty: 0.15,
+            input_and_experiment_are_aleatory: true,
+            aleatory_basis_rationale: "synthetic declared aleatory sources".to_owned(),
             input_experiment_error_correlation: Some(0.25),
             aleatory_expansion_factor: 2.0,
         }
@@ -654,14 +645,37 @@ mod tests {
     #[test]
     fn absent_input_experiment_correlation_does_not_become_independence_or_zero() {
         let mut study = base_study();
+        study.input_and_experiment_are_aleatory = false;
+        study.aleatory_basis_rationale.clear();
         study.input_experiment_error_correlation = None;
         let report = evaluate_validation_uncertainty(&admission(), &study)
-            .expect("separate uncertainty components are reportable");
+            .expect("unclassified uncertainty components remain separate");
         assert!(report.aleatory_standard_uncertainty.is_none());
         assert!(report.aleatory_expanded_bound.is_none());
         assert!(report.conservative_total_bound.is_none());
         assert!(report.model_discrepancy_lower.is_none());
         assert!(report.model_discrepancy_upper.is_none());
+    }
+
+    #[test]
+    fn correlation_alone_does_not_authorize_aleatory_combination() {
+        let mut study = base_study();
+        study.input_and_experiment_are_aleatory = false;
+        study.aleatory_basis_rationale.clear();
+        let report = evaluate_validation_uncertainty(&admission(), &study)
+            .expect("unclassified components remain separate");
+        assert!(report.input_experiment_error_correlation.is_some());
+        assert!(report.aleatory_standard_uncertainty.is_none());
+        assert!(report.conservative_total_bound.is_none());
+    }
+
+    #[test]
+    fn aleatory_combination_without_explicit_correlation_is_rejected() {
+        let mut study = base_study();
+        study.input_experiment_error_correlation = None;
+        let error = evaluate_validation_uncertainty(&admission(), &study)
+            .expect_err("declared aleatory combination requires rho");
+        assert!(error.contains("requires an explicit correlation"));
     }
 
     #[test]
@@ -735,7 +749,8 @@ mod tests {
         let first = report_to_csv(&report);
         assert_eq!(first, report_to_csv(&report));
         assert!(first.contains("Mach|Re"));
-        assert!(first.contains("1.000000000000,0.400000000000;0.400000000000,1.000000000000"));
+        assert!(first.contains("1.000000000000|0.400000000000;0.400000000000|1.000000000000"));
+        assert!(first.contains("true,\"synthetic declared aleatory sources\""));
         assert_eq!(first.lines().count(), 2);
     }
 }

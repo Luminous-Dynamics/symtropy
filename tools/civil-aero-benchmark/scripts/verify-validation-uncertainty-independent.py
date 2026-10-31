@@ -35,6 +35,8 @@ def main() -> int:
     input_variance = 0.2**2 + (-0.3)**2 + 2.0 * 0.4 * 0.2 * (-0.3)
     input_uncertainty = math.sqrt(input_variance)
     require(math.isclose(float(row["input_standard_uncertainty"]), input_uncertainty, rel_tol=1e-10), "covariance propagation mismatch")
+    require(row["input_and_experiment_are_aleatory"] == "true", "aleatory basis declaration missing")
+    require(row["aleatory_basis_rationale"] == "synthetic declared aleatory sources", "aleatory rationale missing")
     require(row["input_experiment_error_correlation"] == "0.250000000000", "input/experiment correlation missing")
     aleatory = math.sqrt(input_uncertainty**2 + 0.15**2 - 2 * 0.25 * input_uncertainty * 0.15)
     require(math.isclose(float(row["aleatory_standard_uncertainty"]), aleatory, rel_tol=1e-10), "aleatory combination mismatch")

@@ -31,11 +31,11 @@ The correlation matrix must be finite, symmetric, have unit diagonal, and be pos
 
 ## Experimental and input correlation
 
-The experimental standard uncertainty is supplied separately. If the caller provides the correlation rho between input-induced prediction error and experimental error in E = S - D, then:
+The experimental standard uncertainty is supplied separately. Only when the caller explicitly declares both groups aleatory, supplies a rationale, and provides correlation rho between input-induced prediction error and experimental error in E = S - D, then:
 
 u_aleatory^2 = u_input^2 + u_exp^2 - 2 rho u_input u_exp.
 
-When rho is absent, the module reports the separate input and experimental components but does not combine them and does not emit a discrepancy interval. It does not silently interpret missing correlation as zero.
+When the aleatory declaration is absent or rho is absent, the module reports the separate input and experimental components but does not combine them and does not emit a discrepancy interval. A rho value alone is insufficient to establish aleatory behaviour. It does not silently interpret missing correlation as zero.
 
 ## Conservative discrepancy envelope
 
