@@ -1749,6 +1749,97 @@ fn certify_sliding_branch_admissibility(
     }
 }
 
+fn narrow_regular_contact_box() -> ContactInputBox {
+    ContactInputBox::from_f64_bounds([
+        [0.9999, 1.0001],
+        [-0.0001, 0.0001],
+        [-0.0001, 0.0001],
+        [0.9999, 1.0001],
+        [-0.0001, 0.0001],
+        [0.9999, 1.0001],
+        [-1.0001, -0.9999],
+        [-3.0001, -2.9999],
+        [0.9999, 1.0001],
+        [0.2499, 0.2501],
+    ]).unwrap()
+}
+
+#[test]
+fn uniform_simple_root_brackets_cover_all_representative_roots() {
+    let input = narrow_regular_contact_box();
+    let brackets = certify_uniform_simple_root_brackets(&input).unwrap();
+    assert_eq!(brackets.len(), 2);
+    assert!(brackets[0].upper < brackets[1].lower);
+    let coefficients = input.coefficient_intervals();
+    let derivative = interval_polynomial_derivative(&coefficients);
+    for bracket in &brackets {
+        let lower_value = interval_polynomial_evaluate(
+            &coefficients,
+            &ExactInterval::point(bracket.lower.clone()),
+        );
+        let upper_value = interval_polynomial_evaluate(
+            &coefficients,
+            &ExactInterval::point(bracket.upper.clone()),
+        );
+        let derivative_value = interval_polynomial_evaluate(
+            &derivative,
+            &ExactInterval::new(bracket.lower.clone(), bracket.upper.clone()).unwrap(),
+        );
+        assert!(strict_opposite_sign(&lower_value, &upper_value));
+        assert!(derivative_value.excludes_zero());
+    }
+}
+
+#[test]
+fn interval_sliding_branch_distinguishes_admissible_and_negative_tau_roots() {
+    let input = narrow_regular_contact_box();
+    let brackets = certify_uniform_simple_root_brackets(&input).unwrap();
+    assert_eq!(brackets.len(), 2);
+
+    let mut outcomes = brackets
+        .iter()
+        .map(|bracket| {
+            let certificate = certify_sliding_branch_admissibility(&input, bracket);
+            (bracket, certificate)
+        })
+        .collect::<Vec<_>>();
+    outcomes.sort_by(|left, right| {
+        left.0.lower.cmp(&right.0.lower)
+    });
+
+    assert_eq!(
+        outcomes[0].1.status,
+        SlidingBranchStatus::InadmissibleThroughout("disk multiplier is negative")
+    );
+    assert_eq!(
+        outcomes[1].1.status,
+        SlidingBranchStatus::AdmissibleThroughout
+    );
+    let admissible = &outcomes[1].1;
+    assert!(admissible.normal_impulse.as_ref().unwrap().lower > Rational::zero());
+    assert!(admissible.disk_multiplier.as_ref().unwrap().lower > Rational::zero());
+    assert!(admissible.kinetic_energy_delta.as_ref().unwrap().upper <= Rational::zero());
+    assert!(admissible.tangent_orthogonality_residual.as_ref().unwrap().contains_zero());
+    assert!(admissible.disk_boundary_residual.as_ref().unwrap().contains_zero());
+}
+
+#[test]
+fn uniform_root_branch_refuses_a_family_without_root_count_certificate() {
+    let input = ContactInputBox::from_f64_bounds([
+        [0.999, 1.001],
+        [0.0, 0.0],
+        [0.0, 0.0],
+        [0.999, 1.001],
+        [0.0, 0.0],
+        [0.999, 1.001],
+        [-1.001, -0.999],
+        [-3.001, -2.999],
+        [-0.001, 0.001],
+        [0.249, 0.251],
+    ]).unwrap();
+    assert!(certify_uniform_simple_root_brackets(&input).is_err());
+}
+
 #[test]
 fn interval_discriminant_formula_matches_an_independent_exact_resultant() {
     let roots = [-3_i64, -1, 2, 5]
