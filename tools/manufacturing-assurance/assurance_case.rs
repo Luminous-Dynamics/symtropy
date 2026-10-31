@@ -1001,7 +1001,7 @@ mod tests {
             "CLAIM|top|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2",
         );
         input.push_str(&format!(
-            "EVIDENCE|e-counter|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T0|VERIFIED|{}|Under-tier counterexample\\nEDGE|e-counter|top|COUNTERS\\n",
+            "EVIDENCE|e-counter|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T0|VERIFIED|{}|Under-tier counterexample\nEDGE|e-counter|top|COUNTERS\n",
             HASH_C
         ));
         let report = run_report(&input).unwrap();
