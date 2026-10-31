@@ -77,6 +77,7 @@ fn cross(a: Vec2, b: Vec2) -> f64 {
     a[0] * b[1] - a[1] * b[0]
 }
 
+#[cfg(test)]
 fn rotate(a: Vec2, angle: f64) -> Vec2 {
     let (sin, cos) = angle.sin_cos();
     [cos * a[0] - sin * a[1], sin * a[0] + cos * a[1]]
