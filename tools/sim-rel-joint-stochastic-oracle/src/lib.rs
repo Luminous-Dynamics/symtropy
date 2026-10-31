@@ -17,6 +17,7 @@ pub mod robust_optimizer;
 pub mod benchmark;
 pub mod challenge;
 pub mod particle;
+pub mod identifiability;
 
 const MAX_HYPOTHESES: usize = 32;
 const MAX_PHYSICAL_STATES: usize = 64;
