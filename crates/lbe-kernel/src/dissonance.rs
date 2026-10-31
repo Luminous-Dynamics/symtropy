@@ -1368,6 +1368,68 @@ mod tests {
         assert_eq!(record.event_history().count(), 2);
     }
 
+
+    #[test]
+    fn experiment_must_account_for_every_position_tested_or_retained() {
+        let mut record = DissonanceRecord::new(
+            DissonanceKind::StructuralParadox,
+            vec![
+                position("p1", "workers", "Protect worker autonomy."),
+                position("p2", "community", "Maintain shared capacity."),
+                position("p3", "caregivers", "Protect care time."),
+            ],
+        ).unwrap();
+        record_safe(&mut record, 10, "experiment-safeguards");
+        let incomplete = DissonanceDisposition::Experiment {
+            position_ids: vec![PositionId::new("p1").unwrap(), PositionId::new("p2").unwrap()],
+            retained: vec![],
+            protocol_id: "protocol:paradox".to_owned(),
+            review_at: 100,
+            stop_condition: "Stop on subgroup harm.".to_owned(),
+        };
+        let context = event_context(&record, 11, "incomplete-experiment");
+        assert_eq!(
+            record.set_disposition_with_context(incomplete, context),
+            Err(DissonanceError::DissentNotPreserved)
+        );
+        let complete = DissonanceDisposition::Experiment {
+            position_ids: vec![PositionId::new("p1").unwrap(), PositionId::new("p2").unwrap()],
+            retained: vec![PositionId::new("p3").unwrap()],
+            protocol_id: "protocol:paradox".to_owned(),
+            review_at: 100,
+            stop_condition: "Stop on subgroup harm.".to_owned(),
+        };
+        let context = event_context(&record, 11, "complete-experiment");
+        assert_eq!(record.set_disposition_with_context(complete, context), Ok(()));
+    }
+
+    #[test]
+    fn invalid_hazard_finding_downgrade_is_rejected_without_event() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        let context = event_context(&record, 10, "reported");
+        record.report_hazard_with_context(HazardReport {
+            id: "hazard-transition".to_owned(),
+            hazard: CorrosiveHazard::Intimidation,
+            finding: HazardFinding::Reported,
+            evidence_ref: None,
+        }, context).unwrap();
+        let context = event_context(&record, 11, "invalid-transition");
+        assert_eq!(
+            record.update_hazard_finding_with_context(
+                "hazard-transition",
+                HazardFinding::Reported,
+                "evidence:repeat".to_owned(),
+                context,
+            ),
+            Err(DissonanceError::InvalidHazardTransition)
+        );
+        assert_eq!(record.event_history().count(), 1);
+        assert_eq!(
+            record.hazard_reports().next().unwrap().finding,
+            HazardFinding::Reported
+        );
+    }
+
     #[test]
     fn a_refuted_hazard_can_reopen_only_as_a_new_evidence_linked_event() {
         let mut record = record(DissonanceKind::StructuralParadox);
