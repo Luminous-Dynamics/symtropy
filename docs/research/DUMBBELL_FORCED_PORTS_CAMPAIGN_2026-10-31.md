@@ -118,6 +118,8 @@ It emits one row per method and timestep with:
 
 The independent auditor rejects malformed/non-finite values, wrong horizons, duplicate or missing rows, excessive constraint/balance residuals, incorrect work sign/value, incorrect impulse/torque sign/value, and impossible iteration accounting.
 
+The RATTLE reference also has a separate one-step unequal/non-parallel acceleration control, checking force-displacement work, linear impulse, angular torque impulse, link residual and endpoint tangency. The pHDAE reference has a corresponding unequal-force one-step control. These are ledger controls, not a long-horizon unequal-force trajectory benchmark.
+
 ## Independent equation-level cross-checks
 
 These are double-precision equation-level checks, not results from the committed Rust source or CI.
