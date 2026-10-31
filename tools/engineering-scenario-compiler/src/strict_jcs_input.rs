@@ -9,6 +9,63 @@ use std::fmt;
 
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
+/// Inspect raw JSON number tokens before serde_json converts oversized integer
+/// lexemes to f64. The Go verifier applies the same safe-integer token profile.
+fn validate_safe_integer_literals(input: &[u8]) -> Result<(), String> {
+    const MAX_SAFE_INTEGER_TEXT: &[u8] = b"9007199254740991";
+    let mut index = 0;
+
+    while index < input.len() {
+        match input[index] {
+            b'"' => {
+                // Skip strings, honoring escaped quotes and backslashes. JSON
+                // syntax and escape validity are checked by serde_json below.
+                index += 1;
+                while index < input.len() {
+                    match input[index] {
+                        b'\\\\' => index = (index + 2).min(input.len()),
+                        b'"' => {
+                            index += 1;
+                            break;
+                        }
+                        _ => index += 1,
+                    }
+                }
+            }
+            b'-' | b'0'..=b'9' => {
+                let start = index;
+                index += 1;
+                while index < input.len()
+                    && matches!(
+                        input[index],
+                        b'0'..=b'9' | b'.' | b'e' | b'E' | b'+' | b'-'
+                    )
+                {
+                    index += 1;
+                }
+
+                let token = &input[start..index];
+                let is_decimal_or_exponent =
+                    token.iter().any(|byte| matches!(byte, b'.' | b'e' | b'E'));
+                if !is_decimal_or_exponent {
+                    let digits = token.strip_prefix(b"-").unwrap_or(token);
+                    let exceeds_safe_integer = digits.len() > MAX_SAFE_INTEGER_TEXT.len()
+                        || (digits.len() == MAX_SAFE_INTEGER_TEXT.len()
+                            && digits > MAX_SAFE_INTEGER_TEXT);
+                    if exceeds_safe_integer {
+                        return Err(format!(
+                            "integer literal {} is outside the declared interoperable safe-integer range",
+                            String::from_utf8_lossy(token)
+                        ));
+                    }
+                }
+            }
+            _ => index += 1,
+        }
+    }
+    Ok(())
+}
+
 struct StrictJcsSeed;
 
 impl<'de> DeserializeSeed<'de> for StrictJcsSeed {
@@ -127,6 +184,9 @@ impl<'de> Visitor<'de> for StrictJcsValueVisitor {
 /// Parse exactly one raw JSON value. Duplicate member names are detected after
 /// escape decoding, at every nesting depth, before a map can overwrite them.
 pub fn parse_strict_jcs_input(input: &[u8]) -> Result<Value, String> {
+    // Preserve integer-vs-float lexical identity before serde_json's visitor
+    // can receive an oversized integer as a finite f64 fallback.
+    validate_safe_integer_literals(input)?;
     let mut deserializer = serde_json::Deserializer::from_slice(input);
     let value = StrictJcsSeed
         .deserialize(&mut deserializer)
@@ -168,6 +228,8 @@ mod tests {
         assert!(parse_strict_jcs_input(b"{} {}").is_err());
         assert!(parse_strict_jcs_input(b"9007199254740992").is_err());
         assert!(parse_strict_jcs_input(b"-9007199254740992").is_err());
+        assert!(parse_strict_jcs_input(b"18446744073709551617").is_err());
+        assert!(parse_strict_jcs_input(b"-9223372036854775809").is_err());
         assert!(parse_strict_jcs_input(b"1e9999").is_err());
     }
 
