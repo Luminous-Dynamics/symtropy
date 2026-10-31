@@ -274,8 +274,19 @@ mod schur_reduction_tests {
         if scale == 0.0 {
             return Err("zero two-contact Delassus matrix");
         }
-        if (w - w.transpose()).norm() > tolerance * scale * 10.0 {
+        let asymmetry = Matrix6::from_fn(|i, j| w[(i, j)] - w[(j, i)]);
+        if asymmetry.norm() > tolerance * scale * 10.0 {
             return Err("two-contact Delassus matrix is not symmetric");
+        }
+        let scaled_symmetric_w = ((w + w.transpose()) * 0.5) / scale;
+        let full_minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(
+            scaled_symmetric_w,
+        )
+        .eigenvalues
+        .iter()
+        .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+        if full_minimum_eigenvalue <= tolerance {
+            return Err("two-contact Delassus matrix is not sufficiently positive definite");
         }
         if w.clone().cholesky().is_none() {
             return Err("two-contact Delassus matrix is not positive definite");
@@ -287,6 +298,18 @@ mod schur_reduction_tests {
         let q_1 = SVector::<f64, 3>::new(q[0], q[1], q[2]);
         let q_2 = SVector::<f64, 3>::new(q[3], q[4], q[5]);
 
+        let c_scale = c.iter().fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if c_scale == 0.0 {
+            return Err("sticking contact principal block is zero");
+        }
+        let scaled_c = (&c + c.transpose()) * (0.5 / c_scale);
+        let c_minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(scaled_c)
+            .eigenvalues
+            .iter()
+            .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+        if c_minimum_eigenvalue <= tolerance {
+            return Err("sticking contact principal block is ill-conditioned");
+        }
         let c_factor = c.cholesky().ok_or("sticking contact principal block is not SPD")?;
         let c_inverse_b_transpose = c_factor.solve(&b.transpose());
         let c_inverse_q_2 = c_factor.solve(&q_2);
@@ -498,4 +521,19 @@ mod schur_reduction_tests {
                 && (candidate.impulse - expected).norm() < 2.0e-6
         }));
     }
+
+    #[test]
+    fn schur_reduction_refuses_a_near_singular_sticking_block() {
+        let mut w = Matrix6::identity();
+        w[(5, 5)] = 1.0e-14;
+        let q = Vector6::new(-1.0, 0.1, -0.1, -1.0, 0.1, -0.1);
+        let result = solve_with_contact_two_sticking(
+            &w, &q, 0.5, 0.5, 1.0e-12,
+        );
+        assert_eq!(
+            result.unwrap_err(),
+            "two-contact Delassus matrix is not sufficiently positive definite"
+        );
+    }
+
 }
