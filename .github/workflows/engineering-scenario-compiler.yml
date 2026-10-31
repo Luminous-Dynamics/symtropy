@@ -126,8 +126,8 @@ jobs:
       - name: Benchmark strict JSON preflight and independent JCS separately
         env:
           GO111MODULE: "off"
-          GOPATH: \${{ runner.temp }}/jcs-gopath
-          JCS_BENCH_INPUT: \${{ github.workspace }}/target/engineering-scenario-compiler-portable-identity/scenario-ir-input.json
+          GOPATH: ${{ runner.temp }}/jcs-gopath
+          JCS_BENCH_INPUT: ${{ github.workspace }}/target/engineering-scenario-compiler-portable-identity/scenario-ir-input.json
         run: |
           cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
           test -z "$(gofmt -d *.go)"
