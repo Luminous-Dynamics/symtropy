@@ -71,10 +71,13 @@ finite terminal decisions. Its loss table is indexed by
 `(decision, mechanism, next physical state)`; the current sensor and apparatus
 states affect the posterior, while their terminal consequences must be encoded
 in the declared physical-state context or extended by a later loss-table schema.
-Abstention has its own explicit loss. Every possible public outcome is replayed
+Abstention has its own explicit loss. Every possible policy-visible outcome is replayed
 through the exact action-realization filter, and the command cost is charged once
-even on a hazard branch. The caller supplies an explicit hazard loss and receives
-the exact hazard probability separately.
+even on a hazard branch. An explicit observation protocol selects whether
+readback and measurement channels are visible. If a channel is not acquired, its
+outcomes are marginalized into one public branch; if its presence/absence is
+visible, a missing value remains a distinct observation. The caller supplies an
+explicit hazard loss and receives the exact hazard probability separately.
 
 The counterexample uses prior probabilities `(0.80, 0.19, 0.01)`. The two
 ordinary mechanisms share the same optimal terminal decision; a rare critical
