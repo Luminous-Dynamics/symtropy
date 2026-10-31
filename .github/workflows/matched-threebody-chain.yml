@@ -1,0 +1,53 @@
+name: Matched pHDAE and Cartesian RATTLE three-body chain campaign
+
+on:
+  pull_request:
+    paths:
+      - "tools/phdae-threebody-chain/**"
+      - "tools/rattle-threebody-chain/**"
+      - "tools/constraint-graph-rank/**"
+      - "tools/matched-threebody-chain/**"
+      - "docs/research/MATCHED_PHDAE_RATTLE_THREE_BODY_CHAIN_2026-10-31.md"
+      - ".github/workflows/matched-threebody-chain.yml"
+  push:
+    branches:
+      - "research/matched-threebody-chain-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  matched-open-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: |
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/constraint-graph-rank/constraint_graph_rank.rs
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/phdae-threebody-chain/three_body_chain.rs
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/rattle-threebody-chain/cartesian_rattle_chain.rs
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/matched-threebody-chain/compare_phdae_rattle_chain.rs
+
+      - name: Compile and run warning-denied matched tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/matched-threebody-chain/compare_phdae_rattle_chain.rs \
+            -o /tmp/matched-chain-tests
+          /tmp/matched-chain-tests
+
+      - name: Compile optimized campaign and verify deterministic report
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/matched-threebody-chain/compare_phdae_rattle_chain.rs \
+            -o /tmp/matched-chain
+          /tmp/matched-chain > /tmp/matched-chain-a.csv
+          /tmp/matched-chain > /tmp/matched-chain-b.csv
+          cmp /tmp/matched-chain-a.csv /tmp/matched-chain-b.csv
+          test "$(wc -l < /tmp/matched-chain-a.csv)" -eq 9
+          grep -q "^coupled_phdae_discrete_gradient," /tmp/matched-chain-a.csv
+          grep -q "^cartesian_shake_rattle," /tmp/matched-chain-a.csv
