@@ -100,16 +100,18 @@ pub fn verify_blackwell_dominance(
         }
     }
 
-    for state in 0..more_informative.state_ids.len() {
-        for less_observation in 0..less_informative.observation_ids.len() {
+    for (state, more_row) in more_informative.probabilities.iter().enumerate() {
+        let less_row = &less_informative.probabilities[state];
+        for (less_observation, target_probability) in less_row.iter().copied().enumerate() {
             let mut reconstructed = Rational::zero();
-            for more_observation in 0..more_informative.observation_ids.len() {
+            for (more_observation, more_probability) in more_row.iter().copied().enumerate() {
                 reconstructed = reconstructed.checked_add(
-                    more_informative.probabilities[state][more_observation]
-                        .checked_mul(witness.probabilities[more_observation][less_observation])?,
+                    more_probability.checked_mul(
+                        witness.probabilities[more_observation][less_observation],
+                    )?,
                 )?;
             }
-            if reconstructed != less_informative.probabilities[state][less_observation] {
+            if reconstructed != target_probability {
                 return Err(format!(
                     "garbling witness does not reconstruct state {state}, observation {less_observation}"
                 ));
@@ -268,16 +270,16 @@ pub fn evaluate_channel_decisions(
     let mut decision_disagreement_probability = Rational::zero();
     let mut observations = Vec::new();
 
-    for observation in 0..assumed.observation_ids.len() {
+    for (observation, observation_id) in assumed.observation_ids.iter().enumerate() {
         let mut true_probability = Rational::zero();
         let mut assumed_probability = Rational::zero();
         let mut true_joint = vec![Rational::zero(); prior.len()];
         let mut assumed_joint = vec![Rational::zero(); prior.len()];
 
-        for state in 0..prior.len() {
-            let true_mass = prior[state].checked_mul(truth.probabilities[state][observation])?;
+        for (state, prior_mass) in prior.iter().copied().enumerate() {
+            let true_mass = prior_mass.checked_mul(truth.probabilities[state][observation])?;
             let assumed_mass =
-                prior[state].checked_mul(assumed.probabilities[state][observation])?;
+                prior_mass.checked_mul(assumed.probabilities[state][observation])?;
             true_joint[state] = true_mass;
             assumed_joint[state] = assumed_mass;
             true_probability = true_probability.checked_add(true_mass)?;
@@ -328,7 +330,7 @@ pub fn evaluate_channel_decisions(
             true_bayes_oracle_loss.checked_add(true_probability.checked_mul(true_bayes_loss)?)?;
 
         observations.push(ObservationDecisionReceipt {
-            observation_id: assumed.observation_ids[observation].clone(),
+            observation_id: observation_id.clone(),
             true_observation_probability: true_probability,
             assumed_observation_probability: assumed_probability,
             chosen_decision,
@@ -371,27 +373,30 @@ pub fn mutual_information_bits(
     validate_prior(prior, channel.state_ids.len())?;
 
     let mut observation_marginal = vec![0.0_f64; channel.observation_ids.len()];
-    for state in 0..channel.state_ids.len() {
+    for (state, prior_probability) in prior.iter().copied().enumerate() {
         let prior_mass =
-            prior[state].numerator() as f64 / prior[state].denominator() as f64;
-        for observation in 0..channel.observation_ids.len() {
-            let channel_probability = channel.probabilities[state][observation].numerator() as f64
-                / channel.probabilities[state][observation].denominator() as f64;
+            prior_probability.numerator() as f64 / prior_probability.denominator() as f64;
+        for (observation, conditional_probability) in
+            channel.probabilities[state].iter().copied().enumerate()
+        {
+            let channel_probability = conditional_probability.numerator() as f64
+                / conditional_probability.denominator() as f64;
             observation_marginal[observation] += prior_mass * channel_probability;
         }
     }
 
     let mut information = 0.0_f64;
-    for state in 0..channel.state_ids.len() {
+    for (state, prior_probability) in prior.iter().copied().enumerate() {
         let prior_mass =
-            prior[state].numerator() as f64 / prior[state].denominator() as f64;
+            prior_probability.numerator() as f64 / prior_probability.denominator() as f64;
         if prior_mass == 0.0 {
             continue;
         }
-        for observation in 0..channel.observation_ids.len() {
-            let conditional =
-                channel.probabilities[state][observation].numerator() as f64
-                    / channel.probabilities[state][observation].denominator() as f64;
+        for (observation, conditional_probability) in
+            channel.probabilities[state].iter().copied().enumerate()
+        {
+            let conditional = conditional_probability.numerator() as f64
+                / conditional_probability.denominator() as f64;
             let marginal = observation_marginal[observation];
             if conditional > 0.0 && marginal > 0.0 {
                 information += prior_mass * conditional * (conditional / marginal).log2();
