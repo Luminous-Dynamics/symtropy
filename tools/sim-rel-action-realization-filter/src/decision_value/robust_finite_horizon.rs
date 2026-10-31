@@ -92,9 +92,17 @@ type BeliefVector = Vec<Option<Vec<BeliefMass>>>;
 type WorldPartition = BTreeMap<PublicObservation, ObservationBranch>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+struct RawPathMass {
+    state: LatentState,
+    mass: Rational,
+}
+
+type RawPathMassVector = Vec<Option<Vec<RawPathMass>>>;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct ReplayBranch {
     probability: Rational,
-    next_mass: Option<Vec<BeliefMass>>,
+    next_mass: Option<Vec<RawPathMass>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -472,12 +480,20 @@ pub fn optimize_shared_policy_decisions(
         return Err("all robust decision solver resource caps must be positive".into());
     }
 
-    let initial_beliefs: BeliefVector = canonical_worlds
+    let initial_masses: RawPathMassVector = canonical_worlds
         .iter()
         .map(|world| {
-            let mut belief = world.kernel.initial_belief.clone();
-            belief.sort_by_key(|point| point.state);
-            Some(belief)
+            Some(
+                world
+                    .kernel
+                    .initial_belief
+                    .iter()
+                    .map(|point| RawPathMass {
+                        state: point.state,
+                        mass: point.mass,
+                    })
+                    .collect(),
+            )
         })
         .collect();
 
@@ -981,7 +997,7 @@ pub fn replay_shared_policy_across_worlds(
         command_costs,
         hazard_loss,
         plan,
-        &initial_beliefs,
+        &initial_masses,
         horizon,
     )?;
     let per_world = metrics
@@ -1016,7 +1032,7 @@ fn replay_unnormalized_node(
     command_costs: &[Rational],
     hazard_loss: Rational,
     plan: &DecisionPlan,
-    masses: &BeliefVector,
+    masses: &RawPathMassVector,
     remaining_horizon: usize,
 ) -> Result<Vec<WorldObjectives>, String> {
     match plan {
@@ -1169,7 +1185,7 @@ fn replay_unnormalized_node(
 /// the total probability of reaching that branch instead of being normalized.
 fn raw_replay_partitions(
     worlds: &[DecisionModelWorld],
-    masses: &BeliefVector,
+    masses: &RawPathMassVector,
     command: usize,
     protocol: ObservationProtocol,
 ) -> Result<Vec<BTreeMap<PublicObservation, ReplayBranch>>, String> {
