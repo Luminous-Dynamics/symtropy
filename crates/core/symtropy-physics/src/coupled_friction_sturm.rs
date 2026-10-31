@@ -351,9 +351,9 @@ fn sturm_counts_distinct_roots_for_repeated_factors() {
     let coefficients = rationals_to_f64(&polynomial_from_roots(&roots));
     let intervals = sturm_isolate_f64(&coefficients).unwrap();
     assert_eq!(intervals.len(), 3);
-    // The exact oracle resolves repeated roots. The floating production
-    // candidate generator must refuse a non-exact stationary approximation.
-    assert!(real_polynomial_roots(&coefficients, 1.0e-12).is_err());
+    // The exact oracle counts distinct roots, and the numerical candidates
+    // must agree with that count for this well-scaled repeated-root fixture.
+    assert_production_matches_sturm(&coefficients, 1.0e-12);
 }
 
 #[test]
