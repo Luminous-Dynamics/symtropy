@@ -170,6 +170,24 @@ pub enum PhysicsStepPhase {
     ContactSolve,
 }
 
+/// Typed cause of a rejected physics-world step.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PhysicsStepCause {
+    RotationalInertia(crate::inertia::RotationalInertiaError),
+    InvalidTimeStep,
+    NonFiniteCallbackOutput,
+    ImpulseDirectionReversal,
+    NegativeFrictionCoefficient,
+    NegativeFrictionMultiplier,
+    NonFiniteContactMetric,
+}
+
+impl From<crate::inertia::RotationalInertiaError> for PhysicsStepCause {
+    fn from(error: crate::inertia::RotationalInertiaError) -> Self {
+        Self::RotationalInertia(error)
+    }
+}
+
 /// Structured failure receipt from a rejected physics-world step.
 ///
 /// Body handles identify the affected object(s); the phase distinguishes
@@ -179,7 +197,7 @@ pub struct PhysicsStepError {
     pub phase: PhysicsStepPhase,
     pub body_a: Option<BodyHandle>,
     pub body_b: Option<BodyHandle>,
-    pub cause: crate::inertia::RotationalInertiaError,
+    pub cause: PhysicsStepCause,
 }
 
 #[derive(Clone)]
@@ -587,6 +605,14 @@ impl<const D: usize> PhysicsWorld<D> {
         dt: f64,
         callback: &mut dyn PhysicsCallback<D>,
     ) -> Result<(), PhysicsStepError> {
+        if !dt.is_finite() || dt <= 0.0 {
+            return Err(PhysicsStepError {
+                phase: PhysicsStepPhase::BodyIntegration,
+                body_a: None,
+                body_b: None,
+                cause: PhysicsStepCause::InvalidTimeStep,
+            });
+        }
         let snapshot = WorldStepSnapshot::capture(self);
         let mut pending_effects = Vec::new();
         match self.step_internal(dt, callback, &mut pending_effects) {
@@ -647,12 +673,20 @@ impl<const D: usize> PhysicsWorld<D> {
             if !body.sleeping {
                 body.force_accumulator =
                     callback.modulate_force(body.handle, &body.force_accumulator);
+                if !body.force_accumulator.iter().all(|value| value.is_finite()) {
+                    return Err(PhysicsStepError {
+                        phase: PhysicsStepPhase::BodyIntegration,
+                        body_a: Some(body.handle),
+                        body_b: None,
+                        cause: PhysicsStepCause::NonFiniteCallbackOutput,
+                    });
+                }
                 integrator::try_integrate(body, &self.gravity, dt).map_err(|cause| {
                     PhysicsStepError {
                         phase: PhysicsStepPhase::BodyIntegration,
                         body_a: Some(body.handle),
                         body_b: None,
-                        cause,
+                        cause: cause.into(),
                     }
                 })?;
             }
@@ -850,7 +884,7 @@ impl<const D: usize> PhysicsWorld<D> {
                         phase: PhysicsStepPhase::ContactWarmStart,
                         body_a: Some(body_a),
                         body_b: Some(body_b),
-                        cause,
+                        cause: cause.into(),
                     })?;
             }
         }
@@ -1206,7 +1240,7 @@ impl<const D: usize> PhysicsWorld<D> {
         dt: f64,
         callback: &mut dyn PhysicsCallback<D>,
         pending_effects: &mut Vec<PhysicsCallbackEffect<D>>,
-    ) -> Result<ContactManifold<D>, crate::inertia::RotationalInertiaError> {
+    ) -> Result<ContactManifold<D>, PhysicsStepCause> {
         let (idx_a, idx_b) = self.find_body_indices(contact.body_a, contact.body_b);
         let (Some(a), Some(b)) = (idx_a, idx_b) else {
             return Ok(contact);
@@ -1310,6 +1344,13 @@ impl<const D: usize> PhysicsWorld<D> {
             // TGS Soft impulse: Δλ = (-v_rel·n + bias) / (w_a + w_b + I_a + I_b + α)
             let denom = total_inv_mass + alpha + ang_term_a + ang_term_b;
             let delta_lambda = (-v_rel_n + bias) / denom;
+            if !denom.is_finite()
+                || denom <= 0.0
+                || !delta_lambda.is_finite()
+                || !pt.lambda.is_finite()
+            {
+                return Err(PhysicsStepCause::NonFiniteContactMetric);
+            }
 
             // Clamp: accumulated normal impulse must stay ≥ 0 (no pulling)
             let new_lambda = (pt.lambda + delta_lambda).max(0.0);
@@ -1319,8 +1360,17 @@ impl<const D: usize> PhysicsWorld<D> {
             if actual_delta.abs() > 1e-15 {
                 // ═══ CONSCIOUSNESS MODULATION: sanctuary + harmony fields ═══
                 let modulated_delta = callback.modulate_impulse(actual_delta, &pt.position);
+                if !modulated_delta.is_finite() {
+                    return Err(PhysicsStepCause::NonFiniteCallbackOutput);
+                }
+                if modulated_delta * actual_delta < 0.0 {
+                    return Err(PhysicsStepCause::ImpulseDirectionReversal);
+                }
 
                 let impulse = contact.normal * modulated_delta;
+                if !impulse.iter().all(|value| value.is_finite()) {
+                    return Err(PhysicsStepCause::NonFiniteCallbackOutput);
+                }
                 integrator::apply_impulse(&mut self.bodies[a], &(-impulse));
                 integrator::apply_impulse(&mut self.bodies[b], &impulse);
 
@@ -1402,10 +1452,31 @@ impl<const D: usize> PhysicsWorld<D> {
 
                 if v_t_mag > 1e-10 {
                     let tangent = v_t / v_t_mag;
-                    let mut mu = (self.bodies[a].friction * self.bodies[b].friction).sqrt();
+                    let friction_a = self.bodies[a].friction;
+                    let friction_b = self.bodies[b].friction;
+                    if !friction_a.is_finite()
+                        || !friction_b.is_finite()
+                        || friction_a < 0.0
+                        || friction_b < 0.0
+                    {
+                        return Err(PhysicsStepCause::NegativeFrictionCoefficient);
+                    }
 
                     // ═══ HARMONY FIELD FRICTION MODULATION ═══
-                    mu *= callback.friction_multiplier(&pt.position, contact.body_a);
+                    let friction_multiplier =
+                        callback.friction_multiplier(&pt.position, contact.body_a);
+                    if !friction_multiplier.is_finite() {
+                        return Err(PhysicsStepCause::NonFiniteCallbackOutput);
+                    }
+                    if friction_multiplier < 0.0 {
+                        return Err(PhysicsStepCause::NegativeFrictionMultiplier);
+                    }
+
+                    let mu = (friction_a * friction_b).sqrt() * friction_multiplier;
+                    let friction_bound = mu * point_bound;
+                    if !mu.is_finite() || !friction_bound.is_finite() {
+                        return Err(PhysicsStepCause::NonFiniteContactMetric);
+                    }
 
                     // Use the same full rotational effective-mass operator
                     // for tangential friction as for the normal impulse.
@@ -1422,7 +1493,7 @@ impl<const D: usize> PhysicsWorld<D> {
                     let denom_t = (total_inv_mass + ang_term_a_t + ang_term_b_t).max(1e-15);
 
                     let j_t_desired = -v_t_mag / denom_t;
-                    let j_t = j_t_desired.clamp(-mu * point_bound, mu * point_bound);
+                    let j_t = j_t_desired.clamp(-friction_bound, friction_bound);
                     let friction_impulse = tangent * j_t;
                     integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
                     integrator::apply_impulse(&mut self.bodies[b], &friction_impulse);
@@ -2840,7 +2911,10 @@ mod transformed_halfspace_tests {
         assert_eq!(error.phase, PhysicsStepPhase::ContactSolve);
         assert_eq!(error.body_a, Some(floor_handle));
         assert_eq!(error.body_b, Some(block_handle));
-        assert_eq!(error.cause, RotationalInertiaError::SingularInertia);
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::RotationalInertia(RotationalInertiaError::SingularInertia)
+        );
         assert_eq!(world.bodies[1].transform.translation.0, block_position);
         assert_eq!(world.bodies[1].linear_velocity, block_velocity);
         assert_eq!(world.bodies[1].force_accumulator, block_force);
