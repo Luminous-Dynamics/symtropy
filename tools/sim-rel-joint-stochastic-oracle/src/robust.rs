@@ -165,6 +165,12 @@ fn validate_compatible(
     {
         return Err(format!("world {world_id} changes the declared physical or sensor state dimensions"));
     }
+    if reference.physical_state_ids != alternative.physical_state_ids {
+        return Err(format!("world {world_id} changes the semantic physical-state vocabulary or ordering"));
+    }
+    if reference.sensor_state_ids != alternative.sensor_state_ids {
+        return Err(format!("world {world_id} changes the semantic sensor-state vocabulary or ordering"));
+    }
     if reference.action_ids != alternative.action_ids {
         return Err(format!("world {world_id} changes the shared action vocabulary or ordering"));
     }
@@ -209,6 +215,8 @@ mod tests {
                 hypothesis_ids: vec!["h0".into(), "h1".into()],
                 physical_state_count: 1,
                 sensor_state_count: 1,
+                physical_state_ids: vec!["specimen-state-0".into()],
+                sensor_state_ids: vec!["sensor-state-0".into()],
                 action_ids: vec!["measure".into()],
                 observation_ids: vec!["zero".into(), "one".into()],
                 action_costs: vec![2],
