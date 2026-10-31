@@ -200,6 +200,16 @@ pub struct PhysicsStepError {
     pub cause: PhysicsStepCause,
 }
 
+/// Discrete work terms accumulated by one attempted world step.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct StepWorkAccumulator {
+    pub(crate) external_force_work_joules: f64,
+    pub(crate) gravity_work_joules: f64,
+    pub(crate) linear_damping_and_speed_limit_energy_change_joules: f64,
+    pub(crate) normal_contact_kinetic_energy_change_joules: f64,
+    pub(crate) friction_contact_kinetic_energy_change_joules: f64,
+}
+
 #[derive(Clone)]
 struct BodyStepSnapshot<const D: usize> {
     transform: Transform<D>,
@@ -605,6 +615,17 @@ impl<const D: usize> PhysicsWorld<D> {
         dt: f64,
         callback: &mut dyn PhysicsCallback<D>,
     ) -> Result<(), PhysicsStepError> {
+        let mut work = StepWorkAccumulator::default();
+        self.try_step_with_callback_and_work(dt, callback, &mut work)
+    }
+
+    pub(crate) fn try_step_with_callback_and_work(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+        work: &mut StepWorkAccumulator,
+    ) -> Result<(), PhysicsStepError> {
+        *work = StepWorkAccumulator::default();
         if !dt.is_finite() || dt <= 0.0 {
             return Err(PhysicsStepError {
                 phase: PhysicsStepPhase::BodyIntegration,
@@ -613,9 +634,17 @@ impl<const D: usize> PhysicsWorld<D> {
                 cause: PhysicsStepCause::InvalidTimeStep,
             });
         }
+        if !self.gravity.iter().all(|value| value.is_finite()) {
+            return Err(PhysicsStepError {
+                phase: PhysicsStepPhase::BodyIntegration,
+                body_a: None,
+                body_b: None,
+                cause: PhysicsStepCause::NonFiniteWorldInput,
+            });
+        }
         let snapshot = WorldStepSnapshot::capture(self);
         let mut pending_effects = Vec::new();
-        match self.step_internal(dt, callback, &mut pending_effects) {
+        match self.step_internal(dt, callback, &mut pending_effects, work) {
             Ok(()) => {
                 // Only publish callback-owned state after the physics state
                 // has crossed its commit boundary. If the solve rejects, the
@@ -637,6 +666,7 @@ impl<const D: usize> PhysicsWorld<D> {
         dt: f64,
         callback: &mut dyn PhysicsCallback<D>,
         pending_effects: &mut Vec<PhysicsCallbackEffect<D>>,
+        work: &mut StepWorkAccumulator,
     ) -> Result<(), PhysicsStepError> {
         // 0. Clear events from previous step
         self.collision_events.clear();
@@ -681,6 +711,33 @@ impl<const D: usize> PhysicsWorld<D> {
                         cause: PhysicsStepCause::NonFiniteCallbackOutput,
                     });
                 }
+
+                let dynamic = body.is_dynamic();
+                let initial_velocity = body.linear_velocity;
+                let applied_force = body.force_accumulator;
+                let raw_velocity = initial_velocity
+                    + (applied_force * body.inv_mass + self.gravity) * dt;
+                if dynamic
+                    && (!raw_velocity.iter().all(|value| value.is_finite())
+                        || !body.mass.is_finite()
+                        || body.mass < 0.0)
+                {
+                    return Err(PhysicsStepError {
+                        phase: PhysicsStepPhase::BodyIntegration,
+                        body_a: Some(body.handle),
+                        body_b: None,
+                        cause: PhysicsStepCause::NonFiniteWorldInput,
+                    });
+                }
+
+                if dynamic {
+                    let midpoint_velocity = (initial_velocity + raw_velocity) * 0.5;
+                    work.external_force_work_joules +=
+                        applied_force.dot(&midpoint_velocity) * dt;
+                    work.gravity_work_joules +=
+                        (self.gravity * body.mass).dot(&midpoint_velocity) * dt;
+                }
+
                 integrator::try_integrate(body, &self.gravity, dt).map_err(|cause| {
                     PhysicsStepError {
                         phase: PhysicsStepPhase::BodyIntegration,
@@ -689,6 +746,24 @@ impl<const D: usize> PhysicsWorld<D> {
                         cause: cause.into(),
                     }
                 })?;
+
+                if dynamic {
+                    let raw_kinetic = 0.5 * body.mass * raw_velocity.norm_squared();
+                    let final_kinetic = 0.5 * body.mass * body.linear_velocity.norm_squared();
+                    work.linear_damping_and_speed_limit_energy_change_joules +=
+                        final_kinetic - raw_kinetic;
+                    if !work.external_force_work_joules.is_finite()
+                        || !work.gravity_work_joules.is_finite()
+                        || !work.linear_damping_and_speed_limit_energy_change_joules.is_finite()
+                    {
+                        return Err(PhysicsStepError {
+                            phase: PhysicsStepPhase::BodyIntegration,
+                            body_a: Some(body.handle),
+                            body_b: None,
+                            cause: PhysicsStepCause::NonFiniteWorldInput,
+                        });
+                    }
+                }
             }
         }
         #[cfg(feature = "deterministic-net")]
@@ -898,7 +973,7 @@ impl<const D: usize> PhysicsWorld<D> {
                     let body_a = contact.body_a;
                     let body_b = contact.body_b;
                     let updated =
-                        self.try_resolve_contact(contact, dt, callback, pending_effects)
+                        self.try_resolve_contact(contact, dt, callback, pending_effects, work)
                             .map_err(|cause| PhysicsStepError {
                                 phase: PhysicsStepPhase::ContactSolve,
                                 body_a: Some(body_a),
@@ -1240,6 +1315,7 @@ impl<const D: usize> PhysicsWorld<D> {
         dt: f64,
         callback: &mut dyn PhysicsCallback<D>,
         pending_effects: &mut Vec<PhysicsCallbackEffect<D>>,
+        work: &mut StepWorkAccumulator,
     ) -> Result<ContactManifold<D>, PhysicsStepCause> {
         let (idx_a, idx_b) = self.find_body_indices(contact.body_a, contact.body_b);
         let (Some(a), Some(b)) = (idx_a, idx_b) else {
@@ -1342,9 +1418,12 @@ impl<const D: usize> PhysicsWorld<D> {
             )?;
 
             // TGS Soft impulse: Δλ = (-v_rel·n + bias) / (w_a + w_b + I_a + I_b + α)
-            let denom = total_inv_mass + alpha + ang_term_a + ang_term_b;
+            let physical_inverse_effective_mass = total_inv_mass + ang_term_a + ang_term_b;
+            let denom = physical_inverse_effective_mass + alpha;
             let delta_lambda = (-v_rel_n + bias) / denom;
-            if !denom.is_finite()
+            if !physical_inverse_effective_mass.is_finite()
+                || physical_inverse_effective_mass <= 0.0
+                || !denom.is_finite()
                 || denom <= 0.0
                 || !delta_lambda.is_finite()
                 || !pt.lambda.is_finite()
@@ -1375,6 +1454,13 @@ impl<const D: usize> PhysicsWorld<D> {
                 if !impulse.iter().all(|value| value.is_finite()) {
                     return Err(PhysicsStepCause::NonFiniteCallbackOutput);
                 }
+                let normal_energy_change = modulated_delta
+                    * (v_rel_n + 0.5 * physical_inverse_effective_mass * modulated_delta);
+                work.normal_contact_kinetic_energy_change_joules += normal_energy_change;
+                if !work.normal_contact_kinetic_energy_change_joules.is_finite() {
+                    return Err(PhysicsStepCause::NonFiniteContactMetric);
+                }
+
                 integrator::apply_impulse(&mut self.bodies[a], &(-impulse));
                 integrator::apply_impulse(&mut self.bodies[b], &impulse);
 
@@ -1529,6 +1615,10 @@ impl<const D: usize> PhysicsWorld<D> {
                     // A correctly clamped Coulomb impulse is opposite slip and
                     // cannot increase kinetic energy through this contact row.
                     let friction_work = j_t * (v_t_mag + 0.5 * denom_t * j_t);
+                    work.friction_contact_kinetic_energy_change_joules += friction_work;
+                    if !work.friction_contact_kinetic_energy_change_joules.is_finite() {
+                        return Err(PhysicsStepCause::NonFiniteContactMetric);
+                    }
                     total_friction_dissipation += (-friction_work).max(0.0);
                 }
             }
@@ -3343,9 +3433,10 @@ mod transformed_halfspace_tests {
         let before_b = world.bodies[1].linear_velocity.clone();
         let mut callback = NoOpCallback;
         let mut pending_effects = Vec::new();
+        let mut work = StepWorkAccumulator::default();
 
         let error = world
-            .try_resolve_contact(contact, 0.01, &mut callback, &mut pending_effects)
+            .try_resolve_contact(contact, 0.01, &mut callback, &mut pending_effects, &mut work)
             .unwrap_err();
         assert!(pending_effects.is_empty());
         assert_eq!(
