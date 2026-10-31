@@ -22,6 +22,7 @@ struct Covariance2 {
     xy: f64,
     yx: f64,
     yy: f64,
+    unit: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -60,6 +61,9 @@ impl LinearMap2 {
 
 impl Covariance2 {
     fn validate(self) -> Result<(), String> {
+        if self.unit != "K^2" {
+            return Err("unsupported_covariance_unit".to_string());
+        }
         let entries = [self.xx, self.xy, self.yx, self.yy];
         if !entries.iter().all(|value| value.is_finite()) {
             return Err("covariance contains a non-finite value".to_string());
@@ -110,6 +114,7 @@ impl Covariance2 {
             xy: au11 * map.a21 + au12 * map.a22,
             yx: au21 * map.a11 + au22 * map.a12,
             yy: au21 * map.a21 + au22 * map.a22,
+            unit: self.unit,
         };
         result.validate()?;
         Ok(result)
@@ -140,6 +145,7 @@ fn shared_latent_covariance() -> Covariance2 {
         xy: 4.0,
         yx: 4.0,
         yy: 6.25,
+        unit: "K^2",
     }
 }
 
@@ -207,7 +213,7 @@ fn run_report() -> Result<String, String> {
     let difference_standard_uncertainty = correlated.yy.sqrt();
 
     let mut output = String::from(
-        "MFG_COMPOSITION_UQ version=1 method=linear_covariance_propagation\n",
+        "MFG_COMPOSITION_UQ version=1 method=linear_covariance_propagation covariance_unit=K^2\n",
     );
     output.push_str(&format!(
         "INPUT var_a_k2={:.6} cov_ab_k2={:.6} var_b_k2={:.6} correlation={:.6}\n",
@@ -283,6 +289,7 @@ mod tests {
             xy: -4.0,
             yx: -4.0,
             yy: 6.25,
+            unit: "K^2",
         };
         let output = input.propagate(sum_difference_map()).unwrap();
         assert!((output.xx - 3.25).abs() < 1.0e-12);
@@ -348,6 +355,7 @@ mod tests {
             xy: 2.0,
             yx: 2.0,
             yy: 1.0,
+            unit: "K^2",
         };
         assert!(invalid.validate().is_err());
     }
@@ -359,6 +367,7 @@ mod tests {
             xy: 0.2,
             yx: 0.1,
             yy: 1.0,
+            unit: "K^2",
         };
         assert_eq!(
             invalid.validate(),
@@ -373,10 +382,23 @@ mod tests {
             xy: 0.0,
             yx: 0.0,
             yy: 1.0,
+            unit: "K^2",
         };
         assert_eq!(
             invalid.validate(),
             Err("covariance has a negative variance".to_string())
+        );
+    }
+
+    #[test]
+    fn unsupported_covariance_unit_is_rejected() {
+        let invalid = Covariance2 {
+            unit: "J^2",
+            ..shared_latent_covariance()
+        };
+        assert_eq!(
+            invalid.validate(),
+            Err("unsupported_covariance_unit".to_string())
         );
     }
 
@@ -387,6 +409,7 @@ mod tests {
             xy: f64::NAN,
             yx: f64::NAN,
             yy: 1.0,
+            unit: "K^2",
         };
         assert_eq!(
             invalid.validate(),
