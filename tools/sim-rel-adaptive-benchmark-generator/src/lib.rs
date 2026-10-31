@@ -17,13 +17,15 @@ pub const MAX_TASKS_PER_FAMILY: usize = 128;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum TaskFamily {
     SensorPhysicalConfounding,
+    NoisySensorConfounding,
     PhysicalCarryover,
     NonIdentifiable,
 }
 
 impl TaskFamily {
-    pub const ALL: [Self; 3] = [
+    pub const ALL: [Self; 4] = [
         Self::SensorPhysicalConfounding,
+        Self::NoisySensorConfounding,
         Self::PhysicalCarryover,
         Self::NonIdentifiable,
     ];
@@ -31,6 +33,7 @@ impl TaskFamily {
     pub const fn id(self) -> &'static str {
         match self {
             Self::SensorPhysicalConfounding => "sensor-physical-confounding",
+            Self::NoisySensorConfounding => "noisy-sensor-confounding",
             Self::PhysicalCarryover => "physical-carryover",
             Self::NonIdentifiable => "non-identifiable",
         }
@@ -39,6 +42,7 @@ impl TaskFamily {
     const fn code(self) -> u64 {
         match self {
             Self::SensorPhysicalConfounding => 0x51A7_0001,
+            Self::NoisySensorConfounding => 0x51A7_0004,
             Self::PhysicalCarryover => 0x51A7_0002,
             Self::NonIdentifiable => 0x51A7_0003,
         }
@@ -46,6 +50,13 @@ impl TaskFamily {
 
     const fn requires_identification(self) -> bool {
         !matches!(self, Self::NonIdentifiable)
+    }
+
+    fn max_false_identification_probability(self) -> Result<Rational, String> {
+        match self {
+            Self::NoisySensorConfounding => Rational::new(1, 4),
+            _ => Ok(Rational::zero()),
+        }
     }
 }
 
@@ -81,8 +92,8 @@ pub struct BenchmarkReceipt {
     pub family: TaskFamily,
     pub horizon: usize,
     pub exact_frontier_points: usize,
-    pub strict_feasible_expected_cost: Option<Rational>,
-    pub strict_feasible_policy: Option<PolicyPlan>,
+    pub budget_feasible_expected_cost: Option<Rational>,
+    pub budget_feasible_policy: Option<PolicyPlan>,
     pub one_step_baseline: Vec<OneStepEigScore>,
     pub equivalence_classes: Vec<Vec<String>>,
     pub equivalence_certificate_count: usize,
@@ -128,10 +139,11 @@ pub fn generate_task(family: TaskFamily, seed: u64) -> Result<GeneratedTask, Str
         return Err("exact optimizer returned an empty task frontier".into());
     }
 
-    let strict = optimization
-        .minimum_cost_under(Rational::zero(), Rational::zero(), Rational::zero())?
+    let false_identification_budget = family.max_false_identification_probability()?;
+    let feasible = optimization
+        .minimum_cost_under(Rational::zero(), false_identification_budget, Rational::zero())?
         .cloned();
-    if family.requires_identification() != strict.is_some() {
+    if family.requires_identification() != feasible.is_some() {
         return Err(format!("family {} violates its strict feasibility contract", family.id()));
     }
 
@@ -168,8 +180,8 @@ pub fn generate_task(family: TaskFamily, seed: u64) -> Result<GeneratedTask, Str
         family,
         horizon: TASK_HORIZON,
         exact_frontier_points: optimization.frontier.len(),
-        strict_feasible_expected_cost: strict.as_ref().map(|point| point.expected_experiment_cost),
-        strict_feasible_policy: strict.map(|point| point.policy),
+        budget_feasible_expected_cost: feasible.as_ref().map(|point| point.expected_experiment_cost),
+        budget_feasible_policy: feasible.map(|point| point.policy),
         one_step_baseline: eig,
         equivalence_classes: identifiability.equivalence_classes.clone(),
         equivalence_certificate_count,
@@ -222,12 +234,13 @@ pub fn verify_generated_task(task: &GeneratedTask) -> Result<(), String> {
     if optimization.frontier.len() != receipt.exact_frontier_points {
         return Err("exact frontier receipt did not replay".into());
     }
-    let strict = optimization
-        .minimum_cost_under(Rational::zero(), Rational::zero(), Rational::zero())?
+    let false_identification_budget = receipt.family.max_false_identification_probability()?;
+    let feasible = optimization
+        .minimum_cost_under(Rational::zero(), false_identification_budget, Rational::zero())?
         .cloned();
-    if strict.as_ref().map(|point| point.expected_experiment_cost)
-        != receipt.strict_feasible_expected_cost
-        || strict.as_ref().map(|point| point.policy.clone()) != receipt.strict_feasible_policy
+    if feasible.as_ref().map(|point| point.expected_experiment_cost)
+        != receipt.budget_feasible_expected_cost
+        || feasible.as_ref().map(|point| point.policy.clone()) != receipt.budget_feasible_policy
     {
         return Err("strict-feasibility receipt did not replay".into());
     }
@@ -243,8 +256,8 @@ pub fn verify_generated_task(task: &GeneratedTask) -> Result<(), String> {
     {
         return Err("identifiability receipt did not replay".into());
     }
-    let strict_is_feasible = strict.is_some();
-    if receipt.family.requires_identification() != strict_is_feasible {
+    let feasible_is_identifiable = feasible.is_some();
+    if receipt.family.requires_identification() != feasible_is_identifiable {
         return Err("task family strict-feasibility contract did not replay".into());
     }
     if receipt.family.requires_identification()
@@ -282,7 +295,7 @@ fn build_kernel(
 ) -> Result<JointKernel, String> {
     let (physical_state_count, sensor_state_count, action_ids, observation_ids, action_costs) =
         match family {
-            TaskFamily::SensorPhysicalConfounding => (
+            TaskFamily::SensorPhysicalConfounding | TaskFamily::NoisySensorConfounding => (
                 2, 2, vec!["measure", "calibrate"], vec!["zero", "one"],
                 vec![primary_cost, secondary_cost],
             ),
@@ -297,7 +310,7 @@ fn build_kernel(
         };
 
     let initial_belief = match family {
-        TaskFamily::SensorPhysicalConfounding => vec![
+        TaskFamily::SensorPhysicalConfounding | TaskFamily::NoisySensorConfounding => vec![
             JointMass { hypothesis: 0, physical_state: 0, sensor_state: 1, mass: prior[0] },
             JointMass { hypothesis: 1, physical_state: 1, sensor_state: 0, mass: prior[1] },
         ],
@@ -356,6 +369,25 @@ fn outcomes_for(
         TaskFamily::SensorPhysicalConfounding => vec![safe(
             Rational::one(), physical_state, 0, 0,
         )],
+        TaskFamily::NoisySensorConfounding if action == 0 => {
+            let latent_signal = physical_state ^ sensor_state;
+            let correct = Rational::new(3, 4).expect("fixed 3/4 probability is valid");
+            let error = Rational::new(1, 4).expect("fixed 1/4 probability is valid");
+            if latent_signal == 0 {
+                vec![
+                    safe(correct, physical_state, sensor_state, 0),
+                    safe(error, physical_state, sensor_state, 1),
+                ]
+            } else {
+                vec![
+                    safe(error, physical_state, sensor_state, 0),
+                    safe(correct, physical_state, sensor_state, 1),
+                ]
+            }
+        }
+        TaskFamily::NoisySensorConfounding => vec![safe(
+            Rational::one(), physical_state, 0, 0,
+        )],
         TaskFamily::PhysicalCarryover if action == 0 => vec![safe(
             Rational::one(), physical_state, sensor_state, physical_state,
         )],
@@ -404,8 +436,38 @@ mod tests {
     fn sensor_confounding_requires_calibration_then_measurement() {
         for seed in 0..16 {
             let task = generate_task(TaskFamily::SensorPhysicalConfounding, seed).unwrap();
-            let policy = task.receipt.strict_feasible_policy.as_ref().unwrap();
+            let policy = task.receipt.budget_feasible_policy.as_ref().unwrap();
             assert_eq!(policy_actions(policy, &task.kernel), vec!["calibrate".to_string(), "measure".to_string()]);
+            assert!(task.receipt.one_step_baseline.iter().all(|score| {
+                score.expected_information_gain_nats.abs() < 1e-12
+            }));
+        }
+    }
+
+
+    #[test]
+    fn stochastic_sensor_confounding_has_exact_bounded_false_claim_risk() {
+        for seed in 0..16 {
+            let task = generate_task(TaskFamily::NoisySensorConfounding, seed).unwrap();
+            let policy = task.receipt.budget_feasible_policy.as_ref().unwrap();
+            assert_eq!(
+                policy_actions(policy, &task.kernel),
+                vec!["calibrate".to_string(), "measure".to_string()]
+            );
+            let selected = optimize_joint_kernel(
+                &task.kernel,
+                &SolverConfig { horizon: TASK_HORIZON, ..SolverConfig::default() },
+            )
+            .unwrap()
+            .minimum_cost_under(
+                Rational::zero(),
+                Rational::new(1, 4).unwrap(),
+                Rational::zero(),
+            )
+            .unwrap()
+            .unwrap();
+            assert_eq!(selected.false_identification_probability, Rational::new(1, 4).unwrap());
+            assert_eq!(selected.correct_identification_probability, Rational::new(3, 4).unwrap());
             assert!(task.receipt.one_step_baseline.iter().all(|score| {
                 score.expected_information_gain_nats.abs() < 1e-12
             }));
@@ -428,7 +490,7 @@ mod tests {
     fn nonidentifiable_controls_have_equivalence_certificates_and_no_strict_policy() {
         for seed in 0..16 {
             let task = generate_task(TaskFamily::NonIdentifiable, seed).unwrap();
-            assert!(task.receipt.strict_feasible_policy.is_none());
+            assert!(task.receipt.budget_feasible_policy.is_none());
             assert_eq!(
                 task.identifiability.equivalence_classes,
                 vec![vec!["mechanism-a".to_string(), "mechanism-b".to_string()]],
