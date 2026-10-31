@@ -688,13 +688,14 @@ fn assess(manifest: &Manifest) -> Assessment {
                 || verification.value > verification.acceptable_max
         });
         return Assessment {
-            state: if manifest.recovery.is_some() {
+            state: (if manifest.recovery.is_some() {
                 "BLOCKED"
             } else if observed_failure {
                 "RECOVERY_REQUIRED"
             } else {
                 "ISSUED_UNVERIFIED"
-            }.to_string(),
+            })
+            .to_string(),
             reasons: missing_reasons,
         };
     }
