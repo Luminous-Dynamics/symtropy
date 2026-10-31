@@ -869,7 +869,7 @@ mod tests {
         assert_eq!(csv_escape("plain"), "plain");
         assert_eq!(csv_escape("part,variant"), "\"part,variant\"");
         assert_eq!(csv_escape("quote\"inside"), "\"quote\"\"inside\"");
-        assert_eq!(csv_escape("line1\\nline2"), "\"line1\\nline2\"");
+        assert_eq!(csv_escape("line1\nline2"), "\"line1\nline2\"");
     }
 
     #[test]
