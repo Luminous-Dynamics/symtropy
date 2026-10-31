@@ -679,9 +679,12 @@ fn evaluate_claim(
     for edge in manifest.edges.iter().filter(|edge| edge.target == id && edge.relation == "COUNTERS") {
         if let Some(evidence) = manifest.evidence.get(&edge.source) {
             if active_at(&evidence.valid_from, &evidence.valid_until, &case.as_of) {
-                if evidence.status == "VERIFIED" {
+                if evidence.status == "VERIFIED" && evidence.tier >= claim.minimum_tier {
                     defeated = true;
                     reasons.push(format!("COUNTER_EVIDENCE:{}", evidence.id));
+                } else if evidence.status == "VERIFIED" {
+                    blocked = true;
+                    reasons.push(format!("COUNTER_EVIDENCE_TIER_TOO_LOW:{}", evidence.id));
                 } else {
                     blocked = true;
                     reasons.push(format!("COUNTER_EVIDENCE_UNRESOLVED:{}", evidence.id));
@@ -987,6 +990,23 @@ mod tests {
         let report = run_report(&input).unwrap();
         assert!(report.contains("CASE_RESULT status=DEFEATED"));
         assert!(report.contains("COUNTER_EVIDENCE:e-counter"));
+    }
+
+    #[test]
+    fn under_tier_counter_evidence_blocks_but_does_not_defeat() {
+        let mut input = valid_manifest();
+        input = mutate(
+            input,
+            "CLAIM|top|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T0",
+            "CLAIM|top|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T2",
+        );
+        input.push_str(&format!(
+            "EVIDENCE|e-counter|LINE-1|2026-10-01T00:00:00Z|2026-11-01T00:00:00Z|T0|VERIFIED|{}|Under-tier counterexample\\nEDGE|e-counter|top|COUNTERS\\n",
+            HASH_C
+        ));
+        let report = run_report(&input).unwrap();
+        assert!(report.contains("CASE_RESULT status=BLOCKED"));
+        assert!(report.contains("COUNTER_EVIDENCE_TIER_TOO_LOW:e-counter"));
     }
 
     #[test]
