@@ -836,22 +836,23 @@ mod tests {
     fn receipt_preserves_calibration_msa_uncertainty_and_measurement_lineage() {
         let report = fixtures()[0].evaluate().unwrap();
         let csv = report.csv_rows();
-        for token in [
-            "CAL-CMM-01",
-            "MSA-CROSSED-01",
-            "UQ-CMM-01",
-            "PART-001",
-            "shaft-diameter",
-            &"a".repeat(DIGEST_LEN),
-            &"b".repeat(DIGEST_LEN),
-            &"c".repeat(DIGEST_LEN),
-            &"d".repeat(DIGEST_LEN),
-            "MEAS-000",
-            "MEAS-031",
-            "WINDOW-1",
-            "WINDOW-4",
-        ] {
-            assert!(csv.contains(token), "missing receipt token: {token}");
+        let tokens = vec![
+            "CAL-CMM-01".to_string(),
+            "MSA-CROSSED-01".to_string(),
+            "UQ-CMM-01".to_string(),
+            "PART-001".to_string(),
+            "shaft-diameter".to_string(),
+            "a".repeat(DIGEST_LEN),
+            "b".repeat(DIGEST_LEN),
+            "c".repeat(DIGEST_LEN),
+            "d".repeat(DIGEST_LEN),
+            "MEAS-000".to_string(),
+            "MEAS-031".to_string(),
+            "WINDOW-1".to_string(),
+            "WINDOW-4".to_string(),
+        ];
+        for token in tokens {
+            assert!(csv.contains(&token), "missing receipt token: {token}");
         }
     }
 
