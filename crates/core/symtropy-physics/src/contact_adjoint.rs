@@ -11,9 +11,7 @@
 use nalgebra::{DMatrix, DVector, Matrix2, SVector};
 
 use crate::delassus::ReferenceLcpSolution;
-use crate::friction_cone::{
-    PlanarContactMode, PlanarFrictionConeSolution, solve_planar_friction_cone,
-};
+use crate::friction_cone::{PlanarContactMode, PlanarFrictionConeSolution};
 
 /// Failure to obtain a locally valid implicit contact derivative.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -483,6 +481,7 @@ pub fn differentiate_planar_friction_mode(
 mod tests {
     use super::*;
     use crate::delassus::solve_frictionless_lcp;
+    use crate::friction_cone::solve_planar_friction_cone;
 
     #[test]
     fn planar_sticking_sensitivity_matches_finite_difference() {
