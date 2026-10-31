@@ -43,7 +43,10 @@ impl Default for PairedStudyConfig {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PairedStudyRun {
+    /// Seed used to select the generated model-family parameters.
     pub seed: u64,
+    /// Independent seed used by randomized baseline action ordering.
+    pub policy_seed: u64,
     pub observation_noise_rate: Rational,
     pub shifted_hazard_rate: Rational,
     pub calibration_damage_rate: Rational,
@@ -135,7 +138,8 @@ pub fn run_paired_study(config: &PairedStudyConfig) -> Result<PairedStudyReport,
         let family = generate_stateful_confounding_family(*seed)?;
         let fingerprint = fingerprint_model_family(&family.worlds)?;
         let mut benchmark_config = config.benchmark.clone();
-        benchmark_config.seed = *seed;
+        let policy_seed = derive_policy_seed(*seed);
+        benchmark_config.seed = policy_seed;
         let benchmark = run_benchmark_suite(
             &family.worlds,
             &family.nominal_world_id,
@@ -143,6 +147,7 @@ pub fn run_paired_study(config: &PairedStudyConfig) -> Result<PairedStudyReport,
         )?;
         runs.push(PairedStudyRun {
             seed: *seed,
+            policy_seed,
             observation_noise_rate: family.observation_noise_rate,
             shifted_hazard_rate: family.shifted_hazard_rate,
             calibration_damage_rate: family.calibration_damage_rate,
@@ -196,6 +201,14 @@ pub fn run_paired_study(config: &PairedStudyConfig) -> Result<PairedStudyReport,
         runs,
         method_summaries,
     })
+}
+
+/// Derive a separate reproducible baseline RNG stream from the model-family seed.
+fn derive_policy_seed(model_seed: u64) -> u64 {
+    let mut value = model_seed.wrapping_add(0x9e37_79b9_7f4a_7c15);
+    value = (value ^ (value >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+    value ^ (value >> 31)
 }
 
 fn summarize_method(
@@ -400,6 +413,19 @@ mod tests {
             first.runs[0].shifted_hazard_rate,
             first.runs[0].calibration_damage_rate
         );
+    }
+
+    #[test]
+    fn model_family_and_random_policy_seeds_are_distinct_and_reproducible() {
+        let report = run_paired_study(&smoke_config(vec![0, 1, 2])).unwrap();
+        for run in &report.runs {
+            assert_eq!(run.benchmark.seed, run.policy_seed);
+            assert_ne!(run.seed, run.policy_seed);
+            assert_eq!(
+                run.policy_seed,
+                derive_policy_seed(run.seed)
+            );
+        }
     }
 
     #[test]
