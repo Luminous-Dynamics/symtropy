@@ -50,6 +50,17 @@ The independent report auditor checks the exact header and row count, valid meth
 
 ## Equation-level prototype checks
 
+An independent Python check of both sets of discrete equations produced the following terminal Cartesian state errors at T=1 s:
+
+| h (s) | pHDAE final state error | RATTLE final state error | RATTLE / pHDAE |
+|---:|---:|---:|---:|
+| 0.040 | 4.1384e-5 | 8.2804e-5 | 2.0009 |
+| 0.020 | 1.0347e-5 | 2.0696e-5 | 2.0002 |
+| 0.010 | 2.5868e-6 | 5.1737e-6 | 2.0001 |
+| 0.005 | 6.4670e-7 | 1.2934e-6 | 2.0000 |
+
+Both error sequences contract by approximately four under timestep halving. In this special free dumbbell fixture, both methods maintained the link, midpoint and endpoint tangent residuals at approximately 1e-15. The pHDAE method's smaller trajectory error is a fixture-specific error-constant observation, not a universal ranking or an independently validated Rust result.
+
 A separate Python double-precision prototype was used to cross-check the formulae and the test envelopes. Those numbers are not output from the committed Rust runner and are not Rust CI results.
 
 The independent analytic solution is
