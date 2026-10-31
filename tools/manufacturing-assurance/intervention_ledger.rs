@@ -917,7 +917,7 @@ mod tests {
         let input = mutate(
             valid_manifest(),
             "CHECK|check-pre|plan-1|PRECONDITION|PASS|2026-10-31T11:50:00Z|bbbb",
-            "CHECK|check-pre|plan-1|PRECONDITION|PASS|2026-10-31T11:50:00Z|aaaaaaaa",
+            "CHECK|check-pre|plan-1|PRECONDITION|PASS|2026-10-31T11:50:00Z|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         );
         assert!(parse_manifest(&input).is_err());
     }
@@ -1135,7 +1135,7 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_command_id_is_rejected() {
+    fn second_execution_event_for_one_plan_is_rejected() {
         let mut input = valid_manifest();
         input.push_str(&format!(
             "EXEC|exec-2|plan-1|command-1|controller-gateway|{}|2026-10-31T11:55:00Z|2026-10-31T11:55:01Z|ACKNOWLEDGED\n",
