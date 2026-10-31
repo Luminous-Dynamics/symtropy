@@ -458,6 +458,14 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
         }
     }
 
+    let mut verification_keys = BTreeSet::new();
+    for verification in &manifest.verifications {
+        let key = format!("{}|{}", verification.stage, verification.metric);
+        if !verification_keys.insert(key) {
+            return Err("duplicate metric verification within a transaction stage".to_string());
+        }
+    }
+
     let preconditions = manifest.checks.iter().filter(|check| check.kind == "PRECONDITION").count();
     let assurance = manifest.checks.iter().filter(|check| check.kind == "ASSURANCE").count();
     let interlocks = manifest.checks.iter().filter(|check| check.kind == "INTERLOCK").count();
@@ -524,6 +532,7 @@ fn assess(manifest: &Manifest) -> Assessment {
                 && authority.asset == plan.asset
                 && authority.scope == plan.scope
                 && authority.action == plan.action
+                && authority.approved_at >= plan.valid_from
                 && authority.approved_at <= execution.issued_at
                 && execution.issued_at < authority.valid_until
                 && execution.issued_at >= plan.valid_from
@@ -586,6 +595,12 @@ fn assess(manifest: &Manifest) -> Assessment {
         .filter(|verification| verification.stage == "POST_ACTION")
         .collect();
     if post_action.is_empty() {
+        if manifest.recovery.is_some() {
+            return Assessment {
+                state: "BLOCKED".to_string(),
+                reasons: vec!["RECOVERY_WITHOUT_POST_ACTION_FAILURE".to_string()],
+            };
+        }
         return Assessment {
             state: "ISSUED_UNVERIFIED".to_string(),
             reasons: vec!["POST_ACTION_VERIFICATION_MISSING".to_string()],
@@ -678,22 +693,23 @@ fn assess(manifest: &Manifest) -> Assessment {
         };
     }
 
-    let mismatched: Vec<&Verification> = post_recovery
+    let key_for = |verification: &Verification| {
+        (
+            verification.metric.clone(),
+            verification.unit.clone(),
+            verification.acceptable_min.to_string(),
+            verification.acceptable_max.to_string(),
+        )
+    };
+    let failed_keys: BTreeSet<_> = failed.iter().map(|verification| key_for(verification)).collect();
+    let post_recovery_keys: BTreeSet<_> = post_recovery
         .iter()
-        .copied()
-        .filter(|post| {
-            !failed.iter().any(|pre| {
-                pre.metric == post.metric
-                    && pre.unit == post.unit
-                    && pre.acceptable_min == post.acceptable_min
-                    && pre.acceptable_max == post.acceptable_max
-            })
-        })
+        .map(|verification| key_for(verification))
         .collect();
-    if !mismatched.is_empty() {
+    if failed_keys != post_recovery_keys {
         return Assessment {
             state: "BLOCKED".to_string(),
-            reasons: vec!["POST_RECOVERY_METRIC_DOES_NOT_MATCH_FAILED_METRIC".to_string()],
+            reasons: vec!["POST_RECOVERY_MUST_REVERIFY_EVERY_FAILED_METRIC".to_string()],
         };
     }
 
@@ -1083,13 +1099,13 @@ mod tests {
             "|surface_roughness|1.4|um|0.0|2.0|",
             "|surface_roughness|3.4|um|0.0|2.0|",
         );
-        input = mutate(
-            input,
-            "2026-10-31T11:57:00Z|2026-10-31T11:57:02Z|ACKNOWLEDGED",
-            "2026-10-31T11:55:30Z|2026-10-31T11:55:32Z|ACKNOWLEDGED",
-        );
-        append_recovery(&mut input, "ACKNOWLEDGED", "1.7");
-        assert!(parse_manifest(&input).is_err());
+        input.push_str(&format!(
+            "RECOVERY|recovery-1|plan-1|SAFE_STATE|2026-10-31T11:55:30Z|2026-10-31T11:55:32Z|ACKNOWLEDGED|{}\\nVERIFY|verify-2|plan-1|POST_RECOVERY|surface_roughness|1.7|um|0.0|2.0|2026-10-31T11:58:00Z|{}\\n",
+            HASH_D, HASH_F
+        ));
+        let report = run_report(&input).unwrap();
+        assert!(report.contains("RECOVERY_CHRONOLOGY_INVALID"));
+        assert!(report.contains("RESULT state=BLOCKED"));
     }
 
     #[test]
