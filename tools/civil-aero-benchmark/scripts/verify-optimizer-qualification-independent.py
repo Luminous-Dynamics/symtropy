@@ -288,14 +288,14 @@ def main() -> int:
         return 2
     candidates = load_candidates(Path(sys.argv[2]))
     require(
-        sum(len(group) for group in candidates.values()) == 45_000,
+        sum(len(group) for group in candidates.values()) == 60_000,
         "expected 30,000 evaluated decision vectors",
     )
     verify_common_initial_designs(candidates)
     aggregate = verify_summaries(Path(sys.argv[1]), candidates)
     print(
         "independent_optimizer_qualification_oracle=pass "
-        "tasks=3 policies=3 seeds=5 checkpoints=4 evaluations=45000"
+        "tasks=4 policies=3 seeds=5 checkpoints=4 evaluations=60000"
     )
     for task in TASKS:
         random_hv = aggregate[(task, "uniform_random")]
