@@ -215,6 +215,8 @@ pub enum DissonanceDisposition {
     Experiment {
         /// Competing positions tested by the protocol.
         position_ids: Vec<PositionId>,
+        /// Other recorded positions explicitly retained outside this experiment.
+        retained: Vec<PositionId>,
         /// Pre-registered protocol identifier.
         protocol_id: String,
         /// Mandatory review point.
@@ -424,6 +426,8 @@ pub enum DissonanceError {
     DuplicateEventReceipt,
     /// Event sequence space has been exhausted.
     EventSequenceExhausted,
+    /// A hazard finding transition is not permitted from its prior state.
+    InvalidHazardTransition,
 }
 
 /// Create and maintain a dissonance record with a durable history of positions.
@@ -624,6 +628,9 @@ impl DissonanceRecord {
         }
         let report = self.hazards.get(report_id).ok_or(DissonanceError::UnknownReference)?;
         let previous_finding = report.finding;
+        if !valid_hazard_transition(previous_finding, finding) {
+            return Err(DissonanceError::InvalidHazardTransition);
+        }
         self.append_event(
             context,
             DissonanceEventKind::HazardFindingChanged {
@@ -768,6 +775,27 @@ impl DissonanceRecord {
     }
 }
 
+fn valid_hazard_transition(previous: HazardFinding, next: HazardFinding) -> bool {
+    matches!(
+        (previous, next),
+        (HazardFinding::Reported, HazardFinding::Corroborated)
+            | (HazardFinding::Reported, HazardFinding::Substantiated)
+            | (HazardFinding::Reported, HazardFinding::Refuted)
+            | (HazardFinding::Reported, HazardFinding::Unresolved)
+            | (HazardFinding::Corroborated, HazardFinding::Substantiated)
+            | (HazardFinding::Corroborated, HazardFinding::Refuted)
+            | (HazardFinding::Corroborated, HazardFinding::Unresolved)
+            | (HazardFinding::Substantiated, HazardFinding::Refuted)
+            | (HazardFinding::Substantiated, HazardFinding::Unresolved)
+            | (HazardFinding::Refuted, HazardFinding::Corroborated)
+            | (HazardFinding::Refuted, HazardFinding::Substantiated)
+            | (HazardFinding::Refuted, HazardFinding::Unresolved)
+            | (HazardFinding::Unresolved, HazardFinding::Corroborated)
+            | (HazardFinding::Unresolved, HazardFinding::Substantiated)
+            | (HazardFinding::Unresolved, HazardFinding::Refuted)
+    )
+}
+
 fn validate_disposition(
     disposition: &DissonanceDisposition,
     now: u64,
@@ -848,18 +876,28 @@ fn validate_disposition(
         }
         DissonanceDisposition::Experiment {
             position_ids,
+            retained,
             protocol_id,
             review_at,
             stop_condition,
         } => {
             future(*review_at)?;
             let ids: BTreeSet<&PositionId> = position_ids.iter().collect();
+            let retained_ids: BTreeSet<&PositionId> = retained.iter().collect();
             if ids.len() < 2 || ids.len() != position_ids.len()
+                || retained_ids.len() != retained.len()
                 || ids.iter().any(|id| !has_position(id))
+                || retained.iter().any(|id| {
+                    !has_position(id) || position_ids.iter().any(|tested| tested == id)
+                })
+                || positions.keys().any(|id| {
+                    !position_ids.iter().any(|tested| tested == id)
+                        && !retained.iter().any(|kept| kept == id)
+                })
                 || protocol_id.trim().is_empty() || protocol_id.len() > 256
                 || stop_condition.trim().is_empty() || stop_condition.len() > 2_048
             {
-                return Err(DissonanceError::InvalidDisposition);
+                return Err(DissonanceError::DissentNotPreserved);
             }
             Ok(())
         }
@@ -1206,6 +1244,7 @@ mod tests {
         record.set_safeguards(safe_safeguards());
         let decision = DissonanceDisposition::Experiment {
             position_ids: vec![PositionId::new("p1").unwrap()],
+            retained: vec![],
             protocol_id: "protocol:one".to_owned(),
             review_at: 100,
             stop_condition: "Stop on material harm.".to_owned(),
