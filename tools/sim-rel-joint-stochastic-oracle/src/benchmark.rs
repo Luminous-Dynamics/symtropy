@@ -661,12 +661,16 @@ mod tests {
         assert_eq!(forward, reversed);
 
         second.kernel.action_costs[0] = 9;
-        let changed = fingerprint_model_family(&[first, second.clone()]).unwrap();
+        let changed = fingerprint_model_family(&[first.clone(), second.clone()]).unwrap();
         assert_ne!(forward, changed);
 
         second.kernel.physical_state_ids[0] = "renamed-specimen-state".into();
-        let relabelled = fingerprint_model_family(&[second]).unwrap();
-        assert_ne!(forward, relabelled);
+        let relabelled = fingerprint_model_family(&[first.clone(), second.clone()]).unwrap();
+        assert_ne!(changed, relabelled);
+
+        second.kernel.physical_state_ids.swap(0, 1);
+        let reordered = fingerprint_model_family(&[first, second]).unwrap();
+        assert_ne!(relabelled, reordered);
     }
 
     #[test]
