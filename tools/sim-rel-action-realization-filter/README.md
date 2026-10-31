@@ -198,6 +198,39 @@ frontier pruner. Authored fixtures include:
 - model-world input permutation invariance;
 - rejection of incompatible observation and state semantics.
 
+## Candidate-world policy falsification (SIM-REL-029)
+
+The `decision_value::policy_falsifier` module evaluates a fixed shared policy
+against a bounded, provenance-labelled list of candidate worlds. It is a
+search-split falsifier, not a candidate-world generator and not a physical
+plausibility oracle.
+
+Each candidate must provide a non-empty world ID, generator ID/version and a
+human-auditable parameter/seed receipt. Only `SearchTraining` origin is
+accepted. Calibration and sealed-evaluation candidates are rejected before
+inspection, preventing this search API from adaptively consuming its own
+calibration or test holdouts.
+
+For each candidate, the falsifier projects the original policy onto that
+candidate's reachable public-observation support. Branches unreachable in that
+candidate are removed; every reachable observation must already have a branch.
+A reachable but uncovered observation is recorded with the command, public
+observation and preceding public-observation history. Malformed candidates,
+incompatible state/action/observation vocabularies and invalid policy branches
+are reported separately.
+
+Supported projected policies are evaluated by the independent raw unnormalized
+forward-mass replay from SIM-REL-028. The report selects the maximum observed
+supported candidate loss and lists uncovered-policy candidates independently;
+it never assigns an invented numeric penalty to an undefined policy. Candidate
+ordering and report ordering are deterministic by world ID.
+
+This first falsifier consumes a caller-supplied finite candidate set (maximum
+128 per call). It does not generate perturbations, prove candidate physical
+plausibility, cryptographically attest parameter receipts, or establish
+open-world coverage. Candidate generation/admission, falsifier-overfit tests
+and calibration/held-out separation remain the next SIM-REL-029 steps.
+
 This is exact only for the supplied finite world family, kernels, priors, loss
 tensor, command costs, observation protocol, horizon and policy class. It does
 not prove that the true physical process belongs to that family, establish
