@@ -639,23 +639,28 @@ fn compare_witness_severity(
         .class()
         .cmp(&left.outcome.class())
         .then_with(|| {
-            let left_metrics = left.outcome.metrics();
-            let right_metrics = right.outcome.metrics();
-            match (left_metrics, right_metrics) {
-                (Some(a), Some(b)) => {
-                    let loss_order = match (
-                        a.expected_total_loss(),
-                        b.expected_total_loss(),
-                    ) {
-                        (Ok(left_loss), Ok(right_loss)) => right_loss.cmp(&left_loss),
-                        (Err(_), Ok(_)) => Ordering::Less,
-                        (Ok(_), Err(_)) => Ordering::Greater,
-                        (Err(_), Err(_)) => Ordering::Equal,
-                    };
-                    loss_order.then_with(|| b.hazard_probability.cmp(&a.hazard_probability))
+            let (Some(a), Some(b)) = (left.outcome.metrics(), right.outcome.metrics()) else {
+                return Ordering::Equal;
+            };
+            match left.outcome.class() {
+                CounterexampleClass::HazardBudgetViolated => {
+                    b.hazard_probability.cmp(&a.hazard_probability)
                 }
-                _ => Ordering::Equal,
+                CounterexampleClass::AbstentionBudgetViolated => {
+                    b.abstention_probability.cmp(&a.abstention_probability)
+                }
+                CounterexampleClass::DecisionLossAmplified => {
+                    b.expected_terminal_loss.cmp(&a.expected_terminal_loss)
+                }
+                CounterexampleClass::PolicyInvalidated | CounterexampleClass::NoViolation => {
+                    Ordering::Equal
+                }
             }
+            .then_with(|| {
+                b.expected_total_loss()
+                    .unwrap_or_else(|_| Rational::zero())
+                    .cmp(&a.expected_total_loss().unwrap_or_else(|_| Rational::zero()))
+            })
         })
         .then_with(|| {
             left.spec
