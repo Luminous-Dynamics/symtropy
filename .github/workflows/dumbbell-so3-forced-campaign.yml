@@ -1,0 +1,51 @@
+name: Forced 3D SO(3) dumbbell work and impulse campaign
+
+on:
+  pull_request:
+    paths:
+      - "tools/dumbbell-forced-3d-campaign/**"
+      - "tools/dumbbell-rattle-3d-reference/**"
+      - "tools/phdae-dumbbell-3d-reference/**"
+      - "docs/research/DUMBBELL_SO3_FORCED_PORTS_2026-10-31.md"
+      - ".github/workflows/dumbbell-so3-forced-campaign.yml"
+  push:
+    branches:
+      - "research/dumbbell-so3-forced-ports-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  forced-so3-port-campaign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: |
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/phdae-dumbbell-3d-reference/constrained_dumbbell_3d.rs
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/dumbbell-rattle-3d-reference/cartesian_rattle_3d.rs
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/dumbbell-forced-3d-campaign/compare_forced_dumbbell_3d.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/dumbbell-forced-3d-campaign/compare_forced_dumbbell_3d.rs \
+            -o /tmp/dumbbell-forced-3d-tests
+          /tmp/dumbbell-forced-3d-tests
+
+      - name: Compile optimized campaign and verify deterministic CSV
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/dumbbell-forced-3d-campaign/compare_forced_dumbbell_3d.rs \
+            -o /tmp/dumbbell-forced-3d
+          /tmp/dumbbell-forced-3d > /tmp/dumbbell-forced-3d-a.csv
+          /tmp/dumbbell-forced-3d > /tmp/dumbbell-forced-3d-b.csv
+          cmp /tmp/dumbbell-forced-3d-a.csv /tmp/dumbbell-forced-3d-b.csv
+          test "$(wc -l < /tmp/dumbbell-forced-3d-a.csv)" -eq 9
+          grep -q "^semi_explicit_phdae_dg_3d," /tmp/dumbbell-forced-3d-a.csv
+          grep -q "^cartesian_rattle_3d," /tmp/dumbbell-forced-3d-a.csv
