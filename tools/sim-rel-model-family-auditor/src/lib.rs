@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 pub const MAX_TRACE_STEPS: usize = 4096;
 pub const MAX_MODEL_WORLDS: usize = 256;
 pub const MAX_POSTERIOR_TUPLES: usize = 65_536;
+pub const MAX_TRACE_KERNEL_OUTCOME_APPLICATIONS: usize = 10_000_000;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ObservedOutcome {
@@ -72,11 +73,12 @@ pub fn audit_trace_against_worlds(
     // Reuse the canonical SIM-REL-015 validation for world identity and semantics.
     evaluate_policy_across_worlds(worlds, &worlds[0].id, &PolicyPlan::Abstain, 0)?;
 
+    let mut kernel_outcome_applications = 0_usize;
     let mut per_world = Vec::with_capacity(worlds.len());
     let mut supported_world_ids = Vec::new();
     let mut eliminated_world_ids = Vec::new();
     for world in worlds {
-        let result = replay_world(world, trace)?;
+        let result = replay_world(world, trace, &mut kernel_outcome_applications)?;
         if result.supports_trace() {
             supported_world_ids.push(world.id.clone());
         } else {
@@ -105,7 +107,11 @@ pub fn audit_trace_against_worlds(
     })
 }
 
-fn replay_world(world: &ModelWorld, trace: &[ObservedStep]) -> Result<WorldTraceAudit, String> {
+fn replay_world(
+    world: &ModelWorld,
+    trace: &[ObservedStep],
+    kernel_outcome_applications: &mut usize,
+) -> Result<WorldTraceAudit, String> {
     let kernel = &world.kernel;
     let mut posterior = kernel.initial_belief.clone();
     posterior.sort();
@@ -150,6 +156,12 @@ fn replay_world(world: &ModelWorld, trace: &[ObservedStep]) -> Result<WorldTrace
                 * kernel.action_ids.len())
                 + action;
             for outcome in &kernel.rows[row_index].outcomes {
+                *kernel_outcome_applications = kernel_outcome_applications
+                    .checked_add(1)
+                    .ok_or_else(|| "trace kernel-outcome counter overflow".to_string())?;
+                if *kernel_outcome_applications > MAX_TRACE_KERNEL_OUTCOME_APPLICATIONS {
+                    return Err("trace kernel-outcome application budget exceeded".into());
+                }
                 if outcome.observation != observation {
                     continue;
                 }
