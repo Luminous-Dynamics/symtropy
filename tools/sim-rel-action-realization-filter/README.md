@@ -159,6 +159,21 @@ active worlds at each public history. The optimizer uses branch-local model
 elimination only where a world assigns exactly zero probability; no independent
 world-specific policies are admitted.
 
+A finite-support total-variation ambiguity selector is also provided. Given
+nominal categorical weights over the canonical sorted world IDs and a radius
+`epsilon in [0, 1]`, it computes the exact worst expected cost-plus-terminal
+loss over all reweightings within that TV ball. It transfers probability mass
+from the lowest-loss worlds to the highest-loss worlds, subject to exact
+rational arithmetic and explicit weight normalization. Radius zero recovers
+the nominal mixture objective; radius one recovers the maximum over supplied
+worlds. Hazard and abstention budgets remain worst-case across every supplied
+world, even when the loss objective uses a TV ambiguity set.
+
+This is finite-support distributionally robust optimization over a declared
+world list, not a Wasserstein or continuous-model ambiguity set. It does not
+supply a calibrated TV radius: that must be derived and pre-registered from
+separate calibration regimes, with adaptive-selection leakage controlled.
+
 A separate shared-policy replay propagates raw, unnormalized forward path
 mass directly through kernel outcomes. It does not call the Bayesian filter or
 normalize posterior states, so it independently reconstructs per-world
