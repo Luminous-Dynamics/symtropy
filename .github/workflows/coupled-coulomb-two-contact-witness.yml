@@ -6,6 +6,7 @@ on:
       - "crates/core/symtropy-physics/src/lib.rs"
       - "crates/core/symtropy-physics/src/coupled_friction_two_contact_witness.rs"
       - "docs/research/COULOMB_TWO_CONTACT_MULTIROOT_WITNESS_2026-10-31.md"
+      - "docs/research/COULOMB_TWO_CONTACT_SCHUR_REDUCTION_2026-11-01.md"
       - ".github/workflows/coupled-coulomb-two-contact-witness.yml"
   workflow_dispatch:
 
@@ -23,7 +24,7 @@ jobs:
           components: rustfmt
       - name: Check formatting
         run: cargo fmt --all -- --check
-      - name: Validate coupled two-contact witness
-        run: cargo test -p symtropy-physics --lib coupled_friction_two_contact_witness::tests --locked
+      - name: Validate coupled two-contact witness and Schur regime reduction
+        run: cargo test -p symtropy-physics --lib coupled_friction_two_contact_witness --locked
       - name: Re-run single-contact coupled Coulomb reference
         run: cargo test -p symtropy-physics --lib coupled_friction::tests --locked
