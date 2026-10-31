@@ -240,13 +240,15 @@ impl Ledger {
     /// Explicitly issue units to a member; the issuance account records the offsetting debit.
     pub fn issue_to(&mut self, member: &AccountId, amount: i128) -> Result<(), LedgerError> {
         self.require_kind(member, AccountKind::Member)?;
-        self.post_transfer(&self.issuance.clone(), member, amount, JournalKind::Issuance)
+        let issuance = self.issuance.clone();
+        self.post_transfer(&issuance, member, amount, JournalKind::Issuance)
     }
 
     /// Explicitly redeem units from a member back to the issuance account.
     pub fn redeem_from(&mut self, member: &AccountId, amount: i128) -> Result<(), LedgerError> {
         self.require_kind(member, AccountKind::Member)?;
-        self.post_transfer(member, &self.issuance.clone(), amount, JournalKind::Redemption)
+        let issuance = self.issuance.clone();
+        self.post_transfer(member, &issuance, amount, JournalKind::Redemption)
     }
 
     /// Transfer units between member accounts.
@@ -359,9 +361,10 @@ impl Ledger {
 
         let mut staged = self.clone();
         staged.demurrage_carry_ppm = new_carry;
+        let treasury = staged.treasury.clone();
         for (id, charge, _) in shares {
             if charge > 0 {
-                staged.post_transfer(&id, &staged.treasury.clone(), charge, JournalKind::Demurrage)?;
+                staged.post_transfer(&id, &treasury, charge, JournalKind::Demurrage)?;
             }
         }
         staged.verify_conservation()?;
