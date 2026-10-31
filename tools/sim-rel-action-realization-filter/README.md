@@ -181,6 +181,14 @@ violation and increased downstream loss relative to the previous family
 worst-case. Non-violating candidates and rejected mutations are recorded
 separately.
 
+An end-to-end test exercises the loop rather than testing its components only:
+a one-world nominal policy is attacked by a persistent sensor-calibration
+inversion; the generated world is explicitly appended to the family; the
+shared robust planner then chooses a world-identifying probe followed by a
+science measurement. In this finite fixture, terminal loss is zero in both
+worlds and exact worst-case expected experiment cost plus terminal loss is
+`3/20`. This is a constructed oracle fixture, not a measured physical result.
+
 The report retains the original worlds, loss table, observation protocol,
 command costs, hazard loss, policy, horizon and risk budgets, alongside the
 exact mutation specification and candidate kernel. This makes a discovered
