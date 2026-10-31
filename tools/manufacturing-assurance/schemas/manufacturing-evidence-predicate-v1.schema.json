@@ -145,6 +145,11 @@
         "sourceRevision": {
           "type": "string",
           "pattern": "^[a-f0-9]{40,64}$"
+        },
+        "repositoryId": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "description": "Immutable GitHub repository database ID, separate from owner/name and checked by the consuming policy."
         }
       }
     },
