@@ -2124,6 +2124,19 @@ mod tests {
             &nominal_plan.plan,
             &DecisionPlan::Experiment { command: 1, .. }
         ));
+        let mut shifted_policy = nominal_plan.plan.clone();
+        let hazard_observation = PublicObservation {
+            hazard: true,
+            readback: ObservationField::Value(0),
+            measurement: ObservationField::Missing,
+        };
+        match &mut shifted_policy {
+            DecisionPlan::Experiment { branches, .. } => branches.push(DecisionBranch {
+                observation: hazard_observation,
+                plan: Box::new(DecisionPlan::HazardTerminal),
+            }),
+            _ => panic!("nominal one-step optimum should be an experiment"),
+        }
         let shifted_replay = replay_shared_policy_across_worlds(
             &worlds,
             "world-nominal",
@@ -2131,7 +2144,7 @@ mod tests {
             ObservationProtocol::fully_observed(),
             &costs(),
             Rational::one(),
-            &nominal_plan.plan,
+            &shifted_policy,
             1,
         )
         .unwrap();
