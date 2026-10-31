@@ -101,4 +101,4 @@ rustc --edition=2021 -D warnings "$EVIDENCE_CLOSURE_SRC" -o "$TMP/evidence-closu
 evidence_closure_first="$("$TMP/evidence-closure" "$EVIDENCE_CLOSURE_FIXTURE")"
 evidence_closure_second="$("$TMP/evidence-closure" "$EVIDENCE_CLOSURE_FIXTURE")"
 test "$evidence_closure_first" = "$evidence_closure_second"
-printf '%s\\n' "$evidence_closure_first"
+printf '%s\n' "$evidence_closure_first"
