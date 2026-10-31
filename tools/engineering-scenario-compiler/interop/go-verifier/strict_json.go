@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -81,9 +82,16 @@ func consumeJSONValue(decoder *json.Decoder) error {
 			return fmt.Errorf("unexpected JSON delimiter %q", value)
 		}
 	case json.Number:
-		number, err := strconv.ParseFloat(value.String(), 64)
+		raw := value.String()
+		number, err := strconv.ParseFloat(raw, 64)
 		if err != nil || math.IsInf(number, 0) || math.IsNaN(number) {
 			return fmt.Errorf("JSON number %q is not finite IEEE-754 binary64", value)
+		}
+		// I-JSON safe-integer boundaries apply to plain integer literals. A
+		// decimal or exponent literal is a binary64 quantity and follows the
+		// canonicalizer's number formatting rules (including 1e30 / max-finite).
+		if !strings.ContainsAny(raw, ".eE") && math.Abs(number) > 9007199254740991 {
+			return fmt.Errorf("JSON integer %q is outside the interoperable safe-integer range", value)
 		}
 	case string, bool, nil:
 		// These JSON primitive types are valid in the canonicalization model.
