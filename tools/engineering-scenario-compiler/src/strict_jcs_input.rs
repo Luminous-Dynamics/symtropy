@@ -23,7 +23,7 @@ fn validate_safe_integer_literals(input: &[u8]) -> Result<(), String> {
                 index += 1;
                 while index < input.len() {
                     match input[index] {
-                        b'\\\\' => index = (index + 2).min(input.len()),
+                        b'\\' => index = (index + 2).min(input.len()),
                         b'"' => {
                             index += 1;
                             break;
