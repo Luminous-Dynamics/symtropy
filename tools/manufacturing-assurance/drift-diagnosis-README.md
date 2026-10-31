@@ -43,7 +43,7 @@ A fault label is a synthetic signature class, not proof of real-world root cause
 
 ## Frozen controls
 
-The authored tests cover baseline/no fault, primary sensor bias, process/context shift, in-domain model discrepancy, interface mapping failure, clock skew, simultaneous faults, missing reference, unqualified calibration, stale/replayed data, insufficient window size, deterministic replay and invalid thresholds.
+The reference has 13 warning-denied unit tests. They cover baseline/no fault, primary sensor bias, process/context shift, in-domain model discrepancy, interface mapping failure, clock skew, simultaneous faults, missing reference, unqualified calibration, stale/replayed data, insufficient window size, deterministic replay and invalid thresholds.
 
 ## Claim ceiling
 
