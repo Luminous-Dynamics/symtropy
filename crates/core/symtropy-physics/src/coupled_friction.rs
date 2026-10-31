@@ -553,9 +553,13 @@ fn sliding_quartic(w: &Matrix3<f64>, q: &SVector<f64, 3>, mu: f64) -> [f64; 5] {
 fn polynomial_value_and_scale(coefficients: &[f64], x: f64) -> Option<(f64, f64)> {
     let mut value = 0.0;
     let mut scale = 0.0;
+    // Use a coefficient-based evaluation bound even when |x| < 1. A pure
+    // Horner magnitude shrinks toward zero near t=0 and can hide a repeated
+    // root whose derivative root is only approximate.
+    let radius = x.abs().max(1.0);
     for coefficient in coefficients.iter().rev() {
         value = value * x + coefficient;
-        scale = scale * x.abs() + coefficient.abs();
+        scale = scale * radius + coefficient.abs();
         if !value.is_finite() || !scale.is_finite() {
             return None;
         }
