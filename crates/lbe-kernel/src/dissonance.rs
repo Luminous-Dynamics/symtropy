@@ -328,7 +328,8 @@ impl EventContext {
     ) -> Result<Self, DissonanceError> {
         let actor_id = actor_id.into();
         let receipt_ref = receipt_ref.into();
-        if actor_id.trim().is_empty() || actor_id.len() > 256 || actor_id.trim() != actor_id.as_str()
+        if actor_id.trim().is_empty() || actor_id.len() > 256
+            || actor_id.trim() != actor_id.as_str()
             || receipt_ref.trim().is_empty() || receipt_ref.len() > 512
             || receipt_ref.trim() != receipt_ref.as_str()
             || previous_receipt_ref.as_ref().is_some_and(|value| {
@@ -2010,7 +2011,11 @@ mod tests {
         record.withdraw_position(&p1, "reason:source".to_owned(), source_withdrawal).unwrap();
         let admin_reinstatement = source_context(&record, "administrator", 11, "admin-reinstate");
         assert_eq!(
-            record.reinstate_position(&p1, "reason:admin-reinstate".to_owned(), admin_reinstatement),
+            record.reinstate_position(
+                &p1,
+                "reason:admin-reinstate".to_owned(),
+                admin_reinstatement,
+            ),
             Err(DissonanceError::UnauthorizedPositionMutation)
         );
         assert!(record.is_position_withdrawn(&p1));
