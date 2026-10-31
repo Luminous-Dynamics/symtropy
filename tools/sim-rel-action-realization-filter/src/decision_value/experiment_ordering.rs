@@ -745,6 +745,34 @@ mod tests {
     }
 
     #[test]
+    fn binary_blackwell_solver_handles_deterministic_boundary_garblings() {
+        let more = perfect_channel("perfect");
+        let identity_target = perfect_channel("identity-target");
+        let identity = solve_binary_blackwell_garbling(&more, &identity_target)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            identity.witness.probabilities,
+            vec![
+                vec![Rational::one(), Rational::zero()],
+                vec![Rational::zero(), Rational::one()],
+            ]
+        );
+
+        let reversed_target = inverted_channel("reversed-target");
+        let reversed = solve_binary_blackwell_garbling(&more, &reversed_target)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            reversed.witness.probabilities,
+            vec![
+                vec![Rational::zero(), Rational::one()],
+                vec![Rational::one(), Rational::zero()],
+            ]
+        );
+    }
+
+    #[test]
     fn binary_blackwell_solver_handles_singular_but_consistent_channels() {
         let uninformative = FiniteObservationChannel {
             channel_id: "uninformative".into(),
