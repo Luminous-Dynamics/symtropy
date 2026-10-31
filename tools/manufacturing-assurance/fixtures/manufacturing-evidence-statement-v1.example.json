@@ -32,7 +32,8 @@
       "workflow": "https://example.invalid/workflows/manufacturing-assurance",
       "workflowRef": "refs/heads/example",
       "repository": "example/repository",
-      "sourceRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "sourceRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repositoryId": "1263670049"
     },
     "run": {
       "invocationId": "synthetic-run-0001",
