@@ -244,6 +244,9 @@ pub struct ObservationDecisionReceipt {
     pub assumed_observation_probability: Rational,
     pub inference_decision: Option<usize>,
     pub assumed_model_bayes_decision: Option<usize>,
+    /// Total-variation distance between the supplied inference posterior and
+    /// exact Bayes posterior under the working channel; None means unsupported.
+    pub inference_posterior_tv_distance: Option<Rational>,
     pub true_bayes_decision: Option<usize>,
     pub inference_conditional_loss: Rational,
     pub realized_conditional_loss: Rational,
@@ -267,6 +270,8 @@ pub struct ChannelDecisionEvaluation {
     pub decision_disagreement_probability: Rational,
     /// Probability the inference rule differs from exact Bayes under the working channel.
     pub inference_rule_disagreement_probability: Rational,
+    /// True-observation-frequency-weighted posterior approximation error.
+    pub expected_inference_posterior_tv_distance: Rational,
     pub observations: Vec<ObservationDecisionReceipt>,
 }
 
@@ -368,6 +373,7 @@ pub fn evaluate_channel_decisions_with_inference_rule(
     let mut unsupported_observation_probability = Rational::zero();
     let mut decision_disagreement_probability = Rational::zero();
     let mut inference_rule_disagreement_probability = Rational::zero();
+    let mut expected_inference_posterior_tv_distance = Rational::zero();
     let mut observations = Vec::new();
 
     for (observation, observation_id) in assumed.observation_ids.iter().enumerate() {
@@ -409,22 +415,40 @@ pub fn evaluate_channel_decisions_with_inference_rule(
             .collect::<Result<_, _>>()?;
         let (true_bayes_decision, true_bayes_loss) = bayes_decision(table, &true_posterior)?;
 
-        let assumed_model_bayes_decision = if assumed_probability.is_zero() {
-            unsupported_observation_probability =
-                unsupported_observation_probability.checked_add(true_probability)?;
-            None
-        } else {
-            let assumed_posterior: Vec<Rational> = assumed_joint
-                .iter()
-                .map(|mass| mass.checked_div(assumed_probability))
-                .collect::<Result<_, _>>()?;
-            let (model_decision, _) = bayes_decision(table, &assumed_posterior)?;
-            if model_decision != inference_decision {
-                inference_rule_disagreement_probability =
-                    inference_rule_disagreement_probability.checked_add(true_probability)?;
-            }
-            Some(model_decision)
-        };
+        let (assumed_model_bayes_decision, inference_posterior_tv_distance) =
+            if assumed_probability.is_zero() {
+                unsupported_observation_probability =
+                    unsupported_observation_probability.checked_add(true_probability)?;
+                (None, None)
+            } else {
+                let assumed_posterior: Vec<Rational> = assumed_joint
+                    .iter()
+                    .map(|mass| mass.checked_div(assumed_probability))
+                    .collect::<Result<_, _>>()?;
+                let (model_decision, _) = bayes_decision(table, &assumed_posterior)?;
+                if model_decision != inference_decision {
+                    inference_rule_disagreement_probability =
+                        inference_rule_disagreement_probability.checked_add(true_probability)?;
+                }
+                let mut l1_distance = Rational::zero();
+                for (inference_probability, model_probability) in inference_rule
+                    .posterior_by_observation[observation]
+                    .iter()
+                    .zip(assumed_posterior.iter())
+                {
+                    let difference = if inference_probability >= model_probability {
+                        subtract_nonnegative(*inference_probability, *model_probability)?
+                    } else {
+                        subtract_nonnegative(*model_probability, *inference_probability)?
+                    };
+                    l1_distance = l1_distance.checked_add(difference)?;
+                }
+                let posterior_tv = l1_distance.checked_div(Rational::from_u64(2))?;
+                expected_inference_posterior_tv_distance =
+                    expected_inference_posterior_tv_distance
+                        .checked_add(true_probability.checked_mul(posterior_tv)?)?;
+                (Some(model_decision), Some(posterior_tv))
+            };
         let realized_conditional_loss =
             expected_loss_for_posterior(table, &true_posterior, inference_decision)?;
         if inference_decision != true_bayes_decision {
@@ -447,6 +471,7 @@ pub fn evaluate_channel_decisions_with_inference_rule(
             assumed_observation_probability: assumed_probability,
             inference_decision,
             assumed_model_bayes_decision,
+            inference_posterior_tv_distance,
             true_bayes_decision,
             inference_conditional_loss,
             realized_conditional_loss,
@@ -472,6 +497,7 @@ pub fn evaluate_channel_decisions_with_inference_rule(
         unsupported_observation_probability,
         decision_disagreement_probability,
         inference_rule_disagreement_probability,
+        expected_inference_posterior_tv_distance,
         observations,
     })
 }
