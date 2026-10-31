@@ -156,7 +156,10 @@ pub fn solve_tangential_friction_disk(
             .max(f64::MIN_POSITIVE);
         solution.normalized_stationarity_residual =
             solution.post_slip_velocity.norm() / velocity_scale;
-        validate_dissipation(&solution, relative_tolerance)?;
+        let work_scale = solution.impulse.norm()
+            * (free_tangential_velocity.norm() + (metric * solution.impulse).norm())
+                .max(f64::MIN_POSITIVE);
+        validate_dissipation(&solution, relative_tolerance, work_scale)?;
         return Ok(solution);
     }
 
@@ -234,7 +237,10 @@ pub fn solve_tangential_friction_disk(
         frictional_work_delta,
         is_sliding: true,
     };
-    validate_dissipation(&solution, relative_tolerance)?;
+    let work_scale = solution.impulse.norm()
+        * (free_tangential_velocity.norm() + (metric * solution.impulse).norm())
+            .max(f64::MIN_POSITIVE);
+    validate_dissipation(&solution, relative_tolerance, work_scale)?;
     if normalized_stationarity_residual > 10.0 * relative_tolerance
         || cone_violation > 10.0 * relative_tolerance * impulse_scale
     {
@@ -246,14 +252,16 @@ pub fn solve_tangential_friction_disk(
 fn validate_dissipation(
     solution: &TangentialFrictionDiskSolution,
     relative_tolerance: f64,
+    work_scale: f64,
 ) -> Result<(), FrictionDiskError> {
     if !solution.frictional_work_delta.is_finite()
         || !solution.post_slip_velocity.iter().all(|value| value.is_finite())
     {
         return Err(FrictionDiskError::NonFinite);
     }
-    let work_scale = solution.impulse.norm()
-        * solution.post_slip_velocity.norm().max(solution.impulse.norm());
+    if !work_scale.is_finite() || work_scale < 0.0 {
+        return Err(FrictionDiskError::NonFinite);
+    }
     if solution.frictional_work_delta > relative_tolerance * work_scale.max(f64::MIN_POSITIVE) {
         return Err(FrictionDiskError::NonDissipativeSolution);
     }
