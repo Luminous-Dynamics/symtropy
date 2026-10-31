@@ -40,3 +40,8 @@ harness = false
 [[bench]]
 name = "triclinic_closest_image"
 harness = false
+
+[[bench]]
+name = "periodic_cell_kinematics"
+path = "benches/periodic_cell_kinematics.rs"
+harness = false
