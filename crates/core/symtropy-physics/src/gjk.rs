@@ -18,8 +18,18 @@ use symtropy_math::{Point, Shape, Transform};
 
 use crate::support_map::{TransformedShape, WorldSupportMap};
 
-/// Maximum GJK iterations before giving up.
-const MAX_ITERATIONS: usize = 64;
+/// Maximum production GJK iterations before returning an unresolved result.
+pub const MAX_GJK_ITERATIONS: usize = 64;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GjkTermination {
+    /// The simplex encloses the origin or the search direction reached zero.
+    Intersecting,
+    /// A support-plane test proves the origin is outside the Minkowski difference.
+    Separated,
+    /// The configured iteration budget was exhausted without a proof.
+    IterationLimit,
+}
 
 /// Maximum simplex size: D+1 vertices. Cap at 5 (D=4).
 const MAX_SIMPLEX: usize = 5;
@@ -35,6 +45,8 @@ pub struct GjkResult<const D: usize> {
     pub simplex: Simplex<D>,
     /// Number of iterations used.
     pub iterations: usize,
+    /// Explicit proof/termination outcome. IterationLimit is never a separation.
+    pub termination: GjkTermination,
 }
 
 /// Test if two translated shapes intersect using the GJK algorithm.
@@ -65,10 +77,21 @@ pub fn intersects_transformed<const D: usize>(
     intersects_support_maps(&map_a, &map_b)
 }
 
-/// GJK over arbitrary world-space support maps.
+/// GJK over arbitrary world-space support maps, using the production budget.
 pub fn intersects_support_maps<const D: usize>(
     shape_a: &dyn WorldSupportMap<D>,
     shape_b: &dyn WorldSupportMap<D>,
+) -> GjkResult<D> {
+    intersects_support_maps_with_limit(shape_a, shape_b, MAX_GJK_ITERATIONS)
+}
+
+/// Internal bounded entry point. Exposed to this module's tests so a small
+/// budget can deterministically exercise the IterationLimit contract without
+/// changing the production iteration limit.
+fn intersects_support_maps_with_limit<const D: usize>(
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
+    max_iterations: usize,
 ) -> GjkResult<D> {
     // Initial direction: from A to B.
     let mut direction = shape_b.center_world() - shape_a.center_world();
@@ -82,12 +105,13 @@ pub fn intersects_support_maps<const D: usize>(
     simplex.push(first);
     direction = -first;
 
-    for iteration in 0..MAX_ITERATIONS {
+    for iteration in 0..max_iterations {
         if direction.norm_squared() < 1e-20 {
             return GjkResult {
                 intersecting: true,
                 simplex,
                 iterations: iteration,
+                termination: GjkTermination::Intersecting,
             };
         }
 
@@ -97,6 +121,7 @@ pub fn intersects_support_maps<const D: usize>(
                 intersecting: false,
                 simplex,
                 iterations: iteration,
+                termination: GjkTermination::Separated,
             };
         }
 
@@ -106,6 +131,7 @@ pub fn intersects_support_maps<const D: usize>(
                 intersecting: true,
                 simplex,
                 iterations: iteration,
+                termination: GjkTermination::Intersecting,
             };
         }
     }
@@ -113,7 +139,8 @@ pub fn intersects_support_maps<const D: usize>(
     GjkResult {
         intersecting: false,
         simplex,
-        iterations: MAX_ITERATIONS,
+        iterations: max_iterations,
+        termination: GjkTermination::IterationLimit,
     }
 }
 
@@ -419,6 +446,30 @@ mod tests {
     use symtropy_math::{ConvexHull, Point, Sphere};
 
     #[test]
+    fn typed_termination_distinguishes_intersection_separation_and_budget_exhaustion() {
+        let a = Sphere::<2>::new(Point::origin(), 1.0);
+        let b = Sphere::<2>::new(Point::origin(), 1.0);
+        let transform_a = Transform::from_translation(Point::origin());
+        let overlapping_b = Transform::from_translation(Point::new([1.0, 0.0]));
+        let separated_b = Transform::from_translation(Point::new([4.0, 0.0]));
+
+        let overlap = intersects_transformed(&a, &transform_a, &b, &overlapping_b);
+        assert!(overlap.intersecting);
+        assert_eq!(overlap.termination, GjkTermination::Intersecting);
+
+        let separation = intersects_transformed(&a, &transform_a, &b, &separated_b);
+        assert!(!separation.intersecting);
+        assert_eq!(separation.termination, GjkTermination::Separated);
+
+        let map_a = TransformedShape::new(&a, &transform_a);
+        let map_b = TransformedShape::new(&b, &overlapping_b);
+        let exhausted = intersects_support_maps_with_limit(&map_a, &map_b, 0);
+        assert!(!exhausted.intersecting);
+        assert_eq!(exhausted.iterations, 0);
+        assert_eq!(exhausted.termination, GjkTermination::IterationLimit);
+    }
+
+    #[test]
     fn spheres_overlapping_3d() {
         let a = Sphere::<3>::new(Point::new([0.0, 0.0, 0.0]), 1.0);
         let b = Sphere::<3>::new(Point::origin(), 1.0);
@@ -447,7 +498,7 @@ mod tests {
         let result = intersects(&a, &pa, &b, &pb);
         // At exact touching, GJK may report either way — both are acceptable
         // The important thing is it doesn't crash or infinite loop
-        assert!(result.iterations < MAX_ITERATIONS);
+        assert!(result.iterations < MAX_GJK_ITERATIONS);
     }
 
     #[test]
@@ -594,7 +645,7 @@ mod proptests {
             prop_assert!(ab.intersecting == ba.intersecting, "GJK must be symmetric: ab={} ba={}", ab.intersecting, ba.intersecting);
         }
 
-        /// GJK never exceeds MAX_ITERATIONS.
+        /// GJK never exceeds MAX_GJK_ITERATIONS.
         #[test]
         fn gjk_always_terminates(
             ax in -50.0f64..50.0, ay in -50.0f64..50.0, az in -50.0f64..50.0,
@@ -606,7 +657,7 @@ mod proptests {
             let pa = SVector::from([ax, ay, az]);
             let pb = SVector::from([bx, by, bz]);
             let result = intersects(&a, &pa, &b, &pb);
-            prop_assert!(result.iterations <= MAX_ITERATIONS, "GJK must terminate");
+            prop_assert!(result.iterations <= MAX_GJK_ITERATIONS, "GJK must terminate");
         }
 
         /// Sphere intersection agrees with analytical distance check.

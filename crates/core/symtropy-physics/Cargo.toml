@@ -44,3 +44,7 @@ harness = false
 [[bench]]
 name = "triclinic_aabb_candidates"
 harness = false
+
+[[bench]]
+name = "triclinic_periodic_queries"
+harness = false
