@@ -108,12 +108,13 @@ fn generate_instance(
         1 + rng.bounded(5) as u64,
         1 + rng.bounded(5) as u64,
     ];
-    let alternative_sensor_toggle = rng.bounded(2) == 1;
-    let alternative_inverts_instrument = rng.bounded(2) == 1;
-    let hazard_mass = match rng.bounded(3) {
+    // The alternative world must always exercise its family-specific shift;
+    // randomness changes the instance parameters, not whether the control exists.
+    let alternative_sensor_toggle = true;
+    let alternative_inverts_instrument = true;
+    let hazard_mass = match rng.bounded(2) {
         0 => Rational::new(1, 4)?,
-        1 => Rational::new(1, 3)?,
-        _ => Rational::new(1, 2)?,
+        _ => Rational::new(1, 3)?,
     };
 
     let worlds = vec![
@@ -390,6 +391,23 @@ mod tests {
             assert_eq!(
                 abstention.worst_case_abstention_probability,
                 Rational::one()
+            );
+        }
+    }
+
+    #[test]
+    fn every_generated_alternative_world_changes_a_declared_failure_mode() {
+        let suite = generate_suite(BenchmarkSuiteConfig {
+            seed: 0xBAD5_EED,
+            instances_per_family: 8,
+        }).unwrap();
+        for instance in suite {
+            assert_ne!(
+                instance.worlds[0].kernel,
+                instance.worlds[1].kernel,
+                "alternative world must differ for family {} seed {}",
+                instance.family.as_str(),
+                instance.seed
             );
         }
     }
