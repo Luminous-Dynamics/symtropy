@@ -29,6 +29,7 @@ pub enum GraphError {
     InfeasibleTriangleLengths,
     PositionDoesNotMatchEdge { edge_id: u64 },
     NonFiniteMatrix,
+    InvalidRankPolicy,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -72,7 +73,7 @@ impl RankPolicy {
             || self.rank_deficient_rcond >= self.ill_conditioned_rcond
             || self.ill_conditioned_rcond >= 1.0
         {
-            return Err(GraphError::NonFiniteMatrix);
+            return Err(GraphError::InvalidRankPolicy);
         }
         Ok(self)
     }
@@ -345,7 +346,18 @@ pub fn assess_multiplier_jacobian(
             normal[row][column] = value;
         }
     }
-    assess_symmetric_psd(normal, dimension, policy)
+
+    // J^T J squares the condition number. Use squared cutoffs during the
+    // eigenvalue/rank analysis, then report sigma_min/sigma_max for J itself.
+    let squared_policy = RankPolicy {
+        ill_conditioned_rcond: policy.ill_conditioned_rcond.powi(2),
+        rank_deficient_rcond: policy.rank_deficient_rcond.powi(2),
+        geometry_tolerance: policy.geometry_tolerance,
+    };
+    let mut result = assess_symmetric_psd(normal, dimension, squared_policy)?;
+    result.reciprocal_condition_indicator =
+        result.reciprocal_condition_indicator.sqrt();
+    Ok(result)
 }
 
 impl ConstraintGraph3 {
@@ -691,6 +703,14 @@ mod tests {
         assert!(indicators[6] < 1.0e-6);
         assert!(indicators[6] > 1.0e-12);
         assert!(indicators[7] > 1.0e-12);
+        assert_eq!(
+            closed_triangle(1.0e-4, 222).assess_geometry().unwrap().status,
+            GeometryStatus::IllConditioned
+        );
+        assert_eq!(
+            closed_triangle(1.0e-6, 223).assess_geometry().unwrap().status,
+            GeometryStatus::RankDeficient
+        );
     }
 
     #[test]
@@ -803,12 +823,14 @@ mod tests {
         )
         .unwrap();
         let nearly_singular = assess_multiplier_jacobian(
-            [[1.0, 1.0], [1.0, 1.0 + 1.0e-10]].map(|row| [row[0], row[1], 0.0]).map_rows(),
+            [[1.0, 1.0, 0.0], [1.0, 1.0 + 1.0e-10, 0.0], [0.0; 3]],
             2,
             policy,
-        );
+        )
+        .unwrap();
         assert_eq!(well_conditioned.status, GeometryStatus::FullRank);
-        assert!(nearly_singular.is_err() || nearly_singular.unwrap().status != GeometryStatus::FullRank);
+        assert_ne!(nearly_singular.status, GeometryStatus::FullRank);
+        assert!(nearly_singular.reciprocal_condition_indicator < 1.0e-6);
     }
 
     #[test]
