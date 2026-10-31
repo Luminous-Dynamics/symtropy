@@ -6,7 +6,8 @@
 //!
 //! Consent is independent of reputation, Phi, contribution, gratitude and
 //! reciprocity. Acceptance requires two distinct parties to accept the same
-//! proposal. Pending consent may expire; either party may revoke before
+//! proposal. This records two actions; it does not prove the absence of duress
+//! or dependency. Pending consent may expire; either party may revoke before
 //! settlement. A changed proposal requires a new digest and a new consent pair.
 
 use crate::needs::AuthenticatedSubject;
