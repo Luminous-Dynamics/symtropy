@@ -494,8 +494,6 @@ impl<const D: usize> PeriodicCellKinematics<D> {
             unimodular_determinant: determinant,
         })
     }
-
-    }
 }
 
 fn validate_state_vector<const D: usize>(
