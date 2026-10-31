@@ -366,11 +366,28 @@ mod tests {
         let a = generate_stateful_confounding_family(0).unwrap();
         let b = generate_stateful_confounding_family(1).unwrap();
         let c = generate_stateful_confounding_family(0).unwrap();
-        assert_eq!(a.observation_noise_rate, Rational::new(1, 8).unwrap());
-        assert_eq!(b.observation_noise_rate, Rational::new(1, 4).unwrap());
+        assert_eq!(a.observation_noise_rate, Rational::new(1, 12).unwrap());
+        assert_eq!(b.observation_noise_rate, Rational::new(1, 10).unwrap());
+        assert_eq!(a.shifted_hazard_rate, Rational::new(1, 10).unwrap());
+        assert_eq!(b.shifted_hazard_rate, Rational::new(1, 10).unwrap());
+        assert_eq!(a.calibration_damage_rate, Rational::zero());
+        assert_eq!(b.calibration_damage_rate, Rational::zero());
         assert_ne!(
             fingerprint_model_family(&a.worlds).unwrap(),
             fingerprint_model_family(&b.worlds).unwrap()
+        );
+        let hazard_variant = generate_stateful_confounding_family(5).unwrap();
+        assert_eq!(hazard_variant.observation_noise_rate, a.observation_noise_rate);
+        assert_eq!(hazard_variant.shifted_hazard_rate, Rational::new(1, 8).unwrap());
+        assert_ne!(
+            fingerprint_model_family(&a.worlds).unwrap(),
+            fingerprint_model_family(&hazard_variant.worlds).unwrap()
+        );
+        let damage_variant = generate_stateful_confounding_family(25).unwrap();
+        assert_eq!(damage_variant.calibration_damage_rate, Rational::new(1, 16).unwrap());
+        assert_ne!(
+            fingerprint_model_family(&a.worlds).unwrap(),
+            fingerprint_model_family(&damage_variant.worlds).unwrap()
         );
         assert_eq!(
             fingerprint_model_family(&a.worlds).unwrap(),
