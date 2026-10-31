@@ -202,7 +202,7 @@ The implementation therefore has two gates:
 1. Cosign verifies DSSE/signature/certificate/issuer/workflow claims/subject digest/predicate type.
 2. A maintained in-toto/DSSE parser extracts the authenticated payload from the same bundle and validates schema, repository ID, scope, time, evidence tier, materials/calibration, physical units, uncertainty and claim limits. Only after both gates may a verifier-produced receipt be emitted.
 
-The profile and preflight example are committed under `tools/manufacturing-assurance/policies/` and `tools/manufacturing-assurance/examples/`. The platform-specific Cosign binary digest and organization-controlled predicate URI remain required deployment inputs, not invented values.
+The profile and preflight example are committed under `tools/manufacturing-assurance/policies/` and `tools/manufacturing-assurance/examples/`. The platform-specific Cosign binary digest and organization-controlled predicate URI remain required deployment inputs, not invented values. The 30-case staged negative-control specification is `tools/manufacturing-assurance/fixtures/evidence-receipt-negative-panel.tsv`; it is not yet an executable cryptographic vector suite.
 
 ## 11. Implementation roadmap
 
@@ -212,6 +212,16 @@ The profile and preflight example are committed under `tools/manufacturing-assur
 4. T2: signed public measured dataset and calibration provenance.
 5. T3: lab-issued evidence with traceable instruments and independent signer identity.
 6. T4: industrial evidence receipt and trust-root lifecycle under a read-only shadow deployment.
+
+## 13. Current CLI integration and test panel
+
+Cosign v3.1.4 (release commit `0e48502cf5ef34e2e60bbd3617aa19945712f705`) was inspected at the tagged source. Its `verify-blob-attestation` command exposes exact identity/issuer and GitHub workflow claim filters, `--trusted-root`, `--type`, and `--check-claims`. The release source sets `--check-claims` to true by default and, when given a blob path, computes its digest and verifies the in-toto subject claim. It validates the requested predicate type and prints `Verified OK`, but does not emit the complete manufacturing receipt.
+
+The CLI's `--certificate-github-workflow-repository` checks the repository owner/name claim. It does not itself compare the immutable GitHub repository database ID; the manufacturing predicate carries `producer.repositoryId`, which the second-stage semantic validator must compare to trusted repository metadata.
+
+The deprecated `--offline` flag is not used. The v3.1.4 source deprecates it and directs air-gapped verification to a bundle plus a local `--trusted-root` JSON file. Actual no-network behavior must be tested under network egress denial. The separate TUF-aware provisioning step must authenticate and freshness-check the root snapshot; the example script only compares the installed root file with its expected digest.
+
+The negative panel lists 30 cases across Cosign cryptographic verification, trust-root provisioning, and manufacturing predicate semantics. It is **SPEC_ONLY**: positive and negative signed bundles, expired/rollback TUF metadata and authenticated root-update receipts still need to be generated and frozen before it can be run as an executable suite.
 
 ## 12. Claim ceiling
 
