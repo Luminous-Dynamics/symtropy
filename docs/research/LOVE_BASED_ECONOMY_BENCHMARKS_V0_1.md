@@ -273,6 +273,14 @@ An unresolved tension is not automatically debt: a principled hold-open decision
 
 The longitudinal test spans immediate process trajectories, medium-term implementation/turnover and longer-term institutional and ecological consequences. No single disagreement-debt or institutional-wisdom score is permitted. Report the vector dimensions and uncertainty separately.
 
+### 5.3.4 Privacy-preserving evidence and verifiable accountability
+
+An append-only record must not turn accountability into surveillance. The new [LBE-BENCH-005 issue #3135](https://github.com/Luminous-Dynamics/symtropy/issues/3135) and [draft protocol PR #3137](https://github.com/Luminous-Dynamics/symtropy/pull/3137) define a two-plane design: a minimally disclosed accountability stream with scoped identifiers and verifiable commitments/receipts, and a private encrypted evidence/identity vault with purpose-bound access, revocation and key lifecycle.
+
+The benchmark tests correlation through stable pseudonyms, event timing and rare hazards; dictionary attacks on low-entropy commitments; stale disclosure after withdrawal; ciphertext substitution; unauthorized reviewers; log truncation/fork; and expired emergency disclosure. It measures direct identifier leakage, cross-record linkability, re-identification under explicit attacker assumptions, selective-disclosure correctness, unauthorized access and p50/p95 operational overhead separately. Privacy and rights gates are hard constraints, not weights that output performance can offset.
+
+NIST guidance warns that aggregated logging metadata can reveal user activity beyond any single event and recommends minimization, pseudonymization, disassociation and access controls. The protocol treats public proof of event integrity as distinct from public disclosure of participant content. It does not claim that LBE is anonymous, private or cryptographically secure before independent evaluation.
+
 ### 5.4 Outcome metrics
 
 Never compress the results into a single love score, Phi score or moral ranking.
