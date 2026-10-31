@@ -95,6 +95,8 @@ pub fn fingerprint_model_family(worlds: &[ModelWorld]) -> Result<String, String>
         feed_string_list(&mut hash, &world.kernel.hypothesis_ids);
         feed_u64(&mut hash, world.kernel.physical_state_count as u64);
         feed_u64(&mut hash, world.kernel.sensor_state_count as u64);
+        feed_string_list(&mut hash, &world.kernel.physical_state_ids);
+        feed_string_list(&mut hash, &world.kernel.sensor_state_ids);
         feed_string_list(&mut hash, &world.kernel.action_ids);
         feed_string_list(&mut hash, &world.kernel.observation_ids);
         feed_u64(&mut hash, world.kernel.action_costs.len() as u64);
@@ -571,6 +573,8 @@ mod tests {
             hypothesis_ids: vec!["h0".into(), "h1".into()],
             physical_state_count: 2,
             sensor_state_count: 2,
+            physical_state_ids: vec!["specimen-pristine".into(), "specimen-conditioned".into()],
+            sensor_state_ids: vec!["sensor-biased".into(), "sensor-calibrated".into()],
             action_ids: vec!["measure-combined-signal".into(), "calibrate-sensor".into()],
             observation_ids: vec!["zero".into(), "one".into()],
             action_costs: vec![1, 1],
@@ -657,8 +661,12 @@ mod tests {
         assert_eq!(forward, reversed);
 
         second.kernel.action_costs[0] = 9;
-        let changed = fingerprint_model_family(&[first, second]).unwrap();
+        let changed = fingerprint_model_family(&[first, second.clone()]).unwrap();
         assert_ne!(forward, changed);
+
+        second.kernel.physical_state_ids[0] = "renamed-specimen-state".into();
+        let relabelled = fingerprint_model_family(&[second]).unwrap();
+        assert_ne!(forward, relabelled);
     }
 
     #[test]
