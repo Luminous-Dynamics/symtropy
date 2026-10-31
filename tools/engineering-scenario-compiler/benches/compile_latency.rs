@@ -1,5 +1,6 @@
 use engineering_scenario_compiler::{
-    compile_bytes, Disposition, COMPILER_VERSION, MAX_SOURCE_BYTES,
+    canonical_semantic_ir_bytes, compile_bytes, Disposition, COMPILER_VERSION,
+    MAX_SOURCE_BYTES,
 };
 use std::hint::black_box;
 use std::time::Instant;
@@ -26,7 +27,7 @@ fn padded_fixture(target_bytes: usize) -> Vec<u8> {
 
 fn main() {
     eprintln!(
-        "compiler={} target={}-{} logical_cpus={} samples={} warmup={} scope=parse+typed-validation+IR+digests",
+        "compiler={} target={}-{} logical_cpus={} samples={} warmup={} scope=compile_end_to_end_plus_separate_JCS_IR_canonicalization",
         COMPILER_VERSION,
         std::env::consts::ARCH,
         std::env::consts::OS,
@@ -35,7 +36,7 @@ fn main() {
         WARMUP_COUNT
     );
     println!(
-        "input_bytes,source_sha256,p50_ns,p95_ns,p99_ns,min_ns,max_ns,samples,disposition"
+        "stage,input_bytes,output_bytes,identity_sha256,p50_ns,p95_ns,p99_ns,min_ns,max_ns,samples,disposition"
     );
 
     for target_bytes in INPUT_SIZES {
@@ -62,8 +63,9 @@ fn main() {
         samples.sort_unstable();
 
         println!(
-            "{},{},{},{},{},{},{},{},blocked",
+            "compile_end_to_end,{},{},{},{},{},{},{},{},{},blocked",
             bytes.len(),
+            0,
             source_digest,
             percentile(&samples, 50),
             percentile(&samples, 95),
@@ -73,4 +75,49 @@ fn main() {
             SAMPLE_COUNT
         );
     }
+
+    // Measure canonical serialization independently from parsing and typed
+    // validation so JCS cost is visible rather than hidden in compile time.
+    let baseline = compile_bytes(black_box(FIXTURE));
+    assert_eq!(baseline.disposition, Disposition::Blocked);
+    let scenario = baseline
+        .scenario_ir
+        .as_ref()
+        .expect("frozen scenario compiles to typed IR");
+    let canonical_example = canonical_semantic_ir_bytes(scenario)
+        .expect("typed IR has valid JCS encoding");
+    let canonical_output_bytes = canonical_example.len();
+    let canonical_sha256 = baseline
+        .semantic_ir_jcs_sha256
+        .as_ref()
+        .expect("compile report contains portable semantic digest")
+        .clone();
+
+    for _ in 0..WARMUP_COUNT {
+        black_box(
+            canonical_semantic_ir_bytes(black_box(scenario))
+                .expect("JCS canonicalization succeeds"),
+        );
+    }
+
+    let mut canonical_samples = Vec::with_capacity(SAMPLE_COUNT);
+    for _ in 0..SAMPLE_COUNT {
+        let start = Instant::now();
+        let canonical = canonical_semantic_ir_bytes(black_box(scenario))
+            .expect("JCS canonicalization succeeds");
+        canonical_samples.push(start.elapsed().as_nanos());
+        black_box(canonical);
+    }
+    canonical_samples.sort_unstable();
+    println!(
+        "canonical_ir_jcs,0,{},{},{},{},{},{},{},{},blocked",
+        canonical_output_bytes,
+        canonical_sha256,
+        percentile(&canonical_samples, 50),
+        percentile(&canonical_samples, 95),
+        percentile(&canonical_samples, 99),
+        canonical_samples[0],
+        canonical_samples[canonical_samples.len() - 1],
+        SAMPLE_COUNT
+    );
 }

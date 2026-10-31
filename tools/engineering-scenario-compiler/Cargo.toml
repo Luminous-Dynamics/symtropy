@@ -16,6 +16,7 @@ sha1 = "=0.10.6"
 hex = "=0.4.3"
 serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = "=1.0.150"
+serde_jcs = "=0.2.0"
 sha2 = "=0.10.9"
 toml_edit = { version = "=0.23.10", default-features = false, features = ["parse", "serde"] }
 

@@ -1,6 +1,7 @@
 use engineering_scenario_compiler::{
-    compile_with_artifacts, ArtifactRole, Disposition, SuppliedArtifact, MAX_SOURCE_BYTES,
-    MAX_UPSTREAM_CONFIG_BYTES, MAX_UPSTREAM_MESH_BYTES,
+    canonical_semantic_ir_bytes, portable_semantic_ir_input_bytes, compile_with_artifacts,
+    ArtifactRole, Disposition, SuppliedArtifact, MAX_SOURCE_BYTES, MAX_UPSTREAM_CONFIG_BYTES,
+    MAX_UPSTREAM_MESH_BYTES,
 };
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -25,7 +26,7 @@ fn read_bounded(path: &Path, maximum: usize, role: &str) -> Result<Vec<u8>, Stri
 
 fn usage(program: &OsStr) {
     eprintln!(
-        "usage: {} <scenario.toml> [--solver-config <path>] [--mesh <path>]",
+        "usage: {} <scenario.toml> [--solver-config <path>] [--mesh <path>] [--portable-ir-dir <path>]",
         program.to_string_lossy()
     );
 }
@@ -47,24 +48,28 @@ fn option_path(
 
 fn parse_options<I>(
     args: I,
-) -> Result<(Option<PathBuf>, Option<PathBuf>), String>
+) -> Result<(Option<PathBuf>, Option<PathBuf>, Option<PathBuf>), String>
 where
     I: IntoIterator<Item = OsString>,
 {
     let mut args = args.into_iter();
     let mut config_path = None;
     let mut mesh_path = None;
+    let mut portable_ir_directory = None;
     while let Some(argument) = args.next() {
         let result = match argument.to_str() {
             Some("--solver-config") => {
                 option_path(&mut args, "--solver-config", &mut config_path)
             }
             Some("--mesh") => option_path(&mut args, "--mesh", &mut mesh_path),
+            Some("--portable-ir-dir") => {
+                option_path(&mut args, "--portable-ir-dir", &mut portable_ir_directory)
+            }
             _ => return Err("unknown CLI option".to_owned()),
         };
         result?;
     }
-    Ok((config_path, mesh_path))
+    Ok((config_path, mesh_path, portable_ir_directory))
 }
 
 fn run() -> Result<ExitCode, String> {
@@ -75,7 +80,7 @@ fn run() -> Result<ExitCode, String> {
         return Ok(ExitCode::from(64));
     };
 
-    let (config_path, mesh_path) = match parse_options(args) {
+    let (config_path, mesh_path, portable_ir_directory) = match parse_options(args) {
         Ok(paths) => paths,
         Err(error) => {
             usage(&program);
@@ -111,6 +116,20 @@ fn run() -> Result<ExitCode, String> {
         .collect();
 
     let report = compile_with_artifacts(&source, &borrowed_artifacts);
+    if let Some(directory) = portable_ir_directory {
+        let scenario = report
+            .scenario_ir
+            .as_ref()
+            .ok_or_else(|| "portable IR output requested but compilation produced no typed Scenario IR".to_owned())?;
+        std::fs::create_dir_all(&directory)
+            .map_err(|error| format!("create portable IR output directory: {error}"))?;
+        let input_bytes = portable_semantic_ir_input_bytes(scenario)?;
+        let canonical_bytes = canonical_semantic_ir_bytes(scenario)?;
+        std::fs::write(directory.join("scenario-ir-input.json"), input_bytes)
+            .map_err(|error| format!("write portable IR JSON input: {error}"))?;
+        std::fs::write(directory.join("scenario-ir.jcs"), canonical_bytes)
+            .map_err(|error| format!("write canonical portable IR bytes: {error}"))?;
+    }
     let exit = match report.disposition {
         Disposition::PlanReady => ExitCode::SUCCESS,
         Disposition::Invalid => ExitCode::from(2),
@@ -143,17 +162,20 @@ mod tests {
 
     #[test]
     fn parses_each_optional_artifact_path_once() {
-        let (config, mesh) = parse_options(args(&[
+        let (config, mesh, portable_ir) = parse_options(args(&[
             "--solver-config", "solver.cfg", "--mesh", "grid.su2",
+            "--portable-ir-dir", "identity-output",
         ])).expect("valid options parse");
         assert_eq!(config, Some(PathBuf::from("solver.cfg")));
         assert_eq!(mesh, Some(PathBuf::from("grid.su2")));
+        assert_eq!(portable_ir, Some(PathBuf::from("identity-output")));
     }
 
     #[test]
     fn rejects_unknown_duplicate_and_missing_option_values() {
         assert!(parse_options(args(&["--unknown"])).is_err());
         assert!(parse_options(args(&["--mesh"])).is_err());
+        assert!(parse_options(args(&["--portable-ir-dir"])).is_err());
         assert!(parse_options(args(&[
             "--mesh", "one.su2", "--mesh", "two.su2",
         ])).is_err());
