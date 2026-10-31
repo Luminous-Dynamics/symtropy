@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
+	"webpki.org/jsoncanonicalizer"
 )
 
 func TestRFC8785GoldenVector(t *testing.T) {
