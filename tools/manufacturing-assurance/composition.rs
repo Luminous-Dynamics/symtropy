@@ -13,8 +13,11 @@
 //!   /tmp/mfg-composition <manifest.tsv>
 
 use std::collections::{BTreeMap, BTreeSet};
+#[cfg(not(test))]
 use std::env;
+#[cfg(not(test))]
 use std::fs;
+#[cfg(not(test))]
 use std::process;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -692,6 +695,7 @@ fn audit_text(input: &str) -> Result<AuditSummary, String> {
     audit_manifest(&manifest)
 }
 
+#[cfg(not(test))]
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
@@ -720,6 +724,7 @@ fn run() -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(not(test))]
 fn main() {
     if let Err(error) = run() {
         eprintln!("mfg-composition-verifier: {error}");
@@ -764,7 +769,7 @@ mod tests {
     fn rejects_cross_lot_scope_mismatch() {
         let input = fixture("integrated").replace(
             "NODE|MEASUREMENT|meas-001|product-001/lot-001/op-001|",
-            "NODE|MEASUREMENT|meas-001|part-001/lot-999/op-001|",
+            "NODE|MEASUREMENT|meas-001|product-001/lot-999/op-001|",
         );
         let result = audit_text(&input);
         assert!(result.is_err());
