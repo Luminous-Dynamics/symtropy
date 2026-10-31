@@ -242,10 +242,12 @@ mod tests {
           "negative_zero":-0,
           "subnormal":5e-324,
           "maximum":1.7976931348623157e308,
-          "safe_integer":9007199254740991
+          "safe_integer":9007199254740991,
+          "numeric_text":"18446744073709551617"
         }"#;
         let value = parse_strict_jcs_input(input).unwrap();
         assert_eq!(value["composed"], "é");
+        assert_eq!(value["numeric_text"], "18446744073709551617");
         assert_ne!(value["composed"], value["decomposed"]);
         assert!(value["symbol"].as_str().is_some());
         assert!(canonicalize_strict_jcs_input(input).is_ok());
