@@ -18,6 +18,272 @@ use crate::{
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const MAX_FALSIFIER_CANDIDATES: usize = 128;
+pub const MAX_PERTURBATION_SCENARIOS: usize = 128;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum KernelPerturbation {
+    TransferOutcomeProbability {
+        state: crate::LatentState,
+        command: usize,
+        donor_outcome: usize,
+        receiver_outcome: usize,
+        amount: Rational,
+    },
+    SuppressReadback {
+        state: crate::LatentState,
+        command: usize,
+        outcome: usize,
+    },
+    SwapMeasurementLabels {
+        state: crate::LatentState,
+        command: usize,
+        left_outcome: usize,
+        right_outcome: usize,
+    },
+    RemapRealizedAction {
+        state: crate::LatentState,
+        command: usize,
+        outcome: usize,
+        realized_action: usize,
+    },
+    PromoteSafeOutcomeToHazard {
+        state: crate::LatentState,
+        command: usize,
+        outcome: usize,
+    },
+    SetNextApparatusState {
+        state: crate::LatentState,
+        command: usize,
+        outcome: usize,
+        apparatus_state: usize,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PerturbationScenario {
+    pub scenario_id: String,
+    pub generator_version: String,
+    /// Canonical parameter and seed receipt supplied by the scenario author.
+    pub parameter_receipt: String,
+    pub perturbation: KernelPerturbation,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ModelWorldProvenance {
+    pub parent_world_id: String,
+    pub generator_id: String,
+    pub generator_version: String,
+    /// Canonical, human-auditable generator parameters and seed receipt.
+    ///
+    /// This is a descriptive receipt, not a cryptographic digest.
+    pub parameter_receipt: String,
+    pub origin: CandidateOrigin,
+}
+
+fn checked_sub_probability(left: Rational, right: Rational) -> Result<Rational, String> {
+    if right > left {
+        return Err("probability transfer exceeds donor outcome mass".into());
+    }
+    let mut a = left.denominator();
+    let mut b = right.denominator();
+    while b != 0 {
+        let remainder = a % b;
+        a = b;
+        b = remainder;
+    }
+    let gcd = a.max(1);
+    let left_scale = right.denominator() / gcd;
+    let right_scale = left.denominator() / gcd;
+    let numerator_left = left
+        .numerator()
+        .checked_mul(left_scale)
+        .ok_or_else(|| "probability subtraction numerator overflow".to_string())?;
+    let numerator_right = right
+        .numerator()
+        .checked_mul(right_scale)
+        .ok_or_else(|| "probability subtraction numerator overflow".to_string())?;
+    let denominator = left
+        .denominator()
+        .checked_mul(left_scale)
+        .ok_or_else(|| "probability subtraction denominator overflow".to_string())?;
+    Rational::new(numerator_left - numerator_right, denominator)
+}
+
+fn find_outcome_mut(
+    kernel: &mut ActionRealizationKernel,
+    state: crate::LatentState,
+    command: usize,
+    outcome: usize,
+) -> Result<&mut crate::TransitionOutcome, String> {
+    let row = kernel
+        .rows
+        .iter_mut()
+        .find(|row| row.state == state && row.command == command)
+        .ok_or_else(|| "perturbation references an unknown state-command row".to_string())?;
+    row.outcomes
+        .get_mut(outcome)
+        .ok_or_else(|| "perturbation references an unknown outcome index".to_string())
+}
+
+/// Apply one bounded structural perturbation while preserving kernel validity.
+///
+/// This operator intentionally does not assert physical plausibility. It
+/// constructs transparent synthetic stress worlds; a separate, domain-specific
+/// admission check must decide which candidates are physically admissible.
+fn apply_kernel_perturbation(
+    kernel: &mut ActionRealizationKernel,
+    perturbation: &KernelPerturbation,
+) -> Result<(), String> {
+    match perturbation {
+        KernelPerturbation::TransferOutcomeProbability {
+            state,
+            command,
+            donor_outcome,
+            receiver_outcome,
+            amount,
+        } => {
+            if donor_outcome == receiver_outcome || amount.is_zero() || !amount.is_probability() {
+                return Err("probability transfer requires distinct outcomes and positive probability".into());
+            }
+            let row = kernel
+                .rows
+                .iter_mut()
+                .find(|row| row.state == *state && row.command == *command)
+                .ok_or_else(|| "probability transfer references an unknown row".to_string())?;
+            if *donor_outcome >= row.outcomes.len() || *receiver_outcome >= row.outcomes.len() {
+                return Err("probability transfer outcome index is out of range".into());
+            }
+            let donor = row.outcomes[*donor_outcome].probability;
+            let receiver = row.outcomes[*receiver_outcome].probability;
+            let donor_after = checked_sub_probability(donor, *amount)?;
+            let receiver_after = receiver.checked_add(*amount)?;
+            if receiver_after > Rational::one() {
+                return Err("probability transfer exceeds receiver simplex capacity".into());
+            }
+            row.outcomes[*donor_outcome].probability = donor_after;
+            row.outcomes[*receiver_outcome].probability = receiver_after;
+        }
+        KernelPerturbation::SuppressReadback {
+            state,
+            command,
+            outcome,
+        } => {
+            find_outcome_mut(kernel, *state, *command, *outcome)?.readback = None;
+        }
+        KernelPerturbation::SwapMeasurementLabels {
+            state,
+            command,
+            left_outcome,
+            right_outcome,
+        } => {
+            if left_outcome == right_outcome {
+                return Err("measurement swap requires distinct outcomes".into());
+            }
+            let row = kernel
+                .rows
+                .iter_mut()
+                .find(|row| row.state == *state && row.command == *command)
+                .ok_or_else(|| "measurement swap references an unknown row".to_string())?;
+            if *left_outcome >= row.outcomes.len() || *right_outcome >= row.outcomes.len() {
+                return Err("measurement swap outcome index is out of range".into());
+            }
+            let left = row.outcomes[*left_outcome].measurement;
+            let right = row.outcomes[*right_outcome].measurement;
+            if left.is_none() || right.is_none() {
+                return Err("measurement swap requires two safe measured outcomes".into());
+            }
+            row.outcomes[*left_outcome].measurement = right;
+            row.outcomes[*right_outcome].measurement = left;
+        }
+        KernelPerturbation::RemapRealizedAction {
+            state,
+            command,
+            outcome,
+            realized_action,
+        } => {
+            if *realized_action >= kernel.realized_action_ids.len() {
+                return Err("realized-action remap target is out of range".into());
+            }
+            find_outcome_mut(kernel, *state, *command, *outcome)?.realized_action =
+                *realized_action;
+        }
+        KernelPerturbation::PromoteSafeOutcomeToHazard {
+            state,
+            command,
+            outcome,
+        } => {
+            let target = find_outcome_mut(kernel, *state, *command, *outcome)?;
+            if target.hazard {
+                return Err("hazard promotion target is already hazardous".into());
+            }
+            target.hazard = true;
+            target.measurement = None;
+        }
+        KernelPerturbation::SetNextApparatusState {
+            state,
+            command,
+            outcome,
+            apparatus_state,
+        } => {
+            if *apparatus_state >= kernel.apparatus_state_count {
+                return Err("apparatus transition target is out of range".into());
+            }
+            find_outcome_mut(kernel, *state, *command, *outcome)?
+                .next_state
+                .apparatus_state = *apparatus_state;
+        }
+    }
+    Ok(())
+}
+
+/// Generate deterministic single-edit synthetic candidate worlds from a base
+/// kernel. Scenarios are sorted by ID, IDs are namespaced under the parent
+/// world, and every emitted kernel must pass full kernel validation.
+pub fn generate_search_perturbation_candidates(
+    parent: &DecisionModelWorld,
+    scenarios: &[PerturbationScenario],
+) -> Result<Vec<PolicyFalsificationCandidate>, String> {
+    parent.kernel.validate()?;
+    if parent.id.trim().is_empty() {
+        return Err("parent model-world ID must be non-empty".into());
+    }
+    if scenarios.is_empty() || scenarios.len() > MAX_PERTURBATION_SCENARIOS {
+        return Err(format!(
+            "perturbation scenario count must be in 1..={MAX_PERTURBATION_SCENARIOS}"
+        ));
+    }
+    let mut sorted: Vec<_> = scenarios.iter().collect();
+    sorted.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    let mut ids = BTreeSet::new();
+    let mut generated = Vec::with_capacity(sorted.len());
+    for scenario in sorted {
+        if scenario.scenario_id.trim().is_empty()
+            || !ids.insert(scenario.scenario_id.as_str())
+            || scenario.generator_version.trim().is_empty()
+            || scenario.parameter_receipt.trim().is_empty()
+        {
+            return Err("perturbation IDs, versions and parameter receipts must be non-empty and unique".into());
+        }
+        let world_id = format!("{}::{}", parent.id, scenario.scenario_id);
+        let mut world = DecisionModelWorld {
+            id: world_id,
+            kernel: parent.kernel.clone(),
+        };
+        apply_kernel_perturbation(&mut world.kernel, &scenario.perturbation)?;
+        world.kernel.validate()?;
+        generated.push(PolicyFalsificationCandidate {
+            world,
+            provenance: ModelWorldProvenance {
+                parent_world_id: parent.id.clone(),
+                generator_id: "sim-rel-029-single-edit-kernel-perturbations".into(),
+                generator_version: scenario.generator_version.clone(),
+                parameter_receipt: scenario.parameter_receipt.clone(),
+                origin: CandidateOrigin::SearchTraining,
+            },
+        });
+    }
+    Ok(generated)
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CandidateOrigin {
@@ -27,17 +293,6 @@ pub enum CandidateOrigin {
     Calibration,
     /// Sealed evaluation; must never be inspected by the falsifier.
     SealedEvaluation,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ModelWorldProvenance {
-    pub generator_id: String,
-    pub generator_version: String,
-    /// Canonical, human-auditable generator parameters and seed receipt.
-    ///
-    /// This is a descriptive receipt, not a cryptographic digest.
-    pub parameter_receipt: String,
-    pub origin: CandidateOrigin,
 }
 
 #[derive(Clone, Debug)]
@@ -521,6 +776,7 @@ mod tests {
 
     fn provenance(origin: CandidateOrigin, id: &str) -> ModelWorldProvenance {
         ModelWorldProvenance {
+            parent_world_id: "reference".into(),
             generator_id: "unit-test-generator".into(),
             generator_version: "1".into(),
             parameter_receipt: format!("fixture={id};seed=0"),
@@ -547,6 +803,163 @@ mod tests {
 
     fn costs() -> Vec<Rational> {
         vec![Rational::new(1, 10).unwrap()]
+    }
+
+    fn make_two_outcome_world(id: &str) -> DecisionModelWorld {
+        let mut world = make_world(id, 0);
+        for row in &mut world.kernel.rows {
+            let state = row.state;
+            row.outcomes = vec![
+                TransitionOutcome {
+                    probability: half(),
+                    next_state: state,
+                    realized_action: 0,
+                    readback: Some(0),
+                    measurement: Some(0),
+                    hazard: false,
+                },
+                TransitionOutcome {
+                    probability: half(),
+                    next_state: state,
+                    realized_action: 0,
+                    readback: Some(0),
+                    measurement: Some(1),
+                    hazard: false,
+                },
+            ];
+        }
+        world
+    }
+
+    #[test]
+    fn single_edit_generator_emits_valid_provenance_linked_worlds_deterministically() {
+        let mut parent = make_world("parent", 0);
+        parent.kernel.realized_action_ids.push("not-performed".into());
+        let state_h0 = parent.kernel.initial_belief[0].state;
+        let scenarios = vec![
+            PerturbationScenario {
+                scenario_id: "readback-loss".into(),
+                generator_version: "1".into(),
+                parameter_receipt: "state=h0;command=0;outcome=0".into(),
+                perturbation: KernelPerturbation::SuppressReadback {
+                    state: state_h0,
+                    command: 0,
+                    outcome: 0,
+                },
+            },
+            PerturbationScenario {
+                scenario_id: "action-drop".into(),
+                generator_version: "1".into(),
+                parameter_receipt: "state=h0;command=0;outcome=0;action=1".into(),
+                perturbation: KernelPerturbation::RemapRealizedAction {
+                    state: state_h0,
+                    command: 0,
+                    outcome: 0,
+                    realized_action: 1,
+                },
+            },
+            PerturbationScenario {
+                scenario_id: "hazard-promotion".into(),
+                generator_version: "1".into(),
+                parameter_receipt: "state=h0;command=0;outcome=0".into(),
+                perturbation: KernelPerturbation::PromoteSafeOutcomeToHazard {
+                    state: state_h0,
+                    command: 0,
+                    outcome: 0,
+                },
+            },
+        ];
+        let generated = generate_search_perturbation_candidates(&parent, &scenarios).unwrap();
+        assert_eq!(
+            generated.iter().map(|candidate| candidate.world.id.as_str()).collect::<Vec<_>>(),
+            vec![
+                "parent::action-drop",
+                "parent::hazard-promotion",
+                "parent::readback-loss",
+            ]
+        );
+        for candidate in &generated {
+            candidate.world.kernel.validate().unwrap();
+            assert_eq!(candidate.provenance.parent_world_id, "parent");
+            assert_eq!(candidate.provenance.origin, CandidateOrigin::SearchTraining);
+            assert_eq!(
+                candidate.provenance.generator_id,
+                "sim-rel-029-single-edit-kernel-perturbations"
+            );
+        }
+        assert_eq!(generated[0].world.kernel.rows[0].outcomes[0].realized_action, 1);
+        assert!(generated[1].world.kernel.rows[0].outcomes[0].hazard);
+        assert_eq!(generated[2].world.kernel.rows[0].outcomes[0].readback, None);
+    }
+
+    #[test]
+    fn perturbation_generator_transfers_exact_probability_mass_and_swaps_measurements() {
+        let parent = make_two_outcome_world("stochastic");
+        let state = parent.kernel.initial_belief[0].state;
+        let scenarios = vec![
+            PerturbationScenario {
+                scenario_id: "probability-shift".into(),
+                generator_version: "1".into(),
+                parameter_receipt: "donor=0;receiver=1;amount=1/4".into(),
+                perturbation: KernelPerturbation::TransferOutcomeProbability {
+                    state,
+                    command: 0,
+                    donor_outcome: 0,
+                    receiver_outcome: 1,
+                    amount: Rational::new(1, 4).unwrap(),
+                },
+            },
+            PerturbationScenario {
+                scenario_id: "measurement-swap".into(),
+                generator_version: "1".into(),
+                parameter_receipt: "left=0;right=1".into(),
+                perturbation: KernelPerturbation::SwapMeasurementLabels {
+                    state,
+                    command: 0,
+                    left_outcome: 0,
+                    right_outcome: 1,
+                },
+            },
+        ];
+        let generated = generate_search_perturbation_candidates(&parent, &scenarios).unwrap();
+        let shifted = &generated[1].world.kernel.rows[0].outcomes;
+        assert_eq!(shifted[0].probability, Rational::new(1, 4).unwrap());
+        assert_eq!(shifted[1].probability, Rational::new(3, 4).unwrap());
+        let swapped = &generated[0].world.kernel.rows[0].outcomes;
+        assert_eq!(swapped[0].measurement, Some(1));
+        assert_eq!(swapped[1].measurement, Some(0));
+    }
+
+    #[test]
+    fn invalid_perturbations_fail_closed_without_emitting_partial_candidates() {
+        let parent = make_two_outcome_world("stochastic");
+        let state = parent.kernel.initial_belief[0].state;
+        let scenarios = vec![
+            PerturbationScenario {
+                scenario_id: "valid-first".into(),
+                generator_version: "1".into(),
+                parameter_receipt: "swap".into(),
+                perturbation: KernelPerturbation::SwapMeasurementLabels {
+                    state,
+                    command: 0,
+                    left_outcome: 0,
+                    right_outcome: 1,
+                },
+            },
+            PerturbationScenario {
+                scenario_id: "invalid-second".into(),
+                generator_version: "1".into(),
+                parameter_receipt: "too-much".into(),
+                perturbation: KernelPerturbation::TransferOutcomeProbability {
+                    state,
+                    command: 0,
+                    donor_outcome: 0,
+                    receiver_outcome: 1,
+                    amount: Rational::one(),
+                },
+            },
+        ];
+        assert!(generate_search_perturbation_candidates(&parent, &scenarios).is_err());
     }
 
     #[test]
