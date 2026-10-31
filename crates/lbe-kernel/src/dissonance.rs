@@ -719,7 +719,8 @@ impl DissonanceRecord {
 
     #[cfg(test)]
     fn report_hazard(&mut self, report: HazardReport) -> Result<(), DissonanceError> {
-        let context = self.test_context(self.event_history.last().map_or(1, |event| event.occurred_at + 1));
+        let next_time = self.event_history.last().map_or(1, |event| event.occurred_at + 1);
+        let context = self.test_context(next_time);
         self.report_hazard_with_context(report, context)
     }
 
