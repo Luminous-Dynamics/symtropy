@@ -85,6 +85,10 @@ The world mechanical-energy change is measured from the before/after invariant s
 \Delta E_{mech} = (K+U_g)_{n+1}-(K+U_g)_n.
 \]
 
+The receipt also carries a machine-readable `unmodeled_energy_channels` list (rotational torque/angular damping, joints/motors, stabilization/compliance, CCD/position correction, prescribed-body/boundary work, constitutive material work, and floating-point/solver termination). This list discloses coverage gaps even when a particular simple fixture has a zero residual.
+
+The ledger exposes a unit-invariant relative residual: absolute unexplained energy divided by the sum of the absolute measured and attributed energy magnitudes. A fixed 1-joule denominator is deliberately avoided so equivalent unit conversions do not change the ratio.
+
 The unattributed remainder is:
 
 \[
@@ -130,11 +134,12 @@ The current solver uses semi-implicit Euler and TGS Soft. A complete conservatio
 
 ## Regression contract
 
-The implementation adds analytical tests for:
+The implementation adds analytical and metamorphic tests for:
 
 1. **Force plus gravity:** a 1 kg body under a 2 N horizontal force and uniform gravity for 0.01 s. The force work, gravity work, kinetic-energy change and potential-energy change close to floating-point tolerance.
 2. **Linear damping:** the exact exponential damping loss is recorded separately and closes the measured mechanical-energy change when no other source is active.
 3. **Normal impact plus friction:** the ledger reports negative normal and tangential kinetic-energy changes and a positive friction-dissipation amount; the signed friction term and dissipation reconcile.
+4. **Unit conversion:** the relative unattributed residual remains invariant when all energy values are converted by a common scale factor.
 
 These are source-level regression cases until exact-head formatting, compilation, Clippy and tests pass.
 
@@ -147,6 +152,7 @@ Before treating the ledger as a qualification tool, require:
 - friction: non-negative reported dissipation and (|E_{diss}+\Delta K_t|\le10^{-12}) for each isolated Coulomb impulse;
 - callback-modulated normal impulses: work uses the actually applied impulse, not the unclamped or unmodulated solver proposal;
 - deterministic receipts: identical state/configuration/source must produce identical ledger fields within the declared floating-point execution contract;
+- unit-invariant closure ratio: equivalent energy representations preserve the relative residual to within (10^{-15}) on synthetic receipts;
 - adversarial scale tests: repeat equivalent fixtures in SI and converted units, normalize the residual by a declared energy scale.
 
 Do not impose a single global residual threshold on scenes with known but unmodeled joints, damping, kinematic work or stabilization. The correct behavior is a visibly non-zero unattributed remainder, not a false pass.
