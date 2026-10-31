@@ -1,0 +1,72 @@
+{
+  "benchmark_id": "glass-grouped-split-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic split-assignment contract only. Does not prove a real dataset, model training pipeline, or predictor has zero leakage.",
+  "required_group_fields": [
+    "composition_family_id",
+    "synthesis_campaign_id"
+  ],
+  "allowed_splits": [
+    "train",
+    "validation",
+    "test"
+  ],
+  "records": [
+    {
+      "record_id": "sample-a1",
+      "split": "train",
+      "group_keys": {
+        "composition_family_id": "family-a",
+        "synthesis_campaign_id": "campaign-1"
+      }
+    },
+    {
+      "record_id": "sample-a2",
+      "split": "train",
+      "group_keys": {
+        "composition_family_id": "family-a",
+        "synthesis_campaign_id": "campaign-1"
+      }
+    },
+    {
+      "record_id": "sample-b1",
+      "split": "train",
+      "group_keys": {
+        "composition_family_id": "family-b",
+        "synthesis_campaign_id": "campaign-2"
+      }
+    },
+    {
+      "record_id": "sample-c1",
+      "split": "validation",
+      "group_keys": {
+        "composition_family_id": "family-c",
+        "synthesis_campaign_id": "campaign-3"
+      }
+    },
+    {
+      "record_id": "sample-c2",
+      "split": "validation",
+      "group_keys": {
+        "composition_family_id": "family-c",
+        "synthesis_campaign_id": "campaign-4"
+      }
+    },
+    {
+      "record_id": "sample-d1",
+      "split": "test",
+      "group_keys": {
+        "composition_family_id": "family-d",
+        "synthesis_campaign_id": "campaign-5"
+      }
+    },
+    {
+      "record_id": "sample-e1",
+      "split": "test",
+      "group_keys": {
+        "composition_family_id": "family-e",
+        "synthesis_campaign_id": "campaign-6"
+      }
+    }
+  ]
+}

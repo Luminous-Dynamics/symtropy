@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "glass-causal-trial-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic paired-block arithmetic and preregistration contract only; no real treatment assignment, measurement authenticity, material quality, or plant energy effect is certified.",
+  "preregistration": {
+    "protocol_id": "paired-glass-energy-v0",
+    "preregistered_at": "2026-10-01T00:00:00Z",
+    "analysis_plan_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "assignment_schedule_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "endpoint": "energy_per_accepted_tonne_kwh",
+    "direction": "lower_is_better",
+    "minimum_relative_reduction": 0.05,
+    "alpha": 0.05,
+    "design": "balanced_paired_randomized_crossover"
+  },
+  "blocks": [
+    {
+      "block_id": "block-01",
+      "allocation_order": "CONTROL_THEN_TREATMENT",
+      "control": {
+        "period_id": "block-01-control",
+        "measured_at": "2026-10-02T08:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1000,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-control-01"
+      },
+      "treatment": {
+        "period_id": "block-01-treatment",
+        "measured_at": "2026-10-02T16:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 940,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-treatment-01"
+      }
+    },
+    {
+      "block_id": "block-02",
+      "allocation_order": "TREATMENT_THEN_CONTROL",
+      "control": {
+        "period_id": "block-02-control",
+        "measured_at": "2026-10-03T16:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1020,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-control-02"
+      },
+      "treatment": {
+        "period_id": "block-02-treatment",
+        "measured_at": "2026-10-03T08:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 957.78,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-treatment-02"
+      }
+    },
+    {
+      "block_id": "block-03",
+      "allocation_order": "CONTROL_THEN_TREATMENT",
+      "control": {
+        "period_id": "block-03-control",
+        "measured_at": "2026-10-04T08:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1040,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-control-03"
+      },
+      "treatment": {
+        "period_id": "block-03-treatment",
+        "measured_at": "2026-10-04T16:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 974.48,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-treatment-03"
+      }
+    },
+    {
+      "block_id": "block-04",
+      "allocation_order": "TREATMENT_THEN_CONTROL",
+      "control": {
+        "period_id": "block-04-control",
+        "measured_at": "2026-10-05T16:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1060,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-control-04"
+      },
+      "treatment": {
+        "period_id": "block-04-treatment",
+        "measured_at": "2026-10-05T08:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 991.1,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-treatment-04"
+      }
+    },
+    {
+      "block_id": "block-05",
+      "allocation_order": "CONTROL_THEN_TREATMENT",
+      "control": {
+        "period_id": "block-05-control",
+        "measured_at": "2026-10-06T08:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1080,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-control-05"
+      },
+      "treatment": {
+        "period_id": "block-05-treatment",
+        "measured_at": "2026-10-06T16:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1007.64,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-treatment-05"
+      }
+    },
+    {
+      "block_id": "block-06",
+      "allocation_order": "TREATMENT_THEN_CONTROL",
+      "control": {
+        "period_id": "block-06-control",
+        "measured_at": "2026-10-07T16:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1100,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-control-06"
+      },
+      "treatment": {
+        "period_id": "block-06-treatment",
+        "measured_at": "2026-10-07T08:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1024.1,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-treatment-06"
+      }
+    },
+    {
+      "block_id": "block-07",
+      "allocation_order": "CONTROL_THEN_TREATMENT",
+      "control": {
+        "period_id": "block-07-control",
+        "measured_at": "2026-10-08T08:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1120,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-control-07"
+      },
+      "treatment": {
+        "period_id": "block-07-treatment",
+        "measured_at": "2026-10-08T16:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1040.48,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-treatment-07"
+      }
+    },
+    {
+      "block_id": "block-08",
+      "allocation_order": "TREATMENT_THEN_CONTROL",
+      "control": {
+        "period_id": "block-08-control",
+        "measured_at": "2026-10-09T16:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1140,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-control-08"
+      },
+      "treatment": {
+        "period_id": "block-08-treatment",
+        "measured_at": "2026-10-09T08:00:00Z",
+        "measurement_status": "VALID",
+        "energy_kwh": 1056.78,
+        "accepted_tonnes": 10,
+        "quality_status": "PASS",
+        "evidence_ref": "synthetic-meter-treatment-08"
+      }
+    }
+  ]
+}

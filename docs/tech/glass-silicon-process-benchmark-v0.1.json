@@ -1,0 +1,588 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "glass-silicon-process-benchmark-v0.1",
+  "status": "synthetic_contract_corpus",
+  "claim_ceiling": "Software-contract fixtures only. No case contains measured production data or validates a physical materials model, product grade, furnace, lifecycle result, or manufacturing performance claim.",
+  "suite_invariants": [
+    "At least one valid glass control and one valid MG-Si control must be accepted at the contract level.",
+    "All seeded negative controls must be rejected with stable reason codes.",
+    "Hold controls must remain abstained or unresolved and must never be silently accepted.",
+    "Synthetic values and labels must never be promoted to measured production evidence.",
+    "A valid software contract outcome is not a physical-process pass.",
+    "A claimed route improvement must be assessed across a frozen scenario grid; one favorable scenario is not sufficient.",
+    "High cross-validation fit does not qualify a model with unbounded external signed bias or absent calibration evidence.",
+    "The validator must accept the required glass and MG-Si valid controls; reject-all is not a passing policy.",
+    "A candidate that violates or lacks evidence for any required product constraint cannot qualify from a favorable single-property score.",
+    "Project plans, announced pilot capacities, and target grades do not count as measured process performance."
+  ],
+  "research_references": [
+    {
+      "reference_id": "glass-energy-2024",
+      "title": "Status and prospects of energy efficiency in the glass industry: Measuring, assessing and improving energy performance",
+      "url": "https://doi.org/10.1016/j.ecmx.2024.100720",
+      "published_or_reviewed": "2024",
+      "use": "Context for glass-furnace energy normalization and best-practice comparison.",
+      "limitation": "The reported sectoral improvement potential is not a guaranteed saving for any target plant."
+    },
+    {
+      "reference_id": "glass-ontology-robotic-melting-2025",
+      "title": "Ontology-Based Digital Infrastructure for Data-Driven Glass Development",
+      "url": "https://doi.org/10.1002/adem.202401560",
+      "published_or_reviewed": "2025",
+      "use": "State-of-the-art baseline for glass ontology, robotic melting, and ML-based property prediction.",
+      "limitation": "Does not by itself establish that this benchmark's cross-route conservation, lifecycle, uncertainty, and industrial decision contract is implemented."
+    },
+    {
+      "reference_id": "silicon-decarbonization-review-2024",
+      "title": "Emerging Technologies for Decarbonizing Silicon Production",
+      "url": "https://doi.org/10.1007/s40831-024-00913-3",
+      "published_or_reviewed": "2024",
+      "use": "Reference context for MG-Si conventional energy/direct-emissions levels and route maturity distinctions.",
+      "limitation": "Review figures are contextual ranges and are not a substitute for a matched plant baseline or verified life-cycle assessment."
+    },
+    {
+      "reference_id": "electrochemical-silicon-review-2023",
+      "title": "Recent Advances in Electrochemical-Based Silicon Production Technologies with Reduced Carbon Emission",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37214200/",
+      "published_or_reviewed": "2023",
+      "use": "Research context for electrochemical silicon process families and unresolved scale-up questions.",
+      "limitation": "Review of promising technologies is not evidence of commercial-scale competitiveness or qualified product output."
+    },
+    {
+      "reference_id": "flat-glass-tea-2025",
+      "title": "Decarbonising the glass industry: A comprehensive techno-economic assessment of low-emission pathways",
+      "url": "https://doi.org/10.1016/j.compchemeng.2025.109329",
+      "published_or_reviewed": "2025",
+      "use": "Scenario and uncertainty-aware comparison of hybrid furnaces, electrification, hydrogen, and CCS for flat glass.",
+      "limitation": "Model outputs depend on the study's declared flat-glass plant, prices, system boundary, and assumptions; do not generalize as measured results for another plant."
+    },
+    {
+      "reference_id": "container-glass-decarbonization-2026",
+      "title": "Assessing container glass production decarbonization through amine scrubbing, calcium looping and electrification: a comparative techno-economic analysis",
+      "url": "https://doi.org/10.1016/j.jclepro.2026.148702",
+      "published_or_reviewed": "2026",
+      "use": "Recent modeled comparison of CCS and electrification pathways for a declared 250 t/day container-glass case.",
+      "limitation": "Scenario-specific process-model and techno-economic results; not an independently measured universal benchmark."
+    },
+    {
+      "reference_id": "silicon-mse-tea-2026",
+      "title": "Techno-Economic Comparison of Molten-Salt Electrolysis and Carbothermic Reduction for the Production of Metallurgical-Grade Silicon",
+      "url": "https://doi.org/10.3390/en19092023",
+      "published_or_reviewed": "2026",
+      "use": "Recent conditional comparison of MG-Si conventional submerged-arc furnace and molten-salt electrolysis economics and energy assumptions.",
+      "limitation": "MSE for MG-Si has not been deployed at modeled industrial scale; inputs and cost results have high scale-up/financing uncertainty and are not validated plant performance."
+    },
+    {
+      "reference_id": "nist-digital-twins-2026",
+      "title": "Digital Twins Workshops Summary Report (NISTIR 8620)",
+      "url": "https://doi.org/10.6028/NIST.IR.8620",
+      "published_or_reviewed": "2026",
+      "use": "Manufacturing digital-twin concerns including interoperability, VVUQ, cybersecurity, and supply-chain resilience.",
+      "limitation": "Workshop synthesis and research priorities, not a glass- or silicon-specific process-performance standard."
+    },
+    {
+      "reference_id": "scale-glass-active-learning-2026",
+      "title": "Accelerating sustainable glass discovery: integrating molecular dynamics, machine learning, and robotic synthesis",
+      "url": "https://doi.org/10.1038/s41524-026-02249-w",
+      "published_or_reviewed": "2026",
+      "use": "SOTA baseline for simulation-calibrated active learning, model bias correction, and measurement-budget comparisons in sodium alumino-borosilicate glass.",
+      "limitation": "Property and chemistry-specific study; do not generalize the reported R-squared, bias, or experiment count to industrial container-glass furnace optimization."
+    },
+    {
+      "reference_id": "glass-futures-ai-glass-2026",
+      "title": "Glass Futures launches AI-driven digital twin to reinvent glass manufacturing",
+      "url": "https://www.glass-futures.org/news/glass-futures-launches-ai-driven-digital-twin-to-reinvent-glass-manufacturing/",
+      "published_or_reviewed": "2026",
+      "use": "Public industrial benchmark context for a pilot-furnace twin with multi-fuel operation and sensor-informed physics/AI modeling.",
+      "limitation": "Announcement reports sensor and computation scale but does not publish an externally reproducible holdout dataset, normalized accuracy, uncertainty calibration, or accepted-product performance results."
+    },
+    {
+      "reference_id": "silicon-purification-route-review-2026",
+      "title": "Silicon Purification: Purity, Energy and Environmental Trade-Offs Across Five Technological Routes",
+      "url": "https://doi.org/10.1080/08827508.2026.2716681",
+      "published_or_reviewed": "2026",
+      "use": "Recent grade-specific comparison of metallurgical, chemical, physical, electrochemical, and crystallization routes for silicon purification.",
+      "limitation": "Review-level energy/purity/carbon ranges are route-specific and mix technologies at different maturity/scale; do not compare directly without harmonized grade, yields, and boundaries."
+    },
+    {
+      "reference_id": "scale-glass-zenodo-data-2026",
+      "title": "Accelerating sustainable glass discovery: datasets, models, and supporting code (Zenodo record 18430657)",
+      "url": "https://doi.org/10.5281/zenodo.18430657",
+      "published_or_reviewed": "2026",
+      "use": "Candidate reproducibility artifact for V14/V18 datasets, trained models, and SCALE active-learning code.",
+      "limitation": "The record is version v1 published 2026-01-30 and labeled Dataset Open, but its Rights/License field is blank and the public file table shows MD5 rather than SHA-256 checksums. Published MD5: models_data_V14.zip=deb614846654bda761a66614dac6b4e0; models_data_V18.zip=b7f7ffa6253050420de1b58b58b271b1. Exact file-level reuse permissions remain unresolved; do not admit or redistribute the artifacts until terms are reviewed, bytes are acquired lawfully, and SHA-256 digests are calculated."
+    },
+    {
+      "reference_id": "pnnl-law-glass-validation-2026",
+      "title": "Low Activity Waste Glass Optimization with Property Models from Machine Learning, Part 2: Experimental Validation and Active Learning",
+      "url": "https://doi.org/10.1016/j.jnoncrysol.2026.123990",
+      "published_or_reviewed": "2026",
+      "use": "Multi-property constrained glass-formulation benchmark with experimental property validation and iterative model updates; use as a separate nuclear-waste-glass application class.",
+      "limitation": "Application-specific data are available on request according to the paper; do not mix its composition domain, property constraints, or metrics with container-glass or SCALE results."
+    },
+    {
+      "reference_id": "wa-silicon-electroreduction-pilot-2026",
+      "title": "Advancing Low-Carbon High-Grade Silicon Production from Iron Ore Waste (Phase 1)",
+      "url": "https://www.mriwa.wa.gov.au/research-projects/project-portfolio/advancing-low-carbon-high-grade-silicon-production-from-iron-ore-waste-phase-1/",
+      "published_or_reviewed": "2026",
+      "use": "Official project description for a planned 2026–2028 sodium-silicate electrolysis programme and 100 kg/day pilot targeting MG/solar-grade silicon from iron-ore waste.",
+      "limitation": "The page describes a project and proposed pilot objectives; it is not evidence that the pilot is built, that claimed grade/throughput has been achieved, or that the process is commercially qualified."
+    },
+    {
+      "reference_id": "glass-gfri-feasibility-2026",
+      "title": "Glass-Forming-Region-Informed Machine Learning Reveals Quantitative Criteria for Network Glass Formation",
+      "url": "https://doi.org/10.1111/jace.70980",
+      "published_or_reviewed": "2026",
+      "use": "Negative-region benchmark for glass formation, with non-glass-forming instances, composition-only and physical-descriptor predictors, and independent held-out systems.",
+      "limitation": "GitHub repository metadata reports no recognized license and the root listing has no LICENSE file. Dataset/model reuse terms remain unresolved; benchmark admission is blocked pending explicit permission, exact artifact version and SHA-256."
+    },
+    {
+      "reference_id": "glass-gfr-xgboost-2026",
+      "title": "Interpretable Machine Learning Predicts Glass-Forming Regions Across Diverse Inorganic Systems",
+      "url": "https://doi.org/10.1111/jace.70616",
+      "published_or_reviewed": "2026",
+      "use": "Composition-only XGBoost/SHAP glass-forming-region classification baseline; the paper reports F1-score above 0.89 and validation across oxide, oxyfluoride and metallic-glass systems.",
+      "limitation": "GitHub repository metadata reports no recognized license; the root listing contains only .gitattributes and three prediction workbooks, with no README/LICENSE or complete training-source package. Reuse and reproduction remain blocked pending author clarification and artifact rights/hash review."
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "glass-valid-reference-contract",
+      "route": "glass_container_reference",
+      "case_type": "valid_control",
+      "expected_disposition": "accept_contract_only",
+      "fault_class": null,
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "declared_functional_unit",
+        "declared_glass_family_and_grade",
+        "source_or_measurement_identity",
+        "process_boundary",
+        "quality_acceptance_rule"
+      ],
+      "purpose": "Verify that a glass candidate with the required contract fields can proceed to independent physics and evidence evaluation.",
+      "claim_ceiling": "Acceptance confirms contract completeness only; no glass recipe, melt, energy saving, or product quality is validated."
+    },
+    {
+      "case_id": "silicon-mg-valid-reference-contract",
+      "route": "silicon_mg_reference",
+      "case_type": "valid_control",
+      "expected_disposition": "accept_contract_only",
+      "fault_class": null,
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "declared_functional_unit",
+        "declared_mg_si_grade",
+        "source_or_measurement_identity",
+        "process_boundary",
+        "elemental_balance_contract",
+        "quality_acceptance_rule"
+      ],
+      "purpose": "Verify that the MG-Si reference route declares grade, boundary, and balance authority without inferring electronic-grade capability.",
+      "claim_ceiling": "Acceptance confirms contract completeness only; no silicon yield, purity, energy, emissions, or commercial readiness is validated."
+    },
+    {
+      "case_id": "missing-source-identity",
+      "route": "evidence_contract",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "missing_provenance",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "exact_source_identity",
+        "source_digest_or_stable_record_id",
+        "evidence_class"
+      ],
+      "purpose": "Reject a quantitative claim whose source cannot be identified or reproduced.",
+      "claim_ceiling": "Tests missing-provenance handling only."
+    },
+    {
+      "case_id": "unknown-energy-treated-as-zero",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "unknown_as_zero",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "energy_by_carrier",
+        "unknown_value_representation",
+        "normalization_boundary"
+      ],
+      "purpose": "Reject a candidate that substitutes zero for unavailable energy or cost and appears better because evidence is missing.",
+      "claim_ceiling": "Tests fail-closed unknown handling only."
+    },
+    {
+      "case_id": "invalid-unit-or-physical-quantity",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "invalid_quantity_or_unit",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "typed_unit",
+        "finite_nonnegative_quantity",
+        "declared_conversion_rule"
+      ],
+      "purpose": "Reject non-finite or physically invalid quantities and unconverted incompatible units.",
+      "claim_ceiling": "Tests schema-level quantity handling only; it is not a numerical process solver."
+    },
+    {
+      "case_id": "incomplete-material-balance",
+      "route": "cross_route",
+      "case_type": "hold_control",
+      "expected_disposition": "abstain",
+      "fault_class": "incomplete_or_failed_balance",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "complete_input_stream_census",
+        "complete_output_stream_census",
+        "inventory_change",
+        "documented_balance_tolerance"
+      ],
+      "purpose": "Force unresolved status when material streams or the justified tolerance are missing rather than manufacturing a pass.",
+      "claim_ceiling": "Tests incomplete-balance abstention only; no element-balance accuracy is established."
+    },
+    {
+      "case_id": "unsupported-silicon-grade",
+      "route": "silicon_mg_reference",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "unsupported_product_grade",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "declared_product_grade",
+        "measured_chemistry_or_qualified_source",
+        "grade_acceptance_limits"
+      ],
+      "purpose": "Reject an MG-Si result presented as electronic-grade silicon, wafer-grade feedstock, or a qualified semiconductor input without downstream evidence.",
+      "claim_ceiling": "Tests product-grade boundary handling only."
+    },
+    {
+      "case_id": "incompatible-functional-units",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "incompatible_functional_unit",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "functional_unit",
+        "accepted_product_definition",
+        "normalization_method"
+      ],
+      "purpose": "Reject an unqualified comparison between unlike glass families, silicon grades, or accepted-product denominators.",
+      "claim_ceiling": "Tests comparison compatibility only."
+    },
+    {
+      "case_id": "unverified-coproduct-credit",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "unverified_coproduct_credit",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "coproduct_quantity",
+        "coproduct_grade",
+        "usable_destination",
+        "substitution_basis",
+        "allocation_rule"
+      ],
+      "purpose": "Reject emissions or cost results that credit slag, silica fume, heat, or other coproducts without an evidenced usable outlet and declared allocation.",
+      "claim_ceiling": "Tests coproduct accounting gate only."
+    },
+    {
+      "case_id": "mismatched-lifecycle-boundaries",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "mismatched_process_boundary",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "boundary_definition",
+        "included_emissions_sources",
+        "energy_carrier_boundary",
+        "allocation_method"
+      ],
+      "purpose": "Reject a route ranking when one candidate includes upstream electricity, reductants, transport, or waste treatment and its comparator does not.",
+      "claim_ceiling": "Tests boundary comparability only."
+    },
+    {
+      "case_id": "synthetic-data-laundered-as-measured",
+      "route": "evidence_contract",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "evidence_class_laundering",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "evidence_class",
+        "measurement_method",
+        "instrument_or_source_identity",
+        "exact_artifact_digest"
+      ],
+      "purpose": "Reject a synthetic or simulated value relabeled as an observed production result.",
+      "claim_ceiling": "Tests evidence-class integrity only."
+    },
+    {
+      "case_id": "out-of-domain-candidate-accepted",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "out_of_domain_acceptance",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "model_validity_domain",
+        "candidate_domain_check",
+        "uncertainty_or_abstention_rule"
+      ],
+      "purpose": "Reject a candidate accepted outside the model's validated domain without explicit review or new evidence.",
+      "claim_ceiling": "Tests validity-domain gate only."
+    },
+    {
+      "case_id": "lot-leakage-between-train-and-test",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "train_test_leakage",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "split_manifest",
+        "source_lot_and_campaign_identity",
+        "duplicate_group_policy"
+      ],
+      "purpose": "Reject a benchmark evaluation that leaks the same material lot, furnace campaign, or duplicated source into training and evaluation.",
+      "claim_ceiling": "Tests split-manifest contract only."
+    },
+    {
+      "case_id": "stale-or-unlicensed-source",
+      "route": "evidence_contract",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "stale_or_unlicensed_source",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "source_date_or_epoch",
+        "validity_window",
+        "license_or_permission",
+        "source_scope"
+      ],
+      "purpose": "Reject evidence used outside its declared validity window or permitted use.",
+      "claim_ceiling": "Tests source qualification metadata only."
+    },
+    {
+      "case_id": "quality-regression-hidden-by-score",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "hidden_quality_regression",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "hard_quality_constraints",
+        "accepted_yield",
+        "defect_or_reject_metrics",
+        "separate_objective_vector"
+      ],
+      "purpose": "Reject scalar-score improvements that mask a product-grade violation, yield loss, or defect increase.",
+      "claim_ceiling": "Tests hard-constraint precedence only."
+    },
+    {
+      "case_id": "uncertainty-coverage-not-declared",
+      "route": "cross_route",
+      "case_type": "hold_control",
+      "expected_disposition": "abstain",
+      "fault_class": "uncalibrated_model_bias_hidden",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "predictive_uncertainty",
+        "held_out_residuals",
+        "declared_coverage_target",
+        "measurement_repeatability"
+      ],
+      "purpose": "Abstain when a process candidate lacks uncertainty or residual coverage evidence needed for its proposed decision use.",
+      "claim_ceiling": "Tests uncertainty-evidence abstention only; it does not evaluate any numerical process model."
+    },
+    {
+      "case_id": "single-scenario-cost-winner",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "scenario_fragility_hidden",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "frozen_scenario_grid",
+        "energy_and_carbon_price_sensitivity",
+        "feasibility_by_scenario",
+        "worst_case_or_regret_summary"
+      ],
+      "purpose": "Reject a claim that ranks a process route using only one favorable price, grid-carbon, capacity-factor, financing, or feedstock scenario.",
+      "claim_ceiling": "Tests scenario robustness metadata only; it does not validate a techno-economic model."
+    },
+    {
+      "case_id": "high-r2-unseen-bias-no-calibration",
+      "route": "cross_route",
+      "case_type": "hold_control",
+      "expected_disposition": "abstain",
+      "fault_class": "uncalibrated_model_bias_hidden",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "held_out_campaign",
+        "signed_prediction_bias",
+        "measurement_repeatability",
+        "calibration_protocol",
+        "uncertainty_coverage"
+      ],
+      "purpose": "Abstain when a model's headline validation score hides an external-domain bias that has not been measured or corrected on a legitimate calibration set.",
+      "claim_ceiling": "Tests calibration-evidence gating only; it does not reproduce or falsify any published glass-model result."
+    },
+    {
+      "case_id": "unversioned-reference-artifacts",
+      "route": "evidence_contract",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "artifact_manifest_unpinned",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "paper_version",
+        "dataset_record_version",
+        "artifact_filename_and_version",
+        "sha256_digest",
+        "file_level_license_status"
+      ],
+      "purpose": "Reject a claimed reproduction that has no immutable dataset/code artifact identity, integrity digest, or resolved permitted-use status.",
+      "claim_ceiling": "Tests reference-artifact admission metadata only; no external dataset was downloaded or independently reproduced by this fixture."
+    },
+    {
+      "case_id": "single-property-score-bypasses-property-gates",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "single_property_optimization_bypasses_constraints",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "all_required_property_constraints",
+        "hard_constraint_results",
+        "product_grade",
+        "processing_window",
+        "accepted_yield"
+      ],
+      "purpose": "Reject a candidate ranked as optimal by one favorable predicted property while other required product, processing, durability, or composition constraints remain untested or fail.",
+      "claim_ceiling": "Tests multi-property contract behavior only; it does not model or qualify any glass formulation."
+    },
+    {
+      "case_id": "planned-silicon-pilot-treated-as-qualified",
+      "route": "silicon_mg_reference",
+      "case_type": "hold_control",
+      "expected_disposition": "abstain",
+      "fault_class": "planned_pilot_treated_as_demonstrated",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "measured_pilot_campaign",
+        "verified_throughput",
+        "measured_purity_and_yield",
+        "energy_and_carbon_boundary",
+        "independent_qualification"
+      ],
+      "purpose": "Abstain when a planned electroreduction pilot or stated target is represented as demonstrated throughput, purity, energy performance, or product qualification.",
+      "claim_ceiling": "Tests maturity/evidence admission only; it does not assess the named pilot or infer performance."
+    }
+  ],
+  "artifact_admission": [
+    {
+      "artifact_id": "scale-zenodo-18430657-v1",
+      "source_ref": "scale-glass-zenodo-data-2026",
+      "record_version": "v1",
+      "published_on": "2026-01-30",
+      "record_status": "publicly_listed_not_downloaded",
+      "rights_status": "unresolved",
+      "sha256_status": "pending",
+      "benchmark_admission_status": "blocked",
+      "claim_ceiling": "The Zenodo source record is identifiable, but no archive bytes have been admitted to this benchmark. Public listing and MD5 metadata are not proof of reuse rights or content integrity at the required SHA-256 level.",
+      "files": [
+        {
+          "filename": "example_glass_sim.zip",
+          "size_display": "2.4 kB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "5f0c13831f2c93b0dd4b54e74c296470",
+          "sha256": null
+        },
+        {
+          "filename": "glass_sim_helper.zip",
+          "size_display": "83.6 kB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "6cd3e8cc5af31b8fc28f9d7060e4ed3c",
+          "sha256": null
+        },
+        {
+          "filename": "glass_sim_helper_requirements.txt",
+          "size_display": "270 Bytes",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "18643cf11ebab4c67851321b2a81dc55",
+          "sha256": null
+        },
+        {
+          "filename": "iterative_learning.zip",
+          "size_display": "54.3 MB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "738e1838f23ee1bfb7c79ed0fe00d4d2",
+          "sha256": null
+        },
+        {
+          "filename": "ml_regression_requirements.txt",
+          "size_display": "567 Bytes",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "ec62b95c18cd5481ce8655c4daec3901",
+          "sha256": null
+        },
+        {
+          "filename": "mlregression.zip",
+          "size_display": "44.4 kB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "5d1c07607f648a951292f242a50e55f1",
+          "sha256": null
+        },
+        {
+          "filename": "models_data_V14.zip",
+          "size_display": "51.8 MB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "deb614846654bda761a66614dac6b4e0",
+          "sha256": null
+        },
+        {
+          "filename": "models_data_V18.zip",
+          "size_display": "824.1 MB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "b7f7ffa6253050420de1b58b58b271b1",
+          "sha256": null
+        },
+        {
+          "filename": "README.md",
+          "size_display": "1.6 kB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "f912be7d034e1a368950c66926aa62d8",
+          "sha256": null
+        }
+      ],
+      "rights_evidence_ref": null,
+      "rights_reviewed_on": null
+    }
+  ]
+}

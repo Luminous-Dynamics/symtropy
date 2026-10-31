@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Glass–Silicon Adaptive Search-Space Proposal v0.1",
+  "description": "A versioned candidate-domain proposal. Hard product constraints are immutable in a proposal; structural PASS means PROPOSED_NOT_ADMITTED and is not an experimental result.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark_id", "evidence_class", "claim_ceiling", "proposal_id", "parent_space_sha256", "proposer", "rationale", "applicability_domains", "add_candidate_families", "remove_candidate_family_ids", "hard_constraint_changes", "expected_decision_consequence", "generation_cost_units", "generation_duration_seconds", "evidence_refs"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "benchmark_id": {"const": "glass-space-expansion-synthetic-v0-1"},
+    "evidence_class": {"const": "synthetic"},
+    "claim_ceiling": {"type": "string", "minLength": 1},
+    "proposal_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+    "parent_space_sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+    "proposer": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "id"],
+      "properties": {
+        "kind": {"enum": ["fixed_space", "random", "rule_based", "llm_outer_loop"]},
+        "id": {"type": "string", "minLength": 1},
+        "model_id": {"type": "string", "minLength": 1},
+        "config_sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+        "prompt_sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"}
+      },
+      "allOf": [{"if": {"properties": {"kind": {"const": "llm_outer_loop"}}, "required": ["kind"]}, "then": {"required": ["model_id", "config_sha256", "prompt_sha256"]}}]
+    },
+    "rationale": {"type": "string", "minLength": 1},
+    "applicability_domains": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "add_candidate_families": {
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "domain", "description", "evidence_refs"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+          "domain": {"type": "string", "minLength": 1},
+          "description": {"type": "string", "minLength": 1},
+          "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    },
+    "remove_candidate_family_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"}},
+    "hard_constraint_changes": {"type": "array", "maxItems": 0, "items": {"type": "object"}, "description": "Must be empty. A changed hard constraint requires a separately versioned and reviewed benchmark contract."},
+    "expected_decision_consequence": {"type": "string", "minLength": 1},
+    "generation_cost_units": {"type": "number", "exclusiveMinimum": 0},
+    "generation_duration_seconds": {"type": "number", "exclusiveMinimum": 0},
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  }
+}

@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json",
+  "title": "Glass-Silicon Evaluation Receipt v0.1",
+  "description": "Receipt structure only. Schema validation does not prove source rights, custody, isolation, hidden-label secrecy, model validity, or physical outcomes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "evidence_class",
+    "evaluation_class",
+    "claim_ceiling",
+    "dataset",
+    "split",
+    "protocol",
+    "submission",
+    "evaluation",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "receipt_id": {
+      "$ref": "#/$defs/slug"
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "retrospective",
+        "prospective_computational",
+        "prospective_physical"
+      ]
+    },
+    "evaluation_class": {
+      "enum": [
+        "UNSEALED_RETROSPECTIVE",
+        "SEALED_CONFIRMATORY"
+      ]
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "version",
+        "rights_status",
+        "rights_evidence_ref",
+        "test_set_commitment"
+      ],
+      "properties": {
+        "dataset_id": {
+          "$ref": "#/$defs/slug"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rights_status": {
+          "enum": [
+            "resolved",
+            "unresolved",
+            "not_applicable"
+          ]
+        },
+        "rights_evidence_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "test_set_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scheme",
+            "digest",
+            "custodian_ref"
+          ],
+          "properties": {
+            "scheme": {
+              "const": "sha256-salted-v1"
+            },
+            "digest": {
+              "$ref": "#/$defs/sha256"
+            },
+            "custodian_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_sha256",
+        "group_fields",
+        "independent_unit_definition",
+        "independent_unit_count",
+        "frozen_at"
+      ],
+      "properties": {
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "group_fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/slug"
+          }
+        },
+        "independent_unit_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_unit_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frozen_at": {
+          "$ref": "#/$defs/utc"
+        }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id",
+        "pre_registered_at",
+        "primary_endpoint",
+        "budget_units_cap",
+        "max_calls"
+      ],
+      "properties": {
+        "protocol_id": {
+          "$ref": "#/$defs/slug"
+        },
+        "pre_registered_at": {
+          "$ref": "#/$defs/utc"
+        },
+        "primary_endpoint": {
+          "$ref": "#/$defs/slug"
+        },
+        "budget_units_cap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_calls": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "submission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "submitted_at",
+        "source_sha256",
+        "model_sha256",
+        "environment_sha256",
+        "policy_sha256",
+        "config_sha256"
+      ],
+      "properties": {
+        "submitted_at": {
+          "$ref": "#/$defs/utc"
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "environment_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "config_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evaluator_id",
+        "runner_image_sha256",
+        "verifier_version",
+        "custody_attestation_ref",
+        "isolation_attestation_ref",
+        "run_log_sha256",
+        "output_sha256",
+        "started_at",
+        "finished_at",
+        "calls_used",
+        "budget_units_used"
+      ],
+      "properties": {
+        "evaluator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runner_image_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verifier_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "custody_attestation_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "isolation_attestation_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "run_log_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "output_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "started_at": {
+          "$ref": "#/$defs/utc"
+        },
+        "finished_at": {
+          "$ref": "#/$defs/utc"
+        },
+        "calls_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "budget_units_used": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "results": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "metrics",
+        "failed_attempts",
+        "abstentions",
+        "exclusions"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNRESOLVED"
+          ]
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "value",
+              "unit",
+              "sample_count",
+              "result_source_ref"
+            ],
+            "properties": {
+              "name": {
+                "$ref": "#/$defs/slug"
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sample_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "result_source_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "failed_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "abstentions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exclusions": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "utc": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    }
+  }
+}
