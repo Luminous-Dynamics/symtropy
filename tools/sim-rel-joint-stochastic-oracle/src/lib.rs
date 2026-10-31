@@ -15,6 +15,7 @@ pub mod baseline;
 pub mod robust;
 pub mod robust_optimizer;
 pub mod benchmark;
+pub mod study;
 pub mod challenge;
 pub mod particle;
 pub mod identifiability;

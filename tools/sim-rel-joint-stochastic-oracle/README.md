@@ -99,3 +99,8 @@ The identifiability module computes, for each pair of mechanism hypotheses, the 
 The pairwise certificate also exposes the optimal equal-prior binary classification error, exactly `(1 - TV*) / 2`, so a partial distinguishability score can be translated into an irreducible one-shot decision error under that explicit prior assumption. Unequal hypothesis priors require a separate weighted calculation.
 
 The quotient also supports an explicit terminal decision helper: it aggregates posterior mass over certified equivalence classes, claims the unique highest-mass class only when its complement satisfies a supplied false-identification budget, and abstains on ties or budget failure. For equal prior odds on an individual pair, the Bayes classification error corresponding to TV* is exactly `(1 - TV*) / 2`; unequal priors require a weighted calculation.
+
+
+## Paired multi-seed study runner (SIM-REL-022)
+
+The study module runs the same four policies and exact robust optimizer on each seeded six-world challenge family. It preserves per-seed reports, rational noise rates and model-family fingerprints. Aggregates report exact rational means, medians and maxima for worst-case cost/risk/correctness plus feasibility rates. Baseline-minus-optimum regret is computed only on paired seeds where both policies satisfy the same explicit budgets; infeasible frequency remains a separate outcome. A deterministic percentile bootstrap gives a reproducible approximate interval for mean feasible regret. The bootstrap sample values are sorted before draws so aggregate intervals do not change when seed input order is permuted. Use at least 30 seeds for comparative claims; the smaller test fixtures are smoke tests only.
