@@ -540,7 +540,7 @@ fn integer_unimodular_inverse<const D: usize>(
     } else {
         for row in 0..3 {
             for column in 0..3 {
-                        let rows = excluded_pair(row);
+                let rows = excluded_pair(row);
                 let columns = excluded_pair(column);
                 let a = matrix[(rows[0], columns[0])];
                 let b = matrix[(rows[0], columns[1])];
