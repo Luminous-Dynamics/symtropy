@@ -20,6 +20,7 @@ pub mod broadphase;
 pub mod ccd;
 pub mod constraint;
 pub mod contact;
+pub mod contact_adjoint;
 pub mod contact_frame;
 pub mod delassus;
 pub mod diagnostics;
@@ -41,6 +42,9 @@ pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
+pub use contact_adjoint::{
+    ContactAdjointError, ContactAdjointResult, differentiate_fixed_active_set_lcp,
+};
 pub use contact_frame::{
     ContactAngularCoordinates, ContactFrame, ContactFrameError, ContactWrenchFrictionLimits,
     ContactWrenchImpulse,
