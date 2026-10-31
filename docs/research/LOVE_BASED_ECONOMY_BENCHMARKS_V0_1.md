@@ -261,7 +261,7 @@ A normative disagreement cannot be marked as empirically resolved. Strong emotio
 
 The benchmark measures counter-position fidelity, minority-position retention, evidence responsiveness, premature-closure resistance, paradox integrity, safety/retaliation, distribution of facilitation labour, decision latency, reversibility and long-term regret. It deliberately defines no single "dissonance quality", "integrative complexity" or "paradox wisdom" score.
 
-The dependency-free Rust prototype is being developed in [kernel PR #3091](https://github.com/Luminous-Dynamics/symtropy/pull/3091), in `crates/lbe-kernel/src/dissonance.rs`. This is a model contract, not a verified real-world facilitation or truth-classification system.
+The dependency-free Rust prototype is being developed in [kernel PR #3091](https://github.com/Luminous-Dynamics/symtropy/pull/3091), in `crates/lbe-kernel/src/dissonance.rs`. This is a model contract, not a verified real-world facilitation or truth-classification system. Its position lifecycle now includes source-matched append-only corrections, withdrawals and reinstatements; original statements and prior decisions remain in history, while future dispositions use the active-position projection. Host authentication, delegation and privacy protections remain adapter responsibilities. This is not claimed as a feature unique to LBE: Decidim already documents author modification/withdrawal and proposal version control. The benchmark instead evaluates these capabilities together with source authorization, cross-event replay, hazard and disposition lineage, and material effects over time.
 
 ### 5.3.3 Longitudinal disagreement debt and institutional memory
 
