@@ -396,6 +396,7 @@ jobs:
           grep -q "requirements_assessment_only_no_evidence_completion_or_release_claim" /tmp/credibility-a.csv
           grep -q "critical" /tmp/credibility-a.csv
           grep -q "No independent verification or validation claim" /tmp/credibility-a.csv
+          python3 scripts/verify-risk-credibility-independent.py /tmp/credibility-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |
