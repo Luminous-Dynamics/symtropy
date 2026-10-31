@@ -420,6 +420,23 @@ mod tests {
     }
 
     #[test]
+    fn zero_gravity_circular_motion_preserves_angular_momentum() {
+        let model = CartesianPendulum::new(1.0, 1.0, [0.0, 0.0]).unwrap();
+        let mut state = from_intrinsic(0.4, 0.3, 1.0);
+        let initial_angular_momentum =
+            state.position[0] * state.momentum[1] - state.position[1] * state.momentum[0];
+        let initial_energy = model.hamiltonian(state).unwrap();
+        for _ in 0..1000 {
+            state = model.step(state, 0.001).unwrap().after;
+        }
+        let final_angular_momentum =
+            state.position[0] * state.momentum[1] - state.position[1] * state.momentum[0];
+        let final_energy = model.hamiltonian(state).unwrap();
+        assert!((final_angular_momentum - initial_angular_momentum).abs() < 2.0e-12);
+        assert!((final_energy - initial_energy).abs() < 2.0e-12);
+    }
+
+    #[test]
     fn cartesian_rattle_is_second_order_against_independent_rk4() {
         let initial = from_intrinsic(1.1, 0.15, 1.0);
         let gravity = [0.0, -9.81];
