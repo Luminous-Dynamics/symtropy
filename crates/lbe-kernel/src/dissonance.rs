@@ -571,9 +571,14 @@ impl DissonanceRecord {
         self.status
     }
 
-    /// Return the current disposition, if any.
+    /// Return the current disposition, if any. Historical dispositions remain
+    /// available through disposition_history after a new event reopens inquiry.
     pub fn disposition(&self) -> Option<&DissonanceDisposition> {
-        self.disposition_history.last()
+        if matches!(self.status, DissonanceStatus::Open | DissonanceStatus::UnderInquiry) {
+            None
+        } else {
+            self.disposition_history.last()
+        }
     }
 
     /// Return the next mandatory review time for the current disposition.
@@ -885,8 +890,9 @@ impl DissonanceRecord {
         context: EventContext,
     ) -> Result<(), DissonanceError> {
         self.append_event(context, DissonanceEventKind::SafeguardsRecorded { safeguards })?;
+        let changed = self.safeguards != safeguards;
         self.safeguards = safeguards;
-        if self.status == DissonanceStatus::Open {
+        if changed || self.status == DissonanceStatus::Open {
             self.status = DissonanceStatus::UnderInquiry;
         }
         Ok(())
@@ -916,6 +922,7 @@ impl DissonanceRecord {
             DissonanceEventKind::HazardReported { report: report.clone() },
         )?;
         self.hazards.insert(report.id.clone(), report);
+        self.status = DissonanceStatus::UnderInquiry;
         Ok(())
     }
 
@@ -948,6 +955,7 @@ impl DissonanceRecord {
         let report = self.hazards.get_mut(report_id).ok_or(DissonanceError::UnknownReference)?;
         report.finding = finding;
         report.evidence_ref = Some(evidence_ref);
+        self.status = DissonanceStatus::UnderInquiry;
         Ok(())
     }
 
@@ -1632,6 +1640,61 @@ mod tests {
                 ..
             }
         ));
+    }
+
+
+    #[test]
+    fn new_hazard_reopens_a_prior_decision_without_erasing_it() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        record_safe(&mut record, 10, "safeguards");
+        apply_disposition(
+            &mut record,
+            DissonanceDisposition::Integrate {
+                position_ids: vec![PositionId::new("p1").unwrap(), PositionId::new("p2").unwrap()],
+                rationale: "Integrated arrangement under the then-known conditions.".to_owned(),
+                review_at: 100,
+            },
+            11,
+        ).unwrap();
+        let context = event_context(&record, 12, "new-hazard");
+        record.report_hazard_with_context(HazardReport {
+            id: "later-retaliation".to_owned(),
+            hazard: CorrosiveHazard::Retaliation,
+            finding: HazardFinding::Reported,
+            evidence_ref: Some("case:new".to_owned()),
+        }, context).unwrap();
+
+        assert_eq!(record.status(), DissonanceStatus::UnderInquiry);
+        assert_eq!(record.disposition(), None);
+        assert_eq!(record.disposition_history().count(), 1);
+        assert!(!record.assess().ready_for_consequential_action);
+    }
+
+    #[test]
+    fn changed_safeguards_reopen_a_prior_decision_but_identical_snapshot_does_not() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        record_safe(&mut record, 10, "safeguards");
+        apply_disposition(
+            &mut record,
+            DissonanceDisposition::Integrate {
+                position_ids: vec![PositionId::new("p1").unwrap(), PositionId::new("p2").unwrap()],
+                rationale: "Integrated arrangement.".to_owned(),
+                review_at: 100,
+            },
+            11,
+        ).unwrap();
+
+        let identical = event_context(&record, 12, "same-safeguards");
+        record.record_safeguards(safe_safeguards(), identical).unwrap();
+        assert_eq!(record.status(), DissonanceStatus::Integrated);
+        assert!(record.disposition().is_some());
+
+        let regression = event_context(&record, 13, "safeguard-regression-after-decision");
+        record.record_safeguards(ProcessSafeguards::default(), regression).unwrap();
+        assert_eq!(record.status(), DissonanceStatus::UnderInquiry);
+        assert_eq!(record.disposition(), None);
+        assert_eq!(record.disposition_history().count(), 1);
+        assert!(!record.assess().ready_for_consequential_action);
     }
 
     #[test]
