@@ -839,7 +839,7 @@ mod tests {
             },
         ).unwrap();
         let before = filter.clone();
-        assert!(filter.observe(&kernel, 0, Some(1)).is_err());
+        assert!(filter.observe(0, Some(1)).is_err());
         assert_eq!(filter, before);
     }
 
@@ -922,7 +922,7 @@ mod tests {
                 seed: 9,
             },
         ).unwrap();
-        let diagnostics = filter.observe(&kernel, 0, Some(2)).unwrap();
+        let diagnostics = filter.observe(0, Some(2)).unwrap();
         assert_eq!(diagnostics.particles_without_event_support, 128);
         assert!((diagnostics.support_loss_fraction - 0.5).abs() < 1e-12);
         assert!(!diagnostics.degenerate);
@@ -1000,7 +1000,7 @@ mod tests {
             ).unwrap();
         assert_eq!(exact_probability, Rational::one());
 
-        filter.observe(&kernel, 1, Some(0)).unwrap();
+        filter.observe(1, Some(0)).unwrap();
         assert_eq!(filter.total_variation_distance(&exact_posterior).unwrap(), 0.0);
 
         let posterior = filter.posterior();
@@ -1055,11 +1055,11 @@ mod tests {
                 seed: 5,
             },
         ).unwrap();
-        let diagnostics = filter.observe(&kernel, 0, None).unwrap();
+        let diagnostics = filter.observe(0, None).unwrap();
         assert!(diagnostics.terminal_hazard);
         assert!(filter.is_terminated());
         let before = filter.clone();
-        assert!(filter.observe(&kernel, 0, None).is_err());
+        assert!(filter.observe(0, None).is_err());
         assert_eq!(filter, before);
     }
 
