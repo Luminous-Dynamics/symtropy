@@ -339,20 +339,37 @@ A simulator is useful for discovering failure modes and narrowing choices. It do
 
 A sensible first domain is **community energy resilience linked to essential services**, rather than attempting to redesign an entire national economy.
 
-A pilot could examine a community-owned or multi-stakeholder solar / storage arrangement serving a defined set of critical loads such as water pumping, food refrigeration, communications and care facilities.
+A pilot could examine a defined solar / storage service arrangement serving critical loads such as water pumping, food refrigeration, communications and care facilities. **Do not assume that community ownership is the winning design.** A 2025 review of 23 Sub-Saharan African mini-grid cases found that community ownership was not, by itself, a key success factor; for-profit models tended to perform better on technical and economic sustainability, while ownership forms had different strengths and weaknesses. A rural South African case study based on 44 stakeholder interviews found stronger participation in technical and social domains than in governance and economic inclusion, with limited decision influence and formal economic opportunities for women. These findings are context-specific, but they invalidate a simplistic equation of cooperative ownership with energy justice.
+
+Treat ownership / operator model as one experimental factor, independent of participation and accountability. Compare, where legally and operationally feasible:
+- municipal / public provider;
+- community or multi-stakeholder cooperative;
+- non-profit or social-enterprise operator;
+- regulated private / for-profit operator;
+- public-private or multi-actor partnership.
+
+For every model, measure the same service standard, subsidy and capital assumptions, lifecycle costs, risk allocation, maintenance capability, customer protections and ecological boundary. Separately measure four participation domains: governance influence, technical engagement and capability, economic inclusion / benefit-sharing, and social inclusion. A provider can be privately operated and still be accountable to users; a community-owned asset can still be captured by local elites or leave women without decision power. The benchmark should evaluate actual control, access, voice, compensation and remedies—not use the ownership label as a proxy.
 
 Questions to test:
 - Can the system preserve critical services during a supply interruption?
-- Are allocation rules transparent and appealable?
+- Are tariffs, rationing and service standards transparent and appealable?
 - Are low-income households protected without a reputation or contribution gate?
-- Are maintenance and care burdens fairly distributed and compensated?
-- Does the cooperative have adequate reserves, replacement funding and technical capability?
+- Who controls dispatch, budgets, procurement, data and tariff changes?
+- Who performs maintenance and care work, who is paid, and who gets training or progression?
+- Are user and worker representatives able to change decisions, not merely attend consultations?
+- Can the operator maintain reserves, replacement funding and technical capability?
 - Does the arrangement improve access and resilience at a defensible lifecycle cost?
-- Are material and ecological costs counted beyond the immediate site?
+- Are imported material, water, emissions and ecological costs counted beyond the immediate site?
 
 Use Sol-Atlas for spatial and infrastructure baselines, Symtropy for deterministic scenario comparisons, Mycelix for consent-based commitments and governance evidence, and Symthaea for bounded scenario exploration. Do not make the simulated system the authority over real households.
 
 A later pilot can add food distribution, housing maintenance or care services once accounting and governance controls have been demonstrated.
+
+### Beyond-GDP measurement crosswalk
+
+The UN High-Level Expert Group's final Beyond GDP report, released on 7 May 2026, proposes a 31-indicator global dashboard covering progress for people and planet. LBE-Bench should map its indicators to this existing statistical framework, OECD well-being measures and relevant national statistics before inventing new metrics. The incremental contribution should be operational: connect selected outcomes to service-level events, physical capacity, subgroup incidence, institutional powers and redress. Record where LBE metrics are exact matches, narrower operational measures, or genuinely new proposals. Do not imply that a private benchmark replaces national statistical systems.
+
+For the care scenarios, preserve the ILO's 5R structure (recognize, reduce and redistribute unpaid care; reward and represent paid care workers). The ILO's 2025 modelling estimated that employment-intensive investment could support up to 299 million care-economy jobs by 2035 under the scenarios studied; this is a modelled potential, not a guaranteed job forecast.
 
 ## 9. What better than state of the art should mean
 
@@ -418,7 +435,8 @@ Select one service domain and a willing community partner. Use a pre-registered 
 - [Statistics South Africa: Poverty Trends, 11 December 2025](https://www.statssa.gov.za/?p=19078) — poverty estimates from the 2022/23 Income and Expenditure Survey.
 - [Statistics South Africa: General Household Survey 2025 key findings](https://www.statssa.gov.za/?PPN=P0318&SCH=74563&page_id=1856) — food security, water, sanitation, electricity and social grant access.
 - [Institute for Economic Justice: SRD grant exclusion, 14 March 2025](https://iej.org.za/resource/research-report/srd-grant-exclusion-in-south-africa/) — evidence of administrative exclusion among a selected sample of excluded applicants; the figures must not be misrepresented as national prevalence.
-- [Oxford Open Energy: Community participation and the viability of decentralized renewable energy systems in rural South Africa, 14 August 2025](https://academic.oup.com/ooenergy/article/doi/10.1093/ooenergy/oiaf006/8234320) — distinguishes technical / social participation from governance / economic decision-making.
+- [Oxford Open Energy: Community participation and the viability of decentralized renewable energy systems in rural South Africa, 14 August 2025](https://academic.oup.com/ooenergy/article/doi/10.1093/ooenergy/oiaf006/8234320) — 44 stakeholder interviews; distinguishes technical / social participation from governance / economic decision-making.
+- [Oemmelen, Page & Parikh (2025), Shared Power, Shared Benefits?](https://doi.org/10.1016/j.rser.2025.115948) — review of 23 Sub-Saharan African mini-grid cases; ownership form alone is not a success guarantee, and participation must be assessed across multiple actors and domains.
 
 ### Commons, cooperatives and complementary finance
 - [Agrawal, Erbaugh & Pradhan (2023), The Commons, Annual Review of Environment and Resources](https://doi.org/10.1146/annurev-environ-112320-113509) — research directions include power, equity and causal methods.
