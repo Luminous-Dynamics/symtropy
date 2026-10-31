@@ -56,7 +56,7 @@ impl Rational {
         }
     }
 
-    pub const fn from_u64(value: u64) -> Self {
+    pub fn from_u64(value: u64) -> Self {
         Self {
             numerator: u128::from(value),
             denominator: 1,
