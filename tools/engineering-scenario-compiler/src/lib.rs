@@ -876,13 +876,13 @@ mod tests {
             });
             if !header.is_empty() {
                 output.push_str(&header);
-                output.push('\\n');
+                output.push('\n');
             }
             for assignment in assignments {
                 output.push_str(&assignment);
-                output.push('\\n');
+                output.push('\n');
             }
-            output.push('\\n');
+            output.push('\n');
         }
         output
     }
@@ -908,9 +908,9 @@ mod tests {
 
         for mutation in 0..1_000_u32 {
             let reordered = reorder_fixture_table_keys(original, mutation);
-            let mut variant = format!("# structural metamorphic case {mutation}\\r\\n");
-            variant.push_str(&reordered.replace('\\n', "\\r\\n"));
-            variant.push_str(&format!("# source provenance variant {mutation}\\r\\n"));
+            let mut variant = format!("# structural metamorphic case {mutation}\r\n");
+            variant.push_str(&reordered.replace('\n', "\r\n"));
+            variant.push_str(&format!("# source provenance variant {mutation}\r\n"));
 
             let report = compile_bytes(variant.as_bytes());
             assert_eq!(
