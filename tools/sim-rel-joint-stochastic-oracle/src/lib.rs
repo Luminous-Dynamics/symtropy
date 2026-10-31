@@ -11,6 +11,8 @@
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+pub mod baseline;
+
 const MAX_HYPOTHESES: usize = 32;
 const MAX_PHYSICAL_STATES: usize = 64;
 const MAX_SENSOR_STATES: usize = 64;
@@ -1487,4 +1489,46 @@ mod tests {
             &SolverConfig { max_memo_states: 1, horizon: 2, ..SolverConfig::default() },
         ).is_err());
     }
+
+    #[test]
+    fn one_step_eig_uses_joint_predictive_model_but_cannot_value_a_purely_enabling_calibration() {
+        let kernel = calibration_kernel(true);
+        let scores = super::baseline::rank_by_one_step_eig(
+            &kernel,
+            &kernel.initial_belief,
+        ).unwrap();
+        assert_eq!(scores.len(), 2);
+        assert!(scores.iter().all(|score| score.expected_information_gain_nats.abs() < 1e-12));
+
+        let exact = optimize_joint_kernel(
+            &kernel,
+            &SolverConfig { horizon: 2, ..SolverConfig::default() },
+        ).unwrap();
+        let selected = exact.minimum_cost_under(
+            Rational::zero(), Rational::zero(), Rational::zero(),
+        ).unwrap().unwrap();
+        match &selected.plan {
+            PolicyPlan::Action { action, .. } => {
+                assert_eq!(kernel.action_ids[*action], "calibrate-sensor");
+            }
+            _ => panic!("expected a multi-step calibration policy"),
+        }
+    }
+
+    #[test]
+    fn one_step_eig_matches_the_analytic_binary_channel_value() {
+        let kernel = noisy_binary_kernel();
+        let scores = super::baseline::rank_by_one_step_eig(
+            &kernel,
+            &kernel.initial_belief,
+        ).unwrap();
+        let expected = std::f64::consts::LN_2
+            + 0.75 * 0.75_f64.ln()
+            + 0.25 * 0.25_f64.ln();
+        assert_eq!(scores.len(), 1);
+        assert!((scores[0].expected_information_gain_nats - expected).abs() < 1e-12);
+        assert!((scores[0].information_gain_per_cost - expected).abs() < 1e-12);
+        assert_eq!(scores[0].hazard_probability, Rational::zero());
+    }
+
 }
