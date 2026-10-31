@@ -13,6 +13,7 @@ on:
   push:
     branches:
       - "research/pendulum-matched-solver-campaign-2026-10-31"
+      - "research/pendulum-phdae-discrete-gradient-2026-10-31"
 
 permissions:
   contents: read
