@@ -955,12 +955,12 @@ mod tests {
             decision_ids: vec!["accept".into(), "reject".into()],
             losses: vec![
                 vec![
-                    vec![Rational::zero()],
-                    vec![Rational::one()],
+                    vec![vec![vec![Rational::zero()]]],
+                    vec![vec![vec![Rational::one()]]],
                 ],
                 vec![
-                    vec![Rational::one()],
-                    vec![Rational::zero()],
+                    vec![vec![vec![Rational::one()]]],
+                    vec![vec![vec![Rational::zero()]]],
                 ],
             ],
             abstention_loss: Rational::new(2, 5).unwrap(),
