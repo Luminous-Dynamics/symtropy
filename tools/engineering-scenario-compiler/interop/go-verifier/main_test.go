@@ -92,6 +92,20 @@ func TestStrictJCSInputRejectsAmbiguousAndInvalidJSON(t *testing.T) {
 	}
 }
 
+func TestStrictJCSInputEnforcesSizeAndNestingBounds(t *testing.T) {
+	oversized := bytes.Repeat([]byte{' '}, maxJCSInputBytes+1)
+	if err := validateStrictJCSInput(oversized); err == nil {
+		t.Fatal("expected oversized JCS input to be rejected")
+	}
+
+	depth := maxJCSNestingDepth + 1
+	tooDeep := append(bytes.Repeat([]byte{'['}, depth), '0')
+	tooDeep = append(tooDeep, bytes.Repeat([]byte{']'}, depth)...)
+	if err := validateStrictJCSInput(tooDeep); err == nil {
+		t.Fatal("expected excessive JSON nesting to be rejected")
+	}
+}
+
 func TestStrictJCSInputAcceptsValidSurrogatePairAndNestedValues(t *testing.T) {
 	input := []byte("{\"outer\":[{\"symbol\":\"\\uD834\\uDD1E\"},-0,1e30,9007199254740991,true,null]}")
 	if err := validateStrictJCSInput(input); err != nil {
