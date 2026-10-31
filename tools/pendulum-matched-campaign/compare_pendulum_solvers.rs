@@ -623,7 +623,7 @@ mod tests {
     }
 
     #[test]
-    fn independent_report_auditor_rejects_nan_duplicate_and_missing_rows() {
+    fn intrinsic_gradient_has_lower_energy_drift_than_symplectic_euler_on_frozen_case() {
         let csv = campaign_csv();
         let mut dg_drift = None;
         let mut symplectic_drift = None;
