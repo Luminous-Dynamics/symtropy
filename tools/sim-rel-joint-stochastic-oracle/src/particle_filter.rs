@@ -355,7 +355,7 @@ impl<'kernel> JointStateParticleFilter<'kernel> {
         }
 
         if predictive_probability <= 0.0 || !predictive_probability.is_finite() {
-            return Err("observed event has zero or non-finite predictive probability".into());
+            return Err("particle-support failure: observed event has no support in the current particle set; this is not evidence of model impossibility".into());
         }
         if updated.is_empty() {
             return Err("observation removed all particles".into());
@@ -1021,6 +1021,82 @@ mod tests {
                 && entry.physical_state == 1
                 && (entry.probability - 0.5).abs() < 1e-12
         }));
+    }
+
+    #[test]
+    fn rare_but_possible_event_is_reported_as_particle_support_failure() {
+        let kernel = JointKernel {
+            hypothesis_ids: vec!["common".into(), "rare".into()],
+            physical_state_count: 1,
+            sensor_state_count: 1,
+            action_ids: vec!["measure".into()],
+            observation_ids: vec!["common-event".into(), "rare-event".into()],
+            action_costs: vec![1],
+            initial_belief: vec![
+                JointMass {
+                    hypothesis: 0,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    mass: Rational::new(99, 100).unwrap(),
+                },
+                JointMass {
+                    hypothesis: 1,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    mass: Rational::new(1, 100).unwrap(),
+                },
+            ],
+            rows: vec![
+                KernelRow {
+                    hypothesis: 0,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    action: 0,
+                    outcomes: vec![JointOutcome {
+                        probability: Rational::one(),
+                        next_physical_state: 0,
+                        next_sensor_state: 0,
+                        observation: Some(0),
+                    }],
+                },
+                KernelRow {
+                    hypothesis: 1,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    action: 0,
+                    outcomes: vec![JointOutcome {
+                        probability: Rational::one(),
+                        next_physical_state: 0,
+                        next_sensor_state: 0,
+                        observation: Some(1),
+                    }],
+                },
+            ],
+        };
+        let (exact_predictive, _) = exact_joint_posterior_after_observation(
+            &kernel,
+            &kernel.initial_belief,
+            0,
+            Some(1),
+        ).unwrap();
+        assert_eq!(exact_predictive, Rational::new(1, 100).unwrap());
+
+        // A single particle and this deterministic seed select the 99% state.
+        // The 1% observation is possible under the exact model but absent from
+        // this approximate particle support.
+        let mut filter = JointStateParticleFilter::from_joint_belief(
+            &kernel,
+            &kernel.initial_belief,
+            ParticleFilterConfig {
+                particle_count: 1,
+                resample_ess_fraction: 0.5,
+                seed: 1,
+            },
+        ).unwrap();
+        let before = filter.clone();
+        let error = filter.observe(0, Some(1)).unwrap_err();
+        assert!(error.contains("particle-support failure"));
+        assert_eq!(filter, before);
     }
 
     #[test]
