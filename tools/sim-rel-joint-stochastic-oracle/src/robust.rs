@@ -5,7 +5,7 @@
 //! It never lets a policy inspect the world ID and never rectangularizes model
 //! identity by switching kernels between action steps.
 
-use super::{evaluate_policy, FrontierPoint, JointKernel, PolicyPlan, Rational};
+use super::{FrontierPoint, JointKernel, PolicyPlan, Rational, evaluate_policy};
 use std::collections::BTreeSet;
 
 const MAX_MODEL_WORLDS: usize = 256;
@@ -82,7 +82,9 @@ pub fn evaluate_policy_across_worlds(
     max_steps: usize,
 ) -> Result<RobustEvaluationReport, String> {
     if worlds.is_empty() || worlds.len() > MAX_MODEL_WORLDS {
-        return Err(format!("model-world count must be in 1..={MAX_MODEL_WORLDS}"));
+        return Err(format!(
+            "model-world count must be in 1..={MAX_MODEL_WORLDS}"
+        ));
     }
     if nominal_world_id.trim().is_empty() {
         return Err("nominal world ID must not be empty".into());
@@ -119,23 +121,28 @@ pub fn evaluate_policy_across_worlds(
     }
 
     let nominal = per_world[nominal_index].clone();
-    let worst_case_expected_cost = per_world.iter()
+    let worst_case_expected_cost = per_world
+        .iter()
         .map(|result| result.expected_cost)
         .max()
         .ok_or_else(|| "internal empty model-world evaluation".to_string())?;
-    let worst_case_hazard_probability = per_world.iter()
+    let worst_case_hazard_probability = per_world
+        .iter()
         .map(|result| result.hazard_probability)
         .max()
         .ok_or_else(|| "internal empty model-world evaluation".to_string())?;
-    let worst_case_false_identification_probability = per_world.iter()
+    let worst_case_false_identification_probability = per_world
+        .iter()
         .map(|result| result.false_identification_probability)
         .max()
         .ok_or_else(|| "internal empty model-world evaluation".to_string())?;
-    let worst_case_abstention_probability = per_world.iter()
+    let worst_case_abstention_probability = per_world
+        .iter()
         .map(|result| result.abstention_probability)
         .max()
         .ok_or_else(|| "internal empty model-world evaluation".to_string())?;
-    let worst_case_correct_identification_probability = per_world.iter()
+    let worst_case_correct_identification_probability = per_world
+        .iter()
         .map(|result| result.correct_identification_probability)
         .min()
         .ok_or_else(|| "internal empty model-world evaluation".to_string())?;
@@ -158,21 +165,31 @@ fn validate_compatible(
     world_id: &str,
 ) -> Result<(), String> {
     if reference.hypothesis_ids != alternative.hypothesis_ids {
-        return Err(format!("world {world_id} changes the semantic hypothesis vocabulary or ordering"));
+        return Err(format!(
+            "world {world_id} changes the semantic hypothesis vocabulary or ordering"
+        ));
     }
     if reference.physical_state_count != alternative.physical_state_count
         || reference.sensor_state_count != alternative.sensor_state_count
     {
-        return Err(format!("world {world_id} changes the declared physical or sensor state dimensions"));
+        return Err(format!(
+            "world {world_id} changes the declared physical or sensor state dimensions"
+        ));
     }
     if reference.action_ids != alternative.action_ids {
-        return Err(format!("world {world_id} changes the shared action vocabulary or ordering"));
+        return Err(format!(
+            "world {world_id} changes the shared action vocabulary or ordering"
+        ));
     }
     if reference.observation_ids != alternative.observation_ids {
-        return Err(format!("world {world_id} changes the shared observation vocabulary or ordering"));
+        return Err(format!(
+            "world {world_id} changes the shared observation vocabulary or ordering"
+        ));
     }
     if reference.action_costs != alternative.action_costs {
-        return Err(format!("world {world_id} changes the shared action-cost contract"));
+        return Err(format!(
+            "world {world_id} changes the shared action-cost contract"
+        ));
     }
     Ok(())
 }
@@ -250,28 +267,36 @@ mod tests {
     #[test]
     fn nominally_perfect_policy_can_be_fully_wrong_under_an_alternative_kernel() {
         let worlds = vec![make_world("nominal", false), make_world("shifted", true)];
-        let report = evaluate_policy_across_worlds(
-            &worlds,
-            "nominal",
-            &identifying_policy(),
-            1,
-        ).unwrap();
+        let report =
+            evaluate_policy_across_worlds(&worlds, "nominal", &identifying_policy(), 1).unwrap();
 
-        assert_eq!(report.nominal.correct_identification_probability, Rational::one());
-        assert_eq!(report.nominal.false_identification_probability, Rational::zero());
-        assert_eq!(report.worst_case_correct_identification_probability, Rational::zero());
-        assert_eq!(report.worst_case_false_identification_probability, Rational::one());
+        assert_eq!(
+            report.nominal.correct_identification_probability,
+            Rational::one()
+        );
+        assert_eq!(
+            report.nominal.false_identification_probability,
+            Rational::zero()
+        );
+        assert_eq!(
+            report.worst_case_correct_identification_probability,
+            Rational::zero()
+        );
+        assert_eq!(
+            report.worst_case_false_identification_probability,
+            Rational::one()
+        );
         assert_eq!(report.worst_case_expected_cost, Rational::from_u64(2));
-        assert!(!report.satisfies_budgets(
-            Rational::zero(),
-            Rational::zero(),
-            Rational::zero(),
-        ).unwrap());
-        assert!(report.satisfies_budgets(
-            Rational::zero(),
-            Rational::one(),
-            Rational::zero(),
-        ).unwrap());
+        assert!(
+            !report
+                .satisfies_budgets(Rational::zero(), Rational::zero(), Rational::zero(),)
+                .unwrap()
+        );
+        assert!(
+            report
+                .satisfies_budgets(Rational::zero(), Rational::one(), Rational::zero(),)
+                .unwrap()
+        );
     }
 
     #[test]
@@ -280,19 +305,20 @@ mod tests {
         let mut shifted = make_world("hazard-shift", false);
         shifted.kernel.rows[1].outcomes[0].observation = None;
 
-        let report = evaluate_policy_across_worlds(
-            &[nominal, shifted],
-            "nominal",
-            &identifying_policy(),
-            1,
-        ).unwrap();
+        let report =
+            evaluate_policy_across_worlds(&[nominal, shifted], "nominal", &identifying_policy(), 1)
+                .unwrap();
         assert_eq!(report.nominal.hazard_probability, Rational::zero());
         assert_eq!(report.worst_case_hazard_probability, half());
-        assert!(!report.satisfies_budgets(
-            Rational::new(1, 4).unwrap(),
-            Rational::zero(),
-            Rational::zero(),
-        ).unwrap());
+        assert!(
+            !report
+                .satisfies_budgets(
+                    Rational::new(1, 4).unwrap(),
+                    Rational::zero(),
+                    Rational::zero(),
+                )
+                .unwrap()
+        );
     }
 
     #[test]
@@ -300,44 +326,53 @@ mod tests {
         let nominal = make_world("nominal", false);
         let mut changed = make_world("changed", false);
         changed.kernel.action_ids[0] = "different-operation".into();
-        assert!(evaluate_policy_across_worlds(
-            &[nominal.clone(), changed],
-            "nominal",
-            &identifying_policy(),
-            1,
-        ).unwrap_err().contains("action vocabulary"));
+        assert!(
+            evaluate_policy_across_worlds(
+                &[nominal.clone(), changed],
+                "nominal",
+                &identifying_policy(),
+                1,
+            )
+            .unwrap_err()
+            .contains("action vocabulary")
+        );
 
         let mut changed_cost = make_world("changed-cost", false);
         changed_cost.kernel.action_costs[0] = 3;
-        assert!(evaluate_policy_across_worlds(
-            &[nominal.clone()],
-            "nominal",
-            &identifying_policy(),
-            1,
-        ).is_ok());
-        assert!(evaluate_policy_across_worlds(
-            &[nominal, changed_cost],
-            "nominal",
-            &identifying_policy(),
-            1,
-        ).unwrap_err().contains("action-cost"));
+        assert!(
+            evaluate_policy_across_worlds(&[nominal.clone()], "nominal", &identifying_policy(), 1,)
+                .is_ok()
+        );
+        assert!(
+            evaluate_policy_across_worlds(
+                &[nominal, changed_cost],
+                "nominal",
+                &identifying_policy(),
+                1,
+            )
+            .unwrap_err()
+            .contains("action-cost")
+        );
     }
 
     #[test]
     fn duplicate_world_ids_and_missing_nominal_fail_closed() {
         let first = make_world("same", false);
         let second = make_world("same", true);
-        assert!(evaluate_policy_across_worlds(
-            &[first.clone(), second],
-            "same",
-            &identifying_policy(),
-            1,
-        ).unwrap_err().contains("unique"));
-        assert!(evaluate_policy_across_worlds(
-            &[first],
-            "absent",
-            &identifying_policy(),
-            1,
-        ).unwrap_err().contains("not present"));
+        assert!(
+            evaluate_policy_across_worlds(
+                &[first.clone(), second],
+                "same",
+                &identifying_policy(),
+                1,
+            )
+            .unwrap_err()
+            .contains("unique")
+        );
+        assert!(
+            evaluate_policy_across_worlds(&[first], "absent", &identifying_policy(), 1,)
+                .unwrap_err()
+                .contains("not present")
+        );
     }
 }
