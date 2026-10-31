@@ -1,0 +1,92 @@
+name: Research Stack Rust Formatting Repair
+
+on:
+  push:
+    branches: ["research/sim-rel-format-repair"]
+
+permissions:
+  contents: write
+
+jobs:
+  format-and-rebase-stack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Rebase and rustfmt each dependent research branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          repair_branch() {
+            local branch="$1"
+            local parent="$2"
+            local old_base="$3"
+            shift 3
+            local old_head
+            old_head="$(git ls-remote origin "refs/heads/\${branch}" | awk '{print $1}')"
+            test -n "$old_head"
+            git fetch origin "+refs/heads/\${branch}:refs/remotes/origin/\${branch}"
+            git checkout --detach "origin/\${branch}"
+
+            if [[ -n "$parent" ]]; then
+              git fetch origin "+refs/heads/\${parent}:refs/remotes/origin/\${parent}"
+              git rebase --onto "origin/\${parent}" "$old_base"
+            fi
+
+            for manifest in "$@"; do
+              cargo fmt --manifest-path "$manifest"
+              cargo fmt --manifest-path "$manifest" -- --check
+            done
+
+            if ! git diff --quiet; then
+              git add -- '*.rs'
+              git commit -m "style(research): apply pinned rustfmt"
+            fi
+
+            git push --force-with-lease="refs/heads/\${branch}:\${old_head}" \
+              origin "HEAD:refs/heads/\${branch}"
+            echo "Formatted and updated \${branch}"
+          }
+
+          repair_branch \
+            research/sim-rel-011-stateful-experiment-evaluator "" "" \
+            tools/sim-rel-dynamics-evaluator/Cargo.toml
+
+          repair_branch \
+            research/sim-rel-012-stateful-frontier \
+            research/sim-rel-011-stateful-experiment-evaluator \
+            a815fbc79fa03d446d3b68c7044cd924e3272139 \
+            tools/sim-rel-dynamics-evaluator/Cargo.toml \
+            tools/sim-rel-dynamics-optimizer/Cargo.toml
+
+          repair_branch \
+            research/sim-rel-013-joint-stochastic-oracle \
+            research/sim-rel-012-stateful-frontier \
+            8f722bcb84545dd1a420d0e7b3168626dcb7be51 \
+            tools/sim-rel-joint-stochastic-oracle/Cargo.toml
+
+          repair_branch \
+            research/sim-rel-014-eig-baselines \
+            research/sim-rel-013-joint-stochastic-oracle \
+            72f63c7483d6748418c7fdfd5c357aa66644ba14 \
+            tools/sim-rel-joint-stochastic-oracle/Cargo.toml
+
+          repair_branch \
+            research/sim-rel-015-robust-joint-world-evaluator \
+            research/sim-rel-014-eig-baselines \
+            da94aa95be1cebea491e4f07494c84c28d69dd9b \
+            tools/sim-rel-joint-stochastic-oracle/Cargo.toml
+
+          repair_branch \
+            research/sim-rel-016-robust-joint-policy-dp \
+            research/sim-rel-015-robust-joint-world-evaluator \
+            45c6b7db814c6e96905c47c4ff6cacd166a3d062 \
+            tools/sim-rel-joint-stochastic-oracle/Cargo.toml
