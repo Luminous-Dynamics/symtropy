@@ -258,20 +258,17 @@ impl RobustDecisionOptimizationResult {
                 selected = Some(point);
                 continue;
             };
-            let order = point.per_world[nominal_index]
+            let nominal_order = point.per_world[nominal_index]
                 .expected_total_loss()?
-                .cmp(&current.per_world[nominal_index].expected_total_loss()?)
-                .then_with(|| {
-                    point
-                        .worst_case_total_loss()
-                        .unwrap_or_else(|_| Rational::one())
-                        .cmp(
-                            &current
-                                .worst_case_total_loss()
-                                .unwrap_or_else(|_| Rational::one()),
-                        )
-                })
-                .then_with(|| point.plan.cmp(&current.plan));
+                .cmp(&current.per_world[nominal_index].expected_total_loss()?);
+            let order = if nominal_order == Ordering::Equal {
+                point
+                    .worst_case_total_loss()?
+                    .cmp(&current.worst_case_total_loss()?)
+                    .then_with(|| point.plan.cmp(&current.plan))
+            } else {
+                nominal_order
+            };
             if order == Ordering::Less {
                 selected = Some(point);
             }
@@ -443,11 +440,16 @@ impl RobustDecisionOptimizer<'_> {
             return Err("robust decision memo-state budget exceeded".into());
         }
 
-        let mut candidates = terminal_candidates(self.worlds, beliefs, self.table)?;
+        let mut candidates = terminal_candidates(beliefs, self.table)?;
         if remaining_horizon > 0 {
-            let partitions = partitions_for_beliefs(self.worlds, beliefs, self.protocol)?;
-            let observations = union_observations(&partitions);
             for command in 0..self.command_costs.len() {
+                let partitions = command_partitions_for_beliefs(
+                    self.worlds,
+                    beliefs,
+                    command,
+                    self.protocol,
+                )?;
+                let observations = union_observations(&partitions);
                 let mut partials = vec![PartialCandidate {
                     per_world: beliefs
                         .iter()
@@ -500,44 +502,6 @@ impl RobustDecisionOptimizer<'_> {
         self.memo.insert(key, frontier.clone());
         Ok(frontier)
     }
-}
-
-fn partitions_for_beliefs(
-    worlds: &[DecisionModelWorld],
-    beliefs: &BeliefVector,
-    protocol: ObservationProtocol,
-) -> Result<Vec<WorldPartition>, String> {
-    worlds
-        .iter()
-        .zip(beliefs.iter())
-        .map(|(world, belief)| match belief {
-            Some(belief) => partition_world(&world.kernel, belief, protocol),
-            None => Ok(BTreeMap::new()),
-        })
-        .collect()
-}
-
-fn partition_world(
-    kernel: &ActionRealizationKernel,
-    belief: &[BeliefMass],
-    protocol: ObservationProtocol,
-) -> Result<WorldPartition, String> {
-    let mut observations = BTreeSet::new();
-    for point in belief {
-        for command in 0..kernel.command_ids.len() {
-            let row = &kernel.rows[kernel.row_index(point.state, command)];
-            for outcome in &row.outcomes {
-                observations.insert(public_observation(outcome, protocol));
-            }
-        }
-    }
-    let mut partitions = BTreeMap::new();
-    // The action-specific partition is created in command_partitions below.
-    // This all-command pass is intentionally unused; it validates the visible
-    // observation representation without relying on a model-world identifier.
-    let _ = observations;
-    let _ = &mut partitions;
-    Err("internal partition requires a command".into())
 }
 
 fn command_partitions_for_beliefs(
@@ -638,7 +602,6 @@ fn branch_vectors(
 }
 
 fn terminal_candidates(
-    worlds: &[DecisionModelWorld],
     beliefs: &BeliefVector,
     table: &DecisionLossTable,
 ) -> Result<Vec<Candidate>, String> {
@@ -649,7 +612,7 @@ fn terminal_candidates(
     // Abstention is inserted first, so an exact objective tie is deterministic.
     for decision in std::iter::once(None).chain((0..table.decision_ids.len()).map(Some)) {
         let mut per_world = Vec::with_capacity(worlds.len());
-        for (world_index, belief) in beliefs.iter().enumerate() {
+        for belief in beliefs {
             match belief {
                 Some(belief) => {
                     let loss = expected_terminal_loss(table, belief, decision)?;
@@ -665,7 +628,6 @@ fn terminal_candidates(
                 }
                 None => per_world.push(WorldObjectives::zero()),
             }
-            let _ = world_index;
         }
         candidates.push(Candidate {
             per_world,
@@ -796,26 +758,9 @@ fn prune_partial_candidates(mut candidates: Vec<PartialCandidate>) -> Vec<Partia
 }
 
 fn candidate_order(left: &Candidate, right: &Candidate) -> Ordering {
-    worst_total_loss(&left.per_world)
-        .cmp(&worst_total_loss(&right.per_world))
-        .then_with(|| {
-            worst_metric(&left.per_world, |x| x.hazard_probability)
-                .cmp(&worst_metric(&right.per_world, |x| x.hazard_probability))
-        })
-        .then_with(|| {
-            worst_metric(&left.per_world, |x| x.abstention_probability)
-                .cmp(&worst_metric(&right.per_world, |x| x.abstention_probability))
-        })
-        .then_with(|| left.per_world.cmp(&right.per_world))
+    left.per_world
+        .cmp(&right.per_world)
         .then_with(|| left.plan.cmp(&right.plan))
-}
-
-fn worst_total_loss(metrics: &[WorldObjectives]) -> Rational {
-    metrics
-        .iter()
-        .filter_map(|metric| metric.total_loss().ok())
-        .max()
-        .unwrap_or_else(Rational::zero)
 }
 
 fn worst_metric(
@@ -1016,6 +961,7 @@ fn replay_node(
     }
 }
 
+#[cfg(test)]
 fn frontier_points_from_candidates(
     candidates: Vec<Candidate>,
     world_ids: &[String],
@@ -1077,7 +1023,7 @@ fn exhaustive_frontier(
     cap: usize,
     generated: &mut usize,
 ) -> Result<Vec<Candidate>, String> {
-    let mut candidates = terminal_candidates(worlds, beliefs, table)?;
+    let mut candidates = terminal_candidates(beliefs, table)?;
     if remaining_horizon == 0 {
         return Ok(candidates);
     }
@@ -1155,6 +1101,39 @@ fn exhaustive_frontier(
 }
 
 #[cfg(test)]
+fn independent_same_objectives(left: &[WorldObjectives], right: &[WorldObjectives]) -> bool {
+    left.len() == right.len()
+        && left.iter().zip(right.iter()).all(|(a, b)| {
+            a.expected_experiment_cost == b.expected_experiment_cost
+                && a.expected_terminal_loss == b.expected_terminal_loss
+                && a.hazard_probability == b.hazard_probability
+                && a.abstention_probability == b.abstention_probability
+        })
+}
+
+#[cfg(test)]
+fn independent_dominates(left: &[WorldObjectives], right: &[WorldObjectives]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut strict = false;
+    for (a, b) in left.iter().zip(right.iter()) {
+        if a.expected_experiment_cost > b.expected_experiment_cost
+            || a.expected_terminal_loss > b.expected_terminal_loss
+            || a.hazard_probability > b.hazard_probability
+            || a.abstention_probability > b.abstention_probability
+        {
+            return false;
+        }
+        strict |= a.expected_experiment_cost < b.expected_experiment_cost
+            || a.expected_terminal_loss < b.expected_terminal_loss
+            || a.hazard_probability < b.hazard_probability
+            || a.abstention_probability < b.abstention_probability;
+    }
+    strict
+}
+
+#[cfg(test)]
 fn independent_partial_frontier(
     candidates: Vec<PartialCandidate>,
 ) -> Vec<PartialCandidate> {
@@ -1164,8 +1143,8 @@ fn independent_partial_frontier(
             if index == other_index {
                 return false;
             }
-            same_objectives(&other.per_world, &candidate.per_world)
-                || partial_dominates(&other.per_world, &candidate.per_world)
+            independent_same_objectives(&other.per_world, &candidate.per_world)
+                || independent_dominates(&other.per_world, &candidate.per_world)
         });
         if !dominated {
             retained.push(candidate.clone());
@@ -1183,8 +1162,8 @@ fn independent_candidate_frontier(candidates: Vec<Candidate>) -> Vec<Candidate> 
             if index == other_index {
                 return false;
             }
-            same_objectives(&other.per_world, &candidate.per_world)
-                || partial_dominates(&other.per_world, &candidate.per_world)
+            independent_same_objectives(&other.per_world, &candidate.per_world)
+                || independent_dominates(&other.per_world, &candidate.per_world)
         });
         if !dominated {
             retained.push(candidate.clone());
