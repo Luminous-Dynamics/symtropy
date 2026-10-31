@@ -263,6 +263,16 @@ The benchmark measures counter-position fidelity, minority-position retention, e
 
 The dependency-free Rust prototype is being developed in [kernel PR #3091](https://github.com/Luminous-Dynamics/symtropy/pull/3091), in `crates/lbe-kernel/src/dissonance.rs`. This is a model contract, not a verified real-world facilitation or truth-classification system.
 
+### 5.3.3 Longitudinal disagreement debt and institutional memory
+
+A process that preserves dissent in one decision can still fail later if the record disappears, review dates are missed, or the costs of unresolved issues are transferred to people who did not choose the deferral.
+
+[LBE-BENCH-004 / issue #3123](https://github.com/Luminous-Dynamics/symtropy/issues/3123) and its [draft research protocol PR #3124](https://github.com/Luminous-Dynamics/symtropy/pull/3124) define disagreement debt as a *non-scalar portfolio* of unresolved-issue age, voice and appeal access, material service/resource/ecological consequences, unpaid care/facilitation burden, ownership/review status, evidence/context changes, reversibility, remedy latency and distributional incidence.
+
+An unresolved tension is not automatically debt: a principled hold-open decision can be safer than premature closure. The benchmark tests when deferral becomes neglect, hidden cost transfer or unaccountable delay. It compares majority vote, facilitated consensus, Delphi-like elicitation, adversarial collaboration, participatory-platform approaches and the LBE event-sourced process under matched conditions.
+
+The longitudinal test spans immediate process trajectories, medium-term implementation/turnover and longer-term institutional and ecological consequences. No single disagreement-debt or institutional-wisdom score is permitted. Report the vector dimensions and uncertainty separately.
+
 ### 5.4 Outcome metrics
 
 Never compress the results into a single love score, Phi score or moral ranking.
