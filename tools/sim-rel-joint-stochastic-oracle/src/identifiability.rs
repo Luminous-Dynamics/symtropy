@@ -384,12 +384,12 @@ impl PairSolver<'_> {
                     });
                 }
 
+                let policy = DistinguishingPolicy::Action { action, branches };
+                let nodes = policy_node_count(&policy)?;
+                if nodes > self.config.max_policy_nodes {
+                    return Err("distinguishing-policy node budget exceeded".into());
+                }
                 if value > best.value {
-                    let policy = DistinguishingPolicy::Action { action, branches };
-                    let nodes = policy_node_count(&policy)?;
-                    if nodes > self.config.max_policy_nodes {
-                        return Err("distinguishing-policy node budget exceeded".into());
-                    }
                     best = SolveResult { value, policy };
                 }
             }
@@ -790,21 +790,30 @@ mod tests {
 
     #[test]
     fn identical_observation_kernels_form_one_exact_equivalence_class() {
-        let identical = kernel(2, 1, vec!["read"], |_hypothesis, physical, _action| {
+        let identical = kernel(3, 1, vec!["read"], |hypothesis, physical, _action| {
+            let p_zero = if hypothesis == 2 {
+                Rational::new(1, 4).unwrap()
+            } else {
+                Rational::new(3, 4).unwrap()
+            };
             vec![
-                safe(Rational::new(3, 4).unwrap(), physical, 0),
-                safe(Rational::new(1, 4).unwrap(), physical, 1),
+                safe(p_zero, physical, 0),
+                safe(Rational::one().checked_sub(p_zero).unwrap(), physical, 1),
             ]
         });
         let certificate = analyze_identifiability(&identical, &config(4)).unwrap();
-        assert_eq!(certificate.pairwise.len(), 1);
+        assert_eq!(certificate.pairwise.len(), 3);
         assert_eq!(certificate.pairwise[0].max_total_variation, Rational::zero());
         assert!(certificate.pairwise[0].observationally_equivalent());
-        assert_eq!(certificate.equivalence_classes.len(), 1);
         assert_eq!(
-            certificate.equivalence_classes[0].members,
-            vec!["h0".to_string(), "h1".to_string()]
+            certificate.pairwise[1].max_total_variation,
+            Rational::new(1, 2).unwrap()
         );
+        assert_eq!(certificate.equivalence_classes.len(), 2);
+        let equivalent = certificate.equivalence_classes.iter()
+            .find(|class| class.members.len() == 2)
+            .unwrap();
+        assert_eq!(equivalent.members, vec!["h0".to_string(), "h1".to_string()]);
     }
 
     #[test]
@@ -866,6 +875,16 @@ mod tests {
             &two_step.pairwise[0].distinguishing_policy,
             DistinguishingPolicy::Action { action: 0, .. }
         ));
+    }
+
+    #[test]
+    fn persistent_sensor_bias_is_non_identifying_until_calibration() {
+        let family = crate::challenge::generate_stateful_confounding_family(0).unwrap();
+        let nominal = &family.worlds[0].kernel;
+        let one_step = analyze_identifiability(nominal, &config(1)).unwrap();
+        let two_steps = analyze_identifiability(nominal, &config(2)).unwrap();
+        assert_eq!(one_step.pairwise[0].max_total_variation, Rational::zero());
+        assert_eq!(two_steps.pairwise[0].max_total_variation, Rational::one());
     }
 
     #[test]
