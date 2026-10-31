@@ -8,6 +8,7 @@ pub mod finite_horizon;
 pub mod robust_finite_horizon;
 pub mod counterexample_search;
 pub mod sequential_conformal;
+pub mod experiment_ordering;
 
 use super::{
     ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PosteriorMass,
