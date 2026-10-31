@@ -25,7 +25,7 @@ pub use dissonance::{
     ContextAssignment, CorrosiveHazard, DissonanceAssessment, DissonanceDisposition,
     DissonanceError, DissonanceEvent, DissonanceEventKind,
     DissonanceKind, DissonanceRecord, DissonanceStatus, EventContext, HazardFinding, HazardReport,
-    Position, PositionId, ProcessSafeguards,
+    Position, PositionId, PositionRevision, ProcessSafeguards,
 };
 pub use ledger::{
     AccountId, AccountKind, JournalEntry, JournalKind, Ledger, LedgerError,
