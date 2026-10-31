@@ -94,6 +94,17 @@ impl PairwiseDistinguishability {
     pub fn perfectly_separable(&self) -> bool {
         self.max_total_variation == Rational::one()
     }
+
+    /// Bayes error for discriminating this pair with equal prior probabilities.
+    ///
+    /// For equal priors, the optimal one-shot transcript classifier has error
+    /// (1 - TV) / 2. This is conditional on the witness-optimal transcript
+    /// experiment and does not describe unequal hypothesis priors.
+    pub fn minimum_equal_prior_classification_error(&self) -> Result<Rational, String> {
+        Rational::one()
+            .checked_sub(self.max_total_variation)?
+            .checked_mul(Rational::new(1, 2)?)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -631,6 +642,9 @@ pub fn evaluate_pair_policy(
     if horizon > MAX_IDENTIFIABILITY_HORIZON {
         return Err("pair policy replay horizon exceeds cap".into());
     }
+    if policy_node_count(policy)? > MAX_PAIR_POLICY_NODES {
+        return Err("distinguishing-policy node budget exceeded".into());
+    }
     let initial = conditional_initial_beliefs(kernel)?;
     let left = replay_hypothesis(kernel, hypothesis_a, policy, &initial[hypothesis_a], horizon)?;
     let right = replay_hypothesis(kernel, hypothesis_b, policy, &initial[hypothesis_b], horizon)?;
@@ -850,6 +864,12 @@ mod tests {
         assert_eq!(
             certificate.pairwise[0].max_total_variation,
             Rational::new(1, 2).unwrap()
+        );
+        assert_eq!(
+            certificate.pairwise[0]
+                .minimum_equal_prior_classification_error()
+                .unwrap(),
+            Rational::new(1, 4).unwrap()
         );
     }
 
