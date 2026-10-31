@@ -401,7 +401,6 @@ mod tests {
     use super::*;
     use crate::{
         JointOutcome, KernelRow,
-        robust_optimizer::RobustSolverConfig,
     };
 
     fn half() -> Rational {
@@ -510,6 +509,25 @@ mod tests {
             .unwrap();
         assert!(!greedy.satisfies_robust_budgets);
         assert_eq!(greedy.evaluation.nominal.abstention_probability, Rational::one());
+    }
+
+    #[test]
+    fn terminal_map_abstains_on_an_exact_posterior_tie() {
+        let belief = vec![
+            JointMass {
+                hypothesis: 0,
+                physical_state: 0,
+                sensor_state: 0,
+                mass: half(),
+            },
+            JointMass {
+                hypothesis: 1,
+                physical_state: 0,
+                sensor_state: 0,
+                mass: half(),
+            },
+        ];
+        assert_eq!(map_claim(&belief, 2).unwrap(), PolicyPlan::Abstain);
     }
 
     #[test]
