@@ -86,6 +86,21 @@ canonical JSON remains inspectable in review artifacts. Switching encoding
 requires a new explicit profile ID and golden vectors, not a rewrite of
 existing digests.
 
+### Strict pre-canonicalization input validation
+
+The independent Go verifier now validates raw input before invoking the pinned
+JCS canonicalizer. Its preflight rejects duplicate object member names at any
+nesting depth (including names that become equal after JSON escape decoding),
+invalid UTF-8, unpaired high/low surrogate escapes, non-finite binary64
+overflow, malformed JSON and trailing JSON values. The existing golden-vector
+test runs through this preflight, and negative controls cover each rejection
+class. A valid paired surrogate remains accepted.
+
+This is an independent consumer-side guard in the Go qualification verifier;
+it does not yet establish that every future Rust JSON ingestion path performs
+the same duplicate-aware preflight. The full frozen adversarial corpus and
+Rust-side raw-input guard remain follow-on work.
+
 ### Interoperability qualification
 
 The compiler's Rust tests compare `serde_jcs` against the shared frozen byte
