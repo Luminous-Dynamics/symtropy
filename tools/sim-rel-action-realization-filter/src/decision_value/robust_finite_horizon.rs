@@ -1233,8 +1233,20 @@ fn raw_replay_partitions(
                         return Err("raw replay constructed a zero-mass observation".into());
                     }
                     let next_mass = if observation.hazard {
+                        if !next_states.is_empty() {
+                            return Err("hazard replay branch unexpectedly contains next-state mass".into());
+                        }
                         None
                     } else {
+                        let next_total = next_states
+                            .values()
+                            .try_fold(Rational::zero(), |sum, mass| sum.checked_add(*mass))?;
+                        if next_total != probability || next_states.is_empty() {
+                            return Err(
+                                "safe replay branch next-state mass does not equal its observation mass"
+                                    .into(),
+                            );
+                        }
                         Some(
                             next_states
                                 .into_iter()
