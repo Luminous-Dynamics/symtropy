@@ -1316,6 +1316,54 @@ fn interval_discriminant_formula_matches_an_independent_exact_resultant() {
 }
 
 #[test]
+fn interval_coefficient_enclosures_contain_seeded_exact_dyadic_samples() {
+    let bounds = [
+        [0.95, 1.05],
+        [-0.02, 0.02],
+        [-0.02, 0.02],
+        [0.95, 1.05],
+        [-0.02, 0.02],
+        [0.95, 1.05],
+        [-1.05, -0.95],
+        [-3.05, -2.95],
+        [0.95, 1.05],
+        [0.20, 0.30],
+    ];
+    let input = ContactInputBox::from_f64_bounds(bounds).unwrap();
+    let enclosure = input.coefficient_intervals();
+
+    for seed in 0..128_u64 {
+        let mut values = [0.0_f64; 10];
+        for index in 0..10 {
+            let bucket = (seed * (13 + index as u64 * 17) + 7 * index as u64) % 1009;
+            let fraction = bucket as f64 / 1008.0;
+            values[index] = bounds[index][0]
+                + fraction * (bounds[index][1] - bounds[index][0]);
+        }
+        let exact = exact_sliding_quartic_from_rational_inputs(
+            exact_f64(values[0]).unwrap(),
+            exact_f64(values[1]).unwrap(),
+            exact_f64(values[2]).unwrap(),
+            exact_f64(values[6]).unwrap(),
+            exact_f64(values[7]).unwrap(),
+            exact_f64(values[8]).unwrap(),
+            exact_f64(values[9]).unwrap(),
+            exact_f64(values[3]).unwrap(),
+            exact_f64(values[4]).unwrap(),
+            exact_f64(values[5]).unwrap(),
+        );
+        assert_eq!(enclosure.len(), exact.len());
+        for (index, exact_coefficient) in exact.iter().enumerate() {
+            assert!(
+                enclosure[index].lower <= *exact_coefficient
+                    && *exact_coefficient <= enclosure[index].upper,
+                "seed={seed}, coefficient={index}"
+            );
+        }
+    }
+}
+
+#[test]
 fn interval_family_certificate_accepts_a_narrow_regular_spd_box() {
     let input = ContactInputBox::from_f64_bounds([
         [0.9999, 1.0001],
