@@ -164,6 +164,9 @@ pub struct ObservationDecisionReceipt {
 pub struct ChannelDecisionEvaluation {
     pub assumed_channel_id: String,
     pub true_channel_id: String,
+    /// Bayes risk predicted under the assumed channel's own observation law.
+    pub nominal_model_expected_loss: Rational,
+    /// Assumed conditional risks reweighted by the true channel's observation law.
     pub expected_assumed_loss_under_true_observations: Rational,
     pub realized_policy_loss: Rational,
     pub true_bayes_oracle_loss: Rational,
@@ -257,6 +260,7 @@ pub fn evaluate_channel_decisions(
 ) -> Result<ChannelDecisionEvaluation, String> {
     validate_channel_pair(assumed, truth, prior, table)?;
 
+    let mut nominal_model_expected_loss = Rational::zero();
     let mut expected_assumed_loss = Rational::zero();
     let mut realized_policy_loss = Rational::zero();
     let mut true_bayes_oracle_loss = Rational::zero();
@@ -280,6 +284,19 @@ pub fn evaluate_channel_decisions(
             assumed_probability = assumed_probability.checked_add(assumed_mass)?;
         }
 
+        let (chosen_decision, assumed_conditional_loss) = if assumed_probability.is_zero() {
+            (None, table.abstention_loss)
+        } else {
+            let assumed_posterior: Vec<Rational> = assumed_joint
+                .iter()
+                .map(|mass| mass.checked_div(assumed_probability))
+                .collect::<Result<_, _>>()?;
+            bayes_decision(table, &assumed_posterior)?
+        };
+        nominal_model_expected_loss = nominal_model_expected_loss.checked_add(
+            assumed_probability.checked_mul(assumed_conditional_loss)?,
+        )?;
+
         if true_probability.is_zero() {
             continue;
         }
@@ -289,18 +306,10 @@ pub fn evaluate_channel_decisions(
             .map(|mass| mass.checked_div(true_probability))
             .collect::<Result<_, _>>()?;
         let (true_bayes_decision, true_bayes_loss) = bayes_decision(table, &true_posterior)?;
-
-        let (chosen_decision, assumed_conditional_loss) = if assumed_probability.is_zero() {
+        if assumed_probability.is_zero() {
             unsupported_observation_probability =
                 unsupported_observation_probability.checked_add(true_probability)?;
-            (None, table.abstention_loss)
-        } else {
-            let assumed_posterior: Vec<Rational> = assumed_joint
-                .iter()
-                .map(|mass| mass.checked_div(assumed_probability))
-                .collect::<Result<_, _>>()?;
-            bayes_decision(table, &assumed_posterior)?
-        };
+        }
 
         let realized_conditional_loss =
             expected_loss_for_posterior(table, &true_posterior, chosen_decision)?;
@@ -339,6 +348,7 @@ pub fn evaluate_channel_decisions(
     Ok(ChannelDecisionEvaluation {
         assumed_channel_id: assumed.channel_id.clone(),
         true_channel_id: truth.channel_id.clone(),
+        nominal_model_expected_loss,
         expected_assumed_loss_under_true_observations: expected_assumed_loss,
         realized_policy_loss,
         true_bayes_oracle_loss,
