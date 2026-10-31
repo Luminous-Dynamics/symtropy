@@ -1,0 +1,28 @@
+name: Coupled Coulomb interval branch continuation
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/src/coupled_friction_sturm.rs"
+      - "docs/research/COULOMB_SLIDING_BRANCH_INTERVAL_CERT_2026-10-31.md"
+      - ".github/workflows/coupled-coulomb-branch-interval.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  branch-interval-cert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run interval root-family and branch admissibility tests
+        run: cargo test -p symtropy-physics --lib coupled_friction::sturm --locked
+      - name: Re-run pointwise production contact regressions
+        run: cargo test -p symtropy-physics --lib coupled_friction::tests --locked

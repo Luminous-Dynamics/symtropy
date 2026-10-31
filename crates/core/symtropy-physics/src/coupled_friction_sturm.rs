@@ -944,6 +944,45 @@ impl ExactInterval {
         self.lower.abs().max(self.upper.abs())
     }
 
+    fn square(&self) -> Self {
+        let upper = self.abs_upper();
+        let upper_square = upper.clone() * upper;
+        if self.contains_zero() {
+            Self {
+                lower: Rational::zero(),
+                upper: upper_square,
+            }
+        } else {
+            let lower_a = self.lower.clone() * self.lower.clone();
+            let lower_b = self.upper.clone() * self.upper.clone();
+            Self {
+                lower: lower_a.clone().min(lower_b.clone()),
+                upper: lower_a.max(lower_b),
+            }
+        }
+    }
+
+    fn scale_integer(&self, factor: i64) -> Self {
+        self.mul(&Self::point(Rational::from_integer(BigInt::from(factor))))
+    }
+
+    fn sub(&self, rhs: &Self) -> Self {
+        self.add(&rhs.neg())
+    }
+
+    fn div(&self, rhs: &Self) -> Option<Self> {
+        if rhs.contains_zero() {
+            return None;
+        }
+        let reciprocal_a = Rational::one() / rhs.lower.clone();
+        let reciprocal_b = Rational::one() / rhs.upper.clone();
+        let reciprocal = Self {
+            lower: reciprocal_a.clone().min(reciprocal_b.clone()),
+            upper: reciprocal_a.max(reciprocal_b),
+        };
+        Some(self.mul(&reciprocal))
+    }
+
     fn midpoint(&self) -> Rational {
         (self.lower.clone() + self.upper.clone())
             / Rational::from_integer(BigInt::from(2))
@@ -1352,6 +1391,453 @@ fn certify_contact_input_box(input: &ContactInputBox) -> FamilyRootCertificate {
         discriminant,
         spd_gershgorin_lower_bound: spd_lower_bound,
     }
+}
+
+fn interval_polynomial_evaluate(
+    coefficients: &[ExactInterval],
+    value: &ExactInterval,
+) -> ExactInterval {
+    coefficients
+        .iter()
+        .rev()
+        .fold(ExactInterval::zero(), |accumulator, coefficient| {
+            accumulator.mul(value).add(coefficient)
+        })
+}
+
+fn interval_polynomial_derivative(coefficients: &[ExactInterval]) -> IntervalPolynomial {
+    coefficients
+        .iter()
+        .enumerate()
+        .skip(1)
+        .map(|(power, coefficient)| coefficient.scale_integer(power as i64))
+        .collect()
+}
+
+fn strict_opposite_sign(lhs: &ExactInterval, rhs: &ExactInterval) -> bool {
+    (lhs.upper < Rational::zero() && rhs.lower > Rational::zero())
+        || (lhs.lower > Rational::zero() && rhs.upper < Rational::zero())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct UniformRootBracket {
+    lower: Rational,
+    upper: Rational,
+}
+
+fn certify_uniform_simple_root_brackets(
+    input: &ContactInputBox,
+) -> Result<Vec<UniformRootBracket>, &'static str> {
+    let family = certify_contact_input_box(input);
+    if !matches!(family.status, FamilyRootStatus::Certified { .. }) {
+        return Err("input box is not root-count certified");
+    }
+    let coefficient_intervals = family.coefficient_intervals;
+    let derivative_intervals = interval_polynomial_derivative(&coefficient_intervals);
+    let representative = input.representative_polynomial();
+    let representative_roots = sturm_isolate_rational(representative)?;
+    let centers = representative_roots
+        .iter()
+        .map(|(lower, upper)| (lower.clone() + upper.clone())
+            / Rational::from_integer(BigInt::from(2)))
+        .collect::<Vec<_>>();
+    let mut brackets = Vec::with_capacity(centers.len());
+
+    for (index, center) in centers.iter().enumerate() {
+        let nearest_gap = [
+            index.checked_sub(1).map(|previous| {
+                center.clone() - centers[previous].clone()
+            }),
+            centers.get(index + 1).map(|next| {
+                next.clone() - center.clone()
+            }),
+        ]
+        .into_iter()
+        .flatten()
+        .min();
+        let maximum_radius = nearest_gap
+            .map(|gap| gap / Rational::from_integer(BigInt::from(3)))
+            .unwrap_or_else(|| Rational::one() + center.abs());
+
+        let mut accepted = None;
+        // Start with a very narrow rational bracket, then widen deterministically.
+        for exponent in (0..=64_usize).rev() {
+            let radius = (Rational::one() + center.abs())
+                / Rational::from_integer(BigInt::one() << exponent);
+            if radius >= maximum_radius {
+                continue;
+            }
+            let lower = center.clone() - radius.clone();
+            let upper = center.clone() + radius;
+            let lower_value = interval_polynomial_evaluate(
+                &coefficient_intervals,
+                &ExactInterval::point(lower.clone()),
+            );
+            let upper_value = interval_polynomial_evaluate(
+                &coefficient_intervals,
+                &ExactInterval::point(upper.clone()),
+            );
+            let derivative_value = interval_polynomial_evaluate(
+                &derivative_intervals,
+                &ExactInterval::new(lower.clone(), upper.clone())?,
+            );
+            if strict_opposite_sign(&lower_value, &upper_value)
+                && derivative_value.excludes_zero()
+            {
+                accepted = Some(UniformRootBracket { lower, upper });
+                break;
+            }
+        }
+        brackets.push(accepted.ok_or("no uniform simple-root bracket found within budget")?);
+    }
+
+    for pair in brackets.windows(2) {
+        if pair[0].upper >= pair[1].lower {
+            return Err("uniform root brackets are not disjoint");
+        }
+    }
+    if brackets.len() != representative_roots.len() {
+        return Err("branch bracket count does not match exact representative Sturm count");
+    }
+    Ok(brackets)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum SlidingBranchStatus {
+    AdmissibleThroughout,
+    InadmissibleThroughout(&'static str),
+    Inconclusive(&'static str),
+}
+
+#[derive(Clone, Debug)]
+struct SlidingBranchCertificate {
+    status: SlidingBranchStatus,
+    normal_denominator: ExactInterval,
+    normal_impulse: Option<ExactInterval>,
+    disk_multiplier: Option<ExactInterval>,
+    kinetic_energy_delta: Option<ExactInterval>,
+    tangent_orthogonality_residual: Option<ExactInterval>,
+    disk_boundary_residual: Option<ExactInterval>,
+}
+
+fn certify_sliding_branch_admissibility(
+    input: &ContactInputBox,
+    bracket: &UniformRootBracket,
+) -> SlidingBranchCertificate {
+    let t = match ExactInterval::new(bracket.lower.clone(), bracket.upper.clone()) {
+        Ok(interval) => interval,
+        Err(_) => {
+            return SlidingBranchCertificate {
+                status: SlidingBranchStatus::Inconclusive("invalid root bracket"),
+                normal_denominator: ExactInterval::zero(),
+                normal_impulse: None,
+                disk_multiplier: None,
+                kinetic_energy_delta: None,
+                tangent_orthogonality_residual: None,
+                disk_boundary_residual: None,
+            };
+        }
+    };
+    let t_squared = t.square();
+    let one_plus_t_squared = ExactInterval::one().add(&t_squared);
+    let cosine = ExactInterval::one()
+        .sub(&t_squared)
+        .div(&one_plus_t_squared);
+    let sine = t.scale_integer(2).div(&one_plus_t_squared);
+    let (cosine, sine) = match (cosine, sine) {
+        (Some(cosine), Some(sine)) => (cosine, sine),
+        _ => {
+            return SlidingBranchCertificate {
+                status: SlidingBranchStatus::Inconclusive("half-angle denominator includes zero"),
+                normal_denominator: ExactInterval::zero(),
+                normal_impulse: None,
+                disk_multiplier: None,
+                kinetic_energy_delta: None,
+                tangent_orthogonality_residual: None,
+                disk_boundary_residual: None,
+            };
+        }
+    };
+
+    let tangent_normal_coupling = input.w01.mul(&cosine).add(&input.w02.mul(&sine));
+    let normal_denominator = input.w00.sub(&input.mu.mul(&tangent_normal_coupling));
+    if normal_denominator.contains_zero() {
+        return SlidingBranchCertificate {
+            status: SlidingBranchStatus::Inconclusive("normal denominator may vanish"),
+            normal_denominator,
+            normal_impulse: None,
+            disk_multiplier: None,
+            kinetic_energy_delta: None,
+            tangent_orthogonality_residual: None,
+            disk_boundary_residual: None,
+        };
+    }
+
+    let normal_impulse = match input.q0.neg().div(&normal_denominator) {
+        Some(value) => value,
+        None => {
+            return SlidingBranchCertificate {
+                status: SlidingBranchStatus::Inconclusive("normal impulse division is singular"),
+                normal_denominator,
+                normal_impulse: None,
+                disk_multiplier: None,
+                kinetic_energy_delta: None,
+                tangent_orthogonality_residual: None,
+                disk_boundary_residual: None,
+            };
+        }
+    };
+    if normal_impulse.upper < Rational::zero() {
+        return SlidingBranchCertificate {
+            status: SlidingBranchStatus::InadmissibleThroughout("normal impulse is negative"),
+            normal_denominator,
+            normal_impulse: Some(normal_impulse),
+            disk_multiplier: None,
+            kinetic_energy_delta: None,
+            tangent_orthogonality_residual: None,
+            disk_boundary_residual: None,
+        };
+    }
+    if normal_impulse.lower <= Rational::zero() {
+        return SlidingBranchCertificate {
+            status: SlidingBranchStatus::Inconclusive("normal impulse may touch zero"),
+            normal_denominator,
+            normal_impulse: Some(normal_impulse),
+            disk_multiplier: None,
+            kinetic_energy_delta: None,
+            tangent_orthogonality_residual: None,
+            disk_boundary_residual: None,
+        };
+    }
+
+    let friction_radius = input.mu.mul(&normal_impulse);
+    let tangent_impulse_1 = friction_radius.neg().mul(&cosine);
+    let tangent_impulse_2 = friction_radius.neg().mul(&sine);
+    let tangent_velocity_1 = input.q1
+        .add(&input.w01.mul(&normal_impulse))
+        .add(&input.w11.mul(&tangent_impulse_1))
+        .add(&input.w12.mul(&tangent_impulse_2));
+    let tangent_velocity_2 = input.q2
+        .add(&input.w02.mul(&normal_impulse))
+        .add(&input.w12.mul(&tangent_impulse_1))
+        .add(&input.w22.mul(&tangent_impulse_2));
+
+    let tangent_impulse_norm_squared =
+        tangent_impulse_1.square().add(&tangent_impulse_2.square());
+    if tangent_impulse_norm_squared.lower <= Rational::zero() {
+        return SlidingBranchCertificate {
+            status: SlidingBranchStatus::Inconclusive("tangential impulse norm may vanish"),
+            normal_denominator,
+            normal_impulse: Some(normal_impulse),
+            disk_multiplier: None,
+            kinetic_energy_delta: None,
+            tangent_orthogonality_residual: None,
+            disk_boundary_residual: None,
+        };
+    }
+    let tangent_work = tangent_impulse_1
+        .mul(&tangent_velocity_1)
+        .add(&tangent_impulse_2.mul(&tangent_velocity_2));
+    let disk_multiplier = match tangent_work.neg().div(&tangent_impulse_norm_squared) {
+        Some(value) => value,
+        None => {
+            return SlidingBranchCertificate {
+                status: SlidingBranchStatus::Inconclusive("disk multiplier division is singular"),
+                normal_denominator,
+                normal_impulse: Some(normal_impulse),
+                disk_multiplier: None,
+                kinetic_energy_delta: None,
+                tangent_orthogonality_residual: None,
+                disk_boundary_residual: None,
+            };
+        }
+    };
+    if disk_multiplier.upper < Rational::zero() {
+        return SlidingBranchCertificate {
+            status: SlidingBranchStatus::InadmissibleThroughout("disk multiplier is negative"),
+            normal_denominator,
+            normal_impulse: Some(normal_impulse),
+            disk_multiplier: Some(disk_multiplier),
+            kinetic_energy_delta: None,
+            tangent_orthogonality_residual: None,
+            disk_boundary_residual: None,
+        };
+    }
+    if disk_multiplier.lower <= Rational::zero() {
+        return SlidingBranchCertificate {
+            status: SlidingBranchStatus::Inconclusive("branch may cross the stick-slip multiplier boundary"),
+            normal_denominator,
+            normal_impulse: Some(normal_impulse),
+            disk_multiplier: Some(disk_multiplier),
+            kinetic_energy_delta: None,
+            tangent_orthogonality_residual: None,
+            disk_boundary_residual: None,
+        };
+    }
+
+    let tangent_orthogonality_residual = sine
+        .neg()
+        .mul(&tangent_velocity_1)
+        .add(&cosine.mul(&tangent_velocity_2));
+    if !tangent_orthogonality_residual.contains_zero() {
+        return SlidingBranchCertificate {
+            status: SlidingBranchStatus::Inconclusive("interval tangent orthogonality excludes zero"),
+            normal_denominator,
+            normal_impulse: Some(normal_impulse),
+            disk_multiplier: Some(disk_multiplier),
+            kinetic_energy_delta: None,
+            tangent_orthogonality_residual: Some(tangent_orthogonality_residual),
+            disk_boundary_residual: None,
+        };
+    }
+
+    let disk_boundary_residual = tangent_impulse_norm_squared
+        .sub(&friction_radius.square());
+    if !disk_boundary_residual.contains_zero() {
+        return SlidingBranchCertificate {
+            status: SlidingBranchStatus::Inconclusive("interval disk equality excludes zero"),
+            normal_denominator,
+            normal_impulse: Some(normal_impulse),
+            disk_multiplier: Some(disk_multiplier),
+            kinetic_energy_delta: None,
+            tangent_orthogonality_residual: Some(tangent_orthogonality_residual),
+            disk_boundary_residual: Some(disk_boundary_residual),
+        };
+    }
+
+    let normal_velocity_impulse = input.w00
+        .mul(&normal_impulse)
+        .add(&input.w01.mul(&tangent_impulse_1))
+        .add(&input.w02.mul(&tangent_impulse_2));
+    let tangent_velocity_impulse_1 = input.w01
+        .mul(&normal_impulse)
+        .add(&input.w11.mul(&tangent_impulse_1))
+        .add(&input.w12.mul(&tangent_impulse_2));
+    let tangent_velocity_impulse_2 = input.w02
+        .mul(&normal_impulse)
+        .add(&input.w12.mul(&tangent_impulse_1))
+        .add(&input.w22.mul(&tangent_impulse_2));
+    let linear_energy = normal_impulse
+        .mul(&input.q0)
+        .add(&tangent_impulse_1.mul(&input.q1))
+        .add(&tangent_impulse_2.mul(&input.q2));
+    let quadratic_energy = normal_impulse
+        .mul(&normal_velocity_impulse)
+        .add(&tangent_impulse_1.mul(&tangent_velocity_impulse_1))
+        .add(&tangent_impulse_2.mul(&tangent_velocity_impulse_2));
+    let kinetic_energy_delta =
+        linear_energy.add(&quadratic_energy.scale_integer(1).mul(
+            &ExactInterval::point(Rational::new(BigInt::one(), BigInt::from(2))),
+        ));
+
+    let status = if kinetic_energy_delta.upper <= Rational::zero() {
+        SlidingBranchStatus::AdmissibleThroughout
+    } else if kinetic_energy_delta.lower > Rational::zero() {
+        SlidingBranchStatus::InadmissibleThroughout("contact impulse increases kinetic energy")
+    } else {
+        SlidingBranchStatus::Inconclusive("kinetic-energy interval straddles zero")
+    };
+
+    SlidingBranchCertificate {
+        status,
+        normal_denominator,
+        normal_impulse: Some(normal_impulse),
+        disk_multiplier: Some(disk_multiplier),
+        kinetic_energy_delta: Some(kinetic_energy_delta),
+        tangent_orthogonality_residual: Some(tangent_orthogonality_residual),
+        disk_boundary_residual: Some(disk_boundary_residual),
+    }
+}
+
+fn narrow_regular_contact_box() -> ContactInputBox {
+    ContactInputBox::from_f64_bounds([
+        [0.9999, 1.0001],
+        [-0.0001, 0.0001],
+        [-0.0001, 0.0001],
+        [0.9999, 1.0001],
+        [-0.0001, 0.0001],
+        [0.9999, 1.0001],
+        [-1.0001, -0.9999],
+        [-3.0001, -2.9999],
+        [0.9999, 1.0001],
+        [0.2499, 0.2501],
+    ]).unwrap()
+}
+
+#[test]
+fn uniform_simple_root_brackets_cover_all_representative_roots() {
+    let input = narrow_regular_contact_box();
+    let brackets = certify_uniform_simple_root_brackets(&input).unwrap();
+    assert_eq!(brackets.len(), 2);
+    assert!(brackets[0].upper < brackets[1].lower);
+    let coefficients = input.coefficient_intervals();
+    let derivative = interval_polynomial_derivative(&coefficients);
+    for bracket in &brackets {
+        let lower_value = interval_polynomial_evaluate(
+            &coefficients,
+            &ExactInterval::point(bracket.lower.clone()),
+        );
+        let upper_value = interval_polynomial_evaluate(
+            &coefficients,
+            &ExactInterval::point(bracket.upper.clone()),
+        );
+        let derivative_value = interval_polynomial_evaluate(
+            &derivative,
+            &ExactInterval::new(bracket.lower.clone(), bracket.upper.clone()).unwrap(),
+        );
+        assert!(strict_opposite_sign(&lower_value, &upper_value));
+        assert!(derivative_value.excludes_zero());
+    }
+}
+
+#[test]
+fn interval_sliding_branch_distinguishes_admissible_and_negative_tau_roots() {
+    let input = narrow_regular_contact_box();
+    let brackets = certify_uniform_simple_root_brackets(&input).unwrap();
+    assert_eq!(brackets.len(), 2);
+
+    let mut outcomes = brackets
+        .iter()
+        .map(|bracket| {
+            let certificate = certify_sliding_branch_admissibility(&input, bracket);
+            (bracket, certificate)
+        })
+        .collect::<Vec<_>>();
+    outcomes.sort_by(|left, right| {
+        left.0.lower.cmp(&right.0.lower)
+    });
+
+    assert_eq!(
+        outcomes[0].1.status,
+        SlidingBranchStatus::InadmissibleThroughout("disk multiplier is negative")
+    );
+    assert_eq!(
+        outcomes[1].1.status,
+        SlidingBranchStatus::AdmissibleThroughout
+    );
+    let admissible = &outcomes[1].1;
+    assert!(admissible.normal_impulse.as_ref().unwrap().lower > Rational::zero());
+    assert!(admissible.disk_multiplier.as_ref().unwrap().lower > Rational::zero());
+    assert!(admissible.kinetic_energy_delta.as_ref().unwrap().upper <= Rational::zero());
+    assert!(admissible.tangent_orthogonality_residual.as_ref().unwrap().contains_zero());
+    assert!(admissible.disk_boundary_residual.as_ref().unwrap().contains_zero());
+}
+
+#[test]
+fn uniform_root_branch_refuses_a_family_without_root_count_certificate() {
+    let input = ContactInputBox::from_f64_bounds([
+        [0.999, 1.001],
+        [0.0, 0.0],
+        [0.0, 0.0],
+        [0.999, 1.001],
+        [0.0, 0.0],
+        [0.999, 1.001],
+        [-1.001, -0.999],
+        [-3.001, -2.999],
+        [-0.001, 0.001],
+        [0.249, 0.251],
+    ]).unwrap();
+    assert!(certify_uniform_simple_root_brackets(&input).is_err());
 }
 
 #[test]
