@@ -9347,6 +9347,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-qualification"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "symtropy-rapier3d-bridge"
 version = "0.1.0"
 dependencies = [

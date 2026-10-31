@@ -1,0 +1,58 @@
+name: Simulation Qualification
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/core/symtropy-qualification/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/simulation-qualification.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "crates/core/symtropy-qualification/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/simulation-qualification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: simulation-qualification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    name: Verify simulation qualification receipt crate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run receipt verifier unit tests
+        run: cargo test -p symtropy-qualification --locked
+
+      - name: Run strict receipt verifier Clippy
+        run: cargo clippy -p symtropy-qualification --all-targets --all-features --locked -- -D warnings
+
+      - name: Verify workspace lock and compilation
+        run: cargo check --workspace --all-targets --locked
