@@ -13,7 +13,7 @@ use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
 
 use crate::body::BodyType;
-use crate::world::{NoOpCallback, PhysicsWorld, StepWorkAccumulator};
+use crate::world::{NoOpCallback, PhysicsCallback, PhysicsWorld, StepWorkAccumulator};
 
 /// A quantitative snapshot of world-level physical invariants and health.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -207,6 +207,20 @@ impl<const D: usize> PhysicsWorld<D> {
         &mut self,
         dt: f64,
     ) -> Result<InvariantStepReceipt<D>, crate::world::PhysicsStepError> {
+        let mut noop = NoOpCallback;
+        self.try_step_with_callback_and_receipt(dt, &mut noop)
+    }
+
+    /// Step with the supplied callback and return the committed work ledger.
+    ///
+    /// Work is calculated from the callback-modulated force and the actually
+    /// applied contact impulses. Mutable callback effects are still published
+    /// only after the world transaction commits.
+    pub fn try_step_with_callback_and_receipt(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+    ) -> Result<InvariantStepReceipt<D>, crate::world::PhysicsStepError> {
         let before = self.invariant_snapshot();
         let total_body_count = self.bodies.len();
         let dynamic_body_count = self
@@ -216,8 +230,7 @@ impl<const D: usize> PhysicsWorld<D> {
             .count();
 
         let mut work = StepWorkAccumulator::default();
-        let mut noop = NoOpCallback;
-        self.try_step_with_callback_and_work(dt, &mut noop, &mut work)?;
+        self.try_step_with_callback_and_work(dt, callback, &mut work)?;
 
         let after = self.invariant_snapshot();
         let drift = before.drift_to(&after);
