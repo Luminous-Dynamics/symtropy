@@ -1,0 +1,48 @@
+name: Matched pendulum solver campaign
+
+on:
+  pull_request:
+    paths:
+      - "tools/pendulum-matched-campaign/**"
+      - "tools/pendulum-intrinsic-reference/**"
+      - "tools/pendulum-rattle-reference/**"
+      - "docs/research/PENDULUM_MATCHED_SOLVER_CAMPAIGN_2026-10-31.md"
+      - ".github/workflows/pendulum-matched-campaign.yml"
+  push:
+    branches:
+      - "research/pendulum-matched-solver-campaign-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  matched-campaign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/pendulum-matched-campaign/compare_pendulum_solvers.rs
+
+      - name: Compile and run warning-denied reference tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/pendulum-matched-campaign/compare_pendulum_solvers.rs \
+            -o /tmp/pendulum-campaign-tests
+          /tmp/pendulum-campaign-tests
+
+      - name: Compile optimized comparison and verify deterministic output
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/pendulum-matched-campaign/compare_pendulum_solvers.rs \
+            -o /tmp/pendulum-campaign
+          /tmp/pendulum-campaign > /tmp/pendulum-campaign-a.csv
+          /tmp/pendulum-campaign > /tmp/pendulum-campaign-b.csv
+          cmp /tmp/pendulum-campaign-a.csv /tmp/pendulum-campaign-b.csv
+          test "$(wc -l < /tmp/pendulum-campaign-a.csv)" -eq 17
+          grep -q "^cartesian_rattle," /tmp/pendulum-campaign-a.csv
+          grep -q "^intrinsic_discrete_gradient," /tmp/pendulum-campaign-a.csv
