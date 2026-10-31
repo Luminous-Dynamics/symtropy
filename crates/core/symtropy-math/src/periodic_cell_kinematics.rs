@@ -35,6 +35,9 @@ pub enum PeriodicCellKinematicsError {
     InverseResidualExceeded,
     IncompatiblePeriodicMask,
     IncompatibleSampleTime,
+    InvalidIntegerBasisTransform,
+    BasisTransformMixesPeriodicSubspaces,
+    BasisRebaseMismatch,
     NonFiniteState { field: &'static str, axis: Option<usize> },
     NumericRange { field: &'static str },
 }
@@ -65,7 +68,16 @@ impl fmt::Display for PeriodicCellKinematicsError {
                 write!(f, "periodic remap cannot change the active periodic subspace")
             }
             Self::IncompatibleSampleTime => {
-                write!(f, "affine cell remap requires frames at the same physical sample time")
+                write!(f, "affine cell operation requires frames at the same physical sample time")
+            }
+            Self::InvalidIntegerBasisTransform => {
+                write!(f, "basis rebase transform must be an exactly representable integer unimodular matrix with determinant +1")
+            }
+            Self::BasisTransformMixesPeriodicSubspaces => {
+                write!(f, "basis rebase may not mix active periodic and inactive nonperiodic axes")
+            }
+            Self::BasisRebaseMismatch => {
+                write!(f, "new frame does not represent the same physical lattice and cell kinematics under the declared integer basis transform")
             }
             Self::NonFiniteState { field, axis } => {
                 write!(f, "non-finite state field {field}")?;
@@ -102,7 +114,7 @@ pub struct CartesianCellState<const D: usize> {
 
 /// Evidence returned by an instantaneous affine cell remap.
 #[derive(Clone, Debug, PartialEq)]
-pub struct PeriodicCellRemap<const D: usize> {
+pub struct PeriodicCellDeformation<const D: usize> {
     pub before: CartesianCellState<D>,
     pub after: CartesianCellState<D>,
     pub fractional_state: FractionalCellState<D>,
@@ -115,6 +127,22 @@ pub struct PeriodicCellRemap<const D: usize> {
     pub affine_velocity_delta: SVector<f64, D>,
     /// Cartesian position change introduced by the declared remap.
     pub affine_position_delta: SVector<f64, D>,
+}
+
+
+/// Evidence for a pure integer-unimodular change of lattice basis.
+///
+/// A basis rebase changes fractional coordinates by U^-1 while preserving the
+/// represented Cartesian state. It is not physical cell deformation.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PeriodicCellBasisRebase<const D: usize> {
+    pub before: CartesianCellState<D>,
+    pub after: CartesianCellState<D>,
+    pub fractional_before: FractionalCellState<D>,
+    pub fractional_after: FractionalCellState<D>,
+    /// Integer basis relation B_after = B_before * U.
+    pub basis_transform: SMatrix<i64, D, D>,
+    pub unimodular_determinant: i64,
 }
 
 /// One sample of an evolving periodic cell.
@@ -331,11 +359,11 @@ impl<const D: usize> PeriodicCellKinematics<D> {
     /// must refer to the same physical sample time and the same active periodic
     /// subspace. Evolution of fractional coordinates between different times
     /// is the responsibility of the caller/integrator.
-    pub fn affine_remap_to(
+    pub fn affine_deform_to(
         &self,
         next: &Self,
         cartesian: &CartesianCellState<D>,
-    ) -> Result<PeriodicCellRemap<D>, PeriodicCellKinematicsError> {
+    ) -> Result<PeriodicCellDeformation<D>, PeriodicCellKinematicsError> {
         if self.periodic_axes != next.periodic_axes {
             return Err(PeriodicCellKinematicsError::IncompatiblePeriodicMask);
         }
@@ -367,7 +395,7 @@ impl<const D: usize> PeriodicCellKinematics<D> {
         validate_state_vector(&affine_position_delta, "affine position delta")?;
         validate_state_vector(&affine_velocity_delta, "affine velocity delta")?;
 
-        Ok(PeriodicCellRemap {
+        Ok(PeriodicCellDeformation {
             before: cartesian.clone(),
             after,
             fractional_state,
@@ -376,6 +404,95 @@ impl<const D: usize> PeriodicCellKinematics<D> {
             affine_velocity_delta,
             affine_position_delta,
         })
+    /// Verify and apply a pure integer-unimodular basis representation change.
+    ///
+    /// The new basis must satisfy B_next = B_current * U and the basis rate
+    /// must satisfy Bdot_next = Bdot_current * U. U must preserve the active
+    /// periodic subspace. Fractional position and rate are both transformed
+    /// by U^-1, leaving Cartesian position and physical velocity invariant.
+    pub fn basis_rebase_to(
+        &self,
+        next: &Self,
+        cartesian: &CartesianCellState<D>,
+        basis_transform: SMatrix<i64, D, D>,
+    ) -> Result<PeriodicCellBasisRebase<D>, PeriodicCellKinematicsError> {
+        if self.periodic_axes != next.periodic_axes {
+            return Err(PeriodicCellKinematicsError::IncompatiblePeriodicMask);
+        }
+        let time_scale = self.sample_time.abs().max(next.sample_time.abs()).max(1.0);
+        if (self.sample_time - next.sample_time).abs()
+            > SAMPLE_TIME_REL_TOLERANCE * time_scale
+        {
+            return Err(PeriodicCellKinematicsError::IncompatibleSampleTime);
+        }
+
+        for row in 0..D {
+            for column in 0..D {
+                if self.periodic_axes[row] != self.periodic_axes[column]
+                    && basis_transform[(row, column)] != 0
+                {
+                    return Err(
+                        PeriodicCellKinematicsError::BasisTransformMixesPeriodicSubspaces,
+                    );
+                }
+            }
+        }
+
+        let (determinant, inverse_integer) = integer_unimodular_inverse(&basis_transform)?;
+        let transform_f64 = integer_matrix_to_f64(&basis_transform)?;
+        let inverse_f64 = integer_matrix_to_f64(&inverse_integer)?;
+
+        if !matrix_close(
+            &(self.basis * transform_f64),
+            &next.basis,
+            MAX_INVERSE_RESIDUAL,
+        ) || !matrix_close(
+            &(self.basis_rate * transform_f64),
+            &next.basis_rate,
+            MAX_INVERSE_RESIDUAL,
+        ) || !vector_close(
+            &self.origin,
+            &next.origin,
+            MAX_INVERSE_RESIDUAL,
+        ) || !vector_close(
+            &self.origin_velocity,
+            &next.origin_velocity,
+            MAX_INVERSE_RESIDUAL,
+        ) {
+            return Err(PeriodicCellKinematicsError::BasisRebaseMismatch);
+        }
+
+        let fractional_before = self.to_fractional(cartesian)?;
+        let fractional_after = FractionalCellState {
+            fractional_position: inverse_f64 * fractional_before.fractional_position,
+            fractional_velocity: inverse_f64 * fractional_before.fractional_velocity,
+        };
+        validate_state_vector(
+            &fractional_after.fractional_position,
+            "rebased fractional position",
+        )?;
+        validate_state_vector(
+            &fractional_after.fractional_velocity,
+            "rebased fractional velocity",
+        )?;
+
+        let after = next.to_cartesian(&fractional_after)?;
+        if !vector_close(&after.position, &cartesian.position, MAX_INVERSE_RESIDUAL)
+            || !vector_close(&after.velocity, &cartesian.velocity, MAX_INVERSE_RESIDUAL)
+        {
+            return Err(PeriodicCellKinematicsError::BasisRebaseMismatch);
+        }
+
+        Ok(PeriodicCellBasisRebase {
+            before: cartesian.clone(),
+            after,
+            fractional_before,
+            fractional_after,
+            basis_transform,
+            unimodular_determinant: determinant,
+        })
+    }
+
     }
 }
 
@@ -392,6 +509,139 @@ fn validate_state_vector<const D: usize>(
         }
     }
     Ok(())
+}
+
+fn integer_unimodular_inverse<const D: usize>(
+    matrix: &SMatrix<i64, D, D>,
+) -> Result<(i64, SMatrix<i64, D, D>), PeriodicCellKinematicsError> {
+    if D != 2 && D != 3 {
+        return Err(PeriodicCellKinematicsError::UnsupportedDimension { dimension: D });
+    }
+
+    let mut cofactors = SMatrix::<i64, D, D>::zeros();
+    let determinant = if D == 2 {
+        let a = matrix[(0, 0)];
+        let b = matrix[(0, 1)];
+        let c = matrix[(1, 0)];
+        let d = matrix[(1, 1)];
+        let ad = a.checked_mul(d);
+        let bc = b.checked_mul(c);
+        ad.and_then(|left| bc.and_then(|right| left.checked_sub(right)))
+            .ok_or(PeriodicCellKinematicsError::InvalidIntegerBasisTransform)?
+    } else {
+        for row in 0..3 {
+            for column in 0..3 {
+                let rows = (0..3).filter(|candidate| *candidate != row).collect::<Vec<_>>();
+                let columns = (0..3)
+                    .filter(|candidate| *candidate != column)
+                    .collect::<Vec<_>>();
+                let a = matrix[(rows[0], columns[0])];
+                let b = matrix[(rows[0], columns[1])];
+                let c = matrix[(rows[1], columns[0])];
+                let d = matrix[(rows[1], columns[1])];
+                let minor = a
+                    .checked_mul(d)
+                    .and_then(|left| {
+                        b.checked_mul(c).and_then(|right| left.checked_sub(right))
+                    })
+                    .ok_or(PeriodicCellKinematicsError::InvalidIntegerBasisTransform)?;
+                cofactors[(row, column)] = if (row + column) % 2 == 0 {
+                    minor
+                } else {
+                    minor.checked_neg().ok_or(
+                        PeriodicCellKinematicsError::InvalidIntegerBasisTransform,
+                    )?
+                };
+            }
+        }
+        let mut det = 0_i64;
+        for column in 0..3 {
+            let term = matrix[(0, column)]
+                .checked_mul(cofactors[(0, column)])
+                .ok_or(PeriodicCellKinematicsError::InvalidIntegerBasisTransform)?;
+            det = det
+                .checked_add(term)
+                .ok_or(PeriodicCellKinematicsError::InvalidIntegerBasisTransform)?;
+        }
+        det
+    };
+
+    if determinant != 1 {
+        return Err(PeriodicCellKinematicsError::InvalidIntegerBasisTransform);
+    }
+
+    let mut inverse = SMatrix::<i64, D, D>::zeros();
+    if D == 2 {
+        inverse[(0, 0)] = matrix[(1, 1)];
+        inverse[(0, 1)] = matrix[(0, 1)]
+            .checked_neg()
+            .ok_or(PeriodicCellKinematicsError::InvalidIntegerBasisTransform)?;
+        inverse[(1, 0)] = matrix[(1, 0)]
+            .checked_neg()
+            .ok_or(PeriodicCellKinematicsError::InvalidIntegerBasisTransform)?;
+        inverse[(1, 1)] = matrix[(0, 0)];
+    } else {
+        for row in 0..3 {
+            for column in 0..3 {
+                inverse[(row, column)] = cofactors[(column, row)];
+            }
+        }
+    }
+
+    // Verify the integer inverse exactly, with checked arithmetic.
+    for row in 0..D {
+        for column in 0..D {
+            let mut value = 0_i64;
+            for inner in 0..D {
+                let product = matrix[(row, inner)]
+                    .checked_mul(inverse[(inner, column)])
+                    .ok_or(PeriodicCellKinematicsError::InvalidIntegerBasisTransform)?;
+                value = value
+                    .checked_add(product)
+                    .ok_or(PeriodicCellKinematicsError::InvalidIntegerBasisTransform)?;
+            }
+            let expected = if row == column { 1 } else { 0 };
+            if value != expected {
+                return Err(PeriodicCellKinematicsError::InvalidIntegerBasisTransform);
+            }
+        }
+    }
+
+    Ok((determinant, inverse))
+}
+
+fn integer_matrix_to_f64<const D: usize>(
+    matrix: &SMatrix<i64, D, D>,
+) -> Result<SMatrix<f64, D, D>, PeriodicCellKinematicsError> {
+    const MAX_EXACT_INTEGER: i64 = 4_503_599_627_370_495;
+    for value in matrix.iter() {
+        if value.unsigned_abs() > MAX_EXACT_INTEGER as u64 {
+            return Err(PeriodicCellKinematicsError::InvalidIntegerBasisTransform);
+        }
+    }
+    let converted = matrix.map(|value| value as f64);
+    if !converted.iter().all(|value| value.is_finite()) {
+        return Err(PeriodicCellKinematicsError::NumericRange {
+            field: "integer basis transform conversion",
+        });
+    }
+    Ok(converted)
+}
+
+fn matrix_close<const D: usize>(
+    a: &SMatrix<f64, D, D>,
+    b: &SMatrix<f64, D, D>,
+    tolerance: f64,
+) -> bool {
+    (a - b).norm() <= tolerance * a.norm().max(b.norm()).max(1.0)
+}
+
+fn vector_close<const D: usize>(
+    a: &SVector<f64, D>,
+    b: &SVector<f64, D>,
+    tolerance: f64,
+) -> bool {
+    (a - b).norm() <= tolerance * a.norm().max(b.norm()).max(1.0)
 }
 
 #[cfg(test)]
@@ -476,7 +726,7 @@ mod tests {
             fractional_velocity: SVector::from([0.1, -0.2]),
         };
         let before = old.to_cartesian(&fractional).unwrap();
-        let remap = old.affine_remap_to(&next, &before).unwrap();
+        let remap = old.affine_deform_to(&next, &before).unwrap();
 
         close(remap.after.position[0], 0.5, 1e-12);
         close(remap.after.position[1], 0.2, 1e-12);
@@ -510,7 +760,7 @@ mod tests {
             velocity: SVector::from([1.0, -2.0]),
         };
 
-        let remap = old.affine_remap_to(&next, &before).unwrap();
+        let remap = old.affine_deform_to(&next, &before).unwrap();
         close(remap.volume_ratio, 3.0, 1e-12);
         assert!((remap.deformation_gradient - next_basis).norm() < 1e-12);
         close(remap.after.position[0], 0.5, 1e-12);
@@ -550,8 +800,8 @@ mod tests {
             fractional_velocity: SVector::from([0.7, -0.4]),
         };
         let original = old.to_cartesian(&fractional).unwrap();
-        let forward = old.affine_remap_to(&next, &original).unwrap();
-        let backward = next.affine_remap_to(&old, &forward.after).unwrap();
+        let forward = old.affine_deform_to(&next, &original).unwrap();
+        let backward = next.affine_deform_to(&old, &forward.after).unwrap();
 
         assert!((backward.after.position - original.position).norm() < 1e-10);
         assert!((backward.after.velocity - original.velocity).norm() < 1e-10);
@@ -579,7 +829,7 @@ mod tests {
             [true, false],
         );
         assert_eq!(
-            old.affine_remap_to(&different_mask, &state),
+            old.affine_deform_to(&different_mask, &state),
             Err(PeriodicCellKinematicsError::IncompatiblePeriodicMask)
         );
 
@@ -593,7 +843,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            old.affine_remap_to(&different_time, &state),
+            old.affine_deform_to(&different_time, &state),
             Err(PeriodicCellKinematicsError::IncompatibleSampleTime)
         );
     }
