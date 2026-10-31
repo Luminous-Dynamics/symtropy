@@ -75,14 +75,17 @@ fn to_cartesian(state: IntrinsicState) -> rattle::State {
 
 fn cartesian_metrics(state: rattle::State) -> (f64, f64) {
     let q = state.position;
-    let p = state.momentum;
+    let velocity = [
+        state.momentum[0] / MASS,
+        state.momentum[1] / MASS,
+    ];
     let q_squared = q[0] * q[0] + q[1] * q[1];
-    let p_norm = (p[0] * p[0] + p[1] * p[1]).sqrt();
-    let q_dot_p = q[0] * p[0] + q[1] * p[1];
+    let velocity_norm = (velocity[0] * velocity[0] + velocity[1] * velocity[1]).sqrt();
+    let q_dot_v = q[0] * velocity[0] + q[1] * velocity[1];
     let position = (q_squared - LENGTH * LENGTH).abs()
         / (1.0 + q_squared + LENGTH * LENGTH);
-    let tangent =
-        q_dot_p.abs() / (LENGTH * p_norm).max(f64::MIN_POSITIVE);
+    // Common scale-aware endpoint tangent residual used by all five methods.
+    let tangent = q_dot_v.abs() / (1.0 + LENGTH * velocity_norm);
     (position, tangent)
 }
 
@@ -198,10 +201,9 @@ fn run_rattle(dt: f64, steps: usize, reference: rattle::State) -> Metrics {
         let energy = receipt.energy_after;
         max_energy_drift =
             max_energy_drift.max((energy - energy0).abs() / energy0.abs().max(f64::MIN_POSITIVE));
-        max_position =
-            max_position.max(receipt.relative_position_constraint_residual);
-        max_tangent =
-            max_tangent.max(receipt.relative_tangent_constraint_residual);
+        let (position_residual, tangent_residual) = cartesian_metrics(state);
+        max_position = max_position.max(position_residual);
+        max_tangent = max_tangent.max(tangent_residual);
         total_iterations += receipt.position_newton_iterations;
         max_iterations = max_iterations.max(receipt.position_newton_iterations);
     }
