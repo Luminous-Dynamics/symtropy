@@ -9,7 +9,7 @@
 
 A one-contact 3D Coulomb solve is not a two-stage operation in which the normal impulse is frozen and the tangent plane is solved afterward. The normal and tangent impulses are coupled through the full Delassus matrix. This reference solves the three components together and does not drop the normal/tangent blocks.
 
-A generic nonlinear solve can return one locally consistent impulse while hiding other admissible solutions. Instead, the sliding branch is reduced to a quartic in the tangent-plane angle. The solver enumerates all real roots of that polynomial, validates each candidate against the original equations, and reports **Unique**, **MultipleSolutions**, or **Inconclusive**. It never picks one of several valid impulses as though it were uniquely determined.
+A generic nonlinear solve can return one locally consistent impulse while hiding other admissible solutions. Instead, the sliding branch is reduced to a quartic in the tangent-plane angle. The solver enumerates all real roots of that polynomial, validates each candidate against the original equations, and reports **UniqueWithinTolerance**, **MultipleSolutions**, or **Inconclusive**. It never picks one of several valid impulses as though it were uniquely determined. `UniqueWithinTolerance` means one candidate was isolated by the current floating-point root enumerator at the requested tolerance; it is not a formal interval proof that every root was found. Promotion therefore requires an independent high-precision root-count oracle, such as a separately implemented Sturm sequence with certified isolating intervals.
 
 ## Frozen mathematical model
 
