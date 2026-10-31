@@ -567,6 +567,14 @@ mod tests {
             evaluate_channel_decisions(&perfect, &inverted, &prior, &loss).unwrap();
         assert_eq!(model_only.realized_policy_loss, Rational::one());
 
+        // Both inference and the data-generating channel differ from the nominal perfect model.
+        let approximate_inference = noisy_channel("approximate-inference");
+        let interaction =
+            evaluate_channel_decisions(&approximate_inference, &inverted, &prior, &loss).unwrap();
+        assert_eq!(interaction.expected_assumed_loss_under_true_observations, rational(1, 5));
+        assert_eq!(interaction.realized_policy_loss, Rational::one());
+        assert_eq!(interaction.decision_regret, Rational::one());
+
         // Correct negative control.
         let matched = evaluate_channel_decisions(&perfect, &perfect, &prior, &loss).unwrap();
         assert_eq!(matched.realized_policy_loss, Rational::zero());
