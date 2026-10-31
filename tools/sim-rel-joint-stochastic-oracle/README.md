@@ -83,3 +83,6 @@ The particle-filter module supplies a seeded conditional bootstrap filter over m
 The exact rational function for a single Bayesian joint-belief update is provided as a reference. Tests compare particle posterior with that exact binary-channel posterior, verify deterministic resampling and ESS reporting, and ensure impossible observations fail atomically without mutating the filter.
 
 This is a finite-state bootstrap particle-filter comparator. It is not nested SMC-squared, does not infer continuous parameters, and does not reproduce the convergence guarantees of BAD-PODS.
+
+
+The particle module also exposes a paired particle-count sweep against the exact one-step joint posterior. Each record reports predictive-probability error, joint-posterior total-variation and squared error, mechanism-posterior squared error, ESS before/after resampling, support-loss fraction, resampling occurrence, and elapsed time. Runtime is descriptive; posterior metrics are seeded and deterministic for a fixed configuration.
