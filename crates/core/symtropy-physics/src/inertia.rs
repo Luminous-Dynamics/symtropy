@@ -839,6 +839,50 @@ mod tests {
     }
 
     #[test]
+    fn tetrahedral_mass_properties_are_orientation_and_rotation_covariant() {
+        let vertices = [
+            SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 0.0, 1.0),
+        ];
+        let reference =
+            BivectorInertia::<3>::from_tetrahedra([(vertices, 6.0)], 1e-12).unwrap();
+
+        let mut reversed = vertices;
+        reversed.swap(1, 2);
+        let orientation_reversed =
+            BivectorInertia::<3>::from_tetrahedra([(reversed, 6.0)], 1e-12).unwrap();
+        assert!(
+            (orientation_reversed.inertia.second_moment()
+                - reference.inertia.second_moment())
+            .norm()
+                < 1e-12
+        );
+
+        let rotation =
+            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.47);
+        let rotated_vertices = vertices.map(|vertex| {
+            reference.center_of_mass
+                + rotation.rotate_vector(&(vertex - reference.center_of_mass))
+        });
+        let rotated =
+            BivectorInertia::<3>::from_tetrahedra([(rotated_vertices, 6.0)], 1e-12).unwrap();
+        let rotation_matrix = rotation.to_matrix();
+        let expected_second_moment = rotation_matrix
+            * reference.inertia.second_moment()
+            * rotation_matrix.transpose();
+
+        assert!(
+            (rotated.center_of_mass - rotation.rotate_vector(&reference.center_of_mass)).norm()
+                < 1e-12
+        );
+        assert!(
+            (rotated.inertia.second_moment() - expected_second_moment).norm() < 1e-12
+        );
+    }
+
+    #[test]
     fn tetrahedral_mass_properties_reject_degenerate_and_invalid_density() {
         let degenerate = [
             SVector::<f64, 3>::new(0.0, 0.0, 0.0),
