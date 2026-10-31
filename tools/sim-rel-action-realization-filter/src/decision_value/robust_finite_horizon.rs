@@ -1747,6 +1747,39 @@ mod tests {
             make_inverted_instrument_world("world-nominal", false, 0),
             hazard_shift_world(),
         ];
+        let nominal = super::super::finite_horizon::optimize_finite_horizon_decisions(
+            &worlds[0].kernel,
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &costs(),
+            Rational::one(),
+            &config(1),
+        )
+        .unwrap();
+        let nominal_plan = nominal
+            .minimum_loss_under(DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::one(),
+            })
+            .unwrap()
+            .unwrap();
+        assert!(matches!(
+            nominal_plan.plan,
+            DecisionPlan::Experiment { command: 1, .. }
+        ));
+        let shifted_replay = replay_shared_policy_across_worlds(
+            &worlds,
+            "world-nominal",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &costs(),
+            Rational::one(),
+            &nominal_plan.plan,
+            1,
+        )
+        .unwrap();
+        assert_eq!(shifted_replay.per_world[1].hazard_probability, Rational::new(1, 10).unwrap());
+
         let result = optimize_shared_policy_decisions(
             &worlds,
             "world-nominal",
@@ -1769,6 +1802,40 @@ mod tests {
             selected.plan,
             DecisionPlan::Experiment { command: 1, .. }
         ));
+    }
+
+    #[test]
+    fn overlapping_worlds_cannot_select_world_specific_terminal_decisions() {
+        let worlds = vec![
+            make_inverted_instrument_world("world-a", false, 0),
+            make_inverted_instrument_world("world-b", true, 0),
+        ];
+        let result = optimize_shared_policy_decisions(
+            &worlds,
+            "world-a",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &costs(),
+            Rational::one(),
+            &config(1),
+        )
+        .unwrap();
+        let selected = result
+            .minimum_worst_case_total_loss_under(DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::one(),
+            })
+            .unwrap()
+            .unwrap();
+        assert_eq!(selected.worst_case_total_loss().unwrap(), Rational::new(1, 2).unwrap());
+        assert!(matches!(
+            selected.plan,
+            DecisionPlan::TerminalDecision { decision: Some(_) }
+        ));
+        assert_eq!(
+            selected.per_world[0].expected_terminal_loss,
+            selected.per_world[1].expected_terminal_loss
+        );
     }
 
     #[test]
