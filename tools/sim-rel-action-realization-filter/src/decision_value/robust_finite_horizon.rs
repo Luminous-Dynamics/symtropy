@@ -374,7 +374,7 @@ fn validate_world_family(
     }) {
         return Err("model-world IDs must be non-empty and unique".into());
     }
-    if !canonical.iter().any(|world| world.id == nominal_world_id) {
+    if !canonical.iter().any(|world| world.id.as_str() == nominal_world_id) {
         return Err("nominal world ID is not present in the model family".into());
     }
 
