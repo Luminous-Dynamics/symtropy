@@ -5,8 +5,8 @@
 //! physical state; sensor and apparatus uncertainty still affect the posterior.
 
 use super::{
-    ActionRealizationKernel, BeliefMass, FilterError, LatentState, ObservationField,
-    PosteriorMass, PublicObservation, Rational, filter_one_step,
+    ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PosteriorMass,
+    PublicObservation, Rational, filter_one_step,
 };
 use std::collections::BTreeSet;
 use std::fmt;
@@ -310,6 +310,7 @@ fn field_from_option(value: Option<usize>) -> ObservationField {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::LatentState;
 
     fn decision_screen_kernel() -> ActionRealizationKernel {
         let mut rows = Vec::new();
@@ -331,9 +332,9 @@ mod tests {
                         ],
                     }
                 } else if hypothesis == 2 {
-                    vec![outcome(Rational::one(), 1)]
+                    vec![outcome(Rational::one(), 1, hypothesis)]
                 } else {
-                    vec![outcome(Rational::one(), 0)]
+                    vec![outcome(Rational::one(), 0, hypothesis)]
                 };
                 rows.push(super::super::KernelRow {
                     state,
