@@ -125,10 +125,32 @@ The branch now contains a first reference implementation in `symtropy-physics::c
 - `rotated_by` transforms the complete frame. `transported_to` uses the shortest normal-to-normal rotation to preserve local coordinates over time; exact antipodal transitions use a deterministic half-turn axis from the prior tangent basis.
 - `ContactWrenchFrictionLimits` records separate tangential, rolling and torsional coefficients with explicit rolling/torsional characteristic lengths. Its fields are private and validated by the constructor and again at use.
 - `ContactWrenchImpulse<D>` checks normal non-attraction, tangent orthogonality, dimensions, and each separate friction bound; it can reconstruct the angular impulse bivector from rolling and torsional coordinates.
+- `ContactWrenchImpulse<D>::validate_ellipsoidal_friction_budget` exposes a *separate coupled model* with squared normalized tangential, rolling and torsional usage summing to at most one. The original `validate` remains an independent-channel/product-of-bounds model; the API deliberately does not pretend these two constitutive sets are equivalent.
 
-Source-level tests cover dimensions 2/3/4/5, all independent bivector coordinates, orthogonality and reconstruction, coordinate-axis/near-axis normals, common rotations, transported-frame coordinate continuity, antipodal transport, 3D/4D wrench bounds, negative controls and SI-to-centimetre length-unit conversion. This is a geometric/feasibility layer, not a contact solver: it does not compute the impulse, couple wrench coordinates through the Delassus metric, enforce maximum dissipation, or integrate the contact into production.
+Source-level tests cover dimensions 2/3/4/5, all independent bivector coordinates, orthogonality and reconstruction, coordinate-axis/near-axis normals, common rotations, transported-frame coordinate continuity, antipodal transport, 3D/4D wrench bounds, negative controls and SI-to-centimetre length-unit conversion. This is a geometric/feasibility layer, not a contact solver: neither validation mode computes an impulse, couples wrench coordinates through the Delassus metric, enforces maximum dissipation, or integrates the contact into production.
 
 Frame transport is important for warm-started impulses. A canonical frame rebuilt independently at every normal may jump when its deterministic pivot changes; transporting the previous frame avoids that arbitrary change except at the unavoidable antipodal ambiguity, where the implementation chooses a documented deterministic half-turn.
+
+## Friction-wrench feasible-set semantics
+
+There are at least two useful but non-equivalent feasible sets:
+
+1. **Independent channel limits (existing `validate`)**:
+   \[
+   \|p_t\|\le b_t,\quad \|\tau_r\|\le b_r,\quad
+   \|\tau_\tau\|\le b_\tau.
+   \]
+   Each channel can simultaneously reach its individual limit. This is a product set (three separate balls).
+
+2. **Coupled ellipsoidal budget (new `validate_ellipsoidal_friction_budget`)**:
+   \[
+   \left(\frac{\|p_t\|}{b_t}\right)^2+
+   \left(\frac{\|\tau_r\|}{b_r}\right)^2+
+   \left(\frac{\|\tau_\tau\|}{b_\tau}\right)^2\le1.
+   \]
+   This is a joint budget: spending more of the tangential budget leaves less for rolling/torsion. A channel with zero bound permits only zero impulse in that channel.
+
+These are explicit alternatives, not an assertion that either one is the unique physical friction law. Real anisotropic contact patches may need a full positive-definite metric with cross-channel coupling. The current methods only validate feasible inputs; selecting a maximum-dissipation solution requires the coupled effective metric and a separate solver.
 
 ## Research sequence
 
@@ -147,6 +169,7 @@ Frame transport is important for warm-started impulses. A canonical frame rebuil
 - Rotation covariance under random proper rotations, including normals near coordinate axes.
 - Unit scaling: converting length units scales angular impulse radii and angular contact coordinates consistently.
 - Delassus/effective metric symmetry and PSD within scale-relative roundoff.
+- Independent-channel and coupled-ellipsoid feasible sets are tested separately; no silent switch between them.
 - Tangential, rolling and torsional friction work separately non-positive for a maximum-dissipation law.
 - No friction impulse for an open/separating contact under the declared hard-contact model.
 - Increasing the contact-patch discretization must converge in net wrench and work, not merely look visually stable.
