@@ -1,0 +1,16 @@
+[package]
+name = "sim-rel-model-family-refiner"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Counterexample-guided append-only refinement of finite scientific model families"
+
+[workspace]
+
+[dependencies]
+sim-rel-joint-stochastic-oracle = { path = "../sim-rel-joint-stochastic-oracle" }
+sim-rel-model-family-auditor = { path = "../sim-rel-model-family-auditor" }
+
+[lib]
+path = "src/lib.rs"
