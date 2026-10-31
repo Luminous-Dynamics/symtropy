@@ -71,7 +71,7 @@ The `consent` module is a pure state machine for a match or service exchange:
 - pending proposals expire;
 - settlement is available only after both acceptances and is idempotent in the model.
 
-The module does **not** cryptographically authenticate an actor or verify a digest. It is unsafe to trust caller-supplied subject IDs or digest bytes. Holochain adapters must use the authenticated `action.author`, verify the referenced Need/Offer actors, and hash a canonical representation of all material terms. External settlement must be journaled and idempotent. Gratitude, ratings, reciprocity and public testimony are not part of consent.
+The module does **not** cryptographically authenticate an actor, verify a digest, or prove that agreement was free of duress. It is unsafe to trust caller-supplied subject IDs or digest bytes. Holochain adapters must use the authenticated `action.author`, verify the referenced Need/Offer actors, and hash a canonical representation of all material terms. A separate, private refusal/revocation and coercion-review path is required where dependency or power imbalance exists. External settlement must be journaled and idempotent. Gratitude, ratings, reciprocity and public testimony are not part of consent.
 
 ## Current claim ceiling
 
