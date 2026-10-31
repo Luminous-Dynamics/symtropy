@@ -571,15 +571,13 @@ impl BivectorInertia<3> {
             let edge_1 = relative_vertices[1] - relative_vertices[0];
             let edge_2 = relative_vertices[2] - relative_vertices[0];
             let edge_3 = relative_vertices[3] - relative_vertices[0];
-            let edge_scale = relative_vertices
-                .iter()
-                .enumerate()
-                .flat_map(|(index, vertex)| {
-                    relative_vertices[index + 1..]
-                        .iter()
-                        .map(move |other| (other - vertex).norm())
-                })
-                .fold(0.0_f64, f64::max);
+            let mut edge_scale = 0.0_f64;
+            for i in 0..4 {
+                for j in (i + 1)..4 {
+                    edge_scale =
+                        edge_scale.max((relative_vertices[j] - relative_vertices[i]).norm());
+                }
+            }
             if !edge_scale.is_finite() || edge_scale <= f64::MIN_POSITIVE {
                 return Err(RotationalInertiaError::DegenerateTetrahedron);
             }
