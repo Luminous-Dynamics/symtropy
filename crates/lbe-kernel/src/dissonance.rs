@@ -378,7 +378,9 @@ impl DissonanceRecord {
     /// Add a hazard report without making an automatic finding about intent.
     pub fn report_hazard(&mut self, report: HazardReport) -> Result<(), DissonanceError> {
         if report.id.trim().is_empty() || report.id.len() > 128
-            || report.evidence_ref.as_ref().is_some_and(|value| value.trim().is_empty() || value.len() > 512)
+            || report.evidence_ref.as_ref().is_some_and(|value| {
+                value.trim().is_empty() || value.len() > 512
+            })
         {
             return Err(DissonanceError::InvalidIdentifier);
         }
@@ -495,7 +497,10 @@ fn validate_disposition(
         DissonanceDisposition::Integrate { position_ids, rationale, review_at } => {
             future(*review_at)?;
             let ids: BTreeSet<&PositionId> = position_ids.iter().collect();
-            if ids.len() < 2 || ids.len() != position_ids.len() || ids.iter().any(|id| !has_position(id)) {
+            if ids.len() < 2
+                || ids.len() != position_ids.len()
+                || ids.iter().any(|id| !has_position(id))
+            {
                 return Err(DissonanceError::InvalidIntegration);
             }
             if ids.len() != positions.len()
@@ -508,27 +513,44 @@ fn validate_disposition(
             }
             Ok(())
         }
-        DissonanceDisposition::PrioritizeProvisionally { selected, retained, rationale, review_at, .. } => {
+        DissonanceDisposition::PrioritizeProvisionally {
+            selected,
+            retained,
+            rationale,
+            review_at,
+            ..
+        } => {
             future(*review_at)?;
             if !has_position(selected) || rationale.trim().is_empty() || rationale.len() > 8_192 {
                 return Err(DissonanceError::InvalidDisposition);
             }
             let retained_set: BTreeSet<&PositionId> = retained.iter().collect();
             if retained_set.len() != retained.len() || retained.iter().any(|id| id == selected)
-                || positions.keys().any(|id| id != selected && !retained.iter().any(|other| other == id))
+                || positions
+                    .keys()
+                    .any(|id| id != selected && !retained.iter().any(|other| other == id))
                 || retained.iter().any(|id| !has_position(id))
             {
                 return Err(DissonanceError::DissentNotPreserved);
             }
             Ok(())
         }
-        DissonanceDisposition::Sequence { first, second, retained, rationale, review_at, rollback_trigger } => {
+        DissonanceDisposition::Sequence {
+            first,
+            second,
+            retained,
+            rationale,
+            review_at,
+            rollback_trigger,
+        } => {
             future(*review_at)?;
             let retained_set: BTreeSet<&PositionId> = retained.iter().collect();
             if first == second || !has_position(first) || !has_position(second)
                 || retained_set.len() != retained.len()
                 || retained.iter().any(|id| !has_position(id) || id == first || id == second)
-                || positions.keys().any(|id| id != first && id != second && !retained.iter().any(|other| other == id))
+                || positions
+                    .keys()
+                    .any(|id| id != first && id != second && !retained.iter().any(|other| other == id))
                 || rationale.trim().is_empty() || rollback_trigger.trim().is_empty()
                 || rationale.len() > 8_192 || rollback_trigger.len() > 2_048
             {
@@ -536,7 +558,12 @@ fn validate_disposition(
             }
             Ok(())
         }
-        DissonanceDisposition::Experiment { position_ids, protocol_id, review_at, stop_condition } => {
+        DissonanceDisposition::Experiment {
+            position_ids,
+            protocol_id,
+            review_at,
+            stop_condition,
+        } => {
             future(*review_at)?;
             let ids: BTreeSet<&PositionId> = position_ids.iter().collect();
             if ids.len() < 2 || ids.len() != position_ids.len()
@@ -550,10 +577,15 @@ fn validate_disposition(
         }
         DissonanceDisposition::Contextualize { assignments, review_at } => {
             future(*review_at)?;
-            let ids: BTreeSet<&PositionId> = assignments.iter().map(|assignment| &assignment.position_id).collect();
+            let ids: BTreeSet<&PositionId> = assignments
+                .iter()
+                .map(|assignment| &assignment.position_id)
+                .collect();
             if ids.len() != assignments.len()
                 || ids.len() != positions.len()
-                || positions.keys().any(|id| !assignments.iter().any(|item| &item.position_id == id))
+                || positions
+                    .keys()
+                    .any(|id| !assignments.iter().any(|item| &item.position_id == id))
                 || assignments.iter().any(|item| {
                     !has_position(&item.position_id)
                         || item.context_rule.trim().is_empty()
@@ -564,7 +596,12 @@ fn validate_disposition(
             }
             Ok(())
         }
-        DissonanceDisposition::EvidenceResolution { supported, evidence_bundle, rationale, reviewed_at } => {
+        DissonanceDisposition::EvidenceResolution {
+            supported,
+            evidence_bundle,
+            rationale,
+            reviewed_at,
+        } => {
             if kind != DissonanceKind::EmpiricalDisagreement {
                 return Err(DissonanceError::NotEmpiricalDisagreement);
             }
@@ -641,7 +678,10 @@ mod tests {
             rationale: "A scoped joint design.".to_owned(),
             review_at: 100,
         };
-        assert_eq!(record.set_disposition(decision.clone(), 10), Err(DissonanceError::UnsafeProcess));
+        assert_eq!(
+            record.set_disposition(decision.clone(), 10),
+            Err(DissonanceError::UnsafeProcess)
+        );
         record.set_safeguards(safe_safeguards());
         assert_eq!(record.set_disposition(decision, 10), Ok(()));
         assert_eq!(record.status(), DissonanceStatus::Integrated);
@@ -673,7 +713,9 @@ mod tests {
             finding: HazardFinding::Reported,
             evidence_ref: None,
         }).unwrap();
-        record.update_hazard_finding("hazard-1", HazardFinding::Refuted, Some("review:1".to_owned())).unwrap();
+        record
+            .update_hazard_finding("hazard-1", HazardFinding::Refuted, Some("review:1".to_owned()))
+            .unwrap();
         assert_eq!(record.hazard_reports().count(), 1);
         assert!(record.assess().ready_for_consequential_action);
     }
@@ -732,17 +774,29 @@ mod tests {
         record.set_safeguards(safe_safeguards());
         let incomplete = DissonanceDisposition::Contextualize {
             assignments: vec![
-                ContextAssignment { position_id: PositionId::new("p1").unwrap(), context_rule: "context A".to_owned() },
-                ContextAssignment { position_id: PositionId::new("p2").unwrap(), context_rule: "context B".to_owned() },
+                ContextAssignment {
+                    position_id: PositionId::new("p1").unwrap(),
+                    context_rule: "context A".to_owned(),
+                },
+                ContextAssignment {
+                    position_id: PositionId::new("p2").unwrap(),
+                    context_rule: "context B".to_owned(),
+                },
             ],
             review_at: 100,
         };
-        assert_eq!(record.set_disposition(incomplete, 10), Err(DissonanceError::DissentNotPreserved));
+        assert_eq!(
+            record.set_disposition(incomplete, 10),
+            Err(DissonanceError::DissentNotPreserved)
+        );
         let complete = DissonanceDisposition::Contextualize {
             assignments: vec![
                 ContextAssignment { position_id: PositionId::new("p1").unwrap(), context_rule: "context A".to_owned() },
                 ContextAssignment { position_id: PositionId::new("p2").unwrap(), context_rule: "context B".to_owned() },
-                ContextAssignment { position_id: PositionId::new("p3").unwrap(), context_rule: "context C".to_owned() },
+                ContextAssignment {
+                    position_id: PositionId::new("p3").unwrap(),
+                    context_rule: "context C".to_owned(),
+                },
             ],
             review_at: 100,
         };
@@ -759,7 +813,10 @@ mod tests {
             rationale: "Evidence review.".to_owned(),
             reviewed_at: 10,
         };
-        assert_eq!(record.set_disposition(decision, 10), Err(DissonanceError::NotEmpiricalDisagreement));
+        assert_eq!(
+            record.set_disposition(decision, 10),
+            Err(DissonanceError::NotEmpiricalDisagreement)
+        );
     }
 
     #[test]
@@ -818,7 +875,10 @@ mod tests {
             reversible: true,
         }, 20).unwrap();
         assert_eq!(record.disposition_history().count(), 2);
-        assert!(matches!(record.disposition(), Some(DissonanceDisposition::PrioritizeProvisionally { .. })));
+        assert!(matches!(
+            record.disposition(),
+            Some(DissonanceDisposition::PrioritizeProvisionally { .. })
+        ));
     }
 
     #[test]
@@ -843,6 +903,9 @@ mod tests {
             finding: HazardFinding::Unresolved,
             evidence_ref: None,
         }).unwrap();
-        assert!(record.assess().corrosive_hazards.contains(&CorrosiveHazard::EssentialAccessConditioning));
+        assert!(record
+            .assess()
+            .corrosive_hazards
+            .contains(&CorrosiveHazard::EssentialAccessConditioning));
     }
 }
