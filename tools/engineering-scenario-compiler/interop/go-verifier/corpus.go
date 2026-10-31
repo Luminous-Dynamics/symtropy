@@ -56,7 +56,8 @@ type corpusResult struct {
 	ExpectedCanonicalSHA256 *string `json:"expected_canonical_sha256,omitempty"`
 	ActualCanonicalSHA256   *string `json:"actual_canonical_sha256,omitempty"`
 	CanonicalBytes          *int    `json:"canonical_bytes,omitempty"`
-	RejectionClass          *string `json:"rejection_class,omitempty"`
+	ExpectedRejectionClass  *string `json:"expected_rejection_class,omitempty"`
+	ActualRejectionStage    *string `json:"actual_rejection_stage,omitempty"`
 	Detail                  *string `json:"detail,omitempty"`
 }
 
@@ -301,12 +302,14 @@ func verifyGeneratedCorpus(root, resultPath, summaryPath string) (corpusSummary,
 		}
 		summary.RejectCasesCorrectlyDenied++
 		reason := rejection.Error()
+		rejectionStage := "strict_raw_json_preflight"
 		if err := writeCorpusResult(writer, corpusResult{
 			CaseID:                 testCase.CaseID,
 			ExpectedClassification: "reject",
 			ActualClassification:   "rejected_before_canonicalization",
 			InputSHA256:            testCase.InputSHA256,
-			RejectionClass:         &testCase.ExpectedRejectionClass,
+			ExpectedRejectionClass: &testCase.ExpectedRejectionClass,
+			ActualRejectionStage:   &rejectionStage,
 			Detail:                 &reason,
 		}); err != nil {
 			return summary, err
