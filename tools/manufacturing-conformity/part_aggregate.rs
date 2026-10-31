@@ -528,7 +528,7 @@ fn aggregate(request: &Request) -> Report {
             .any(|requirement| requirement.characteristic_id == receipt.characteristic_id))
         .map(|receipt| receipt.characteristic_id.clone())
         .collect();
-    let extra_ids = extra_ids;
+    let mut extra_ids = extra_ids;
     extra_ids.sort();
     extra_ids.dedup();
 
