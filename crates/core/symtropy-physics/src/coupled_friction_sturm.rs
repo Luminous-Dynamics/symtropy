@@ -200,6 +200,35 @@ fn cauchy_bound(poly: &[Rational]) -> Result<Rational, &'static str> {
     Ok(Rational::from_integer(BigInt::from(2)) + largest)
 }
 
+/// Move a known exact-root endpoint a rational distance into the
+/// adjacent root-free gap. The resulting endpoint is non-root, and the open
+/// interval between the old and new endpoints is proven to contain no root.
+fn move_endpoint_off_root(
+    poly: &[Rational],
+    chain: &[Polynomial],
+    endpoint: &Rational,
+    toward: &Rational,
+    endpoint_is_lower: bool,
+) -> Result<Rational, &'static str> {
+    for exponent in 1..=512_usize {
+        let denominator = Rational::from_integer(BigInt::one() << exponent);
+        let candidate =
+            endpoint.clone() + (toward.clone() - endpoint.clone()) / denominator;
+        if evaluate(poly, &candidate).is_zero() {
+            continue;
+        }
+        let empty_gap = if endpoint_is_lower {
+            count_open(chain, endpoint, &candidate)?
+        } else {
+            count_open(chain, &candidate, endpoint)?
+        };
+        if empty_gap == 0 {
+            return Ok(candidate);
+        }
+    }
+    Err("could not move a rational interval endpoint off an exact root")
+}
+
 fn isolate_recursive(
     poly: &[Rational],
     chain: &[Polynomial],
@@ -240,7 +269,23 @@ fn isolate_recursive(
     let width = upper.clone() - lower.clone();
     let target = relative_width.clone() * (Rational::one() + midpoint.abs());
     if count == 1 && width <= target {
-        intervals.push((lower, upper));
+        let isolated_lower = if evaluate(poly, &lower).is_zero() {
+            move_endpoint_off_root(poly, chain, &lower, &upper, true)?
+        } else {
+            lower
+        };
+        let isolated_upper = if evaluate(poly, &upper).is_zero() {
+            move_endpoint_off_root(poly, chain, &upper, &isolated_lower, false)?
+        } else {
+            upper
+        };
+        if evaluate(poly, &isolated_lower).is_zero()
+            || evaluate(poly, &isolated_upper).is_zero()
+            || count_open(chain, &isolated_lower, &isolated_upper)? != 1
+        {
+            return Err("isolating interval endpoint/count certificate failed");
+        }
+        intervals.push((isolated_lower, isolated_upper));
         return Ok(());
     }
 
