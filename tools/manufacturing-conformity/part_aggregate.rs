@@ -988,6 +988,25 @@ mod tests {
     }
 
     #[test]
+    fn csv_header_and_every_requirement_or_source_receipt_row_have_same_width() {
+        let old = receipt("diameter", "R-OLD", ScalarOutcome::Indeterminate);
+        let mut current = receipt("diameter", "R-CURRENT", ScalarOutcome::Accept);
+        current.supersedes_receipt_id = Some("R-OLD".into());
+        current.issued_at_ns += 1;
+        let extra = receipt("unlisted", "R-EXTRA", ScalarOutcome::Accept);
+        let r = request(
+            vec![req("diameter", true, Some("R-CURRENT"))],
+            vec![old, current, extra],
+        );
+        let report = aggregate(&r);
+        let expected_columns = csv_header().split(',').count();
+        assert_eq!(expected_columns, 43);
+        for row in csv_rows(&report) {
+            assert_eq!(row.split(',').count(), expected_columns);
+        }
+    }
+
+    #[test]
     fn frozen_verification_campaign_passes() {
         verify().unwrap();
     }
