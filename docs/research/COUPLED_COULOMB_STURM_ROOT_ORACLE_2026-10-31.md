@@ -34,15 +34,16 @@ The verifier is test-only. num-bigint, num-rational and num-traits are developme
 
 ## Changes to production ambiguity handling
 
-The production enumerator no longer turns a small nonzero stationary value into an approximate repeated root. If the value falls inside the configured ambiguity envelope, root enumeration returns an error and the coupled contact result must remain Inconclusive.
+The production enumerator no longer turns a small stationary value into an approximate repeated root. If a stationary evaluation falls inside the configured ambiguity envelope—including an f64 evaluation that rounds to exactly zero—root enumeration returns an error. A bisection midpoint that evaluates to zero is also unresolved because a rounded floating zero is not an exact rational sign certificate. Close numerical candidates are never merged silently.
 
-Exactly zero stationary values can still be retained as repeated roots. Ordinary simple roots remain isolated by sign-changing monotone intervals. This is a deliberate trade-off: a small fraction of numerically ambiguous contacts should be refused rather than silently assigned the wrong multiplicity.
+Ordinary simple roots remain isolated by sign-changing monotone intervals. Repeated-root cases are therefore handled by the exact test oracle, while the production candidate generator refuses to assert their multiplicity without a separate exact count. This is a deliberate trade-off: a small fraction of numerically ambiguous contacts should be refused rather than silently assigned the wrong multiplicity.
 
 ## Frozen tests
 
 - Four distinct simple roots at known integer locations.
 - Repeated factors; Sturm count is the number of **distinct** real roots, not algebraic multiplicity.
-- A close pair of distinct dyadic roots; exact Sturm resolves four roots while the production floating solver must refuse the ambiguous stationary point.
+- A repeated root and a double root exactly at the initial rational bisection midpoint; exact Sturm resolves the distinct roots while production refuses to guess multiplicity.
+- A close pair of distinct dyadic roots; exact Sturm resolves four roots while production refuses the ambiguous stationary point.
 - A polynomial with no real roots.
 - A degree-reduced polynomial (zero leading coefficient).
 - A deterministic 128-case panel of SPD 3x3 contact matrices; each generated sliding quartic is checked by both algorithms. At least 120 cases must be resolved by the production method; unresolved cases are separately counted rather than treated as successes.
