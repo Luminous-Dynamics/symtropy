@@ -841,10 +841,11 @@ mod tests {
     }
 
     #[test]
-    fn epa_penetration_depth_is_invariant_under_length_unit_scaling_2d_and_3d() {
+    fn epa_penetration_depth_is_invariant_under_length_unit_scaling_2d_3d_and_4d() {
         for scale in [1e-12, 1e-8, 1e-4, 1.0, 1e4, 1e8, 1e12] {
             assert_sphere_penetration_scale_invariant::<2>(scale);
             assert_sphere_penetration_scale_invariant::<3>(scale);
+            assert_sphere_penetration_scale_invariant::<4>(scale);
         }
     }
 
