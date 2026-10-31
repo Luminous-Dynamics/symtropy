@@ -13,12 +13,8 @@ use nalgebra::SVector;
 use std::sync::atomic::{AtomicU64, Ordering};
 use symtropy_math::{Bivector, Point, Rotor};
 
-/// Count of NaN/Inf values silently zeroed during integration.
-///
-/// Incremented in both debug and release builds whenever a non-finite
-/// velocity or position is detected and zeroed. Monitor this counter to
-/// detect silent data corruption — a non-zero value always indicates a
-/// physics or force accumulator bug upstream.
+/// Legacy counter for historical NaN/Inf zeroing events. The strict integrator
+/// now rejects non-finite inputs/candidates instead of silently zeroing them.
 pub static NAN_ZEROED_COUNT: AtomicU64 = AtomicU64::new(0);
 /// Count of failures applying validated bivector rotational inertia.
 pub static ROTATIONAL_INERTIA_FAILURE_COUNT: AtomicU64 = AtomicU64::new(0);
@@ -861,7 +857,10 @@ mod tests {
         let torque_before = body.torque_accumulator.clone();
 
         let error = try_integrate(&mut body, &SVector::new(0.0, -9.81, 0.0), 0.01).unwrap_err();
-        assert_eq!(error, RotationalInertiaError::SingularInertia);
+        assert_eq!(
+            error,
+            IntegrationError::RotationalInertia(RotationalInertiaError::SingularInertia)
+        );
         assert_eq!(body.transform.translation.0, position_before);
         assert_eq!(body.linear_velocity, linear_before);
         assert_eq!(body.angular_velocity, angular_before);
@@ -942,7 +941,7 @@ mod tests {
 
         assert_eq!(
             try_integrate(&mut body, &SVector::zeros(), 0.01),
-            Err(RotationalInertiaError::MassMismatch)
+            Err(IntegrationError::RotationalInertia(RotationalInertiaError::MassMismatch))
         );
         assert_eq!(body.transform.translation.0, position_before);
         assert_eq!(
@@ -968,6 +967,93 @@ mod tests {
             ),
             Err(RotationalInertiaError::MassMismatch)
         );
+    }
+
+    #[test]
+    fn strict_integrator_rejects_invalid_dt_without_mutating_body() {
+        for dt in [0.0, -0.01, f64::INFINITY, f64::NAN] {
+            let mut body =
+                RigidBody::<3>::dynamic_sphere(BodyHandle(30), Point::new([1.0, 2.0, 3.0]), 0.5, 1.0);
+            body.linear_velocity = SVector::new(0.25, -0.5, 0.75);
+            body.apply_force(SVector::new(1.0, 2.0, 3.0));
+            let position = body.transform.translation.0;
+            let rotation = body.transform.rotation.clone();
+            let velocity = body.linear_velocity;
+            let force = body.force_accumulator;
+
+            assert_eq!(
+                try_integrate(&mut body, &SVector::zeros(), dt),
+                Err(IntegrationError::InvalidTimeStep)
+            );
+            assert_eq!(body.transform.translation.0, position);
+            assert_eq!(body.transform.rotation.to_matrix(), rotation.to_matrix());
+            assert_eq!(body.linear_velocity, velocity);
+            assert_eq!(body.force_accumulator, force);
+        }
+    }
+
+    #[test]
+    fn strict_integrator_rejects_non_finite_inputs_without_zeroing_accumulators() {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(31), Point::origin(), 0.5, 1.0);
+        body.force_accumulator = SVector::new(f64::NAN, 1.0, 0.0);
+        body.torque_accumulator = Bivector::<3>::unit_plane(0, 1).scale(f64::INFINITY);
+        let force_before = body.force_accumulator;
+        let torque_before = body.torque_accumulator.clone();
+        let position_before = body.transform.translation.0;
+        let linear_before = body.linear_velocity;
+        let angular_before = body.angular_velocity.clone();
+
+        assert_eq!(
+            try_integrate(&mut body, &SVector::zeros(), 0.01),
+            Err(IntegrationError::NonFiniteInput)
+        );
+        assert!(body.force_accumulator[0].is_nan());
+        assert!(body.torque_accumulator.is_finite() == torque_before.is_finite());
+        assert_eq!(body.force_accumulator[1], force_before[1]);
+        assert_eq!(body.force_accumulator[2], force_before[2]);
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, linear_before);
+        assert_eq!(body.angular_velocity, angular_before);
+        assert_eq!(body.torque_accumulator, torque_before);
+    }
+
+    #[test]
+    fn strict_integrator_rejects_non_finite_candidate_without_partial_commit() {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(32), Point::origin(), 0.5, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = SVector::new(f64::MAX / 2.0, 0.0, 0.0);
+        body.apply_force(SVector::new(1.0, 0.0, 0.0));
+        let position_before = body.transform.translation.0;
+        let rotation_before = body.transform.rotation.clone();
+        let velocity_before = body.linear_velocity;
+        let force_before = body.force_accumulator;
+
+        assert_eq!(
+            try_integrate(&mut body, &SVector::zeros(), 4.0),
+            Err(IntegrationError::NonFiniteState)
+        );
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(
+            body.transform.rotation.to_matrix(),
+            rotation_before.to_matrix()
+        );
+        assert_eq!(body.linear_velocity, velocity_before);
+        assert_eq!(body.force_accumulator, force_before);
+    }
+
+    #[test]
+    fn strict_integrator_rejects_non_finite_gravity_before_mutation() {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(33), Point::origin(), 0.5, 1.0);
+        let initial_velocity = body.linear_velocity;
+        assert_eq!(
+            try_integrate(&mut body, &SVector::new(0.0, f64::NAN, 0.0), 0.01),
+            Err(IntegrationError::NonFiniteInput)
+        );
+        assert_eq!(body.linear_velocity, initial_velocity);
     }
 
     fn dimensional_similarity_state(
