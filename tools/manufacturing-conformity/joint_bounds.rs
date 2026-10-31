@@ -416,11 +416,10 @@ fn classify(request: &Request) -> Report {
         return invalid(request, reason);
     }
     if let Err(reason) = validate_manifest_and_marginals(request) {
-        if matches!(reason,
-            "REQUIRED_CHARACTERISTIC_SET_INCOMPLETE_OR_EXTRANEOUS"
-            | "REQUIRED_CHARACTERISTIC_SET_MISMATCH"
-            | "POSTERIOR_NOT_VALID_AT_DECISION_TIME"
-        ) {
+        if reason.contains("EVIDENCE") || reason.contains("QUALIFIED")
+            || reason == "POSTERIOR_NOT_VALID_AT_DECISION_TIME"
+            || reason == "REQUIRED_CHARACTERISTIC_SET_INCOMPLETE_OR_EXTRANEOUS"
+            || reason == "REQUIRED_CHARACTERISTIC_SET_MISMATCH" {
             return evidence_incomplete(request, reason);
         }
         return invalid(request, reason);
@@ -543,7 +542,7 @@ fn fixture_marginal(id: &str, lower: f64, upper: f64) -> Marginal {
     }
 }
 
-fn request(marginals: Vec<Marginal>, required: Vec<&str>) -> Request {
+fn request_owned(marginals: Vec<Marginal>, required: Vec<String>) -> Request {
     Request {
         manifest: Manifest {
             id: "MANIFEST-PART-1".into(),
@@ -554,7 +553,7 @@ fn request(marginals: Vec<Marginal>, required: Vec<&str>) -> Request {
             product_family: "SHAFT-ASSEMBLY".into(),
             decision_context_id: "COU-SHAFT-RELEASE".into(),
             decision_time_ns: 5_000,
-            required_characteristics: required.into_iter().map(str::to_string).collect(),
+            required_characteristics: required,
             manifest_sha256: "2".repeat(HASH_LEN),
         },
         marginals,
@@ -574,6 +573,10 @@ fn request(marginals: Vec<Marginal>, required: Vec<&str>) -> Request {
     }
 }
 
+fn request(marginals: Vec<Marginal>, required: Vec<&str>) -> Request {
+    request_owned(marginals, required.into_iter().map(str::to_string).collect())
+}
+
 fn emit_csv() -> Result<(), String> {
     println!("{}", report_csv_header());
     let scenarios = vec![
@@ -581,10 +584,12 @@ fn emit_csv() -> Result<(), String> {
             fixture_marginal("diameter", 0.90, 0.90),
             fixture_marginal("runout", 0.90, 0.90),
         ], vec!["diameter", "runout"])),
-        ("five_equal_090", request((0..5).map(|i| fixture_marginal(&format!("char-{i}"), 0.90, 0.90)).collect(),
-            (0..5).map(|i| format!("char-{i}").leak()).collect())),
-        ("twenty_equal_099", request((0..20).map(|i| fixture_marginal(&format!("char-{i}"), 0.99, 0.99)).collect(),
-            (0..20).map(|i| format!("char-{i}").leak()).collect())),
+        ("five_equal_090", request_owned(
+            (0..5).map(|i| fixture_marginal(&format!("char-{i}"), 0.90, 0.90)).collect(),
+            (0..5).map(|i| format!("char-{i}")).collect())),
+        ("twenty_equal_099", request_owned(
+            (0..20).map(|i| fixture_marginal(&format!("char-{i}"), 0.99, 0.99)).collect(),
+            (0..20).map(|i| format!("char-{i}")).collect())),
     ];
     for (_, req) in scenarios {
         let report = classify(&req);
@@ -635,6 +640,7 @@ fn verify() -> Result<(), String> {
         return Err("TWENTY_CHARACTERISTIC_KNOWN_ANSWER_FAILED".into());
     }
 
+    let base_five_bounds = frechet_bounds(&[(0.90, 0.90); 5]).unwrap();
     // An unknown characteristic must not be silently dropped.
     let mut with_unknown = five.clone();
     with_unknown.manifest.required_characteristics.push("unknown".into());
@@ -657,8 +663,8 @@ fn verify() -> Result<(), String> {
     }
 
     // Adding a required marginal cannot increase either Frechet bound.
-    let base_lower = r.joint_lower.unwrap();
-    let base_upper = r.joint_upper.unwrap();
+    let base_lower = base_five_bounds.0;
+    let base_upper = base_five_bounds.1;
     let more = classify(&add_certain);
     if more.joint_lower.unwrap() > base_lower + FLOAT_TOLERANCE
         || more.joint_upper.unwrap() > base_upper + FLOAT_TOLERANCE {
@@ -699,57 +705,72 @@ fn main() {
 mod tests {
     use super::*;
 
-    fn exact_joint_extremes(marginals: &[f64]) -> (f64, f64) {
+    fn extremal_atom_masses(marginals: &[f64], lower_bound: bool) -> Vec<f64> {
         let n = marginals.len();
-        let lower_failures: Vec<f64> = marginals.iter().map(|p| 1.0 - p).collect();
-        let upper_bound = marginals.iter().copied().fold(1.0_f64, f64::min);
-
-        // Construct a lower-bound attaining joint distribution by placing
-        // failure events consecutively on the unit circle. The success
-        // intersection is the uncovered arc of length max(0, sum(p)-(n-1)).
+        assert!((2..=8).contains(&n));
         let mut cuts = vec![0.0, 1.0];
-        let mut offset = 0.0;
-        for failure in &lower_failures {
-            let start = offset.rem_euclid(1.0);
-            let end = (offset + failure).rem_euclid(1.0);
-            cuts.push(start);
-            cuts.push(end);
-            if failure > 0.0 && start > end {
-                cuts.push(1.0);
-                cuts.push(0.0);
+        if lower_bound {
+            let mut offset = 0.0_f64;
+            for probability in marginals {
+                let failure = 1.0 - probability;
+                cuts.push(offset.rem_euclid(1.0));
+                cuts.push((offset + failure).rem_euclid(1.0));
+                offset += failure;
             }
-            offset += failure;
+        } else {
+            cuts.extend(marginals.iter().copied());
         }
         cuts.sort_by(f64::total_cmp);
         cuts.dedup_by(|a, b| (*a - *b).abs() <= 8.0 * f64::EPSILON);
-        let mut lower_intersection = 0.0;
-        for pair in cuts.windows(2) {
-            let midpoint = 0.5 * (pair[0] + pair[1]);
-            let all_success = lower_failures.iter().scan(0.0, |offset, failure| {
-                let start = (*offset).rem_euclid(1.0);
-                let raw_end = *offset + *failure;
-                let end = raw_end.rem_euclid(1.0);
-                let in_failure = if *failure >= 1.0 {
-                    true
-                } else if start <= end {
-                    midpoint >= start && midpoint < end
-                } else {
-                    midpoint >= start || midpoint < end
-                };
-                *offset += *failure;
-                Some(!in_failure)
-            }).all(|success| success);
-            if all_success {
-                lower_intersection += pair[1] - pair[0];
-            }
-        }
 
-        // Nested success events A_i=[0,p_i] attain the upper bound.
-        let mut upper_intersection = 1.0;
-        for p in marginals {
-            upper_intersection = upper_intersection.min(*p);
+        let mut atoms = vec![0.0; 1_usize << n];
+        for pair in cuts.windows(2) {
+            let left = pair[0];
+            let right = pair[1];
+            if right <= left { continue; }
+            let midpoint = 0.5 * (left + right);
+            let mut mask = 0_usize;
+            if lower_bound {
+                let mut offset = 0.0_f64;
+                for (i, probability) in marginals.iter().enumerate() {
+                    let failure = 1.0 - probability;
+                    let start = offset.rem_euclid(1.0);
+                    let end = (offset + failure).rem_euclid(1.0);
+                    let in_failure = if failure >= 1.0 {
+                        true
+                    } else if failure <= 0.0 {
+                        false
+                    } else if start < end {
+                        midpoint >= start && midpoint < end
+                    } else {
+                        midpoint >= start || midpoint < end
+                    };
+                    if !in_failure { mask |= 1_usize << i; }
+                    offset += failure;
+                }
+            } else {
+                for (i, probability) in marginals.iter().enumerate() {
+                    if midpoint < *probability { mask |= 1_usize << i; }
+                }
+            }
+            atoms[mask] += right - left;
         }
-        (lower_intersection, upper_intersection)
+        atoms
+    }
+
+    fn verify_atom_distribution(atoms: &[f64], marginals: &[f64], expected_joint: f64) {
+        let n = marginals.len();
+        assert_eq!(atoms.len(), 1_usize << n);
+        assert!((atoms.iter().sum::<f64>() - 1.0).abs() < 2.0e-12);
+        for (i, expected) in marginals.iter().enumerate() {
+            let observed = atoms.iter().enumerate()
+                .filter(|(mask, _)| (mask & (1_usize << i)) != 0)
+                .map(|(_, mass)| *mass)
+                .sum::<f64>();
+            assert!((observed - expected).abs() < 2.0e-12);
+        }
+        let all_success_atom = atoms[(1_usize << n) - 1];
+        assert!((all_success_atom - expected_joint).abs() < 2.0e-12);
     }
 
     #[test]
@@ -870,7 +891,7 @@ mod tests {
     }
 
     #[test]
-    fn exact_binary_atom_constructions_attain_frechet_bounds() {
+    fn exhaustive_binary_event_atoms_attain_frechet_bounds() {
         for p in [
             vec![0.9, 0.9],
             vec![0.2, 0.7, 0.95],
@@ -879,10 +900,10 @@ mod tests {
         ] {
             let expected_lower = (p.iter().sum::<f64>() - (p.len() as f64 - 1.0)).max(0.0);
             let expected_upper = p.iter().copied().fold(1.0_f64, f64::min);
-            let attained = exact_joint_extremes(&p);
-            assert!((attained.0 - expected_lower).abs() < 2.0e-12,
-                "lower n={} got {} expected {}", p.len(), attained.0, expected_lower);
-            assert!((attained.1 - expected_upper).abs() < 2.0e-12);
+            let lower_atoms = extremal_atom_masses(&p, true);
+            let upper_atoms = extremal_atom_masses(&p, false);
+            verify_atom_distribution(&lower_atoms, &p, expected_lower);
+            verify_atom_distribution(&upper_atoms, &p, expected_upper);
         }
     }
 
