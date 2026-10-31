@@ -10,6 +10,23 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "--corpus" {
+		if len(os.Args) != 5 {
+			fmt.Fprintln(os.Stderr, "usage: jcs-verifier --corpus <corpus-root> <results.jsonl> <summary.json>")
+			os.Exit(64)
+		}
+		summary, err := verifyGeneratedCorpus(os.Args[2], os.Args[3], os.Args[4])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "generated JCS corpus verification failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("valid_case_count=%d\n", summary.ValidCaseCount)
+		fmt.Printf("reject_case_count=%d\n", summary.RejectCaseCount)
+		fmt.Printf("valid_canonical_matches=%d\n", summary.ValidCanonicalMatches)
+		fmt.Printf("reject_cases_correctly_denied=%d\n", summary.RejectCasesCorrectlyDenied)
+		fmt.Printf("failure_count=%d\n", summary.FailureCount)
+		return
+	}
 	if len(os.Args) != 3 {
 		fmt.Fprintln(os.Stderr, "usage: jcs-verifier <input.json> <expected.jcs>")
 		os.Exit(64)
