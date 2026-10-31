@@ -56,3 +56,22 @@ The robust optimizer performs finite-horizon dynamic programming over a vector o
 The optimizer preserves per-world objective vectors during Pareto pruning. This is required because observation probabilities differ across worlds: pruning only by current worst-case aggregates inside a subtree can discard a globally optimal shared policy. At the root, callers can minimize worst-case expected cost or nominal expected cost subject to worst-case hazard, false-identification and abstention budgets.
 
 The implementation is bounded and exact for the supplied finite model family, prior beliefs, action costs, horizon, and policy class. It is not evidence that the real process belongs to that family.
+
+
+## Reproducible baseline benchmark runner (SIM-REL-017)
+
+The benchmark module constructs four concrete baseline families from a nominal joint kernel: fixed action order, seeded random order, static one-step EIG ranking, and receding-horizon greedy one-step EIG. It then replays every unchanged policy across all supplied model worlds and reports exact per-world/worst-case cost, hazard, false identification, abstention and correct identification.
+
+The same explicit risk/false-claim/abstention budgets are applied to each baseline and to the exact robust shared-policy optimizer. Where a baseline is feasible and an exact robust optimum exists, the harness reports exact additional worst-case cost (regret). It records the random seed and horizon. The EIG score itself is floating point, while all replay outcomes and costs remain exact rational values.
+
+The calibration-confounding fixture is a deliberate myopia trap: greedy one-step EIG follows the default first-action tie-break and repeatedly measures an uninformative combined signal, while the exact lookahead optimizer discovers the calibration-then-measure sequence. This isolates a real algorithmic distinction from broad claims about model quality or physical validity.
+
+
+### Benchmark receipts and provenance
+
+The benchmark runner records the exact hazard, false-identification and abstention budgets used, the seed and horizon, an optional caller-supplied 40- or 64-character Git source revision, and a canonical model-family fingerprint. The fingerprint is FNV-1a 64-bit, invariant to model-world order and outcome-row order, and sensitive to kernel changes. It is a reproducibility fingerprint only, not a cryptographic integrity or provenance proof; retain the Git commit and a separately signed or cryptographically hashed evidence receipt for assurance-sensitive use.
+
+
+## Generated stateful-confounding challenge families (SIM-REL-017)
+
+The challenge module generates a six-world finite family from an explicit seed and declared rational observation-noise rate: nominal, sensor drift, physical carryover, instrument reversal, shifted hazard, and damaging calibration. Every member shares the same hypothesis/action/observation vocabulary, state dimensions, initial prior, and action costs. Each generated kernel is complete and probability-normalized exactly before it is returned. These deterministic seeds are development fixtures, not a substitute for sealed holdout seeds managed outside the public source tree.
