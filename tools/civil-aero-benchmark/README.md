@@ -310,3 +310,7 @@ The synthetic demo compares uncertainty ranked by actual error against deliberat
 
  
 The selective risk/coverage curve now includes Wilson 95% intervals for false-feasible rates at each threshold, both across all accepted candidates and conditional on predicted-feasible candidates. This prevents tiny accepted sets with zero observed false-feasible outcomes from appearing certain.
+
+## Validation uncertainty budget
+
+The validation_uncertainty module binds a comparison to the finest-grid result of a numerically admitted CFD study. It converts GCI using an explicit coverage model, adds iterative and round-off numerical uncertainties conservatively, propagates correlated input sensitivities with a positive-semidefinite correlation matrix, and combines input and experiment terms only when their correlation is supplied. When correlation is absent the combined uncertainty and discrepancy interval remain absent, not zero. The combined output is a conservative linear envelope and explicitly makes no joint-coverage claim. The synthetic CLI and independent Python oracle verify the full calculation; they are not validation results. See VALIDATION_UNCERTAINTY_PROTOCOL_V0_1.md.
