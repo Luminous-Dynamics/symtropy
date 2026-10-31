@@ -21,7 +21,7 @@ The PDF's Eq. 3 mean percentage-difference metric belongs to AMB2025-06-PST. It 
 
 ## Input evidence
 
-Each collection binds source dataset DOI/version, whole-source SHA-256, thermography conversion receipt, emissivity metadata, canonical temperature/time units, algorithm version, uniform grid and per-pixel source digests. Every profile uses one collection-wide strictly increasing time axis. Missing frames invalidate that pixel's extraction rather than causing interpolation across gaps.
+Each collection binds source dataset DOI/version, whole-source SHA-256, separate grid and time-axis SHA-256 digests, thermography conversion receipt, emissivity metadata, canonical temperature/time units, algorithm version, uniform grid and per-pixel source digests. The CSV echoes these fields, grid geometry and time-axis extent so the output remains attached to the exact extraction context. Every profile uses one collection-wide strictly increasing time axis. Missing frames invalidate that pixel's extraction rather than causing interpolation across gaps.
 
 The scorer does not parse raw camera video, convert radiance to temperature, authenticate signatures, validate the CMM/thermal measurement system, or establish the validity of the physical model.
 
