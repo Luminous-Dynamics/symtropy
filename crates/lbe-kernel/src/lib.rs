@@ -23,8 +23,8 @@ pub mod needs;
 pub use consent::{BilateralConsent, ConsentError, ConsentStatus, ProposalDigest};
 pub use dissonance::{
     ContextAssignment, CorrosiveHazard, DissonanceAssessment, DissonanceDisposition,
-    DissonanceError,
-    DissonanceKind, DissonanceRecord, DissonanceStatus, HazardFinding, HazardReport,
+    DissonanceError, DissonanceEvent, DissonanceEventKind,
+    DissonanceKind, DissonanceRecord, DissonanceStatus, EventContext, HazardFinding, HazardReport,
     Position, PositionId, ProcessSafeguards,
 };
 pub use ledger::{
