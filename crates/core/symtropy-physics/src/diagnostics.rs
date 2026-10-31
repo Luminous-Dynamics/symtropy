@@ -465,6 +465,8 @@ mod tests {
         assert!((ledger.gravitational_potential_energy_change_joules + 0.00962361).abs() < 1e-12);
         assert!((ledger.measured_mechanical_energy_change_joules + 0.004611805).abs() < 1e-12);
         assert!(ledger.unattributed_energy_change_joules.abs() < 1e-12);
+        assert!(ledger.closes_within(1e-12));
+        assert_eq!(ledger.unmodeled_energy_channels.len(), 7);
     }
 
     #[test]
@@ -494,6 +496,7 @@ mod tests {
         );
         assert!((ledger.measured_mechanical_energy_change_joules - expected_mechanical_delta).abs() < 1e-12);
         assert!(ledger.unattributed_energy_change_joules.abs() < 1e-12);
+        assert!(ledger.closes_within(1e-12));
     }
 
     #[test]
@@ -535,5 +538,27 @@ mod tests {
         );
         assert!(ledger.unattributed_energy_change_joules.is_finite());
     }
+
+    #[test]
+    fn work_ledger_relative_residual_is_invariant_to_energy_units() {
+        let si = DiscreteWorkLedger {
+            external_force_work_joules: 2.0,
+            measured_mechanical_energy_change_joules: 2.1,
+            unattributed_energy_change_joules: 0.1,
+            ..DiscreteWorkLedger::default()
+        };
+        let converted = DiscreteWorkLedger {
+            external_force_work_joules: 2.0e7,
+            measured_mechanical_energy_change_joules: 2.1e7,
+            unattributed_energy_change_joules: 1.0e6,
+            ..DiscreteWorkLedger::default()
+        };
+        assert!(
+            (si.relative_unattributed_residual() - converted.relative_unattributed_residual())
+                .abs()
+                < 1e-15
+        );
+    }
+
 
 }
