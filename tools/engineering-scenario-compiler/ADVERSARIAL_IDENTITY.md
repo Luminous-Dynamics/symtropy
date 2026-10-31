@@ -77,11 +77,14 @@ Do not claim superiority over general-purpose JSON Schema or CUE validators unti
 The follow-on branch adds a language-neutral adversarial input/output pair shared
 by the Rust `serde_jcs` unit test and the independent Go canonicalizer test.
 It checks UTF-16 property ordering where a supplementary-plane key sorts
-before a BMP private-use key, composed versus decomposed Unicode preservation,
-negative-zero normalization, minimum positive subnormal, maximum finite
-binary64, and the fixed-decimal/exponent formatting boundary. Both
-implementations must reproduce the same committed canonical bytes. This is a
-single frozen vector, not yet the full generated edge corpus.
+before a BMP private-use key, composed versus decomposed Unicode preservation
+in both values and property names, negative-zero normalization, minimum
+positive subnormal, maximum finite binary64, and the fixed-decimal/exponent
+formatting boundary. Both implementations must reproduce the same committed
+canonical bytes. The Go rejection panel additionally checks duplicate keys
+nested inside arrays and duplicate property names expressed as literal and
+escaped-equivalent Unicode. This remains a small frozen vector plus negative
+panel, not yet the full generated edge corpus.
 
 ## 8. Acceptance and claim ceiling
 
