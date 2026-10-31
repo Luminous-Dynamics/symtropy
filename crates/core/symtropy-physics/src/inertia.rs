@@ -35,6 +35,8 @@ pub enum RotationalInertiaError {
     InvalidMassProperties,
     /// The body mass disagrees with the mass used to construct the inertia.
     MassMismatch,
+    /// A mass-property operator has no retained total-mass metadata.
+    UnknownTotalMass,
     /// A requested inverse is undefined because at least one rotation plane has zero inertia.
     SingularInertia,
     /// An inverse-operation tolerance is non-finite or non-positive.
@@ -137,6 +139,16 @@ impl<const D: usize> BivectorInertia<D> {
         let mut inertia = Self::from_second_moment(second_moment)?;
         inertia.total_mass = Some(total_mass);
         Ok(inertia)
+    }
+
+    /// Mean moment of inertia across all independent rotation planes.
+    ///
+    /// For eigenvalues lambda_i of the centered second-moment matrix, each
+    /// plane (i,j) has inertia lambda_i + lambda_j. Their mean is
+    /// 2*trace(S)/D. This is an isotropic compatibility approximation; the
+    /// full bivector operator remains authoritative for asymmetric bodies.
+    pub fn mean_plane_inertia(&self) -> f64 {
+        2.0 * self.second_moment.trace() / D as f64
     }
 
     /// Return the constructor's total-mass metadata, if known.
