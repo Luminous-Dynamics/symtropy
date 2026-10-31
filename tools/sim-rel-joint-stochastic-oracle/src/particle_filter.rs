@@ -54,6 +54,8 @@ pub struct ParticleFilterDiagnostics {
     pub support_loss_fraction: f64,
     pub degenerate: bool,
     pub terminal_hazard: bool,
+    pub observation_step: u64,
+    pub cumulative_log_evidence_estimate: f64,
     pub resampled: bool,
 }
 
@@ -202,6 +204,8 @@ pub struct JointStateParticleFilter<'kernel> {
     rng_state: u64,
     diagnostics: Option<ParticleFilterDiagnostics>,
     terminated_by_hazard: bool,
+    observation_steps: u64,
+    cumulative_log_evidence_estimate: f64,
 }
 
 impl<'kernel> JointStateParticleFilter<'kernel> {
@@ -245,6 +249,8 @@ impl<'kernel> JointStateParticleFilter<'kernel> {
             rng_state: rng.state,
             diagnostics: None,
             terminated_by_hazard: false,
+            observation_steps: 0,
+            cumulative_log_evidence_estimate: 0.0,
         })
     }
 
@@ -259,6 +265,16 @@ impl<'kernel> JointStateParticleFilter<'kernel> {
     /// Whether a hazard observation has terminally ended this campaign.
     pub const fn is_terminated(&self) -> bool {
         self.terminated_by_hazard
+    }
+
+    /// Number of successfully incorporated public observations.
+    pub const fn observation_steps(&self) -> u64 {
+        self.observation_steps
+    }
+
+    /// Sum of log one-step predictive probability estimates across the campaign.
+    pub const fn cumulative_log_evidence_estimate(&self) -> f64 {
+        self.cumulative_log_evidence_estimate
     }
 
     /// Approximate posterior over unique joint hidden tuples.
@@ -385,6 +401,15 @@ impl<'kernel> JointStateParticleFilter<'kernel> {
             (updated, ess_before, false)
         };
 
+        let observation_step = self.observation_steps
+            .checked_add(1)
+            .ok_or_else(|| "particle-filter observation counter overflow".to_string())?;
+        let cumulative_log_evidence_estimate = self.cumulative_log_evidence_estimate
+            + predictive_probability.ln();
+        if !cumulative_log_evidence_estimate.is_finite() {
+            return Err("cumulative particle-filter log evidence became non-finite".into());
+        }
+
         let diagnostics = ParticleFilterDiagnostics {
             predictive_probability_estimate: predictive_probability,
             log_predictive_probability_estimate: predictive_probability.ln(),
@@ -397,6 +422,8 @@ impl<'kernel> JointStateParticleFilter<'kernel> {
                 / self.particles.len() as f64,
             degenerate: ess_before <= 1.0 + 1e-9,
             terminal_hazard: observation.is_none(),
+            observation_step,
+            cumulative_log_evidence_estimate,
             resampled,
         };
 
@@ -404,6 +431,8 @@ impl<'kernel> JointStateParticleFilter<'kernel> {
         self.rng_state = next_rng.state;
         self.diagnostics = Some(diagnostics);
         self.terminated_by_hazard = observation.is_none();
+        self.observation_steps = observation_step;
+        self.cumulative_log_evidence_estimate = cumulative_log_evidence_estimate;
         Ok(diagnostics)
     }
 
@@ -1097,6 +1126,31 @@ mod tests {
         let error = filter.observe(0, Some(1)).unwrap_err();
         assert!(error.contains("particle-support failure"));
         assert_eq!(filter, before);
+    }
+
+    #[test]
+    fn sequential_filter_updates_accumulate_predictive_log_evidence() {
+        let kernel = noisy_kernel();
+        let mut filter = JointStateParticleFilter::from_joint_belief(
+            &kernel,
+            &kernel.initial_belief,
+            ParticleFilterConfig {
+                particle_count: 8192,
+                resample_ess_fraction: 0.1,
+                seed: 17,
+            },
+        ).unwrap();
+
+        let first = filter.observe(0, Some(0)).unwrap();
+        assert_eq!(first.observation_step, 1);
+        assert!((first.predictive_probability_estimate - 0.5).abs() < 1e-12);
+        let second = filter.observe(0, Some(0)).unwrap();
+        assert_eq!(second.observation_step, 2);
+        assert!((second.predictive_probability_estimate - 0.625).abs() < 1e-12);
+
+        let exact_log_evidence = (0.5_f64 * 0.625_f64).ln();
+        assert!((filter.cumulative_log_evidence_estimate() - exact_log_evidence).abs() < 1e-12);
+        assert_eq!(filter.observation_steps(), 2);
     }
 
     #[test]
