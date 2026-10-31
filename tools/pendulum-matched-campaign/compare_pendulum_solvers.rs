@@ -421,11 +421,11 @@ mod tests {
     #[test]
     fn independent_report_auditor_rejects_nan_duplicate_and_missing_rows() {
         let good = campaign_csv();
-        let poisoned = good.replacen("4.00000000", "NaN", 1);
+        let poisoned = good.replacen("intrinsic_discrete_gradient,0.04000000,25,", "intrinsic_discrete_gradient,0.04000000,25,NaN,", 1);
         assert!(audit_campaign(&poisoned).is_err());
 
         let mut lines: Vec<&str> = good.lines().collect();
-        let duplicate = format!("{}\n{}", good, lines[1]);
+        let duplicate = format!("{}{}", good, lines[1]);
         assert!(audit_campaign(&duplicate).is_err());
 
         lines.pop();
