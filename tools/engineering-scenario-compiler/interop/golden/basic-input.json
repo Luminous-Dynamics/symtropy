@@ -1,0 +1,9 @@
+{
+  "z": 1e30,
+  "a": {
+    "𝄞": "musical",
+    "é": "accent",
+    "a": 4.5
+  },
+  "items": [true, null, "line\nbreak", 0.000002, 1e-7]
+}
