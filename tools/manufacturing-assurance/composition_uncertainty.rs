@@ -458,7 +458,7 @@ mod tests {
     #[test]
     fn fixture_rejects_duplicate_or_malformed_keys() {
         assert!(fixture_values().is_ok());
-        assert!(parse_fixture("value|1.0\\nvalue|2.0").is_err());
+        assert!(parse_fixture("value|1.0\nvalue|2.0").is_err());
         assert!(parse_fixture("malformed-row").is_err());
         assert!(parse_fixture("value|NaN").is_err());
     }
