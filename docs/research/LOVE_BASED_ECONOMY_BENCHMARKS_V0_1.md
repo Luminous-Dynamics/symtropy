@@ -6,7 +6,7 @@
 **Primary simulation surface:** Symtropy  
 **Coordination surface:** Mycelix  
 **Supporting systems:** Symthaea, Sol-Atlas, Praxis  
-**Tracking:** [LBE-BENCH-001](https://github.com/Luminous-Dynamics/symtropy/issues/3041)  
+**Tracking:** [LBE-BENCH-001](https://github.com/Luminous-Dynamics/symtropy/issues/3041) · [LBE-BENCH-002: Love's shadow](https://github.com/Luminous-Dynamics/symtropy/issues/3090)  
 **Related accounting defect:** [Symtropy issue #3043](https://github.com/Luminous-Dynamics/symtropy/issues/3043)
 
 ---
@@ -227,6 +227,22 @@ These are must-pass tests, not average scores:
 - **Privacy boundary:** public records do not reveal raw sensitive records or permit unauthorized cross-domain linkage.
 - **Exit and portability:** leaving an optional association cannot erase personal credentials, destroy access to unrelated essentials or create arbitrary debt.
 - **Power limits:** no single actor can unilaterally change rights, mint spendable currency, suppress an appeal or extend emergency authority indefinitely.
+
+### 5.3.1 Love's shadow: coercion and domination tests
+
+Positive measures such as care delivered, trust, donations, participation or cohesion cannot compensate for coercion or rights violations. LBE-Bench must adversarially test benevolent paternalism, coerced reciprocity, compulsory participation, unpaid care extraction, social-credit capture, in-group closure, intimate surveillance, forced forgiveness, compassionate impunity, donor/provider capture, exit retaliation, emotional manipulation and conflict suppression.
+
+The dedicated [LBE-BENCH-002 threat model](https://github.com/Luminous-Dynamics/symtropy/issues/3090) and [benchmark specification](https://github.com/Luminous-Dynamics/symtropy/pull/3092) define 18 adversarial scenarios (SH-01–SH-18), hard red-line invariants, metrics, baselines and acceptance rules. These are separate from the ordinary economic shock scenarios.
+
+Add the following hard-gate properties:
+- refusal of optional labour, gratitude, publicity, data collection or reconciliation has exactly zero effect on unrelated essential access;
+- exit, dissent, complaint and appeal trigger no retaliation;
+- no authority can waive a victim's remedy by invoking forgiveness or community harmony;
+- care hours and costs shifted to unpaid households remain visible in the accounting boundary;
+- a high-contribution actor remains auditable and subject to remedy;
+- no donor, provider, majority faction or algorithm can unilaterally override the rights floor.
+
+Report each breach individually; do not create a weighted "love score" or average away a severe failure.
 
 ### 5.4 Outcome metrics
 
@@ -453,12 +469,14 @@ Select one service domain and a willing community partner. Use a pre-registered 
 
 A source-level review on 31 October 2026 found a mismatch between the rights-first design and several active request-intake call paths:
 
-- Commons MutualAid create_need calls require_civic with civic_requirement_basic().
-- Commons MutualAid Requests create_request calls the same basic civic gate.
-- Commons Care Timebank create_service_request also calls the basic civic gate.
-- The basic requirement is CivicTier::Participant. The profile tier function derives Participant at a score of 0.30, and the active gate is documented to reject ineligible callers.
+The source audit found that several Commons coordinator paths called require_civic with civic_requirement_basic(), whose requirement is CivicTier::Participant. The profile tier function derives Participant at a score of 0.30, and the active gate is documented to reject ineligible callers.
 
-These are intake functions for reporting a need or requesting care. A profile / participation threshold should not determine whether a person can ask for help. The concrete audit and remediation are tracked in [Mycelix issue #3779](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3779).
+The remediation is now split by verified authorization boundary:
+- [Mycelix PR #3781](https://github.com/Luminous-Dynamics/luminous-dynamics/pull/3781) removes all nine civic-score gates from the MutualAid Needs coordinator. This includes need intake and the user's own withdraw/participant actions. Source inspection confirmed authenticated author binding and owner/participant checks in coordinator/integrity paths; it remains a draft and has not been Rust/Holochain tested here.
+- [Mycelix PR #3783](https://github.com/Luminous-Dynamics/luminous-dynamics/pull/3783) removes the profile gate only from Care Timebank service-offer and service-request intake, where integrity callbacks bind provider/requester to the action author. It deliberately retains exchange-settlement and rating gates pending separate consent/authorization review; the settlement gate is not treated as proof of bilateral consent.
+- MutualAid Requests remains unchanged pending [issue #3780](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3780): its coordinator copies caller-supplied requester/offerer DIDs, while the integrity path checks syntax rather than binding them to authenticated authors, and update operations lack verified caller authorization.
+
+The parent rights-floor requirement remains tracked in [Mycelix issue #3779](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3779). Do not reintroduce a civic-score gate as a substitute for identity binding, anti-spam protection or participant consent.
 
 The same inspection found that the MutualAid Requests coordinator copies a caller-supplied requester DID into AidRequest, while the integrity path checks basic DID syntax but does not bind the claimed requester to the committing agent. Removing the civic gate must not leave this impersonation surface unaddressed. Use authenticated author identity for self-service and a separate signed, scoped delegation for assisted intake. This is tracked in [Mycelix issue #3780](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3780).
 
