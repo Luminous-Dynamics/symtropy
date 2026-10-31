@@ -853,7 +853,6 @@ mod tests {
     #[test]
     fn asymmetric_contact_wrench_delassus_is_symmetric_psd_and_coupled() {
         use crate::body::BodyType;
-        use nalgebra::SMatrix;
         use symtropy_math::{Sphere, Transform};
 
         let static_body = RigidBody::<3>::new(
@@ -945,19 +944,17 @@ mod tests {
             offset_b: SVector::new(1.0, 0.0, 0.0),
             frame,
         };
-        let reference = assemble_contact_wrench_delassus(&[static_body.clone(), dynamic_body.clone()], &[row.clone()], 1e-12)
+        let mut bodies = vec![static_body, dynamic_body];
+        let reference = assemble_contact_wrench_delassus(&bodies, &[row.clone()], 1e-12)
             .unwrap();
 
         let rotation =
             Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.53);
-        static_body.transform.translation.0 =
-            rotation.rotate_vector(&static_body.transform.translation.0);
-        static_body.transform.rotation =
-            rotation.compose(&static_body.transform.rotation);
-        dynamic_body.transform.translation.0 =
-            rotation.rotate_vector(&dynamic_body.transform.translation.0);
-        dynamic_body.transform.rotation =
-            rotation.compose(&dynamic_body.transform.rotation);
+        for body in &mut bodies {
+            body.transform.translation.0 =
+                rotation.rotate_vector(&body.transform.translation.0);
+            body.transform.rotation = rotation.compose(&body.transform.rotation);
+        }
         let rotated_row = ContactWrenchRow {
             body_a: row.body_a,
             body_b: row.body_b,
@@ -966,7 +963,7 @@ mod tests {
             frame: row.frame.rotated_by(&rotation),
         };
         let rotated = assemble_contact_wrench_delassus(
-            &[static_body, dynamic_body],
+            &bodies,
             &[rotated_row],
             1e-12,
         )
