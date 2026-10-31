@@ -157,6 +157,15 @@ pub struct HazardReport {
     pub evidence_ref: Option<String>,
 }
 
+/// A position's explicitly bounded context in a contextualized policy.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContextAssignment {
+    /// Position being applied in this context.
+    pub position_id: PositionId,
+    /// Publicly explainable context boundary for this position.
+    pub context_rule: String,
+}
+
 /// Permitted ways to act on a tension without erasing its history.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DissonanceDisposition {
@@ -211,8 +220,8 @@ pub enum DissonanceDisposition {
     },
     /// Use different rules in explicitly described contexts.
     Contextualize {
-        /// Context rule or boundary condition.
-        context_rule: String,
+        /// Explicit position-to-context assignments; every recorded position is required.
+        assignments: Vec<ContextAssignment>,
         /// Mandatory review point.
         review_at: u64,
     },
@@ -480,6 +489,11 @@ fn validate_disposition(
             if ids.len() < 2 || ids.len() != position_ids.len() || ids.iter().any(|id| !has_position(id)) {
                 return Err(DissonanceError::InvalidIntegration);
             }
+            if ids.len() != positions.len()
+                || positions.keys().any(|id| !position_ids.iter().any(|candidate| candidate == id))
+            {
+                return Err(DissonanceError::DissentNotPreserved);
+            }
             if rationale.trim().is_empty() || rationale.len() > 8_192 {
                 return Err(DissonanceError::InvalidDisposition);
             }
@@ -518,10 +532,19 @@ fn validate_disposition(
             }
             Ok(())
         }
-        DissonanceDisposition::Contextualize { context_rule, review_at } => {
+        DissonanceDisposition::Contextualize { assignments, review_at } => {
             future(*review_at)?;
-            if context_rule.trim().is_empty() || context_rule.len() > 4_096 {
-                return Err(DissonanceError::InvalidDisposition);
+            let ids: BTreeSet<&PositionId> = assignments.iter().map(|assignment| &assignment.position_id).collect();
+            if ids.len() != assignments.len()
+                || ids.len() != positions.len()
+                || positions.keys().any(|id| !assignments.iter().any(|item| &item.position_id == id))
+                || assignments.iter().any(|item| {
+                    !has_position(&item.position_id)
+                        || item.context_rule.trim().is_empty()
+                        || item.context_rule.len() > 4_096
+                })
+            {
+                return Err(DissonanceError::DissentNotPreserved);
             }
             Ok(())
         }
@@ -659,6 +682,55 @@ mod tests {
             reversible: true,
         };
         assert_eq!(record.set_disposition(valid, 10), Ok(()));
+    }
+
+    #[test]
+    fn integration_cannot_silently_drop_a_third_position() {
+        let mut record = DissonanceRecord::new(
+            DissonanceKind::StructuralParadox,
+            vec![
+                position("p1", "workers", "Protect worker autonomy."),
+                position("p2", "community", "Maintain shared capacity."),
+                position("p3", "caregivers", "Protect care time and respite."),
+            ],
+        ).unwrap();
+        record.set_safeguards(safe_safeguards());
+        let decision = DissonanceDisposition::Integrate {
+            position_ids: vec![PositionId::new("p1").unwrap(), PositionId::new("p2").unwrap()],
+            rationale: "Integrate the first two positions.".to_owned(),
+            review_at: 100,
+        };
+        assert_eq!(record.set_disposition(decision, 10), Err(DissonanceError::DissentNotPreserved));
+    }
+
+    #[test]
+    fn contextualization_must_assign_every_position_to_a_context() {
+        let mut record = DissonanceRecord::new(
+            DissonanceKind::StructuralParadox,
+            vec![
+                position("p1", "workers", "Protect worker autonomy."),
+                position("p2", "community", "Maintain shared capacity."),
+                position("p3", "caregivers", "Protect care time and respite."),
+            ],
+        ).unwrap();
+        record.set_safeguards(safe_safeguards());
+        let incomplete = DissonanceDisposition::Contextualize {
+            assignments: vec![
+                ContextAssignment { position_id: PositionId::new("p1").unwrap(), context_rule: "context A".to_owned() },
+                ContextAssignment { position_id: PositionId::new("p2").unwrap(), context_rule: "context B".to_owned() },
+            ],
+            review_at: 100,
+        };
+        assert_eq!(record.set_disposition(incomplete, 10), Err(DissonanceError::DissentNotPreserved));
+        let complete = DissonanceDisposition::Contextualize {
+            assignments: vec![
+                ContextAssignment { position_id: PositionId::new("p1").unwrap(), context_rule: "context A".to_owned() },
+                ContextAssignment { position_id: PositionId::new("p2").unwrap(), context_rule: "context B".to_owned() },
+                ContextAssignment { position_id: PositionId::new("p3").unwrap(), context_rule: "context C".to_owned() },
+            ],
+            review_at: 100,
+        };
+        assert_eq!(record.set_disposition(complete, 10), Ok(()));
     }
 
     #[test]
