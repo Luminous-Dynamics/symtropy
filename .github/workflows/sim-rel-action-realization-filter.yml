@@ -6,27 +6,27 @@ on:
     paths:
       - "tools/sim-rel-action-realization-filter/**"
       - ".github/workflows/sim-rel-action-realization-filter.yml"
-  pull_request:
-    branches: ["research/sim-rel-013-joint-stochastic-oracle"]
-    paths:
-      - "tools/sim-rel-action-realization-filter/**"
-      - ".github/workflows/sim-rel-action-realization-filter.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: sim-rel-025-format-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   qualify:
-    name: exact joint action-realization filtering
+    if: github.actor != 'github-actions[bot]'
+    name: pinned rustfmt, exact action-realization tests and strict Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
       - name: Isolate Cargo target directory
         run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/sim-rel-action-realization-filter-target" >> "$GITHUB_ENV"
       - name: Set up pinned Rust
@@ -34,15 +34,28 @@ jobs:
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
-      - name: Formatting
+      - name: Apply pinned formatting
+        run: cargo fmt --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml
+      - name: Commit formatter-only changes to the research branch
+        env:
+          GH_REF_NAME: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/sim-rel-action-realization-filter
+          if ! git diff --cached --quiet; then
+            git commit -m "style(research): apply pinned rustfmt to action-realization filter"
+            git push origin "HEAD:$GH_REF_NAME"
+          fi
+      - name: Capture formatted source identity
+        run: echo "EXPECTED_FORMATTED_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Verify formatting
         run: cargo fmt --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml -- --check
       - name: Unit tests
         run: cargo test --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib
       - name: Strict Clippy
         run: cargo clippy --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib -- -D warnings
-      - name: Verify exact checkout identity
-        env:
-          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact formatted checkout and clean tree
         run: |
-          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_FORMATTED_HEAD"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
