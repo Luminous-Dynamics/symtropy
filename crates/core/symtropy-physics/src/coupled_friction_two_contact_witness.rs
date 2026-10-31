@@ -155,9 +155,9 @@ fn validate_candidate(
         + p[3] * (w[(3, 0)] * p[0] + w[(3, 1)] * p[1] + w[(3, 2)] * p[2])
         + p[4] * (w[(4, 0)] * p[0] + w[(4, 1)] * p[1] + w[(4, 2)] * p[2])
         + p[5] * (w[(5, 0)] * p[0] + w[(5, 1)] * p[1] + w[(5, 2)] * p[2]);
-    assert!(cross_contact_power.abs() > 1.0e-8);
+    assert!(cross_contact_energy_term.abs() > 1.0e-8);
 
-    (kinetic_energy_delta, cross_contact_power, u.norm())
+    (kinetic_energy_delta, cross_contact_energy_term, u.norm())
 }
 
 #[cfg(test)]
