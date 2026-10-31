@@ -163,9 +163,16 @@ fold lineage is truthful.
 ## Deterministic model-family falsification (SIM-REL-029 precursor)
 
 The `decision_value::counterexample_search` module provides a deterministic,
-bounded attack surface against one fixed shared policy. Each
-`PerturbationSpec` names an immutable source world, a unique candidate-world
-ID and an exact mutation. Initial mutation families include measurement-label
+bounded attack surface against one fixed shared policy. It supports explicit
+`PerturbationSpec` lists and an auto-generated `BoundedPerturbationGrid`.
+The grid enumerates declared split probabilities, mass-shift magnitudes,
+measurement inversions, readback dropout, hazard injection, apparatus
+degradation and realized-action remapping across a sorted source-world list.
+It returns a deterministic ordered set of validated candidate specs plus
+attempted/skipped counts. Input-order permutation does not change candidate
+IDs or ordering. A hard attempt cap fails closed rather than silently
+truncating a large Cartesian product. Each spec names an immutable source
+world, a unique candidate-world ID and an exact mutation. Initial mutation families include measurement-label
 inversion conditioned on sensor state, readback dropout, hazard injection,
 exact probability-mass transfer between outcomes, apparatus-state degradation
 and realized-action remapping.
@@ -195,6 +202,8 @@ exact mutation specification and candidate kernel. This makes a discovered
 counterexample replayable and allows an explicit later admission/re-plan step.
 Candidate IDs are unique within a search report, and candidate insertion is
 never performed implicitly.
+The `search_policy_against_bounded_grid` entry point connects grid generation
+and frozen-policy replay while retaining both the grid and search receipts.
 
 This is a finite, enumerated mutation-family falsifier. It is not a learned
 adversary, does not cover arbitrary unknown physics, does not establish
