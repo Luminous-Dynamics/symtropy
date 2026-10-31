@@ -20,6 +20,7 @@ pub mod unsteady_spectrum;
 pub mod robustness;
 pub mod run_artifacts;
 pub mod section_polar;
+pub mod selective_risk;
 pub mod voi;
 
 use std::collections::HashSet;

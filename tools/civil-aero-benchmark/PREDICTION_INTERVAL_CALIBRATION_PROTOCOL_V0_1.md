@@ -64,3 +64,10 @@ Proposed stretch target: achieve empirical 90% and 95% coverage whose confidence
 - NASA, distribution-free uncertainty quantification using conformal prediction: https://www.nasa.gov/wp-content/uploads/2023/06/60-distribution-free-uncertainty-for-cers.pdf
 - Kaiser and Herzog (2025), conformal prediction assumptions and distribution shift: https://journals.sagepub.com/doi/10.1177/25152459251380452
 - Gibbs, Cherian and Candès (2025), conditional guarantees and limits of universal exact conditional coverage: https://academic.oup.com/jrsssb/article/87/4/1100/8058684
+
+
+## Selective prediction and abstention evaluation
+
+Interval coverage alone does not answer whether a model should rank a candidate or abstain. The companion selective_risk module evaluates sample ranking by uncertainty on the same sealed blind set. It reports error-risk and false-feasible-risk against retained coverage, including the area under each curve. All compared models must use the same physical sample IDs and observed truth/feasibility labels per geometry/regime/domain group. The policy is scored at each distinct uncertainty threshold, with ties accepted together.
+
+The synthetic known-answer suite includes an uncertainty score aligned with true error and an adversarially inverted score. Lower area under the risk-coverage curve and false-feasible-risk curve is better, but a useful deployment policy must also disclose retained coverage, domain shift, and sample counts. This is a decision-support metric, not a certification or future guarantee.

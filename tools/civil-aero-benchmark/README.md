@@ -300,3 +300,10 @@ The byte-bound artifact layer now has a deterministic composite receipt helper. 
 
 
 The composite CFD evidence-chain API now exposes a deterministic CSV receipt row. Use its receipt_sha256 as candidate.admission_receipt_sha256 when recording a CFD candidate in the matched-budget Pareto scorecard. The scorecard itself does not authenticate a signer or validate the underlying physics.
+
+
+## Selective prediction risk/coverage and false-feasible audit
+
+The selective_risk module evaluates the quality of uncertainty rankings when the system may abstain on high-uncertainty candidate designs. It emits a full risk-versus-coverage curve, mean absolute/squared error among accepted samples, false-feasible and missed-feasible counts/rates, and areas under both the error-risk and false-feasible-risk curves. It requires blind_confirmation samples, matching physical sample sets across compared models and identical observed truth/constraint labels across models.
+
+The synthetic demo compares uncertainty ranked by actual error against deliberately inverted uncertainty on in-domain and OOD groups. It checks whether abstaining on high-uncertainty cases reduces ordinary prediction risk and false-feasible decisions. This is a synthetic policy-evaluation fixture, not an aerodynamic result or a future safety guarantee. See SELECTIVE_PREDICTION_RISK_COVERAGE_PROTOCOL_V0_1.md.

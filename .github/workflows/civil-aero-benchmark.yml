@@ -321,6 +321,17 @@ jobs:
           test "$(wc -l < /tmp/interval-calibration-a.csv)" -eq 13
           grep -q "blind_confirmation_synthetic_only models=2 domains=2 levels=3 prediction_rows=720 summaries=12" /tmp/interval-calibration-a.txt
           python3 scripts/verify-interval-calibration-independent.py /tmp/interval-calibration-a.csv
+      - name: Audit selective prediction risk and false-feasible risk coverage
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin selective_risk_demo > /tmp/selective-risk-a.csv 2> /tmp/selective-risk-a.txt
+          cargo run --locked --bin selective_risk_demo > /tmp/selective-risk-b.csv 2> /tmp/selective-risk-b.txt
+          cmp /tmp/selective-risk-a.csv /tmp/selective-risk-b.csv
+          cmp /tmp/selective-risk-a.txt /tmp/selective-risk-b.txt
+          test "$(wc -l < /tmp/selective-risk-a.csv)" -eq 81
+          grep -q "synthetic_selective_risk_only models=2 domains=2 samples_per_group=20 curve_rows=80 summaries=4" /tmp/selective-risk-a.txt
+          python3 scripts/verify-selective-risk-independent.py /tmp/selective-risk-a.csv
       - name: Verify immutable SU2 historical and current solver-reference pins
         working-directory: tools/civil-aero-benchmark
         shell: bash
