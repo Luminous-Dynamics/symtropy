@@ -63,6 +63,17 @@ A branch with tau touching zero is deliberately not called sliding throughout: i
 - The other has positive normal impulse, strictly positive disk multiplier, tangent/disk residual enclosures containing zero and non-positive kinetic-energy change throughout the box.
 - A family whose leading coefficient may cross the projective boundary cannot produce uniform root brackets.
 
+## External numerical baseline and industry comparison
+
+Generic certified polynomial root isolation is already established technology. FLINT/Arb documents exact real-root isolation for squarefree integer polynomials using Descartes/Vincent-Collins-Akritas bisection, with pairwise-disjoint isolating balls; it then refines roots using interval Newton, ordinary Newton steps verified by sign changes, and bisection, increasing precision until roots are separated. This is a stronger general-purpose numerical baseline than the custom quartic candidate generator and should be used as an independent differential reference: [FLINT root isolation](https://github.com/flintlib/flint/blob/main/doc/src/arb_fmpz_poly/roots.md), [FLINT interval root isolation](https://github.com/flintlib/flint/blob/main/doc/src/algorithms/ball-arithmetic/real-root-isolation.md).
+
+The distinction is where Symtropy can contribute:
+- FLINT/Arb: general-purpose certified polynomial root isolation and refinement.
+- Symtropy: domain-specific quartic reduction from the full coupled Delassus/contact law, exact parameter-family root-count invariance, branch continuation across uncertain W/q/mu, and original impulse/KKT/energy admissibility.
+- MuJoCo and other physics engines: production simulation, contact manifolds, warm-starting and high-throughput constraint solving. Their solver modes remain separate physical-model baselines rather than certified root-count oracles. MuJoCo 3.17, for example, describes the trade-off between elliptic cones and faster pyramidal cones, while its NoSlip post-pass reduces but does not guarantee zero slip: [MuJoCo friction guidance](https://mujoco.readthedocs.io/en/3.17.0/modeling.html).
+
+The benchmark should not attempt to beat FLINT on arbitrary polynomial degrees. Compare the two on the exact quartic corpus: distinct-root count, repeated/near-coincident roots, projective degree loss, interval width, time, peak memory, rational/ball precision growth, deterministic replay and inconclusive rates. Then compare the complete contact qualification pipeline against physics-engine outputs on matched solver modes. Symtropy's defensible advantage would be lower end-to-end cost for *contact-specific assurance* at the same soundness level—not a claim that its generic root-isolation algorithm is faster or more mature than FLINT/Arb.
+
 ## Evidence and claim boundary
 
 This verifies simple finite sliding branches over the declared exact dyadic W/q/mu box. It does not yet classify separating or sticking branches, complete multi-regime solution multiplicity, physical assembly of W/q from rigid-body data, measurement coverage, contact manifolds, multi-contact islands, production time stepping, or industry performance.
