@@ -39,3 +39,13 @@ change_first="$("$TMP/change-impact" "$CHANGE_FIXTURE")"
 change_second="$("$TMP/change-impact" "$CHANGE_FIXTURE")"
 test "$change_first" = "$change_second"
 printf '%s\n' "$change_first"
+
+DRIFT_SRC="$ROOT/tools/manufacturing-assurance/drift_diagnosis.rs"
+rustc --edition=2021 -D warnings --test "$DRIFT_SRC" -o "$TMP/drift-tests"
+"$TMP/drift-tests"
+
+rustc --edition=2021 -D warnings "$DRIFT_SRC" -o "$TMP/drift-diagnosis"
+drift_first="$("$TMP/drift-diagnosis")"
+drift_second="$("$TMP/drift-diagnosis")"
+test "$drift_first" = "$drift_second"
+printf '%s\n' "$drift_first"
