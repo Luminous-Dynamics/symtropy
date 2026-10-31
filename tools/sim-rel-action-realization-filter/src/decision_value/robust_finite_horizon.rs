@@ -2040,7 +2040,7 @@ mod tests {
             protocol,
             &costs,
             Rational::one(),
-            &config(1),
+            &config(2),
         )
         .unwrap();
         let initial: BeliefVector = worlds
@@ -2055,7 +2055,7 @@ mod tests {
             &costs,
             Rational::one(),
             &initial,
-            1,
+            2,
             100_000,
             &mut generated,
         )
@@ -2077,7 +2077,7 @@ mod tests {
                 &costs,
                 Rational::one(),
                 &point.plan,
-                1,
+                2,
             )
             .unwrap();
             assert_eq!(raw_replay.per_world, point.per_world);
