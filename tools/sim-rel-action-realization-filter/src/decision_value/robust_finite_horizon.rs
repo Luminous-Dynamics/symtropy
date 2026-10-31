@@ -1868,6 +1868,92 @@ mod tests {
     }
 
     #[test]
+    fn resource_caps_and_model_family_size_fail_closed() {
+        let worlds = worlds();
+        let table = loss_table();
+        let protocol = ObservationProtocol::fully_observed();
+        let costs = costs();
+
+        let mut no_memo = config(1);
+        no_memo.max_memo_states = 0;
+        assert!(optimize_shared_policy_decisions(
+            &worlds,
+            "world-a",
+            &table,
+            protocol,
+            &costs,
+            Rational::one(),
+            &no_memo,
+        )
+        .is_err());
+
+        let mut oversized = Vec::new();
+        for index in 0..=MAX_MODEL_WORLDS {
+            oversized.push(make_inverted_instrument_world(
+                &format!("world-{index:02}"),
+                false,
+                0,
+            ));
+        }
+        assert!(optimize_shared_policy_decisions(
+            &oversized,
+            "world-00",
+            &table,
+            protocol,
+            &costs,
+            Rational::one(),
+            &config(0),
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn replay_rejects_an_observation_outside_the_declared_world_family() {
+        let worlds = worlds();
+        let known_zero = PublicObservation {
+            hazard: false,
+            readback: ObservationField::Value(0),
+            measurement: ObservationField::Value(0),
+        };
+        let known_one = PublicObservation {
+            measurement: ObservationField::Value(1),
+            ..known_zero
+        };
+        let impossible = PublicObservation {
+            readback: ObservationField::Value(1),
+            ..known_zero
+        };
+        let plan = DecisionPlan::Experiment {
+            command: 0,
+            branches: vec![
+                DecisionBranch {
+                    observation: known_zero,
+                    plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(0) }),
+                },
+                DecisionBranch {
+                    observation: known_one,
+                    plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(1) }),
+                },
+                DecisionBranch {
+                    observation: impossible,
+                    plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(0) }),
+                },
+            ],
+        };
+        assert!(replay_shared_policy_across_worlds(
+            &worlds,
+            "world-a",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &costs(),
+            Rational::one(),
+            &plan,
+            1,
+        )
+        .is_err());
+    }
+
+    #[test]
     fn incompatible_model_world_semantics_fail_closed() {
         let mut incompatible = worlds();
         incompatible[1].kernel.measurement_ids.swap(0, 1);
