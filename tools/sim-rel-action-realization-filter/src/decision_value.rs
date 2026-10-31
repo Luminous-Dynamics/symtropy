@@ -4,6 +4,8 @@
 //! that the evidence supports. Losses are defined over the mechanism and next
 //! the complete mechanism/process/sensor/apparatus state.
 
+pub mod finite_horizon;
+
 use super::{
     ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PosteriorMass,
     PublicObservation, Rational,
