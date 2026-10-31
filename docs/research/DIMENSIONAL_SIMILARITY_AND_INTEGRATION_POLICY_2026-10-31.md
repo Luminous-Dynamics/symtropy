@@ -87,6 +87,12 @@ Those are likely places where implicit unit assumptions remain. They need their 
 - Rapier's 2026 work adds intra-island parallelism, persistent graph coloring and parallel broad phase. Symtropy should benchmark one large connected island, not only many independent bodies. Dimforge's Q3 report says its cross-engine graphs use early-August builds, so those results are not a current universal ranking. See [Dimforge Q3 2026 report](https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/).
 - Physmark splits large rigid-body scenes, many-environment robotics, and MPM into separate workload categories. Symtropy should follow that separation and pin all engine builds/hardware before comparing. See [Physmark](https://github.com/dimforge/physmark).
 
+## Strict failure and receipt semantics
+
+The strict integration path returns typed `IntegrationError` variants for invalid timestep, invalid parameters, non-finite input, non-finite candidate state, and wrapped rotational-inertia errors. The candidate body state is computed in locals and committed only if finite. The world wraps this in `PhysicsStepCause::Integration` and rolls back the entire physics-owned step on failure.
+
+Each attempted world step receives a monotonic `step_id`. The identifier is consumed even when a step is rejected, appears in `PhysicsStepError`, and is also attached to an accepted `InvariantStepReceipt`. It allows an external command/input log to correlate accepted and rejected attempts; it is not a replay hash or a substitute for source/configuration provenance.
+
 ## Next work
 
 1. Add dimensional-similarity fixtures for sphere/plane contact, multi-point box contact, friction, CCD and joint constraints.
