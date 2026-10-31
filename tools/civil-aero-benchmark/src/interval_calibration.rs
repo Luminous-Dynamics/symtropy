@@ -85,6 +85,24 @@ struct SampleKey {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct TruthKey {
+    task_id: String,
+    sample_id: String,
+    geometry_family: String,
+    flow_regime: String,
+    domain_status: DomainStatus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct ComparisonKey {
+    task_id: String,
+    geometry_family: String,
+    flow_regime: String,
+    domain_status: DomainStatus,
+    nominal_coverage_bits: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct SummaryKey {
     task_id: String,
     model_id: String,
@@ -122,10 +140,45 @@ pub fn audit_blind_prediction_intervals(
     }
 
     let mut sample_intervals: BTreeMap<SampleKey, SampleIntervals> = BTreeMap::new();
+    let mut truth_by_sample: BTreeMap<TruthKey, u64> = BTreeMap::new();
+    let mut comparison_sets: BTreeMap<ComparisonKey, BTreeMap<String, BTreeSet<String>>> =
+        BTreeMap::new();
     let mut summaries: BTreeMap<SummaryKey, Accumulator> = BTreeMap::new();
 
     for (index, prediction) in predictions.iter().enumerate() {
         validate_prediction(prediction, index)?;
+        let truth_key = TruthKey {
+            task_id: prediction.task_id.clone(),
+            sample_id: prediction.sample_id.clone(),
+            geometry_family: prediction.geometry_family.clone(),
+            flow_regime: prediction.flow_regime.clone(),
+            domain_status: prediction.domain_status,
+        };
+        if let Some(previous_observation) =
+            truth_by_sample.insert(truth_key, prediction.observed_value.to_bits())
+        {
+            if previous_observation != prediction.observed_value.to_bits() {
+                return Err(format!(
+                    "sample {} changes observed truth across model predictions",
+                    prediction.sample_id
+                ));
+            }
+        }
+
+        let comparison_key = ComparisonKey {
+            task_id: prediction.task_id.clone(),
+            geometry_family: prediction.geometry_family.clone(),
+            flow_regime: prediction.flow_regime.clone(),
+            domain_status: prediction.domain_status,
+            nominal_coverage_bits: prediction.nominal_coverage.to_bits(),
+        };
+        comparison_sets
+            .entry(comparison_key)
+            .or_default()
+            .entry(prediction.model_id.clone())
+            .or_default()
+            .insert(prediction.sample_id.clone());
+
         let sample_key = SampleKey {
             task_id: prediction.task_id.clone(),
             sample_id: prediction.sample_id.clone(),
@@ -192,6 +245,24 @@ pub fn audit_blind_prediction_intervals(
         summary.absolute_error_sum += point_error.abs();
         summary.squared_error_sum += point_error * point_error;
         summary.signed_error_sum += point_error;
+    }
+
+    // Comparative model rows must cover exactly the same blind samples. Otherwise a
+    // model could appear calibrated by silently omitting difficult cases.
+    for (group, model_sets) in &comparison_sets {
+        let mut sample_sets = model_sets.values();
+        if let Some(reference_samples) = sample_sets.next() {
+            if sample_sets.any(|samples| samples != reference_samples) {
+                return Err(format!(
+                    "models have different blind sample sets for task={} geometry={} regime={} domain={} coverage={}",
+                    group.task_id,
+                    group.geometry_family,
+                    group.flow_regime,
+                    group.domain_status.as_str(),
+                    f64::from_bits(group.nominal_coverage_bits)
+                ));
+            }
+        }
     }
 
     for (sample_key, sample) in &sample_intervals {
@@ -519,6 +590,29 @@ mod tests {
         assert!(audit_blind_prediction_intervals(&predictions)
             .expect_err("sample observation must not change by level")
             .contains("changes point prediction or observed value"));
+    }
+
+    #[test]
+    fn comparative_models_must_cover_the_same_blind_samples() {
+        let mut predictions = synthetic_predictions();
+        predictions.retain(|row| row.sample_id != "robust_model-in_domain-0");
+        assert!(audit_blind_prediction_intervals(&predictions)
+            .expect_err("omitted hard samples must be detected")
+            .contains("different blind sample sets"));
+    }
+
+    #[test]
+    fn observed_truth_must_match_across_compared_models() {
+        let mut predictions = synthetic_predictions();
+        for row in predictions
+            .iter_mut()
+            .filter(|row| row.sample_id == "robust_model-in_domain-0")
+        {
+            row.observed_value += 0.01;
+        }
+        assert!(audit_blind_prediction_intervals(&predictions)
+            .expect_err("models cannot be scored against different observations")
+            .contains("changes observed truth across model predictions"));
     }
 
     #[test]
