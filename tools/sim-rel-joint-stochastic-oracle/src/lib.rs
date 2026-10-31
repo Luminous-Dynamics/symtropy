@@ -1390,6 +1390,107 @@ mod tests {
         plans
     }
 
+    fn brute_policy_entropy(
+        kernel: &JointKernel,
+        belief: &[JointMass],
+        policy: &PolicyPlan,
+        remaining: usize,
+    ) -> f64 {
+        fn entropy(masses: &[Rational]) -> f64 {
+            masses.iter().filter(|mass| !mass.is_zero()).fold(
+                0.0,
+                |total, mass| {
+                    let p = mass.numerator() as f64 / mass.denominator() as f64;
+                    total - p * p.ln()
+                },
+            )
+        }
+
+        match policy {
+            PolicyPlan::Abstain | PolicyPlan::Claim { .. } => {
+                let mut hypothesis_mass = vec![Rational::zero(); kernel.hypothesis_ids.len()];
+                for point in belief {
+                    hypothesis_mass[point.hypothesis] = hypothesis_mass[point.hypothesis]
+                        .checked_add(point.mass)
+                        .unwrap();
+                }
+                entropy(&hypothesis_mass)
+            }
+            PolicyPlan::Action { action, branches } => {
+                assert!(remaining > 0);
+                let mut groups: std::collections::BTreeMap<
+                    Option<usize>,
+                    std::collections::BTreeMap<(usize, usize, usize), Rational>,
+                > = std::collections::BTreeMap::new();
+                for point in belief {
+                    let row_index = (((point.hypothesis * kernel.physical_state_count
+                        + point.physical_state)
+                        * kernel.sensor_state_count
+                        + point.sensor_state)
+                        * kernel.action_ids.len())
+                        + action;
+                    for outcome in &kernel.rows[row_index].outcomes {
+                        let mass = point.mass.checked_mul(outcome.probability).unwrap();
+                        let state_key = (
+                            point.hypothesis,
+                            outcome.next_physical_state,
+                            outcome.next_sensor_state,
+                        );
+                        let states = groups.entry(outcome.observation).or_default();
+                        let old = states.get(&state_key).copied().unwrap_or(Rational::zero());
+                        states.insert(state_key, old.checked_add(mass).unwrap());
+                    }
+                }
+
+                let mut expected_entropy = 0.0;
+                for (observation, states) in groups {
+                    let probability = states.values().copied().fold(
+                        Rational::zero(),
+                        |sum, mass| sum.checked_add(mass).unwrap(),
+                    );
+                    let posterior: Vec<JointMass> = states
+                        .into_iter()
+                        .map(|((hypothesis, physical_state, sensor_state), mass)| JointMass {
+                            hypothesis,
+                            physical_state,
+                            sensor_state,
+                            mass: mass.checked_div(probability).unwrap(),
+                        })
+                        .collect();
+                    let conditional_entropy = match observation {
+                        None => {
+                            let mut hypothesis_mass =
+                                vec![Rational::zero(); kernel.hypothesis_ids.len()];
+                            for point in &posterior {
+                                hypothesis_mass[point.hypothesis] =
+                                    hypothesis_mass[point.hypothesis]
+                                        .checked_add(point.mass)
+                                        .unwrap();
+                            }
+                            entropy(&hypothesis_mass)
+                        }
+                        Some(observation) => {
+                            let continuation = branches
+                                .iter()
+                                .find(|branch| branch.observation == observation)
+                                .expect("every reachable observation must have a policy continuation");
+                            brute_policy_entropy(
+                                kernel,
+                                &posterior,
+                                continuation.plan.as_ref(),
+                                remaining - 1,
+                            )
+                        }
+                    };
+                    expected_entropy +=
+                        (probability.numerator() as f64 / probability.denominator() as f64)
+                            * conditional_entropy;
+                }
+                expected_entropy
+            }
+        }
+    }
+
     fn brute_frontier(mut points: Vec<FrontierPoint>) -> Vec<FrontierPoint> {
         points.sort_by(|left, right| {
             (
@@ -1532,6 +1633,156 @@ mod tests {
         assert!((scores[0].expected_information_gain_nats - expected).abs() < 1e-12);
         assert!((scores[0].information_gain_per_cost - expected).abs() < 1e-12);
         assert_eq!(scores[0].hazard_probability, Rational::zero());
+    }
+
+
+    #[test]
+    fn finite_lookahead_matches_exhaustive_policy_tree_entropy_on_tiny_stochastic_model() {
+        let kernel = noisy_binary_kernel();
+        let config = baseline::LookaheadEigConfig {
+            horizon: 2,
+            max_path_cost: 2,
+            max_campaign_hazard: Rational::one(),
+            ..baseline::LookaheadEigConfig::default()
+        };
+        let optimized = baseline::optimize_finite_lookahead_eig(
+            &kernel,
+            &kernel.initial_belief,
+            &config,
+        ).unwrap();
+        let policies = enumerate_all_policies(
+            &kernel,
+            &kernel.initial_belief,
+            config.horizon,
+        );
+        let exhaustive_minimum = policies
+            .iter()
+            .map(|policy| {
+                brute_policy_entropy(
+                    &kernel,
+                    &kernel.initial_belief,
+                    policy,
+                    config.horizon,
+                )
+            })
+            .fold(f64::INFINITY, f64::min);
+        assert!(
+            (optimized.expected_terminal_entropy_nats - exhaustive_minimum).abs() < 1e-12,
+            "lookahead DP must attain the exhaustive minimum terminal entropy"
+        );
+        let replay = evaluate_policy(&kernel, &optimized.policy, config.horizon).unwrap();
+        assert_eq!(replay.expected_cost, optimized.expected_experiment_cost);
+        assert_eq!(replay.hazard_probability, optimized.campaign_hazard_probability);
+    }
+
+    #[test]
+    fn finite_lookahead_finds_calibration_then_measurement_missed_by_one_step_eig() {
+        let kernel = calibration_kernel(true);
+        let myopic = baseline::rank_by_one_step_eig(
+            &kernel,
+            &kernel.initial_belief,
+        ).unwrap();
+        assert!(myopic.iter().all(|score| {
+            score.expected_information_gain_nats.abs() < 1e-12
+        }));
+
+        let lookahead = baseline::optimize_finite_lookahead_eig(
+            &kernel,
+            &kernel.initial_belief,
+            &baseline::LookaheadEigConfig {
+                horizon: 2,
+                max_path_cost: 2,
+                max_campaign_hazard: Rational::zero(),
+                ..baseline::LookaheadEigConfig::default()
+            },
+        ).unwrap();
+        assert!((lookahead.expected_information_gain_nats
+            - std::f64::consts::LN_2).abs() < 1e-12);
+        assert_eq!(lookahead.expected_experiment_cost, Rational::from_u64(2));
+        assert_eq!(lookahead.campaign_hazard_probability, Rational::zero());
+        assert_eq!(lookahead.maximum_path_cost, 2);
+        let replay = evaluate_policy(&kernel, &lookahead.policy, 2).unwrap();
+        assert_eq!(replay.expected_cost, lookahead.expected_experiment_cost);
+        assert_eq!(replay.hazard_probability, lookahead.campaign_hazard_probability);
+
+        let too_short = baseline::optimize_finite_lookahead_eig(
+            &kernel,
+            &kernel.initial_belief,
+            &baseline::LookaheadEigConfig {
+                horizon: 2,
+                max_path_cost: 1,
+                max_campaign_hazard: Rational::zero(),
+                ..baseline::LookaheadEigConfig::default()
+            },
+        ).unwrap();
+        assert_eq!(too_short.maximum_path_cost, 0);
+        assert!(too_short.expected_information_gain_nats.abs() < 1e-12);
+
+        match &lookahead.policy {
+            PolicyPlan::Action { action, branches } => {
+                assert_eq!(kernel.action_ids[*action], "calibrate-sensor");
+                assert_eq!(branches.len(), 1);
+                match branches[0].plan.as_ref() {
+                    PolicyPlan::Action { action: measurement, .. } => {
+                        assert_eq!(kernel.action_ids[*measurement], "measure");
+                    }
+                    _ => panic!("expected measurement after calibration"),
+                }
+            }
+            _ => panic!("expected a calibration-then-measurement policy"),
+        }
+    }
+
+    #[test]
+    fn finite_lookahead_refuses_a_measurement_that_exceeds_zero_hazard_budget() {
+        let suite = benchmark::generate_suite(benchmark::BenchmarkSuiteConfig {
+            seed: 0xA11C_E55,
+            instances_per_family: 1,
+        }).unwrap();
+        let case = suite.iter()
+            .find(|instance| instance.family == benchmark::ChallengeFamily::CorrelatedHazard)
+            .unwrap();
+        let nominal = &case.worlds[0].kernel;
+        let result = baseline::optimize_finite_lookahead_eig(
+            nominal,
+            &nominal.initial_belief,
+            &baseline::LookaheadEigConfig {
+                horizon: 1,
+                max_path_cost: 16,
+                max_campaign_hazard: Rational::zero(),
+                ..baseline::LookaheadEigConfig::default()
+            },
+        ).unwrap();
+        assert_eq!(result.campaign_hazard_probability, Rational::zero());
+        assert!(matches!(result.policy, PolicyPlan::Abstain));
+    }
+
+    #[test]
+    fn finite_lookahead_enforces_path_cost_and_campaign_hazard_budgets() {
+        let kernel = noisy_binary_kernel();
+        let zero_budget = baseline::optimize_finite_lookahead_eig(
+            &kernel,
+            &kernel.initial_belief,
+            &baseline::LookaheadEigConfig {
+                horizon: 2,
+                max_path_cost: 0,
+                max_campaign_hazard: Rational::zero(),
+                ..baseline::LookaheadEigConfig::default()
+            },
+        ).unwrap();
+        assert_eq!(zero_budget.expected_experiment_cost, Rational::zero());
+        assert_eq!(zero_budget.maximum_path_cost, 0);
+        assert_eq!(zero_budget.expected_information_gain_nats, 0.0);
+
+        let invalid = baseline::optimize_finite_lookahead_eig(
+            &kernel,
+            &kernel.initial_belief,
+            &baseline::LookaheadEigConfig {
+                max_campaign_hazard: Rational::new(2, 1).unwrap(),
+                ..baseline::LookaheadEigConfig::default()
+            },
+        );
+        assert!(invalid.is_err());
     }
 
 }

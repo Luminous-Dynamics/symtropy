@@ -1,0 +1,48 @@
+name: SIM-REL-018 Finite-Lookahead Joint EIG Baseline
+
+on:
+  push:
+    branches: ["research/sim-rel-018-*"]
+    paths:
+      - "tools/sim-rel-joint-stochastic-oracle/**"
+      - ".github/workflows/sim-rel-018-lookahead-eig.yml"
+  pull_request:
+    branches: ["main", "research/sim-rel-017-adversarial-benchmark-factory"]
+    paths:
+      - "tools/sim-rel-joint-stochastic-oracle/**"
+      - ".github/workflows/sim-rel-018-lookahead-eig.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  qualify:
+    name: lookahead EIG, calibration counterexample and budget controls
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Isolate Cargo target directory
+        run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/sim-rel-018-lookahead-eig-target" >> "$GITHUB_ENV"
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Formatting
+        run: cargo fmt --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml -- --check
+      - name: Unit and scenario-tree tests
+        run: cargo test --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib -- -D warnings
+      - name: Verify exact checkout identity
+        env:
+          EXPECTED_HEAD: \${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
