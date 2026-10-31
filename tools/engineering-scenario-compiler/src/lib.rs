@@ -467,7 +467,7 @@ struct CanonicalSemanticEnvelope<'a> {
     scenario: &'a ScenarioIr,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Copy, Serialize)]
 struct PortableCompilationSubject<'a> {
     domain: &'static str,
     canonicalization_profile: &'static str,
@@ -969,7 +969,8 @@ mod tests {
                 .expect("golden input is valid JSON");
         let canonical = serde_jcs::to_vec(&value).expect("JCS serialization succeeds");
         let expected = include_bytes!("../interop/golden/basic-output.jcs");
-        assert_eq!(canonical, expected.trim_ascii_end());
+        let expected = std::str::from_utf8(expected).expect("golden output is UTF-8");
+        assert_eq!(canonical, expected.trim_end().as_bytes());
     }
 
     #[test]
