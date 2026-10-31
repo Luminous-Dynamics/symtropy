@@ -372,7 +372,7 @@ mod tests {
     #[test]
     fn hanging_equilibrium_remains_stationary() {
         let model = model();
-        let state = State {
+        let mut state = State {
             position: [0.0, -1.0],
             momentum: [0.0, 0.0],
         };
@@ -380,6 +380,7 @@ mod tests {
             let receipt = model.step(state, 0.01).unwrap();
             assert!(norm(sub(receipt.after.position, state.position)) < 2.0e-14);
             assert!(norm(receipt.after.momentum) < 2.0e-13);
+            state = receipt.after;
         }
     }
 
