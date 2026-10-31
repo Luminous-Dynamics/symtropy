@@ -19,6 +19,12 @@ objective and tuning procedure:
    resource and safety constraints.
 3. **Myopic EIG:** one-step expected information gain; also report cost-normalized
    EIG. EIG is a diagnostic acquisition baseline, not the primary objective.
+4. **EGIG / inferential-error penalty / model-error penalty (Callahan &
+   Catanach, AISTATS 2026):** implement the paper's distinct robust utility
+   criteria where their inferential and model-misspecification assumptions can
+   be matched. Keep them as separate baselines and ablations; do not collapse
+   them into one generic "robust EIG" score. Score every selected design using
+   the shared downstream decision-loss endpoint.
 4. **SIM-REL-027 nominal DP:** exact finite-horizon downstream decision-value
    optimizer using one nominal complete kernel. Replay its policy in every
    shifted test world without allowing it to see world identity.
@@ -45,11 +51,16 @@ objective and tuning procedure:
 10. **R-IDeA:** include informativeness-only, representativeness-only,
    informativeness-plus-representativeness, and full
    representativeness/informativeness/error-de-amplification ablations.
-11. **Robust sequential experimental design:** use its published worst-case
+11. **Generalized total-variation DRO (Fontem & Ji, EJOR 2026):** compare
+   a sample-size-, support-, confidence- and cost-sensitive ambiguity set
+   against the simple finite-support TV ball. Re-derive its guarantees for our
+   sequential per-world decision-loss setting; do not transplant its newsvendor
+   or portfolio guarantee without proving the assumptions and mapping.
+12. **Robust sequential experimental design:** use its published worst-case
    estimation-risk objective as a comparator where the task supports its
    assumptions. Also report a downstream-decision evaluation of its selected
    designs.
-12. **Sequential conformal calibration under recursive selection:** compare a
+13. **Sequential conformal calibration under recursive selection:** compare a
    fresh-fold stagewise calibration policy, including its prefix-coverage and
    abstention tradeoffs, against naive survivor reuse and Bonferroni-style
    allocation. Only claim its finite-sample coverage when the paper's
@@ -191,11 +202,16 @@ alone is not evidence of robustness or scientific progress.
 
 ## 6. External reference baselines
 
+- On the Misinformation in a Statistical Experiment, AISTATS 2026:
+  https://proceedings.mlr.press/v300/callahan26a.html
 - COPEx, ICML 2026: https://proceedings.mlr.press/v306/guo26g.html
 - Robust Bayesian Decision Making under Adversarial Uncertainty, UAI 2026:
   https://proceedings.mlr.press/v337/harikumar26a.html
 - Maximin Robust Bayesian Experimental Design, 2026:
   https://arxiv.org/abs/2603.14094
+- Distributionally Robust Optimization with Generalized Total Variation
+  Ambiguity Sets, EJOR 2026:
+  https://doi.org/10.1016/j.ejor.2025.09.024
 - Sequential Conformal Calibration under Recursive Selection, 2026:
   https://arxiv.org/abs/2610.12937
 - R-IDeA, AISTATS 2026: https://proceedings.mlr.press/v300/tang26d.html
