@@ -55,13 +55,16 @@ pub enum RotationalInertiaError {
 /// use physical mass units. For a uniform solid D-ball of mass m and radius r,
 /// S = (m r^2 / (D+2)) I, giving I_plane = 2 m r^2 / (D+2) in every rotation
 /// plane.
-/// Exact mass properties of a tetrahedralized, piecewise-uniform 3D solid.
+/// Exact mass properties of a piecewise-uniform D-dimensional simplex mesh.
 #[derive(Clone, Debug)]
-pub struct TetrahedralMassProperties {
+pub struct SimplexMassProperties<const D: usize> {
     pub total_mass: f64,
-    pub center_of_mass: SVector<f64, 3>,
-    pub inertia: BivectorInertia<3>,
+    pub center_of_mass: SVector<f64, D>,
+    pub inertia: BivectorInertia<D>,
 }
+
+/// Exact mass properties of a tetrahedralized, piecewise-uniform 3D solid.
+pub type TetrahedralMassProperties = SimplexMassProperties<3>;
 
 #[derive(Clone, Debug)]
 pub struct BivectorInertia<const D: usize> {
@@ -522,42 +525,56 @@ impl<const D: usize> BivectorInertia<D> {
     }
 }
 
-impl BivectorInertia<3> {
-    /// Integrate the exact centered second moments of a tetrahedralized solid.
+impl<const D: usize> BivectorInertia<D> {
+    /// Integrate exact centered second moments over piecewise-uniform D-simplices.
     ///
-    /// Each item is four world-space tetrahedron vertices and a uniform
-    /// positive density for that tetrahedron. Different tetrahedra may have
-    /// different densities, allowing piecewise-uniform multi-material solids.
+    /// Each cell is represented by D+1 world-space vertices and a positive,
+    /// constant density. Cells must be non-overlapping and collectively
+    /// describe the intended solid. Different cells may use different
+    /// densities, allowing piecewise-uniform multi-material solids.
     ///
-    /// The tetrahedral decomposition must describe non-overlapping volume
-    /// elements. Overlapping tetrahedra are counted more than once. Coordinates
-    /// are shifted to the first vertex before integration to preserve small
-    /// geometry located far from the world origin.
+    /// For a simplex with mass m, centroid c and centered vertex offsets q_i,
+    /// the exact centered second moment is:
     ///
-    /// For one tetrahedron with mass m and centered vertex offsets q_i, the
-    /// exact centered second moment is S = (m/20) * sum(q_i*q_i^T).
-    /// Component moments are accumulated around a common reference and shifted
-    /// once to the combined center of mass using the parallel-axis theorem.
-    pub fn from_tetrahedra<I>(
-        tetrahedra: I,
+    /// S = m / ((D+1)(D+2)) * sum(q_i*q_i^T).
+    ///
+    /// Cell contributions are accumulated around a local reference vertex
+    /// and shifted once to the combined center of mass. This preserves small
+    /// geometric moments for models located far from the world origin.
+    ///
+    /// The input cell is a Vec rather than a [SVector; D+1] because generic
+    /// const expressions such as D+1 are not available in stable Rust array
+    /// types. Exactly D+1 vertices are required for every cell.
+    pub fn from_simplices<I>(
+        simplices: I,
         relative_volume_tolerance: f64,
-    ) -> Result<TetrahedralMassProperties, RotationalInertiaError>
+    ) -> Result<SimplexMassProperties<D>, RotationalInertiaError>
     where
-        I: IntoIterator<Item = ([SVector<f64, 3>; 4], f64)>,
+        I: IntoIterator<Item = (Vec<SVector<f64, D>>, f64)>,
     {
+        if D < 2 {
+            return Err(RotationalInertiaError::InvalidDimension);
+        }
         if !relative_volume_tolerance.is_finite() || relative_volume_tolerance <= 0.0 {
             return Err(RotationalInertiaError::InvalidTolerance);
         }
-        let mut iterator = tetrahedra.into_iter();
-        let Some(first) = iterator.next() else {
+
+        let mut iterator = simplices.into_iter();
+        let Some((first_vertices, first_density)) = iterator.next() else {
             return Err(RotationalInertiaError::InvalidMassProperties);
         };
-        let reference = first.0[0];
+        if first_vertices.len() != D + 1 {
+            return Err(RotationalInertiaError::InvalidMassProperties);
+        }
+        let reference = first_vertices[0];
         let mut total_mass = 0.0_f64;
-        let mut weighted_center = SVector::<f64, 3>::zeros();
-        let mut second_moment_about_reference = SMatrix::<f64, 3, 3>::zeros();
+        let mut weighted_center = SVector::<f64, D>::zeros();
+        let mut second_moment_about_reference = SMatrix::<f64, D, D>::zeros();
 
-        for (vertices, density) in std::iter::once(first).chain(iterator) {
+        for (vertices, density) in std::iter::once((first_vertices, first_density)).chain(iterator) {
+            if vertices.len() != D + 1 {
+                return Err(RotationalInertiaError::InvalidMassProperties);
+            }
             if !density.is_finite()
                 || !vertices
                     .iter()
@@ -569,13 +586,12 @@ impl BivectorInertia<3> {
                 return Err(RotationalInertiaError::InvalidMassProperties);
             }
 
-            let relative_vertices = vertices.map(|vertex| vertex - reference);
-            let edge_1 = relative_vertices[1] - relative_vertices[0];
-            let edge_2 = relative_vertices[2] - relative_vertices[0];
-            let edge_3 = relative_vertices[3] - relative_vertices[0];
+            let relative_vertices: Vec<SVector<f64, D>> =
+                vertices.iter().map(|vertex| *vertex - reference).collect();
+
             let mut edge_scale = 0.0_f64;
-            for i in 0..4 {
-                for j in (i + 1)..4 {
+            for i in 0..(D + 1) {
+                for j in (i + 1)..(D + 1) {
                     edge_scale =
                         edge_scale.max((relative_vertices[j] - relative_vertices[i]).norm());
                 }
@@ -584,38 +600,48 @@ impl BivectorInertia<3> {
                 return Err(RotationalInertiaError::DegenerateTetrahedron);
             }
 
-            let six_volume = edge_1.dot(&edge_2.cross(&edge_3)).abs();
-            let volume_tolerance = relative_volume_tolerance * edge_scale.powi(3);
-            if !six_volume.is_finite() || !volume_tolerance.is_finite() {
+            let edge_matrix = nalgebra::DMatrix::<f64>::from_fn(D, D, |row, column| {
+                relative_vertices[column + 1][row] - relative_vertices[0][row]
+            });
+            let determinant = edge_matrix.determinant().abs();
+            let mut factorial = 1.0_f64;
+            for value in 2..=D {
+                factorial *= value as f64;
+            }
+            let volume = determinant / factorial;
+            let volume_scale = edge_scale.powf(D as f64);
+            if !determinant.is_finite()
+                || !factorial.is_finite()
+                || !volume.is_finite()
+                || !volume_scale.is_finite()
+            {
                 return Err(RotationalInertiaError::NonFinite);
             }
-            if six_volume <= volume_tolerance {
+            if determinant <= relative_volume_tolerance * volume_scale {
                 return Err(RotationalInertiaError::DegenerateTetrahedron);
             }
 
-            let tetrahedron_mass = density * (six_volume / 6.0);
-            if !tetrahedron_mass.is_finite() || tetrahedron_mass <= 0.0 {
+            let cell_mass = density * volume;
+            if !cell_mass.is_finite() || cell_mass <= 0.0 {
                 return Err(RotationalInertiaError::InvalidMassProperties);
             }
             let centroid_relative = relative_vertices
                 .iter()
-                .fold(SVector::<f64, 3>::zeros(), |sum, vertex| sum + vertex)
-                / 4.0;
+                .fold(SVector::<f64, D>::zeros(), |sum, vertex| sum + vertex)
+                / (D + 1) as f64;
 
-            let local_second_moment = relative_vertices.iter().fold(
-                SMatrix::<f64, 3, 3>::zeros(),
+            let centered_cell_moment = relative_vertices.iter().fold(
+                SMatrix::<f64, D, D>::zeros(),
                 |sum, vertex| {
                     let centered = vertex - centroid_relative;
                     sum + centered * centered.transpose()
                 },
-            ) * (tetrahedron_mass / 20.0);
+            ) * (cell_mass / ((D + 1) as f64 * (D + 2) as f64));
 
-            second_moment_about_reference += local_second_moment
-                + tetrahedron_mass
-                    * centroid_relative
-                    * centroid_relative.transpose();
-            weighted_center += tetrahedron_mass * centroid_relative;
-            total_mass += tetrahedron_mass;
+            second_moment_about_reference += centered_cell_moment
+                + cell_mass * centroid_relative * centroid_relative.transpose();
+            weighted_center += cell_mass * centroid_relative;
+            total_mass += cell_mass;
             if !total_mass.is_finite()
                 || !weighted_center.iter().all(|value| value.is_finite())
                 || !second_moment_about_reference
@@ -636,11 +662,32 @@ impl BivectorInertia<3> {
         let inertia =
             Self::from_second_moment_with_mass(total_mass, centered_second_moment)?;
 
-        Ok(TetrahedralMassProperties {
+        Ok(SimplexMassProperties {
             total_mass,
             center_of_mass,
             inertia,
         })
+    }
+}
+
+impl BivectorInertia<3> {
+    /// Integrate exact mass properties from non-overlapping tetrahedral cells.
+    ///
+    /// This convenience wrapper accepts four vertices and a constant density
+    /// per tetrahedron, then delegates to the generic D-simplex integration.
+    pub fn from_tetrahedra<I>(
+        tetrahedra: I,
+        relative_volume_tolerance: f64,
+    ) -> Result<TetrahedralMassProperties, RotationalInertiaError>
+    where
+        I: IntoIterator<Item = ([SVector<f64, 3>; 4], f64)>,
+    {
+        Self::from_simplices(
+            tetrahedra
+                .into_iter()
+                .map(|(vertices, density)| (vertices.into_iter().collect(), density)),
+            relative_volume_tolerance,
+        )
     }
 }
 
