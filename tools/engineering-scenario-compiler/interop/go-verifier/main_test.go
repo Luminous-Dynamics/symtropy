@@ -97,6 +97,10 @@ func TestStrictJCSInputEnforcesSizeAndNestingBounds(t *testing.T) {
 	if err := validateStrictJCSInput(oversized); err == nil {
 		t.Fatal("expected oversized JCS input to be rejected")
 	}
+	atSizeLimit := append([]byte{'0'}, bytes.Repeat([]byte{' '}, maxJCSInputBytes-1)...)
+	if err := validateStrictJCSInput(atSizeLimit); err != nil {
+		t.Fatalf("input at the byte limit was rejected: %v", err)
+	}
 
 	depth := maxJCSNestingDepth + 1
 	tooDeep := append(bytes.Repeat([]byte{'['}, depth), '0')
