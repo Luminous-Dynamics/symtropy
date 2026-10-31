@@ -229,6 +229,8 @@ pub struct PhysicsWorld<const D: usize> {
     pub bodies: Vec<RigidBody<D>>,
     pub constraints: Vec<Box<dyn Constraint<D>>>,
     pub gravity: SVector<f64, D>,
+    /// Explicit integration speed limits; unbounded by default.
+    integration_limits: integrator::IntegrationLimits,
     /// Contacts from the last step.
     pub contacts: Vec<ContactManifold<D>>,
     /// Collision events from the last step (for game logic callbacks).
@@ -305,6 +307,7 @@ impl<const D: usize> PhysicsWorld<D> {
             bodies: Vec::new(),
             constraints: Vec::new(),
             gravity,
+            integration_limits: integrator::IntegrationLimits::unbounded(),
             contacts: Vec::new(),
             collision_events: Vec::new(),
             sensor_events: Vec::new(),
@@ -501,6 +504,20 @@ impl<const D: usize> PhysicsWorld<D> {
         self.bodies.get_mut(idx)
     }
 
+    /// Set explicit real-time integration speed limits for all dynamic bodies.
+    ///
+    /// The default is unbounded. These application-defined caps use the
+    /// world's configured length/time units and are applied to every body
+    /// integration in subsequent steps.
+    pub fn set_integration_limits(&mut self, limits: integrator::IntegrationLimits) {
+        self.integration_limits = limits;
+    }
+
+    /// Read the current world integration limits.
+    pub fn integration_limits(&self) -> &integrator::IntegrationLimits {
+        &self.integration_limits
+    }
+
     /// Step with consciousness-physics callback.
     ///
     /// The callback modulates forces, impulses, and friction based on
@@ -580,6 +597,9 @@ impl<const D: usize> PhysicsWorld<D> {
             self.static_tree_dirty = false;
         }
 
+        // Copy the unit-aware policy before mutably iterating bodies.
+        let integration_limits = self.integration_limits;
+
         // 1. Integrate all bodies (skip sleeping)
         // Capture pre-integration positions for the CCD sweep (step 1b): CCD
         // needs the position at the START of this step combined with the
@@ -602,7 +622,8 @@ impl<const D: usize> PhysicsWorld<D> {
             if !body.sleeping {
                 body.force_accumulator =
                     callback.modulate_force(body.handle, &body.force_accumulator);
-                integrator::try_integrate(body, &self.gravity, dt).map_err(|cause| {
+                integrator::try_integrate_with_limits(body, &self.gravity, dt, &integration_limits)
+                    .map_err(|cause| {
                     PhysicsStepError {
                         phase: PhysicsStepPhase::BodyIntegration,
                         body_a: Some(body.handle),
