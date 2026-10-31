@@ -8,6 +8,9 @@ use serde_json::{Map, Number, Value};
 use std::fmt;
 
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
+pub const MAX_STRICT_JCS_INPUT_BYTES: usize = 1_048_576;
+pub const MAX_STRICT_JCS_NESTING_DEPTH: usize = 128;
+
 
 /// I-JSON excludes Unicode noncharacters from member names and string values.
 fn contains_unicode_noncharacter(value: &str) -> bool {
@@ -204,9 +207,54 @@ impl<'de> Visitor<'de> for StrictJcsValueVisitor {
     }
 }
 
+/// Enforce the same byte and container-depth profile as the Go verifier.
+fn validate_json_nesting_depth(input: &[u8]) -> Result<(), String> {
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for byte in input {
+        if in_string {
+            if escaped {
+                escaped = false;
+                continue;
+            }
+            match byte {
+                b'\\' => escaped = true,
+                b'"' => in_string = false,
+                _ => {}
+            }
+            continue;
+        }
+
+        match byte {
+            b'"' => in_string = true,
+            b'{' | b'[' => {
+                depth += 1;
+                if depth > MAX_STRICT_JCS_NESTING_DEPTH {
+                    return Err(format!(
+                        "JSON nesting depth exceeds {}",
+                        MAX_STRICT_JCS_NESTING_DEPTH
+                    ));
+                }
+            }
+            b'}' | b']' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
 /// Parse exactly one raw JSON value. Duplicate member names are detected after
 /// escape decoding, at every nesting depth, before a map can overwrite them.
 pub fn parse_strict_jcs_input(input: &[u8]) -> Result<Value, String> {
+    if input.len() > MAX_STRICT_JCS_INPUT_BYTES {
+        return Err(format!(
+            "input exceeds {}-byte JCS profile limit",
+            MAX_STRICT_JCS_INPUT_BYTES
+        ));
+    }
+    validate_json_nesting_depth(input)?;
     // Preserve integer-vs-float lexical identity before serde_json's visitor
     // can receive an oversized integer as a finite f64 fallback.
     validate_safe_integer_literals(input)?;
@@ -279,6 +327,16 @@ mod tests {
         assert_ne!(value["composed"], value["decomposed"]);
         assert!(value["symbol"].as_str().is_some());
         assert!(canonicalize_strict_jcs_input(input).is_ok());
+    }
+
+    #[test]
+    fn enforces_input_byte_and_nesting_depth_limits() {
+        let oversized = vec![b' '; MAX_STRICT_JCS_INPUT_BYTES + 1];
+        assert!(parse_strict_jcs_input(&oversized).is_err());
+
+        let depth = MAX_STRICT_JCS_NESTING_DEPTH + 1;
+        let too_deep = format!("{}0{}", "[".repeat(depth), "]".repeat(depth));
+        assert!(parse_strict_jcs_input(too_deep.as_bytes()).is_err());
     }
 
     #[test]
