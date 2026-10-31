@@ -495,11 +495,13 @@ fn crowding_distances(front: &[usize], population: &[Individual]) -> Vec<f64> {
         if maximum <= minimum {
             continue;
         }
-        for position in 1..(sorted.len() - 1) {
-            let index = sorted[position];
+        for triple in sorted.windows(3) {
+            let previous_index = triple[0];
+            let index = triple[1];
+            let next_index = triple[2];
             if distances[index].is_finite() {
-                let previous = objective_value(&population[sorted[position - 1]], objective);
-                let next = objective_value(&population[sorted[position + 1]], objective);
+                let previous = objective_value(&population[previous_index], objective);
+                let next = objective_value(&population[next_index], objective);
                 distances[index] += (next - previous) / (maximum - minimum);
             }
         }
