@@ -1294,6 +1294,21 @@ mod tests {
         let mut bad_prior = noisy_binary_kernel();
         bad_prior.initial_belief[0].mass = quarter();
         assert!(bad_prior.validate().unwrap_err().contains("initial joint belief mass"));
+
+        let mut missing_physical_ids = noisy_binary_kernel();
+        missing_physical_ids.physical_state_ids.clear();
+        assert!(missing_physical_ids
+            .validate()
+            .unwrap_err()
+            .contains("physical state ID count"));
+
+        let mut duplicate_sensor_ids = correlated_state_kernel();
+        duplicate_sensor_ids.sensor_state_ids[1] =
+            duplicate_sensor_ids.sensor_state_ids[0].clone();
+        assert!(duplicate_sensor_ids
+            .validate()
+            .unwrap_err()
+            .contains("duplicate sensor state ID"));
     }
 
     #[test]
