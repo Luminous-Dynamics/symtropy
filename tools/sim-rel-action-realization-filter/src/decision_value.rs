@@ -7,6 +7,7 @@
 pub mod finite_horizon;
 pub mod robust_finite_horizon;
 pub mod counterexample_search;
+pub mod sequential_conformal;
 
 use super::{
     ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PosteriorMass,
