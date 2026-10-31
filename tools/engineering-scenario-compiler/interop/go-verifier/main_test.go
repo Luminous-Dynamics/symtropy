@@ -75,6 +75,9 @@ func TestStrictJCSInputRejectsAmbiguousAndInvalidJSON(t *testing.T) {
 		{name: "non-finite binary64 overflow", input: []byte("1e9999")},
 		{name: "unsafe positive integer literal", input: []byte("9007199254740992")},
 		{name: "unsafe negative integer literal", input: []byte("-9007199254740992")},
+		{name: "plain integer beyond uint64", input: []byte("18446744073709551616")},
+		{name: "plain integer beyond int64", input: []byte("-9223372036854775809")},
+		{name: "minimum signed 128-bit integer literal", input: []byte("-170141183460469231731687303715884105728")},
 		{name: "trailing JSON value", input: []byte("{} {}")},
 	}
 	for _, test := range tests {
