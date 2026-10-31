@@ -1,0 +1,48 @@
+name: Matched dumbbell pHDAE and RATTLE campaign
+
+on:
+  pull_request:
+    paths:
+      - "tools/dumbbell-matched-campaign/**"
+      - "tools/dumbbell-rattle-reference/**"
+      - "tools/phdae-dumbbell-reference/**"
+      - "docs/research/DUMBBELL_MATCHED_PHDAE_RATTLE_CAMPAIGN_2026-10-31.md"
+      - ".github/workflows/dumbbell-matched-campaign.yml"
+  push:
+    branches:
+      - "research/dumbbell-rattle-matched-comparison-2026-10-31"
+
+permissions:
+  contents: read
+
+jobs:
+  matched-dumbbell-campaign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Check formatting
+        run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/dumbbell-matched-campaign/compare_dumbbell_solvers.rs
+
+      - name: Compile and run warning-denied tests
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 --test -D warnings \
+            tools/dumbbell-matched-campaign/compare_dumbbell_solvers.rs \
+            -o /tmp/dumbbell-campaign-tests
+          /tmp/dumbbell-campaign-tests
+
+      - name: Compile optimized comparison and verify deterministic output
+        run: |
+          rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
+            tools/dumbbell-matched-campaign/compare_dumbbell_solvers.rs \
+            -o /tmp/dumbbell-campaign
+          /tmp/dumbbell-campaign > /tmp/dumbbell-campaign-a.csv
+          /tmp/dumbbell-campaign > /tmp/dumbbell-campaign-b.csv
+          cmp /tmp/dumbbell-campaign-a.csv /tmp/dumbbell-campaign-b.csv
+          test "$(wc -l < /tmp/dumbbell-campaign-a.csv)" -eq 9
+          grep -q "^semi_explicit_phdae_dg," /tmp/dumbbell-campaign-a.csv
+          grep -q "^cartesian_rattle," /tmp/dumbbell-campaign-a.csv
