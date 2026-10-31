@@ -56,3 +56,12 @@ The robust optimizer performs finite-horizon dynamic programming over a vector o
 The optimizer preserves per-world objective vectors during Pareto pruning. This is required because observation probabilities differ across worlds: pruning only by current worst-case aggregates inside a subtree can discard a globally optimal shared policy. At the root, callers can minimize worst-case expected cost or nominal expected cost subject to worst-case hazard, false-identification and abstention budgets.
 
 The implementation is bounded and exact for the supplied finite model family, prior beliefs, action costs, horizon, and policy class. It is not evidence that the real process belongs to that family.
+
+
+## Seeded scientific challenge generator (SIM-REL-017)
+
+The \`benchmark\` module exposes four exact finite-state development families: memoryless measurement, physical specimen carryover, persistent sensor bias, and joint physical/sensor confounding. The seed deterministically selects a declared exact measurement accuracy; the generator version and seed are part of the case ID.
+
+The joint-confounding fixture starts with a mechanism-dependent specimen state and a persistent sensor offset. The first measurement has zero mechanism EIG. Calibration clears only the sensor state; washout clears only specimen state. The two interventions must both precede the measurement that distinguishes the mechanism. The exact dynamic program discovers this sequence, while the one-step EIG comparator cannot value either enabling action.
+
+The case exposes a 64-bit FNV-1a replay fingerprint for deterministic development convenience. It is explicitly non-cryptographic and must not be used as provenance authentication. Public seeds are not sealed holdouts.
