@@ -165,6 +165,7 @@ struct Report {
     reason: &'static str,
     characteristic_results: Vec<CharacteristicResult>,
     extra_characteristic_ids: Vec<String>,
+    child_receipts: Vec<ScalarReceipt>,
 }
 
 fn safe_id(value: &str) -> bool {
@@ -202,6 +203,12 @@ fn invalid_manifest(request: &Request, reason: &'static str) -> Report {
         reason,
         characteristic_results: Vec::new(),
         extra_characteristic_ids: Vec::new(),
+        child_receipts: {
+            let mut receipts = request.child_receipts.clone();
+            receipts.sort_by(|a, b| (&a.characteristic_id, a.issued_at_ns, &a.receipt_id)
+                .cmp(&(&b.characteristic_id, b.issued_at_ns, &b.receipt_id)));
+            receipts
+        },
     }
 }
 
@@ -556,36 +563,84 @@ fn aggregate(request: &Request) -> Report {
         indeterminate_count: indeterminate,
         missing_count: missing,
         optional_missing_count: optional_missing,
-        extra_receipt_count: extra_ids.len(),
+        extra_receipt_count: request.child_receipts.iter()
+            .filter(|receipt| !request.manifest.requirements.iter()
+                .any(|requirement| requirement.characteristic_id == receipt.characteristic_id))
+            .count(),
         outcome,
         reason,
         characteristic_results: results,
         extra_characteristic_ids: extra_ids,
+        child_receipts: {
+            let mut receipts = request.child_receipts.clone();
+            receipts.sort_by(|a, b| (&a.characteristic_id, a.issued_at_ns, &a.receipt_id)
+                .cmp(&(&b.characteristic_id, b.issued_at_ns, &b.receipt_id)));
+            receipts
+        },
     }
 }
 
 fn csv_header() -> &'static str {
-    "manifest_id,manifest_revision,manifest_sha256,part_id,serial_id,lot_id,product_revision,operation_id,decision_time_ns,required_count,mandatory_count,accepted_count,rejected_count,indeterminate_count,missing_count,optional_missing_count,extra_receipt_count,part_outcome,part_reason,characteristic_id,mandatory,current_receipt_id,current_receipt_sha256,scalar_outcome,scalar_reason,historical_receipt_ids,characteristic_disposition"
+    "row_type,manifest_id,manifest_revision,manifest_sha256,part_id,serial_id,lot_id,product_revision,operation_id,decision_time_ns,required_count,mandatory_count,accepted_count,rejected_count,indeterminate_count,missing_count,optional_missing_count,extra_receipt_count,extra_characteristic_ids,part_outcome,part_reason,characteristic_id,mandatory,current_receipt_id,current_receipt_sha256,scalar_outcome,scalar_reason,historical_receipt_ids,characteristic_disposition,source_receipt_id,source_receipt_sha256,source_receipt_characteristic_id,source_receipt_measurand_id,source_receipt_unit,source_receipt_specification_id,source_receipt_specification_revision,source_receipt_outcome,source_receipt_reason,source_receipt_evidence_state,source_receipt_is_current,source_receipt_supersedes_id,source_receipt_measured_at_ns,source_receipt_issued_at_ns"
 }
 
 fn csv_rows(report: &Report) -> Vec<String> {
-    report.characteristic_results.iter().map(|item| {
-        let hist = item.historical_receipt_ids.join("|");
-        format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
-            report.manifest_id, report.manifest_revision, report.manifest_sha256,
-            report.part_id, report.serial_id, report.lot_id, report.product_revision,
-            report.operation_id, report.decision_time_ns, report.required_count,
-            report.mandatory_count, report.accepted_count, report.rejected_count,
-            report.indeterminate_count, report.missing_count, report.optional_missing_count,
-            report.extra_receipt_count, report.outcome.code(), report.reason,
-            item.characteristic_id, item.mandatory,
+    let mut rows = Vec::new();
+    let summary_prefix = vec![
+        report.manifest_id.clone(), report.manifest_revision.clone(),
+        report.manifest_sha256.clone(), report.part_id.clone(), report.serial_id.clone(),
+        report.lot_id.clone(), report.product_revision.clone(), report.operation_id.clone(),
+        report.decision_time_ns.to_string(), report.required_count.to_string(),
+        report.mandatory_count.to_string(), report.accepted_count.to_string(),
+        report.rejected_count.to_string(), report.indeterminate_count.to_string(),
+        report.missing_count.to_string(), report.optional_missing_count.to_string(),
+        report.extra_receipt_count.to_string(), report.extra_characteristic_ids.join("|"),
+        report.outcome.code().to_string(), report.reason.to_string(),
+    ];
+
+    for item in &report.characteristic_results {
+        let mut cells = vec!["REQUIREMENT".to_string()];
+        cells.extend(summary_prefix.clone());
+        cells.extend([
+            item.characteristic_id.clone(),
+            item.mandatory.to_string(),
             item.current_receipt_id.clone().unwrap_or_default(),
             item.current_receipt_sha256.clone().unwrap_or_default(),
-            item.scalar_outcome.map(ScalarOutcome::code).unwrap_or_default(),
-            item.scalar_reason.clone().unwrap_or_default(), hist, item.disposition
-        )
-    }).collect()
+            item.scalar_outcome.map(ScalarOutcome::code).unwrap_or_default().to_string(),
+            item.scalar_reason.clone().unwrap_or_default(),
+            item.historical_receipt_ids.join("|"),
+            item.disposition.to_string(),
+        ]);
+        cells.extend(std::iter::repeat_n(String::new(), 14));
+        rows.push(cells.join(","));
+    }
+
+    // Emit every source receipt as its own row, including historical/superseded
+    // and undeclared extra receipts. The report can therefore be replayed
+    // without relying on only the selected current child receipt.
+    for child in &report.child_receipts {
+        let mut cells = vec!["SOURCE_RECEIPT".to_string()];
+        cells.extend(summary_prefix.clone());
+        cells.extend(std::iter::repeat_n(String::new(), 8));
+        cells.extend([
+            child.receipt_id.clone(),
+            child.receipt_sha256.clone(),
+            child.characteristic_id.clone(),
+            child.measurand_id.clone(),
+            child.unit.clone(),
+            child.specification_id.clone(),
+            child.specification_revision.clone(),
+            child.outcome.code().to_string(),
+            child.reason_code.clone(),
+            child.evidence_state.code().to_string(),
+            child.is_current.to_string(),
+            child.supersedes_receipt_id.clone().unwrap_or_default(),
+            child.measured_at_ns.to_string(),
+            child.issued_at_ns.to_string(),
+        ]);
+        rows.push(cells.join(","));
+    }
+    rows
 }
 
 fn receipt(characteristic: &str, id: &str, outcome: ScalarOutcome) -> ScalarReceipt {
