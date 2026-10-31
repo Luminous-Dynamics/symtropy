@@ -48,7 +48,7 @@ Do not label every conflict a paradox. A testable factual error is not made true
 
 Use a **plurality-preserving decision record** with:
 
-1. Stable IDs for each position, source/constituency, statement, rationale, evidence references and correction history.
+1. Stable IDs for each position, source/constituency, statement, rationale, evidence references, source-authored corrections and explicit withdrawal history. Original statements remain auditable after correction or withdrawal.
 2. A typed description of the tension (empirical, normative, resource, temporal, structural or interpretive).
 3. Explicit dependencies between poles: what each needs from the other and what fails if either is ignored.
 4. An uncertainty record: known evidence, missing evidence, assumptions, confidence intervals where meaningful, and what would change each position.
@@ -56,6 +56,7 @@ Use a **plurality-preserving decision record** with:
 6. A process-safeguard record: representation fidelity, accessible voice, dissent preservation, evidence review, appeal, conflict-of-interest disclosure.
 7. A hazard record with states such as reported, corroborated, substantiated, refuted and unresolved.
 8. A decision disposition, if any, with reasons, review date, reversal or stop conditions, and the preserved positions.
+9. A source can correct or explicitly withdraw its own position through an authenticated, append-only event; administrators cannot fabricate a source withdrawal. This host authorization/position-revision requirement is tracked in [kernel issue #3125](https://github.com/Luminous-Dynamics/symtropy/issues/3125).
 9. A durable dissent record: minority arguments are not silently deleted when a decision is made.
 10. An append-only process event stream: actor, time, event type, prior receipt, current receipt and evidence references for each safeguard, hazard and disposition transition. The genesis position set must also be anchored by a host-verified receipt.
 
