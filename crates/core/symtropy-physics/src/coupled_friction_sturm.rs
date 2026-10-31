@@ -457,22 +457,18 @@ fn polynomial_multiply(lhs: &[Rational], rhs: &[Rational]) -> Polynomial {
 /// Independently derive the half-angle quartic from exact dyadic W, q and mu.
 /// This expands the vector equation in polynomial form rather than copying the
 /// production's closed-form coefficient array.
-fn exact_sliding_quartic_from_inputs(
-    w: &Matrix3<f64>,
-    q: &SVector<f64, 3>,
-    mu: f64,
-) -> Result<Polynomial, &'static str> {
-    let a = exact_f64(w[(0, 0)])?;
-    let d1 = exact_f64(w[(0, 1)])?;
-    let d2 = exact_f64(w[(0, 2)])?;
-    let qn = exact_f64(q[0])?;
-    let q1 = exact_f64(q[1])?;
-    let q2 = exact_f64(q[2])?;
-    let mu = exact_f64(mu)?;
-    let a11 = exact_f64(w[(1, 1)])?;
-    let a12 = exact_f64(w[(1, 2)])?;
-    let a22 = exact_f64(w[(2, 2)])?;
-
+fn exact_sliding_quartic_from_rational_inputs(
+    a: Rational,
+    d1: Rational,
+    d2: Rational,
+    qn: Rational,
+    q1: Rational,
+    q2: Rational,
+    mu: Rational,
+    a11: Rational,
+    a12: Rational,
+    a22: Rational,
+) -> Polynomial {
     // s numerator = (1-t^2, 2t), s_perp numerator = (-2t, 1-t^2).
     let one_plus_t2 = vec![Rational::one(), Rational::zero(), Rational::one()];
     let one_minus_t2 = vec![Rational::one(), Rational::zero(), -Rational::one()];
@@ -520,7 +516,26 @@ fn exact_sliding_quartic_from_inputs(
     );
     let third_factor = mu * qn;
     let third = polynomial_scale(&perp_dot_a_s, &third_factor);
-    Ok(polynomial_add(&polynomial_add(&first, &second), &third))
+    polynomial_add(&polynomial_add(&first, &second), &third)
+}
+
+fn exact_sliding_quartic_from_inputs(
+    w: &Matrix3<f64>,
+    q: &SVector<f64, 3>,
+    mu: f64,
+) -> Result<Polynomial, &'static str> {
+    Ok(exact_sliding_quartic_from_rational_inputs(
+        exact_f64(w[(0, 0)])?,
+        exact_f64(w[(0, 1)])?,
+        exact_f64(w[(0, 2)])?,
+        exact_f64(q[0])?,
+        exact_f64(q[1])?,
+        exact_f64(q[2])?,
+        exact_f64(mu)?,
+        exact_f64(w[(1, 1)])?,
+        exact_f64(w[(1, 2)])?,
+        exact_f64(w[(2, 2)])?,
+    ))
 }
 
 fn polynomial_from_roots(roots: &[Rational]) -> Polynomial {
@@ -836,4 +851,819 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
         }
     }
     assert!(checked >= 120, "too many inconclusive roots: {inconclusive}");
+}
+
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ExactInterval {
+    lower: Rational,
+    upper: Rational,
+}
+
+impl ExactInterval {
+    fn new(lower: Rational, upper: Rational) -> Result<Self, &'static str> {
+        if lower > upper {
+            return Err("interval lower endpoint exceeds upper endpoint");
+        }
+        Ok(Self { lower, upper })
+    }
+
+    fn point(value: Rational) -> Self {
+        Self {
+            lower: value.clone(),
+            upper: value,
+        }
+    }
+
+    fn from_f64_bounds(lower: f64, upper: f64) -> Result<Self, &'static str> {
+        Self::new(exact_f64(lower)?, exact_f64(upper)?)
+    }
+
+    fn zero() -> Self {
+        Self::point(Rational::zero())
+    }
+
+    fn one() -> Self {
+        Self::point(Rational::one())
+    }
+
+    fn contains_zero(&self) -> bool {
+        self.lower <= Rational::zero() && self.upper >= Rational::zero()
+    }
+
+    fn excludes_zero(&self) -> bool {
+        self.upper < Rational::zero() || self.lower > Rational::zero()
+    }
+
+    fn add(&self, rhs: &Self) -> Self {
+        Self {
+            lower: self.lower.clone() + rhs.lower.clone(),
+            upper: self.upper.clone() + rhs.upper.clone(),
+        }
+    }
+
+    fn neg(&self) -> Self {
+        Self {
+            lower: -self.upper.clone(),
+            upper: -self.lower.clone(),
+        }
+    }
+
+    fn mul(&self, rhs: &Self) -> Self {
+        let products = [
+            self.lower.clone() * rhs.lower.clone(),
+            self.lower.clone() * rhs.upper.clone(),
+            self.upper.clone() * rhs.lower.clone(),
+            self.upper.clone() * rhs.upper.clone(),
+        ];
+        let mut lower = products[0].clone();
+        let mut upper = products[0].clone();
+        for value in products.iter().skip(1) {
+            if value < &lower {
+                lower = value.clone();
+            }
+            if value > &upper {
+                upper = value.clone();
+            }
+        }
+        Self { lower, upper }
+    }
+
+    fn pow(&self, exponent: u32) -> Self {
+        if exponent == 0 {
+            return Self::one();
+        }
+        let mut result = Self::one();
+        for _ in 0..exponent {
+            result = result.mul(self);
+        }
+        result
+    }
+
+    fn abs_upper(&self) -> Rational {
+        self.lower.abs().max(self.upper.abs())
+    }
+
+    fn midpoint(&self) -> Rational {
+        (self.lower.clone() + self.upper.clone())
+            / Rational::from_integer(BigInt::from(2))
+    }
+}
+
+type IntervalPolynomial = Vec<ExactInterval>;
+
+fn interval_polynomial_add(
+    lhs: &[ExactInterval],
+    rhs: &[ExactInterval],
+) -> IntervalPolynomial {
+    let mut sum = vec![ExactInterval::zero(); lhs.len().max(rhs.len())];
+    for (index, coefficient) in lhs.iter().enumerate() {
+        sum[index] = sum[index].add(coefficient);
+    }
+    for (index, coefficient) in rhs.iter().enumerate() {
+        sum[index] = sum[index].add(coefficient);
+    }
+    sum
+}
+
+fn interval_polynomial_scale(
+    poly: &[ExactInterval],
+    factor: &ExactInterval,
+) -> IntervalPolynomial {
+    poly.iter().map(|coefficient| coefficient.mul(factor)).collect()
+}
+
+fn interval_polynomial_multiply(
+    lhs: &[ExactInterval],
+    rhs: &[ExactInterval],
+) -> IntervalPolynomial {
+    if lhs.is_empty() || rhs.is_empty() {
+        return Vec::new();
+    }
+    let mut product = vec![ExactInterval::zero(); lhs.len() + rhs.len() - 1];
+    for (left_power, left) in lhs.iter().enumerate() {
+        for (right_power, right) in rhs.iter().enumerate() {
+            let index = left_power + right_power;
+            product[index] = product[index].add(&left.mul(right));
+        }
+    }
+    product
+}
+
+/// Interval expansion of the half-angle vector equation. Every operation is
+/// exact rational interval arithmetic; dependency overestimation is allowed,
+/// false exclusion of a possible coefficient is not.
+fn interval_sliding_quartic(
+    a: &ExactInterval,
+    d1: &ExactInterval,
+    d2: &ExactInterval,
+    qn: &ExactInterval,
+    q1: &ExactInterval,
+    q2: &ExactInterval,
+    mu: &ExactInterval,
+    a11: &ExactInterval,
+    a12: &ExactInterval,
+    a22: &ExactInterval,
+) -> IntervalPolynomial {
+    let one_plus_t2 = vec![
+        ExactInterval::one(),
+        ExactInterval::zero(),
+        ExactInterval::one(),
+    ];
+    let one_minus_t2 = vec![
+        ExactInterval::one(),
+        ExactInterval::zero(),
+        ExactInterval::one().neg(),
+    ];
+    let two_t = vec![
+        ExactInterval::zero(),
+        ExactInterval::point(Rational::from_integer(BigInt::from(2))),
+    ];
+    let minus_two_t = interval_polynomial_scale(
+        &two_t,
+        &ExactInterval::one().neg(),
+    );
+
+    let d_linear = interval_polynomial_add(
+        &interval_polynomial_scale(&one_minus_t2, d1),
+        &interval_polynomial_scale(&two_t, d2),
+    );
+    let d_numerator = interval_polynomial_add(
+        &interval_polynomial_scale(&one_plus_t2, a),
+        &interval_polynomial_scale(&d_linear, &mu.neg()),
+    );
+
+    let q_tangent_perp = interval_polynomial_add(
+        &interval_polynomial_scale(&minus_two_t, q1),
+        &interval_polynomial_scale(&one_minus_t2, q2),
+    );
+    let d_perp = interval_polynomial_add(
+        &interval_polynomial_scale(&minus_two_t, d1),
+        &interval_polynomial_scale(&one_minus_t2, d2),
+    );
+
+    let a_s_first = interval_polynomial_add(
+        &interval_polynomial_scale(&one_minus_t2, a11),
+        &interval_polynomial_scale(&two_t, a12),
+    );
+    let a_s_second = interval_polynomial_add(
+        &interval_polynomial_scale(&one_minus_t2, a12),
+        &interval_polynomial_scale(&two_t, a22),
+    );
+    let perp_dot_a_s = interval_polynomial_add(
+        &interval_polynomial_multiply(&minus_two_t, &a_s_first),
+        &interval_polynomial_multiply(&one_minus_t2, &a_s_second),
+    );
+
+    let first = interval_polynomial_multiply(&d_numerator, &q_tangent_perp);
+    let second = interval_polynomial_scale(
+        &interval_polynomial_multiply(&d_perp, &one_plus_t2),
+        &qn.neg(),
+    );
+    let third = interval_polynomial_scale(
+        &perp_dot_a_s,
+        &mu.mul(qn),
+    );
+    interval_polynomial_add(&interval_polynomial_add(&first, &second), &third)
+}
+
+fn interval_monomial(
+    integer_scale: i64,
+    factors: &[(&ExactInterval, u32)],
+) -> ExactInterval {
+    let mut value = ExactInterval::point(Rational::from_integer(BigInt::from(integer_scale)));
+    for (factor, power) in factors {
+        value = value.mul(&factor.pow(*power));
+    }
+    value
+}
+
+/// Exact interval enclosure of the quartic discriminant. The closed form is
+/// expanded term-by-term with outward-exact rational interval operations.
+fn exact_quartic_discriminant_via_resultant(poly: &[Rational]) -> Result<Rational, &'static str> {
+    if poly.len() != 5 {
+        return Err("exact resultant helper requires a quartic");
+    }
+    let descending = poly.iter().rev().cloned().collect::<Vec<_>>();
+    let derivative_descending = vec![
+        &descending[0] * Rational::from_integer(BigInt::from(4)),
+        &descending[1] * Rational::from_integer(BigInt::from(3)),
+        &descending[2] * Rational::from_integer(BigInt::from(2)),
+        descending[3].clone(),
+    ];
+    let mut sylvester = vec![vec![Rational::zero(); 7]; 7];
+    for shift in 0..3 {
+        for (index, coefficient) in descending.iter().enumerate() {
+            sylvester[shift][shift + index] = coefficient.clone();
+        }
+    }
+    for shift in 0..4 {
+        for (index, coefficient) in derivative_descending.iter().enumerate() {
+            sylvester[3 + shift][shift + index] = coefficient.clone();
+        }
+    }
+
+    let mut determinant = Rational::one();
+    for pivot_index in 0..7 {
+        let pivot_row = (pivot_index..7)
+            .find(|row| !sylvester[*row][pivot_index].is_zero())
+            .ok_or("singular Sylvester matrix")?;
+        if pivot_row != pivot_index {
+            sylvester.swap(pivot_row, pivot_index);
+            determinant = -determinant;
+        }
+        let pivot = sylvester[pivot_index][pivot_index].clone();
+        determinant *= pivot.clone();
+        for row in pivot_index + 1..7 {
+            if sylvester[row][pivot_index].is_zero() {
+                continue;
+            }
+            let factor = sylvester[row][pivot_index].clone() / pivot.clone();
+            for column in pivot_index + 1..7 {
+                sylvester[row][column] -=
+                    factor.clone() * sylvester[pivot_index][column].clone();
+            }
+            sylvester[row][pivot_index] = Rational::zero();
+        }
+    }
+    let leading = poly.last().ok_or("missing quartic leading coefficient")?;
+    if leading.is_zero() {
+        return Err("quartic leading coefficient is zero");
+    }
+    // For degree four, (-1)^(4*3/2) = +1, so Disc(P)=Res(P,P')/a.
+    Ok(determinant / leading.clone())
+}
+
+fn quartic_discriminant_interval(coefficients: &[ExactInterval]) -> Result<ExactInterval, &'static str> {
+    if coefficients.len() != 5 {
+        return Err("quartic coefficient interval vector must have length five");
+    }
+    let e = &coefficients[0];
+    let d = &coefficients[1];
+    let c = &coefficients[2];
+    let b = &coefficients[3];
+    let a = &coefficients[4];
+
+    let terms = [
+        interval_monomial(256, &[(a, 3), (e, 3)]),
+        interval_monomial(-192, &[(a, 2), (b, 1), (d, 1), (e, 2)]),
+        interval_monomial(-128, &[(a, 2), (c, 2), (e, 2)]),
+        interval_monomial(144, &[(a, 2), (c, 1), (d, 2), (e, 1)]),
+        interval_monomial(-27, &[(a, 2), (d, 4)]),
+        interval_monomial(144, &[(a, 1), (b, 2), (c, 1), (e, 2)]),
+        interval_monomial(-6, &[(a, 1), (b, 2), (d, 2), (e, 1)]),
+        interval_monomial(-80, &[(a, 1), (b, 1), (c, 2), (d, 1), (e, 1)]),
+        interval_monomial(18, &[(a, 1), (b, 1), (c, 1), (d, 3)]),
+        interval_monomial(16, &[(a, 1), (c, 4), (e, 1)]),
+        interval_monomial(-4, &[(a, 1), (c, 3), (d, 2)]),
+        interval_monomial(-27, &[(b, 4), (e, 2)]),
+        interval_monomial(18, &[(b, 3), (c, 1), (d, 1), (e, 1)]),
+        interval_monomial(-4, &[(b, 3), (d, 3)]),
+        interval_monomial(-4, &[(b, 2), (c, 3), (e, 1)]),
+        interval_monomial(1, &[(b, 2), (c, 2), (d, 2)]),
+    ];
+    Ok(terms
+        .iter()
+        .fold(ExactInterval::zero(), |sum, term| sum.add(term)))
+}
+
+#[derive(Clone, Debug)]
+struct ContactInputBox {
+    // Independent symmetric entries: W = [[w00,w01,w02],[w01,w11,w12],[w02,w12,w22]].
+    w00: ExactInterval,
+    w01: ExactInterval,
+    w02: ExactInterval,
+    w11: ExactInterval,
+    w12: ExactInterval,
+    w22: ExactInterval,
+    q0: ExactInterval,
+    q1: ExactInterval,
+    q2: ExactInterval,
+    mu: ExactInterval,
+}
+
+impl ContactInputBox {
+    fn from_f64_bounds(bounds: [[f64; 2]; 10]) -> Result<Self, &'static str> {
+        Ok(Self {
+            w00: ExactInterval::from_f64_bounds(bounds[0][0], bounds[0][1])?,
+            w01: ExactInterval::from_f64_bounds(bounds[1][0], bounds[1][1])?,
+            w02: ExactInterval::from_f64_bounds(bounds[2][0], bounds[2][1])?,
+            w11: ExactInterval::from_f64_bounds(bounds[3][0], bounds[3][1])?,
+            w12: ExactInterval::from_f64_bounds(bounds[4][0], bounds[4][1])?,
+            w22: ExactInterval::from_f64_bounds(bounds[5][0], bounds[5][1])?,
+            q0: ExactInterval::from_f64_bounds(bounds[6][0], bounds[6][1])?,
+            q1: ExactInterval::from_f64_bounds(bounds[7][0], bounds[7][1])?,
+            q2: ExactInterval::from_f64_bounds(bounds[8][0], bounds[8][1])?,
+            mu: ExactInterval::from_f64_bounds(bounds[9][0], bounds[9][1])?,
+        })
+    }
+
+    fn ordered_intervals(&self) -> Vec<ExactInterval> {
+        vec![
+            self.w00.clone(), self.w01.clone(), self.w02.clone(),
+            self.w11.clone(), self.w12.clone(), self.w22.clone(),
+            self.q0.clone(), self.q1.clone(), self.q2.clone(), self.mu.clone(),
+        ]
+    }
+
+    fn from_ordered_intervals(mut intervals: Vec<ExactInterval>) -> Result<Self, &'static str> {
+        if intervals.len() != 10 {
+            return Err("contact input interval vector must have ten entries");
+        }
+        let mut next = || intervals.remove(0);
+        Ok(Self {
+            w00: next(),
+            w01: next(),
+            w02: next(),
+            w11: next(),
+            w12: next(),
+            w22: next(),
+            q0: next(),
+            q1: next(),
+            q2: next(),
+            mu: next(),
+        })
+    }
+
+    fn split_widest_relative_interval(&self) -> Option<(Self, Self)> {
+        let intervals = self.ordered_intervals();
+        let mut selected: Option<(usize, Rational)> = None;
+        for (index, interval) in intervals.iter().enumerate() {
+            let width = interval.upper.clone() - interval.lower.clone();
+            if width.is_zero() {
+                continue;
+            }
+            let scale = Rational::one()
+                + interval.lower.abs().max(interval.upper.abs());
+            let score = width / scale;
+            if selected.as_ref().is_none_or(|(_, best)| score > *best) {
+                selected = Some((index, score));
+            }
+        }
+        let (index, _) = selected?;
+        let midpoint = intervals[index].midpoint();
+        if midpoint == intervals[index].lower || midpoint == intervals[index].upper {
+            return None;
+        }
+        let mut left = intervals.clone();
+        let mut right = intervals;
+        left[index] = ExactInterval::new(left[index].lower.clone(), midpoint.clone()).ok()?;
+        right[index] = ExactInterval::new(midpoint, right[index].upper.clone()).ok()?;
+        Some((
+            Self::from_ordered_intervals(left).ok()?,
+            Self::from_ordered_intervals(right).ok()?,
+        ))
+    }
+
+    fn gershgorin_spd_lower_bound(&self) -> Rational {
+        let row_0 = self.w00.lower.clone()
+            - self.w01.abs_upper()
+            - self.w02.abs_upper();
+        let row_1 = self.w11.lower.clone()
+            - self.w01.abs_upper()
+            - self.w12.abs_upper();
+        let row_2 = self.w22.lower.clone()
+            - self.w02.abs_upper()
+            - self.w12.abs_upper();
+        row_0.min(row_1).min(row_2)
+    }
+
+    fn representative_polynomial(&self) -> Polynomial {
+        exact_sliding_quartic_from_rational_inputs(
+            self.w00.midpoint(),
+            self.w01.midpoint(),
+            self.w02.midpoint(),
+            self.q0.midpoint(),
+            self.q1.midpoint(),
+            self.q2.midpoint(),
+            self.mu.midpoint(),
+            self.w11.midpoint(),
+            self.w12.midpoint(),
+            self.w22.midpoint(),
+        )
+    }
+
+    fn coefficient_intervals(&self) -> IntervalPolynomial {
+        interval_sliding_quartic(
+            &self.w00,
+            &self.w01,
+            &self.w02,
+            &self.q0,
+            &self.q1,
+            &self.q2,
+            &self.mu,
+            &self.w11,
+            &self.w12,
+            &self.w22,
+        )
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum FamilyRootStatus {
+    Certified { finite_real_root_count: usize },
+    NeedsSubdivision(&'static str),
+    InvalidInput(&'static str),
+}
+
+#[derive(Clone, Debug)]
+struct FamilyRootCertificate {
+    status: FamilyRootStatus,
+    coefficient_intervals: IntervalPolynomial,
+    leading_coefficient: Option<ExactInterval>,
+    discriminant: Option<ExactInterval>,
+    spd_gershgorin_lower_bound: Rational,
+}
+
+fn certify_contact_input_box(input: &ContactInputBox) -> FamilyRootCertificate {
+    let spd_lower_bound = input.gershgorin_spd_lower_bound();
+    let coefficients = input.coefficient_intervals();
+    let leading = coefficients.get(4).cloned();
+    let discriminant = if coefficients.len() == 5 {
+        quartic_discriminant_interval(&coefficients).ok()
+    } else {
+        None
+    };
+
+    let status = if input.mu.lower < Rational::zero() {
+        FamilyRootStatus::InvalidInput("friction interval contains negative values")
+    } else if input.mu.lower <= Rational::zero() {
+        FamilyRootStatus::NeedsSubdivision("friction interval includes zero")
+    } else if spd_lower_bound <= Rational::zero() {
+        FamilyRootStatus::NeedsSubdivision("interval Gershgorin bound does not prove SPD")
+    } else if leading.as_ref().is_none_or(|coefficient| coefficient.contains_zero()) {
+        FamilyRootStatus::NeedsSubdivision("leading coefficient may cross the projective boundary")
+    } else if discriminant.as_ref().is_none_or(ExactInterval::contains_zero) {
+        FamilyRootStatus::NeedsSubdivision("discriminant enclosure contains zero or is unavailable")
+    } else {
+        let representative = input.representative_polynomial();
+        match sturm_isolate_rational(representative) {
+            Ok(intervals) => FamilyRootStatus::Certified {
+                finite_real_root_count: intervals.len(),
+            },
+            Err(_) => FamilyRootStatus::NeedsSubdivision("representative exact Sturm count failed"),
+        }
+    };
+
+    FamilyRootCertificate {
+        status,
+        coefficient_intervals: coefficients,
+        leading_coefficient: leading,
+        discriminant,
+        spd_gershgorin_lower_bound: spd_lower_bound,
+    }
+}
+
+#[test]
+fn interval_discriminant_formula_matches_an_independent_exact_resultant() {
+    let roots = [-3_i64, -1, 2, 5]
+        .into_iter()
+        .map(|value| Rational::from_integer(BigInt::from(value)))
+        .collect::<Vec<_>>();
+    let polynomial = polynomial_from_roots(&roots);
+    let exact_discriminant = exact_quartic_discriminant_via_resultant(&polynomial).unwrap();
+    let interval_coefficients = polynomial
+        .iter()
+        .cloned()
+        .map(ExactInterval::point)
+        .collect::<Vec<_>>();
+    let enclosed = quartic_discriminant_interval(&interval_coefficients).unwrap();
+    assert_eq!(enclosed.lower, exact_discriminant);
+    assert_eq!(enclosed.upper, exact_discriminant);
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum FamilySubdivisionStatus {
+    UniformlyCertified { finite_real_root_count: usize, certified_leaves: usize },
+    RootCountVaries { counts: Vec<usize> },
+    Inconclusive { certified_leaves: usize, unresolved_leaves: usize },
+    InvalidInput { invalid_leaves: usize },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct FamilySubdivisionSummary {
+    status: FamilySubdivisionStatus,
+    visited_boxes: usize,
+}
+
+fn subdivide_contact_family(
+    input: &ContactInputBox,
+    max_depth: usize,
+    max_boxes: usize,
+) -> FamilySubdivisionSummary {
+    fn visit(
+        input: &ContactInputBox,
+        depth: usize,
+        max_depth: usize,
+        max_boxes: usize,
+        visited: &mut usize,
+        counts: &mut Vec<usize>,
+        certified_leaf_count: &mut usize,
+        unresolved: &mut usize,
+        invalid: &mut usize,
+    ) {
+        if *visited >= max_boxes {
+            *unresolved += 1;
+            return;
+        }
+        *visited += 1;
+        let certificate = certify_contact_input_box(input);
+        match certificate.status {
+            FamilyRootStatus::Certified { finite_real_root_count } => {
+                counts.push(finite_real_root_count);
+                *certified_leaf_count += 1;
+            }
+            FamilyRootStatus::InvalidInput(_) => {
+                *invalid += 1;
+            }
+            FamilyRootStatus::NeedsSubdivision(_) if depth < max_depth => {
+                if let Some((left, right)) = input.split_widest_relative_interval() {
+                    visit(
+                        &left, depth + 1, max_depth, max_boxes,
+                        visited, counts, certified_leaf_count, unresolved, invalid,
+                    );
+                    visit(
+                        &right, depth + 1, max_depth, max_boxes,
+                        visited, counts, certified_leaf_count, unresolved, invalid,
+                    );
+                } else {
+                    *unresolved += 1;
+                }
+            }
+            FamilyRootStatus::NeedsSubdivision(_) => {
+                *unresolved += 1;
+            }
+        }
+    }
+
+    let mut visited = 0;
+    let mut counts = Vec::new();
+    let mut certified_leaf_count = 0;
+    let mut unresolved = 0;
+    let mut invalid = 0;
+    visit(
+        input, 0, max_depth, max_boxes,
+        &mut visited, &mut counts, &mut certified_leaf_count, &mut unresolved, &mut invalid,
+    );
+    counts.sort_unstable();
+    counts.dedup();
+    let certified_leaves = certified_leaf_count;
+    let status = if invalid > 0 {
+        FamilySubdivisionStatus::InvalidInput {
+            invalid_leaves: invalid,
+        }
+    } else if unresolved > 0 {
+        FamilySubdivisionStatus::Inconclusive {
+            certified_leaves,
+            unresolved_leaves: unresolved,
+        }
+    } else if counts.len() == 1 && certified_leaves > 0 {
+        FamilySubdivisionStatus::UniformlyCertified {
+            finite_real_root_count: counts[0],
+            certified_leaves,
+        }
+    } else if counts.len() > 1 {
+        FamilySubdivisionStatus::RootCountVaries { counts }
+    } else {
+        FamilySubdivisionStatus::Inconclusive {
+            certified_leaves,
+            unresolved_leaves: 1,
+        }
+    };
+    FamilySubdivisionSummary {
+        status,
+        visited_boxes: visited,
+    }
+}
+
+#[test]
+fn interval_coefficient_enclosures_contain_seeded_exact_dyadic_samples() {
+    let bounds = [
+        [0.95, 1.05],
+        [-0.02, 0.02],
+        [-0.02, 0.02],
+        [0.95, 1.05],
+        [-0.02, 0.02],
+        [0.95, 1.05],
+        [-1.05, -0.95],
+        [-3.05, -2.95],
+        [0.95, 1.05],
+        [0.20, 0.30],
+    ];
+    let input = ContactInputBox::from_f64_bounds(bounds).unwrap();
+    let enclosure = input.coefficient_intervals();
+
+    for seed in 0..128_u64 {
+        let mut values = [0.0_f64; 10];
+        for index in 0..10 {
+            let bucket = (seed * (13 + index as u64 * 17) + 7 * index as u64) % 1009;
+            let fraction = bucket as f64 / 1008.0;
+            values[index] = (bounds[index][0]
+                + fraction * (bounds[index][1] - bounds[index][0]))
+                .max(bounds[index][0])
+                .min(bounds[index][1]);
+        }
+        let exact = exact_sliding_quartic_from_rational_inputs(
+            exact_f64(values[0]).unwrap(),
+            exact_f64(values[1]).unwrap(),
+            exact_f64(values[2]).unwrap(),
+            exact_f64(values[6]).unwrap(),
+            exact_f64(values[7]).unwrap(),
+            exact_f64(values[8]).unwrap(),
+            exact_f64(values[9]).unwrap(),
+            exact_f64(values[3]).unwrap(),
+            exact_f64(values[4]).unwrap(),
+            exact_f64(values[5]).unwrap(),
+        );
+        assert_eq!(enclosure.len(), exact.len());
+        for (index, exact_coefficient) in exact.iter().enumerate() {
+            assert!(
+                enclosure[index].lower <= *exact_coefficient
+                    && *exact_coefficient <= enclosure[index].upper,
+                "seed={seed}, coefficient={index}"
+            );
+        }
+        let exact_discriminant = exact_quartic_discriminant_via_resultant(&exact)
+            .unwrap_or_else(|error| panic!("seed={seed}: {error}"));
+        let discriminant_enclosure = quartic_discriminant_interval(&enclosure).unwrap();
+        assert!(
+            discriminant_enclosure.lower <= exact_discriminant
+                && exact_discriminant <= discriminant_enclosure.upper,
+            "seed={seed}: exact discriminant escaped interval enclosure"
+        );
+    }
+}
+
+#[test]
+fn deterministic_family_subdivision_replays_identically() {
+    let input = ContactInputBox::from_f64_bounds([
+        [0.8, 1.2],
+        [-0.03, 0.03],
+        [-0.03, 0.03],
+        [0.8, 1.2],
+        [-0.03, 0.03],
+        [0.8, 1.2],
+        [-1.1, -0.9],
+        [-3.1, -2.9],
+        [0.9, 1.1],
+        [0.15, 0.35],
+    ]).unwrap();
+    let first = subdivide_contact_family(&input, 5, 63);
+    let second = subdivide_contact_family(&input, 5, 63);
+    assert_eq!(first, second);
+    assert!(first.visited_boxes <= 63);
+}
+
+#[test]
+fn interval_family_certificate_accepts_a_narrow_regular_spd_box() {
+    let input = ContactInputBox::from_f64_bounds([
+        [0.9999, 1.0001],
+        [-0.0001, 0.0001],
+        [-0.0001, 0.0001],
+        [0.9999, 1.0001],
+        [-0.0001, 0.0001],
+        [0.9999, 1.0001],
+        [-1.0001, -0.9999],
+        [-3.0001, -2.9999],
+        [0.9999, 1.0001],
+        [0.2499, 0.2501],
+    ]).unwrap();
+    let certificate = certify_contact_input_box(&input);
+    assert!(
+        matches!(certificate.status, FamilyRootStatus::Certified { finite_real_root_count: 2 }),
+        "unexpected family status: {:?}, leading={:?}, discriminant={:?}",
+        certificate.status,
+        certificate.leading_coefficient,
+        certificate.discriminant
+    );
+    assert!(certificate.spd_gershgorin_lower_bound > Rational::zero());
+    assert!(certificate.leading_coefficient.as_ref().is_some_and(ExactInterval::excludes_zero));
+    assert!(certificate.discriminant.as_ref().is_some_and(ExactInterval::excludes_zero));
+    assert_eq!(certificate.coefficient_intervals.len(), 5);
+}
+
+#[test]
+fn interval_family_certificate_refuses_projective_leading_coefficient_crossing() {
+    let input = ContactInputBox::from_f64_bounds([
+        [0.999, 1.001],
+        [0.0, 0.0],
+        [0.0, 0.0],
+        [0.999, 1.001],
+        [0.0, 0.0],
+        [0.999, 1.001],
+        [-1.001, -0.999],
+        [-3.001, -2.999],
+        [-0.001, 0.001],
+        [0.249, 0.251],
+    ]).unwrap();
+    let certificate = certify_contact_input_box(&input);
+    assert_eq!(
+        certificate.status,
+        FamilyRootStatus::NeedsSubdivision("leading coefficient may cross the projective boundary")
+    );
+}
+
+#[test]
+fn interval_family_certificate_refuses_boxes_without_an_spd_proof() {
+    let input = ContactInputBox::from_f64_bounds([
+        [0.9, 1.1],
+        [-1.0, 1.0],
+        [-1.0, 1.0],
+        [0.9, 1.1],
+        [-1.0, 1.0],
+        [0.9, 1.1],
+        [-1.1, -0.9],
+        [-3.1, -2.9],
+        [0.9, 1.1],
+        [0.24, 0.26],
+    ]).unwrap();
+    let certificate = certify_contact_input_box(&input);
+    assert_eq!(
+        certificate.status,
+        FamilyRootStatus::NeedsSubdivision("interval Gershgorin bound does not prove SPD")
+    );
+}
+
+#[test]
+fn interval_family_certificate_rejects_negative_friction_and_refuses_zero() {
+    let negative = ContactInputBox::from_f64_bounds([
+        [1.0, 1.0], [0.0, 0.0], [0.0, 0.0],
+        [1.0, 1.0], [0.0, 0.0], [1.0, 1.0],
+        [-1.0, -1.0], [-3.0, -3.0], [1.0, 1.0],
+        [-0.2, -0.1],
+    ]).unwrap();
+    assert!(matches!(
+        certify_contact_input_box(&negative).status,
+        FamilyRootStatus::InvalidInput(_)
+    ));
+
+    let includes_zero = ContactInputBox::from_f64_bounds([
+        [1.0, 1.0], [0.0, 0.0], [0.0, 0.0],
+        [1.0, 1.0], [0.0, 0.0], [1.0, 1.0],
+        [-1.0, -1.0], [-3.0, -3.0], [1.0, 1.0],
+        [0.0, 0.2],
+    ]).unwrap();
+    assert_eq!(
+        certify_contact_input_box(&includes_zero).status,
+        FamilyRootStatus::NeedsSubdivision("friction interval includes zero")
+    );
+}
+
+#[test]
+fn interval_discriminant_contains_zero_for_a_wide_unresolved_box() {
+    let input = ContactInputBox::from_f64_bounds([
+        [0.5, 1.5],
+        [-0.1, 0.1],
+        [-0.1, 0.1],
+        [0.5, 1.5],
+        [-0.1, 0.1],
+        [0.5, 1.5],
+        [-1.0, -0.5],
+        [-4.0, -2.0],
+        [-1.0, 1.0],
+        [0.1, 0.8],
+    ]).unwrap();
+    let certificate = certify_contact_input_box(&input);
+    assert!(certificate.discriminant.as_ref().is_some_and(ExactInterval::contains_zero));
+    assert!(matches!(certificate.status, FamilyRootStatus::NeedsSubdivision(_)));
 }
