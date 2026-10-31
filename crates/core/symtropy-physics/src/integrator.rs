@@ -221,7 +221,7 @@ pub fn try_integrate_with_limits<const D: usize>(
     // components are angular rates, so scaling by dt produces the generator's
     // angular displacement directly. This remains correct when angular motion
     // occupies several independent planes at once (e.g. a 4D double rotation).
-    if body.angular_velocity.norm_squared() > 1e-24 {
+    if body.angular_velocity.norm_squared() > 0.0 {
         let delta_generator = body.angular_velocity.scale(dt);
         let delta_rotation = Rotor::from_bivector(&delta_generator);
         body.transform.rotation = delta_rotation.compose(&body.transform.rotation);
@@ -997,6 +997,7 @@ mod tests {
             (1e6, 1e3, 1e3),
             (1e-3, 1e6, 1e-2),
             (1e3, 1e-6, 1e2),
+            (1e13, 1.0, 1e13),
         ] {
             let measured = dimensional_similarity_state(length, mass, time);
             assert!(
