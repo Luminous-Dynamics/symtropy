@@ -267,6 +267,16 @@ fn reject_cases() -> Vec<RejectCase> {
             expected_rejection_class: "unsafe_integer".to_owned(),
         },
         RejectCase {
+            case_id: "unsafe-integer-over-u64".to_owned(),
+            input: b"18446744073709551616".to_vec(),
+            expected_rejection_class: "unsafe_integer".to_owned(),
+        },
+        RejectCase {
+            case_id: "unsafe-integer-over-i64".to_owned(),
+            input: b"-9223372036854775809".to_vec(),
+            expected_rejection_class: "unsafe_integer".to_owned(),
+        },
+        RejectCase {
             case_id: "trailing-json-value".to_owned(),
             input: b"{} {}".to_vec(),
             expected_rejection_class: "trailing_content".to_owned(),
@@ -456,7 +466,7 @@ mod tests {
         let valid = valid_cases().unwrap();
         let rejected = reject_cases();
         assert_eq!(valid.len(), 12 + GENERATED_CASES);
-        assert_eq!(rejected.len(), 14);
+        assert_eq!(rejected.len(), 16);
         validate_case_ids(&valid, &rejected).unwrap();
         for case in &valid {
             assert!(parse_strict_jcs_input(&case.input).is_ok(), "{}", case.case_id);
