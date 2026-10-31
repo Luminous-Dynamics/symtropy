@@ -882,6 +882,194 @@ mod tests {
     }
 
     #[test]
+    fn unimodular_box_flip_preserves_cartesian_position_and_velocity() {
+        let old_basis = SMatrix::<f64, 2, 2>::from_row_slice(&[
+            2.0, 0.3,
+            0.0, 1.5,
+        ]);
+        let old_rate = SMatrix::<f64, 2, 2>::from_row_slice(&[
+            0.01, 0.02,
+            0.0, -0.03,
+        ]);
+        let origin = SVector::from([3.0, -2.0]);
+        let origin_velocity = SVector::from([0.2, -0.1]);
+        let old = frame2(
+            old_basis,
+            old_rate,
+            [3.0, -2.0],
+            [0.2, -0.1],
+            [true, true],
+        );
+
+        // U is integer-unimodular with det(U)=+1, representing a box-vector flip.
+        let u = SMatrix::<i64, 2, 2>::from_row_slice(&[
+            1, 1,
+            0, 1,
+        ]);
+        let u_f64 = u.map(|value| value as f64);
+        let next_basis = old_basis * u_f64;
+        let next_rate = old_rate * u_f64;
+        let next = frame2(
+            next_basis,
+            next_rate,
+            [3.0, -2.0],
+            [0.2, -0.1],
+            [true, true],
+        );
+
+        let fractional = FractionalCellState {
+            fractional_position: SVector::from([0.3, 0.4]),
+            fractional_velocity: SVector::from([0.7, -0.4]),
+        };
+        let before = old.to_cartesian(&fractional).unwrap();
+        let result = old.basis_rebase_to(&next, &before, u).unwrap();
+
+        assert_eq!(result.unimodular_determinant, 1);
+        assert!((result.after.position - before.position).norm() < 1e-11);
+        assert!((result.after.velocity - before.velocity).norm() < 1e-11);
+        assert!((result.fractional_after.fractional_position - SVector::from([-0.1, 0.4])).norm() < 1e-12);
+        assert!((result.fractional_after.fractional_velocity - SVector::from([1.1, -0.4])).norm() < 1e-12);
+        assert_eq!(result.before, result.after);
+    }
+
+    #[test]
+    fn randomized_integer_shears_preserve_the_same_cell_state() {
+        let old_basis = SMatrix::<f64, 2, 2>::from_row_slice(&[
+            2.0, 0.25,
+            0.0, 1.5,
+        ]);
+        let old_rate = SMatrix::<f64, 2, 2>::from_row_slice(&[
+            0.01, 0.02,
+            -0.005, 0.015,
+        ]);
+        let old = frame2(
+            old_basis,
+            old_rate,
+            [1.0, -3.0],
+            [0.1, 0.2],
+            [true, true],
+        );
+        let fractional = FractionalCellState {
+            fractional_position: SVector::from([0.35, -0.2]),
+            fractional_velocity: SVector::from([0.4, 0.7]),
+        };
+        let cartesian = old.to_cartesian(&fractional).unwrap();
+
+        for shear in -32_i64..=32_i64 {
+            let u = SMatrix::<i64, 2, 2>::from_row_slice(&[
+                1, shear,
+                0, 1,
+            ]);
+            let u_f64 = u.map(|value| value as f64);
+            let next = frame2(
+                old_basis * u_f64,
+                old_rate * u_f64,
+                [1.0, -3.0],
+                [0.1, 0.2],
+                [true, true],
+            );
+            let result = old.basis_rebase_to(&next, &cartesian, u)
+                .unwrap_or_else(|error| panic!("shear={shear}: {error}"));
+            assert!((result.after.position - cartesian.position).norm() < 1e-10);
+            assert!((result.after.velocity - cartesian.velocity).norm() < 1e-10);
+            assert_eq!(result.unimodular_determinant, 1);
+        }
+    }
+
+    #[test]
+    fn basis_rebase_rejects_non_unimodular_and_cross_mask_transforms() {
+        let old = frame2(
+            SMatrix::identity(),
+            SMatrix::zeros(),
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [true, false],
+        );
+        let cartesian = CartesianCellState {
+            position: SVector::from([0.2, 0.3]),
+            velocity: SVector::from([0.4, -0.1]),
+        };
+
+        let non_unimodular =
+            SMatrix::<i64, 2, 2>::from_row_slice(&[2, 0, 0, 1]);
+        let non_unimodular_next = frame2(
+            SMatrix::identity() * non_unimodular.map(|value| value as f64),
+            SMatrix::zeros(),
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [true, false],
+        );
+        assert_eq!(
+            old.basis_rebase_to(&non_unimodular_next, &cartesian, non_unimodular),
+            Err(PeriodicCellKinematicsError::InvalidIntegerBasisTransform)
+        );
+
+        let mixing = SMatrix::<i64, 2, 2>::from_row_slice(&[
+            1, 0,
+            1, 1,
+        ]);
+        let mixing_next = frame2(
+            mixing.map(|value| value as f64),
+            SMatrix::zeros(),
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [true, false],
+        );
+        assert_eq!(
+            old.basis_rebase_to(&mixing_next, &cartesian, mixing),
+            Err(PeriodicCellKinematicsError::BasisTransformMixesPeriodicSubspaces)
+        );
+    }
+
+    #[test]
+    fn three_dimensional_unimodular_rebase_preserves_cartesian_state() {
+        let basis = SMatrix::<f64, 3, 3>::from_row_slice(&[
+            2.0, 0.4, 0.1,
+            0.0, 1.5, 0.3,
+            0.0, 0.0, 1.2,
+        ]);
+        let rate = SMatrix::<f64, 3, 3>::from_row_slice(&[
+            0.01, 0.02, 0.0,
+            0.0, -0.01, 0.01,
+            0.0, 0.0, 0.02,
+        ]);
+        let origin = SVector::from([2.0, -1.0, 3.0]);
+        let origin_velocity = SVector::from([0.1, 0.2, -0.1]);
+        let old = PeriodicCellKinematics::new(
+            1.25,
+            origin,
+            origin_velocity,
+            basis,
+            rate,
+            [true, true, true],
+        ).unwrap();
+        let u = SMatrix::<i64, 3, 3>::from_row_slice(&[
+            1, 1, 0,
+            0, 1, 1,
+            0, 0, 1,
+        ]);
+        let u_f64 = u.map(|value| value as f64);
+        let next = PeriodicCellKinematics::new(
+            1.25,
+            origin,
+            origin_velocity,
+            basis * u_f64,
+            rate * u_f64,
+            [true, true, true],
+        ).unwrap();
+
+        let fractional = FractionalCellState {
+            fractional_position: SVector::from([0.2, 0.4, -0.3]),
+            fractional_velocity: SVector::from([1.0, -0.5, 0.25]),
+        };
+        let before = old.to_cartesian(&fractional).unwrap();
+        let result = old.basis_rebase_to(&next, &before, u).unwrap();
+        assert_eq!(result.unimodular_determinant, 1);
+        assert!((result.after.position - before.position).norm() < 1e-11);
+        assert!((result.after.velocity - before.velocity).norm() < 1e-11);
+    }
+
+    #[test]
     fn three_dimensional_skew_cell_roundtrips_fractional_kinematics() {
         let basis = SMatrix::<f64, 3, 3>::from_row_slice(&[
             2.0, 0.4, 0.1,
