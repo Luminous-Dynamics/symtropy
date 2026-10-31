@@ -204,7 +204,7 @@ mod tests {
         assert_eq!(receipt.candidate_world_id, "candidate");
         assert_eq!(receipt.candidate_trace_likelihood, Rational::one());
         assert!(matches!(
-            receipt.original_family_audit.status,
+            &receipt.original_family_audit.status,
             FamilyTraceStatus::OutOfDeclaredFamily { first_empty_prefix: 1 }
         ));
         assert_eq!(receipt.expanded_family_audit.supported_world_ids, vec!["candidate".to_string()]);
@@ -275,6 +275,24 @@ mod tests {
         ).unwrap();
         receipt.counterexample_trace.clear();
         assert!(!verify_model_family_revision(&original, &candidate, &receipt).unwrap());
+    }
+
+
+    #[test]
+    fn reordered_or_removed_original_worlds_invalidate_receipt() {
+        let original = vec![world("old-a", 0), world("old-b", 0)];
+        let candidate = world("candidate", 1);
+        let receipt = propose_model_family_revision(
+            &original,
+            &candidate,
+            &counterexample(),
+            None,
+        ).unwrap();
+
+        let reordered = vec![original[1].clone(), original[0].clone()];
+        assert!(!verify_model_family_revision(&reordered, &candidate, &receipt).unwrap());
+        let removed = vec![original[0].clone()];
+        assert!(!verify_model_family_revision(&removed, &candidate, &receipt).unwrap());
     }
 
     #[test]
