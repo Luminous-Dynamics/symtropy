@@ -39,6 +39,34 @@ jobs:
       - name: Resolve TOML 1.0 parser and regenerate standalone lock
         run: cargo generate-lockfile --manifest-path tools/engineering-scenario-compiler/Cargo.toml
 
+      - name: Install pinned Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.27.3"
+
+      - name: Checkout independent Go JCS implementation at immutable commit
+        uses: actions/checkout@v4
+        with:
+          repository: cyberphone/json-canonicalization
+          ref: 32a48195b9b20fe67b1795e39e4509f14d860b45
+          path: _interop/json-canonicalization
+
+      - name: Prepare isolated GOPATH for independent canonicalizer
+        run: |
+          mkdir -p "$RUNNER_TEMP/jcs-gopath/src/webpki.org"
+          cp -a _interop/json-canonicalization/go/src/webpki.org/jsoncanonicalizer \
+            "$RUNNER_TEMP/jcs-gopath/src/webpki.org/"
+
+      - name: Verify RFC 8785 golden bytes with independent Go implementation
+        working-directory: tools/engineering-scenario-compiler/interop/go-verifier
+        env:
+          GO111MODULE: "off"
+          GOPATH: ${{ runner.temp }}/jcs-gopath
+        run: |
+          go version
+          go test ./...
+          go run . ../golden/basic-input.json ../golden/basic-output.jcs
+
       - name: Test strict compiler and negative corpus
         run: cargo test --manifest-path tools/engineering-scenario-compiler/Cargo.toml
 
@@ -54,6 +82,9 @@ jobs:
             printf 'cargo='; cargo --version
             uname -a
             printf 'logical_cpus=%s\n' "$(nproc)"
+            printf 'canonicalization_profile=%s\n' "engineering-scenario-ir-jcs-rfc8785-v1"
+            printf 'independent_go_jcs_commit=%s\n' "32a48195b9b20fe67b1795e39e4509f14d860b45"
+            printf 'serde_jcs_version=%s\n' "0.2.0"
             sha256sum tools/engineering-scenario-compiler/Cargo.lock
           } > target/engineering-scenario-compiler-benchmark/reproducibility.txt
 
