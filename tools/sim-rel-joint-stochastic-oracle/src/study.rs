@@ -30,7 +30,10 @@ impl Default for PairedStudyConfig {
     fn default() -> Self {
         Self {
             seeds: (0..30).collect(),
-            benchmark: BenchmarkConfig::default(),
+            benchmark: BenchmarkConfig {
+                horizon: 2,
+                ..BenchmarkConfig::default()
+            },
             bootstrap_resamples: 2_000,
             confidence_level: 0.95,
             bootstrap_seed: 0x243f_6a88_85a3_08d3,
