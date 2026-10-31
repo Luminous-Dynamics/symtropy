@@ -64,8 +64,6 @@ jobs:
       - name: Strict Clippy
         run: cargo clippy --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib -- -D warnings
       - name: Verify exact formatted checkout and clean tree
-        env:
-          EXPECTED_FORMATTED_HEAD: ${{ env.EXPECTED_FORMATTED_HEAD }}
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_FORMATTED_HEAD"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
