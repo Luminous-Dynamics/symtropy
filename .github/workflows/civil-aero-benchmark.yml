@@ -360,6 +360,18 @@ jobs:
           test "$(wc -l < /tmp/input-lhs-a.csv)" -eq 385
           grep -q "synthetic_lhs_input_design_only samples=128 dimensions=3 rows=384 seed=20261031 no_solver_evaluations=true" /tmp/input-lhs-a.txt
           python3 scripts/verify-lhs-input-design-independent.py /tmp/input-lhs-a.csv
+      - name: Aggregate matched-budget policies across task families with clustered bootstrap
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin policy_aggregate_demo > /tmp/policy-aggregate-a.csv 2> /tmp/policy-aggregate-a.txt
+          cargo run --locked --bin policy_aggregate_demo > /tmp/policy-aggregate-b.csv 2> /tmp/policy-aggregate-b.txt
+          cmp /tmp/policy-aggregate-a.csv /tmp/policy-aggregate-b.csv
+          cmp /tmp/policy-aggregate-a.txt /tmp/policy-aggregate-b.txt
+          test "$(wc -l < /tmp/policy-aggregate-a.csv)" -eq 4
+          grep -q "synthetic_policy_task_aggregate_only tasks=10 replicates_per_task=3 policies=3 bootstrap_samples=10000 baseline=uniform task_cluster_bootstrap=true no_solver_evaluations=true" /tmp/policy-aggregate-a.txt
+          python3 scripts/verify-policy-aggregate-independent.py /tmp/policy-aggregate-a.csv
+          awk -F, 'NR > 1 && $1 == "voi" { if ($13 != 7 || $14 != 0 || $15 != 3) exit 1; found = 1 } END { if (!found) exit 1 }' /tmp/policy-aggregate-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |
