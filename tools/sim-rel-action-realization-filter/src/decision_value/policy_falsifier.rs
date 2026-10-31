@@ -786,6 +786,56 @@ mod tests {
         }
     }
 
+    fn make_two_apparatus_state_world(id: &str) -> DecisionModelWorld {
+        let mut rows = Vec::new();
+        for hypothesis in 0..2 {
+            for apparatus_state in 0..2 {
+                let state = LatentState {
+                    hypothesis,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    apparatus_state,
+                };
+                rows.push(KernelRow {
+                    state,
+                    command: 0,
+                    outcomes: vec![TransitionOutcome {
+                        probability: Rational::one(),
+                        next_state: state,
+                        realized_action: 0,
+                        readback: Some(0),
+                        measurement: Some(0),
+                        hazard: false,
+                    }],
+                });
+            }
+        }
+        DecisionModelWorld {
+            id: id.into(),
+            kernel: ActionRealizationKernel {
+                hypothesis_ids: vec!["h0".into(), "h1".into()],
+                physical_state_count: 1,
+                sensor_state_count: 1,
+                apparatus_state_count: 2,
+                command_ids: vec!["measure".into()],
+                realized_action_ids: vec!["performed".into()],
+                readback_ids: vec!["ack".into()],
+                measurement_ids: vec!["m0".into(), "m1".into()],
+                initial_belief: vec![
+                    BeliefMass {
+                        state: LatentState { hypothesis: 0, physical_state: 0, sensor_state: 0, apparatus_state: 0 },
+                        mass: half(),
+                    },
+                    BeliefMass {
+                        state: LatentState { hypothesis: 1, physical_state: 0, sensor_state: 0, apparatus_state: 0 },
+                        mass: half(),
+                    },
+                ],
+                rows,
+            },
+        }
+    }
+
     fn provenance(origin: CandidateOrigin, id: &str) -> ModelWorldProvenance {
         ModelWorldProvenance {
             parent_world_id: "reference".into(),
@@ -972,6 +1022,71 @@ mod tests {
             },
         ];
         assert!(generate_search_perturbation_candidates(&parent, &scenarios).is_err());
+    }
+
+    #[test]
+    fn apparatus_degradation_perturbation_changes_only_the_next_persistent_state() {
+        let parent = make_two_apparatus_state_world("apparatus");
+        let state = parent.kernel.initial_belief[0].state;
+        let generated = generate_search_perturbation_candidates(
+            &parent,
+            &[PerturbationScenario {
+                scenario_id: "degrade-apparatus".into(),
+                generator_version: "1".into(),
+                parameter_receipt: "next_apparatus_state=1".into(),
+                perturbation: KernelPerturbation::SetNextApparatusState {
+                    state,
+                    command: 0,
+                    outcome: 0,
+                    apparatus_state: 1,
+                },
+            }],
+        )
+        .unwrap();
+        assert_eq!(
+            generated[0].world.kernel.rows[0].outcomes[0].next_state.apparatus_state,
+            1
+        );
+        assert_eq!(
+            generated[0].world.kernel.initial_belief,
+            parent.kernel.initial_belief
+        );
+        generated[0].world.kernel.validate().unwrap();
+    }
+
+    #[test]
+    fn no_op_perturbations_are_rejected() {
+        let parent = make_world("parent", 0);
+        let state = parent.kernel.initial_belief[0].state;
+        let once = generate_search_perturbation_candidates(
+            &parent,
+            &[PerturbationScenario {
+                scenario_id: "suppress".into(),
+                generator_version: "1".into(),
+                parameter_receipt: "suppress-readback".into(),
+                perturbation: KernelPerturbation::SuppressReadback {
+                    state,
+                    command: 0,
+                    outcome: 0,
+                },
+            }],
+        )
+        .unwrap();
+        let second_suppression = PerturbationScenario {
+            scenario_id: "suppress-again".into(),
+            generator_version: "1".into(),
+            parameter_receipt: "suppress-already-missing-readback".into(),
+            perturbation: KernelPerturbation::SuppressReadback {
+                state,
+                command: 0,
+                outcome: 0,
+            },
+        };
+        assert!(generate_search_perturbation_candidates(
+            &once[0].world,
+            &[second_suppression]
+        )
+        .is_err());
     }
 
     #[test]
