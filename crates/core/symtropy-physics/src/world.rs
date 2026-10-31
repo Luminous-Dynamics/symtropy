@@ -151,8 +151,9 @@ impl From<crate::inertia::RotationalInertiaError> for PhysicsStepCause {
 
 /// Structured failure receipt from a rejected physics-world step.
 ///
-/// Body handles identify the affected object(s); the phase distinguishes
-/// integration, warm-start and contact-solve failures without parsing logs.
+/// The monotonic `step_id` correlates accepted/rejected attempts with an
+/// external input log. Body handles identify affected objects and the phase
+/// distinguishes configuration, integration, warm-start and contact failures.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PhysicsStepError {
     pub phase: PhysicsStepPhase,
@@ -2940,6 +2941,8 @@ mod transformed_halfspace_tests {
         let force_before = body.force_accumulator;
 
         let error = world.try_step(0.0).unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::WorldConfiguration);
+        assert_eq!(error.step_id, 0);
         assert_eq!(
             error.cause,
             PhysicsStepCause::Integration(integrator::IntegrationError::InvalidTimeStep)
