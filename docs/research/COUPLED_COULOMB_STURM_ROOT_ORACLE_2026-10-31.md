@@ -27,6 +27,14 @@ The new test-only verifier is implemented in coupled_friction_sturm.rs. It does 
 
 The test compares the production numerical candidates with the exact-input quartic's distinct-root count and isolating intervals. It also verifies that the rounded coefficient polynomial has the same count on the frozen corpus.
 
+### Projective direction at theta = pi
+
+The half-angle variable t = tan(theta/2) does not represent theta = pi at any finite t. In homogeneous/projective terms, this direction is t = infinity. If the quartic's leading coefficient vanishes, the angular equation may still have a valid theta = pi solution; a finite-root Sturm count alone would miss it.
+
+The verifier therefore checks the theta = pi branch separately using exact dyadic W, q and mu. It reconstructs the normal impulse from D(pi), then validates the original tangential velocity, nonnegative disk multiplier and full impulse kinetic-energy change. A direction that solves the angular equation but fails the original sliding KKT conditions is not counted as an admissible contact solution. A frozen SPD fixture has one finite real angular root plus an admissible theta = pi branch.
+
+The rational Cauchy enclosure uses a strict bound larger than the textbook non-strict bound, so neither finite-root interval endpoint can coincide with an uncounted root at the outer boundary.
+
 ### Claim boundary
 
 This certifies the number and isolating intervals of distinct real roots for the exact algebraic half-angle quartic formed from the **binary64 W, q and mu inputs**. It also checks the production rounded coefficient array against that exact-input polynomial on a preregistered corpus. It does not certify the correctness of the physical assembly of W or q, model uncertainty, the contact law beyond its derivation, or the impulse against the entire physical system beyond the existing independent residual checks. It is a root-completeness oracle for this single-contact quartic, not a complete formal proof of the entire contact solve.
@@ -49,7 +57,9 @@ Ordinary simple roots remain isolated by sign-changing monotone intervals. Repea
 - A close pair of distinct dyadic roots; exact Sturm resolves four roots while production refuses the ambiguous stationary point.
 - No-real-root and degree-reduced polynomials.
 - Positive/negative binary-power scaling invariance.
-- A deterministic 128-case panel of SPD 3x3 contact matrices; each exact-input quartic and rounded production quartic must have the same distinct-root count, and each resolved production root must match an exact isolating interval. At least 120 cases must be resolved by the production method; unresolved cases are separately counted rather than treated as successes.
+- A degree-reduced quartic with one finite real direction and a valid projective theta = pi direction; exact original impulse/KKT/energy checks must accept the projective candidate.
+- A degree-reduced quartic whose theta = pi angular direction fails the sliding KKT multiplier; it must not be promoted.
+- A deterministic 128-case panel of SPD 3x3 contact matrices; each exact-input quartic and rounded production quartic must have the same distinct finite-root count, and each resolved production root must match an exact isolating interval. At least 120 cases must be resolved by the production method; unresolved cases are separately counted rather than treated as successes.
 
 ## Promotion targets
 
