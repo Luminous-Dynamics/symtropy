@@ -35,6 +35,61 @@ pub fn nan_zeroed_count() -> u64 {
     NAN_ZEROED_COUNT.load(Ordering::Relaxed)
 }
 
+/// Explicit speed bounds for real-time integration.
+///
+/// The scientific/default path uses `unbounded()`: no hidden numeric velocity
+/// caps are applied. Applications with a declared operating envelope can opt
+/// into linear and angular speed caps in their own unit system.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct IntegrationLimits {
+    max_linear_speed: Option<f64>,
+    max_angular_speed: Option<f64>,
+}
+
+/// Invalid explicit integration speed bound.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IntegrationLimitError {
+    NonFiniteOrNonPositive,
+}
+
+impl IntegrationLimits {
+    /// No artificial speed bounds. This is the default scientific policy.
+    pub const fn unbounded() -> Self {
+        Self {
+            max_linear_speed: None,
+            max_angular_speed: None,
+        }
+    }
+
+    /// Construct explicit speed bounds in the caller's length/time units.
+    ///
+    /// Either bound may be None. Supplied values must be finite and positive.
+    pub fn with_speed_caps(
+        max_linear_speed: Option<f64>,
+        max_angular_speed: Option<f64>,
+    ) -> Result<Self, IntegrationLimitError> {
+        if max_linear_speed
+            .into_iter()
+            .chain(max_angular_speed)
+            .any(|value| !value.is_finite() || value <= 0.0)
+        {
+            return Err(IntegrationLimitError::NonFiniteOrNonPositive);
+        }
+        Ok(Self {
+            max_linear_speed,
+            max_angular_speed,
+        })
+    }
+
+    pub const fn max_linear_speed(&self) -> Option<f64> {
+        self.max_linear_speed
+    }
+
+    pub const fn max_angular_speed(&self) -> Option<f64> {
+        self.max_angular_speed
+    }
+}
+
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
@@ -59,6 +114,19 @@ pub fn try_integrate<const D: usize>(
     body: &mut RigidBody<D>,
     gravity: &SVector<f64, D>,
     dt: f64,
+) -> Result<(), crate::inertia::RotationalInertiaError> {
+    try_integrate_with_limits(body, gravity, dt, &IntegrationLimits::unbounded())
+}
+
+/// Transactional integration with explicit optional speed limits.
+///
+/// Any configured cap is applied deliberately and in the caller's unit
+/// system. The unbounded default does not silently erase physical energy.
+pub fn try_integrate_with_limits<const D: usize>(
+    body: &mut RigidBody<D>,
+    gravity: &SVector<f64, D>,
+    dt: f64,
+    limits: &IntegrationLimits,
 ) -> Result<(), crate::inertia::RotationalInertiaError> {
     if !body.is_dynamic() {
         body.clear_accumulators();
@@ -119,10 +187,13 @@ pub fn try_integrate<const D: usize>(
         body.linear_velocity *= (-dt / tau).exp();
     }
 
-    // Clamp velocity to prevent explosion
-    let speed = body.linear_velocity.norm();
-    if speed > 1000.0 {
-        body.linear_velocity *= 1000.0 / speed;
+    // Optional application-defined limit. The default scientific policy
+    // has no hidden absolute cap, preserving dimensional similarity.
+    if let Some(max_speed) = limits.max_linear_speed {
+        let speed = body.linear_velocity.norm();
+        if speed > max_speed {
+            body.linear_velocity *= max_speed / speed;
+        }
     }
 
     // Update position
@@ -138,10 +209,12 @@ pub fn try_integrate<const D: usize>(
         body.angular_velocity = body.angular_velocity.scale((-dt / ang_tau).exp());
     }
 
-    // Clamp angular velocity
-    let ang_speed = body.angular_velocity.norm();
-    if ang_speed > 100.0 {
-        body.angular_velocity = body.angular_velocity.scale(100.0 / ang_speed);
+    // Optional application-defined angular-rate limit (radians/second).
+    if let Some(max_speed) = limits.max_angular_speed {
+        let ang_speed = body.angular_velocity.norm();
+        if ang_speed > max_speed {
+            body.angular_velocity = body.angular_velocity.scale(max_speed / ang_speed);
+        }
     }
 
     // Integrate rotation through the SO(D) exponential map. The bivector
@@ -845,6 +918,50 @@ mod tests {
                 &SVector::new(1.0, 0.0, 0.0),
             ),
             Err(RotationalInertiaError::MassMismatch)
+        );
+    }
+
+    #[test]
+    fn unbounded_integrator_preserves_speeds_above_historical_caps() {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(20), Point::origin(), 0.5, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = SVector::new(1500.0, 0.0, 0.0);
+        body.angular_velocity = Bivector::<3>::unit_plane(0, 1).scale(120.0);
+
+        try_integrate(&mut body, &SVector::zeros(), 1e-4).unwrap();
+
+        assert!((body.linear_velocity.norm() - 1500.0).abs() < 1e-10);
+        assert!((body.angular_velocity.norm() - 120.0).abs() < 1e-10);
+        assert!((body.transform.translation.0[0] - 0.15).abs() < 1e-12);
+    }
+
+    #[test]
+    fn explicit_realtime_speed_caps_are_applied_only_when_configured() {
+        let limits = IntegrationLimits::with_speed_caps(Some(25.0), Some(8.0)).unwrap();
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(21), Point::origin(), 0.5, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = SVector::new(30.0, 0.0, 0.0);
+        body.angular_velocity = Bivector::<3>::unit_plane(0, 1).scale(12.0);
+
+        try_integrate_with_limits(&mut body, &SVector::zeros(), 1e-4, &limits).unwrap();
+
+        assert!((body.linear_velocity.norm() - 25.0).abs() < 1e-12);
+        assert!((body.angular_velocity.norm() - 8.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn integration_limits_reject_non_finite_or_non_positive_caps() {
+        assert_eq!(
+            IntegrationLimits::with_speed_caps(Some(0.0), None),
+            Err(IntegrationLimitError::NonFiniteOrNonPositive)
+        );
+        assert_eq!(
+            IntegrationLimits::with_speed_caps(None, Some(f64::INFINITY)),
+            Err(IntegrationLimitError::NonFiniteOrNonPositive)
         );
     }
 
