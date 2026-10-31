@@ -384,6 +384,18 @@ jobs:
           test "$(wc -l < /tmp/optimizer-candidates.csv)" -eq 45001
           grep -q "synthetic_analytic_optimizer_qualification_not_aerodynamic_evidence" /tmp/optimizer-quality.csv
           python3 scripts/verify-optimizer-qualification-independent.py /tmp/optimizer-quality.csv /tmp/optimizer-candidates.csv
+      - name: Verify risk-proportionate model credibility requirements
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin credibility_requirements_demo > /tmp/credibility-a.csv 2> /tmp/credibility-a.txt
+          cargo run --locked --bin credibility_requirements_demo > /tmp/credibility-b.csv 2> /tmp/credibility-b.txt
+          cmp /tmp/credibility-a.csv /tmp/credibility-b.csv
+          cmp /tmp/credibility-a.txt /tmp/credibility-b.txt
+          test "$(wc -l < /tmp/credibility-a.csv)" -eq 4
+          grep -q "requirements_assessment_only_no_evidence_completion_or_release_claim" /tmp/credibility-a.csv
+          grep -q "critical" /tmp/credibility-a.csv
+          grep -q "No independent verification or validation claim" /tmp/credibility-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |

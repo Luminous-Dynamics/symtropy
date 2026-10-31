@@ -356,3 +356,7 @@ The crate now executes uniform random search, an NSGA-II-style generational poli
 
 
 The optimizer scorecard records algorithm configuration IDs, decision dimensions, population size, evaluation cap, and the common-initialization rule in every summary row. Its independent oracle also verifies identical initial design vectors across policies before comparing search progress.
+
+## Risk-proportionate model credibility
+
+The risk_credibility module classifies model intended uses using a declared qualitative Luminous matrix based on model influence and decision consequence. It generates different evidence requirements for mechanistic, empirical and hybrid models, and adds controls for logic transparency and artifact availability. Output is a requirements assessment only: it never marks evidence complete or authorizes release. See RISK_PROPORTIONATE_MODEL_CREDIBILITY_PROTOCOL_V0_1.md.

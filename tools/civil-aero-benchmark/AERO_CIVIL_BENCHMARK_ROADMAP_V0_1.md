@@ -150,3 +150,8 @@ As of 2026-10-31, SU2 v8.6.0 is the latest public release. Immutable tag commit:
 ## Machine-readable solver source references
 
 The current and historical SU2 baselines are recorded in `data/solver_reference_manifest.v0.1.json` with exact tag commit SHAs. SU2 8.0.1 is reserved for reproducing the historical DPW8 participant setup; 8.6.0 is the latest-release comparison. Both lanes must use equivalent, independently admitted inputs before comparing numerical results. The manifest pins source only; it does not certify a build, run, solver receipt or validation.
+
+
+## Risk-proportionate VVUQ
+
+Model credibility effort should scale with model influence and decision consequence, not just model complexity or data volume. The repository adds a qualitative, versioned Luminous requirements matrix inspired by NIST AMS 100-85 (2026). It assigns evidence requirements by model creation type (mechanistic/data-driven/hybrid), logic transparency and artifact access. The output is requirements-only and cannot certify evidence completion or authorize flight/manufacturing. See RISK_PROPORTIONATE_MODEL_CREDIBILITY_PROTOCOL_V0_1.md.

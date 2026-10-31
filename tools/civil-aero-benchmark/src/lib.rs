@@ -18,6 +18,7 @@ pub mod interval_calibration;
 pub mod input_sampling;
 pub mod integrity;
 pub mod reference_data;
+pub mod risk_credibility;
 pub mod robust_voi;
 pub mod unsteady_spectrum;
 pub mod robustness;
