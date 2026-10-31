@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent stdlib oracle for task-clustered policy benchmark aggregation."""
+"""Independent stdlib oracle for hierarchical task-family policy aggregation."""
 from __future__ import annotations
 
 import csv
@@ -33,8 +33,7 @@ def median(values: list[float]) -> float:
 
 def nearest_rank(values: list[float], p: float) -> float:
     values = sorted(values)
-    rank = max(1, math.ceil(p * len(values)))
-    return values[rank - 1]
+    return values[max(1, math.ceil(p * len(values))) - 1]
 
 
 def stable_hash(value: str) -> int:
@@ -60,8 +59,6 @@ class XorShift64:
 def bootstrap_interval(values: list[float], policy: str) -> tuple[float, float]:
     seed = SEED ^ stable_hash(policy)
     rng = XorShift64(seed)
-    if seed == 0:
-        rng = XorShift64(0x9E3779B97F4A7C15)
     boot_means = []
     for _ in range(SAMPLES):
         sample = [values[rng.next() % len(values)] for _ in range(len(values))]
@@ -73,22 +70,33 @@ def bootstrap_interval(values: list[float], policy: str) -> tuple[float, float]:
     )
 
 
-def expected_rows() -> dict[str, dict]:
-    task_values = {"uniform": [], "voi": [], "adjoint": []}
+def task_family_scores() -> dict[str, list[float]]:
+    per_policy_tasks = {"uniform": [], "voi": [], "adjoint": []}
     for base, voi_delta, adjoint_delta in zip(BASELINE, VOI, ADJOINT, strict=True):
-        task_values["uniform"].append(median([base + j for j in JITTER]))
-        task_values["voi"].append(median([base + voi_delta + j for j in JITTER]))
-        task_values["adjoint"].append(median([base + adjoint_delta + j for j in JITTER]))
+        per_policy_tasks["uniform"].append(median([base + j for j in JITTER]))
+        per_policy_tasks["voi"].append(median([base + voi_delta + j for j in JITTER]))
+        per_policy_tasks["adjoint"].append(median([base + adjoint_delta + j for j in JITTER]))
 
+    family_scores = {policy: [] for policy in per_policy_tasks}
+    for family_index in range(5):
+        task_slice = slice(family_index * 2, family_index * 2 + 2)
+        for policy, task_scores in per_policy_tasks.items():
+            family_scores[policy].append(median(task_scores[task_slice]))
+    return family_scores
+
+
+def expected_rows() -> dict[str, dict]:
+    scores_by_policy = task_family_scores()
+    baseline = scores_by_policy["uniform"]
     results = {}
-    for policy, values in task_values.items():
-        deltas = [score - base for score, base in zip(values, task_values["uniform"], strict=True)]
+    for policy, scores in scores_by_policy.items():
+        deltas = [score - base for score, base in zip(scores, baseline, strict=True)]
         low, high = bootstrap_interval(deltas, policy)
         results[policy] = {
-            "mean": mean(values),
-            "median": median(values),
-            "p10": nearest_rank(values, 0.10),
-            "worst": min(values),
+            "mean": mean(scores),
+            "median": median(scores),
+            "p10": nearest_rank(scores, 0.10),
+            "worst": min(scores),
             "mean_delta": mean(deltas),
             "median_delta": median(deltas),
             "p10_delta": nearest_rank(deltas, 0.10),
@@ -118,28 +126,33 @@ def main() -> int:
         seen.add(policy)
         require(row["baseline_policy_id"] == "uniform", "baseline mismatch")
         require(int(row["task_count"]) == 10, "task count mismatch")
+        require(int(row["family_count"]) == 5, "family count mismatch")
         require(int(row["replicates_per_task"]) == 3, "replicate count mismatch")
         for field, key in [
-            ("mean_task_median_normalized_hypervolume", "mean"),
-            ("median_task_median_normalized_hypervolume", "median"),
-            ("p10_task_median_normalized_hypervolume", "p10"),
-            ("worst_task_normalized_hypervolume", "worst"),
+            ("mean_family_median_normalized_hypervolume", "mean"),
+            ("median_family_median_normalized_hypervolume", "median"),
+            ("p10_family_median_normalized_hypervolume", "p10"),
+            ("worst_family_normalized_hypervolume", "worst"),
             ("mean_paired_delta_vs_baseline", "mean_delta"),
             ("median_paired_delta_vs_baseline", "median_delta"),
             ("p10_paired_delta_vs_baseline", "p10_delta"),
-            ("worst_task_delta_vs_baseline", "worst_delta"),
+            ("worst_family_delta_vs_baseline", "worst_delta"),
             ("bootstrap_95_ci_low", "ci_low"),
             ("bootstrap_95_ci_high", "ci_high"),
         ]:
             actual, target = float(row[field]), expected[policy][key]
-            require(math.isclose(actual, target, rel_tol=1e-10, abs_tol=1e-12),
-                    f"{policy} {field}: {actual} != {target}")
+            require(
+                math.isclose(actual, target, rel_tol=1e-10, abs_tol=1e-12),
+                f"{policy} {field}: {actual} != {target}",
+            )
         for field, key in [
-            ("tasks_better", "better"), ("tasks_tied", "tied"), ("tasks_worse", "worse")
+            ("families_better", "better"),
+            ("families_tied", "tied"),
+            ("families_worse", "worse"),
         ]:
             require(int(row[field]) == expected[policy][key], f"{policy} {field} mismatch")
     require(seen == set(expected), "policy set incomplete")
-    print("independent_policy_aggregate_oracle=pass tasks=10 replicates=3 policies=3 cluster_bootstrap=10000")
+    print("independent_policy_family_aggregate_oracle=pass tasks=10 families=5 replicates=3 policies=3 cluster_bootstrap=10000")
     return 0
 
 

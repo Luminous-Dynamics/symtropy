@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::process;
 
 use civil_aero_benchmark::policy_aggregate::{
@@ -31,7 +32,7 @@ fn scorecard_row(
     };
     let total_cost = cap * utilization;
     PolicyBenchmarkRow {
-        task_id: format!("synthetic-family-{:02}", task_index + 1),
+        task_id: format!("synthetic-task-{:02}", task_index + 1),
         replicate_id: format!("seed-{}", replicate_index + 1),
         policy_id: policy.to_owned(),
         objective_1_name: "normalized_drag".to_owned(),
@@ -73,7 +74,12 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let mut rows = Vec::with_capacity(10 * 3 * 3);
+    let mut task_family_by_id = BTreeMap::new();
     for task_index in 0..10 {
+        let task_id = format!("synthetic-task-{:02}", task_index + 1);
+        let family_id = format!("synthetic-family-{:02}", task_index / 2 + 1);
+        task_family_by_id.insert(task_id, family_id);
+
         for (replicate_index, jitter) in REPLICATE_JITTER.iter().enumerate() {
             rows.push(scorecard_row(
                 task_index,
@@ -99,12 +105,15 @@ fn run() -> Result<(), String> {
     let config = PolicyAggregateConfig {
         baseline_policy_id: "uniform".to_owned(),
         cost_unit_basis: "synthetic_normalized_compute_credit_v0.1".to_owned(),
+        task_family_by_id,
         bootstrap_samples: 10_000,
         bootstrap_seed: 20_261_031,
     };
     let report = aggregate_policy_benchmark(&rows, &config)?;
     eprintln!(
-        "synthetic_policy_task_aggregate_only tasks=10 replicates_per_task=3 policies=3 bootstrap_samples={} baseline={} task_cluster_bootstrap=true no_solver_evaluations=true",
+        "synthetic_policy_family_aggregate_only tasks={} families={} replicates_per_task=3 policies=3 bootstrap_samples={} baseline={} family_cluster_bootstrap=true no_solver_evaluations=true",
+        report.task_count,
+        report.family_count,
         report.bootstrap_samples,
         report.baseline_policy_id
     );

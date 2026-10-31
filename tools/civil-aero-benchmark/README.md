@@ -330,3 +330,6 @@ This is an input-design generator only: it does not run CFD or estimate output u
 ## Multi-task policy aggregation
 
 The policy_aggregate module aggregates matched-budget scorecard rows across complete task/replicate/policy matrices. It uses each task's median replicate score, gives every task equal weight, reports task-level wins/ties/losses and worst-task performance, and bootstraps paired policy-minus-baseline differences by resampling whole tasks rather than individual replicates. The fixed synthetic demo has ten task families, three replicates and three policies; an independent Python oracle redoes the aggregation and the 10,000-sample bootstrap. This tests statistical plumbing only; it is not an aerodynamic result or evidence of policy superiority. The common cost-unit basis must be declared, and each task must use a single matched budget cap across all policies and replicates.
+
+
+The aggregate requires a frozen task-to-family mapping and resamples independent families/environments, not individual runs or sibling tasks. This is important for ShapeBench-style suites where multiple tasks share one environment; family mapping cannot be inferred from task IDs after results are seen.

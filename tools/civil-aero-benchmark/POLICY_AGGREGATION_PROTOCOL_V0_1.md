@@ -1,48 +1,57 @@
-# Multi-task policy aggregation protocol v0.1
+# Hierarchical policy aggregation protocol v0.2
 
 ## Purpose
 
-A policy benchmark with one task cannot support a claim about general optimizer performance. Shape and flow categories differ, and per-task optimizer rankings can change. This protocol aggregates already evaluated, evidence-gated policy scorecards across a declared family of tasks while keeping the task—not each individual run—as the unit of generalization.
+A policy benchmark with one task cannot support a claim about general optimizer performance. Moreover, multiple benchmark tasks may share a geometry or flow environment and therefore are not independent samples of generalization. This protocol first aggregates seeds within tasks, then tasks within explicitly declared families, and bootstraps at the family/environment level.
+
+## Frozen task-family mapping
+
+The caller supplies an exact task_id -> task_family_id mapping before comparing policies. Every scorecard task must appear exactly once; missing or additional mappings fail closed. A family should represent the independent geometry/environment or physical regime that defines the generalization unit, not a post-hoc grouping chosen to improve a policy's score.
+
+This supports ShapeBench's hierarchy of many individual optimization tasks nested inside a smaller number of geometry/environment categories. It prevents dozens of closely related tasks from being mistaken for dozens of independent generalization trials.
 
 ## Input contract
 
-Input rows must come from the policy benchmark scorecard and carry task, replicate and policy IDs, one task-level normalized validated hypervolume fraction, a fixed budget cap used by every policy and replicate within that task, the original operation accounting and evidence level.
+Input rows come from the policy benchmark scorecard and carry task, replicate and policy IDs, a normalized validated hypervolume fraction, one fixed budget cap across all policies/replicates within each task, and the original operation accounting/evidence level.
 
-The aggregator does not authenticate artifact receipts, re-run CFD, or make a synthetic input into experimental evidence. All input task ledgers must use the declared common cost-unit basis. Within each task, budget caps must match for every policy and replicate. Across tasks, the normalized hypervolume fraction removes objective-box units; the macro-average weights each task equally rather than weighting tasks by their number of runs.
+The aggregator does not authenticate artifact receipts, re-run CFD, or turn synthetic inputs into experimental evidence. All task ledgers must use the declared common cost-unit basis. Every family receives equal weight after within-family task medians are calculated.
 
-Require at least five independent task families and at least two replicates per task. This is a minimum software acceptance floor, not enough to claim robust SOTA superiority. The research target is at least 20 independent task families, preferably spanning 2D sections, 3D wings, delta-wing/transonic, blended-body, commercial-aircraft, and UAV-like design classes, with at least 5 independent seeds per task after the initial smoke stage.
+Require at least five independent families and at least two replicates for every task. These are software acceptance floors, not sufficient evidence for a SOTA claim. Research targets are at least eight independent environments and 20+ public tasks, with at least five seeds per task and complete blinded geometry/condition holdouts.
 
 ## Aggregation
 
-For each task and policy, take the median normalized validated hypervolume fraction over replicates. Compare every policy to the declared baseline with a paired task-level difference. Then report the macro mean and median of task-median normalized validated hypervolume; nearest-rank p10 and worst-task quality; mean and median paired delta to baseline; nearest-rank p10 and worst-task paired delta; tasks improved, tied and degraded; and a 95% percentile interval for the mean paired delta from a deterministic bootstrap resampling tasks as clusters.
+1. Check complete, identical task/replicate/policy matrices and matched task budget caps.
+2. For each task and policy, take the median normalized validated hypervolume fraction across independent replicates.
+3. For each family and policy, take the median of that family's task medians.
+4. Compare each policy to a declared baseline with a paired family-level difference.
+5. Report the macro mean and median of family-median scores; nearest-rank p10 and worst-family score; mean/median/p10/worst-family paired deltas; families improved, tied and degraded.
+6. Compute a deterministic percentile interval for the mean paired delta by resampling entire family clusters, not tasks or replicates.
 
-Replicate rows from one task are collapsed before bootstrap resampling. They are not treated as independent task families. Policies must have complete, identical task, replicate and policy matrices. Missing, duplicate, non-finite, out-of-range or over-budget rows fail closed.
-
-The deterministic bootstrap seed and sample count are recorded by the CLI; the independent oracle reimplements the XorShift64 resampling sequence and nearest-rank interval calculation.
+The seed, sample count and family mapping must be retained. The independent oracle reimplements the XorShift64 sequence and nearest-rank interval calculation.
 
 ## Interpretation
 
-The score is only as meaningful as the upstream admission record and task split. Freeze benchmark tasks, objective directions, ideal/reference boxes, baseline, total-cost accounting and blind confirmation split before tuning. Do not include the holdout geometry or test regimes in policy design. Report task-family breakdowns and failures, not merely the macro mean.
+A positive mean delta with a family-clustered confidence interval crossing zero is inconclusive. A positive mean with a negative p10 or substantial worst-family regression is not robust generalization. Do not state statistical superiority merely because the average is positive. Report all family results and all failed/omitted tasks.
 
-A positive mean delta with a confidence interval crossing zero is inconclusive. A positive mean with a negative p10 or a large worst-task loss is a fragile policy, not a general improvement. A claim of better-than-SOTA requires a blind, independently audited comparison against the strongest applicable baselines under identical per-task cost caps, including random/space-filling, Bayesian, adjoint/gradient, evolutionary and other ShapeBench baselines where license and adapters permit.
+A fair better-than-SOTA comparison requires frozen task/environment splits, identical per-task total-cost caps, pre-registered hyperparameters, and the strongest applicable random/space-filling, Bayesian, adjoint/gradient, evolutionary and ShapeBench baselines. Count training, tuning, failed solver attempts, mesh generation, acquisition and audit cost. Do not include blind holdout geometries or regimes during policy development.
 
 ## Synthetic known-answer
 
-The committed synthetic fixture contains ten tasks, three replicates and three policies named uniform, voi and adjoint. The uniform policy is the baseline. The fixed input includes a mixed set of per-family improvements and degradations. The independent oracle recomputes all aggregate metrics and 10,000 deterministic task-cluster bootstrap draws. All rows are explicitly synthetic and the workflow asserts no solver evaluations occurred.
+The workflow's synthetic fixture contains ten tasks, grouped into five families, three replicates and three policies (uniform, VOI and adjoint). Uniform is the declared baseline. The family-level input intentionally mixes positive and negative policy deltas. The independent Python oracle recomputes all family medians, macro metrics, win/tie/loss counts and 10,000 deterministic family-cluster bootstrap samples. No CFD or solver evaluations are performed.
 
-## Research targets
+## Targets
 
-Minimum acceptance:
+Minimum software acceptance:
 - complete task/replicate/policy matrix;
-- at least five task families and two replicates each;
-- deterministic aggregation and independent bootstrap agreement;
-- paired task-cluster resampling;
-- full task win/tie/loss and worst-task reporting;
-- no false generalization claim from a single task.
+- exact task-family mapping;
+- at least five families, two replicates per task;
+- deterministic outputs and independent oracle agreement;
+- family-level bootstrap, wins/losses, p10 and worst-family disclosure;
+- explicit evidence ceiling and no false generalization claim.
 
-Stretch:
-- 20+ public benchmark tasks, 5+ seeds;
+Research stretch:
+- eight or more independent benchmark environments and 20+ tasks;
+- five or more seeds per task;
 - blind geometry-family and flow-regime holdouts;
-- pre-registered baseline hyperparameters and compute caps;
-- independent source and receipt verification;
-- non-inferiority on worst-decile performance plus at least 20% fewer expensive evaluations at equal validated Pareto quality.
+- pre-registered baselines and total-cost caps;
+- non-inferiority on worst-decile/family performance plus at least 20% fewer high-fidelity evaluations at equal validated Pareto quality.
