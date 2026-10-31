@@ -89,7 +89,7 @@ Those are likely places where implicit unit assumptions remain. They need their 
 
 ## Strict failure and receipt semantics
 
-The strict integration path returns typed `IntegrationError` variants for invalid timestep, invalid parameters, non-finite input, non-finite candidate state, and wrapped rotational-inertia errors. The candidate body state is computed in locals and committed only if finite. The world wraps this in `PhysicsStepCause::Integration` and rolls back the entire physics-owned step on failure.
+The world rejects invalid timestep/gravity as `WorldConfiguration` failures before any phase. The strict integration path returns typed `IntegrationError` variants for invalid parameters, non-finite body/force/torque input, non-finite candidate state, and wrapped rotational-inertia errors. The candidate body state is computed in locals and committed only if finite. The world wraps this in `PhysicsStepCause::Integration` and rolls back the entire physics-owned step on failure.
 
 Each attempted world step receives a monotonic `step_id`. The identifier is consumed even when a step is rejected, appears in `PhysicsStepError`, and is also attached to an accepted `InvariantStepReceipt`. It allows an external command/input log to correlate accepted and rejected attempts; it is not a replay hash or a substitute for source/configuration provenance.
 
