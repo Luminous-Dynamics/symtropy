@@ -130,6 +130,9 @@ Run all policy arms on matched populations, capacities, budgets, shocks, seeds a
 | DD-26 | A resolved tension reactivates after an external shock | Reopen inquiry without deleting the prior disposition or claiming permanent resolution |
 | DD-27 | A short-term benefit transfers unpaid care or environmental cost to the future | Expose cross-horizon and subgroup incidence rather than optimizing only near-term output |
 | DD-28 | Repeatedly deferred disagreement accumulates material burden | Report the unresolved issue, age, owner, review date and burden by affected group; do not collapse into one score |
+| DD-29 | A source corrects its position after new evidence | Append a source-authenticated revision; retain the original statement and all earlier decisions |
+| DD-30 | An administrator attempts to withdraw another participant's position | Reject the mutation; do not change the active projection or append a purported source withdrawal |
+| DD-31 | A source withdraws and later reinstates its position | Append separate withdrawal and reinstatement events; replay preserves both and later decisions use the correct active projection |
 
 ### Required metrics
 
