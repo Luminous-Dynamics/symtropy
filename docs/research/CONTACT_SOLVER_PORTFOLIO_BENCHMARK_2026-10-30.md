@@ -16,28 +16,31 @@ Do not choose one contact solver and optimize it blindly. Build a **solver portf
 
 Selection must be auditable: report why a path was chosen, its conditioning estimate, stopping residuals, time budget and fallback.
 
-## Industry landscape as of 2026-10-30
+## Industry landscape as of 2026-10-31
 
-This is a comparison map, not a single leaderboard. The systems solve overlapping but non-identical problems.
+This is a comparison map, not one universal leaderboard. The systems solve overlapping but non-identical contact models, scenes and hardware targets.
 
-| System | Relevant current capability | Implication for Symtropy |
+| System | Current relevant capability | Implication for Symtropy |
 |---|---|---|
-| MuJoCo 3.16.0 | The current release is dated 2026-10-14. Its discrete integrator combines constraint solve and time integration in an effective metric \(\widehat M=M+hD+h^2K\), so the solve and velocity update share the same inertia. | Benchmark a shared effective-metric formulation; do not claim novelty merely for assembling a Delassus matrix. |
-| Rapier 0.35.3 | SIMD-batched contact processing is always enabled. The October 2026 Dimforge report describes a reworked parallelism model with intra-island parallelism, persistent graph coloring and parallel broad phase. | Rapier is the mandatory Rust CPU baseline. Comparing only independent-island parallelism would be outdated. |
-| Dimforge Nexus 0.7.0 | Rust-authored GPU multiphysics engine; the Q3 2026 report states 505,000 rigid bodies at about 14 ms/frame on an RTX 5080, with Soft-TGS and twist-friction (and no sleeping-island optimization at that point). | A serious Rust/GPU scaling baseline. Reproduce exact scene, hardware and accuracy envelope; the vendor-reported figure is not independently verified. |
-| NVIDIA PhysX 5.8 | Provides PGS and TGS, with TGS generally recommended; NVIDIA documents improvements in convergence, high-mass-ratio handling, drive accuracy and high-frequency effects. | Include dense stacks, high mass ratios and stiff drives; compare both time-to-residual and runtime. |
-| NVIDIA Newton | Open, GPU-accelerated, differentiable simulator built on Warp/OpenUSD; developed with Google DeepMind and Disney Research and managed by the Linux Foundation. | Use as an accelerated/differentiable robotics baseline; separate GPU and CPU comparisons. |
-| ComFree-Sim (2026 preprint) | Proposes analytical complementarity-free contact using a dual-cone impedance-style prediction/correction; includes a unified 6D friction model and reports near-linear scaling and 2–3× throughput vs MuJoCo Warp in its dense-contact experiments. | This is a serious alternative to iterative complementarity for dense contact. Reproduce matched cases; treat its reported speedup as an author result, not independently established fact. |
-| Project Chrono | Engineering/multiphysics-focused system with implicit integration strategies and broader physical coupling. | Use for selected engineering cases rather than claiming apples-to-apples rigid-body game-engine equivalence. |
+| MuJoCo 3.17.0 | Released 22 October 2026. Adds batched stepping for many copies of one model; its release notes state that batch output is bit-identical to a plain loop across thread counts. Its `discrete` integrator shares the effective metric between constraint solve and velocity update; the documentation still describes this method as new/under active development. | Benchmark both common-metric accuracy and batched determinism/throughput. Do not claim novelty merely for a shared effective metric. |
+| Rapier 0.35.3 | Rust CPU/SIMD rigid-body baseline. Dimforge's 25 October 2026 report describes intra-island parallelism, persistent graph coloring and parallel broad-phase, beyond only scheduling independent islands. The report gives up to 2× single-thread and 4× multi-thread improvement versus its earlier baseline on an M4 Max with 8 workers; that is a vendor's before/after result, not an independent cross-engine ranking. | Mandatory Rust CPU baseline. Compare dense islands, not just independent stacks. |
+| Nexus 0.7.0 | Rust-authored GPU shaders; Soft-TGS and twist-friction approximation. Dimforge reports a 505,000-body pyramid at about 14 ms/frame on an RTX 5080, without sleeping-island optimization. It also reports early 2D/3D MPM and CUDA backend performance. | Serious GPU scale reference, but reproduce the exact scene, hardware, accuracy, and contact law. The vendor figure is not an apples-to-apples result for Symtropy. |
+| Physmark | Open benchmark suite with rigid-body piles/stacks, many-environment robotics and MPM. Its public README lists scenes from 8 to 10,000 bodies, large brick scenes at 110,000 and 505,922 bodies, MPM 512–195,112 particles, and Go1/T1 robots in 1–8,192 environments. The runner chooses compatible backends, probes engines, and records videos; non-compatible engines may be skipped rather than silently assigned another backend. | Adopt its workload families and provenance rules. Extend with asymmetric inertia, physical residuals, N-D contact frames and source/configuration receipts. |
+| NVIDIA PhysX 5.8 | PGS and TGS, with TGS documented as the generally recommended solver. NVIDIA cites better convergence, high mass-ratio handling, joint-drive accuracy and high-frequency behavior. | Include TGS, friction patches, position/velocity iteration splits, high-mass-ratio and joint-drive tests. |
+| Newton Physics | Open-source GPU-accelerated differentiable robotics engine, based on Warp/OpenUSD, with multiple solver families. | Essential robotics/GPU baseline; not an apples-to-apples CPU Rust comparison. |
+| ComFree-Sim (2026 arXiv preprint) | Proposes a GPU-parallelized complementarity-free analytical contact update using impedance-style prediction/correction in the dual Coulomb cone; reports unified 6D tangential/torsional/rolling friction, near-linear contact scaling and 2–3× dense-scene throughput versus MJWarp with comparable physical fidelity. Those are the paper authors' experimental claims, not independently reproduced results. | Serious alternative contact formulation. Reproduce matched cases; compare its impedance/dual-cone law separately from hard Signorini plus maximum-dissipation Coulomb. |
+| Project Chrono 10.0.0 | Mature engineering/multiphysics reference with multibody dynamics, FSI, peridynamics, checkpointing and implicit integration/Jacobian strategies. | Use for selected engineering verification cases rather than real-time rigid-body ranking. |
 
 Primary reading:
-- MuJoCo release history: https://github.com/google-deepmind/mujoco/releases
-- MuJoCo computation and discrete integrator: https://mujoco.readthedocs.io/en/latest/computation/
-- Rapier 0.35.3 package/docs: https://docs.rs/rapier3d/0.35.3
-- Dimforge Q3 2026 report (Nexus 0.7.0, 505K rigid bodies in ~14 ms/frame on RTX 5080, Rapier intra-island parallelism): https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/
-- PhysX 5.8 simulation docs: https://nvidia-omniverse.github.io/PhysX/physx/5.8.0/docs/Simulation.html
-- NVIDIA Newton: https://developer.nvidia.com/newton-physics
-- ComFree-Sim paper: https://arxiv.org/abs/2603.12185
+- [MuJoCo 3.17.0 release](https://github.com/google-deepmind/mujoco/releases/tag/3.17.0)
+- [MuJoCo computation/integrator docs](https://mujoco.readthedocs.io/en/stable/computation/index.html)
+- [Rapier changelog](https://github.com/dimforge/rapier/blob/master/CHANGELOG.md)
+- [Dimforge Q3 2026 technical report](https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/)
+- [Physmark benchmark repository and scene matrix](https://github.com/dimforge/physmark)
+- [PhysX 5.8 simulation docs](https://nvidia-omniverse.github.io/PhysX/physx/5.8.0/docs/Simulation.html)
+- [NVIDIA Newton](https://developer.nvidia.com/newton-physics)
+- [ComFree-Sim arXiv preprint 2603.12185](https://arxiv.org/abs/2603.12185)
+- [Project Chrono release news](https://projectchrono.org/news/)
 
 ## Contact-law semantics: do not mix unlike models
 
