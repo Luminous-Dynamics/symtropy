@@ -1113,7 +1113,7 @@ mod tests {
 
     #[test]
     fn every_declared_required_metric_must_be_measured() {
-        let input = valid_manifest().replace(
+        let mut input = valid_manifest().replace(
             &format!("VERIFY|verify-1|plan-1|POST_ACTION|surface_roughness|1.4|um|0.0|2.0|2026-10-31T11:56:00Z|{}\n", HASH_F),
             "",
         );
