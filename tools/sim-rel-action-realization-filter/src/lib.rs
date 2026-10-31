@@ -473,15 +473,26 @@ fn validate_belief(
     Ok(())
 }
 
+/// How one field of an outcome is constrained by public history.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ObservationField {
+    /// The field was not observed; do not condition on it.
+    Any,
+    /// The field was observed to be absent (for example, a missing readback).
+    Missing,
+    /// The field was observed with this vocabulary ID.
+    Value(usize),
+}
+
 /// The part of an outcome recorded in public history.
 ///
-/// An omitted readback or measurement is a wildcard: the value was not supplied
-/// to the inference process. A hazard flag is always observed.
+/// Explicitly distinguishing Any from Missing prevents an absent execution
+/// acknowledgement from being confused with an unobserved acknowledgement.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PublicObservation {
     pub hazard: bool,
-    pub readback: Option<usize>,
-    pub measurement: Option<usize>,
+    pub readback: ObservationField,
+    pub measurement: ObservationField,
 }
 
 /// An exact posterior point retaining the correlation with the realized action.
@@ -566,13 +577,10 @@ pub fn filter_one_step(
     if command >= kernel.command_ids.len() {
         return Err(FilterError::InvalidCommand);
     }
-    if observation
-        .readback
-        .is_some_and(|value| value >= kernel.readback_ids.len())
-        || observation
-            .measurement
-            .is_some_and(|value| value >= kernel.measurement_ids.len())
-        || (observation.hazard && observation.measurement.is_some())
+    if matches!(observation.readback, ObservationField::Value(value) if value >= kernel.readback_ids.len())
+        || matches!(observation.measurement, ObservationField::Value(value) if value >= kernel.measurement_ids.len())
+        || (observation.hazard
+            && matches!(observation.measurement, ObservationField::Value(_)))
     {
         return Err(FilterError::InvalidObservation);
     }
@@ -585,16 +593,21 @@ pub fn filter_one_step(
             if outcome.hazard != observation.hazard {
                 continue;
             }
-            if observation
-                .readback
-                .is_some_and(|value| outcome.readback != Some(value))
-            {
+            let readback_matches = match observation.readback {
+                ObservationField::Any => true,
+                ObservationField::Missing => outcome.readback.is_none(),
+                ObservationField::Value(value) => outcome.readback == Some(value),
+            };
+            if !readback_matches {
                 continue;
             }
-            if observation
-                .measurement
-                .is_some_and(|value| outcome.measurement != Some(value))
-            {
+
+            let measurement_matches = match observation.measurement {
+                ObservationField::Any => true,
+                ObservationField::Missing => outcome.measurement.is_none(),
+                ObservationField::Value(value) => outcome.measurement == Some(value),
+            };
+            if !measurement_matches {
                 continue;
             }
 
@@ -714,8 +727,8 @@ mod tests {
             0,
             PublicObservation {
                 hazard: false,
-                readback: None,
-                measurement: Some(0),
+                readback: ObservationField::Any,
+                measurement: ObservationField::Value(0),
             },
         )
         .unwrap();
@@ -739,8 +752,8 @@ mod tests {
             0,
             PublicObservation {
                 hazard: false,
-                readback: Some(0),
-                measurement: Some(0),
+                readback: ObservationField::Value(0),
+                measurement: ObservationField::Value(0),
             },
         )
         .unwrap();
@@ -798,6 +811,43 @@ mod tests {
     }
 
     #[test]
+    fn observed_missing_readback_is_distinct_from_unobserved_readback() {
+        let mut kernel = xor_kernel();
+        kernel.rows[0].outcomes[0].readback = None;
+
+        let result = filter_one_step(
+            &kernel,
+            &kernel.initial_belief,
+            0,
+            PublicObservation {
+                hazard: false,
+                readback: ObservationField::Missing,
+                measurement: ObservationField::Value(0),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(result.joint_posterior.len(), 1);
+        assert_eq!(mass_for_hypothesis(&result, 0), Rational::one());
+        assert_eq!(mass_for_hypothesis(&result, 1), Rational::zero());
+
+        let unconstrained = filter_one_step(
+            &kernel,
+            &kernel.initial_belief,
+            0,
+            PublicObservation {
+                hazard: false,
+                readback: ObservationField::Any,
+                measurement: ObservationField::Value(0),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(mass_for_hypothesis(&unconstrained, 0), Rational::new(1, 2).unwrap());
+        assert_eq!(mass_for_hypothesis(&unconstrained, 1), Rational::new(1, 2).unwrap());
+    }
+
+    #[test]
     fn dropped_intervention_is_not_assumed_to_have_changed_the_specimen() {
         let kernel = dropped_intervention_kernel();
         let result = filter_one_step(
@@ -806,8 +856,8 @@ mod tests {
             0,
             PublicObservation {
                 hazard: false,
-                readback: Some(0),
-                measurement: Some(0),
+                readback: ObservationField::Value(0),
+                measurement: ObservationField::Value(0),
             },
         )
         .unwrap();
@@ -904,8 +954,8 @@ mod tests {
             0,
             PublicObservation {
                 hazard: false,
-                readback: Some(1),
-                measurement: Some(1),
+                readback: ObservationField::Value(1),
+                measurement: ObservationField::Value(1),
             },
         )
         .unwrap();
@@ -981,8 +1031,8 @@ mod tests {
             0,
             PublicObservation {
                 hazard: false,
-                readback: Some(1),
-                measurement: Some(0),
+                readback: ObservationField::Value(1),
+                measurement: ObservationField::Value(0),
             },
         )
         .unwrap();
@@ -995,8 +1045,8 @@ mod tests {
             0,
             PublicObservation {
                 hazard: false,
-                readback: Some(2),
-                measurement: Some(1),
+                readback: ObservationField::Value(2),
+                measurement: ObservationField::Value(1),
             },
         )
         .unwrap();
@@ -1014,8 +1064,8 @@ mod tests {
             0,
             PublicObservation {
                 hazard: true,
-                readback: None,
-                measurement: None,
+                readback: ObservationField::Any,
+                measurement: ObservationField::Any,
             },
         );
         assert_eq!(result, Err(FilterError::ZeroLikelihood));
@@ -1036,8 +1086,8 @@ mod tests {
             0,
             PublicObservation {
                 hazard: true,
-                readback: None,
-                measurement: None,
+                readback: ObservationField::Any,
+                measurement: ObservationField::Any,
             },
         )
         .unwrap();
