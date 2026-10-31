@@ -80,7 +80,6 @@ fn cartesian_metrics(state: rattle::State) -> (f64, f64) {
         state.momentum[1] / MASS,
     ];
     let q_squared = q[0] * q[0] + q[1] * q[1];
-    let velocity_norm = (velocity[0] * velocity[0] + velocity[1] * velocity[1]).sqrt();
     let q_dot_v = q[0] * velocity[0] + q[1] * velocity[1];
     let position = (q_squared - LENGTH * LENGTH).abs()
         / (1.0 + q_squared + LENGTH * LENGTH);
