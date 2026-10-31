@@ -978,6 +978,49 @@ pub fn search_policy_counterexamples(
     Ok(report)
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BoundedGridCounterexampleReport {
+    pub grid: BoundedPerturbationGridReport,
+    pub search: CounterexampleSearchReport,
+}
+
+/// Generate a bounded deterministic perturbation grid and attack one frozen
+/// policy with every valid candidate. Grid generation and replay receipts are
+/// returned together so the caller can inspect skipped combinations and
+/// distinguish search-domain exhaustion from policy robustness.
+#[allow(clippy::too_many_arguments)]
+pub fn search_policy_against_bounded_grid(
+    worlds: &[DecisionModelWorld],
+    nominal_world_id: &str,
+    table: &DecisionLossTable,
+    protocol: ObservationProtocol,
+    command_costs: &[Rational],
+    hazard_loss: Rational,
+    policy: &DecisionPlan,
+    horizon: usize,
+    budgets: DecisionBudgets,
+    grid: &BoundedPerturbationGrid,
+    max_attempts: usize,
+) -> Result<BoundedGridCounterexampleReport, String> {
+    let grid_report = generate_bounded_perturbation_grid(worlds, grid, max_attempts)?;
+    let search_report = search_policy_counterexamples(
+        worlds,
+        nominal_world_id,
+        table,
+        protocol,
+        command_costs,
+        hazard_loss,
+        policy,
+        horizon,
+        budgets,
+        &grid_report.specs,
+    )?;
+    Ok(BoundedGridCounterexampleReport {
+        grid: grid_report,
+        search: search_report,
+    })
+}
+
 fn compare_witness_severity(
     left: &CounterexampleWitness,
     right: &CounterexampleWitness,
