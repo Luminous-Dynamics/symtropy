@@ -1733,7 +1733,7 @@ mod tests {
         .unwrap();
         let oracle = frontier_points_from_candidates(
             exhaustive,
-            &vec!["world-a".to_string(), "world-b".to_string()],
+            &["world-a".to_string(), "world-b".to_string()],
         );
         assert_eq!(
             frontier_objectives(&optimized.frontier),
