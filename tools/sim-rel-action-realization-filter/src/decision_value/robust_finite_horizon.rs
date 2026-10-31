@@ -321,7 +321,7 @@ impl RobustDecisionOptimizationResult {
         budgets: DecisionBudgets,
     ) -> Result<Option<&RobustDecisionFrontierPoint>, String> {
         budgets.validate()?;
-        validate_world_weights(&self.world_ids, nominal_world_weights, tv_radius)?;
+        validate_world_weights(self.world_ids.len(), nominal_world_weights, tv_radius)?;
         let mut selected: Option<&RobustDecisionFrontierPoint> = None;
         for point in &self.frontier {
             if !within_risk_budgets(point, budgets) {
@@ -357,11 +357,11 @@ impl RobustDecisionOptimizationResult {
 }
 
 fn validate_world_weights(
-    world_ids: &[String],
+    world_count: usize,
     weights: &[Rational],
     radius: Rational,
 ) -> Result<(), String> {
-    if weights.len() != world_ids.len() || weights.is_empty() {
+    if weights.len() != world_count || weights.is_empty() {
         return Err("one nominal mixture weight is required for every canonical model world".into());
     }
     if !radius.is_probability() {
@@ -380,21 +380,33 @@ fn validate_world_weights(
     Ok(())
 }
 
+fn rational_gcd(mut left: u128, mut right: u128) -> u128 {
+    while right != 0 {
+        let remainder = left % right;
+        left = right;
+        right = remainder;
+    }
+    left.max(1)
+}
+
 fn checked_sub_nonnegative(left: Rational, right: Rational) -> Result<Rational, String> {
     if left < right {
         return Err("non-negative rational subtraction underflow".into());
     }
+    let common = rational_gcd(left.denominator(), right.denominator());
+    let left_scale = right.denominator() / common;
+    let right_scale = left.denominator() / common;
     let left_scaled = left
         .numerator()
-        .checked_mul(right.denominator())
+        .checked_mul(left_scale)
         .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
     let right_scaled = right
         .numerator()
-        .checked_mul(left.denominator())
+        .checked_mul(right_scale)
         .ok_or_else(|| "rational subtraction numerator overflow".to_string())?;
     let denominator = left
         .denominator()
-        .checked_mul(right.denominator())
+        .checked_mul(left_scale)
         .ok_or_else(|| "rational subtraction denominator overflow".to_string())?;
     Rational::new(left_scaled - right_scaled, denominator)
 }
@@ -404,11 +416,10 @@ fn worst_case_tv_expectation(
     nominal_weights: &[Rational],
     radius: Rational,
 ) -> Result<Rational, String> {
-    let world_ids: Vec<String> = (0..losses.len()).map(|index| index.to_string()).collect();
-    validate_world_weights(&world_ids, nominal_weights, radius)?;
     if losses.is_empty() {
         return Err("TV expectation requires at least one world".into());
     }
+    validate_world_weights(losses.len(), nominal_weights, radius)?;
 
     let mut adjusted = nominal_weights.to_vec();
     let mut low_to_high: Vec<usize> = (0..losses.len()).collect();
