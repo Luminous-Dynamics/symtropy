@@ -457,22 +457,18 @@ fn polynomial_multiply(lhs: &[Rational], rhs: &[Rational]) -> Polynomial {
 /// Independently derive the half-angle quartic from exact dyadic W, q and mu.
 /// This expands the vector equation in polynomial form rather than copying the
 /// production's closed-form coefficient array.
-fn exact_sliding_quartic_from_inputs(
-    w: &Matrix3<f64>,
-    q: &SVector<f64, 3>,
-    mu: f64,
-) -> Result<Polynomial, &'static str> {
-    let a = exact_f64(w[(0, 0)])?;
-    let d1 = exact_f64(w[(0, 1)])?;
-    let d2 = exact_f64(w[(0, 2)])?;
-    let qn = exact_f64(q[0])?;
-    let q1 = exact_f64(q[1])?;
-    let q2 = exact_f64(q[2])?;
-    let mu = exact_f64(mu)?;
-    let a11 = exact_f64(w[(1, 1)])?;
-    let a12 = exact_f64(w[(1, 2)])?;
-    let a22 = exact_f64(w[(2, 2)])?;
-
+fn exact_sliding_quartic_from_rational_inputs(
+    a: Rational,
+    d1: Rational,
+    d2: Rational,
+    qn: Rational,
+    q1: Rational,
+    q2: Rational,
+    mu: Rational,
+    a11: Rational,
+    a12: Rational,
+    a22: Rational,
+) -> Polynomial {
     // s numerator = (1-t^2, 2t), s_perp numerator = (-2t, 1-t^2).
     let one_plus_t2 = vec![Rational::one(), Rational::zero(), Rational::one()];
     let one_minus_t2 = vec![Rational::one(), Rational::zero(), -Rational::one()];
@@ -520,7 +516,26 @@ fn exact_sliding_quartic_from_inputs(
     );
     let third_factor = mu * qn;
     let third = polynomial_scale(&perp_dot_a_s, &third_factor);
-    Ok(polynomial_add(&polynomial_add(&first, &second), &third))
+    polynomial_add(&polynomial_add(&first, &second), &third)
+}
+
+fn exact_sliding_quartic_from_inputs(
+    w: &Matrix3<f64>,
+    q: &SVector<f64, 3>,
+    mu: f64,
+) -> Result<Polynomial, &'static str> {
+    Ok(exact_sliding_quartic_from_rational_inputs(
+        exact_f64(w[(0, 0)])?,
+        exact_f64(w[(0, 1)])?,
+        exact_f64(w[(0, 2)])?,
+        exact_f64(q[0])?,
+        exact_f64(q[1])?,
+        exact_f64(q[2])?,
+        exact_f64(mu)?,
+        exact_f64(w[(1, 1)])?,
+        exact_f64(w[(1, 2)])?,
+        exact_f64(w[(2, 2)])?,
+    ))
 }
 
 fn polynomial_from_roots(roots: &[Rational]) -> Polynomial {
