@@ -2935,7 +2935,9 @@ mod transformed_halfspace_tests {
         assert_eq!(error.body_b, None);
         assert_eq!(
             error.cause,
-            PhysicsStepCause::RotationalInertia(RotationalInertiaError::SingularInertia)
+            PhysicsStepCause::Integration(integrator::IntegrationError::RotationalInertia(
+                RotationalInertiaError::SingularInertia
+            ))
         );
         assert_eq!(world.bodies[0].transform.translation.0, first_position);
         assert_eq!(world.bodies[0].linear_velocity, first_velocity);
