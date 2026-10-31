@@ -35,6 +35,37 @@ pub fn nan_zeroed_count() -> u64 {
     NAN_ZEROED_COUNT.load(Ordering::Relaxed)
 }
 
+/// Errors returned by the strict, transactional rigid-body integrator.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IntegrationError {
+    InvalidTimeStep,
+    InvalidParameters,
+    NonFiniteInput,
+    NonFiniteState,
+    RotationalInertia(crate::inertia::RotationalInertiaError),
+}
+
+impl From<crate::inertia::RotationalInertiaError> for IntegrationError {
+    fn from(error: crate::inertia::RotationalInertiaError) -> Self {
+        Self::RotationalInertia(error)
+    }
+}
+
+/// Count of rejected integration attempts caused by invalid numerical inputs
+/// or non-finite candidate state. This is not a substitute for the typed error.
+pub static INTEGRATION_FAILURE_COUNT: AtomicU64 = AtomicU64::new(0);
+
+#[inline]
+pub fn integration_failure_count() -> u64 {
+    INTEGRATION_FAILURE_COUNT.load(Ordering::Relaxed)
+}
+
+#[inline]
+fn reject_integration(error: IntegrationError) -> IntegrationError {
+    INTEGRATION_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
+    error
+}
+
 /// Explicit speed bounds for real-time integration.
 ///
 /// The scientific/default path uses `unbounded()`: no hidden numeric velocity
@@ -114,7 +145,7 @@ pub fn try_integrate<const D: usize>(
     body: &mut RigidBody<D>,
     gravity: &SVector<f64, D>,
     dt: f64,
-) -> Result<(), crate::inertia::RotationalInertiaError> {
+) -> Result<(), IntegrationError> {
     try_integrate_with_limits(body, gravity, dt, &IntegrationLimits::unbounded())
 }
 
@@ -127,24 +158,49 @@ pub fn try_integrate_with_limits<const D: usize>(
     gravity: &SVector<f64, D>,
     dt: f64,
     limits: &IntegrationLimits,
-) -> Result<(), crate::inertia::RotationalInertiaError> {
+) -> Result<(), IntegrationError> {
     if !body.is_dynamic() {
         body.clear_accumulators();
         return Ok(());
     }
 
-    // Sanitize into local values first. This keeps the body's state and
-    // accumulators untouched if the validated inertia solve below fails.
-    let force_accumulator = if body.force_accumulator.iter().all(|v| v.is_finite()) {
-        body.force_accumulator.clone()
-    } else {
-        SVector::zeros()
-    };
-    let torque_accumulator = if body.torque_accumulator.is_finite() {
-        body.torque_accumulator.clone()
-    } else {
-        Bivector::zero()
-    };
+    if !dt.is_finite() || dt <= 0.0 {
+        return Err(reject_integration(IntegrationError::InvalidTimeStep));
+    }
+    if body.linear_damping < 0.0
+        || body.angular_damping < 0.0
+        || !body.linear_damping.is_finite()
+        || !body.angular_damping.is_finite()
+        || !body.mass.is_finite()
+        || !body.inv_mass.is_finite()
+        || !body.inv_inertia.iter().all(|value| value.is_finite())
+    {
+        return Err(reject_integration(IntegrationError::InvalidParameters));
+    }
+    if !gravity.iter().all(|value| value.is_finite())
+        || !body.force_accumulator.iter().all(|value| value.is_finite())
+        || !body.torque_accumulator.is_finite()
+        || !body.linear_velocity.iter().all(|value| value.is_finite())
+        || !body.angular_velocity.is_finite()
+        || !body.transform.translation.0.iter().all(|value| value.is_finite())
+        || !body
+            .transform
+            .rotation
+            .to_matrix()
+            .iter()
+            .all(|value| value.is_finite())
+    {
+        return Err(reject_integration(IntegrationError::NonFiniteInput));
+    }
+
+    // Invalid input is rejected. Never substitute zero for a force or torque:
+    // the caller receives a typed failure and can choose an explicit recovery.
+    let force_accumulator = body.force_accumulator;
+    let torque_accumulator = body.torque_accumulator.clone();
+
+    // Candidate state is computed locally and committed only after every
+    // component has been checked. This makes integration transactional even
+    // when a finite input overflows during the numerical update.
 
     // --- Angular dynamics ---
 
@@ -154,7 +210,7 @@ pub fn try_integrate_with_limits<const D: usize>(
     let ang_accel = if let Some(inertia) = &body.rotational_inertia {
         if let Err(error) = inertia.validate_body_mass(body.mass, 1e-10) {
             ROTATIONAL_INERTIA_FAILURE_COUNT.fetch_add(1, Ordering::Relaxed);
-            return Err(error);
+            return Err(IntegrationError::RotationalInertia(error));
         }
         let world_inertia = inertia.rotated_by(&body.transform.rotation);
         match world_inertia.angular_acceleration(&body.angular_velocity, &torque_accumulator, 1e-12)
@@ -177,43 +233,46 @@ pub fn try_integrate_with_limits<const D: usize>(
     // Acceleration = F/m + gravity
     let accel = force_accumulator * body.inv_mass + gravity;
 
-    // Semi-implicit: velocity first
-    body.linear_velocity += accel * dt;
+    // Semi-implicit: velocity first, but keep all candidate values local.
+    let mut linear_velocity = body.linear_velocity + accel * dt;
+    let mut angular_velocity = body.angular_velocity.clone();
+    let mut position = body.transform.translation.0;
+    let mut rotation = body.transform.rotation.clone();
 
     // LTC-based damping: v(t+dt) = v(t) × exp(-dt/τ) where τ = 1/damping.
     // Frame-rate independent, never reverses velocity (exp > 0), exact for any dt.
     if body.linear_damping > 1e-15 {
         let tau = 1.0 / body.linear_damping;
-        body.linear_velocity *= (-dt / tau).exp();
+        linear_velocity *= (-dt / tau).exp();
     }
 
     // Optional application-defined limit. The default scientific policy
     // has no hidden absolute cap, preserving dimensional similarity.
     if let Some(max_speed) = limits.max_linear_speed {
-        let speed = body.linear_velocity.norm();
+        let speed = linear_velocity.norm();
         if speed > max_speed {
-            body.linear_velocity *= max_speed / speed;
+            linear_velocity *= max_speed / speed;
         }
     }
 
     // Update position
-    let displacement = body.linear_velocity * dt;
-    body.transform.translation = Point(body.transform.translation.0 + displacement);
+    let displacement = linear_velocity * dt;
+    position += displacement;
 
     // Update angular velocity
-    body.angular_velocity = body.angular_velocity.add(&ang_accel.scale(dt));
+    angular_velocity = angular_velocity.add(&ang_accel.scale(dt));
 
     // LTC angular damping (same closed-form)
     if body.angular_damping > 1e-15 {
         let ang_tau = 1.0 / body.angular_damping;
-        body.angular_velocity = body.angular_velocity.scale((-dt / ang_tau).exp());
+        angular_velocity = angular_velocity.scale((-dt / ang_tau).exp());
     }
 
     // Optional application-defined angular-rate limit (radians/second).
     if let Some(max_speed) = limits.max_angular_speed {
-        let ang_speed = body.angular_velocity.norm();
+        let ang_speed = angular_velocity.norm();
         if ang_speed > max_speed {
-            body.angular_velocity = body.angular_velocity.scale(max_speed / ang_speed);
+            angular_velocity = angular_velocity.scale(max_speed / ang_speed);
         }
     }
 
@@ -221,37 +280,27 @@ pub fn try_integrate_with_limits<const D: usize>(
     // components are angular rates, so scaling by dt produces the generator's
     // angular displacement directly. This remains correct when angular motion
     // occupies several independent planes at once (e.g. a 4D double rotation).
-    if body.angular_velocity.norm_squared() > 0.0 {
-        let delta_generator = body.angular_velocity.scale(dt);
+    if angular_velocity.norm_squared() > 0.0 {
+        let delta_generator = angular_velocity.scale(dt);
         let delta_rotation = Rotor::from_bivector(&delta_generator);
-        body.transform.rotation = delta_rotation.compose(&body.transform.rotation);
+        rotation = delta_rotation.compose(&rotation);
     }
 
-    // --- Post-integration NaN/Inf assertions ---
-    // If any state became non-finite despite clamping, zero the offending values
-    // rather than propagating corruption through the simulation.
-    if !body.linear_velocity.iter().all(|v| v.is_finite()) {
-        debug_assert!(
-            false,
-            "NaN/Inf detected in linear_velocity after integration"
-        );
-        NAN_ZEROED_COUNT.fetch_add(1, Ordering::Relaxed);
-        body.linear_velocity = SVector::zeros();
+    // Reject non-finite candidate state without mutating the body or
+    // clearing its force/torque accumulators. The world can roll back the
+    // complete step and the caller can inspect the offending input.
+    if !linear_velocity.iter().all(|value| value.is_finite())
+        || !angular_velocity.is_finite()
+        || !position.iter().all(|value| value.is_finite())
+        || !rotation.to_matrix().iter().all(|value| value.is_finite())
+    {
+        return Err(reject_integration(IntegrationError::NonFiniteState));
     }
-    if !body.angular_velocity.is_finite() {
-        debug_assert!(
-            false,
-            "NaN/Inf detected in angular_velocity after integration"
-        );
-        NAN_ZEROED_COUNT.fetch_add(1, Ordering::Relaxed);
-        body.angular_velocity = Bivector::zero();
-    }
-    if !body.transform.translation.0.iter().all(|v| v.is_finite()) {
-        debug_assert!(false, "NaN/Inf detected in position after integration");
-        // Don't zero position — that would teleport. Just freeze velocity.
-        NAN_ZEROED_COUNT.fetch_add(1, Ordering::Relaxed);
-        body.linear_velocity = SVector::zeros();
-    }
+
+    body.linear_velocity = linear_velocity;
+    body.angular_velocity = angular_velocity;
+    body.transform.translation = Point(position);
+    body.transform.rotation = rotation;
 
     // Clear accumulators for next frame
     body.clear_accumulators();
