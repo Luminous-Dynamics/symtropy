@@ -5,7 +5,7 @@
 use crate::inertia::BivectorInertia;
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
-use symtropy_math::{Bivector, Point, Rotor, Shape, Transform};
+use symtropy_math::{Bivector, Point, Shape, Transform};
 
 /// Unique identifier for a body handle.
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -325,6 +325,7 @@ impl<const D: usize> RigidBody<D> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use symtropy_math::Rotor;
 
     fn assert_uniform_ball_inertia<const D: usize>(expected: f64) {
         let body = RigidBody::<D>::dynamic_sphere(BodyHandle(0), Point::origin(), 2.0, 3.0);
