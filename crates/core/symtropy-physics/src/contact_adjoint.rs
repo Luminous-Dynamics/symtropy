@@ -338,6 +338,117 @@ mod tests {
     }
 
     #[test]
+    fn implicit_adjoint_matches_finite_differences_for_randomized_spd_blocks() {
+        for n in 1_usize..=4 {
+            for seed in 1_u64..=6 {
+                let mut state = seed.wrapping_mul(0x9E37_79B9_7F4A_7C15);
+                let mut sample = || {
+                    state ^= state << 13;
+                    state ^= state >> 7;
+                    state ^= state << 17;
+                    ((*state >> 11) as f64 / ((1_u64 << 53) as f64)) * 2.0 - 1.0
+                };
+                let lower = DMatrix::<f64>::from_fn(n, n, |i, j| {
+                    if j > i {
+                        0.0
+                    } else if i == j {
+                        1.0 + 0.1 * i as f64
+                    } else {
+                        0.05 * sample()
+                    }
+                });
+                let matrix = &lower * lower.transpose()
+                    + DMatrix::identity(n, n) * 0.5;
+                let matrix_derivative =
+                    DMatrix::<f64>::from_fn(n, n, |i, j| 0.005 * (sample() + sample()));
+                let q_derivative =
+                    DVector::<f64>::from_fn(n, |_, _| 0.02 * sample());
+                let target_impulses =
+                    DVector::<f64>::from_fn(n, |i, _| 0.1 + 0.03 * i as f64);
+                let q = -(&matrix * &target_impulses);
+                let objective_gradient =
+                    DVector::<f64>::from_fn(n, |_, _| sample());
+                let direct_gradient = 0.07;
+                let solution = solve_frictionless_lcp(&matrix, &q, 1e-11).unwrap();
+
+                let result = differentiate_fixed_active_set_lcp(
+                    &matrix,
+                    &q,
+                    &solution,
+                    &matrix_derivative,
+                    &q_derivative,
+                    &objective_gradient,
+                    direct_gradient,
+                    1e-8,
+                    1e-8,
+                    1e-11,
+                )
+                .unwrap_or_else(|error| panic!("n={n}, seed={seed}: {error:?}"));
+
+                let epsilon = 1e-6;
+                let matrix_plus = &matrix + &matrix_derivative * epsilon;
+                let matrix_minus = &matrix - &matrix_derivative * epsilon;
+                let q_plus = &q + &q_derivative * epsilon;
+                let q_minus = &q - &q_derivative * epsilon;
+                let solution_plus =
+                    solve_frictionless_lcp(&matrix_plus, &q_plus, 1e-11).unwrap();
+                let solution_minus =
+                    solve_frictionless_lcp(&matrix_minus, &q_minus, 1e-11).unwrap();
+
+                let finite_difference_sensitivity =
+                    (&solution_plus.impulses - &solution_minus.impulses) / (2.0 * epsilon);
+                let sensitivity_scale = finite_difference_sensitivity
+                    .norm()
+                    .max(result.impulse_sensitivity.norm())
+                    .max(1e-10);
+                assert!(
+                    (&finite_difference_sensitivity - &result.impulse_sensitivity).norm()
+                        <= 1e-6 * sensitivity_scale,
+                    "n={n}, seed={seed}: sensitivity discrepancy"
+                );
+
+                let objective_plus =
+                    objective_gradient.dot(&solution_plus.impulses) + direct_gradient * epsilon;
+                let objective_minus =
+                    objective_gradient.dot(&solution_minus.impulses) - direct_gradient * epsilon;
+                let finite_difference_gradient =
+                    (objective_plus - objective_minus) / (2.0 * epsilon);
+                assert!(
+                    (finite_difference_gradient - result.objective_parameter_gradient).abs()
+                        <= 1e-6 * finite_difference_gradient.abs().max(1e-8),
+                    "n={n}, seed={seed}: adjoint discrepancy, finite_difference={finite_difference_gradient}, adjoint={}",
+                    result.objective_parameter_gradient
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn implicit_adjoint_returns_direct_gradient_for_strictly_inactive_contact() {
+        let matrix = DMatrix::from_element(1, 1, 2.0);
+        let q = DVector::from_vec(vec![1.0]);
+        let solution = solve_frictionless_lcp(&matrix, &q, 1e-12).unwrap();
+        let result = differentiate_fixed_active_set_lcp(
+            &matrix,
+            &q,
+            &solution,
+            &DMatrix::from_element(1, 1, 0.1),
+            &DVector::from_vec(vec![0.2]),
+            &DVector::from_vec(vec![1.0]),
+            0.5,
+            1e-8,
+            1e-8,
+            1e-12,
+        )
+        .unwrap();
+
+        assert!(result.active_rows.is_empty());
+        assert_eq!(result.impulse_sensitivity[0], 0.0);
+        assert_eq!(result.adjoint[0], 0.0);
+        assert_eq!(result.objective_parameter_gradient, 0.5);
+    }
+
+    #[test]
     fn implicit_adjoint_rejects_non_monotone_contact_matrix() {
         let matrix = DMatrix::from_element(1, 1, -1.0);
         let q = DVector::from_vec(vec![1.0]);
