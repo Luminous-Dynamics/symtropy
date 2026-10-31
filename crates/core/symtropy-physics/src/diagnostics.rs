@@ -13,7 +13,7 @@ use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
 
 use crate::body::BodyType;
-use crate::world::PhysicsWorld;
+use crate::world::{NoOpCallback, PhysicsWorld, StepWorkAccumulator};
 
 /// A quantitative snapshot of world-level physical invariants and health.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -89,6 +89,25 @@ pub struct InvariantDrift<const D: usize> {
     pub mass_property_mismatch_count: usize,
 }
 
+/// Signed discrete work and energy accounting for one accepted step.
+///
+/// The attributed terms cover translational force/gravity updates and normal
+/// and friction contact impulses. The unattributed term deliberately retains
+/// energy changes from rotational torque/damping, constraints, motors,
+/// stabilization and any other source not yet represented by this ledger.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct DiscreteWorkLedger {
+    pub external_force_work_joules: f64,
+    pub gravity_work_joules: f64,
+    pub linear_damping_and_speed_limit_energy_change_joules: f64,
+    pub normal_contact_kinetic_energy_change_joules: f64,
+    pub friction_contact_kinetic_energy_change_joules: f64,
+    pub frictional_dissipation_joules: f64,
+    pub gravitational_potential_energy_change_joules: f64,
+    pub measured_mechanical_energy_change_joules: f64,
+    pub unattributed_energy_change_joules: f64,
+}
+
 /// Deterministic observation of one successfully committed world step.
 ///
 /// This records the state transition and invariant drift, but is not a
@@ -104,6 +123,7 @@ pub struct InvariantStepReceipt<const D: usize> {
     pub before: InvariantSnapshot<D>,
     pub after: InvariantSnapshot<D>,
     pub drift: InvariantDrift<D>,
+    pub work_ledger: DiscreteWorkLedger,
 }
 
 impl<const D: usize> InvariantStepReceipt<D> {
@@ -147,10 +167,36 @@ impl<const D: usize> PhysicsWorld<D> {
             .filter(|body| body.body_type == BodyType::Dynamic)
             .count();
 
-        self.try_step(dt)?;
+        let mut work = StepWorkAccumulator::default();
+        let mut noop = NoOpCallback;
+        self.try_step_with_callback_and_work(dt, &mut noop, &mut work)?;
 
         let after = self.invariant_snapshot();
         let drift = before.drift_to(&after);
+        let measured_energy_change = after.mechanical_energy - before.mechanical_energy;
+        let potential_energy_change =
+            after.gravitational_potential_energy - before.gravitational_potential_energy;
+        let frictional_dissipation = (-work.friction_contact_kinetic_energy_change_joules).max(0.0);
+        let attributed_energy_change = work.external_force_work_joules
+            + work.gravity_work_joules
+            + work.linear_damping_and_speed_limit_energy_change_joules
+            + work.normal_contact_kinetic_energy_change_joules
+            + work.friction_contact_kinetic_energy_change_joules
+            + potential_energy_change;
+        let work_ledger = DiscreteWorkLedger {
+            external_force_work_joules: work.external_force_work_joules,
+            gravity_work_joules: work.gravity_work_joules,
+            linear_damping_and_speed_limit_energy_change_joules: work
+                .linear_damping_and_speed_limit_energy_change_joules,
+            normal_contact_kinetic_energy_change_joules: work
+                .normal_contact_kinetic_energy_change_joules,
+            friction_contact_kinetic_energy_change_joules: work
+                .friction_contact_kinetic_energy_change_joules,
+            frictional_dissipation_joules: frictional_dissipation,
+            gravitational_potential_energy_change_joules: potential_energy_change,
+            measured_mechanical_energy_change_joules: measured_energy_change,
+            unattributed_energy_change_joules: measured_energy_change - attributed_energy_change,
+        };
         Ok(InvariantStepReceipt {
             dt,
             total_body_count,
@@ -160,6 +206,7 @@ impl<const D: usize> PhysicsWorld<D> {
             before,
             after,
             drift,
+            work_ledger,
         })
     }
 
