@@ -34,3 +34,13 @@ The semantic identity is deterministic within this compiler/schema/registry vers
 ## Compiler latency benchmark
 
 The dependency-free Rust benchmark measures source parsing, typed validation, normalized IR construction and digest work at 4 KiB, 16 KiB, 64 KiB, 256 KiB and 512 KiB. It performs 50 warmups and 500 measured iterations per size, and reports p50/p95/p99 plus min/max nanoseconds and the exact source SHA-256. This is an environment-specific implementation baseline, not an industry comparison; compare against CUE or other validators only after freezing a semantically matched corpus and equivalent validation rules.
+
+## Structural metamorphic qualification
+
+The follow-on ENG-SCENARIO-METAMORPHIC-001 test corpus takes 1,000 deterministic variants of the frozen NACA0012 input and independently permutes key order within every TOML table, preserves array-of-table instance order, switches the source to CRLF line endings, and adds unique source comments. It asserts three separate invariants:
+
+- The disposition and normalized semantic IR digest remain unchanged. A syntax-preserving rewrite must not alter the interpreted scenario.
+- Exact source-byte SHA-256 and the combined compilation-subject digest both change. The compiler must not erase provenance merely because the semantics are equivalent.
+- All 1,000 source digests and compilation-subject digests are unique; the empty verified-artifact manifest remains stable.
+
+This is a metamorphic correctness test, not a solver-accuracy or industry-performance result. It deliberately separates semantic equivalence from byte-level provenance. The TOML specification treats key ordering as non-semantic while preserving array-of-table order; the fixture-specific mutator follows that boundary.
