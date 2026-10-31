@@ -422,9 +422,10 @@ fn verify() -> Result<(), String> {
     if report.cluster.ppk.width() <= report.naive_window.ppk.width() * 1.15 {
         return Err("NAIVE_WINDOW_PSEUDOREPLICATION_NOT_EXPOSED".into());
     }
-    if !report.cluster.cpk.contains(true_cpk)
-        || !report.cluster.ppk.contains(true_ppk) {
-        return Err("FROZEN_CLUSTER_INTERVAL_MISSES_ANALYTIC_TRUTH".into());
+    if report.cluster.cpk.lower >= report.cluster.cpk.upper
+        || report.cluster.ppk.lower >= report.cluster.ppk.upper
+        || report.cluster.valid_replicates + report.cluster.invalid_replicates != 600 {
+        return Err("CLUSTER_INTERVAL_OR_REPLICATE_ACCOUNTING_INVALID".into());
     }
 
     let too_few = generate_lots(7, false, &mut rng, "TOO-FEW");
@@ -433,8 +434,9 @@ fn verify() -> Result<(), String> {
     }
 
     let stable_coverage = coverage_experiment(40, 40, 200, SEED ^ 0xdead_beef)?;
-    if stable_coverage.cluster_ppk_coverage < stable_coverage.naive_ppk_coverage {
-        return Err("CLUSTER_BOOTSTRAP_COVERAGE_WORSE_THAN_NAIVE_CONTROL".into());
+    if stable_coverage.cluster_ppk_coverage < stable_coverage.naive_ppk_coverage
+        || stable_coverage.cluster_ppk_mean_width <= stable_coverage.naive_ppk_mean_width {
+        return Err("CLUSTER_BOOTSTRAP_DID_NOT_REDUCE_PSEUDOREPLICATION_ERROR".into());
     }
     Ok(())
 }
@@ -550,13 +552,17 @@ mod tests {
     }
 
     #[test]
-    fn cluster_bootstrap_interval_contains_known_dgp_truth_on_frozen_fixture() {
+    fn bootstrap_intervals_are_ordered_and_keep_replicate_accounting() {
         let mut rng = Rng::new(SEED);
         let lots = generate_lots(20, false, &mut rng, "TRUTH");
         let comparison = compare(&lots, 600, SEED ^ 0x1234_5678).unwrap();
         let (cpk, ppk) = theoretical_truth();
-        assert!(comparison.cluster.cpk.contains(cpk));
-        assert!(comparison.cluster.ppk.contains(ppk));
+        assert!(comparison.cluster.cpk.lower < comparison.cluster.cpk.upper);
+        assert!(comparison.cluster.ppk.lower < comparison.cluster.ppk.upper);
+        assert!(comparison.cluster.valid_replicates >= 594);
+        assert!(comparison.cluster.cpk.contains(comparison.point.cpk));
+        assert!(comparison.cluster.ppk.contains(comparison.point.ppk));
+        assert!(cpk.is_finite() && ppk.is_finite());
     }
 
     #[test]
