@@ -23,6 +23,7 @@ pub enum PortHamiltonianError {
     DissipationNotPositiveSemidefinite,
     SingularImplicitStep,
     NonFiniteResult,
+    NegativeDissipation,
 }
 
 /// A validated quadratic port-Hamiltonian system.
@@ -63,6 +64,8 @@ pub struct PortHamiltonianStepReceipt {
     pub energy_balance_residual: f64,
     /// Relative residual, normalized by the absolute energy-flow magnitudes.
     pub relative_energy_balance_residual: f64,
+    pub linear_solve_residual_norm: f64,
+    pub relative_linear_solve_residual: f64,
     pub output_power_midpoint: DVector<f64>,
 }
 
@@ -204,12 +207,17 @@ impl QuadraticPortHamiltonian {
             + (&self.input_matrix * input) * dt;
 
         let state_after = lhs
+            .clone()
             .lu()
             .solve(&rhs)
             .ok_or(PortHamiltonianError::SingularImplicitStep)?;
         if !state_after.iter().all(|value| value.is_finite()) {
             return Err(PortHamiltonianError::NonFiniteResult);
         }
+
+        let linear_solve_residual_norm = (&lhs * &state_after - &rhs).norm();
+        let linear_solve_scale = rhs.norm().max(f64::MIN_POSITIVE);
+        let relative_linear_solve_residual = linear_solve_residual_norm / linear_solve_scale;
 
         let midpoint = (state + &state_after) * 0.5;
         let discrete_gradient = &self.energy_matrix * &midpoint;
@@ -236,9 +244,16 @@ impl QuadraticPortHamiltonian {
             || !dissipated_energy.is_finite()
             || !energy_balance_residual.is_finite()
             || !relative_energy_balance_residual.is_finite()
-            || dissipated_energy < -self.relative_tolerance * balance_scale.max(1.0)
+            || !linear_solve_residual_norm.is_finite()
+            || !relative_linear_solve_residual.is_finite()
         {
             return Err(PortHamiltonianError::NonFiniteResult);
+        }
+        if dissipated_energy
+            < -self.relative_tolerance * balance_scale.max(f64::MIN_POSITIVE)
+        {
+        {
+            return Err(PortHamiltonianError::NegativeDissipation);
         }
 
         Ok(PortHamiltonianStepReceipt {
@@ -250,6 +265,8 @@ impl QuadraticPortHamiltonian {
             dissipated_energy,
             energy_balance_residual,
             relative_energy_balance_residual,
+            linear_solve_residual_norm,
+            relative_linear_solve_residual,
             output_power_midpoint,
         })
     }
@@ -304,6 +321,7 @@ mod tests {
         assert!(receipt.dissipated_energy.abs() < 1e-12);
         assert!(receipt.supplied_work.abs() < 1e-12);
         assert!(receipt.closes_within(1e-12));
+        assert!(receipt.relative_linear_solve_residual < 1e-12);
     }
 
     #[test]
