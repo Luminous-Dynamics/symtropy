@@ -34,3 +34,10 @@ This is structural validation, not proof of deterministic execution, physical ac
 D1 foundation: common serializable records, validation, a native 3D frame adapter, and an explicit Rapier body-state adapter. Scenario identity must still be supplied by the caller, and the runner must collect equivalent frame-level measurements from both worlds.
 
 Not included yet: scenario fixture corpus, deterministic replay qualification, tolerance profiles, time-series divergence metrics, contact-heavy stack/CCD suites, or an automatic comparator. Those remain later PHYS-DIFF-01 stages; observation agreement alone does not establish physical truth.
+
+
+## Trace envelope (schema v1)
+
+`ObservationTrace` is the canonical sampled-run container for `ObservationFrame` values. It holds one immutable `RunIdentity` for the entire run and validates that every appended frame carries the same identity, has a strictly increasing step index and simulation time, and obeys the fixed-step clock `time = step_index * timestep_seconds` within a scale-aware floating-point envelope. A failed `push` does not mutate the trace; import/serialization boundaries can call `validate` to recheck the complete frame sequence. Empty traces, mixed backend identity, repeated/backwards steps, backwards time and off-clock timestamps are rejected.
+
+The trace envelope does not prescribe engine-specific contact or energy semantics. `None` continues to mean unavailable or not comparable; it is never silently converted to zero.
