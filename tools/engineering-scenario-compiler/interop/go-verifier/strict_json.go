@@ -12,9 +12,17 @@ import (
 	"unicode/utf8"
 )
 
+const (
+	maxJCSInputBytes    = 1 << 20
+	maxJCSNestingDepth  = 128
+)
+
 // validateStrictJCSInput rejects ambiguous or non-I-JSON-shaped input before
 // the canonicalizer sees bytes that might otherwise be parsed lossily.
 func validateStrictJCSInput(input []byte) error {
+	if len(input) > maxJCSInputBytes {
+		return fmt.Errorf("input exceeds %d-byte JCS profile limit", maxJCSInputBytes)
+	}
 	if !utf8.Valid(input) {
 		return fmt.Errorf("input is not valid UTF-8")
 	}
@@ -24,7 +32,7 @@ func validateStrictJCSInput(input []byte) error {
 
 	decoder := json.NewDecoder(bytes.NewReader(input))
 	decoder.UseNumber()
-	if err := consumeJSONValue(decoder); err != nil {
+	if err := consumeJSONValue(decoder, 0); err != nil {
 		return err
 	}
 	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
@@ -36,7 +44,7 @@ func validateStrictJCSInput(input []byte) error {
 	return nil
 }
 
-func consumeJSONValue(decoder *json.Decoder) error {
+func consumeJSONValue(decoder *json.Decoder, depth int) error {
 	token, err := decoder.Token()
 	if err != nil {
 		return fmt.Errorf("invalid JSON token: %w", err)
@@ -44,6 +52,9 @@ func consumeJSONValue(decoder *json.Decoder) error {
 
 	switch value := token.(type) {
 	case json.Delim:
+		if depth+1 > maxJCSNestingDepth {
+			return fmt.Errorf("JSON nesting depth exceeds %d", maxJCSNestingDepth)
+		}
 		switch value {
 		case '{':
 			seen := make(map[string]struct{})
@@ -63,7 +74,7 @@ func consumeJSONValue(decoder *json.Decoder) error {
 					return fmt.Errorf("duplicate object member name %q", key)
 				}
 				seen[key] = struct{}{}
-				if err := consumeJSONValue(decoder); err != nil {
+				if err := consumeJSONValue(decoder, depth+1); err != nil {
 					return err
 				}
 			}
@@ -73,7 +84,7 @@ func consumeJSONValue(decoder *json.Decoder) error {
 			}
 		case '[':
 			for decoder.More() {
-				if err := consumeJSONValue(decoder); err != nil {
+				if err := consumeJSONValue(decoder, depth+1); err != nil {
 					return err
 				}
 			}
