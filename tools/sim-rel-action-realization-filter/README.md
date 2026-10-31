@@ -159,9 +159,12 @@ active worlds at each public history. The optimizer uses branch-local model
 elimination only where a world assigns exactly zero probability; no independent
 world-specific policies are admitted.
 
-A separate shared-policy replay checks observation-branch coverage, common
-actions and terminal decisions, horizon limits, hazard termination and exact
-per-world objective receipts. Tiny-domain exhaustive enumeration has its own
+A separate shared-policy replay propagates raw, unnormalized forward path
+mass directly through kernel outcomes. It does not call the Bayesian filter or
+normalize posterior states, so it independently reconstructs per-world
+observation-branch mass, command cost, terminal loss, hazard and abstention
+receipts. It checks exact public-observation branch coverage, horizon limits
+and hazard termination. Tiny-domain exhaustive enumeration has its own
 quadratic pairwise dominance implementation rather than calling the production
 frontier pruner. Authored fixtures include:
 - an instrument whose measurement mapping is reversed in one plausible world;
