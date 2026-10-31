@@ -875,7 +875,7 @@ mod tests {
             .lines()
             .map(|line| {
                 if line.starts_with("EVIDENCE|ev-vvuq-machine|") {
-                    line.replace("SYNTHETIC_ONLY", "UNQUALIFIED")
+                    line.replace("SYNTHETIC_ONLY", "ADMITTED")
                 } else {
                     line.to_string()
                 }
@@ -884,7 +884,7 @@ mod tests {
             .join("\n");
         let result = audit_text(&input);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("non-admissible status"));
+        assert!(result.unwrap_err().contains("VVUQ evidence is not qualified"));
     }
 
     #[test]
@@ -942,6 +942,35 @@ mod tests {
         let result = audit_text(&input);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("orphan or unreferenced"));
+    }
+
+    #[test]
+    fn rejects_unqualified_msa_evidence() {
+        let input = fixture("integrated")
+            .lines()
+            .map(|line| {
+                if line.starts_with("EVIDENCE|ev-node-msa_study|") {
+                    line.replace("SYNTHETIC_ONLY", "ADMITTED")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let result = audit_text(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("MSA study evidence is not qualified"));
+    }
+
+    #[test]
+    fn rejects_invalid_calendar_timestamp() {
+        let input = fixture("integrated").replace(
+            "2026-11-01T00:00:00Z",
+            "2026-02-30T00:00:00Z",
+        );
+        let result = audit_text(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("UTC YYYY-MM-DDTHH:MM:SSZ"));
     }
 
     #[test]
