@@ -27,7 +27,7 @@ Every required current receipt must match the manifest's:
 - specification identifier and revision;
 - effective interval / decision time.
 
-Each child report digest, source ID, scalar outcome/reason and evidence status are preserved. This v0.1 reference validates the supplied declaration and digest format; it does not cryptographically authenticate signatures or independently revalidate child measurement systems.
+Each child report digest, source ID, scalar outcome/reason, evidence state, issue timestamp, current/superseded flag and supersession parent are preserved in separate source-receipt rows. Historical and undeclared extra receipts remain in the replayable report rather than being reduced to counts. This v0.1 reference validates the supplied declaration and digest format; it does not cryptographically authenticate signatures or independently revalidate child measurement systems.
 
 ## Complexity
 
