@@ -260,12 +260,10 @@ impl QuarticPortHamiltonian {
         }
 
         let mut iterations = 0usize;
-        let mut scaled_residual = f64::INFINITY;
         let mut converged = false;
 
         for iteration in 0..options.max_iterations {
             let (fq, fp, norm) = self.residual(before, after, dt, input)?;
-            scaled_residual = norm;
             if norm <= options.relative_tolerance {
                 iterations = iteration;
                 converged = true;
@@ -321,7 +319,6 @@ impl QuarticPortHamiltonian {
 
         if !converged {
             let (_, _, final_norm) = self.residual(before, after, dt, input)?;
-            scaled_residual = final_norm;
             converged = final_norm <= options.relative_tolerance;
         }
         if !converged {
