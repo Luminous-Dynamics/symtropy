@@ -346,16 +346,17 @@ fn initial_difference(
 }
 
 fn outcome_symbols(kernel: &JointKernel) -> Vec<OutcomeSymbol> {
-    let mut symbols: Vec<OutcomeSymbol> = kernel
-        .observation_ids
-        .iter()
-        .enumerate()
-        .map(|(index, id)| OutcomeSymbol::Observation {
-            index,
-            id: id.clone(),
-        })
-        .collect();
-    symbols.push(OutcomeSymbol::Hazard);
+    let mut symbols = vec![OutcomeSymbol::Hazard];
+    symbols.extend(
+        kernel
+            .observation_ids
+            .iter()
+            .enumerate()
+            .map(|(index, id)| OutcomeSymbol::Observation {
+                index,
+                id: id.clone(),
+            }),
+    );
     symbols
 }
 
@@ -461,6 +462,11 @@ fn replay_word_probability(
             .iter()
             .position(|id| id == &step.action_id)
             .ok_or_else(|| "distinguishing witness contains an unknown action".to_string())?;
+        if let OutcomeSymbol::Observation { index, id } = &step.outcome {
+            if kernel.observation_ids.get(*index) != Some(id) {
+                return Err("distinguishing witness outcome ID/index mismatch".into());
+            }
+        }
         let mut next = vec![Rational::zero(); side_dimension];
         for state in 0..states {
             if belief[state].is_zero() {
@@ -918,6 +924,7 @@ mod tests {
                 }
             }
         }
+        let action_count = actions.len();
         JointKernel {
             hypothesis_ids: (0..hypotheses)
                 .map(|index| format!("h{index}"))
@@ -926,7 +933,7 @@ mod tests {
             sensor_state_count: sensor_states,
             action_ids: actions.into_iter().map(str::to_string).collect(),
             observation_ids: observations.into_iter().map(str::to_string).collect(),
-            action_costs: vec![1; actions.len()],
+            action_costs: vec![1; action_count],
             initial_belief,
             rows,
         }
@@ -1078,23 +1085,18 @@ mod tests {
             ],
             |hypothesis, physical, sensor, action| {
                 if action == 0 {
-                    let next = if (hypothesis == 0 && physical == 0)
-                        || (hypothesis == 1 && physical == 1)
-                    {
-                        0
-                    } else {
-                        1
-                    };
+                    let next_zero = if hypothesis == 0 { 0 } else { 1 };
+                    let next_one = 1 - next_zero;
                     vec![
                         JointOutcome {
                             probability: half(),
-                            next_physical_state: 0,
+                            next_physical_state: next_zero,
                             next_sensor_state: sensor,
                             observation: Some(0),
                         },
                         JointOutcome {
                             probability: half(),
-                            next_physical_state: 1,
+                            next_physical_state: next_one,
                             next_sensor_state: sensor,
                             observation: Some(1),
                         },
@@ -1281,6 +1283,35 @@ mod tests {
         assert!(verify_distinguishing_witness(&kernel, &witness).unwrap());
     }
 
+    fn brute_find_distinguishing_word(
+        kernel: &JointKernel,
+        left: usize,
+        right: usize,
+        horizon: usize,
+        prefix: &mut Vec<DistinguishingStep>,
+    ) -> Result<Option<Vec<DistinguishingStep>>, String> {
+        if prefix.len() >= horizon {
+            return Ok(None);
+        }
+        for action in 0..kernel.action_ids.len() {
+            for symbol in outcome_symbols(kernel) {
+                prefix.push(step_for(kernel, action, &symbol));
+                let left_probability = replay_word_probability(kernel, left, prefix)?;
+                let right_probability = replay_word_probability(kernel, right, prefix)?;
+                if left_probability != right_probability {
+                    return Ok(Some(prefix.clone()));
+                }
+                if let Some(witness) =
+                    brute_find_distinguishing_word(kernel, left, right, horizon, prefix)?
+                {
+                    return Ok(Some(witness));
+                }
+                prefix.pop();
+            }
+        }
+        Ok(None)
+    }
+
     #[test]
     fn independent_exhaustive_word_enumerator_agrees_with_pairwise_classification() {
         let kernels = vec![
@@ -1292,12 +1323,41 @@ mod tests {
         for kernel in kernels {
             let report = analyze_identifiability(&kernel, &config()).unwrap();
             for pair in report.pairwise {
+                let left = kernel
+                    .hypothesis_ids
+                    .iter()
+                    .position(|id| id == &pair.left_hypothesis_id)
+                    .unwrap();
+                let right = kernel
+                    .hypothesis_ids
+                    .iter()
+                    .position(|id| id == &pair.right_hypothesis_id)
+                    .unwrap();
                 match pair.classification {
                     PairClassification::Distinguishable(witness) => {
                         assert!(verify_distinguishing_witness(&kernel, &witness).unwrap());
+                        let brute = brute_find_distinguishing_word(
+                            &kernel,
+                            left,
+                            right,
+                            witness.steps.len(),
+                            &mut Vec::new(),
+                        )
+                        .unwrap();
+                        assert!(brute.is_some());
+                        assert_eq!(brute.unwrap().len(), witness.steps.len());
                     }
                     PairClassification::Equivalent(certificate) => {
                         assert!(verify_equivalence_certificate(&kernel, &certificate).unwrap());
+                        assert!(brute_find_distinguishing_word(
+                            &kernel,
+                            left,
+                            right,
+                            3,
+                            &mut Vec::new(),
+                        )
+                        .unwrap()
+                        .is_none());
                     }
                 }
             }
