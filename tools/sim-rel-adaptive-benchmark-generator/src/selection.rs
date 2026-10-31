@@ -204,6 +204,207 @@ pub fn select_discriminative_tasks(
     })
 }
 
+
+/// Paired method comparison within one task family.
+///
+/// Regret differences are left minus right, so a negative mean favours the
+/// left method. Confidence limits use a deterministic paired bootstrap over
+/// task seeds. Risk compliance is reported separately from regret.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PairedMethodComparison {
+    pub family: TaskFamily,
+    pub left_method_id: String,
+    pub right_method_id: String,
+    pub paired_task_count: usize,
+    pub mean_left_minus_right_regret: f64,
+    pub confidence_95_lower: f64,
+    pub confidence_95_upper: f64,
+    pub left_risk_compliance_rate: f64,
+    pub right_risk_compliance_rate: f64,
+    pub enough_paired_tasks: bool,
+    pub directional_interval_excludes_zero: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PairedComparisonConfig {
+    pub minimum_paired_tasks: usize,
+    pub bootstrap_replicates: usize,
+    pub root_seed: u64,
+}
+
+impl Default for PairedComparisonConfig {
+    fn default() -> Self {
+        Self {
+            minimum_paired_tasks: 30,
+            bootstrap_replicates: 2_000,
+            root_seed: 0xC0FF_EE12_3456_7890,
+        }
+    }
+}
+
+/// Compare every method pair using the same exact task seeds within each family.
+///
+/// Results must contain exactly one outcome per method/task pair and the same
+/// complete method roster on every task. Bootstrap sampling is deterministic
+/// from the supplied root seed and family ID.
+pub fn compare_methods_paired(
+    tasks: &[GeneratedTask],
+    results: &[MethodTaskResult],
+    config: &PairedComparisonConfig,
+) -> Result<Vec<PairedMethodComparison>, String> {
+    if tasks.is_empty() || tasks.len() > MAX_CANDIDATES {
+        return Err(format!("paired task count must be in 1..={MAX_CANDIDATES}"));
+    }
+    if config.minimum_paired_tasks == 0
+        || config.bootstrap_replicates < 100
+        || config.bootstrap_replicates > 100_000
+    {
+        return Err("paired comparison requires positive sample count and 100..=100000 bootstrap replicates".into());
+    }
+
+    let mut task_ids = BTreeSet::new();
+    let mut methods = BTreeSet::new();
+    for task in tasks {
+        verify_generated_task(task)?;
+        if !task_ids.insert(task.receipt.task_id.clone()) {
+            return Err("paired comparison contains duplicate task IDs".into());
+        }
+    }
+    for result in results {
+        if !task_ids.contains(&result.task_id) || result.method_id.trim().is_empty() {
+            return Err("paired result references an unknown task or empty method ID".into());
+        }
+        methods.insert(result.method_id.clone());
+    }
+    if methods.len() < 2 || methods.len() > MAX_METHODS {
+        return Err(format!("paired method roster must contain 2..={MAX_METHODS} methods"));
+    }
+
+    let method_ids: Vec<String> = methods.into_iter().collect();
+    let mut results_by_task: BTreeMap<String, BTreeMap<String, &MethodTaskResult>> =
+        BTreeMap::new();
+    for result in results {
+        let per_method = results_by_task.entry(result.task_id.clone()).or_default();
+        if per_method.insert(result.method_id.clone(), result).is_some() {
+            return Err("paired comparison has duplicate method/task observations".into());
+        }
+    }
+
+    let expected_roster: BTreeSet<String> = method_ids.iter().cloned().collect();
+    let mut tasks_by_family: BTreeMap<TaskFamily, Vec<&GeneratedTask>> = BTreeMap::new();
+    for task in tasks {
+        let per_method = results_by_task
+            .get(&task.receipt.task_id)
+            .ok_or_else(|| format!("task {} has no method results", task.receipt.task_id))?;
+        let roster: BTreeSet<String> = per_method.keys().cloned().collect();
+        if roster != expected_roster {
+            return Err(format!(
+                "task {} does not have the complete paired method roster",
+                task.receipt.task_id
+            ));
+        }
+        tasks_by_family.entry(task.receipt.family).or_default().push(task);
+    }
+
+    let mut comparisons = Vec::new();
+    for (family, mut family_tasks) in tasks_by_family {
+        family_tasks.sort_by(|left, right| {
+            left.receipt.seed.cmp(&right.receipt.seed)
+                .then_with(|| left.receipt.task_id.cmp(&right.receipt.task_id))
+        });
+
+        for left_index in 0..method_ids.len() {
+            for right_index in (left_index + 1)..method_ids.len() {
+                let left_method = &method_ids[left_index];
+                let right_method = &method_ids[right_index];
+                let mut differences = Vec::with_capacity(family_tasks.len());
+                let mut left_passes = 0_usize;
+                let mut right_passes = 0_usize;
+
+                for task in &family_tasks {
+                    let per_method = &results_by_task[&task.receipt.task_id];
+                    let left = per_method[left_method];
+                    let right = per_method[right_method];
+                    differences.push(
+                        rational_to_f64(left.exact_regret)
+                            - rational_to_f64(right.exact_regret),
+                    );
+                    left_passes += usize::from(left.risk_compliant);
+                    right_passes += usize::from(right.risk_compliant);
+                }
+
+                let count = differences.len();
+                let mean = differences.iter().sum::<f64>() / count as f64;
+                let (lower, upper) = paired_bootstrap_interval(
+                    &differences,
+                    config.bootstrap_replicates,
+                    config.root_seed ^ family.code()
+                        ^ ((left_index as u64) << 32)
+                        ^ right_index as u64,
+                );
+                comparisons.push(PairedMethodComparison {
+                    family,
+                    left_method_id: left_method.clone(),
+                    right_method_id: right_method.clone(),
+                    paired_task_count: count,
+                    mean_left_minus_right_regret: mean,
+                    confidence_95_lower: lower,
+                    confidence_95_upper: upper,
+                    left_risk_compliance_rate: left_passes as f64 / count as f64,
+                    right_risk_compliance_rate: right_passes as f64 / count as f64,
+                    enough_paired_tasks: count >= config.minimum_paired_tasks,
+                    directional_interval_excludes_zero: lower > 0.0 || upper < 0.0,
+                });
+            }
+        }
+    }
+    Ok(comparisons)
+}
+
+fn rational_to_f64(value: Rational) -> f64 {
+    value.numerator() as f64 / value.denominator() as f64
+}
+
+#[derive(Clone, Copy, Debug)]
+struct BootstrapRng {
+    state: u64,
+}
+
+impl BootstrapRng {
+    fn new(seed: u64) -> Self {
+        Self { state: seed }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut value = self.state;
+        value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        value ^ (value >> 31)
+    }
+}
+
+fn paired_bootstrap_interval(
+    differences: &[f64],
+    replicates: usize,
+    seed: u64,
+) -> (f64, f64) {
+    let mut rng = BootstrapRng::new(seed);
+    let mut means = Vec::with_capacity(replicates);
+    for _ in 0..replicates {
+        let mut total = 0.0;
+        for _ in 0..differences.len() {
+            let index = (rng.next_u64() % differences.len() as u64) as usize;
+            total += differences[index];
+        }
+        means.push(total / differences.len() as f64);
+    }
+    means.sort_by(f64::total_cmp);
+    let lower_index = ((means.len() - 1) as f64 * 0.025).floor() as usize;
+    let upper_index = ((means.len() - 1) as f64 * 0.975).ceil() as usize;
+    (means[lower_index], means[upper_index])
+}
+
 fn absolute_difference(left: Rational, right: Rational) -> Result<Rational, String> {
     if left >= right {
         left.checked_sub(right)
@@ -301,4 +502,74 @@ mod tests {
         assert!(report.selected_task_ids.is_empty());
         assert_eq!(report.unsolved_task_ids, vec![task.receipt.task_id]);
     }
+
+    #[test]
+    fn paired_comparison_uses_seed_matched_regret_and_reports_power() {
+        let tasks: Vec<GeneratedTask> = (0..32)
+            .map(|seed| generate_task(TaskFamily::SensorPhysicalConfounding, seed).unwrap())
+            .collect();
+        let mut results = Vec::new();
+        for task in &tasks {
+            results.push(MethodTaskResult {
+                task_id: task.receipt.task_id.clone(),
+                method_id: "one-step-eig".into(),
+                risk_compliant: false,
+                exact_regret: Rational::from_u64(10),
+            });
+            results.push(MethodTaskResult {
+                task_id: task.receipt.task_id.clone(),
+                method_id: "exact-sequential".into(),
+                risk_compliant: true,
+                exact_regret: Rational::zero(),
+            });
+        }
+        let config = PairedComparisonConfig {
+            minimum_paired_tasks: 30,
+            bootstrap_replicates: 500,
+            root_seed: 1234,
+        };
+        let comparison = compare_methods_paired(&tasks, &results, &config).unwrap();
+        assert_eq!(comparison.len(), 1);
+        assert_eq!(comparison[0].paired_task_count, 32);
+        assert!(comparison[0].enough_paired_tasks);
+        assert!(comparison[0].directional_interval_excludes_zero);
+        assert!(comparison[0].mean_left_minus_right_regret > 0.0);
+        assert_eq!(comparison[0].left_risk_compliance_rate, 0.0);
+        assert_eq!(comparison[0].right_risk_compliance_rate, 1.0);
+    }
+
+    #[test]
+    fn paired_comparison_marks_small_samples_as_underpowered() {
+        let tasks = vec![
+            generate_task(TaskFamily::PhysicalCarryover, 1).unwrap(),
+            generate_task(TaskFamily::PhysicalCarryover, 2).unwrap(),
+        ];
+        let mut results = Vec::new();
+        for task in &tasks {
+            results.push(MethodTaskResult {
+                task_id: task.receipt.task_id.clone(),
+                method_id: "a".into(),
+                risk_compliant: true,
+                exact_regret: Rational::from_u64(2),
+            });
+            results.push(MethodTaskResult {
+                task_id: task.receipt.task_id.clone(),
+                method_id: "b".into(),
+                risk_compliant: true,
+                exact_regret: Rational::zero(),
+            });
+        }
+        let comparison = compare_methods_paired(
+            &tasks,
+            &results,
+            &PairedComparisonConfig {
+                minimum_paired_tasks: 30,
+                bootstrap_replicates: 100,
+                root_seed: 5,
+            },
+        ).unwrap();
+        assert_eq!(comparison.len(), 1);
+        assert!(!comparison[0].enough_paired_tasks);
+    }
+
 }
