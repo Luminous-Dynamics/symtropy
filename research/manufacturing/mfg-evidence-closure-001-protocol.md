@@ -116,7 +116,42 @@ The 10,000-artifact test validates correctness under a long chain. It does not c
 - graph shape distribution (chain, star, layered DAG, shared dependencies, high fan-in/out);
 - separate parsing and evaluation times.
 
-## 9. Integration
+## 9. Relationship to standards and industry baselines
+
+### NIST IR 8536 — Manufacturing Supply Chain Traceability Meta-Framework
+
+NIST finalized IR 8536 on 2026-09-09. It is the closest standards/research baseline for cross-organization manufacturing provenance: organizing, linking and querying traceability records across diverse ecosystems, using cryptographically verifiable links and selective disclosure while preserving existing industry standards. NIST describes a Python reference implementation as undergoing final review at publication time; do not claim to have benchmarked it until its source and release are publicly available.
+
+This project should **complement and map to IR 8536**, not claim to reinvent manufacturing traceability. The proposed extension is decision-bound dependency closure for engineering evidence:
+- typed material roles and multiplicity rules (for example, a process measurement requires raw data, instrument identity and calibration; the calibration record itself requires certificate and reference standard);
+- exact transitive digest closure;
+- claim-specific evidence tier and validity;
+- engineering scope semantics (site/asset/line/lot) enforced at every dependency edge;
+- invalidation of closure results when upstream evidence changes;
+- direct binding of closure reports to VVUQ, assurance-case and intervention claims.
+
+A next-stage adapter should map IR 8536 traceability events/links into this closure graph with a loss-aware field mapping. Test selective disclosure by verifying required role/digest commitments without exposing supplier-sensitive payload values. No compatibility or conformance claim is made until that adapter is implemented and differential-tested.
+
+### Commercial PLM / digital-thread baselines
+
+PTC Windchill is a representative commercial baseline for product lifecycle data, BOM transformation, engineering change/configuration management and cross-domain product traceability. Its public product material describes connected product/process data, change management and end-to-end traceability. These are established capabilities; this project must not claim to replace them.
+
+Benchmark the closure checker alongside a version-pinned PLM/QMS digital-thread workflow using the same seeded graph defects. Compare:
+- identity and exact revision/digest linkage for model, firmware, calibration, tooling and material-lot data;
+- ability to express required material roles/multiplicity and enforce them at release time;
+- expiry, evidence tier and asset/site/line/lot scope enforcement on every dependency edge;
+- transitive requalification after an upstream change;
+- missing-calibration/missing-reference-standard detection;
+- selective disclosure of supplier material evidence;
+- deterministic export of the entire root-to-dependency closure and a machine-readable witness path.
+
+For every vendor release, capture configuration, integration/export format and workflow rules. A feature list or product page is not a benchmark result. Test what the deployed installation actually enforces, and report “not evaluated” where an integration or policy was not exercised.
+
+### Proposed differentiation
+
+The differentiator is not a better PLM repository or a new traceability graph. It is a **decision-suitability gate over an authenticated provenance graph**: a result may be well traced and cryptographically linked yet still be unusable for a particular claim because calibration is out of date, evidence tier is too low, scope is wrong, uncertainty is absent, or a required material role is missing. The assurance-case graph (#3178) determines which decision claim depends on the closure report; this module explains exactly which material edge blocks it.
+
+## 10. Integration
 
 - #3184 cryptographic receipt verification binds root/material artifact bytes to trusted signer identity and current trust root.
 - This closure checker consumes the resulting verifier receipt catalogue and verifies dependency completeness.
@@ -126,6 +161,6 @@ The 10,000-artifact test validates correctness under a long chain. It does not c
 
 The exact closure report and package digest must be recorded. Branch names, filenames and mutable PR URLs are not sufficient evidence identity.
 
-## 10. Claim ceiling
+## 11. Claim ceiling
 
 This prototype validates closure over declared artifact records and admission statuses. It does not hash raw file bytes, verify signatures or TUF metadata, prove metrology traceability, establish semantic relevance, or prove model/physical validity. The ACCEPTED flag is assumed to come from a separate trusted cryptographic verifier; this tool must not be treated as the cryptographic verifier itself.
