@@ -30,10 +30,11 @@ No square-root or floating tolerance is used for the disk test. An exact stick/s
 
 ## Frozen tests
 
-- Uniformly separating and grazing boxes.
+- Uniformly separating/grazing boxes and a strictly negative q_n box that rejects the separating branch.
 - A separating box that crosses q_n=0 remains inconclusive.
 - A narrow SPD sticking box certifies positive normal load, strict disk interior, zero-compatible post velocity, and non-positive island energy.
 - An exact stick/slip-boundary point remains inconclusive.
+- A sticking normal-impulse box that crosses zero remains inconclusive.
 - A strictly outside-disk unconstrained impulse is rejected as sticking.
 - Ninety-six deterministic exact-dyadic point inputs are checked against the enclosing interval outputs for normal impulse, squared disk margin, and energy.
 - Failure to prove SPD returns inconclusive for both non-sliding verifiers.
