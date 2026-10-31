@@ -11,6 +11,7 @@ use std::collections::{BTreeSet, VecDeque};
 
 const MAX_AMBIENT_DIMENSION: usize = 8_192;
 const MAX_BASIS_VECTORS: usize = 8_192;
+const MAX_CERTIFICATE_CELLS: usize = 1_000_000;
 const MAX_PAIRWISE_HYPOTHESES: usize = 32;
 
 /// Exact signed rational value used by certificates and distinguishing witnesses.
@@ -555,6 +556,8 @@ pub fn verify_equivalence_certificate(
     if certificate.ambient_dimension != expected_dimension
         || certificate.basis_vectors.len() != certificate.pivot_columns.len()
         || certificate.basis_vectors.len() > MAX_BASIS_VECTORS
+        || certificate.basis_vectors.len().saturating_mul(expected_dimension)
+            > MAX_CERTIFICATE_CELLS
     {
         return Ok(false);
     }
@@ -668,10 +671,17 @@ pub fn analyze_hypothesis_pair(
     let (initial, _, _) =
         initial_difference(kernel, left_hypothesis, right_hypothesis)?;
 
+    let basis_cap = config
+        .max_basis_vectors
+        .min(MAX_BASIS_VECTORS)
+        .min(MAX_CERTIFICATE_CELLS / dimension);
+    if basis_cap == 0 {
+        return Err("identifiability certificate-memory budget is zero".into());
+    }
     let mut basis = LinearBasis::default();
     let mut queue = VecDeque::new();
     if basis
-        .insert(initial.clone(), config.max_basis_vectors)?
+        .insert(initial.clone(), basis_cap)?
         .is_some()
     {
         queue.push_back(QueueEntry {
@@ -740,7 +750,7 @@ pub fn analyze_hypothesis_pair(
                 }
 
                 if basis
-                    .insert(next.clone(), config.max_basis_vectors)?
+                    .insert(next.clone(), basis_cap)?
                     .is_some()
                 {
                     queue.push_back(QueueEntry {
@@ -800,7 +810,7 @@ pub fn analyze_identifiability(
             let right = support_indices[right_position];
             let classification =
                 analyze_hypothesis_pair(kernel, left, right, config)?;
-            if matches!(classification, PairClassification::Equivalent(_)) {
+            if matches!(&classification, PairClassification::Equivalent(_)) {
                 union_find.union(left_position, right_position);
             }
             pairwise.push(PairIdentifiability {
