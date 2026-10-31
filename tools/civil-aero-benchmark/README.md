@@ -318,3 +318,10 @@ The validation_uncertainty module binds a comparison to the finest-grid result o
 The input/experiment combination gate also requires an explicit declaration and rationale that those components are aleatory; a correlation coefficient alone cannot authorize covariance combination. Otherwise the tool retains separate terms and withholds the combined interval.
 
 Experimental standard uncertainty is no longer a free-floating scalar: each validation receipt carries an immutable source reference and an estimation-method description (including applicable repeatability/calibration components). Missing experimental uncertainty provenance fails closed.
+
+
+## Correlated global input-design generation
+
+The Rust input_sampling module creates deterministic correlated Gaussian Latin-hypercube input designs for nonlinear/global uncertainty workflows. It uses a seed, marginal mean/standard uncertainty, engineering bounds, and a caller-supplied positive-definite latent Gaussian correlation matrix. Iman-Conover-style rank reordering preserves exactly one LHS probability stratum in each final input marginal, then reports both latent-score correlation and the achieved physical-input Pearson correlation. Out-of-domain samples fail rather than clip.
+
+This is an input-design generator only: it does not run CFD or estimate output uncertainty. A downstream solver adapter must attach exact sample IDs, solver/config/mesh hashes, convergence and conservation records, outputs, resource usage, and raw artifact digests before any output uncertainty can be estimated. See INPUT_SAMPLING_PROTOCOL_V0_1.md.

@@ -13,6 +13,7 @@ pub mod coupon;
 pub mod dpw8_submission;
 pub mod grid_convergence;
 pub mod interval_calibration;
+pub mod input_sampling;
 pub mod integrity;
 pub mod reference_data;
 pub mod robust_voi;
