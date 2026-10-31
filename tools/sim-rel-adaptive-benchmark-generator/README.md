@@ -4,7 +4,8 @@ This deterministic generator uses a versioned task grammar and recorded seeds. I
 
 Initial families:
 
-- Sensor/physical confounding: a persistent sensor offset cancels a specimen-state difference; repeated reads are not IID evidence, while calibrate-then-measure identifies the mechanism.
+- Sensor/physical confounding: a persistent sensor offset cancels a specimen-state difference; repeated reads are not IID evidence, while calibrate-then-measure identifies the mechanism with zero false-claim risk.
+- Noisy sensor/physical confounding: calibration removes the persistent offset, but the subsequent measurement remains stochastic. The exact optimizer must respect a declared 1/4 false-identification budget; one-step EIG remains zero before calibration.
 - Physical carryover: conditioning changes the process state without immediate information; condition-then-read is identifying.
 - Non-identifiable control: hidden physical and sensor state differ, but all available actions emit the same output law. An all-horizon equivalence certificate is required, and no strict exact-claim policy may exist.
 
