@@ -128,7 +128,7 @@ impl DecisionOptimizationResult {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct BeliefKey(Vec<(crate::LatentState, Rational)>);
 
 impl BeliefKey {
@@ -558,6 +558,7 @@ pub fn replay_decision_policy(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn replay_from_belief(
     kernel: &ActionRealizationKernel,
     table: &DecisionLossTable,
@@ -798,7 +799,47 @@ fn exhaustive_from_belief(
             },
         }));
     }
-    Ok(candidates)
+    independent_pairwise_frontier(candidates)
+}
+
+/// Independent quadratic nondominance filter used only by the exhaustive
+/// reference. It does not call the production frontier-pruning implementation.
+fn independent_pairwise_frontier(
+    candidates: Vec<DecisionFrontierPoint>,
+) -> Vec<DecisionFrontierPoint> {
+    let mut retained = Vec::new();
+    for (candidate_index, candidate) in candidates.iter().enumerate() {
+        let dominated = candidates.iter().enumerate().any(|(other_index, other)| {
+            if candidate_index == other_index {
+                return false;
+            }
+            let no_worse = other.expected_experiment_cost <= candidate.expected_experiment_cost
+                && other.expected_terminal_loss <= candidate.expected_terminal_loss
+                && other.hazard_probability <= candidate.hazard_probability
+                && other.abstention_probability <= candidate.abstention_probability;
+            let strictly_better =
+                other.expected_experiment_cost < candidate.expected_experiment_cost
+                    || other.expected_terminal_loss < candidate.expected_terminal_loss
+                    || other.hazard_probability < candidate.hazard_probability
+                    || other.abstention_probability < candidate.abstention_probability;
+            no_worse && strictly_better
+        });
+        if !dominated {
+            retained.push(candidate.clone());
+        }
+    }
+
+    retained.sort_by(frontier_order);
+    let mut unique = Vec::new();
+    for candidate in retained {
+        if unique.iter().any(|other: &DecisionFrontierPoint| {
+            same_frontier_objectives(other, &candidate)
+        }) {
+            continue;
+        }
+        unique.push(candidate);
+    }
+    unique
 }
 
 /// Canonical objective vectors for comparing independent enumerators.
