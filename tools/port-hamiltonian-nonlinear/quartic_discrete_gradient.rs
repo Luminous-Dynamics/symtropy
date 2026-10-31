@@ -81,6 +81,9 @@ pub struct StepReceipt {
     pub energy_balance_residual: f64,
     pub relative_energy_balance_residual: f64,
     /// Dimensionlessly scaled residual of the two implicit equations.
+    /// Euclidean norm of the unscaled implicit-equation residual.
+    pub nonlinear_residual_norm: f64,
+    /// Dimensionlessly scaled residual used by the Newton stopping rule.
     pub scaled_nonlinear_residual: f64,
     pub nonlinear_iterations: usize,
     /// Midpoint port output y = (p0 + p1) / (2m).
@@ -325,7 +328,9 @@ impl QuarticPortHamiltonian {
             return Err(Error::NoConvergence);
         }
 
-        let (_, _, final_scaled_residual) = self.residual(before, after, dt, input)?;
+        let (final_fq, final_fp, final_scaled_residual) =
+            self.residual(before, after, dt, input)?;
+        let final_nonlinear_residual_norm = final_fq.hypot(final_fp);
         let energy_after = self.hamiltonian(after)?;
         let midpoint_output = (before.momentum + after.momentum) / (2.0 * self.mass);
         let supplied_work = dt * input * midpoint_output;
@@ -344,6 +349,7 @@ impl QuarticPortHamiltonian {
             || !energy_balance_residual.is_finite()
             || !relative_energy_balance_residual.is_finite()
             || !final_scaled_residual.is_finite()
+            || !final_nonlinear_residual_norm.is_finite()
         {
             return Err(Error::NonFiniteResult);
         }
@@ -362,7 +368,8 @@ impl QuarticPortHamiltonian {
             dissipated_energy,
             energy_balance_residual,
             relative_energy_balance_residual,
-            scaled_nonlinear_residual: final_scaled_residual.max(scaled_residual.min(final_scaled_residual)),
+            nonlinear_residual_norm: final_nonlinear_residual_norm,
+            scaled_nonlinear_residual: final_scaled_residual,
             nonlinear_iterations: iterations,
             midpoint_output,
         })
@@ -571,6 +578,7 @@ mod tests {
     }
 }
 
+#[cfg(not(test))]
 fn main() {
     let system = QuarticPortHamiltonian::new(1.0, 1.0, 0.75, 0.0)
         .expect("fixed benchmark model must be valid");
