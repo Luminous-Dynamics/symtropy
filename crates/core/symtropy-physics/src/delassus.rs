@@ -855,6 +855,121 @@ mod tests {
         );
     }
 
+    #[test]
+    fn contact_wrench_free_velocity_uses_physical_angular_sign() {
+        use crate::body::BodyType;
+        use symtropy_math::{Sphere, Transform};
+
+        let static_body = RigidBody::<3>::new(
+            BodyHandle(0),
+            BodyType::Static,
+            Transform::identity(),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+            0.0,
+            SVector::zeros(),
+        );
+        let mut dynamic_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        dynamic_body.linear_velocity = SVector::new(1.0, 2.0, 3.0);
+        // Rotor::from_bivector integrates exp(-B), so positive physical
+        // angular velocity is stored as the negative generator.
+        dynamic_body.angular_velocity = Bivector::<3>::unit_plane(0, 1).scale(-0.5);
+        let frame =
+            ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let row = ContactWrenchRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::zeros(),
+            frame,
+        };
+        let free_velocity = assemble_contact_wrench_free_velocity(
+            &[static_body, dynamic_body],
+            &[row],
+        )
+        .unwrap();
+
+        assert_eq!(free_velocity.len(), 6);
+        assert!((free_velocity[0] - 1.0).abs() < 1e-12);
+        assert!((free_velocity[1] - 2.0).abs() < 1e-12);
+        assert!((free_velocity[2] - 3.0).abs() < 1e-12);
+        assert!((free_velocity[3] - 0.5).abs() < 1e-12);
+        assert!(free_velocity[4].abs() < 1e-12);
+        assert!(free_velocity[5].abs() < 1e-12);
+    }
+
+    #[test]
+    fn contact_wrench_free_velocity_is_rotation_covariant() {
+        use crate::body::BodyType;
+        use symtropy_math::{Sphere, Transform};
+
+        let static_body = RigidBody::<3>::new(
+            BodyHandle(0),
+            BodyType::Static,
+            Transform::identity(),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+            0.0,
+            SVector::zeros(),
+        );
+        let mut dynamic_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        dynamic_body.linear_velocity = SVector::new(1.0, -0.5, 0.25);
+        dynamic_body.angular_velocity = Bivector::<3>::new([0.2, -0.3, 0.4]).scale(-1.0);
+        let frame =
+            ContactFrame::<3>::new(SVector::new(0.3, 0.4, 0.5), 1e-12).unwrap();
+        let row = ContactWrenchRow {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            offset_a: SVector::zeros(),
+            offset_b: SVector::new(0.2, -0.1, 0.3),
+            frame,
+        };
+        let reference = assemble_contact_wrench_free_velocity(
+            &[static_body, dynamic_body],
+            &[row.clone()],
+        )
+        .unwrap();
+
+        let rotation =
+            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.41);
+        let rotated_static = RigidBody::<3>::new(
+            BodyHandle(0),
+            BodyType::Static,
+            Transform::from_translation(Point::new(
+                rotation.rotate_vector(&SVector::zeros()),
+            )),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+            0.0,
+            SVector::zeros(),
+        );
+        let mut rotated_dynamic =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        rotated_dynamic.linear_velocity = rotation.rotate_vector(&dynamic_body.linear_velocity);
+        rotated_dynamic.angular_velocity = Bivector::from_matrix(
+            &(rotation.to_matrix()
+                * dynamic_body.angular_velocity.to_matrix()
+                * rotation.to_matrix().transpose()),
+        );
+        rotated_dynamic.transform.rotation = rotation.compose(&dynamic_body.transform.rotation);
+        let rotated_row = ContactWrenchRow {
+            body_a: row.body_a,
+            body_b: row.body_b,
+            offset_a: rotation.rotate_vector(&row.offset_a),
+            offset_b: rotation.rotate_vector(&row.offset_b),
+            frame: row.frame.rotated_by(&rotation),
+        };
+        let rotated = assemble_contact_wrench_free_velocity(
+            &[rotated_static, rotated_dynamic],
+            &[rotated_row],
+        )
+        .unwrap();
+        assert!(
+            (&rotated - reference).norm() < 1e-10,
+            "global rotation changed free wrench velocity by {}",
+            (&rotated - reference).norm()
+        );
+    }
+
     fn assert_isotropic_contact_wrench_diagonal<const D: usize>() {
         let bodies = vec![
             RigidBody::<D>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 2.0),
