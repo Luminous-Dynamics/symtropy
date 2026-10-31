@@ -494,6 +494,314 @@ fn gcd(mut left: u128, mut right: u128) -> u128 {
     left.max(1)
 }
 
+/// Parameterized deterministic grid for bounded model-family attacks.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BoundedPerturbationGrid {
+    /// Probabilities used for dropout and hazard splitting; each must lie in (0, 1).
+    pub split_probabilities: Vec<Rational>,
+    /// Positive probability mass moved between outcomes in a complete kernel row.
+    pub outcome_mass_shifts: Vec<Rational>,
+    pub include_measurement_label_swaps: bool,
+    pub include_readback_dropout: bool,
+    pub include_hazard_injection: bool,
+    pub include_outcome_mass_shifts: bool,
+    pub include_apparatus_degradation: bool,
+    pub include_realized_action_remapping: bool,
+    /// Add per-sensor variants in addition to global command/sensor variants.
+    pub include_sensor_scoped_variants: bool,
+}
+
+impl Default for BoundedPerturbationGrid {
+    fn default() -> Self {
+        Self {
+            split_probabilities: vec![
+                Rational::new(1, 20).expect("nonzero denominator"),
+                Rational::new(1, 10).expect("nonzero denominator"),
+                Rational::new(1, 5).expect("nonzero denominator"),
+            ],
+            outcome_mass_shifts: vec![
+                Rational::new(1, 20).expect("nonzero denominator"),
+                Rational::new(1, 10).expect("nonzero denominator"),
+            ],
+            include_measurement_label_swaps: true,
+            include_readback_dropout: true,
+            include_hazard_injection: true,
+            include_outcome_mass_shifts: true,
+            include_apparatus_degradation: true,
+            include_realized_action_remapping: true,
+            include_sensor_scoped_variants: true,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BoundedPerturbationGridReport {
+    /// All emitted perturbations have already produced a valid candidate kernel.
+    pub specs: Vec<PerturbationSpec>,
+    /// Deterministic parameter combinations that were inapplicable/no-op.
+    pub skipped_inapplicable: usize,
+    /// Number of parameter combinations evaluated, including skipped ones.
+    pub attempted: usize,
+}
+
+/// Enumerate a finite, deterministic family of valid model perturbations.
+///
+/// Worlds are sorted by ID before enumeration. Candidate IDs and order are
+/// therefore invariant to input-world ordering. Every candidate is validated
+/// by applying it to its immutable source before it is emitted. The explicit
+/// attempt cap bounds Cartesian-product growth; exceeding it returns an error
+/// instead of a silently truncated search.
+pub fn generate_bounded_perturbation_grid(
+    worlds: &[DecisionModelWorld],
+    grid: &BoundedPerturbationGrid,
+    max_attempts: usize,
+) -> Result<BoundedPerturbationGridReport, String> {
+    const MAX_GRID_ATTEMPTS: usize = 100_000;
+    if worlds.is_empty() {
+        return Err("perturbation grid requires at least one source world".into());
+    }
+    if max_attempts == 0 || max_attempts > MAX_GRID_ATTEMPTS {
+        return Err(format!("perturbation grid attempt cap must be in 1..={MAX_GRID_ATTEMPTS}"));
+    }
+
+    let mut canonical_worlds = worlds.to_vec();
+    canonical_worlds.sort_by(|left, right| left.id.cmp(&right.id));
+    let mut world_ids = BTreeSet::new();
+    for world in &canonical_worlds {
+        if world.id.trim().is_empty() || !world_ids.insert(world.id.as_str()) {
+            return Err("source world IDs must be non-empty and unique".into());
+        }
+        world.kernel.validate()?;
+    }
+
+    let mut split_probabilities = grid.split_probabilities.clone();
+    split_probabilities.sort();
+    split_probabilities.dedup();
+    for probability in &split_probabilities {
+        validate_split_probability(*probability, "grid split")?;
+    }
+    let mut mass_shifts = grid.outcome_mass_shifts.clone();
+    mass_shifts.sort();
+    mass_shifts.dedup();
+    if mass_shifts.iter().any(|amount| amount.is_zero()) {
+        return Err("grid outcome-mass shifts must be positive".into());
+    }
+
+    let mut report = BoundedPerturbationGridReport {
+        specs: Vec::new(),
+        skipped_inapplicable: 0,
+        attempted: 0,
+    };
+
+    for source in &canonical_worlds {
+        let kernel = &source.kernel;
+        if grid.include_measurement_label_swaps {
+            for sensor_state in 0..kernel.sensor_state_count {
+                for left in 0..kernel.measurement_ids.len() {
+                    for right in (left + 1)..kernel.measurement_ids.len() {
+                        emit_grid_candidate(
+                            &mut report,
+                            source,
+                            ModelWorldPerturbation::SwapSensorCalibration {
+                                sensor_state,
+                                left_measurement: left,
+                                right_measurement: right,
+                            },
+                            &world_ids,
+                            max_attempts,
+                        )?;
+                    }
+                }
+            }
+            if grid.include_sensor_scoped_variants {
+                for command in 0..kernel.command_ids.len() {
+                    for sensor_state in 0..kernel.sensor_state_count {
+                        for left in 0..kernel.measurement_ids.len() {
+                            for right in (left + 1)..kernel.measurement_ids.len() {
+                                emit_grid_candidate(
+                                    &mut report,
+                                    source,
+                                    ModelWorldPerturbation::SwapMeasurementLabels {
+                                        command,
+                                        sensor_state,
+                                        left_measurement: left,
+                                        right_measurement: right,
+                                    },
+                                    &world_ids,
+                                    max_attempts,
+                                )?;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        for command in 0..kernel.command_ids.len() {
+            let mut scopes = vec![None];
+            if grid.include_sensor_scoped_variants {
+                scopes.extend((0..kernel.sensor_state_count).map(Some));
+            }
+            for sensor_state in &scopes {
+                if grid.include_readback_dropout
+                    && kernel.rows.iter().any(|row| {
+                        row.command == command
+                            && sensor_state.is_none_or(|sensor| row.state.sensor_state == sensor)
+                            && row.outcomes.iter().any(|outcome| outcome.readback.is_some())
+                    })
+                {
+                    for probability in &split_probabilities {
+                        emit_grid_candidate(
+                            &mut report,
+                            source,
+                            ModelWorldPerturbation::DropReadback {
+                                command,
+                                sensor_state: *sensor_state,
+                                dropout_probability: *probability,
+                            },
+                            &world_ids,
+                            max_attempts,
+                        )?;
+                    }
+                }
+                if grid.include_hazard_injection
+                    && kernel.rows.iter().any(|row| {
+                        row.command == command
+                            && sensor_state.is_none_or(|sensor| row.state.sensor_state == sensor)
+                            && row.outcomes.iter().any(|outcome| !outcome.hazard)
+                    })
+                {
+                    for probability in &split_probabilities {
+                        emit_grid_candidate(
+                            &mut report,
+                            source,
+                            ModelWorldPerturbation::InjectHazard {
+                                command,
+                                sensor_state: *sensor_state,
+                                hazard_probability: *probability,
+                            },
+                            &world_ids,
+                            max_attempts,
+                        )?;
+                    }
+                }
+                if grid.include_realized_action_remapping {
+                    for from_action in 0..kernel.realized_action_ids.len() {
+                        for to_action in 0..kernel.realized_action_ids.len() {
+                            if from_action == to_action {
+                                continue;
+                            }
+                            emit_grid_candidate(
+                                &mut report,
+                                source,
+                                ModelWorldPerturbation::RemapRealizedAction {
+                                    command,
+                                    sensor_state: *sensor_state,
+                                    from_action,
+                                    to_action,
+                                },
+                                &world_ids,
+                                max_attempts,
+                            )?;
+                        }
+                    }
+                }
+            }
+
+            if grid.include_outcome_mass_shifts {
+                for row in kernel.rows.iter().filter(|row| row.command == command) {
+                    for source_outcome in 0..row.outcomes.len() {
+                        for target_outcome in 0..row.outcomes.len() {
+                            if source_outcome == target_outcome {
+                                continue;
+                            }
+                            for amount in &mass_shifts {
+                                emit_grid_candidate(
+                                    &mut report,
+                                    source,
+                                    ModelWorldPerturbation::ShiftOutcomeMass {
+                                        state: row.state,
+                                        command,
+                                        source_outcome,
+                                        target_outcome,
+                                        amount: *amount,
+                                    },
+                                    &world_ids,
+                                    max_attempts,
+                                )?;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if grid.include_apparatus_degradation
+                && kernel.apparatus_state_count > 1
+            {
+                for threshold in 0..kernel.apparatus_state_count {
+                    for degraded_state in 0..kernel.apparatus_state_count {
+                        if threshold == degraded_state {
+                            continue;
+                        }
+                        emit_grid_candidate(
+                            &mut report,
+                            source,
+                            ModelWorldPerturbation::DegradeApparatus {
+                                command,
+                                current_apparatus_state_at_least: threshold,
+                                degraded_next_state: degraded_state,
+                            },
+                            &world_ids,
+                            max_attempts,
+                        )?;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(report)
+}
+
+fn emit_grid_candidate(
+    report: &mut BoundedPerturbationGridReport,
+    source: &DecisionModelWorld,
+    perturbation: ModelWorldPerturbation,
+    world_ids: &BTreeSet<&str>,
+    max_attempts: usize,
+) -> Result<(), String> {
+    if report.attempted >= max_attempts {
+        return Err("bounded perturbation grid attempt cap exceeded".into());
+    }
+    report.attempted = report
+        .attempted
+        .checked_add(1)
+        .ok_or_else(|| "perturbation grid attempt counter overflow".to_string())?;
+    let ordinal = report
+        .specs
+        .len()
+        .checked_add(1)
+        .ok_or_else(|| "candidate ID counter overflow".to_string())?;
+    let candidate_world_id = format!("sim-rel-029-generated-{ordinal:08}");
+    if world_ids.contains(candidate_world_id.as_str()) {
+        return Err("generated candidate ID collides with a source world".into());
+    }
+    match apply_model_world_perturbation(source, &candidate_world_id, &perturbation) {
+        Ok(_) => report.specs.push(PerturbationSpec {
+            source_world_id: source.id.clone(),
+            candidate_world_id,
+            perturbation,
+        }),
+        Err(_) => {
+            report.skipped_inapplicable = report
+                .skipped_inapplicable
+                .checked_add(1)
+                .ok_or_else(|| "inapplicable perturbation counter overflow".to_string())?;
+        }
+    }
+    Ok(())
+}
+
 /// Search a fixed policy against a finite, deterministic perturbation family.
 ///
 /// A policy that has no branch for a newly reachable public observation is
