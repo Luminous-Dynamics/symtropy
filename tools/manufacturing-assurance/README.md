@@ -15,7 +15,7 @@ rustc --edition=2021 -D warnings tools/manufacturing-assurance/composition.rs -o
 /tmp/mfg-composition tools/manufacturing-assurance/fixtures/valid-federated.tsv
 ```
 
-Or run `tools/manufacturing-assurance/run-tests.sh`.
+Or run `bash tools/manufacturing-assurance/run-tests.sh`.
 
 ## TSV format
 
@@ -48,7 +48,7 @@ Each component references a `COMPONENT_VVUQ` evidence record whose subject is th
 
 Exactly one each: PRODUCT, LOT, OPERATION, MACHINE_CYCLE, MODEL_RUN, SPECIFICATION, INSPECTION_RESULT, MEASUREMENT, UNCERTAINTY_BUDGET, CONFORMITY, ACTION_PROPOSAL, AUTHORIZATION, EXECUTION and POSTCONDITION.
 
-All must use the same exact `scope_key`, binding this v0.1 scenario to one product / lot / operation. Every node names its producer component and an evidence record whose subject key is `KIND:id`.
+All must use the exact `scope_key` formatted as `PRODUCT_ID/LOT_ID/OPERATION_ID`; the verifier checks that it matches the unique PRODUCT, LOT and OPERATION node IDs. This v0.1 scenario supports one product / lot / operation. Every node names its producer component and an evidence record whose subject key is `KIND:id`.
 
 ### Required edges
 
