@@ -490,7 +490,7 @@ pub enum ObservationField {
 ///
 /// Explicitly distinguishing Any from Missing prevents an absent execution
 /// acknowledgement from being confused with an unobserved acknowledgement.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PublicObservation {
     pub hazard: bool,
     pub readback: ObservationField,
