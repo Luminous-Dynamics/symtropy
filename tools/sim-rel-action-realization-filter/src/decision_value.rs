@@ -181,20 +181,38 @@ pub fn bayes_decision_from_belief(
 
 /// Choose the minimum expected-loss terminal decision from an exact posterior.
 pub fn bayes_decision_from_posterior(
+    kernel: &ActionRealizationKernel,
     table: &DecisionLossTable,
     posterior: &[PosteriorMass],
 ) -> Result<BayesDecision, DecisionValueError> {
+    kernel
+        .validate()
+        .map_err(DecisionValueError::InvalidKernel)?;
     if posterior.is_empty() {
         return Err(DecisionValueError::InvalidBelief(
             "posterior is empty".into(),
         ));
     }
     table
-        .validate_dimensions_from_posterior(posterior)
+        .validate(kernel)
         .map_err(DecisionValueError::InvalidLossTable)?;
-    let total = posterior.iter().try_fold(Rational::zero(), |sum, point| {
-        sum.checked_add(point.mass)
-    }).map_err(DecisionValueError::Arithmetic)?;
+    let mut total = Rational::zero();
+    for point in posterior {
+        if point.next_state.hypothesis >= kernel.hypothesis_ids.len()
+            || point.next_state.physical_state >= kernel.physical_state_count
+            || point.next_state.sensor_state >= kernel.sensor_state_count
+            || point.next_state.apparatus_state >= kernel.apparatus_state_count
+            || point.realized_action >= kernel.realized_action_ids.len()
+            || point.mass.is_zero()
+        {
+            return Err(DecisionValueError::InvalidBelief(
+                "posterior contains an invalid state, action or zero mass".into(),
+            ));
+        }
+        total = total
+            .checked_add(point.mass)
+            .map_err(DecisionValueError::Arithmetic)?;
+    }
     if total != Rational::one() {
         return Err(DecisionValueError::InvalidBelief(
             "posterior mass must sum exactly to one".into(),
@@ -202,36 +220,6 @@ pub fn bayes_decision_from_posterior(
     }
     let losses = expected_losses_from_posterior(table, posterior)?;
     Ok(select_minimum(&losses, table.abstention_loss))
-}
-
-impl DecisionLossTable {
-    fn validate_dimensions_from_posterior(
-        &self,
-        posterior: &[PosteriorMass],
-    ) -> Result<(), String> {
-        if self.decision_ids.is_empty() || self.losses.len() != self.decision_ids.len() {
-            return Err("decision vocabulary and loss table dimensions disagree".into());
-        }
-        let hypothesis_count = posterior
-            .iter()
-            .map(|point| point.next_state.hypothesis)
-            .max()
-            .unwrap_or(0)
-            + 1;
-        let physical_count = posterior
-            .iter()
-            .map(|point| point.next_state.physical_state)
-            .max()
-            .unwrap_or(0)
-            + 1;
-        if self.losses.iter().any(|matrix| {
-            matrix.len() < hypothesis_count
-                || matrix.iter().any(|row| row.len() < physical_count)
-        }) {
-            return Err("loss table does not cover all posterior states".into());
-        }
-        Ok(())
-    }
 }
 
 /// Compare one experiment against immediate stopping under a finite downstream
@@ -287,7 +275,7 @@ pub fn evaluate_one_step_decision_value(
                 .map_err(DecisionValueError::Arithmetic)?;
             hazard_loss
         } else {
-            bayes_decision_from_posterior(table, &filtered.joint_posterior)?.expected_loss
+            bayes_decision_from_posterior(kernel, table, &filtered.joint_posterior)?.expected_loss
         };
         let contribution = branch_probability
             .checked_mul(branch_loss)
@@ -335,11 +323,11 @@ mod tests {
             for command in 0..2 {
                 let outcomes = if command == 0 {
                     match hypothesis {
-                        0 => vec![outcome(Rational::one(), 0)],
-                        1 => vec![outcome(Rational::one(), 1)],
+                        0 => vec![outcome(Rational::one(), 0, hypothesis)],
+                        1 => vec![outcome(Rational::one(), 1, hypothesis)],
                         _ => vec![
-                            outcome(Rational::new(1, 2).unwrap(), 0),
-                            outcome(Rational::new(1, 2).unwrap(), 1),
+                            outcome(Rational::new(1, 2).unwrap(), 0, hypothesis),
+                            outcome(Rational::new(1, 2).unwrap(), 1, hypothesis),
                         ],
                     }
                 } else if hypothesis == 2 {
@@ -397,11 +385,15 @@ mod tests {
         }
     }
 
-    fn outcome(probability: Rational, measurement: usize) -> super::super::TransitionOutcome {
+    fn outcome(
+        probability: Rational,
+        measurement: usize,
+        hypothesis: usize,
+    ) -> super::super::TransitionOutcome {
         super::super::TransitionOutcome {
             probability,
             next_state: LatentState {
-                hypothesis: 0,
+                hypothesis,
                 physical_state: 0,
                 sensor_state: 0,
                 apparatus_state: 0,
