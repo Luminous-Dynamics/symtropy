@@ -2846,6 +2846,132 @@ mod transformed_halfspace_tests {
         assert_eq!(world.collision_events.len(), previous_events.len());
     }
 
+    #[derive(Default)]
+    struct CallbackBatchRecorder {
+        committed_batches: usize,
+        observed_collisions: usize,
+        observed_traumas: usize,
+        dissipated_energy_joules: f64,
+    }
+
+    impl PhysicsCallback<3> for CallbackBatchRecorder {
+        fn modulate_force(&self, _: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
+            *force
+        }
+
+        fn modulate_impulse(&self, impulse: f64, _: &SVector<f64, 3>) -> f64 {
+            impulse
+        }
+
+        fn friction_multiplier(&self, _: &SVector<f64, 3>, _: BodyHandle) -> f64 {
+            1.0
+        }
+
+        fn on_collision(&mut self, _: &CollisionEvent<3>) {
+            self.observed_collisions += 1;
+        }
+
+        fn record_dissipation(&mut self, energy_joules: f64) {
+            self.dissipated_energy_joules += energy_joules;
+        }
+
+        fn record_work(&mut self, _: BodyHandle, _: f64) {}
+
+        fn apply_trauma(&mut self, _: &CollisionEvent<3>) {
+            self.observed_traumas += 1;
+        }
+
+        fn commit_step_effects(&mut self, effects: &[PhysicsCallbackEffect<3>]) {
+            self.committed_batches += 1;
+            for effect in effects {
+                match effect {
+                    PhysicsCallbackEffect::FrictionDissipation { energy_joules } => {
+                        self.record_dissipation(*energy_joules);
+                    }
+                    PhysicsCallbackEffect::Collision(event) => {
+                        self.on_collision(event);
+                        self.apply_trauma(event);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn rejected_world_step_does_not_publish_buffered_callback_effects() {
+        use crate::body::BodyType;
+        use crate::inertia::BivectorInertia;
+        use nalgebra::SMatrix;
+        use symtropy_math::{HalfSpace, HyperBox, Transform};
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 4;
+        world.baumgarte = 0.0;
+        world.compliance = 0.0;
+
+        // First pair is a valid, closing sphere/sphere impact with tangential
+        // slip. It produces a collision and friction-dissipation effect which
+        // must remain buffered when the later pair rejects the world step.
+        let moving_sphere = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.bodies[0].linear_velocity = SVector::new(1.0, 1.0, 0.0);
+        world.bodies[0].friction = 0.5;
+        world.bodies[0].restitution = 0.2;
+        let static_sphere = world.add_body(RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::new([0.999, 0.0, 0.0]),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.5)),
+        ));
+
+        // Second pair has singular inertia in the contact impulse plane. Its
+        // failure occurs after the first contact has already generated effects.
+        let floor = RigidBody::<3>::static_body(
+            BodyHandle(2),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(SVector::new(0.0, 1.0, 0.0), 10.0)),
+        );
+        world.add_body(floor);
+        let mut singular_block = RigidBody::<3>::new(
+            BodyHandle(3),
+            BodyType::Dynamic,
+            Transform::from_translation(Point::new([10.0, 10.495, 0.0])),
+            Box::new(HyperBox::<3>::cube(0.5)),
+            1.0,
+            SVector::from_element(1.0),
+        );
+        singular_block.set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
+            .unwrap(),
+        );
+        singular_block.linear_velocity = SVector::new(0.0, -0.1, 0.0);
+        world.add_body(singular_block);
+
+        // Keep the first body pair independent of the second pair.
+        assert_eq!(moving_sphere, BodyHandle(0));
+        assert_eq!(static_sphere, BodyHandle(1));
+
+        let before_position = world.bodies[0].transform.translation.0;
+        let before_velocity = world.bodies[0].linear_velocity;
+        let mut callback = CallbackBatchRecorder::default();
+
+        let error = world
+            .try_step_with_callback(0.001, &mut callback)
+            .unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::ContactSolve);
+
+        // No mutable callback effects may leak from a rejected step, even
+        // though an earlier contact generated buffered effects.
+        assert_eq!(callback.committed_batches, 0);
+        assert_eq!(callback.observed_collisions, 0);
+        assert_eq!(callback.observed_traumas, 0);
+        assert_eq!(callback.dissipated_energy_joules, 0.0);
+
+        // The world transaction also restores the physics-owned state.
+        assert_eq!(world.bodies[0].transform.translation.0, before_position);
+        assert_eq!(world.bodies[0].linear_velocity, before_velocity);
+    }
+
     #[test]
     fn try_step_rolls_back_all_bodies_when_later_body_has_singular_inertia() {
         use crate::inertia::{BivectorInertia, RotationalInertiaError};
