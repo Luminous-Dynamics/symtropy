@@ -265,3 +265,8 @@ CI exercises a synthetic eight-role bundle with a separate Python verifier, incl
 
 
 The GCI safety-factor gate now uses an explicit grid-family type. Structured studies require F_s >= 1.25; unstructured or hybrid studies require F_s >= 3.0. The type and chosen factor are retained in both the GCI and CFD-admission CSV receipts. The observed-order equations use exp_m1-based denominators to reduce floating-point cancellation for refinement ratios close to one.
+
+
+## Optimizer comparison: validated Pareto quality per cost
+
+The policy_benchmark module and policy_benchmark_demo CLI compare policies on matched task/replicate budgets. The ledger counts every failed attempt and every operation cost; successful high-fidelity outputs need an exact digest match plus an admission-receipt digest. Only feasible admitted points contribute to two-objective minimization hypervolume. The scorecard exports feasible/admission yield, hypervolume and hypervolume per total cost. The synthetic demo has two policies x two replicates and an independent Python oracle. It is an evaluator known-answer fixture, not an aerodynamic result. See POLICY_BENCHMARK_PROTOCOL_V0_1.md and issue #3068.

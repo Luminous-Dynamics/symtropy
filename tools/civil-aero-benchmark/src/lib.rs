@@ -6,6 +6,7 @@
 //! authenticated by this crate.
 
 pub mod budget;
+pub mod policy_benchmark;
 pub mod cfd_admission;
 pub mod comparison;
 pub mod coupon;

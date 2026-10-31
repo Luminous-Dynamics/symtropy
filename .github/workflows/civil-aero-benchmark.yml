@@ -288,6 +288,17 @@ jobs:
         run: |
           cargo build --locked --bin run_artifact_audit
           python3 scripts/verify-cfd-artifacts-independent.py target/debug/run_artifact_audit
+      - name: Compare validated Pareto quality under matched total cost
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin policy_benchmark_demo > /tmp/policy-benchmark-a.csv 2> /tmp/policy-benchmark-a.txt
+          cargo run --locked --bin policy_benchmark_demo > /tmp/policy-benchmark-b.csv 2> /tmp/policy-benchmark-b.txt
+          cmp /tmp/policy-benchmark-a.csv /tmp/policy-benchmark-b.csv
+          cmp /tmp/policy-benchmark-a.txt /tmp/policy-benchmark-b.txt
+          test "$(wc -l < /tmp/policy-benchmark-a.csv)" -eq 5
+          grep -q "synthetic_policy_benchmark_only tasks=1 replicates=2 policies=2" /tmp/policy-benchmark-a.txt
+          python3 scripts/verify-policy-benchmark-independent.py /tmp/policy-benchmark-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |
