@@ -20,8 +20,10 @@ For a command, a finite joint kernel supplies exact rational outcomes over:
 - scientific measurement;
 - terminal hazard.
 
-The filter conditions on the public observation. A missing readback is represented
-by omitting that field from the observation, not by assuming successful execution.
+The filter conditions on the public observation. Each observation field distinguishes
+three cases: unobserved (`Any`), observed missing (`Missing`), and a concrete vocabulary
+value (`Value(id)`). This prevents a missing execution acknowledgement from being
+confused with telemetry that was simply not supplied to the inference process.
 The posterior retains the correlation between the next joint state and the
 realized intervention. Its next-step belief marginalizes the last action label only
 because all persistent consequences must already be encoded in the next apparatus
