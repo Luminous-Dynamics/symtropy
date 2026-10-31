@@ -88,6 +88,13 @@ existing digests.
 
 ### Strict pre-canonicalization input validation
 
+The Rust compiler's source ingress is TOML (not raw JSON). Its strict
+`toml_edit` parser already rejects duplicate keys and unknown typed fields;
+the test suite now exercises both a duplicate top-level key and a duplicate
+key in the nested `geometry` table. The Go verifier is the raw JSON/JCS
+consumer boundary, and independently rejects duplicate JSON names before
+canonicalization. These are distinct ingress paths with distinct tests.
+
 The independent Go verifier now validates raw input before invoking the pinned
 JCS canonicalizer. Its preflight rejects duplicate object member names at any
 nesting depth (including names that become equal after JSON escape decoding),
