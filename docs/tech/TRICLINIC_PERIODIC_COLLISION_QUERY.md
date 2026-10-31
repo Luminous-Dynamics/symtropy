@@ -22,7 +22,7 @@ query_triclinic_convex:
 5. invokes the existing transformed Euclidean GJK for each image;
 6. reports confirmed image hits separately from unresolved GJK attempts.
 
-GJK currently exposes an iteration count but no public typed termination enum. The adapter treats the existing 64-iteration cap as unresolved rather than separation. This duplicated compatibility limit is a known maintenance risk; the preferred follow-up is a typed GjkTermination in the source GJK API.
+GJK now exposes a typed `GjkTermination` result: `Intersecting`, `Separated`, or `IterationLimit`. The production cap is named `MAX_GJK_ITERATIONS`; periodic adapters consume the enum and do not duplicate the private numeric limit. `IterationLimit` is always unresolved, never separation. The existing `intersecting` and `iterations` result fields remain available for compatibility.
 
 A result with at least one confirmed hit is Intersecting, even if other images remain unresolved. Callers must also check contact_set_complete() before assuming the entire set of possible image contacts is known. With no confirmed hit, any unresolved image produces Indeterminate; only a complete all-separated query yields Separated.
 
@@ -83,7 +83,7 @@ Preserve the exact commit SHA, Cargo.lock digest, Rust/Cargo version, command ex
 
 This query layer is not full periodic dynamics. Remaining work includes:
 
-- give GJK a public termination enum instead of mirroring its private iteration cap;
+- propagate GJK typed termination into every periodic adapter and downstream diagnostics, while preserving unresolved outcomes through contact/event receipts;
 - add independent high-precision CVP and reciprocal-projection interval checks for nearly degenerate accepted cells;
 - integrate image-aware contact anchors and lever arms into manifold generation;
 - key contact cache, warm starts and collision events by canonical body pair plus lattice image offset;
