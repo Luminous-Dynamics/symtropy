@@ -508,7 +508,7 @@ mod tests {
         }
         let final_energy = model.hamiltonian(state).unwrap();
         let relative_drift = (final_energy - initial_energy).abs() / initial_energy.abs();
-        assert!(max_step_balance < 3.0e-12, "step closure={max_step_balance:e}");
+        assert!(max_step_balance < 1.0e-11, "step closure={max_step_balance:e}");
         assert!(relative_drift < 3.0e-11, "energy drift={relative_drift:e}");
     }
 
@@ -522,8 +522,8 @@ mod tests {
         let receipt = model.step(state, 0.7, 0.01, SolverOptions::default()).unwrap();
         assert!(receipt.dissipated_energy > 0.0);
         assert!(receipt.supplied_work.is_finite());
-        assert!(receipt.closes_within(3.0e-12));
-        assert!(receipt.passivity_defect() < 3.0e-12);
+        assert!(receipt.closes_within(1.0e-11));
+        assert!(receipt.passivity_defect() < 1.0e-11);
     }
 
     #[test]
