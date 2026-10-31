@@ -26,6 +26,11 @@ func main() {
 		os.Exit(2)
 	}
 
+	if err := validateStrictJCSInput(input); err != nil {
+		fmt.Fprintf(os.Stderr, "strict JCS input validation failed: %v\\n", err)
+		os.Exit(2)
+	}
+
 	actual, err := jsoncanonicalizer.Transform(input)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "independent Go JCS transform failed: %v\n", err)
