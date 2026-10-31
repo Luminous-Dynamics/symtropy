@@ -2191,6 +2191,51 @@ mod tests {
     }
 
     #[test]
+    fn finite_support_tv_transfers_mass_across_multiple_loss_tiers_exactly() {
+        let losses = vec![
+            Rational::zero(),
+            Rational::one(),
+            Rational::from_u64(2),
+        ];
+        let weights = vec![
+            Rational::new(1, 10).unwrap(),
+            Rational::new(6, 10).unwrap(),
+            Rational::new(3, 10).unwrap(),
+        ];
+        assert_eq!(
+            worst_case_tv_expectation(
+                &losses,
+                &weights,
+                Rational::new(1, 5).unwrap(),
+            )
+            .unwrap(),
+            Rational::new(3, 2).unwrap()
+        );
+    }
+
+    #[test]
+    fn finite_support_tv_respects_zero_weight_and_single_world_edges() {
+        assert_eq!(
+            worst_case_tv_expectation(
+                &[Rational::zero(), Rational::one()],
+                &[Rational::zero(), Rational::one()],
+                Rational::one(),
+            )
+            .unwrap(),
+            Rational::one()
+        );
+        assert_eq!(
+            worst_case_tv_expectation(
+                &[Rational::new(7, 3).unwrap()],
+                &[Rational::one()],
+                Rational::one(),
+            )
+            .unwrap(),
+            Rational::new(7, 3).unwrap()
+        );
+    }
+
+    #[test]
     fn finite_support_tv_is_invariant_to_world_order_after_canonicalization() {
         let worlds = worlds();
         let table = loss_table();
