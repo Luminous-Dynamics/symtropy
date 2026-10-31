@@ -300,6 +300,8 @@ impl CartesianRattleDumbbell {
             dot(midpoint_relative_position, midpoint_relative_velocity);
 
         let energy_after = self.hamiltonian(after)?;
+        let relative_energy_change = (energy_after - energy_before).abs()
+            / (energy_before.abs() + energy_after.abs()).max(f64::MIN_POSITIVE);
         let external_force1 = scale(acceleration1, self.mass1);
         let external_force2 = scale(acceleration2, self.mass2);
         let external_work = dot(
