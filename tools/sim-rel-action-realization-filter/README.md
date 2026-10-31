@@ -128,6 +128,34 @@ open-world model adequacy proof, continuous physical solver, or hardware safety
 certificate.
 
 
+## Exact experiment-ordering under misspecification (SIM-REL-030)
+
+The `decision_value::experiment_ordering` module provides a finite-channel
+oracle that keeps the assumed inference channel distinct from the true
+data-generating channel. It verifies a supplied Blackwell garbling witness
+exactly, updates posteriors under the assumed stochastic channel, evaluates the
+selected terminal decision under the true channel, and reports true-channel
+Bayes regret and decision disagreement. Unsupported observations trigger
+explicit abstention instead of fabricated posterior normalization.
+
+Mutual information is provided only as a floating-point acquisition
+diagnostic. All posterior, expected-loss, oracle-regret and unsupported-mass
+receipts use exact rational arithmetic.
+
+The authored binary fixture certifies that a perfect channel Blackwell-dominates
+a symmetric 80%-accurate channel under the nominal model. The more informative
+channel has one bit of nominal information, but when its sensor labels are
+inverted in the true world, its nominally zero-loss policy suffers realized loss
+1. The weaker channel, left correctly specified, has realized loss 1/5. The
+same evaluator separately tests inference-only mismatch, model-only mismatch
+and a correctly specified negative control. This is an exact synthetic
+counterexample, not empirical physical evidence.
+
+The module validates explicit garbling witnesses; it does not solve the
+Blackwell-dominance feasibility problem. EGIG and the paper's model/inference
+error penalties remain external comparator implementations to be added under
+SIM-REL-030 / issue #3189.
+
 ## Fresh-fold sequential conformal calibration
 
 The `decision_value::sequential_conformal` module implements the exact
