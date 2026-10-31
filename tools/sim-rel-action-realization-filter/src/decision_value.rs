@@ -64,6 +64,31 @@ pub struct BayesDecision {
     pub expected_loss: Rational,
 }
 
+/// Declares which public outcome channels are available to the policy.
+/// Missingness is informative only when the channel's presence/absence itself
+/// was observed; a disabled channel is marginalized using ObservationField::Any.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ObservationProtocol {
+    pub observe_readback: bool,
+    pub observe_measurement: bool,
+}
+
+impl ObservationProtocol {
+    pub const fn fully_observed() -> Self {
+        Self {
+            observe_readback: true,
+            observe_measurement: true,
+        }
+    }
+
+    pub const fn no_telemetry() -> Self {
+        Self {
+            observe_readback: false,
+            observe_measurement: false,
+        }
+    }
+}
+
 /// Exact comparison of one commanded experiment against stopping immediately.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OneStepDecisionValue {
@@ -231,6 +256,7 @@ pub fn evaluate_one_step_decision_value(
     belief: &[BeliefMass],
     command: usize,
     table: &DecisionLossTable,
+    protocol: ObservationProtocol,
     command_cost: Rational,
     hazard_loss: Rational,
 ) -> Result<OneStepDecisionValue, DecisionValueError> {
@@ -263,8 +289,8 @@ pub fn evaluate_one_step_decision_value(
     for (hazard, readback, measurement) in &observations {
         let public = PublicObservation {
             hazard: *hazard,
-            readback: field_from_option(*readback),
-            measurement: field_from_option(*measurement),
+            readback: field_from_option(*readback, protocol.observe_readback),
+            measurement: field_from_option(*measurement, protocol.observe_measurement),
         };
         let filtered = super::filter_one_step(kernel, belief, command, public)
             .map_err(DecisionValueError::Filter)?;
@@ -300,7 +326,10 @@ pub fn evaluate_one_step_decision_value(
     })
 }
 
-fn field_from_option(value: Option<usize>) -> ObservationField {
+fn field_from_option(value: Option<usize>, observed: bool) -> ObservationField {
+    if !observed {
+        return ObservationField::Any;
+    }
     match value {
         Some(id) => ObservationField::Value(id),
         None => ObservationField::Missing,
@@ -439,6 +468,7 @@ mod tests {
             &kernel.initial_belief,
             0,
             &table,
+            ObservationProtocol::fully_observed(),
             Rational::new(1, 100).unwrap(),
             Rational::zero(),
         )
@@ -448,6 +478,7 @@ mod tests {
             &kernel.initial_belief,
             1,
             &table,
+            ObservationProtocol::fully_observed(),
             Rational::new(1, 100).unwrap(),
             Rational::zero(),
         )
