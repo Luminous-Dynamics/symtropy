@@ -22,9 +22,8 @@ fn run() -> Result<(), String> {
         .enumerate()
         .map(|(index, spacing)| {
             let value = 2.0 + 0.8 * spacing.powi(2);
-            let run_number = f64::from(
-                u32::try_from(index + 1).expect("six fixture grids fit u32"),
-            );
+            let run_number =
+                f64::from(u32::try_from(index + 1).expect("six fixture grids fit u32"));
             CfdGridRun {
                 run_id: format!("run-{}", index + 1),
                 grid_id: format!("grid-{}", index + 1),
@@ -47,7 +46,11 @@ fn run() -> Result<(), String> {
                 gpu_hours: if index % 2 == 0 { Some(0.5) } else { None },
                 wall_clock_seconds: 120.0 * run_number,
                 peak_memory_bytes: 1024 * u64::try_from(index + 1).expect("index fits u64"),
-                energy_consumed_joules: if index < 4 { Some(1000.0 * run_number) } else { None },
+                energy_consumed_joules: if index < 4 {
+                    Some(1000.0 * run_number)
+                } else {
+                    None
+                },
                 residual_initial: 1.0e-1,
                 residual_final: 1.0e-10,
                 quantity_history: vec![value; 6],

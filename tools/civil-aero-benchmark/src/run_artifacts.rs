@@ -150,17 +150,11 @@ pub fn verify_artifact_manifest(
     let mut verified = Vec::with_capacity(manifest.artifacts.len());
     for record in &manifest.artifacts {
         if !roles.insert(record.role) {
-            return Err(format!(
-                "duplicate artifact role {}",
-                record.role.as_str()
-            ));
+            return Err(format!("duplicate artifact role {}", record.role.as_str()));
         }
         let relative_path = validate_relative_path(&record.relative_path)?;
         if !paths.insert(relative_path.clone()) {
-            return Err(format!(
-                "duplicate artifact path {}",
-                record.relative_path
-            ));
+            return Err(format!("duplicate artifact path {}", record.relative_path));
         }
 
         let joined = root.join(&relative_path);
@@ -294,7 +288,10 @@ fn validate_relative_path(value: &str) -> Result<PathBuf, String> {
         || value.contains('\t')
         || value.contains('\\')
     {
-        return Err("artifact path must be non-empty and contain no control or separator characters".to_owned());
+        return Err(
+            "artifact path must be non-empty and contain no control or separator characters"
+                .to_owned(),
+        );
     }
     let path = Path::new(value);
     if path.is_absolute()
@@ -390,10 +387,7 @@ mod tests {
         root
     }
 
-    fn build_manifests(
-        root: &Path,
-        study: &mut CfdEvidenceStudy,
-    ) -> Vec<CfdArtifactManifest> {
+    fn build_manifests(root: &Path, study: &mut CfdEvidenceStudy) -> Vec<CfdArtifactManifest> {
         let shared = [
             (
                 CfdArtifactRole::SolverBuild,
@@ -511,21 +505,27 @@ mod tests {
 
         let mut missing = manifests.clone();
         missing[0].artifacts.pop();
-        assert!(verify_cfd_study_artifacts(&study, &root, &missing)
-            .expect_err("missing artifact role rejected")
-            .contains("exactly 8 required roles"));
+        assert!(
+            verify_cfd_study_artifacts(&study, &root, &missing)
+                .expect_err("missing artifact role rejected")
+                .contains("exactly 8 required roles")
+        );
 
         let mut traversal = manifests.clone();
         traversal[0].artifacts[0].relative_path = "../escape.bin".to_owned();
-        assert!(verify_cfd_study_artifacts(&study, &root, &traversal)
-            .expect_err("path traversal rejected")
-            .contains("safe root-relative"));
+        assert!(
+            verify_cfd_study_artifacts(&study, &root, &traversal)
+                .expect_err("path traversal rejected")
+                .contains("safe root-relative")
+        );
 
         let mut wrong_run = manifests.clone();
         wrong_run[0].run_id = "unmatched-run".to_owned();
-        assert!(verify_cfd_study_artifacts(&study, &root, &wrong_run)
-            .expect_err("manifest/run ID mismatch rejected")
-            .contains("missing artifact manifest"));
+        assert!(
+            verify_cfd_study_artifacts(&study, &root, &wrong_run)
+                .expect_err("manifest/run ID mismatch rejected")
+                .contains("missing artifact manifest")
+        );
         fs::remove_dir_all(root).expect("remove fixture root");
     }
 

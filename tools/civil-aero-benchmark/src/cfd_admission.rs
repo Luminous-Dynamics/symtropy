@@ -378,11 +378,7 @@ pub fn evaluate_cfd_evidence_admission(
         }
     }
 
-    let total_cpu_core_hours = study
-        .runs
-        .iter()
-        .map(|run| run.cpu_core_hours)
-        .sum::<f64>();
+    let total_cpu_core_hours = study.runs.iter().map(|run| run.cpu_core_hours).sum::<f64>();
     let total_wall_clock_seconds = study
         .runs
         .iter()
@@ -633,9 +629,8 @@ mod tests {
                 .enumerate()
                 .map(|(index, spacing)| {
                     let value = 2.0 + 0.8 * spacing.powi(2);
-                    let run_number = f64::from(
-                        u32::try_from(index + 1).expect("six fixture grids fit u32"),
-                    );
+                    let run_number =
+                        f64::from(u32::try_from(index + 1).expect("six fixture grids fit u32"));
                     CfdGridRun {
                         run_id: format!("run-{}", index + 1),
                         grid_id: format!("grid-{}", index + 1),
@@ -658,7 +653,11 @@ mod tests {
                         gpu_hours: if index % 2 == 0 { Some(0.5) } else { None },
                         wall_clock_seconds: 120.0 * run_number,
                         peak_memory_bytes: 1024 * u64::try_from(index + 1).expect("index fits u64"),
-                        energy_consumed_joules: if index < 4 { Some(1000.0 * run_number) } else { None },
+                        energy_consumed_joules: if index < 4 {
+                            Some(1000.0 * run_number)
+                        } else {
+                            None
+                        },
                         residual_initial: 1.0e-1,
                         residual_final: 1.0e-10,
                         quantity_history: vec![value; 6],
@@ -787,15 +786,19 @@ mod tests {
     fn rejects_missing_measurement_resources_and_nonzero_execution_state() {
         let mut changed = study();
         changed.runs[2].cpu_core_hours = 0.0;
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("missing CPU cost rejected")
-            .contains("resource times"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("missing CPU cost rejected")
+                .contains("resource times")
+        );
 
         let mut changed = study();
         changed.runs[2].iterations_completed = 0;
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("missing iteration count rejected")
-            .contains("iteration, mesh-node, or peak-memory"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("missing iteration count rejected")
+                .contains("iteration, mesh-node, or peak-memory")
+        );
 
         let mut changed = study();
         changed.runs[2].mesh_node_count = 0;
@@ -803,9 +806,11 @@ mod tests {
 
         let mut changed = study();
         changed.runs[2].gpu_hours = Some(f64::NAN);
-        assert!(evaluate_cfd_evidence_admission(&changed)
-            .expect_err("non-finite GPU measurement rejected")
-            .contains("gpu_hours"));
+        assert!(
+            evaluate_cfd_evidence_admission(&changed)
+                .expect_err("non-finite GPU measurement rejected")
+                .contains("gpu_hours")
+        );
     }
 
     #[test]
@@ -854,7 +859,9 @@ mod tests {
         assert!(first.contains("coarse_mesh_sha256"));
         assert!(first.contains("coarse_cpu_core_hours"));
         assert!(first.contains("study_total_cpu_core_hours"));
-        assert!(first.contains(",5.250000000000,0.150000000000,3,2520.000000000000,6144,10000.000000000000,4"));
+        assert!(first.contains(
+            ",5.250000000000,0.150000000000,3,2520.000000000000,6144,10000.000000000000,4"
+        ));
         assert_eq!(report.total_cpu_core_hours, 5.25);
         assert_eq!(report.gpu_measured_run_count, 3);
         assert_eq!(report.total_gpu_hours_measured, Some(1.5));

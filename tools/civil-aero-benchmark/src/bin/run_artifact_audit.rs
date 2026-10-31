@@ -82,7 +82,9 @@ fn parse_manifest_csv(input: &str) -> Result<Vec<CfdArtifactManifest>, String> {
         }
         let run_id = fields[0].to_owned();
         if run_id.contains('|') || run_id.contains('\n') || run_id.contains('\r') {
-            return Err(format!("line {line_number}: run_id contains a forbidden delimiter"));
+            return Err(format!(
+                "line {line_number}: run_id contains a forbidden delimiter"
+            ));
         }
         let role = CfdArtifactRole::parse_role(fields[1])
             .ok_or_else(|| format!("line {line_number}: unknown artifact role {}", fields[1]))?;

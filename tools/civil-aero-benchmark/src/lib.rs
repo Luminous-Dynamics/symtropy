@@ -12,10 +12,10 @@ pub mod coupon;
 pub mod dpw8_submission;
 pub mod grid_convergence;
 pub mod integrity;
-pub mod run_artifacts;
 pub mod reference_data;
 pub mod robust_voi;
 pub mod robustness;
+pub mod run_artifacts;
 pub mod section_polar;
 pub mod voi;
 
