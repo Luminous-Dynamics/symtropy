@@ -1,0 +1,20 @@
+name: manufacturing-assurance-reference
+
+on:
+  pull_request:
+    paths:
+      - "tools/manufacturing-assurance/**"
+      - ".github/workflows/manufacturing-assurance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference-verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run warning-denied standard-library Rust tests and fixtures
+        run: bash tools/manufacturing-assurance/run-tests.sh
