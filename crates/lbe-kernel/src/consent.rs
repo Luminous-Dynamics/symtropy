@@ -30,6 +30,8 @@ pub enum ConsentStatus {
     Expired,
     /// A participant revoked consent before settlement.
     Revoked,
+    /// The proposal has already settled.
+    AlreadySettled,
 }
 
 /// Errors returned by the bilateral consent state machine.
@@ -45,6 +47,8 @@ pub enum ConsentError {
     NotParticipant,
     /// The proposal has already been declined.
     AlreadyDeclined,
+    /// Both parties have already accepted the proposal.
+    AlreadyAccepted,
     /// The proposal has expired.
     Expired,
     /// Consent has been revoked.
@@ -141,6 +145,7 @@ impl BilateralConsent {
         self.validate_actor_and_digest(actor, digest)?;
         match self.status {
             ConsentStatus::Accepted => return Ok(ConsentStatus::Accepted),
+            ConsentStatus::Settled => return Err(ConsentError::AlreadySettled),
             ConsentStatus::Declined => return Err(ConsentError::AlreadyDeclined),
             ConsentStatus::Expired => return Err(ConsentError::Expired),
             ConsentStatus::Revoked => return Err(ConsentError::Revoked),
@@ -168,7 +173,8 @@ impl BilateralConsent {
     ) -> Result<ConsentStatus, ConsentError> {
         self.validate_actor_and_digest(actor, digest)?;
         match self.status {
-            ConsentStatus::Accepted => return Err(ConsentError::NotAccepted),
+            ConsentStatus::Accepted => return Err(ConsentError::AlreadyAccepted),
+            ConsentStatus::Settled => return Err(ConsentError::AlreadySettled),
             ConsentStatus::Declined => return Ok(ConsentStatus::Declined),
             ConsentStatus::Expired => return Err(ConsentError::Expired),
             ConsentStatus::Revoked => return Err(ConsentError::Revoked),
@@ -210,13 +216,14 @@ impl BilateralConsent {
     /// The host adapter must additionally authorize this transition and make
     /// external settlement idempotent. This method only checks the model state.
     pub fn mark_settled(&mut self) -> Result<(), ConsentError> {
+        if self.status == ConsentStatus::Settled {
+            return Ok(());
+        }
         if self.status != ConsentStatus::Accepted {
             return Err(ConsentError::NotAccepted);
         }
-        if self.settled {
-            return Ok(());
-        }
         self.settled = true;
+        self.status = ConsentStatus::Settled;
         Ok(())
     }
 
@@ -339,8 +346,11 @@ mod tests {
         pair.mark_settled().unwrap();
         pair.mark_settled().unwrap();
         assert!(pair.is_settled());
+        assert_eq!(pair.status(), ConsentStatus::Settled);
         assert!(!pair.can_settle());
+        assert_eq!(pair.mark_settled(), Ok(()));
         assert_eq!(pair.revoke(&a, &digest), Err(ConsentError::AlreadySettled));
+        assert_eq!(pair.accept(&b, &digest, 105), Err(ConsentError::AlreadySettled));
     }
 
     #[test]
