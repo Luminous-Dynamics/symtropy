@@ -80,6 +80,67 @@ fn bivector_inner_product<const D: usize>(left: &Bivector<D>, right: &Bivector<D
     result
 }
 
+/// Project the pre-impulse relative contact velocity into each contact's
+/// normal/tangent/rolling/torsional coordinates.
+///
+/// The returned vector is the free-velocity term q paired with
+/// assemble_contact_wrench_delassus. Angular velocity is converted from the
+/// stored Rotor-generator sign to physical angular velocity before projection.
+pub fn assemble_contact_wrench_free_velocity<const D: usize>(
+    bodies: &[RigidBody<D>],
+    rows: &[ContactWrenchRow<D>],
+) -> Result<DVector<f64>, DelassusAssemblyError> {
+    if D < 2 || rows.is_empty() {
+        return Err(DelassusAssemblyError::InvalidRow);
+    }
+
+    let mut values = Vec::new();
+    for row in rows {
+        if row.body_a == row.body_b
+            || !row.offset_a.iter().all(|value| value.is_finite())
+            || !row.offset_b.iter().all(|value| value.is_finite())
+        {
+            return Err(DelassusAssemblyError::InvalidRow);
+        }
+        let body_a = bodies
+            .iter()
+            .find(|body| body.handle == row.body_a)
+            .ok_or(DelassusAssemblyError::MissingBody(row.body_a))?;
+        let body_b = bodies
+            .iter()
+            .find(|body| body.handle == row.body_b)
+            .ok_or(DelassusAssemblyError::MissingBody(row.body_b))?;
+
+        let velocity_a = body_a.linear_velocity
+            + angular_point_velocity(&body_a.angular_velocity, &row.offset_a);
+        let velocity_b = body_b.linear_velocity
+            + angular_point_velocity(&body_b.angular_velocity, &row.offset_b);
+        let relative_point_velocity = velocity_b - velocity_a;
+        let relative_physical_angular_velocity = body_b
+            .angular_velocity
+            .scale(-1.0)
+            .add(&body_a.angular_velocity);
+
+        for coordinate in contact_wrench_basis(&row.frame) {
+            let value = match coordinate {
+                ContactWrenchBasis::Linear(direction) => {
+                    direction.dot(&relative_point_velocity)
+                }
+                ContactWrenchBasis::Angular(direction) => {
+                    bivector_inner_product(&direction, &relative_physical_angular_velocity)
+                }
+            };
+            if !value.is_finite() {
+                return Err(DelassusAssemblyError::RotationalInertia(
+                    RotationalInertiaError::NonFinite,
+                ));
+            }
+            values.push(value);
+        }
+    }
+    Ok(DVector::from_vec(values))
+}
+
 fn contact_wrench_body_response<const D: usize>(
     body: &RigidBody<D>,
     linear_impulse: &SVector<f64, D>,
