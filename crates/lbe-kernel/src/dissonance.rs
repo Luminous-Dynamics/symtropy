@@ -202,6 +202,8 @@ pub enum DissonanceDisposition {
         first: PositionId,
         /// Second position to receive a defined later phase.
         second: PositionId,
+        /// Every additional recorded position retained outside the two-phase sequence.
+        retained: Vec<PositionId>,
         /// Reason and sequence assumptions.
         rationale: String,
         /// Mandatory review point.
@@ -211,6 +213,8 @@ pub enum DissonanceDisposition {
     },
     /// Test a bounded intervention while preserving the rival positions.
     Experiment {
+        /// Competing positions tested by the protocol.
+        position_ids: Vec<PositionId>,
         /// Pre-registered protocol identifier.
         protocol_id: String,
         /// Mandatory review point.
@@ -269,7 +273,7 @@ pub struct DissonanceRecord {
     positions: BTreeMap<PositionId, Position>,
     safeguards: ProcessSafeguards,
     hazards: BTreeMap<String, HazardReport>,
-    disposition: Option<DissonanceDisposition>,
+    disposition_history: Vec<DissonanceDisposition>,
     status: DissonanceStatus,
 }
 
@@ -333,7 +337,7 @@ impl DissonanceRecord {
             positions: stored,
             safeguards: ProcessSafeguards::default(),
             hazards: BTreeMap::new(),
-            disposition: None,
+            disposition_history: Vec::new(),
             status: DissonanceStatus::Open,
         })
     }
@@ -350,7 +354,12 @@ impl DissonanceRecord {
 
     /// Return the current disposition, if any.
     pub fn disposition(&self) -> Option<&DissonanceDisposition> {
-        self.disposition.as_ref()
+        self.disposition_history.last()
+    }
+
+    /// Iterate over every disposition in append-only decision history.
+    pub fn disposition_history(&self) -> impl Iterator<Item = &DissonanceDisposition> {
+        self.disposition_history.iter()
     }
 
     /// Iterate over every preserved position in canonical ID order.
@@ -466,7 +475,7 @@ impl DissonanceRecord {
             DissonanceDisposition::Contextualize { .. } => DissonanceStatus::Contextualized,
             DissonanceDisposition::EvidenceResolution { .. } => DissonanceStatus::EvidenceResolved,
         };
-        self.disposition = Some(disposition);
+        self.disposition_history.push(disposition);
         Ok(())
     }
 }
@@ -513,19 +522,26 @@ fn validate_disposition(
             }
             Ok(())
         }
-        DissonanceDisposition::Sequence { first, second, rationale, review_at, rollback_trigger } => {
+        DissonanceDisposition::Sequence { first, second, retained, rationale, review_at, rollback_trigger } => {
             future(*review_at)?;
+            let retained_set: BTreeSet<&PositionId> = retained.iter().collect();
             if first == second || !has_position(first) || !has_position(second)
+                || retained_set.len() != retained.len()
+                || retained.iter().any(|id| !has_position(id) || id == first || id == second)
+                || positions.keys().any(|id| id != first && id != second && !retained.iter().any(|other| other == id))
                 || rationale.trim().is_empty() || rollback_trigger.trim().is_empty()
                 || rationale.len() > 8_192 || rollback_trigger.len() > 2_048
             {
-                return Err(DissonanceError::InvalidDisposition);
+                return Err(DissonanceError::DissentNotPreserved);
             }
             Ok(())
         }
-        DissonanceDisposition::Experiment { protocol_id, review_at, stop_condition } => {
+        DissonanceDisposition::Experiment { position_ids, protocol_id, review_at, stop_condition } => {
             future(*review_at)?;
-            if protocol_id.trim().is_empty() || protocol_id.len() > 256
+            let ids: BTreeSet<&PositionId> = position_ids.iter().collect();
+            if ids.len() < 2 || ids.len() != position_ids.len()
+                || ids.iter().any(|id| !has_position(id))
+                || protocol_id.trim().is_empty() || protocol_id.len() > 256
                 || stop_condition.trim().is_empty() || stop_condition.len() > 2_048
             {
                 return Err(DissonanceError::InvalidDisposition);
@@ -769,6 +785,7 @@ mod tests {
             second: PositionId::new("p2").unwrap(),
             rationale: "Stabilize first, then expand autonomy.".to_owned(),
             review_at: 100,
+            retained: vec![],
             rollback_trigger: "Service reliability falls below the declared floor.".to_owned(),
         };
         assert_eq!(record.set_disposition(decision, 10), Ok(()));
@@ -784,6 +801,35 @@ mod tests {
             evidence_bundle: "bundle:1".to_owned(),
             rationale: "Evidence reviewed.".to_owned(),
             reviewed_at: 11,
+        };
+        assert_eq!(record.set_disposition(decision, 10), Err(DissonanceError::InvalidDisposition));
+    }
+
+    #[test]
+    fn changing_the_disposition_appends_history_instead_of_rewriting_it() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        record.set_disposition(DissonanceDisposition::HoldOpen { review_at: 100 }, 10).unwrap();
+        record.set_safeguards(safe_safeguards());
+        record.set_disposition(DissonanceDisposition::PrioritizeProvisionally {
+            selected: PositionId::new("p1").unwrap(),
+            retained: vec![PositionId::new("p2").unwrap()],
+            rationale: "Temporary service continuity measure.".to_owned(),
+            review_at: 200,
+            reversible: true,
+        }, 20).unwrap();
+        assert_eq!(record.disposition_history().count(), 2);
+        assert!(matches!(record.disposition(), Some(DissonanceDisposition::PrioritizeProvisionally { .. })));
+    }
+
+    #[test]
+    fn experiment_must_name_at_least_two_recorded_positions() {
+        let mut record = record(DissonanceKind::EmpiricalDisagreement);
+        record.set_safeguards(safe_safeguards());
+        let decision = DissonanceDisposition::Experiment {
+            position_ids: vec![PositionId::new("p1").unwrap()],
+            protocol_id: "protocol:one".to_owned(),
+            review_at: 100,
+            stop_condition: "Stop on material harm.".to_owned(),
         };
         assert_eq!(record.set_disposition(decision, 10), Err(DissonanceError::InvalidDisposition));
     }
