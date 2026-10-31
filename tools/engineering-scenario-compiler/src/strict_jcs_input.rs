@@ -163,7 +163,8 @@ fn validate_plain_integer_lexemes(input: &[u8]) -> Result<(), String> {
                 let integer = lexeme.parse::<i128>().map_err(|_| {
                     format!("plain JSON integer {lexeme:?} exceeds the supported lexical range")
                 })?;
-                if integer.abs() > i128::from(MAX_SAFE_INTEGER) {
+                let safe_limit = i128::from(MAX_SAFE_INTEGER);
+                if integer > safe_limit || integer < -safe_limit {
                     return Err(format!(
                         "plain JSON integer {lexeme:?} is outside the interoperable safe-integer range"
                     ));
@@ -223,6 +224,7 @@ mod tests {
         assert!(parse_strict_jcs_input(b"-9007199254740992").is_err());
         assert!(parse_strict_jcs_input(b"18446744073709551616").is_err());
         assert!(parse_strict_jcs_input(b"-9223372036854775809").is_err());
+        assert!(parse_strict_jcs_input(b"-170141183460469231731687303715884105728").is_err());
         assert!(parse_strict_jcs_input(b"999999999999999999999999999999999999999999").is_err());
         assert!(parse_strict_jcs_input(b"1e9999").is_err());
     }
