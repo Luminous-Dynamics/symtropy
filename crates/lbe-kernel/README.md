@@ -33,7 +33,7 @@ The API has no fields or parameters for:
 - Phi, consciousness, cognitive, or psychological measurements;
 - prior contribution, civic participation, or reciprocity offers.
 
-One open need per subject/category prevents simple queue-splitting in this first model. A completed case may be followed by a new request. More elaborate recurrence, household, delegated and assisted-intake semantics are deliberately not guessed here.
+One open need per subject/category prevents simple queue-splitting in this first model. A completed case may be followed by a new request. More elaborate recurrence, household, delegated and assisted-intake semantics are deliberately not guessed here. Category-specific canonical units and realistic maximum quantities remain to be defined; the current `u64` quantity type is not a production validation policy.
 
 ## Allocation policies
 
