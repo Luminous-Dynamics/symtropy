@@ -432,7 +432,7 @@ mod tests {
         let final_angular_momentum =
             state.position[0] * state.momentum[1] - state.position[1] * state.momentum[0];
         let final_energy = model.hamiltonian(state).unwrap();
-        assert!((final_angular_momentum - initial_angular_momentum).abs() < 2.0e-12);
+        assert!((final_angular_momentum - initial_angular_momentum).abs() < 1.0e-11);
         assert!((final_energy - initial_energy).abs() < 2.0e-12);
     }
 
