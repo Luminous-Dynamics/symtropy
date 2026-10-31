@@ -831,7 +831,7 @@ impl ThreeBodyChain {
                 relative_midpoint_residuals[1],
             ],
             multiplier_iterations: iterations,
-            multiplier_jacobian_determinant: determinant,
+            multiplier_jacobian_determinant: determinant.abs(),
             normalized_multiplier_jacobian_determinant: normalized_determinant,
             energy_before,
             energy_after,
