@@ -60,10 +60,10 @@ All three check classes are mandatory in v0.1. A future profile must define whic
 ### AUTH
 - principal type and stable principal identifier;
 - asset, scope and action exact match;
-- GRANTED/REJECTED decision; approval time and expiry;
+- GRANTED/REJECTED/REVOKED decision; approval time and expiry. A later REVOKED or REJECTED authority event for the same principal/action supersedes an earlier grant;
 - receipt digest.
 
-The checker distinguishes a system principal from a human principal. A plan requiring human approval cannot be satisfied by a system identity alone.
+The checker distinguishes a system principal from a human principal. A plan requiring human approval cannot be satisfied by a system identity alone. Authority approval must occur after all required PRECONDITION, ASSURANCE and INTERLOCK checks and before command issue. A later REVOKED or REJECTED event by the same principal supersedes that principal's earlier grant.
 
 ### EXEC
 - unique command ID and executor;
