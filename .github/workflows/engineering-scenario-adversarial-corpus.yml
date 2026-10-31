@@ -62,16 +62,16 @@ jobs:
             .canonicalization_profile == "engineering-scenario-ir-jcs-rfc8785-v1" and
             .generated_case_count == 256 and
             .valid_case_count == 268 and
-            .reject_case_count == 16 and
+            .reject_case_count == 17 and
             (.valid_cases | length) == 268 and
-            (.reject_cases | length) == 16
+            (.reject_cases | length) == 17
           ' "$corpus/manifest.json"
           manifest_expected="$(cut -d ' ' -f 1 "$corpus/manifest.sha256")"
           manifest_actual="$(sha256sum "$corpus/manifest.json" | cut -d ' ' -f 1)"
           test "$manifest_actual" = "$manifest_expected"
           test "$(find "$corpus/valid" -type f -name '*.json' | wc -l)" -eq 268
           test "$(find "$corpus/expected" -type f -name '*.jcs' | wc -l)" -eq 268
-          test "$(find "$corpus/reject" -type f -name '*.bin' | wc -l)" -eq 16
+          test "$(find "$corpus/reject" -type f -name '*.bin' | wc -l)" -eq 17
 
       - name: Install pinned Go toolchain
         uses: actions/setup-go@v5
@@ -107,16 +107,16 @@ jobs:
           go run . --corpus "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus" "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus/go-results.jsonl" "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus/go-summary.json"
           jq -e '
             .valid_case_count == 268 and
-            .reject_case_count == 16 and
+            .reject_case_count == 17 and
             .valid_canonical_matches == 268 and
             .valid_canonical_mismatches == 0 and
             .valid_strict_rejects == 0 and
             .reject_strict_accepts == 0 and
-            .reject_cases_correctly_denied == 16 and
-            .case_id_count == 284 and
+            .reject_cases_correctly_denied == 17 and
+            .case_id_count == 285 and
             .failure_count == 0
           ' "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus/go-summary.json"
-          test "$(wc -l < "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus/go-results.jsonl")" -eq 284
+          test "$(wc -l < "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus/go-results.jsonl")" -eq 285
 
       - name: Benchmark strict preflight and JCS across generated payload sizes
         env:
