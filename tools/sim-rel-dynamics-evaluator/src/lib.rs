@@ -261,11 +261,14 @@ impl World {
         validate_unique_ids(&self.hypothesis_ids, "hypothesis")?;
         validate_unique_ids(&self.action_ids, "action")?;
 
-        let total_prior = self.prior_weights.iter().try_fold(0_u128, |total, weight| {
-            total
-                .checked_add(u128::from(*weight))
-                .ok_or_else(|| format!("world {} prior mass overflowed u128", self.name))
-        })?;
+        let total_prior = self
+            .prior_weights
+            .iter()
+            .try_fold(0_u128, |total, weight| {
+                total
+                    .checked_add(u128::from(*weight))
+                    .ok_or_else(|| format!("world {} prior mass overflowed u128", self.name))
+            })?;
         if total_prior == 0 {
             return Err(format!("world {} has zero total prior mass", self.name));
         }
@@ -374,10 +377,8 @@ impl PolicyTree {
         if parent_counts[self.root] != 0 {
             return Err("policy root must not have a parent".into());
         }
-        for (index, (is_reachable, parents)) in reachable
-            .iter()
-            .zip(parent_counts.iter())
-            .enumerate()
+        for (index, (is_reachable, parents)) in
+            reachable.iter().zip(parent_counts.iter()).enumerate()
         {
             if !is_reachable {
                 return Err(format!("policy contains unreachable node {index}"));
@@ -409,7 +410,9 @@ impl PolicyTree {
             return Err(format!("policy contains a cycle through node {index}"));
         }
         if reachable[index] {
-            return Err(format!("policy node {index} is shared by multiple histories"));
+            return Err(format!(
+                "policy node {index} is shared by multiple histories"
+            ));
         }
         active[index] = true;
         reachable[index] = true;
@@ -505,8 +508,7 @@ pub fn evaluate_shared_policy(
             || world.action_costs != first.action_costs
         {
             return Err(
-                "all worlds must share ordered hypothesis IDs, action IDs, and action costs"
-                    .into(),
+                "all worlds must share ordered hypothesis IDs, action IDs, and action costs".into(),
             );
         }
     }
@@ -564,11 +566,14 @@ pub fn evaluate_shared_policy(
 }
 
 fn evaluate_one_world(policy: &PolicyTree, world: &World) -> Result<WorldMetrics, String> {
-    let total_mass = world.prior_weights.iter().try_fold(0_u128, |total, weight| {
-        total
-            .checked_add(u128::from(*weight))
-            .ok_or_else(|| format!("world {} prior mass overflowed u128", world.name))
-    })?;
+    let total_mass = world
+        .prior_weights
+        .iter()
+        .try_fold(0_u128, |total, weight| {
+            total
+                .checked_add(u128::from(*weight))
+                .ok_or_else(|| format!("world {} prior mass overflowed u128", world.name))
+        })?;
 
     let mut weighted_cost = 0_u128;
     let mut hazard_mass = 0_u128;
@@ -596,9 +601,10 @@ fn evaluate_one_world(policy: &PolicyTree, world: &World) -> Result<WorldMetrics
                     .ok_or_else(|| format!("world {} hazard mass overflowed", world.name))?;
             }
             Terminal::CorrectClaim => {
-                identification_mass = identification_mass
-                    .checked_add(weighted)
-                    .ok_or_else(|| format!("world {} identification mass overflowed", world.name))?;
+                identification_mass =
+                    identification_mass.checked_add(weighted).ok_or_else(|| {
+                        format!("world {} identification mass overflowed", world.name)
+                    })?;
             }
             Terminal::FalseClaim => {
                 false_identification_mass = false_identification_mass
@@ -630,10 +636,7 @@ fn evaluate_one_world(policy: &PolicyTree, world: &World) -> Result<WorldMetrics
         expected_cost: Fraction::new(weighted_cost, total_mass)?,
         hazard_probability: Fraction::new(hazard_mass, total_mass)?,
         identification_probability: Fraction::new(identification_mass, total_mass)?,
-        false_identification_probability: Fraction::new(
-            false_identification_mass,
-            total_mass,
-        )?,
+        false_identification_probability: Fraction::new(false_identification_mass, total_mass)?,
         abstention_probability: Fraction::new(abstention_mass, total_mass)?,
     })
 }
@@ -822,7 +825,10 @@ mod tests {
         let left = Fraction::new(u128::MAX - 1, u128::MAX).unwrap();
         let right = Fraction::new(u128::MAX - 2, u128::MAX - 1).unwrap();
         assert!(left > right);
-        assert_eq!(Fraction::new(50, 100).unwrap(), Fraction::new(1, 2).unwrap());
+        assert_eq!(
+            Fraction::new(50, 100).unwrap(),
+            Fraction::new(1, 2).unwrap()
+        );
         assert!(Fraction::new(1, 0).is_err());
     }
 
@@ -858,8 +864,7 @@ mod tests {
             order_effect_world("signal", false),
             order_effect_world("no-signal", true),
         ];
-        let report =
-            evaluate_shared_policy(&condition_then_measure_policy(), &worlds, 0).unwrap();
+        let report = evaluate_shared_policy(&condition_then_measure_policy(), &worlds, 0).unwrap();
         assert_eq!(
             report.per_world[0].identification_probability,
             Fraction::new(1, 1).unwrap()
@@ -1064,13 +1069,11 @@ mod tests {
     fn rejects_policy_horizon_cycles_and_unreachable_nodes() {
         let mut over_horizon = condition_then_measure_policy();
         over_horizon.max_steps = 1;
-        assert!(evaluate_shared_policy(
-            &over_horizon,
-            &[order_effect_world("horizon", false)],
-            0
-        )
-        .unwrap_err()
-        .contains("horizon"));
+        assert!(
+            evaluate_shared_policy(&over_horizon, &[order_effect_world("horizon", false)], 0)
+                .unwrap_err()
+                .contains("horizon")
+        );
 
         let cyclic = PolicyTree {
             nodes: vec![
@@ -1084,13 +1087,11 @@ mod tests {
             root: 0,
             max_steps: 4,
         };
-        assert!(evaluate_shared_policy(
-            &cyclic,
-            &[order_effect_world("cycle", false)],
-            0
-        )
-        .unwrap_err()
-        .contains("cycle"));
+        assert!(
+            evaluate_shared_policy(&cyclic, &[order_effect_world("cycle", false)], 0)
+                .unwrap_err()
+                .contains("cycle")
+        );
 
         let unreachable = PolicyTree {
             nodes: vec![
@@ -1100,13 +1101,11 @@ mod tests {
             root: 0,
             max_steps: 0,
         };
-        assert!(evaluate_shared_policy(
-            &unreachable,
-            &[order_effect_world("unreachable", false)],
-            0
-        )
-        .unwrap_err()
-        .contains("unreachable"));
+        assert!(
+            evaluate_shared_policy(&unreachable, &[order_effect_world("unreachable", false)], 0)
+                .unwrap_err()
+                .contains("unreachable")
+        );
     }
 
     #[test]
@@ -1123,23 +1122,23 @@ mod tests {
             root: 0,
             max_steps: 1,
         };
-        assert!(evaluate_shared_policy(
-            &shared,
-            &[order_effect_world("shared", false)],
-            0
-        )
-        .unwrap_err()
-        .contains("shared"));
+        assert!(
+            evaluate_shared_policy(&shared, &[order_effect_world("shared", false)], 0)
+                .unwrap_err()
+                .contains("shared")
+        );
 
         let mut other = order_effect_world("other", false);
         other.action_ids[1] = "different-action".into();
-        assert!(evaluate_shared_policy(
-            &condition_then_measure_policy(),
-            &[order_effect_world("base", false), other],
-            0
-        )
-        .unwrap_err()
-        .contains("action IDs"));
+        assert!(
+            evaluate_shared_policy(
+                &condition_then_measure_policy(),
+                &[order_effect_world("base", false), other],
+                0
+            )
+            .unwrap_err()
+            .contains("action IDs")
+        );
     }
 
     #[test]
