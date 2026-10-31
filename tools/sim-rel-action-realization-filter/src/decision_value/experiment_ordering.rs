@@ -237,7 +237,7 @@ fn bayes_decision(
 ) -> Result<(Option<usize>, Rational), String> {
     let mut selected_decision = None;
     let mut best_loss = table.abstention_loss;
-    for decision in 0..table.decision_ids.len() {
+    for (decision, _) in table.decision_ids.iter().enumerate() {
         let loss = expected_loss_for_posterior(table, posterior, Some(decision))?;
         if loss < best_loss {
             best_loss = loss;
