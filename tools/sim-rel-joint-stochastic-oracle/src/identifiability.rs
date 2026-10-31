@@ -1057,7 +1057,7 @@ mod tests {
 
     #[test]
     fn persistent_sensor_bias_is_non_identifying_until_calibration() {
-        let family = crate::challenge::generate_stateful_confounding_family(0).unwrap();
+        let family = crate::challenge::generate_stateful_confounding_family(2).unwrap();
         let mut measurement_and_calibration_only = family.worlds[0].kernel.clone();
         measurement_and_calibration_only.action_ids.truncate(2);
         measurement_and_calibration_only.action_costs.truncate(2);
