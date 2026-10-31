@@ -152,8 +152,7 @@ fn build_kernel(
         };
         let sensor_state = match family {
             BenchmarkFamily::Memoryless | BenchmarkFamily::PhysicalCarryover => initial_sensor,
-            BenchmarkFamily::PersistentSensorBias => hypothesis,
-            BenchmarkFamily::JointConfounding => initial_sensor,
+            BenchmarkFamily::PersistentSensorBias | BenchmarkFamily::JointConfounding => hypothesis,
         };
         initial_belief.push(JointMass {
             hypothesis,
@@ -170,8 +169,11 @@ fn build_kernel(
                 for action in 0..3 {
                     let outcomes = match action {
                         0 => {
-                            let latent_signal =
-                                hypothesis ^ physical_state ^ sensor_state;
+                            let interference = match family {
+                                BenchmarkFamily::JointConfounding => physical_state | sensor_state,
+                                _ => physical_state ^ sensor_state,
+                            };
+                            let latent_signal = hypothesis ^ interference;
                             let next_physical = physical_state;
                             let next_sensor = sensor_state;
                             let incorrect_probability =
