@@ -67,10 +67,10 @@ required before this source is described as qualified.
 ## Downstream decision-value reference
 
 The `decision_value` module adds an exact one-step Bayes-risk evaluator over
-finite terminal decisions. Its loss table is indexed by
-`(decision, mechanism, next physical state)`; the current sensor and apparatus
-states affect the posterior, while their terminal consequences must be encoded
-in the declared physical-state context or extended by a later loss-table schema.
+finite terminal decisions. Its loss tensor is indexed by
+`(decision, mechanism, physical state, sensor state, apparatus state)`.
+Terminal decisions can therefore account directly for specimen condition,
+calibration validity and apparatus degradation as well as mechanism identity.
 Abstention has its own explicit loss. Every possible policy-visible outcome is replayed
 through the exact action-realization filter, and the command cost is charged once
 even on a hazard branch. An explicit observation protocol selects whether
