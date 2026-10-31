@@ -79,3 +79,13 @@ The synthetic fixtures verify the aggregation mathematics. They do not establish
 ## Claim and authority ceiling
 
 This is a dependence-robust mathematical bound over supplied marginal probability enclosures. It does not validate the upstream posterior model, infer real dependence, certify a part or production lot, or authorize shipment/release. Existing authorized quality authority remains responsible for final disposition.
+
+
+Every marginal posterior must explicitly carry the same exact:
+- part ID;
+- lot ID;
+- operation ID;
+- decision-context ID;
+- decision timestamp.
+
+It is not sufficient for the aggregate manifest alone to name the part while an unscoped marginal score is attached. A posterior fitted to a different operation or taken at a different decision time returns EVIDENCE_INCOMPLETE. These fields are emitted in every marginal receipt row.
