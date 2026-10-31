@@ -147,8 +147,8 @@ a symmetric 80%-accurate channel under the nominal model. The more informative
 channel has one bit of nominal information, but when its sensor labels are
 inverted in the true world, its nominally zero-loss policy suffers realized loss
 1. The weaker channel, left correctly specified, has realized loss 1/5. The
-same evaluator separately tests inference-only mismatch, model-only mismatch
-and a correctly specified negative control. This is an exact synthetic
+same evaluator separately tests inference-only mismatch, model-only mismatch,
+their interaction and a correctly specified negative control. This is an exact synthetic
 counterexample, not empirical physical evidence.
 
 The module validates explicit garbling witnesses; it does not solve the
