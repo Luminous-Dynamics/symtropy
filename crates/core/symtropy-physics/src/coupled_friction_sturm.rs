@@ -1325,8 +1325,8 @@ fn certify_contact_input_box(input: &ContactInputBox) -> FamilyRootCertificate {
         None
     };
 
-    let status = if input.mu.upper < Rational::zero() {
-        FamilyRootStatus::InvalidInput("friction interval is entirely negative")
+    let status = if input.mu.lower < Rational::zero() {
+        FamilyRootStatus::InvalidInput("friction interval contains negative values")
     } else if input.mu.lower <= Rational::zero() {
         FamilyRootStatus::NeedsSubdivision("friction interval includes zero")
     } else if spd_lower_bound <= Rational::zero() {
@@ -1498,8 +1498,10 @@ fn interval_coefficient_enclosures_contain_seeded_exact_dyadic_samples() {
         for index in 0..10 {
             let bucket = (seed * (13 + index as u64 * 17) + 7 * index as u64) % 1009;
             let fraction = bucket as f64 / 1008.0;
-            values[index] = bounds[index][0]
-                + fraction * (bounds[index][1] - bounds[index][0]);
+            values[index] = (bounds[index][0]
+                + fraction * (bounds[index][1] - bounds[index][0]))
+                .max(bounds[index][0])
+                .min(bounds[index][1]);
         }
         let exact = exact_sliding_quartic_from_rational_inputs(
             exact_f64(values[0]).unwrap(),
@@ -1662,5 +1664,6 @@ fn interval_discriminant_contains_zero_for_a_wide_unresolved_box() {
         [0.1, 0.8],
     ]).unwrap();
     let certificate = certify_contact_input_box(&input);
+    assert!(certificate.discriminant.as_ref().is_some_and(ExactInterval::contains_zero));
     assert!(matches!(certificate.status, FamilyRootStatus::NeedsSubdivision(_)));
 }
