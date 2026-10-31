@@ -315,7 +315,7 @@ fn parse_manifest(input: &str) -> Result<Manifest, String> {
                 if !matches!(authority.principal_type.as_str(), "HUMAN" | "SYSTEM") {
                     return Err(format!("line {line_number}: unsupported AUTH principal type"));
                 }
-                if !matches!(authority.decision.as_str(), "GRANTED" | "REJECTED") {
+                if !matches!(authority.decision.as_str(), "GRANTED" | "REJECTED" | "REVOKED") {
                     return Err(format!("line {line_number}: unsupported AUTH decision"));
                 }
                 if !valid_utc(&authority.approved_at)
@@ -579,13 +579,33 @@ fn assess(manifest: &Manifest) -> Assessment {
     let mut authorized = false;
     let mut human_authorized = false;
     if let Some(execution) = &manifest.execution {
+        let mut latest_by_principal: std::collections::BTreeMap<(String, String), &Authority> =
+            std::collections::BTreeMap::new();
         for authority in &manifest.authorities {
+            if authority.asset != plan.asset
+                || authority.scope != plan.scope
+                || authority.action != plan.action
+                || authority.approved_at < plan.valid_from
+                || authority.approved_at > execution.issued_at
+            {
+                continue;
+            }
+            let key = (authority.principal_type.clone(), authority.principal.clone());
+            match latest_by_principal.get(&key) {
+                Some(previous) if previous.approved_at > authority.approved_at => {}
+                Some(previous) if previous.approved_at == authority.approved_at
+                    && previous.decision != authority.decision =>
+                {
+                    reasons.push(format!("AMBIGUOUS_AUTHORITY_EVENT:{}", authority.principal));
+                }
+                Some(previous) if previous.approved_at == authority.approved_at => {}
+                _ => {
+                    latest_by_principal.insert(key, authority);
+                }
+            }
+        }
+        for authority in latest_by_principal.values() {
             if authority.decision == "GRANTED"
-                && authority.asset == plan.asset
-                && authority.scope == plan.scope
-                && authority.action == plan.action
-                && authority.approved_at >= plan.valid_from
-                && authority.approved_at <= execution.issued_at
                 && manifest.checks.iter().all(|check| check.checked_at <= authority.approved_at)
                 && execution.issued_at < authority.valid_until
                 && execution.issued_at >= plan.valid_from
@@ -663,8 +683,18 @@ fn assess(manifest: &Manifest) -> Assessment {
             missing_reasons.push("RECOVERY_WITHOUT_COMPLETE_POST_ACTION_FAILURE_EVIDENCE".to_string());
         }
         missing_reasons.sort();
+        let observed_failure = post_action.iter().any(|verification| {
+            verification.value < verification.acceptable_min
+                || verification.value > verification.acceptable_max
+        });
         return Assessment {
-            state: if manifest.recovery.is_some() { "BLOCKED" } else { "ISSUED_UNVERIFIED" }.to_string(),
+            state: if manifest.recovery.is_some() {
+                "BLOCKED"
+            } else if observed_failure {
+                "RECOVERY_REQUIRED"
+            } else {
+                "ISSUED_UNVERIFIED"
+            }.to_string(),
             reasons: missing_reasons,
         };
     }
@@ -1027,10 +1057,22 @@ mod tests {
     }
 
     #[test]
-    fn revoked_authority_does_not_authorize_action() {
+    fn rejected_authority_does_not_authorize_action() {
         let input = mutate(valid_manifest(), "|GRANTED|", "|REJECTED|");
         let report = run_report(&input).unwrap();
         assert!(report.contains("NO_CURRENT_MATCHING_AUTHORITY"));
+    }
+
+    #[test]
+    fn later_revocation_supersedes_prior_grant_for_same_principal() {
+        let mut input = valid_manifest();
+        input.push_str(&format!(
+            "AUTH|auth-revoke|plan-1|HUMAN|operator-1|machine-7|LINE-1|adjust_feed_rate|2026-10-31T11:54:00Z|2026-10-31T23:00:00Z|REVOKED|{}\\n",
+            HASH_E
+        ));
+        let report = run_report(&input).unwrap();
+        assert!(report.contains("NO_CURRENT_MATCHING_AUTHORITY"));
+        assert!(report.contains("HUMAN_APPROVAL_REQUIRED"));
     }
 
     #[test]
