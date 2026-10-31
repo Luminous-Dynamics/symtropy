@@ -389,7 +389,16 @@ mod tests {
     fn implicit_adjoint_rejects_rank_deficient_active_contacts() {
         let matrix = DMatrix::from_row_slice(2, 2, &[1.0, 1.0, 1.0, 1.0]);
         let q = DVector::from_vec(vec![-1.0, -1.0]);
-        let solution = solve_frictionless_lcp(&matrix, &q, 1e-12).unwrap();
+        // Explicitly select the valid two-row active representation.
+        // The reference oracle may also return an equivalent one-row solution
+        // because redundant LCP impulses are non-unique.
+        let solution = ReferenceLcpSolution {
+            impulses: DVector::from_vec(vec![0.5, 0.5]),
+            residual: DVector::zeros(2),
+            active_rows: vec![0, 1],
+            max_primal_violation: 0.0,
+            max_complementarity_residual: 0.0,
+        };
         let error = differentiate_fixed_active_set_lcp(
             &matrix,
             &q,
