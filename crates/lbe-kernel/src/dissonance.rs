@@ -1935,6 +1935,26 @@ mod tests {
     }
 
     #[test]
+    fn administrator_cannot_withdraw_or_reinstate_another_sources_position() {
+        let mut record = record(DissonanceKind::StructuralParadox);
+        let p1 = PositionId::new("p1").unwrap();
+        let withdrawal = source_context(&record, "administrator", 10, "admin-withdraw");
+        assert_eq!(
+            record.withdraw_position(&p1, "reason:admin".to_owned(), withdrawal),
+            Err(DissonanceError::UnauthorizedPositionMutation)
+        );
+        let source_withdrawal = source_context(&record, "workers", 10, "source-withdraw");
+        record.withdraw_position(&p1, "reason:source".to_owned(), source_withdrawal).unwrap();
+        let admin_reinstatement = source_context(&record, "administrator", 11, "admin-reinstate");
+        assert_eq!(
+            record.reinstate_position(&p1, "reason:admin-reinstate".to_owned(), admin_reinstatement),
+            Err(DissonanceError::UnauthorizedPositionMutation)
+        );
+        assert!(record.is_position_withdrawn(&p1));
+        assert_eq!(record.event_history().count(), 1);
+    }
+
+    #[test]
     fn source_correction_appends_revision_without_rewriting_original_position() {
         let mut record = record(DissonanceKind::StructuralParadox);
         let p1 = PositionId::new("p1").unwrap();
