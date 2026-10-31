@@ -10,8 +10,9 @@ The lane is intentionally separate from aerodynamic CFD. Its objective evaluatio
 
 - ZDT1, 30 decision variables in [0,1], objectives: f1=x1; g=1+9*mean(x2..xn); f2=g*(1-sqrt(f1/g)). Its Pareto front has g=1 and f2=1-sqrt(f1).
 - ZDT2 uses the same decision domain and g, with f2=g*(1-(f1/g)^2). Its Pareto front is g=1 and f2=1-f1^2.
+- ZDT3 uses the same decision domain and g, with f2=g*(1-sqrt(f1/g)-(f1/g)*sin(10*pi*f1)). Its non-dominated front has five disconnected x intervals: [0,0.0830015349], [0.1822287280,0.2577623634], [0.4093136748,0.4538821041], [0.6183967944,0.6525117038], [0.8233317983,0.8518328654].
 
-All three have analytically described two-objective Pareto fronts. ZDT3 is disconnected into five separated trade-off segments, testing front-preservation and coverage. The report uses reference point (1.1,1.1), the exact continuous-front hypervolume, and a 201-point deterministic reference set for IGD. Hypervolume is normalized by the exact continuous-front value, so a result must lie in [0,1] up to floating-point tolerance.
+All three have analytically described two-objective Pareto fronts. ZDT3 is disconnected into five separated trade-off segments, testing front-preservation and coverage. The report uses reference point (1.1,1.1), the exact continuous-front hypervolume, and a 201-point deterministic reference set for IGD. For ZDT3, the hypervolume is integrated piecewise over the five front intervals with constant-height rectangles across gaps; its IGD reference set allocates 41/40/40/40/40 points across those intervals. Hypervolume is normalized by the exact continuous-front value, so a result must lie in [0,1] up to floating-point tolerance.
 
 ## Policies
 

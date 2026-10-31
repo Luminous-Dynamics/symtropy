@@ -22,6 +22,7 @@ const IGD_REFERENCE_POINTS: usize = 201;
 pub enum AnalyticTask {
     Zdt1,
     Zdt2,
+    Zdt3,
 }
 
 impl AnalyticTask {
@@ -29,6 +30,7 @@ impl AnalyticTask {
         match self {
             Self::Zdt1 => "zdt1",
             Self::Zdt2 => "zdt2",
+            Self::Zdt3 => "zdt3",
         }
     }
 
@@ -37,6 +39,7 @@ impl AnalyticTask {
         let curve_integral = match self {
             Self::Zdt1 => (reference_y - 1.0) + 2.0 / 3.0,
             Self::Zdt2 => (reference_y - 1.0) + 1.0 / 3.0,
+            Self::Zdt3 => zdt3_exact_hypervolume(reference_x, reference_y),
         };
         curve_integral + (reference_x - 1.0) * reference_y
     }
@@ -45,6 +48,7 @@ impl AnalyticTask {
         match self {
             Self::Zdt1 => 1.0 - x.sqrt(),
             Self::Zdt2 => 1.0 - x * x,
+            Self::Zdt3 => 1.0 - x.sqrt() - x * (10.0 * std::f64::consts::PI * x).sin(),
         }
     }
 }
@@ -143,7 +147,7 @@ pub fn evaluate_optimizer_qualification(
 ) -> Result<OptimizerQualificationReport, String> {
     validate_config(config)?;
 
-    let tasks = [AnalyticTask::Zdt1, AnalyticTask::Zdt2];
+    let tasks = [AnalyticTask::Zdt1, AnalyticTask::Zdt2, AnalyticTask::Zdt3];
     let policies = ["uniform_random", "nsga2", "gde3"];
     let mut summaries = Vec::with_capacity(
         tasks.len() * policies.len() * config.seeds.len() * config.checkpoints.len(),
@@ -393,6 +397,10 @@ pub fn evaluate_objectives(
     let shape = match task {
         AnalyticTask::Zdt1 => 1.0 - ratio.sqrt(),
         AnalyticTask::Zdt2 => 1.0 - ratio * ratio,
+        AnalyticTask::Zdt3 => {
+            1.0 - ratio.sqrt()
+                - ratio * (10.0 * std::f64::consts::PI * objective_1).sin()
+        },
     };
     let objective_2 = g_value * shape;
     if !objective_1.is_finite() || !objective_2.is_finite() || !g_value.is_finite() {
@@ -711,25 +719,81 @@ pub fn hypervolume_2d(points: &[(f64, f64)], reference_x: f64, reference_y: f64)
     area.max(0.0)
 }
 
+const ZDT3_PARETO_INTERVALS: [(f64, f64); 5] = [
+    (0.0, 0.0830015349),
+    (0.1822287280, 0.2577623634),
+    (0.4093136748, 0.4538821041),
+    (0.6183967944, 0.6525117038),
+    (0.8233317983, 0.8518328654),
+];
+
+fn zdt3_hypervolume_primitive(x: f64, reference_y: f64) -> f64 {
+    let angular_frequency = 10.0 * std::f64::consts::PI;
+    (reference_y - 1.0) * x
+        + (2.0 / 3.0) * x.powf(1.5)
+        - x * (angular_frequency * x).cos() / angular_frequency
+        + (angular_frequency * x).sin() / angular_frequency.powi(2)
+}
+
+fn zdt3_exact_hypervolume(reference_x: f64, reference_y: f64) -> f64 {
+    let mut area = 0.0;
+    for (index, (start, end)) in ZDT3_PARETO_INTERVALS.iter().copied().enumerate() {
+        if index > 0 {
+            let previous_end = ZDT3_PARETO_INTERVALS[index - 1].1;
+            let previous_best = 1.0
+                - previous_end.sqrt()
+                - previous_end * (10.0 * std::f64::consts::PI * previous_end).sin();
+            area += (start - previous_end) * (reference_y - previous_best);
+        }
+        area += zdt3_hypervolume_primitive(end, reference_y)
+            - zdt3_hypervolume_primitive(start, reference_y);
+    }
+    let last_end = ZDT3_PARETO_INTERVALS[4].1;
+    let last_best =
+        1.0 - last_end.sqrt() - last_end * (10.0 * std::f64::consts::PI * last_end).sin();
+    area + (reference_x - last_end) * (reference_y - last_best)
+}
+
+pub fn pareto_reference_points(task: AnalyticTask) -> Vec<(f64, f64)> {
+    if task == AnalyticTask::Zdt3 {
+        let counts = [41_usize, 40, 40, 40, 40];
+        let mut points = Vec::with_capacity(IGD_REFERENCE_POINTS);
+        for ((start, end), count) in ZDT3_PARETO_INTERVALS.iter().copied().zip(counts) {
+            for index in 0..count {
+                let fraction = index as f64 / (count - 1) as f64;
+                let x = start + (end - start) * fraction;
+                points.push((x, task.pareto_y(x)));
+            }
+        }
+        return points;
+    }
+    (0..IGD_REFERENCE_POINTS)
+        .map(|index| {
+            let x = index as f64 / (IGD_REFERENCE_POINTS - 1) as f64;
+            (x, task.pareto_y(x))
+        })
+        .collect()
+}
+
 pub fn inverted_generational_distance(task: AnalyticTask, archive: &[(f64, f64)]) -> f64 {
     if archive.is_empty() {
         return f64::INFINITY;
     }
-    let mut total = 0.0;
-    for index in 0..IGD_REFERENCE_POINTS {
-        let x = index as f64 / (IGD_REFERENCE_POINTS - 1) as f64;
-        let target = (x, task.pareto_y(x));
-        let nearest = archive
-            .iter()
-            .map(|point| {
-                let dx = point.0 - target.0;
-                let dy = point.1 - target.1;
-                (dx * dx + dy * dy).sqrt()
-            })
-            .fold(f64::INFINITY, f64::min);
-        total += nearest;
-    }
-    total / IGD_REFERENCE_POINTS as f64
+    let reference = pareto_reference_points(task);
+    let total = reference
+        .iter()
+        .map(|target| {
+            archive
+                .iter()
+                .map(|point| {
+                    let dx = point.0 - target.0;
+                    let dy = point.1 - target.1;
+                    (dx * dx + dy * dy).sqrt()
+                })
+                .fold(f64::INFINITY, f64::min)
+        })
+        .sum::<f64>();
+    total / reference.len() as f64
 }
 
 pub const OPTIMIZER_SUMMARY_HEADER: &str = "task_id,policy_id,algorithm_config_id,seed,decision_dimensions,population_size,maximum_evaluations,initial_population_basis,evaluation_budget,actual_evaluations,archive_size,hypervolume,exact_front_hypervolume,hypervolume_fraction_of_exact_front,inverted_generational_distance,mean_g_value,evidence_level";
@@ -823,6 +887,11 @@ mod tests {
         assert!((zdt2.1 - 0.8704).abs() < 1.0e-12);
         assert_eq!(zdt1.2, 1.0);
         assert_eq!(zdt2.2, 1.0);
+        let zdt3 = evaluate_objectives(AnalyticTask::Zdt3, &x).expect("ZDT3 point");
+        assert!((zdt3.0 - 0.36).abs() < 1.0e-12);
+        assert!((zdt3.1 - 0.7423803458662553).abs() < 1.0e-12);
+        assert_eq!(zdt3.2, 1.0);
+        assert_eq!(pareto_reference_points(AnalyticTask::Zdt3).len(), 201);
     }
 
     #[test]
@@ -907,7 +976,9 @@ mod tests {
     fn normalized_hypervolume_uses_known_continuous_pareto_front() {
         let zdt1 = AnalyticTask::Zdt1.exact_hypervolume();
         let zdt2 = AnalyticTask::Zdt2.exact_hypervolume();
+        let zdt3 = AnalyticTask::Zdt3.exact_hypervolume();
         assert!((zdt1 - (0.1 + 2.0 / 3.0 + 0.11)).abs() < 1.0e-12);
         assert!((zdt2 - (0.1 + 1.0 / 3.0 + 0.11)).abs() < 1.0e-12);
+        assert!((zdt3 - 1.3317629086570204).abs() < 1.0e-10);
     }
 }
