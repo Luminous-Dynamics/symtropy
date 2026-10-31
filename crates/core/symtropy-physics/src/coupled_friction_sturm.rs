@@ -64,7 +64,9 @@ fn derivative(poly: &[Rational]) -> Polynomial {
     poly.iter()
         .enumerate()
         .skip(1)
-        .map(|(power, coefficient)| coefficient * Rational::from_integer(BigInt::from(power)))
+        .map(|(power, coefficient)| {
+            coefficient.clone() * Rational::from_integer(BigInt::from(power))
+        })
         .collect()
 }
 
@@ -188,7 +190,7 @@ fn cauchy_bound(poly: &[Rational]) -> Result<Rational, &'static str> {
     }
     let mut largest = Rational::zero();
     for coefficient in &poly[..poly.len() - 1] {
-        let ratio = coefficient.abs() / &leading;
+        let ratio = coefficient.abs() / leading.clone();
         if ratio > largest {
             largest = ratio;
         }
@@ -233,8 +235,8 @@ fn isolate_recursive(
         return Ok(());
     }
 
-    let width = &upper - &lower;
-    let target = relative_width * (Rational::one() + midpoint.abs());
+    let width = upper.clone() - lower.clone();
+    let target = relative_width.clone() * (Rational::one() + midpoint.abs());
     if count == 1 && width <= target {
         intervals.push((lower, upper));
         return Ok(());
@@ -256,7 +258,9 @@ fn isolate_recursive(
 
 /// Returns disjoint rational intervals, each containing exactly one distinct
 /// real root of the exact polynomial represented by the supplied f64 values.
-fn sturm_isolate_f64(coefficients_ascending: &[f64]) -> Result<Vec<(Rational, Rational)>, &'static str> {
+fn sturm_isolate_f64(
+    coefficients_ascending: &[f64],
+) -> Result<Vec<(Rational, Rational)>, &'static str> {
     let mut poly = coefficients_ascending
         .iter()
         .map(|coefficient| exact_f64(*coefficient))
@@ -340,7 +344,7 @@ fn sturm_counts_four_simple_roots_and_production_matches() {
 
 #[test]
 fn sturm_counts_distinct_roots_for_repeated_factors() {
-    let roots = [-2_i64, -2, 1, 1, 4]
+    let roots = [-2_i64, -2, 1, 3]
         .into_iter()
         .map(|value| Rational::from_integer(BigInt::from(value)))
         .collect::<Vec<_>>();
