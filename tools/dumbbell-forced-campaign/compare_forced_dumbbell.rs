@@ -550,6 +550,41 @@ mod tests {
             .collect::<Vec<_>>()
             .join("\n");
         assert!(audit_campaign(&poisoned).is_err());
+        let wrong_impulse = good
+            .lines()
+            .enumerate()
+            .map(|(index, line)| {
+                if index == 1 {
+                    let mut columns: Vec<String> =
+                        line.split(',').map(str::to_string).collect();
+                    let impulse_x: f64 = columns[12].parse().unwrap();
+                    columns[12] = format!("{:.17e}", -impulse_x);
+                    columns.join(",")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(audit_campaign(&wrong_impulse).is_err());
+
+        let wrong_torque = good
+            .lines()
+            .enumerate()
+            .map(|(index, line)| {
+                if index == 1 {
+                    let mut columns: Vec<String> =
+                        line.split(',').map(str::to_string).collect();
+                    let torque: f64 = columns[14].parse().unwrap();
+                    columns[14] = format!("{:.17e}", -torque);
+                    columns.join(",")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(audit_campaign(&wrong_torque).is_err());
 
         let duplicate = format!("{}\n{}", good.trim_end(), rows[1]);
         assert!(audit_campaign(&duplicate).is_err());
