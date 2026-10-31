@@ -276,7 +276,7 @@ Targets, not achieved results:
 - Add independent-lot coverage and decision-risk evaluation.
 
 ### Slice D — bounded intervention rehearsal
-- Consume existing Symtropya proposal and Symtropy authority/postcondition contracts.
+- Consume existing Symthaea proposal and Symtropy authority/postcondition contracts.
 - Simulate authorization/execution/recovery in a deterministic offline fixture.
 - Keep live machine writes and PLC control out of scope until separate safety, security, authority and deployment qualification.
 
