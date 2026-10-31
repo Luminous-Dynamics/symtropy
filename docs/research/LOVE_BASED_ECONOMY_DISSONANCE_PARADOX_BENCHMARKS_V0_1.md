@@ -56,7 +56,7 @@ Use a **plurality-preserving decision record** with:
 6. A process-safeguard record: representation fidelity, accessible voice, dissent preservation, evidence review, appeal, conflict-of-interest disclosure.
 7. A hazard record with states such as reported, corroborated, substantiated, refuted and unresolved.
 8. A decision disposition, if any, with reasons, review date, reversal or stop conditions, and the preserved positions.
-9. A source can correct or explicitly withdraw its own position through an authenticated, append-only event; administrators cannot fabricate a source withdrawal. This host authorization/position-revision requirement is tracked in [kernel issue #3125](https://github.com/Luminous-Dynamics/symtropy/issues/3125).
+9. A source can correct or explicitly withdraw its own position through an authenticated, append-only event; administrators cannot fabricate a source withdrawal. Reinstatement is a distinct source-authored event. Withdrawn positions remain in history but are excluded from future disposition coverage. The implementation and remaining adapter responsibilities are tracked in [kernel issue #3125](https://github.com/Luminous-Dynamics/symtropy/issues/3125).
 9. A durable dissent record: minority arguments are not silently deleted when a decision is made.
 10. An append-only process event stream: actor, time, event type, prior receipt, current receipt and evidence references for each safeguard, hazard and disposition transition. The genesis position set must also be anchored by a host-verified receipt.
 
