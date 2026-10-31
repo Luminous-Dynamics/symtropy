@@ -4,6 +4,8 @@
 //! that the evidence supports. Losses are defined over the mechanism and next
 //! physical state; sensor and apparatus uncertainty still affect the posterior.
 
+pub mod finite_horizon;
+
 use super::{
     ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PosteriorMass,
     PublicObservation, Rational,
