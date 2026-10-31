@@ -580,10 +580,8 @@ pub fn solve_binary_blackwell_garbling(
             vec![y, subtract_nonnegative(Rational::one(), y)?],
         ],
     };
-    match verify_blackwell_dominance(more_informative, less_informative, &witness) {
-        Ok(receipt) => Ok(Some(receipt)),
-        Err(_) => Ok(None),
-    }
+    let receipt = verify_blackwell_dominance(more_informative, less_informative, &witness)?;
+    Ok(Some(receipt))
 }
 
 fn validate_unique_ids(ids: &[String], label: &str) -> Result<(), String> {
