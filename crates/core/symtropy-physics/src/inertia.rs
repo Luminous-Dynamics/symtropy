@@ -45,6 +45,8 @@ pub enum RotationalInertiaError {
     InvalidDirection,
     /// Component offsets do not place the combined center of mass at the origin.
     OffsetsNotCentered,
+    /// A tetrahedron is degenerate or below the requested relative volume tolerance.
+    DegenerateTetrahedron,
 }
 
 /// Rotational inertia acting on Lambda^2(R^D), the bivector space of rotations.
@@ -53,6 +55,14 @@ pub enum RotationalInertiaError {
 /// use physical mass units. For a uniform solid D-ball of mass m and radius r,
 /// S = (m r^2 / (D+2)) I, giving I_plane = 2 m r^2 / (D+2) in every rotation
 /// plane.
+/// Exact mass properties of a tetrahedralized, piecewise-uniform 3D solid.
+#[derive(Clone, Debug)]
+pub struct TetrahedralMassProperties {
+    pub total_mass: f64,
+    pub center_of_mass: SVector<f64, 3>,
+    pub inertia: BivectorInertia<3>,
+}
+
 #[derive(Clone, Debug)]
 pub struct BivectorInertia<const D: usize> {
     second_moment: SMatrix<f64, D, D>,
@@ -512,6 +522,124 @@ impl<const D: usize> BivectorInertia<D> {
     }
 }
 
+impl BivectorInertia<3> {
+    /// Integrate the exact centered second moments of a tetrahedralized solid.
+    ///
+    /// Each item is four world-space tetrahedron vertices and a uniform
+    /// positive density for that tetrahedron. Different tetrahedra may have
+    /// different densities, allowing piecewise-uniform multi-material solids.
+    ///
+    /// The tetrahedral decomposition must describe non-overlapping volume
+    /// elements. Overlapping tetrahedra are counted more than once. Coordinates
+    /// are shifted to the first vertex before integration to preserve small
+    /// geometry located far from the world origin.
+    ///
+    /// For one tetrahedron with mass m and centered vertex offsets q_i, the
+    /// exact centered second moment is S = (m/20) * sum(q_i*q_i^T).
+    /// Component moments are accumulated around a common reference and shifted
+    /// once to the combined center of mass using the parallel-axis theorem.
+    pub fn from_tetrahedra<I>(
+        tetrahedra: I,
+        relative_volume_tolerance: f64,
+    ) -> Result<TetrahedralMassProperties, RotationalInertiaError>
+    where
+        I: IntoIterator<Item = ([SVector<f64, 3>; 4], f64)>,
+    {
+        if !relative_volume_tolerance.is_finite() || relative_volume_tolerance <= 0.0 {
+            return Err(RotationalInertiaError::InvalidTolerance);
+        }
+        let mut iterator = tetrahedra.into_iter();
+        let Some(first) = iterator.next() else {
+            return Err(RotationalInertiaError::InvalidMassProperties);
+        };
+        let reference = first.0[0];
+        let mut total_mass = 0.0_f64;
+        let mut weighted_center = SVector::<f64, 3>::zeros();
+        let mut second_moment_about_reference = SMatrix::<f64, 3, 3>::zeros();
+
+        for (vertices, density) in std::iter::once(first).chain(iterator) {
+            if !density.is_finite()
+                || density <= 0.0
+                || !vertices
+                    .iter()
+                    .all(|vertex| vertex.iter().all(|value| value.is_finite()))
+            {
+                return Err(RotationalInertiaError::InvalidMassProperties);
+            }
+
+            let relative_vertices = vertices.map(|vertex| vertex - reference);
+            let edge_1 = relative_vertices[1] - relative_vertices[0];
+            let edge_2 = relative_vertices[2] - relative_vertices[0];
+            let edge_3 = relative_vertices[3] - relative_vertices[0];
+            let edge_scale = edge_1
+                .norm()
+                .max(edge_2.norm())
+                .max(edge_3.norm());
+            if !edge_scale.is_finite() || edge_scale <= f64::MIN_POSITIVE {
+                return Err(RotationalInertiaError::DegenerateTetrahedron);
+            }
+
+            let six_volume = edge_1.dot(&edge_2.cross(&edge_3)).abs();
+            let volume_tolerance =
+                relative_volume_tolerance * edge_scale.powi(3);
+            if !six_volume.is_finite() {
+                return Err(RotationalInertiaError::NonFinite);
+            }
+            if six_volume <= volume_tolerance {
+                return Err(RotationalInertiaError::DegenerateTetrahedron);
+            }
+
+            let tetrahedron_mass = density * (six_volume / 6.0);
+            if !tetrahedron_mass.is_finite() || tetrahedron_mass <= 0.0 {
+                return Err(RotationalInertiaError::InvalidMassProperties);
+            }
+            let centroid_relative = relative_vertices
+                .iter()
+                .fold(SVector::<f64, 3>::zeros(), |sum, vertex| sum + vertex)
+                / 4.0;
+
+            let local_second_moment = relative_vertices.iter().fold(
+                SMatrix::<f64, 3, 3>::zeros(),
+                |sum, vertex| {
+                    let centered = vertex - centroid_relative;
+                    sum + centered * centered.transpose()
+                },
+            ) * (tetrahedron_mass / 20.0);
+
+            second_moment_about_reference += local_second_moment
+                + tetrahedron_mass
+                    * centroid_relative
+                    * centroid_relative.transpose();
+            weighted_center += tetrahedron_mass * centroid_relative;
+            total_mass += tetrahedron_mass;
+            if !total_mass.is_finite()
+                || !weighted_center.iter().all(|value| value.is_finite())
+                || !second_moment_about_reference
+                    .iter()
+                    .all(|value| value.is_finite())
+            {
+                return Err(RotationalInertiaError::NonFinite);
+            }
+        }
+
+        let center_relative = weighted_center / total_mass;
+        let centered_second_moment = second_moment_about_reference
+            - total_mass * center_relative * center_relative.transpose();
+        let center_of_mass = reference + center_relative;
+        if !center_of_mass.iter().all(|value| value.is_finite()) {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        let inertia =
+            Self::from_second_moment_with_mass(total_mass, centered_second_moment)?;
+
+        Ok(TetrahedralMassProperties {
+            total_mass,
+            center_of_mass,
+            inertia,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -641,6 +769,91 @@ mod tests {
             (inertia.second_moment()[(0, 0)] - 0.0078125).abs() < 1e-12,
             "small CAD-scale inertia lost at large world offset: S={:?}",
             inertia.second_moment()
+        );
+    }
+
+    #[test]
+    fn tetrahedral_mass_properties_match_analytic_simplex_moments() {
+        let vertices = [
+            SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 0.0, 1.0),
+        ];
+        let properties = BivectorInertia::<3>::from_tetrahedra([(vertices, 6.0)], 1e-12)
+            .unwrap();
+
+        assert!((properties.total_mass - 1.0).abs() < 1e-12);
+        assert_eq!(properties.inertia.total_mass(), Some(1.0));
+        assert!((properties.center_of_mass - SVector::repeat(0.25)).norm() < 1e-12);
+        let s = properties.inertia.second_moment();
+        for axis in 0..3 {
+            assert!((s[(axis, axis)] - 3.0 / 80.0).abs() < 1e-12);
+        }
+        for i in 0..3 {
+            for j in 0..3 {
+                if i != j {
+                    assert!((s[(i, j)] + 1.0 / 80.0).abs() < 1e-12);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn tetrahedral_mass_properties_are_translation_stable_at_large_world_offsets() {
+        let offset = SVector::<f64, 3>::new(1.0e12, -1.0e12, 5.0e11);
+        let local = [
+            SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 0.0, 1.0),
+        ];
+        let translated = local.map(|vertex| vertex + offset);
+        let properties = BivectorInertia::<3>::from_tetrahedra([(translated, 6.0)], 1e-12)
+            .unwrap();
+        assert!(
+            (properties.inertia.second_moment()[(0, 0)] - 3.0 / 80.0).abs() < 1e-12,
+            "centered moment lost precision under large translation: {:?}",
+            properties.inertia.second_moment()
+        );
+        assert!(
+            (properties.center_of_mass - (offset + SVector::repeat(0.25))).norm() < 1e-3
+        );
+    }
+
+    #[test]
+    fn tetrahedral_mass_properties_support_piecewise_density() {
+        let first = [
+            SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 0.0, 1.0),
+        ];
+        let second = first.map(|vertex| vertex + SVector::new(2.0, 0.0, 0.0));
+        let properties =
+            BivectorInertia::<3>::from_tetrahedra([(first, 6.0), (second, 12.0)], 1e-12)
+                .unwrap();
+
+        assert!((properties.total_mass - 3.0).abs() < 1e-12);
+        assert_eq!(properties.inertia.total_mass(), Some(3.0));
+        assert!((properties.center_of_mass[0] - 1.25).abs() < 1e-12);
+    }
+
+    #[test]
+    fn tetrahedral_mass_properties_reject_degenerate_and_invalid_density() {
+        let degenerate = [
+            SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 1.0, 0.0),
+        ];
+        assert_eq!(
+            BivectorInertia::<3>::from_tetrahedra([(degenerate, 1.0)], 1e-12).unwrap_err(),
+            RotationalInertiaError::DegenerateTetrahedron
+        );
+        assert_eq!(
+            BivectorInertia::<3>::from_tetrahedra([(degenerate, -1.0)], 1e-12).unwrap_err(),
+            RotationalInertiaError::InvalidMassProperties
         );
     }
 
