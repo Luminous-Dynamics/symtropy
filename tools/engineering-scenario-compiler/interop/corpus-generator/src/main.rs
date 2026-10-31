@@ -100,6 +100,8 @@ fn generated_value_cases() -> Result<Vec<ValidCase>, String> {
             -((next_random(&mut state) % 1_000_000) as i64)
         };
         let depth = (next_random(&mut state) % 5) as usize + 1;
+        let bulk_bytes = [64_usize, 512, 4_096, 16_384][index % 4];
+        let bulk_payload = "p".repeat(bulk_bytes);
         let nested = (0..depth)
             .map(|level| {
                 json!({
@@ -111,6 +113,8 @@ fn generated_value_cases() -> Result<Vec<ValidCase>, String> {
             .collect::<Vec<Value>>();
         let value = json!({
             "case": index,
+            "payload_bytes": bulk_bytes,
+            "bulk_payload": bulk_payload,
             "payload": {
                 "values": [a, b, c, signed],
                 "flags": [flag, !flag, true, false],
