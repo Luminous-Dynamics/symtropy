@@ -272,14 +272,14 @@ pub fn evaluate_one_step_decision_value(
     }
 
     let baseline = bayes_decision_from_belief(kernel, belief, table)?;
-    let mut observations = BTreeSet::<(bool, Option<usize>, Option<usize>)>::new();
+    let mut observations = BTreeSet::<(bool, ObservationField, ObservationField)>::new();
     for point in belief {
         let row = &kernel.rows[kernel.row_index(point.state, command)];
         for outcome in &row.outcomes {
             observations.insert((
                 outcome.hazard,
-                outcome.readback,
-                outcome.measurement,
+                field_from_option(outcome.readback, protocol.observe_readback),
+                field_from_option(outcome.measurement, protocol.observe_measurement),
             ));
         }
     }
@@ -289,8 +289,8 @@ pub fn evaluate_one_step_decision_value(
     for (hazard, readback, measurement) in &observations {
         let public = PublicObservation {
             hazard: *hazard,
-            readback: field_from_option(*readback, protocol.observe_readback),
-            measurement: field_from_option(*measurement, protocol.observe_measurement),
+            readback: *readback,
+            measurement: *measurement,
         };
         let filtered = super::filter_one_step(kernel, belief, command, public)
             .map_err(DecisionValueError::Filter)?;
