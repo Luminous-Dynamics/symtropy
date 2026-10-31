@@ -325,6 +325,18 @@ fn run_report() -> Result<String, String> {
             "DIAGNOSTIC case={} classification={} samples={} claim_ceiling={}\n",
             name, report.classification, report.sample_count, report.claim_ceiling
         ));
+        if let Some(metrics) = report.metrics {
+            output.push_str(&format!(
+                "RESIDUALS case={} sensor_reference={:.6} reference_prediction={:.6} interface_mapping={:.6} clock_ms={} process_input=[{:.6},{:.6}]\n",
+                name,
+                metrics.mean_sensor_reference_residual,
+                metrics.mean_reference_prediction_residual,
+                metrics.max_interface_mapping_residual,
+                metrics.max_clock_residual_ms,
+                metrics.process_input_min,
+                metrics.process_input_max
+            ));
+        }
     }
     output.push_str(
         "CLAIM_CEILING synthetic_known_truth=true real_factory_data=false drift_proven=false model_recalibrated=false machine_actuation=false\n",
