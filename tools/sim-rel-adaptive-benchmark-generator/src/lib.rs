@@ -1,3 +1,5 @@
+pub mod selection;
+
 //! Deterministic counterexample-ready scientific experiment benchmark generator.
 //! Every emitted task must pass the exact optimizer, one-step EIG baseline,
 //! and all-horizon identifiability analysis before it is admitted.
