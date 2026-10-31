@@ -374,6 +374,14 @@ pub fn apply_model_world_perturbation(
     Ok(candidate)
 }
 
+fn require_changed(changed: bool, reason: &str) -> Result<(), String> {
+    if changed {
+        Ok(())
+    } else {
+        Err(reason.to_string())
+    }
+}
+
 fn validate_scope(
     kernel: &ActionRealizationKernel,
     command: usize,
