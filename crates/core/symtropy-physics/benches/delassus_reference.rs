@@ -6,9 +6,10 @@ use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_ma
 use nalgebra::{DVector, Matrix2, SVector};
 use symtropy_math::{Bivector, Point, Rotor};
 use symtropy_physics::{
-    BivectorInertia, BodyHandle, FrictionlessContactRow, RigidBody, assemble_delassus,
-    ContactFrame, ContactWrenchFrictionLimits, ContactWrenchImpulse, solve_frictionless_lcp,
-    solve_planar_friction_cone,
+    BivectorInertia, BodyHandle, ContactFrame, ContactWrenchFrictionLimits,
+    ContactWrenchImpulse, ContactWrenchRow, FrictionlessContactRow, RigidBody,
+    assemble_contact_wrench_delassus, assemble_contact_wrench_free_velocity,
+    assemble_delassus, solve_frictionless_lcp, solve_planar_friction_cone,
 };
 
 fn fixture(
