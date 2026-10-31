@@ -6,6 +6,7 @@ on:
       - "tools/pendulum-matched-campaign/**"
       - "tools/pendulum-intrinsic-reference/**"
       - "tools/pendulum-rattle-reference/**"
+      - "tools/pendulum-phdae-reference/**"
       - "docs/research/PENDULUM_MATCHED_SOLVER_CAMPAIGN_2026-10-31.md"
       - ".github/workflows/pendulum-matched-campaign.yml"
   push:
@@ -43,6 +44,7 @@ jobs:
           /tmp/pendulum-campaign > /tmp/pendulum-campaign-a.csv
           /tmp/pendulum-campaign > /tmp/pendulum-campaign-b.csv
           cmp /tmp/pendulum-campaign-a.csv /tmp/pendulum-campaign-b.csv
-          test "$(wc -l < /tmp/pendulum-campaign-a.csv)" -eq 17
+          test "$(wc -l < /tmp/pendulum-campaign-a.csv)" -eq 21
           grep -q "^cartesian_rattle," /tmp/pendulum-campaign-a.csv
           grep -q "^intrinsic_discrete_gradient," /tmp/pendulum-campaign-a.csv
+          grep -q "^cartesian_phdae_discrete_gradient," /tmp/pendulum-campaign-a.csv
