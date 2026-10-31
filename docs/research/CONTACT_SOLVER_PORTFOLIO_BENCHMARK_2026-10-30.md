@@ -18,29 +18,29 @@ Selection must be auditable: report why a path was chosen, its conditioning esti
 
 ## Industry landscape as of 2026-10-31
 
-This is a comparison map, not one universal leaderboard. The systems solve overlapping but non-identical contact models, scenes and hardware targets.
+This is not one universal leaderboard. Contact laws, scene families, hardware and output quality differ materially.
 
-| System | Current relevant capability | Implication for Symtropy |
+| System | Current state / reported capability | What Symtropy should benchmark |
 |---|---|---|
-| MuJoCo 3.17.0 | Released 22 October 2026. Adds batched stepping for many copies of one model; its release notes state that batch output is bit-identical to a plain loop across thread counts. Its `discrete` integrator shares the effective metric between constraint solve and velocity update; the documentation still describes this method as new/under active development. | Benchmark both common-metric accuracy and batched determinism/throughput. Do not claim novelty merely for a shared effective metric. |
-| Rapier 0.35.3 | Rust CPU/SIMD rigid-body baseline. Dimforge's 25 October 2026 report describes intra-island parallelism, persistent graph coloring and parallel broad-phase, beyond only scheduling independent islands. The report gives up to 2× single-thread and 4× multi-thread improvement versus its earlier baseline on an M4 Max with 8 workers; that is a vendor's before/after result, not an independent cross-engine ranking. | Mandatory Rust CPU baseline. Compare dense islands, not just independent stacks. |
-| Nexus 0.7.0 | Rust-authored GPU shaders; Soft-TGS and twist-friction approximation. Dimforge reports a 505,000-body pyramid at about 14 ms/frame on an RTX 5080, without sleeping-island optimization. It also reports early 2D/3D MPM and CUDA backend performance. | Serious GPU scale reference, but reproduce the exact scene, hardware, accuracy, and contact law. The vendor figure is not an apples-to-apples result for Symtropy. |
-| Physmark | Open benchmark suite with rigid-body piles/stacks, many-environment robotics and MPM. Its public README lists scenes from 8 to 10,000 bodies, large brick scenes at 110,000 and 505,922 bodies, MPM 512–195,112 particles, and Go1/T1 robots in 1–8,192 environments. The runner chooses compatible backends, probes engines, and records videos; non-compatible engines may be skipped rather than silently assigned another backend. | Adopt its workload families and provenance rules. Extend with asymmetric inertia, physical residuals, N-D contact frames and source/configuration receipts. |
-| NVIDIA PhysX 5.8 | PGS and TGS, with TGS documented as the generally recommended solver. NVIDIA cites better convergence, high mass-ratio handling, joint-drive accuracy and high-frequency behavior. | Include TGS, friction patches, position/velocity iteration splits, high-mass-ratio and joint-drive tests. |
-| Newton Physics | Open-source GPU-accelerated differentiable robotics engine, based on Warp/OpenUSD, with multiple solver families. | Essential robotics/GPU baseline; not an apples-to-apples CPU Rust comparison. |
-| ComFree-Sim (2026 arXiv preprint) | Proposes a GPU-parallelized complementarity-free analytical contact update using impedance-style prediction/correction in the dual Coulomb cone; reports unified 6D tangential/torsional/rolling friction, near-linear contact scaling and 2–3× dense-scene throughput versus MJWarp with comparable physical fidelity. Those are the paper authors' experimental claims, not independently reproduced results. | Serious alternative contact formulation. Reproduce matched cases; compare its impedance/dual-cone law separately from hard Signorini plus maximum-dissipation Coulomb. |
-| Project Chrono 10.0.0 | Mature engineering/multiphysics reference with multibody dynamics, FSI, peridynamics, checkpointing and implicit integration/Jacobian strategies. | Use for selected engineering verification cases rather than real-time rigid-body ranking. |
+| MuJoCo 3.17.0 | Released 22 October 2026. Adds batched stepping for many copies of one model; release notes say batched outputs are bit-identical to a plain loop across thread counts. Its discrete integrator shares the effective metric between constraint solve and velocity update and remains under active development. | Multi-environment determinism and throughput as well as shared-metric work-precision. |
+| Rapier 0.35.3 | Rust CPU/SIMD baseline. Dimforge's 25 October Q3 report describes intra-island parallelism, persistent graph coloring and parallel broad phase. It reports up to 2× single-thread and 4× multi-thread speedup versus the earlier Rapier implementation on an M4 Max with 8 workers; this is a vendor before/after test, not a cross-engine benchmark. | Dense-island performance, not only parallelism across independent islands. |
+| Nexus 0.7.0 | Rust GPU shader engine using Soft-TGS and twist-friction approximation. Dimforge reports 505,000 rigid bodies at ~14 ms/frame on an RTX 5080 without sleeping-island optimization. The vendor report also gives early 2D/3D MPM and CUDA backend results. | GPU-scale pile scenes and exact reproduction of the reported workloads; distinguish vendor-reported numbers from independent measurements. |
+| Physmark | Open suite separating rigid-body scale, brick structures, MPM and robotics environments. Public README includes 8–10,000-body scenes; large brick scenes of 110,000 and 505,922 bodies; MPM workloads from 512 to 195,112 particles; and Go1/T1 robot scenes from 1 to 8,192 parallel environments. The runner chooses compatible backends, probes each engine, and captures videos; incompatible backends are skipped rather than substituted. | Adopt workload families and evidence practices; add asymmetric inertia, N-D contact, residual/work metrics and replay receipts. |
+| NVIDIA PhysX 5.8 | TGS and PGS are available; NVIDIA generally recommends TGS for convergence, mass-ratio, drive-accuracy and high-frequency behavior. | TGS baselines with friction patches, solver iteration splits and high-mass-ratio/joint-drive scenes. |
+| Newton Physics | Open-source GPU-accelerated differentiable robotics engine using Warp/OpenUSD and multiple solver families. | Essential GPU/robotics comparison, not an apples-to-apples CPU Rust baseline. |
+| ComFree-Sim (2026 arXiv preprint) | Proposes GPU-parallelized analytical contact with impedance-style prediction/correction in the dual Coulomb cone, and a 6D tangential/torsional/rolling model. Authors report near-linear contact scaling and 2–3× throughput versus MJWarp in dense-contact tests, with comparable physical fidelity. These are author-reported results, not independently reproduced. | Reproduce matched scenes and compare dual-cone impedance separately from hard Signorini/max-dissipation Coulomb. |
+| Project Chrono 10.0.0 | Mature engineering/multiphysics reference for multibody, FSI, peridynamics, checkpointing and implicit integration/Jacobian strategies. | Selected engineering verification cases rather than a real-time leaderboard. |
 
 Primary reading:
 - [MuJoCo 3.17.0 release](https://github.com/google-deepmind/mujoco/releases/tag/3.17.0)
 - [MuJoCo computation/integrator docs](https://mujoco.readthedocs.io/en/stable/computation/index.html)
 - [Rapier changelog](https://github.com/dimforge/rapier/blob/master/CHANGELOG.md)
 - [Dimforge Q3 2026 technical report](https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/)
-- [Physmark benchmark repository and scene matrix](https://github.com/dimforge/physmark)
+- [Physmark repository and scenario matrix](https://github.com/dimforge/physmark)
 - [PhysX 5.8 simulation docs](https://nvidia-omniverse.github.io/PhysX/physx/5.8.0/docs/Simulation.html)
-- [NVIDIA Newton](https://developer.nvidia.com/newton-physics)
-- [ComFree-Sim arXiv preprint 2603.12185](https://arxiv.org/abs/2603.12185)
-- [Project Chrono release news](https://projectchrono.org/news/)
+- [Newton overview](https://newton-physics.github.io/newton/stable/guide/overview.html)
+- [ComFree-Sim preprint](https://arxiv.org/abs/2603.12185)
+- [Project Chrono news](https://projectchrono.org/news/)
 
 ## Contact-law semantics: do not mix unlike models
 
@@ -74,7 +74,7 @@ The matrix is admitted only if the selected damping/stiffness terms keep it symm
 
 ### B. A dual view of friction
 
-The current reference oracle is frictionless. The next reference should be maximum-dissipation Coulomb contact, then compare primal cone, pyramidal approximation and dual-cone/impedance formulations on the same fixtures.
+The current exact maximum-dissipation reference is planar and single-contact. The next reference is a 3D circular-cone contact with asymmetric inertia, then compare primal cone, pyramidal approximation and dual-cone/impedance formulations on matched fixtures.
 
 For a contact with normal impulse \(\lambda_n\), tangential impulse \(\lambda_t\), and coefficient \(\mu\):
 
@@ -183,6 +183,16 @@ A speedup counts only if the physical error envelope, timestep, contact semantic
 The cumulative branch now includes `solve_planar_friction_cone`, an exhaustive single-contact 2D reference for Signorini normal complementarity plus maximum-dissipation Coulomb friction. It enumerates separation, sticking, positive tangential sliding and negative tangential sliding. The effective metric must be SPD; inconsistent/Painleve-like cases return an explicit no-admissible-solution error. The implementation reports a normalized normal-complementarity/friction-law residual and is benchmarked separately from the Delassus/LCP reference.
 
 This is intentionally **not** a 3D circular cone solver, multi-contact island solve, or 6D torsional/rolling friction implementation. The next acceptance gate is an independent 3D cone reference and production-to-reference contact-patch comparison.
+
+## New reference implementations in the branch
+
+- `contact_frame.rs`: deterministic rotation-covariant tangent/rolling/torsion bases, bivector decomposition/reconstruction, transported frames, and separate channel-bound feasibility validation through 5D tests.
+- `ContactWrenchImpulse::validate`: product of independent tangential/rolling/torsional limits.
+- `ContactWrenchImpulse::validate_ellipsoidal_friction_budget`: distinct coupled ellipsoidal budget. It rejects combined usage beyond one and handles zero-bound channels explicitly. Neither method computes a maximum-dissipation impulse.
+- `friction_cone.rs`: exhaustive planar single-contact Signorini plus maximum-dissipation Coulomb reference with separation/sticking/sliding modes, SPD metric validation, normalized residual, Coulomb violation and signed friction work. It now rejects any materially positive friction-work result rather than merely reporting it.
+- `contact_quality_campaign.rs`: a reproducible initial 3D floor/stack benchmark runner with median/p95 step-time, penetration, energy-delta observation, rotation health, non-finite and mass-mismatch metrics plus source/host/compiler metadata. It has not yet been run; its energy delta is observational, not a closed work balance.
+
+These increments provide geometric and single-contact references. There is still no production 3D/4D coupled friction-wrench solver and no production solver switch.
 
 ## Immediate implementation sequence
 
