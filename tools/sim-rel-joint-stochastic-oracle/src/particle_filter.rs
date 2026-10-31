@@ -51,6 +51,7 @@ pub struct ParticleFilterDiagnostics {
     pub particles_without_event_support: usize,
     pub support_loss_fraction: f64,
     pub degenerate: bool,
+    pub terminal_hazard: bool,
     pub resampled: bool,
 }
 
@@ -71,6 +72,7 @@ pub struct JointStateParticleFilter {
     resample_ess_fraction: f64,
     rng_state: u64,
     diagnostics: Option<ParticleFilterDiagnostics>,
+    terminated_by_hazard: bool,
 }
 
 impl JointStateParticleFilter {
@@ -108,6 +110,7 @@ impl JointStateParticleFilter {
             resample_ess_fraction: config.resample_ess_fraction,
             rng_state: rng.state,
             diagnostics: None,
+            terminated_by_hazard: false,
         })
     }
 
@@ -117,6 +120,11 @@ impl JointStateParticleFilter {
 
     pub fn diagnostics(&self) -> Option<ParticleFilterDiagnostics> {
         self.diagnostics
+    }
+
+    /// Whether a hazard observation has terminally ended this campaign.
+    pub const fn is_terminated(&self) -> bool {
+        self.terminated_by_hazard
     }
 
     /// Approximate posterior over unique joint hidden tuples.
@@ -152,6 +160,9 @@ impl JointStateParticleFilter {
         action: usize,
         observation: Option<usize>,
     ) -> Result<ParticleFilterDiagnostics, String> {
+        if self.terminated_by_hazard {
+            return Err("particle-filter campaign has already terminated on a hazard".into());
+        }
         kernel.validate()?;
         if action >= kernel.action_ids.len() {
             return Err("particle filter action index is out of range".into());
@@ -250,12 +261,14 @@ impl JointStateParticleFilter {
             support_loss_fraction: particles_without_event_support as f64
                 / self.particles.len() as f64,
             degenerate: ess_before <= 1.0 + 1e-9,
+            terminal_hazard: observation.is_none(),
             resampled,
         };
 
         self.particles = particles;
         self.rng_state = next_rng.state;
         self.diagnostics = Some(diagnostics);
+        self.terminated_by_hazard = observation.is_none();
         Ok(diagnostics)
     }
 
@@ -821,6 +834,51 @@ mod tests {
                 && entry.physical_state == 1
                 && (entry.probability - 0.5).abs() < 1e-12
         }));
+    }
+
+    #[test]
+    fn hazard_observation_terminates_particle_filter_campaign() {
+        let kernel = JointKernel {
+            hypothesis_ids: vec!["h0".into()],
+            physical_state_count: 1,
+            sensor_state_count: 1,
+            action_ids: vec!["dangerous-test".into()],
+            observation_ids: vec!["safe".into()],
+            action_costs: vec![1],
+            initial_belief: vec![JointMass {
+                hypothesis: 0,
+                physical_state: 0,
+                sensor_state: 0,
+                mass: Rational::one(),
+            }],
+            rows: vec![KernelRow {
+                hypothesis: 0,
+                physical_state: 0,
+                sensor_state: 0,
+                action: 0,
+                outcomes: vec![JointOutcome {
+                    probability: Rational::one(),
+                    next_physical_state: 0,
+                    next_sensor_state: 0,
+                    observation: None,
+                }],
+            }],
+        };
+        let mut filter = JointStateParticleFilter::from_joint_belief(
+            &kernel,
+            &kernel.initial_belief,
+            ParticleFilterConfig {
+                particle_count: 32,
+                resample_ess_fraction: 0.5,
+                seed: 5,
+            },
+        ).unwrap();
+        let diagnostics = filter.observe(&kernel, 0, None).unwrap();
+        assert!(diagnostics.terminal_hazard);
+        assert!(filter.is_terminated());
+        let before = filter.clone();
+        assert!(filter.observe(&kernel, 0, None).is_err());
+        assert_eq!(filter, before);
     }
 
     #[test]
