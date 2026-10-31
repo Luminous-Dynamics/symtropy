@@ -2,7 +2,7 @@ name: SIM-REL-028 Robust Decision DP PR Qualification
 
 on:
   pull_request:
-    branches: ["research/sim-rel-027-finite-horizon-decision-dp-v2", "research/sim-rel-029-policy-falsifier-2026-10-31"]
+    branches: ["research/sim-rel-027-finite-horizon-decision-dp-v2", "research/sim-rel-028-robust-decision-dp-2026-10-31"]
     paths:
       - "tools/sim-rel-action-realization-filter/**"
       - ".github/workflows/sim-rel-028-robust-decision-pr.yml"
