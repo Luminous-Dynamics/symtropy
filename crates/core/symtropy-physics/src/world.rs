@@ -158,6 +158,8 @@ pub struct PhysicsStepError {
     pub body_a: Option<BodyHandle>,
     pub body_b: Option<BodyHandle>,
     pub cause: PhysicsStepCause,
+    /// Monotonic world-local identifier for this attempted step.
+    pub step_id: u64,
 }
 
 #[derive(Clone)]
@@ -275,6 +277,8 @@ pub struct PhysicsWorld<const D: usize> {
     /// BodyHandle → Vec index for O(1) body lookup.
     handle_to_index: HashMap<BodyHandle, usize>,
     next_handle: usize,
+    /// Monotonic identifier for accepted and rejected world-step attempts.
+    next_step_id: u64,
     /// Cached broadphase data for Static/Kinematic bodies (rebuilt only on add/remove).
     static_broadphase: broadphase::StaticBroadphase<D>,
     /// Set to true when a static or kinematic body is added or removed.
@@ -335,6 +339,7 @@ impl<const D: usize> PhysicsWorld<D> {
             net_id_map: BTreeMap::new(),
             handle_to_index: HashMap::new(),
             next_handle: 0,
+            next_step_id: 0,
             static_broadphase: broadphase::StaticBroadphase::new(),
             static_tree_dirty: false,
             mesh_contact_fn: None,
@@ -582,10 +587,15 @@ impl<const D: usize> PhysicsWorld<D> {
         dt: f64,
         callback: &mut dyn PhysicsCallback<D>,
     ) -> Result<(), PhysicsStepError> {
+        // Step IDs advance even for rejected attempts and are deliberately not
+        // part of WorldStepSnapshot, so rollback never reuses a failure ID.
+        let step_id = self.next_step_id;
+        self.next_step_id = self.next_step_id.saturating_add(1);
         let snapshot = WorldStepSnapshot::capture(self);
         match self.step_internal(dt, callback) {
             Ok(()) => Ok(()),
-            Err(error) => {
+            Err(mut error) => {
+                error.step_id = step_id;
                 snapshot.restore(self);
                 Err(error)
             }
@@ -641,6 +651,7 @@ impl<const D: usize> PhysicsWorld<D> {
                         body_a: Some(body.handle),
                         body_b: None,
                         cause: PhysicsStepCause::Integration(cause),
+                        step_id: 0,
                     })?;
             }
         }
@@ -838,6 +849,7 @@ impl<const D: usize> PhysicsWorld<D> {
                         body_a: Some(body_a),
                         body_b: Some(body_b),
                         cause: cause.into(),
+                        step_id: 0,
                     })?;
             }
         }
@@ -857,6 +869,7 @@ impl<const D: usize> PhysicsWorld<D> {
                                 body_a: Some(body_a),
                                 body_b: Some(body_b),
                                 cause: cause.into(),
+                                step_id: 0,
                             })?;
                     self.contacts[ci] = updated;
                 }
