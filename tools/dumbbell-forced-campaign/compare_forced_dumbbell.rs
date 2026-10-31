@@ -131,7 +131,7 @@ struct Metrics {
     steps: usize,
     final_state_error: f64,
     max_relative_energy_balance_residual: f64,
-    final_relative_energy_work_defect: f64,
+    max_relative_energy_work_defect: f64,
     max_relative_link_constraint: f64,
     max_relative_midpoint_velocity_constraint: f64,
     max_absolute_endpoint_tangent_residual: f64,
@@ -175,8 +175,14 @@ fn run_phdae(dt: f64, steps: usize, reference: phdae::State) -> Metrics {
             .expect("pHDAE forced step must converge");
         state = receipt.after;
         cumulative_work += receipt.external_work;
-        max_energy_balance =
-            max_energy_balance.max(receipt.relative_energy_balance_residual);
+        let balance_scale = 1.0
+            + receipt.energy_before.abs()
+            + receipt.energy_after.abs()
+            + receipt.external_work.abs()
+            + receipt.constraint_reaction_work.abs();
+        let common_balance_residual =
+            receipt.energy_balance_residual.abs() / balance_scale;
+        max_energy_balance = max_energy_balance.max(common_balance_residual);
         let work_defect = (receipt.energy_after - energy0 - cumulative_work).abs()
             / (1.0
                 + energy0.abs()
@@ -204,7 +210,7 @@ fn run_phdae(dt: f64, steps: usize, reference: phdae::State) -> Metrics {
         steps,
         final_state_error: state_error(state, reference),
         max_relative_energy_balance_residual: max_energy_balance,
-        final_relative_energy_work_defect: max_energy_work_defect,
+        max_relative_energy_work_defect: max_energy_work_defect,
         max_relative_link_constraint: max_link,
         max_relative_midpoint_velocity_constraint: max_midpoint,
         max_absolute_endpoint_tangent_residual: max_endpoint,
@@ -250,8 +256,13 @@ fn run_rattle(dt: f64, steps: usize, reference: phdae::State) -> Metrics {
             .expect("RATTLE forced step must be admissible");
         state = receipt.after;
         cumulative_work += receipt.external_work;
-        max_energy_balance =
-            max_energy_balance.max(receipt.relative_energy_balance_residual);
+        let balance_scale = 1.0
+            + receipt.energy_before.abs()
+            + receipt.energy_after.abs()
+            + receipt.external_work.abs();
+        let common_balance_residual =
+            receipt.energy_balance_residual.abs() / balance_scale;
+        max_energy_balance = max_energy_balance.max(common_balance_residual);
         let work_defect = (receipt.energy_after - energy0 - cumulative_work).abs()
             / (1.0
                 + energy0.abs()
@@ -297,7 +308,7 @@ fn run_rattle(dt: f64, steps: usize, reference: phdae::State) -> Metrics {
         steps,
         final_state_error: state_error(final_state, reference),
         max_relative_energy_balance_residual: max_energy_balance,
-        final_relative_energy_work_defect: max_energy_work_defect,
+        max_relative_energy_work_defect: max_energy_work_defect,
         max_relative_link_constraint: max_link,
         max_relative_midpoint_velocity_constraint: max_midpoint,
         max_absolute_endpoint_tangent_residual: max_endpoint,
@@ -316,7 +327,7 @@ fn campaign_csv() -> String {
     let mut output = String::new();
     writeln!(
         &mut output,
-        "method,dt,steps,final_state_error,max_relative_energy_balance_residual,final_relative_energy_work_defect,max_relative_link_constraint,max_relative_midpoint_velocity_constraint,max_absolute_endpoint_tangent_residual,max_relative_linear_momentum_residual,max_relative_angular_momentum_residual,cumulative_external_work,linear_momentum_delta_x,linear_momentum_delta_y,angular_momentum_delta,mean_multiplier_iterations,max_multiplier_iterations"
+        "method,dt,steps,final_state_error,max_relative_energy_balance_residual,max_relative_energy_work_defect,max_relative_link_constraint,max_relative_midpoint_velocity_constraint,max_absolute_endpoint_tangent_residual,max_relative_linear_momentum_residual,max_relative_angular_momentum_residual,cumulative_external_work,linear_momentum_delta_x,linear_momentum_delta_y,angular_momentum_delta,mean_multiplier_iterations,max_multiplier_iterations"
     )
     .expect("writing to String cannot fail");
 
@@ -334,7 +345,7 @@ fn campaign_csv() -> String {
                 result.steps,
                 result.final_state_error,
                 result.max_relative_energy_balance_residual,
-                result.final_relative_energy_work_defect,
+                result.max_relative_energy_work_defect,
                 result.max_relative_link_constraint,
                 result.max_relative_midpoint_velocity_constraint,
                 result.max_absolute_endpoint_tangent_residual,
@@ -355,7 +366,7 @@ fn campaign_csv() -> String {
 
 fn audit_campaign(csv: &str) -> Result<(), String> {
     const METHODS: [&str; 2] = ["semi_explicit_phdae_dg", "cartesian_rattle"];
-    const HEADER: &str = "method,dt,steps,final_state_error,max_relative_energy_balance_residual,final_relative_energy_work_defect,max_relative_link_constraint,max_relative_midpoint_velocity_constraint,max_absolute_endpoint_tangent_residual,max_relative_linear_momentum_residual,max_relative_angular_momentum_residual,cumulative_external_work,linear_momentum_delta_x,linear_momentum_delta_y,angular_momentum_delta,mean_multiplier_iterations,max_multiplier_iterations";
+    const HEADER: &str = "method,dt,steps,final_state_error,max_relative_energy_balance_residual,max_relative_energy_work_defect,max_relative_link_constraint,max_relative_midpoint_velocity_constraint,max_absolute_endpoint_tangent_residual,max_relative_linear_momentum_residual,max_relative_angular_momentum_residual,cumulative_external_work,linear_momentum_delta_x,linear_momentum_delta_y,angular_momentum_delta,mean_multiplier_iterations,max_multiplier_iterations";
 
     let mut lines = csv.lines();
     if lines.next() != Some(HEADER) {
