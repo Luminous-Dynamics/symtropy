@@ -58,7 +58,7 @@ impl Rational {
 
     pub const fn from_u64(value: u64) -> Self {
         Self {
-            numerator: value as u128,
+            numerator: u128::from(value),
             denominator: 1,
         }
     }
@@ -815,6 +815,108 @@ mod tests {
         assert_eq!(result.joint_posterior.len(), 1);
         assert_eq!(result.joint_posterior[0].next_state.physical_state, 0);
         assert_eq!(result.joint_posterior[0].realized_action, 0);
+    }
+
+    #[test]
+    fn partial_delivery_is_distinguished_from_full_delivery() {
+        let mut rows = Vec::new();
+        for physical_state in 0..3 {
+            let state = LatentState {
+                hypothesis: 0,
+                physical_state,
+                sensor_state: 0,
+                apparatus_state: 0,
+            };
+            let outcomes = if physical_state == 0 {
+                vec![
+                    TransitionOutcome {
+                        probability: Rational::new(1, 4).unwrap(),
+                        next_state: state,
+                        realized_action: 0,
+                        readback: Some(0),
+                        measurement: Some(0),
+                        hazard: false,
+                    },
+                    TransitionOutcome {
+                        probability: Rational::new(1, 2).unwrap(),
+                        next_state: LatentState {
+                            physical_state: 1,
+                            ..state
+                        },
+                        realized_action: 1,
+                        readback: Some(1),
+                        measurement: Some(1),
+                        hazard: false,
+                    },
+                    TransitionOutcome {
+                        probability: Rational::new(1, 4).unwrap(),
+                        next_state: LatentState {
+                            physical_state: 2,
+                            ..state
+                        },
+                        realized_action: 2,
+                        readback: Some(2),
+                        measurement: Some(2),
+                        hazard: false,
+                    },
+                ]
+            } else {
+                vec![TransitionOutcome {
+                    probability: Rational::one(),
+                    next_state: state,
+                    realized_action: physical_state,
+                    readback: Some(physical_state),
+                    measurement: Some(physical_state),
+                    hazard: false,
+                }]
+            };
+            rows.push(KernelRow {
+                state,
+                command: 0,
+                outcomes,
+            });
+        }
+
+        let kernel = ActionRealizationKernel {
+            hypothesis_ids: vec!["h".into()],
+            physical_state_count: 3,
+            sensor_state_count: 1,
+            apparatus_state_count: 1,
+            command_ids: vec!["deliver-dose".into()],
+            realized_action_ids: vec!["dropped".into(), "partial".into(), "full".into()],
+            readback_ids: vec!["none".into(), "partial".into(), "full".into()],
+            measurement_ids: vec!["cold".into(), "warm".into(), "hot".into()],
+            initial_belief: vec![BeliefMass {
+                state: LatentState {
+                    hypothesis: 0,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    apparatus_state: 0,
+                },
+                mass: Rational::one(),
+            }],
+            rows,
+        };
+
+        let result = filter_one_step(
+            &kernel,
+            &kernel.initial_belief,
+            0,
+            PublicObservation {
+                hazard: false,
+                readback: Some(1),
+                measurement: Some(1),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            result.observation_likelihood,
+            Rational::new(1, 2).unwrap()
+        );
+        assert_eq!(result.joint_posterior.len(), 1);
+        assert_eq!(result.joint_posterior[0].next_state.physical_state, 1);
+        assert_eq!(result.joint_posterior[0].realized_action, 1);
     }
 
     fn backlash_kernel() -> ActionRealizationKernel {
