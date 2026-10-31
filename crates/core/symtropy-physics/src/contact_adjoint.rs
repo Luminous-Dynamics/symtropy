@@ -19,6 +19,7 @@ pub enum ContactAdjointError {
     InvalidTolerance,
     NonFinite,
     InconsistentPrimalSolution,
+    NonMonotoneMatrix,
     ActiveSetBoundary,
     IllConditionedActiveBlock,
     SingularAdjointSolve,
@@ -100,8 +101,19 @@ pub fn differentiate_fixed_active_set_lcp(
 
     let matrix_scale = matrix.norm().max(f64::MIN_POSITIVE);
     let asymmetry = (matrix - matrix.transpose()).norm();
-    if asymmetry > relative_tolerance * matrix_scale {
+    if asymmetry > relative_tolerance * matrix_scale
+        || (matrix_derivative - matrix_derivative.transpose()).norm()
+            > relative_tolerance * matrix_derivative.norm().max(f64::MIN_POSITIVE)
+    {
         return Err(ContactAdjointError::InconsistentPrimalSolution);
+    }
+    let symmetric_matrix = (matrix + matrix.transpose()) * 0.5;
+    let eigenvalues = nalgebra::linalg::SymmetricEigen::new(symmetric_matrix).eigenvalues;
+    let minimum_eigenvalue = eigenvalues
+        .iter()
+        .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+    if minimum_eigenvalue < -relative_tolerance * matrix_scale {
+        return Err(ContactAdjointError::NonMonotoneMatrix);
     }
 
     let reconstructed_residual = matrix * &solution.impulses + q;
@@ -149,12 +161,17 @@ pub fn differentiate_fixed_active_set_lcp(
             return Err(ContactAdjointError::InvalidDimensions);
         }
         seen[index] = true;
-        if solution.impulses[index] <= impulse_margin {
+        if solution.impulses[index] <= impulse_margin
+            || reconstructed_residual[index].abs() > relative_tolerance * velocity_scale
+        {
             return Err(ContactAdjointError::ActiveSetBoundary);
         }
     }
     for index in 0..n {
-        if !seen[index] && reconstructed_residual[index] <= velocity_margin {
+        if !seen[index]
+            && (reconstructed_residual[index] <= velocity_margin
+                || solution.impulses[index].abs() > relative_tolerance * impulse_scale)
+        {
             return Err(ContactAdjointError::ActiveSetBoundary);
         }
     }
@@ -294,6 +311,57 @@ mod tests {
         let finite_difference =
             (objective(epsilon) - objective(-epsilon)) / (2.0 * epsilon);
         assert!((finite_difference - result.objective_parameter_gradient).abs() < 1e-8);
+    }
+
+    #[test]
+    fn implicit_adjoint_includes_bias_parameter_sensitivity() {
+        // W=2, q(theta)=-1+theta, lambda=(1-theta)/2.
+        let matrix = DMatrix::from_element(1, 1, 2.0);
+        let q = DVector::from_vec(vec![-1.0]);
+        let solution = solve_frictionless_lcp(&matrix, &q, 1e-12).unwrap();
+        let result = differentiate_fixed_active_set_lcp(
+            &matrix,
+            &q,
+            &solution,
+            &DMatrix::zeros(1, 1),
+            &DVector::from_vec(vec![1.0]),
+            &DVector::from_vec(vec![3.0]),
+            0.25,
+            1e-8,
+            1e-8,
+            1e-12,
+        )
+        .unwrap();
+
+        assert!((result.impulse_sensitivity[0] + 0.5).abs() < 1e-12);
+        assert!((result.objective_parameter_gradient + 1.25).abs() < 1e-12);
+    }
+
+    #[test]
+    fn implicit_adjoint_rejects_non_monotone_contact_matrix() {
+        let matrix = DMatrix::from_element(1, 1, -1.0);
+        let q = DVector::from_vec(vec![1.0]);
+        let solution = ReferenceLcpSolution {
+            impulses: DVector::zeros(1),
+            residual: DVector::from_vec(vec![1.0]),
+            active_rows: Vec::new(),
+            max_primal_violation: 0.0,
+            max_complementarity_residual: 0.0,
+        };
+        let error = differentiate_fixed_active_set_lcp(
+            &matrix,
+            &q,
+            &solution,
+            &DMatrix::zeros(1, 1),
+            &DVector::zeros(1),
+            &DVector::zeros(1),
+            0.0,
+            1e-8,
+            1e-8,
+            1e-12,
+        )
+        .unwrap_err();
+        assert_eq!(error, ContactAdjointError::NonMonotoneMatrix);
     }
 
     #[test]
