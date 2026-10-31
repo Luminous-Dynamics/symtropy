@@ -792,7 +792,6 @@ impl ThreeBodyChain {
             return Err(Error::SingularConstraintJacobian);
         }
 
-        let _ = final_residuals;
         Ok(StepReceipt {
             before,
             after,
@@ -894,6 +893,141 @@ mod tests {
         rotated
     }
 
+    fn state_add_scaled(base: State, direction: State, factor: f64) -> State {
+        let mut result = base;
+        for body in 0..BODY_COUNT {
+            result.q[body] = add(base.q[body], scale(direction.q[body], factor));
+            result.v[body] = add(base.v[body], scale(direction.v[body], factor));
+        }
+        result
+    }
+
+    fn state_weighted_sum(
+        base: State,
+        terms: &[(f64, State)],
+    ) -> State {
+        let mut result = base;
+        for body in 0..BODY_COUNT {
+            for (weight, term) in terms {
+                result.q[body] = add(result.q[body], scale(term.q[body], *weight));
+                result.v[body] = add(result.v[body], scale(term.v[body], *weight));
+            }
+        }
+        result
+    }
+
+    /// Independent continuous constrained ODE oracle. At each RK stage,
+    /// solve the acceleration-level two-link multiplier system
+    /// J(q) * lambda = -(|w_e|^2 + r_e·(a_ext,to-a_ext,from)).
+    /// This does not reuse the discrete midpoint block/Jacobian.
+    fn continuous_rhs(
+        state: State,
+        forces: [Vec3; BODY_COUNT],
+    ) -> Result<State, ()> {
+        let mut matrix = [[0.0_f64; EDGE_COUNT]; EDGE_COUNT];
+        let mut rhs = [0.0_f64; EDGE_COUNT];
+        for edge in 0..EDGE_COUNT {
+            let (from, to) = EDGES[edge];
+            let relative_position = sub(state.q[to], state.q[from]);
+            let relative_velocity = sub(state.v[to], state.v[from]);
+            let external_acceleration_difference = sub(
+                scale(forces[to], 1.0 / MASSES[to]),
+                scale(forces[from], 1.0 / MASSES[from]),
+            );
+            rhs[edge] = -dot(relative_velocity, relative_velocity)
+                - dot(relative_position, external_acceleration_difference);
+
+            for other in 0..EDGE_COUNT {
+                let (other_from, other_to) = EDGES[other];
+                let incidence_difference =
+                    incidence(to, other) / MASSES[to]
+                        - incidence(from, other) / MASSES[from];
+                let other_relative_position =
+                    sub(state.q[other_to], state.q[other_from]);
+                matrix[edge][other] = dot(relative_position, other_relative_position)
+                    * incidence_difference;
+            }
+        }
+
+        // Independent closed-form 2x2 solve for the continuous multiplier.
+        let determinant =
+            matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+        if !determinant.is_finite() || determinant.abs() < 1.0e-12 {
+            return Err(());
+        }
+        let multipliers = [
+            (rhs[0] * matrix[1][1] - matrix[0][1] * rhs[1]) / determinant,
+            (matrix[0][0] * rhs[1] - rhs[0] * matrix[1][0]) / determinant,
+        ];
+
+        let mut derivative = State {
+            q: state.v,
+            v: [[0.0; 3]; BODY_COUNT],
+        };
+        for body in 0..BODY_COUNT {
+            derivative.v[body] = scale(forces[body], 1.0 / MASSES[body]);
+        }
+        for edge in 0..EDGE_COUNT {
+            let (from, to) = EDGES[edge];
+            let relative_position = sub(state.q[to], state.q[from]);
+            derivative.v[from] = add(
+                derivative.v[from],
+                scale(relative_position, multipliers[edge] / MASSES[from]),
+            );
+            derivative.v[to] = sub(
+                derivative.v[to],
+                scale(relative_position, multipliers[edge] / MASSES[to]),
+            );
+        }
+        Ok(derivative)
+    }
+
+    fn rk4_reference(
+        mut state: State,
+        forces: [Vec3; BODY_COUNT],
+        dt: f64,
+        steps: usize,
+    ) -> State {
+        for _ in 0..steps {
+            let k1 = continuous_rhs(state, forces).expect("continuous reference stage 1");
+            let k2 = continuous_rhs(
+                state_add_scaled(state, k1, 0.5 * dt),
+                forces,
+            )
+            .expect("continuous reference stage 2");
+            let k3 = continuous_rhs(
+                state_add_scaled(state, k2, 0.5 * dt),
+                forces,
+            )
+            .expect("continuous reference stage 3");
+            let k4 = continuous_rhs(
+                state_add_scaled(state, k3, dt),
+                forces,
+            )
+            .expect("continuous reference stage 4");
+
+            state = state_weighted_sum(
+                state,
+                &[
+                    (dt / 6.0, k1),
+                    (dt / 3.0, k2),
+                    (dt / 3.0, k3),
+                    (dt / 6.0, k4),
+                ],
+            );
+        }
+        state
+    }
+
+    fn chain_state_error(left: State, right: State) -> f64 {
+        let mut squared = 0.0;
+        for body in 0..BODY_COUNT {
+            squared += dot(sub(left.q[body], right.q[body]), sub(left.q[body], right.q[body]));
+            squared += dot(sub(left.v[body], right.v[body]), sub(left.v[body], right.v[body]));
+        }
+        squared.sqrt()
+    }
+
     #[test]
     fn coupled_chain_preserves_both_links_and_midpoint_constraints() {
         let model = model();
@@ -921,7 +1055,34 @@ mod tests {
         for edge in 0..EDGE_COUNT {
             assert!(max_link[edge] < 5.0e-11);
             assert!(max_midpoint[edge] < 5.0e-11);
-            assert!(max_endpoint[edge] < 1.0e-8);
+            assert!(max_endpoint[edge] < 2.0e-8);
+        }
+    }
+
+    #[test]
+    fn coupled_chain_is_second_order_against_independent_constrained_rk4() {
+        let model = model();
+        let initial = initial_state();
+        let forces = [[0.0; 3]; BODY_COUNT];
+        let reference = rk4_reference(initial, forces, 1.0 / 40_000.0, 40_000);
+        let mut errors = Vec::new();
+
+        for dt in [0.02, 0.01, 0.005, 0.0025] {
+            let mut state = initial;
+            for _ in 0..(1.0 / dt).round() as usize {
+                state = model
+                    .step(state, forces, dt, SolverOptions::default())
+                    .unwrap()
+                    .after;
+            }
+            errors.push(chain_state_error(state, reference));
+        }
+        for pair in errors.windows(2) {
+            let ratio = pair[0] / pair[1];
+            assert!(
+                (3.8..4.2).contains(&ratio),
+                "coupled chain must converge at second order: {errors:?}"
+            );
         }
     }
 
@@ -960,6 +1121,45 @@ mod tests {
         assert!(linear_drift < 1.0e-10);
         assert!(max_angular < 1.0e-10);
         assert!(angular_drift < 1.0e-9);
+    }
+
+    #[test]
+    fn external_force_work_and_momentum_vector_ledger_close() {
+        let model = model();
+        let state = initial_state();
+        let forces = [
+            [0.12, -0.07, 0.05],
+            [-0.03, 0.09, 0.11],
+            [0.04, 0.02, -0.08],
+        ];
+        let dt = 0.01;
+        let receipt = model
+            .step(state, forces, dt, SolverOptions::default())
+            .unwrap();
+        assert!(receipt.closes_energy_balance_within(3.0e-12));
+        assert!(receipt.relative_linear_momentum_residual < 3.0e-12);
+        assert!(receipt.relative_angular_momentum_residual < 3.0e-12);
+        assert!(receipt.constraint_reaction_work.abs() < 3.0e-12);
+        assert!(receipt.midpoint_constraint_residuals.iter().all(|x| x.abs() < 3.0e-12));
+
+        let expected_impulse = forces.iter().copied().fold([0.0; 3], add);
+        let actual_impulse = sub(
+            model.linear_momentum(receipt.after),
+            model.linear_momentum(state),
+        );
+        assert!(norm(sub(actual_impulse, scale(expected_impulse, dt))) < 3.0e-12);
+    }
+
+    #[test]
+    fn equal_mass_chain_control_keeps_coupled_constraints_well_defined() {
+        let masses = [1.0; BODY_COUNT];
+        let state = initial_state();
+        let model = ThreeBodyChain::new(masses, lengths(state)).unwrap();
+        let receipt = model
+            .step(state, [[0.0; 3]; BODY_COUNT], 0.01, SolverOptions::default())
+            .unwrap();
+        assert!(receipt.normalized_multiplier_jacobian_determinant > 1.0e-8);
+        assert!(receipt.relative_link_constraint_residuals.iter().all(|x| *x < 2.0e-10));
     }
 
     #[test]
