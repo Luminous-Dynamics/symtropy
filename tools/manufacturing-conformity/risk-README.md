@@ -11,7 +11,7 @@ This standalone Rust reference is an exact finite-support global operating-chara
 
 The measurement matrix contains non-zero tails. This ensures that false acceptance and false rejection risks are measurable.
 
-The frozen input manifest binds scenario ID `SYNTHETIC-METROLOGY-PRIOR-SHIFT-01`, specification `SYNTHETIC-SHAFT-10-20`, and separate SHA-256 digests for the process prior (`fa3fc7d7…`), likelihood (`c82e0427…`), risk policy (`0eb1be66…`) and specification (`cde0e2b5…`). The CSV emits both the true-support population and the measured-bin decision/risk rows so the global calculation can be reconstructed.
+The frozen input manifest binds scenario ID `SYNTHETIC-METROLOGY-PRIOR-SHIFT-01`, specification `SYNTHETIC-SHAFT-10-20`, and separate SHA-256 digests for the process prior (`fa3fc7d7…`), likelihood (`7473cde9…`), risk policy (`0eb1be66…`) and specification (`cde0e2b5…`). The digests use compact UTF-8 JSON with array order preserved and object keys sorted lexicographically. The exact canonical input strings are: prior `[0.05,0.1,0.1,0.2,0.2,0.15,0.1,0.1]`; likelihood `[[0.6,0.25,0.1,0.04,0.01,0,0,0],[0.25,0.4,0.22,0.1,0.03,0,0,0],[0.1,0.22,0.36,0.22,0.08,0.02,0,0],[0.04,0.1,0.22,0.3,0.22,0.1,0.02,0],[0.01,0.04,0.1,0.22,0.3,0.22,0.1,0.01],[0,0.02,0.08,0.2,0.3,0.22,0.13,0.05],[0,0,0.04,0.1,0.22,0.3,0.24,0.1],[0,0,0.01,0.04,0.1,0.25,0.3,0.3]]`; risk policy `{"max_global_consumer_risk":0.05,"max_global_producer_risk":0.05,"max_specific_consumer_risk":0.15,"max_specific_producer_risk":0.25}`; specification `{"id":"SYNTHETIC-SHAFT-10-20","inclusive":true,"lower":10.0,"unit":"mm","upper":20.0}`. The CSV emits both the true-support population and the measured-bin decision/risk rows so the global calculation can be reconstructed.
 
 ## Calculations
 
