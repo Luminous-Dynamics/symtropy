@@ -545,7 +545,7 @@ mod tests {
         }
         assert_eq!(
             outcome.sliding_angles.len(),
-            cert.finite_real_root_count + usize::from(cert.projective_pi_root),
+            cert.finite_real_root_count + if cert.projective_pi_root { 1 } else { 0 },
             "runtime and exact distinct-root counts differ"
         );
     }
