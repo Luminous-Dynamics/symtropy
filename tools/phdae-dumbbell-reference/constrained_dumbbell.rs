@@ -747,11 +747,13 @@ mod tests {
         let model = model();
         let initial = initial_state();
         let angle = 0.731_f64;
+        let force1 = [0.12, -0.07];
+        let force2 = [-0.03, 0.09];
         let normal = model
             .step(
                 initial,
-                [0.0, 0.0],
-                [0.0, 0.0],
+                force1,
+                force2,
                 0.01,
                 SolverOptions::default(),
             )
@@ -759,8 +761,8 @@ mod tests {
         let rotated = model
             .step(
                 rotate_state(initial, angle),
-                [0.0, 0.0],
-                [0.0, 0.0],
+                rotate(force1, angle),
+                rotate(force2, angle),
                 0.01,
                 SolverOptions::default(),
             )
@@ -786,6 +788,100 @@ mod tests {
                 "expected second-order convergence against exact free rigid rotation: {errors:?}"
             );
         }
+    }
+
+    #[test]
+    fn zero_relative_angular_velocity_control_advects_without_link_reaction() {
+        let model = model();
+        let mut state = State {
+            q1: [-0.6, 0.2],
+            q2: [0.6, 0.2],
+            v1: [0.3, -0.2],
+            v2: [0.3, -0.2],
+        };
+        let initial_energy = model.hamiltonian(state).unwrap();
+        let initial_angular_momentum = model.angular_momentum(state);
+        for _ in 0..1000 {
+            let receipt = model
+                .step(
+                    state,
+                    [0.0, 0.0],
+                    [0.0, 0.0],
+                    0.001,
+                    SolverOptions::default(),
+                )
+                .unwrap();
+            assert!(receipt.multiplier.abs() < 2.0e-12);
+            state = receipt.after;
+        }
+        assert!((model.hamiltonian(state).unwrap() - initial_energy).abs() < 2.0e-12);
+        assert!(
+            (model.angular_momentum(state) - initial_angular_momentum).abs() < 2.0e-12
+        );
+        assert!(
+            norm(sub(state.v1, state.v2)) < 2.0e-12,
+            "common translational velocity should remain common"
+        );
+    }
+
+    #[test]
+    fn equal_mass_case_preserves_the_same_momentum_maps() {
+        let model = ConstrainedDumbbell::new(1.0, 1.0, 1.2).unwrap();
+        let mut state = initial_state();
+        let momentum0 = model.linear_momentum(state);
+        let angular0 = model.angular_momentum(state);
+        for _ in 0..2000 {
+            state = model
+                .step(
+                    state,
+                    [0.0, 0.0],
+                    [0.0, 0.0],
+                    0.002,
+                    SolverOptions::default(),
+                )
+                .unwrap()
+                .after;
+        }
+        assert!(norm(sub(model.linear_momentum(state), momentum0)) < 2.0e-12);
+        assert!((model.angular_momentum(state) - angular0).abs() < 2.0e-12);
+    }
+
+    #[test]
+    fn galilean_boost_commutes_with_the_discrete_step() {
+        let model = model();
+        let initial = initial_state();
+        let boost = [0.7, -0.4];
+        let normal = model
+            .step(
+                initial,
+                [0.0, 0.0],
+                [0.0, 0.0],
+                0.01,
+                SolverOptions::default(),
+            )
+            .unwrap();
+        let boosted = model
+            .step(
+                State {
+                    q1: initial.q1,
+                    q2: initial.q2,
+                    v1: add(initial.v1, boost),
+                    v2: add(initial.v2, boost),
+                },
+                [0.0, 0.0],
+                [0.0, 0.0],
+                0.01,
+                SolverOptions::default(),
+            )
+            .unwrap();
+        assert!(
+            norm(sub(boosted.after.q1, add(normal.after.q1, scale(boost, 0.01)))) < 3.0e-12
+        );
+        assert!(
+            norm(sub(boosted.after.q2, add(normal.after.q2, scale(boost, 0.01)))) < 3.0e-12
+        );
+        assert!(norm(sub(boosted.after.v1, add(normal.after.v1, boost))) < 3.0e-12);
+        assert!(norm(sub(boosted.after.v2, add(normal.after.v2, boost))) < 3.0e-12);
     }
 
     #[test]
