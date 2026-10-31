@@ -198,6 +198,54 @@ frontier pruner. Authored fixtures include:
 - model-world input permutation invariance;
 - rejection of incompatible observation and state semantics.
 
+## Candidate-world policy falsification (SIM-REL-029)
+
+The `decision_value::policy_falsifier` module evaluates a fixed shared policy
+against a bounded, provenance-labelled list of candidate worlds. It is a
+search-split falsifier, not a candidate-world generator and not a physical
+plausibility oracle.
+
+Each candidate must provide a non-empty world ID, generator ID/version and a
+human-auditable parameter/seed receipt. Only a caller-asserted
+`SearchTraining` origin is accepted. Calibration and sealed-evaluation
+assertions are rejected before candidate inspection. This is an API-level
+separation guard, not authenticated data lineage: the falsifier cannot prove
+that a caller truthfully labelled the candidate's origin.
+
+For each candidate, the falsifier projects the original policy onto that
+candidate's reachable public-observation support. Branches unreachable in that
+candidate are removed; every reachable observation must already have a branch.
+A reachable but uncovered observation is recorded with the command, public
+observation and preceding public-observation history. Malformed candidates,
+incompatible state/action/observation vocabularies and invalid policy branches
+are reported separately.
+
+Supported projected policies are evaluated by the independent raw unnormalized
+forward-mass replay from SIM-REL-028. The report selects the maximum observed
+supported candidate loss and lists uncovered-policy candidates independently;
+it never assigns an invented numeric penalty to an undefined policy. Candidate
+ordering and report ordering are deterministic by world ID.
+
+The `generate_search_perturbation_candidates` helper supplies a
+bounded synthetic stress set. Each scenario can apply one exact edit to a
+validated parent kernel: transfer probability between outcomes in a row;
+suppress a readback; swap two measurement labels; remap the realized action;
+promote a safe outcome to a hazard; or change the next apparatus-state index.
+An ordered sequence can compose up to eight such edits to expose interactions,
+for example shifting probability mass onto an outcome that is then promoted to
+hazard. Nested, empty and over-budget sequences are rejected.
+
+Scenarios are sorted by stable ID, namespaced under the parent world ID,
+validated after mutation, and carry parent/generator/version/parameter
+receipts. No-op edits, invalid probability transfers, out-of-range indices
+and invalid resulting kernels fail closed; a failed batch emits no partial
+candidate list.
+
+These are structural synthetic stress operators only. They do not prove that a
+generated world is physically plausible or cover arbitrary real-world drift.
+Domain-specific admissibility constraints, multi-factor combinations,
+falsifier-overfit tests and calibration/held-out separation remain open.
+
 This is exact only for the supplied finite world family, kernels, priors, loss
 tensor, command costs, observation protocol, horizon and policy class. It does
 not prove that the true physical process belongs to that family, establish
