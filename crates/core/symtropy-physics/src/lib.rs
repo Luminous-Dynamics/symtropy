@@ -46,8 +46,9 @@ pub use contact_frame::{
     ContactWrenchImpulse,
 };
 pub use delassus::{
-    DelassusAssemblyError, FrictionlessContactRow, ReferenceLcpError, ReferenceLcpSolution,
-    assemble_delassus, solve_frictionless_lcp,
+    ContactWrenchRow, DelassusAssemblyError, FrictionlessContactRow, ReferenceLcpError,
+    ReferenceLcpSolution, assemble_contact_wrench_delassus, assemble_delassus,
+    solve_frictionless_lcp,
 };
 pub use diagnostics::{InvariantDrift, InvariantSnapshot, InvariantStepReceipt};
 pub use epa::EpaResult;
