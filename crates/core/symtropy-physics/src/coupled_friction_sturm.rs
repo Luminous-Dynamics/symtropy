@@ -561,8 +561,8 @@ fn cauchy_bound_is_strict_and_endpoints_are_not_roots() {
         .collect::<Vec<_>>();
     let polynomial = polynomial_from_roots(&roots);
     let bound = cauchy_bound(&polynomial).unwrap();
-    assert!(evaluate(&polynomial, &bound).is_nonzero());
-    assert!(evaluate(&polynomial, &-bound).is_nonzero());
+    assert!(!evaluate(&polynomial, &bound).is_zero());
+    assert!(!evaluate(&polynomial, &-bound).is_zero());
     for root in roots {
         assert!(root.abs() < bound);
     }
