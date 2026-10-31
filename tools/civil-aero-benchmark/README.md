@@ -276,3 +276,8 @@ The policy scorecard also emits normalized hypervolume fraction: raw HV divided 
 
 
 The evaluator requires at least two independent replicates per task/policy before producing a scorecard, and rejects incomplete policy/replicate matrices. This avoids treating one seed as generalization evidence.
+
+
+## Unsteady buffet signal diagnostics
+
+The unsteady_spectrum module provides Welch one-sided PSD, stationarity window diagnostics, integrated band power, dominant frequency and normalized spectral-shape comparison. It uses explicit sampling interval, segment size, overlap, periodic Hann window and per-segment mean removal. A radix-2 FFT avoids external numerical dependencies. The unsteady_spectrum_demo tests a synthetic 32 Hz known tone; an independent Python direct-DFT oracle checks all 129 PSD bins and the Parseval/RMS relationship. This is a signal-processing test, not a validated buffet simulation. See UNSTEADY_SPECTRUM_PROTOCOL_V0_1.md and issue #3071.

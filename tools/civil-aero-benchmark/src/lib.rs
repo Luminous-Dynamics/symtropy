@@ -15,6 +15,7 @@ pub mod grid_convergence;
 pub mod integrity;
 pub mod reference_data;
 pub mod robust_voi;
+pub mod unsteady_spectrum;
 pub mod robustness;
 pub mod run_artifacts;
 pub mod section_polar;

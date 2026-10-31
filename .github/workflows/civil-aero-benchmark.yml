@@ -299,6 +299,17 @@ jobs:
           test "$(wc -l < /tmp/policy-benchmark-a.csv)" -eq 5
           grep -q "synthetic_policy_benchmark_only tasks=1 replicates=2 policies=2" /tmp/policy-benchmark-a.txt
           python3 scripts/verify-policy-benchmark-independent.py /tmp/policy-benchmark-a.csv
+      - name: Verify unsteady Welch PSD and stationarity with independent DFT oracle
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin unsteady_spectrum_demo > /tmp/unsteady-psd-a.csv 2> /tmp/unsteady-psd-a.txt
+          cargo run --locked --bin unsteady_spectrum_demo > /tmp/unsteady-psd-b.csv 2> /tmp/unsteady-psd-b.txt
+          cmp /tmp/unsteady-psd-a.csv /tmp/unsteady-psd-b.csv
+          cmp /tmp/unsteady-psd-a.txt /tmp/unsteady-psd-b.txt
+          test "$(wc -l < /tmp/unsteady-psd-a.csv)" -eq 130
+          grep -q "synthetic_unsteady_spectrum_only samples=1024 segments=7 bins=129 peak_hz=32.000000000000 integrated_mean_square=2.000000000000" /tmp/unsteady-psd-a.txt
+          python3 scripts/verify-unsteady-spectrum-independent.py /tmp/unsteady-psd-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |
