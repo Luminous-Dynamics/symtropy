@@ -49,6 +49,8 @@ The branch adds:
 
 These are source-level tests only until the exact PR head completes formatting, Clippy, compilation and physics tests.
 
+The toolhead path now has an explicit-mass-property variant and a documented uniform-ball compatibility approximation; see [Toolhead Mass-Property Composition](TOOLHEAD_MASS_PROPERTIES_2026-10-31.md). The mean-plane parallel-axis term is dimension-corrected to 2m|d|²/D.
+
 ## Further work
 
 1. Associate mass-property provenance with its source geometry, density model, units and COM frame, not just its total mass.
