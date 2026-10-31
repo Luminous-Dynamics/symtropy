@@ -442,7 +442,7 @@ impl DissonanceRecord {
         now: u64,
     ) -> Result<(), DissonanceError> {
         validate_disposition(&disposition, now, &self.positions, self.kind)?;
-        if !matches!(disposition, DissonanceDisposition::HoldOpen { .. })
+        if !matches!(&disposition, DissonanceDisposition::HoldOpen { .. })
             && !self.assess().ready_for_consequential_action
         {
             return Err(DissonanceError::UnsafeProcess);
@@ -491,8 +491,8 @@ fn validate_disposition(
                 return Err(DissonanceError::InvalidDisposition);
             }
             let retained_set: BTreeSet<&PositionId> = retained.iter().collect();
-            if retained_set.len() != retained.len() || retained_set.contains(selected)
-                || positions.keys().any(|id| id != selected && !retained_set.contains(id))
+            if retained_set.len() != retained.len() || retained.iter().any(|id| id == selected)
+                || positions.keys().any(|id| id != selected && !retained.iter().any(|other| other == id))
                 || retained.iter().any(|id| !has_position(id))
             {
                 return Err(DissonanceError::DissentNotPreserved);
