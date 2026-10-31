@@ -111,11 +111,12 @@ fn run() -> Result<(), String> {
     };
     let report = aggregate_policy_benchmark(&rows, &config)?;
     eprintln!(
-        "synthetic_policy_family_aggregate_only tasks={} families={} replicates_per_task=3 policies=3 bootstrap_samples={} bootstrap_seed={} family_mapping=synthetic_task_pair_map_v0.1 baseline={} family_cluster_bootstrap=true no_solver_evaluations=true",
+        "synthetic_policy_family_aggregate_only tasks={} families={} replicates_per_task=3 policies=3 bootstrap_samples={} bootstrap_seed={} family_mapping=synthetic_task_pair_map_v0.1 family_mapping_sha256={} baseline={} family_cluster_bootstrap=true no_solver_evaluations=true",
         report.task_count,
         report.family_count,
         report.bootstrap_samples,
         report.bootstrap_seed,
+        report.task_family_mapping_sha256,
         report.baseline_policy_id
     );
     print!("{}", report_to_csv(&report));

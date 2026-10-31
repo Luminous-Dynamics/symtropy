@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import math
 import sys
 from pathlib import Path
@@ -118,6 +119,11 @@ def main() -> int:
         rows = list(csv.DictReader(handle))
     require(len(rows) == 3, f"expected 3 policies, got {len(rows)}")
     expected = expected_rows()
+    mapping = "".join(
+        f"synthetic-task-{index:02d}\tsynthetic-family-{(index + 1) // 2:02d}\n"
+        for index in range(1, 11)
+    ).encode()
+    mapping_sha256 = hashlib.sha256(mapping).hexdigest()
     seen = set()
     for row in rows:
         policy = row["policy_id"]
@@ -125,9 +131,13 @@ def main() -> int:
         require(policy not in seen, f"duplicate policy {policy}")
         seen.add(policy)
         require(row["baseline_policy_id"] == "uniform", "baseline mismatch")
+        require(row["cost_unit_basis"] == "synthetic_normalized_compute_credit_v0.1", "cost basis mismatch")
+        require(row["task_family_mapping_sha256"] == mapping_sha256, "task-family mapping digest mismatch")
         require(int(row["task_count"]) == 10, "task count mismatch")
         require(int(row["family_count"]) == 5, "family count mismatch")
         require(int(row["replicates_per_task"]) == 3, "replicate count mismatch")
+        require(int(row["bootstrap_samples"]) == SAMPLES, "bootstrap sample count mismatch")
+        require(int(row["bootstrap_seed"]) == SEED, "bootstrap seed mismatch")
         for field, key in [
             ("mean_family_median_normalized_hypervolume", "mean"),
             ("median_family_median_normalized_hypervolume", "median"),

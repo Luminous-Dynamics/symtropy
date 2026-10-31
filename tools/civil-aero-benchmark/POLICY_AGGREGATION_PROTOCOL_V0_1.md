@@ -27,7 +27,7 @@ Require at least five independent families and at least two replicates for every
 5. Report the macro mean and median of family-median scores; nearest-rank p10 and worst-family score; mean/median/p10/worst-family paired deltas; families improved, tied and degraded.
 6. Compute a deterministic percentile interval for the mean paired delta by resampling entire family clusters, not tasks or replicates.
 
-The seed, sample count and family mapping must be retained. The independent oracle reimplements the XorShift64 sequence and nearest-rank interval calculation.
+The seed, sample count, cost-unit basis and canonical task-family mapping must be retained. The aggregate report carries the SHA-256 of the exact sorted UTF-8 mapping bytes, encoded as one task ID, a tab, a family ID and a newline per row. The independent oracle reimplements the XorShift64 sequence, mapping digest and nearest-rank interval calculation.
 
 ## Interpretation
 

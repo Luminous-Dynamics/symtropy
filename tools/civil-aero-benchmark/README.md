@@ -338,3 +338,6 @@ The aggregate requires a frozen task-to-family mapping and resamples independent
 ## ShapeBench family-aware benchmark adapter
 
 See SHAPEBENCH_FAMILY_COST_PROTOCOL_V0_1.md for the clean-room adapter design, license gate, frozen task-family mapping, condition-level cost accounting and family-cluster statistical comparison. The aggregate protocol and implementation are explicitly limited to upstream scorecards; they are not CFD validation evidence.
+
+
+The aggregate CSV now carries the common cost-unit basis, task-family mapping SHA-256, bootstrap sample count and seed on every policy row. The digest is computed over the canonical sorted task-to-family mapping (UTF-8, task ID, tab, family ID, newline); the Python oracle independently recomputes it.

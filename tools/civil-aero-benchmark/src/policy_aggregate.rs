@@ -55,6 +55,7 @@ pub struct PolicyAggregateReport {
     pub cost_unit_basis: String,
     pub task_count: usize,
     pub family_count: usize,
+    pub task_family_mapping_sha256: String,
     pub bootstrap_samples: usize,
     pub bootstrap_seed: u64,
     pub evidence_level: &'static str,
@@ -237,6 +238,14 @@ pub fn aggregate_policy_benchmark(
         family_scores.insert(family, scores);
     }
 
+    let canonical_mapping = config
+        .task_family_by_id
+        .iter()
+        .map(|(task, family)| format!("{task}\t{family}\n"))
+        .collect::<String>();
+    let task_family_mapping_sha256 =
+        crate::integrity::sha256_hex(canonical_mapping.as_bytes())?;
+
     let baseline_scores = families
         .iter()
         .map(|family| family_scores[family][&config.baseline_policy_id])
@@ -294,6 +303,7 @@ pub fn aggregate_policy_benchmark(
         cost_unit_basis: config.cost_unit_basis.clone(),
         task_count: tasks.len(),
         family_count: families.len(),
+        task_family_mapping_sha256,
         bootstrap_samples: config.bootstrap_samples,
         bootstrap_seed: config.bootstrap_seed,
         evidence_level: "family_clustered_scorecard_aggregation_not_new_solver_evidence",
@@ -369,18 +379,22 @@ fn stable_policy_hash(value: &str) -> u64 {
     })
 }
 
-pub const POLICY_AGGREGATE_CSV_HEADER: &str = "policy_id,baseline_policy_id,task_count,family_count,replicates_per_task,mean_family_median_normalized_hypervolume,median_family_median_normalized_hypervolume,p10_family_median_normalized_hypervolume,worst_family_normalized_hypervolume,mean_paired_delta_vs_baseline,median_paired_delta_vs_baseline,p10_paired_delta_vs_baseline,worst_family_delta_vs_baseline,families_better,families_tied,families_worse,bootstrap_95_ci_low,bootstrap_95_ci_high";
+pub const POLICY_AGGREGATE_CSV_HEADER: &str = "policy_id,baseline_policy_id,cost_unit_basis,task_family_mapping_sha256,task_count,family_count,replicates_per_task,bootstrap_samples,bootstrap_seed,mean_family_median_normalized_hypervolume,median_family_median_normalized_hypervolume,p10_family_median_normalized_hypervolume,worst_family_normalized_hypervolume,mean_paired_delta_vs_baseline,median_paired_delta_vs_baseline,p10_paired_delta_vs_baseline,worst_family_delta_vs_baseline,families_better,families_tied,families_worse,bootstrap_95_ci_low,bootstrap_95_ci_high";
 
 pub fn report_to_csv(report: &PolicyAggregateReport) -> String {
     let mut output = format!("{POLICY_AGGREGATE_CSV_HEADER}\n");
     for row in &report.rows {
         output.push_str(&format!(
-            "{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{:.12},{:.12}\n",
+            "{},{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{:.12},{:.12}\n",
             csv_escape(&row.policy_id),
             csv_escape(&row.baseline_policy_id),
+            csv_escape(&report.cost_unit_basis),
+            report.task_family_mapping_sha256,
             row.task_count,
             row.family_count,
             row.replicates_per_task,
+            report.bootstrap_samples,
+            report.bootstrap_seed,
             row.mean_family_median_normalized_hypervolume,
             row.median_family_median_normalized_hypervolume,
             row.p10_family_median_normalized_hypervolume,
@@ -478,6 +492,8 @@ mod tests {
         assert_eq!(voi.task_count, 5);
         assert_eq!(voi.family_count, 5);
         assert_eq!(voi.replicates_per_task, 3);
+        assert_eq!(report.task_family_mapping_sha256.len(), 64);
+        assert!(report.task_family_mapping_sha256.bytes().all(|byte| byte.is_ascii_hexdigit()));
         assert_eq!(voi.families_better, 4);
         assert_eq!(voi.families_worse, 1);
         assert_eq!(voi.families_tied, 0);
