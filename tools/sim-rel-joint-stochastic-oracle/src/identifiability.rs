@@ -1057,10 +1057,14 @@ mod tests {
 
     #[test]
     fn persistent_sensor_bias_is_non_identifying_until_calibration() {
-        let family = crate::challenge::generate_stateful_confounding_family(0).unwrap();
-        let nominal = &family.worlds[0].kernel;
-        let one_step = analyze_identifiability(nominal, &config(1)).unwrap();
-        let two_steps = analyze_identifiability(nominal, &config(2)).unwrap();
+        let family = crate::challenge::generate_stateful_confounding_family(2).unwrap();
+        let mut measurement_and_calibration_only = family.worlds[0].kernel.clone();
+        measurement_and_calibration_only.action_ids.truncate(2);
+        measurement_and_calibration_only.action_costs.truncate(2);
+        measurement_and_calibration_only.rows.retain(|row| row.action < 2);
+        measurement_and_calibration_only.validate().unwrap();
+        let one_step = analyze_identifiability(&measurement_and_calibration_only, &config(1)).unwrap();
+        let two_steps = analyze_identifiability(&measurement_and_calibration_only, &config(2)).unwrap();
         assert_eq!(one_step.pairwise[0].max_total_variation, Rational::zero());
         assert_eq!(two_steps.pairwise[0].max_total_variation, Rational::new(3, 4).unwrap());
     }

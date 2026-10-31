@@ -60,7 +60,7 @@ The implementation is bounded and exact for the supplied finite model family, pr
 
 ## Reproducible baseline benchmark runner (SIM-REL-017)
 
-The benchmark module constructs four concrete baseline families from a nominal joint kernel: fixed action order, seeded random order, static one-step EIG ranking, and receding-horizon greedy one-step EIG. It then replays every unchanged policy across all supplied model worlds and reports exact per-world/worst-case cost, hazard, false identification, abstention and correct identification.
+The benchmark module constructs fixed action order, seeded random order, static one-step EIG ranking, and receding-horizon greedy one-step EIG. When the challenge provides an independent-reference action, it also runs that action as a positive-control policy. Every unchanged policy is replayed across all supplied model worlds and scored with exact per-world/worst-case cost, hazard, false identification, abstention and correct identification.
 
 The same explicit risk/false-claim/abstention budgets are applied to each baseline and to the exact robust shared-policy optimizer. Where a baseline is feasible and an exact robust optimum exists, the harness reports exact additional worst-case cost (regret). It records the random seed and horizon. The EIG score itself is floating point, while all replay outcomes and costs remain exact rational values.
 
@@ -74,7 +74,7 @@ The benchmark runner records the exact hazard, false-identification and abstenti
 
 ## Generated stateful-confounding challenge families (SIM-REL-017)
 
-The challenge module generates a six-world finite family from an explicit seed and declared rational observation-noise rate: nominal, sensor drift, physical carryover, instrument reversal, shifted hazard, and damaging calibration. Every member shares the same hypothesis/action/observation vocabulary, state dimensions, initial prior, and action costs. Each generated kernel is complete and probability-normalized exactly before it is returned. These deterministic seeds are development fixtures, not a substitute for sealed holdout seeds managed outside the public source tree.
+The challenge module generates a six-world finite family from a seed-selected tuple of rational observation-noise, shifted-hazard, and calibration-damage rates: nominal, sensor drift, physical carryover, instrument reversal, shifted hazard, and damaging calibration. Every member shares the same hypothesis/action/observation vocabulary, state dimensions, initial prior, and action costs. Each generated kernel is complete and probability-normalized exactly before it is returned. The first 30 study seeds map to 30 distinct finite model-family fingerprints. These deterministic variants form a development parameter grid, not a random sample of all physical systems or a substitute for sealed holdout seeds.
 
 
 ## Joint-state bootstrap particle filter (SIM-REL-018)
@@ -99,3 +99,16 @@ The identifiability module computes, for each pair of mechanism hypotheses, the 
 The pairwise certificate also exposes the optimal equal-prior binary classification error, exactly `(1 - TV*) / 2`, so a partial distinguishability score can be translated into an irreducible one-shot decision error under that explicit prior assumption. Unequal hypothesis priors require a separate weighted calculation.
 
 The quotient also supports an explicit terminal decision helper: it aggregates posterior mass over certified equivalence classes, claims the unique highest-mass class only when its complement satisfies a supplied false-identification budget, and abstains on ties or budget failure. For equal prior odds on an individual pair, the Bayes classification error corresponding to TV* is exactly `(1 - TV*) / 2`; unequal priors require a weighted calculation.
+
+
+## Paired multi-seed study runner (SIM-REL-022)
+
+The study module runs the same four policies and exact robust optimizer on each seeded six-world challenge family. It preserves per-seed reports, rational noise rates and model-family fingerprints. Aggregates report exact rational means, medians and maxima for worst-case cost/risk/correctness plus feasibility rates. Baseline-minus-optimum regret is computed only on paired seeds where both policies satisfy the same explicit budgets; infeasible frequency remains a separate outcome. A deterministic percentile bootstrap gives a reproducible approximate interval for mean feasible regret. The bootstrap sample values are sorted before draws so aggregate intervals do not change when seed input order is permuted. Use at least 30 seeds for comparative claims; the smaller test fixtures are smoke tests only.
+
+## Paired multi-seed study and nontrivial robust reference control (SIM-REL-022)
+
+The generated six-world challenge now varies three independent rational factors from each caller-supplied seed: observation noise, shifted-world hazard probability, and calibration-damage probability. The first 30 default seeds yield 30 distinct model-family fingerprints. Every generated factor is retained on each study run; the study reports the number of unique fingerprints so repeated families cannot masquerade as independent model variants.
+
+The challenge contains four actions: a confounded combined-signal measurement, sensor calibration, a high-cost independent reference measurement, and a cheap nominally compensated measurement that is reversed or hazardous under declared alternative worlds. The reference action is a positive control, not a general-purpose algorithm baseline. Under zero hazard, false-identification and abstention budgets, the exact robust optimizer is expected to choose this reference action; fixed-order, random, static-EIG and greedy-EIG methods are evaluated unchanged against the same worlds and budgets.
+
+The study runner records each per-seed benchmark report and model fingerprint, exact means/medians/maxima of worst-case metrics, method feasibility rates, and a paired bootstrap percentile interval for cost regret. Regret intervals use only runs where both the method and exact robust optimum are feasible; feasibility counts remain separately visible. The bootstrap RNG uses rejection sampling to avoid modulo bias, and seed ordering does not alter aggregate summaries. The default study uses 30 seeds and 2,000 bootstrap resamples; smaller test studies are smoke tests, not performance claims. The 30 seeds form a declared finite parameter grid, not a random sample of all possible scientific systems.

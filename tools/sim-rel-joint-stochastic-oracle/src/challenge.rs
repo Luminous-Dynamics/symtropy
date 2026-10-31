@@ -2,21 +2,32 @@
 //!
 //! Families vary physical carryover, sensor drift, instrument mapping and
 //! intervention damage while preserving common action/observation semantics.
-//! Seeds select a declared rational noise rate; they do not silently alter
-//! priors, vocabularies or the meaning of an action.
+//! Seeds select a declared rational tuple of observation-noise, shifted-hazard
+//! and calibration-damage rates; they do not silently alter priors, vocabularies
+//! or the meaning of an action.
 
 use super::{
     JointKernel, JointMass, JointOutcome, KernelRow, Rational,
     robust::ModelWorld,
 };
 
-const NOISE_RATES: [(u128, u128); 3] = [(1, 8), (1, 4), (1, 3)];
+const NOISE_RATES: [(u128, u128); 5] = [(1, 12), (1, 10), (1, 8), (1, 6), (1, 5)];
+const HAZARD_RATES: [(u128, u128); 5] = [(1, 10), (1, 8), (1, 6), (1, 5), (1, 4)];
+const CALIBRATION_DAMAGE_RATES: [(u128, u128); 5] = [
+    (0, 1),
+    (1, 16),
+    (1, 8),
+    (3, 16),
+    (1, 4),
+];
 
 /// A complete generated finite model family plus its nominal member.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ChallengeFamily {
     pub seed: u64,
     pub observation_noise_rate: Rational,
+    pub shifted_hazard_rate: Rational,
+    pub calibration_damage_rate: Rational,
     pub nominal_world_id: String,
     pub worlds: Vec<ModelWorld>,
 }
@@ -28,8 +39,17 @@ pub struct ChallengeFamily {
 /// action and observation vocabularies, state dimensions, priors and costs.
 pub fn generate_stateful_confounding_family(seed: u64) -> Result<ChallengeFamily, String> {
     let selection = (seed % NOISE_RATES.len() as u64) as usize;
-    let (numerator, denominator) = NOISE_RATES[selection];
-    let noise = Rational::new(numerator, denominator)?;
+    let hazard_selection = ((seed / NOISE_RATES.len() as u64)
+        % HAZARD_RATES.len() as u64) as usize;
+    let damage_selection = ((seed / (NOISE_RATES.len() as u64 * HAZARD_RATES.len() as u64))
+        % CALIBRATION_DAMAGE_RATES.len() as u64) as usize;
+    let (noise_numerator, noise_denominator) = NOISE_RATES[selection];
+    let (hazard_numerator, hazard_denominator) = HAZARD_RATES[hazard_selection];
+    let (damage_numerator, damage_denominator) = CALIBRATION_DAMAGE_RATES[damage_selection];
+    let noise = Rational::new(noise_numerator, noise_denominator)?;
+    let hazard_rate = Rational::new(hazard_numerator, hazard_denominator)?;
+    let damage_rate = Rational::new(damage_numerator, damage_denominator)?;
+
     let modes = [
         Mode::Nominal,
         Mode::SensorDrift,
@@ -40,11 +60,13 @@ pub fn generate_stateful_confounding_family(seed: u64) -> Result<ChallengeFamily
     ];
     let worlds = modes
         .into_iter()
-        .map(|mode| build_world(mode, noise))
+        .map(|mode| build_world(mode, noise, hazard_rate, damage_rate))
         .collect::<Result<Vec<_>, String>>()?;
     Ok(ChallengeFamily {
         seed,
         observation_noise_rate: noise,
+        shifted_hazard_rate: hazard_rate,
+        calibration_damage_rate: damage_rate,
         nominal_world_id: "nominal".into(),
         worlds,
     })
@@ -73,10 +95,17 @@ impl Mode {
     }
 }
 
-fn build_world(mode: Mode, noise: Rational) -> Result<ModelWorld, String> {
+fn build_world(
+    mode: Mode,
+    noise: Rational,
+    hazard_rate: Rational,
+    calibration_damage_rate: Rational,
+) -> Result<ModelWorld, String> {
     let action_ids = vec![
         "measure-combined-signal".to_string(),
         "calibrate-sensor".to_string(),
+        "independent-reference-read".to_string(),
+        "fast-nominal-compensated-read".to_string(),
     ];
     let observation_ids = vec!["zero".to_string(), "one".to_string()];
     let mut rows = Vec::new();
@@ -84,16 +113,24 @@ fn build_world(mode: Mode, noise: Rational) -> Result<ModelWorld, String> {
     for hypothesis in 0..2 {
         for physical_state in 0..2 {
             for sensor_state in 0..2 {
-                for action in 0..2 {
-                    let outcomes = if action == 0 {
-                        measurement_outcomes(
+                for action in 0..action_ids.len() {
+                    let outcomes = match action {
+                        0 => measurement_outcomes(
                             mode,
                             noise,
                             physical_state,
                             sensor_state,
-                        )?
-                    } else {
-                        calibration_outcomes(mode, physical_state)?
+                            hazard_rate,
+                        )?,
+                        1 => calibration_outcomes(mode, physical_state, calibration_damage_rate)?,
+                        2 => reference_measurement_outcomes(physical_state)?,
+                        _ => fast_nominal_measurement_outcomes(
+                            mode,
+                            noise,
+                            physical_state,
+                            sensor_state,
+                            hazard_rate,
+                        )?,
                     };
                     rows.push(KernelRow {
                         hypothesis,
@@ -115,7 +152,7 @@ fn build_world(mode: Mode, noise: Rational) -> Result<ModelWorld, String> {
         sensor_state_ids: vec!["sensor-biased".into(), "sensor-calibrated".into()],
         action_ids,
         observation_ids,
-        action_costs: vec![2, 1],
+        action_costs: vec![2, 1, 5, 1],
         initial_belief: vec![
             JointMass {
                 hypothesis: 0,
@@ -144,6 +181,7 @@ fn measurement_outcomes(
     noise: Rational,
     physical_state: usize,
     sensor_state: usize,
+    hazard_rate: Rational,
 ) -> Result<Vec<JointOutcome>, String> {
     let reversed = mode == Mode::InstrumentReversal;
     let signal = (physical_state ^ sensor_state) ^ if reversed { 1 } else { 0 };
@@ -159,7 +197,7 @@ fn measurement_outcomes(
     };
 
     let hazard = if mode == Mode::ShiftedHazard && physical_state == 1 {
-        Rational::new(1, 4)?
+        hazard_rate
     } else {
         Rational::zero()
     };
@@ -193,21 +231,102 @@ fn measurement_outcomes(
     Ok(outcomes)
 }
 
-fn calibration_outcomes(
-    mode: Mode,
+fn reference_measurement_outcomes(
     physical_state: usize,
 ) -> Result<Vec<JointOutcome>, String> {
-    let next_physical = if mode == Mode::DamagingCalibration {
+    Ok(vec![JointOutcome {
+        probability: Rational::one(),
+        next_physical_state: physical_state,
+        next_sensor_state: 0,
+        observation: Some(physical_state),
+    }])
+}
+
+fn fast_nominal_measurement_outcomes(
+    mode: Mode,
+    noise: Rational,
+    physical_state: usize,
+    sensor_state: usize,
+    hazard_rate: Rational,
+) -> Result<Vec<JointOutcome>, String> {
+    // This cheap measurement assumes the nominal instrument orientation. It is
+    // intentionally reversed in one model world and hazardous in another.
+    let reversal = if mode == Mode::InstrumentReversal { 1 } else { 0 };
+    let signal = physical_state ^ reversal;
+    let next_physical = if mode == Mode::PhysicalCarryover {
         physical_state ^ 1
     } else {
         physical_state
     };
-    Ok(vec![JointOutcome {
-        probability: Rational::one(),
+    let next_sensor = if mode == Mode::SensorDrift {
+        sensor_state ^ 1
+    } else {
+        sensor_state
+    };
+    let hazard = if mode == Mode::ShiftedHazard && physical_state == 1 {
+        hazard_rate
+    } else {
+        Rational::zero()
+    };
+    let safe_mass = Rational::one().checked_sub(hazard)?;
+    let correct_probability = Rational::one()
+        .checked_sub(noise)?
+        .checked_mul(safe_mass)?;
+    let error_probability = noise.checked_mul(safe_mass)?;
+    let mut outcomes = Vec::with_capacity(3);
+    if !hazard.is_zero() {
+        outcomes.push(JointOutcome {
+            probability: hazard,
+            next_physical_state: next_physical,
+            next_sensor_state: next_sensor,
+            observation: None,
+        });
+    }
+    outcomes.push(JointOutcome {
+        probability: correct_probability,
         next_physical_state: next_physical,
+        next_sensor_state: next_sensor,
+        observation: Some(signal),
+    });
+    outcomes.push(JointOutcome {
+        probability: error_probability,
+        next_physical_state: next_physical,
+        next_sensor_state: next_sensor,
+        observation: Some(signal ^ 1),
+    });
+    Ok(outcomes)
+}
+
+fn calibration_outcomes(
+    mode: Mode,
+    physical_state: usize,
+    damage_rate: Rational,
+) -> Result<Vec<JointOutcome>, String> {
+    if mode != Mode::DamagingCalibration || damage_rate.is_zero() {
+        return Ok(vec![JointOutcome {
+            probability: Rational::one(),
+            next_physical_state: physical_state,
+            next_sensor_state: 0,
+            observation: Some(0),
+        }]);
+    }
+    let no_damage = Rational::one().checked_sub(damage_rate)?;
+    let mut outcomes = Vec::with_capacity(2);
+    if !no_damage.is_zero() {
+        outcomes.push(JointOutcome {
+            probability: no_damage,
+            next_physical_state: physical_state,
+            next_sensor_state: 0,
+            observation: Some(0),
+        });
+    }
+    outcomes.push(JointOutcome {
+        probability: damage_rate,
+        next_physical_state: physical_state ^ 1,
         next_sensor_state: 0,
         observation: Some(0),
-    }])
+    });
+    Ok(outcomes)
 }
 
 #[cfg(test)]
@@ -247,11 +366,28 @@ mod tests {
         let a = generate_stateful_confounding_family(0).unwrap();
         let b = generate_stateful_confounding_family(1).unwrap();
         let c = generate_stateful_confounding_family(0).unwrap();
-        assert_eq!(a.observation_noise_rate, Rational::new(1, 8).unwrap());
-        assert_eq!(b.observation_noise_rate, Rational::new(1, 4).unwrap());
+        assert_eq!(a.observation_noise_rate, Rational::new(1, 12).unwrap());
+        assert_eq!(b.observation_noise_rate, Rational::new(1, 10).unwrap());
+        assert_eq!(a.shifted_hazard_rate, Rational::new(1, 10).unwrap());
+        assert_eq!(b.shifted_hazard_rate, Rational::new(1, 10).unwrap());
+        assert_eq!(a.calibration_damage_rate, Rational::zero());
+        assert_eq!(b.calibration_damage_rate, Rational::zero());
         assert_ne!(
             fingerprint_model_family(&a.worlds).unwrap(),
             fingerprint_model_family(&b.worlds).unwrap()
+        );
+        let hazard_variant = generate_stateful_confounding_family(5).unwrap();
+        assert_eq!(hazard_variant.observation_noise_rate, a.observation_noise_rate);
+        assert_eq!(hazard_variant.shifted_hazard_rate, Rational::new(1, 8).unwrap());
+        assert_ne!(
+            fingerprint_model_family(&a.worlds).unwrap(),
+            fingerprint_model_family(&hazard_variant.worlds).unwrap()
+        );
+        let damage_variant = generate_stateful_confounding_family(25).unwrap();
+        assert_eq!(damage_variant.calibration_damage_rate, Rational::new(1, 16).unwrap());
+        assert_ne!(
+            fingerprint_model_family(&a.worlds).unwrap(),
+            fingerprint_model_family(&damage_variant.worlds).unwrap()
         );
         assert_eq!(
             fingerprint_model_family(&a.worlds).unwrap(),
@@ -260,7 +396,7 @@ mod tests {
     }
 
     #[test]
-    fn generated_family_exercises_robust_optimizer_and_preserves_abstention() {
+    fn generated_family_exercises_robust_optimizer_with_independent_reference_action() {
         let family = generate_stateful_confounding_family(31).unwrap();
         let result = optimize_robust_worlds(
             &family.worlds,
@@ -277,18 +413,21 @@ mod tests {
             .minimum_worst_case_cost_under(
                 Rational::zero(),
                 Rational::zero(),
-                Rational::one(),
+                Rational::zero(),
             )
             .unwrap()
             .unwrap();
-        assert_eq!(
-            selected.worst_case_false_identification_probability(),
-            Rational::zero()
-        );
-        assert_eq!(
-            selected.worst_case_abstention_probability(),
-            Rational::one()
-        );
+        assert_eq!(selected.worst_case_expected_cost(), Rational::from_u64(5));
+        assert_eq!(selected.worst_case_false_identification_probability(), Rational::zero());
+        assert_eq!(selected.worst_case_hazard_probability(), Rational::zero());
+        assert_eq!(selected.worst_case_abstention_probability(), Rational::zero());
+        assert_eq!(selected.worst_case_correct_identification_probability(), Rational::one());
+        match &selected.policy {
+            crate::PolicyPlan::Action { action, .. } => {
+                assert_eq!(family.worlds[0].kernel.action_ids[*action], "independent-reference-read");
+            }
+            _ => panic!("expected independent reference measurement"),
+        }
     }
 
     #[test]

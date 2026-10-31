@@ -286,7 +286,7 @@ pub fn run_benchmark_suite(
         .map(|step| eig_order[step % eig_order.len()])
         .collect();
 
-    let plans = vec![
+    let mut plans = vec![
         (
             "fixed-order-open-loop".to_string(),
             build_open_loop_policy(&nominal.kernel, &fixed_sequence)?,
@@ -304,6 +304,19 @@ pub fn run_benchmark_suite(
             build_greedy_one_step_eig_policy(&nominal.kernel, config.horizon)?,
         ),
     ];
+    // Challenge-specific positive control: the generated six-world family
+    // includes an instrument-independent reference action. This is not a
+    // general algorithm baseline; it verifies that the robust target is
+    // reachable and that the risk budgets are not mutually infeasible.
+    if let Some(reference_action) = nominal.kernel.action_ids
+        .iter()
+        .position(|action| action == "independent-reference-read")
+    {
+        plans.push((
+            "independent-reference-positive-control".to_string(),
+            build_open_loop_policy(&nominal.kernel, &[reference_action])?,
+        ));
+    }
 
     let mut methods = Vec::with_capacity(plans.len());
     for (method, policy) in plans {
@@ -517,11 +530,7 @@ fn seeded_random_sequence(
     let mut order: Vec<usize> = (0..action_count).collect();
     let mut state = if seed == 0 { 0xa076_1d64_78bd_642f } else { seed };
     for index in (1..order.len()).rev() {
-        state ^= state >> 12;
-        state ^= state << 25;
-        state ^= state >> 27;
-        let random = state.wrapping_mul(0x2545_f491_4f6c_dd1d);
-        order.swap(index, (random as usize) % (index + 1));
+        order.swap(index, unbiased_index(&mut state, index + 1));
     }
     if order.is_empty() {
         return Vec::new();
@@ -529,6 +538,25 @@ fn seeded_random_sequence(
     (0..horizon)
         .map(|step| order[step % order.len()])
         .collect()
+}
+
+fn next_random(state: &mut u64) -> u64 {
+    *state ^= *state >> 12;
+    *state ^= *state << 25;
+    *state ^= *state >> 27;
+    state.wrapping_mul(0x2545_f491_4f6c_dd1d)
+}
+
+/// Draw an unbiased index using rejection sampling.
+fn unbiased_index(state: &mut u64, upper_exclusive: usize) -> usize {
+    let bound = upper_exclusive as u64;
+    let rejection_threshold = (0_u64.wrapping_sub(bound)) % bound;
+    loop {
+        let value = next_random(state);
+        if value >= rejection_threshold {
+            return (value % bound) as usize;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -735,6 +763,29 @@ mod tests {
         assert_eq!(a, b);
         assert_ne!(a, c);
         assert_eq!(a.len(), 12);
+    }
+
+    #[test]
+    fn independent_reference_positive_control_is_feasible_across_generated_worlds() {
+        let family = crate::challenge::generate_stateful_confounding_family(7).unwrap();
+        let report = run_benchmark_suite(
+            &family.worlds,
+            &family.nominal_world_id,
+            &BenchmarkConfig {
+                horizon: 2,
+                max_hazard: Rational::zero(),
+                max_false_identification: Rational::zero(),
+                max_abstention: Rational::zero(),
+                ..BenchmarkConfig::default()
+            },
+        ).unwrap();
+        let reference = report.methods.iter()
+            .find(|method| method.method == "independent-reference-positive-control")
+            .unwrap();
+        assert!(reference.satisfies_robust_budgets);
+        assert_eq!(reference.evaluation.worst_case_expected_cost, Rational::from_u64(5));
+        assert_eq!(reference.worst_case_cost_regret, Some(Rational::zero()));
+        assert_eq!(reference.evaluation.worst_case_correct_identification_probability, Rational::one());
     }
 
     #[test]
