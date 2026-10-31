@@ -13,7 +13,11 @@ use sim_rel_model_family_auditor::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ModelFamilyRevision {
     pub original_world_ids: Vec<String>,
+    /// Exact ordered input worlds, retained as provenance rather than ID-only references.
+    pub original_world_snapshots: Vec<ModelWorld>,
     pub candidate_world_id: String,
+    /// Exact candidate kernel supplied to the append-only revision.
+    pub candidate_world_snapshot: ModelWorld,
     pub counterexample_trace: Vec<ObservedStep>,
     pub human_rationale: Option<String>,
     pub candidate_trace_likelihood: sim_rel_joint_stochastic_oracle::Rational,
@@ -73,7 +77,9 @@ pub fn propose_model_family_revision(
 
     Ok(ModelFamilyRevision {
         original_world_ids: original_worlds.iter().map(|world| world.id.clone()).collect(),
+        original_world_snapshots: original_worlds.to_vec(),
         candidate_world_id: candidate.id.clone(),
+        candidate_world_snapshot: candidate.clone(),
         counterexample_trace: counterexample_trace.to_vec(),
         human_rationale,
         candidate_trace_likelihood: candidate_audit.trace_likelihood,
@@ -90,6 +96,8 @@ pub fn verify_model_family_revision(
 ) -> Result<bool, String> {
     let original_ids: Vec<String> = original_worlds.iter().map(|world| world.id.clone()).collect();
     if receipt.original_world_ids != original_ids
+        || receipt.original_world_snapshots != original_worlds
+        || receipt.candidate_world_snapshot != *candidate
         || receipt.candidate_world_id != candidate.id
         || original_worlds.iter().any(|world| world.id == candidate.id)
         || receipt.human_rationale.as_ref().is_some_and(|text| text.trim().is_empty())
@@ -277,6 +285,29 @@ mod tests {
         assert!(!verify_model_family_revision(&original, &candidate, &receipt).unwrap());
     }
 
+
+
+    #[test]
+    fn changed_candidate_kernel_is_rejected_even_when_id_is_unchanged() {
+        let original = vec![world("old", 0)];
+        let candidate = world("candidate", 1);
+        let receipt = propose_model_family_revision(
+            &original,
+            &candidate,
+            &counterexample(),
+            None,
+        ).unwrap();
+
+        let mut substituted = candidate.clone();
+        substituted.kernel.rows[0].outcomes[0].probability = Rational::new(1, 2).unwrap();
+        substituted.kernel.rows[0].outcomes.push(JointOutcome {
+            probability: Rational::new(1, 2).unwrap(),
+            next_physical_state: 0,
+            next_sensor_state: 0,
+            observation: Some(0),
+        });
+        assert!(!verify_model_family_revision(&original, &substituted, &receipt).unwrap());
+    }
 
     #[test]
     fn reordered_or_removed_original_worlds_invalidate_receipt() {
