@@ -349,3 +349,7 @@ Each operation ledger row now explicitly records aerodynamic condition calls att
 
 
 The policy scorecard additionally reports raw and normalized validated hypervolume per attempted high-fidelity aerodynamic condition call. The denominator includes failures, complementing (not replacing) normalized total-cost metrics.
+
+## Executed analytic optimizer qualification
+
+The crate now executes uniform random search and an NSGA-II-style generational policy on 30-dimensional ZDT1 and ZDT2, both with known continuous Pareto fronts. It reports hypervolume as a fraction of the exact front value and IGD at 100/250/500/1,000 objective calls over five seeds. Every decision vector is exported for independent objective replay and metric recomputation. This lane proves neither CFD performance nor aerospace optimizer SOTA; it tests actual algorithm execution where the ground truth is known.

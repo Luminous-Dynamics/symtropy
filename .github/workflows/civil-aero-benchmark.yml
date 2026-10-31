@@ -375,6 +375,15 @@ jobs:
           python3 scripts/verify-policy-aggregate-independent.py /tmp/policy-aggregate-a.csv
           awk -F, 'NR > 1 && $1 == "voi" { if ($18 != 4 || $19 != 0 || $20 != 1) exit 1; found = 1 } END { if (!found) exit 1 }' /tmp/policy-aggregate-a.csv
 
+      - name: Execute analytic optimizer policies and independently replay Pareto quality curves
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin optimizer_qualification_demo -- /tmp/optimizer-quality.csv /tmp/optimizer-candidates.csv
+          test "$(wc -l < /tmp/optimizer-quality.csv)" -eq 81
+          test "$(wc -l < /tmp/optimizer-candidates.csv)" -eq 20001
+          grep -q "synthetic_analytic_optimizer_qualification_not_aerodynamic_evidence" /tmp/optimizer-quality.csv
+          python3 scripts/verify-optimizer-qualification-independent.py /tmp/optimizer-quality.csv /tmp/optimizer-candidates.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |

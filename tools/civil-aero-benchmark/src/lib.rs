@@ -8,6 +8,7 @@
 pub mod budget;
 pub mod policy_aggregate;
 pub mod policy_benchmark;
+pub mod optimizer_qualification;
 pub mod cfd_admission;
 pub mod comparison;
 pub mod coupon;
