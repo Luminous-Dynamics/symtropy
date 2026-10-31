@@ -16,10 +16,16 @@
 #![deny(missing_docs)]
 
 pub mod consent;
+pub mod dissonance;
 pub mod ledger;
 pub mod needs;
 
 pub use consent::{BilateralConsent, ConsentError, ConsentStatus, ProposalDigest};
+pub use dissonance::{
+    CorrosiveHazard, DissonanceAssessment, DissonanceDisposition, DissonanceError,
+    DissonanceKind, DissonanceRecord, DissonanceStatus, HazardFinding, HazardReport,
+    Position, PositionId, ProcessSafeguards,
+};
 pub use ledger::{
     AccountId, AccountKind, JournalEntry, JournalKind, Ledger, LedgerError,
     RATE_DENOMINATOR_PPM,
