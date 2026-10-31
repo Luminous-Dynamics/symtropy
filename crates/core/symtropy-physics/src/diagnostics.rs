@@ -224,7 +224,7 @@ impl<const D: usize> PhysicsWorld<D> {
         let measured_energy_change = after.mechanical_energy - before.mechanical_energy;
         let potential_energy_change =
             after.gravitational_potential_energy - before.gravitational_potential_energy;
-        let frictional_dissipation = (-work.friction_contact_kinetic_energy_change_joules).max(0.0);
+        let frictional_dissipation = work.frictional_dissipation_joules;
         let attributed_energy_change = work.external_force_work_joules
             + work.gravity_work_joules
             + work.linear_damping_and_speed_limit_energy_change_joules
@@ -524,7 +524,7 @@ mod tests {
         );
         fixed.friction = 0.5;
         fixed.restitution = 0.2;
-        let fixed_handle = world.add_body(fixed);
+        world.add_body(fixed);
         let receipt = world.try_step_with_receipt(0.001).unwrap();
         let ledger = &receipt.work_ledger;
         assert!(ledger.normal_contact_kinetic_energy_change_joules < 0.0);
