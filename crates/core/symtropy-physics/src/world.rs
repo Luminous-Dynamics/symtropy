@@ -209,6 +209,7 @@ pub(crate) struct StepWorkAccumulator {
     pub(crate) linear_damping_and_speed_limit_energy_change_joules: f64,
     pub(crate) normal_contact_kinetic_energy_change_joules: f64,
     pub(crate) friction_contact_kinetic_energy_change_joules: f64,
+    pub(crate) frictional_dissipation_joules: f64,
 }
 
 #[derive(Clone)]
@@ -1617,10 +1618,14 @@ impl<const D: usize> PhysicsWorld<D> {
                     // cannot increase kinetic energy through this contact row.
                     let friction_work = j_t * (v_t_mag + 0.5 * denom_t * j_t);
                     work.friction_contact_kinetic_energy_change_joules += friction_work;
-                    if !work.friction_contact_kinetic_energy_change_joules.is_finite() {
+                    let frictional_dissipation = (-friction_work).max(0.0);
+                    work.frictional_dissipation_joules += frictional_dissipation;
+                    if !work.friction_contact_kinetic_energy_change_joules.is_finite()
+                        || !work.frictional_dissipation_joules.is_finite()
+                    {
                         return Err(PhysicsStepCause::NonFiniteContactMetric);
                     }
-                    total_friction_dissipation += (-friction_work).max(0.0);
+                    total_friction_dissipation += frictional_dissipation;
                 }
             }
         }
