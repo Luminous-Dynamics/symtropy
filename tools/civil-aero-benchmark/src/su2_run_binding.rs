@@ -356,6 +356,62 @@ pub fn verify_su2_run_lineage_binding(
     Ok(())
 }
 
+pub const SU2_RUN_LINEAGE_CSV_HEADER: &str =
+    "schema,run_id,solver_id,solver_version_claim,executable_sha256,runner_receipt_sha256,artifact_role,relative_path,byte_length,artifact_sha256,history_import_sha256,convergence_screen_sha256,convergence_criterion_count,convergence_passed_count,binding_sha256,evidence_level";
+
+fn csv_escape(value: &str) -> String {
+    format!("\"{}\"", value.replace('"', "\"\""))
+}
+
+/// Deterministic row-per-artifact export for independent offline review.
+pub fn binding_to_csv(binding: &Su2RunLineageBinding) -> String {
+    let mut output = format!("{SU2_RUN_LINEAGE_CSV_HEADER}\n");
+    let artifacts = [
+        ("physics_configuration", &binding.physics_configuration),
+        ("geometry", &binding.geometry),
+        ("mesh", &binding.mesh),
+        ("history", &binding.history),
+    ];
+    let mut rows = artifacts
+        .into_iter()
+        .map(|(role, artifact)| (role, artifact))
+        .chain(
+            binding
+                .additional_outputs
+                .iter()
+                .map(|artifact| ("additional_output", artifact)),
+        )
+        .collect::<Vec<_>>();
+    rows.sort_by(|left, right| {
+        left.0
+            .cmp(right.0)
+            .then_with(|| left.1.relative_path.cmp(&right.1.relative_path))
+    });
+    for (role, artifact) in rows {
+        let fields = [
+            csv_escape(&binding.schema),
+            csv_escape(&binding.run_id),
+            csv_escape(&binding.solver_id),
+            csv_escape(&binding.solver_version_claim),
+            binding.executable_sha256.clone(),
+            binding.runner_receipt_sha256.clone(),
+            role.to_owned(),
+            csv_escape(&artifact.relative_path),
+            artifact.byte_length.to_string(),
+            artifact.sha256.clone(),
+            binding.history_import_sha256.clone(),
+            binding.convergence_screen_sha256.clone(),
+            binding.convergence_criterion_count.to_string(),
+            binding.convergence_passed_count.to_string(),
+            binding.binding_sha256.clone(),
+            csv_escape(&binding.evidence_level),
+        ];
+        output.push_str(&fields.join(","));
+        output.push('\n');
+    }
+    output
+}
+
 #[cfg(all(test, unix))]
 mod tests {
     use super::*;
