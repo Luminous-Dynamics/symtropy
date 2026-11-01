@@ -74,11 +74,11 @@ impl ShapeBenchImportReport {
 
     pub fn to_csv(&self) -> String {
         let mut output = String::from(
-            "task_id,environment_id,method_id,source_commit,task_config_sha256,run_manifest_sha256,reward_direction,iteration,design_payload_sha256,reward,best_reward,evidence_level\\n",
+            "task_id,environment_id,method_id,source_commit,task_config_sha256,run_manifest_sha256,reward_direction,iteration,design_payload_sha256,results_json_sha256,cost_ledger_sha256,reward,best_reward,import_sha256,evidence_level\\n",
         );
         for row in &self.rows {
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{},{:.17},{:.17},{}\\n",
+                "{},{},{},{},{},{},{},{},{},{},{},{:.17},{:.17},{},{}\\n",
                 csv_escape(&self.context.task_id),
                 csv_escape(&self.context.environment_id),
                 csv_escape(&self.context.method_id),
@@ -88,8 +88,11 @@ impl ShapeBenchImportReport {
                 self.reward_direction.as_str(),
                 row.iteration,
                 row.design_payload_sha256,
+                self.context.results_json_sha256.as_deref().unwrap_or(""),
+                self.context.cost_ledger_sha256.as_deref().unwrap_or(""),
                 row.reward,
                 row.best_reward,
+                self.import_sha256,
                 self.evidence_level
             ));
         }
@@ -99,7 +102,9 @@ impl ShapeBenchImportReport {
 
 fn validate_token(value: &str, name: &str) -> Result<(), String> {
     if value.trim().is_empty()
-        || value.contains(['\\n', '\\r', '\\0'])
+        || value.contains('\\n')
+        || value.contains('\\r')
+        || value.contains('\\0')
         || value.contains(',')
     {
         return Err(format!("{name} must be non-empty and single-line"));
@@ -273,7 +278,11 @@ pub fn import_shape_bench_results_csv(
                 "line {line_number}: iteration numbers must be strictly increasing"
             ));
         }
-        if fields[1].is_empty() || fields[1].contains(['\\n', '\\r', '\\0']) {
+        if fields[1].is_empty()
+            || fields[1].contains('\\n')
+            || fields[1].contains('\\r')
+            || fields[1].contains('\\0')
+        {
             return Err(format!("line {line_number}: design payload must be non-empty and single-line"));
         }
         let reward = fields[2]
