@@ -477,9 +477,7 @@ fn exact_matrix_vector(matrix: &[Vec<Rational>], vector: &[Rational]) -> Vec<Rat
 fn exact_dot(lhs: &[Rational], rhs: &[Rational]) -> Rational {
     lhs.iter()
         .zip(rhs)
-        .fold(Rational::zero(), |sum, (a, b)| {
-            sum + a.clone() * b.clone()
-        })
+        .fold(Rational::zero(), |sum, (a, b)| sum + a.clone() * b.clone())
 }
 
 fn two_contact_witness() -> (SMatrix<f64, 6, 6>, SVector<f64, 6>) {
@@ -560,20 +558,17 @@ fn two_contact_stick_stick_branch_is_exactly_reconstructed_and_strictly_admissib
     assert!(impulse[0] > Rational::zero());
     assert!(impulse[3] > Rational::zero());
 
-    let disk_1_margin = (&mu_1 * &impulse[0]).pow(2)
-        - impulse[1].clone().pow(2)
-        - impulse[2].clone().pow(2);
-    let disk_2_margin = (&mu_2 * &impulse[3]).pow(2)
-        - impulse[4].clone().pow(2)
-        - impulse[5].clone().pow(2);
+    let disk_1_margin =
+        (&mu_1 * &impulse[0]).pow(2) - impulse[1].clone().pow(2) - impulse[2].clone().pow(2);
+    let disk_2_margin =
+        (&mu_2 * &impulse[3]).pow(2) - impulse[4].clone().pow(2) - impulse[5].clone().pow(2);
     assert!(disk_1_margin > Rational::zero());
     assert!(disk_2_margin > Rational::zero());
 
     // Exact impulse work for the full island: p^T q + 1/2 p^T W p.
     let wp = exact_matrix_vector(&exact_w, &impulse);
     let one_half = Rational::new(BigInt::one(), BigInt::from(2));
-    let energy_delta =
-        exact_dot(&impulse, &exact_q) + one_half * exact_dot(&impulse, &wp);
+    let energy_delta = exact_dot(&impulse, &exact_q) + one_half * exact_dot(&impulse, &wp);
     assert!(energy_delta < Rational::zero());
 
     // Positive definiteness makes the sticking solution unique within this
@@ -703,7 +698,9 @@ fn contact_permutation_slide_stick_stratum_has_no_admissible_root() {
     let roots = sturm_isolate_rational(quartic.clone())
         .expect("exact Sturm isolation of the permuted slide/stick quartic");
     assert!(
-        quartic.last().is_some_and(|coefficient| !coefficient.is_zero()),
+        quartic
+            .last()
+            .is_some_and(|coefficient| !coefficient.is_zero()),
         "a nonzero leading coefficient excludes the projective theta=pi root"
     );
     assert_eq!(
