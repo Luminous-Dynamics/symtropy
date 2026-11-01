@@ -304,7 +304,7 @@ mod tests {
             .body_mut(handle)
             .unwrap()
             .set_rotational_inertia_operator(
-                BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+                BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 1>::new(1.0, 0.8, 0.6))
                     .unwrap(),
             );
 
