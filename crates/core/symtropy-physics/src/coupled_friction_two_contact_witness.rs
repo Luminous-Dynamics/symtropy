@@ -1482,4 +1482,340 @@ mod double_sliding_direction_oracle {
             - roots[1].1.jacobian[0][1] * roots[1].1.jacobian[1][0];
         assert!(det_0 * det_1 < 0.0);
     }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct BivariateIntegerPolynomial {
+        coefficients: [[i128; 5]; 5],
+    }
+
+    impl BivariateIntegerPolynomial {
+        fn zero() -> Self {
+            Self {
+                coefficients: [[0; 5]; 5],
+            }
+        }
+
+        fn constant(value: i128) -> Self {
+            let mut polynomial = Self::zero();
+            polynomial.coefficients[0][0] = value;
+            polynomial
+        }
+
+        fn in_t1(coefficients: [i128; 3]) -> Self {
+            let mut polynomial = Self::zero();
+            for (degree, coefficient) in coefficients.into_iter().enumerate() {
+                polynomial.coefficients[degree][0] = coefficient;
+            }
+            polynomial
+        }
+
+        fn in_t2(coefficients: [i128; 3]) -> Self {
+            let mut polynomial = Self::zero();
+            for (degree, coefficient) in coefficients.into_iter().enumerate() {
+                polynomial.coefficients[0][degree] = coefficient;
+            }
+            polynomial
+        }
+
+        fn add(self, other: Self) -> Self {
+            let mut result = Self::zero();
+            for i in 0..5 {
+                for j in 0..5 {
+                    result.coefficients[i][j] = self.coefficients[i][j]
+                        .checked_add(other.coefficients[i][j])
+                        .expect("bivariate polynomial addition fits i128");
+                }
+            }
+            result
+        }
+
+        fn sub(self, other: Self) -> Self {
+            self.add(other.scale(-1))
+        }
+
+        fn scale(self, scalar: i128) -> Self {
+            let mut result = Self::zero();
+            for i in 0..5 {
+                for j in 0..5 {
+                    result.coefficients[i][j] = self.coefficients[i][j]
+                        .checked_mul(scalar)
+                        .expect("bivariate polynomial scaling fits i128");
+                }
+            }
+            result
+        }
+
+        fn mul(self, other: Self) -> Self {
+            let mut result = Self::zero();
+            for i in 0..5 {
+                for j in 0..5 {
+                    let left = self.coefficients[i][j];
+                    if left == 0 {
+                        continue;
+                    }
+                    for k in 0..5 {
+                        for l in 0..5 {
+                            let right = other.coefficients[k][l];
+                            if right == 0 {
+                                continue;
+                            }
+                            assert!(i + k < 5 && j + l < 5, "unexpected polynomial degree overflow");
+                            let term = left
+                                .checked_mul(right)
+                                .expect("bivariate polynomial product fits i128");
+                            result.coefficients[i + k][j + l] = result.coefficients[i + k][j + l]
+                                .checked_add(term)
+                                .expect("bivariate polynomial accumulation fits i128");
+                        }
+                    }
+                }
+            }
+            result
+        }
+
+        fn max_bidegree(self) -> (usize, usize) {
+            let mut degree_t1 = 0;
+            let mut degree_t2 = 0;
+            for i in 0..5 {
+                for j in 0..5 {
+                    if self.coefficients[i][j] != 0 {
+                        degree_t1 = degree_t1.max(i);
+                        degree_t2 = degree_t2.max(j);
+                    }
+                }
+            }
+            (degree_t1, degree_t2)
+        }
+
+        /// Evaluate at x = x_num/x_den, y = y_num/y_den without division.
+        /// The return value is the exact numerator over
+        /// x_den^degree_t1 * y_den^degree_t2.
+        fn evaluate_homogeneous_numerator(
+            self,
+            x_num: i128,
+            x_den: i128,
+            degree_t1: usize,
+            y_num: i128,
+            y_den: i128,
+            degree_t2: usize,
+        ) -> i128 {
+            let mut value = 0_i128;
+            for i in 0..=degree_t1 {
+                for j in 0..=degree_t2 {
+                    let coefficient = self.coefficients[i][j];
+                    if coefficient == 0 {
+                        continue;
+                    }
+                    let term = coefficient
+                        .checked_mul(x_num.pow(i as u32))
+                        .and_then(|v| v.checked_mul(x_den.pow((degree_t1 - i) as u32)))
+                        .and_then(|v| v.checked_mul(y_num.pow(j as u32)))
+                        .and_then(|v| v.checked_mul(y_den.pow((degree_t2 - j) as u32)))
+                        .expect("homogeneous exact polynomial evaluation fits i128");
+                    value = value
+                        .checked_add(term)
+                        .expect("homogeneous exact polynomial sum fits i128");
+                }
+            }
+            value
+        }
+    }
+
+    fn linear_combination(
+        coefficients: [i128; 3],
+        values: [BivariateIntegerPolynomial; 3],
+    ) -> BivariateIntegerPolynomial {
+        values[0]
+            .scale(coefficients[0])
+            .add(values[1].scale(coefficients[1]))
+            .add(values[2].scale(coefficients[2]))
+    }
+
+    struct ExactDoubleSlidePolynomials {
+        determinant: BivariateIntegerPolynomial,
+        normal_numerator_1: BivariateIntegerPolynomial,
+        normal_numerator_2: BivariateIntegerPolynomial,
+        tangential_equation_1: BivariateIntegerPolynomial,
+        tangential_equation_2: BivariateIntegerPolynomial,
+    }
+
+    /// Construct the two exact half-angle direction equations from integer
+    /// numerators W_n, q_n, mu_n sharing one positive denominator S.
+    ///
+    /// v_k = S (1 + t_k^2) d_k, where
+    /// d_k = (1, -mu_k cos(theta_k), -mu_k sin(theta_k)).
+    /// With H the 2x2 normal response and Delta its cleared numerator:
+    ///   N1 = -q_n1 H22 + q_n2 H12
+    ///   N2 =  q_n1 H21 - q_n2 H11
+    ///   p_num = (v1 N1, v2 N2)
+    ///   u_num = q_n Delta + W_n p_num.
+    /// Multiplying the two tangential equations by the cleared denominator
+    /// gives exact integer bivariate polynomials G1 and G2.
+    fn build_exact_double_slide_polynomials(
+        w_numerators: [[i128; 6]; 6],
+        q_numerators: [i128; 6],
+        friction_numerators: [i128; 2],
+        common_denominator: i128,
+    ) -> ExactDoubleSlidePolynomials {
+        assert!(common_denominator > 0);
+
+        let q1 = q_numerators[0];
+        let q2 = q_numerators[3];
+        let v1 = [
+            BivariateIntegerPolynomial::in_t1([
+                common_denominator,
+                0,
+                common_denominator,
+            ]),
+            BivariateIntegerPolynomial::in_t1([
+                -friction_numerators[0],
+                0,
+                friction_numerators[0],
+            ]),
+            BivariateIntegerPolynomial::in_t1([
+                0,
+                -2 * friction_numerators[0],
+                0,
+            ]),
+        ];
+        let v2 = [
+            BivariateIntegerPolynomial::in_t2([
+                common_denominator,
+                0,
+                common_denominator,
+            ]),
+            BivariateIntegerPolynomial::in_t2([
+                -friction_numerators[1],
+                0,
+                friction_numerators[1],
+            ]),
+            BivariateIntegerPolynomial::in_t2([
+                0,
+                -2 * friction_numerators[1],
+                0,
+            ]),
+        ];
+
+        let h11 = linear_combination(
+            [w_numerators[0][0], w_numerators[0][1], w_numerators[0][2]],
+            v1,
+        );
+        let h12 = linear_combination(
+            [w_numerators[0][3], w_numerators[0][4], w_numerators[0][5]],
+            v2,
+        );
+        let h21 = linear_combination(
+            [w_numerators[3][0], w_numerators[3][1], w_numerators[3][2]],
+            v1,
+        );
+        let h22 = linear_combination(
+            [w_numerators[3][3], w_numerators[3][4], w_numerators[3][5]],
+            v2,
+        );
+
+        let determinant = h11.mul(h22).sub(h12.mul(h21));
+        let normal_numerator_1 = h22.scale(-q1).add(h12.scale(q2));
+        let normal_numerator_2 = h21.scale(q1).sub(h11.scale(q2));
+
+        let mut impulse_numerators = [BivariateIntegerPolynomial::zero(); 6];
+        for axis in 0..3 {
+            impulse_numerators[axis] = v1[axis].mul(normal_numerator_1);
+            impulse_numerators[axis + 3] = v2[axis].mul(normal_numerator_2);
+        }
+
+        let mut velocity_numerators = [BivariateIntegerPolynomial::zero(); 6];
+        for row in 0..6 {
+            let mut coupled_impulse = BivariateIntegerPolynomial::zero();
+            for column in 0..6 {
+                coupled_impulse = coupled_impulse
+                    .add(impulse_numerators[column].scale(w_numerators[row][column]));
+            }
+            velocity_numerators[row] = determinant
+                .scale(q_numerators[row])
+                .add(coupled_impulse);
+        }
+
+        let t1 = BivariateIntegerPolynomial::in_t1([0, 1, 0]);
+        let t2 = BivariateIntegerPolynomial::in_t2([0, 1, 0]);
+        let one = BivariateIntegerPolynomial::constant(1);
+        let one_minus_t1_squared =
+            one.sub(BivariateIntegerPolynomial::in_t1([0, 0, 1]));
+        let one_minus_t2_squared =
+            one.sub(BivariateIntegerPolynomial::in_t2([0, 0, 1]));
+
+        let tangential_equation_1 = velocity_numerators[1]
+            .mul(t1.scale(-2))
+            .add(one_minus_t1_squared.mul(velocity_numerators[2]));
+        let tangential_equation_2 = velocity_numerators[4]
+            .mul(t2.scale(-2))
+            .add(one_minus_t2_squared.mul(velocity_numerators[5]));
+
+        ExactDoubleSlidePolynomials {
+            determinant,
+            normal_numerator_1,
+            normal_numerator_2,
+            tangential_equation_1,
+            tangential_equation_2,
+        }
+    }
+
+    #[test]
+    fn exact_asymmetric_direction_polynomials_recover_a_rational_double_slide_root() {
+        // The physical inputs are all exact rationals with common denominator 128.
+        let mut w = [[0_i128; 6]; 6];
+        for index in 0..6 {
+            w[index][index] = 128;
+        }
+        let cross = [
+            [16_i128, 4, -2],
+            [2, 8, 4],
+            [-4, 2, 8],
+        ];
+        for row in 0..3 {
+            for column in 0..3 {
+                w[row][column + 3] = cross[row][column];
+                w[column + 3][row] = cross[row][column];
+            }
+        }
+        let q = [-1490_i128, 882, 1257, -1834, 952, 2368];
+        let mu = [64_i128, 64];
+
+        let polynomials = build_exact_double_slide_polynomials(w, q, mu, 128);
+        assert_eq!(polynomials.determinant.max_bidegree(), (2, 2));
+        assert_eq!(polynomials.normal_numerator_1.max_bidegree(), (0, 2));
+        assert_eq!(polynomials.normal_numerator_2.max_bidegree(), (2, 0));
+        assert_eq!(polynomials.tangential_equation_1.max_bidegree(), (4, 2));
+        assert_eq!(polynomials.tangential_equation_2.max_bidegree(), (2, 4));
+
+        // Directions (3/5,4/5) and (5/13,12/13) correspond to
+        // t1 = tan(theta1/2) = 1/2 and t2 = tan(theta2/2) = 2/3.
+        // Both exact integer polynomial numerators must vanish.
+        let g1 = polynomials.tangential_equation_1.evaluate_homogeneous_numerator(
+            1, 2, 4, 2, 3, 2,
+        );
+        let g2 = polynomials.tangential_equation_2.evaluate_homogeneous_numerator(
+            1, 2, 2, 2, 3, 4,
+        );
+        assert_eq!(g1, 0);
+        assert_eq!(g2, 0);
+
+        // The eliminated normal system is regular at this root, so this is
+        // not an artificial zero introduced only by clearing det(H).
+        let determinant = polynomials.determinant.evaluate_homogeneous_numerator(
+            1, 2, 2, 2, 3, 2,
+        );
+        assert_ne!(determinant, 0);
+
+        // Both normal multiplier numerators have the same sign as Delta;
+        // the reconstructed normal impulses are therefore strictly positive.
+        let n1 = polynomials.normal_numerator_1.evaluate_homogeneous_numerator(
+            2, 3, 0, 2, 3, 2,
+        );
+        let n2 = polynomials.normal_numerator_2.evaluate_homogeneous_numerator(
+            1, 2, 2, 2, 3, 0,
+        );
+        assert!(n1 * determinant > 0);
+        assert!(n2 * determinant > 0);
+    }
+
 }
