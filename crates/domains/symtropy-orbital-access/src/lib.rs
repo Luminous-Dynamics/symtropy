@@ -218,11 +218,9 @@ impl EarthModel {
         let east = rotate_to_inertial(east_ecef);
 
         let north_velocity = speed * azimuth.cos();
-        let east_velocity = speed * azimuth.sin()
-            + self.rotation_rate_rad_s * self.radius_m * cos_phi;
-        let velocity = north
-            .scale(north_velocity)
-            .plus(east.scale(east_velocity));
+        let east_velocity =
+            speed * azimuth.sin() + self.rotation_rate_rad_s * self.radius_m * cos_phi;
+        let velocity = north.scale(north_velocity).plus(east.scale(east_velocity));
         let position = up.scale(self.radius_m);
         let angular_momentum = position.cross(velocity);
         let angular_momentum_norm = angular_momentum.norm();
@@ -364,8 +362,7 @@ mod tests {
         let result = EARTH_SPHERE
             .direct_insertion_plane(FRAME, input(18.0, 121.0, 58.0, 7_650.0))
             .unwrap();
-        let cos_inclination = 18.0_f64.to_radians().cos()
-            * result.east_velocity_inertial_m_s
+        let cos_inclination = 18.0_f64.to_radians().cos() * result.east_velocity_inertial_m_s
             / result.horizontal_speed_inertial_m_s;
         let scalar_inclination = cos_inclination.clamp(-1.0, 1.0).acos();
         close(result.inclination_rad, scalar_inclination, 1e-12);
