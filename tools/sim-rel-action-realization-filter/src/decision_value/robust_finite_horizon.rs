@@ -48,11 +48,6 @@ impl WorldObjectives {
         }
     }
 
-    fn total_loss(self) -> Result<Rational, String> {
-        self.expected_experiment_cost
-            .checked_add(self.expected_terminal_loss)
-    }
-
     fn add_scaled(&mut self, other: Self, probability: Rational) -> Result<(), String> {
         self.expected_experiment_cost = self
             .expected_experiment_cost
