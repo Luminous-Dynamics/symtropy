@@ -68,6 +68,66 @@ fn dot(lhs: &[Rational], rhs: &[Rational]) -> Rational {
         .fold(Rational::zero(), |sum, (a, b)| sum + a.clone() * b.clone())
 }
 
+fn exact_determinant(mut matrix: Vec<Vec<Rational>>) -> Rational {
+    let dimension = matrix.len();
+    if dimension == 0 {
+        return Rational::one();
+    }
+    assert!(matrix.iter().all(|row| row.len() == dimension));
+
+    let mut determinant = Rational::one();
+    let mut sign = Rational::one();
+    for pivot_column in 0..dimension {
+        let Some(pivot_row) = (pivot_column..dimension)
+            .find(|&row| !matrix[row][pivot_column].is_zero())
+        else {
+            return Rational::zero();
+        };
+        if pivot_row != pivot_column {
+            matrix.swap(pivot_row, pivot_column);
+            sign = -sign;
+        }
+        let pivot = matrix[pivot_column][pivot_column].clone();
+        determinant *= pivot.clone();
+        for row in (pivot_column + 1)..dimension {
+            let factor = matrix[row][pivot_column].clone() / pivot.clone();
+            for column in (pivot_column + 1)..dimension {
+                matrix[row][column] = matrix[row][column].clone()
+                    - factor.clone() * matrix[pivot_column][column].clone();
+            }
+            matrix[row][pivot_column] = Rational::zero();
+        }
+    }
+    determinant * sign
+}
+
+fn exact_rank_five_pseudodeterminant(matrix: &[Vec<Rational>]) -> Rational {
+    assert_eq!(matrix.len(), 6);
+    assert!(matrix.iter().all(|row| row.len() == 6));
+    (0..6).fold(Rational::zero(), |sum, omitted| {
+        let principal_minor = matrix
+            .iter()
+            .enumerate()
+            .filter(|(row, _)| *row != omitted)
+            .map(|(_, values)| {
+                values
+                    .iter()
+                    .enumerate()
+                    .filter(|(column, _)| *column != omitted)
+                    .map(|(_, value)| value.clone())
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        sum + exact_determinant(principal_minor)
+    })
+}
+
+fn exact_trace(matrix: &[Vec<Rational>]) -> Rational {
+    (0..matrix.len()).fold(Rational::zero(), |sum, index| {
+        sum + matrix[index][index].clone()
+    })
+}
+
 fn exact_rank(matrix: &[Vec<Rational>]) -> usize {
     if matrix.is_empty() {
         return 0;
@@ -284,6 +344,111 @@ fn physical_two_point_delassus_is_rank_five_and_has_a_continuum_of_sticking_impu
     // inequalities above reduce to 1-alpha^2>0, proving the open interval
     // (-1,1) consists entirely of admissible impulse allocations.
     assert_eq!(matrix_vector(&delassus, &p0), wp0);
+}
+
+#[test]
+fn approaching_contact_coincidence_preserves_exact_rank_until_the_geometry_collapses() {
+    // With a second contact at r2=(0,epsilon,0), the two-point Jacobian has
+    // rank five for every nonzero epsilon. At epsilon=0 the contact rows
+    // coincide, its rank drops to three, and the Delassus nullity jumps 1 -> 3.
+    let inverse_mass_diagonal = [
+        Rational::one(),
+        Rational::one(),
+        Rational::one(),
+        Rational::one(),
+        Rational::new(BigInt::one(), BigInt::from(2)),
+        Rational::new(BigInt::one(), BigInt::from(3)),
+    ];
+
+    for separation in [
+        Rational::one(),
+        Rational::new(BigInt::one(), BigInt::from(2)),
+        Rational::new(BigInt::one(), BigInt::from(4)),
+        Rational::new(BigInt::one(), BigInt::from(16)),
+        Rational::new(BigInt::one(), BigInt::from(256)),
+    ] {
+        let mut jacobian = rational_matrix(&[
+            [1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0],
+        ]);
+        jacobian[3][5] = -separation.clone();
+        jacobian[5][3] = separation.clone();
+        assert_eq!(exact_rank(&jacobian), 5);
+
+        let mut jacobian_inverse_mass = jacobian.clone();
+        for row in &mut jacobian_inverse_mass {
+            for (entry, inverse_mass) in row.iter_mut().zip(&inverse_mass_diagonal) {
+                *entry = entry.clone() * inverse_mass.clone();
+            }
+        }
+        let delassus = matrix_multiply(&jacobian_inverse_mass, &transpose(&jacobian));
+        assert_eq!(exact_rank(&delassus), 5);
+
+        let null_impulse = vec![
+            Rational::zero(),
+            Rational::one(),
+            Rational::zero(),
+            Rational::zero(),
+            -Rational::one(),
+            Rational::zero(),
+        ];
+        assert!(matrix_vector(&transpose(&jacobian), &null_impulse)
+            .iter()
+            .all(Rational::is_zero));
+        assert!(matrix_vector(&delassus, &null_impulse)
+            .iter()
+            .all(Rational::is_zero));
+
+        // For symmetric PSD rank-five W, the sum of all principal 5x5
+        // minors is the product of its five positive eigenvalues. Since each
+        // eigenvalue is at most trace(W), this gives the exact lower bound
+        // lambda_min_positive >= pseudodet(W) / trace(W)^4.
+        let pseudodeterminant = exact_rank_five_pseudodeterminant(&delassus);
+        let trace = exact_trace(&delassus);
+        let certified_lower_bound =
+            pseudodeterminant / trace.clone().pow(4);
+        let expected_lower_bound = Rational::new(BigInt::from(27), BigInt::from(8))
+            * separation.clone().pow(4)
+            / (Rational::from_integer(BigInt::from(2)) * separation.clone().pow(2)
+                + Rational::from_integer(BigInt::from(9)))
+            .pow(4);
+        assert!(certified_lower_bound > Rational::zero());
+        assert_eq!(certified_lower_bound, expected_lower_bound);
+    }
+
+    // At coincident contact points, the second 3-row block duplicates the
+    // first one. The operator loses two additional independent response
+    // directions, so a rank-aware solver must report nullity three.
+    let jacobian_at_coincidence = rational_matrix(&[
+        [1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0],
+    ]);
+    let delassus_at_coincidence = matrix_multiply(
+        &{
+            let mut scaled = jacobian_at_coincidence.clone();
+            for row in &mut scaled {
+                for (entry, inverse_mass) in row.iter_mut().zip(&inverse_mass_diagonal) {
+                    *entry = entry.clone() * inverse_mass.clone();
+                }
+            }
+            scaled
+        },
+        &transpose(&jacobian_at_coincidence),
+    );
+    assert_eq!(exact_rank(&jacobian_at_coincidence), 3);
+    assert_eq!(exact_rank(&delassus_at_coincidence), 3);
+    assert_eq!(
+        exact_rank_five_pseudodeterminant(&delassus_at_coincidence),
+        Rational::zero()
+    );
 }
 
 #[test]
