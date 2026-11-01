@@ -93,6 +93,43 @@ generalized response. Any API that promises a unique impulse for this input is
 mathematically wrong; the correct object is an admissible impulse set or an
 equivalence class in `R^6 / ker(W)`.
 
+## Three non-collinear contacts: a three-dimensional impulse family
+
+The same rigid body can touch the plane at three non-collinear points
+`r_1=(0,0,0)`, `r_2=(0,1,0)`, and `r_3=(0,0,1)`, using the same
+`(e_x,e_y,e_z)` contact frame at each. The resulting exact
+`J in Q^(9x6)` has full column rank six, but
+`W=J M^{-1} J^T in Q^(9x9)` has rank six and nullity three.
+
+Three independent exact contact-impulse null vectors are:
+
+```text
+n_a = [0,-1, 0, 0, 1, 0, 0, 0, 0]^T
+n_b = [0,-1,-1, 0, 0, 1, 0, 1, 0]^T
+n_c = [0, 0,-1, 0, 0, 0, 0, 0, 1]^T
+```
+
+For `p_0=(2,0,0,2,0,0,2,0,0)^T`, set `q=-Wp_0`. The exact free
+contact velocity is `q=(-6,0,0,-20/3,0,0,-7,0,0)^T`. With
+`mu_i=1/2`, the three-parameter family
+
+```text
+p(alpha,beta,gamma) = p0 + alpha*n_a + beta*n_b + gamma*n_c
+```
+
+is strictly admissible on the open cube
+`(alpha,beta,gamma) in (-1/4,1/4)^3`. Each normal impulse remains two,
+all three contact post-velocities remain exactly zero, and every tangential
+impulse remains strictly inside its unit-radius Coulomb disk. The total energy
+change is exactly `-59/3` throughout the cube.
+
+The verifier constructs the 9x6 Jacobian and 9x9 Delassus operator using
+exact rationals, proves the three null vectors lie in `ker(J^T)=ker(W)`,
+and checks eight rational cube corners. The analytic coordinate bounds show
+the entire open cube is disk-admissible. This is a three-dimensional continuum
+of force allocations for a single rigid-body response, not three isolated
+solutions.
+
 ## Paradigm-shift implications
 
 1. **Separate response uniqueness from impulse uniqueness.** A unique body
