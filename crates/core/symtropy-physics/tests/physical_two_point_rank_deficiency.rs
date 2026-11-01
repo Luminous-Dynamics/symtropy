@@ -20,7 +20,7 @@ const CONTACT_JACOBIAN: Matrix6 = [
 // Six times M^{-1} = diag(1, 1, 1, 1, 1/2, 1/3).
 const SIX_TIMES_INVERSE_MASS: Vector6 = [6, 6, 6, 6, 3, 2];
 
-// SIX_TIMES_DELA SSUS = 6 J M^{-1} J^T. The literal is also checked against
+// SIX_TIMES_DELASSUS = 6 J M^{-1} J^T. The literal is also checked against
 // the independently assembled Gram product below.
 const EXPECTED_SIX_TIMES_DELASSUS: Matrix6 = [
     [6, 0, 0, 6, 0, 0],
@@ -188,13 +188,9 @@ fn physically_admissible_impulses_form_a_continuum_with_one_body_response() {
         "q=-Wp0 must come from the declared free rigid-body twist"
     );
     assert_eq!(
-        matrix_times_vector(&CONTACT_JACOBIAN, &[ -4, 0, 0, 0, 0, 2 ]),
+        matrix_times_vector(&CONTACT_JACOBIAN, &[-24, 0, 0, 0, 0, 4]),
         q6,
-        "the free contact velocity must equal J*v_free in sixths"
-    );
-    assert_eq!(
-        matrix_times_vector(&CONTACT_JACOBIAN, &[ -4, 0, 0, 0, 0, 2 ]),
-        q6
+        "six times the free rigid-body twist must map to six times q"
     );
 
     // p(alpha)=p0+alpha*n. For alpha=a/d, P=d*p(alpha) is integral.
