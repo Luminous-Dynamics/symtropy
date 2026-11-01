@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent arithmetic and digest oracle for the declared SU2 history screen."""
+"""Independent arithmetic and canonical-digest oracle for the SU2 steady-history screen."""
 from __future__ import annotations
 
 import csv
@@ -10,8 +10,15 @@ import sys
 from pathlib import Path
 
 
-def require(value: bool, message: str) -> None:
-    if not value:
+EVIDENCE = (
+    "declared_residual_encoding_terminal_stability_and_monitor_screen_only_"
+    "not_complete_CFD_convergence_grid_independence_or_physical_validation"
+)
+SCHEMA = "su2-declared-convergence-screen/0.2.0"
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
         raise ValueError(message)
 
 
@@ -34,87 +41,105 @@ def add_optional(buffer: bytearray, value: str) -> None:
         buffer.extend(struct.pack("<d", float(value)))
 
 
+def close(actual: str, expected: float, label: str) -> None:
+    require(actual != "", f"{label}: expected numeric output, got blank")
+    require(math.isclose(float(actual), expected, rel_tol=1e-12, abs_tol=1e-15),
+            f"{label}: {actual} != {expected:.17g}")
+
+
+def mean(values: list[float]) -> float:
+    divisor = float(len(values))
+    return sum(value / divisor for value in values)
+
+
+def slope_per_1000(iterations: list[int], values: list[float]) -> float:
+    x0 = iterations[0]
+    xs = [float(value - x0) for value in iterations]
+    x_mean = mean(xs)
+    y_mean = mean(values)
+    variance = sum((value - x_mean) ** 2 for value in xs)
+    covariance = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, values, strict=True))
+    return abs(covariance / variance * 1000.0)
+
+
 def main() -> int:
     if len(sys.argv) != 4:
         raise ValueError("usage: verify-su2-convergence-screen-independent.py RUN IMPORT_CSV SCREEN_CSV")
     run = Path(sys.argv[1])
     imported = read_rows(Path(sys.argv[2]))
     rows = read_rows(Path(sys.argv[3]))
-    receipt = read_rows(run / "runner_receipt.csv")
-    history = read_rows(run / "history.csv")
+    receipt_rows = read_rows(run / "runner_receipt.csv")
+    history_rows = read_rows(run / "history.csv")
+    require(len(receipt_rows) == 1, "expected one runner receipt")
+    require(len(history_rows) == 8, "expected eight source history rows")
+    require(len(imported) == 8, "expected eight imported history rows")
+    require(len(rows) == 4, "expected two residual and two monitor checks")
 
-    require(len(receipt) == 1, "expected one runner receipt")
-    require(len(imported) == 2, "expected two receipt-bound history points")
-    require(len(rows) == 3, "expected one residual and two monitor criteria")
-    r = receipt[0]
-    first_import = imported[0]
-    require(r["solver_id"] == "SU2_CFD", "wrong solver identity")
-    require(first_import["runner_receipt_sha256"] == r["receipt_sha256"], "history import receipt mismatch")
+    receipt = receipt_rows[0]
+    require(receipt["solver_id"] == "SU2_CFD", "wrong solver ID")
+    require(receipt["status"] == "process_exited_zero_expected_outputs_present", "solver process did not exit successfully")
+    require(all(row["run_id"] == receipt["run_id"] for row in imported), "history import run ID mismatch")
+    require(all(row["runner_receipt_sha256"] == receipt["receipt_sha256"] for row in imported),
+            "history import receipt digest mismatch")
 
-    expected = [
-        ("residual_final_absolute_and_reduction_ratio", "RMS_RES", "1", 2,
-         0.01, 0.0001, 0.01, 0.0002, 0.02, None, None),
-        ("trailing_window_absolute_range", "CL", "dimensionless", 2,
-         None, None, None, None, None, 0.02, 0.025),
-        ("trailing_window_absolute_range", "CD", "dimensionless", 2,
-         None, None, None, None, None, 0.002, 0.0025),
+    source_header = ["Iteration", "CL", "CD", "RMS_DENSITY", "RMS_MOMENTUM-X"]
+    require(list(history_rows[0].keys()) == source_header, "source history header mismatch")
+    expected_import_columns = [
+        "CL [dimensionless]", "CD [dimensionless]",
+        "RMS_DENSITY [log10(residual)]", "RMS_MOMENTUM-X [log10(residual)]",
     ]
+    for source, imported_row in zip(history_rows, imported, strict=True):
+        require(int(imported_row["iteration"]) == int(source["Iteration"]), "iteration binding mismatch")
+        for name in expected_import_columns:
+            source_name = name.split(" [", 1)[0]
+            close(imported_row[name], float(source[source_name]), f"import {source_name}")
+    first_import = imported[0]
+    history_sha256 = hashlib.sha256((run / "history.csv").read_bytes()).hexdigest()
+    require(all(row["history_sha256"] == history_sha256 for row in imported), "history digest mismatch")
 
-    for row, spec in zip(rows, expected, strict=True):
-        kind, column, unit, count, initial, final, ratio, max_final, max_ratio, window, max_window = spec
-        require(row["criterion_kind"] == kind, f"{column}: criterion kind mismatch")
-        require(row["column"] == column, f"{column}: column mismatch")
-        require(row["unit"] == unit, f"{column}: unit mismatch")
-        require(int(row["rows_used"]) == count, f"{column}: row count mismatch")
-        require(row["criterion_status"] == "passed", f"{column}: criterion should pass")
-        for field, target in [
-            ("observed_initial_absolute", initial),
-            ("observed_final_absolute", final),
-            ("observed_final_to_initial_ratio", ratio),
-            ("maximum_final_absolute", max_final),
-            ("maximum_final_to_initial_ratio", max_ratio),
-            ("observed_window_range", window),
-            ("maximum_window_range", max_window),
-        ]:
-            value = row[field]
-            if target is None:
-                require(value == "", f"{column}: {field} should be empty")
-            else:
-                require(math.isclose(float(value), target, rel_tol=1e-12, abs_tol=1e-14),
-                        f"{column}: {field} mismatch")
-        require(row["overall_status"] == "declared_thresholds_met", "overall status mismatch")
-        require(row["evidence_level"] ==
-                "declared_residual_and_monitor_threshold_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation",
-                "convergence screen overstates evidence")
+    expected_spec = [
+        ("residual_log10_final_reduction_and_terminal_span", "RMS_DENSITY", "log10(residual)"),
+        ("residual_log10_final_reduction_and_terminal_span", "RMS_MOMENTUM-X", "log10(residual)"),
+        ("monitor_terminal_range_mean_drift_and_slope", "CL", "dimensionless"),
+        ("monitor_terminal_range_mean_drift_and_slope", "CD", "dimensionless"),
+    ]
+    terminal = history_rows[-6:]
+    residual_values = {
+        name: [float(row[name]) for row in history_rows]
+        for name in ("RMS_DENSITY", "RMS_MOMENTUM-X")
+    }
+    monitor_values = {
+        name: [float(row[name]) for row in terminal]
+        for name in ("CL", "CD")
+    }
+    expected_metrics: list[dict[str, float]] = []
+    for name in ("RMS_DENSITY", "RMS_MOMENTUM-X"):
+        values = residual_values[name]
+        trailing = values[-6:]
+        expected_metrics.append({
+            "observed_initial_log10_residual": values[0],
+            "observed_final_log10_residual": values[-1],
+            "observed_log10_reduction": values[0] - values[-1],
+            "observed_terminal_log10_span": max(trailing) - min(trailing),
+            "maximum_final_log10_residual": -8.0,
+            "minimum_log10_reduction": 6.0,
+            "maximum_terminal_log10_span": 2.0,
+        })
+    iterations = [int(row["Iteration"]) for row in terminal]
+    for name in ("CL", "CD"):
+        values = monitor_values[name]
+        early = mean(values[:3])
+        late = mean(values[3:])
+        expected_metrics.append({
+            "observed_window_range": max(values) - min(values),
+            "maximum_window_range": 0.0004,
+            "observed_mean_drift": abs(late - early),
+            "maximum_mean_drift": 0.0003,
+            "observed_slope_per_1000_iterations": slope_per_1000(iterations, values),
+            "maximum_slope_per_1000_iterations": 0.02,
+        })
 
-    require(history[0]["RMS_RES"] == "0.01" and history[-1]["RMS_RES"] == "0.0001",
-            "residual values do not match the independent fixture")
-    require(history[0]["CL"] == "0.40" and history[-1]["CL"] == "0.42",
-            "CL monitor values do not match the independent fixture")
-    require(history[0]["CD"] == "0.020" and history[-1]["CD"] == "0.018",
-            "CD monitor values do not match the independent fixture")
-    require(all(row["run_id"] == r["run_id"] for row in rows), "run ID not bound")
-    require(all(row["runner_receipt_sha256"] == r["receipt_sha256"] for row in rows),
-            "runner receipt digest not bound")
-    require(all(row["history_sha256"] == first_import["history_sha256"] for row in rows),
-            "history digest not bound")
-    require(all(row["history_import_sha256"] == first_import["import_sha256"] for row in rows),
-            "history import digest not bound")
-    require(all(len(row["screen_sha256"]) == 64 for row in rows), "screen digest malformed")
-
-    buffer = bytearray()
-    for item in [
-        "su2-declared-convergence-screen/0.1.0",
-        r["run_id"],
-        r["receipt_sha256"],
-        first_import["history_sha256"],
-        first_import["import_sha256"],
-        "declared_thresholds_met",
-        "declared_residual_and_monitor_threshold_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation",
-    ]:
-        add_string(buffer, item)
-    buffer.extend(struct.pack("<Q", len(rows)))
-    optional_fields = [
+    numeric_fields = [
         "observed_initial_absolute",
         "observed_final_absolute",
         "observed_final_to_initial_ratio",
@@ -122,24 +147,72 @@ def main() -> int:
         "maximum_final_to_initial_ratio",
         "observed_window_range",
         "maximum_window_range",
+        "observed_initial_log10_residual",
+        "observed_final_log10_residual",
+        "observed_log10_reduction",
+        "observed_terminal_log10_span",
+        "maximum_final_log10_residual",
+        "minimum_log10_reduction",
+        "maximum_terminal_log10_span",
+        "observed_mean_drift",
+        "maximum_mean_drift",
+        "observed_slope_per_1000_iterations",
+        "maximum_slope_per_1000_iterations",
     ]
+    for index, (row, (kind, column, unit), metrics) in enumerate(
+        zip(rows, expected_spec, expected_metrics, strict=True)
+    ):
+        require(row["criterion_kind"] == kind, f"{column}: criterion kind mismatch")
+        require(row["column"] == column, f"{column}: criterion column mismatch")
+        require(row["unit"] == unit, f"{column}: unit mismatch")
+        require(int(row["rows_used"]) == (8 if index < 2 else 6), f"{column}: rows_used mismatch")
+        require(row["criterion_status"] == "passed", f"{column}: expected passing criterion")
+        for name in numeric_fields:
+            value = row[name]
+            if name in metrics:
+                close(value, metrics[name], f"{column} {name}")
+            else:
+                require(value == "", f"{column} {name} should be blank")
+        require(row["overall_status"] == "declared_thresholds_met", "overall status mismatch")
+        require(row["evidence_level"] == EVIDENCE, "evidence ceiling mismatch")
+        require(row["run_id"] == receipt["run_id"], "screen run ID mismatch")
+        require(row["runner_receipt_sha256"] == receipt["receipt_sha256"], "screen receipt digest mismatch")
+        require(row["history_sha256"] == history_sha256, "screen history digest mismatch")
+        require(row["history_import_sha256"] == first_import["import_sha256"], "screen import digest mismatch")
+
+    buffer = bytearray()
+    for item in [
+        SCHEMA,
+        receipt["run_id"],
+        receipt["receipt_sha256"],
+        history_sha256,
+        first_import["import_sha256"],
+        "declared_thresholds_met",
+        EVIDENCE,
+    ]:
+        add_string(buffer, item)
+    buffer.extend(struct.pack("<Q", len(rows)))
     for row in rows:
-        for field in ["criterion_kind", "column", "unit", "criterion_status"]:
+        for field in ("criterion_kind", "column", "unit", "criterion_status"):
             add_string(buffer, row[field])
         buffer.extend(struct.pack("<Q", int(row["rows_used"])))
-        for field in optional_fields:
+        for field in numeric_fields:
             add_optional(buffer, row[field])
     digest = hashlib.sha256(buffer).hexdigest()
     require(all(row["screen_sha256"] == digest for row in rows), "canonical screen digest mismatch")
-    require(rows[0]["passed_count"] == "3" and rows[0]["failed_count"] == "0"
+    require(rows[0]["passed_count"] == "4" and rows[0]["failed_count"] == "0"
             and rows[0]["insufficient_count"] == "0", "criterion counts mismatch")
-    print(f"independent_su2_convergence_screen_oracle=pass criteria=3 screen_sha256={digest} thresholds=caller_declared")
+    print(
+        "independent_su2_convergence_screen_oracle=pass "
+        f"criteria={len(rows)} screen_sha256={digest} "
+        "residual_encoding=log10 terminal_stability=pass monitor_drift_and_slope=pass"
+    )
     return 0
 
 
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except (ValueError, OSError, KeyError, IndexError) as error:
-        print(f"independent_su2_convergence_screen_oracle=fail reason={error}", file=sys.stderr)
+    except Exception as error:
+        print(f"independent SU2 convergence screen oracle failed: {error}", file=sys.stderr)
         raise SystemExit(1)
