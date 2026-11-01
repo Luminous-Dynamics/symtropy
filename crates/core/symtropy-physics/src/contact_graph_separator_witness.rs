@@ -74,7 +74,7 @@ impl StickingLeafMessage {
         &self,
         separator_impulse: &SVector<f64, 3>,
         tolerance: f64,
-    ) -> Option<StickingLeafResponse> {
+    ) -> Result<Option<StickingLeafResponse>, &'static str> {
         if !tolerance.is_finite()
             || tolerance <= 0.0
             || !separator_impulse.iter().all(|value| value.is_finite())
@@ -84,9 +84,12 @@ impl StickingLeafMessage {
             || !self.friction_coefficient.is_finite()
             || self.friction_coefficient < 0.0
         {
-            return None;
+            return Err("sticking leaf response received invalid or non-finite input");
         }
-        let factor = self.self_operator.cholesky()?;
+        let factor = self
+            .self_operator
+            .cholesky()
+            .ok_or("sticking leaf self-block is not positive definite")?;
         let rhs = -(self.free_velocity + self.separator_coupling.transpose() * separator_impulse);
         let impulse = factor.solve(&rhs);
         let post_velocity = self.free_velocity
@@ -101,18 +104,21 @@ impl StickingLeafMessage {
         .max(f64::MIN_POSITIVE);
         let velocity_tolerance = tolerance * velocity_scale * 500.0;
 
+        // None means this valid message has no strict-sticking response at the
+        // supplied separator impulse. Invalid data and unsupported self-blocks
+        // are errors, so callers must not conflate domain exclusion with failure.
         if impulse[0] <= impulse_tolerance
             || strict_disk_margin <= impulse_tolerance
             || post_velocity.norm() > velocity_tolerance
         {
-            return None;
+            return Ok(None);
         }
 
-        Some(StickingLeafResponse {
+        Ok(Some(StickingLeafResponse {
             impulse,
             post_velocity,
             strict_disk_margin,
-        })
+        }))
     }
 }
 
@@ -236,10 +242,10 @@ fn solve_star_with_strict_sticking_leaves(
     let mut candidates = Vec::new();
     for separator in &reduced.candidates {
         let p_0 = separator.impulse;
-        let Some(leaf_1) = messages[0].response_at(&p_0, TOLERANCE) else {
+        let Some(leaf_1) = messages[0].response_at(&p_0, TOLERANCE)? else {
             continue;
         };
-        let Some(leaf_2) = messages[1].response_at(&p_0, TOLERANCE) else {
+        let Some(leaf_2) = messages[1].response_at(&p_0, TOLERANCE)? else {
             continue;
         };
         let impulse = Vector9::from_row_slice(&[
@@ -412,11 +418,23 @@ fn sticking_leaf_message_returns_affine_schur_terms_and_a_local_admissibility_re
 
     let response = message
         .response_at(&separator_impulse, TOLERANCE)
+        .unwrap()
         .expect("strictly loaded, sticking leaf response");
     assert!((response.impulse[0] - 1.0).abs() < 1.0e-12);
     assert!(response.impulse.fixed_rows::<2>(1).norm() < 1.0e-12);
     assert!(response.post_velocity.norm() < 1.0e-12);
     assert!((response.strict_disk_margin - 0.5).abs() < 1.0e-12);
+
+    // Nearby separator impulses remain inside the same local strict-sticking
+    // response region, and the message returns the corresponding affine impulse.
+    let nearby_separator_impulse = SVector::<f64, 3>::new(1.1, -0.4, 0.0);
+    let nearby_response = message
+        .response_at(&nearby_separator_impulse, TOLERANCE)
+        .unwrap()
+        .expect("nearby separator impulse remains in the leaf sticking region");
+    assert!((nearby_response.impulse[0] - 1.025).abs() < 1.0e-12);
+    assert!((nearby_response.impulse[1] + 0.025).abs() < 1.0e-12);
+    assert!(nearby_response.strict_disk_margin > 0.48);
 
     let reduced_c = Matrix3::identity() - schur_operator;
     let reduced_q = -SVector::<f64, 3>::new(0.0, 0.0, 0.0) - schur_free_velocity;
@@ -438,6 +456,7 @@ fn sticking_leaf_message_refuses_disk_boundary_and_invalid_self_blocks() {
     };
     assert!(boundary
         .response_at(&SVector::<f64, 3>::zeros(), TOLERANCE)
+        .unwrap()
         .is_none());
 
     let indefinite = StickingLeafMessage {
@@ -449,5 +468,5 @@ fn sticking_leaf_message_refuses_disk_boundary_and_invalid_self_blocks() {
     assert!(indefinite.schur_terms().is_err());
     assert!(indefinite
         .response_at(&SVector::<f64, 3>::zeros(), TOLERANCE)
-        .is_none());
+        .is_err());
 }
