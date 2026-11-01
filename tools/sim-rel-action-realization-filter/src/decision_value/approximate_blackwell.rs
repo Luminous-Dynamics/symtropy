@@ -11,8 +11,8 @@
 //! model-coverage claim.
 
 use super::blackwell_transfer::{
-    evaluate_randomized_terminal_rule, exact_bayes_risk, ExactBayesRiskReceipt,
-    RandomizedRuleRiskReceipt, RandomizedTerminalDecisionRule,
+    ExactBayesRiskReceipt, RandomizedRuleRiskReceipt, RandomizedTerminalDecisionRule,
+    evaluate_randomized_terminal_rule, exact_bayes_risk,
 };
 use super::experiment_ordering::{
     BlackwellGarblingWitness, ChannelDecisionLossTable, FiniteObservationChannel,
@@ -194,16 +194,17 @@ pub fn verify_approximate_blackwell_dominance(
             target.probabilities[state].iter().copied().enumerate()
         {
             let mut reconstructed = Rational::zero();
-            for (source_observation, source_probability) in
-                more_informative.probabilities[state].iter().copied().enumerate()
+            for (source_observation, source_probability) in more_informative.probabilities[state]
+                .iter()
+                .copied()
+                .enumerate()
             {
-                reconstructed = reconstructed.checked_add(
-                    source_probability
-                        .checked_mul(witness.probabilities[source_observation][target_observation])?,
-                )?;
+                reconstructed = reconstructed.checked_add(source_probability.checked_mul(
+                    witness.probabilities[source_observation][target_observation],
+                )?)?;
             }
-            l1_residual = l1_residual
-                .checked_add(absolute_difference(target_probability, reconstructed)?)?;
+            l1_residual =
+                l1_residual.checked_add(absolute_difference(target_probability, reconstructed)?)?;
         }
         let total_variation = l1_residual.checked_div(Rational::from_u64(2))?;
         if total_variation > maximum_state_residual {
@@ -234,17 +235,13 @@ fn lift_randomized_rule(
     target_rule: &RandomizedTerminalDecisionRule,
 ) -> Result<RandomizedTerminalDecisionRule, String> {
     target_rule.validate(target, losses)?;
-    let mut decision_probabilities =
-        Vec::with_capacity(more_informative.observation_ids.len());
-    let mut abstention_probabilities =
-        Vec::with_capacity(more_informative.observation_ids.len());
+    let mut decision_probabilities = Vec::with_capacity(more_informative.observation_ids.len());
+    let mut abstention_probabilities = Vec::with_capacity(more_informative.observation_ids.len());
 
     for garbling_row in &witness.probabilities {
         let mut decision_row = vec![Rational::zero(); losses.decision_ids.len()];
         let mut abstention_probability = Rational::zero();
-        for (target_observation, garbling_probability) in
-            garbling_row.iter().copied().enumerate()
-        {
+        for (target_observation, garbling_probability) in garbling_row.iter().copied().enumerate() {
             for (decision, target_probability) in target_rule.decision_probabilities
                 [target_observation]
                 .iter()
@@ -350,15 +347,9 @@ pub fn certify_approximate_blackwell_decision_transfer(
         });
     }
 
-    let transferred_rule = lift_randomized_rule(
-        more_informative,
-        target,
-        witness,
-        losses,
-        target_rule,
-    )?;
-    let source_rule_risk =
-        evaluate_randomized_terminal_rule(target, prior, losses, target_rule)?;
+    let transferred_rule =
+        lift_randomized_rule(more_informative, target, witness, losses, target_rule)?;
+    let source_rule_risk = evaluate_randomized_terminal_rule(target, prior, losses, target_rule)?;
     let transferred_rule_risk =
         evaluate_randomized_terminal_rule(more_informative, prior, losses, &transferred_rule)?;
     let arbitrary_rule_absolute_risk_gap = absolute_difference(
@@ -388,8 +379,7 @@ pub fn certify_approximate_blackwell_decision_transfer(
         .evaluation
         .expected_loss
         .checked_add(decision_specific_transfer_bound)?;
-    if transferred_target_bayes_risk.expected_loss
-        > bayes_risk_upper_bound
+    if transferred_target_bayes_risk.expected_loss > bayes_risk_upper_bound
         || candidate_bayes.evaluation.expected_loss > bayes_risk_upper_bound
     {
         return Err("Bayes-risk transfer exceeds the exact additive bound".into());
@@ -417,14 +407,13 @@ pub fn certify_approximate_blackwell_decision_transfer(
 #[cfg(test)]
 mod tests {
     use super::{
-        certify_approximate_blackwell_decision_transfer,
-        verify_approximate_blackwell_dominance,
+        certify_approximate_blackwell_decision_transfer, verify_approximate_blackwell_dominance,
     };
+    use crate::Rational;
     use crate::decision_value::blackwell_transfer::RandomizedTerminalDecisionRule;
     use crate::decision_value::experiment_ordering::{
         BlackwellGarblingWitness, ChannelDecisionLossTable, FiniteObservationChannel,
     };
-    use crate::Rational;
 
     fn q(numerator: u128, denominator: u128) -> Rational {
         Rational::new(numerator, denominator).expect("valid rational")
@@ -441,24 +430,30 @@ mod tests {
         let mut total = q(0, 1);
         for state in 0..channel.state_ids.len() {
             for observation in 0..channel.observation_ids.len() {
-                let state_observation_mass =
-                    prior[state].checked_mul(channel.probabilities[state][observation])
-                        .expect("joint state-observation mass");
+                let state_observation_mass = prior[state]
+                    .checked_mul(channel.probabilities[state][observation])
+                    .expect("joint state-observation mass");
                 for decision in 0..losses.decision_ids.len() {
                     let action_mass = state_observation_mass
                         .checked_mul(rule.decision_probabilities[observation][decision])
                         .expect("decision path mass");
                     total = total
-                        .checked_add(action_mass.checked_mul(losses.losses[decision][state])
-                            .expect("decision path loss"))
+                        .checked_add(
+                            action_mass
+                                .checked_mul(losses.losses[decision][state])
+                                .expect("decision path loss"),
+                        )
                         .expect("total decision risk");
                 }
                 let abstention_mass = state_observation_mass
                     .checked_mul(rule.abstention_probabilities[observation])
                     .expect("abstention path mass");
                 total = total
-                    .checked_add(abstention_mass.checked_mul(losses.abstention_loss)
-                        .expect("abstention path loss"))
+                    .checked_add(
+                        abstention_mass
+                            .checked_mul(losses.abstention_loss)
+                            .expect("abstention path loss"),
+                    )
                     .expect("total terminal risk");
             }
         }
@@ -489,20 +484,14 @@ mod tests {
 
     fn garbling() -> BlackwellGarblingWitness {
         BlackwellGarblingWitness {
-            probabilities: vec![
-                vec![q(4, 5), q(1, 5)],
-                vec![q(1, 5), q(4, 5)],
-            ],
+            probabilities: vec![vec![q(4, 5), q(1, 5)], vec![q(1, 5), q(4, 5)]],
         }
     }
 
     fn losses(scale: Rational) -> ChannelDecisionLossTable {
         ChannelDecisionLossTable {
             decision_ids: vec!["choose-s0".into(), "choose-s1".into()],
-            losses: vec![
-                vec![q(0, 1), scale],
-                vec![scale, q(0, 1)],
-            ],
+            losses: vec![vec![q(0, 1), scale], vec![scale, q(0, 1)]],
             abstention_loss: scale.checked_div(q(2, 1)).expect("half scale"),
         }
     }
@@ -513,10 +502,7 @@ mod tests {
             channel_id: channel.channel_id.clone(),
             observation_ids: channel.observation_ids.clone(),
             decision_ids: vec!["choose-s0".into(), "choose-s1".into()],
-            decision_probabilities: vec![
-                vec![q(1, 3), q(1, 6)],
-                vec![q(1, 4), q(1, 2)],
-            ],
+            decision_probabilities: vec![vec![q(1, 3), q(1, 6)], vec![q(1, 4), q(1, 2)]],
             abstention_probabilities: vec![q(1, 2), q(1, 4)],
         }
     }
@@ -529,10 +515,7 @@ mod tests {
             channel_id: channel.channel_id.clone(),
             observation_ids: channel.observation_ids.clone(),
             decision_ids: vec!["choose-s0".into(), "choose-s1".into()],
-            decision_probabilities: vec![
-                vec![q(1, 1), q(0, 1)],
-                vec![q(0, 1), q(1, 1)],
-            ],
+            decision_probabilities: vec![vec![q(1, 1), q(0, 1)], vec![q(0, 1), q(1, 1)]],
             abstention_probabilities: vec![q(0, 1), q(0, 1)],
         }
     }
@@ -604,7 +587,12 @@ mod tests {
         );
         assert_eq!(
             certificate.transferred_rule_risk.expected_loss,
-            independent_raw_mass_risk(&more, &[q(1, 2), q(1, 2)], &losses, &certificate.transferred_rule)
+            independent_raw_mass_risk(
+                &more,
+                &[q(1, 2), q(1, 2)],
+                &losses,
+                &certificate.transferred_rule
+            )
         );
         assert_eq!(
             certificate.candidate_bayes.evaluation.expected_loss,
@@ -658,13 +646,8 @@ mod tests {
         let more = more_channel();
         let target = target_channel(79);
         let witness = garbling();
-        let residual = verify_approximate_blackwell_dominance(
-            &more,
-            &target,
-            &witness,
-            q(1, 200),
-        )
-        .expect("residual audit");
+        let residual = verify_approximate_blackwell_dominance(&more, &target, &witness, q(1, 200))
+            .expect("residual audit");
         assert_eq!(residual.maximum_state_residual, q(1, 100));
         assert!(!residual.within_declared_radius);
 
@@ -699,8 +682,10 @@ mod tests {
         )
         .expect("randomized policy certificate");
 
-        assert!(certificate.arbitrary_rule_absolute_risk_gap
-            <= certificate.decision_specific_transfer_bound);
+        assert!(
+            certificate.arbitrary_rule_absolute_risk_gap
+                <= certificate.decision_specific_transfer_bound
+        );
         assert_eq!(
             certificate.source_rule_risk.expected_loss,
             certificate.transferred_rule_risk.expected_loss
@@ -712,27 +697,13 @@ mod tests {
         let more = more_channel();
         let target = target_channel(79);
         let invalid = BlackwellGarblingWitness {
-            probabilities: vec![
-                vec![q(1, 2), q(1, 2)],
-                vec![q(1, 2), q(1, 3)],
-            ],
+            probabilities: vec![vec![q(1, 2), q(1, 2)], vec![q(1, 2), q(1, 3)]],
         };
-        assert!(verify_approximate_blackwell_dominance(
-            &more,
-            &target,
-            &invalid,
-            q(1, 1)
-        )
-        .is_err());
-        assert!(verify_approximate_blackwell_dominance(
-            &more,
-            &target,
-            &garbling(),
-            q(3, 2)
-        )
-        .is_err());
+        assert!(verify_approximate_blackwell_dominance(&more, &target, &invalid, q(1, 1)).is_err());
+        assert!(
+            verify_approximate_blackwell_dominance(&more, &target, &garbling(), q(3, 2)).is_err()
+        );
     }
-
 
     #[test]
     fn rare_critical_state_uses_a_tighter_prior_weighted_loss_bound() {
@@ -758,7 +729,11 @@ mod tests {
         .expect("rare-state risk bound");
 
         assert_eq!(
-            certificate.state_loss_spans.iter().map(|s| s.loss_span).collect::<Vec<_>>(),
+            certificate
+                .state_loss_spans
+                .iter()
+                .map(|s| s.loss_span)
+                .collect::<Vec<_>>(),
             vec![q(1, 1), q(100, 1)]
         );
         assert_eq!(certificate.decision_specific_transfer_bound, q(199, 10_000));
@@ -774,9 +749,7 @@ mod tests {
             row.push(q(0, 1));
         }
         let mut witness = garbling();
-        witness
-            .probabilities
-            .push(vec![q(1, 2), q(1, 2)]);
+        witness.probabilities.push(vec![q(1, 2), q(1, 2)]);
         let target = target_channel(80);
         let certificate = certify_approximate_blackwell_decision_transfer(
             &more,
