@@ -62,6 +62,7 @@ pub struct CounterexampleValidationReceipt {
     pub receipt_id: String,
     pub validator_id: String,
     pub validator_version: String,
+    pub evidence_artifact_id: String,
     pub schema_valid: bool,
     pub physical_plausibility_passed: bool,
     pub independent_provenance_passed: bool,
@@ -610,6 +611,9 @@ impl ModelFamilyLedger {
             return Err("replan receipt is bound to a stale family revision".into());
         }
         validate_opaque_id(&policy_identity, MAX_RECEIPT_ID_LENGTH, "replanned policy identity")?;
+        if self.invalidated_policy_identity.as_ref() == Some(&policy_identity) {
+            return Err("a new policy identity is required after counterexample invalidation".into());
+        }
 
         let replay = replay_shared_policy_across_worlds(
             &self.development_worlds,
@@ -946,6 +950,11 @@ fn validate_validation_receipt(
         &receipt.validator_version,
         MAX_RECEIPT_ID_LENGTH,
         "validator version",
+    )?;
+    validate_opaque_id(
+        &receipt.evidence_artifact_id,
+        MAX_RECEIPT_ID_LENGTH,
+        "validation evidence artifact ID",
     )?;
     if !receipt.schema_valid
         || !receipt.physical_plausibility_passed
@@ -1290,6 +1299,7 @@ mod tests {
             receipt_id: "validation-01".into(),
             validator_id: "independent-physical-check".into(),
             validator_version: "v1".into(),
+            evidence_artifact_id: "validation-evidence-01".into(),
             schema_valid: true,
             physical_plausibility_passed: true,
             independent_provenance_passed: true,
