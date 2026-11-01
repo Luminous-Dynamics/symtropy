@@ -948,16 +948,10 @@ mod tests {
     #[test]
     fn deterministic_spd_approach_panel_never_fabricates_a_solution() {
         for seed in 1..=128_u64 {
-            let mut x = [[0.0_f64; 3]; 3];
-            for (i, row) in x.iter_mut().enumerate() {
-                for (j, value) in row.iter_mut().enumerate() {
-                    let k = (seed * (7 + (i * 3 + j) as u64 * 11)) % 101;
-                    *value = (k as f64 / 37.0) - 1.2;
-                }
-            }
-            let m = Matrix3::new(
-                x[0][0], x[0][1], x[0][2], x[1][0], x[1][1], x[1][2], x[2][0], x[2][1], x[2][2],
-            );
+            let m = Matrix3::from_fn(|i, j| {
+                let k = (seed * (7 + (i * 3 + j) as u64 * 11)) % 101;
+                (k as f64 / 37.0) - 1.2
+            });
             let w = m.transpose() * m + Matrix3::identity() * 0.3;
             let q = SVector::<_, 3>::new(
                 -0.2 - (seed % 13) as f64 / 7.0,
