@@ -228,6 +228,45 @@ fn canonical_import_bytes(report: &Su2HistoryReport) -> Vec<u8> {
     bytes
 }
 
+/// Recompute the canonical digest of a typed history-import report.
+/// This proves representation integrity only; source authenticity still comes from receipt replay.
+pub fn su2_history_import_sha256(report: &Su2HistoryReport) -> Result<String, String> {
+    sha256_hex(&canonical_import_bytes(report))
+}
+
+/// Verify the canonical import digest and structural invariants before downstream use.
+pub fn verify_su2_history_import(report: &Su2HistoryReport) -> Result<(), String> {
+    if report.schema != SU2_HISTORY_IMPORT_SCHEMA
+        || report.solver_id != "SU2_CFD"
+        || report.evidence_level != SU2_HISTORY_EVIDENCE_LEVEL
+    {
+        return Err("history import schema, solver identity, or evidence ceiling is not recognized".to_owned());
+    }
+    for (name, value) in [
+        ("executable_sha256", report.executable_sha256.as_str()),
+        ("runner_receipt_sha256", report.runner_receipt_sha256.as_str()),
+        ("history_sha256", report.history_sha256.as_str()),
+        ("import_sha256", report.import_sha256.as_str()),
+    ] {
+        if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(format!("history import {name} is not a SHA-256 digest"));
+        }
+    }
+    if report.points.is_empty()
+        || report.points.iter().any(|point| {
+            point.values.len() != report.numeric_fields.len()
+                || point.values.iter().any(|value| !value.is_finite())
+        })
+        || report.points.windows(2).any(|pair| pair[1].iteration <= pair[0].iteration)
+    {
+        return Err("history import points are malformed or not strictly increasing".to_owned());
+    }
+    if su2_history_import_sha256(report)? != report.import_sha256 {
+        return Err("history import canonical digest mismatch".to_owned());
+    }
+    Ok(())
+}
+
 fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
@@ -398,7 +437,7 @@ fn import_su2_history_with_receipt(
         import_sha256: String::new(),
         evidence_level: SU2_HISTORY_EVIDENCE_LEVEL.to_owned(),
     };
-    report.import_sha256 = sha256_hex(&canonical_import_bytes(&report))?;
+    report.import_sha256 = su2_history_import_sha256(&report)?;
     Ok(report)
 }
 
