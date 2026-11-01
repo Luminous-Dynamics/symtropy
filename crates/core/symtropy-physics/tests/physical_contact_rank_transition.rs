@@ -94,11 +94,7 @@ fn matrix_times_vector(matrix: &Matrix6, vector: &Vector6) -> Vector6 {
 }
 
 fn transpose_times_vector(matrix: &Matrix6, vector: &Vector6) -> Vector6 {
-    std::array::from_fn(|column| {
-        (0..6)
-            .map(|row| matrix[row][column] * vector[row])
-            .sum()
-    })
+    std::array::from_fn(|column| (0..6).map(|row| matrix[row][column] * vector[row]).sum())
 }
 
 #[test]
@@ -138,9 +134,21 @@ fn exact_geometry_rank_changes_from_five_to_three_at_contact_coincidence() {
     // These three null vectors are independent: the selected 3x3 coordinate
     // minor on indices (1,2,3) has determinant -1.
     let null_minor = determinant_bareiss(vec![
-        vec![TANGENT_ONE_NULL[1], NORMAL_DUPLICATE_NULL[1], TANGENT_TWO_DUPLICATE_NULL[1]],
-        vec![TANGENT_ONE_NULL[2], NORMAL_DUPLICATE_NULL[2], TANGENT_TWO_DUPLICATE_NULL[2]],
-        vec![TANGENT_ONE_NULL[3], NORMAL_DUPLICATE_NULL[3], TANGENT_TWO_DUPLICATE_NULL[3]],
+        vec![
+            TANGENT_ONE_NULL[1],
+            NORMAL_DUPLICATE_NULL[1],
+            TANGENT_TWO_DUPLICATE_NULL[1],
+        ],
+        vec![
+            TANGENT_ONE_NULL[2],
+            NORMAL_DUPLICATE_NULL[2],
+            TANGENT_TWO_DUPLICATE_NULL[2],
+        ],
+        vec![
+            TANGENT_ONE_NULL[3],
+            NORMAL_DUPLICATE_NULL[3],
+            TANGENT_TWO_DUPLICATE_NULL[3],
+        ],
     ]);
     assert_eq!(null_minor, 1);
 }
