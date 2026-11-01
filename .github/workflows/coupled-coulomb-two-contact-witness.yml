@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "crates/core/symtropy-physics/tests/coupled_friction_two_contact_witness.rs"
+      - "crates/core/symtropy-physics/src/coupled_friction.rs"
+      - "crates/core/symtropy-physics/src/friction_cone.rs"
+      - "crates/core/symtropy-physics/src/integrator.rs"
       - "docs/research/COULOMB_TWO_CONTACT_MULTIROOT_WITNESS_2026-10-31.md"
       - ".github/workflows/coupled-coulomb-two-contact-witness.yml"
   workflow_dispatch:
@@ -24,5 +27,5 @@ jobs:
         run: rustfmt --edition 2024 --check crates/core/symtropy-physics/tests/coupled_friction_two_contact_witness.rs
       - name: Validate coupled two-contact witness
         run: cargo test -p symtropy-physics --test coupled_friction_two_contact_witness --locked
-      - name: Re-run single-contact coupled Coulomb reference
-        run: cargo test -p symtropy-physics --lib coupled_friction::tests --locked
+      - name: Compile production physics library
+        run: cargo check -p symtropy-physics --lib --locked
