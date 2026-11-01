@@ -152,11 +152,16 @@ Mutual information is provided only as a floating-point acquisition
 diagnostic. All posterior, total-variation, expected-loss, Brier, oracle-regret
 and unsupported-mass receipts use exact rational arithmetic.
 
-The matched-cost A/B audit compares nominal information preference, nominal
-model-risk preference and realized cost-plus-terminal-loss preference. It also
-runs the bounded exact Blackwell feasibility solver in both directions and
-retains the corresponding garbling certificates or explicit unsupported-size
-errors. A certificate establishes nominal channel dominance only; it does not
+The A/B audit compares nominal information preference, nominal model-risk
+preference and realized cost-plus-terminal-loss preference. Cost is converted
+to terminal-loss units with an explicit exact-rational exchange rate; the
+default is one-to-one, but callers can vary it. The report also keeps cost and
+decision loss as separate nominal and realized Pareto objectives, classifying
+A-dominates-B, B-dominates-A, trade-off or equivalence. This prevents an
+arbitrary scalarization from concealing a cost/risk trade-off. The audit runs
+the bounded exact Blackwell feasibility solver in both directions and retains
+the corresponding garbling certificates or explicit unsupported-size errors.
+A certificate establishes nominal channel dominance only; it does not
 establish robustness under a shifted true channel.
 
 The authored binary fixture certifies that a perfect channel Blackwell-dominates
