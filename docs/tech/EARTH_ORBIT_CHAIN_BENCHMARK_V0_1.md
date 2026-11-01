@@ -41,7 +41,7 @@ An unserved launch window is not zero delay. Unknown capacity is not unlimited c
 
 ## 3. System boundary and interfaces
 
-Use an acyclic campaign graph for the first tranche. Each node and edge should be typed and versioned.
+Use an acyclic campaign graph for the first tranche. Each node and edge should be typed and versioned. Every scenario must explicitly declare whether routes are mutually exclusive alternatives or a parallel-service portfolio; never sum capacities across alternatives as though they operated simultaneously.
 
 A stage contract should preserve:
 - stable node / edge / cargo / mission IDs;
