@@ -420,8 +420,9 @@ mod tests {
     fn run_fixture(root: &Path, solver_id: &str, history: &str) -> PathBuf {
         fs::create_dir_all(root).expect("create fixture root");
         let executable = root.join("fake-su2-cfd.sh");
+        let shell_quoted_history = history.replace('\'', "'\\''");
         let script = format!(
-            "#!/bin/sh\nset -eu\ncat > history.csv <<'HISTORY'\n{history}HISTORY\n"
+            "#!/bin/sh\nset -eu\nprintf '%s' '{shell_quoted_history}' > history.csv\n"
         );
         fs::write(&executable, script).expect("write fake solver");
         let mut permissions = fs::metadata(&executable).expect("fake solver metadata").permissions();
@@ -548,14 +549,8 @@ mod tests {
             "\"Iteration\",\"CL\",\"CD\",\"RMS_RES\"\n0,0.4,0.02,1e-2\n1,0.99,0.018,1e-3\n",
         )
         .expect("tamper with history output");
-        assert!(
-            import_su2_history(&run, &schema())
-                .expect_err("mutated output rejected")
-                .contains("persisted stdout.log")
-                || import_su2_history(&run, &schema())
-                    .expect_err("mutated output rejected")
-                    .contains("one or more expected solver outputs")
-        );
+        let error = import_su2_history(&run, &schema()).expect_err("mutated output rejected");
+        assert!(error.contains("one or more expected solver outputs"));
         fs::remove_dir_all(root).expect("remove tamper fixture");
     }
 }
