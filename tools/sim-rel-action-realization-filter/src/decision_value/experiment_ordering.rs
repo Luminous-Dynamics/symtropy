@@ -1079,12 +1079,8 @@ pub fn compute_gibbs_eig_exact_finite(
     prior: &[Rational],
     gibbs_factors: &[Vec<Rational>],
 ) -> Result<GibbsEigExactReceipt, String> {
-    let posterior_rule = generalized_bayes_posterior_rule_from_weights(
-        rule_id,
-        assumed,
-        prior,
-        gibbs_factors,
-    )?;
+    let posterior_rule =
+        generalized_bayes_posterior_rule_from_weights(rule_id, assumed, prior, gibbs_factors)?;
 
     let mut pseudo_predictive_mass_by_observation =
         Vec::with_capacity(assumed.observation_ids.len());
@@ -1093,8 +1089,7 @@ pub fn compute_gibbs_eig_exact_finite(
     for (observation, factors) in gibbs_factors.iter().enumerate() {
         let mut marginal_mass = Rational::zero();
         for (prior_mass, factor) in prior.iter().copied().zip(factors.iter().copied()) {
-            marginal_mass =
-                marginal_mass.checked_add(prior_mass.checked_mul(factor)?)?;
+            marginal_mass = marginal_mass.checked_add(prior_mass.checked_mul(factor)?)?;
         }
         if marginal_mass.is_zero() {
             return Err(format!(
@@ -1118,9 +1113,7 @@ pub fn compute_gibbs_eig_exact_finite(
     let mut total = 0.0_f64;
     let mut compensation = 0.0_f64;
 
-    for (observation, posterior) in
-        posterior_rule.posterior_by_observation.iter().enumerate()
-    {
+    for (observation, posterior) in posterior_rule.posterior_by_observation.iter().enumerate() {
         let mut kl = 0.0_f64;
         let mut kl_compensation = 0.0_f64;
         for (gibbs_probability, prior_probability) in
@@ -1130,12 +1123,10 @@ pub fn compute_gibbs_eig_exact_finite(
                 continue;
             }
             if prior_probability.is_zero() {
-                return Err(
-                    "Gibbs posterior assigned positive mass outside prior support".into(),
-                );
+                return Err("Gibbs posterior assigned positive mass outside prior support".into());
             }
-            let ratio_log = rational_to_f64(gibbs_probability).ln()
-                - rational_to_f64(prior_probability).ln();
+            let ratio_log =
+                rational_to_f64(gibbs_probability).ln() - rational_to_f64(prior_probability).ln();
             let term = rational_to_f64(gibbs_probability) * ratio_log;
             kahan_add(&mut kl, &mut kl_compensation, term);
         }
@@ -1145,8 +1136,7 @@ pub fn compute_gibbs_eig_exact_finite(
             ));
         }
         let kl = kl.max(0.0);
-        let predictive_probability =
-            rational_to_f64(normalized_pseudo_predictive[observation]);
+        let predictive_probability = rational_to_f64(normalized_pseudo_predictive[observation]);
         let contribution = predictive_probability * kl;
         conditional_kl_nats.push(kl);
         contribution_nats.push(contribution);
@@ -1230,12 +1220,16 @@ pub fn estimate_gibbs_eig_importance_from_samples(
     }
     for (observation, factors) in gibbs_factors.iter().enumerate() {
         if factors.len() != assumed.state_ids.len() {
-            return Err(format!("Gibbs factor row {observation} has the wrong state dimension"));
+            return Err(format!(
+                "Gibbs factor row {observation} has the wrong state dimension"
+            ));
         }
     }
     for (state, proposal_row) in proposal_probabilities.iter().enumerate() {
         if proposal_row.len() != assumed.observation_ids.len() {
-            return Err(format!("proposal row {state} has the wrong observation dimension"));
+            return Err(format!(
+                "proposal row {state} has the wrong observation dimension"
+            ));
         }
         let mut row_mass = Rational::zero();
         for probability in proposal_row {
@@ -1288,21 +1282,17 @@ pub fn estimate_gibbs_eig_importance_from_samples(
         if proposal_probability.is_zero() {
             return Err("importance sample lies outside proposal support".into());
         }
-        let gibbs_factor =
-            gibbs_factors[sample.observation_index][sample.state_index];
+        let gibbs_factor = gibbs_factors[sample.observation_index][sample.state_index];
         let weight = gibbs_factor.checked_div(proposal_probability)?;
         weight_sum = weight_sum.checked_add(weight)?;
-        squared_weight_sum =
-            squared_weight_sum.checked_add(weight.checked_mul(weight)?)?;
+        squared_weight_sum = squared_weight_sum.checked_add(weight.checked_mul(weight)?)?;
         importance_weights.push(weight);
 
         if weight.is_zero() {
             continue;
         }
-        let marginal_mass =
-            exact.pseudo_predictive_mass_by_observation[sample.observation_index];
-        let log_ratio = rational_to_f64(gibbs_factor).ln()
-            - rational_to_f64(marginal_mass).ln();
+        let marginal_mass = exact.pseudo_predictive_mass_by_observation[sample.observation_index];
+        let log_ratio = rational_to_f64(gibbs_factor).ln() - rational_to_f64(marginal_mass).ln();
         let weighted_term = rational_to_f64(weight) * log_ratio;
         kahan_add(
             &mut weighted_utility,
@@ -1314,11 +1304,12 @@ pub fn estimate_gibbs_eig_importance_from_samples(
     if weight_sum.is_zero() || squared_weight_sum.is_zero() {
         return Err("all sampled Gibbs importance weights are zero".into());
     }
-    let effective_sample_size =
-        weight_sum.checked_mul(weight_sum)?.checked_div(squared_weight_sum)?;
+    let effective_sample_size = weight_sum
+        .checked_mul(weight_sum)?
+        .checked_div(squared_weight_sum)?;
     let sample_count = Rational::from_u64(samples.len() as u64);
-    let effective_sample_size_fraction = rational_to_f64(effective_sample_size)
-        / rational_to_f64(sample_count);
+    let effective_sample_size_fraction =
+        rational_to_f64(effective_sample_size) / rational_to_f64(sample_count);
     let normalized_importance_weights = importance_weights
         .iter()
         .map(|weight| weight.checked_div(weight_sum))
@@ -2821,16 +2812,46 @@ mod tests {
 
     fn likelihood_proposal_samples() -> Vec<GibbsImportanceSample> {
         vec![
-            GibbsImportanceSample { state_index: 0, observation_index: 0 },
-            GibbsImportanceSample { state_index: 0, observation_index: 0 },
-            GibbsImportanceSample { state_index: 0, observation_index: 0 },
-            GibbsImportanceSample { state_index: 0, observation_index: 0 },
-            GibbsImportanceSample { state_index: 0, observation_index: 1 },
-            GibbsImportanceSample { state_index: 1, observation_index: 0 },
-            GibbsImportanceSample { state_index: 1, observation_index: 1 },
-            GibbsImportanceSample { state_index: 1, observation_index: 1 },
-            GibbsImportanceSample { state_index: 1, observation_index: 1 },
-            GibbsImportanceSample { state_index: 1, observation_index: 1 },
+            GibbsImportanceSample {
+                state_index: 0,
+                observation_index: 0,
+            },
+            GibbsImportanceSample {
+                state_index: 0,
+                observation_index: 0,
+            },
+            GibbsImportanceSample {
+                state_index: 0,
+                observation_index: 0,
+            },
+            GibbsImportanceSample {
+                state_index: 0,
+                observation_index: 0,
+            },
+            GibbsImportanceSample {
+                state_index: 0,
+                observation_index: 1,
+            },
+            GibbsImportanceSample {
+                state_index: 1,
+                observation_index: 0,
+            },
+            GibbsImportanceSample {
+                state_index: 1,
+                observation_index: 1,
+            },
+            GibbsImportanceSample {
+                state_index: 1,
+                observation_index: 1,
+            },
+            GibbsImportanceSample {
+                state_index: 1,
+                observation_index: 1,
+            },
+            GibbsImportanceSample {
+                state_index: 1,
+                observation_index: 1,
+            },
         ]
     }
 
@@ -2842,13 +2863,8 @@ mod tests {
             vec![channel.probabilities[0][0], channel.probabilities[1][0]],
             vec![channel.probabilities[0][1], channel.probabilities[1][1]],
         ];
-        let exact = compute_gibbs_eig_exact_finite(
-            "ordinary-bayes",
-            &channel,
-            &prior,
-            &factors,
-        )
-        .unwrap();
+        let exact =
+            compute_gibbs_eig_exact_finite("ordinary-bayes", &channel, &prior, &factors).unwrap();
         let mutual_information_nats =
             mutual_information_bits(&channel, &prior).unwrap() * std::f64::consts::LN_2;
         assert!((exact.value_nats - mutual_information_nats).abs() < 1.0e-12);
@@ -2863,13 +2879,9 @@ mod tests {
             vec![Rational::one(), Rational::one()],
             vec![Rational::one(), Rational::one()],
         ];
-        let exact = compute_gibbs_eig_exact_finite(
-            "zero-learning-rate",
-            &channel,
-            &prior,
-            &factors,
-        )
-        .unwrap();
+        let exact =
+            compute_gibbs_eig_exact_finite("zero-learning-rate", &channel, &prior, &factors)
+                .unwrap();
         assert_eq!(exact.value_nats, 0.0);
         assert_eq!(
             exact.normalized_pseudo_predictive,
@@ -2897,7 +2909,10 @@ mod tests {
         .unwrap();
         assert_eq!(receipt.effective_sample_size, Rational::from_u64(10));
         assert_eq!(receipt.effective_sample_size_fraction, 1.0);
-        assert!((receipt.estimated_gibbs_eig_nats - receipt.exact_oracle_gibbs_eig_nats).abs() < 1.0e-12);
+        assert!(
+            (receipt.estimated_gibbs_eig_nats - receipt.exact_oracle_gibbs_eig_nats).abs()
+                < 1.0e-12
+        );
         assert_eq!(receipt.maximum_normalized_weight, rational(1, 10));
     }
 
@@ -2932,27 +2947,36 @@ mod tests {
             vec![Rational::one(), Rational::one()],
             vec![Rational::one(), Rational::one()],
         ];
-        assert!(estimate_gibbs_eig_importance_from_samples(
-            "empty",
-            &channel,
-            &prior,
-            &factors,
-            &channel.probabilities,
-            &[],
-        ).is_err());
+        assert!(
+            estimate_gibbs_eig_importance_from_samples(
+                "empty",
+                &channel,
+                &prior,
+                &factors,
+                &channel.probabilities,
+                &[],
+            )
+            .is_err()
+        );
 
         let proposal = vec![
             vec![Rational::one(), Rational::zero()],
             vec![Rational::one(), Rational::zero()],
         ];
-        assert!(estimate_gibbs_eig_importance_from_samples(
-            "support-gap",
-            &channel,
-            &prior,
-            &factors,
-            &proposal,
-            &[GibbsImportanceSample { state_index: 0, observation_index: 0 }],
-        ).is_err());
+        assert!(
+            estimate_gibbs_eig_importance_from_samples(
+                "support-gap",
+                &channel,
+                &prior,
+                &factors,
+                &proposal,
+                &[GibbsImportanceSample {
+                    state_index: 0,
+                    observation_index: 0
+                }],
+            )
+            .is_err()
+        );
     }
 
     #[test]
