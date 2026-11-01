@@ -9,7 +9,7 @@
 //! rational intervals. The result certifies the polynomial represented by the
 //! input binary64 coefficients, not the unrounded physical parameters.
 
-use super::coupled_friction_sturm_support::{
+use crate::coupled_friction_sturm_support::{
     Polynomial, Rational, cauchy_bound, count_open, derivative, evaluate, exact_f64, is_zero,
     isolate_recursive, move_endpoint_off_root, normalize_positive, one_sided_sign, polynomial_add,
     polynomial_multiply, polynomial_scale, remainder, sturm_chain, sturm_isolate_rational, trim,
