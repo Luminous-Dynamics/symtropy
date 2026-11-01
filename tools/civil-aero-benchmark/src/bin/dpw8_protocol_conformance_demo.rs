@@ -123,7 +123,8 @@ fn run() -> Result<(), String> {
             key: "sidewall_boundary_condition".to_owned(),
             value: Some(ObservedProtocolValue::Text("symmetric".to_owned())),
             source_reference: PARTICIPANT_METADATA_REF.to_owned(),
-            note: "Symmetric observed; periodic required. No physical equivalence inferred".to_owned(),
+            note: "Symmetric observed; periodic required. No physical equivalence inferred"
+                .to_owned(),
         },
         ProtocolObservation {
             key: "grid_level_count".to_owned(),
