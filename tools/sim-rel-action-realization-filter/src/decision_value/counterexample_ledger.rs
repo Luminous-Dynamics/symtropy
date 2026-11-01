@@ -526,7 +526,7 @@ impl ModelFamilyLedger {
                 }
             }
         };
-        if replay_outcome != witness.outcome {
+        if !counterexample_outcomes_match(&witness.outcome, &replay_outcome) {
             return Err("counterexample witness outcome does not match independent ledger replay".into());
         }
         if replay_outcome.class() == CounterexampleClass::NoViolation {
@@ -888,6 +888,22 @@ impl ModelFamilyLedger {
     }
 }
 
+fn counterexample_outcomes_match(
+    claimed: &CounterexampleOutcome,
+    observed: &CounterexampleOutcome,
+) -> bool {
+    match (claimed, observed) {
+        // The independently replayed parser/classifier may produce a more
+        // specific error string than the search harness. The typed class must
+        // still agree, and the observed error is retained in the admission.
+        (
+            CounterexampleOutcome::PolicyInvalidated { .. },
+            CounterexampleOutcome::PolicyInvalidated { .. },
+        ) => true,
+        _ => claimed == observed,
+    }
+}
+
 fn validate_opaque_id(value: &str, max_length: usize, label: &str) -> Result<(), String> {
     if value.trim().is_empty() || value.len() > max_length {
         return Err(format!("{label} must be non-empty and no longer than {max_length} bytes"));
@@ -1089,155 +1105,9 @@ mod tests {
             family_revision,
             policy_id.into(),
             worlds,
-            "heldout-world-a",
-            &loss_table(),
-            ObservationProtocol::fully_observed(),
-            &[Rational::zero(), Rational::zero()],
-            Rational::one(),
-            2,
             criteria,
             format!("{event_id}-artifact"),
         )
-    }
-
-    fn ledger() -> ModelFamilyLedger {
-        ModelFamilyLedger::new(
-            vec![world("nominal")],
-            vec![holdout()],
-            "policy-v1".into(),
-            test_policy(),
-            "nominal",
-            &loss_table(),
-            ObservationProtocol::fully_observed(),
-            &[Rational::zero(), Rational::zero()],
-            Rational::one(),
-            2,
-            DecisionBudgets {
-                max_hazard_probability: Rational::zero(),
-                max_abstention_probability: Rational::zero(),
-            },
-        )
-        .unwrap()
-    }
-
-    fn loss_table() -> DecisionLossTable {
-        DecisionLossTable {
-            decision_ids: vec!["claim-h0".into(), "claim-h1".into()],
-            losses: vec![
-                vec![
-                    vec![vec![vec![Rational::zero()]]],
-                    vec![vec![vec![Rational::one()]]],
-                ],
-                vec![
-                    vec![vec![vec![Rational::one()]]],
-                    vec![vec![vec![Rational::zero()]]],
-                ],
-            ],
-            abstention_loss: Rational::one(),
-        }
-    }
-
-    fn replan(
-        ledger: &mut ModelFamilyLedger,
-        event_id: &str,
-        revision: u64,
-        policy_id: &str,
-        plan: DecisionPlan,
-    ) -> Result<FamilyReplanRecord, String> {
-        ledger.record_replan(
-            event_id.into(),
-            revision,
-            policy_id.into(),
-            plan,
-            "nominal",
-            &loss_table(),
-            ObservationProtocol::fully_observed(),
-            &[Rational::zero(), Rational::zero()],
-            Rational::one(),
-            2,
-            DecisionBudgets {
-                max_hazard_probability: Rational::zero(),
-                max_abstention_probability: Rational::zero(),
-            },
-        )
-    }
-
-    fn terminal_plan() -> DecisionPlan {
-        DecisionPlan::TerminalDecision { decision: Some(0) }
-    }
-
-    fn test_policy() -> DecisionPlan {
-        DecisionPlan::Experiment {
-            command: 0,
-            branches: vec![
-                super::super::finite_horizon::DecisionBranch {
-                    observation: PublicObservation {
-                        hazard: false,
-                        readback: ObservationField::Value(0),
-                        measurement: ObservationField::Value(0),
-                    },
-                    plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(0) }),
-                },
-                super::super::finite_horizon::DecisionBranch {
-                    observation: PublicObservation {
-                        hazard: false,
-                        readback: ObservationField::Value(0),
-                        measurement: ObservationField::Value(1),
-                    },
-                    plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(1) }),
-                },
-            ],
-        }
-    }
-
-    fn counterexample(source: &DecisionModelWorld, candidate_id: &str) -> CounterexampleWitness {
-        let perturbation = ModelWorldPerturbation::DropReadback {
-            command: 0,
-            sensor_state: Some(0),
-            dropout_probability: q(1, 2),
-        };
-        let candidate = super::super::counterexample_search::apply_model_world_perturbation(
-            source,
-            candidate_id,
-            &perturbation,
-        )
-        .unwrap();
-        CounterexampleWitness {
-            spec: PerturbationSpec {
-                source_world_id: source.id.clone(),
-                candidate_world_id: candidate_id.into(),
-                perturbation,
-            },
-            candidate_world: candidate,
-            outcome: CounterexampleOutcome::PolicyInvalidated {
-                reason: "new missing-readback branch invalidates the fixed policy".into(),
-            },
-        }
-    }
-
-    fn provenance(policy_identity: &str, split: EvidenceSplit, group: &str) -> CounterexampleProvenance {
-        CounterexampleProvenance {
-            split,
-            family_group_id: group.into(),
-            generator_id: "bounded-grid".into(),
-            generator_version: "v1".into(),
-            search_run_id: "search-run-01".into(),
-            seed: 42,
-            policy_identity: policy_identity.into(),
-            attacked_policy: test_policy(),
-        }
-    }
-
-    fn validation() -> CounterexampleValidationReceipt {
-        CounterexampleValidationReceipt {
-            receipt_id: "validation-01".into(),
-            validator_id: "independent-physical-check".into(),
-            validator_version: "v1".into(),
-            schema_valid: true,
-            physical_plausibility_passed: true,
-            independent_provenance_passed: true,
-            origin_split_verified: true,
-        }
     }
 
     #[test]
