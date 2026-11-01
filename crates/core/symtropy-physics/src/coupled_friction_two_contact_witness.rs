@@ -1922,8 +1922,7 @@ mod double_sliding_direction_oracle {
 
         // Two shifted rows of G1 (degree two of G2).
         for shift in 0..DEGREE_G2_T1 {
-            sylvester[shift][shift..shift + DEGREE_G1_T1 + 1]
-                .clone_from_slice(&g1_coefficients);
+            sylvester[shift][shift..shift + DEGREE_G1_T1 + 1].clone_from_slice(&g1_coefficients);
         }
         // Four shifted rows of G2 (degree four of G1).
         for shift in 0..DEGREE_G1_T1 {
