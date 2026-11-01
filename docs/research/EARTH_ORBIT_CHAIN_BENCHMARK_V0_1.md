@@ -55,6 +55,7 @@ A stage contract should preserve:
 - energy carrier, energy amount, emissions factor and source;
 - failure domain, shared dependencies and recovery option;
 - source identity, version, license/permission, acquisition time and claim ceiling;
+- time-profile identifier / epoch convention, matching the authoritative transport allocation contract [#1639](https://github.com/Luminous-Dynamics/symtropy/issues/1639);
 - specialist-model receipt, exact model version, configuration digest and output digest.
 
 The end-to-end evaluator may join specialist receipts but cannot reinterpret an unqualified specialist result as verified physics.
@@ -214,6 +215,7 @@ Keep private financial, public fiscal, economic resource, distributional, enviro
 ## 12. Ownership and claim ceiling
 
 - #1601 and #3201 own surface network/mode calculations.
+- #1639 owns time-windowed physical-resource allocation and its explicit time-profile semantics; this chain layer consumes its qualification receipt and verifies profile identity rather than recalculating resource capacity.
 - #3202 owns orbital-access architecture physics.
 - Sol-Atlas #393 owns evidence-bounded spaceport geography.
 - #1972 owns capability history and evidence tiers.
