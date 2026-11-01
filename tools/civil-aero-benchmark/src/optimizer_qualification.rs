@@ -47,9 +47,7 @@ impl AnalyticTask {
                 Self::Zdt1 => (reference_y - 1.0) + 2.0 / 3.0,
                 Self::Zdt2 => (reference_y - 1.0) + 1.0 / 3.0,
                 Self::Zdt3 => unreachable!("ZDT3 is handled above"),
-                Self::Zdt4 => {
-                    (reference_y - 1.0) + 2.0 / 3.0 + (reference_x - 1.0) * reference_y
-                }
+                Self::Zdt4 => (reference_y - 1.0) + 2.0 / 3.0 + (reference_x - 1.0) * reference_y,
             };
             curve_integral + (reference_x - 1.0) * reference_y
         }
