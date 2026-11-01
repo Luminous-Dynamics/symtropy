@@ -2373,6 +2373,165 @@ mod tests {
         }
     }
 
+    #[test]
+    fn binary_le_cam_deficiency_is_zero_for_perfect_to_noisy() {
+        let perfect = perfect_channel("perfect");
+        let noisy = noisy_channel("noisy");
+        let receipt = solve_binary_le_cam_deficiency(&perfect, &noisy).unwrap();
+
+        assert_eq!(receipt.optimal_deficiency, rational(0, 1));
+        assert_eq!(receipt.independent_vertex_lower_bound, rational(0, 1));
+        assert!(receipt.optimality_verified);
+        assert_eq!(receipt.dominance.maximum_state_residual, rational(0, 1));
+        assert!(receipt.dominance.within_declared_radius);
+        assert!(receipt.active_sets_checked > 0);
+        assert!(receipt.feasible_vertices > 0);
+        assert_eq!(
+            receipt.dominance.witness.probabilities,
+            vec![
+                vec![rational(4, 5), rational(1, 5)],
+                vec![rational(1, 5), rational(4, 5)],
+            ]
+        );
+    }
+
+    #[test]
+    fn binary_le_cam_deficiency_is_three_tenths_for_uninformative_to_noisy() {
+        let uninformative = FiniteObservationChannel {
+            channel_id: "uninformative".into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["z0".into(), "z1".into()],
+            probabilities: vec![
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(1, 2), rational(1, 2)],
+            ],
+        };
+        let noisy = noisy_channel("noisy");
+        let receipt = solve_binary_le_cam_deficiency(&uninformative, &noisy).unwrap();
+
+        assert_eq!(receipt.optimal_deficiency, rational(3, 10));
+        assert_eq!(receipt.independent_vertex_lower_bound, rational(3, 10));
+        assert_eq!(receipt.dominance.maximum_state_residual, rational(3, 10));
+        assert!(receipt.optimality_verified);
+        assert_eq!(
+            receipt.dominance.witness.probabilities,
+            vec![
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(1, 2), rational(1, 2)],
+            ]
+        );
+    }
+
+    #[test]
+    fn binary_le_cam_deficiency_is_one_tenth_for_seventy_to_eighty_percent() {
+        let source = FiniteObservationChannel {
+            channel_id: "seventy-percent".into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["z0".into(), "z1".into()],
+            probabilities: vec![
+                vec![rational(7, 10), rational(3, 10)],
+                vec![rational(3, 10), rational(7, 10)],
+            ],
+        };
+        let target = noisy_channel("eighty-percent");
+        let receipt = solve_binary_le_cam_deficiency(&source, &target).unwrap();
+
+        assert_eq!(receipt.optimal_deficiency, rational(1, 10));
+        assert_eq!(receipt.independent_vertex_lower_bound, rational(1, 10));
+        assert!(receipt.optimality_verified);
+        assert_eq!(receipt.dominance.maximum_state_residual, rational(1, 10));
+        assert_eq!(
+            receipt.dominance.witness.probabilities,
+            vec![
+                vec![rational(1, 1), rational(0, 1)],
+                vec![rational(0, 1), rational(1, 1)],
+            ]
+        );
+    }
+
+    fn three_state_binary_channels() -> (
+        FiniteObservationChannel,
+        FiniteObservationChannel,
+    ) {
+        let source = FiniteObservationChannel {
+            channel_id: "three-state-source".into(),
+            state_ids: vec!["s0".into(), "s1".into(), "s2".into()],
+            observation_ids: vec!["z0".into(), "z1".into()],
+            probabilities: vec![
+                vec![rational(1, 1), rational(0, 1)],
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(0, 1), rational(1, 1)],
+            ],
+        };
+        let target = FiniteObservationChannel {
+            channel_id: "three-state-target".into(),
+            state_ids: source.state_ids.clone(),
+            observation_ids: vec!["y0".into(), "y1".into()],
+            probabilities: vec![
+                vec![rational(4, 5), rational(1, 5)],
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(1, 5), rational(4, 5)],
+            ],
+        };
+        (source, target)
+    }
+
+    #[test]
+    fn binary_le_cam_deficiency_supports_three_states_and_state_permutations() {
+        let (source, target) = three_state_binary_channels();
+        let receipt = solve_binary_le_cam_deficiency(&source, &target).unwrap();
+        assert_eq!(receipt.optimal_deficiency, rational(0, 1));
+        assert!(receipt.optimality_verified);
+
+        let permutation = [2usize, 0usize, 1usize];
+        let permuted = |channel: &FiniteObservationChannel, id: &str| {
+            FiniteObservationChannel {
+                channel_id: id.into(),
+                state_ids: permutation
+                    .iter()
+                    .map(|index| channel.state_ids[*index].clone())
+                    .collect(),
+                observation_ids: channel.observation_ids.clone(),
+                probabilities: permutation
+                    .iter()
+                    .map(|index| channel.probabilities[*index].clone())
+                    .collect(),
+            }
+        };
+        let permuted_source = permuted(&source, "permuted-source");
+        let permuted_target = permuted(&target, "permuted-target");
+        let permuted_receipt =
+            solve_binary_le_cam_deficiency(&permuted_source, &permuted_target).unwrap();
+        assert_eq!(
+            permuted_receipt.optimal_deficiency,
+            receipt.optimal_deficiency
+        );
+        assert_eq!(
+            permuted_receipt.independent_vertex_lower_bound,
+            receipt.independent_vertex_lower_bound
+        );
+        assert!(permuted_receipt.optimality_verified);
+    }
+
+    #[test]
+    fn binary_le_cam_deficiency_rejects_nonbinary_channels_and_malformed_vocabularies() {
+        let binary = perfect_channel("binary");
+        let nonbinary = FiniteObservationChannel {
+            channel_id: "three-observations".into(),
+            state_ids: binary.state_ids.clone(),
+            observation_ids: vec!["a".into(), "b".into(), "c".into()],
+            probabilities: vec![
+                vec![rational(1, 3), rational(1, 3), rational(1, 3)],
+                vec![rational(1, 3), rational(1, 3), rational(1, 3)],
+            ],
+        };
+        assert!(solve_binary_le_cam_deficiency(&binary, &nonbinary).is_err());
+
+        let mut malformed = noisy_channel("wrong-state-vocabulary");
+        malformed.state_ids[1] = "different-state".into();
+        assert!(solve_binary_le_cam_deficiency(&binary, &malformed).is_err());
+    }
+
     fn posterior_rule(
         assumed: &FiniteObservationChannel,
         rule_id: &str,
