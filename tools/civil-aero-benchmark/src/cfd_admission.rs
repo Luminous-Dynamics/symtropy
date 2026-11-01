@@ -291,10 +291,7 @@ pub fn evaluate_cfd_evidence_admission(
             if previous.mesh_node_count >= run.mesh_node_count {
                 return Err(format!(
                     "grid runs must have strictly increasing mesh node counts coarse-to-fine: {} has {} then {} has {}",
-                    previous.grid_id,
-                    previous.mesh_node_count,
-                    run.grid_id,
-                    run.mesh_node_count
+                    previous.grid_id, previous.mesh_node_count, run.grid_id, run.mesh_node_count
                 ));
             }
         }
