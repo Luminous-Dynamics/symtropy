@@ -435,3 +435,18 @@ optimum. The complete mathematical protocol and conformance fixtures are in
 [LECAM_DEFICIENCY_PROTOCOL.md](LECAM_DEFICIENCY_PROTOCOL.md).
 
 This is a small-domain two-output oracle, not a generalized Le Cam solver.
+
+
+## Loss-span-weighted binary-channel deficiency (SIM-REL-033)
+
+The `decision_value::experiment_ordering::solve_binary_task_weighted_deficiency`
+oracle minimizes the prior- and terminal-loss-span-weighted statewise TV
+residual over binary-output garbling kernels. It enumerates the exact rational
+arrangement vertices induced by statewise residual-zero lines and the
+garbling-square boundaries, selects a deterministic minimizer, and replays its
+statewise residual and weighted objective through the SIM-REL-031 verifier.
+
+This is a weighted directed deficiency specialization known in the statistical
+decision literature, not the classical minimax Le Cam deficiency and not a new
+general definition. See [LOSS_SPAN_WEIGHTED_PROTOCOL.md](LOSS_SPAN_WEIGHTED_PROTOCOL.md)
+for the theorem, exact fixtures, benchmark protocol and claim limits.

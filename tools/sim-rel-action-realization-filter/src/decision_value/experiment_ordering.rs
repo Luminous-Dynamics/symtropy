@@ -2269,6 +2269,280 @@ pub fn solve_binary_le_cam_deficiency(
     })
 }
 
+/// Exact receipt for the task-specific loss-span-weighted binary-channel
+/// deficiency. This objective is distinct from classical worst-state
+/// Le Cam deficiency.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BinaryTaskWeightedDeficiencyReceipt {
+    pub dominance: super::approximate_blackwell::ApproximateBlackwellDominanceReceipt,
+    pub state_loss_spans: Vec<Rational>,
+    pub prior_loss_weights: Vec<Rational>,
+    pub state_weighted_residuals: Vec<Rational>,
+    pub weighted_objective: Rational,
+    pub arrangement_line_count: usize,
+    pub candidate_intersections_examined: usize,
+    pub feasible_candidate_points: usize,
+    pub optimality_verified: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct BinaryResidualBreakLine {
+    x_coefficient: SignedRational,
+    y_coefficient: SignedRational,
+    right_hand_side: SignedRational,
+}
+
+fn binary_residual_break_lines(
+    more_informative: &FiniteObservationChannel,
+    target: &FiniteObservationChannel,
+) -> Vec<BinaryResidualBreakLine> {
+    let signed = SignedRational::from_rational;
+    let mut lines = Vec::with_capacity(more_informative.state_ids.len() + 4);
+
+    // Each residual changes sign on A(0|s)*x + A(1|s)*y = B(0|s).
+    for (state, source_row) in more_informative.probabilities.iter().enumerate() {
+        lines.push(BinaryResidualBreakLine {
+            x_coefficient: signed(source_row[0]),
+            y_coefficient: signed(source_row[1]),
+            right_hand_side: signed(target.probabilities[state][0]),
+        });
+    }
+
+    // The four boundaries of the feasible garbling square.
+    lines.extend([
+        BinaryResidualBreakLine {
+            x_coefficient: signed(Rational::one()),
+            y_coefficient: signed(Rational::zero()),
+            right_hand_side: signed(Rational::zero()),
+        },
+        BinaryResidualBreakLine {
+            x_coefficient: signed(Rational::one()),
+            y_coefficient: signed(Rational::zero()),
+            right_hand_side: signed(Rational::one()),
+        },
+        BinaryResidualBreakLine {
+            x_coefficient: signed(Rational::zero()),
+            y_coefficient: signed(Rational::one()),
+            right_hand_side: signed(Rational::zero()),
+        },
+        BinaryResidualBreakLine {
+            x_coefficient: signed(Rational::zero()),
+            y_coefficient: signed(Rational::one()),
+            right_hand_side: signed(Rational::one()),
+        },
+    ]);
+    lines
+}
+
+fn binary_break_line_intersection(
+    first: BinaryResidualBreakLine,
+    second: BinaryResidualBreakLine,
+) -> Result<Option<Vec<SignedRational>>, String> {
+    let determinant = first
+        .x_coefficient
+        .checked_mul(second.y_coefficient)?
+        .checked_sub(second.x_coefficient.checked_mul(first.y_coefficient)?)?;
+    if determinant.is_zero() {
+        // Parallel and coincident lines do not have a unique pair intersection.
+        return Ok(None);
+    }
+
+    let x_numerator = first
+        .right_hand_side
+        .checked_mul(second.y_coefficient)?
+        .checked_sub(second.right_hand_side.checked_mul(first.y_coefficient)?)?;
+    let y_numerator = first
+        .x_coefficient
+        .checked_mul(second.right_hand_side)?
+        .checked_sub(second.x_coefficient.checked_mul(first.right_hand_side)?)?;
+    let x = x_numerator.checked_div(determinant)?;
+    let y = y_numerator.checked_div(determinant)?;
+
+    if x.as_probability().is_none() || y.as_probability().is_none() {
+        return Ok(None);
+    }
+    Ok(Some(vec![x, y]))
+}
+
+fn binary_task_weighted_objective_at(
+    more_informative: &FiniteObservationChannel,
+    target: &FiniteObservationChannel,
+    state_weights: &[Rational],
+    x: Rational,
+    y: Rational,
+) -> Result<(Rational, Vec<Rational>), String> {
+    let mut objective = Rational::zero();
+    let mut weighted_residuals = Vec::with_capacity(more_informative.state_ids.len());
+
+    for (state, source_row) in more_informative.probabilities.iter().enumerate() {
+        let predicted_first = source_row[0]
+            .checked_mul(x)?
+            .checked_add(source_row[1].checked_mul(y)?)?;
+        let residual =
+            SignedRational::from_difference(target.probabilities[state][0], predicted_first)?
+                .absolute_magnitude();
+        let weighted_residual = state_weights[state].checked_mul(residual)?;
+        objective = objective.checked_add(weighted_residual)?;
+        weighted_residuals.push(weighted_residual);
+    }
+
+    Ok((objective, weighted_residuals))
+}
+
+/// Minimize the prior- and state-specific loss-span-weighted transfer error
+/// over every binary-output garbling kernel.
+///
+/// The objective is convex and piecewise linear on the square [0,1]^2. Its
+/// break lines are the per-state residual-zero lines and the four square
+/// boundaries. Every cell of this arrangement is a bounded polygon on which
+/// the objective is linear; therefore a minimum is attained at an arrangement
+/// vertex. Enumerating every exact rational pair intersection is exhaustive.
+/// Ties are resolved by lexicographic order of (x,y).
+///
+/// This is a task-specific weighted deficiency, not the classical minimax
+/// Le Cam deficiency returned by solve_binary_le_cam_deficiency.
+pub fn solve_binary_task_weighted_deficiency(
+    more_informative: &FiniteObservationChannel,
+    target: &FiniteObservationChannel,
+    prior: &[Rational],
+    losses: &ChannelDecisionLossTable,
+) -> Result<BinaryTaskWeightedDeficiencyReceipt, String> {
+    more_informative.validate()?;
+    target.validate()?;
+    if more_informative.state_ids != target.state_ids {
+        return Err(
+            "weighted deficiency channels must share the same ordered state vocabulary".into(),
+        );
+    }
+    if more_informative.observation_ids.len() != 2 || target.observation_ids.len() != 2 {
+        return Err(
+            "binary weighted deficiency requires exactly two observations in each channel".into(),
+        );
+    }
+    if more_informative.state_ids.len() > 13 {
+        return Err("binary weighted deficiency supports at most 13 hidden states".into());
+    }
+    if prior.len() != more_informative.state_ids.len() {
+        return Err("weighted deficiency prior has the wrong hidden-state dimension".into());
+    }
+    let mut prior_mass = Rational::zero();
+    for probability in prior {
+        if !probability.is_probability() {
+            return Err("weighted deficiency prior contains an invalid probability".into());
+        }
+        prior_mass = prior_mass.checked_add(*probability)?;
+    }
+    if prior_mass != Rational::one() {
+        return Err("weighted deficiency prior must sum exactly to one".into());
+    }
+    losses.validate(more_informative.state_ids.len())?;
+
+    let mut state_loss_spans = Vec::with_capacity(more_informative.state_ids.len());
+    let mut prior_loss_weights = Vec::with_capacity(more_informative.state_ids.len());
+    for state in 0..more_informative.state_ids.len() {
+        let mut minimum = losses.abstention_loss;
+        let mut maximum = losses.abstention_loss;
+        for decision_losses in &losses.losses {
+            let loss = decision_losses[state];
+            if loss < minimum {
+                minimum = loss;
+            }
+            if loss > maximum {
+                maximum = loss;
+            }
+        }
+        let span = subtract_nonnegative(maximum, minimum)?;
+        state_loss_spans.push(span);
+        prior_loss_weights.push(prior[state].checked_mul(span)?);
+    }
+
+    let lines = binary_residual_break_lines(more_informative, target);
+    let arrangement_line_count = lines.len();
+    let candidate_intersections_examined = arrangement_line_count
+        .checked_mul(arrangement_line_count.saturating_sub(1))
+        .and_then(|pairs| pairs.checked_div(2))
+        .ok_or_else(|| "weighted deficiency candidate-pair count overflow".to_string())?;
+
+    let mut candidates = BTreeSet::<Vec<SignedRational>>::new();
+    for first in 0..lines.len() {
+        for second in (first + 1)..lines.len() {
+            if let Some(candidate) = binary_break_line_intersection(lines[first], lines[second])? {
+                candidates.insert(candidate);
+            }
+        }
+    }
+    if candidates.is_empty() {
+        return Err("weighted deficiency arrangement produced no feasible vertices".into());
+    }
+
+    let mut selected: Option<(Rational, Rational, Rational, Vec<Rational>)> = None;
+    for candidate in &candidates {
+        let x = candidate[0]
+            .as_probability()
+            .ok_or_else(|| "weighted deficiency candidate has invalid x".to_string())?;
+        let y = candidate[1]
+            .as_probability()
+            .ok_or_else(|| "weighted deficiency candidate has invalid y".to_string())?;
+        let (objective, weighted_residuals) =
+            binary_task_weighted_objective_at(more_informative, target, &prior_loss_weights, x, y)?;
+        // BTreeSet iteration is lexicographic in (x,y); retaining the first
+        // exact tie provides a deterministic canonical minimizer.
+        if selected
+            .as_ref()
+            .is_none_or(|(best, _, _, _)| objective < *best)
+        {
+            selected = Some((objective, x, y, weighted_residuals));
+        }
+    }
+
+    let (weighted_objective, x, y, state_weighted_residuals) = selected
+        .ok_or_else(|| "weighted deficiency failed to select an arrangement vertex".to_string())?;
+    let witness = BlackwellGarblingWitness {
+        probabilities: vec![
+            vec![x, subtract_nonnegative(Rational::one(), x)?],
+            vec![y, subtract_nonnegative(Rational::one(), y)?],
+        ],
+    };
+    let dominance = super::approximate_blackwell::verify_approximate_blackwell_dominance(
+        more_informative,
+        target,
+        &witness,
+        Rational::one(),
+    )?;
+
+    let replayed_objective = dominance
+        .state_residuals
+        .iter()
+        .zip(&prior_loss_weights)
+        .try_fold(Rational::zero(), |total, (residual, weight)| {
+            total.checked_add(weight.checked_mul(residual.total_variation)?)
+        })?;
+    if replayed_objective != weighted_objective {
+        return Err("weighted deficiency objective failed independent residual replay".into());
+    }
+    let replayed_weighted_residuals = dominance
+        .state_residuals
+        .iter()
+        .zip(&prior_loss_weights)
+        .map(|(residual, weight)| weight.checked_mul(residual.total_variation))
+        .collect::<Result<Vec<_>, _>>()?;
+    if replayed_weighted_residuals != state_weighted_residuals {
+        return Err("weighted deficiency state contributions failed residual replay".into());
+    }
+
+    Ok(BinaryTaskWeightedDeficiencyReceipt {
+        dominance,
+        state_loss_spans,
+        prior_loss_weights,
+        state_weighted_residuals,
+        weighted_objective,
+        arrangement_line_count,
+        candidate_intersections_examined,
+        feasible_candidate_points: candidates.len(),
+        optimality_verified: true,
+    })
+}
+
 fn validate_unique_ids(ids: &[String], label: &str) -> Result<(), String> {
     if ids.is_empty() {
         return Err(format!("{label} vocabulary must be non-empty"));
@@ -2593,6 +2867,275 @@ mod tests {
             probabilities: vec![vec![rational(1, 2), rational(1, 2)]; 14],
         };
         assert!(solve_binary_le_cam_deficiency(&oversized, &oversized).is_err());
+    }
+
+    fn task_weighted_three_state_channels() -> (FiniteObservationChannel, FiniteObservationChannel)
+    {
+        let source = FiniteObservationChannel {
+            channel_id: "weighted-uninformative-source".into(),
+            state_ids: vec!["s0".into(), "s1".into(), "s2".into()],
+            observation_ids: vec!["z0".into(), "z1".into()],
+            probabilities: vec![
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(1, 2), rational(1, 2)],
+            ],
+        };
+        let target = FiniteObservationChannel {
+            channel_id: "weighted-three-level-target".into(),
+            state_ids: source.state_ids.clone(),
+            observation_ids: vec!["y0".into(), "y1".into()],
+            probabilities: vec![
+                vec![rational(0, 1), rational(1, 1)],
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(1, 1), rational(0, 1)],
+            ],
+        };
+        (source, target)
+    }
+
+    fn unit_span_three_state_losses() -> ChannelDecisionLossTable {
+        ChannelDecisionLossTable {
+            decision_ids: vec!["d0".into(), "d1".into()],
+            losses: vec![
+                vec![rational(0, 1), rational(0, 1), rational(0, 1)],
+                vec![rational(1, 1), rational(1, 1), rational(1, 1)],
+            ],
+            abstention_loss: rational(1, 2),
+        }
+    }
+
+    #[test]
+    fn task_weighted_optimizer_can_choose_a_different_kernel_than_minimax_deficiency() {
+        let (source, target) = task_weighted_three_state_channels();
+        let losses = unit_span_three_state_losses();
+        let prior = [rational(4, 5), rational(1, 10), rational(1, 10)];
+
+        let minimax = solve_binary_le_cam_deficiency(&source, &target).unwrap();
+        let weighted =
+            solve_binary_task_weighted_deficiency(&source, &target, &prior, &losses).unwrap();
+
+        assert_eq!(minimax.optimal_deficiency, rational(1, 2));
+        assert_eq!(weighted.weighted_objective, rational(3, 20));
+        assert_eq!(
+            weighted.dominance.witness.probabilities,
+            vec![
+                vec![rational(0, 1), rational(1, 1)],
+                vec![rational(0, 1), rational(1, 1)],
+            ]
+        );
+        assert_eq!(
+            weighted.state_loss_spans,
+            vec![rational(1, 1), rational(1, 1), rational(1, 1)]
+        );
+        assert_eq!(
+            weighted.prior_loss_weights,
+            vec![rational(4, 5), rational(1, 10), rational(1, 10)]
+        );
+        assert_eq!(
+            weighted.state_weighted_residuals,
+            vec![rational(0, 1), rational(1, 20), rational(1, 10)]
+        );
+        assert!(weighted.optimality_verified);
+        assert_eq!(weighted.dominance.maximum_state_residual, rational(1, 1));
+    }
+
+    #[test]
+    fn task_weighted_objective_scales_with_loss_span_and_respects_uniform_prior() {
+        let (source, target) = task_weighted_three_state_channels();
+        let prior = [rational(4, 5), rational(1, 10), rational(1, 10)];
+        let unit = solve_binary_task_weighted_deficiency(
+            &source,
+            &target,
+            &prior,
+            &unit_span_three_state_losses(),
+        )
+        .unwrap();
+
+        let tenth_losses = ChannelDecisionLossTable {
+            decision_ids: vec!["d0".into(), "d1".into()],
+            losses: vec![vec![rational(0, 1); 3], vec![rational(1, 10); 3]],
+            abstention_loss: rational(1, 20),
+        };
+        let tenth =
+            solve_binary_task_weighted_deficiency(&source, &target, &prior, &tenth_losses).unwrap();
+        assert_eq!(unit.weighted_objective, rational(3, 20));
+        assert_eq!(tenth.weighted_objective, rational(3, 200));
+        assert_eq!(
+            unit.dominance.witness.probabilities,
+            tenth.dominance.witness.probabilities
+        );
+
+        let uniform = [rational(1, 3), rational(1, 3), rational(1, 3)];
+        let uniform_result = solve_binary_task_weighted_deficiency(
+            &source,
+            &target,
+            &uniform,
+            &unit_span_three_state_losses(),
+        )
+        .unwrap();
+        assert_eq!(uniform_result.weighted_objective, rational(1, 3));
+        assert!(uniform_result.optimality_verified);
+    }
+
+    #[test]
+    fn task_weighted_optimizer_is_state_permutation_invariant() {
+        let (source, target) = task_weighted_three_state_channels();
+        let losses = unit_span_three_state_losses();
+        let prior = [rational(4, 5), rational(1, 10), rational(1, 10)];
+        let original =
+            solve_binary_task_weighted_deficiency(&source, &target, &prior, &losses).unwrap();
+
+        let permutation = [2usize, 0usize, 1usize];
+        let permute_channel =
+            |channel: &FiniteObservationChannel, id: &str| FiniteObservationChannel {
+                channel_id: id.into(),
+                state_ids: permutation
+                    .iter()
+                    .map(|index| channel.state_ids[*index].clone())
+                    .collect(),
+                observation_ids: channel.observation_ids.clone(),
+                probabilities: permutation
+                    .iter()
+                    .map(|index| channel.probabilities[*index].clone())
+                    .collect(),
+            };
+        let permuted_source = permute_channel(&source, "permuted-weighted-source");
+        let permuted_target = permute_channel(&target, "permuted-weighted-target");
+        let permuted_prior = permutation.map(|index| prior[index]).to_vec();
+        let permuted_losses = ChannelDecisionLossTable {
+            decision_ids: losses.decision_ids.clone(),
+            losses: losses
+                .losses
+                .iter()
+                .map(|row| permutation.iter().map(|index| row[*index]).collect())
+                .collect(),
+            abstention_loss: losses.abstention_loss,
+        };
+        let permuted = solve_binary_task_weighted_deficiency(
+            &permuted_source,
+            &permuted_target,
+            &permuted_prior,
+            &permuted_losses,
+        )
+        .unwrap();
+
+        assert_eq!(permuted.weighted_objective, original.weighted_objective);
+        assert_eq!(
+            permuted.dominance.witness.probabilities,
+            original.dominance.witness.probabilities
+        );
+    }
+
+    #[test]
+    fn task_weighted_optimizer_handles_zero_weights_with_deterministic_ties() {
+        let (source, target) = task_weighted_three_state_channels();
+        let losses = ChannelDecisionLossTable {
+            decision_ids: vec!["d0".into(), "d1".into()],
+            losses: vec![vec![rational(1, 2); 3], vec![rational(1, 2); 3]],
+            abstention_loss: rational(1, 2),
+        };
+        let prior = [rational(4, 5), rational(1, 10), rational(1, 10)];
+        let first =
+            solve_binary_task_weighted_deficiency(&source, &target, &prior, &losses).unwrap();
+        let second =
+            solve_binary_task_weighted_deficiency(&source, &target, &prior, &losses).unwrap();
+
+        assert_eq!(first.weighted_objective, rational(0, 1));
+        assert_eq!(first.prior_loss_weights, vec![rational(0, 1); 3]);
+        assert_eq!(
+            first.dominance.witness.probabilities,
+            vec![
+                vec![rational(0, 1), rational(1, 1)],
+                vec![rational(0, 1), rational(1, 1)],
+            ]
+        );
+        assert_eq!(
+            first.dominance.witness.probabilities,
+            second.dominance.witness.probabilities
+        );
+    }
+
+    #[test]
+    fn task_weighted_optimizer_rejects_invalid_prior_and_nonbinary_channels() {
+        let (source, target) = task_weighted_three_state_channels();
+        let losses = unit_span_three_state_losses();
+        assert!(
+            solve_binary_task_weighted_deficiency(&source, &target, &[rational(1, 2); 3], &losses,)
+                .is_err()
+        );
+
+        let nonbinary = FiniteObservationChannel {
+            channel_id: "nonbinary-weighted-target".into(),
+            state_ids: source.state_ids.clone(),
+            observation_ids: vec!["a".into(), "b".into(), "c".into()],
+            probabilities: vec![vec![rational(1, 3); 3]; 3],
+        };
+        assert!(
+            solve_binary_task_weighted_deficiency(
+                &source,
+                &nonbinary,
+                &[rational(1, 3); 3],
+                &losses,
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn task_weighted_arrangement_oracle_handles_exhaustive_three_point_channel_grid() {
+        let grid = [rational(0, 1), rational(1, 2), rational(1, 1)];
+        let prior = [rational(1, 3); 3];
+        let losses = unit_span_three_state_losses();
+        let mut cases = 0usize;
+        for a0 in grid {
+            for a1 in grid {
+                for a2 in grid {
+                    for b0 in grid {
+                        for b1 in grid {
+                            for b2 in grid {
+                                let make_channel =
+                                    |id: String, rows: [Rational; 3]| FiniteObservationChannel {
+                                        channel_id: id,
+                                        state_ids: vec!["s0".into(), "s1".into(), "s2".into()],
+                                        observation_ids: vec!["o0".into(), "o1".into()],
+                                        probabilities: rows
+                                            .iter()
+                                            .map(|first| {
+                                                vec![
+                                                    *first,
+                                                    subtract_nonnegative(Rational::one(), *first)
+                                                        .unwrap(),
+                                                ]
+                                            })
+                                            .collect(),
+                                    };
+                                let source =
+                                    make_channel(format!("grid-source-{cases}"), [a0, a1, a2]);
+                                let target =
+                                    make_channel(format!("grid-target-{cases}"), [b0, b1, b2]);
+                                let receipt = solve_binary_task_weighted_deficiency(
+                                    &source, &target, &prior, &losses,
+                                )
+                                .unwrap();
+                                assert!(receipt.optimality_verified);
+                                assert_eq!(
+                                    receipt
+                                        .state_weighted_residuals
+                                        .iter()
+                                        .try_fold(rational(0, 1), |sum, value| sum
+                                            .checked_add(*value))
+                                        .unwrap(),
+                                    receipt.weighted_objective
+                                );
+                                cases += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(cases, 729);
     }
 
     fn posterior_rule(
