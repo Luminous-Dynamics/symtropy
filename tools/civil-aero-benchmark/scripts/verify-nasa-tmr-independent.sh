@@ -72,6 +72,10 @@ END {
 
 echo "[4/4] Independently parse Gregory upper-surface pressure zones with awk"
 awk '
+BEGIN {
+  min_x = 1e9
+  max_x = -1e9
+}
 function numeric(s) {
   return s ~ /^[-+]?(([0-9]+([.][0-9]*)?)|([.][0-9]+))([eE][-+]?[0-9]+)?$/
 }
