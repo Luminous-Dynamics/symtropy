@@ -1,6 +1,6 @@
 use engineering_scenario_compiler::strict_jcs_input::parse_strict_jcs_input;
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -301,7 +301,11 @@ fn reject_cases() -> Vec<RejectCase> {
 
 fn validate_case_ids(valid: &[ValidCase], rejected: &[RejectCase]) -> Result<(), String> {
     let mut ids = BTreeSet::new();
-    for case_id in valid.iter().map(|case| &case.case_id).chain(rejected.iter().map(|case| &case.case_id)) {
+    for case_id in valid
+        .iter()
+        .map(|case| &case.case_id)
+        .chain(rejected.iter().map(|case| &case.case_id))
+    {
         if !ids.insert(case_id.clone()) {
             return Err(format!("duplicate corpus case ID {case_id:?}"));
         }
@@ -323,7 +327,9 @@ fn verify_equivalence_groups(
             .ok_or_else(|| format!("missing canonical bytes for {}", case.case_id))?;
         if let Some(previous) = groups.get(group) {
             if previous != bytes {
-                return Err(format!("metamorphic canonical bytes diverged in group {group}"));
+                return Err(format!(
+                    "metamorphic canonical bytes diverged in group {group}"
+                ));
             }
         } else {
             groups.insert(group.clone(), bytes.clone());
@@ -363,10 +369,18 @@ fn generate(output_directory: &Path) -> Result<CorpusManifest, String> {
     let mut valid_entries = Vec::with_capacity(valid.len());
     let mut canonical_by_id = BTreeMap::new();
     for case in &valid {
-        let parsed = parse_strict_jcs_input(&case.input)
-            .map_err(|error| format!("Rust strict parser rejected valid case {}: {error}", case.case_id))?;
-        let canonical = serde_jcs::to_vec(&parsed)
-            .map_err(|error| format!("Rust JCS canonicalization failed for {}: {error}", case.case_id))?;
+        let parsed = parse_strict_jcs_input(&case.input).map_err(|error| {
+            format!(
+                "Rust strict parser rejected valid case {}: {error}",
+                case.case_id
+            )
+        })?;
+        let canonical = serde_jcs::to_vec(&parsed).map_err(|error| {
+            format!(
+                "Rust JCS canonicalization failed for {}: {error}",
+                case.case_id
+            )
+        })?;
         let input_relative = format!("valid/{}.json", case.case_id);
         let expected_relative = format!("expected/{}.jcs", case.case_id);
         fs::write(output_directory.join(&input_relative), &case.input)
@@ -474,10 +488,18 @@ mod tests {
         assert_eq!(rejected.len(), 17);
         validate_case_ids(&valid, &rejected).unwrap();
         for case in &valid {
-            assert!(parse_strict_jcs_input(&case.input).is_ok(), "{}", case.case_id);
+            assert!(
+                parse_strict_jcs_input(&case.input).is_ok(),
+                "{}",
+                case.case_id
+            );
         }
         for case in &rejected {
-            assert!(parse_strict_jcs_input(&case.input).is_err(), "{}", case.case_id);
+            assert!(
+                parse_strict_jcs_input(&case.input).is_err(),
+                "{}",
+                case.case_id
+            );
         }
     }
 
