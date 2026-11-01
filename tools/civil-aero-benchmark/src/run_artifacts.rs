@@ -127,8 +127,7 @@ pub struct CfdEvidenceChainReceipt {
     pub evidence_level: &'static str,
 }
 
-pub const CFD_EVIDENCE_CHAIN_RECEIPT_CSV_HEADER: &str =
-    "case_id,quantity,run_count,artifact_bundle_sha256,numerical_admission_sha256,receipt_sha256,evidence_level";
+pub const CFD_EVIDENCE_CHAIN_RECEIPT_CSV_HEADER: &str = "case_id,quantity,run_count,artifact_bundle_sha256,numerical_admission_sha256,receipt_sha256,evidence_level";
 
 pub fn receipt_to_csv(receipt: &CfdEvidenceChainReceipt) -> String {
     format!(
@@ -732,8 +731,16 @@ mod tests {
         assert!(is_sha256_hex(&first.artifact_bundle_sha256));
         assert!(is_sha256_hex(&first.numerical_admission_sha256));
         assert!(is_sha256_hex(&first.receipt_sha256));
-        assert!(first.evidence_level.contains("unsigned_not_source_authenticated"));
-        assert!(first.evidence_level.contains("not_experimentally_validated"));
+        assert!(
+            first
+                .evidence_level
+                .contains("unsigned_not_source_authenticated")
+        );
+        assert!(
+            first
+                .evidence_level
+                .contains("not_experimentally_validated")
+        );
         let first_csv = receipt_to_csv(&first);
         assert_eq!(first_csv, receipt_to_csv(&second));
         assert_eq!(first_csv.lines().count(), 2);
@@ -755,7 +762,10 @@ mod tests {
         changed_study.runs[0].quantity_value += 0.01;
         let changed = create_cfd_evidence_chain_receipt(&changed_study, &root, &manifests)
             .expect("small monotone numeric change remains admitted");
-        assert_ne!(original.numerical_admission_sha256, changed.numerical_admission_sha256);
+        assert_ne!(
+            original.numerical_admission_sha256,
+            changed.numerical_admission_sha256
+        );
         assert_ne!(original.receipt_sha256, changed.receipt_sha256);
         fs::remove_dir_all(&root).expect("remove numeric mutation fixture");
     }

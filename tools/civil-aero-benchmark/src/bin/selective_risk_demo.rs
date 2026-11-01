@@ -63,7 +63,11 @@ fn run() -> Result<(), String> {
     let report = audit_blind_selective_risk(&predictions)?;
     eprintln!(
         "synthetic_selective_risk_only models=2 domains=2 samples_per_group=20 curve_rows={} summaries={}",
-        report.summaries.iter().map(|row| row.curve.len()).sum::<usize>(),
+        report
+            .summaries
+            .iter()
+            .map(|row| row.curve.len())
+            .sum::<usize>(),
         report.summaries.len()
     );
     print!("{}", report_to_csv(&report));

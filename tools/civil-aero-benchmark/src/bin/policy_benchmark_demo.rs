@@ -2,8 +2,8 @@ use std::process;
 
 use civil_aero_benchmark::budget::LedgerOperation;
 use civil_aero_benchmark::policy_benchmark::{
-    CandidateAdmissionStatus, CandidateObservation, PolicyBenchmarkTask,
-    evaluate_policy_benchmark, report_to_csv,
+    CandidateAdmissionStatus, CandidateObservation, PolicyBenchmarkTask, evaluate_policy_benchmark,
+    report_to_csv,
 };
 
 fn digest(byte: char) -> String {
@@ -35,7 +35,9 @@ fn operation(
         } else {
             0
         },
-        aerodynamic_condition_calls_succeeded: if matches!(kind, "low_fidelity" | "high_fidelity") && success {
+        aerodynamic_condition_calls_succeeded: if matches!(kind, "low_fidelity" | "high_fidelity")
+            && success
+        {
             6
         } else {
             0
@@ -121,19 +123,49 @@ fn run() -> Result<(), String> {
             ),
         ] {
             operations.push(operation(
-                replicate, policy, "screen", "low_fidelity", costs[0], true, hashes[0],
+                replicate,
+                policy,
+                "screen",
+                "low_fidelity",
+                costs[0],
+                true,
+                hashes[0],
             ));
             operations.push(operation(
-                replicate, policy, "hf-1", "high_fidelity", costs[1], true, hashes[1],
+                replicate,
+                policy,
+                "hf-1",
+                "high_fidelity",
+                costs[1],
+                true,
+                hashes[1],
             ));
             operations.push(operation(
-                replicate, policy, "hf-2", "high_fidelity", costs[2], true, hashes[2],
+                replicate,
+                policy,
+                "hf-2",
+                "high_fidelity",
+                costs[2],
+                true,
+                hashes[2],
             ));
             operations.push(operation(
-                replicate, policy, "hf-rejected", "high_fidelity", costs[3], true, hashes[3],
+                replicate,
+                policy,
+                "hf-rejected",
+                "high_fidelity",
+                costs[3],
+                true,
+                hashes[3],
             ));
             operations.push(operation(
-                replicate, policy, "hf-failed", "high_fidelity", costs[4], false, hashes[4],
+                replicate,
+                policy,
+                "hf-failed",
+                "high_fidelity",
+                costs[4],
+                false,
+                hashes[4],
             ));
 
             candidates.push(candidate(

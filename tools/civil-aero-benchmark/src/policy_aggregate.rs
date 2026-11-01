@@ -132,7 +132,10 @@ pub fn aggregate_policy_benchmark(
 
         let task_matrix = matrix.entry(row.task_id.clone()).or_default();
         let replicate_matrix = task_matrix.entry(row.replicate_id.clone()).or_default();
-        if replicate_matrix.insert(row.policy_id.clone(), score).is_some() {
+        if replicate_matrix
+            .insert(row.policy_id.clone(), score)
+            .is_some()
+        {
             return Err(format!(
                 "duplicate task/replicate/policy scorecard row: {}/{}/{}",
                 row.task_id, row.replicate_id, row.policy_id
@@ -149,7 +152,9 @@ pub fn aggregate_policy_benchmark(
         ));
     }
     if policies.len() < 2 || !policies.contains(&config.baseline_policy_id) {
-        return Err("at least two policies and the declared baseline policy are required".to_owned());
+        return Err(
+            "at least two policies and the declared baseline policy are required".to_owned(),
+        );
     }
 
     let mapped_tasks = config
@@ -216,8 +221,7 @@ pub fn aggregate_policy_benchmark(
     }
 
     // Stage 2: reduce related tasks to an equal-weight family/environment median.
-    let mut task_values_by_family =
-        BTreeMap::<String, BTreeMap<String, Vec<f64>>>::new();
+    let mut task_values_by_family = BTreeMap::<String, BTreeMap<String, Vec<f64>>>::new();
     for task in &tasks {
         let family = &config.task_family_by_id[task];
         for (policy, score) in &task_scores[task] {
@@ -243,8 +247,7 @@ pub fn aggregate_policy_benchmark(
         .iter()
         .map(|(task, family)| format!("{task}\t{family}\n"))
         .collect::<String>();
-    let task_family_mapping_sha256 =
-        crate::integrity::sha256_hex(canonical_mapping.as_bytes())?;
+    let task_family_mapping_sha256 = crate::integrity::sha256_hex(canonical_mapping.as_bytes())?;
 
     let baseline_scores = families
         .iter()
@@ -284,7 +287,10 @@ pub fn aggregate_policy_benchmark(
             mean_family_median_normalized_hypervolume: mean(&scores),
             median_family_median_normalized_hypervolume: median(scores.clone()),
             p10_family_median_normalized_hypervolume: nearest_rank(&scores, 0.10),
-            worst_family_normalized_hypervolume: scores.iter().copied().fold(f64::INFINITY, f64::min),
+            worst_family_normalized_hypervolume: scores
+                .iter()
+                .copied()
+                .fold(f64::INFINITY, f64::min),
             mean_paired_delta_vs_baseline: mean(&deltas),
             median_paired_delta_vs_baseline: median(deltas.clone()),
             p10_paired_delta_vs_baseline: nearest_rank(&deltas, 0.10),
@@ -430,7 +436,10 @@ mod tests {
                 let jitter = (replicate_index as f64 - 1.0) * 0.01;
                 for (policy, score) in [
                     ("uniform", baseline[task_index] + jitter),
-                    ("voi", baseline[task_index] + improvement[task_index] + jitter),
+                    (
+                        "voi",
+                        baseline[task_index] + improvement[task_index] + jitter,
+                    ),
                 ] {
                     rows.push(PolicyBenchmarkRow {
                         task_id: format!("task-{task_index}"),
@@ -468,7 +477,9 @@ mod tests {
                         normalized_validated_hypervolume_fraction: score,
                         validated_hypervolume_per_cost: Some(score * 12.5),
                         normalized_hypervolume_per_cost: Some(score / 8.0),
-                        validated_hypervolume_per_high_fidelity_condition_call: Some(score * 100.0 / 9.0),
+                        validated_hypervolume_per_high_fidelity_condition_call: Some(
+                            score * 100.0 / 9.0,
+                        ),
                         normalized_hypervolume_per_high_fidelity_condition_call: Some(score / 9.0),
                         evidence_level: "synthetic_policy_scorecard_only",
                     });
@@ -496,12 +507,21 @@ mod tests {
         let rows = fixture_rows();
         let report = aggregate_policy_benchmark(&rows, &config()).expect("valid task matrix");
         assert_eq!(report.rows.len(), 2);
-        let voi = report.rows.iter().find(|row| row.policy_id == "voi").unwrap();
+        let voi = report
+            .rows
+            .iter()
+            .find(|row| row.policy_id == "voi")
+            .unwrap();
         assert_eq!(voi.task_count, 5);
         assert_eq!(voi.family_count, 5);
         assert_eq!(voi.replicates_per_task, 3);
         assert_eq!(report.task_family_mapping_sha256.len(), 64);
-        assert!(report.task_family_mapping_sha256.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        assert!(
+            report
+                .task_family_mapping_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit())
+        );
         assert_eq!(voi.families_better, 4);
         assert_eq!(voi.families_worse, 1);
         assert_eq!(voi.families_tied, 0);
@@ -509,7 +529,11 @@ mod tests {
         assert!((voi.worst_family_delta_vs_baseline + 0.02).abs() < 1.0e-12);
         assert!(voi.bootstrap_95_ci_low <= voi.mean_paired_delta_vs_baseline);
         assert!(voi.bootstrap_95_ci_high >= voi.mean_paired_delta_vs_baseline);
-        let baseline = report.rows.iter().find(|row| row.policy_id == "uniform").unwrap();
+        let baseline = report
+            .rows
+            .iter()
+            .find(|row| row.policy_id == "uniform")
+            .unwrap();
         assert_eq!(baseline.families_tied, 5);
         assert_eq!(baseline.mean_paired_delta_vs_baseline, 0.0);
         assert_eq!(baseline.bootstrap_95_ci_low, 0.0);
@@ -522,21 +546,27 @@ mod tests {
         rows.retain(|row| row.task_id != "task-4");
         let mut invalid = config();
         invalid.task_family_by_id.remove("task-4");
-        assert!(aggregate_policy_benchmark(&rows, &invalid)
-            .expect_err("four families are insufficient")
-            .contains("at least 5"));
+        assert!(
+            aggregate_policy_benchmark(&rows, &invalid)
+                .expect_err("four families are insufficient")
+                .contains("at least 5")
+        );
 
         let mut rows = fixture_rows();
         rows.retain(|row| !(row.task_id == "task-2" && row.policy_id == "voi"));
-        assert!(aggregate_policy_benchmark(&rows, &config())
-            .expect_err("missing policy row rejected")
-            .contains("incomplete policy matrix"));
+        assert!(
+            aggregate_policy_benchmark(&rows, &config())
+                .expect_err("missing policy row rejected")
+                .contains("incomplete policy matrix")
+        );
 
         let mut rows = fixture_rows();
         rows[0].budget_cap_units = 9.0;
-        assert!(aggregate_policy_benchmark(&rows, &config())
-            .expect_err("different task budget cap rejected")
-            .contains("fixed budget cap"));
+        assert!(
+            aggregate_policy_benchmark(&rows, &config())
+                .expect_err("different task budget cap rejected")
+                .contains("fixed budget cap")
+        );
     }
 
     #[test]
@@ -544,21 +574,29 @@ mod tests {
         let rows = fixture_rows();
         let mut invalid = config();
         invalid.task_family_by_id.remove("task-0");
-        assert!(aggregate_policy_benchmark(&rows, &invalid)
-            .expect_err("missing task-family mapping")
-            .contains("exactly every benchmark task ID"));
+        assert!(
+            aggregate_policy_benchmark(&rows, &invalid)
+                .expect_err("missing task-family mapping")
+                .contains("exactly every benchmark task ID")
+        );
 
         let mut invalid = config();
-        invalid.task_family_by_id.insert("unknown-task".to_owned(), "family-x".to_owned());
-        assert!(aggregate_policy_benchmark(&rows, &invalid)
-            .expect_err("extra family mapping")
-            .contains("exactly every benchmark task ID"));
+        invalid
+            .task_family_by_id
+            .insert("unknown-task".to_owned(), "family-x".to_owned());
+        assert!(
+            aggregate_policy_benchmark(&rows, &invalid)
+                .expect_err("extra family mapping")
+                .contains("exactly every benchmark task ID")
+        );
 
         let mut one_seed = rows;
         one_seed.retain(|row| row.replicate_id == "seed-0");
-        assert!(aggregate_policy_benchmark(&one_seed, &config())
-            .expect_err("one seed rejected")
-            .contains("at least 2 independent"));
+        assert!(
+            aggregate_policy_benchmark(&one_seed, &config())
+                .expect_err("one seed rejected")
+                .contains("at least 2 independent")
+        );
     }
 
     #[test]

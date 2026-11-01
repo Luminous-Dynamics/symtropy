@@ -6,25 +6,25 @@
 //! authenticated by this crate.
 
 pub mod budget;
-pub mod policy_aggregate;
-pub mod policy_benchmark;
-pub mod optimizer_qualification;
 pub mod cfd_admission;
 pub mod comparison;
 pub mod coupon;
 pub mod dpw8_submission;
 pub mod grid_convergence;
-pub mod interval_calibration;
 pub mod input_sampling;
 pub mod integrity;
+pub mod interval_calibration;
+pub mod optimizer_qualification;
+pub mod policy_aggregate;
+pub mod policy_benchmark;
 pub mod reference_data;
 pub mod risk_credibility;
 pub mod robust_voi;
-pub mod unsteady_spectrum;
 pub mod robustness;
 pub mod run_artifacts;
 pub mod section_polar;
 pub mod selective_risk;
+pub mod unsteady_spectrum;
 pub mod voi;
 
 use std::collections::HashSet;

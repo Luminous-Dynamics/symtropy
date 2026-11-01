@@ -265,8 +265,14 @@ pub fn stationarity_report(
 pub fn dominant_frequency_hz(psd: &PsdEstimate) -> Result<f64, String> {
     if psd.frequencies_hz.len() != psd.psd_per_hz.len()
         || psd.psd_per_hz.len() < 2
-        || psd.frequencies_hz.iter().any(|value| !value.is_finite() || *value < 0.0)
-        || psd.psd_per_hz.iter().any(|value| !value.is_finite() || *value < 0.0)
+        || psd
+            .frequencies_hz
+            .iter()
+            .any(|value| !value.is_finite() || *value < 0.0)
+        || psd
+            .psd_per_hz
+            .iter()
+            .any(|value| !value.is_finite() || *value < 0.0)
     {
         return Err("PSD frequency and value vectors are inconsistent or non-finite".to_owned());
     }
@@ -283,8 +289,14 @@ pub fn dominant_frequency_hz(psd: &PsdEstimate) -> Result<f64, String> {
 pub fn band_power(psd: &PsdEstimate, lower_hz: f64, upper_hz: f64) -> Result<f64, String> {
     if psd.frequencies_hz.len() != psd.psd_per_hz.len()
         || psd.frequencies_hz.is_empty()
-        || psd.frequencies_hz.iter().any(|value| !value.is_finite() || *value < 0.0)
-        || psd.psd_per_hz.iter().any(|value| !value.is_finite() || *value < 0.0)
+        || psd
+            .frequencies_hz
+            .iter()
+            .any(|value| !value.is_finite() || *value < 0.0)
+        || psd
+            .psd_per_hz
+            .iter()
+            .any(|value| !value.is_finite() || *value < 0.0)
     {
         return Err("PSD frequency and value vectors are inconsistent or non-finite".to_owned());
     }
@@ -317,8 +329,16 @@ pub fn compare_spectra(
         || candidate.frequencies_hz.len() != candidate.psd_per_hz.len()
         || reference.frequencies_hz.len() != candidate.frequencies_hz.len()
         || reference.psd_per_hz.len() != candidate.psd_per_hz.len()
-        || reference.frequencies_hz.iter().chain(&candidate.frequencies_hz).any(|value| !value.is_finite())
-        || reference.psd_per_hz.iter().chain(&candidate.psd_per_hz).any(|value| !value.is_finite() || *value < 0.0)
+        || reference
+            .frequencies_hz
+            .iter()
+            .chain(&candidate.frequencies_hz)
+            .any(|value| !value.is_finite())
+        || reference
+            .psd_per_hz
+            .iter()
+            .chain(&candidate.psd_per_hz)
+            .any(|value| !value.is_finite() || *value < 0.0)
         || (reference.frequency_bin_width_hz - candidate.frequency_bin_width_hz).abs() > 1.0e-12
         || reference
             .frequencies_hz
@@ -336,17 +356,15 @@ pub fn compare_spectra(
         .iter()
         .zip(&candidate.psd_per_hz)
         .map(|(left, right)| {
-            (left / reference.integrated_mean_square
-                - right / candidate.integrated_mean_square)
+            (left / reference.integrated_mean_square - right / candidate.integrated_mean_square)
                 .abs()
         })
         .sum::<f64>()
         * reference.frequency_bin_width_hz
         * 0.5;
-    let integrated_mean_square_relative_error = (candidate.integrated_mean_square
-        - reference.integrated_mean_square)
-        .abs()
-        / reference.integrated_mean_square;
+    let integrated_mean_square_relative_error =
+        (candidate.integrated_mean_square - reference.integrated_mean_square).abs()
+            / reference.integrated_mean_square;
     if !distance.is_finite() || !integrated_mean_square_relative_error.is_finite() {
         return Err("spectral comparison produced non-finite metrics".to_owned());
     }
@@ -401,10 +419,8 @@ fn fft_radix2(real: &mut [f64], imaginary: &mut [f64]) -> Result<(), String> {
             for offset in 0..block_length / 2 {
                 let even = block_start + offset;
                 let odd = even + block_length / 2;
-                let odd_real =
-                    twiddle_real * real[odd] - twiddle_imaginary * imaginary[odd];
-                let odd_imaginary =
-                    twiddle_real * imaginary[odd] + twiddle_imaginary * real[odd];
+                let odd_real = twiddle_real * real[odd] - twiddle_imaginary * imaginary[odd];
+                let odd_imaginary = twiddle_real * imaginary[odd] + twiddle_imaginary * real[odd];
                 let even_real = real[even];
                 let even_imaginary = imaginary[even];
                 real[even] = even_real + odd_real;
@@ -412,10 +428,8 @@ fn fft_radix2(real: &mut [f64], imaginary: &mut [f64]) -> Result<(), String> {
                 real[odd] = even_real - odd_real;
                 imaginary[odd] = even_imaginary - odd_imaginary;
 
-                let next_real =
-                    twiddle_real * step_real - twiddle_imaginary * step_imaginary;
-                twiddle_imaginary =
-                    twiddle_real * step_imaginary + twiddle_imaginary * step_real;
+                let next_real = twiddle_real * step_real - twiddle_imaginary * step_imaginary;
+                twiddle_imaginary = twiddle_real * step_imaginary + twiddle_imaginary * step_real;
                 twiddle_real = next_real;
             }
         }
@@ -425,7 +439,11 @@ fn fft_radix2(real: &mut [f64], imaginary: &mut [f64]) -> Result<(), String> {
         block_length *= 2;
     }
 
-    if real.iter().chain(imaginary.iter()).any(|value| !value.is_finite()) {
+    if real
+        .iter()
+        .chain(imaginary.iter())
+        .any(|value| !value.is_finite())
+    {
         return Err("FFT produced a non-finite value".to_owned());
     }
     Ok(())
@@ -444,10 +462,17 @@ pub fn report_to_csv(psd: &PsdEstimate) -> String {
 mod tests {
     use super::*;
 
-    fn sine_trace(amplitude: f64, frequency_hz: f64, sample_count: usize, sampling_rate_hz: f64, offset: f64) -> Vec<f64> {
+    fn sine_trace(
+        amplitude: f64,
+        frequency_hz: f64,
+        sample_count: usize,
+        sampling_rate_hz: f64,
+        offset: f64,
+    ) -> Vec<f64> {
         (0..sample_count)
             .map(|index| {
-                offset + amplitude * (2.0 * PI * frequency_hz * index as f64 / sampling_rate_hz).sin()
+                offset
+                    + amplitude * (2.0 * PI * frequency_hz * index as f64 / sampling_rate_hz).sin()
             })
             .collect()
     }
@@ -486,14 +511,21 @@ mod tests {
         let comparison = compare_spectra(&reference, &candidate).expect("same bins");
         assert!((comparison.dominant_frequency_error_hz - 8.0).abs() < 1.0e-10);
         assert!(comparison.normalized_spectral_shape_distance > 0.1);
-        assert!(compare_spectra(
-            &reference,
-            &welch_one_sided_psd(&sine_trace(2.0, 40.0, 1024, 512.0, 0.0), &WelchConfig {
-                sample_interval_seconds: 1.0 / 512.0,
-                segment_length_samples: 128,
-                overlap_samples: 64,
-            }).unwrap()
-        ).is_err());
+        assert!(
+            compare_spectra(
+                &reference,
+                &welch_one_sided_psd(
+                    &sine_trace(2.0, 40.0, 1024, 512.0, 0.0),
+                    &WelchConfig {
+                        sample_interval_seconds: 1.0 / 512.0,
+                        segment_length_samples: 128,
+                        overlap_samples: 64,
+                    }
+                )
+                .unwrap()
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -506,11 +538,8 @@ mod tests {
 
     #[test]
     fn public_spectrum_helpers_reject_malformed_vectors_and_nonfinite_values() {
-        let psd = welch_one_sided_psd(
-            &sine_trace(1.0, 32.0, 1024, 512.0, 0.0),
-            &config(),
-        )
-        .expect("known spectrum");
+        let psd = welch_one_sided_psd(&sine_trace(1.0, 32.0, 1024, 512.0, 0.0), &config())
+            .expect("known spectrum");
 
         let mut truncated = psd.clone();
         truncated.psd_per_hz.pop();

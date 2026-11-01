@@ -116,8 +116,14 @@ pub fn parse_ledger_csv(input: &str) -> Result<Vec<LedgerOperation>, String> {
             operation_id: string_field(3, "operation_id")?,
             operation_kind: string_field(4, "operation_kind")?,
             fidelity: string_field(5, "fidelity")?,
-            aerodynamic_condition_calls_attempted: condition_calls(6, "aerodynamic_condition_calls_attempted")?,
-            aerodynamic_condition_calls_succeeded: condition_calls(7, "aerodynamic_condition_calls_succeeded")?,
+            aerodynamic_condition_calls_attempted: condition_calls(
+                6,
+                "aerodynamic_condition_calls_attempted",
+            )?,
+            aerodynamic_condition_calls_succeeded: condition_calls(
+                7,
+                "aerodynamic_condition_calls_succeeded",
+            )?,
             cost_units: number(8, "cost_units")?,
             budget_cap_units: number(9, "budget_cap_units")?,
             wall_seconds: number(10, "wall_seconds")?,
@@ -302,7 +308,9 @@ pub fn summarize_matched_budget(
             acc.high_fidelity_condition_calls_succeeded = acc
                 .high_fidelity_condition_calls_succeeded
                 .checked_add(operation.aerodynamic_condition_calls_succeeded)
-                .ok_or_else(|| "successful high-fidelity condition-call count overflowed".to_owned())?;
+                .ok_or_else(|| {
+                    "successful high-fidelity condition-call count overflowed".to_owned()
+                })?;
         }
         acc.count += 1;
         if operation.success {
@@ -371,8 +379,10 @@ pub fn summarize_matched_budget(
                 failed_operations: acc.failed,
                 aerodynamic_condition_calls_attempted: acc.aerodynamic_condition_calls_attempted,
                 aerodynamic_condition_calls_succeeded: acc.aerodynamic_condition_calls_succeeded,
-                high_fidelity_condition_calls_attempted: acc.high_fidelity_condition_calls_attempted,
-                high_fidelity_condition_calls_succeeded: acc.high_fidelity_condition_calls_succeeded,
+                high_fidelity_condition_calls_attempted: acc
+                    .high_fidelity_condition_calls_attempted,
+                high_fidelity_condition_calls_succeeded: acc
+                    .high_fidelity_condition_calls_succeeded,
             }
         })
         .collect())
@@ -394,10 +404,12 @@ pub fn summary_csv_row(summary: &PolicyBudgetSummary) -> String {
         summary.failed_operations,
         summary.aerodynamic_condition_calls_attempted,
         summary.aerodynamic_condition_calls_succeeded,
-        summary.aerodynamic_condition_calls_attempted - summary.aerodynamic_condition_calls_succeeded,
+        summary.aerodynamic_condition_calls_attempted
+            - summary.aerodynamic_condition_calls_succeeded,
         summary.high_fidelity_condition_calls_attempted,
         summary.high_fidelity_condition_calls_succeeded,
-        summary.high_fidelity_condition_calls_attempted - summary.high_fidelity_condition_calls_succeeded
+        summary.high_fidelity_condition_calls_attempted
+            - summary.high_fidelity_condition_calls_succeeded
     )
 }
 
@@ -429,7 +441,11 @@ mod tests {
             operation_kind: kind.to_owned(),
             fidelity: "high".to_owned(),
             aerodynamic_condition_calls_attempted: if kind == "high_fidelity" { 1 } else { 0 },
-            aerodynamic_condition_calls_succeeded: if kind == "high_fidelity" && success { 1 } else { 0 },
+            aerodynamic_condition_calls_succeeded: if kind == "high_fidelity" && success {
+                1
+            } else {
+                0
+            },
             cost_units: cost,
             budget_cap_units: cap,
             wall_seconds: 0.5 * cost,
@@ -474,7 +490,10 @@ mod tests {
         let rows = vec![multipoint, single_point];
 
         let summary = summarize_matched_budget(&rows).expect("matched multipoint budget");
-        let voi = summary.iter().find(|row| row.policy_id == "voi").expect("voi");
+        let voi = summary
+            .iter()
+            .find(|row| row.policy_id == "voi")
+            .expect("voi");
         let random = summary
             .iter()
             .find(|row| row.policy_id == "random")
@@ -500,23 +519,29 @@ mod tests {
         let mut missing_calls = operation("random", "hf", "high_fidelity", 1.0, true, 5.0);
         missing_calls.aerodynamic_condition_calls_attempted = 0;
         missing_calls.aerodynamic_condition_calls_succeeded = 0;
-        assert!(validate_operation(&missing_calls, 1)
-            .expect_err("high-fidelity operation cannot omit condition count")
-            .contains("require explicit aerodynamic condition-call counts"));
+        assert!(
+            validate_operation(&missing_calls, 1)
+                .expect_err("high-fidelity operation cannot omit condition count")
+                .contains("require explicit aerodynamic condition-call counts")
+        );
 
         let mut impossible = operation("random", "hf", "high_fidelity", 1.0, true, 5.0);
         impossible.aerodynamic_condition_calls_attempted = 1;
         impossible.aerodynamic_condition_calls_succeeded = 2;
-        assert!(validate_operation(&impossible, 1)
-            .expect_err("successful calls cannot exceed attempts")
-            .contains("exceed attempted calls"));
+        assert!(
+            validate_operation(&impossible, 1)
+                .expect_err("successful calls cannot exceed attempts")
+                .contains("exceed attempted calls")
+        );
 
         let mut audit_with_calls = operation("random", "audit", "audit", 0.1, true, 5.0);
         audit_with_calls.aerodynamic_condition_calls_attempted = 1;
         audit_with_calls.aerodynamic_condition_calls_succeeded = 1;
-        assert!(validate_operation(&audit_with_calls, 1)
-            .expect_err("audit operation is not aerodynamic")
-            .contains("non-aerodynamic operations"));
+        assert!(
+            validate_operation(&audit_with_calls, 1)
+                .expect_err("audit operation is not aerodynamic")
+                .contains("non-aerodynamic operations")
+        );
     }
 
     #[test]

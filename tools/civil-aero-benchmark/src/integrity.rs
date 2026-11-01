@@ -67,8 +67,6 @@ pub fn sha256_hex(bytes: &[u8]) -> Result<String, String> {
     ))
 }
 
-
-
 /// Hash a file through a streaming stdin pipe without loading the entire file into memory.
 pub fn sha256_file(path: &Path) -> Result<String, String> {
     let source = File::open(path)

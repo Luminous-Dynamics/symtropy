@@ -506,9 +506,11 @@ mod tests {
     fn unstructured_or_hybrid_grid_family_requires_factor_three() {
         let mut study = quadratic_six_grid_study();
         study.grid_family_kind = GridFamilyKind::UnstructuredOrHybrid;
-        assert!(evaluate_grid_convergence(&study)
-            .expect_err("1.25 is too permissive for unstructured/hybrid grids")
-            .contains(">= 3.00"));
+        assert!(
+            evaluate_grid_convergence(&study)
+                .expect_err("1.25 is too permissive for unstructured/hybrid grids")
+                .contains(">= 3.00")
+        );
 
         study.safety_factor = 3.0;
         assert!(evaluate_grid_convergence(&study).is_ok());

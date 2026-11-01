@@ -22,8 +22,10 @@ fn context(
         artifact_access: artifacts,
         model_influence: influence,
         decision_consequence: consequence,
-        influence_rationale: "synthetic demonstration label; not a real system assessment".to_owned(),
-        consequence_rationale: "synthetic demonstration label; not a real hazard analysis".to_owned(),
+        influence_rationale: "synthetic demonstration label; not a real system assessment"
+            .to_owned(),
+        consequence_rationale: "synthetic demonstration label; not a real hazard analysis"
+            .to_owned(),
         classification_reference: "luminous-risk-matrix-v0.1-synthetic-demo".to_owned(),
     }
 }
@@ -66,8 +68,10 @@ fn run() -> Result<(), String> {
         ),
     ];
 
-    let mut output =
-        format!("{}\n", civil_aero_benchmark::risk_credibility::CREDIBILITY_CSV_HEADER);
+    let mut output = format!(
+        "{}\n",
+        civil_aero_benchmark::risk_credibility::CREDIBILITY_CSV_HEADER
+    );
     for input in &contexts {
         let assessment = assess_model_credibility(input)?;
         let record = report_to_csv(&assessment);

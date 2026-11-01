@@ -6,9 +6,7 @@ use civil_aero_benchmark::policy_aggregate::{
 };
 use civil_aero_benchmark::policy_benchmark::PolicyBenchmarkRow;
 
-const BASELINE_SCORES: [f64; 10] = [
-    0.22, 0.38, 0.28, 0.42, 0.18, 0.35, 0.31, 0.27, 0.40, 0.21,
-];
+const BASELINE_SCORES: [f64; 10] = [0.22, 0.38, 0.28, 0.42, 0.18, 0.35, 0.31, 0.27, 0.40, 0.21];
 const VOI_DELTAS: [f64; 10] = [
     0.05, 0.04, 0.03, -0.02, 0.06, -0.03, 0.02, 0.02, -0.04, 0.01,
 ];

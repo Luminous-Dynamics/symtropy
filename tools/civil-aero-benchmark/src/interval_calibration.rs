@@ -212,11 +212,13 @@ pub fn audit_blind_prediction_intervals(
             flow_regime: prediction.flow_regime.clone(),
             domain_status: prediction.domain_status,
         };
-        let sample = sample_intervals.entry(sample_key).or_insert_with(|| SampleIntervals {
-            point_prediction_bits: prediction.point_prediction.to_bits(),
-            observed_value_bits: prediction.observed_value.to_bits(),
-            intervals: BTreeMap::new(),
-        });
+        let sample = sample_intervals
+            .entry(sample_key)
+            .or_insert_with(|| SampleIntervals {
+                point_prediction_bits: prediction.point_prediction.to_bits(),
+                observed_value_bits: prediction.observed_value.to_bits(),
+                intervals: BTreeMap::new(),
+            });
         if sample.point_prediction_bits != prediction.point_prediction.to_bits()
             || sample.observed_value_bits != prediction.observed_value.to_bits()
         {
@@ -436,9 +438,8 @@ fn wilson_interval(successes: usize, trials: usize) -> Result<(f64, f64), String
     let z_squared = WILSON_Z_95 * WILSON_Z_95;
     let denominator = 1.0 + z_squared / n;
     let center = (p + z_squared / (2.0 * n)) / denominator;
-    let half_width = WILSON_Z_95
-        * ((p * (1.0 - p) / n + z_squared / (4.0 * n * n)).sqrt())
-        / denominator;
+    let half_width =
+        WILSON_Z_95 * ((p * (1.0 - p) / n + z_squared / (4.0 * n * n)).sqrt()) / denominator;
     let lower = (center - half_width).max(0.0);
     let upper = (center + half_width).min(1.0);
     if !lower.is_finite() || !upper.is_finite() || lower > upper {
@@ -598,9 +599,11 @@ mod tests {
         let mut predictions = synthetic_predictions();
         predictions[0].lower = 1.0;
         predictions[0].upper = -1.0;
-        assert!(audit_blind_prediction_intervals(&predictions)
-            .expect_err("inverted interval rejected")
-            .contains("lower interval endpoint"));
+        assert!(
+            audit_blind_prediction_intervals(&predictions)
+                .expect_err("inverted interval rejected")
+                .contains("lower interval endpoint")
+        );
 
         let mut predictions = synthetic_predictions();
         let sample_id = predictions[0].sample_id.clone();
@@ -610,35 +613,42 @@ mod tests {
             .expect("90 percent interval");
         level_90.lower = -0.5;
         level_90.upper = 0.5;
-        assert!(audit_blind_prediction_intervals(&predictions)
-            .expect_err("non-nested intervals rejected")
-            .contains("non-nested"));
+        assert!(
+            audit_blind_prediction_intervals(&predictions)
+                .expect_err("non-nested intervals rejected")
+                .contains("non-nested")
+        );
     }
 
     #[test]
     fn duplicate_levels_and_inconsistent_observations_are_rejected() {
         let mut predictions = synthetic_predictions();
         predictions.push(predictions[0].clone());
-        assert!(audit_blind_prediction_intervals(&predictions)
-            .expect_err("duplicate level rejected")
-            .contains("duplicate nominal coverage"));
+        assert!(
+            audit_blind_prediction_intervals(&predictions)
+                .expect_err("duplicate level rejected")
+                .contains("duplicate nominal coverage")
+        );
 
         let mut predictions = synthetic_predictions();
         predictions[1].observed_value += 0.01;
-        assert!(audit_blind_prediction_intervals(&predictions)
-            .expect_err("sample observation must not change by level")
-            .contains("changes point prediction or observed value"));
+        assert!(
+            audit_blind_prediction_intervals(&predictions)
+                .expect_err("sample observation must not change by level")
+                .contains("changes point prediction or observed value")
+        );
     }
 
     #[test]
     fn comparative_models_must_cover_the_same_blind_samples() {
         let mut predictions = synthetic_predictions();
-        predictions.retain(|row| {
-            !(row.model_id == "robust_model" && row.sample_id == "in_domain-0")
-        });
-        assert!(audit_blind_prediction_intervals(&predictions)
-            .expect_err("omitted hard samples must be detected")
-            .contains("different blind sample sets"));
+        predictions
+            .retain(|row| !(row.model_id == "robust_model" && row.sample_id == "in_domain-0"));
+        assert!(
+            audit_blind_prediction_intervals(&predictions)
+                .expect_err("omitted hard samples must be detected")
+                .contains("different blind sample sets")
+        );
     }
 
     #[test]
@@ -665,9 +675,11 @@ mod tests {
         {
             row.observed_value += 0.01;
         }
-        assert!(audit_blind_prediction_intervals(&predictions)
-            .expect_err("models cannot be scored against different observations")
-            .contains("changes observed truth across model predictions"));
+        assert!(
+            audit_blind_prediction_intervals(&predictions)
+                .expect_err("models cannot be scored against different observations")
+                .contains("changes observed truth across model predictions")
+        );
     }
 
     #[test]

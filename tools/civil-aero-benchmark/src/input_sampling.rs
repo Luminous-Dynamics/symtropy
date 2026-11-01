@@ -64,7 +64,9 @@ pub struct LatinHypercubeDesign {
     pub evidence_level: &'static str,
 }
 
-pub fn generate_correlated_lhs(study: &LatinHypercubeStudy) -> Result<LatinHypercubeDesign, String> {
+pub fn generate_correlated_lhs(
+    study: &LatinHypercubeStudy,
+) -> Result<LatinHypercubeDesign, String> {
     if study.study_id.trim().is_empty()
         || study.study_id.contains(',')
         || study.study_id.contains('"')
@@ -80,7 +82,9 @@ pub fn generate_correlated_lhs(study: &LatinHypercubeStudy) -> Result<LatinHyper
     }
     let dimensions = study.marginals.len();
     if dimensions == 0 || dimensions > MAX_DIMENSIONS {
-        return Err(format!("marginal count must be between 1 and {MAX_DIMENSIONS}"));
+        return Err(format!(
+            "marginal count must be between 1 and {MAX_DIMENSIONS}"
+        ));
     }
     validate_correlation_matrix(&study.correlation_matrix, dimensions)?;
     let lower = cholesky_lower(&study.correlation_matrix)?;
@@ -113,7 +117,10 @@ pub fn generate_correlated_lhs(study: &LatinHypercubeStudy) -> Result<LatinHyper
             ("maximum_allowed", marginal.maximum_allowed),
         ] {
             if !value.is_finite() {
-                return Err(format!("input {}: {name} must be finite", marginal.input_id));
+                return Err(format!(
+                    "input {}: {name} must be finite",
+                    marginal.input_id
+                ));
             }
         }
         if marginal.standard_uncertainty <= 0.0
@@ -320,8 +327,14 @@ fn empirical_correlation(samples: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, String> 
     let standard_deviations = (0..dimensions)
         .map(|index| (covariance[index][index] / denominator).sqrt())
         .collect::<Vec<_>>();
-    if standard_deviations.iter().any(|value| !value.is_finite() || *value <= 0.0) {
-        return Err("empirical correlation is undefined because a sample dimension has zero variance".to_owned());
+    if standard_deviations
+        .iter()
+        .any(|value| !value.is_finite() || *value <= 0.0)
+    {
+        return Err(
+            "empirical correlation is undefined because a sample dimension has zero variance"
+                .to_owned(),
+        );
     }
     let mut correlation = vec![vec![0.0; dimensions]; dimensions];
     for i in 0..dimensions {
@@ -338,7 +351,10 @@ fn empirical_correlation(samples: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, String> 
 
 fn inverse_standard_normal_cdf(probability: f64) -> Result<f64, String> {
     if !probability.is_finite() || probability <= 0.0 || probability >= 1.0 {
-        return Err("normal quantile probability must be finite and strictly between zero and one".to_owned());
+        return Err(
+            "normal quantile probability must be finite and strictly between zero and one"
+                .to_owned(),
+        );
     }
 
     // Acklam's rational approximation; sufficient for seeded engineering design generation.
@@ -567,21 +583,27 @@ mod tests {
     fn duplicate_input_ids_and_ragged_or_bad_matrices_are_rejected() {
         let mut invalid = study(64);
         invalid.marginals[1].input_id = invalid.marginals[0].input_id.clone();
-        assert!(generate_correlated_lhs(&invalid)
-            .expect_err("duplicate id must fail")
-            .contains("unique"));
+        assert!(
+            generate_correlated_lhs(&invalid)
+                .expect_err("duplicate id must fail")
+                .contains("unique")
+        );
 
         let mut invalid = study(64);
         invalid.correlation_matrix[0][1] = 0.8;
-        assert!(generate_correlated_lhs(&invalid)
-            .expect_err("asymmetric matrix must fail")
-            .contains("symmetric"));
+        assert!(
+            generate_correlated_lhs(&invalid)
+                .expect_err("asymmetric matrix must fail")
+                .contains("symmetric")
+        );
 
         let mut invalid = study(64);
         invalid.correlation_matrix[0][0] = 0.8;
-        assert!(generate_correlated_lhs(&invalid)
-            .expect_err("bad diagonal must fail")
-            .contains("diagonal"));
+        assert!(
+            generate_correlated_lhs(&invalid)
+                .expect_err("bad diagonal must fail")
+                .contains("diagonal")
+        );
     }
 
     #[test]
@@ -590,7 +612,9 @@ mod tests {
         let output = report_to_csv(&design);
         assert_eq!(output, report_to_csv(&design));
         assert_eq!(output.lines().count(), 1 + 32 * 3);
-        assert!(output.contains("seeded_correlated_lhs_input_design_only_no_solver_evaluations_no_output_uq"));
+        assert!(output.contains(
+            "seeded_correlated_lhs_input_design_only_no_solver_evaluations_no_output_uq"
+        ));
         assert!(output.contains("1.000000000000|0.300000000000|-0.100000000000"));
         assert!(output.contains("empirical_output_correlation_row"));
     }

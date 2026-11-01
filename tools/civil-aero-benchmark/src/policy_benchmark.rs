@@ -132,7 +132,10 @@ pub fn evaluate_policy_benchmark(
             || task.ideal_point_1 >= task.reference_point_1
             || task.ideal_point_2 >= task.reference_point_2
         {
-            return Err("task IDs, distinct objective names, and finite reference points are required".to_owned());
+            return Err(
+                "task IDs, distinct objective names, and finite reference points are required"
+                    .to_owned(),
+            );
         }
         if task_by_id.insert(task.task_id.clone(), task).is_some() {
             return Err(format!("duplicate benchmark task {}", task.task_id));
@@ -147,7 +150,10 @@ pub fn evaluate_policy_benchmark(
 
     for operation in operations {
         if !task_by_id.contains_key(&operation.task_id) {
-            return Err(format!("operation references undeclared task {}", operation.task_id));
+            return Err(format!(
+                "operation references undeclared task {}",
+                operation.task_id
+            ));
         }
         let key = (
             operation.task_id.as_str(),
@@ -194,9 +200,9 @@ pub fn evaluate_policy_benchmark(
         {
             return Err("candidate and group identifiers must be non-empty".to_owned());
         }
-        let task = task_by_id.get(&candidate.task_id).ok_or_else(|| {
-            format!("candidate references undeclared task {}", candidate.task_id)
-        })?;
+        let task = task_by_id
+            .get(&candidate.task_id)
+            .ok_or_else(|| format!("candidate references undeclared task {}", candidate.task_id))?;
         let candidate_key = (
             candidate.task_id.as_str(),
             candidate.replicate_id.as_str(),
@@ -222,7 +228,10 @@ pub fn evaluate_policy_benchmark(
             ));
         }
         if !is_sha256_hex(&candidate.output_sha256) {
-            return Err(format!("candidate {} has a malformed output SHA-256", candidate.candidate_id));
+            return Err(format!(
+                "candidate {} has a malformed output SHA-256",
+                candidate.candidate_id
+            ));
         }
         if !seen_candidate_operations.insert(candidate_key) {
             return Err(format!(
@@ -248,16 +257,28 @@ pub fn evaluate_policy_benchmark(
                     ));
                 }
                 let feasible = candidate.feasible.ok_or_else(|| {
-                    format!("admitted candidate {} has no constraint-feasibility result", candidate.candidate_id)
+                    format!(
+                        "admitted candidate {} has no constraint-feasibility result",
+                        candidate.candidate_id
+                    )
                 })?;
                 let objective_1 = candidate.objective_1.ok_or_else(|| {
-                    format!("admitted candidate {} has no objective_1", candidate.candidate_id)
+                    format!(
+                        "admitted candidate {} has no objective_1",
+                        candidate.candidate_id
+                    )
                 })?;
                 let objective_2 = candidate.objective_2.ok_or_else(|| {
-                    format!("admitted candidate {} has no objective_2", candidate.candidate_id)
+                    format!(
+                        "admitted candidate {} has no objective_2",
+                        candidate.candidate_id
+                    )
                 })?;
                 if !objective_1.is_finite() || !objective_2.is_finite() {
-                    return Err(format!("admitted candidate {} has non-finite objectives", candidate.candidate_id));
+                    return Err(format!(
+                        "admitted candidate {} has non-finite objectives",
+                        candidate.candidate_id
+                    ));
                 }
                 if feasible
                     && (objective_1 < task.ideal_point_1
@@ -372,14 +393,19 @@ pub fn evaluate_policy_benchmark(
         let objective_box_area = (task.reference_point_1 - task.ideal_point_1)
             * (task.reference_point_2 - task.ideal_point_2);
         if !objective_box_area.is_finite() || objective_box_area <= 0.0 {
-            return Err(format!("task {} has invalid objective reference-box area", task.task_id));
+            return Err(format!(
+                "task {} has invalid objective reference-box area",
+                task.task_id
+            ));
         }
-        let normalized_hypervolume_fraction =
-            validated_hypervolume_2d / objective_box_area;
+        let normalized_hypervolume_fraction = validated_hypervolume_2d / objective_box_area;
         if !normalized_hypervolume_fraction.is_finite()
             || !(-1.0e-12..=1.0 + 1.0e-12).contains(&normalized_hypervolume_fraction)
         {
-            return Err(format!("task {} normalized hypervolume is outside [0, 1]", task.task_id));
+            return Err(format!(
+                "task {} normalized hypervolume is outside [0, 1]",
+                task.task_id
+            ));
         }
 
         rows.push(PolicyBenchmarkRow {
@@ -459,8 +485,7 @@ pub fn evaluate_policy_benchmark(
 
 fn validate_matched_policy_matrix(budgets: &[PolicyBudgetSummary]) -> Result<(), String> {
     let mut policy_sets = BTreeMap::<String, BTreeSet<String>>::new();
-    let mut replicate_sets =
-        BTreeMap::<(String, String), BTreeSet<String>>::new();
+    let mut replicate_sets = BTreeMap::<(String, String), BTreeSet<String>>::new();
     for budget in budgets {
         policy_sets
             .entry(budget.task_id.clone())
@@ -476,7 +501,9 @@ fn validate_matched_policy_matrix(budgets: &[PolicyBudgetSummary]) -> Result<(),
 
     for (task_id, policies) in &policy_sets {
         if policies.len() < 2 {
-            return Err(format!("task {task_id} requires at least two matched policies"));
+            return Err(format!(
+                "task {task_id} requires at least two matched policies"
+            ));
         }
         let first_policy = policies.iter().next().expect("at least one policy");
         let reference_replicates = replicate_sets
@@ -515,7 +542,10 @@ fn hypervolume_2d(
         return Err("hypervolume reference point must be finite".to_owned());
     }
     let mut sorted = points.to_vec();
-    if sorted.iter().any(|(first, second)| !first.is_finite() || !second.is_finite()) {
+    if sorted
+        .iter()
+        .any(|(first, second)| !first.is_finite() || !second.is_finite())
+    {
         return Err("hypervolume objectives must be finite".to_owned());
     }
     sorted.sort_by(|left, right| {
@@ -644,16 +674,44 @@ mod tests {
             policy_id: policy.to_owned(),
             operation_id: id.to_owned(),
             operation_kind: kind.to_owned(),
-            fidelity: if kind == "high_fidelity" { "high" } else { "low" }.to_owned(),
-            aerodynamic_condition_calls_attempted: if matches!(kind, "high_fidelity" | "low_fidelity") { 6 } else { 0 },
-            aerodynamic_condition_calls_succeeded: if matches!(kind, "high_fidelity" | "low_fidelity") && success { 6 } else { 0 },
+            fidelity: if kind == "high_fidelity" {
+                "high"
+            } else {
+                "low"
+            }
+            .to_owned(),
+            aerodynamic_condition_calls_attempted: if matches!(
+                kind,
+                "high_fidelity" | "low_fidelity"
+            ) {
+                6
+            } else {
+                0
+            },
+            aerodynamic_condition_calls_succeeded: if matches!(
+                kind,
+                "high_fidelity" | "low_fidelity"
+            ) && success
+            {
+                6
+            } else {
+                0
+            },
             cost_units: cost,
             budget_cap_units: cap,
             wall_seconds: cost * 10.0,
             cpu_seconds: cost * 8.0,
             success,
-            output_sha256: if success { digest(hash) } else { "-".to_owned() },
-            reason_code: if success { "-".to_owned() } else { "solver_nonconverged".to_owned() },
+            output_sha256: if success {
+                digest(hash)
+            } else {
+                "-".to_owned()
+            },
+            reason_code: if success {
+                "-".to_owned()
+            } else {
+                "solver_nonconverged".to_owned()
+            },
         }
     }
 
@@ -689,7 +747,11 @@ mod tests {
         }
     }
 
-    fn fixture() -> (Vec<PolicyBenchmarkTask>, Vec<LedgerOperation>, Vec<CandidateObservation>) {
+    fn fixture() -> (
+        Vec<PolicyBenchmarkTask>,
+        Vec<LedgerOperation>,
+        Vec<CandidateObservation>,
+    ) {
         let task = PolicyBenchmarkTask {
             task_id: "airfoil-multipoint-smoke".to_owned(),
             objective_1_name: "drag_coefficient".to_owned(),
@@ -716,14 +778,100 @@ mod tests {
                     [(0.028, 650.0), (0.032, 520.0)],
                 ),
             ] {
-                operations.push(operation("airfoil-multipoint-smoke", replicate, policy, "screen", "low_fidelity", costs[0], true, hashes[0], 8.0));
-                operations.push(operation("airfoil-multipoint-smoke", replicate, policy, "hf-1", "high_fidelity", costs[1], true, hashes[1], 8.0));
-                operations.push(operation("airfoil-multipoint-smoke", replicate, policy, "hf-2", "high_fidelity", costs[2], true, hashes[2], 8.0));
-                operations.push(operation("airfoil-multipoint-smoke", replicate, policy, "hf-rejected", "high_fidelity", costs[3], true, hashes[3], 8.0));
-                operations.push(operation("airfoil-multipoint-smoke", replicate, policy, "hf-failed", "high_fidelity", costs[4], false, hashes[4], 8.0));
-                candidates.push(candidate("airfoil-multipoint-smoke", replicate, policy, "hf-1", "candidate-1", hashes[1], true, Some(true), Some(points[0].0), Some(points[0].1), &digest('k')));
-                candidates.push(candidate("airfoil-multipoint-smoke", replicate, policy, "hf-2", "candidate-2", hashes[2], true, Some(true), Some(points[1].0), Some(points[1].1), &digest('l')));
-                candidates.push(candidate("airfoil-multipoint-smoke", replicate, policy, "hf-rejected", "candidate-not-admitted", hashes[3], false, None, None, None, "-"));
+                operations.push(operation(
+                    "airfoil-multipoint-smoke",
+                    replicate,
+                    policy,
+                    "screen",
+                    "low_fidelity",
+                    costs[0],
+                    true,
+                    hashes[0],
+                    8.0,
+                ));
+                operations.push(operation(
+                    "airfoil-multipoint-smoke",
+                    replicate,
+                    policy,
+                    "hf-1",
+                    "high_fidelity",
+                    costs[1],
+                    true,
+                    hashes[1],
+                    8.0,
+                ));
+                operations.push(operation(
+                    "airfoil-multipoint-smoke",
+                    replicate,
+                    policy,
+                    "hf-2",
+                    "high_fidelity",
+                    costs[2],
+                    true,
+                    hashes[2],
+                    8.0,
+                ));
+                operations.push(operation(
+                    "airfoil-multipoint-smoke",
+                    replicate,
+                    policy,
+                    "hf-rejected",
+                    "high_fidelity",
+                    costs[3],
+                    true,
+                    hashes[3],
+                    8.0,
+                ));
+                operations.push(operation(
+                    "airfoil-multipoint-smoke",
+                    replicate,
+                    policy,
+                    "hf-failed",
+                    "high_fidelity",
+                    costs[4],
+                    false,
+                    hashes[4],
+                    8.0,
+                ));
+                candidates.push(candidate(
+                    "airfoil-multipoint-smoke",
+                    replicate,
+                    policy,
+                    "hf-1",
+                    "candidate-1",
+                    hashes[1],
+                    true,
+                    Some(true),
+                    Some(points[0].0),
+                    Some(points[0].1),
+                    &digest('k'),
+                ));
+                candidates.push(candidate(
+                    "airfoil-multipoint-smoke",
+                    replicate,
+                    policy,
+                    "hf-2",
+                    "candidate-2",
+                    hashes[2],
+                    true,
+                    Some(true),
+                    Some(points[1].0),
+                    Some(points[1].1),
+                    &digest('l'),
+                ));
+                candidates.push(candidate(
+                    "airfoil-multipoint-smoke",
+                    replicate,
+                    policy,
+                    "hf-rejected",
+                    "candidate-not-admitted",
+                    hashes[3],
+                    false,
+                    None,
+                    None,
+                    None,
+                    "-",
+                ));
             }
         }
         (vec![task], operations, candidates)
@@ -735,8 +883,16 @@ mod tests {
         let report = evaluate_policy_benchmark(&tasks, &operations, &candidates)
             .expect("valid matched policy benchmark");
         assert_eq!(report.rows.len(), 4);
-        let uniform = report.rows.iter().find(|row| row.replicate_id == "seed-1" && row.policy_id == "uniform").unwrap();
-        let voi = report.rows.iter().find(|row| row.replicate_id == "seed-1" && row.policy_id == "voi").unwrap();
+        let uniform = report
+            .rows
+            .iter()
+            .find(|row| row.replicate_id == "seed-1" && row.policy_id == "uniform")
+            .unwrap();
+        let voi = report
+            .rows
+            .iter()
+            .find(|row| row.replicate_id == "seed-1" && row.policy_id == "voi")
+            .unwrap();
         assert_eq!(uniform.failed_operations, 1);
         assert_eq!(uniform.high_fidelity_attempts, 4);
         assert_eq!(uniform.aerodynamic_condition_calls_attempted, 30);
@@ -745,14 +901,21 @@ mod tests {
         assert_eq!(uniform.high_fidelity_condition_calls_attempted, 24);
         assert_eq!(uniform.high_fidelity_condition_calls_succeeded, 18);
         assert_eq!(uniform.high_fidelity_condition_calls_failed, 6);
-        assert!((uniform.validated_hypervolume_per_high_fidelity_condition_call.unwrap()
-            - 9.5 / 24.0)
-            .abs()
-            < 1.0e-12);
-        assert!((voi.normalized_hypervolume_per_high_fidelity_condition_call.unwrap()
-            - 0.2008 / 24.0)
-            .abs()
-            < 1.0e-12);
+        assert!(
+            (uniform
+                .validated_hypervolume_per_high_fidelity_condition_call
+                .unwrap()
+                - 9.5 / 24.0)
+                .abs()
+                < 1.0e-12
+        );
+        assert!(
+            (voi.normalized_hypervolume_per_high_fidelity_condition_call
+                .unwrap()
+                - 0.2008 / 24.0)
+                .abs()
+                < 1.0e-12
+        );
         assert_eq!(uniform.admitted_candidates, 2);
         assert_eq!(uniform.not_admitted_candidates, 1);
         assert_eq!(uniform.feasible_admitted_candidates, 2);
@@ -762,50 +925,68 @@ mod tests {
         assert!((voi.validated_hypervolume_2d - 10.04).abs() < 1.0e-10);
         assert!((uniform.normalized_validated_hypervolume_fraction - 0.19).abs() < 1.0e-12);
         assert!((voi.normalized_validated_hypervolume_fraction - 0.2008).abs() < 1.0e-12);
-        assert!(voi.validated_hypervolume_per_cost.unwrap() > uniform.validated_hypervolume_per_cost.unwrap());
-        assert!(voi.normalized_hypervolume_per_cost.unwrap() > uniform.normalized_hypervolume_per_cost.unwrap());
+        assert!(
+            voi.validated_hypervolume_per_cost.unwrap()
+                > uniform.validated_hypervolume_per_cost.unwrap()
+        );
+        assert!(
+            voi.normalized_hypervolume_per_cost.unwrap()
+                > uniform.normalized_hypervolume_per_cost.unwrap()
+        );
     }
 
     #[test]
     fn mismatched_output_hash_and_missing_receipt_fail_closed() {
         let (tasks, operations, mut candidates) = fixture();
         candidates[0].output_sha256 = digest('z');
-        assert!(evaluate_policy_benchmark(&tasks, &operations, &candidates)
-            .expect_err("output hash mismatch must fail")
-            .contains("output SHA-256 differs"));
+        assert!(
+            evaluate_policy_benchmark(&tasks, &operations, &candidates)
+                .expect_err("output hash mismatch must fail")
+                .contains("output SHA-256 differs")
+        );
 
         let (tasks, operations, mut candidates) = fixture();
         candidates[0].admission_receipt_sha256 = "-".to_owned();
-        assert!(evaluate_policy_benchmark(&tasks, &operations, &candidates)
-            .expect_err("admitted result without receipt must fail")
-            .contains("requires a 64-character"));
+        assert!(
+            evaluate_policy_benchmark(&tasks, &operations, &candidates)
+                .expect_err("admitted result without receipt must fail")
+                .contains("requires a 64-character")
+        );
     }
 
     #[test]
     fn successful_high_fidelity_operation_requires_disposition_and_reference_box_is_enforced() {
         let (tasks, operations, mut candidates) = fixture();
         candidates.pop();
-        assert!(evaluate_policy_benchmark(&tasks, &operations, &candidates)
-            .expect_err("unreported successful high-fidelity result must fail")
-            .contains("has no candidate admission record"));
+        assert!(
+            evaluate_policy_benchmark(&tasks, &operations, &candidates)
+                .expect_err("unreported successful high-fidelity result must fail")
+                .contains("has no candidate admission record")
+        );
 
         let (tasks, operations, mut candidates) = fixture();
         candidates[0].objective_1 = Some(0.06);
-        assert!(evaluate_policy_benchmark(&tasks, &operations, &candidates)
-            .expect_err("out-of-reference objective must fail")
-            .contains("outside task"));
+        assert!(
+            evaluate_policy_benchmark(&tasks, &operations, &candidates)
+                .expect_err("out-of-reference objective must fail")
+                .contains("outside task")
+        );
 
         let (tasks, operations, mut candidates) = fixture();
         candidates[0].objective_1 = Some(-0.001);
-        assert!(evaluate_policy_benchmark(&tasks, &operations, &candidates)
-            .expect_err("below-ideal objective must fail")
-            .contains("outside task"));
+        assert!(
+            evaluate_policy_benchmark(&tasks, &operations, &candidates)
+                .expect_err("below-ideal objective must fail")
+                .contains("outside task")
+        );
     }
 
     #[test]
     fn policy_replicate_matrix_must_be_complete_and_identical() {
         let (tasks, mut operations, candidates) = fixture();
-        operations.retain(|operation| !(operation.replicate_id == "seed-2" && operation.policy_id == "voi"));
+        operations.retain(|operation| {
+            !(operation.replicate_id == "seed-2" && operation.policy_id == "voi")
+        });
         assert!(evaluate_policy_benchmark(&tasks, &operations, &candidates).is_err());
     }
 
@@ -813,9 +994,11 @@ mod tests {
     fn one_seed_is_not_enough_to_claim_policy_generalization() {
         let (tasks, mut operations, _) = fixture();
         operations.retain(|operation| operation.replicate_id == "seed-1");
-        assert!(evaluate_policy_benchmark(&tasks, &operations, &[])
-            .expect_err("one seed must not count as policy benchmark")
-            .contains("at least two independent replicates"));
+        assert!(
+            evaluate_policy_benchmark(&tasks, &operations, &[])
+                .expect_err("one seed must not count as policy benchmark")
+                .contains("at least two independent replicates")
+        );
     }
 
     #[test]
@@ -823,6 +1006,9 @@ mod tests {
         let a = vec![(1.0, 8.0), (4.0, 3.0), (5.0, 9.0)];
         let b = vec![(5.0, 9.0), (4.0, 3.0), (1.0, 8.0)];
         assert!((hypervolume_2d(&a, 10.0, 10.0).unwrap() - 48.0).abs() < 1.0e-12);
-        assert_eq!(hypervolume_2d(&a, 10.0, 10.0), hypervolume_2d(&b, 10.0, 10.0));
+        assert_eq!(
+            hypervolume_2d(&a, 10.0, 10.0),
+            hypervolume_2d(&b, 10.0, 10.0)
+        );
     }
 }

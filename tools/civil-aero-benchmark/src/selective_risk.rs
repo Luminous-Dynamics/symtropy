@@ -141,9 +141,17 @@ pub fn audit_blind_selective_risk(
         };
         if let Some(previous) = truth_by_sample.insert(
             truth_key,
-            (prediction.observed_value.to_bits(), prediction.observed_feasible),
+            (
+                prediction.observed_value.to_bits(),
+                prediction.observed_feasible,
+            ),
         ) {
-            if previous != (prediction.observed_value.to_bits(), prediction.observed_feasible) {
+            if previous
+                != (
+                    prediction.observed_value.to_bits(),
+                    prediction.observed_feasible,
+                )
+            {
                 return Err(format!(
                     "sample {} changes observed value or feasibility truth across models",
                     prediction.sample_id
@@ -215,15 +223,20 @@ pub fn audit_blind_selective_risk(
                 .then_with(|| left.sample_id.cmp(&right.sample_id))
         });
         let sample_count = samples.len();
-        let fully_accepted_absolute_error =
-            samples.iter().map(|sample| sample.absolute_error).sum::<f64>();
-        let fully_accepted_squared_error =
-            samples.iter().map(|sample| sample.squared_error).sum::<f64>();
-        let fully_accepted_false_feasible_count =
-            samples.iter().filter(|sample| sample.false_feasible).count();
+        let fully_accepted_absolute_error = samples
+            .iter()
+            .map(|sample| sample.absolute_error)
+            .sum::<f64>();
+        let fully_accepted_squared_error = samples
+            .iter()
+            .map(|sample| sample.squared_error)
+            .sum::<f64>();
+        let fully_accepted_false_feasible_count = samples
+            .iter()
+            .filter(|sample| sample.false_feasible)
+            .count();
         let fully_accepted_mae = fully_accepted_absolute_error / sample_count as f64;
-        let fully_accepted_rmse =
-            (fully_accepted_squared_error / sample_count as f64).sqrt();
+        let fully_accepted_rmse = (fully_accepted_squared_error / sample_count as f64).sqrt();
         let fully_accepted_false_feasible_rate =
             fully_accepted_false_feasible_count as f64 / sample_count as f64;
 
@@ -266,18 +279,18 @@ pub fn audit_blind_selective_risk(
             } else {
                 Some(false_feasible_count as f64 / predicted_feasible_count as f64)
             };
-            let (false_feasible_given_predicted_feasible_wilson95_lower,
-                false_feasible_given_predicted_feasible_wilson95_upper) =
-                if predicted_feasible_count == 0 {
-                    (None, None)
-                } else {
-                    let (lower, upper) =
-                        wilson95_interval(false_feasible_count, predicted_feasible_count)?;
-                    (Some(lower), Some(upper))
-                };
-            area_under_mae_risk_coverage += (coverage_fraction - previous_coverage)
-                * (previous_mae_risk + selective_mae)
-                * 0.5;
+            let (
+                false_feasible_given_predicted_feasible_wilson95_lower,
+                false_feasible_given_predicted_feasible_wilson95_upper,
+            ) = if predicted_feasible_count == 0 {
+                (None, None)
+            } else {
+                let (lower, upper) =
+                    wilson95_interval(false_feasible_count, predicted_feasible_count)?;
+                (Some(lower), Some(upper))
+            };
+            area_under_mae_risk_coverage +=
+                (coverage_fraction - previous_coverage) * (previous_mae_risk + selective_mae) * 0.5;
             area_under_false_feasible_risk_coverage += (coverage_fraction - previous_coverage)
                 * (previous_false_feasible_risk + false_feasible_rate)
                 * 0.5;
@@ -322,9 +335,11 @@ pub fn audit_blind_selective_risk(
                     || !point.false_feasible_rate.is_finite()
                     || !point.false_feasible_rate_wilson95_lower.is_finite()
                     || !point.false_feasible_rate_wilson95_upper.is_finite()
-                    || point.false_feasible_given_predicted_feasible_wilson95_lower
+                    || point
+                        .false_feasible_given_predicted_feasible_wilson95_lower
                         .is_some_and(|value| !value.is_finite())
-                    || point.false_feasible_given_predicted_feasible_wilson95_upper
+                    || point
+                        .false_feasible_given_predicted_feasible_wilson95_upper
                         .is_some_and(|value| !value.is_finite())
                     || !point.partial_area_under_mae_risk_coverage.is_finite()
                     || !point
@@ -373,8 +388,7 @@ fn wilson95_interval(successes: usize, trials: usize) -> Result<(f64, f64), Stri
     let z2 = Z * Z;
     let denominator = 1.0 + z2 / n;
     let center = (p + z2 / (2.0 * n)) / denominator;
-    let half_width =
-        Z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
+    let half_width = Z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
     let lower = (center - half_width).max(0.0);
     let upper = (center + half_width).min(1.0);
     if !lower.is_finite() || !upper.is_finite() || lower > upper {
@@ -531,8 +545,7 @@ mod tests {
 
     #[test]
     fn risk_coverage_rewards_uncertainty_that_ranks_errors_and_false_feasible_cases() {
-        let report =
-            audit_blind_selective_risk(&synthetic_predictions()).expect("valid blind set");
+        let report = audit_blind_selective_risk(&synthetic_predictions()).expect("valid blind set");
         assert_eq!(report.summaries.len(), 4);
         for domain in [DomainStatus::InDomain, DomainStatus::OutOfDomain] {
             let ranked = report
@@ -545,23 +558,21 @@ mod tests {
             let misranked = report
                 .summaries
                 .iter()
-                .find(|row| {
-                    row.model_id == "misranked_uncertainty" && row.domain_status == domain
-                })
+                .find(|row| row.model_id == "misranked_uncertainty" && row.domain_status == domain)
                 .expect("misranked uncertainty summary");
             assert_eq!(ranked.sample_count, 20);
             assert_eq!(ranked.curve.len(), 20);
-            assert!(ranked.area_under_mae_risk_coverage
-                < misranked.area_under_mae_risk_coverage);
-            assert!(ranked.area_under_false_feasible_risk_coverage
-                < misranked.area_under_false_feasible_risk_coverage);
+            assert!(ranked.area_under_mae_risk_coverage < misranked.area_under_mae_risk_coverage);
+            assert!(
+                ranked.area_under_false_feasible_risk_coverage
+                    < misranked.area_under_false_feasible_risk_coverage
+            );
         }
     }
 
     #[test]
     fn false_feasible_rate_has_wilson_bounds_at_low_coverage() {
-        let report =
-            audit_blind_selective_risk(&synthetic_predictions()).expect("valid blind set");
+        let report = audit_blind_selective_risk(&synthetic_predictions()).expect("valid blind set");
         let first_ranked = report
             .summaries
             .iter()
@@ -597,15 +608,19 @@ mod tests {
     fn blind_split_truth_and_matched_sample_sets_are_fail_closed() {
         let mut predictions = synthetic_predictions();
         predictions[0].dataset_split = "calibration".to_owned();
-        assert!(audit_blind_selective_risk(&predictions)
-            .expect_err("calibration not blind")
-            .contains("only blind_confirmation"));
+        assert!(
+            audit_blind_selective_risk(&predictions)
+                .expect_err("calibration not blind")
+                .contains("only blind_confirmation")
+        );
 
         let mut predictions = synthetic_predictions();
         predictions[0].observed_feasible = false;
-        assert!(audit_blind_selective_risk(&predictions)
-            .expect_err("observed feasibility must agree across models")
-            .contains("changes observed value or feasibility truth"));
+        assert!(
+            audit_blind_selective_risk(&predictions)
+                .expect_err("observed feasibility must agree across models")
+                .contains("changes observed value or feasibility truth")
+        );
 
         let mut predictions = synthetic_predictions();
         predictions.retain(|row| {
@@ -613,36 +628,43 @@ mod tests {
                 && row.domain_status == DomainStatus::OutOfDomain
                 && row.sample_id == "out_of_domain-19")
         });
-        assert!(audit_blind_selective_risk(&predictions)
-            .expect_err("model sample sets must match")
-            .contains("different blind sample sets"));
+        assert!(
+            audit_blind_selective_risk(&predictions)
+                .expect_err("model sample sets must match")
+                .contains("different blind sample sets")
+        );
     }
 
     #[test]
     fn duplicate_samples_negative_uncertainty_and_nonfinite_values_fail_closed() {
         let mut predictions = synthetic_predictions();
         predictions.push(predictions[0].clone());
-        assert!(audit_blind_selective_risk(&predictions)
-            .expect_err("duplicate sample rejected")
-            .contains("duplicate blind sample"));
+        assert!(
+            audit_blind_selective_risk(&predictions)
+                .expect_err("duplicate sample rejected")
+                .contains("duplicate blind sample")
+        );
 
         let mut predictions = synthetic_predictions();
         predictions[0].uncertainty_score = -1.0;
-        assert!(audit_blind_selective_risk(&predictions)
-            .expect_err("negative uncertainty rejected")
-            .contains("non-negative"));
+        assert!(
+            audit_blind_selective_risk(&predictions)
+                .expect_err("negative uncertainty rejected")
+                .contains("non-negative")
+        );
 
         let mut predictions = synthetic_predictions();
         predictions[0].point_prediction = f64::INFINITY;
-        assert!(audit_blind_selective_risk(&predictions)
-            .expect_err("infinite point rejected")
-            .contains("must be finite"));
+        assert!(
+            audit_blind_selective_risk(&predictions)
+                .expect_err("infinite point rejected")
+                .contains("must be finite")
+        );
     }
 
     #[test]
     fn csv_report_is_deterministic_and_exports_full_risk_coverage_curve() {
-        let report =
-            audit_blind_selective_risk(&synthetic_predictions()).expect("valid blind set");
+        let report = audit_blind_selective_risk(&synthetic_predictions()).expect("valid blind set");
         let first = report_to_csv(&report);
         assert_eq!(first, report_to_csv(&report));
         assert_eq!(first.lines().count(), 81);

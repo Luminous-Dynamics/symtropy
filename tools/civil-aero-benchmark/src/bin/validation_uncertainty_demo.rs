@@ -102,7 +102,8 @@ fn run() -> Result<(), String> {
         input_correlation_matrix: vec![vec![1.0, 0.4], vec![0.4, 1.0]],
         experimental_standard_uncertainty: 0.15,
         experimental_uncertainty_source_reference: "synthetic-experiment-budget-v0.1".to_owned(),
-        experimental_uncertainty_method: "synthetic repeatability and calibration aggregate".to_owned(),
+        experimental_uncertainty_method: "synthetic repeatability and calibration aggregate"
+            .to_owned(),
         input_and_experiment_are_aleatory: true,
         aleatory_basis_rationale: "synthetic declared aleatory sources".to_owned(),
         input_experiment_error_correlation: Some(0.25),
