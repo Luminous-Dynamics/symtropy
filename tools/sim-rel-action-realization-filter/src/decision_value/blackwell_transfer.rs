@@ -564,7 +564,7 @@ mod tests {
 
     #[test]
     fn zero_probability_observation_is_accounted_without_posterior_normalization() {
-        let (more, less, witness) = channels();
+        let (more, less, _witness) = channels();
         let mut with_unused_symbol = more.clone();
         with_unused_symbol.observation_ids.push("never".into());
         for row in &mut with_unused_symbol.probabilities {
