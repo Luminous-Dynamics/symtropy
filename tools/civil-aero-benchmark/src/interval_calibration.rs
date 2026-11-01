@@ -158,24 +158,6 @@ pub fn audit_blind_prediction_intervals(
 
     for (index, prediction) in predictions.iter().enumerate() {
         validate_prediction(prediction, index)?;
-        let truth_key = TruthKey {
-            task_id: prediction.task_id.clone(),
-            sample_id: prediction.sample_id.clone(),
-            geometry_family: prediction.geometry_family.clone(),
-            flow_regime: prediction.flow_regime.clone(),
-            domain_status: prediction.domain_status,
-        };
-        if let Some(previous_observation) =
-            truth_by_sample.insert(truth_key, prediction.observed_value.to_bits())
-        {
-            if previous_observation != prediction.observed_value.to_bits() {
-                return Err(format!(
-                    "sample {} changes observed truth across model predictions",
-                    prediction.sample_id
-                ));
-            }
-        }
-
         let comparison_key = ComparisonKey {
             task_id: prediction.task_id.clone(),
             geometry_family: prediction.geometry_family.clone(),
@@ -239,6 +221,26 @@ pub fn audit_blind_prediction_intervals(
                 "sample {} has a duplicate nominal coverage level {}",
                 prediction.sample_id, prediction.nominal_coverage
             ));
+        }
+
+        // First enforce consistency across confidence levels for the same model/sample.
+        // Then enforce identical observed truth across compared models.
+        let truth_key = TruthKey {
+            task_id: prediction.task_id.clone(),
+            sample_id: prediction.sample_id.clone(),
+            geometry_family: prediction.geometry_family.clone(),
+            flow_regime: prediction.flow_regime.clone(),
+            domain_status: prediction.domain_status,
+        };
+        if let Some(previous_observation) =
+            truth_by_sample.insert(truth_key, prediction.observed_value.to_bits())
+        {
+            if previous_observation != prediction.observed_value.to_bits() {
+                return Err(format!(
+                    "sample {} changes observed truth across model predictions",
+                    prediction.sample_id
+                ));
+            }
         }
 
         let width = prediction.upper - prediction.lower;
@@ -452,13 +454,14 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const INTERVAL_CALIBRATION_CSV_HEADER: &str = "task_id,model_id,geometry_family,flow_regime,domain_status,nominal_coverage,sample_count,covered_count,lower_miss_count,upper_miss_count,empirical_coverage,wilson_95_lower,wilson_95_upper,coverage_gap,mean_interval_width,mean_interval_score,point_mae,point_rmse,point_bias,evidence_level";
+pub const INTERVAL_CALIBRATION_CSV_HEADER: &str = "dataset_split,task_id,model_id,geometry_family,flow_regime,domain_status,nominal_coverage,sample_count,covered_count,lower_miss_count,upper_miss_count,empirical_coverage,wilson_95_lower,wilson_95_upper,coverage_gap,mean_interval_width,mean_interval_score,point_mae,point_rmse,point_bias,evidence_level";
 
 pub fn report_to_csv(report: &IntervalCalibrationReport) -> String {
     let mut output = format!("{INTERVAL_CALIBRATION_CSV_HEADER}\n");
     for row in &report.summaries {
         output.push_str(&format!(
-            "{},{},{},{},{},{:.12},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{}\n",
+            "{},{},{},{},{},{},{:.12},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{}\n",
+            report.dataset_split,
             csv_escape(&row.task_id),
             csv_escape(&row.model_id),
             csv_escape(&row.geometry_family),
