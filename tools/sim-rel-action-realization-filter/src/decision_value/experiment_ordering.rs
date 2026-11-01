@@ -1203,24 +1203,29 @@ mod tests {
         let assumed_noisy = noisy_channel("B-noisy-assumed");
         let true_noisy = noisy_channel("B-noisy-truth");
 
-        let eig_a = mutual_information_bits(&assumed_perfect, &prior).unwrap();
-        let eig_b = mutual_information_bits(&assumed_noisy, &prior).unwrap();
-        assert!(eig_a > eig_b);
-
-        let evaluation_a = evaluate_channel_decisions(
+        let comparison = compare_experiment_pair(
             &assumed_perfect,
             &true_inverted,
-            &prior,
-            &loss,
-        )
-        .unwrap();
-        let evaluation_b = evaluate_channel_decisions(
+            rational(1, 10),
             &assumed_noisy,
             &true_noisy,
+            rational(1, 10),
             &prior,
             &loss,
         )
         .unwrap();
+        let evaluation_a = &comparison.experiment_a;
+        let evaluation_b = &comparison.experiment_b;
+
+        assert!(comparison.mutual_information_a_bits > comparison.mutual_information_b_bits);
+        assert_eq!(comparison.information_preference, ExperimentPreference::A);
+        assert_eq!(comparison.nominal_total_loss_preference, ExperimentPreference::A);
+        assert_eq!(comparison.nominal_total_loss_a, rational(1, 10));
+        assert_eq!(comparison.nominal_total_loss_b, rational(3, 10));
+        assert_eq!(comparison.realized_total_loss_preference, ExperimentPreference::B);
+        assert_eq!(comparison.realized_total_loss_a, rational(11, 10));
+        assert_eq!(comparison.realized_total_loss_b, rational(3, 10));
+        assert!(comparison.information_loss_ranking_reversal);
 
         assert_eq!(evaluation_a.nominal_model_expected_loss, Rational::zero());
         assert_eq!(evaluation_a.expected_assumed_loss_under_true_observations, Rational::zero());
@@ -1232,7 +1237,6 @@ mod tests {
         assert_eq!(evaluation_b.realized_policy_loss, rational(1, 5));
         assert_eq!(evaluation_b.true_bayes_oracle_loss, rational(1, 5));
         assert_eq!(evaluation_b.decision_regret, Rational::zero());
-        assert!(evaluation_a.realized_policy_loss > evaluation_b.realized_policy_loss);
     }
 
     #[test]
