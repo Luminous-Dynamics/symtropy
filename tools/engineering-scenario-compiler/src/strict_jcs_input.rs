@@ -330,7 +330,7 @@ mod tests {
         assert_eq!(value["numeric_text"], "18446744073709551617");
         assert_ne!(value["composed"], value["decomposed"]);
         assert!(value["symbol"].as_str().is_some());
-        assert!(canonicalize_strict_jcs_input(input).is_ok());
+        assert!(canonicalize_strict_jcs_input(input.as_bytes()).is_ok());
     }
 
     #[test]
