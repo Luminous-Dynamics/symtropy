@@ -1,0 +1,241 @@
+{
+  "suite_id": "pors-two-body-geometry",
+  "suite_version": "0.1.0",
+  "evidence_class": "analytic_synthetic_reference",
+  "model_scope": "symmetric equatorial two-body ballistic arc; circular spherical Earth; idealized no-atmosphere, no-guidance, no-structure",
+  "claim_ceiling": "This validates one idealized kinematic PORS arc only. It does not validate cable or particle-stream dynamics, vacuum sheath, magnetic acceleration or reversal, structural loads, atmospheric interfaces, safety, control, or construction feasibility.",
+  "constants": {
+    "earth_mu_m3_s2": 398600441800000,
+    "earth_mean_radius_m": 6371000,
+    "earth_rotation_rate_rad_s": 0.00007292115
+  },
+  "scenarios": [
+    {
+      "id": "PORS_100KM_APEX_5DEG_PROGRADE",
+      "apex_height_m": 100000,
+      "half_central_angle_deg": 5,
+      "direction": "prograde",
+      "expected": {
+        "status": "pass",
+        "eccentricity": 0.8048705715138086,
+        "semi_major_axis_m": 3585298.6369945323,
+        "inertial_arc_deg": 10,
+        "earth_rotation_during_flight_deg": 1.3470219457850439,
+        "earth_fixed_endpoint_delta_deg": 8.652978054214955,
+        "surface_arc_distance_km": 962.1672599954086,
+        "flight_time_s": 322.40259582534793,
+        "apex_speed_mps": 3466.92601831953,
+        "ground_inertial_speed_mps": 3735.4082164967967,
+        "ground_relative_tangential_speed_mps": 3056.7626690846855,
+        "ground_relative_radial_speed_mps": -1246.361021775967,
+        "ground_flight_path_angle_deg": 19.491150563987453,
+        "ground_relative_speed_mps": 3301.092820826485,
+        "ground_relative_specific_kinetic_energy_j_kg": 5448606.905856081
+      }
+    },
+    {
+      "id": "PORS_100KM_APEX_20DEG_PROGRADE",
+      "apex_height_m": 100000,
+      "half_central_angle_deg": 20,
+      "direction": "prograde",
+      "expected": {
+        "status": "pass",
+        "eccentricity": 0.20651841807887314,
+        "semi_major_axis_m": 5363366.114463223,
+        "inertial_arc_deg": 40,
+        "earth_rotation_during_flight_deg": 2.6718397493720563,
+        "earth_fixed_endpoint_delta_deg": 37.328160250627946,
+        "surface_arc_distance_km": 4150.702040844908,
+        "flight_time_s": 639.4907473648245,
+        "apex_speed_mps": 6991.198178601499,
+        "ground_inertial_speed_mps": 7128.151969469492,
+        "ground_relative_tangential_speed_mps": 6636.3522388829315,
+        "ground_relative_radial_speed_mps": -622.3364484013052,
+        "ground_flight_path_angle_deg": 5.008690562749275,
+        "ground_relative_speed_mps": 6665.468752723641,
+        "ground_relative_specific_kinetic_energy_j_kg": 22214236.846767627
+      }
+    },
+    {
+      "id": "PORS_300KM_APEX_5DEG_PROGRADE",
+      "apex_height_m": 300000,
+      "half_central_angle_deg": 5,
+      "direction": "prograde",
+      "expected": {
+        "status": "pass",
+        "eccentricity": 0.925230351290773,
+        "semi_major_axis_m": 3465039.9083556,
+        "inertial_arc_deg": 10,
+        "earth_rotation_during_flight_deg": 2.232150588666966,
+        "earth_fixed_endpoint_delta_deg": 7.7678494113330325,
+        "surface_arc_distance_km": 863.7454454791553,
+        "flight_time_s": 534.2534665535059,
+        "apex_speed_mps": 2113.6646672066486,
+        "ground_inertial_speed_mps": 3177.224274099916,
+        "ground_relative_tangential_speed_mps": 1748.6130427136088,
+        "ground_relative_radial_speed_mps": -2279.589388747639,
+        "ground_flight_path_angle_deg": 45.84667262579033,
+        "ground_relative_speed_mps": 2873.008067242238,
+        "ground_relative_specific_kinetic_energy_j_kg": 4127087.6772194905
+      }
+    },
+    {
+      "id": "PORS_300KM_APEX_10DEG_PROGRADE",
+      "apex_height_m": 300000,
+      "half_central_angle_deg": 10,
+      "direction": "prograde",
+      "expected": {
+        "status": "pass",
+        "eccentricity": 0.7560678117150458,
+        "semi_major_axis_m": 3798828.243133069,
+        "inertial_arc_deg": 20,
+        "earth_rotation_during_flight_deg": 2.471561932085298,
+        "earth_fixed_endpoint_delta_deg": 17.5284380679147,
+        "surface_arc_distance_km": 1949.073385155466,
+        "flight_time_s": 591.5553084645667,
+        "apex_speed_mps": 3817.7542864724555,
+        "ground_inertial_speed_mps": 4494.710619651811,
+        "ground_relative_tangential_speed_mps": 3532.945463074968,
+        "ground_relative_radial_speed_mps": -2054.8013423389452,
+        "ground_flight_path_angle_deg": 27.203990689597536,
+        "ground_relative_speed_mps": 4087.041986760098,
+        "ground_relative_specific_kinetic_energy_j_kg": 8351956.100769965
+      }
+    },
+    {
+      "id": "PORS_300KM_APEX_20DEG_PROGRADE",
+      "apex_height_m": 300000,
+      "half_central_angle_deg": 20,
+      "direction": "prograde",
+      "expected": {
+        "status": "pass",
+        "eccentricity": 0.43845654860724,
+        "semi_major_axis_m": 4637609.670211503,
+        "inertial_arc_deg": 40,
+        "earth_rotation_during_flight_deg": 3.2576452637584747,
+        "earth_fixed_endpoint_delta_deg": 36.74235473624153,
+        "surface_arc_distance_km": 4085.5634396447317,
+        "flight_time_s": 779.7002065187465,
+        "apex_speed_mps": 5792.487443253587,
+        "ground_inertial_speed_mps": 6259.399854840911,
+        "ground_relative_tangential_speed_mps": 5600.665583760403,
+        "ground_relative_radial_speed_mps": -1546.891950743429,
+        "ground_flight_path_angle_deg": 14.307806192949316,
+        "ground_relative_speed_mps": 5810.363989320554,
+        "ground_relative_specific_kinetic_energy_j_kg": 16880164.84419653
+      }
+    },
+    {
+      "id": "PORS_300KM_APEX_30DEG_PROGRADE",
+      "apex_height_m": 300000,
+      "half_central_angle_deg": 30,
+      "direction": "prograde",
+      "expected": {
+        "status": "pass",
+        "eccentricity": 0.26006626519018355,
+        "semi_major_axis_m": 5294166.016731776,
+        "inertial_arc_deg": 59.99999999999999,
+        "earth_rotation_during_flight_deg": 4.256200775351499,
+        "earth_fixed_endpoint_delta_deg": 55.7437992246485,
+        "surface_arc_distance_km": 6198.4276656738,
+        "flight_time_s": 1018.6991998318618,
+        "apex_speed_mps": 6649.206664908251,
+        "ground_inertial_speed_mps": 7059.683069033074,
+        "ground_relative_tangential_speed_mps": 6497.726316401788,
+        "ground_relative_radial_speed_mps": -1168.5062205366444,
+        "ground_flight_path_angle_deg": 9.527340608355871,
+        "ground_relative_speed_mps": 6601.958351148028,
+        "ground_relative_specific_kinetic_energy_j_kg": 21792927.035146594
+      }
+    },
+    {
+      "id": "PORS_600KM_APEX_10DEG_PROGRADE",
+      "apex_height_m": 600000,
+      "half_central_angle_deg": 10,
+      "direction": "prograde",
+      "expected": {
+        "status": "pass",
+        "eccentricity": 0.8610918173787832,
+        "semi_major_axis_m": 3745650.770641807,
+        "inertial_arc_deg": 20,
+        "earth_rotation_during_flight_deg": 3.3983180787842895,
+        "earth_fixed_endpoint_delta_deg": 16.601681921215707,
+        "surface_arc_distance_km": 1846.0228034058778,
+        "flight_time_s": 813.3695026043049,
+        "apex_speed_mps": 2818.287284244295,
+        "ground_inertial_speed_mps": 4325.824644636002,
+        "ground_relative_tangential_speed_mps": 2619.123741745384,
+        "ground_relative_radial_speed_mps": -3033.7313824943762,
+        "ground_flight_path_angle_deg": 44.53196424975638,
+        "ground_relative_speed_mps": 4007.909090249625,
+        "ground_relative_specific_kinetic_energy_j_kg": 8031667.63785279
+      }
+    },
+    {
+      "id": "PORS_600KM_APEX_20DEG_PROGRADE",
+      "apex_height_m": 600000,
+      "half_central_angle_deg": 20,
+      "direction": "prograde",
+      "expected": {
+        "status": "pass",
+        "eccentricity": 0.6096208453870474,
+        "semi_major_axis_m": 4330833.574862012,
+        "inertial_arc_deg": 40,
+        "earth_rotation_during_flight_deg": 4.053551555239141,
+        "earth_fixed_endpoint_delta_deg": 35.946448444760854,
+        "surface_arc_distance_km": 3997.0626979475956,
+        "flight_time_s": 970.1961781768362,
+        "apex_speed_mps": 4724.59576270426,
+        "ground_inertial_speed_mps": 5752.549066333129,
+        "ground_relative_tangential_speed_mps": 4704.962134987324,
+        "ground_relative_radial_speed_mps": -2523.4199391681896,
+        "ground_flight_path_angle_deg": 26.01849007039225,
+        "ground_relative_speed_mps": 5338.943423661284,
+        "ground_relative_specific_kinetic_energy_j_kg": 14252158.440528037
+      }
+    },
+    {
+      "id": "PORS_600KM_APEX_30DEG_RETROGRADE",
+      "apex_height_m": 600000,
+      "half_central_angle_deg": 30,
+      "direction": "retrograde",
+      "expected": {
+        "status": "pass",
+        "eccentricity": 0.412781886754077,
+        "semi_major_axis_m": 4934236.533861679,
+        "inertial_arc_deg": 59.99999999999999,
+        "earth_rotation_during_flight_deg": 4.95607502268568,
+        "earth_fixed_endpoint_delta_deg": -64.95607502268568,
+        "surface_arc_distance_km": 7222.785997265988,
+        "flight_time_s": 1186.210408389305,
+        "apex_speed_mps": 5794.568058886459,
+        "ground_inertial_speed_mps": 6659.356923057533,
+        "ground_relative_tangential_speed_mps": -6804.862225444146,
+        "ground_relative_radial_speed_mps": -2036.6305826727398,
+        "ground_flight_path_angle_deg": 17.808100729056324,
+        "ground_relative_speed_mps": 7103.098903827438,
+        "ground_relative_specific_kinetic_energy_j_kg": 25227007.018777277
+      }
+    },
+    {
+      "id": "INVALID_ZERO_APEX",
+      "apex_height_m": 0,
+      "half_central_angle_deg": 10,
+      "direction": "prograde",
+      "expected": {
+        "status": "invalid",
+        "reason_code": "APEX_HEIGHT_NOT_POSITIVE"
+      }
+    },
+    {
+      "id": "INVALID_HALF_ANGLE_LIMIT",
+      "apex_height_m": 300000,
+      "half_central_angle_deg": 90,
+      "direction": "prograde",
+      "expected": {
+        "status": "invalid",
+        "reason_code": "HALF_ANGLE_OUT_OF_RANGE"
+      }
+    }
+  ]
+}

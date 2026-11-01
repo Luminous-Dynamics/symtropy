@@ -339,3 +339,58 @@ Research context: [NIST CUSUM average-run-length guidance](https://www.itl.nist.
 
 **Pre-CI deterministic oracle (not a Rust execution result):** an independent JavaScript reproduction of the registered PRNG, detector recurrences, seed partitions and threshold grid now uses 512 training-null episodes and selects the threshold only when the upper bound of the two-sided 95% Wilson interval is at most 1%. It predicts selected thresholds of 4,250 (Shewhart-style), 10,000 (CUSUM statistic units), and 1,750 (EWMA state units), with 0/512 false alarms in each training set and 0/512 in each held-out null set; the zero-count Wilson upper bound is 74.47 basis points. For abrupt positive 1-sigma shifts, expected detections are 1/64, 64/64 and 35/64. For abrupt positive 2-sigma shifts, expected detections within five samples are 2/64, 16/64 and 22/64. None meets the proposed 90%-within-five-samples target for a 1-sigma shift. The thresholds and outcomes are pre-CI expected oracles, not observed Rust results; the exact-head workflow must confirm them.
 
+
+
+## Earth-to-orbit campaign reference (v0.1)
+
+The additional `earth_orbit_chain_reference` example is the cross-stage interface verifier for the Earth-to-orbit programme. It is deliberately added to this existing standalone Rust benchmark package rather than creating a second package or optimizer.
+
+It validates 27 synthetic campaigns spanning:
+- existing-provider and no-build reference chains;
+- separated and adjacent port / integration / launch facilities;
+- conventional rail, road, short tunnel, linear-motor MagRail and dedicated maglev concepts;
+- port, integration, launch-range, deadline and weather/range bottlenecks;
+- low-inclination and polar orbit geometry;
+- shared-gateway common-mode failure versus independent gateway N-1 service;
+- unknown capacity, mass loss, technology-label mismatch and unsupported operational claims;
+- conceptual orbital-ring construction cargo and a slanted geostationary tether variant.
+
+Run:
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example earth_orbit_chain_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example earth_orbit_chain_reference -- \\
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+The evaluator independently recomputes each route's mass continuity, capacity bottleneck, duration, hard-gate disposition, technology semantics and idealized launch-inclination compatibility. It also computes deterministic N-1 service capacity across declared failure domains. It does not estimate probabilities, perform full launch trajectory or range-safety analysis, simulate tunnel or maglev dynamics, or validate an orbital ring / tether.
+
+The output is a deterministic receipt over the exact fixture bytes and source commit. Case values are synthetic. `feasible` means only that the declared synthetic contract is internally feasible; it is not a real-world site or technology qualification.
+
+
+## Partial Orbital Ring System (PORS) two-body geometry reference (v0.1)
+
+The separate `pors_geometry_reference` example evaluates an idealized symmetric equatorial ballistic arc in a spherical Earth two-body model. The full equation derivation, frame/epoch assumptions and next qualification tiers are documented in [PORS_TWO_BODY_GEOMETRY_DERIVATION_V0_1.md](../../docs/tech/PORS_TWO_BODY_GEOMETRY_DERIVATION_V0_1.md). The mathematical conic has its apogee at the arc apex; only the exterior arc between the two ground terminals is used. Its continuation through the opposite side of the ellipse is inside Earth and is not part of the PORS segment.
+
+The reference calculates:
+- conic eccentricity and semi-major axis;
+- inertial angular separation between the endpoints;
+- Keplerian flight time and Earth rotation during the transfer;
+- signed Earth-fixed endpoint longitude separation, so the two terminal sites are solved jointly rather than selected independently;
+- apex and ground inertial speeds;
+- endpoint radial and tangential velocity relative to the rotating ground;
+- relative terminal speed and its kinetic energy per unit stream mass (an interface-energy indicator, not a net power or regeneration prediction);
+- endpoint flight-path angle;
+- specific-energy and angular-momentum closure.
+
+The 11-case corpus covers 100 / 300 / 600 km apex heights, 5°–30° half-angle spans, prograde and retrograde motion, and two fail-closed invalid geometries. Nine valid cases compare against stored golden numerical values calculated independently from the Keplerian conic equations.
+
+Run:
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example pors_geometry_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example pors_geometry_reference -- \\
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+**Important limitation:** this is only a kinematic reference for a symmetric two-body arc. It omits atmosphere, terrain, Earth oblateness, non-equatorial geometry, cable/particle-stream dynamics, evacuated sheath, magnetic launch/reversal machinery, structural response, vibration, heating, power, containment, human safety, debris and deployment. It cannot establish PORS feasibility or site suitability. The large endpoint-relative velocities it exposes are a reason to investigate reversal-station loads and containment before drawing a corridor map.
