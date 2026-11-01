@@ -163,6 +163,37 @@ Their intersection contains an open neighbourhood of \((0,0,0)\), so the admissi
 The Rust integration test reconstructs the exact 9x9 integer Gram matrix, proves rank six and nullity three, verifies all three null vectors, and checks a rational sample panel in the three-parameter allocation fibre. This is a strict generalization of the two-contact one-dimensional segment: a physically reachable three-contact island can have a three-dimensional family of local contact impulses representing the same body-level impulse and contact response.
 The base allocation \(p_0\) is the unique minimum-Euclidean-norm member of this affine fibre in the declared coordinates: it is orthogonal to all three null vectors, and the exact squared-norm increment is \(2a^2+2b^2+4c^2-2ac-2bc\), positive away from the origin. As above, this is only a declared coordinate-level tie-break; it must not be mistaken for uniqueness of the physical contact impulse.
 
+## Exact rank transition as two contacts coalesce
+
+A parameterized version of the two-point geometry makes the rank-loss stratum explicit. Keep the first contact at \(r_1=(0,0,0)\), move the second to \(r_2=(0,d,0)\), and retain the same body inertia and contact frames. The contact Jacobian is
+\[
+J(d)=\begin{bmatrix}
+1&0&0&0&0&0\\
+0&1&0&0&0&0\\
+0&0&1&0&0&0\\
+1&0&0&0&0&-d\\
+0&1&0&0&0&0\\
+0&0&1&d&0&0
+\end{bmatrix}.
+\]
+For every \(d\ne0\), the 5x5 principal minor of \(W(d)=J(d)M^{-1}J(d)^T\) on contact coordinates \((0,1,2,3,5)\) is exactly
+\[
+\det W(d)_{[0,1,2,3,5]}=\frac{d^4}{3}>0.
+\]
+The common tangent-1 row still gives a one-dimensional \(\ker(J^T)=\ker(W)\), so \(\operatorname{rank}(W)=5\).
+
+At \(d=0\), all three contact rows at the second point duplicate the first contact block. The exact rank drops to three, with nullspace basis
+\[
+n_{t1}=(0,1,0,0,-1,0)^T,\quad
+n_n=(1,0,0,-1,0,0)^T,\quad
+n_{t2}=(0,0,1,0,0,-1)^T.
+\]
+An exact 3x3 principal minor is positive and the three null vectors are independent, proving rank exactly three.
+
+The integration test parameterizes \(d=k/m\) using the integer-scaled Jacobian \(J_m=mJ(d)\). It verifies the rank-five minor of the integer Gram matrix \(6m^2W(d)\) is exactly \(2592\,k^4m^6\) for \(d=1,1/2,1/10,-3/4\), and verifies the rank-three coincident case separately. No singular-value cutoff, floating determinant or epsilon regularization is involved.
+
+This is a controlled rank-stratification benchmark: the physical geometry varies continuously, the exact rank changes only at the coincident-contact stratum, and the principal minor reveals the \(d^4\) collapse. It should be used to test whether interval rank certificates isolate the transition rather than pretending a uniform SPD lower bound extends through \(d=0\).
+
 ## Exact proximal lift: regularize the inner QP, not physical W
 
 The 2026 FBF splitting architecture of Song et al. uses
