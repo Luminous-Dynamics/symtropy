@@ -808,9 +808,12 @@ impl ModelFamilyLedger {
             return Err("model-family ledger event cap would be exceeded".into());
         }
 
+        let holdout_nominal_world_id = expected_world_ids
+            .first()
+            .ok_or_else(|| "registered holdout group has no nominal reference world".to_string())?;
         let replay = replay_shared_policy_across_worlds(
             holdout_worlds,
-            &self.replay_context.nominal_world_id,
+            holdout_nominal_world_id,
             &self.replay_context.loss_table,
             self.replay_context.protocol,
             &self.replay_context.command_costs,
