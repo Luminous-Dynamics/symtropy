@@ -23,8 +23,8 @@ pub mod constraint;
 mod coupled_friction_sturm_support;
 
 pub mod contact;
-pub mod coupled_friction;
 pub mod contact_frame;
+pub mod coupled_friction;
 pub mod delassus;
 pub mod diagnostics;
 pub mod epa;
@@ -46,13 +46,13 @@ pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
-pub use coupled_friction::{
-    CoupledCoulombCandidate, CoupledCoulombError, CoupledCoulombOutcome,
-    CoupledCoulombRegime, CoupledCoulombStatus, solve_coupled_signorini_coulomb,
-};
 pub use contact_frame::{
     ContactAngularCoordinates, ContactFrame, ContactFrameError, ContactWrenchFrictionLimits,
     ContactWrenchImpulse,
+};
+pub use coupled_friction::{
+    CoupledCoulombCandidate, CoupledCoulombError, CoupledCoulombOutcome, CoupledCoulombRegime,
+    CoupledCoulombStatus, solve_coupled_signorini_coulomb,
 };
 pub use delassus::{
     ContactWrenchRow, DelassusAssemblyError, FrictionlessContactRow, ReferenceLcpError,
@@ -61,7 +61,9 @@ pub use delassus::{
 };
 pub use diagnostics::{InvariantDrift, InvariantSnapshot, InvariantStepReceipt};
 pub use epa::EpaResult;
-pub use friction_cone::{FrictionConeError, PlanarFrictionConeSolution, solve_planar_friction_cone};
+pub use friction_cone::{
+    FrictionConeError, PlanarFrictionConeSolution, solve_planar_friction_cone,
+};
 pub use inertia::{BivectorInertia, RotationalInertiaError};
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
