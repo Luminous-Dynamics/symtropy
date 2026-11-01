@@ -288,7 +288,37 @@ pub fn verify_su2_history_import(report: &Su2HistoryReport) -> Result<(), String
             return Err(format!("history import {name} is not a SHA-256 digest"));
         }
     }
-    if report.points.is_empty()
+    if report.run_id.trim().is_empty()
+        || report.solver_version_claim.trim().is_empty()
+        || report.history_byte_length == 0
+        || validate_relative_path(&report.history_relative_path).is_err()
+    {
+        return Err("history import identity or source path is incomplete".to_owned());
+    }
+    if report.expected_header.is_empty()
+        || report.expected_header.iter().any(|name| name.trim().is_empty())
+        || report.iteration_column.trim().is_empty()
+    {
+        return Err("history import header schema is incomplete".to_owned());
+    }
+    let mut header_names = BTreeSet::new();
+    if report.expected_header.iter().any(|name| !header_names.insert(name)) {
+        return Err("history import header contains duplicate columns".to_owned());
+    }
+    if !header_names.contains(&report.iteration_column) || report.numeric_fields.is_empty() {
+        return Err("history import iteration or numeric columns are incomplete".to_owned());
+    }
+    let mut numeric_names = BTreeSet::new();
+    if report.numeric_fields.iter().any(|field| {
+        field.column.trim().is_empty()
+            || field.unit.trim().is_empty()
+            || field.column == report.iteration_column
+            || !header_names.contains(&field.column)
+            || !numeric_names.insert(&field.column)
+    }) {
+        return Err("history import numeric column schema is inconsistent".to_owned());
+    }
+    if report.points.len() < 2
         || report.points.iter().any(|point| {
             point.values.len() != report.numeric_fields.len()
                 || point.values.iter().any(|value| !value.is_finite())
@@ -620,6 +650,26 @@ mod tests {
                 .contains("must be finite")
         );
         fs::remove_dir_all(root).expect("remove negative fixtures");
+    }
+
+    #[test]
+    fn rejects_self_consistent_import_with_internally_inconsistent_schema() {
+        let root = temporary_root("schema-integrity");
+        let run = run_fixture(
+            &root,
+            "SU2_CFD",
+            "\"Iteration\",\"CL\",\"CD\",\"RMS_RES\"\n0,0.4,0.02,1e-2\n1,0.42,0.018,1e-3\n",
+        );
+        let mut report = import_su2_history(&run, &schema()).expect("valid import");
+        report.numeric_fields[1].column = "NOT_IN_HEADER".to_owned();
+        report.import_sha256 =
+            su2_history_import_sha256(&report).expect("re-seal mutated test struct");
+        assert!(
+            verify_su2_history_import(&report)
+                .expect_err("inconsistent schema must fail despite matching digest")
+                .contains("numeric column schema is inconsistent")
+        );
+        fs::remove_dir_all(root).expect("remove schema-integrity fixture");
     }
 
     #[test]
