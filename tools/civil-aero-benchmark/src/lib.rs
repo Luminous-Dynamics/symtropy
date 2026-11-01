@@ -27,6 +27,7 @@ pub mod run_artifacts;
 pub mod section_polar;
 pub mod selective_risk;
 pub mod shapebench;
+pub mod su2_convergence_screen;
 pub mod su2_history;
 pub mod task_conformance;
 pub mod unsteady_spectrum;
