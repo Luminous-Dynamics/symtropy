@@ -20,6 +20,7 @@ use std::collections::{BTreeMap, BTreeSet};
 const MAX_LEDGER_WORLDS: usize = 16;
 const MAX_LEDGER_EVENTS: usize = 100_000;
 const MAX_SEALED_GROUPS: usize = 256;
+const MAX_CALIBRATION_GROUPS: usize = 256;
 const MAX_WORLD_ID_LENGTH: usize = 256;
 const MAX_RECEIPT_ID_LENGTH: usize = 256;
 
@@ -71,6 +72,16 @@ pub struct CounterexampleValidationReceipt {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SealedHoldoutGroupRegistration {
+    pub family_group_id: String,
+    pub world_ids: Vec<String>,
+    pub manifest_id: String,
+}
+
+/// Pre-registered calibration-only family group. Calibration artifacts may
+/// support calibration, but neither their group nor world IDs can be admitted
+/// into the development counterexample family.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CalibrationGroupRegistration {
     pub family_group_id: String,
     pub world_ids: Vec<String>,
     pub manifest_id: String,
@@ -194,6 +205,7 @@ pub struct ModelFamilyLedgerSnapshot {
     pub frozen_policy_plan: Option<DecisionPlan>,
     pub frozen_policy_metrics: Option<Vec<WorldDecisionObjectives>>,
     pub frozen_policy_revision: Option<u64>,
+    pub reserved_calibration_groups: Vec<CalibrationGroupRegistration>,
     pub reserved_holdout_groups: Vec<SealedHoldoutGroupRegistration>,
     pub consumed_holdout_group_ids: Vec<String>,
     pub used_validation_receipt_ids: Vec<String>,
@@ -218,6 +230,7 @@ pub struct ModelFamilyLedger {
     frozen_policy_plan: Option<DecisionPlan>,
     frozen_policy_metrics: Option<Vec<WorldDecisionObjectives>>,
     frozen_policy_revision: Option<u64>,
+    reserved_calibrations: BTreeMap<String, CalibrationGroupRegistration>,
     reserved_holdouts: BTreeMap<String, SealedHoldoutGroupRegistration>,
     consumed_holdout_group_ids: BTreeSet<String>,
     event_receipt_ids: BTreeSet<String>,
@@ -230,7 +243,8 @@ impl ModelFamilyLedger {
     /// before counterexample search starts.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        baseline_worlds: Vec<DecisionModelWorld>,
+        mut baseline_worlds: Vec<DecisionModelWorld>,
+        calibration_groups: Vec<CalibrationGroupRegistration>,
         holdouts: Vec<SealedHoldoutGroupRegistration>,
         initial_policy_identity: String,
         initial_policy_plan: DecisionPlan,
@@ -264,12 +278,16 @@ impl ModelFamilyLedger {
             development_budgets: budgets,
         };
 
+        baseline_worlds.sort_by(|left, right| left.id.cmp(&right.id));
         let mut world_ids = BTreeSet::new();
+        let mut all_reserved_world_ids = BTreeSet::<String>::new();
+        let mut all_reserved_group_ids = BTreeSet::<String>::new();
         for world in &baseline_worlds {
             validate_opaque_id(&world.id, MAX_WORLD_ID_LENGTH, "baseline world ID")?;
             if !world_ids.insert(world.id.as_str()) {
                 return Err("baseline world IDs must be unique".into());
             }
+            all_reserved_world_ids.insert(world.id.clone());
             world.kernel.validate()?;
         }
         let initial_replay = replay_shared_policy_across_worlds(
@@ -289,13 +307,48 @@ impl ModelFamilyLedger {
             return Err("initial policy violates hazard or abstention budget in a baseline world".into());
         }
 
+        if calibration_groups.len() > MAX_CALIBRATION_GROUPS {
+            return Err(format!(
+                "calibration group count exceeds {MAX_CALIBRATION_GROUPS}"
+            ));
+        }
+        let mut reserved_calibrations = BTreeMap::new();
+        for registration in calibration_groups {
+            validate_opaque_id(
+                &registration.family_group_id,
+                MAX_WORLD_ID_LENGTH,
+                "calibration family-group ID",
+            )?;
+            validate_opaque_id(
+                &registration.manifest_id,
+                MAX_RECEIPT_ID_LENGTH,
+                "calibration manifest ID",
+            )?;
+            if registration.world_ids.is_empty() {
+                return Err("calibration registration must contain at least one world".into());
+            }
+            if !all_reserved_group_ids.insert(registration.family_group_id.clone()) {
+                return Err("calibration family-group IDs must be globally unique".into());
+            }
+            let mut local_ids = BTreeSet::new();
+            for world_id in &registration.world_ids {
+                validate_opaque_id(world_id, MAX_WORLD_ID_LENGTH, "calibration world ID")?;
+                if !local_ids.insert(world_id.as_str()) {
+                    return Err("calibration world IDs must be unique within a group".into());
+                }
+                if !all_reserved_world_ids.insert(world_id.clone()) {
+                    return Err("calibration world ID collides with another evidence split".into());
+                }
+            }
+            reserved_calibrations.insert(registration.family_group_id.clone(), registration);
+        }
+
         if holdouts.len() > MAX_SEALED_GROUPS {
             return Err(format!(
                 "sealed holdout group count exceeds {MAX_SEALED_GROUPS}"
             ));
         }
         let mut reserved_holdouts = BTreeMap::new();
-        let mut sealed_world_ids = BTreeSet::new();
         for registration in holdouts {
             validate_opaque_id(
                 &registration.family_group_id,
@@ -316,14 +369,14 @@ impl ModelFamilyLedger {
                 if !local_ids.insert(world_id.as_str()) {
                     return Err("sealed world IDs must be unique within a group".into());
                 }
-                if world_ids.contains(world_id.as_str()) {
-                    return Err("sealed holdout world ID collides with a development world".into());
-                }
-                if !sealed_world_ids.insert(world_id.clone()) {
-                    return Err("sealed world IDs cannot belong to multiple groups".into());
+                if !all_reserved_world_ids.insert(world_id.clone()) {
+                    return Err("sealed holdout world ID collides with another evidence split".into());
                 }
             }
             let group_id = registration.family_group_id.clone();
+            if !all_reserved_group_ids.insert(group_id.clone()) {
+                return Err("evidence family-group IDs must be globally unique across splits".into());
+            }
             if reserved_holdouts.insert(group_id, registration).is_some() {
                 return Err("sealed family-group IDs must be unique".into());
             }
@@ -343,6 +396,7 @@ impl ModelFamilyLedger {
             frozen_policy_plan: None,
             frozen_policy_metrics: None,
             frozen_policy_revision: None,
+            reserved_calibrations,
             reserved_holdouts,
             consumed_holdout_group_ids: BTreeSet::new(),
             event_receipt_ids: BTreeSet::new(),
@@ -395,6 +449,7 @@ impl ModelFamilyLedger {
             frozen_policy_plan: self.frozen_policy_plan.clone(),
             frozen_policy_metrics: self.frozen_policy_metrics.clone(),
             frozen_policy_revision: self.frozen_policy_revision,
+            reserved_calibration_groups: self.reserved_calibrations.values().cloned().collect(),
             reserved_holdout_groups: self.reserved_holdouts.values().cloned().collect(),
             consumed_holdout_group_ids,
             used_validation_receipt_ids: self.validation_receipt_ids.iter().cloned().collect(),
@@ -430,6 +485,9 @@ impl ModelFamilyLedger {
         }
         if self.reserved_holdouts.contains_key(&provenance.family_group_id) {
             return Err("development candidate overlaps a reserved sealed holdout group".into());
+        }
+        if self.reserved_calibrations.contains_key(&provenance.family_group_id) {
+            return Err("development candidate overlaps a reserved calibration group".into());
         }
         if witness.outcome.class() == CounterexampleClass::NoViolation {
             return Err("a NoViolation candidate cannot be admitted as a counterexample".into());
@@ -492,6 +550,13 @@ impl ModelFamilyLedger {
             .any(|registration| registration.world_ids.contains(&witness.candidate_world.id))
         {
             return Err("candidate world ID collides with a pre-registered sealed world ID".into());
+        }
+        if self
+            .reserved_calibrations
+            .values()
+            .any(|registration| registration.world_ids.contains(&witness.candidate_world.id))
+        {
+            return Err("candidate world ID collides with a pre-registered calibration world ID".into());
         }
         if self
             .development_worlds
@@ -1149,6 +1214,14 @@ mod tests {
         }
     }
 
+    fn calibration() -> CalibrationGroupRegistration {
+        CalibrationGroupRegistration {
+            family_group_id: "calibration-mechanism-family".into(),
+            world_ids: vec!["calibration-world-a".into(), "calibration-world-b".into()],
+            manifest_id: "calibration-manifest-v1".into(),
+        }
+    }
+
     fn holdout_worlds() -> Vec<DecisionModelWorld> {
         let first = world("heldout-world-a");
         let mut shifted = world("heldout-world-b");
@@ -1279,6 +1352,7 @@ mod tests {
     fn ledger() -> ModelFamilyLedger {
         ModelFamilyLedger::new(
             vec![world("nominal")],
+            vec![calibration()],
             vec![holdout()],
             "policy-v1".into(),
             test_policy(),
@@ -1370,6 +1444,7 @@ mod tests {
     fn invalid_initial_policy_cannot_enter_the_ledger_as_active() {
         let result = ModelFamilyLedger::new(
             vec![world("nominal")],
+            vec![calibration()],
             vec![holdout()],
             "policy-invalid".into(),
             DecisionPlan::Experiment {
@@ -1522,6 +1597,31 @@ mod tests {
         }
         assert_eq!(ledger.family_revision(), 0);
         assert_eq!(ledger.development_world_ids(), vec!["nominal"]);
+    }
+
+    #[test]
+    fn development_group_and_world_ids_cannot_alias_reserved_calibration_split() {
+        let mut ledger = ledger();
+        let by_group = counterexample(&world("nominal"), "dev-candidate-a");
+        assert!(ledger
+            .admit_counterexample(
+                &by_group,
+                provenance("policy-v1", EvidenceSplit::Development, "calibration-mechanism-family"),
+                validation(),
+                "calibration-group-leakage".into(),
+            )
+            .is_err());
+
+        let by_world = counterexample(&world("nominal"), "calibration-world-a");
+        assert!(ledger
+            .admit_counterexample(
+                &by_world,
+                provenance("policy-v1", EvidenceSplit::Development, "dev-independent-group"),
+                validation(),
+                "calibration-world-leakage".into(),
+            )
+            .is_err());
+        assert_eq!(ledger.family_revision(), 0);
     }
 
     #[test]
@@ -1917,6 +2017,7 @@ mod tests {
         assert!(ModelFamilyLedger::new(
             vec![world("nominal"), world("nominal")],
             vec![],
+            vec![],
             "policy".into(),
             terminal_plan(),
             "nominal",
@@ -1938,6 +2039,7 @@ mod tests {
         };
         assert!(ModelFamilyLedger::new(
             vec![world("nominal")],
+            vec![],
             vec![duplicate_holdout],
             "policy".into(),
             terminal_plan(),
