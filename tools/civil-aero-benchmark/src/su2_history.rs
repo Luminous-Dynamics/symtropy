@@ -240,11 +240,17 @@ pub fn verify_su2_history_import(report: &Su2HistoryReport) -> Result<(), String
         || report.solver_id != "SU2_CFD"
         || report.evidence_level != SU2_HISTORY_EVIDENCE_LEVEL
     {
-        return Err("history import schema, solver identity, or evidence ceiling is not recognized".to_owned());
+        return Err(
+            "history import schema, solver identity, or evidence ceiling is not recognized"
+                .to_owned(),
+        );
     }
     for (name, value) in [
         ("executable_sha256", report.executable_sha256.as_str()),
-        ("runner_receipt_sha256", report.runner_receipt_sha256.as_str()),
+        (
+            "runner_receipt_sha256",
+            report.runner_receipt_sha256.as_str(),
+        ),
         ("history_sha256", report.history_sha256.as_str()),
         ("import_sha256", report.import_sha256.as_str()),
     ] {
@@ -257,7 +263,10 @@ pub fn verify_su2_history_import(report: &Su2HistoryReport) -> Result<(), String
             point.values.len() != report.numeric_fields.len()
                 || point.values.iter().any(|value| !value.is_finite())
         })
-        || report.points.windows(2).any(|pair| pair[1].iteration <= pair[0].iteration)
+        || report
+            .points
+            .windows(2)
+            .any(|pair| pair[1].iteration <= pair[0].iteration)
     {
         return Err("history import points are malformed or not strictly increasing".to_owned());
     }
