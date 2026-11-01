@@ -228,7 +228,9 @@ fn physically_admissible_impulses_form_a_continuum_with_one_body_response() {
         // The generalized body impulse J^T p(alpha) is invariant because
         // J^T*n=0. The contact-coordinate multipliers nevertheless differ.
         let body_impulse_numerator = transpose_times_vector(&CONTACT_JACOBIAN, &scaled_impulse);
-        let expected_body_impulse: Vector6 = std::array::from_fn(|index| d * BASE_IMPULSE[index]);
+        let base_body_impulse = transpose_times_vector(&CONTACT_JACOBIAN, &BASE_IMPULSE);
+        let expected_body_impulse: Vector6 =
+            std::array::from_fn(|index| d * base_body_impulse[index]);
         assert_eq!(body_impulse_numerator, expected_body_impulse);
 
         assert!(scaled_impulse[0] > 0 && scaled_impulse[3] > 0);
