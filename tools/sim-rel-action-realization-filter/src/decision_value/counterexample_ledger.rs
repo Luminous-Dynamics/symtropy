@@ -172,11 +172,19 @@ pub struct ModelFamilyLedger {
 impl ModelFamilyLedger {
     /// Initialize the immutable development baseline and reserve sealed groups
     /// before counterexample search starts.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         baseline_worlds: Vec<DecisionModelWorld>,
         holdouts: Vec<SealedHoldoutGroupRegistration>,
         initial_policy_identity: String,
         initial_policy_plan: DecisionPlan,
+        nominal_world_id: &str,
+        loss_table: &DecisionLossTable,
+        protocol: ObservationProtocol,
+        command_costs: &[Rational],
+        hazard_loss: Rational,
+        horizon: usize,
+        budgets: DecisionBudgets,
     ) -> Result<Self, String> {
         validate_opaque_id(
             &initial_policy_identity,
@@ -188,6 +196,7 @@ impl ModelFamilyLedger {
                 "baseline family size must be in 1..={MAX_LEDGER_WORLDS}"
             ));
         }
+        budgets.validate()?;
 
         let mut world_ids = BTreeSet::new();
         for world in &baseline_worlds {
@@ -196,6 +205,22 @@ impl ModelFamilyLedger {
                 return Err("baseline world IDs must be unique".into());
             }
             world.kernel.validate()?;
+        }
+        let initial_replay = replay_shared_policy_across_worlds(
+            &baseline_worlds,
+            nominal_world_id,
+            loss_table,
+            protocol,
+            command_costs,
+            hazard_loss,
+            &initial_policy_plan,
+            horizon,
+        )?;
+        if initial_replay.per_world.iter().any(|metrics| {
+            metrics.hazard_probability > budgets.max_hazard_probability
+                || metrics.abstention_probability > budgets.max_abstention_probability
+        }) {
+            return Err("initial policy violates hazard or abstention budget in a baseline world".into());
         }
 
         if holdouts.len() > MAX_SEALED_GROUPS {
@@ -830,6 +855,16 @@ mod tests {
             vec![holdout()],
             "policy-v1".into(),
             test_policy(),
+            "nominal",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &[Rational::zero(), Rational::zero()],
+            Rational::one(),
+            2,
+            DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::zero(),
+            },
         )
         .unwrap()
     }
@@ -1306,6 +1341,16 @@ mod tests {
             vec![],
             "policy".into(),
             terminal_plan(),
+            "nominal",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &[Rational::zero(), Rational::zero()],
+            Rational::one(),
+            2,
+            DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::zero(),
+            },
         )
         .is_err());
         let duplicate_holdout = SealedHoldoutGroupRegistration {
@@ -1318,6 +1363,16 @@ mod tests {
             vec![duplicate_holdout],
             "policy".into(),
             terminal_plan(),
+            "nominal",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &[Rational::zero(), Rational::zero()],
+            Rational::one(),
+            2,
+            DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::zero(),
+            },
         )
         .is_err());
     }
