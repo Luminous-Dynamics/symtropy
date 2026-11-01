@@ -173,8 +173,8 @@ impl SplitMix64 {
         if length == 0 {
             return Err("cannot choose from an empty recipe set".into());
         }
-        let bound = u64::try_from(length)
-            .map_err(|_| "recipe candidate count exceeds u64".to_string())?;
+        let bound =
+            u64::try_from(length).map_err(|_| "recipe candidate count exceeds u64".to_string())?;
         let threshold = bound.wrapping_neg() % bound;
         loop {
             let sample = self.next_u64();
@@ -226,10 +226,8 @@ fn confidence_interval(solved: usize, attempts: usize) -> Result<ExactConfidence
     if attempts == 0 || solved > attempts {
         return Err("confidence interval requires 0 <= solved <= attempts and attempts > 0".into());
     }
-    let n = u128::try_from(attempts)
-        .map_err(|_| "attempt count exceeds u128".to_string())?;
-    let solved = u128::try_from(solved)
-        .map_err(|_| "success count exceeds u128".to_string())?;
+    let n = u128::try_from(attempts).map_err(|_| "attempt count exceeds u128".to_string())?;
+    let solved = u128::try_from(solved).map_err(|_| "success count exceeds u128".to_string())?;
     let radius_square = ceil_div(HOEFFDING_NUMERATOR, n);
     let radius_ppm = integer_sqrt_ceil(radius_square);
     let denominator = n
@@ -262,9 +260,7 @@ fn interval_distance(
     if interval.upper < target_lower {
         target_lower.checked_sub_nonnegative(interval.upper)
     } else if interval.lower > target_upper {
-        interval
-            .lower
-            .checked_sub_nonnegative(target_upper)
+        interval.lower.checked_sub_nonnegative(target_upper)
     } else {
         Ok(Rational::zero())
     }
@@ -473,7 +469,10 @@ pub fn select_next_recipe(
     let mut candidate_by_identity = BTreeMap::new();
     for candidate in candidates {
         candidate_by_identity.insert(
-            (candidate.recipe_id.as_str(), candidate.recipe_version.as_str()),
+            (
+                candidate.recipe_id.as_str(),
+                candidate.recipe_version.as_str(),
+            ),
             candidate,
         );
     }
@@ -485,8 +484,7 @@ pub fn select_next_recipe(
     let mut attempt_ids = BTreeSet::new();
     let mut task_agent_attempts = BTreeSet::new();
     let mut recipe_counts = BTreeMap::<(String, String), Counts>::new();
-    let mut agent_counts =
-        BTreeMap::<(String, String), BTreeMap<String, AgentCounts>>::new();
+    let mut agent_counts = BTreeMap::<(String, String), BTreeMap<String, AgentCounts>>::new();
     let mut groups_by_stratum = BTreeMap::<String, BTreeSet<String>>::new();
     let mut invalid_task_attempts = 0usize;
 
@@ -500,7 +498,10 @@ pub fn select_next_recipe(
             (&outcome.mechanism_stratum, "outcome mechanism stratum"),
             (&outcome.family_group_id, "outcome family-group ID"),
             (&outcome.agent_id, "outcome agent ID"),
-            (&outcome.evidence_artifact_digest, "outcome evidence artifact digest"),
+            (
+                &outcome.evidence_artifact_digest,
+                "outcome evidence artifact digest",
+            ),
         ] {
             if !valid_id(value) {
                 return Err(format!("{label} is empty or overlong"));
@@ -524,23 +525,17 @@ pub fn select_next_recipe(
         )) {
             return Err("an agent has more than one attempt on the same recipe/task pair".into());
         }
-        let identity = (
-            outcome.recipe_id.as_str(),
-            outcome.recipe_version.as_str(),
-        );
-        let candidate = candidate_by_identity
-            .get(&identity)
-            .ok_or_else(|| "outcome references a recipe outside the immutable registry".to_string())?;
+        let identity = (outcome.recipe_id.as_str(), outcome.recipe_version.as_str());
+        let candidate = candidate_by_identity.get(&identity).ok_or_else(|| {
+            "outcome references a recipe outside the immutable registry".to_string()
+        })?;
         if candidate.recipe_digest != outcome.recipe_digest
             || candidate.mechanism_stratum != outcome.mechanism_stratum
         {
             return Err("outcome recipe digest or mechanism stratum differs from registry".into());
         }
 
-        let key = (
-            outcome.recipe_id.clone(),
-            outcome.recipe_version.clone(),
-        );
+        let key = (outcome.recipe_id.clone(), outcome.recipe_version.clone());
         let counts = recipe_counts.entry(key.clone()).or_default();
         match (outcome.task_validity, outcome.outcome) {
             (ChallengeTaskValidity::Invalid, None) => {
@@ -589,16 +584,17 @@ pub fn select_next_recipe(
             deficit: required.saturating_sub(observed),
         });
     }
-    let selected_coverage = coverage
-        .iter()
-        .filter(|entry| entry.deficit > 0)
-        .max_by(|left, right| {
-            let left_n = left.deficit as u128 * right.required_unique_valid_groups as u128;
-            let right_n = right.deficit as u128 * left.required_unique_valid_groups as u128;
-            left_n
-                .cmp(&right_n)
-                .then_with(|| right.mechanism_stratum.cmp(&left.mechanism_stratum))
-        });
+    let selected_coverage =
+        coverage
+            .iter()
+            .filter(|entry| entry.deficit > 0)
+            .max_by(|left, right| {
+                let left_n = left.deficit as u128 * right.required_unique_valid_groups as u128;
+                let right_n = right.deficit as u128 * left.required_unique_valid_groups as u128;
+                left_n
+                    .cmp(&right_n)
+                    .then_with(|| right.mechanism_stratum.cmp(&left.mechanism_stratum))
+            });
     let selected_stratum = selected_coverage.map(|item| item.mechanism_stratum.clone());
 
     let mut summaries = Vec::with_capacity(candidates.len());
@@ -732,13 +728,13 @@ pub fn select_next_recipe(
 
 #[cfg(test)]
 mod tests {
+    use super::super::counterexample_ledger::EvidenceSplit;
+    use super::super::scientific_challenge::ChallengeSplitRegistry;
     use super::{
         AdaptiveRecipeSelectorConfig, AgentChallengeOutcome, ChallengeTaskValidity,
         DevelopmentOutcomeReceipt, RecipeSelectionReason, ScientificRecipeDescriptor,
         StratumCoverageTarget, confidence_interval, select_next_recipe,
     };
-    use super::super::counterexample_ledger::EvidenceSplit;
-    use super::super::scientific_challenge::ChallengeSplitRegistry;
     use crate::Rational;
 
     fn q(numerator: u128, denominator: u128) -> Rational {
@@ -831,10 +827,46 @@ mod tests {
     fn development_outcomes_only_and_stratum_coverage_has_priority() {
         let candidates = candidates();
         let outcomes = vec![
-            receipt("a1", "task-1", "dev-a", "sensor-shift-easy", "digest-easy-v1", "sensor-fault", "agent-a", AgentChallengeOutcome::Solved),
-            receipt("a2", "task-1", "dev-a", "sensor-shift-easy", "digest-easy-v1", "sensor-fault", "agent-b", AgentChallengeOutcome::Solved),
-            receipt("a3", "task-2", "dev-b", "sensor-shift-easy", "digest-easy-v1", "sensor-fault", "agent-a", AgentChallengeOutcome::NotSolved),
-            receipt("a4", "task-2", "dev-b", "sensor-shift-easy", "digest-easy-v1", "sensor-fault", "agent-b", AgentChallengeOutcome::NotSolved),
+            receipt(
+                "a1",
+                "task-1",
+                "dev-a",
+                "sensor-shift-easy",
+                "digest-easy-v1",
+                "sensor-fault",
+                "agent-a",
+                AgentChallengeOutcome::Solved,
+            ),
+            receipt(
+                "a2",
+                "task-1",
+                "dev-a",
+                "sensor-shift-easy",
+                "digest-easy-v1",
+                "sensor-fault",
+                "agent-b",
+                AgentChallengeOutcome::Solved,
+            ),
+            receipt(
+                "a3",
+                "task-2",
+                "dev-b",
+                "sensor-shift-easy",
+                "digest-easy-v1",
+                "sensor-fault",
+                "agent-a",
+                AgentChallengeOutcome::NotSolved,
+            ),
+            receipt(
+                "a4",
+                "task-2",
+                "dev-b",
+                "sensor-shift-easy",
+                "digest-easy-v1",
+                "sensor-fault",
+                "agent-b",
+                AgentChallengeOutcome::NotSolved,
+            ),
         ];
         let result = select_next_recipe(
             &candidates,
@@ -894,7 +926,12 @@ mod tests {
         .unwrap();
         assert_eq!(result.invalid_task_attempts_excluded, 1);
         assert_eq!(result.selected_recipe_summary.valid_attempts, 0);
-        assert_eq!(result.selected_stratum_coverage.observed_unique_valid_groups, 0);
+        assert_eq!(
+            result
+                .selected_stratum_coverage
+                .observed_unique_valid_groups,
+            0
+        );
     }
 
     #[test]
@@ -914,20 +951,22 @@ mod tests {
                 AgentChallengeOutcome::Solved,
             );
             outcome.split = split;
-            assert!(select_next_recipe(
-                &candidates(),
-                &[outcome],
-                &[StratumCoverageTarget {
-                    mechanism_stratum: "sensor-fault".into(),
-                    minimum_unique_valid_groups: 1,
-                }],
-                &config(),
-                &registry(),
-                "ledger-digest",
-                1,
-                1,
-            )
-            .is_err());
+            assert!(
+                select_next_recipe(
+                    &candidates(),
+                    &[outcome],
+                    &[StratumCoverageTarget {
+                        mechanism_stratum: "sensor-fault".into(),
+                        minimum_unique_valid_groups: 1,
+                    }],
+                    &config(),
+                    &registry(),
+                    "ledger-digest",
+                    1,
+                    1,
+                )
+                .is_err()
+            );
         }
     }
 
@@ -945,54 +984,78 @@ mod tests {
         );
         let mut duplicate = first.clone();
         duplicate.task_id = "task-2".into();
-        assert!(select_next_recipe(
-            &candidates(),
-            &[first.clone(), duplicate],
-            &[],
-            &config(),
-            &registry(),
-            "ledger-digest",
-            2,
-            5,
-        )
-        .is_err());
+        assert!(
+            select_next_recipe(
+                &candidates(),
+                &[first.clone(), duplicate],
+                &[],
+                &config(),
+                &registry(),
+                "ledger-digest",
+                2,
+                5,
+            )
+            .is_err()
+        );
 
         let mut repeated_task = first.clone();
         repeated_task.attempt_id = "attempt-2".into();
-        assert!(select_next_recipe(
-            &candidates(),
-            &[first.clone(), repeated_task],
-            &[],
-            &config(),
-            &registry(),
-            "ledger-digest",
-            2,
-            5,
-        )
-        .is_err());
+        assert!(
+            select_next_recipe(
+                &candidates(),
+                &[first.clone(), repeated_task],
+                &[],
+                &config(),
+                &registry(),
+                "ledger-digest",
+                2,
+                5,
+            )
+            .is_err()
+        );
 
-        let mut unknown = first; 
+        let mut unknown = first;
         unknown.attempt_id = "attempt-unknown-agent".into();
         unknown.agent_id = "agent-c".into();
-        assert!(select_next_recipe(
-            &candidates(),
-            &[unknown],
-            &[],
-            &config(),
-            &registry(),
-            "ledger-digest",
-            1,
-            5,
-        )
-        .is_err());
+        assert!(
+            select_next_recipe(
+                &candidates(),
+                &[unknown],
+                &[],
+                &config(),
+                &registry(),
+                "ledger-digest",
+                1,
+                5,
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn exact_replay_is_deterministic_and_registry_mutation_is_rejected() {
         let candidates = candidates();
         let outcomes = vec![
-            receipt("attempt-1", "task-1", "dev-a", "sensor-shift-easy", "digest-easy-v1", "sensor-fault", "agent-a", AgentChallengeOutcome::Solved),
-            receipt("attempt-2", "task-1", "dev-a", "sensor-shift-easy", "digest-easy-v1", "sensor-fault", "agent-b", AgentChallengeOutcome::NotSolved),
+            receipt(
+                "attempt-1",
+                "task-1",
+                "dev-a",
+                "sensor-shift-easy",
+                "digest-easy-v1",
+                "sensor-fault",
+                "agent-a",
+                AgentChallengeOutcome::Solved,
+            ),
+            receipt(
+                "attempt-2",
+                "task-1",
+                "dev-a",
+                "sensor-shift-easy",
+                "digest-easy-v1",
+                "sensor-fault",
+                "agent-b",
+                AgentChallengeOutcome::NotSolved,
+            ),
         ];
         let first = select_next_recipe(
             &candidates,
@@ -1020,16 +1083,18 @@ mod tests {
 
         let mut changed = outcomes;
         changed[0].recipe_digest = "mutated-digest".into();
-        assert!(select_next_recipe(
-            &candidates,
-            &changed,
-            &[],
-            &config(),
-            &registry(),
-            "same-ledger-digest",
-            2,
-            99,
-        )
-        .is_err());
+        assert!(
+            select_next_recipe(
+                &candidates,
+                &changed,
+                &[],
+                &config(),
+                &registry(),
+                "same-ledger-digest",
+                2,
+                99,
+            )
+            .is_err()
+        );
     }
 }
