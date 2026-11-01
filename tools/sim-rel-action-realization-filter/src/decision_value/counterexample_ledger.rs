@@ -312,7 +312,7 @@ impl ModelFamilyLedger {
                 if world_ids.contains(world_id.as_str()) {
                     return Err("sealed holdout world ID collides with a development world".into());
                 }
-                if !sealed_world_ids.insert(world_id.as_str()) {
+                if !sealed_world_ids.insert(world_id.clone()) {
                     return Err("sealed world IDs cannot belong to multiple groups".into());
                 }
             }
