@@ -78,8 +78,8 @@ fn exact_determinant(mut matrix: Vec<Vec<Rational>>) -> Rational {
     let mut determinant = Rational::one();
     let mut sign = Rational::one();
     for pivot_column in 0..dimension {
-        let Some(pivot_row) = (pivot_column..dimension)
-            .find(|&row| !matrix[row][pivot_column].is_zero())
+        let Some(pivot_row) =
+            (pivot_column..dimension).find(|&row| !matrix[row][pivot_column].is_zero())
         else {
             return Rational::zero();
         };
@@ -396,12 +396,16 @@ fn approaching_contact_coincidence_preserves_exact_rank_until_the_geometry_colla
             -Rational::one(),
             Rational::zero(),
         ];
-        assert!(matrix_vector(&transpose(&jacobian), &null_impulse)
-            .iter()
-            .all(Rational::is_zero));
-        assert!(matrix_vector(&delassus, &null_impulse)
-            .iter()
-            .all(Rational::is_zero));
+        assert!(
+            matrix_vector(&transpose(&jacobian), &null_impulse)
+                .iter()
+                .all(Rational::is_zero)
+        );
+        assert!(
+            matrix_vector(&delassus, &null_impulse)
+                .iter()
+                .all(Rational::is_zero)
+        );
 
         // For symmetric PSD rank-five W, the sum of all principal 5x5
         // minors is the product of its five positive eigenvalues. Since each
@@ -409,8 +413,7 @@ fn approaching_contact_coincidence_preserves_exact_rank_until_the_geometry_colla
         // lambda_min_positive >= pseudodet(W) / trace(W)^4.
         let pseudodeterminant = exact_rank_five_pseudodeterminant(&delassus);
         let trace = exact_trace(&delassus);
-        let certified_lower_bound =
-            pseudodeterminant / trace.clone().pow(4);
+        let certified_lower_bound = pseudodeterminant / trace.clone().pow(4);
         let expected_lower_bound = Rational::new(BigInt::from(27), BigInt::from(8))
             * separation.clone().pow(4)
             / (Rational::from_integer(BigInt::from(2)) * separation.clone().pow(2)
