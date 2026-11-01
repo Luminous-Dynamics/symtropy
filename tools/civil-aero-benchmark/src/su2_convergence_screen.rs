@@ -76,8 +76,7 @@ pub struct ConvergenceScreen {
 }
 
 pub const CONVERGENCE_SCREEN_SCHEMA: &str = "su2-declared-convergence-screen/0.1.0";
-pub const CONVERGENCE_SCREEN_EVIDENCE_LEVEL: &str =
-    "declared_residual_and_monitor_threshold_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation";
+pub const CONVERGENCE_SCREEN_EVIDENCE_LEVEL: &str = "declared_residual_and_monitor_threshold_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation";
 
 fn add_string(bytes: &mut Vec<u8>, value: &str) {
     bytes.extend_from_slice(&(value.len() as u64).to_le_bytes());
@@ -156,13 +155,24 @@ pub fn screen_su2_history(
             || !(0.0..=1.0).contains(&criterion.maximum_final_to_initial_ratio)
             || !used.insert(criterion.column.as_str())
         {
-            return Err(format!("invalid or duplicate residual criterion: {}", criterion.column));
+            return Err(format!(
+                "invalid or duplicate residual criterion: {}",
+                criterion.column
+            ));
         }
-        let index = report.numeric_fields.iter().position(|field| field.column == criterion.column)
+        let index = report
+            .numeric_fields
+            .iter()
+            .position(|field| field.column == criterion.column)
             .ok_or_else(|| format!("residual field {} was not imported", criterion.column))?;
         let field = &report.numeric_fields[index];
         let initial = report.points[0].values[index].abs();
-        let final_value = report.points.last().expect("non-empty history verified").values[index].abs();
+        let final_value = report
+            .points
+            .last()
+            .expect("non-empty history verified")
+            .values[index]
+            .abs();
         let ratio = if initial == 0.0 {
             (final_value == 0.0).then_some(0.0)
         } else {
@@ -182,7 +192,11 @@ pub fn screen_su2_history(
             maximum_final_to_initial_ratio: Some(criterion.maximum_final_to_initial_ratio),
             observed_window_range: None,
             maximum_window_range: None,
-            status: if passed { CriterionStatus::Passed } else { CriterionStatus::Failed },
+            status: if passed {
+                CriterionStatus::Passed
+            } else {
+                CriterionStatus::Failed
+            },
         });
     }
 
@@ -193,9 +207,15 @@ pub fn screen_su2_history(
             || criterion.maximum_absolute_range < 0.0
             || !used.insert(criterion.column.as_str())
         {
-            return Err(format!("invalid or duplicate monitor criterion: {}", criterion.column));
+            return Err(format!(
+                "invalid or duplicate monitor criterion: {}",
+                criterion.column
+            ));
         }
-        let index = report.numeric_fields.iter().position(|field| field.column == criterion.column)
+        let index = report
+            .numeric_fields
+            .iter()
+            .position(|field| field.column == criterion.column)
             .ok_or_else(|| format!("monitor field {} was not imported", criterion.column))?;
         let field = &report.numeric_fields[index];
         if report.points.len() < criterion.trailing_window_rows {
@@ -216,7 +236,8 @@ pub fn screen_su2_history(
             continue;
         }
         let window = report.points[report.points.len() - criterion.trailing_window_rows..]
-            .iter().map(|point| point.values[index]);
+            .iter()
+            .map(|point| point.values[index]);
         let mut minimum = f64::INFINITY;
         let mut maximum = f64::NEG_INFINITY;
         for value in window {
@@ -239,19 +260,33 @@ pub fn screen_su2_history(
             maximum_final_to_initial_ratio: None,
             observed_window_range: Some(range),
             maximum_window_range: Some(criterion.maximum_absolute_range),
-            status: if range <= criterion.maximum_absolute_range { CriterionStatus::Passed } else { CriterionStatus::Failed },
+            status: if range <= criterion.maximum_absolute_range {
+                CriterionStatus::Passed
+            } else {
+                CriterionStatus::Failed
+            },
         });
     }
 
-    let passed_count = results.iter().filter(|row| row.status == CriterionStatus::Passed).count();
-    let failed_count = results.iter().filter(|row| row.status == CriterionStatus::Failed).count();
-    let insufficient_count = results.iter().filter(|row| row.status == CriterionStatus::InsufficientRows).count();
+    let passed_count = results
+        .iter()
+        .filter(|row| row.status == CriterionStatus::Passed)
+        .count();
+    let failed_count = results
+        .iter()
+        .filter(|row| row.status == CriterionStatus::Failed)
+        .count();
+    let insufficient_count = results
+        .iter()
+        .filter(|row| row.status == CriterionStatus::InsufficientRows)
+        .count();
     let status = match (failed_count, insufficient_count) {
         (0, 0) => "declared_thresholds_met",
         (_, 0) => "declared_thresholds_not_met",
         (0, _) => "incomplete_insufficient_rows",
         _ => "declared_thresholds_not_met_and_incomplete",
-    }.to_owned();
+    }
+    .to_owned();
     let mut screen = ConvergenceScreen {
         run_id: report.run_id.clone(),
         runner_receipt_sha256: report.runner_receipt_sha256.clone(),
@@ -271,7 +306,11 @@ pub fn screen_su2_history(
 
 pub fn screen_to_csv(screen: &ConvergenceScreen) -> String {
     let mut output = "schema,run_id,runner_receipt_sha256,history_sha256,history_import_sha256,criterion_kind,column,unit,rows_used,observed_initial_absolute,observed_final_absolute,observed_final_to_initial_ratio,maximum_final_absolute,maximum_final_to_initial_ratio,observed_window_range,maximum_window_range,criterion_status,overall_status,passed_count,failed_count,insufficient_count,screen_sha256,evidence_level\n".to_owned();
-    let optional = |value: Option<f64>| value.map(|number| format!("{number:.17}")).unwrap_or_default();
+    let optional = |value: Option<f64>| {
+        value
+            .map(|number| format!("{number:.17}"))
+            .unwrap_or_default()
+    };
     for row in &screen.results {
         let fields = [
             CONVERGENCE_SCREEN_SCHEMA.to_owned(),
@@ -298,7 +337,13 @@ pub fn screen_to_csv(screen: &ConvergenceScreen) -> String {
             screen.screen_sha256.clone(),
             screen.evidence_level.to_owned(),
         ];
-        output.push_str(&fields.iter().map(|value| format!("\"{}\"", value.replace('"', "\"\""))).collect::<Vec<_>>().join(","));
+        output.push_str(
+            &fields
+                .iter()
+                .map(|value| format!("\"{}\"", value.replace('"', "\"\"")))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
         output.push('\n');
     }
     output
@@ -320,15 +365,34 @@ mod tests {
             history_byte_length: 10,
             history_sha256: "c".repeat(64),
             iteration_column: "Iteration".to_owned(),
-            expected_header: vec!["Iteration".to_owned(), "RMS_RES".to_owned(), "CL".to_owned()],
+            expected_header: vec![
+                "Iteration".to_owned(),
+                "RMS_RES".to_owned(),
+                "CL".to_owned(),
+            ],
             numeric_fields: vec![
-                crate::su2_history::Su2HistoryField { column: "RMS_RES".to_owned(), unit: "1".to_owned() },
-                crate::su2_history::Su2HistoryField { column: "CL".to_owned(), unit: "1".to_owned() },
+                crate::su2_history::Su2HistoryField {
+                    column: "RMS_RES".to_owned(),
+                    unit: "1".to_owned(),
+                },
+                crate::su2_history::Su2HistoryField {
+                    column: "CL".to_owned(),
+                    unit: "1".to_owned(),
+                },
             ],
             points: vec![
-                crate::su2_history::Su2HistoryPoint { iteration: 0, values: vec![1.0, 0.4] },
-                crate::su2_history::Su2HistoryPoint { iteration: 1, values: vec![0.1, 0.41] },
-                crate::su2_history::Su2HistoryPoint { iteration: 2, values: vec![0.001, 0.4102] },
+                crate::su2_history::Su2HistoryPoint {
+                    iteration: 0,
+                    values: vec![1.0, 0.4],
+                },
+                crate::su2_history::Su2HistoryPoint {
+                    iteration: 1,
+                    values: vec![0.1, 0.41],
+                },
+                crate::su2_history::Su2HistoryPoint {
+                    iteration: 2,
+                    values: vec![0.001, 0.4102],
+                },
             ],
             import_sha256: String::new(),
             evidence_level: crate::su2_history::SU2_HISTORY_EVIDENCE_LEVEL.to_owned(),
