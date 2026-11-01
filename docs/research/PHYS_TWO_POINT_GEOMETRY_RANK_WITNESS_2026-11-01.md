@@ -163,6 +163,22 @@ Their intersection contains an open neighbourhood of \((0,0,0)\), so the admissi
 The Rust integration test reconstructs the exact 9x9 integer Gram matrix, proves rank six and nullity three, verifies all three null vectors, and checks a rational sample panel in the three-parameter allocation fibre. This is a strict generalization of the two-contact one-dimensional segment: a physically reachable three-contact island can have a three-dimensional family of local contact impulses representing the same body-level impulse and contact response.
 The base allocation \(p_0\) is the unique minimum-Euclidean-norm member of this affine fibre in the declared coordinates: it is orthogonal to all three null vectors, and the exact squared-norm increment is \(2a^2+2b^2+4c^2-2ac-2bc\), positive away from the origin. As above, this is only a declared coordinate-level tie-break; it must not be mistaken for uniqueness of the physical contact impulse.
 
+## Exact proximal lift: regularize the inner QP, not physical W
+
+The 2026 FBF splitting architecture of Song et al. uses
+\[
+W_\gamma=W+\gamma^{-1}I,\qquad \gamma>0,
+\]
+for the strongly convex cone-QP subproblem. This is the right place for proximal regularization: the physical Delassus operator remains the exact PSD matrix \(W=JM^{-1}J^T\); no epsilon is added to the body's physical mass/contact response.
+
+The two- and three-point integration suites now verify this rank-lifting identity exactly. They store \(6W\) as an integer Gram matrix and, for \(\gamma\in\{2,1,1/2\}\), form
+\[
+6W_\gamma=6W+6\gamma^{-1}I.
+\]
+All leading principal minors are checked using fraction-free Bareiss determinants. Sylvester's criterion then proves each proximal metric is SPD, although the original two-point W has nullity one and the three-point W has nullity three.
+
+This is a bounded exact test of the algebra used by FBF, not an implementation of the FBF iteration or a convergence proof for the non-monotone outer coupling. The outer iteration must retain its step-size safeguarding and original unregularized Coulomb residual.
+
 ## Fixed-response fibres are convex; sliding can collapse the fibre
 
 For a fixed generalized body impulse \(g=J^Tp\), the contact response is fixed:
