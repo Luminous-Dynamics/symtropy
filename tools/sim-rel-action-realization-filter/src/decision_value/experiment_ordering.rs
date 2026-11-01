@@ -31,12 +31,16 @@ impl FiniteObservationChannel {
         }
         for (state, row) in self.probabilities.iter().enumerate() {
             if row.len() != self.observation_ids.len() {
-                return Err(format!("channel state row {state} has the wrong observation dimension"));
+                return Err(format!(
+                    "channel state row {state} has the wrong observation dimension"
+                ));
             }
             let mut mass = Rational::zero();
             for probability in row {
                 if !probability.is_probability() {
-                    return Err(format!("channel state row {state} has an invalid probability"));
+                    return Err(format!(
+                        "channel state row {state} has an invalid probability"
+                    ));
                 }
                 mass = mass.checked_add(*probability)?;
             }
@@ -91,12 +95,16 @@ pub fn verify_blackwell_dominance(
         let mut row_mass = Rational::zero();
         for probability in row {
             if !probability.is_probability() {
-                return Err(format!("garbling row {source_observation} contains an invalid probability"));
+                return Err(format!(
+                    "garbling row {source_observation} contains an invalid probability"
+                ));
             }
             row_mass = row_mass.checked_add(*probability)?;
         }
         if row_mass != Rational::one() {
-            return Err(format!("garbling row {source_observation} must sum exactly to one"));
+            return Err(format!(
+                "garbling row {source_observation} must sum exactly to one"
+            ));
         }
     }
 
@@ -105,11 +113,10 @@ pub fn verify_blackwell_dominance(
         for (less_observation, target_probability) in less_row.iter().copied().enumerate() {
             let mut reconstructed = Rational::zero();
             for (more_observation, more_probability) in more_row.iter().copied().enumerate() {
-                reconstructed = reconstructed.checked_add(
-                    more_probability.checked_mul(
+                reconstructed = reconstructed
+                    .checked_add(more_probability.checked_mul(
                         witness.probabilities[more_observation][less_observation],
-                    )?,
-                )?;
+                    )?)?;
             }
             if reconstructed != target_probability {
                 return Err(format!(
@@ -173,24 +180,33 @@ impl InferencePosteriorRule {
             return Err("inference rule is not bound to the supplied assumed channel".into());
         }
         if self.state_ids != assumed.state_ids || self.observation_ids != assumed.observation_ids {
-            return Err("inference rule state/observation vocabularies do not match the assumed channel".into());
+            return Err(
+                "inference rule state/observation vocabularies do not match the assumed channel"
+                    .into(),
+            );
         }
         if self.posterior_by_observation.len() != assumed.observation_ids.len() {
             return Err("inference rule must provide one posterior for every observation".into());
         }
         for (observation, posterior) in self.posterior_by_observation.iter().enumerate() {
             if posterior.len() != assumed.state_ids.len() {
-                return Err(format!("inference posterior {observation} has the wrong state dimension"));
+                return Err(format!(
+                    "inference posterior {observation} has the wrong state dimension"
+                ));
             }
             let mut total = Rational::zero();
             for probability in posterior {
                 if !probability.is_probability() {
-                    return Err(format!("inference posterior {observation} contains an invalid probability"));
+                    return Err(format!(
+                        "inference posterior {observation} contains an invalid probability"
+                    ));
                 }
                 total = total.checked_add(*probability)?;
             }
             if total != Rational::one() {
-                return Err(format!("inference posterior {observation} must sum exactly to one"));
+                return Err(format!(
+                    "inference posterior {observation} must sum exactly to one"
+                ));
             }
         }
         Ok(())
@@ -318,10 +334,14 @@ fn validate_channel_pair(
     assumed.validate()?;
     truth.validate()?;
     if assumed.state_ids != truth.state_ids {
-        return Err("assumed and true channels must share the same ordered state vocabulary".into());
+        return Err(
+            "assumed and true channels must share the same ordered state vocabulary".into(),
+        );
     }
     if assumed.observation_ids != truth.observation_ids {
-        return Err("assumed and true channels must share the same observable symbol vocabulary".into());
+        return Err(
+            "assumed and true channels must share the same observable symbol vocabulary".into(),
+        );
     }
     validate_prior(prior, assumed.state_ids.len())?;
     table.validate(assumed.state_ids.len())
@@ -444,26 +464,20 @@ pub fn evaluate_channel_decisions_with_inference_rule(
 
         for (state, prior_mass) in prior.iter().copied().enumerate() {
             let true_mass = prior_mass.checked_mul(truth.probabilities[state][observation])?;
-            let assumed_mass =
-                prior_mass.checked_mul(assumed.probabilities[state][observation])?;
+            let assumed_mass = prior_mass.checked_mul(assumed.probabilities[state][observation])?;
             true_joint[state] = true_mass;
             assumed_joint[state] = assumed_mass;
             true_probability = true_probability.checked_add(true_mass)?;
             assumed_probability = assumed_probability.checked_add(assumed_mass)?;
         }
 
-        let (inference_decision, inference_conditional_loss) =
-            if assumed_probability.is_zero() {
-                (None, table.abstention_loss)
-            } else {
-                bayes_decision(
-                    table,
-                    &inference_rule.posterior_by_observation[observation],
-                )?
-            };
-        nominal_model_expected_loss = nominal_model_expected_loss.checked_add(
-            assumed_probability.checked_mul(inference_conditional_loss)?,
-        )?;
+        let (inference_decision, inference_conditional_loss) = if assumed_probability.is_zero() {
+            (None, table.abstention_loss)
+        } else {
+            bayes_decision(table, &inference_rule.posterior_by_observation[observation])?
+        };
+        nominal_model_expected_loss = nominal_model_expected_loss
+            .checked_add(assumed_probability.checked_mul(inference_conditional_loss)?)?;
 
         if true_probability.is_zero() {
             continue;
@@ -502,14 +516,12 @@ pub fn evaluate_channel_decisions_with_inference_rule(
             let inference_tv =
                 posterior_tv_distance(&actual_inference_posterior, &assumed_posterior)?;
             let model_tv = posterior_tv_distance(&assumed_posterior, &true_posterior)?;
-            let total_tv =
-                posterior_tv_distance(&actual_inference_posterior, &true_posterior)?;
+            let total_tv = posterior_tv_distance(&actual_inference_posterior, &true_posterior)?;
             let total_brier =
                 posterior_expected_brier_score(&actual_inference_posterior, &true_posterior)?;
 
-            expected_inference_posterior_tv_distance =
-                expected_inference_posterior_tv_distance
-                    .checked_add(true_probability.checked_mul(inference_tv)?)?;
+            expected_inference_posterior_tv_distance = expected_inference_posterior_tv_distance
+                .checked_add(true_probability.checked_mul(inference_tv)?)?;
             expected_model_posterior_tv_distance = expected_model_posterior_tv_distance
                 .checked_add(true_probability.checked_mul(model_tv)?)?;
             expected_total_posterior_tv_distance = expected_total_posterior_tv_distance
@@ -534,12 +546,10 @@ pub fn evaluate_channel_decisions_with_inference_rule(
                 decision_disagreement_probability.checked_add(true_probability)?;
         }
 
-        expected_assumed_loss = expected_assumed_loss.checked_add(
-            true_probability.checked_mul(inference_conditional_loss)?,
-        )?;
-        realized_policy_loss = realized_policy_loss.checked_add(
-            true_probability.checked_mul(realized_conditional_loss)?,
-        )?;
+        expected_assumed_loss = expected_assumed_loss
+            .checked_add(true_probability.checked_mul(inference_conditional_loss)?)?;
+        realized_policy_loss = realized_policy_loss
+            .checked_add(true_probability.checked_mul(realized_conditional_loss)?)?;
         true_bayes_oracle_loss =
             true_bayes_oracle_loss.checked_add(true_probability.checked_mul(true_bayes_loss)?)?;
 
@@ -599,13 +609,7 @@ pub fn evaluate_channel_decisions(
     table: &ChannelDecisionLossTable,
 ) -> Result<ChannelDecisionEvaluation, String> {
     let inference_rule = exact_bayes_posterior_rule(assumed, prior)?;
-    evaluate_channel_decisions_with_inference_rule(
-        assumed,
-        truth,
-        prior,
-        table,
-        &inference_rule,
-    )
+    evaluate_channel_decisions_with_inference_rule(assumed, truth, prior, table, &inference_rule)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -821,15 +825,9 @@ impl SignedRational {
 
     fn from_difference(left: Rational, right: Rational) -> Result<Self, String> {
         if left >= right {
-            Ok(Self::from_parts(
-                false,
-                subtract_nonnegative(left, right)?,
-            ))
+            Ok(Self::from_parts(false, subtract_nonnegative(left, right)?))
         } else {
-            Ok(Self::from_parts(
-                true,
-                subtract_nonnegative(right, left)?,
-            ))
+            Ok(Self::from_parts(true, subtract_nonnegative(right, left)?))
         }
     }
 
@@ -912,7 +910,10 @@ pub fn solve_binary_blackwell_garbling(
         || more_informative.observation_ids.len() != 2
         || less_informative.observation_ids.len() != 2
     {
-        return Err("binary Blackwell solver requires exactly two states and two observations per channel".into());
+        return Err(
+            "binary Blackwell solver requires exactly two states and two observations per channel"
+                .into(),
+        );
     }
 
     let a = more_informative.probabilities[0][0];
@@ -1102,39 +1103,34 @@ mod tests {
         let x = rational(1, 5);
         let y = rational(4, 5);
         let one_minus = |value: Rational| subtract_nonnegative(Rational::one(), value).unwrap();
-        let b0 = a.checked_mul(x).unwrap()
+        let b0 = a
+            .checked_mul(x)
+            .unwrap()
             .checked_add(one_minus(a).checked_mul(y).unwrap())
             .unwrap();
-        let b1 = c.checked_mul(x).unwrap()
+        let b1 = c
+            .checked_mul(x)
+            .unwrap()
             .checked_add(one_minus(c).checked_mul(y).unwrap())
             .unwrap();
         let more = FiniteObservationChannel {
             channel_id: "more-asymmetric".into(),
             state_ids: vec!["s0".into(), "s1".into()],
             observation_ids: vec!["z0".into(), "z1".into()],
-            probabilities: vec![
-                vec![a, one_minus(a)],
-                vec![c, one_minus(c)],
-            ],
+            probabilities: vec![vec![a, one_minus(a)], vec![c, one_minus(c)]],
         };
         let less = FiniteObservationChannel {
             channel_id: "less-asymmetric".into(),
             state_ids: vec!["s0".into(), "s1".into()],
             observation_ids: vec!["y0".into(), "y1".into()],
-            probabilities: vec![
-                vec![b0, one_minus(b0)],
-                vec![b1, one_minus(b1)],
-            ],
+            probabilities: vec![vec![b0, one_minus(b0)], vec![b1, one_minus(b1)]],
         };
         let receipt = solve_binary_blackwell_garbling(&more, &less)
             .unwrap()
             .unwrap();
         assert_eq!(
             receipt.witness.probabilities,
-            vec![
-                vec![x, one_minus(x)],
-                vec![y, one_minus(y)],
-            ]
+            vec![vec![x, one_minus(x)], vec![y, one_minus(y)],]
         );
     }
 
@@ -1142,9 +1138,11 @@ mod tests {
     fn binary_blackwell_solver_rejects_non_dominance_and_inconsistent_singular_case() {
         let noisy = noisy_channel("noisy");
         let perfect = perfect_channel("perfect");
-        assert!(solve_binary_blackwell_garbling(&noisy, &perfect)
-            .unwrap()
-            .is_none());
+        assert!(
+            solve_binary_blackwell_garbling(&noisy, &perfect)
+                .unwrap()
+                .is_none()
+        );
 
         let uninformative = FiniteObservationChannel {
             channel_id: "uninformative".into(),
@@ -1156,9 +1154,11 @@ mod tests {
             ],
         };
         let inconsistent_target = noisy_channel("not-a-garbling");
-        assert!(solve_binary_blackwell_garbling(&uninformative, &inconsistent_target)
-            .unwrap()
-            .is_none());
+        assert!(
+            solve_binary_blackwell_garbling(&uninformative, &inconsistent_target)
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]
@@ -1209,12 +1209,9 @@ mod tests {
                 vec![rational(3, 10), rational(7, 10)],
             ],
         };
-        let receipt = solve_binary_blackwell_garbling(
-            &uninformative,
-            &same_uninformative_target,
-        )
-        .unwrap()
-        .unwrap();
+        let receipt = solve_binary_blackwell_garbling(&uninformative, &same_uninformative_target)
+            .unwrap()
+            .unwrap();
         assert_eq!(
             receipt.witness.probabilities,
             vec![
@@ -1264,19 +1261,31 @@ mod tests {
 
         assert!(comparison.mutual_information_a_bits > comparison.mutual_information_b_bits);
         assert_eq!(comparison.information_preference, ExperimentPreference::A);
-        assert_eq!(comparison.nominal_total_loss_preference, ExperimentPreference::A);
+        assert_eq!(
+            comparison.nominal_total_loss_preference,
+            ExperimentPreference::A
+        );
         assert_eq!(comparison.nominal_total_loss_a, rational(1, 10));
         assert_eq!(comparison.nominal_total_loss_b, rational(3, 10));
-        assert_eq!(comparison.realized_total_loss_preference, ExperimentPreference::B);
+        assert_eq!(
+            comparison.realized_total_loss_preference,
+            ExperimentPreference::B
+        );
         assert_eq!(comparison.realized_total_loss_a, rational(11, 10));
         assert_eq!(comparison.realized_total_loss_b, rational(3, 10));
         assert!(comparison.information_loss_ranking_reversal);
 
         assert_eq!(evaluation_a.nominal_model_expected_loss, Rational::zero());
-        assert_eq!(evaluation_a.expected_assumed_loss_under_true_observations, Rational::zero());
+        assert_eq!(
+            evaluation_a.expected_assumed_loss_under_true_observations,
+            Rational::zero()
+        );
         assert_eq!(evaluation_a.realized_policy_loss, Rational::one());
         assert_eq!(evaluation_a.decision_regret, Rational::one());
-        assert_eq!(evaluation_a.decision_disagreement_probability, Rational::one());
+        assert_eq!(
+            evaluation_a.decision_disagreement_probability,
+            Rational::one()
+        );
 
         assert_eq!(evaluation_b.nominal_model_expected_loss, rational(1, 5));
         assert_eq!(evaluation_b.realized_policy_loss, rational(1, 5));
@@ -1345,8 +1354,7 @@ mod tests {
 
         // Model-only: the inference rule is exact Bayes for the assumed
         // channel, but the true data-generating channel is inverted.
-        let model_only =
-            evaluate_channel_decisions(&perfect, &inverted, &prior, &loss).unwrap();
+        let model_only = evaluate_channel_decisions(&perfect, &inverted, &prior, &loss).unwrap();
         assert_eq!(model_only.realized_policy_loss, Rational::one());
         assert_eq!(
             model_only.inference_rule_disagreement_probability,
@@ -1499,13 +1507,9 @@ mod tests {
                 vec![Rational::one(), Rational::zero()],
             ],
         };
-        let unsupported = evaluate_channel_decisions(
-            &partial_assumption,
-            &truth,
-            &prior,
-            &binary_decisions(),
-        )
-        .unwrap();
+        let unsupported =
+            evaluate_channel_decisions(&partial_assumption, &truth, &prior, &binary_decisions())
+                .unwrap();
         assert_eq!(
             unsupported.unsupported_observation_probability,
             rational(1, 2)

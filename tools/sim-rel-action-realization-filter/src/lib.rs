@@ -264,7 +264,11 @@ impl ActionRealizationKernel {
         validate_ids(&self.measurement_ids, "measurement", false)?;
 
         check_dimension(hypotheses, MAX_HYPOTHESES, "hypothesis")?;
-        check_dimension(self.physical_state_count, MAX_PHYSICAL_STATES, "physical state")?;
+        check_dimension(
+            self.physical_state_count,
+            MAX_PHYSICAL_STATES,
+            "physical state",
+        )?;
         check_dimension(self.sensor_state_count, MAX_SENSOR_STATES, "sensor state")?;
         check_dimension(
             self.apparatus_state_count,
@@ -280,15 +284,9 @@ impl ActionRealizationKernel {
         if self.readback_ids.len() > MAX_READBACKS {
             return Err("readback vocabulary exceeds its cap".into());
         }
-        check_dimension(
-            self.measurement_ids.len(),
-            MAX_MEASUREMENTS,
-            "measurement",
-        )?;
+        check_dimension(self.measurement_ids.len(), MAX_MEASUREMENTS, "measurement")?;
 
-        if self.initial_belief.is_empty()
-            || self.initial_belief.len() > MAX_INITIAL_TUPLES
-        {
+        if self.initial_belief.is_empty() || self.initial_belief.len() > MAX_INITIAL_TUPLES {
             return Err("initial belief is empty or exceeds its tuple cap".into());
         }
 
@@ -337,8 +335,7 @@ impl ActionRealizationKernel {
                                     "kernel row {row_index} violates canonical ordering"
                                 ));
                             }
-                            if row.outcomes.is_empty()
-                                || row.outcomes.len() > MAX_OUTCOMES_PER_ROW
+                            if row.outcomes.is_empty() || row.outcomes.len() > MAX_OUTCOMES_PER_ROW
                             {
                                 return Err(format!(
                                     "kernel row {row_index} has an invalid outcome count"
@@ -450,10 +447,7 @@ fn validate_state(kernel: &ActionRealizationKernel, state: LatentState) -> Resul
     Ok(())
 }
 
-fn validate_belief(
-    kernel: &ActionRealizationKernel,
-    belief: &[BeliefMass],
-) -> Result<(), String> {
+fn validate_belief(kernel: &ActionRealizationKernel, belief: &[BeliefMass]) -> Result<(), String> {
     if belief.is_empty() || belief.len() > MAX_INITIAL_TUPLES {
         return Err("belief is empty or exceeds its tuple cap".into());
     }
@@ -581,8 +575,7 @@ pub fn filter_one_step(
     }
     if matches!(observation.readback, ObservationField::Value(value) if value >= kernel.readback_ids.len())
         || matches!(observation.measurement, ObservationField::Value(value) if value >= kernel.measurement_ids.len())
-        || (observation.hazard
-            && matches!(observation.measurement, ObservationField::Value(_)))
+        || (observation.hazard && matches!(observation.measurement, ObservationField::Value(_)))
     {
         return Err(FilterError::InvalidObservation);
     }
@@ -636,7 +629,9 @@ pub fn filter_one_step(
         joint_posterior.push(PosteriorMass {
             next_state,
             realized_action,
-            mass: mass.checked_div(likelihood).map_err(FilterError::Arithmetic)?,
+            mass: mass
+                .checked_div(likelihood)
+                .map_err(FilterError::Arithmetic)?,
         });
     }
 
@@ -765,7 +760,10 @@ mod tests {
             Rational::new(1, 4).unwrap()
         );
         assert_eq!(mass_for_hypothesis(&execution_verified, 0), Rational::one());
-        assert_eq!(mass_for_hypothesis(&execution_verified, 1), Rational::zero());
+        assert_eq!(
+            mass_for_hypothesis(&execution_verified, 1),
+            Rational::zero()
+        );
     }
 
     fn dropped_intervention_kernel() -> ActionRealizationKernel {
@@ -845,8 +843,14 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(mass_for_hypothesis(&unconstrained, 0), Rational::new(1, 2).unwrap());
-        assert_eq!(mass_for_hypothesis(&unconstrained, 1), Rational::new(1, 2).unwrap());
+        assert_eq!(
+            mass_for_hypothesis(&unconstrained, 0),
+            Rational::new(1, 2).unwrap()
+        );
+        assert_eq!(
+            mass_for_hypothesis(&unconstrained, 1),
+            Rational::new(1, 2).unwrap()
+        );
     }
 
     #[test]
@@ -962,10 +966,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(
-            result.observation_likelihood,
-            Rational::new(1, 2).unwrap()
-        );
+        assert_eq!(result.observation_likelihood, Rational::new(1, 2).unwrap());
         assert_eq!(result.joint_posterior.len(), 1);
         assert_eq!(result.joint_posterior[0].next_state.physical_state, 1);
         assert_eq!(result.joint_posterior[0].realized_action, 1);
@@ -988,7 +989,11 @@ mod tests {
             sensor_state_count: 1,
             apparatus_state_count: 2,
             command_ids: vec!["same-command".into()],
-            realized_action_ids: vec!["none".into(), "normal-pulse".into(), "backlash-pulse".into()],
+            realized_action_ids: vec![
+                "none".into(),
+                "normal-pulse".into(),
+                "backlash-pulse".into(),
+            ],
             readback_ids: vec!["none".into(), "normal".into(), "backlash".into()],
             measurement_ids: vec!["zero".into(), "one".into()],
             initial_belief: vec![BeliefMass {
@@ -1093,7 +1098,10 @@ mod tests {
             },
         )
         .unwrap();
-        assert_eq!(result.belief_for_next_step(), Err(FilterError::TerminalHazard));
+        assert_eq!(
+            result.belief_for_next_step(),
+            Err(FilterError::TerminalHazard)
+        );
     }
 
     #[test]
@@ -1107,7 +1115,10 @@ mod tests {
     fn rational_arithmetic_is_exact_and_checked() {
         let half = Rational::new(1, 2).unwrap();
         let quarter = Rational::new(1, 4).unwrap();
-        assert_eq!(half.checked_add(quarter).unwrap(), Rational::new(3, 4).unwrap());
+        assert_eq!(
+            half.checked_add(quarter).unwrap(),
+            Rational::new(3, 4).unwrap()
+        );
         assert_eq!(half.checked_mul(half).unwrap(), quarter);
         assert!(Rational::new(1, 0).is_err());
     }

@@ -70,7 +70,10 @@ impl FreshFoldStageInput {
             || self.fold_sample_count > MAX_FRESH_FOLD_SAMPLES
             || self.survivor_scores.len() > self.fold_sample_count
         {
-            return Err("fresh-fold sample count is zero, exceeds its cap, or survivor scores exceed it".into());
+            return Err(
+                "fresh-fold sample count is zero, exceeds its cap, or survivor scores exceed it"
+                    .into(),
+            );
         }
         if self.target_conditional_coverage.is_zero()
             || !self.target_conditional_coverage.is_probability()
@@ -129,8 +132,7 @@ pub fn calibrate_fresh_fold_sequence(
             };
             if position >= index {
                 return Err(
-                    "stage score refit cannot use its current or a future calibration fold"
-                        .into(),
+                    "stage score refit cannot use its current or a future calibration fold".into(),
                 );
             }
         }
@@ -178,8 +180,9 @@ pub fn calibrate_fresh_fold_sequence(
 }
 
 fn ceil_product(integer: usize, multiplier: Rational) -> Result<usize, String> {
-    let integer = u128::try_from(integer)
-        .map_err(|_| "calibration sample count does not fit exact rational arithmetic".to_string())?;
+    let integer = u128::try_from(integer).map_err(|_| {
+        "calibration sample count does not fit exact rational arithmetic".to_string()
+    })?;
     let numerator = integer
         .checked_mul(multiplier.numerator())
         .ok_or_else(|| "conformal rank numerator overflow".to_string())?;
@@ -223,14 +226,9 @@ mod tests {
 
     #[test]
     fn fresh_fold_rank_uses_exact_augmented_order_statistic() {
-        let calibration = calibrate_fresh_fold_sequence(&[stage(
-            0,
-            "fold-a",
-            rational(3, 4),
-            &[4, 1, 3],
-            &[],
-        )])
-        .unwrap();
+        let calibration =
+            calibrate_fresh_fold_sequence(&[stage(0, "fold-a", rational(3, 4), &[4, 1, 3], &[])])
+                .unwrap();
         let receipt = &calibration.stage_receipts[0];
         assert_eq!(receipt.survivor_count, 3);
         assert_eq!(receipt.augmented_rank, 3);
@@ -240,14 +238,9 @@ mod tests {
 
     #[test]
     fn insufficient_survivors_produce_an_unbounded_threshold() {
-        let calibration = calibrate_fresh_fold_sequence(&[stage(
-            0,
-            "fold-a",
-            rational(9, 10),
-            &[1, 2],
-            &[],
-        )])
-        .unwrap();
+        let calibration =
+            calibrate_fresh_fold_sequence(&[stage(0, "fold-a", rational(9, 10), &[1, 2], &[])])
+                .unwrap();
         let receipt = &calibration.stage_receipts[0];
         assert_eq!(receipt.augmented_rank, 3);
         assert_eq!(receipt.finite_threshold, None);
@@ -256,27 +249,37 @@ mod tests {
     #[test]
     fn prefix_coverage_bound_is_the_exact_product_of_stage_targets() {
         let calibration = calibrate_fresh_fold_sequence(&[
-            stage(0, "fold-a", rational(9, 10), &[1, 2, 3, 4, 5, 6, 7, 8, 9], &[]),
-            stage(1, "fold-b", rational(9, 10), &[1, 2, 3, 4, 5, 6, 7, 8, 9], &["fold-a"]),
+            stage(
+                0,
+                "fold-a",
+                rational(9, 10),
+                &[1, 2, 3, 4, 5, 6, 7, 8, 9],
+                &[],
+            ),
+            stage(
+                1,
+                "fold-b",
+                rational(9, 10),
+                &[1, 2, 3, 4, 5, 6, 7, 8, 9],
+                &["fold-a"],
+            ),
         ])
         .unwrap();
         assert_eq!(
             calibration.prefix_coverage_lower_bounds,
             vec![rational(9, 10), rational(81, 100)]
         );
-        assert_eq!(calibration.stage_receipts[1].score_fit_fold_ids, vec!["fold-a"]);
+        assert_eq!(
+            calibration.stage_receipts[1].score_fit_fold_ids,
+            vec!["fold-a"]
+        );
     }
 
     #[test]
     fn ties_use_the_weak_inequality_threshold_and_remain_conservative() {
-        let calibration = calibrate_fresh_fold_sequence(&[stage(
-            0,
-            "fold-a",
-            rational(1, 2),
-            &[5, 5, 5],
-            &[],
-        )])
-        .unwrap();
+        let calibration =
+            calibrate_fresh_fold_sequence(&[stage(0, "fold-a", rational(1, 2), &[5, 5, 5], &[])])
+                .unwrap();
         assert_eq!(
             calibration.stage_receipts[0].finite_threshold,
             Some(Rational::from_u64(5))
@@ -291,13 +294,7 @@ mod tests {
         ];
         assert!(calibrate_fresh_fold_sequence(&duplicate).is_err());
 
-        let reused_current = [stage(
-            0,
-            "fold-a",
-            rational(1, 2),
-            &[1, 2, 3],
-            &["fold-a"],
-        )];
+        let reused_current = [stage(0, "fold-a", rational(1, 2), &[1, 2, 3], &["fold-a"])];
         assert!(calibrate_fresh_fold_sequence(&reused_current).is_err());
     }
 
