@@ -2191,8 +2191,13 @@ mod tests {
             1,
         )
         .unwrap();
+        let hazard_world_metrics = shifted_replay
+            .per_world
+            .iter()
+            .find(|metrics| metrics.world_id == "world-hazard-shift")
+            .expect("hazard-shift world must have a replay receipt");
         assert_eq!(
-            shifted_replay.per_world[1].hazard_probability,
+            hazard_world_metrics.hazard_probability,
             Rational::new(1, 10).unwrap()
         );
 
