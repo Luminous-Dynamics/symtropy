@@ -4,8 +4,8 @@
 //! and rational Sturm isolator from its parent single-contact verifier.
 
 use crate::coupled_friction_sturm_support::{
-    derivative, exact_f64, is_zero, normalize_positive, polynomial_add, polynomial_multiply,
-    polynomial_scale, remainder, sturm_isolate_rational, trim, Polynomial, Rational,
+    Polynomial, Rational, derivative, exact_f64, is_zero, normalize_positive, polynomial_add,
+    polynomial_multiply, polynomial_scale, remainder, sturm_isolate_rational, trim,
 };
 use nalgebra::{SMatrix, SVector};
 use num_bigint::BigInt;
