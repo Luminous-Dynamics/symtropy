@@ -19,6 +19,7 @@ use crate::integrity::{sha256_file, sha256_hex};
 
 pub const EXTERNAL_SOLVER_RECEIPT_SCHEMA: &str = "civil-external-solver-run/0.1.0";
 pub const INVOCATION_MANIFEST_FILE: &str = "invocation_manifest.txt";
+pub const ENVIRONMENT_MANIFEST_FILE: &str = "environment_manifest.txt";
 pub const STDOUT_LOG_FILE: &str = "stdout.log";
 pub const STDERR_LOG_FILE: &str = "stderr.log";
 pub const OUTPUT_MANIFEST_FILE: &str = "expected_outputs.csv";
@@ -81,6 +82,8 @@ pub struct ExternalSolverReceipt {
     pub executable_sha256: String,
     pub invocation_manifest_sha256: String,
     pub environment_sha256: String,
+    pub environment_manifest_sha256: String,
+    pub spawn_error: Option<String>,
     pub staged_inputs: Vec<StagedInputReceipt>,
     pub stdout_byte_length: u64,
     pub stdout_sha256: String,
@@ -109,7 +112,6 @@ impl ExternalSolverReceipt {
 
 #[derive(Debug)]
 struct StreamCapture {
-    bytes_seen: u64,
     bytes_written: u64,
     exceeded_limit: bool,
 }
@@ -371,7 +373,6 @@ fn capture_stream<R: Read>(
         .sync_all()
         .map_err(|error| format!("cannot sync solver output stream: {error}"))?;
     Ok(StreamCapture {
-        bytes_seen,
         bytes_written,
         exceeded_limit: bytes_seen > maximum_bytes,
     })
@@ -480,6 +481,8 @@ fn canonical_receipt_bytes(receipt: &ExternalSolverReceipt) -> Vec<u8> {
     }
     bytes.push(u8::from(receipt.timed_out));
     bytes.push(u8::from(receipt.output_limit_exceeded));
+    append_string(&mut bytes, receipt.spawn_error.as_deref().unwrap_or(""));
+    append_string(&mut bytes, &receipt.environment_manifest_sha256);
     append_u64(&mut bytes, receipt.elapsed_milliseconds);
     append_u64(&mut bytes, receipt.staged_inputs.len() as u64);
     for input in &receipt.staged_inputs {
@@ -512,7 +515,7 @@ fn canonical_receipt_bytes(receipt: &ExternalSolverReceipt) -> Vec<u8> {
 
 pub fn receipt_to_csv(receipt: &ExternalSolverReceipt) -> String {
     format!(
-        "schema,run_id,solver_id,solver_version_claim,executable_path,executable_sha256,invocation_manifest_sha256,environment_sha256,stdout_byte_length,stdout_sha256,stderr_byte_length,stderr_sha256,exit_code,timed_out,output_limit_exceeded,elapsed_milliseconds,expected_outputs_present,expected_outputs_missing,output_manifest_sha256,status,receipt_sha256,evidence_level\n{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+        "schema,run_id,solver_id,solver_version_claim,executable_path,executable_sha256,invocation_manifest_sha256,environment_sha256,environment_manifest_sha256,spawn_error,stdout_byte_length,stdout_sha256,stderr_byte_length,stderr_sha256,exit_code,timed_out,output_limit_exceeded,elapsed_milliseconds,expected_outputs_present,expected_outputs_missing,output_manifest_sha256,status,receipt_sha256,evidence_level\n{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
         csv_escape(&receipt.schema),
         csv_escape(&receipt.run_id),
         csv_escape(&receipt.solver_id),
@@ -521,6 +524,8 @@ pub fn receipt_to_csv(receipt: &ExternalSolverReceipt) -> String {
         receipt.executable_sha256,
         receipt.invocation_manifest_sha256,
         receipt.environment_sha256,
+        receipt.environment_manifest_sha256,
+        csv_escape(receipt.spawn_error.as_deref().unwrap_or("")),
         receipt.stdout_byte_length,
         receipt.stdout_sha256,
         receipt.stderr_byte_length,
@@ -548,9 +553,16 @@ pub fn execute_external_solver(
     if request.timeout.is_zero() || request.max_log_bytes_per_stream == 0 {
         return Err("timeout and per-stream log cap must be positive".to_owned());
     }
+    if request.expected_outputs.is_empty() {
+        return Err("at least one expected output is required".to_owned());
+    }
+    if request.arguments.iter().any(|argument| argument.contains('\0')) {
+        return Err("solver arguments must not contain NUL bytes".to_owned());
+    }
     let mut used_paths = BTreeSet::new();
     for path in [
         INVOCATION_MANIFEST_FILE,
+        ENVIRONMENT_MANIFEST_FILE,
         STDOUT_LOG_FILE,
         STDERR_LOG_FILE,
         OUTPUT_MANIFEST_FILE,
@@ -584,6 +596,8 @@ pub fn execute_external_solver(
         return Err("solver executable must resolve to a regular file".to_owned());
     }
     let executable_sha256 = sha256_file(&executable)?;
+    let (environment_sha256, environment_manifest) = environment_manifest(&request.environment)?;
+    let environment_manifest_sha256 = sha256_hex(&environment_manifest)?;
 
     // A run directory must be new: this is the primary protection against stale-output reuse.
     fs::create_dir(&request.run_directory).map_err(|error| {
@@ -596,7 +610,8 @@ pub fn execute_external_solver(
         .map_err(|error| format!("cannot resolve fresh run directory: {error}"))?;
 
     let staged_inputs = stage_inputs(&root, &request.staged_inputs)?;
-    let (environment_sha256, _environment_manifest) = environment_manifest(&request.environment)?;
+    fs::write(root.join(ENVIRONMENT_MANIFEST_FILE), &environment_manifest)
+        .map_err(|error| format!("cannot write environment manifest: {error}"))?;
     let invocation_bytes = invocation_manifest(
         request,
         &executable,
@@ -624,16 +639,12 @@ pub fn execute_external_solver(
     let mut timed_out = false;
     let mut spawn_error = None;
     let mut exit_code = None;
-    let mut stdout_capture = StreamCapture {
-        bytes_seen: 0,
+    let empty_capture = StreamCapture {
         bytes_written: 0,
         exceeded_limit: false,
     };
-    let mut stderr_capture = StreamCapture {
-        bytes_seen: 0,
-        bytes_written: 0,
-        exceeded_limit: false,
-    };
+    let mut stdout_capture = empty_capture;
+    let mut stderr_capture = empty_capture;
 
     let mut command = Command::new(&executable);
     command
@@ -652,15 +663,16 @@ pub fn execute_external_solver(
             drop(stderr_file);
         }
         Ok(mut child) => {
+            let max_log_bytes_per_stream = request.max_log_bytes_per_stream;
             let stdout = child.stdout.take().ok_or_else(|| "solver stdout pipe missing".to_owned())?;
             let stderr = child.stderr.take().ok_or_else(|| "solver stderr pipe missing".to_owned())?;
             let stdout_exceeded = Arc::clone(&exceeded);
             let stdout_thread = thread::spawn(move || {
-                capture_stream(stdout, stdout_file, request.max_log_bytes_per_stream, stdout_exceeded)
+                capture_stream(stdout, stdout_file, max_log_bytes_per_stream, stdout_exceeded)
             });
             let stderr_exceeded = Arc::clone(&exceeded);
             let stderr_thread = thread::spawn(move || {
-                capture_stream(stderr, stderr_file, request.max_log_bytes_per_stream, stderr_exceeded)
+                capture_stream(stderr, stderr_file, max_log_bytes_per_stream, stderr_exceeded)
             });
 
             let mut process_status = None;
@@ -740,6 +752,8 @@ pub fn execute_external_solver(
         executable_sha256,
         invocation_manifest_sha256,
         environment_sha256,
+        environment_manifest_sha256,
+        spawn_error,
         staged_inputs,
         stdout_byte_length: stdout_capture.bytes_written,
         stdout_sha256,
@@ -779,6 +793,19 @@ pub fn verify_external_solver_receipt(
     if sha256_file(&invocation_path)? != receipt.invocation_manifest_sha256 {
         return Err("invocation manifest SHA-256 differs from receipt".to_owned());
     }
+    let environment_path = root.join(ENVIRONMENT_MANIFEST_FILE);
+    if sha256_file(&environment_path)? != receipt.environment_manifest_sha256 {
+        return Err("environment manifest SHA-256 differs from receipt".to_owned());
+    }
+    for input in &receipt.staged_inputs {
+        let relative = validate_relative_path(&input.relative_path)?;
+        let path = root.join(relative);
+        let metadata = fs::metadata(&path)
+            .map_err(|error| format!("cannot inspect staged input {}: {error}", input.relative_path))?;
+        if !metadata.is_file() || metadata.len() != input.byte_length || sha256_file(&path)? != input.sha256 {
+            return Err(format!("staged input {} differs from receipt", input.relative_path));
+        }
+    }
     for (path, expected, expected_length) in [
         (STDOUT_LOG_FILE, receipt.stdout_sha256.as_str(), receipt.stdout_byte_length),
         (STDERR_LOG_FILE, receipt.stderr_sha256.as_str(), receipt.stderr_byte_length),
@@ -800,6 +827,11 @@ pub fn verify_external_solver_receipt(
     if actual_outputs != receipt.outputs {
         return Err("one or more expected solver outputs differ from receipt".to_owned());
     }
+    let persisted_receipt = fs::read_to_string(root.join(RUN_RECEIPT_FILE))
+        .map_err(|error| format!("cannot read persisted runner receipt: {error}"))?;
+    if persisted_receipt != receipt_to_csv(receipt) {
+        return Err("persisted runner receipt differs from supplied receipt".to_owned());
+    }
     let expected_receipt = sha256_hex(&canonical_receipt_bytes(receipt))?;
     if expected_receipt != receipt.receipt_sha256 {
         return Err("external solver receipt digest does not recompute".to_owned());
@@ -813,10 +845,13 @@ mod tests {
     use std::os::unix::fs::PermissionsExt;
 
     fn temporary_root(label: &str) -> PathBuf {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock after epoch")
+            .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "civil-aero-external-solver-{label}-{}-{}",
-            std::process::id(),
-            Instant::now().elapsed().as_nanos()
+            "civil-aero-external-solver-{label}-{}-{nonce}",
+            std::process::id()
         ));
         fs::create_dir_all(&path).expect("create test root");
         path
