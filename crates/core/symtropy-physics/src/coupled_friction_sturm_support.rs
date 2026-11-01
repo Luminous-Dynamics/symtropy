@@ -14,7 +14,7 @@ use num_traits::{One, Signed, Zero};
 pub(crate) type Rational = BigRational;
 pub(crate) type Polynomial = Vec<Rational>;
 
-fn exact_f64(value: f64) -> Result<Rational, &'static str> {
+pub(crate) fn exact_f64(value: f64) -> Result<Rational, &'static str> {
     if !value.is_finite() {
         return Err("non-finite binary64 coefficient");
     }
