@@ -1260,7 +1260,6 @@ mod schur_reduction_tests {
     }
 }
 
-
 #[cfg(test)]
 mod double_sliding_direction_oracle {
     use super::*;
@@ -1294,10 +1293,7 @@ mod double_sliding_direction_oracle {
         // H(theta) lambda = -q_n, using the original full-island W.
         let wd1 = w * d1;
         let wd2 = w * d2;
-        let h = [
-            [wd1[0], wd2[0]],
-            [wd1[3], wd2[3]],
-        ];
+        let h = [[wd1[0], wd2[0]], [wd1[3], wd2[3]]];
         let determinant = h[0][0] * h[1][1] - h[0][1] * h[1][0];
         if !determinant.is_finite() || determinant.abs() <= 1.0e-12 {
             return None;
@@ -1351,10 +1347,8 @@ mod double_sliding_direction_oracle {
             } else {
                 0.0
             };
-            jacobian[0][direction] =
-                dg1_direct - s1 * d_velocity[1] + c1 * d_velocity[2];
-            jacobian[1][direction] =
-                dg2_direct - s2 * d_velocity[4] + c2 * d_velocity[5];
+            jacobian[0][direction] = dg1_direct - s1 * d_velocity[1] + c1 * d_velocity[2];
+            jacobian[1][direction] = dg2_direct - s2 * d_velocity[4] + c2 * d_velocity[5];
         }
 
         Some(DirectionEvaluation {
@@ -1443,26 +1437,48 @@ mod double_sliding_direction_oracle {
 
         let mut roots = Vec::new();
         for p in witnesses {
-            let theta = [
-                direction_from_impulse(&p, 0),
-                direction_from_impulse(&p, 3),
-            ];
+            let theta = [direction_from_impulse(&p, 0), direction_from_impulse(&p, 3)];
             let root = evaluate(&w, &q, mu, theta).expect("normal reduction remains regular");
             assert!(root.residual[0].abs() < 1.0e-8);
             assert!(root.residual[1].abs() < 1.0e-8);
             assert!((root.impulse - p).norm() < 1.0e-7);
             assert!(root.sliding_multipliers.iter().all(|tau| *tau > 0.0));
 
-            let jacobian_determinant =
-                root.jacobian[0][0] * root.jacobian[1][1]
-                    - root.jacobian[0][1] * root.jacobian[1][0];
+            let jacobian_determinant = root.jacobian[0][0] * root.jacobian[1][1]
+                - root.jacobian[0][1] * root.jacobian[1][0];
             assert!(jacobian_determinant.abs() > 1.0e-8);
             assert!(root.normal_determinant.abs() > 1.0e-5);
+
+            // Independently cross-check the analytic Jacobian against
+            // central finite differences at both isolated branch candidates.
+            let step = 1.0e-6;
+            for (direction, _) in theta.iter().enumerate() {
+                let mut plus_theta = theta;
+                let mut minus_theta = theta;
+                plus_theta[direction] += step;
+                minus_theta[direction] -= step;
+                let plus = evaluate(&w, &q, mu, plus_theta).expect("positive normal branch at +h");
+                let minus = evaluate(&w, &q, mu, minus_theta).expect("positive normal branch at -h");
+                for (residual_index, jacobian_row) in root.jacobian.iter().enumerate() {
+                    let finite_difference =
+                        (plus.residual[residual_index] - minus.residual[residual_index])
+                            / (2.0 * step);
+                    assert!((finite_difference - jacobian_row[direction]).abs() < 2.0e-6);
+                }
+            }
             roots.push((theta, root));
         }
 
         assert!((roots[0].1.impulse - roots[1].1.impulse).norm() > 0.1);
         assert!((roots[0].0[0] - roots[1].0[0]).abs() < 0.01);
         assert!((roots[0].0[1] - roots[1].0[1]).abs() < 0.02);
+
+        // The two roots have opposite local orientation. This is a useful
+        // fold/continuation target, not by itself a branch-completeness proof.
+        let det_0 = roots[0].1.jacobian[0][0] * roots[0].1.jacobian[1][1]
+            - roots[0].1.jacobian[0][1] * roots[0].1.jacobian[1][0];
+        let det_1 = roots[1].1.jacobian[0][0] * roots[1].1.jacobian[1][1]
+            - roots[1].1.jacobian[0][1] * roots[1].1.jacobian[1][0];
+        assert!(det_0 * det_1 < 0.0);
     }
 }
