@@ -801,7 +801,9 @@ mod schur_reduction_tests {
     }
 
     fn swap_impulse_blocks(impulse: &Vector6) -> Vector6 {
-        Vector6::new(impulse[3], impulse[4], impulse[5], impulse[0], impulse[1], impulse[2])
+        Vector6::new(
+            impulse[3], impulse[4], impulse[5], impulse[0], impulse[1], impulse[2],
+        )
     }
 
     /// Mirror the contact-2-separating reduction by permuting contact blocks.
