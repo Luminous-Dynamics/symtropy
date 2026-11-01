@@ -390,7 +390,7 @@ mod tests {
 
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<_, 3>::new(2.0, 1.0, 0.5))
                 .unwrap(),
         );
         body.angular_damping = 0.0;
@@ -478,13 +478,13 @@ mod tests {
 
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<_, 3>::new(2.0, 1.0, 0.5))
                 .unwrap(),
         );
         body.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.43);
 
-        let offset = SVector::new(0.4, -0.7, 0.9);
-        let direction = SVector::new(0.3, 0.8, -0.2).normalize();
+        let offset = SVector::<_, 3>::new(0.4, -0.7, 0.9);
+        let direction = SVector::<_, 3>::new(0.3, 0.8, -0.2).normalize();
         let impulse_magnitude = 0.37;
         let effective_mass = rotational_inverse_effective_mass(&body, &offset, &direction);
         let before = body.angular_velocity;
@@ -722,14 +722,14 @@ mod tests {
 
         let mut body =
             RigidBody::<3>::dynamic_sphere(BodyHandle(7), Point::new([1.0, 2.0, 3.0]), 0.5, 2.0);
-        body.linear_velocity = SVector::new(0.5, -0.25, 0.75);
+        body.linear_velocity = SVector::<_, 3>::new(0.5, -0.25, 0.75);
         body.set_rotational_inertia_operator(
             BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
-                &SVector::new(1.0, 0.0, 0.0),
+                &SVector::<_, 3>::new(1.0, 0.0, 0.0),
             ))
             .unwrap(),
         );
-        body.apply_force(SVector::new(4.0, -2.0, 1.0));
+        body.apply_force(SVector::<_, 3>::new(4.0, -2.0, 1.0));
         body.apply_torque(Bivector::<3>::unit_plane(1, 2));
 
         let position_before = body.transform.translation.0.clone();
@@ -738,7 +738,7 @@ mod tests {
         let force_before = body.force_accumulator.clone();
         let torque_before = body.torque_accumulator.clone();
 
-        let error = try_integrate(&mut body, &SVector::new(0.0, -9.81, 0.0), 0.01).unwrap_err();
+        let error = try_integrate(&mut body, &SVector::<_, 3>::new(0.0, -9.81, 0.0), 0.01).unwrap_err();
         assert_eq!(error, RotationalInertiaError::SingularInertia);
         assert_eq!(body.transform.translation.0, position_before);
         assert_eq!(body.linear_velocity, linear_before);
@@ -748,7 +748,7 @@ mod tests {
 
         // The compatibility API rejects the whole step rather than advancing
         // translation while silently dropping the failed angular response.
-        integrate(&mut body, &SVector::new(0.0, -9.81, 0.0), 0.01);
+        integrate(&mut body, &SVector::<_, 3>::new(0.0, -9.81, 0.0), 0.01);
         assert_eq!(body.transform.translation.0, position_before);
         assert_eq!(body.linear_velocity, linear_before);
         assert_eq!(body.angular_velocity, angular_before);
@@ -764,14 +764,14 @@ mod tests {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(9), Point::origin(), 0.5, 1.0);
         body.set_rotational_inertia_operator(
             BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
-                &SVector::new(1.0, 0.0, 0.0),
+                &SVector::<_, 3>::new(1.0, 0.0, 0.0),
             ))
             .unwrap(),
         );
         let error = try_rotational_inverse_effective_mass(
             &body,
-            &SVector::new(0.0, 1.0, 0.0),
-            &SVector::new(0.0, 0.0, 1.0),
+            &SVector::<_, 3>::new(0.0, 1.0, 0.0),
+            &SVector::<_, 3>::new(0.0, 0.0, 1.0),
         )
         .unwrap_err();
         assert_eq!(error, RotationalInertiaError::SingularInertia);
@@ -790,7 +790,7 @@ mod tests {
         assert_eq!(original_mass_metadata, Some(1.0));
 
         let mismatched =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<_, 3>::new(1.0, 0.8, 0.6))
                 .unwrap();
         assert_eq!(
             body.try_set_rotational_inertia_operator(mismatched.clone()),
@@ -807,8 +807,8 @@ mod tests {
         // Exercise the legacy setter too: simulation entry points still have
         // to detect mismatched metadata when callers bypass the new setter.
         body.set_rotational_inertia_operator(mismatched);
-        body.linear_velocity = SVector::new(0.5, -0.25, 0.75);
-        body.apply_force(SVector::new(4.0, -2.0, 1.0));
+        body.linear_velocity = SVector::<_, 3>::new(0.5, -0.25, 0.75);
+        body.apply_force(SVector::<_, 3>::new(4.0, -2.0, 1.0));
         body.apply_torque(Bivector::<3>::unit_plane(0, 2));
 
         let position_before = body.transform.translation.0.clone();
@@ -841,8 +841,8 @@ mod tests {
         assert_eq!(
             try_rotational_inverse_effective_mass(
                 &body,
-                &SVector::new(0.0, 1.0, 0.0),
-                &SVector::new(1.0, 0.0, 0.0),
+                &SVector::<_, 3>::new(0.0, 1.0, 0.0),
+                &SVector::<_, 3>::new(1.0, 0.0, 0.0),
             ),
             Err(RotationalInertiaError::MassMismatch)
         );
@@ -856,7 +856,7 @@ mod tests {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(8), Point::origin(), 0.5, 1.0);
         body.set_rotational_inertia_operator(
             BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
-                &SVector::new(1.0, 0.0, 0.0),
+                &SVector::<_, 3>::new(1.0, 0.0, 0.0),
             ))
             .unwrap(),
         );
