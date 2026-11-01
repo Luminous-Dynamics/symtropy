@@ -15,6 +15,7 @@ set -eu
 [ "$1" = "-f" ]
 [ "$2" = "config.cfg" ]
 [ -s config.cfg ]
+[ -s geometry.dat ]
 [ -s mesh.su2 ]
 printf 'Iteration,CL,CD,RMS_DENSITY,RMS_MOMENTUM-X\n0,0.4100,0.0210,-1,-1\n10,0.4200,0.0200,-2,-2\n20,0.4230,0.01820,-6.5,-6.5\n30,0.42305,0.01815,-6.8,-6.8\n40,0.42310,0.01810,-7.1,-7.1\n50,0.42310,0.01808,-7.4,-7.4\n60,0.42315,0.01806,-7.7,-7.7\n70,0.42316,0.01805,-8,-8\n' > history.csv
 printf 'fixture force history\n' > forces_breakdown.dat
@@ -115,4 +116,4 @@ if "$replay" "$root/tampered-run" > "$root/tampered-replay.txt" 2>&1; then
   exit 1
 fi
 grep -q 'persisted stdout.log differs from receipt' "$root/tampered-replay.txt"
-echo "external_solver_cli_known_answer=pass staged_inputs=2 expected_outputs=2 tamper_rejected=true"
+echo "external_solver_cli_known_answer=pass staged_inputs=3 expected_outputs=3 tamper_rejected=true"
