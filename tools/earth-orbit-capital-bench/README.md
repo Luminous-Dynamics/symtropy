@@ -13,7 +13,7 @@ The crate has no third-party dependencies and declares its own Cargo workspace s
 
 ## Semantics
 
-The first executable slice is intentionally bounded:
+All CSV capacities and demands are synthetic service units per period. All cost fields are synthetic cost units; no currency conversion, discounting, tax, financing or price-year claim is implied. The first executable slice is intentionally bounded:
 
 - Three decision epochs and finite capacity increments.
 - Initial action is chosen before demand signals are observed.
