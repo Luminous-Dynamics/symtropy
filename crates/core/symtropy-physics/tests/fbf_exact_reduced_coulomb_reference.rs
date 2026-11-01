@@ -120,10 +120,6 @@ impl MatrixFreeDelassus {
         self.applications.get()
     }
 
-    fn reset_applications(&self) {
-        self.applications.set(0);
-    }
-
     fn apply_explicit(&self, impulse: &Vector6) -> Vector6 {
         // Matrix-free Delassus application: scatter J^T, apply M^-1, gather J.
         let mut generalized_impulse = [0.0; 6];
@@ -180,6 +176,14 @@ impl DelassusOperator for DenseDelassus {
     fn spectral_norm_upper_bound(&self) -> f64 {
         self.spectral_norm_bound
     }
+}
+
+fn generalized_impulse_from_geometry(impulse: &Vector6) -> Vector6 {
+    std::array::from_fn(|coordinate| {
+        (0..6)
+            .map(|contact| CONTACT_JACOBIAN[contact][coordinate] * impulse[contact])
+            .sum()
+    })
 }
 
 fn delassus_from_geometry() -> Matrix6 {
@@ -450,10 +454,22 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sticking_response() {
 
     assert!(outcome.residual <= OUTER_TOLERANCE);
     assert!(max_abs_difference(&outcome.impulse, &reference) < 5.0e-5);
-    assert!(max_abs_difference(&outcome.impulse, &dense_outcome.impulse) < 5.0e-5);
+    assert!(dense_outcome.residual <= OUTER_TOLERANCE);
     assert!(matrix_free.applications() > 0);
-    assert!(max_abs_difference(&outcome.impulse, &dense_outcome.impulse) < 5.0e-5);
-    assert!(matrix_free.applications() > 0);
+    // Compare physical response and generalized impulse, not p componentwise:
+    // a singular Delassus operator can admit different multiplier representatives.
+    assert!(
+        max_abs_difference(
+            &generalized_impulse_from_geometry(&outcome.impulse),
+            &generalized_impulse_from_geometry(&dense_outcome.impulse),
+        ) < 5.0e-5
+    );
+    assert!(
+        max_abs_difference(
+            &matrix_free.apply(&outcome.impulse),
+            &dense.apply(&dense_outcome.impulse),
+        ) < 5.0e-5
+    );
     assert!(outcome.outer_iterations < MAX_OUTER_ITERATIONS);
     assert!(outcome.final_gamma > 0.0);
     assert!(norm(&add(&q, &matrix_free.apply(&outcome.impulse))) < 5.0e-5);
@@ -482,8 +498,17 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sliding_response() {
     assert!(outcome.final_gamma > 0.0);
     assert!(outcome.step_rejections <= 8);
     assert!(outcome.inner_iterations >= outcome.outer_iterations);
+    assert!(dense_outcome.residual <= OUTER_TOLERANCE);
+    assert!(
+        max_abs_difference(
+            &generalized_impulse_from_geometry(&outcome.impulse),
+            &generalized_impulse_from_geometry(&dense_outcome.impulse),
+        ) < 5.0e-5
+    );
 
     let post_velocity = add(&q, &matrix_free.apply(&outcome.impulse));
+    let dense_post_velocity = add(&q, &dense.apply(&dense_outcome.impulse));
+    assert!(max_abs_difference(&post_velocity, &dense_post_velocity) < 5.0e-5);
     for contact in 0..2 {
         let offset = 3 * contact;
         assert!(post_velocity[offset].abs() < 5.0e-5);
