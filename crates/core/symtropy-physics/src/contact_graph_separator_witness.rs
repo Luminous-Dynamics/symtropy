@@ -42,7 +42,7 @@ fn star_delassus_and_free_velocity(first_leaf_tangent: f64) -> (Matrix9, Vector9
 
     // Contact order: separator 0, leaf 1, leaf 2.
     // The leaf-to-leaf 3x3 block is exactly zero.
-    let q = Vector9::new(
+    let q = Vector9::from_row_slice(&[
         -1.5,
         1.0,
         0.0,
@@ -52,7 +52,7 @@ fn star_delassus_and_free_velocity(first_leaf_tangent: f64) -> (Matrix9, Vector9
         -1.25,
         0.125,
         0.0,
-    );
+    ]);
     (w, q)
 }
 
@@ -104,9 +104,9 @@ fn solve_star_with_strict_sticking_leaves(
         let p_0 = separator.impulse;
         let p_1 = -q_leaf_1 - COUPLING * p_0;
         let p_2 = -q_leaf_2 - COUPLING * p_0;
-        let impulse = Vector9::new(
+        let impulse = Vector9::from_row_slice(&[
             p_0[0], p_0[1], p_0[2], p_1[0], p_1[1], p_1[2], p_2[0], p_2[1], p_2[2],
-        );
+        ]);
         let post_velocity = q + w * impulse;
 
         let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
