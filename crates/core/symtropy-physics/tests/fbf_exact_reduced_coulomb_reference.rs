@@ -126,8 +126,7 @@ impl MatrixFreeDelassus {
         let mut generalized_impulse = [0.0; 6];
         for (contact, impulse_component) in impulse.iter().enumerate() {
             for (coordinate, generalized_component) in generalized_impulse.iter_mut().enumerate() {
-                *generalized_component +=
-                    self.jacobian[contact][coordinate] * impulse_component;
+                *generalized_component += self.jacobian[contact][coordinate] * impulse_component;
             }
         }
         for (coordinate, generalized_component) in generalized_impulse.iter_mut().enumerate() {
