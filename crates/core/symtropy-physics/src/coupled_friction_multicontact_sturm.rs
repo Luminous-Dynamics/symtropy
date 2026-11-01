@@ -632,7 +632,6 @@ fn contact_permutation_slide_stick_stratum_has_no_admissible_root() {
     );
 }
 
-
 #[test]
 fn tangent_frame_quarter_turn_preserves_slide_stick_root_classification() {
     let (w, q) = two_contact_witness();
