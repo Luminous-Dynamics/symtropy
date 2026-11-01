@@ -431,35 +431,52 @@ fn evaluate_scenario(scenario: &Value) -> Check<Value> {
     }
 
     let mut reasons = Vec::new();
-    let mut result_status = "feasible".to_owned();
-    if routes.iter().any(|r| r.status == "invalid") {
-        result_status = "invalid".to_owned();
-        reasons.push("INVALID_ROUTE_SEMANTICS".to_owned());
-    } else if routes.iter().all(|r| r.status == "infeasible") {
-        result_status = "infeasible".to_owned();
-        reasons.push("NO_FEASIBLE_ROUTE".to_owned());
-    }
+    let service_routes: Vec<&RouteResult> = routes
+        .iter()
+        .filter(|route| route.status != "invalid" && route.status != "infeasible")
+        .collect();
+    let mut result_status = if service_routes.is_empty() {
+        if routes.iter().all(|route| route.status == "invalid") {
+            reasons.push("ALL_ROUTE_ALTERNATIVES_INVALID".to_owned());
+            "invalid"
+        } else {
+            reasons.push("NO_FEASIBLE_ROUTE".to_owned());
+            "infeasible"
+        }
+    } else if service_routes.iter().any(|route| route.status == "feasible") {
+        "feasible"
+    } else {
+        "indeterminate"
+    }.to_owned();
 
-    let known_nominal = routes.iter().try_fold(0_u64, |sum, route| {
+    let known_nominal = service_routes.iter().try_fold(0_u64, |sum, route| {
         checked_add(sum, route.guaranteed_capacity_kg, &at)
     })?;
-    let possible_nominal = routes.iter().try_fold(0_u64, |sum, route| {
+    let possible_nominal = service_routes.iter().try_fold(0_u64, |sum, route| {
         checked_add(sum, route.potential_capacity_kg, &at)
     })?;
 
-    if result_status == "feasible" && known_nominal < demand {
+    if matches!(result_status.as_str(), "feasible" | "indeterminate")
+        && known_nominal < demand
+    {
         if possible_nominal >= demand {
-            result_status = "indeterminate".to_owned();
-            reasons.push("NOMINAL_CAPACITY_DEPENDS_ON_UNKNOWN_ROUTE".to_owned());
+            if result_status == "feasible" {
+                result_status = "indeterminate".to_owned();
+            }
+            reasons.push("NOMINAL_CAPACITY_DEPENDS_ON_UNQUALIFIED_OR_UNKNOWN_ROUTE".to_owned());
         } else {
             result_status = "infeasible".to_owned();
             reasons.push("NOMINAL_CAPACITY_BELOW_DEMAND".to_owned());
         }
     }
 
+    if routes.iter().any(|route| route.status == "invalid") && result_status != "invalid" {
+        reasons.push("INVALID_ALTERNATIVE_EXCLUDED_FROM_PORTFOLIO".to_owned());
+    }
+
     let mut n_minus_one = Vec::new();
     if require_n_minus_one && result_status != "invalid" {
-        let domains: BTreeSet<String> = routes
+        let domains: BTreeSet<String> = service_routes
             .iter()
             .flat_map(|route| route.dependency_domains.iter().cloned())
             .collect();
@@ -467,13 +484,13 @@ fn evaluate_scenario(scenario: &Value) -> Check<Value> {
             return Err(format!("{at}: N-1 requires at least one declared failure domain"));
         }
         for domain in domains {
-            let known_after = routes
+            let known_after = service_routes
                 .iter()
                 .filter(|route| !route.dependency_domains.contains(&domain))
                 .try_fold(0_u64, |sum, route| {
                     checked_add(sum, route.guaranteed_capacity_kg, &at)
                 })?;
-            let possible_after = routes
+            let possible_after = service_routes
                 .iter()
                 .filter(|route| !route.dependency_domains.contains(&domain))
                 .try_fold(0_u64, |sum, route| {
@@ -739,6 +756,29 @@ mod tests {
         assert_eq!(
             result_for(&root, "UNQUALIFIED_RING_CLAIMED_OPERATIONAL")["status"],
             "invalid"
+        );
+    }
+
+    #[test]
+    fn one_invalid_route_does_not_poison_an_independent_valid_alternative() {
+        let mut root = corpus();
+        let mut scenario = root["scenarios"][0].clone();
+        let invalid = root["scenarios"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["id"] == "LINEAR_MOTOR_MISLABELED_AS_MAGLEV")
+            .unwrap()["routes"][0]
+            .clone();
+        scenario["routes"].as_array_mut().unwrap().push(invalid);
+        scenario["id"] = json!("MIXED_VALID_AND_INVALID_ALTERNATIVES");
+        scenario["expected_status"] = json!("feasible");
+        let result = evaluate_scenario(&scenario).expect("valid alternative remains usable");
+        assert_eq!(result["status"], "feasible");
+        assert_eq!(result["routes"][1]["status"], "invalid");
+        assert_eq!(
+            result["reason_codes"][0],
+            "INVALID_ALTERNATIVE_EXCLUDED_FROM_PORTFOLIO"
         );
     }
 
