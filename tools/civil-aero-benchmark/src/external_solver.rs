@@ -10,8 +10,8 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -160,7 +160,9 @@ fn canonical_regular_file_under_root(root: &Path, relative: &str) -> Result<Path
     let canonical = fs::canonicalize(&candidate)
         .map_err(|error| format!("cannot resolve run artifact {relative}: {error}"))?;
     if !canonical.starts_with(root) {
-        return Err(format!("run artifact {relative} resolves outside run directory"));
+        return Err(format!(
+            "run artifact {relative} resolves outside run directory"
+        ));
     }
     if !fs::metadata(&canonical)
         .map_err(|error| format!("cannot inspect run artifact {relative}: {error}"))?
@@ -198,12 +200,15 @@ fn append_string(target: &mut Vec<u8>, value: &str) {
     target.extend_from_slice(value.as_bytes());
 }
 
-fn environment_manifest(environment: &BTreeMap<String, String>) -> Result<(String, Vec<u8>), String> {
+fn environment_manifest(
+    environment: &BTreeMap<String, String>,
+) -> Result<(String, Vec<u8>), String> {
     let mut canonical = Vec::new();
     let mut lines = String::from("schema=civil-external-solver-environment/0.1.0\n");
     append_u64(&mut canonical, environment.len() as u64);
     for (key, value) in environment {
-        if key.trim().is_empty() || key.contains('=') || key.contains('\0') || value.contains('\0') {
+        if key.trim().is_empty() || key.contains('=') || key.contains('\0') || value.contains('\0')
+        {
             return Err("environment contains an invalid key or NUL value".to_owned());
         }
         append_string(&mut canonical, key);
@@ -228,8 +233,14 @@ fn invocation_manifest(
 ) -> Vec<u8> {
     let mut output = String::new();
     output.push_str(&format!("schema={EXTERNAL_SOLVER_RECEIPT_SCHEMA}\n"));
-    output.push_str(&format!("run_id_utf8_hex={}\n", hex_encode(&request.run_id)));
-    output.push_str(&format!("solver_id_utf8_hex={}\n", hex_encode(&request.solver_id)));
+    output.push_str(&format!(
+        "run_id_utf8_hex={}\n",
+        hex_encode(&request.run_id)
+    ));
+    output.push_str(&format!(
+        "solver_id_utf8_hex={}\n",
+        hex_encode(&request.solver_id)
+    ));
     output.push_str(&format!(
         "solver_version_claim_utf8_hex={}\n",
         hex_encode(&request.solver_version_claim)
@@ -242,16 +253,25 @@ fn invocation_manifest(
     output.push_str(&format!("environment_sha256={environment_sha256}\n"));
     output.push_str(&format!("target_os={}\n", std::env::consts::OS));
     output.push_str(&format!("target_arch={}\n", std::env::consts::ARCH));
-    output.push_str(&format!("timeout_milliseconds={}\n", request.timeout.as_millis()));
+    output.push_str(&format!(
+        "timeout_milliseconds={}\n",
+        request.timeout.as_millis()
+    ));
     output.push_str(&format!(
         "max_log_bytes_per_stream={}\n",
         request.max_log_bytes_per_stream
     ));
     output.push_str(&format!("argument_count={}\n", request.arguments.len()));
     for (index, argument) in request.arguments.iter().enumerate() {
-        output.push_str(&format!("argument_{index}_utf8_hex={}\n", hex_encode(argument)));
+        output.push_str(&format!(
+            "argument_{index}_utf8_hex={}\n",
+            hex_encode(argument)
+        ));
     }
-    output.push_str(&format!("environment_entry_count={}\n", request.environment.len()));
+    output.push_str(&format!(
+        "environment_entry_count={}\n",
+        request.environment.len()
+    ));
     output.push_str(&format!("staged_input_count={}\n", staged_inputs.len()));
     for (index, input) in staged_inputs.iter().enumerate() {
         output.push_str(&format!(
@@ -262,7 +282,10 @@ fn invocation_manifest(
             hex_encode(&input.source_reference)
         ));
     }
-    output.push_str(&format!("expected_output_count={}\n", request.expected_outputs.len()));
+    output.push_str(&format!(
+        "expected_output_count={}\n",
+        request.expected_outputs.len()
+    ));
     for (index, output_path) in request.expected_outputs.iter().enumerate() {
         output.push_str(&format!(
             "expected_output_{index}_path_utf8_hex={}\n",
@@ -281,7 +304,10 @@ fn stage_inputs(
     for input in inputs {
         let relative = validate_relative_path(&input.relative_path)?;
         if !seen_paths.insert(relative.clone()) {
-            return Err(format!("duplicate staged input path {}", input.relative_path));
+            return Err(format!(
+                "duplicate staged input path {}",
+                input.relative_path
+            ));
         }
         if input.source_reference.trim().is_empty() || !is_sha256(&input.expected_sha256) {
             return Err(format!(
@@ -295,10 +321,14 @@ fn stage_inputs(
                 input.source_path.display()
             )
         })?;
-        let metadata = fs::metadata(&source)
-            .map_err(|error| format!("cannot inspect staged input {}: {error}", source.display()))?;
+        let metadata = fs::metadata(&source).map_err(|error| {
+            format!("cannot inspect staged input {}: {error}", source.display())
+        })?;
         if !metadata.is_file() {
-            return Err(format!("staged input {} is not a regular file", source.display()));
+            return Err(format!(
+                "staged input {} is not a regular file",
+                source.display()
+            ));
         }
         if metadata.len() != input.expected_byte_length {
             return Err(format!(
@@ -319,7 +349,10 @@ fn stage_inputs(
         let destination = root.join(&relative);
         if let Some(parent) = destination.parent() {
             fs::create_dir_all(parent).map_err(|error| {
-                format!("cannot create staged input parent {}: {error}", parent.display())
+                format!(
+                    "cannot create staged input parent {}: {error}",
+                    parent.display()
+                )
             })?;
         }
         let mut source_file = File::open(&source)
@@ -328,12 +361,17 @@ fn stage_inputs(
             .write(true)
             .create_new(true)
             .open(&destination)
-            .map_err(|error| format!("cannot create staged input {}: {error}", destination.display()))?;
+            .map_err(|error| {
+                format!(
+                    "cannot create staged input {}: {error}",
+                    destination.display()
+                )
+            })?;
         let copied = std::io::copy(&mut source_file, &mut destination_file)
             .map_err(|error| format!("cannot stage input {}: {error}", input.relative_path))?;
-        destination_file
-            .flush()
-            .map_err(|error| format!("cannot flush staged input {}: {error}", input.relative_path))?;
+        destination_file.flush().map_err(|error| {
+            format!("cannot flush staged input {}: {error}", input.relative_path)
+        })?;
         if copied != input.expected_byte_length {
             return Err(format!(
                 "staged input {} changed size while being copied",
@@ -373,7 +411,8 @@ fn capture_stream<R: Read>(
         if count == 0 {
             break;
         }
-        let count_u64 = u64::try_from(count).map_err(|_| "stream chunk length overflow".to_owned())?;
+        let count_u64 =
+            u64::try_from(count).map_err(|_| "stream chunk length overflow".to_owned())?;
         bytes_seen = bytes_seen
             .checked_add(count_u64)
             .ok_or_else(|| "solver output byte count overflow".to_owned())?;
@@ -410,10 +449,10 @@ fn output_records(root: &Path, expected: &[String]) -> Result<Vec<ExpectedOutput
         match fs::symlink_metadata(&candidate) {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                 records.push(ExpectedOutputRecord {
-                relative_path: relative.clone(),
-                present: false,
-                byte_length: None,
-                sha256: None,
+                    relative_path: relative.clone(),
+                    present: false,
+                    byte_length: None,
+                    sha256: None,
                 });
                 continue;
             }
@@ -445,7 +484,10 @@ fn output_manifest_csv(outputs: &[ExpectedOutputRecord]) -> String {
             "{},{},{},{}\n",
             csv_escape(&output.relative_path),
             if output.present { "present" } else { "missing" },
-            output.byte_length.map(|value| value.to_string()).unwrap_or_default(),
+            output
+                .byte_length
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
             output.sha256.as_deref().unwrap_or("")
         ));
     }
@@ -556,11 +598,18 @@ pub fn receipt_to_csv(receipt: &ExternalSolverReceipt) -> String {
         receipt.stdout_sha256,
         receipt.stderr_byte_length,
         receipt.stderr_sha256,
-        receipt.exit_code.map(|value| value.to_string()).unwrap_or_default(),
+        receipt
+            .exit_code
+            .map(|value| value.to_string())
+            .unwrap_or_default(),
         receipt.timed_out,
         receipt.output_limit_exceeded,
         receipt.elapsed_milliseconds,
-        receipt.outputs.iter().filter(|output| output.present).count(),
+        receipt
+            .outputs
+            .iter()
+            .filter(|output| output.present)
+            .count(),
         receipt.missing_output_count(),
         receipt.output_manifest_sha256,
         receipt.status,
@@ -582,7 +631,11 @@ pub fn execute_external_solver(
     if request.expected_outputs.is_empty() {
         return Err("at least one expected output is required".to_owned());
     }
-    if request.arguments.iter().any(|argument| argument.contains('\0')) {
+    if request
+        .arguments
+        .iter()
+        .any(|argument| argument.contains('\0'))
+    {
         return Err("solver arguments must not contain NUL bytes".to_owned());
     }
     let mut used_paths = BTreeSet::new();
@@ -599,13 +652,18 @@ pub fn execute_external_solver(
     for input in &request.staged_inputs {
         let relative = validate_relative_path(&input.relative_path)?;
         if !used_paths.insert(relative.clone()) {
-            return Err(format!("staged input path {} collides with a reserved/used path", input.relative_path));
+            return Err(format!(
+                "staged input path {} collides with a reserved/used path",
+                input.relative_path
+            ));
         }
     }
     for output in &request.expected_outputs {
         let relative = validate_relative_path(output)?;
         if !used_paths.insert(relative.clone()) {
-            return Err(format!("expected output path {output} collides with a reserved/used path or staged input"));
+            return Err(format!(
+                "expected output path {output} collides with a reserved/used path or staged input"
+            ));
         }
     }
     let declared_paths = used_paths.iter().collect::<Vec<_>>();
@@ -704,15 +762,31 @@ pub fn execute_external_solver(
         }
         Ok(mut child) => {
             let max_log_bytes_per_stream = request.max_log_bytes_per_stream;
-            let stdout = child.stdout.take().ok_or_else(|| "solver stdout pipe missing".to_owned())?;
-            let stderr = child.stderr.take().ok_or_else(|| "solver stderr pipe missing".to_owned())?;
+            let stdout = child
+                .stdout
+                .take()
+                .ok_or_else(|| "solver stdout pipe missing".to_owned())?;
+            let stderr = child
+                .stderr
+                .take()
+                .ok_or_else(|| "solver stderr pipe missing".to_owned())?;
             let stdout_exceeded = Arc::clone(&exceeded);
             let stdout_thread = thread::spawn(move || {
-                capture_stream(stdout, stdout_file, max_log_bytes_per_stream, stdout_exceeded)
+                capture_stream(
+                    stdout,
+                    stdout_file,
+                    max_log_bytes_per_stream,
+                    stdout_exceeded,
+                )
             });
             let stderr_exceeded = Arc::clone(&exceeded);
             let stderr_thread = thread::spawn(move || {
-                capture_stream(stderr, stderr_file, max_log_bytes_per_stream, stderr_exceeded)
+                capture_stream(
+                    stderr,
+                    stderr_file,
+                    max_log_bytes_per_stream,
+                    stderr_exceeded,
+                )
             });
 
             let mut process_status = None;
@@ -720,7 +794,9 @@ pub fn execute_external_solver(
                 if exceeded.load(Ordering::Acquire) {
                     let _ = child.kill();
                     process_status = Some(
-                        child.wait().map_err(|error| format!("cannot wait after output cap: {error}"))?
+                        child
+                            .wait()
+                            .map_err(|error| format!("cannot wait after output cap: {error}"))?,
                     );
                     break;
                 }
@@ -739,9 +815,10 @@ pub fn execute_external_solver(
                 if start.elapsed() >= request.timeout {
                     timed_out = true;
                     let _ = child.kill();
-                    process_status = Some(
-                        child.wait().map_err(|error| format!("cannot wait after solver timeout: {error}"))?
-                    );
+                    process_status =
+                        Some(child.wait().map_err(|error| {
+                            format!("cannot wait after solver timeout: {error}")
+                        })?);
                     break;
                 }
                 thread::sleep(Duration::from_millis(10));
@@ -770,8 +847,11 @@ pub fn execute_external_solver(
         || exceeded.load(Ordering::Acquire);
     let outputs = output_records(&root, &request.expected_outputs)?;
     let output_manifest_content = output_manifest_csv(&outputs);
-    fs::write(root.join(OUTPUT_MANIFEST_FILE), output_manifest_content.as_bytes())
-        .map_err(|error| format!("cannot write expected-output manifest: {error}"))?;
+    fs::write(
+        root.join(OUTPUT_MANIFEST_FILE),
+        output_manifest_content.as_bytes(),
+    )
+    .map_err(|error| format!("cannot write expected-output manifest: {error}"))?;
     let output_manifest_sha256 = sha256_hex(output_manifest_content.as_bytes())?;
     let status = status_label(
         spawn_error.as_deref(),
@@ -1206,15 +1286,33 @@ pub fn verify_external_solver_receipt(
     for input in &receipt.staged_inputs {
         let relative = validate_relative_path(&input.relative_path)?;
         let canonical = canonical_regular_file_under_root(&root, &input.relative_path)?;
-        let metadata = fs::metadata(&canonical)
-            .map_err(|error| format!("cannot inspect staged input {}: {error}", input.relative_path))?;
-        if !metadata.is_file() || metadata.len() != input.byte_length || sha256_file(&canonical)? != input.sha256 {
-            return Err(format!("staged input {} differs from receipt", input.relative_path));
+        let metadata = fs::metadata(&canonical).map_err(|error| {
+            format!(
+                "cannot inspect staged input {}: {error}",
+                input.relative_path
+            )
+        })?;
+        if !metadata.is_file()
+            || metadata.len() != input.byte_length
+            || sha256_file(&canonical)? != input.sha256
+        {
+            return Err(format!(
+                "staged input {} differs from receipt",
+                input.relative_path
+            ));
         }
     }
     for (path, expected, expected_length) in [
-        (STDOUT_LOG_FILE, receipt.stdout_sha256.as_str(), receipt.stdout_byte_length),
-        (STDERR_LOG_FILE, receipt.stderr_sha256.as_str(), receipt.stderr_byte_length),
+        (
+            STDOUT_LOG_FILE,
+            receipt.stdout_sha256.as_str(),
+            receipt.stdout_byte_length,
+        ),
+        (
+            STDERR_LOG_FILE,
+            receipt.stderr_sha256.as_str(),
+            receipt.stderr_byte_length,
+        ),
     ] {
         let file = canonical_regular_file_under_root(&root, path)?;
         let metadata = fs::metadata(&file)
@@ -1232,7 +1330,14 @@ pub fn verify_external_solver_receipt(
     if output_manifest_bytes != output_manifest_csv(&receipt.outputs).as_bytes() {
         return Err("expected-output manifest content differs from receipt records".to_owned());
     }
-    let actual_outputs = output_records(&root, &receipt.outputs.iter().map(|row| row.relative_path.clone()).collect::<Vec<_>>())?;
+    let actual_outputs = output_records(
+        &root,
+        &receipt
+            .outputs
+            .iter()
+            .map(|row| row.relative_path.clone())
+            .collect::<Vec<_>>(),
+    )?;
     if actual_outputs != receipt.outputs {
         return Err("one or more expected solver outputs differ from receipt".to_owned());
     }
@@ -1318,10 +1423,16 @@ mod tests {
             &root,
             executable,
             "positive-run",
-            vec!["argument with spaces".to_owned(), "$(not-a-shell-command)".to_owned()],
+            vec![
+                "argument with spaces".to_owned(),
+                "$(not-a-shell-command)".to_owned(),
+            ],
             vec!["history.csv".to_owned(), "args.txt".to_owned()],
         );
-        spec.environment.insert("AERO_TEST_MODE".to_owned(), "secret-fixture-value".to_owned());
+        spec.environment.insert(
+            "AERO_TEST_MODE".to_owned(),
+            "secret-fixture-value".to_owned(),
+        );
         spec.staged_inputs.push(StagedInputSpec {
             source_path: input_path,
             relative_path: "input/case.cfg".to_owned(),
@@ -1351,13 +1462,25 @@ mod tests {
     fn nonzero_exit_and_missing_outputs_are_retained_as_failed_receipts() {
         let root = temporary_root("nonzero");
         let executable = fake_solver(&root, "printf 'failed\\n' >&2\nexit 17");
-        let spec = request(&root, executable, "failed-run", Vec::new(), vec!["history.csv".to_owned()]);
-        let receipt = execute_external_solver(&spec).expect("failed process should still produce receipt");
+        let spec = request(
+            &root,
+            executable,
+            "failed-run",
+            Vec::new(),
+            vec!["history.csv".to_owned()],
+        );
+        let receipt =
+            execute_external_solver(&spec).expect("failed process should still produce receipt");
         assert_eq!(receipt.status, "nonzero_exit");
         assert_eq!(receipt.exit_code, Some(17));
         assert_eq!(receipt.missing_output_count(), 1);
-        assert!(fs::read_to_string(spec.run_directory.join(STDERR_LOG_FILE)).expect("stderr").contains("failed"));
-        verify_external_solver_receipt(&spec.run_directory, &receipt).expect("failed receipt replays");
+        assert!(
+            fs::read_to_string(spec.run_directory.join(STDERR_LOG_FILE))
+                .expect("stderr")
+                .contains("failed")
+        );
+        verify_external_solver_receipt(&spec.run_directory, &receipt)
+            .expect("failed receipt replays");
         fs::remove_dir_all(root).expect("remove nonzero fixture");
     }
 
@@ -1369,7 +1492,8 @@ mod tests {
         timed.timeout = Duration::from_millis(30);
         let receipt = execute_external_solver(&timed).expect("timeout is a receipt status");
         assert_eq!(receipt.status, "timed_out");
-        verify_external_solver_receipt(&timed.run_directory, &receipt).expect("timeout receipt replays");
+        verify_external_solver_receipt(&timed.run_directory, &receipt)
+            .expect("timeout receipt replays");
 
         let noisy = fake_solver(&root, "while :; do printf 1234567890; done");
         let mut capped = request(&root, noisy, "output-cap-run", Vec::new(), Vec::new());
@@ -1378,7 +1502,8 @@ mod tests {
         let receipt = execute_external_solver(&capped).expect("output cap is a receipt status");
         assert_eq!(receipt.status, "output_limit_exceeded");
         assert!(receipt.stdout_byte_length <= 100);
-        verify_external_solver_receipt(&capped.run_directory, &receipt).expect("capped receipt replays");
+        verify_external_solver_receipt(&capped.run_directory, &receipt)
+            .expect("capped receipt replays");
         fs::remove_dir_all(root).expect("remove limit fixture");
     }
 
@@ -1388,8 +1513,18 @@ mod tests {
         let executable = fake_solver(&root, "exit 0");
         let existing = root.join("existing-run");
         fs::create_dir(&existing).expect("make stale directory");
-        let stale = request(&root, executable.clone(), "existing-run", Vec::new(), Vec::new());
-        assert!(execute_external_solver(&stale).expect_err("stale run directory rejected").contains("must not already exist"));
+        let stale = request(
+            &root,
+            executable.clone(),
+            "existing-run",
+            Vec::new(),
+            Vec::new(),
+        );
+        assert!(
+            execute_external_solver(&stale)
+                .expect_err("stale run directory rejected")
+                .contains("must not already exist")
+        );
 
         let input = root.join("input.dat");
         fs::write(&input, "bytes").expect("write input");
@@ -1401,7 +1536,11 @@ mod tests {
             expected_sha256: "0".repeat(64),
             source_reference: "synthetic-test-input".to_owned(),
         });
-        assert!(execute_external_solver(&bad).expect_err("bad input digest rejected").contains("SHA-256 mismatch"));
+        assert!(
+            execute_external_solver(&bad)
+                .expect_err("bad input digest rejected")
+                .contains("SHA-256 mismatch")
+        );
         fs::remove_dir_all(root).expect("remove preflight fixture");
     }
 
@@ -1409,12 +1548,42 @@ mod tests {
     fn output_path_traversal_and_reserved_collisions_fail_closed() {
         let root = temporary_root("paths");
         let executable = fake_solver(&root, "exit 0");
-        let traversal = request(&root, executable.clone(), "traversal-run", Vec::new(), vec!["../escape.csv".to_owned()]);
-        assert!(execute_external_solver(&traversal).expect_err("traversal rejected").contains("normal root-relative"));
-        let collision = request(&root, executable.clone(), "collision-run", Vec::new(), vec![STDOUT_LOG_FILE.to_owned()]);
-        assert!(execute_external_solver(&collision).expect_err("reserved path collision rejected").contains("collides"));
-        let prefix = request(&root, executable, "prefix-run", Vec::new(), vec![format!("{STDOUT_LOG_FILE}/nested.csv")]);
-        assert!(execute_external_solver(&prefix).expect_err("file/directory prefix collision rejected").contains("prefix collision"));
+        let traversal = request(
+            &root,
+            executable.clone(),
+            "traversal-run",
+            Vec::new(),
+            vec!["../escape.csv".to_owned()],
+        );
+        assert!(
+            execute_external_solver(&traversal)
+                .expect_err("traversal rejected")
+                .contains("normal root-relative")
+        );
+        let collision = request(
+            &root,
+            executable.clone(),
+            "collision-run",
+            Vec::new(),
+            vec![STDOUT_LOG_FILE.to_owned()],
+        );
+        assert!(
+            execute_external_solver(&collision)
+                .expect_err("reserved path collision rejected")
+                .contains("collides")
+        );
+        let prefix = request(
+            &root,
+            executable,
+            "prefix-run",
+            Vec::new(),
+            vec![format!("{STDOUT_LOG_FILE}/nested.csv")],
+        );
+        assert!(
+            execute_external_solver(&prefix)
+                .expect_err("file/directory prefix collision rejected")
+                .contains("prefix collision")
+        );
         fs::remove_dir_all(root).expect("remove paths fixture");
     }
 }
