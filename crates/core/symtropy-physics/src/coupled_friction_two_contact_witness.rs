@@ -778,7 +778,6 @@ mod schur_reduction_tests {
         assert!((coupled_velocity[3] - uncoupled_velocity[3]).abs() > 1.0e-3);
     }
 
-
     #[derive(Clone, Debug)]
     struct MirroredSchurCandidate {
         impulse: Vector6,
