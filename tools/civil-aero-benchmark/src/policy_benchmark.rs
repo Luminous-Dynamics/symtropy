@@ -657,17 +657,30 @@ mod tests {
         std::iter::repeat_n(byte, 64).collect()
     }
 
-    fn operation(
-        task: &str,
-        replicate: &str,
-        policy: &str,
-        id: &str,
-        kind: &str,
+    struct OperationFixture<'a> {
+        task: &'a str,
+        replicate: &'a str,
+        policy: &'a str,
+        id: &'a str,
+        kind: &'a str,
         cost: f64,
         success: bool,
         hash: char,
         cap: f64,
-    ) -> LedgerOperation {
+    }
+
+    fn operation(fixture: OperationFixture<'_>) -> LedgerOperation {
+        let OperationFixture {
+            task,
+            replicate,
+            policy,
+            id,
+            kind,
+            cost,
+            success,
+            hash,
+            cap,
+        } = fixture;
         LedgerOperation {
             task_id: task.to_owned(),
             replicate_id: replicate.to_owned(),
@@ -715,19 +728,34 @@ mod tests {
         }
     }
 
-    fn candidate(
-        task: &str,
-        replicate: &str,
-        policy: &str,
-        op: &str,
-        id: &str,
+    struct CandidateFixture<'a> {
+        task: &'a str,
+        replicate: &'a str,
+        policy: &'a str,
+        operation: &'a str,
+        id: &'a str,
         output: char,
         admitted: bool,
         feasible: Option<bool>,
         objective_1: Option<f64>,
         objective_2: Option<f64>,
-        receipt: &str,
-    ) -> CandidateObservation {
+        receipt: &'a str,
+    }
+
+    fn candidate(fixture: CandidateFixture<'_>) -> CandidateObservation {
+        let CandidateFixture {
+            task,
+            replicate,
+            policy,
+            operation,
+            id,
+            output,
+            admitted,
+            feasible,
+            objective_1,
+            objective_2,
+            receipt,
+        } = fixture;
         CandidateObservation {
             task_id: task.to_owned(),
             replicate_id: replicate.to_owned(),
@@ -778,100 +806,100 @@ mod tests {
                     [(0.028, 650.0), (0.032, 520.0)],
                 ),
             ] {
-                operations.push(operation(
-                    "airfoil-multipoint-smoke",
+                operations.push(operation(OperationFixture {
+                    task: "airfoil-multipoint-smoke",
                     replicate,
                     policy,
-                    "screen",
-                    "low_fidelity",
-                    costs[0],
-                    true,
-                    hashes[0],
-                    8.0,
-                ));
-                operations.push(operation(
-                    "airfoil-multipoint-smoke",
+                    id: "screen",
+                    kind: "low_fidelity",
+                    cost: costs[0],
+                    success: true,
+                    hash: hashes[0],
+                    cap: 8.0,
+                }));
+                operations.push(operation(OperationFixture {
+                    task: "airfoil-multipoint-smoke",
                     replicate,
                     policy,
-                    "hf-1",
-                    "high_fidelity",
-                    costs[1],
-                    true,
-                    hashes[1],
-                    8.0,
-                ));
-                operations.push(operation(
-                    "airfoil-multipoint-smoke",
+                    id: "hf-1",
+                    kind: "high_fidelity",
+                    cost: costs[1],
+                    success: true,
+                    hash: hashes[1],
+                    cap: 8.0,
+                }));
+                operations.push(operation(OperationFixture {
+                    task: "airfoil-multipoint-smoke",
                     replicate,
                     policy,
-                    "hf-2",
-                    "high_fidelity",
-                    costs[2],
-                    true,
-                    hashes[2],
-                    8.0,
-                ));
-                operations.push(operation(
-                    "airfoil-multipoint-smoke",
+                    id: "hf-2",
+                    kind: "high_fidelity",
+                    cost: costs[2],
+                    success: true,
+                    hash: hashes[2],
+                    cap: 8.0,
+                }));
+                operations.push(operation(OperationFixture {
+                    task: "airfoil-multipoint-smoke",
                     replicate,
                     policy,
-                    "hf-rejected",
-                    "high_fidelity",
-                    costs[3],
-                    true,
-                    hashes[3],
-                    8.0,
-                ));
-                operations.push(operation(
-                    "airfoil-multipoint-smoke",
+                    id: "hf-rejected",
+                    kind: "high_fidelity",
+                    cost: costs[3],
+                    success: true,
+                    hash: hashes[3],
+                    cap: 8.0,
+                }));
+                operations.push(operation(OperationFixture {
+                    task: "airfoil-multipoint-smoke",
                     replicate,
                     policy,
-                    "hf-failed",
-                    "high_fidelity",
-                    costs[4],
-                    false,
-                    hashes[4],
-                    8.0,
-                ));
-                candidates.push(candidate(
-                    "airfoil-multipoint-smoke",
+                    id: "hf-failed",
+                    kind: "high_fidelity",
+                    cost: costs[4],
+                    success: false,
+                    hash: hashes[4],
+                    cap: 8.0,
+                }));
+                candidates.push(candidate(CandidateFixture {
+                    task: "airfoil-multipoint-smoke",
                     replicate,
                     policy,
-                    "hf-1",
-                    "candidate-1",
-                    hashes[1],
-                    true,
-                    Some(true),
-                    Some(points[0].0),
-                    Some(points[0].1),
-                    &digest('6'),
-                ));
-                candidates.push(candidate(
-                    "airfoil-multipoint-smoke",
+                    operation: "hf-1",
+                    id: "candidate-1",
+                    output: hashes[1],
+                    admitted: true,
+                    feasible: Some(true),
+                    objective_1: Some(points[0].0),
+                    objective_2: Some(points[0].1),
+                    receipt: &digest('6'),
+                }));
+                candidates.push(candidate(CandidateFixture {
+                    task: "airfoil-multipoint-smoke",
                     replicate,
                     policy,
-                    "hf-2",
-                    "candidate-2",
-                    hashes[2],
-                    true,
-                    Some(true),
-                    Some(points[1].0),
-                    Some(points[1].1),
-                    &digest('7'),
-                ));
-                candidates.push(candidate(
-                    "airfoil-multipoint-smoke",
+                    operation: "hf-2",
+                    id: "candidate-2",
+                    output: hashes[2],
+                    admitted: true,
+                    feasible: Some(true),
+                    objective_1: Some(points[1].0),
+                    objective_2: Some(points[1].1),
+                    receipt: &digest('7'),
+                }));
+                candidates.push(candidate(CandidateFixture {
+                    task: "airfoil-multipoint-smoke",
                     replicate,
                     policy,
-                    "hf-rejected",
-                    "candidate-not-admitted",
-                    hashes[3],
-                    false,
-                    None,
-                    None,
-                    None,
-                    "-",
-                ));
+                    operation: "hf-rejected",
+                    id: "candidate-not-admitted",
+                    output: hashes[3],
+                    admitted: false,
+                    feasible: None,
+                    objective_1: None,
+                    objective_2: None,
+                    receipt: "-",
+                }));
             }
         }
         (vec![task], operations, candidates)
