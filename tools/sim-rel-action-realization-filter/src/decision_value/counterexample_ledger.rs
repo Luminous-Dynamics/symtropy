@@ -38,6 +38,7 @@ pub struct CounterexampleProvenance {
     pub search_run_id: String,
     pub seed: u64,
     pub policy_identity: String,
+    pub attacked_policy: DecisionPlan,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -140,7 +141,9 @@ pub struct ModelFamilyLedgerSnapshot {
     pub family_revision: u64,
     pub development_worlds: Vec<DecisionModelWorld>,
     pub active_policy_identity: Option<String>,
+    pub active_policy_plan: Option<DecisionPlan>,
     pub frozen_policy_identity: Option<String>,
+    pub frozen_policy_plan: Option<DecisionPlan>,
     pub frozen_policy_revision: Option<u64>,
     pub reserved_holdout_groups: Vec<SealedHoldoutGroupRegistration>,
     pub consumed_holdout_group_ids: Vec<String>,
@@ -153,8 +156,10 @@ pub struct ModelFamilyLedger {
     development_worlds: Vec<DecisionModelWorld>,
     family_revision: u64,
     active_policy_identity: Option<String>,
+    active_policy_plan: Option<DecisionPlan>,
     invalidated_policy_identity: Option<String>,
     frozen_policy_identity: Option<String>,
+    frozen_policy_plan: Option<DecisionPlan>,
     frozen_policy_revision: Option<u64>,
     reserved_holdouts: BTreeMap<String, SealedHoldoutGroupRegistration>,
     consumed_holdout_group_ids: BTreeSet<String>,
@@ -170,6 +175,7 @@ impl ModelFamilyLedger {
         baseline_worlds: Vec<DecisionModelWorld>,
         holdouts: Vec<SealedHoldoutGroupRegistration>,
         initial_policy_identity: String,
+        initial_policy_plan: DecisionPlan,
     ) -> Result<Self, String> {
         validate_opaque_id(
             &initial_policy_identity,
@@ -235,8 +241,10 @@ impl ModelFamilyLedger {
             development_worlds: baseline_worlds,
             family_revision: 0,
             active_policy_identity: Some(initial_policy_identity),
+            active_policy_plan: Some(initial_policy_plan),
             invalidated_policy_identity: None,
             frozen_policy_identity: None,
+            frozen_policy_plan: None,
             frozen_policy_revision: None,
             reserved_holdouts,
             consumed_holdout_group_ids: BTreeSet::new(),
@@ -283,7 +291,9 @@ impl ModelFamilyLedger {
             family_revision: self.family_revision,
             development_worlds: self.development_worlds.clone(),
             active_policy_identity: self.active_policy_identity.clone(),
+            active_policy_plan: self.active_policy_plan.clone(),
             frozen_policy_identity: self.frozen_policy_identity.clone(),
+            frozen_policy_plan: self.frozen_policy_plan.clone(),
             frozen_policy_revision: self.frozen_policy_revision,
             reserved_holdout_groups: self.reserved_holdouts.values().cloned().collect(),
             consumed_holdout_group_ids,
@@ -329,7 +339,14 @@ impl ModelFamilyLedger {
             .as_ref()
             .ok_or_else(|| "no active policy exists; a replan is required before another attack".to_string())?;
         if provenance.policy_identity != *active_policy {
-            return Err("counterexample was generated against a stale or different policy".into());
+            return Err("counterexample was generated against a stale or different policy identity".into());
+        }
+        let active_plan = self
+            .active_policy_plan
+            .as_ref()
+            .ok_or_else(|| "active policy identity has no retained policy tree".to_string())?;
+        if provenance.attacked_policy != *active_plan {
+            return Err("counterexample provenance does not contain the exact active policy tree".into());
         }
 
         let source = self
@@ -386,6 +403,7 @@ impl ModelFamilyLedger {
         self.family_revision = revision_after;
         self.invalidated_policy_identity = Some(invalidated_policy_identity);
         self.active_policy_identity = None;
+        self.active_policy_plan = None;
         self.append_event(
             event_receipt_id,
             ModelFamilyLedgerEvent::CounterexampleAdmitted(record.clone()),
@@ -478,6 +496,7 @@ impl ModelFamilyLedger {
             per_world_metrics: replay.per_world,
         };
         self.active_policy_identity = Some(policy_identity);
+        self.active_policy_plan = Some(plan);
         self.invalidated_policy_identity = None;
         self.append_event(
             event_receipt_id,
@@ -513,12 +532,19 @@ impl ModelFamilyLedger {
             return Err("model-family ledger event cap would be exceeded".into());
         }
 
+        let active_plan = self
+            .active_policy_plan
+            .as_ref()
+            .ok_or_else(|| "active policy identity has no retained policy tree".to_string())?
+            .clone();
         let record = FinalPolicySealRecord {
             event_receipt_id: event_receipt_id.clone(),
             family_revision,
             policy_identity: policy_identity.clone(),
+            plan: active_plan.clone(),
         };
         self.frozen_policy_identity = Some(policy_identity);
+        self.frozen_policy_plan = Some(active_plan);
         self.frozen_policy_revision = Some(family_revision);
         self.append_event(
             event_receipt_id,
@@ -802,6 +828,7 @@ mod tests {
             vec![world("nominal")],
             vec![holdout()],
             "policy-v1".into(),
+            terminal_plan(),
         )
         .unwrap()
     }
@@ -887,6 +914,7 @@ mod tests {
             search_run_id: "search-run-01".into(),
             seed: 42,
             policy_identity: policy_identity.into(),
+            attacked_policy: terminal_plan(),
         }
     }
 
@@ -1235,6 +1263,7 @@ mod tests {
             vec![world("nominal"), world("nominal")],
             vec![],
             "policy".into(),
+            terminal_plan(),
         )
         .is_err());
         let duplicate_holdout = SealedHoldoutGroupRegistration {
