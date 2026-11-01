@@ -274,11 +274,7 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
                 &qualification.id,
             );
         }
-        validate_resource_status(
-            &qualification.status,
-            &qualification.id,
-            &mut findings,
-        );
+        validate_resource_status(&qualification.status, &qualification.id, &mut findings);
         if qualification_by_id
             .insert(qualification.id.clone(), qualification)
             .is_some()
@@ -303,13 +299,25 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
             push_finding(&mut findings, FindingCode::InvalidIdentifier, &transfer.id);
         }
         if !transfer_ids.insert(transfer.id.clone()) {
-            push_finding(&mut findings, FindingCode::DuplicateIdentifier, &transfer.id);
+            push_finding(
+                &mut findings,
+                FindingCode::DuplicateIdentifier,
+                &transfer.id,
+            );
         }
         if !cargo_by_id.contains_key(&transfer.cargo_lot_id) {
-            push_finding(&mut findings, FindingCode::UnknownCargoLot, &transfer.cargo_lot_id);
+            push_finding(
+                &mut findings,
+                FindingCode::UnknownCargoLot,
+                &transfer.cargo_lot_id,
+            );
         } else if let Some(cargo) = cargo_by_id.get(&transfer.cargo_lot_id) {
             if transfer.mass_grams != cargo.mass_grams {
-                push_finding(&mut findings, FindingCode::TransferMassMismatch, &transfer.id);
+                push_finding(
+                    &mut findings,
+                    FindingCode::TransferMassMismatch,
+                    &transfer.id,
+                );
             }
             transfers_by_cargo
                 .entry(transfer.cargo_lot_id.clone())
@@ -317,16 +325,28 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
                 .push(transfer);
         }
         if !node_by_id.contains_key(&transfer.from_node_id) {
-            push_finding(&mut findings, FindingCode::UnknownNode, &transfer.from_node_id);
+            push_finding(
+                &mut findings,
+                FindingCode::UnknownNode,
+                &transfer.from_node_id,
+            );
         }
         if !node_by_id.contains_key(&transfer.to_node_id) {
-            push_finding(&mut findings, FindingCode::UnknownNode, &transfer.to_node_id);
+            push_finding(
+                &mut findings,
+                FindingCode::UnknownNode,
+                &transfer.to_node_id,
+            );
         }
         if transfer.from_node_id == transfer.to_node_id {
             push_finding(&mut findings, FindingCode::SelfTransfer, &transfer.id);
         }
         if transfer.starts_at_epoch_seconds >= transfer.ends_at_epoch_seconds {
-            push_finding(&mut findings, FindingCode::InvalidTimeInterval, &transfer.id);
+            push_finding(
+                &mut findings,
+                FindingCode::InvalidTimeInterval,
+                &transfer.id,
+            );
         }
         let mut local_dependencies = BTreeSet::new();
         for dependency_id in &transfer.dependency_ids {
@@ -334,7 +354,11 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
                 push_finding(&mut findings, FindingCode::InvalidIdentifier, dependency_id);
             }
             if !local_dependencies.insert(dependency_id.clone()) {
-                push_finding(&mut findings, FindingCode::DuplicateDependency, dependency_id);
+                push_finding(
+                    &mut findings,
+                    FindingCode::DuplicateDependency,
+                    dependency_id,
+                );
             }
             known_dependencies.insert(dependency_id.clone());
         }
@@ -394,11 +418,7 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
             let previous = pair[0];
             let next = pair[1];
             if previous.to_node_id != next.from_node_id {
-                push_finding(
-                    &mut findings,
-                    FindingCode::DiscontinuousCargoPath,
-                    &next.id,
-                );
+                push_finding(&mut findings, FindingCode::DiscontinuousCargoPath, &next.id);
             }
             if previous.ends_at_epoch_seconds > next.starts_at_epoch_seconds {
                 push_finding(&mut findings, FindingCode::OverlappingCargoHops, &next.id);
@@ -406,11 +426,7 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
         }
         if let Some(last) = legs.last() {
             if last.to_node_id != campaign.orbit_service.destination_node_id {
-                push_finding(
-                    &mut findings,
-                    FindingCode::WrongOrbitDestination,
-                    &last.id,
-                );
+                push_finding(&mut findings, FindingCode::WrongOrbitDestination, &last.id);
             }
             if last.ends_at_epoch_seconds > campaign.required_delivery_by_epoch_seconds {
                 push_finding(&mut findings, FindingCode::LateDelivery, &last.id);
@@ -441,11 +457,7 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
                 push_finding(&mut findings, FindingCode::DuplicateDependency, dependency);
             }
             if !known_dependencies.contains(dependency) {
-                push_finding(
-                    &mut findings,
-                    FindingCode::UnknownFailureDomain,
-                    dependency,
-                );
+                push_finding(&mut findings, FindingCode::UnknownFailureDomain, dependency);
             }
         }
     }
@@ -469,17 +481,16 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
         .iter()
         .try_fold(0_u64, |sum, cargo| sum.checked_add(cargo.mass_grams));
     if total_cargo_mass_grams.is_none() {
-        push_finding(
-            &mut findings,
-            FindingCode::ArithmeticOverflow,
-            &campaign.id,
-        );
+        push_finding(&mut findings, FindingCode::ArithmeticOverflow, &campaign.id);
     }
     let total_cargo_mass_grams = total_cargo_mass_grams.unwrap_or(0);
     findings.sort();
     findings.dedup();
 
-    let disposition = if findings.iter().any(|finding| !is_evidence_finding(finding.code)) {
+    let disposition = if findings
+        .iter()
+        .any(|finding| !is_evidence_finding(finding.code))
+    {
         CampaignDisposition::Infeasible
     } else if !findings.is_empty() {
         CampaignDisposition::NeedsEvidence
@@ -563,11 +574,7 @@ fn validate_resource_status(
     match status {
         ResourceQualificationStatus::QualifiedForPlanning { receipt_sha256 } => {
             if !is_sha256(receipt_sha256) {
-                push_finding(
-                    findings,
-                    FindingCode::MalformedReceiptDigest,
-                    subject_id,
-                );
+                push_finding(findings, FindingCode::MalformedReceiptDigest, subject_id);
             }
         }
         ResourceQualificationStatus::Rejected { .. } => {
@@ -792,10 +799,9 @@ mod tests {
     #[test]
     fn rejected_resource_qualification_makes_the_chain_infeasible() {
         let mut campaign = baseline();
-        campaign.resource_qualifications[0].status =
-            ResourceQualificationStatus::Rejected {
-                reason: "capacity owner rejected the proposed plan".to_owned(),
-            };
+        campaign.resource_qualifications[0].status = ResourceQualificationStatus::Rejected {
+            reason: "capacity owner rejected the proposed plan".to_owned(),
+        };
         let report = evaluate_campaign(&campaign);
         assert_eq!(report.disposition, CampaignDisposition::Infeasible);
         assert!(has_finding(
@@ -869,10 +875,7 @@ mod tests {
         };
         let report = evaluate_campaign(&campaign);
         assert_eq!(report.disposition, CampaignDisposition::NeedsEvidence);
-        assert!(has_finding(
-            &report,
-            FindingCode::MalformedReceiptDigest
-        ));
+        assert!(has_finding(&report, FindingCode::MalformedReceiptDigest));
     }
 
     #[test]
