@@ -14,6 +14,47 @@ use nalgebra::{SMatrix, SVector};
 type Matrix6 = SMatrix<f64, 6, 6>;
 type Vector6 = SVector<f64, 6>;
 
+/// Reconstruct the both-sticking solution through the reduced normal system.
+///
+/// For fixed normal loads, the tangential minimizer is
+/// j = -W_tt^{-1}(q_t + W_tn lambda). Substitution into u_n = 0 gives
+/// the 2x2 Schur-complement system. This is a reference for the strict
+/// sticking region, not a general two-contact solver.
+fn solve_sticking_sticking_reduced(w: &Matrix6, q: &Vector6) -> Option<Vector6> {
+    let normal = [0, 3];
+    let tangent = [1, 2, 4, 5];
+    let w_nn = SMatrix::<f64, 2, 2>::from_fn(|row, column| {
+        w[(normal[row], normal[column])]
+    });
+    let w_nt = SMatrix::<f64, 2, 4>::from_fn(|row, column| {
+        w[(normal[row], tangent[column])]
+    });
+    let w_tn = SMatrix::<f64, 4, 2>::from_fn(|row, column| {
+        w[(tangent[row], normal[column])]
+    });
+    let w_tt = SMatrix::<f64, 4, 4>::from_fn(|row, column| {
+        w[(tangent[row], tangent[column])]
+    });
+    let q_n = SVector::<f64, 2>::new(q[0], q[3]);
+    let q_t = SVector::<f64, 4>::new(q[1], q[2], q[4], q[5]);
+
+    let tangent_factor = w_tt.cholesky()?;
+    let h_inverse_qt = tangent_factor.solve(&q_t);
+    let h_inverse_wtn = tangent_factor.solve(&w_tn);
+    let schur = w_nn - w_nt * h_inverse_wtn;
+    let reduced_normal_rhs = q_n - w_nt * h_inverse_qt;
+    let lambda = schur.cholesky()?.solve(&(-reduced_normal_rhs));
+    let tangent_impulse = -h_inverse_qt - h_inverse_wtn * lambda;
+
+    let mut impulse = Vector6::zeros();
+    impulse[0] = lambda[0];
+    impulse[3] = lambda[1];
+    for (index, coordinate) in tangent.into_iter().enumerate() {
+        impulse[coordinate] = tangent_impulse[index];
+    }
+    Some(impulse)
+}
+
 const MU_1: f64 = 1.383_289_774_658_335;
 const MU_2: f64 = 1.0;
 const TOL: f64 = 2.0e-9;
@@ -186,6 +227,10 @@ mod tests {
         assert!(cross_block_norm > 0.12);
 
         let candidates = candidate_impulses();
+        let reconstructed = solve_sticking_sticking_reduced(&w, &q)
+            .expect("the SPD sticking Schur-complement systems must be solvable");
+        assert!((reconstructed - candidates[0]).norm() < 1.0e-8);
+
         let regimes = [
             (ContactOneRegime::Sticking, 0.0),
             (ContactOneRegime::Sliding, 0.2654416783961581),
