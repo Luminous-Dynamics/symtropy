@@ -51,7 +51,7 @@ def main() -> int:
 
     with history_path.open(newline="", encoding="utf-8") as stream:
         history_reader = csv.DictReader(stream)
-        require(history_reader.fieldnames == ["Iteration", "CL", "CD"], "unexpected fixture history header")
+        require(history_reader.fieldnames == ["Iteration", "CL", "CD", "RMS_RES"], "unexpected fixture history header")
         history = list(history_reader)
     require(len(history) == 2, f"expected two history rows, got {len(history)}")
 
