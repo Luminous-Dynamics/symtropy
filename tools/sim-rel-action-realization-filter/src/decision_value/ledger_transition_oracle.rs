@@ -1172,7 +1172,7 @@ mod tests {
             },
             SequencedLedgerEvent {
                 sequence: 1,
-                event: ModelFamilyLedgerEvent::SealedHoldoutEvaluated(evaluation),
+                event: ModelFamilyLedgerEvent::SealedHoldoutEvaluated(Box::new(evaluation)),
             },
         ];
         snapshot.frozen_policy_identity = Some("policy-v1".into());
