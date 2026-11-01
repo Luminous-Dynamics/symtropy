@@ -11,7 +11,7 @@ mod exact_support;
 
 use exact_support::Rational;
 use num_bigint::BigInt;
-use num_traits::{One, Zero};
+use num_traits::Zero;
 
 type Matrix = Vec<Vec<Rational>>;
 type Vector = Vec<Rational>;
