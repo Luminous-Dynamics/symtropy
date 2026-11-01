@@ -156,10 +156,9 @@ pub fn generate_correlated_lhs(
     // Draw an independent normal score matrix used only to create the target correlated
     // ordering. It is separate from the stratified marginal values.
     let mut latent_independent_scores = vec![vec![0.0; dimensions]; study.sample_count];
-    for sample in 0..study.sample_count {
-        for dimension in 0..dimensions {
-            latent_independent_scores[sample][dimension] =
-                inverse_standard_normal_cdf(rng.next_open_unit())?;
+    for row in &mut latent_independent_scores {
+        for score in row {
+            *score = inverse_standard_normal_cdf(rng.next_open_unit())?;
         }
     }
 
@@ -256,17 +255,16 @@ fn validate_correlation_matrix(matrix: &[Vec<f64>], dimensions: usize) -> Result
     if matrix.len() != dimensions || matrix.iter().any(|row| row.len() != dimensions) {
         return Err("correlation matrix dimensions must match marginal count".to_owned());
     }
-    for row in 0..dimensions {
-        for column in 0..dimensions {
-            let value = matrix[row][column];
-            if !value.is_finite() || !(-1.0..=1.0).contains(&value) {
+    for (row_index, row_values) in matrix.iter().enumerate() {
+        for (column_index, value) in row_values.iter().enumerate() {
+            if !value.is_finite() || !(-1.0..=1.0).contains(value) {
                 return Err("correlation matrix entries must be finite and in [-1,1]".to_owned());
             }
-            if (value - matrix[column][row]).abs() > 1.0e-10 {
+            if (value - matrix[column_index][row_index]).abs() > 1.0e-10 {
                 return Err("correlation matrix must be symmetric".to_owned());
             }
         }
-        if (matrix[row][row] - 1.0).abs() > 1.0e-10 {
+        if (row_values[row_index] - 1.0).abs() > 1.0e-10 {
             return Err("correlation matrix diagonal entries must equal one".to_owned());
         }
     }
@@ -279,8 +277,10 @@ fn cholesky_lower(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, String> {
     for row in 0..dimensions {
         for column in 0..=row {
             let mut sum = matrix[row][column];
-            for index in 0..column {
-                sum -= lower[row][index] * lower[column][index];
+            for (&row_value, &column_value) in
+                lower[row][..column].iter().zip(&lower[column][..column])
+            {
+                sum -= row_value * column_value;
             }
             if row == column {
                 if !sum.is_finite() || sum <= CHOLESKY_PIVOT_TOLERANCE {
@@ -362,7 +362,7 @@ fn inverse_standard_normal_cdf(probability: f64) -> Result<f64, String> {
         -3.969_683_028_665_376e1,
         2.209_460_984_245_205e2,
         -2.759_285_104_469_687e2,
-        1.383_577_518_672_690e2,
+        1.383_577_518_672_69e2,
         -3.066_479_806_614_716e1,
         2.506_628_277_459_239,
     ];
