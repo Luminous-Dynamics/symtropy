@@ -402,3 +402,20 @@ under every supplied world must be treated as out-of-family evidence and sent
 to model-family falsification/refinement; it must never be normalized into an
 empty posterior. The shared-policy robust planner is a decision-value extension
 of SIM-REL-016, not a measured SOTA victory.
+
+
+## Approximate Blackwell refinement (SIM-REL-031)
+
+The `decision_value::approximate_blackwell` module audits an approximate
+post-processing witness between finite observation channels. It computes the
+exact per-hidden-state total-variation residual and turns it into a
+decision-specific expected-loss bound using the statewise span of the terminal
+loss table, including abstention. It constructs randomized policy lifts,
+checks their exact raw-mass risk difference against the bound, and verifies the
+corresponding additive Bayes-risk ceiling.
+
+The full theorem, protocol, fixtures, benchmark metrics and limitations are
+documented in [APPROXIMATE_BLACKWELL_PROTOCOL.md](APPROXIMATE_BLACKWELL_PROTOCOL.md).
+This is a finite-channel guarantee conditional on the supplied witness, prior
+and loss table; it does not itself establish a sound continuous physical
+abstraction or a calibrated residual radius.
