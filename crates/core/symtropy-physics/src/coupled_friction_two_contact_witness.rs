@@ -2500,7 +2500,7 @@ mod double_sliding_direction_oracle {
             g[0].evaluate_interval(&center_box[0], &center_box[1]),
             g[1].evaluate_interval(&center_box[0], &center_box[1]),
         ];
-        if center_residual.iter().any(|value| !value.is_point() || value.lower != BigRational::from_integer(BigInt::from(0_u8))) {
+        if center_residual.iter().any(|value| !value.is_point()) {
             return None;
         }
 
@@ -2572,9 +2572,13 @@ mod double_sliding_direction_oracle {
             RationalInterval::zero_centered(&radius),
             RationalInterval::zero_centered(&radius),
         ];
+        let correction_0 = inverse[0][0].clone() * center_residual[0].lower.clone()
+            + inverse[0][1].clone() * center_residual[1].lower.clone();
+        let correction_1 = inverse[1][0].clone() * center_residual[0].lower.clone()
+            + inverse[1][1].clone() * center_residual[1].lower.clone();
         let mut image = [
-            RationalInterval::point(center[0].clone()),
-            RationalInterval::point(center[1].clone()),
+            RationalInterval::point(center[0].clone() - correction_0),
+            RationalInterval::point(center[1].clone() - correction_1),
         ];
         for row in 0..2 {
             for column in 0..2 {
@@ -2667,6 +2671,117 @@ mod double_sliding_direction_oracle {
         assert!(certificate.normal_determinant.excludes_zero());
         assert!(certificate.normal_multiplier_ratios.iter().all(|ratio| ratio.is_strictly_positive()));
         assert!(certificate.sliding_multiplier_sign_ratios.iter().all(|ratio| ratio.is_strictly_positive()));
+    }
+
+
+    fn asymmetric_dyadic_double_slide_polynomials() -> ExactDoubleSlidePolynomials {
+        const SCALE: i128 = 1_048_576;
+        let flattened_w = [
+            380_770_i128,
+            -33_295,
+            274_566,
+            145_422,
+            341_094,
+            356_864,
+            -33_295,
+            1_048_576,
+            -338_214,
+            -131_501,
+            237_374,
+            -415_672,
+            274_566,
+            -338_214,
+            1_001_976,
+            75_838,
+            564_175,
+            587_762,
+            145_422,
+            -131_501,
+            75_838,
+            812_094,
+            -148_076,
+            106_473,
+            341_094,
+            237_374,
+            564_175,
+            -148_076,
+            769_147,
+            341_152,
+            356_864,
+            -415_672,
+            587_762,
+            106_473,
+            341_152,
+            854_965,
+        ];
+        let w = std::array::from_fn(|row| {
+            std::array::from_fn(|column| flattened_w[row * 6 + column])
+        });
+        let q = [
+            -109_587_i128,
+            -7_143_822,
+            8_213_295,
+            -3_226_388,
+            7_075_809,
+            1_695_813,
+        ];
+        build_exact_double_slide_polynomials(w, q, [1_956_059, 380_758], SCALE)
+    }
+
+    #[test]
+    fn asymmetric_dyadic_fixture_has_two_disjoint_krawczyk_certified_double_slide_roots() {
+        let polynomials = asymmetric_dyadic_double_slide_polynomials();
+        assert_eq!(polynomials.tangential_equation_1.max_bidegree(), (4, 2));
+        assert_eq!(polynomials.tangential_equation_2.max_bidegree(), (2, 4));
+
+        let denominator = BigInt::from(1_000_000_000_000_000_i128);
+        let centers = [
+            [
+                BigRational::new(BigInt::from(2_044_412_562_120_879_i128), denominator.clone()),
+                BigRational::new(BigInt::from(-233_602_787_384_141_i128), denominator.clone()),
+            ],
+            [
+                BigRational::new(BigInt::from(2_054_286_197_054_429_i128), denominator.clone()),
+                BigRational::new(BigInt::from(-227_603_740_377_268_i128), denominator.clone()),
+            ],
+        ];
+        let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
+        let certificates = centers.map(|center| {
+            certify_exact_double_slide_root_box(
+                &polynomials,
+                center,
+                radius.clone(),
+                [1_956_059, 380_758],
+                1_048_576,
+            )
+            .expect("strict Krawczyk inclusion and physical sliding margins")
+        });
+
+        // The two certified boxes are disjoint in both direction coordinates.
+        assert!(
+            certificates[0].domain[0].upper < certificates[1].domain[0].lower
+        );
+        assert!(
+            certificates[0].domain[1].upper < certificates[1].domain[1].lower
+        );
+
+        for certificate in &certificates {
+            assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
+            assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
+            assert!(certificate.normal_determinant.excludes_zero());
+            assert!(
+                certificate
+                    .normal_multiplier_ratios
+                    .iter()
+                    .all(|ratio| ratio.is_strictly_positive())
+            );
+            assert!(
+                certificate
+                    .sliding_multiplier_sign_ratios
+                    .iter()
+                    .all(|ratio| ratio.is_strictly_positive())
+            );
+        }
     }
 
 }
