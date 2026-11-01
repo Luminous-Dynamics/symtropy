@@ -382,9 +382,8 @@ fn summarize(
         };
         if let Some(agent_interval) = &interval {
             let distance = interval_distance(agent_interval, target_lower, target_upper)?;
-            worst_agent_distance = Some(
-                worst_agent_distance.map_or(distance, |current| current.max(distance)),
-            );
+            worst_agent_distance =
+                Some(worst_agent_distance.map_or(distance, |current| current.max(distance)));
         }
         per_agent.push(AgentDifficultySummary {
             agent_id: agent_id.clone(),
@@ -397,7 +396,9 @@ fn summarize(
     // Once the fixed panel meets its minimum sample floor, judge a candidate
     // by its worst agent's confidence-interval distance from the target band.
     // Pooled results remain visible but cannot hide an agent-specific collapse.
-    let distance = (sample_deficit == 0).then_some(worst_agent_distance).flatten();
+    let distance = (sample_deficit == 0)
+        .then_some(worst_agent_distance)
+        .flatten();
     Ok(RecipeDifficultySummary {
         recipe_id: candidate.recipe_id.clone(),
         recipe_version: candidate.recipe_version.clone(),
@@ -1121,10 +1122,7 @@ mod tests {
             .find(|summary| summary.recipe_id == "sensor-shift-hard")
             .unwrap();
         assert_eq!(easy.pooled_interval, hard.pooled_interval);
-        assert!(
-            easy.distance_from_target_band.unwrap()
-                > hard.distance_from_target_band.unwrap()
-        );
+        assert!(easy.distance_from_target_band.unwrap() > hard.distance_from_target_band.unwrap());
     }
 
     #[test]
