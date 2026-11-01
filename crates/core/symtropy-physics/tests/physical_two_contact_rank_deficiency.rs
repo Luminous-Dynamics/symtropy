@@ -27,18 +27,11 @@ fn transpose(matrix: &[Vec<Rational>]) -> Vec<Vec<Rational>> {
     let rows = matrix.len();
     let columns = matrix.first().map_or(0, Vec::len);
     (0..columns)
-        .map(|column| {
-            (0..rows)
-                .map(|row| matrix[row][column].clone())
-                .collect()
-        })
+        .map(|column| (0..rows).map(|row| matrix[row][column].clone()).collect())
         .collect()
 }
 
-fn matrix_multiply(
-    lhs: &[Vec<Rational>],
-    rhs: &[Vec<Rational>],
-) -> Vec<Vec<Rational>> {
+fn matrix_multiply(lhs: &[Vec<Rational>], rhs: &[Vec<Rational>]) -> Vec<Vec<Rational>> {
     assert!(!lhs.is_empty() && !rhs.is_empty());
     let inner = lhs[0].len();
     assert_eq!(inner, rhs.len());
@@ -58,18 +51,13 @@ fn matrix_multiply(
         .collect()
 }
 
-fn matrix_vector(
-    matrix: &[Vec<Rational>],
-    vector: &[Rational],
-) -> Vec<Rational> {
+fn matrix_vector(matrix: &[Vec<Rational>], vector: &[Rational]) -> Vec<Rational> {
     matrix
         .iter()
         .map(|row| {
             row.iter()
                 .zip(vector)
-                .fold(Rational::zero(), |sum, (a, b)| {
-                    sum + a.clone() * b.clone()
-                })
+                .fold(Rational::zero(), |sum, (a, b)| sum + a.clone() * b.clone())
         })
         .collect()
 }
@@ -77,9 +65,7 @@ fn matrix_vector(
 fn dot(lhs: &[Rational], rhs: &[Rational]) -> Rational {
     lhs.iter()
         .zip(rhs)
-        .fold(Rational::zero(), |sum, (a, b)| {
-            sum + a.clone() * b.clone()
-        })
+        .fold(Rational::zero(), |sum, (a, b)| sum + a.clone() * b.clone())
 }
 
 fn exact_rank(matrix: &[Vec<Rational>]) -> usize {
@@ -93,9 +79,7 @@ fn exact_rank(matrix: &[Vec<Rational>]) -> usize {
     let mut pivot_row = 0;
 
     for column in 0..column_count {
-        let Some(found) = (pivot_row..row_count)
-            .find(|&row| !work[row][column].is_zero())
-        else {
+        let Some(found) = (pivot_row..row_count).find(|&row| !work[row][column].is_zero()) else {
             continue;
         };
         work.swap(pivot_row, found);
@@ -163,12 +147,54 @@ fn physical_two_point_delassus_is_rank_five_and_has_a_continuum_of_sticking_impu
     // Exact W = J M^-1 J^T. Since M^-1 is positive definite, W is PSD;
     // equality of ranks establishes rank(W)=rank(J)=5.
     let expected = vec![
-        vec![rational(1), rational(0), rational(0), rational(1), rational(0), rational(0)],
-        vec![rational(0), rational(1), rational(0), rational(0), rational(1), rational(0)],
-        vec![rational(0), rational(0), rational(1), rational(0), rational(0), rational(1)],
-        vec![rational(1), rational(0), rational(0), Rational::new(BigInt::from(4), BigInt::from(3)), rational(0), rational(0)],
-        vec![rational(0), rational(1), rational(0), rational(0), rational(1), rational(0)],
-        vec![rational(0), rational(0), rational(1), rational(0), rational(0), rational(2)],
+        vec![
+            rational(1),
+            rational(0),
+            rational(0),
+            rational(1),
+            rational(0),
+            rational(0),
+        ],
+        vec![
+            rational(0),
+            rational(1),
+            rational(0),
+            rational(0),
+            rational(1),
+            rational(0),
+        ],
+        vec![
+            rational(0),
+            rational(0),
+            rational(1),
+            rational(0),
+            rational(0),
+            rational(1),
+        ],
+        vec![
+            rational(1),
+            rational(0),
+            rational(0),
+            Rational::new(BigInt::from(4), BigInt::from(3)),
+            rational(0),
+            rational(0),
+        ],
+        vec![
+            rational(0),
+            rational(1),
+            rational(0),
+            rational(0),
+            rational(1),
+            rational(0),
+        ],
+        vec![
+            rational(0),
+            rational(0),
+            rational(1),
+            rational(0),
+            rational(0),
+            rational(2),
+        ],
     ];
     assert_eq!(delassus, expected);
     assert_eq!(exact_rank(&delassus), 5);
