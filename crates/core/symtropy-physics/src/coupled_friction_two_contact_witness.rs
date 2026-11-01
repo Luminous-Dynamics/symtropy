@@ -1863,6 +1863,15 @@ mod double_sliding_direction_oracle {
             result
         }
 
+        fn derivative(&self) -> Self {
+            let mut result = Self::zero();
+            for degree in 1..RESULTANT_COEFFICIENTS {
+                result.coefficients[degree - 1] =
+                    &self.coefficients[degree] * BigInt::from(degree);
+            }
+            result
+        }
+
         fn evaluate_interval(&self, value: &RationalInterval) -> RationalInterval {
             let zero = BigRational::from_integer(BigInt::from(0_u8));
             let mut result = RationalInterval::point(zero);
@@ -2955,6 +2964,8 @@ mod double_sliding_direction_oracle {
 
         // A nonzero leading coefficient in each t1 polynomial prevents a
         // degree-drop artifact from being mistaken for a common finite root.
+        // The resultant derivative further proves each projected root is simple.
+        let resultant_derivative = resultant.derivative();
         let leading_g1_t1 = BigIntegerPolynomial::from_bivariate_t1_coefficient(
             polynomials.tangential_equation_1,
             4,
@@ -2975,7 +2986,9 @@ mod double_sliding_direction_oracle {
             let r1 = lift_denominator.evaluate_interval(&t2);
             let lc1 = leading_g1_t1.evaluate_interval(&t2);
             let lc2 = leading_g2_t1.evaluate_interval(&t2);
+            let projected_derivative = resultant_derivative.evaluate_interval(&t2);
 
+            assert!(projected_derivative.excludes_zero());
             assert!(r1.excludes_zero());
             assert!(lc1.excludes_zero());
             assert!(lc2.excludes_zero());
@@ -3007,6 +3020,23 @@ mod double_sliding_direction_oracle {
                 .evaluate_interval(&t1, &t2)
                 .div(&polynomials.normal_numerator_2.evaluate_interval(&t1, &t2))
                 .expect("normal numerator excludes zero");
+
+            let g1_t1 = polynomials.tangential_equation_1.partial_t1();
+            let g1_t2 = polynomials.tangential_equation_1.partial_t2();
+            let g2_t1 = polynomials.tangential_equation_2.partial_t1();
+            let g2_t2 = polynomials.tangential_equation_2.partial_t2();
+            let jacobian_determinant = g1_t1
+                .evaluate_interval(&t1, &t2)
+                .mul(&g2_t2.evaluate_interval(&t1, &t2))
+                .sub(
+                    &g1_t2
+                        .evaluate_interval(&t1, &t2)
+                        .mul(&g2_t1.evaluate_interval(&t1, &t2)),
+                );
+            assert!(
+                jacobian_determinant.excludes_zero(),
+                "all four lifted direction roots are simple"
+            );
 
             if tau_1.is_strictly_positive() && tau_2.is_strictly_positive() {
                 physical_root_count += 1;
