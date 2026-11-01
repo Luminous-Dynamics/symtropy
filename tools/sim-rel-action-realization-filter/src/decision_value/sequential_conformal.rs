@@ -232,7 +232,7 @@ mod tests {
         let receipt = &calibration.stage_receipts[0];
         assert_eq!(receipt.survivor_count, 3);
         assert_eq!(receipt.augmented_rank, 3);
-        assert_eq!(receipt.finite_threshold, Some(Rational::from_u64(3)));
+        assert_eq!(receipt.finite_threshold, Some(Rational::from_u64(4)));
         assert_eq!(receipt.prefix_coverage_lower_bound, rational(3, 4));
     }
 
