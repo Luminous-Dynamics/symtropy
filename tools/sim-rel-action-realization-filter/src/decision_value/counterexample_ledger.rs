@@ -161,7 +161,7 @@ pub struct SealedHoldoutEvaluationRecord {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ModelFamilyLedgerEvent {
-    CounterexampleAdmitted(CounterexampleAdmissionRecord),
+    CounterexampleAdmitted(Box<CounterexampleAdmissionRecord>),
     PolicyReplanned(FamilyReplanRecord),
     FinalPolicySealed(FinalPolicySealRecord),
     SealedHoldoutEvaluated(SealedHoldoutEvaluationRecord),
@@ -728,7 +728,7 @@ impl ModelFamilyLedger {
         self.active_policy_metrics = None;
         self.append_event(
             event_receipt_id,
-            ModelFamilyLedgerEvent::CounterexampleAdmitted(record.clone()),
+            ModelFamilyLedgerEvent::CounterexampleAdmitted(Box::new(record.clone())),
         )?;
         self.validation_receipt_ids
             .insert(record.validation.receipt_id.clone());
