@@ -230,24 +230,14 @@ impl FiniteThermalChallengeRecipe {
             false,
             false,
         )?;
-        validate_grid(
-            &self.heat_capacity_grid,
-            "heat-capacity grid",
-            true,
-            false,
-        )?;
+        validate_grid(&self.heat_capacity_grid, "heat-capacity grid", true, false)?;
         validate_grid(
             &self.conductance_grid,
             "thermal-conductance grid",
             false,
             false,
         )?;
-        validate_grid(
-            &self.time_step_grid,
-            "time-step grid",
-            true,
-            false,
-        )?;
+        validate_grid(&self.time_step_grid, "time-step grid", true, false)?;
         validate_grid(
             &self.commanded_power_grid,
             "commanded-power grid",
@@ -260,12 +250,7 @@ impl FiniteThermalChallengeRecipe {
             false,
             true,
         )?;
-        validate_grid(
-            &self.sensor_bias_grid,
-            "sensor-bias grid",
-            false,
-            false,
-        )?;
+        validate_grid(&self.sensor_bias_grid, "sensor-bias grid", false, false)?;
         validate_grid(
             &self.safe_temperature_grid,
             "safe-temperature grid",
@@ -278,8 +263,7 @@ impl FiniteThermalChallengeRecipe {
         let maximum_ambient = *self.ambient_temperature_grid.iter().max().unwrap();
         if minimum_initial < maximum_ambient {
             return Err(
-                "all recipe initial temperatures must be at least every ambient temperature"
-                    .into(),
+                "all recipe initial temperatures must be at least every ambient temperature".into(),
             );
         }
         let minimum_capacity = *self.heat_capacity_grid.iter().min().unwrap();
@@ -288,8 +272,7 @@ impl FiniteThermalChallengeRecipe {
         let cooling_product = maximum_conductance.checked_mul(maximum_time_step)?;
         if cooling_product > minimum_capacity {
             return Err(
-                "thermal recipe violates the explicit-step stability contract dt*k/C <= 1"
-                    .into(),
+                "thermal recipe violates the explicit-step stability contract dt*k/C <= 1".into(),
             );
         }
         if self
@@ -297,9 +280,7 @@ impl FiniteThermalChallengeRecipe {
             .iter()
             .any(|limit| *limit < maximum_initial)
         {
-            return Err(
-                "safe-temperature grid cannot be below every initial temperature".into(),
-            );
+            return Err("safe-temperature grid cannot be below every initial temperature".into());
         }
         Ok(())
     }
@@ -531,7 +512,9 @@ pub fn verify_finite_thermal_challenge(
         if step.measured_temperature_after
             != step.temperature_after.checked_add(episode.sensor_bias)?
         {
-            return Err("thermal sensor readback does not match the sealed sensor-bias model".into());
+            return Err(
+                "thermal sensor readback does not match the sealed sensor-bias model".into(),
+            );
         }
         let hazard = step.temperature_after > episode.maximum_safe_temperature;
         if step.hazard != hazard {
@@ -559,11 +542,8 @@ pub fn verify_finite_thermal_challenge_from_recipe(
     registry: &ChallengeSplitRegistry,
 ) -> Result<(), String> {
     verify_finite_thermal_challenge(challenge)?;
-    let regenerated = generate_finite_thermal_challenge(
-        recipe,
-        registry,
-        challenge.generation_receipt.seed,
-    )?;
+    let regenerated =
+        generate_finite_thermal_challenge(recipe, registry, challenge.generation_receipt.seed)?;
     if regenerated != *challenge {
         return Err(
             "regenerated public task, sealed thermal oracle or receipt differs from stored challenge"
@@ -575,13 +555,13 @@ pub fn verify_finite_thermal_challenge_from_recipe(
 
 #[cfg(test)]
 mod tests {
+    use super::super::scientific_challenge::ChallengeSplitRegistry;
     use super::{
         FiniteThermalChallengeRecipe, generate_finite_thermal_challenge,
         verify_finite_thermal_challenge, verify_finite_thermal_challenge_from_recipe,
     };
-    use super::super::scientific_challenge::ChallengeSplitRegistry;
-    use crate::decision_value::counterexample_ledger::EvidenceSplit;
     use crate::Rational;
+    use crate::decision_value::counterexample_ledger::EvidenceSplit;
 
     fn q(numerator: u128, denominator: u128) -> Rational {
         Rational::new(numerator, denominator).unwrap()
@@ -633,21 +613,31 @@ mod tests {
 
         let mut tampered = challenge.clone();
         tampered.sealed_oracle.episode.steps[0].temperature_after =
-            tampered.sealed_oracle.episode.steps[0].temperature_after.checked_add(q(1, 1)).unwrap();
+            tampered.sealed_oracle.episode.steps[0]
+                .temperature_after
+                .checked_add(q(1, 1))
+                .unwrap();
         assert!(verify_finite_thermal_challenge(&tampered).is_err());
 
         let mut tampered = challenge.clone();
         tampered.sealed_oracle.episode.steps[0].realized_power =
-            tampered.sealed_oracle.episode.steps[0].realized_power.checked_add(q(1, 1)).unwrap();
+            tampered.sealed_oracle.episode.steps[0]
+                .realized_power
+                .checked_add(q(1, 1))
+                .unwrap();
         assert!(verify_finite_thermal_challenge(&tampered).is_err());
 
         let mut tampered = challenge.clone();
         tampered.sealed_oracle.episode.steps[0].measured_temperature_after =
-            tampered.sealed_oracle.episode.steps[0].measured_temperature_after.checked_add(q(1, 1)).unwrap();
+            tampered.sealed_oracle.episode.steps[0]
+                .measured_temperature_after
+                .checked_add(q(1, 1))
+                .unwrap();
         assert!(verify_finite_thermal_challenge(&tampered).is_err());
 
         let mut tampered = challenge;
-        tampered.sealed_oracle.episode.steps[0].hazard = !tampered.sealed_oracle.episode.steps[0].hazard;
+        tampered.sealed_oracle.episode.steps[0].hazard =
+            !tampered.sealed_oracle.episode.steps[0].hazard;
         assert!(verify_finite_thermal_challenge(&tampered).is_err());
     }
 
@@ -667,8 +657,7 @@ mod tests {
         let mut calibration = recipe();
         calibration.split = EvidenceSplit::Calibration;
         calibration.family_group_id = "thermal-cal".into();
-        let challenge =
-            generate_finite_thermal_challenge(&calibration, &registry(), 21).unwrap();
+        let challenge = generate_finite_thermal_challenge(&calibration, &registry(), 21).unwrap();
         verify_finite_thermal_challenge(&challenge).unwrap();
 
         let mut sealed = recipe();
