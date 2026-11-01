@@ -553,10 +553,10 @@ fn handle_seal(
         budgets,
         "final-policy seal metrics",
     )?;
-    if let Some(active_metrics) = &active.metrics {
-        if active_metrics != &record.per_world_metrics {
-            return Err("final-policy seal metrics differ from the active replan receipt".into());
-        }
+    if let Some(active_metrics) = &active.metrics
+        && active_metrics != &record.per_world_metrics
+    {
+        return Err("final-policy seal metrics differ from the active replan receipt".into());
     }
     active.metrics = Some(record.per_world_metrics.clone());
     state.frozen_policy = Some(FrozenPolicyState {
@@ -712,7 +712,7 @@ fn verify_event(
         })?;
 
     let result = match &sequenced.event {
-        ModelFamilyLedgerEvent::CounterexampleAdmitted(record) => state.admit(record),
+        ModelFamilyLedgerEvent::CounterexampleAdmitted(record) => state.admit(record.as_ref()),
         ModelFamilyLedgerEvent::PolicyReplanned(record) => state.replan(record, budgets),
         ModelFamilyLedgerEvent::FinalPolicySealed(record) => handle_seal(state, record, budgets),
         ModelFamilyLedgerEvent::SealedHoldoutEvaluated(record) => handle_holdout(state, record),
