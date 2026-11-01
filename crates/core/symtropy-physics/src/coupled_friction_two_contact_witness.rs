@@ -1124,10 +1124,7 @@ mod schur_reduction_tests {
         assert_ne!(w[(0, 4)], w[(1, 3)]);
 
         let u = q + w * p;
-        assert_eq!(
-            u,
-            Vector6::new(0.0, 3.75, 5.0, 0.0, 5.0, 12.0)
-        );
+        assert_eq!(u, Vector6::new(0.0, 3.75, 5.0, 0.0, 5.0, 12.0));
 
         assert!(p[0] > 0.0 && p[3] > 0.0);
         assert_eq!(p[0] * u[0], 0.0);
@@ -1148,7 +1145,6 @@ mod schur_reduction_tests {
         assert_eq!(energy_delta, -19455.0 / 64.0);
         assert!(energy_delta < 0.0);
     }
-
 
     #[test]
     fn asymmetric_double_sliding_fixture_has_two_distinct_admissible_branches() {
