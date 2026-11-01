@@ -360,3 +360,8 @@ The optimizer scorecard records algorithm configuration IDs, decision dimensions
 ## Risk-proportionate model credibility
 
 The risk_credibility module classifies model intended uses using a declared qualitative Luminous matrix based on model influence and decision consequence. It generates different evidence requirements for mechanistic, empirical and hybrid models, and adds controls for logic transparency and artifact availability. Output is a requirements assessment only: it never marks evidence complete or authorizes release. See RISK_PROPORTIONATE_MODEL_CREDIBILITY_PROTOCOL_V0_1.md.
+
+
+## STEP constrained multiobjective benchmark lane
+
+Issue #3195 tracks the clean-room STEP adapter. The reference-only task/commit/blob/terms manifest is in data/cmo_step_reference_manifest.v0.1.json; the experimental protocol and acceptance targets are in CMO_STEP_BENCHMARK_PLAN_V0_1.md. The external jsi-ci/cmo repository reports GPL-3.0: no code or Pareto-front assets have been copied into this crate. All 30 task formulas remain unimplemented and unqualified until independently derived and tested.

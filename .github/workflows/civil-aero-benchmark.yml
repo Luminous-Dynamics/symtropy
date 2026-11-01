@@ -397,6 +397,14 @@ jobs:
           grep -q "critical" /tmp/credibility-a.csv
           grep -q "No independent verification or validation claim" /tmp/credibility-a.csv
           python3 scripts/verify-risk-credibility-independent.py /tmp/credibility-a.csv
+      - name: Validate STEP reference-only task manifest and licensing boundary
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          python3 scripts/verify-step-reference-manifest.py > /tmp/step-a.txt
+          python3 scripts/verify-step-reference-manifest.py > /tmp/step-b.txt
+          cmp /tmp/step-a.txt /tmp/step-b.txt
+          grep -q "step_reference_manifest=pass tasks=30 bins=10 tasks_per_bin=3" /tmp/step-a.txt
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |
