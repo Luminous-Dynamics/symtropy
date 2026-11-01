@@ -935,7 +935,9 @@ mod tests {
         let rotated_static = RigidBody::<3>::new(
             BodyHandle(0),
             BodyType::Static,
-            Transform::from_translation(Point::new(rotation.rotate_vector(&SVector::<f64, 3>::zeros()).into())),
+            Transform::from_translation(Point::new(
+                rotation.rotate_vector(&SVector::<f64, 3>::zeros()).into(),
+            )),
             Box::new(Sphere::new(Point::origin(), 0.5)),
             0.0,
             SVector::zeros(),
