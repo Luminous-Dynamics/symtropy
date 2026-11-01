@@ -27,23 +27,39 @@ A finite observation channel is a stochastic matrix
 The prior over states and the terminal loss table are also exact reduced
 rationals.
 
-Given an *assumed* channel K and a distinct *true* channel T, the evaluator:
+Given a working/assumed channel K, true generating channel T and a
+separately supplied posterior rule q(y), the evaluator:
 
-1. Forms the posterior under K for each public observation.
-2. Chooses the minimum expected-loss decision under that assumed posterior,
-   including explicit abstention.
-3. Evaluates the chosen action under the true conditional state distribution
-   induced by T.
-4. Computes the true-channel Bayes oracle and regret.
-5. Records observations with positive true probability but zero assumed
-   probability as unsupported; those paths explicitly abstain and are never
-   normalized into a fabricated posterior.
+1. Validates that q has the same state/observation vocabularies as K and that
+   every posterior is a normalized exact distribution.
+2. Chooses the terminal decision from q(y), including explicit abstention.
+3. Independently computes the exact working posterior p_K(s|y) and true
+   posterior p_T(s|y).
+4. Evaluates the q-selected decision under p_T and computes the true-channel
+   Bayes oracle/regret.
+5. Records observations with positive true probability but zero K probability
+   as unsupported; those paths explicitly abstain and are never normalized
+   into a fabricated posterior.
 
-The receipt separates nominal model Bayes risk under its own observation
-distribution from the assumed conditional risk reweighted by true observation
-frequencies. It also reports realized policy loss, true Bayes oracle loss,
-decision regret, unsupported-observation probability and the probability that
-the chosen decision differs from the true Bayes decision.
+This creates three independently switchable conditions:
+- **Inference-only:** K=T, but q differs from the exact Bayes posterior under K.
+- **Model-only:** q is exact Bayes under K, but K differs from T.
+- **Interaction:** both q differs from exact Bayes under K and K differs from T.
+
+For each supported observation, the receipt retains q, p_K and p_T and computes
+TV(q,p_K) (inference approximation), TV(p_K,p_T) (model-induced posterior
+shift), and TV(q,p_T) (total posterior error). These are weighted by the true
+observation frequencies; unsupported mass is reported separately. The
+expected multiclass Brier score is computed as
+E_{S~p_T}[sum_j (q_j - 1[S=j])^2], not as the squared distance between posterior
+vectors.
+
+The receipt also separates nominal model Bayes risk under K's own observation
+distribution from q's conditional risk reweighted by T's observation
+frequencies. It reports realized policy loss, true Bayes oracle loss, decision
+regret, unsupported-observation probability, decision disagreement and
+disagreement between q's terminal choice and the exact working-model Bayes
+choice.
 
 Mutual information is computed in floating point for acquisition diagnostics
 only. Decision, posterior and loss values remain exact rational quantities.
