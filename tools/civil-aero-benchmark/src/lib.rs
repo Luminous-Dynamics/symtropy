@@ -24,6 +24,7 @@ pub mod risk_credibility;
 pub mod robust_voi;
 pub mod robustness;
 pub mod run_artifacts;
+pub mod shapebench;
 pub mod section_polar;
 pub mod selective_risk;
 pub mod task_conformance;
