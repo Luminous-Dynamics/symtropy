@@ -18,12 +18,14 @@ set -eu
 [ -s mesh.su2 ]
 printf 'Iteration,CL,CD,RMS_DENSITY,RMS_MOMENTUM-X\n0,0.4100,0.0210,-1,-1\n10,0.4200,0.0200,-2,-2\n20,0.4230,0.01820,-6.5,-6.5\n30,0.42305,0.01815,-6.8,-6.8\n40,0.42310,0.01810,-7.1,-7.1\n50,0.42310,0.01808,-7.4,-7.4\n60,0.42315,0.01806,-7.7,-7.7\n70,0.42316,0.01805,-8,-8\n' > history.csv
 printf 'fixture force history\n' > forces_breakdown.dat
+printf 'fixture surface field\n' > surface_flow.csv
 printf 'synthetic SU2-style fixture stdout\n'
 printf 'synthetic SU2-style fixture stderr\n' >&2
 FAKE
 chmod +x "$root/fake-su2-cfd"
 
 printf 'MESH_FILENAME=mesh.su2\nMACH_NUMBER=0.73\n' > "$root/config.cfg"
+printf 'synthetic geometry fixture; not an aircraft geometry\n' > "$root/geometry.dat"
 printf 'synthetic mesh fixture; not a physical mesh\n' > "$root/mesh.su2"
 executable_sha256="$(sha256sum "$root/fake-su2-cfd" | awk '{print $1}')"
 
@@ -35,9 +37,11 @@ executable_sha256="$(sha256sum "$root/fake-su2-cfd" | awk '{print $1}')"
   --expected-executable-sha256 "$executable_sha256" \
   --run-dir "$root/run" \
   --input "$root/config.cfg=config.cfg" \
+  --input "$root/geometry.dat=geometry.dat" \
   --input "$root/mesh.su2=mesh.su2" \
   --output "history.csv" \
   --output "forces_breakdown.dat" \
+  --output "surface_flow.csv" \
   --timeout-seconds 10 \
   --max-log-bytes 16384 \
   -- -f config.cfg
@@ -84,11 +88,21 @@ python3 scripts/verify-su2-history-import-independent.py "$root/run" "$root/su2-
   --residual-log10 'RMS_MOMENTUM-X|log10(residual)|6|-8|6|2' \
   --monitor 'CL|dimensionless|6|0.0004|0.0003|0.02' \
   --monitor 'CD|dimensionless|6|0.0004|0.0003|0.02' \
+  --config-input config.cfg \
+  --geometry-input geometry.dat \
+  --mesh-input mesh.su2 \
+  --additional-output forces_breakdown.dat \
+  --additional-output surface_flow.csv \
+  --lineage-output "$root/su2-run-lineage.csv" \
   > "$root/su2-convergence-screen.csv" 2> "$root/su2-convergence-screen.txt"
 test "$(wc -l < "$root/su2-convergence-screen.csv")" -eq 5
 grep -q 'su2_convergence_screen=pass run_id=ci-su2-process-fixture passed=4 failed=0 insufficient=0' "$root/su2-convergence-screen.txt"
 grep -q 'declared_residual_encoding_terminal_stability_and_monitor_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation' "$root/su2-convergence-screen.txt"
 python3 scripts/verify-su2-convergence-screen-independent.py "$root/run" "$root/su2-history-import.csv" "$root/su2-convergence-screen.csv"
+test "$(wc -l < "$root/su2-run-lineage.csv")" -eq 7
+grep -q 'su2_run_lineage=pass run_id=ci-su2-process-fixture outputs=2' "$root/su2-convergence-screen.txt"
+grep -q 'su2-run-lineage-binding/0.1.0' "$root/su2-run-lineage.csv"
+python3 scripts/verify-su2-run-lineage-independent.py "$root/run" "$root/su2-history-import.csv" "$root/su2-convergence-screen.csv" "$root/su2-run-lineage.csv"
 test -s "$root/run/invocation_manifest.txt"
 test -s "$root/run/environment_manifest.txt"
 test -s "$root/run/runner_receipt.csv"
