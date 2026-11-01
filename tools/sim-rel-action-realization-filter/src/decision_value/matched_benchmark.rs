@@ -262,11 +262,6 @@ fn validate_arm(
             "{label} arm marks safe success despite non-completion, hazard or abstention"
         )));
     }
-    if arm.hazard_observed && arm.safe_success {
-        return Err(MatchedBenchmarkError::InvalidArmOutcome(format!(
-            "{label} arm marks both hazard and safe success"
-        )));
-    }
     validate_usage(&arm.usage, budget, label)
 }
 
@@ -480,7 +475,7 @@ pub fn validate_and_summarize_matched_campaign(
 mod tests {
     use super::{
         ArmOutcome, BenchmarkScope, MatchedBenchmarkManifest, PairedBenchmarkTrial,
-        ResourceBudget, ResourceUsage, BenchmarkArmRole, BenchmarkTaskValidity,
+        ResourceBudget, ResourceUsage, BenchmarkTaskValidity,
         validate_and_summarize_matched_campaign,
     };
     use super::super::counterexample_ledger::EvidenceSplit;
