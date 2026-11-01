@@ -83,7 +83,9 @@ Equatorial launch can exploit Earth's rotational velocity for suitable eastward,
 
 Keep geography architecture-specific:
 - **Rocket range:** target-orbit/azimuth and range-safety corridor.
-- **Classical space elevator:** near-equatorial Earth anchor, long tensile tether, GEO region and counterweight.
+- **Classical space elevator:** the standard architecture uses an equatorial Earth anchor, a long tensile tether, GEO region and counterweight.
+- **Slanted geostationary cable variant:** Birch (1982) argued that a geostationary cable could in principle descend to a non-polar surface point, although an equatorial site is more convenient. Treat this as a distinct exploratory variant with explicit off-axis cable geometry, transverse loads, anchor reactions, tension distribution, climber motion and weather exposure—not as a proven way to remove the material problem.
+- **Orbital-ring Jacob's Ladder variant:** Birch's preliminary concept describes a low-Earth-orbit ring supporting geostationary skyhooks that hold above specific points on Earth, with cable ladders to the surface. Model the ring/skyhook station-keeping, Earth-relative geometry, precession, dynamic loads, failure containment and terminal access separately; do not reduce the search to equatorial latitude or treat the 1982 proposal as demonstrated engineering.
 - **Orbital ring:** orbital plane, moving mass-stream, support/transfer dynamics and terminal geometry.
 - **Skyhook / momentum-exchange tether:** orbit and tether motion, capture/release geometry and momentum exchange.
 - **Launch loop:** separate ground-supported dynamic architecture and paired endpoint / corridor constraints.
@@ -165,6 +167,7 @@ Keep private financial, public fiscal, economic resource, distributional, enviro
 ## 11. Research and industry references
 
 - NASA, [Chapter 14: Launch](https://science.nasa.gov/learn/basics-of-space-flight/chapter14-1/): equatorial rotational velocity and target-orbit constraints.
+- Birch, P., [Orbital Ring Systems and Jacob's Ladders — I](https://nss.org/wp-content/uploads/Orbital-Rings.pdf), *Journal of the British Interplanetary Society*, 35 (1982), pp. 475–497. Primary concept source for off-equatorial geostationary cables, stationary skyhooks and orbital-ring variants; the paper expressly describes the analysis as preliminary and exploratory.
 - Kenya PPP Directorate, [proposed spaceport feasibility study](https://pppkenya.go.ke/kenya-advances-plans-for-proposed-spaceport-project/), 1 October 2026; Space in Africa, [transaction-advisory appointment](https://spaceinafrica.com/2026/10/28/kenya-appoints-consortium-to-advise-on-proposed-commercial-spaceport/), 28 October 2026. These are feasibility steps, not a construction decision.
 - NASA, [Small Spacecraft Technology State of the Art — In-Space Propulsion](https://www.nasa.gov/smallsat-institute/sst-soa/in-space_propulsion/): documented tether flight demonstrations; not an Earth elevator or orbital-ring demonstration.
 - Hu et al., [A state-of-the-art review of underground logistics systems](https://doi.org/10.1016/j.tust.2025.106641), 2025, reviewing 243 publications.
