@@ -78,11 +78,10 @@ fn csv_escape(value: &str) -> String {
 fn export_forces(rows: &[ForceObservation], dataset_id: &str, source_sha256: &str) {
     for row in rows {
         println!(
-            "{},{},{},{},{},{},{},{},{},,,source_bytes_sha256_verified_parser_output_unqualified,true",
+            "{},{},{},force,{},{},{},{},{},,,source_bytes_sha256_verified_parser_output_unqualified,true",
             csv_escape(dataset_id),
             source_sha256,
             SOURCE_REVISION,
-            "force",
             csv_escape(&row.zone),
             row.source_line,
             row.alpha_deg,
