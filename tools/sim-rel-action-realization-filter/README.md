@@ -163,7 +163,15 @@ When a strict Pareto trade-off exists, the comparison also derives the exact
 rational cost-to-loss crossover rate at which the scalarized preference changes,
 separately for nominal and realized risks. In the expensive-perfect/cheap-noisy
 fixture this threshold is exactly 2/3; the preference changes across that
-threshold while the Pareto relation correctly remains Tradeoff. The audit runs
+threshold while the Pareto relation correctly remains Tradeoff. For more than two candidate designs, `compute_experiment_pareto_frontier`
+extracts stable-ID-sorted nominal and realized frontiers independently. It
+retains equivalent candidates, removes only strictly dominated candidates,
+rejects duplicate IDs, and is bounded to 4,096 alternatives. The multi-design
+fixture demonstrates that nominal and realized frontiers can differ under the
+same true-channel shift; no scalar cost/loss exchange is required to compute
+either frontier.
+
+The audit runs
 the bounded exact Blackwell feasibility solver in both directions and retains
 the corresponding garbling certificates or explicit unsupported-size errors.
 A certificate establishes nominal channel dominance only; it does not
