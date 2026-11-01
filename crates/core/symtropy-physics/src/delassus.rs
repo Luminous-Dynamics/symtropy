@@ -8,7 +8,7 @@
 //! enumeration for at most eight rows. The existing sequential-impulse solver
 //! remains the runtime baseline until matched-work experiments justify a change.
 
-use nalgebra::{DMatrix, DVector, SVector};
+use nalgebra::{DMatrix, DVector, SMatrix, SVector};
 
 use crate::body::{BodyHandle, RigidBody};
 use crate::contact_frame::ContactFrame;
@@ -1293,7 +1293,6 @@ mod tests {
     fn production_asymmetric_box_plane_contact_matches_lcp_velocity_solution() {
         use crate::body::BodyType;
         use crate::world::PhysicsWorld;
-        use nalgebra::SMatrix;
         use symtropy_math::{HalfSpace, HyperBox, Transform};
 
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
