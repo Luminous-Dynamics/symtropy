@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use civil_aero_benchmark::su2_convergence_screen::{
-    ConvergenceCriteria, MonitorCriterion, ResidualCriterion, screen_su2_history, screen_to_csv,
+    ConvergenceCriteria, MonitorCriterion, ResidualAcceptance, ResidualCriterion,
+    screen_su2_history, screen_to_csv,
 };
 use civil_aero_benchmark::su2_history::{Su2HistoryField, Su2HistorySchema, import_su2_history};
 
@@ -37,9 +38,9 @@ fn run() -> Result<bool, String> {
         numeric_fields: options.numeric_fields,
         minimum_rows: 2,
     };
-    let report = import_su2_history(&options.run_directory, &schema)?;
+    let history = import_su2_history(&options.run_directory, &schema)?;
     let audit = screen_su2_history(
-        &report,
+        &history,
         &ConvergenceCriteria {
             residuals: options.residuals,
             monitors: options.monitors,
@@ -61,6 +62,18 @@ fn run() -> Result<bool, String> {
     );
     print!("{}", screen_to_csv(&audit));
     Ok(audit.status == "declared_thresholds_met")
+}
+
+fn split_spec<'a>(value: &'a str, name: &str, expected_parts: usize) -> Result<Vec<&'a str>, String> {
+    let parts = value.split('|').collect::<Vec<_>>();
+    if parts.len() != expected_parts || parts.iter().any(|part| part.trim().is_empty()) {
+        return Err(format!("{name} requires exactly {expected_parts} non-empty pipe-separated fields"));
+    }
+    Ok(parts)
+}
+
+fn parse_f64(value: &str, name: &str) -> Result<f64, String> {
+    value.parse::<f64>().map_err(|error| format!("invalid {name}: {error}"))
 }
 
 fn parse_arguments() -> Result<Options, String> {
@@ -94,38 +107,50 @@ fn parse_arguments() -> Result<Options, String> {
                     unit: unit.to_owned(),
                 });
             }
-            "--residual" => {
-                let (column, limits) = value.split_once('=').ok_or_else(|| {
-                    "--residual must be COLUMN=MAX_FINAL_ABS:MAX_FINAL_RATIO".to_owned()
-                })?;
-                let (maximum_final_absolute_value, maximum_final_to_initial_ratio) = limits
-                    .split_once(':')
-                    .ok_or_else(|| "--residual needs MAX_FINAL_ABS:MAX_FINAL_RATIO".to_owned())?;
+            "--residual-log10" => {
+                let parts = split_spec(&value, "--residual-log10", 6)?;
                 residuals.push(ResidualCriterion {
-                    column: column.to_owned(),
-                    maximum_final_absolute_value: maximum_final_absolute_value
+                    column: parts[0].to_owned(),
+                    unit: parts[1].to_owned(),
+                    terminal_window_rows: parts[2]
                         .parse()
-                        .map_err(|error| format!("invalid residual absolute limit: {error}"))?,
-                    maximum_final_to_initial_ratio: maximum_final_to_initial_ratio
+                        .map_err(|error| format!("invalid log10 residual window: {error}"))?,
+                    acceptance: ResidualAcceptance::Log10 {
+                        maximum_final_log10_residual: parse_f64(parts[3], "maximum final log10 residual")?,
+                        minimum_log10_reduction: parse_f64(parts[4], "minimum log10 reduction")?,
+                        maximum_terminal_span_log10: parse_f64(parts[5], "maximum terminal log10 span")?,
+                    },
+                });
+            }
+            "--residual-linear" => {
+                let parts = split_spec(&value, "--residual-linear", 6)?;
+                residuals.push(ResidualCriterion {
+                    column: parts[0].to_owned(),
+                    unit: parts[1].to_owned(),
+                    terminal_window_rows: parts[2]
                         .parse()
-                        .map_err(|error| format!("invalid residual reduction ratio: {error}"))?,
+                        .map_err(|error| format!("invalid linear residual window: {error}"))?,
+                    acceptance: ResidualAcceptance::PositiveLinear {
+                        maximum_final_value: parse_f64(parts[3], "maximum final residual value")?,
+                        maximum_final_to_initial_ratio: parse_f64(parts[4], "maximum residual ratio")?,
+                        maximum_terminal_range: parse_f64(parts[5], "maximum terminal residual range")?,
+                    },
                 });
             }
             "--monitor" => {
-                let (column, limits) = value.split_once('=').ok_or_else(|| {
-                    "--monitor must be COLUMN=WINDOW_ROWS:MAX_ABS_RANGE".to_owned()
-                })?;
-                let (trailing_window_rows, maximum_absolute_range) = limits
-                    .split_once(':')
-                    .ok_or_else(|| "--monitor needs WINDOW_ROWS:MAX_ABS_RANGE".to_owned())?;
+                let parts = split_spec(&value, "--monitor", 6)?;
                 monitors.push(MonitorCriterion {
-                    column: column.to_owned(),
-                    trailing_window_rows: trailing_window_rows
+                    column: parts[0].to_owned(),
+                    unit: parts[1].to_owned(),
+                    trailing_window_rows: parts[2]
                         .parse()
                         .map_err(|error| format!("invalid monitor window: {error}"))?,
-                    maximum_absolute_range: maximum_absolute_range
-                        .parse()
-                        .map_err(|error| format!("invalid monitor range: {error}"))?,
+                    maximum_absolute_range: parse_f64(parts[3], "maximum monitor range")?,
+                    maximum_absolute_mean_drift: parse_f64(parts[4], "maximum monitor mean drift")?,
+                    maximum_absolute_slope_per_1000_iterations: parse_f64(
+                        parts[5],
+                        "maximum monitor slope per 1000 iterations",
+                    )?,
                 });
             }
             _ => return Err(format!("unknown option {argument}")),
