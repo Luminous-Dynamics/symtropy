@@ -304,7 +304,9 @@ impl ModelFamilyLedger {
             metrics.hazard_probability > budgets.max_hazard_probability
                 || metrics.abstention_probability > budgets.max_abstention_probability
         }) {
-            return Err("initial policy violates hazard or abstention budget in a baseline world".into());
+            return Err(
+                "initial policy violates hazard or abstention budget in a baseline world".into(),
+            );
         }
 
         if calibration_groups.len() > MAX_CALIBRATION_GROUPS {
@@ -372,12 +374,16 @@ impl ModelFamilyLedger {
                     return Err("sealed world IDs must be unique within a group".into());
                 }
                 if !all_reserved_world_ids.insert(world_id.clone()) {
-                    return Err("sealed holdout world ID collides with another evidence split".into());
+                    return Err(
+                        "sealed holdout world ID collides with another evidence split".into(),
+                    );
                 }
             }
             let group_id = registration.family_group_id.clone();
             if !all_reserved_group_ids.insert(group_id.clone()) {
-                return Err("evidence family-group IDs must be globally unique across splits".into());
+                return Err(
+                    "evidence family-group IDs must be globally unique across splits".into(),
+                );
             }
             if reserved_holdouts.insert(group_id, registration).is_some() {
                 return Err("sealed family-group IDs must be unique".into());
@@ -479,16 +485,26 @@ impl ModelFamilyLedger {
         }
         validate_provenance(&provenance)?;
         if provenance.family_revision != self.family_revision {
-            return Err("counterexample provenance is bound to a stale model-family revision".into());
+            return Err(
+                "counterexample provenance is bound to a stale model-family revision".into(),
+            );
         }
 
         if provenance.split != EvidenceSplit::Development {
-            return Err("only Development-origin counterexamples may expand the model family".into());
+            return Err(
+                "only Development-origin counterexamples may expand the model family".into(),
+            );
         }
-        if self.reserved_holdouts.contains_key(&provenance.family_group_id) {
+        if self
+            .reserved_holdouts
+            .contains_key(&provenance.family_group_id)
+        {
             return Err("development candidate overlaps a reserved sealed holdout group".into());
         }
-        if self.reserved_calibrations.contains_key(&provenance.family_group_id) {
+        if self
+            .reserved_calibrations
+            .contains_key(&provenance.family_group_id)
+        {
             return Err("development candidate overlaps a reserved calibration group".into());
         }
         if witness.outcome.class() == CounterexampleClass::NoViolation {
@@ -500,19 +516,22 @@ impl ModelFamilyLedger {
         if witness.spec.source_world_id == witness.spec.candidate_world_id {
             return Err("candidate and source world IDs must differ".into());
         }
-        let active_policy = self
-            .active_policy_identity
-            .as_ref()
-            .ok_or_else(|| "no active policy exists; a replan is required before another attack".to_string())?;
+        let active_policy = self.active_policy_identity.as_ref().ok_or_else(|| {
+            "no active policy exists; a replan is required before another attack".to_string()
+        })?;
         if provenance.policy_identity != *active_policy {
-            return Err("counterexample was generated against a stale or different policy identity".into());
+            return Err(
+                "counterexample was generated against a stale or different policy identity".into(),
+            );
         }
         let active_plan = self
             .active_policy_plan
             .as_ref()
             .ok_or_else(|| "active policy identity has no retained policy tree".to_string())?;
         if provenance.attacked_policy != *active_plan {
-            return Err("counterexample provenance does not contain the exact active policy tree".into());
+            return Err(
+                "counterexample provenance does not contain the exact active policy tree".into(),
+            );
         }
         let baseline_terminal_loss = self
             .active_policy_metrics
@@ -528,7 +547,9 @@ impl ModelFamilyLedger {
             .iter()
             .find(|world| world.id == witness.spec.source_world_id)
             .cloned()
-            .ok_or_else(|| "counterexample source world is not in the current development family".to_string())?;
+            .ok_or_else(|| {
+                "counterexample source world is not in the current development family".to_string()
+            })?;
         validate_world_identity(&witness.candidate_world)?;
         let reconstructed_candidate = apply_model_world_perturbation(
             &source,
@@ -536,7 +557,10 @@ impl ModelFamilyLedger {
             &witness.spec.perturbation,
         )?;
         if reconstructed_candidate != witness.candidate_world {
-            return Err("candidate model world does not equal the declared source-plus-perturbation result".into());
+            return Err(
+                "candidate model world does not equal the declared source-plus-perturbation result"
+                    .into(),
+            );
         }
 
         if self
@@ -558,7 +582,9 @@ impl ModelFamilyLedger {
             .values()
             .any(|registration| registration.world_ids.contains(&witness.candidate_world.id))
         {
-            return Err("candidate world ID collides with a pre-registered calibration world ID".into());
+            return Err(
+                "candidate world ID collides with a pre-registered calibration world ID".into(),
+            );
         }
         if self
             .development_worlds
@@ -599,20 +625,34 @@ impl ModelFamilyLedger {
                     .iter()
                     .find(|metrics| metrics.world_id == witness.candidate_world.id)
                     .cloned()
-                    .ok_or_else(|| "candidate world is missing from independent replay".to_string())?;
+                    .ok_or_else(|| {
+                        "candidate world is missing from independent replay".to_string()
+                    })?;
                 if candidate_metrics.hazard_probability
-                    > self.replay_context.development_budgets.max_hazard_probability
+                    > self
+                        .replay_context
+                        .development_budgets
+                        .max_hazard_probability
                 {
                     CounterexampleOutcome::HazardBudgetViolated {
                         metrics: candidate_metrics,
-                        allowed_hazard_probability: self.replay_context.development_budgets.max_hazard_probability,
+                        allowed_hazard_probability: self
+                            .replay_context
+                            .development_budgets
+                            .max_hazard_probability,
                     }
                 } else if candidate_metrics.abstention_probability
-                    > self.replay_context.development_budgets.max_abstention_probability
+                    > self
+                        .replay_context
+                        .development_budgets
+                        .max_abstention_probability
                 {
                     CounterexampleOutcome::AbstentionBudgetViolated {
                         metrics: candidate_metrics,
-                        allowed_abstention_probability: self.replay_context.development_budgets.max_abstention_probability,
+                        allowed_abstention_probability: self
+                            .replay_context
+                            .development_budgets
+                            .max_abstention_probability,
                     }
                 } else if candidate_metrics.expected_terminal_loss > baseline_terminal_loss {
                     CounterexampleOutcome::DecisionLossAmplified {
@@ -627,7 +667,9 @@ impl ModelFamilyLedger {
             }
         };
         if !counterexample_outcomes_match(&witness.outcome, &replay_outcome) {
-            return Err("counterexample witness outcome does not match independent ledger replay".into());
+            return Err(
+                "counterexample witness outcome does not match independent ledger replay".into(),
+            );
         }
         if replay_outcome.class() == CounterexampleClass::NoViolation {
             return Err("independent replay found no policy or decision violation".into());
@@ -658,7 +700,8 @@ impl ModelFamilyLedger {
             independently_replayed_outcome: replay_outcome,
         };
 
-        self.development_worlds.push(witness.candidate_world.clone());
+        self.development_worlds
+            .push(witness.candidate_world.clone());
         self.family_revision = revision_after;
         self.invalidated_policy_identity = Some(invalidated_policy_identity);
         self.active_policy_identity = None;
@@ -668,7 +711,8 @@ impl ModelFamilyLedger {
             event_receipt_id,
             ModelFamilyLedgerEvent::CounterexampleAdmitted(record.clone()),
         )?;
-        self.validation_receipt_ids.insert(record.validation.receipt_id.clone());
+        self.validation_receipt_ids
+            .insert(record.validation.receipt_id.clone());
         Ok(record)
     }
 
@@ -697,9 +741,15 @@ impl ModelFamilyLedger {
         if family_revision != self.family_revision {
             return Err("replan receipt is bound to a stale family revision".into());
         }
-        validate_opaque_id(&policy_identity, MAX_RECEIPT_ID_LENGTH, "replanned policy identity")?;
+        validate_opaque_id(
+            &policy_identity,
+            MAX_RECEIPT_ID_LENGTH,
+            "replanned policy identity",
+        )?;
         if self.policy_identities.contains(&policy_identity) {
-            return Err("policy identities must be globally unique within the model-family ledger".into());
+            return Err(
+                "policy identities must be globally unique within the model-family ledger".into(),
+            );
         }
 
         let replay = replay_shared_policy_across_worlds(
@@ -727,7 +777,10 @@ impl ModelFamilyLedger {
         }
         for metrics in &replay.per_world {
             if metrics.hazard_probability
-                > self.replay_context.development_budgets.max_hazard_probability
+                > self
+                    .replay_context
+                    .development_budgets
+                    .max_hazard_probability
             {
                 return Err(format!(
                     "replanned policy violates hazard budget in world {}",
@@ -735,7 +788,10 @@ impl ModelFamilyLedger {
                 ));
             }
             if metrics.abstention_probability
-                > self.replay_context.development_budgets.max_abstention_probability
+                > self
+                    .replay_context
+                    .development_budgets
+                    .max_abstention_probability
             {
                 return Err(format!(
                     "replanned policy violates abstention budget in world {}",
@@ -842,10 +898,9 @@ impl ModelFamilyLedger {
     ) -> Result<SealedHoldoutEvaluationRecord, String> {
         self.validate_new_receipt_id(&event_receipt_id)?;
         criteria.validate()?;
-        let frozen_policy = self
-            .frozen_policy_identity
-            .as_ref()
-            .ok_or_else(|| "sealed holdout evaluation requires a frozen final policy".to_string())?;
+        let frozen_policy = self.frozen_policy_identity.as_ref().ok_or_else(|| {
+            "sealed holdout evaluation requires a frozen final policy".to_string()
+        })?;
         let frozen_revision = self
             .frozen_policy_revision
             .ok_or_else(|| "sealed final policy is missing its revision".to_string())?;
@@ -874,7 +929,9 @@ impl ModelFamilyLedger {
             .collect::<Vec<_>>();
         let supplied_world_ids = canonical_world_id_set(&supplied_world_ids)?;
         if supplied_world_ids != expected_world_ids {
-            return Err("supplied sealed world snapshots must match exactly the registered group".into());
+            return Err(
+                "supplied sealed world snapshots must match exactly the registered group".into(),
+            );
         }
         let mut canonical_holdout_worlds = holdout_worlds.to_vec();
         canonical_holdout_worlds.sort_by(|left, right| left.id.cmp(&right.id));
@@ -886,7 +943,10 @@ impl ModelFamilyLedger {
             MAX_RECEIPT_ID_LENGTH,
             "holdout evaluation artifact ID",
         )?;
-        if self.evaluation_artifact_ids.contains(&evaluation_artifact_id) {
+        if self
+            .evaluation_artifact_ids
+            .contains(&evaluation_artifact_id)
+        {
             return Err("sealed evaluation artifact IDs must be single-use".into());
         }
         if self.events.len() >= MAX_LEDGER_EVENTS {
@@ -914,7 +974,9 @@ impl ModelFamilyLedger {
                 .collect::<Vec<_>>();
             let replayed_ids = canonical_world_id_set(&replayed_ids)?;
             if replayed_ids != expected_world_ids {
-                return Err("sealed policy replay did not cover the registered holdout group".into());
+                return Err(
+                    "sealed policy replay did not cover the registered holdout group".into(),
+                );
             }
 
             let worst_case_total_loss = replay
@@ -950,22 +1012,34 @@ impl ModelFamilyLedger {
         // Once group/policy/manifest bindings are validated, every replay or
         // checked-arithmetic failure is recorded and consumes the group. A
         // sealed evaluation is not a retryable tuning oracle.
-        let (replay_succeeded, replay_error, replayed_ids, per_world_metrics,
-            worst_case_total_loss, worst_case_terminal_loss, acceptance_criteria_satisfied) =
-            match replay_evaluation {
-                Ok((ids, metrics, total_loss, terminal_loss, acceptance)) => (
-                    true, None, ids, metrics, Some(total_loss), Some(terminal_loss), acceptance,
-                ),
-                Err(error) => (
-                    false,
-                    Some(error),
-                    expected_world_ids.clone(),
-                    Vec::new(),
-                    None,
-                    None,
-                    false,
-                ),
-            };
+        let (
+            replay_succeeded,
+            replay_error,
+            replayed_ids,
+            per_world_metrics,
+            worst_case_total_loss,
+            worst_case_terminal_loss,
+            acceptance_criteria_satisfied,
+        ) = match replay_evaluation {
+            Ok((ids, metrics, total_loss, terminal_loss, acceptance)) => (
+                true,
+                None,
+                ids,
+                metrics,
+                Some(total_loss),
+                Some(terminal_loss),
+                acceptance,
+            ),
+            Err(error) => (
+                false,
+                Some(error),
+                expected_world_ids.clone(),
+                Vec::new(),
+                None,
+                None,
+                false,
+            ),
+        };
 
         let record = SealedHoldoutEvaluationRecord {
             event_receipt_id: event_receipt_id.clone(),
@@ -989,7 +1063,8 @@ impl ModelFamilyLedger {
             event_receipt_id,
             ModelFamilyLedgerEvent::SealedHoldoutEvaluated(record.clone()),
         )?;
-        self.evaluation_artifact_ids.insert(record.evaluation_artifact_id.clone());
+        self.evaluation_artifact_ids
+            .insert(record.evaluation_artifact_id.clone());
         Ok(record)
     }
 
@@ -1051,7 +1126,9 @@ fn counterexample_outcomes_match(
 
 fn validate_opaque_id(value: &str, max_length: usize, label: &str) -> Result<(), String> {
     if value.trim().is_empty() || value.len() > max_length {
-        return Err(format!("{label} must be non-empty and no longer than {max_length} bytes"));
+        return Err(format!(
+            "{label} must be non-empty and no longer than {max_length} bytes"
+        ));
     }
     Ok(())
 }
@@ -1061,19 +1138,13 @@ fn validate_world_identity(world: &DecisionModelWorld) -> Result<(), String> {
     world.kernel.validate()
 }
 
-fn validate_validation_receipt(
-    receipt: &CounterexampleValidationReceipt,
-) -> Result<(), String> {
+fn validate_validation_receipt(receipt: &CounterexampleValidationReceipt) -> Result<(), String> {
     validate_opaque_id(
         &receipt.receipt_id,
         MAX_RECEIPT_ID_LENGTH,
         "validation receipt ID",
     )?;
-    validate_opaque_id(
-        &receipt.validator_id,
-        MAX_RECEIPT_ID_LENGTH,
-        "validator ID",
-    )?;
+    validate_opaque_id(&receipt.validator_id, MAX_RECEIPT_ID_LENGTH, "validator ID")?;
     validate_opaque_id(
         &receipt.validator_version,
         MAX_RECEIPT_ID_LENGTH,
@@ -1137,13 +1208,13 @@ fn canonical_world_id_set(ids: &[String]) -> Result<Vec<String>, String> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::counterexample_search::{
+        CounterexampleOutcome, CounterexampleWitness, PerturbationSpec,
+    };
     use super::*;
     use crate::{
         ActionRealizationKernel, BeliefMass, KernelRow, LatentState, ObservationField,
         PublicObservation, Rational, TransitionOutcome,
-    };
-    use super::super::counterexample_search::{
-        CounterexampleOutcome, CounterexampleWitness, PerturbationSpec,
     };
 
     fn q(numerator: u128, denominator: u128) -> Rational {
@@ -1409,11 +1480,7 @@ mod tests {
         }
     }
 
-    fn provenance(
-        policy_id: &str,
-        split: EvidenceSplit,
-        group: &str,
-    ) -> CounterexampleProvenance {
+    fn provenance(policy_id: &str, split: EvidenceSplit, group: &str) -> CounterexampleProvenance {
         CounterexampleProvenance {
             split,
             family_group_id: group.into(),
@@ -1515,36 +1582,33 @@ mod tests {
 
         // The invalidated policy identity cannot be reused for a new
         // policy tree, even if the caller supplies a different plan.
-        assert!(replan(
-            &mut ledger,
-            "replan-reuses-invalidated-id",
-            1,
-            "policy-v1",
-            terminal_plan(),
-        )
-        .is_err());
+        assert!(
+            replan(
+                &mut ledger,
+                "replan-reuses-invalidated-id",
+                1,
+                "policy-v1",
+                terminal_plan(),
+            )
+            .is_err()
+        );
 
         // A malformed policy with missing public-observation branches is
         // rejected by the ledger's own exact shared-policy replay.
-        assert!(replan(
-            &mut ledger,
-            "replan-incomplete-policy",
-            1,
-            "policy-v2",
-            DecisionPlan::Experiment {
-                command: 0,
-                branches: Vec::new(),
-            },
-        )
-        .is_err());
-        assert!(replan(
-            &mut ledger,
-            "replan-stale",
-            0,
-            "policy-v2",
-            terminal_plan(),
-        )
-        .is_err());
+        assert!(
+            replan(
+                &mut ledger,
+                "replan-incomplete-policy",
+                1,
+                "policy-v2",
+                DecisionPlan::Experiment {
+                    command: 0,
+                    branches: Vec::new(),
+                },
+            )
+            .is_err()
+        );
+        assert!(replan(&mut ledger, "replan-stale", 0, "policy-v2", terminal_plan(),).is_err());
         assert_eq!(ledger.active_policy_identity(), None);
 
         let receipt = replan(
@@ -1555,7 +1619,10 @@ mod tests {
             terminal_plan(),
         )
         .unwrap();
-        assert_eq!(receipt.replayed_world_ids, vec!["nominal", "sensor-inversion"]);
+        assert_eq!(
+            receipt.replayed_world_ids,
+            vec!["nominal", "sensor-inversion"]
+        );
         assert_eq!(ledger.active_policy_identity(), Some("policy-v2"));
     }
 
@@ -1572,17 +1639,23 @@ mod tests {
                 abstention_probability: Rational::zero(),
             },
         };
-        assert!(ledger
-            .admit_counterexample(
-                &no_violation,
-                provenance("policy-v1", EvidenceSplit::Development, "dev-family-a"),
-                validation(),
-                "no-violation-event".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &no_violation,
+                    provenance("policy-v1", EvidenceSplit::Development, "dev-family-a"),
+                    validation(),
+                    "no-violation-event".into(),
+                )
+                .is_err()
+        );
 
         for (split, group, receipt) in [
-            (EvidenceSplit::Calibration, "calibration-a", "calibration-event"),
+            (
+                EvidenceSplit::Calibration,
+                "calibration-a",
+                "calibration-event",
+            ),
             (
                 EvidenceSplit::SealedHoldout,
                 "sealed-other",
@@ -1590,14 +1663,16 @@ mod tests {
             ),
         ] {
             let witness = counterexample(&world("nominal"), receipt);
-            assert!(ledger
-                .admit_counterexample(
-                    &witness,
-                    provenance("policy-v1", split, group),
-                    validation(),
-                    receipt.into(),
-                )
-                .is_err());
+            assert!(
+                ledger
+                    .admit_counterexample(
+                        &witness,
+                        provenance("policy-v1", split, group),
+                        validation(),
+                        receipt.into(),
+                    )
+                    .is_err()
+            );
         }
         assert_eq!(ledger.family_revision(), 0);
         assert_eq!(ledger.development_world_ids(), vec!["nominal"]);
@@ -1615,24 +1690,26 @@ mod tests {
             world_ids: vec!["holdout-a".into()],
             manifest_id: "holdout-manifest".into(),
         };
-        assert!(ModelFamilyLedger::new(
-            vec![world("nominal")],
-            vec![overlapping_group],
-            vec![overlapping_holdout],
-            "policy".into(),
-            test_policy(),
-            "nominal",
-            &loss_table(),
-            ObservationProtocol::fully_observed(),
-            &[Rational::zero(), Rational::zero()],
-            Rational::one(),
-            2,
-            DecisionBudgets {
-                max_hazard_probability: Rational::zero(),
-                max_abstention_probability: Rational::zero(),
-            },
-        )
-        .is_err());
+        assert!(
+            ModelFamilyLedger::new(
+                vec![world("nominal")],
+                vec![overlapping_group],
+                vec![overlapping_holdout],
+                "policy".into(),
+                test_policy(),
+                "nominal",
+                &loss_table(),
+                ObservationProtocol::fully_observed(),
+                &[Rational::zero(), Rational::zero()],
+                Rational::one(),
+                2,
+                DecisionBudgets {
+                    max_hazard_probability: Rational::zero(),
+                    max_abstention_probability: Rational::zero(),
+                },
+            )
+            .is_err()
+        );
 
         let shared_world = "shared-evidence-world";
         let calibration_group = CalibrationGroupRegistration {
@@ -1645,48 +1722,62 @@ mod tests {
             world_ids: vec![shared_world.into()],
             manifest_id: "holdout-manifest".into(),
         };
-        assert!(ModelFamilyLedger::new(
-            vec![world("nominal")],
-            vec![calibration_group],
-            vec![holdout_group],
-            "policy".into(),
-            test_policy(),
-            "nominal",
-            &loss_table(),
-            ObservationProtocol::fully_observed(),
-            &[Rational::zero(), Rational::zero()],
-            Rational::one(),
-            2,
-            DecisionBudgets {
-                max_hazard_probability: Rational::zero(),
-                max_abstention_probability: Rational::zero(),
-            },
-        )
-        .is_err());
+        assert!(
+            ModelFamilyLedger::new(
+                vec![world("nominal")],
+                vec![calibration_group],
+                vec![holdout_group],
+                "policy".into(),
+                test_policy(),
+                "nominal",
+                &loss_table(),
+                ObservationProtocol::fully_observed(),
+                &[Rational::zero(), Rational::zero()],
+                Rational::one(),
+                2,
+                DecisionBudgets {
+                    max_hazard_probability: Rational::zero(),
+                    max_abstention_probability: Rational::zero(),
+                },
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn development_group_and_world_ids_cannot_alias_reserved_calibration_split() {
         let mut ledger = ledger();
         let by_group = counterexample(&world("nominal"), "dev-candidate-a");
-        assert!(ledger
-            .admit_counterexample(
-                &by_group,
-                provenance("policy-v1", EvidenceSplit::Development, "calibration-mechanism-family"),
-                validation(),
-                "calibration-group-leakage".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &by_group,
+                    provenance(
+                        "policy-v1",
+                        EvidenceSplit::Development,
+                        "calibration-mechanism-family"
+                    ),
+                    validation(),
+                    "calibration-group-leakage".into(),
+                )
+                .is_err()
+        );
 
         let by_world = counterexample(&world("nominal"), "calibration-world-a");
-        assert!(ledger
-            .admit_counterexample(
-                &by_world,
-                provenance("policy-v1", EvidenceSplit::Development, "dev-independent-group"),
-                validation(),
-                "calibration-world-leakage".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &by_world,
+                    provenance(
+                        "policy-v1",
+                        EvidenceSplit::Development,
+                        "dev-independent-group"
+                    ),
+                    validation(),
+                    "calibration-world-leakage".into(),
+                )
+                .is_err()
+        );
         assert_eq!(ledger.family_revision(), 0);
     }
 
@@ -1694,14 +1785,16 @@ mod tests {
     fn candidate_world_id_cannot_alias_a_reserved_sealed_world() {
         let mut ledger = ledger();
         let witness = counterexample(&world("nominal"), "heldout-world-a");
-        assert!(ledger
-            .admit_counterexample(
-                &witness,
-                provenance("policy-v1", EvidenceSplit::Development, "dev-not-sealed"),
-                validation(),
-                "candidate-aliases-holdout".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &witness,
+                    provenance("policy-v1", EvidenceSplit::Development, "dev-not-sealed"),
+                    validation(),
+                    "candidate-aliases-holdout".into(),
+                )
+                .is_err()
+        );
         assert_eq!(ledger.family_revision(), 0);
         assert_eq!(ledger.development_world_ids(), vec!["nominal"]);
     }
@@ -1710,18 +1803,20 @@ mod tests {
     fn reserved_holdout_family_group_cannot_enter_development_search() {
         let mut ledger = ledger();
         let witness = counterexample(&world("nominal"), "leaked-holdout");
-        assert!(ledger
-            .admit_counterexample(
-                &witness,
-                provenance(
-                    "policy-v1",
-                    EvidenceSplit::Development,
-                    "sealed-mechanism-family",
-                ),
-                validation(),
-                "leaked-holdout-event".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &witness,
+                    provenance(
+                        "policy-v1",
+                        EvidenceSplit::Development,
+                        "sealed-mechanism-family",
+                    ),
+                    validation(),
+                    "leaked-holdout-event".into(),
+                )
+                .is_err()
+        );
     }
 
     #[test]
@@ -1730,14 +1825,16 @@ mod tests {
         let witness = counterexample(&world("nominal"), "stale-revision-candidate");
         let mut stale = provenance("policy-v1", EvidenceSplit::Development, "dev-a");
         stale.family_revision = 1;
-        assert!(ledger
-            .admit_counterexample(
-                &witness,
-                stale,
-                validation(),
-                "stale-family-revision".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &witness,
+                    stale,
+                    validation(),
+                    "stale-family-revision".into(),
+                )
+                .is_err()
+        );
         assert_eq!(ledger.family_revision(), 0);
         assert_eq!(ledger.active_policy_identity(), Some("policy-v1"));
     }
@@ -1748,14 +1845,16 @@ mod tests {
         let witness = counterexample(&world("nominal"), "wrong-policy-tree");
         let mut mismatched = provenance("policy-v1", EvidenceSplit::Development, "dev-a");
         mismatched.attacked_policy = terminal_plan();
-        assert!(ledger
-            .admit_counterexample(
-                &witness,
-                mismatched,
-                validation(),
-                "wrong-policy-tree-event".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &witness,
+                    mismatched,
+                    validation(),
+                    "wrong-policy-tree-event".into(),
+                )
+                .is_err()
+        );
         assert_eq!(ledger.family_revision(), 0);
         assert_eq!(ledger.active_policy_identity(), Some("policy-v1"));
     }
@@ -1765,22 +1864,26 @@ mod tests {
         let mut ledger = ledger();
         let valid = counterexample(&world("nominal"), "candidate-a");
         let stale_source = counterexample(&world("unknown-source"), "candidate-b");
-        assert!(ledger
-            .admit_counterexample(
-                &stale_source,
-                provenance("policy-v1", EvidenceSplit::Development, "dev-a"),
-                validation(),
-                "stale-source".into(),
-            )
-            .is_err());
-        assert!(ledger
-            .admit_counterexample(
-                &valid,
-                provenance("old-policy", EvidenceSplit::Development, "dev-a"),
-                validation(),
-                "stale-policy".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &stale_source,
+                    provenance("policy-v1", EvidenceSplit::Development, "dev-a"),
+                    validation(),
+                    "stale-source".into(),
+                )
+                .is_err()
+        );
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &valid,
+                    provenance("old-policy", EvidenceSplit::Development, "dev-a"),
+                    validation(),
+                    "stale-policy".into(),
+                )
+                .is_err()
+        );
         ledger
             .admit_counterexample(
                 &valid,
@@ -1792,14 +1895,16 @@ mod tests {
 
         // The same independent-validation receipt cannot be reused for a
         // second admission, even when the event ID is new.
-        assert!(ledger
-            .admit_counterexample(
-                &valid,
-                provenance("policy-v1", EvidenceSplit::Development, "dev-b"),
-                validation(),
-                "duplicate-validation-event".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &valid,
+                    provenance("policy-v1", EvidenceSplit::Development, "dev-b"),
+                    validation(),
+                    "duplicate-validation-event".into(),
+                )
+                .is_err()
+        );
 
         // After a complete family replan, a distinct receipt still cannot
         // re-admit the already present world ID.
@@ -1811,18 +1916,20 @@ mod tests {
             recovered_policy(),
         )
         .unwrap();
-        assert!(ledger
-            .admit_counterexample(
-                &valid,
-                provenance("policy-v2", EvidenceSplit::Development, "dev-b"),
-                CounterexampleValidationReceipt {
-                    receipt_id: "validation-02".into(),
-                    evidence_artifact_id: "validation-evidence-02".into(),
-                    ..validation()
-                },
-                "duplicate-id-event".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &valid,
+                    provenance("policy-v2", EvidenceSplit::Development, "dev-b"),
+                    CounterexampleValidationReceipt {
+                        receipt_id: "validation-02".into(),
+                        evidence_artifact_id: "validation-evidence-02".into(),
+                        ..validation()
+                    },
+                    "duplicate-id-event".into(),
+                )
+                .is_err()
+        );
     }
 
     #[test]
@@ -1838,14 +1945,16 @@ mod tests {
         // exposes the missing-readback branch, but it is not the exact output
         // of the declared DropReadback perturbation.
         assert!(forged.candidate_world.kernel.validate().is_ok());
-        assert!(ledger
-            .admit_counterexample(
-                &forged,
-                provenance("policy-v1", EvidenceSplit::Development, "dev-a"),
-                validation(),
-                "forged-candidate-event".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &forged,
+                    provenance("policy-v1", EvidenceSplit::Development, "dev-a"),
+                    validation(),
+                    "forged-candidate-event".into(),
+                )
+                .is_err()
+        );
         assert_eq!(ledger.family_revision(), 0);
         assert_eq!(ledger.active_policy_identity(), Some("policy-v1"));
     }
@@ -1856,14 +1965,16 @@ mod tests {
         let witness = counterexample(&world("nominal"), "candidate-a");
         let mut failed = validation();
         failed.physical_plausibility_passed = false;
-        assert!(ledger
-            .admit_counterexample(
-                &witness,
-                provenance("policy-v1", EvidenceSplit::Development, "dev-a"),
-                failed,
-                "failed-validation".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &witness,
+                    provenance("policy-v1", EvidenceSplit::Development, "dev-a"),
+                    failed,
+                    "failed-validation".into(),
+                )
+                .is_err()
+        );
 
         ledger
             .admit_counterexample(
@@ -1875,20 +1986,21 @@ mod tests {
             .unwrap();
 
         let mut duplicate_content = counterexample(&world("nominal"), "candidate-b");
-        duplicate_content.candidate_world.kernel =
-            witness.candidate_world.kernel.clone();
+        duplicate_content.candidate_world.kernel = witness.candidate_world.kernel.clone();
         replan(&mut ledger, "replan", 1, "policy-v2", recovered_policy()).unwrap();
-        assert!(ledger
-            .admit_counterexample(
-                &duplicate_content,
-                provenance("policy-v2", EvidenceSplit::Development, "dev-b"),
-                CounterexampleValidationReceipt {
-                    receipt_id: "validation-02".into(),
-                    ..validation()
-                },
-                "duplicate-content".into(),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &duplicate_content,
+                    provenance("policy-v2", EvidenceSplit::Development, "dev-b"),
+                    CounterexampleValidationReceipt {
+                        receipt_id: "validation-02".into(),
+                        ..validation()
+                    },
+                    "duplicate-content".into(),
+                )
+                .is_err()
+        );
     }
 
     #[test]
@@ -1916,32 +2028,42 @@ mod tests {
         assert_eq!(evaluated.replay_error, None);
         assert_eq!(evaluated.per_world_metrics.len(), 2);
         assert_eq!(evaluated.holdout_world_snapshots.len(), 2);
-        assert_eq!(
-            evaluated.manifest_id,
-            "heldout-manifest-v1"
-        );
+        assert_eq!(evaluated.manifest_id, "heldout-manifest-v1");
         assert!(ledger.all_sealed_holdouts_consumed());
-        assert!(evaluate_holdout(
-            &mut ledger,
-            "holdout-eval-again",
-            "sealed-mechanism-family",
-            0,
-            "policy-v1",
-            &worlds,
-            holdout_criteria(Rational::one()),
-        )
-        .is_err());
+        assert!(
+            evaluate_holdout(
+                &mut ledger,
+                "holdout-eval-again",
+                "sealed-mechanism-family",
+                0,
+                "policy-v1",
+                &worlds,
+                holdout_criteria(Rational::one()),
+            )
+            .is_err()
+        );
 
         let witness = counterexample(&world("nominal"), "too-late");
-        assert!(ledger
-            .admit_counterexample(
-                &witness,
-                provenance("policy-v1", EvidenceSplit::Development, "dev-a"),
-                validation(),
-                "too-late-event".into(),
+        assert!(
+            ledger
+                .admit_counterexample(
+                    &witness,
+                    provenance("policy-v1", EvidenceSplit::Development, "dev-a"),
+                    validation(),
+                    "too-late-event".into(),
+                )
+                .is_err()
+        );
+        assert!(
+            replan(
+                &mut ledger,
+                "too-late-replan",
+                0,
+                "policy-v2",
+                terminal_plan()
             )
-            .is_err());
-        assert!(replan(&mut ledger, "too-late-replan", 0, "policy-v2", terminal_plan()).is_err());
+            .is_err()
+        );
     }
 
     #[test]
@@ -1987,21 +2109,25 @@ mod tests {
             .unwrap();
 
         let second_worlds = vec![world("heldout-world-c"), world("heldout-world-d")];
-        assert!(ledger
-            .record_sealed_holdout_evaluation(
-                "eval-group-two".into(),
-                "sealed-apparatus-family".into(),
-                0,
-                "policy-v1".into(),
-                &second_worlds,
-                holdout_criteria(Rational::zero()),
-                "shared-evaluation-artifact".into(),
-            )
-            .is_err());
-        assert!(!ledger
-            .snapshot()
-            .consumed_holdout_group_ids
-            .contains(&"sealed-apparatus-family".to_string()));
+        assert!(
+            ledger
+                .record_sealed_holdout_evaluation(
+                    "eval-group-two".into(),
+                    "sealed-apparatus-family".into(),
+                    0,
+                    "policy-v1".into(),
+                    &second_worlds,
+                    holdout_criteria(Rational::zero()),
+                    "shared-evaluation-artifact".into(),
+                )
+                .is_err()
+        );
+        assert!(
+            !ledger
+                .snapshot()
+                .consumed_holdout_group_ids
+                .contains(&"sealed-apparatus-family".to_string())
+        );
     }
 
     #[test]
@@ -2039,13 +2165,12 @@ mod tests {
             sensor_state: Some(0),
             dropout_probability: q(1, 2),
         };
-        let invalid_world =
-            super::super::counterexample_search::apply_model_world_perturbation(
-                &invalid_source,
-                "heldout-world-b",
-                &perturbation,
-            )
-            .unwrap();
+        let invalid_world = super::super::counterexample_search::apply_model_world_perturbation(
+            &invalid_source,
+            "heldout-world-b",
+            &perturbation,
+        )
+        .unwrap();
         let worlds = vec![world("heldout-world-a"), invalid_world];
 
         let result = evaluate_holdout(
@@ -2084,46 +2209,54 @@ mod tests {
         let worlds = holdout_worlds();
         let missing_world = vec![world("heldout-world-a")];
 
-        assert!(evaluate_holdout(
-            &mut ledger,
-            "wrong-worlds",
-            "sealed-mechanism-family",
-            0,
-            "policy-v1",
-            &missing_world,
-            holdout_criteria(Rational::one()),
-        )
-        .is_err());
-        assert!(evaluate_holdout(
-            &mut ledger,
-            "wrong-policy",
-            "sealed-mechanism-family",
-            0,
-            "policy-other",
-            &worlds,
-            holdout_criteria(Rational::one()),
-        )
-        .is_err());
-        assert!(evaluate_holdout(
-            &mut ledger,
-            "wrong-revision",
-            "sealed-mechanism-family",
-            1,
-            "policy-v1",
-            &worlds,
-            holdout_criteria(Rational::one()),
-        )
-        .is_err());
-        assert!(evaluate_holdout(
-            &mut ledger,
-            "unknown-group",
-            "not-registered",
-            0,
-            "policy-v1",
-            &worlds,
-            holdout_criteria(Rational::one()),
-        )
-        .is_err());
+        assert!(
+            evaluate_holdout(
+                &mut ledger,
+                "wrong-worlds",
+                "sealed-mechanism-family",
+                0,
+                "policy-v1",
+                &missing_world,
+                holdout_criteria(Rational::one()),
+            )
+            .is_err()
+        );
+        assert!(
+            evaluate_holdout(
+                &mut ledger,
+                "wrong-policy",
+                "sealed-mechanism-family",
+                0,
+                "policy-other",
+                &worlds,
+                holdout_criteria(Rational::one()),
+            )
+            .is_err()
+        );
+        assert!(
+            evaluate_holdout(
+                &mut ledger,
+                "wrong-revision",
+                "sealed-mechanism-family",
+                1,
+                "policy-v1",
+                &worlds,
+                holdout_criteria(Rational::one()),
+            )
+            .is_err()
+        );
+        assert!(
+            evaluate_holdout(
+                &mut ledger,
+                "unknown-group",
+                "not-registered",
+                0,
+                "policy-v1",
+                &worlds,
+                holdout_criteria(Rational::one()),
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -2140,47 +2273,51 @@ mod tests {
             .unwrap();
         assert!(replan(&mut ledger, "same-event", 1, "policy-v2", terminal_plan()).is_err());
 
-        assert!(ModelFamilyLedger::new(
-            vec![world("nominal"), world("nominal")],
-            vec![],
-            vec![],
-            "policy".into(),
-            terminal_plan(),
-            "nominal",
-            &loss_table(),
-            ObservationProtocol::fully_observed(),
-            &[Rational::zero(), Rational::zero()],
-            Rational::one(),
-            2,
-            DecisionBudgets {
-                max_hazard_probability: Rational::zero(),
-                max_abstention_probability: Rational::zero(),
-            },
-        )
-        .is_err());
+        assert!(
+            ModelFamilyLedger::new(
+                vec![world("nominal"), world("nominal")],
+                vec![],
+                vec![],
+                "policy".into(),
+                terminal_plan(),
+                "nominal",
+                &loss_table(),
+                ObservationProtocol::fully_observed(),
+                &[Rational::zero(), Rational::zero()],
+                Rational::one(),
+                2,
+                DecisionBudgets {
+                    max_hazard_probability: Rational::zero(),
+                    max_abstention_probability: Rational::zero(),
+                },
+            )
+            .is_err()
+        );
         let duplicate_holdout = SealedHoldoutGroupRegistration {
             family_group_id: "duplicate".into(),
             world_ids: vec!["heldout".into(), "heldout".into()],
             manifest_id: "manifest".into(),
         };
-        assert!(ModelFamilyLedger::new(
-            vec![world("nominal")],
-            vec![],
-            vec![duplicate_holdout],
-            "policy".into(),
-            terminal_plan(),
-            "nominal",
-            &loss_table(),
-            ObservationProtocol::fully_observed(),
-            &[Rational::zero(), Rational::zero()],
-            Rational::one(),
-            2,
-            DecisionBudgets {
-                max_hazard_probability: Rational::zero(),
-                max_abstention_probability: Rational::zero(),
-            },
-        )
-        .is_err());
+        assert!(
+            ModelFamilyLedger::new(
+                vec![world("nominal")],
+                vec![],
+                vec![duplicate_holdout],
+                "policy".into(),
+                terminal_plan(),
+                "nominal",
+                &loss_table(),
+                ObservationProtocol::fully_observed(),
+                &[Rational::zero(), Rational::zero()],
+                Rational::one(),
+                2,
+                DecisionBudgets {
+                    max_hazard_probability: Rational::zero(),
+                    max_abstention_probability: Rational::zero(),
+                },
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -2203,11 +2340,18 @@ mod tests {
         assert_eq!(snapshot.replay_context.nominal_world_id, "nominal");
         assert_eq!(snapshot.events.len(), 2);
         assert_eq!(
-            snapshot.events.iter().map(|event| event.sequence).collect::<Vec<_>>(),
+            snapshot
+                .events
+                .iter()
+                .map(|event| event.sequence)
+                .collect::<Vec<_>>(),
             vec![0, 1]
         );
-        assert!(snapshot.events.windows(2).all(|pair| {
-            pair[0].event.family_revision() <= pair[1].event.family_revision()
-        }));
+        assert!(
+            snapshot
+                .events
+                .windows(2)
+                .all(|pair| { pair[0].event.family_revision() <= pair[1].event.family_revision() })
+        );
     }
 }
