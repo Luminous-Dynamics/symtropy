@@ -1668,9 +1668,11 @@ mod tests {
                 vec![Rational::zero(), Rational::zero(), Rational::one()],
             ],
         };
-        assert!(solve_small_blackwell_garbling(&more, &perfect)
-            .unwrap()
-            .is_none());
+        assert!(
+            solve_small_blackwell_garbling(&more, &perfect)
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]
@@ -1709,9 +1711,11 @@ mod tests {
             ],
             ..consistent
         };
-        assert!(solve_small_blackwell_garbling(&more, &inconsistent)
-            .unwrap()
-            .is_none());
+        assert!(
+            solve_small_blackwell_garbling(&more, &inconsistent)
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]
