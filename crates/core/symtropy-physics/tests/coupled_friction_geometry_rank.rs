@@ -345,7 +345,6 @@ fn one_null_direction_means_unique_response_but_nonunique_force_allocation() {
     );
 }
 
-
 #[test]
 fn three_non_collinear_point_contacts_have_a_three_dimensional_impulse_fiber() {
     // Three points on the plane z=0, at r1=(0,0,0), r2=(1,0,0),
@@ -369,10 +368,7 @@ fn three_non_collinear_point_contacts_have_a_three_dimensional_impulse_fiber() {
         vec![z(), z(), z(), z(), r(1, 2), z()],
         vec![z(), z(), z(), z(), z(), r(1, 3)],
     ];
-    let delassus = multiply(
-        &multiply(&jacobian, &inverse_mass),
-        &transpose(&jacobian),
-    );
+    let delassus = multiply(&multiply(&jacobian, &inverse_mass), &transpose(&jacobian));
 
     assert_eq!(jacobian.len(), 9);
     assert_eq!(jacobian[0].len(), 6);
@@ -402,11 +398,7 @@ fn three_non_collinear_point_contacts_have_a_three_dimensional_impulse_fiber() {
         );
     }
 
-    let base_impulse = vec![
-        i(2), z(), z(),
-        i(2), z(), z(),
-        i(2), z(), z(),
-    ];
+    let base_impulse = vec![i(2), z(), z(), i(2), z(), z(), i(2), z(), z()];
     let response = mat_vec(&delassus, &base_impulse);
     assert_eq!(
         response,
@@ -461,21 +453,18 @@ fn three_non_collinear_point_contacts_have_a_three_dimensional_impulse_fiber() {
             let radius = mu.clone() * normal.clone();
             let tangent_norm_squared = impulse[tangent_indices[0]].clone()
                 * impulse[tangent_indices[0]].clone()
-                + impulse[tangent_indices[1]].clone()
-                    * impulse[tangent_indices[1]].clone();
+                + impulse[tangent_indices[1]].clone() * impulse[tangent_indices[1]].clone();
             assert!(normal > Rational::zero());
             assert!(radius.clone() * radius > tangent_norm_squared);
         }
 
-        let energy = dot(&impulse, &free_velocity)
-            + r(1, 2) * dot(&impulse, &actual_response);
+        let energy = dot(&impulse, &free_velocity) + r(1, 2) * dot(&impulse, &actual_response);
         assert_eq!(energy, expected_energy);
         allocations.push(impulse);
     }
 
     assert!(allocations.windows(2).all(|pair| pair[0] != pair[1]));
 }
-
 
 fn plane_contact_jacobian(points: &[(i64, i64)]) -> Matrix {
     let mut jacobian = Vec::with_capacity(3 * points.len());
@@ -516,10 +505,7 @@ fn geometry_contact_count_exposes_the_rank_and_nullity_scaling_law() {
 
     for contact_count in [2_usize, 3, 4, 8] {
         let jacobian = plane_contact_jacobian(&points[..contact_count]);
-        let delassus = multiply(
-            &multiply(&jacobian, &inverse_mass),
-            &transpose(&jacobian),
-        );
+        let delassus = multiply(&multiply(&jacobian, &inverse_mass), &transpose(&jacobian));
         let expected_rank = if contact_count == 2 { 5 } else { 6 };
         let expected_nullity = if contact_count == 2 {
             1
