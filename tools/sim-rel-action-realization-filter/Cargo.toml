@@ -6,3 +6,6 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
+# This research crate is intentionally isolated from the repository's root workspace.
+[workspace]
