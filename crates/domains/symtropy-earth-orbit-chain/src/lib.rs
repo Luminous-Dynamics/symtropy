@@ -88,6 +88,8 @@ pub struct CargoLotV1 {
 pub struct ResourceQualificationV1 {
     pub id: String,
     pub resource_id: String,
+    /// Time scale / epoch convention used by the validity window.
+    pub time_profile_id: String,
     pub valid_from_epoch_seconds: u64,
     pub valid_until_epoch_seconds: u64,
     pub status: ResourceQualificationStatus,
@@ -105,6 +107,8 @@ pub struct TransferV1 {
     pub from_node_id: String,
     pub to_node_id: String,
     pub resource_id: String,
+    /// Must exactly match the qualification's time profile.
+    pub time_profile_id: String,
     pub resource_qualification_id: String,
     pub mass_grams: u64,
     pub starts_at_epoch_seconds: u64,
@@ -163,6 +167,7 @@ pub enum FindingCode {
     RejectedResourceQualification,
     UnsupportedResourceQualification,
     ResourceQualificationResourceMismatch,
+    ResourceQualificationTimeProfileMismatch,
     ResourceQualificationDoesNotCoverTransfer,
     TransferMassMismatch,
     DiscontinuousCargoPath,
@@ -260,7 +265,10 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
     }
 
     for qualification in &campaign.resource_qualifications {
-        if !valid_id(&qualification.id) || !valid_id(&qualification.resource_id) {
+        if !valid_id(&qualification.id)
+            || !valid_id(&qualification.resource_id)
+            || !valid_id(&qualification.time_profile_id)
+        {
             push_finding(
                 &mut findings,
                 FindingCode::InvalidIdentifier,
@@ -294,6 +302,7 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
             || !valid_id(&transfer.from_node_id)
             || !valid_id(&transfer.to_node_id)
             || !valid_id(&transfer.resource_id)
+            || !valid_id(&transfer.time_profile_id)
             || !valid_id(&transfer.resource_qualification_id)
         {
             push_finding(&mut findings, FindingCode::InvalidIdentifier, &transfer.id);
@@ -374,6 +383,13 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
                     push_finding(
                         &mut findings,
                         FindingCode::ResourceQualificationResourceMismatch,
+                        &transfer.id,
+                    );
+                }
+                if qualification.time_profile_id != transfer.time_profile_id {
+                    push_finding(
+                        &mut findings,
+                        FindingCode::ResourceQualificationTimeProfileMismatch,
                         &transfer.id,
                     );
                 }
@@ -696,6 +712,7 @@ mod tests {
                 ResourceQualificationV1 {
                     id: "rail-qualification".to_owned(),
                     resource_id: "rail-section-1".to_owned(),
+                    time_profile_id: "unix-epoch-utc-v1".to_owned(),
                     valid_from_epoch_seconds: 0,
                     valid_until_epoch_seconds: 100,
                     status: resource_qualified(),
@@ -703,6 +720,7 @@ mod tests {
                 ResourceQualificationV1 {
                     id: "road-qualification".to_owned(),
                     resource_id: "road-1".to_owned(),
+                    time_profile_id: "unix-epoch-utc-v1".to_owned(),
                     valid_from_epoch_seconds: 0,
                     valid_until_epoch_seconds: 100,
                     status: resource_qualified(),
@@ -710,6 +728,7 @@ mod tests {
                 ResourceQualificationV1 {
                     id: "launch-qualification".to_owned(),
                     resource_id: "range-slot-1".to_owned(),
+                    time_profile_id: "unix-epoch-utc-v1".to_owned(),
                     valid_from_epoch_seconds: 0,
                     valid_until_epoch_seconds: 100,
                     status: resource_qualified(),
@@ -722,6 +741,7 @@ mod tests {
                     from_node_id: "factory".to_owned(),
                     to_node_id: "port".to_owned(),
                     resource_id: "rail-section-1".to_owned(),
+                    time_profile_id: "unix-epoch-utc-v1".to_owned(),
                     resource_qualification_id: "rail-qualification".to_owned(),
                     mass_grams: 1_000,
                     starts_at_epoch_seconds: 10,
@@ -734,6 +754,7 @@ mod tests {
                     from_node_id: "port".to_owned(),
                     to_node_id: "range".to_owned(),
                     resource_id: "road-1".to_owned(),
+                    time_profile_id: "unix-epoch-utc-v1".to_owned(),
                     resource_qualification_id: "road-qualification".to_owned(),
                     mass_grams: 1_000,
                     starts_at_epoch_seconds: 25,
@@ -746,6 +767,7 @@ mod tests {
                     from_node_id: "range".to_owned(),
                     to_node_id: "orbit".to_owned(),
                     resource_id: "range-slot-1".to_owned(),
+                    time_profile_id: "unix-epoch-utc-v1".to_owned(),
                     resource_qualification_id: "launch-qualification".to_owned(),
                     mass_grams: 1_000,
                     starts_at_epoch_seconds: 40,
@@ -820,6 +842,18 @@ mod tests {
         assert!(has_finding(
             &report,
             FindingCode::ResourceQualificationDoesNotCoverTransfer
+        ));
+    }
+
+    #[test]
+    fn resource_time_profile_must_match_the_transport_qualification() {
+        let mut campaign = baseline();
+        campaign.transfers[0].time_profile_id = "tai-epoch-v1".to_owned();
+        let report = evaluate_campaign(&campaign);
+        assert_eq!(report.disposition, CampaignDisposition::Infeasible);
+        assert!(has_finding(
+            &report,
+            FindingCode::ResourceQualificationTimeProfileMismatch
         ));
     }
 
