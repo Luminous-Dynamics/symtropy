@@ -167,3 +167,27 @@ Both sliding KKT multipliers are \(\tau_1=\tau_2=5/4>0\), so \(u_{t,k}+\tau_kj_{
 The Rust test is the authoritative executable arithmetic check; its frozen expected value is \(-2.1875=-35/16\).
 
 This adds a known branch witness for the only previously uncovered regime assignment. It does not enumerate all two-sliding branches, prove uniqueness, or replace the bivariate direction-root isolation problem. It completes **known-witness coverage across all nine basic regime assignments**, not complete solution-set coverage.
+
+
+## Asymmetric double-sliding multiplicity witness
+
+A second, more demanding fixture was found by multistart numerical exploration and then frozen on an exactly dyadic input grid. It is intentionally asymmetric: the 3x3 upper cross-contact block \(B\) is not symmetric, while the complete Delassus operator
+
+\[
+W=\begin{bmatrix}I_{\text{within}}&B\\B^T&I_{\text{within}}\end{bmatrix}
+\]
+
+is symmetric positive definite.
+
+All entries of W, q and the two friction coefficients are integer numerators over \(2^{20}\). The six eigenvalues of W are positive (minimum approximately 0.0471282). The exact integer numerators are stored directly in the Rust test module, so the fixture does not depend on a random seed or an external solver at runtime.
+
+For the same frozen \(W,q,\mu_1,\mu_2\), the test records two distinct simultaneous-sliding candidates:
+
+| Branch | theta 1 | theta 2 | lambda 1 | lambda 2 | tau 1 | tau 2 | Delta K |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| A | 2.23175193 | -0.45897492 | 4.60884401 | 4.29084426 | 0.11752995 | 3.13881354 | -63.70949 |
+| B | 2.23554962 | -0.44758267 | 4.53816173 | 4.28414342 | 0.13543873 | 3.14228930 | -63.55539 |
+
+Both satisfy positive normal impulses, zero normal post-contact velocity, the two local circular Coulomb boundaries, positive sliding multipliers, tangential KKT stationarity and negative full-island energy within the declared floating residual budget. Their impulse vectors are distinct (Euclidean separation approximately 0.15426), while their direction pairs are deliberately close.
+
+**Claim boundary:** these are two known numerical witnesses for one exact dyadic input. The test does not certify the root-pair count or exclude further branches. This is the first frozen multiple-double-slide fixture for #3215; its next step is exact resultant/subresultant projection plus interval root-pair lifting, with two disjoint certified boxes around these candidates and explicit exclusion of all remaining direction-domain boxes.
