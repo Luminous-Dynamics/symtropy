@@ -1045,6 +1045,345 @@ impl ModelFamilyLedger {
     }
 }
 
+/// Typed phase of a failed offline ledger-transcript verification.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LedgerTranscriptVerificationPhase {
+    SnapshotEnvelope,
+    EventSequence,
+    CounterexampleAdmission,
+    PolicyReplan,
+    FinalPolicySeal,
+    SealedHoldoutEvaluation,
+    EventEquality,
+    FinalSnapshotEquality,
+}
+
+/// Failure context for an offline transcript audit. A sequence is present for
+/// event-local errors; envelope/final-state errors have no event sequence.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LedgerTranscriptVerificationError {
+    pub event_sequence: Option<u64>,
+    pub phase: LedgerTranscriptVerificationPhase,
+    pub reason: String,
+}
+
+/// Summary of a transcript reconstructed from its immutable baseline.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LedgerTranscriptVerificationReceipt {
+    pub event_count: u64,
+    pub admission_count: u64,
+    pub replan_count: u64,
+    pub final_policy_seal_count: u64,
+    pub sealed_evaluation_count: u64,
+    pub final_family_revision: u64,
+    pub development_world_ids: Vec<String>,
+    pub calibration_group_count: usize,
+    pub sealed_holdout_group_count: usize,
+    pub consumed_holdout_group_ids: Vec<String>,
+    pub active_policy_identity: Option<String>,
+    pub frozen_policy_identity: Option<String>,
+    pub snapshot_exactly_reconstructed: bool,
+}
+
+fn transcript_verification_error(
+    event_sequence: Option<u64>,
+    phase: LedgerTranscriptVerificationPhase,
+    reason: impl Into<String>,
+) -> LedgerTranscriptVerificationError {
+    LedgerTranscriptVerificationError {
+        event_sequence,
+        phase,
+        reason: reason.into(),
+    }
+}
+
+/// Reconstruct and verify an exported model-family ledger snapshot.
+///
+/// The verifier starts from the retained immutable baseline, initial policy
+/// tree, split registrations and replay context. It creates a fresh ledger,
+/// replays every event through the domain transition API, compares each
+/// regenerated record to the stored record, and finally requires exact
+/// equality of the reconstructed snapshot and the supplied snapshot.
+///
+/// This is a separate offline entry point and does not trust the snapshot's
+/// current family/policy/consumption fields. It re-executes the same exact
+/// transition and physical replay functions used by the live ledger. A later
+/// independent transition oracle can reduce common-mode implementation risk.
+pub fn verify_model_family_ledger_snapshot(
+    snapshot: &ModelFamilyLedgerSnapshot,
+) -> Result<LedgerTranscriptVerificationReceipt, LedgerTranscriptVerificationError> {
+    if snapshot.events.len() > MAX_LEDGER_EVENTS {
+        return Err(transcript_verification_error(
+            None,
+            LedgerTranscriptVerificationPhase::SnapshotEnvelope,
+            "snapshot event count exceeds the ledger resource cap",
+        ));
+    }
+
+    let mut ledger = ModelFamilyLedger::new(
+        snapshot.baseline_development_worlds.clone(),
+        snapshot.reserved_calibration_groups.clone(),
+        snapshot.reserved_holdout_groups.clone(),
+        snapshot.initial_policy_identity.clone(),
+        snapshot.initial_policy_plan.clone(),
+        &snapshot.replay_context.nominal_world_id,
+        &snapshot.replay_context.loss_table,
+        snapshot.replay_context.protocol,
+        &snapshot.replay_context.command_costs,
+        snapshot.replay_context.hazard_loss,
+        snapshot.replay_context.horizon,
+        snapshot.replay_context.development_budgets,
+    )
+    .map_err(|reason| {
+        transcript_verification_error(
+            None,
+            LedgerTranscriptVerificationPhase::SnapshotEnvelope,
+            reason,
+        )
+    })?;
+
+    let mut admission_count = 0u64;
+    let mut replan_count = 0u64;
+    let mut final_policy_seal_count = 0u64;
+    let mut sealed_evaluation_count = 0u64;
+    let mut previous_revision = 0u64;
+
+    for (index, sequenced) in snapshot.events.iter().enumerate() {
+        let expected_sequence = u64::try_from(index).map_err(|_| {
+            transcript_verification_error(
+                None,
+                LedgerTranscriptVerificationPhase::EventSequence,
+                "event sequence index exceeds u64",
+            )
+        })?;
+        if sequenced.sequence != expected_sequence {
+            return Err(transcript_verification_error(
+                Some(sequenced.sequence),
+                LedgerTranscriptVerificationPhase::EventSequence,
+                format!(
+                    "expected event sequence {expected_sequence}, found {}",
+                    sequenced.sequence
+                ),
+            ));
+        }
+        if sequenced.event.family_revision() < previous_revision {
+            return Err(transcript_verification_error(
+                Some(sequenced.sequence),
+                LedgerTranscriptVerificationPhase::EventSequence,
+                "event family revision decreases across the transcript",
+            ));
+        }
+
+        match &sequenced.event {
+            ModelFamilyLedgerEvent::CounterexampleAdmitted(record) => {
+                let current_source = ledger
+                    .development_worlds
+                    .iter()
+                    .find(|world| world.id == record.source_world_id)
+                    .ok_or_else(|| {
+                        transcript_verification_error(
+                            Some(sequenced.sequence),
+                            LedgerTranscriptVerificationPhase::CounterexampleAdmission,
+                            "admission source world is absent at the prior revision",
+                        )
+                    })?;
+                if current_source != &record.source_world_snapshot {
+                    return Err(transcript_verification_error(
+                        Some(sequenced.sequence),
+                        LedgerTranscriptVerificationPhase::CounterexampleAdmission,
+                        "stored source-world snapshot differs from the reconstructed prior family",
+                    ));
+                }
+
+                let witness = CounterexampleWitness {
+                    spec: PerturbationSpec {
+                        source_world_id: record.source_world_id.clone(),
+                        candidate_world_id: record.candidate_world_id.clone(),
+                        perturbation: record.perturbation.clone(),
+                    },
+                    candidate_world: record.candidate_world_snapshot.clone(),
+                    outcome: record.claimed_outcome.clone(),
+                };
+                let regenerated = ledger
+                    .admit_counterexample(
+                        &witness,
+                        record.provenance.clone(),
+                        record.validation.clone(),
+                        record.event_receipt_id.clone(),
+                    )
+                    .map_err(|reason| {
+                        transcript_verification_error(
+                            Some(sequenced.sequence),
+                            LedgerTranscriptVerificationPhase::CounterexampleAdmission,
+                            reason,
+                        )
+                    })?;
+                if &regenerated != record {
+                    return Err(transcript_verification_error(
+                        Some(sequenced.sequence),
+                        LedgerTranscriptVerificationPhase::EventEquality,
+                        "regenerated counterexample-admission record differs from transcript",
+                    ));
+                }
+                admission_count = admission_count.checked_add(1).ok_or_else(|| {
+                    transcript_verification_error(
+                        Some(sequenced.sequence),
+                        LedgerTranscriptVerificationPhase::EventSequence,
+                        "admission count overflow",
+                    )
+                })?;
+            }
+            ModelFamilyLedgerEvent::PolicyReplanned(record) => {
+                let regenerated = ledger
+                    .record_replan(
+                        record.event_receipt_id.clone(),
+                        record.family_revision,
+                        record.policy_identity.clone(),
+                        record.plan.clone(),
+                    )
+                    .map_err(|reason| {
+                        transcript_verification_error(
+                            Some(sequenced.sequence),
+                            LedgerTranscriptVerificationPhase::PolicyReplan,
+                            reason,
+                        )
+                    })?;
+                if &regenerated != record {
+                    return Err(transcript_verification_error(
+                        Some(sequenced.sequence),
+                        LedgerTranscriptVerificationPhase::EventEquality,
+                        "regenerated policy-replan record differs from transcript",
+                    ));
+                }
+                replan_count = replan_count.checked_add(1).ok_or_else(|| {
+                    transcript_verification_error(
+                        Some(sequenced.sequence),
+                        LedgerTranscriptVerificationPhase::EventSequence,
+                        "replan count overflow",
+                    )
+                })?;
+            }
+            ModelFamilyLedgerEvent::FinalPolicySealed(record) => {
+                let regenerated = ledger
+                    .seal_final_policy(
+                        record.event_receipt_id.clone(),
+                        record.family_revision,
+                        record.policy_identity.clone(),
+                    )
+                    .map_err(|reason| {
+                        transcript_verification_error(
+                            Some(sequenced.sequence),
+                            LedgerTranscriptVerificationPhase::FinalPolicySeal,
+                            reason,
+                        )
+                    })?;
+                if &regenerated != record {
+                    return Err(transcript_verification_error(
+                        Some(sequenced.sequence),
+                        LedgerTranscriptVerificationPhase::EventEquality,
+                        "regenerated final-policy seal differs from transcript",
+                    ));
+                }
+                final_policy_seal_count =
+                    final_policy_seal_count.checked_add(1).ok_or_else(|| {
+                        transcript_verification_error(
+                            Some(sequenced.sequence),
+                            LedgerTranscriptVerificationPhase::EventSequence,
+                            "final-policy seal count overflow",
+                        )
+                    })?;
+            }
+            ModelFamilyLedgerEvent::SealedHoldoutEvaluated(record) => {
+                let regenerated = ledger
+                    .record_sealed_holdout_evaluation(
+                        record.event_receipt_id.clone(),
+                        record.family_group_id.clone(),
+                        record.family_revision,
+                        record.policy_identity.clone(),
+                        &record.holdout_world_snapshots,
+                        record.criteria,
+                        record.evaluation_artifact_id.clone(),
+                    )
+                    .map_err(|reason| {
+                        transcript_verification_error(
+                            Some(sequenced.sequence),
+                            LedgerTranscriptVerificationPhase::SealedHoldoutEvaluation,
+                            reason,
+                        )
+                    })?;
+                if &regenerated != record {
+                    return Err(transcript_verification_error(
+                        Some(sequenced.sequence),
+                        LedgerTranscriptVerificationPhase::EventEquality,
+                        "regenerated sealed-holdout evaluation differs from transcript",
+                    ));
+                }
+                sealed_evaluation_count =
+                    sealed_evaluation_count.checked_add(1).ok_or_else(|| {
+                        transcript_verification_error(
+                            Some(sequenced.sequence),
+                            LedgerTranscriptVerificationPhase::EventSequence,
+                            "sealed-evaluation count overflow",
+                        )
+                    })?;
+            }
+        }
+
+        let replayed_event = ledger
+            .events
+            .last()
+            .ok_or_else(|| {
+                transcript_verification_error(
+                    Some(sequenced.sequence),
+                    LedgerTranscriptVerificationPhase::EventEquality,
+                    "domain transition did not append an event",
+                )
+            })?;
+        if replayed_event.sequence != sequenced.sequence
+            || replayed_event.event != sequenced.event
+        {
+            return Err(transcript_verification_error(
+                Some(sequenced.sequence),
+                LedgerTranscriptVerificationPhase::EventEquality,
+                "domain transition did not reproduce the exact sequenced event",
+            ));
+        }
+        previous_revision = sequenced.event.family_revision();
+    }
+
+    let reconstructed = ledger.snapshot();
+    if reconstructed != *snapshot {
+        return Err(transcript_verification_error(
+            None,
+            LedgerTranscriptVerificationPhase::FinalSnapshotEquality,
+            "reconstructed final ledger snapshot differs from the supplied snapshot",
+        ));
+    }
+
+    let event_count = u64::try_from(snapshot.events.len()).map_err(|_| {
+        transcript_verification_error(
+            None,
+            LedgerTranscriptVerificationPhase::FinalSnapshotEquality,
+            "snapshot event count exceeds u64",
+        )
+    })?;
+    Ok(LedgerTranscriptVerificationReceipt {
+        event_count,
+        admission_count,
+        replan_count,
+        final_policy_seal_count,
+        sealed_evaluation_count,
+        final_family_revision: reconstructed.family_revision,
+        development_world_ids: ledger.development_world_ids(),
+        calibration_group_count: reconstructed.reserved_calibration_groups.len(),
+        sealed_holdout_group_count: reconstructed.reserved_holdout_groups.len(),
+        consumed_holdout_group_ids: reconstructed.consumed_holdout_group_ids,
+        active_policy_identity: reconstructed.active_policy_identity,
+        frozen_policy_identity: reconstructed.frozen_policy_identity,
+        snapshot_exactly_reconstructed: true,
+    })
+}
+
 fn counterexample_outcomes_match(
     claimed: &CounterexampleOutcome,
     observed: &CounterexampleOutcome,
