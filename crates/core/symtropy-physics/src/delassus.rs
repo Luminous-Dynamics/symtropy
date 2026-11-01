@@ -1114,8 +1114,11 @@ mod tests {
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         dynamic_body
             .try_set_rotational_inertia_operator(
-                BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<_, 3>::new(1.0, 0.8, 0.6))
-                    .unwrap(),
+                BivectorInertia::<3>::uniform_solid_ellipsoid(
+                    1.0,
+                    SVector::<_, 3>::new(1.0, 0.8, 0.6),
+                )
+                .unwrap(),
             )
             .unwrap();
         let bodies = vec![static_body, dynamic_body];
@@ -1195,8 +1198,11 @@ mod tests {
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         dynamic_body
             .try_set_rotational_inertia_operator(
-                BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<_, 3>::new(1.0, 0.8, 0.6))
-                    .unwrap(),
+                BivectorInertia::<3>::uniform_solid_ellipsoid(
+                    1.0,
+                    SVector::<_, 3>::new(1.0, 0.8, 0.6),
+                )
+                .unwrap(),
             )
             .unwrap();
         let frame = ContactFrame::<3>::new(SVector::<_, 3>::new(1.0, 0.0, 0.0), 1e-12).unwrap();
@@ -1290,7 +1296,10 @@ mod tests {
         let floor = RigidBody::<3>::static_body(
             BodyHandle(0),
             Point::origin(),
-            Box::new(HalfSpace::<3>::new(SVector::<_, 3>::new(1.0, 0.0, 0.0), 0.0)),
+            Box::new(HalfSpace::<3>::new(
+                SVector::<_, 3>::new(1.0, 0.0, 0.0),
+                0.0,
+            )),
         );
         let floor_handle = world.add_body(floor);
 
