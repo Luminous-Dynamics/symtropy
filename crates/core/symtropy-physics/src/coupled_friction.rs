@@ -331,7 +331,15 @@ pub fn solve_coupled_signorini_coulomb(
         Err(()) => unresolved = true,
     }
 
-    deduplicate_angles(&mut angles, relative_tolerance);
+    if angles_have_near_collision(&mut angles, relative_tolerance) {
+        return Ok(CoupledCoulombOutcome {
+            status: CoupledCoulombStatus::Inconclusive,
+            candidates,
+            sliding_quartic: quartic,
+            sliding_angles: angles,
+            normal_coupling_margin,
+        });
+    }
     for theta in &angles {
         let (s, _) = tangent_direction(*theta);
         let denominator = a - mu * d.dot(&s);
@@ -676,13 +684,23 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
     Ok(roots)
 }
 
-fn deduplicate_angles(angles: &mut Vec<f64>, tolerance: f64) {
+/// Sort angular candidates and detect a tolerance-level collision.
+///
+/// Close floating-point angles may represent either duplicate isolation of one
+/// root or distinct roots that the requested precision cannot resolve. The
+/// solver must not silently merge them and then report uniqueness; callers
+/// convert any collision into an explicit inconclusive outcome.
+fn angles_have_near_collision(angles: &mut Vec<f64>, tolerance: f64) -> bool {
     angles.sort_by(f64::total_cmp);
-    angles.dedup_by(|a, b| {
-        let direct = (a - b).abs();
-        let wrapped = (2.0 * std::f64::consts::PI - direct).abs();
-        direct.min(wrapped) <= 256.0 * tolerance
-    });
+    let threshold = 256.0 * tolerance;
+    if angles.windows(2).any(|pair| (pair[1] - pair[0]).abs() <= threshold) {
+        return true;
+    }
+    if let (Some(first), Some(last)) = (angles.first(), angles.last()) {
+        let wrapped = 2.0 * std::f64::consts::PI - (last - first).abs();
+        return wrapped <= threshold;
+    }
+    false
 }
 
 #[cfg(test)]
@@ -863,6 +881,17 @@ mod tests {
             });
             assert!(matched.is_some());
         }
+    }
+
+    #[test]
+    fn near_coincident_angles_are_inconclusive_not_silently_merged() {
+        let mut close = vec![0.75, 0.75 + 1.0e-12];
+        assert!(angles_have_near_collision(&mut close, 1.0e-12));
+        assert_eq!(close.len(), 2, "both possible branches remain visible");
+
+        let mut wrapped = vec![1.0e-13, 2.0 * std::f64::consts::PI - 1.0e-13];
+        assert!(angles_have_near_collision(&mut wrapped, 1.0e-12));
+        assert_eq!(wrapped.len(), 2, "projective wrap collisions are retained");
     }
 
     #[test]
