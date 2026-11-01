@@ -5,6 +5,7 @@
 //! the complete mechanism/process/sensor/apparatus state.
 
 pub mod counterexample_search;
+pub mod experiment_ordering;
 pub mod finite_horizon;
 pub mod robust_finite_horizon;
 pub mod sequential_conformal;

@@ -65,6 +65,22 @@ objective and tuning procedure:
    abstention tradeoffs, against naive survivor reuse and Bonferroni-style
    allocation. Only claim its finite-sample coverage when the paper's
    exchangeability, predictable-refitting and fresh-fold assumptions are met.
+15. **Generalised Bayesian optimal experimental design (GBOED, revised
+    October 2026):** replace the likelihood update with a declared loss-based
+    Gibbs posterior and compare Gibbs-EIG as both an inference-rule and
+    acquisition baseline. Calibrate the loss/temperature on a training or
+    calibration split only; do not compare it as ordinary Bayesian EIG or
+    assume robustness to arbitrary shifts.
+16. **Goal-driven BOED (GoBOED, May 2026):** implement its decision-focused
+    design objective with posterior surrogate, convex robust-decision layer
+    and importance-sampling correction where feasible. It is a useful baseline
+    for task-relevant uncertainty reduction, but the reported experiments are
+    single-step; do not attribute a sequential adaptive guarantee to it.
+17. **Robust Bayesian ambiguity-set DRO (Entropy, April 2026):** compare a
+    posterior-propagated ambiguity-set decision rule against finite-world
+    minimax and TV ambiguity. Record the ambiguity-set construction and
+    conservatism/coverage trade-off; derive a new guarantee before applying it
+    to sequential experiment trees or action-realization kernels.
 
 Do not silently retune external baselines on our sealed test worlds. Record
 baseline source revision, parameters, training data, tool versions and compute.
@@ -105,27 +121,38 @@ Split by generator family and apparatus signature, never by random rows alone.
 A shift family used to design the falsifier or calibrate the TV radius cannot
 also serve as a sealed test family.
 
-### C. Experiment-ordering under misspecification
+### C. Two-axis inference/model misspecification and experiment ordering
 
-Construct paired channels where experiment A is Blackwell-more-informative than
-experiment B under the nominal model. Then independently vary:
-- **Inference misspecification:** hold the data generator to the nominal family
-  while perturbing the inference approximation, posterior truncation,
-  likelihood calculation or calibration procedure.
-- **Model misspecification:** keep inference exact while perturbing the
-  data-generating kernel, sensor mapping, action realization or apparatus
-  transition.
-- **Interaction:** cross inference and model shifts factorially, including
-  combinations that cause confident but wrong terminal decisions.
+Use the exact finite-channel oracle and scale through a factorial suite:
+- matched working model / true generator / exact Bayes inference (negative control);
+- working model equals truth, but posterior rule is approximated, truncated or
+  miscalibrated (inference-only);
+- posterior rule is exact for the working model, but the true generator shifts
+  (model-only);
+- both working model and posterior rule differ from truth (interaction).
 
-For each pair, report the nominal ranking, realized downstream-loss ranking,
-decision flip frequency, confidence calibration and whether the supposedly
-more informative experiment amplifies error. This is the direct falsification
-suite for Blackwell-style monotonicity assumptions under misspecification.
-Compare classical EIG, EGIG/inferential-error penalties, the model-error
-criterion, nominal decision-aware DP, finite-family robust DP, TV ambiguity and
-UAI-style adversarial decision-aware design. Preserve the experiment cost and
-risk constraints across the pair.
+Do not identify inference error merely by swapping the likelihood matrix. Every
+trial must retain separate digests for the working channel, true generator and
+posterior-rule implementation/output. Compare posterior approximation
+TV(q,p_K), model posterior shift TV(p_K,p_T), and total TV(q,p_T), all weighted
+by true observation frequencies with unsupported observations counted
+separately. Also report proper expected multiclass Brier score under p_T,
+nominal Bayes risk under K, true-frequency-weighted assumed conditional risk,
+realized terminal decision loss and true-channel Bayes regret.
+
+For nominal experiment ordering, construct A/B channel pairs with an exact
+Blackwell witness or exact binary solver certificate. Under controlled
+model-only and inference-only perturbations, record when nominal information
+ranking, decision ranking and realized downstream-loss ranking diverge. Include
+non-compensating and error-cancellation interactions: two individually harmful
+mismatches can sometimes cancel at the final decision while both posterior
+error sources remain nonzero. Such cancellation must not be reported as model
+adequacy.
+
+Compare classical/cost-normalized EIG, EGIG and separate inferential/model-error
+penalties, nominal decision-aware DP, finite-family robust DP, TV/GTV ambiguity,
+UAI-style adversarial decision-aware design, COPEx and R-IDeA. Preserve identical
+experiment costs, observation vocabularies, horizons and risk constraints.
 
 ### D. Real workflow / agent transfer
 
@@ -148,6 +175,12 @@ real-workflow evaluation.
 - Held-out shift-family worst-case loss and task-family CVaR.
 - Regret to the exact per-world oracle where a per-world oracle is available;
   report the oracle as a non-deployable diagnostic, not a fair policy baseline.
+- Nominal and realized Pareto frontiers over experiment cost and downstream
+  decision loss; report dominated fractions and Pareto regret against the
+  exact small-domain frontier where available.
+- Cost-to-loss crossover rate for pairwise trade-offs, plus a pre-registered
+  sensitivity curve over the exchange-rate range. Do not select a rate by
+  maximizing sealed-test performance.
 
 ### Safety and decision integrity
 
@@ -159,8 +192,12 @@ real-workflow evaluation.
 
 ### Model and execution diagnostics
 
-- Posterior predictive log score and Brier score where ground truth is known.
+- Posterior predictive log score and proper Brier score where ground truth is known.
+- Posterior TV attribution: inference approximation vs working posterior, model
+  shift vs true posterior, and total inference-vs-truth error.
 - Calibration coverage/error overall and by apparatus, sensor and shift group.
+- Confidence / posterior error among false decisions, including high-confidence
+  wrong-decision rate and selective risk-versus-coverage curves.
 - Command delivery, partial execution, readback agreement and missing-telemetry
   rates.
 - Final physical/bench state, episode-grounded evidence and protocol violations.
@@ -171,6 +208,9 @@ real-workflow evaluation.
 - Wall-clock time, peak memory, model/query budget and generated policy nodes.
 - Planner/frontier size and exact-oracle resource use.
 - Cost per successful decision and cost per unit reduction in held-out loss.
+- Pareto hypervolume only with a predeclared common reference point and
+  dimensionless axis normalization; also publish the raw two-axis frontier so
+  hypervolume cannot conceal a normalization choice.
 
 EIG, entropy reduction and posterior concentration remain useful diagnostics;
 none is allowed to replace the downstream decision endpoint.
@@ -179,6 +219,9 @@ none is allowed to replace the downstream decision endpoint.
 
 - Freeze task generators, terminal losses, baseline versions, costs, risk
   budgets, compute caps and analysis code before opening sealed test results.
+- Freeze the cost-to-loss exchange-rate range or conversion procedure on the
+  development/calibration split. Report the whole sensitivity curve and exact
+  Pareto frontier; do not choose a single rate after viewing sealed outcomes.
 - Use paired task instances/seeds across all feasible methods.
 - Split by task family, source, ligand/material family or apparatus signature
   wherever those groupings are scientifically meaningful.
@@ -236,6 +279,13 @@ alone is not evidence of robustness or scientific progress.
   https://doi.org/10.1016/j.ejor.2025.09.024
 - Sequential Conformal Calibration under Recursive Selection, 2026:
   https://arxiv.org/abs/2610.12937
+- Robust Experimental Design via Generalised Bayesian Inference, revised
+  October 16, 2026: https://arxiv.org/abs/2511.07671
+- Goal-driven Bayesian Optimal Experimental Design for Robust Decision-Making
+  under Model Uncertainty, May 25, 2026: https://arxiv.org/abs/2605.26093
+- Decision-Making Under Model Misspecification: DRO with Robust Bayesian
+  Ambiguity Sets, Entropy 28(4), April 11, 2026:
+  https://doi.org/10.3390/e28040430
 - R-IDeA, AISTATS 2026: https://proceedings.mlr.press/v300/tang26d.html
 - Robust Sequential Experimental Design for A/B Testing, ICML 2026:
   https://proceedings.mlr.press/v306/wen26i.html
