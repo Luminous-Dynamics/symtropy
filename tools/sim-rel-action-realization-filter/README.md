@@ -131,18 +131,26 @@ certificate.
 ## Exact experiment-ordering under misspecification (SIM-REL-030)
 
 The `decision_value::experiment_ordering` module provides a finite-channel
-oracle that keeps the assumed inference channel distinct from the true
-data-generating channel. It verifies a supplied Blackwell garbling witness
-exactly, updates posteriors under the assumed stochastic channel, evaluates the
-selected terminal decision under the true channel, and reports true-channel
-Bayes regret and decision disagreement. It separates nominal model Bayes risk
-under the assumed observation law from assumed conditional risk reweighted by
-true observation frequencies. Unsupported observations trigger explicit
-abstention instead of fabricated posterior normalization.
+oracle that keeps the working likelihood model, true data-generating channel
+and supplied posterior-producing inference rule separate. It verifies a
+supplied Blackwell garbling witness exactly, updates decisions from the
+inference rule, evaluates the selected terminal decision under the true
+channel, and reports true-channel Bayes regret and decision disagreement.
+The exact-Bayes wrapper is retained for the model-only arm.
+
+For each supported observation it retains the inference posterior, exact
+working-model posterior and true posterior. It attributes posterior error as
+three distinct exact distances: inference error (inference vs. working model),
+model error (working model vs. truth), and total error (inference vs. truth).
+It also reports the expected multiclass Brier score under the true conditional
+state distribution, nominal model Bayes risk under the working observation
+law, and assumed conditional risk reweighted by true observation frequencies.
+Unsupported observations trigger explicit abstention rather than fabricated
+posterior normalization and are counted separately.
 
 Mutual information is provided only as a floating-point acquisition
-diagnostic. All posterior, expected-loss, oracle-regret and unsupported-mass
-receipts use exact rational arithmetic.
+diagnostic. All posterior, total-variation, expected-loss, Brier, oracle-regret
+and unsupported-mass receipts use exact rational arithmetic.
 
 The authored binary fixture certifies that a perfect channel Blackwell-dominates
 a symmetric 80%-accurate channel under the nominal model. The more informative
@@ -150,8 +158,11 @@ channel has one bit of nominal information, but when its sensor labels are
 inverted in the true world, its nominally zero-loss policy suffers realized loss
 1. The weaker channel, left correctly specified, has realized loss 1/5. The
 same evaluator separately tests inference-only mismatch, model-only mismatch,
-their interaction and a correctly specified negative control. This is an exact synthetic
-counterexample, not empirical physical evidence.
+their interaction and a correctly specified negative control. The factorial
+tests verify that the three posterior-error components attribute the shift
+correctly: inference-only changes inference-vs-working error; model-only
+changes working-vs-true error; their joint interaction can be non-additive.
+This is an exact synthetic counterexample, not empirical physical evidence.
 
 The module validates explicit garbling witnesses for general finite
 channels and also solves the exact two-state/two-observation case with a
