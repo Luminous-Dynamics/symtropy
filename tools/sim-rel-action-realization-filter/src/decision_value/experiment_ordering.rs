@@ -691,10 +691,8 @@ pub fn compare_experiment_pair_with_inference_rules(
     )?;
     let information_a = mutual_information_bits(assumed_a, prior)?;
     let information_b = mutual_information_bits(assumed_b, prior)?;
-    let blackwell_a_dominates_b =
-        solve_small_blackwell_garbling(assumed_a, assumed_b);
-    let blackwell_b_dominates_a =
-        solve_small_blackwell_garbling(assumed_b, assumed_a);
+    let blackwell_a_dominates_b = solve_small_blackwell_garbling(assumed_a, assumed_b);
+    let blackwell_b_dominates_a = solve_small_blackwell_garbling(assumed_b, assumed_a);
 
     let information_preference = if information_a > information_b {
         ExperimentPreference::A
@@ -1812,16 +1810,20 @@ mod tests {
         assert_eq!(comparison.realized_total_loss_a, rational(11, 10));
         assert_eq!(comparison.realized_total_loss_b, rational(3, 10));
         assert!(comparison.information_loss_ranking_reversal);
-        assert!(comparison
-            .blackwell_a_dominates_b
-            .as_ref()
-            .unwrap()
-            .is_some());
-        assert!(comparison
-            .blackwell_b_dominates_a
-            .as_ref()
-            .unwrap()
-            .is_none());
+        assert!(
+            comparison
+                .blackwell_a_dominates_b
+                .as_ref()
+                .unwrap()
+                .is_some()
+        );
+        assert!(
+            comparison
+                .blackwell_b_dominates_a
+                .as_ref()
+                .unwrap()
+                .is_none()
+        );
 
         assert_eq!(evaluation_a.nominal_model_expected_loss, Rational::zero());
         assert_eq!(
