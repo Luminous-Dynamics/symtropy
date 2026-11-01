@@ -360,7 +360,7 @@ mod tests {
         for (mu, load) in [(0.0, 2.0), (0.5, 0.0)] {
             let solution =
                 solve_tangential_friction_disk(&metric, &velocity, mu, load, 1e-12).unwrap();
-            assert_eq!(solution.impulse, SVector::zeros());
+            assert_eq!(solution.impulse, SVector::<f64, 2>::zeros());
             assert_eq!(solution.frictional_work_delta, 0.0);
         }
     }
