@@ -144,6 +144,7 @@ pub struct ModelFamilyLedgerSnapshot {
     pub frozen_policy_revision: Option<u64>,
     pub reserved_holdout_groups: Vec<SealedHoldoutGroupRegistration>,
     pub consumed_holdout_group_ids: Vec<String>,
+    pub used_validation_receipt_ids: Vec<String>,
     pub events: Vec<SequencedLedgerEvent>,
 }
 
@@ -158,6 +159,7 @@ pub struct ModelFamilyLedger {
     reserved_holdouts: BTreeMap<String, SealedHoldoutGroupRegistration>,
     consumed_holdout_group_ids: BTreeSet<String>,
     event_receipt_ids: BTreeSet<String>,
+    validation_receipt_ids: BTreeSet<String>,
     events: Vec<SequencedLedgerEvent>,
 }
 
@@ -239,6 +241,7 @@ impl ModelFamilyLedger {
             reserved_holdouts,
             consumed_holdout_group_ids: BTreeSet::new(),
             event_receipt_ids: BTreeSet::new(),
+            validation_receipt_ids: BTreeSet::new(),
             events: Vec::new(),
         })
     }
@@ -284,6 +287,7 @@ impl ModelFamilyLedger {
             frozen_policy_revision: self.frozen_policy_revision,
             reserved_holdout_groups: self.reserved_holdouts.values().cloned().collect(),
             consumed_holdout_group_ids,
+            used_validation_receipt_ids: self.validation_receipt_ids.iter().cloned().collect(),
             events: self.events.clone(),
         }
     }
@@ -300,6 +304,9 @@ impl ModelFamilyLedger {
         self.ensure_refinement_open()?;
         self.validate_new_receipt_id(&event_receipt_id)?;
         validate_validation_receipt(&validation)?;
+        if self.validation_receipt_ids.contains(&validation.receipt_id) {
+            return Err("counterexample validation receipt IDs must be unique".into());
+        }
         validate_provenance(&provenance)?;
 
         if provenance.split != EvidenceSplit::Development {
@@ -383,6 +390,7 @@ impl ModelFamilyLedger {
             event_receipt_id,
             ModelFamilyLedgerEvent::CounterexampleAdmitted(record.clone()),
         )?;
+        self.validation_receipt_ids.insert(record.validation.receipt_id.clone());
         Ok(record)
     }
 
@@ -975,6 +983,7 @@ mod tests {
         let mut no_violation = counterexample(&world("nominal"), "no-violation");
         no_violation.outcome = CounterexampleOutcome::NoViolation {
             metrics: super::super::robust_finite_horizon::WorldDecisionObjectives {
+                world_id: "no-violation".into(),
                 expected_experiment_cost: Rational::zero(),
                 expected_terminal_loss: Rational::zero(),
                 hazard_probability: Rational::zero(),
