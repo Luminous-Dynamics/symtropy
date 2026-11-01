@@ -1572,12 +1572,35 @@ mod tests {
                 "candidate-a-event".into(),
             )
             .unwrap();
+
+        // The same independent-validation receipt cannot be reused for a
+        // second admission, even when the event ID is new.
         assert!(ledger
             .admit_counterexample(
                 &valid,
                 provenance("policy-v1", EvidenceSplit::Development, "dev-b"),
+                validation(),
+                "duplicate-validation-event".into(),
+            )
+            .is_err());
+
+        // After a complete family replan, a distinct receipt still cannot
+        // re-admit the already present world ID.
+        replan(
+            &mut ledger,
+            "replan-after-duplicate-check",
+            1,
+            "policy-v2",
+            recovered_policy(),
+        )
+        .unwrap();
+        assert!(ledger
+            .admit_counterexample(
+                &valid,
+                provenance("policy-v2", EvidenceSplit::Development, "dev-b"),
                 CounterexampleValidationReceipt {
                     receipt_id: "validation-02".into(),
+                    evidence_artifact_id: "validation-evidence-02".into(),
                     ..validation()
                 },
                 "duplicate-id-event".into(),
